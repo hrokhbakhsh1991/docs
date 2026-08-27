@@ -102,6 +102,7 @@ export function OperatorNav({
               <li key={item.pathKey} data-operator-nav-item>
                 <Link
                   href={item.href}
+                  prefetch={false}
                   onClick={onNavigate}
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
@@ -126,6 +127,7 @@ export function OperatorNav({
       <div data-operator-sidebar-footer data-operator-nav-cta>
         <Link
           href={OPERATOR_WIZARD_PATH}
+          prefetch={false}
           onClick={onNavigate}
           aria-label={tApp("newTour")}
           title={tApp("newTour")}

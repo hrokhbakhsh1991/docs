@@ -56,6 +56,12 @@ describe("operator-ui-consistency.spec.ts", () => {
     assert.doesNotMatch(css, /@media \(min-width: 1200px\)[\s\S]*data-operator-sidebar-collapse-wrap/);
   });
 
+  it("WEB-OPUI-02c sidebar navigation does not prefetch heavy operator routes", () => {
+    const nav = read("src/admin/shell/operator-nav.tsx");
+    const prefetchDisabledCount = (nav.match(/prefetch=\{false\}/g) ?? []).length;
+    assert.ok(prefetchDisabledCount >= 2);
+  });
+
   it("WEB-OPUI-03 bookings inbox row shows member avatar + status badges", () => {
     const row = read("src/features/bookings/booking-inbox-row.tsx");
     const avatar = read("src/features/bookings/booking-member-avatar.tsx");
