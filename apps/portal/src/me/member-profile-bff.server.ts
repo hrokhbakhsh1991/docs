@@ -3,6 +3,7 @@ import {
   type MemberProfileCapabilities,
   type MemberProfileFieldId,
 } from "@app-tour/workspace-sdk";
+import { formatIranMobileForDisplay } from "@app-tour/catalog-registration-auth";
 
 import type {
   MemberProfileViewPayload,
@@ -37,7 +38,10 @@ const IDENTITY_FIELD_READERS: Readonly<
   Record<MemberProfileFieldId, (identity: IdentityMeUpstream) => string | null>
 > = Object.freeze({
   displayName: (identity) => readTrimmedString(identity.displayName),
-  mobile: (identity) => readTrimmedString(identity.mobile),
+  mobile: (identity) => {
+    const raw = readTrimmedString(identity.mobile);
+    return raw !== null ? formatIranMobileForDisplay(raw) : null;
+  },
   email: (identity) => readTrimmedString(identity.email),
   nationalId: (identity) => readTrimmedString(identity.nationalId),
   fatherName: (identity) => readTrimmedString(identity.fatherName),

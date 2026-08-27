@@ -121,7 +121,7 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
     ) as { readonly profile?: { readonly mobileChange?: { readonly start?: string } } };
     assert.match(form, /currentMobile=\{profile\.fields\.mobile\}/);
     assert.match(change, /data-member-profile-mobile-change-value/);
-    assert.match(change, /currentMobile \?\? "—"/);
+    assert.match(change, /formatIranMobileForDisplay\(currentMobile\)/);
     assert.match(change, /data-member-profile-mobile-change-start/);
     assert.doesNotMatch(form, /resolveGuestMemberChipLabel/);
     assert.doesNotMatch(change, /resolveGuestMemberChipLabel/);
