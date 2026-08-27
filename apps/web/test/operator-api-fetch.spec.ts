@@ -34,6 +34,7 @@ function defer<T>() {
 describe("operatorApiFetch", () => {
   const previousLimit = process.env.OPERATOR_BFF_MAX_CONCURRENT_API_FETCHES;
   const previousReadTimeout = process.env.OPERATOR_BFF_READ_TIMEOUT_MS;
+  const previousWriteTimeout = process.env.OPERATOR_BFF_WRITE_TIMEOUT_MS;
 
   afterEach(() => {
     resetOperatorApiFetchLimiterForTests();
@@ -46,6 +47,11 @@ describe("operatorApiFetch", () => {
       delete process.env.OPERATOR_BFF_READ_TIMEOUT_MS;
     } else {
       process.env.OPERATOR_BFF_READ_TIMEOUT_MS = previousReadTimeout;
+    }
+    if (previousWriteTimeout === undefined) {
+      delete process.env.OPERATOR_BFF_WRITE_TIMEOUT_MS;
+    } else {
+      process.env.OPERATOR_BFF_WRITE_TIMEOUT_MS = previousWriteTimeout;
     }
   });
 
@@ -181,6 +187,29 @@ describe("operatorApiFetch", () => {
       /AbortError|aborted/
     );
 
+    assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
+    assert.equal(getQueuedOperatorApiFetchCountForTests(), 0);
+  });
+
+  it("times out hung write-side upstream requests without retrying", async () => {
+    process.env.OPERATOR_BFF_WRITE_TIMEOUT_MS = "20";
+    let calls = 0;
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      calls += 1;
+      await new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
+
+    await assert.rejects(
+      operatorApiFetch("http://api.test/auth/request-otp", { method: "POST" }, fetchImpl),
+      /AbortError|aborted/
+    );
+
+    assert.equal(calls, 1);
     assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
     assert.equal(getQueuedOperatorApiFetchCountForTests(), 0);
   });
