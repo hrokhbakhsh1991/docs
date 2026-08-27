@@ -61,6 +61,95 @@ export function postgresFinanceObligationIntake(
   };
 }
 
+/** Postgres finance HTTP specs — tour SoT pricing when obligation override is absent. */
+export function postgresFinanceTourPricingCanonical(basePricePerPerson = 2_500_000): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    roots: ["pricing"],
+    data: {
+      title: "Finance Postgres Tour",
+      publishStatus: "published",
+      capacityMax: 20,
+      pricing: {
+        basePricePerPerson: basePricePerPerson,
+        paymentMode: "offline_receipt",
+        paymentCollection: "offline",
+      },
+    },
+  };
+}
+
+export async function postgresFinanceEnsureTour(
+  admin: {
+    tour: {
+      create: (args: {
+        data: {
+          id: string;
+          tenantId: string;
+          title: string;
+          publishStatus: string;
+          canonical: Record<string, unknown>;
+        };
+      }) => Promise<unknown>;
+    };
+  },
+  tenantId: string,
+  tourId: string,
+  basePricePerPerson = 2_500_000
+): Promise<void> {
+  await admin.tour.create({
+    data: {
+      id: tourId,
+      tenantId,
+      title: "Finance Postgres Tour",
+      publishStatus: "published",
+      canonical: postgresFinanceTourPricingCanonical(basePricePerPerson),
+    },
+  });
+}
+
+export async function postgresFinanceSeedRegistration(
+  admin: {
+    $transaction: <T>(fn: (tx: {
+      $executeRaw: (query: unknown) => Promise<unknown>;
+      operatorRegistration: {
+        create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
+      };
+    }) => Promise<T>) => Promise<T>;
+  },
+  input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly tourId: string;
+    readonly amountMinor?: string;
+    readonly submittedByUserId?: string;
+    readonly guestLabel?: string;
+  }
+): Promise<void> {
+  const amountMinor = input.amountMinor ?? "5000000";
+  const submittedByUserId = input.submittedByUserId ?? randomUUID();
+  await admin.$transaction(async (tx) => {
+    await tx.$executeRaw`
+      SELECT set_config('app.current_tenant_id', ${input.tenantId}::text, true)
+    `;
+    await tx.operatorRegistration.create({
+      data: {
+        id: input.registrationId,
+        tenantId: input.tenantId,
+        tourId: input.tourId,
+        tourTitle: "Finance Postgres Tour",
+        guestLabel: input.guestLabel ?? "Finance Guest",
+        partySize: 1,
+        status: "pending",
+        paymentStatus: "unpaid",
+        departureAt: new Date("2026-08-01T00:00:00.000Z"),
+        submittedByUserId,
+        registrationIntake: postgresFinanceObligationIntake(amountMinor, submittedByUserId),
+      },
+    });
+  });
+}
+
 export function createTestToursService(
   store: TourStorageRepository = new InMemoryTourRepository()
 ): ToursService {

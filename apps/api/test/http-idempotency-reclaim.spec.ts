@@ -19,7 +19,7 @@ import {
   resolveHttpIdempotencyProcessingReclaimMs,
 } from "../src/http/http-idempotency-reclaim";
 import { buildPrepaymentDomainEventIds } from "../src/workspace-finance/finance.service";
-import { integrationTenantId, postgresFinanceObligationIntake } from "./test-helpers";
+import { integrationTenantId, postgresFinanceEnsureTour, postgresFinanceSeedRegistration } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -106,6 +106,7 @@ async function requestJson(
 
 describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatabase, concurrency: false }, () => {
   const denaliTenantId = integrationTenantId();
+  const denaliTourId = randomUUID();
   let admin: PrismaClient;
   const listener = createRequestListener();
   const priorReclaimMs = process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS;
@@ -131,12 +132,22 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
         theme: {},
       },
     });
+    await postgresFinanceEnsureTour(admin, denaliTenantId, denaliTourId);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    delete process.env.PAYMENT_HOLD_ENABLED;
+    delete process.env.PAYMENT_HOLD_EXPIRY_ENABLED;
     process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS = String(reclaimMs);
     process.env.OUTBOX_RELAY_ENABLED = "false";
+    resetLazyFinanceServiceForTests();
     resetHttpIdempotencyMemoryForTests();
+    await admin.financeCommercialQuote.deleteMany({ where: { tenantId: denaliTenantId } });
+    await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId: denaliTenantId } });
+    await admin.outboxEvent.deleteMany({ where: { tenantId: denaliTenantId } });
+    await admin.paymentReceipt.deleteMany({ where: { tenantId: denaliTenantId } });
+    await admin.payment.deleteMany({ where: { tenantId: denaliTenantId } });
+    await admin.operatorRegistration.deleteMany({ where: { tenantId: denaliTenantId } });
   });
 
   after(async () => {
@@ -158,6 +169,7 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
     await admin.paymentReceipt.deleteMany({ where: { tenantId: denaliTenantId } });
     await admin.payment.deleteMany({ where: { tenantId: denaliTenantId } });
     await admin.operatorRegistration.deleteMany({ where: { tenantId: denaliTenantId } });
+    await admin.tour.deleteMany({ where: { id: denaliTourId } });
     await admin.tenant.deleteMany({ where: { id: denaliTenantId } });
     await admin.$executeRawUnsafe(
       `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
@@ -429,25 +441,11 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
 
   it("IDEM-RECLAIM-04 approve stuck processing → reclaim → same key retry (one ledger)", async () => {
     const registrationId = randomUUID();
-    await admin.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT set_config('app.current_tenant_id', ${denaliTenantId}::text, true)
-      `;
-      await tx.operatorRegistration.create({
-        data: {
-          id: registrationId,
-          tenantId: denaliTenantId,
-          tourId: randomUUID(),
-          tourTitle: "Idem Reclaim Tour",
-          guestLabel: "Guest",
-          partySize: 1,
-          status: "pending",
-          paymentStatus: "unpaid",
-          departureAt: new Date("2026-08-01T00:00:00.000Z"),
-          submittedByUserId: randomUUID(),
-          registrationIntake: postgresFinanceObligationIntake("5000000"),
-        },
-      });
+    await postgresFinanceSeedRegistration(admin, {
+      tenantId: denaliTenantId,
+      registrationId,
+      tourId: denaliTourId,
+      amountMinor: "5000000",
     });
 
     const manual = await requestJson(listener, {

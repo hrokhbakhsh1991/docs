@@ -23,7 +23,7 @@ import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-work
 import { disconnectPrisma } from "../src/db/prisma";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { reclaimStaleProcessingHttpIdempotencyRecords } from "../src/http/http-idempotency-reclaim";
-import { integrationTenantId, postgresFinanceObligationIntake } from "./test-helpers";
+import { integrationTenantId, postgresFinanceEnsureTour, postgresFinanceSeedRegistration } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -207,6 +207,8 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
   const denaliTenantBId = integrationTenantId();
   const urbanTenantId = integrationTenantId();
   const disabledFinanceTenantId = integrationTenantId();
+  const denaliTourId = randomUUID();
+  const denaliTourBId = randomUUID();
   let admin: PrismaClient;
   const listener = createRequestListener();
   const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
@@ -254,11 +256,24 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
         },
       ],
     });
+    await postgresFinanceEnsureTour(admin, denaliTenantId, denaliTourId);
+    await postgresFinanceEnsureTour(admin, denaliTenantBId, denaliTourBId);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    delete process.env.PAYMENT_HOLD_ENABLED;
+    delete process.env.PAYMENT_HOLD_EXPIRY_ENABLED;
     delete process.env.P5_ATOMIC_TX_TEST_ABORT;
+    resetLazyFinanceServiceForTests();
     resetHttpIdempotencyMemoryForTests();
+    for (const tenantId of tenantIds()) {
+      await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
+      await admin.financeCommercialQuote.deleteMany({ where: { tenantId } });
+      await admin.paymentReceipt.deleteMany({ where: { tenantId } });
+      await admin.payment.deleteMany({ where: { tenantId } });
+      await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+      await admin.outboxEvent.deleteMany({ where: { tenantId } });
+    }
   });
 
   after(async () => {
@@ -273,12 +288,14 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     try {
       for (const tenantId of tenantIds()) {
         await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
+        await admin.financeCommercialQuote.deleteMany({ where: { tenantId } });
         await admin.paymentReceipt.deleteMany({ where: { tenantId } });
         await admin.payment.deleteMany({ where: { tenantId } });
         await admin.operatorRegistration.deleteMany({ where: { tenantId } });
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
         await admin.tenant.delete({ where: { id: tenantId } });
       }
+      await admin.tour.deleteMany({ where: { id: { in: [denaliTourId, denaliTourBId] } } });
     } finally {
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
@@ -299,25 +316,11 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
   }> {
     const registrationId = randomUUID();
     if (input.withBooking) {
-      await admin.$transaction(async (tx) => {
-        await tx.$executeRaw`
-          SELECT set_config('app.current_tenant_id', ${input.tenantId}::text, true)
-        `;
-        await tx.operatorRegistration.create({
-          data: {
-            id: registrationId,
-            tenantId: input.tenantId,
-            tourId: randomUUID(),
-            tourTitle: "Finance Ops Tour",
-            guestLabel: "Finance Guest",
-            partySize: 1,
-            status: "pending",
-            paymentStatus: "unpaid",
-            departureAt: new Date("2026-08-01T00:00:00.000Z"),
-            submittedByUserId: randomUUID(),
-            registrationIntake: postgresFinanceObligationIntake(input.amount ?? "5000000"),
-          },
-        });
+      await postgresFinanceSeedRegistration(admin, {
+        tenantId: input.tenantId,
+        registrationId,
+        tourId: input.tenantId === denaliTenantBId ? denaliTourBId : denaliTourId,
+        amountMinor: input.amount ?? "5000000",
       });
     }
     const manual = await requestJson(listener, {
@@ -461,25 +464,13 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
   it("AUTHZ-RECEIPT-01 member can POST /finance/receipts for own registration payment", async () => {
     const ownerUserId = randomUUID();
     const registrationId = randomUUID();
-    await admin.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT set_config('app.current_tenant_id', ${denaliTenantId}::text, true)
-      `;
-      await tx.operatorRegistration.create({
-        data: {
-          id: registrationId,
-          tenantId: denaliTenantId,
-          tourId: randomUUID(),
-          tourTitle: "Authz Own Receipt Tour",
-          guestLabel: "Owner Guest",
-          partySize: 1,
-          status: "pending",
-          paymentStatus: "unpaid",
-          departureAt: new Date("2026-08-01T00:00:00.000Z"),
-          submittedByUserId: ownerUserId,
-          registrationIntake: postgresFinanceObligationIntake("1500000", ownerUserId),
-        },
-      });
+    await postgresFinanceSeedRegistration(admin, {
+      tenantId: denaliTenantId,
+      registrationId,
+      tourId: denaliTourId,
+      amountMinor: "1500000",
+      submittedByUserId: ownerUserId,
+      guestLabel: "Owner Guest",
     });
     const manual = await requestJson(listener, {
       method: "POST",
@@ -507,25 +498,13 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     const ownerUserId = randomUUID();
     const strangerUserId = randomUUID();
     const registrationId = randomUUID();
-    await admin.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT set_config('app.current_tenant_id', ${denaliTenantId}::text, true)
-      `;
-      await tx.operatorRegistration.create({
-        data: {
-          id: registrationId,
-          tenantId: denaliTenantId,
-          tourId: randomUUID(),
-          tourTitle: "Authz IDOR Tour",
-          guestLabel: "Owner Guest",
-          partySize: 1,
-          status: "pending",
-          paymentStatus: "unpaid",
-          departureAt: new Date("2026-08-01T00:00:00.000Z"),
-          submittedByUserId: ownerUserId,
-          registrationIntake: postgresFinanceObligationIntake("1500000", ownerUserId),
-        },
-      });
+    await postgresFinanceSeedRegistration(admin, {
+      tenantId: denaliTenantId,
+      registrationId,
+      tourId: denaliTourId,
+      amountMinor: "1500000",
+      submittedByUserId: ownerUserId,
+      guestLabel: "Owner Guest",
     });
     const manual = await requestJson(listener, {
       method: "POST",
