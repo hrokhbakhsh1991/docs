@@ -1,3 +1,5 @@
+import { createClientSafeUuid } from "@app-tour/draft-engine";
+
 export type PlatformLocationZone = {
   readonly id: string;
   readonly label: string;
@@ -55,10 +57,7 @@ export function parsePlatformLocationData(value: unknown): PlatformLocationData 
 }
 
 export function newPlatformLocationZoneId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `zone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return createClientSafeUuid();
 }
 
 export function serializePlatformLocationData(data: PlatformLocationData): Record<string, unknown> {

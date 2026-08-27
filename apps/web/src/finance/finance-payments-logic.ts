@@ -1,3 +1,4 @@
+import { createClientSafeId } from "@app-tour/draft-engine";
 import type { FinanceRegistrationContext } from "@/finance/finance-registration-context";
 import {
   parseFinanceRegistrationContext,
@@ -262,10 +263,7 @@ export function mapCancelPendingManualPaymentHttpError(
 }
 
 export function createFinanceIdempotencyKey(prefix: string): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-  return `${prefix}-${Date.now()}`;
+  return createClientSafeId(prefix);
 }
 
 export function buildFinancePaymentReceiptsHref(registrationId: string): string {

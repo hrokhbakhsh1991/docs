@@ -1,3 +1,4 @@
+import { createClientSafeId } from "@app-tour/draft-engine";
 import { denaliCatalogTransportIntakeSurface } from "./denali-catalog-transport-intake";
 import type {
   CatalogRegistrationPortalPayload,
@@ -191,7 +192,7 @@ export const denaliCatalogIntakeSurface: WorkspaceCatalogIntakeSurface = Object.
   buildUpstreamRequest: (payload, options) => {
     const key =
       options?.idempotencyKey?.trim() ||
-      `portal-denali-reg-${payload.tourId.trim()}-${globalThis.crypto.randomUUID()}`;
+      createClientSafeId(`portal-denali-reg-${payload.tourId.trim()}`);
     return buildDenaliContactV1(payload, key);
   },
 });

@@ -1,4 +1,5 @@
 export { DraftEngine } from "./engine";
+export { createClientSafeId, createClientSafeUuid } from "./client-safe-id";
 export {
   DEFAULT_TRANSIENT_HTTP_STATUSES,
   fetchWithTransientRetry,

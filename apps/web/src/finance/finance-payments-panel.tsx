@@ -1,5 +1,6 @@
 "use client";
 
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 import type { VariantProps } from "class-variance-authority";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
@@ -566,10 +567,7 @@ export function FinancePaymentsPanel({
     }
     setSaving(true);
     try {
-      const idempotencyKey =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `manual-pay-${Date.now()}`;
+      const idempotencyKey = createClientSafeUuid();
       const response = await fetch("/api/finance/payments/manual", {
         method: "POST",
         headers: {
@@ -626,10 +624,7 @@ export function FinancePaymentsPanel({
     }
     setReceiptSaving(true);
     try {
-      const idempotencyKey =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `receipt-submit-${Date.now()}`;
+      const idempotencyKey = createClientSafeUuid();
       const response = await fetch("/api/finance/receipts", {
         method: "POST",
         headers: {

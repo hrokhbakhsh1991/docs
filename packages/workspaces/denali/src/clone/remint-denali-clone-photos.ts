@@ -1,3 +1,4 @@
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 import {
   buildDenaliTourPhotoObjectKey,
   buildDenaliWizardDraftPhotoObjectKey,
@@ -13,10 +14,7 @@ export type DenaliClonePhotoRemintTarget =
 export type DenaliPhotoRemintPlanEntry = WizardPhotoRemintPlanEntry;
 
 function createPhotoId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  throw new Error("DENALI_PHOTO_ID_UNAVAILABLE");
+  return createClientSafeUuid();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

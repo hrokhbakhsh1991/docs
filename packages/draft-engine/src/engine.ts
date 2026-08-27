@@ -11,6 +11,7 @@ import {
   type DraftSyncEvent,
   type DraftSyncPayload,
 } from "./types";
+import { createClientSafeUuid } from "./client-safe-id";
 
 const DEFAULT_DEBOUNCE_MS = 500;
 const PUSH_RETRY_BACKOFF_MS = [1000, 2000] as const;
@@ -64,7 +65,7 @@ export class DraftEngine<T> {
   }
 
   private newIntentId(): string {
-    return crypto.randomUUID();
+    return createClientSafeUuid();
   }
 
   private emitDiagnostic(event: DraftSyncEvent): void {

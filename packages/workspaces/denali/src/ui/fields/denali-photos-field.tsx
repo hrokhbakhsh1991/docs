@@ -1,5 +1,6 @@
 "use client";
 
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isDenaliHttpsImageUrl } from "../../schemas/denaliFileAssetSchema";
 import { isDenaliWizardDraftSessionId } from "../../draft";
@@ -38,10 +39,7 @@ type DenaliPhotosFieldProps = {
 };
 
 function newPhotoId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return createClientSafeUuid();
 }
 
 function readPhotosFromDraft(base: DenaliTourWizardDraft): DenaliTourPhoto[] {

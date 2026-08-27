@@ -1,3 +1,5 @@
+import { createClientSafeUuid } from "@app-tour/draft-engine";
+
 /**
  * PR18-B — reviewReceipt Command Bridge client helpers (intent + typed results).
  * Does not call FinanceService; does not import finance-core Case internals.
@@ -186,10 +188,7 @@ export function parseFinanceCaseCommandClientResult(
 }
 
 export function createCommandIdempotencyKey(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `cmd-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return createClientSafeUuid();
 }
 
 /** Web BFF path — never the Host FinanceService module. */

@@ -1,5 +1,6 @@
 "use client";
 
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
@@ -278,10 +279,7 @@ export function FinanceReceiptReviewContent({
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (validated.value.decision === "approve") {
-        headers["Idempotency-Key"] =
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-            ? crypto.randomUUID()
-            : `approve-${receipt.id}-${Date.now()}`;
+        headers["Idempotency-Key"] = createClientSafeUuid();
       }
       const response = await fetch(`/api/finance/receipts/${receipt.id}/review`, {
         method: "PATCH",

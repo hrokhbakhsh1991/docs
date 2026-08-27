@@ -1,8 +1,9 @@
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 import { fetchPlatformApi } from "../platform-api-client";
 import { buildCreateClubSuccessPath, type CreateClubDraft } from "./use-create-club-wizard";
 
 export function generateCreateClubIdempotencyKey(): string {
-  return crypto.randomUUID();
+  return createClientSafeUuid();
 }
 
 export type CreateClubSubmitResult =

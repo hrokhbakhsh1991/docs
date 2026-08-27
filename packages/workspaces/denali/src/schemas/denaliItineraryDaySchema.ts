@@ -1,3 +1,4 @@
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 import { z } from "zod";
 
 export const DENALI_ITINERARY_SEGMENT_KINDS = [
@@ -63,10 +64,7 @@ export const denaliItineraryDayRowSchema = z.object({
 });
 
 export function createDenaliItinerarySegmentId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `seg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return createClientSafeUuid();
 }
 
 export function createEmptyDenaliItinerarySegment(): DenaliItinerarySegment {

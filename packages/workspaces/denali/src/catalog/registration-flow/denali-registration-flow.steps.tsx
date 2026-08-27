@@ -1,5 +1,6 @@
 "use client";
 
+import { createClientSafeId } from "@app-tour/draft-engine";
 import { RenderIntakeForm } from "@app-tour/catalog-intake-ui";
 import {
   catalogRegistrationAuthFlowSteps,
@@ -465,10 +466,7 @@ export function DenaliIntakeStep({
     setInvalidField(null);
     setSubmitResults(null);
 
-    const submitSeed =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `portal-denali-reg-${context.tourId}-${Date.now()}`;
+    const submitSeed = createClientSafeId(`portal-denali-reg-${context.tourId}`);
 
     type ParticipantToPost =
       | { readonly target: "self"; readonly draft: ParticipantDraft; readonly idx: 0 }
