@@ -54,6 +54,7 @@
   "dependencies": {
     "@app-tour/booking-http-contracts": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/draft-engine": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/catalog-registration-auth": "workspace:*"

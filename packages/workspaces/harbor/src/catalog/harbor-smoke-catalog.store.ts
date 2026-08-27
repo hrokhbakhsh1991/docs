@@ -3,6 +3,7 @@ import type {
   WorkspaceGuestSmokeRegistrationInput,
   WorkspaceGuestSmokeRegistrationResult,
 } from "@app-tour/workspace-sdk";
+import { createClientSafeUuid } from "@app-tour/draft-engine";
 
 import {
   buildHarborSmokeCatalogCard,
@@ -18,7 +19,7 @@ type HarborSmokeRegistrationRecord = WorkspaceGuestSmokeRegistrationResult & {
 };
 
 function newRegistrationId(): string {
-  return globalThis.crypto.randomUUID();
+  return createClientSafeUuid();
 }
 
 /**
