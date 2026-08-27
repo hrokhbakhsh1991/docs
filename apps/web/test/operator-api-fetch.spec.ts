@@ -99,6 +99,42 @@ describe("operatorApiFetch", () => {
     assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
   });
 
+  it("defaults below the API tenant DB budget while avoiding two-slot head-of-line blocking", async () => {
+    delete process.env.OPERATOR_BFF_MAX_CONCURRENT_API_FETCHES;
+    let active = 0;
+    let maxActive = 0;
+    const releases = [defer<void>(), defer<void>(), defer<void>(), defer<void>()];
+    let calls = 0;
+
+    const fetchImpl: typeof fetch = async () => {
+      const release = releases[calls++]!;
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await release.promise;
+      active -= 1;
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
+
+    const requests = [
+      operatorApiFetch("http://api.test/one", { method: "GET" }, fetchImpl),
+      operatorApiFetch("http://api.test/two", { method: "GET" }, fetchImpl),
+      operatorApiFetch("http://api.test/three", { method: "GET" }, fetchImpl),
+      operatorApiFetch("http://api.test/four", { method: "GET" }, fetchImpl),
+    ];
+
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls, 3);
+    assert.equal(maxActive, 3);
+    assert.equal(getActiveOperatorApiFetchCountForTests(), 3);
+    assert.equal(getQueuedOperatorApiFetchCountForTests(), 1);
+
+    releases.forEach((release) => release.resolve());
+    await Promise.all(requests);
+
+    assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
+    assert.equal(getQueuedOperatorApiFetchCountForTests(), 0);
+  });
+
   it("retries retryable read-side tenant DB budget responses once", async () => {
     let calls = 0;
     const fetchImpl: typeof fetch = async () => {

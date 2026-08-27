@@ -6,6 +6,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import {
+  bumpTenantBrandingLogoCache,
+  fetchTenantBrandingShared,
+} from "../src/tenant/tenant-branding-logo-cache";
+
 const WEB_ROOT = join(import.meta.dirname, "..");
 
 describe("settings-branding-rbac.spec.ts", () => {
@@ -69,6 +74,7 @@ describe("settings-branding-rbac.spec.ts", () => {
   it("WEB-BRANDING-LIVE-04b shared branding snapshot dedupes concurrent branding requests", async () => {
     const originalFetch = globalThis.fetch;
     const calls: string[] = [];
+    bumpTenantBrandingLogoCache();
     globalThis.fetch = (async (input: RequestInfo | URL) => {
       const url = String(input);
       calls.push(url);
@@ -94,19 +100,19 @@ describe("settings-branding-rbac.spec.ts", () => {
     }) as typeof fetch;
 
     try {
-      const cache = await import(`../src/tenant/tenant-branding-logo-cache.ts?case=${Date.now()}`);
       const [first, second] = await Promise.all([
-        cache.fetchTenantBrandingShared(),
-        cache.fetchTenantBrandingShared(),
+        fetchTenantBrandingShared(),
+        fetchTenantBrandingShared(),
       ]);
       assert.equal(first?.logoUrl, "https://cdn.test/denali.png");
       assert.equal(second?.branding.displayNameFa, "دنالی");
       assert.deepEqual(calls, ["/api/settings/branding", "/api/settings/branding/logo/url"]);
 
-      await cache.fetchTenantBrandingShared();
+      await fetchTenantBrandingShared();
       assert.deepEqual(calls, ["/api/settings/branding", "/api/settings/branding/logo/url"]);
     } finally {
       globalThis.fetch = originalFetch;
+      bumpTenantBrandingLogoCache();
     }
   });
 
