@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 
 import { OPERATOR_NAV_TEST_IDS } from "../src/admin/shell/operator-nav.types";
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../src/features/bookings/bookings-command-center-types";
+import { USERS_DIRECTORY_TEST_IDS } from "../src/features/users/users-directory-types";
 import { FINANCE_TOUR_FILTER_TEST_IDS } from "../src/finance/finance-tour-filter";
 import { loginOperatorOwner } from "./fixtures/operator-owner-session";
 
@@ -17,8 +18,12 @@ const sweep = test.extend({
 });
 
 async function openUsersDrawer(page: import("@playwright/test").Page) {
-  const openBtn = page.getByRole("button", { name: /باز کردن عضو/i }).first();
+  await page.waitForLoadState("networkidle");
+  const openBtn = page
+    .locator(`[data-testid="${USERS_DIRECTORY_TEST_IDS.rowDetails}"]:visible`)
+    .first();
   await expect(openBtn).toBeVisible({ timeout: 15_000 });
+  await openBtn.click({ trial: true });
   await openBtn.click();
   await expect(page.locator("[data-operator-sheet-panel]")).toBeVisible({ timeout: 5_000 });
 }
@@ -42,16 +47,78 @@ async function readDrawerMetrics(page: import("@playwright/test").Page) {
       width: Math.round(rect.width),
       animationName: cs.animationName,
       animationDuration: cs.animationDuration,
+      transform: cs.transform,
+      transformOrigin: cs.transformOrigin,
       overlayAnimation: overlayCs?.animationName ?? null,
     };
   });
 }
 
+function readTranslateX(transform: string): number {
+  if (transform === "none") return 0;
+  const matrix3d = transform.match(/^matrix3d\((.+)\)$/);
+  if (matrix3d) {
+    const values = matrix3d[1]!.split(",").map((value) => Number(value.trim()));
+    return values[12] ?? 0;
+  }
+  const matrix = transform.match(/^matrix\((.+)\)$/);
+  if (matrix) {
+    const values = matrix[1]!.split(",").map((value) => Number(value.trim()));
+    return values[4] ?? 0;
+  }
+  return 0;
+}
+
+async function sampleDrawerMotion(
+  page: import("@playwright/test").Page,
+  action: () => Promise<void>
+) {
+  const samples: Array<{
+    state: string | null;
+    animationName: string;
+    animationDuration: string;
+    transform: string;
+    translateX: number;
+    left: number;
+    right: number;
+  }> = [];
+
+  await action();
+  for (const delay of [16, 80, 160]) {
+    await page.waitForTimeout(delay);
+    const sample = await page.evaluate(() => {
+      const panel = document.querySelector("[data-operator-sheet-panel]");
+      if (!panel) return null;
+      const rect = panel.getBoundingClientRect();
+      const cs = getComputedStyle(panel);
+      return {
+        state: panel.getAttribute("data-state"),
+        animationName: cs.animationName,
+        animationDuration: cs.animationDuration,
+        transform: cs.transform,
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+      };
+    });
+    if (sample !== null) {
+      samples.push({ ...sample, translateX: readTranslateX(sample.transform) });
+    }
+  }
+  return samples;
+}
+
+async function closeUsersDrawer(page: import("@playwright/test").Page) {
+  const closeBtn = page.getByRole("button", { name: "Close" });
+  const closing = await sampleDrawerMotion(page, () => closeBtn.click());
+  await expect(page.locator("[data-operator-sheet-panel]")).toBeHidden({ timeout: 5_000 });
+  return closing;
+}
+
 test.describe("operator-ux-runtime-sweep", () => {
   sweep("§1 users drawer RTL 1440", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/users", { waitUntil: "domcontentloaded" });
-    await openUsersDrawer(page);
+    await page.goto("/users", { waitUntil: "networkidle" });
+    const opening = await sampleDrawerMotion(page, () => openUsersDrawer(page));
     const metrics = await readDrawerMetrics(page);
     expect(metrics).not.toBeNull();
     expect(metrics?.dir).toBe("rtl");
@@ -59,25 +126,35 @@ test.describe("operator-ux-runtime-sweep", () => {
     expect(metrics?.enterFrom).toBe("left");
     expect(metrics?.left).toBeLessThan(40);
     expect(metrics?.animationName).toContain("slide-in-left");
+    expect(metrics?.animationDuration).toBe("0.28s");
+    expect(metrics?.transformOrigin).toContain("0px");
+    expect(opening.some((sample) => sample.translateX < 0)).toBeTruthy();
 
-    const closeBtn = page.getByRole("button", { name: "Close" });
-    await closeBtn.click();
-    await page.waitForTimeout(40);
-    const closing = await page.evaluate(() => {
-      const panel = document.querySelector("[data-operator-sheet-panel]");
-      if (!panel) return { gone: true };
-      return { animation: getComputedStyle(panel).animationName, state: panel.getAttribute("data-state") };
-    });
-    expect(closing.gone || closing.animation?.includes("slide-out-left")).toBeTruthy();
+    const closing = await closeUsersDrawer(page);
+    expect(
+      closing.some(
+        (sample) => sample.animationName.includes("slide-out-left") && sample.translateX < 0
+      )
+    ).toBeTruthy();
+
+    const reopening = await sampleDrawerMotion(page, () => openUsersDrawer(page));
+    expect(reopening.some((sample) => sample.translateX < 0)).toBeTruthy();
   });
 
   sweep("§1 users drawer RTL 1024", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.goto("/users", { waitUntil: "domcontentloaded" });
-    await openUsersDrawer(page);
+    await page.goto("/users", { waitUntil: "networkidle" });
+    const opening = await sampleDrawerMotion(page, () => openUsersDrawer(page));
     const metrics = await readDrawerMetrics(page);
     expect(metrics?.side).toBe("left");
     expect(metrics?.animationName).toContain("slide-in-left");
+    expect(opening.some((sample) => sample.translateX < 0)).toBeTruthy();
+    const closing = await closeUsersDrawer(page);
+    expect(
+      closing.some(
+        (sample) => sample.animationName.includes("slide-out-left") && sample.translateX < 0
+      )
+    ).toBeTruthy();
   });
 
   sweep("§1 users drawer LTR 1440", async ({ page, context }) => {
@@ -85,13 +162,38 @@ test.describe("operator-ux-runtime-sweep", () => {
       { name: "NEXT_LOCALE", value: "en", domain: "admin.denali.localhost", path: "/" },
     ]);
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/users", { waitUntil: "domcontentloaded" });
-    await openUsersDrawer(page);
+    await page.goto("/users", { waitUntil: "networkidle" });
+    const opening = await sampleDrawerMotion(page, () => openUsersDrawer(page));
     const metrics = await readDrawerMetrics(page);
     expect(metrics?.dir).toBe("ltr");
     expect(metrics?.side).toBe("right");
     expect(metrics?.right).toBeGreaterThan(700);
     expect(metrics?.animationName).toContain("slide-in-right");
+    expect(metrics?.transformOrigin).toContain(`${metrics?.width}px`);
+    expect(opening.some((sample) => sample.translateX > 0)).toBeTruthy();
+    const closing = await closeUsersDrawer(page);
+    expect(
+      closing.some(
+        (sample) => sample.animationName.includes("slide-out-right") && sample.translateX > 0
+      )
+    ).toBeTruthy();
+  });
+
+  sweep("§1 users drawer reduced-motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/users", { waitUntil: "networkidle" });
+    await openUsersDrawer(page);
+    const metrics = await readDrawerMetrics(page);
+    expect(metrics?.side).toBe("left");
+    expect(metrics?.animationName).toBe("none");
+    expect(metrics?.transform).toBe("none");
+    expect(metrics?.overlayAnimation).toBe("none");
+    const closing = await closeUsersDrawer(page);
+    expect(
+      closing.length === 0 ||
+        closing.every((sample) => sample.animationName === "none" && sample.transform === "none")
+    ).toBeTruthy();
   });
 
   sweep("§2 sidebar expanded/collapsed 1440", async ({ page }) => {

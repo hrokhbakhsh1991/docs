@@ -2,7 +2,7 @@ import {
   isKnownEquipmentIconKey,
   type EquipmentIconKey,
 } from "../../settings/equipment-icon-registry";
-import { themeDisplayInitials, themeSwatchToneClass } from "../logic/denali-theme-picker-logic";
+import { themeSwatchToneClass } from "../logic/denali-theme-picker-logic";
 import { EquipmentIcon } from "./equipment-icons";
 
 export type EquipmentCatalogAvatarProps = {
@@ -14,7 +14,6 @@ export type EquipmentCatalogAvatarProps = {
 
 export function EquipmentCatalogAvatar({
   id,
-  name,
   iconKey,
   className,
 }: EquipmentCatalogAvatarProps) {
@@ -29,7 +28,7 @@ export function EquipmentCatalogAvatar({
       {resolvedIconKey !== null ? (
         <EquipmentIcon iconKey={resolvedIconKey} className="denali-equipment-icon" />
       ) : (
-        themeDisplayInitials(name)
+        <EquipmentIcon iconKey="tool" className="denali-equipment-icon" />
       )}
     </span>
   );

@@ -405,7 +405,7 @@
       "iconSearchPlaceholder": "Icon or gear name…",
       "iconSuggestion": "Suggested: {label}",
       "iconSuggestionApply": "Apply suggestion",
-      "iconUseInitials": "No icon (name initials)",
+      "iconUseInitials": "Use neutral icon",
       "iconCategoriesLabel": "Icon categories",
       "iconCategories": {
         "hiking": "Hiking",

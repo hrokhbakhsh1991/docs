@@ -48,6 +48,14 @@ describe("resolve-operator-sheet-side.spec.ts", () => {
     );
     assert.match(motionCss, /\[data-operator-sheet-side="left"\][\s\S]*left:\s*0/);
     assert.match(motionCss, /\[data-operator-sheet-side="right"\][\s\S]*right:\s*0/);
+    assert.match(
+      motionCss,
+      /\[data-operator-sheet-side="left"\][\s\S]*transform-origin:\s*left center/
+    );
+    assert.match(
+      motionCss,
+      /\[data-operator-sheet-side="right"\][\s\S]*transform-origin:\s*right center/
+    );
   });
 
   it("WEB-SHEET-04 shared Sheet exposes enter-from attribute", () => {

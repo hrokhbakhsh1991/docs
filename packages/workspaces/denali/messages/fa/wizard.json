@@ -405,7 +405,7 @@
       "iconSearchPlaceholder": "نام نماد یا تجهیز…",
       "iconSuggestion": "پیشنهاد: {label}",
       "iconSuggestionApply": "اعمال پیشنهاد",
-      "iconUseInitials": "بدون نماد (حروف اول نام)",
+      "iconUseInitials": "استفاده از نماد خنثی",
       "iconCategoriesLabel": "دسته نمادها",
       "iconCategories": {
         "hiking": "کوهنوردی",
