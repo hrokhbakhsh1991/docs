@@ -150,6 +150,25 @@ describe("finance-overview PR21-G4", () => {
     assert.equal(FINANCE_OVERVIEW_TEST_IDS.attentionOverflow, "finance-attention-overflow");
   });
 
+  it("G4 safety: owed previews are deferred outside the critical request fanout", () => {
+    const panel = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-overview-panel.tsx"),
+      "utf8"
+    );
+    const criticalFanoutStart = panel.indexOf("const criticalFetches");
+    const criticalFanoutEnd = panel.indexOf("const loadDeferredPreviews");
+    assert.ok(criticalFanoutStart > 0);
+    assert.ok(criticalFanoutEnd > criticalFanoutStart);
+    const criticalFanout = panel.slice(criticalFanoutStart, criticalFanoutEnd);
+    assert.doesNotMatch(criticalFanout, /outstanding-balances|tour-collections|refunds/);
+    const deferredStart = panel.indexOf("const loadDeferredPreviews");
+    const deferredCall = panel.indexOf("void loadDeferredPreviews()");
+    assert.equal(deferredStart, criticalFanoutEnd);
+    assert.ok(deferredCall > panel.indexOf("setPaidByTour(byTourPayload);"));
+    assert.ok(panel.includes('await fetch("/api/finance/reports/outstanding-balances?limit=5"'));
+    assert.ok(panel.includes('await fetch("/api/finance/reports/tour-collections?limit=5"'));
+  });
+
   it("G4: KPI aggregate semantics unchanged (hrefs + values)", () => {
     const cards = buildFinanceKpiCards(
       parseFinanceSummary({

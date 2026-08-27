@@ -143,23 +143,62 @@ export function FinanceOverviewPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setOutstandingPreview([]);
+    setTourOwed([]);
+    setRefundsAwaiting([]);
 
-    const fetches: Promise<Response>[] = [
+    const criticalFetches: Promise<Response>[] = [
       fetch("/api/finance/reports/summary", { cache: "no-store" }),
       fetch("/api/finance/reports/ledger-events?limit=5", { cache: "no-store" }),
       fetch("/api/finance/reports/by-tour", { cache: "no-store" }),
       fetch("/api/finance/payments?limit=20", { cache: "no-store" }),
       fetch("/api/finance/receipts/pending?limit=20", { cache: "no-store" }),
-      fetch("/api/finance/reports/outstanding-balances?limit=5", { cache: "no-store" }),
-      fetch("/api/finance/reports/tour-collections?limit=5", { cache: "no-store" }),
-      fetch("/api/finance/refunds?status=Requested&limit=5", { cache: "no-store" }),
-      fetch("/api/finance/refunds?status=Approved&limit=5", { cache: "no-store" }),
     ];
     if (includeInstallments) {
-      fetches.push(fetch("/api/finance/schedules", { cache: "no-store" }));
+      criticalFetches.push(fetch("/api/finance/schedules", { cache: "no-store" }));
     }
 
-    void Promise.all(fetches)
+    const loadDeferredPreviews = async () => {
+      try {
+        const outstandingRes = await fetch("/api/finance/reports/outstanding-balances?limit=5", {
+          cache: "no-store",
+        });
+        if (!cancelled && outstandingRes.ok) {
+          setOutstandingPreview(parseOutstandingBalancesResponse(await outstandingRes.json()).items);
+        }
+
+        const tourOwedRes = await fetch("/api/finance/reports/tour-collections?limit=5", {
+          cache: "no-store",
+        });
+        if (!cancelled && tourOwedRes.ok) {
+          setTourOwed(parseTourCollectionsResponse(await tourOwedRes.json()).items);
+        }
+
+        const refundsRequestedRes = await fetch("/api/finance/refunds?status=Requested&limit=5", {
+          cache: "no-store",
+        });
+        const refundsApprovedRes = await fetch("/api/finance/refunds?status=Approved&limit=5", {
+          cache: "no-store",
+        });
+        const refundsReq = refundsRequestedRes.ok
+          ? parseFinanceRefundsResponse(await refundsRequestedRes.json()).items
+          : [];
+        const refundsAppr = refundsApprovedRes.ok
+          ? parseFinanceRefundsResponse(await refundsApprovedRes.json()).items
+          : [];
+        if (!cancelled) {
+          setRefundsAwaiting([...refundsReq, ...refundsAppr].slice(0, 8));
+        }
+      } catch {
+        if (!cancelled) {
+          setOutstandingPreview([]);
+          setTourOwed([]);
+          setRefundsAwaiting([]);
+        }
+      }
+    };
+
+    void Promise.all(criticalFetches)
       .then(async (responses) => {
         const [
           summaryRes,
@@ -167,10 +206,6 @@ export function FinanceOverviewPanel({
           byTourRes,
           paymentsRes,
           receiptsRes,
-          outstandingRes,
-          tourOwedRes,
-          refundsRequestedRes,
-          refundsApprovedRes,
           schedulesRes,
         ] = responses;
         if (!summaryRes.ok) {
@@ -195,18 +230,6 @@ export function FinanceOverviewPanel({
         const receipts = receiptsRes.ok
           ? parseFinancePendingReceiptsResponse(await receiptsRes.json()).items
           : [];
-        const outstanding = outstandingRes.ok
-          ? parseOutstandingBalancesResponse(await outstandingRes.json()).items
-          : [];
-        const tourOwedRows = tourOwedRes.ok
-          ? parseTourCollectionsResponse(await tourOwedRes.json()).items
-          : [];
-        const refundsReq = refundsRequestedRes.ok
-          ? parseFinanceRefundsResponse(await refundsRequestedRes.json()).items
-          : [];
-        const refundsAppr = refundsApprovedRes.ok
-          ? parseFinanceRefundsResponse(await refundsApprovedRes.json()).items
-          : [];
         const samples = buildFinanceAttentionSamples({
           overdueInstallments: overdueRows,
           pendingReceipts: receipts.map((row) => ({
@@ -224,9 +247,7 @@ export function FinanceOverviewPanel({
           setOverdueInstallments(includeInstallments ? overdueRows.length : 0);
           setAttentionSamples(samples);
           setPaidByTour(byTourPayload);
-          setOutstandingPreview(outstanding);
-          setTourOwed(tourOwedRows);
-          setRefundsAwaiting([...refundsReq, ...refundsAppr].slice(0, 8));
+          void loadDeferredPreviews();
         }
       })
       .catch((fetchError: unknown) => {
