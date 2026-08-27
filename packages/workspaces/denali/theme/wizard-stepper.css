@@ -3,6 +3,7 @@
  */
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell {
   gap: var(--space-4, 1rem);
+  min-width: 0;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress {
@@ -192,6 +193,9 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__card {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius, 0.625rem);
   background: var(--color-bg-surface);
@@ -201,6 +205,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__actions {
+  min-width: 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
