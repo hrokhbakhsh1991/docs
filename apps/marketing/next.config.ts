@@ -22,6 +22,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  ...(process.env.ARTIFACT_STANDALONE_BUILD === "1" ? { output: "standalone" as const } : {}),
   /**
    * Playwright + local marketing: browser on `{club}.localhost:3002`.
    * Next 15+ otherwise blocks non-localhost Host (SMK-MKT / SMK-P8-01).

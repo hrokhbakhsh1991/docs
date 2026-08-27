@@ -50,29 +50,68 @@ function rethrowMinioPhotoError(error: unknown): never {
   throw error;
 }
 
+function parseMinioEndpointUrl(
+  endpointRaw: string,
+  env: NodeJS.ProcessEnv
+): Pick<MinioPhotoConfig, "endPoint" | "port" | "useSSL"> | null {
+  try {
+    const parsed = new URL(endpointRaw);
+    const useSSL = parsed.protocol === "https:" || env.MINIO_USE_SSL?.trim() === "true";
+    const port = parsed.port.length > 0 ? Number.parseInt(parsed.port, 10) : useSSL ? 443 : 9000;
+    return {
+      endPoint: parsed.hostname,
+      port: Number.isFinite(port) ? port : 9000,
+      useSSL,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readMinioPhotoCredentialsFromEnv(
+  env: NodeJS.ProcessEnv
+): Pick<MinioPhotoConfig, "accessKey" | "secretKey" | "bucket"> | null {
+  const accessKey = env.MINIO_ACCESS_KEY?.trim();
+  const secretKey = env.MINIO_SECRET_KEY?.trim();
+  const bucket = env.MINIO_BUCKET?.trim();
+  if (!accessKey || !secretKey || !bucket) {
+    return null;
+  }
+  return { accessKey, secretKey, bucket };
+}
+
 export function readMinioPhotoConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): MinioPhotoConfig | null {
   const endpointRaw = env.MINIO_ENDPOINT?.trim();
-  const accessKey = env.MINIO_ACCESS_KEY?.trim();
-  const secretKey = env.MINIO_SECRET_KEY?.trim();
-  const bucket = env.MINIO_BUCKET?.trim();
-  if (!endpointRaw || !accessKey || !secretKey || !bucket) {
+  const credentials = readMinioPhotoCredentialsFromEnv(env);
+  if (!endpointRaw || credentials === null) {
     return null;
   }
+  const endpoint = parseMinioEndpointUrl(endpointRaw, env);
+  if (endpoint === null) {
+    return null;
+  }
+  return { ...credentials, ...endpoint };
+}
 
-  const parsed = new URL(endpointRaw);
-  const useSSL = parsed.protocol === "https:" || env.MINIO_USE_SSL?.trim() === "true";
-  const port = parsed.port.length > 0 ? Number.parseInt(parsed.port, 10) : useSSL ? 443 : 9000;
-
-  return {
-    endPoint: parsed.hostname,
-    port: Number.isFinite(port) ? port : 9000,
-    useSSL,
-    accessKey,
-    secretKey,
-    bucket,
-  };
+/**
+ * Browser-reachable MinIO host for presigned GET URLs.
+ * API uses `MINIO_ENDPOINT` (often loopback); browsers need `MINIO_PUBLIC_ENDPOINT` on staging/VPS.
+ */
+export function resolveMinioPhotoPresignConfig(
+  internal: MinioPhotoConfig,
+  env: NodeJS.ProcessEnv = process.env
+): MinioPhotoConfig {
+  const publicRaw = env.MINIO_PUBLIC_ENDPOINT?.trim();
+  if (publicRaw === undefined || publicRaw.length === 0) {
+    return internal;
+  }
+  const publicEndpoint = parseMinioEndpointUrl(publicRaw, env);
+  if (publicEndpoint === null) {
+    return internal;
+  }
+  return { ...internal, ...publicEndpoint };
 }
 
 export function createMinioPhotoClient(config: MinioPhotoConfig): Client {
@@ -193,10 +232,11 @@ export async function getDenaliTourPhotoSignedReadUrl(input: {
   expiresInSeconds?: number;
 }): Promise<string> {
   assertDenaliTourPhotoKeyTenantScope(input.key, input.tenantId);
-  const client = createMinioPhotoClient(input.config);
+  const presignConfig = resolveMinioPhotoPresignConfig(input.config);
+  const client = createMinioPhotoClient(presignConfig);
   try {
     return await client.presignedGetObject(
-      input.config.bucket,
+      presignConfig.bucket,
       input.key,
       input.expiresInSeconds ?? 300
     );

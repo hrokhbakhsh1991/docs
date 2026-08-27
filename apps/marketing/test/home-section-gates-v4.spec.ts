@@ -71,6 +71,10 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
       resolveHomeTourCoverUrl("https://cdn.example/north-ridge.jpg"),
       MARKETING_FALLBACK_TOUR_COVER_PATH
     );
+    assert.equal(
+      resolveHomeTourCoverUrl("http://127.0.0.1:9002/app-tour-staging/tours/cover.jpg"),
+      MARKETING_FALLBACK_TOUR_COVER_PATH
+    );
   });
 
   it("resolveMarketingHeroImageUrl prefers branding override", () => {

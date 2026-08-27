@@ -8,7 +8,13 @@ export function isUnreachableMarketingCatalogImageUrl(url: string): boolean {
   try {
     const { hostname } = new URL(url);
     const normalized = hostname.toLowerCase();
-    return normalized === "cdn.example" || normalized.endsWith(".example");
+    if (normalized === "cdn.example" || normalized.endsWith(".example")) {
+      return true;
+    }
+    if (normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1") {
+      return true;
+    }
+    return false;
   } catch {
     return true;
   }
