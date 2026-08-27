@@ -885,10 +885,11 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("INVITE-DUP-01 same tenant same phone rejects duplicate active invite", async () => {
-    const phoneCanonical = "+989120000701";
+    const phoneInputIntl = "+989120000701";
+    const phoneStored = "09120000701";
     const first = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),
-      body: { phone: phoneCanonical, role: "member", nameNote: "First invite" },
+      body: { phone: phoneInputIntl, role: "member", nameNote: "First invite" },
     });
     assert.equal(first.status, 201);
     assert.ok(typeof first.body.inviteId === "string");
@@ -905,7 +906,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       headers: operatorAuthHeaders(),
     });
     assert.equal(list.status, 200);
-    const matching = (list.body.items ?? []).filter((row) => row.phone === phoneCanonical);
+    const matching = (list.body.items ?? []).filter((row) => row.phone === phoneStored);
     assert.equal(matching.length, 1);
   });
 
