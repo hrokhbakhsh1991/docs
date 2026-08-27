@@ -1,4 +1,10 @@
 const DEFAULT_MAX_CONCURRENT_OPERATOR_API_FETCHES = 2;
+const OPERATOR_API_FETCH_RETRYABLE_READ_CODES = new Set([
+  "TENANT_DB_BUDGET_EXCEEDED",
+  "DB_POOL_SATURATED",
+]);
+const DEFAULT_RETRYABLE_READ_BACKOFF_MS = 120;
+const MAX_RETRYABLE_READ_BACKOFF_MS = 2_000;
 
 type OperatorApiFetchLimiterState = {
   activeFetches: number;
@@ -54,6 +60,42 @@ function releaseOperatorApiFetchSlot(): void {
   state.activeFetches = Math.max(0, state.activeFetches - 1);
 }
 
+function resolveOperatorApiFetchMethod(init?: RequestInit): string {
+  return (init?.method ?? "GET").trim().toUpperCase();
+}
+
+function isRetryableOperatorApiRead(method: string): boolean {
+  return method === "GET" || method === "HEAD";
+}
+
+function parseRetryAfterMs(response: Response): number {
+  const raw = response.headers.get("Retry-After")?.trim() ?? "";
+  if (raw.length === 0) {
+    return DEFAULT_RETRYABLE_READ_BACKOFF_MS;
+  }
+  const seconds = Number.parseInt(raw, 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return DEFAULT_RETRYABLE_READ_BACKOFF_MS;
+  }
+  return Math.min(seconds * 1_000, MAX_RETRYABLE_READ_BACKOFF_MS);
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function readRetryableOperatorApiCode(response: Response): Promise<string | null> {
+  if (response.status !== 503) {
+    return null;
+  }
+  const clone = response.clone();
+  const body = (await clone.json().catch(() => null)) as { readonly code?: unknown } | null;
+  const code = typeof body?.code === "string" ? body.code.trim() : "";
+  return OPERATOR_API_FETCH_RETRYABLE_READ_CODES.has(code) ? code : null;
+}
+
 export function getActiveOperatorApiFetchCountForTests(): number {
   return getLimiterState().activeFetches;
 }
@@ -81,6 +123,16 @@ export async function operatorApiFetch(
 ): Promise<Response> {
   await acquireOperatorApiFetchSlot();
   try {
+    const response = await fetchImpl(input, init);
+    const method = resolveOperatorApiFetchMethod(init);
+    if (!isRetryableOperatorApiRead(method)) {
+      return response;
+    }
+    const retryableCode = await readRetryableOperatorApiCode(response);
+    if (retryableCode === null) {
+      return response;
+    }
+    await delay(parseRetryAfterMs(response));
     return await fetchImpl(input, init);
   } finally {
     releaseOperatorApiFetchSlot();

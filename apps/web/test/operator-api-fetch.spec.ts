@@ -87,6 +87,78 @@ describe("operatorApiFetch", () => {
     assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
   });
 
+  it("retries retryable read-side tenant DB budget responses once", async () => {
+    let calls = 0;
+    const fetchImpl: typeof fetch = async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(
+          JSON.stringify({
+            error: "tenant_db_budget_exceeded",
+            code: "TENANT_DB_BUDGET_EXCEEDED",
+          }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
+
+    const response = await operatorApiFetch(
+      "http://api.test/bookings/summary",
+      { method: "GET" },
+      fetchImpl
+    );
+
+    assert.equal(calls, 2);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true });
+    assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
+  });
+
+  it("does not retry write-side tenant DB budget responses", async () => {
+    let calls = 0;
+    const fetchImpl: typeof fetch = async () => {
+      calls += 1;
+      return new Response(
+        JSON.stringify({
+          error: "tenant_db_budget_exceeded",
+          code: "TENANT_DB_BUDGET_EXCEEDED",
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      );
+    };
+
+    const response = await operatorApiFetch(
+      "http://api.test/bookings/example/cancel",
+      { method: "POST" },
+      fetchImpl
+    );
+
+    assert.equal(calls, 1);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      error: "tenant_db_budget_exceeded",
+      code: "TENANT_DB_BUDGET_EXCEEDED",
+    });
+  });
+
+  it("preserves non-retryable 503 response bodies", async () => {
+    let calls = 0;
+    const fetchImpl: typeof fetch = async () => {
+      calls += 1;
+      return new Response(JSON.stringify({ error: "service_unavailable" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const response = await operatorApiFetch("http://api.test/health", { method: "GET" }, fetchImpl);
+
+    assert.equal(calls, 1);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "service_unavailable" });
+  });
+
   it("keeps internal Admin BFF API proxies on the bounded fetch path", () => {
     const routeFiles = listRouteFiles(new URL("../app/api/", import.meta.url));
     const violations = routeFiles.flatMap((filePath) => {
