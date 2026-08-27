@@ -100,6 +100,7 @@ export {
   pingMinioPhotoStorage,
   putDenaliTourPhoto,
   readMinioPhotoConfigFromEnv,
+  resolveMinioPhotoPresignConfig,
   copyDenaliMinioPhotoObject,
   executeDenaliTourPhotoRemintPlan,
   executeDenaliWizardPhotoRemintPlan,
