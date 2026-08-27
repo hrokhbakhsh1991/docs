@@ -57,10 +57,57 @@ describe("settings-branding-rbac.spec.ts", () => {
   it("WEB-BRANDING-LIVE-04 cross-shell logo cache dedupes fetch", () => {
     const context = readFileSync(join(WEB_ROOT, "src/tenant/tenant-branding-context.tsx"), "utf8");
     const cache = readFileSync(join(WEB_ROOT, "src/tenant/tenant-branding-logo-cache.ts"), "utf8");
-    assert.match(context, /fetchTenantBrandingLogoShared/);
-    assert.match(context, /fetchTenantBranding/);
+    assert.match(context, /fetchTenantBrandingShared/);
+    assert.doesNotMatch(context, /fetchTenantBrandingLogoShared/);
+    assert.doesNotMatch(context, /fetchTenantBranding\(/);
     assert.match(context, /subscribeTenantBrandingLogoCache/);
     assert.match(cache, /bumpTenantBrandingLogoCache/);
+    assert.match(cache, /cachedSnapshot/);
+    assert.match(cache, /inflightSnapshot/);
+  });
+
+  it("WEB-BRANDING-LIVE-04b shared branding snapshot dedupes concurrent branding requests", async () => {
+    const originalFetch = globalThis.fetch;
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      if (url === "/api/settings/branding") {
+        return new Response(
+          JSON.stringify({
+            displayName: "Denali",
+            displayNameFa: "دنالی",
+            displayNameEn: "Denali",
+            logo: { storageKey: "logos/denali.png", contentType: "image/png" },
+            primaryColor: null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if (url === "/api/settings/branding/logo/url") {
+        return new Response(JSON.stringify({ url: "https://cdn.test/denali.png" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    }) as typeof fetch;
+
+    try {
+      const cache = await import(`../src/tenant/tenant-branding-logo-cache.ts?case=${Date.now()}`);
+      const [first, second] = await Promise.all([
+        cache.fetchTenantBrandingShared(),
+        cache.fetchTenantBrandingShared(),
+      ]);
+      assert.equal(first?.logoUrl, "https://cdn.test/denali.png");
+      assert.equal(second?.branding.displayNameFa, "دنالی");
+      assert.deepEqual(calls, ["/api/settings/branding", "/api/settings/branding/logo/url"]);
+
+      await cache.fetchTenantBrandingShared();
+      assert.deepEqual(calls, ["/api/settings/branding", "/api/settings/branding/logo/url"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("WEB-BRANDING-LIVE-05 operator nav reads live displayName from context", () => {

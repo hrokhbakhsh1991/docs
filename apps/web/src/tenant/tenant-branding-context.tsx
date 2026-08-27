@@ -16,11 +16,9 @@ import {
   type TenantDefaultLocale,
 } from "@app-tour/workspace-sdk";
 
-import { fetchTenantBranding } from "@/features/settings/tenant-brand-logo-client";
-
 import {
   bumpTenantBrandingLogoCache,
-  fetchTenantBrandingLogoShared,
+  fetchTenantBrandingShared,
   subscribeTenantBrandingLogoCache,
 } from "./tenant-branding-logo-cache";
 
@@ -75,19 +73,16 @@ export function TenantBrandingProvider({
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      fetchTenantBrandingLogoShared(),
-      fetchTenantBranding().catch(() => null),
-    ])
-      .then(([url, branding]) => {
+    void fetchTenantBrandingShared()
+      .then((snapshot) => {
         if (cancelled) {
           return;
         }
-        setLogoUrl(url);
-        if (branding !== null) {
-          setDisplayNameFa(branding.displayNameFa?.trim() || null);
-          setDisplayNameEn(branding.displayNameEn?.trim() || null);
-          setDisplayName(branding.displayName?.trim() || null);
+        setLogoUrl(snapshot?.logoUrl ?? null);
+        if (snapshot !== null) {
+          setDisplayNameFa(snapshot.branding.displayNameFa?.trim() || null);
+          setDisplayNameEn(snapshot.branding.displayNameEn?.trim() || null);
+          setDisplayName(snapshot.branding.displayName?.trim() || null);
         }
       })
       .catch(() => {
