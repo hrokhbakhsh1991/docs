@@ -1,3 +1,4 @@
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 import { NextResponse } from "next/server";
@@ -34,7 +35,7 @@ export async function proxyFinanceReceiptUpload(req: Request): Promise<NextRespo
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const backendRes = await fetch(`${apiBase}/finance/receipts/upload?${params.toString()}`, {
+    const backendRes = await operatorApiFetch(`${apiBase}/finance/receipts/upload?${params.toString()}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

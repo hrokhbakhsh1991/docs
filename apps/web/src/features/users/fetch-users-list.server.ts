@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 import type { UsersListResponse } from "./users-directory-types";
@@ -19,7 +20,7 @@ export async function fetchUsersListServer(
   const apiBase = resolveTourOpsApiBaseUrl();
 
   try {
-    const backendRes = await fetch(`${apiBase}/users?${queryString}`, {
+    const backendRes = await operatorApiFetch(`${apiBase}/users?${queryString}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 const WIZARD_TEMPLATE_PREFETCH_TIMEOUT_MS = 10_000;
@@ -17,7 +18,7 @@ export async function fetchWizardTemplateServer(): Promise<unknown | null> {
   const apiBase = resolveTourOpsApiBaseUrl();
 
   try {
-    const backendRes = await fetch(`${apiBase}/settings/tour-wizard-template`, {
+    const backendRes = await operatorApiFetch(`${apiBase}/settings/tour-wizard-template`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

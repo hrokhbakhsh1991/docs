@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 import { ensureSettingsHubFallbackPolicy } from "@/features/settings/settings-hub-fallback-registry";
@@ -23,7 +24,7 @@ export async function fetchSettingsModulesServer(): Promise<SettingsModulesListR
   const apiBase = resolveTourOpsApiBaseUrl();
 
   try {
-    const backendRes = await fetch(`${apiBase}/settings/modules`, {
+    const backendRes = await operatorApiFetch(`${apiBase}/settings/modules`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

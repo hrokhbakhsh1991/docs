@@ -1,3 +1,4 @@
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 import { readPlatformOpsBearerToken } from "./read-platform-ops-bearer-token";
@@ -24,7 +25,7 @@ export async function proxyPlatformApi(
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(`${apiBase}${upstreamPath}`, {
+  return operatorApiFetch(`${apiBase}${upstreamPath}`, {
     ...init,
     headers,
     cache: "no-store",

@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import {
   parseFinanceLedgerListResponse,
   type FinanceLedgerListResponse,
@@ -18,7 +19,7 @@ async function fetchFinanceBackendJson(path: string): Promise<unknown | null> {
   const apiBase = resolveTourOpsApiBaseUrl();
 
   try {
-    const backendRes = await fetch(`${apiBase}${path}`, {
+    const backendRes = await operatorApiFetch(`${apiBase}${path}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

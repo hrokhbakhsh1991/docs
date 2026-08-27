@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import type { CreateTourPayload, TourRecordDto } from "@app-tour/workspace-sdk";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromCookies } from "@/auth/read-session-token.server";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -31,7 +32,7 @@ export async function createTourAction(payload: CreateTourPayload): Promise<Crea
   }
 
   const host = (await headers()).get("host") ?? "localhost:3000";
-  const response = await fetch(`${resolveTourOpsApiBaseUrl()}/tours`, {
+  const response = await operatorApiFetch(`${resolveTourOpsApiBaseUrl()}/tours`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${sessionToken}`,

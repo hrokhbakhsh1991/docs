@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import type { UpdateTourPayload } from "@app-tour/workspace-sdk";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromCookies } from "@/auth/read-session-token.server";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -28,7 +29,7 @@ export async function updateTourAction(
   }
 
   const host = (await headers()).get("host") ?? "localhost:3000";
-  const response = await fetch(`${resolveTourOpsApiBaseUrl()}/tours/${encodeURIComponent(tourId)}`, {
+  const response = await operatorApiFetch(`${resolveTourOpsApiBaseUrl()}/tours/${encodeURIComponent(tourId)}`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${sessionToken}`,

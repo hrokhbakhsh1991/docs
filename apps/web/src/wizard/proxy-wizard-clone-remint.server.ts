@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -19,7 +20,7 @@ export async function proxyWizardCloneRemintPost(req: Request): Promise<NextResp
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/tours/clone-photo-remint`, {
+    backendRes = await operatorApiFetch(`${apiBase}/tours/clone-photo-remint`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

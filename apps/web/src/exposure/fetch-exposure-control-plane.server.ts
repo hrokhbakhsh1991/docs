@@ -1,4 +1,5 @@
 import { readSessionProxyContext } from "@/admin/read-session-proxy-context.server";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 import {
@@ -16,7 +17,7 @@ export async function fetchWorkspaceExposureControlPlaneServer(
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const backendRes = await fetch(
+    const backendRes = await operatorApiFetch(
       `${apiBase}/workspaces/${encodeURIComponent(workspaceId)}/exposure/control-plane`,
       {
         method: "GET",

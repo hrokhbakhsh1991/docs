@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import type { OperatorProfile } from "@/features/settings/profile-settings-logic";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -16,7 +17,7 @@ export async function fetchOperatorProfileServer(): Promise<OperatorProfile | nu
   const apiBase = resolveTourOpsApiBaseUrl();
 
   try {
-    const backendRes = await fetch(`${apiBase}/identity/me`, {
+    const backendRes = await operatorApiFetch(`${apiBase}/identity/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

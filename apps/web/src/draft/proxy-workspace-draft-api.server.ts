@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -74,7 +75,7 @@ export async function proxyWorkspaceDraftEventsApiRequest(
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const backendRes = await fetch(
+    const backendRes = await operatorApiFetch(
       `${apiBase}${backendDraftEventsPath(options.workspaceId, options.namespace, options.key, incoming)}`,
       {
         method: "GET",
@@ -111,7 +112,7 @@ export async function proxyWorkspaceDraftListApiRequest(
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const backendRes = await fetch(`${apiBase}${backendDraftListPath(options.workspaceId, incoming)}`, {
+    const backendRes = await operatorApiFetch(`${apiBase}${backendDraftListPath(options.workspaceId, incoming)}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
@@ -146,7 +147,7 @@ export async function proxyWorkspaceDraftApiRequest(
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const backendRes = await fetch(
+    const backendRes = await operatorApiFetch(
       `${apiBase}${backendDraftPath(options.workspaceId, options.namespace, options.key)}`,
       {
         method: options.method,

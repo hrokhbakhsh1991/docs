@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 import {
@@ -64,7 +65,7 @@ export async function proxyWizardMediaUpload(
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}${backend.upload}`, {
+    backendRes = await operatorApiFetch(`${apiBase}${backend.upload}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
@@ -114,7 +115,7 @@ export async function proxyWizardMediaSignedUrl(
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}${backend.signedUrl}?${params.toString()}`, {
+    backendRes = await operatorApiFetch(`${apiBase}${backend.signedUrl}?${params.toString()}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

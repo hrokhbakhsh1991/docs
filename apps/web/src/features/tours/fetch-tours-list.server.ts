@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import {
   DEFAULT_TOUR_LIST_QUERY,
   serializeTourListQuery,
@@ -23,7 +24,7 @@ export async function fetchToursListServer(
   const apiBase = resolveTourOpsApiBaseUrl();
 
   try {
-    const backendRes = await fetch(`${apiBase}/tours?${serializeTourListQuery(query)}`, {
+    const backendRes = await operatorApiFetch(`${apiBase}/tours?${serializeTourListQuery(query)}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
