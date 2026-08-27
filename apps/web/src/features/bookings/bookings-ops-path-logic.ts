@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/routing";
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
+import { OPERATOR_DISPLAY_TIME_ZONE } from "@/i18n/datetime-format";
 
 import {
   applyDepartureWindow,
@@ -153,6 +154,7 @@ export function groupBookingsByDepartureDay(
         ? dayKey
         : toLocalizedDigits(
             date.toLocaleDateString(BOOKING_DATE_LOCALE[locale], {
+              timeZone: OPERATOR_DISPLAY_TIME_ZONE,
               weekday: "short",
               month: "short",
               day: "numeric",

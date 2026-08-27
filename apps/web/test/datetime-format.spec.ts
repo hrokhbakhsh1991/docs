@@ -31,14 +31,9 @@ describe("datetime-format.spec.ts", () => {
     assert.match(label, /۰۹:۱۵/);
   });
 
-  it("WEB-DT-04 isoToDatetimeLocalInput matches Denali host algorithm (Wave H twin)", () => {
+  it("WEB-DT-04 isoToDatetimeLocalInput is stable across server/browser timezones", () => {
     const iso = "2026-08-15T02:30:00.000Z";
     const local = isoToDatetimeLocalInput(iso);
-    assert.match(local, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
-    // Same contract as packages/workspaces/denali/.../denali-datetime-utils.ts
-    const parsed = new Date(Date.parse(iso));
-    const pad = (value: number) => String(value).padStart(2, "0");
-    const expected = `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
-    assert.equal(local, expected);
+    assert.equal(local, "2026-08-15T06:00");
   });
 });

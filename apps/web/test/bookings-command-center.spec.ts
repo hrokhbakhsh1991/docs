@@ -21,6 +21,7 @@ import {
   filterBulkApprovableIds,
   findSelectedBooking,
   formatBookingDateTime,
+  formatBookingDeparture,
   formatCapacitySnapshotLabel,
   isBookingCancellable,
   isBookingWaitlistable,
@@ -664,6 +665,25 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       BOOKINGS_COMMAND_CENTER_TEST_IDS.mobileInspectionSheet,
       "operator-bookings-mobile-sheet"
     );
+  });
+
+  it("WEB-9.5-08b booking date labels do not depend on host timezone", () => {
+    const previousTz = process.env.TZ;
+    try {
+      process.env.TZ = "UTC";
+      const utcDeparture = formatBookingDeparture("2026-06-01T20:45:00.000Z", "en");
+      const utcSubmitted = formatBookingDateTime("2026-06-01T20:45:00.000Z", "en");
+
+      process.env.TZ = "America/Los_Angeles";
+      assert.equal(formatBookingDeparture("2026-06-01T20:45:00.000Z", "en"), utcDeparture);
+      assert.equal(formatBookingDateTime("2026-06-01T20:45:00.000Z", "en"), utcSubmitted);
+    } finally {
+      if (previousTz === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTz;
+      }
+    }
   });
 
   it("WEB-9.5-09 P3a capacity, reject body, empty vs filtered, keyboard", () => {

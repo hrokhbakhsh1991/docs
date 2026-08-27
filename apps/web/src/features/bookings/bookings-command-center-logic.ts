@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber, toLocalizedDigits } from "@/i18n/format-localized-digits";
+import { OPERATOR_DISPLAY_TIME_ZONE } from "@/i18n/datetime-format";
 import {
   formatRegistrationIntakeTransportLabel,
   parseRegistrationIntakeRecord,
@@ -662,6 +663,7 @@ export function formatBookingDeparture(value: string, locale: AppLocale = "en"):
   }
   return toLocalizedDigits(
     date.toLocaleDateString(BOOKING_DATE_LOCALE[locale], {
+      timeZone: OPERATOR_DISPLAY_TIME_ZONE,
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -677,6 +679,7 @@ export function formatBookingDateTime(value: string, locale: AppLocale = "en"): 
   }
   return toLocalizedDigits(
     date.toLocaleString(BOOKING_DATE_LOCALE[locale], {
+      timeZone: OPERATOR_DISPLAY_TIME_ZONE,
       month: "short",
       day: "numeric",
       year: "numeric",

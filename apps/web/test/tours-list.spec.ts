@@ -169,16 +169,13 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(resolveTourPriceDisplayPolicy("starter"), null);
   });
 
-  it("ED-TZ-01 formatTourDeparture uses local wall clock (not naive ISO-Z digits)", async () => {
+  it("ED-TZ-01 formatTourDeparture uses stable operator display timezone", async () => {
     const { formatDatetimeLocalLabel, isoToDatetimeLocalInput } =
       await import("../src/i18n/datetime-format");
     const iso = "2026-08-15T02:30:00.000Z";
     const expected = formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), "en");
     assert.equal(formatTourDeparture(iso, "en"), expected);
-    const naiveUtcSlice = formatDatetimeLocalLabel(iso, "en");
-    if (isoToDatetimeLocalInput(iso) !== "2026-08-15T02:30") {
-      assert.notEqual(formatTourDeparture(iso, "en"), naiveUtcSlice);
-    }
+    assert.equal(isoToDatetimeLocalInput(iso), "2026-08-15T06:00");
   });
 
   it("WEB-9.3-09 Denali duration chip derives from category slug", () => {

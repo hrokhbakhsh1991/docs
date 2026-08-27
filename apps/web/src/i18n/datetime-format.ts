@@ -2,8 +2,17 @@ import { formatIsoDateLabel } from "./calendar-format";
 import { toLocalizedDigits } from "./format-localized-digits";
 import type { AppLocale } from "./routing";
 
+export const OPERATOR_DISPLAY_TIME_ZONE = "Asia/Tehran" as const;
+
+function readDateTimePart(
+  parts: readonly Intl.DateTimeFormatPart[],
+  type: Intl.DateTimeFormatPartTypes
+): string | null {
+  return parts.find((part) => part.type === type)?.value ?? null;
+}
+
 /**
- * Convert stored ISO datetime to `datetime-local` wall (local timezone).
+ * Convert stored ISO datetime to the operator-facing wall clock.
  * Product-blind — do not import workspace packages for list/review formatting (Wave H.h).
  */
 export function isoToDatetimeLocalInput(iso: string): string {
@@ -16,8 +25,29 @@ export function isoToDatetimeLocalInput(iso: string): string {
     return trimmed.length >= 16 ? trimmed.slice(0, 16) : trimmed;
   }
   const date = new Date(parsed);
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: OPERATOR_DISPLAY_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const year = readDateTimePart(parts, "year");
+    const month = readDateTimePart(parts, "month");
+    const day = readDateTimePart(parts, "day");
+    const hour = readDateTimePart(parts, "hour");
+    const minute = readDateTimePart(parts, "minute");
+    if (year !== null && month !== null && day !== null && hour !== null && minute !== null) {
+      return `${year}-${month}-${day}T${hour}:${minute}`;
+    }
+  } catch {
+    // Fall through to UTC formatting so SSR and browser hydration still agree.
+  }
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 }
 
 export function splitDatetimeLocal(value: string): { readonly date: string; readonly time: string } {
