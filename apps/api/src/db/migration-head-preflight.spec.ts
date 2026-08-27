@@ -10,8 +10,11 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (dp1_payment_holds)", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260824120000_dp1_payment_holds");
+  it("expected head matches tip migration folder (workspace_tour_theme_icon_key)", () => {
+    assert.equal(
+      EXPECTED_PRISMA_MIGRATION_HEAD,
+      "20260826120000_workspace_tour_theme_icon_key"
+    );
   });
 
   it("throws on mismatch with structured message", () => {
