@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -23,7 +25,7 @@ export async function PATCH(req: Request, context: RouteContext): Promise<NextRe
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/settings/resources/${moduleId}/${itemId}`, {
+    backendRes = await operatorApiFetch(`${apiBase}/settings/resources/${moduleId}/${itemId}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
@@ -59,7 +61,7 @@ export async function DELETE(req: Request, context: RouteContext): Promise<NextR
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/settings/resources/${moduleId}/${itemId}`, {
+    backendRes = await operatorApiFetch(`${apiBase}/settings/resources/${moduleId}/${itemId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

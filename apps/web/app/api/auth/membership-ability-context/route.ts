@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
@@ -17,7 +19,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/auth/ability-context`, {
+    backendRes = await operatorApiFetch(`${apiBase}/auth/ability-context`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

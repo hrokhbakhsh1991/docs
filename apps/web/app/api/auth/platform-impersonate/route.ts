@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { setImpersonationSessionCookieOnResponse } from "@/auth/build-impersonation-session-cookie";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -15,7 +17,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const apiBase = resolveTourOpsApiBaseUrl();
-  const upstream = await fetch(`${apiBase}/auth/accept-platform-impersonation`, {
+  const upstream = await operatorApiFetch(`${apiBase}/auth/accept-platform-impersonation`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionToken }),

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { bffCodedError } from "@/auth/bff-coded-error";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
@@ -35,7 +37,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/auth/verify-otp`, {
+    backendRes = await operatorApiFetch(`${apiBase}/auth/verify-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

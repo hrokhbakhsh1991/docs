@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -14,7 +16,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const body = await req.text();
   const apiBase = resolveTourOpsApiBaseUrl();
   const incoming = new URL(req.url);
-  const backendRes = await fetch(`${apiBase}/tours/${encodeURIComponent(id)}/roster/freeze`, {
+  const backendRes = await operatorApiFetch(`${apiBase}/tours/${encodeURIComponent(id)}/roster/freeze`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${sessionToken}`,

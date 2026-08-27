@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { bffCodedError } from "@/auth/bff-coded-error";
 import {
   checkBffLoginRateLimit,
@@ -31,7 +33,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/auth/request-otp`, {
+    backendRes = await operatorApiFetch(`${apiBase}/auth/request-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

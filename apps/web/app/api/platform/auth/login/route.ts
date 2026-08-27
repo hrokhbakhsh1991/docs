@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import {
   buildPlatformSessionCookieHeader,
   type PlatformOpsSessionPayload,
@@ -53,7 +55,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let verifyPayload: VerifyOtpResponse = {};
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const verifyRes = await fetch(`${apiBase}/platform/v1/auth/verify-otp`, {
+    const verifyRes = await operatorApiFetch(`${apiBase}/platform/v1/auth/verify-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

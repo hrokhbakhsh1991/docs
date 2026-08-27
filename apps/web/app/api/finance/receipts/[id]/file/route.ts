@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -26,7 +28,7 @@ export async function GET(req: Request, context: RouteContext): Promise<NextResp
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const metaRes = await fetch(`${apiBase}/finance/receipts/${encodeURIComponent(id)}/url`, {
+    const metaRes = await operatorApiFetch(`${apiBase}/finance/receipts/${encodeURIComponent(id)}/url`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

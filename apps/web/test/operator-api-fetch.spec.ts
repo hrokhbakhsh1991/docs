@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
 
 import {
@@ -7,6 +8,20 @@ import {
   operatorApiFetch,
   resetOperatorApiFetchLimiterForTests,
 } from "../src/auth/operator-api-fetch";
+
+function listRouteFiles(dirUrl: URL): string[] {
+  const routeFiles: string[] = [];
+  for (const entry of readdirSync(dirUrl)) {
+    const childPath = new URL(entry, dirUrl).pathname;
+    const stats = statSync(childPath);
+    if (stats.isDirectory()) {
+      routeFiles.push(...listRouteFiles(new URL(`${entry}/`, dirUrl)));
+    } else if (entry.endsWith(".ts")) {
+      routeFiles.push(childPath);
+    }
+  }
+  return routeFiles;
+}
 
 function defer<T>() {
   let resolve!: (value: T) => void;
@@ -70,5 +85,23 @@ describe("operatorApiFetch", () => {
     );
     assert.equal(maxActive, 2);
     assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
+  });
+
+  it("keeps internal Admin BFF API proxies on the bounded fetch path", () => {
+    const routeFiles = listRouteFiles(new URL("../app/api/", import.meta.url));
+    const violations = routeFiles.flatMap((filePath) => {
+      const source = readFileSync(filePath, "utf8");
+      if (!source.includes("resolveTourOpsApiBaseUrl")) {
+        return [];
+      }
+      return source
+        .split("\n")
+        .map((line, index) => ({ line, lineNumber: index + 1 }))
+        .filter(({ line }) => line.includes("await fetch("))
+        .filter(({ line }) => !line.includes("await fetch(sourceUrl"))
+        .map(({ line, lineNumber }) => `${filePath}:${lineNumber}: ${line.trim()}`);
+    });
+
+    assert.deepEqual(violations, []);
   });
 });

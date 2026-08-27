@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -36,7 +38,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    const upstream = await fetch(`${apiBase}/platform/v1/auth/request-otp`, {
+    const upstream = await operatorApiFetch(`${apiBase}/platform/v1/auth/request-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone }),

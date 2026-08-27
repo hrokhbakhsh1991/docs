@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -22,7 +24,7 @@ export async function PATCH(req: Request, context: RouteContext): Promise<NextRe
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/users/${userId}/reactivate`, {
+    backendRes = await operatorApiFetch(`${apiBase}/users/${userId}/reactivate`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

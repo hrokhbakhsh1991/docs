@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
+
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -17,7 +19,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/settings/tour-presets/advanced`, {
+    backendRes = await operatorApiFetch(`${apiBase}/settings/tour-presets/advanced`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
@@ -51,7 +53,7 @@ export async function PUT(req: Request): Promise<NextResponse> {
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/settings/tour-presets/advanced`, {
+    backendRes = await operatorApiFetch(`${apiBase}/settings/tour-presets/advanced`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
