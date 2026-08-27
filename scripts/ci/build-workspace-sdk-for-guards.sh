@@ -10,7 +10,8 @@ if [[ -f packages/workspace-sdk/dist/index.js ]]; then
   exit 0
 fi
 
-echo "build-workspace-sdk-for-guards: catalog-registration-auth → workspace-sdk"
+echo "build-workspace-sdk-for-guards: iran-mobile → catalog-registration-auth → workspace-sdk"
+pnpm --dir packages/iran-mobile run build
 pnpm --dir packages/catalog-registration-auth run build
 pnpm --dir packages/workspace-sdk run build
 echo "build-workspace-sdk-for-guards: PASS"

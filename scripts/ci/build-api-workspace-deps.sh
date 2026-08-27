@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
+pnpm --dir packages/iran-mobile run build
 pnpm --dir packages/catalog-registration-auth run build
 pnpm --dir packages/booking-http-contracts run build
 pnpm --dir packages/tour-core run build
