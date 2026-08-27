@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 
 import type { BookingListItem } from "@/features/bookings/bookings-command-center-types";
+import { bookingTimelinePaymentLabelKey } from "@/features/bookings/booking-payment-display";
 import {
   formatBookingDateTime,
   formatBookingDeparture,
@@ -49,7 +50,7 @@ export function BookingActivityTimeline({ booking }: BookingActivityTimelineProp
     {
       id: "payment",
       label: t("payment"),
-      detail: t(`paymentValue.${booking.paymentStatus}`),
+      detail: t(bookingTimelinePaymentLabelKey(booking)),
     },
     {
       id: "departure",

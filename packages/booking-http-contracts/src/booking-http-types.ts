@@ -1,8 +1,4 @@
-import type {
-  BookingPaymentStatus,
-  BookingStatus,
-  BookingsListView,
-} from "./booking-status";
+import type { BookingPaymentStatus, BookingStatus, BookingsListView } from "./booking-status";
 
 /** Tour chip on bookings summary (operator HTTP). */
 export type BookingTourChip = {
@@ -54,6 +50,8 @@ export type BookingCapacitySnapshot = {
 
 export type BookingRegistrantTarget = "self" | "other";
 
+export type BookingFinancialDisplayState = "WAIVED";
+
 /** Guest intake transport kind — list scalar (H5-T3); not the intake blob. */
 export type BookingTransportKind =
   | "primary"
@@ -87,6 +85,11 @@ export type BookingListItem = {
   readonly partySize: number;
   readonly status: BookingStatus;
   readonly paymentStatus: BookingPaymentStatus;
+  /**
+   * Additive display-only Finance state. Present when paymentStatus=paid means
+   * no payment was required, not money received.
+   */
+  readonly financialDisplayState?: BookingFinancialDisplayState;
   readonly departureAt: string;
   readonly submittedAt: string;
   /** Present after approve when the host persisted approvedAt. */

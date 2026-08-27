@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { BookingMemberAvatar } from "@/features/bookings/booking-member-avatar";
+import { bookingPaymentLabelKey } from "@/features/bookings/booking-payment-display";
 import {
   bookingPaymentBadgeVariant,
   bookingStatusBadgeVariant,
@@ -61,13 +62,10 @@ export function BookingInboxRow({
   const t = useTranslations("bookings");
   const locale = useLocale() as AppLocale;
   const identityLabel =
-    item.registrantTarget === "self"
-      ? t("intake.registrantSelf")
-      : t("intake.registrantOther");
+    item.registrantTarget === "self" ? t("intake.registrantSelf") : t("intake.registrantOther");
   const capacityLabel = formatCapacitySnapshotLabel(item.capacitySnapshot, locale);
   const urgencySlot = resolveBookingRowUrgencySlot(item);
-  const pendingAgeDays =
-    urgencySlot === "aging" ? resolveBookingPendingAgeDays(item) : null;
+  const pendingAgeDays = urgencySlot === "aging" ? resolveBookingPendingAgeDays(item) : null;
   const rowMetaParts = [
     ...(showTourTitle ? [item.tourTitle] : []),
     t("partyShort", { count: item.partySize }),
@@ -116,7 +114,9 @@ export function BookingInboxRow({
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-medium leading-5 text-foreground">{item.guestLabel}</p>
+              <p className="truncate text-sm font-medium leading-5 text-foreground">
+                {item.guestLabel}
+              </p>
               <OperatorStatusBadge variant="outline">{identityLabel}</OperatorStatusBadge>
             </div>
             <p className="truncate text-xs leading-4 text-muted-foreground">
@@ -124,9 +124,7 @@ export function BookingInboxRow({
             </p>
             <p className="truncate text-[11px] leading-4 text-muted-foreground/80">
               {t("submittedShort", { date: formatBookingDateTime(item.submittedAt, locale) })}
-              {pendingAgeDays !== null
-                ? ` · ${t("pendingAgeDays", { days: pendingAgeDays })}`
-                : ""}
+              {pendingAgeDays !== null ? ` · ${t("pendingAgeDays", { days: pendingAgeDays })}` : ""}
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-0.5">
@@ -138,8 +136,9 @@ export function BookingInboxRow({
               variant={bookingPaymentBadgeVariant(item.paymentStatus)}
               data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInbox}
               data-payment-status={item.paymentStatus}
+              data-financial-display-state={item.financialDisplayState}
             >
-              {t(`payment.${item.paymentStatus}`)}
+              {t(bookingPaymentLabelKey(item))}
             </OperatorStatusBadge>
             {typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0 ? (
               <span className="sr-only" data-operator-booking-payment-due-at>

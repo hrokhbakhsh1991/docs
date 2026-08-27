@@ -14,7 +14,7 @@ describe("bookings payment vocabulary PR21-H1", () => {
   const fa = JSON.parse(readFileSync(resolve(WEB_ROOT, "messages/fa/bookings.json"), "utf8"));
 
   it("H0-02: payment.* and timeline.paymentValue.* stay aligned (EN/FA)", () => {
-    for (const status of ["unpaid", "partial", "paid"] as const) {
+    for (const status of ["unpaid", "partial", "paid", "waived"] as const) {
       assert.equal(en.payment[status], en.timeline.paymentValue[status]);
       assert.equal(fa.payment[status], fa.timeline.paymentValue[status]);
     }
@@ -29,9 +29,13 @@ describe("bookings payment vocabulary PR21-H1", () => {
     assert.match(en.payment.partial, /booking/i);
   });
 
-  it("H0-01: booking paid labels are booking-scoped, not payment-row wording", () => {
-    assert.match(fa.payment.paid, /رزرو/);
-    assert.match(en.payment.paid, /booking/i);
+  it("H0-01: paid and waived booking labels stay distinct", () => {
+    assert.equal(fa.payment.paid, "وجه دریافت شد");
+    assert.equal(en.payment.paid, "Payment received");
+    assert.equal(fa.payment.waived, "بدون نیاز به پرداخت");
+    assert.equal(en.payment.waived, "No payment required");
+    assert.notEqual(fa.payment.paid, fa.payment.waived);
+    assert.notEqual(en.payment.paid, en.payment.waived);
     assert.doesNotMatch(fa.payment.paid, /این پرداخت/);
     assert.doesNotMatch(en.payment.paid, /this payment/i);
     const financeFa = JSON.parse(
@@ -48,7 +52,7 @@ describe("bookings payment vocabulary PR21-H1", () => {
     assert.equal(en.timeline.payment, "Booking settlement");
   });
 
-  it("H1: inbox and inspection both render payment.* badges with stable test ids", () => {
+  it("H1: inbox and inspection both render canonical payment display labels", () => {
     const inbox = readFileSync(
       resolve(WEB_ROOT, "src/features/bookings/booking-inbox-row.tsx"),
       "utf8"
@@ -57,8 +61,8 @@ describe("bookings payment vocabulary PR21-H1", () => {
       resolve(WEB_ROOT, "src/features/bookings/booking-inspection-details.tsx"),
       "utf8"
     );
-    assert.match(inbox, /payment\.\$\{item\.paymentStatus\}/);
-    assert.match(inspection, /payment\.\$\{booking\.paymentStatus\}/);
+    assert.match(inbox, /bookingPaymentLabelKey\(item\)/);
+    assert.match(inspection, /bookingPaymentLabelKey\(booking\)/);
     assert.match(inbox, /paymentBadgeInbox/);
     assert.match(inspection, /paymentBadgeInspection/);
   });

@@ -27,6 +27,7 @@ import { resolveWorkspaceBookingEventReaction } from "./booking-event-reaction-r
 import { resolveBookingWorkspaceDependencies } from "./booking-dependency-registry";
 import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
 import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
+import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 import type {
   ApproveBookingResponse,
@@ -142,6 +143,17 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     productionGradeIntegrity: requiresProductionGradeIntegrity(),
     postCancelSideEffects: { run: runPostCancelSideEffects },
     registrationSlo: { record: recordRegistrationSloEvent },
+    financialDisplayState: {
+      resolve: (record) => {
+        if (record.status !== "approved" || record.paymentStatus !== "paid") {
+          return undefined;
+        }
+        const override = readObligationOverrideFromIntake(record.registrationIntake);
+        return override !== null && isZeroObligationMinor(override.obligationMinor)
+          ? "WAIVED"
+          : undefined;
+      },
+    },
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,

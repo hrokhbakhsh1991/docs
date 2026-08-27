@@ -9,6 +9,7 @@ import type { BookingAssistedRegistrationMembersPort } from "./ports/booking-ass
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port.ts";
 import type { BookingClockPort } from "./ports/booking-clock.port.ts";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port.ts";
+import type { BookingFinancialDisplayStatePort } from "./ports/booking-financial-display-state.port.ts";
 import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
 import { getBookingWorkspaceCapabilities } from "./workspace-booking-capabilities.generated.ts";
 import { toBookingRuntimeCapabilities } from "./map-booking-runtime-capabilities.ts";
@@ -68,18 +69,18 @@ function stubAssistedRegistrationMembers(): BookingAssistedRegistrationMembersPo
 
 function fakeRepo(): BookingRepositoryPort {
   return {
-      listByTenant: async () => [],
-      listByTenantPage: async () => ({ items: [], nextCursor: null }),
-      countByTenantFilters: async () => 0,
-      findActiveGuestDuplicate: async () => null,
-      getBookingsSummaryStats: async () => ({
-        pending: 0,
-        approvedToday: 0,
-        departures7d: 0,
-        waitlist: 0,
-        tourChips: [],
-      }),
-      countBookingsBySubmittedUser: async () => 0,
+    listByTenant: async () => [],
+    listByTenantPage: async () => ({ items: [], nextCursor: null }),
+    countByTenantFilters: async () => 0,
+    findActiveGuestDuplicate: async () => null,
+    getBookingsSummaryStats: async () => ({
+      pending: 0,
+      approvedToday: 0,
+      departures7d: 0,
+      waitlist: 0,
+      tourChips: [],
+    }),
+    countBookingsBySubmittedUser: async () => 0,
     countCancelledBookingsBySubmittedUser: async () => 0,
     countCompletedTripsBySubmittedUser: async () => 0,
     listRecentBySubmittedUser: async () => [],
@@ -112,6 +113,10 @@ function fakeRepo(): BookingRepositoryPort {
 
 function stubRegistrationSlo(): import("./ports/booking-registration-slo.port.ts").BookingRegistrationSloPort {
   return { record: () => undefined };
+}
+
+function stubFinancialDisplayState(): BookingFinancialDisplayStatePort {
+  return { resolve: () => undefined };
 }
 
 function stubPostCancelSideEffects(): import("./ports/booking-post-cancel-side-effects.port.ts").BookingPostCancelSideEffectsPort {
@@ -149,6 +154,7 @@ describe("bookings-service-di (B0.5)", () => {
         from === "./bookings.types" ||
         from === "./bookings.errors" ||
         from === "./booking-list-query" ||
+        from === "./enrich-booking-list-member-avatars" ||
         from === "./ports/booking-runtime-capabilities.port" ||
         from === "@app-tour/booking-http-contracts" ||
         from === "./ports/booking-actor-context" ||
@@ -159,7 +165,8 @@ describe("bookings-service-di (B0.5)", () => {
         from === "./ports/booking-tenant-workspace-binding.port" ||
         from === "./ports/booking-tour-capacity.port" ||
         from === "./ports/booking-post-cancel-side-effects.port" ||
-        from === "./ports/booking-registration-slo.port";
+        from === "./ports/booking-registration-slo.port" ||
+        from === "./ports/booking-financial-display-state.port";
       assert.ok(allowed, `illegal BookingsService import from ${from}`);
     }
   });
@@ -186,9 +193,10 @@ describe("bookings-service-di (B0.5)", () => {
           workspaceType: "denali",
           tenantWorkspaceBinding: stubTenantBinding(),
           capabilities: denaliCaps(),
-      productionGradeIntegrity: false,
-      postCancelSideEffects: stubPostCancelSideEffects(),
-      registrationSlo: stubRegistrationSlo(),
+          productionGradeIntegrity: false,
+          postCancelSideEffects: stubPostCancelSideEffects(),
+          registrationSlo: stubRegistrationSlo(),
+          financialDisplayState: stubFinancialDisplayState(),
         }),
       /BOOKINGS_SERVICE_DEP_REQUIRED:repository/
     );
@@ -217,6 +225,7 @@ describe("bookings-service-di (B0.5)", () => {
       productionGradeIntegrity: false,
       postCancelSideEffects: stubPostCancelSideEffects(),
       registrationSlo: stubRegistrationSlo(),
+      financialDisplayState: stubFinancialDisplayState(),
     });
     assert.equal(typeof service.listBookings, "function");
     assert.equal(service.boundWorkspaceType, "denali");

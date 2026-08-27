@@ -72,6 +72,7 @@ export type BookingListItem = {
   readonly partySize: number;
   readonly status: Exclude<BookingStatus, "all" | "actionable">;
   readonly paymentStatus: "unpaid" | "partial" | "paid";
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly approvedAt?: string;

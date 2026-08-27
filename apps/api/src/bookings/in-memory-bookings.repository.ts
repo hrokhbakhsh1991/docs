@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import {
-  canTransitionBookingStatus,
-} from "./booking-status-transitions";
+import { canTransitionBookingStatus } from "./booking-status-transitions";
 
 import {
   compareBookingsByDepartureAtAsc,
@@ -35,6 +33,7 @@ import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
 } from "./read-transport-kind-from-intake";
+import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
 import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
@@ -187,8 +186,9 @@ function cloneBooking(record: BookingRecord): BookingRecord {
   const registrationIntake = record.registrationIntake;
   return {
     ...record,
-    registrantTarget:
-      record.registrantTarget ?? readRegistrantTargetFromIntake(registrationIntake),
+    financialDisplayState:
+      record.financialDisplayState ?? resolveFinancialDisplayStateFromIntake(record),
+    registrantTarget: record.registrantTarget ?? readRegistrantTargetFromIntake(registrationIntake),
     transportKind:
       record.transportKind !== undefined
         ? record.transportKind
@@ -198,6 +198,19 @@ function cloneBooking(record: BookingRecord): BookingRecord {
         ? record.personalCarOccupants
         : readPersonalCarOccupantsFromIntake(registrationIntake),
   };
+}
+
+function resolveFinancialDisplayStateFromIntake(
+  record: BookingRecord
+): BookingRecord["financialDisplayState"] {
+  if (record.status !== "approved" || record.paymentStatus !== "paid") {
+    return undefined;
+  }
+  const override = readObligationOverrideFromIntake(record.registrationIntake);
+  if (override === null || !isZeroObligationMinor(override.obligationMinor)) {
+    return undefined;
+  }
+  return "WAIVED";
 }
 
 /** List projection — strip `registrationIntake` (BK-SAFE-01); keep scalars. */
@@ -230,7 +243,6 @@ export function resetBookingsStoresForTests(): void {
   _devFixtureSeeded = false;
 }
 
-
 /** Test-only outbox peek — not part of BookingRepositoryPort. */
 export function peekOutboxByAggregateForTests(input: {
   readonly tenantId: string;
@@ -247,7 +259,6 @@ export function peekOutboxByAggregateForTests(input: {
     .slice(0, MAX_OUTBOX_EVENTS_PER_AGGREGATE)
     .map((row) => ({ ...row }));
 }
-
 
 export class InMemoryBookingsRepository implements BookingRepositoryPort {
   static createWithDevSeed(): InMemoryBookingsRepository {
@@ -273,10 +284,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     );
   }
 
-  async countBookingsBySubmittedUser(
-    tenantId: string,
-    submittedByUserId: string
-  ): Promise<number> {
+  async countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number> {
     return this.memberBookingsForUser(tenantId, submittedByUserId).length;
   }
 
@@ -383,9 +391,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       return null;
     }
     const normalized =
-      input.match.kind === "label" ||
-      input.match.kind === "email" ||
-      input.match.kind === "phone"
+      input.match.kind === "label" || input.match.kind === "email" || input.match.kind === "phone"
         ? raw.toLocaleLowerCase()
         : raw;
     for (const row of bookingsStore.values()) {
@@ -539,11 +545,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     const tourIdSet = new Set(tourIds);
     const totals: Record<string, number> = {};
     for (const row of bookingsStore.values()) {
-      if (
-        row.tenantId !== tenantId ||
-        row.status !== "approved" ||
-        !tourIdSet.has(row.tourId)
-      ) {
+      if (row.tenantId !== tenantId || row.status !== "approved" || !tourIdSet.has(row.tourId)) {
         continue;
       }
       totals[row.tourId] = (totals[row.tourId] ?? 0) + row.partySize;
@@ -571,110 +573,110 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return out;
   }
 
-    async updatePaymentStatus(input: {
-      readonly bookingId: string;
-      readonly tenantId: string;
-      readonly paymentStatus: BookingPaymentStatus;
-    }): Promise<BookingRecord | null> {
-      const row = bookingsStore.get(input.bookingId);
-      if (row === undefined || row.tenantId !== input.tenantId) {
-        return null;
-      }
-      const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
-      if (next === row.paymentStatus) {
-        return cloneBooking(row);
-      }
-      const updated: BookingRecord = { ...row, paymentStatus: next };
-      bookingsStore.set(input.bookingId, updated);
-      return cloneBooking(updated);
+  async updatePaymentStatus(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly paymentStatus: BookingPaymentStatus;
+  }): Promise<BookingRecord | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      return null;
     }
-
-    async mergeRegistrationIntake(input: {
-      readonly bookingId: string;
-      readonly tenantId: string;
-      readonly patch: Readonly<Record<string, unknown>>;
-    }): Promise<BookingRecord | null> {
-      const row = bookingsStore.get(input.bookingId);
-      if (row === undefined || row.tenantId !== input.tenantId) {
-        return null;
-      }
-      const merged: BookingRecord = {
-        ...row,
-        registrationIntake: {
-          ...(row.registrationIntake ?? {}),
-          ...input.patch,
-        },
-      };
-      bookingsStore.set(input.bookingId, merged);
-      return cloneBooking(merged);
+    const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
+    if (next === row.paymentStatus) {
+      return cloneBooking(row);
     }
+    const updated: BookingRecord = { ...row, paymentStatus: next };
+    bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
+  }
 
-    async updateGuestProjectionAndIntake(input: {
-      readonly bookingId: string;
-      readonly tenantId: string;
-      readonly guestLabel: string;
-      readonly guestEmail?: string | null;
-      readonly guestPhone?: string | null;
-      readonly intakePatch: Readonly<Record<string, unknown>>;
-    }): Promise<BookingRecord | null> {
-      const row = bookingsStore.get(input.bookingId);
-      if (row === undefined || row.tenantId !== input.tenantId) {
-        return null;
-      }
-      const merged: BookingRecord = {
-        ...row,
-        guestLabel: input.guestLabel,
-        ...(input.guestEmail !== undefined ? { guestEmail: input.guestEmail } : {}),
-        ...(input.guestPhone !== undefined ? { guestPhone: input.guestPhone } : {}),
-        registrationIntake: {
-          ...(row.registrationIntake ?? {}),
-          ...input.intakePatch,
-        },
-      };
-      bookingsStore.set(input.bookingId, merged);
-      return cloneBooking(merged);
+  async mergeRegistrationIntake(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly patch: Readonly<Record<string, unknown>>;
+  }): Promise<BookingRecord | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      return null;
     }
+    const merged: BookingRecord = {
+      ...row,
+      registrationIntake: {
+        ...(row.registrationIntake ?? {}),
+        ...input.patch,
+      },
+    };
+    bookingsStore.set(input.bookingId, merged);
+    return cloneBooking(merged);
+  }
 
-    async reclassifyOwnedOtherToSelf(input: {
-      readonly bookingId: string;
-      readonly tenantId: string;
-      readonly submittedByUserId: string;
-      readonly guestLabel: string;
-      readonly guestEmail?: string | null;
-      readonly guestPhone?: string | null;
-      readonly intakePatch: Readonly<Record<string, unknown>>;
-    }): Promise<{ readonly id: string; readonly status: string } | null> {
-      const row = bookingsStore.get(input.bookingId);
-      if (
-        row === undefined ||
-        !isOwnedActiveOtherReclassifyCandidate({
-          submittedByUserId: row.submittedByUserId,
-          expectedSubmitterId: input.submittedByUserId,
-          status: row.status,
-          registrationIntake: row.registrationIntake,
-        })
-      ) {
-        return null;
-      }
-      const merged: BookingRecord = {
-        ...row,
-        guestLabel: input.guestLabel,
-        ...(input.guestEmail !== undefined ? { guestEmail: input.guestEmail } : {}),
-        ...(input.guestPhone !== undefined ? { guestPhone: input.guestPhone } : {}),
-        registrationIntake: {
-          ...(row.registrationIntake ?? {}),
-          ...input.intakePatch,
-        },
-        registrantTarget: readRegistrantTargetFromIntake({
-          ...(row.registrationIntake ?? {}),
-          ...input.intakePatch,
-        }),
-      };
-      bookingsStore.set(input.bookingId, merged);
-      return { id: merged.id, status: merged.status };
+  async updateGuestProjectionAndIntake(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly guestLabel: string;
+    readonly guestEmail?: string | null;
+    readonly guestPhone?: string | null;
+    readonly intakePatch: Readonly<Record<string, unknown>>;
+  }): Promise<BookingRecord | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      return null;
     }
+    const merged: BookingRecord = {
+      ...row,
+      guestLabel: input.guestLabel,
+      ...(input.guestEmail !== undefined ? { guestEmail: input.guestEmail } : {}),
+      ...(input.guestPhone !== undefined ? { guestPhone: input.guestPhone } : {}),
+      registrationIntake: {
+        ...(row.registrationIntake ?? {}),
+        ...input.intakePatch,
+      },
+    };
+    bookingsStore.set(input.bookingId, merged);
+    return cloneBooking(merged);
+  }
 
-    async createBooking(input: {
+  async reclassifyOwnedOtherToSelf(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly submittedByUserId: string;
+    readonly guestLabel: string;
+    readonly guestEmail?: string | null;
+    readonly guestPhone?: string | null;
+    readonly intakePatch: Readonly<Record<string, unknown>>;
+  }): Promise<{ readonly id: string; readonly status: string } | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (
+      row === undefined ||
+      !isOwnedActiveOtherReclassifyCandidate({
+        submittedByUserId: row.submittedByUserId,
+        expectedSubmitterId: input.submittedByUserId,
+        status: row.status,
+        registrationIntake: row.registrationIntake,
+      })
+    ) {
+      return null;
+    }
+    const merged: BookingRecord = {
+      ...row,
+      guestLabel: input.guestLabel,
+      ...(input.guestEmail !== undefined ? { guestEmail: input.guestEmail } : {}),
+      ...(input.guestPhone !== undefined ? { guestPhone: input.guestPhone } : {}),
+      registrationIntake: {
+        ...(row.registrationIntake ?? {}),
+        ...input.intakePatch,
+      },
+      registrantTarget: readRegistrantTargetFromIntake({
+        ...(row.registrationIntake ?? {}),
+        ...input.intakePatch,
+      }),
+    };
+    bookingsStore.set(input.bookingId, merged);
+    return { id: merged.id, status: merged.status };
+  }
+
+  async createBooking(input: {
     tenantId: string;
     submittedByUserId: string;
     body: CreateBookingRequest;
@@ -695,11 +697,13 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       }
     }
     if (input.assertCapacityInTx !== undefined) {
-      await Promise.resolve(input.assertCapacityInTx({
-        tourId: input.body.tourId,
-        partySize: input.body.partySize,
-        occupiedApprovedPartySize,
-      }));
+      await Promise.resolve(
+        input.assertCapacityInTx({
+          tourId: input.body.tourId,
+          partySize: input.body.partySize,
+          occupiedApprovedPartySize,
+        })
+      );
     }
     const now = new Date().toISOString();
     const record: BookingRecord = {
@@ -757,10 +761,12 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           }
         }
         if (input.assertCapacityInTx !== undefined) {
-          await Promise.resolve(input.assertCapacityInTx({
-            booking: cloneBooking(current),
-            occupiedApprovedPartySize,
-          }));
+          await Promise.resolve(
+            input.assertCapacityInTx({
+              booking: cloneBooking(current),
+              occupiedApprovedPartySize,
+            })
+          );
         }
 
         const approvedAt = new Date().toISOString();
@@ -843,10 +849,12 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           }
 
           if (input.assertCapacityInTx !== undefined) {
-            await Promise.resolve(input.assertCapacityInTx({
-              booking: cloneBooking(current),
-              occupiedApprovedPartySize,
-            }));
+            await Promise.resolve(
+              input.assertCapacityInTx({
+                booking: cloneBooking(current),
+                occupiedApprovedPartySize,
+              })
+            );
           }
 
           const approvedAt = new Date().toISOString();

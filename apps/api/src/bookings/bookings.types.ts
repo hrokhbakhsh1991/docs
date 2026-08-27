@@ -43,6 +43,7 @@ export type BookingRecord = {
   readonly partySize: number;
   readonly status: BookingStatus;
   readonly paymentStatus: BookingPaymentStatus;
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly submittedByUserId: string;

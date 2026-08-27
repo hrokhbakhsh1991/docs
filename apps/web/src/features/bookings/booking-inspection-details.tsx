@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookingActionButtons } from "@/features/bookings/booking-action-buttons";
 import { BookingCapacityBar } from "@/features/bookings/booking-capacity-bar";
+import { bookingPaymentLabelKey } from "@/features/bookings/booking-payment-display";
 import {
   bookingPaymentBadgeVariant,
   bookingStatusBadgeVariant,
@@ -70,9 +71,7 @@ export function BookingInspectionDetails({
 }: BookingInspectionDetailsProps) {
   const t = useTranslations("bookings");
   const identityLabel =
-    booking.registrantTarget === "self"
-      ? t("intake.registrantSelf")
-      : t("intake.registrantOther");
+    booking.registrantTarget === "self" ? t("intake.registrantSelf") : t("intake.registrantOther");
   return (
     <>
       <div className="space-y-1">
@@ -120,8 +119,9 @@ export function BookingInspectionDetails({
             variant={bookingPaymentBadgeVariant(booking.paymentStatus)}
             data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInspection}
             data-payment-status={booking.paymentStatus}
+            data-financial-display-state={booking.financialDisplayState}
           >
-            {t(`payment.${booking.paymentStatus}`)}
+            {t(bookingPaymentLabelKey(booking))}
           </Badge>
         </dd>
         <dt className="text-muted-foreground">{t("fields.status")}</dt>

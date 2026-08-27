@@ -1,4 +1,5 @@
 import { buildIranMobileSearchPatterns } from "@app-tour/iran-mobile";
+import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
 import { Prisma } from "@prisma/client";
 
 import {
@@ -93,6 +94,7 @@ export const BOOKING_LIST_SELECT = {
   submittedByUserId: true,
   approvedAt: true,
   rejectReason: true,
+  registrationIntake: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
 type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
@@ -100,6 +102,21 @@ type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
 }>;
 
 function toBookingListRecord(row: BookingListRow): BookingRecord {
+  const registrationIntake =
+    row.registrationIntake !== null &&
+    row.registrationIntake !== undefined &&
+    typeof row.registrationIntake === "object" &&
+    !Array.isArray(row.registrationIntake)
+      ? (row.registrationIntake as Readonly<Record<string, unknown>>)
+      : undefined;
+  const override = readObligationOverrideFromIntake(registrationIntake);
+  const financialDisplayState =
+    row.status === "approved" &&
+    row.paymentStatus === "paid" &&
+    override !== null &&
+    isZeroObligationMinor(override.obligationMinor)
+      ? "WAIVED"
+      : undefined;
   return {
     id: row.id,
     tenantId: row.tenantId,
@@ -111,6 +128,7 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     partySize: row.partySize,
     status: row.status as BookingStatus,
     paymentStatus: row.paymentStatus as BookingRecord["paymentStatus"],
+    ...(financialDisplayState !== undefined ? { financialDisplayState } : {}),
     departureAt: row.departureAt.toISOString(),
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
@@ -165,14 +183,11 @@ function toBookingRecord(row: {
     registrantTarget: readRegistrantTargetFromIntake(registrationIntake),
     transportKind: readTransportKindFromIntake(registrationIntake),
     personalCarOccupants: readPersonalCarOccupantsFromIntake(registrationIntake),
-    ...(row.rejectReason !== null &&
-    row.rejectReason !== undefined &&
-    row.rejectReason.length > 0
+    ...(row.rejectReason !== null && row.rejectReason !== undefined && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
   };
 }
-
 
 function buildBookingListWhere(
   input: Omit<BookingListPageInput, "limit" | "cursor">
@@ -181,31 +196,27 @@ function buildBookingListWhere(
   const departureFrom =
     input.departureFrom !== undefined ? new Date(input.departureFrom) : undefined;
   const departureTo = input.departureTo !== undefined ? new Date(input.departureTo) : undefined;
-  const hasDepartureFrom =
-    departureFrom !== undefined && !Number.isNaN(departureFrom.getTime());
+  const hasDepartureFrom = departureFrom !== undefined && !Number.isNaN(departureFrom.getTime());
   const hasDepartureTo = departureTo !== undefined && !Number.isNaN(departureTo.getTime());
-  const approvedFrom =
-    input.approvedFrom !== undefined ? new Date(input.approvedFrom) : undefined;
+  const approvedFrom = input.approvedFrom !== undefined ? new Date(input.approvedFrom) : undefined;
   const approvedTo = input.approvedTo !== undefined ? new Date(input.approvedTo) : undefined;
-  const hasApprovedFrom =
-    approvedFrom !== undefined && !Number.isNaN(approvedFrom.getTime());
+  const hasApprovedFrom = approvedFrom !== undefined && !Number.isNaN(approvedFrom.getTime());
   const hasApprovedTo = approvedTo !== undefined && !Number.isNaN(approvedTo.getTime());
 
   return {
     tenantId: input.tenantId,
     ...(input.statuses !== undefined && input.statuses.length > 0
       ? {
-          status:
-            input.statuses.length === 1
-              ? input.statuses[0]
-              : { in: [...input.statuses] },
+          status: input.statuses.length === 1 ? input.statuses[0] : { in: [...input.statuses] },
         }
       : input.status !== undefined
         ? { status: input.status }
         : {}),
     ...(input.tourId !== undefined && input.tourId.length > 0 ? { tourId: input.tourId } : {}),
     ...(input.paymentStatus !== undefined ? { paymentStatus: input.paymentStatus } : {}),
-    ...(input.submittedByUserId !== undefined ? { submittedByUserId: input.submittedByUserId } : {}),
+    ...(input.submittedByUserId !== undefined
+      ? { submittedByUserId: input.submittedByUserId }
+      : {}),
     ...(hasDepartureFrom || hasDepartureTo
       ? {
           departureAt: {
@@ -285,7 +296,6 @@ function applyDepartureAtKeysetCursor(
   };
 }
 
-
 function assertTenantId(tenantId: string): void {
   if (tenantId.trim().length === 0) {
     throw new Error("TENANT_ID_REQUIRED");
@@ -302,10 +312,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     return [...page.items];
   }
 
-  async countBookingsBySubmittedUser(
-    tenantId: string,
-    submittedByUserId: string
-  ): Promise<number> {
+  async countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number> {
     return withTenantRls(tenantId, (tx) =>
       tx.operatorRegistration.count({
         where: { tenantId, submittedByUserId },
@@ -366,10 +373,8 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     const baseWhere = buildBookingListWhere(input);
     const sortMode = input.sort === "departureAt" ? "departureAt" : "submittedAt";
 
-    const { baseItems, targetById, hasMore } = await withTenantRls(
-      input.tenantId,
-      async (tx) => {
-        let where = baseWhere;
+    const { baseItems, targetById, hasMore } = await withTenantRls(input.tenantId, async (tx) => {
+      let where = baseWhere;
 
       if (input.cursor !== undefined && input.cursor.length > 0) {
         const cursorRow = await tx.operatorRegistration.findFirst({
@@ -419,8 +424,8 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         };
       }
 
-      // Performance: derive only the allowed list scalars using SQL JSON operators,
-      // instead of materializing the full `registrationIntake` JSON blob in memory.
+      // Performance: derive only the allowed list scalars using SQL JSON operators;
+      // the list DTO still omits the full `registrationIntake` JSON blob.
       const ids = baseItems.map((row) => row.id);
       const idSql = Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`));
 
@@ -478,9 +483,8 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         })
       );
 
-        return { baseItems, targetById, hasMore };
-      }
-    );
+      return { baseItems, targetById, hasMore };
+    });
 
     const items = baseItems.map((row) => {
       const scalars = targetById.get(row.id);
@@ -614,11 +618,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
   }> {
     assertTenantId(input.tenantId);
     const dayStart = new Date(
-      Date.UTC(
-        input.now.getUTCFullYear(),
-        input.now.getUTCMonth(),
-        input.now.getUTCDate()
-      )
+      Date.UTC(input.now.getUTCFullYear(), input.now.getUTCMonth(), input.now.getUTCDate())
     );
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
     const departuresEnd = new Date(input.now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -927,38 +927,39 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         input.body.tourId
       );
       if (input.assertCapacityInTx !== undefined) {
-        await Promise.resolve(input.assertCapacityInTx({
-          tourId: input.body.tourId,
-          partySize: input.body.partySize,
-          occupiedApprovedPartySize,
-        }));
+        await Promise.resolve(
+          input.assertCapacityInTx({
+            tourId: input.body.tourId,
+            partySize: input.body.partySize,
+            occupiedApprovedPartySize,
+          })
+        );
       }
-      const row = await tx.operatorRegistration.create({
-        data: {
-          tenantId: input.tenantId,
-          tourId: input.body.tourId,
-          tourTitle: input.body.tourTitle,
-          guestLabel: input.body.guestLabel,
-          guestEmail: input.body.guestEmail ?? null,
-          guestPhone: input.body.guestPhone ?? null,
-          partySize: input.body.partySize,
-          status: "pending",
-          paymentStatus: input.body.paymentStatus ?? "unpaid",
-          departureAt: new Date(input.body.departureAt),
-          submittedByUserId: input.submittedByUserId,
-          ...(input.body.registrationIntake !== undefined
-            ? { registrationIntake: input.body.registrationIntake as Prisma.InputJsonValue }
-            : {}),
-        },
-      }).catch((error: unknown) => {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === "P2002"
-        ) {
-          throw new Error("BOOKING_GUEST_DUPLICATE");
-        }
-        throw error;
-      });
+      const row = await tx.operatorRegistration
+        .create({
+          data: {
+            tenantId: input.tenantId,
+            tourId: input.body.tourId,
+            tourTitle: input.body.tourTitle,
+            guestLabel: input.body.guestLabel,
+            guestEmail: input.body.guestEmail ?? null,
+            guestPhone: input.body.guestPhone ?? null,
+            partySize: input.body.partySize,
+            status: "pending",
+            paymentStatus: input.body.paymentStatus ?? "unpaid",
+            departureAt: new Date(input.body.departureAt),
+            submittedByUserId: input.submittedByUserId,
+            ...(input.body.registrationIntake !== undefined
+              ? { registrationIntake: input.body.registrationIntake as Prisma.InputJsonValue }
+              : {}),
+          },
+        })
+        .catch((error: unknown) => {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            throw new Error("BOOKING_GUEST_DUPLICATE");
+          }
+          throw error;
+        });
       return toBookingRecord(row);
     });
   }
@@ -999,10 +1000,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         current.tourId
       );
       if (input.assertCapacityInTx !== undefined) {
-        await Promise.resolve(input.assertCapacityInTx({
-          booking: toBookingRecord(current),
-          occupiedApprovedPartySize,
-        }));
+        await Promise.resolve(
+          input.assertCapacityInTx({
+            booking: toBookingRecord(current),
+            occupiedApprovedPartySize,
+          })
+        );
       }
 
       const approvedAt = new Date();
@@ -1102,16 +1105,15 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         }
         if (input.assertCapacityInTx !== undefined) {
           try {
-            await Promise.resolve(input.assertCapacityInTx({
-              booking: toBookingRecord(row),
-              occupiedApprovedPartySize: occupied,
-            }));
+            await Promise.resolve(
+              input.assertCapacityInTx({
+                booking: toBookingRecord(row),
+                occupiedApprovedPartySize: occupied,
+              })
+            );
           } catch (error) {
             // Bulk must fill up to capacity then skip — throwing would ROLLBACK winners.
-            if (
-              error instanceof Error &&
-              error.message.startsWith("BOOKING_CAPACITY_REJECTED")
-            ) {
+            if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
               continue;
             }
             throw error;

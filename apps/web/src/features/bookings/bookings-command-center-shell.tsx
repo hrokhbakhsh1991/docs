@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { Check, Plus, Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
@@ -193,9 +193,7 @@ export function BookingsPageClient({
   );
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionNotice, setActionNotice] = useState<
-    string | BookingActionNoticeModel | null
-  >(null);
+  const [actionNotice, setActionNotice] = useState<string | BookingActionNoticeModel | null>(null);
   const [loading, setLoading] = useState(initialPrefetch === null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
@@ -231,9 +229,7 @@ export function BookingsPageClient({
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [overbookConfirmOpen, setOverbookConfirmOpen] = useState(false);
-  const [overbookConfirmBookingId, setOverbookConfirmBookingId] = useState<string | null>(
-    null
-  );
+  const [overbookConfirmBookingId, setOverbookConfirmBookingId] = useState<string | null>(null);
   const [overbookConfirmMode, setOverbookConfirmMode] = useState<
     "approve" | "approve_without_payment"
   >("approve");
@@ -243,10 +239,7 @@ export function BookingsPageClient({
   const inlineApproveArmTimeoutRef = useRef<number | null>(null);
 
   const replaceQuery = (next: BookingsCommandCenterQuery) => {
-    let scoped =
-      lockedTour.length > 0
-        ? { ...next, tourId: lockedTour }
-        : next;
+    let scoped = lockedTour.length > 0 ? { ...next, tourId: lockedTour } : next;
     if (lockedStatusFilter.length > 0) {
       scoped = {
         ...scoped,
@@ -353,9 +346,7 @@ export function BookingsPageClient({
     const summaryQs = buildBookingsSummaryApiQuery(query);
     const summaryPromise = canManageOps
       ? fetch(
-          summaryQs.length > 0
-            ? `/api/bookings/summary?${summaryQs}`
-            : "/api/bookings/summary",
+          summaryQs.length > 0 ? `/api/bookings/summary?${summaryQs}` : "/api/bookings/summary",
           { cache: "no-store" }
         )
       : Promise.resolve(null);
@@ -561,12 +552,7 @@ export function BookingsPageClient({
   };
 
   const bulkApprovableIds = useMemo(
-    () =>
-      filterBulkApprovableIds(
-        listData?.items ?? [],
-        bulkSelectedIds,
-        bulkApproveMaxBatch
-      ),
+    () => filterBulkApprovableIds(listData?.items ?? [], bulkSelectedIds, bulkApproveMaxBatch),
     [bulkApproveMaxBatch, bulkSelectedIds, listData?.items]
   );
   const pageApprovableIds = useMemo(
@@ -574,8 +560,7 @@ export function BookingsPageClient({
     [bulkApproveMaxBatch, listData?.items]
   );
   const allPageApprovableSelected =
-    pageApprovableIds.length > 0 &&
-    pageApprovableIds.every((id) => bulkSelectedIds.includes(id));
+    pageApprovableIds.length > 0 && pageApprovableIds.every((id) => bulkSelectedIds.includes(id));
 
   const runBulkApprove = async () => {
     if (bulkApprovableIds.length === 0) {
@@ -737,10 +722,7 @@ export function BookingsPageClient({
   };
 
   const requestApprove = (bookingId: string) => {
-    if (
-      tourCapacityGuard !== undefined &&
-      isTourCapacityFull(tourCapacityGuard)
-    ) {
+    if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
       setOverbookConfirmMode("approve");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
@@ -776,9 +758,7 @@ export function BookingsPageClient({
         invalidateTourWorkspaceFinanceCache(lockedTour);
       }
       if (snapshot !== null) {
-        setActionNotice(
-          t("approveWithoutPaymentSuccess", { guest: snapshot.guestLabel })
-        );
+        setActionNotice(t("approveWithoutPaymentSuccess", { guest: snapshot.guestLabel }));
       }
       refreshData();
       onOpsMutationSuccess?.();
@@ -792,10 +772,7 @@ export function BookingsPageClient({
   };
 
   const requestApproveWithoutPayment = (bookingId: string) => {
-    if (
-      tourCapacityGuard !== undefined &&
-      isTourCapacityFull(tourCapacityGuard)
-    ) {
+    if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
       setOverbookConfirmMode("approve_without_payment");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
@@ -813,8 +790,7 @@ export function BookingsPageClient({
     canManageOps && selectedBooking !== null && isBookingWaitlistable(selectedBooking);
   const canCancelSelected =
     canManageOps && selectedBooking !== null && isBookingCancellable(selectedBooking);
-  const capacityFull =
-    tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard);
+  const capacityFull = tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard);
   const actionAvailability = useMemo(
     () =>
       resolveBookingActionAvailability({
@@ -866,7 +842,7 @@ export function BookingsPageClient({
     const selected = selectedBooking?.id === item.id;
     const paymentDueAt = readBookingPaymentDueAt(item);
     return (
-      <>
+      <Fragment key={item.id}>
         {paymentDueAt !== undefined ? (
           <span className="sr-only" data-operator-booking-payment-due-at>
             {paymentDueAt}
@@ -878,27 +854,26 @@ export function BookingsPageClient({
           </span>
         ) : null}
         <BookingInboxRow
-        key={item.id}
-        item={item}
-        selected={selected}
-        bulkChecked={bulkSelectedIds.includes(item.id)}
-        showBulkSelect={canManageOps && isBulkApprovable(item)}
-        onBulkToggle={() => toggleBulkSelection(item.id)}
-        onSelect={() => selectBooking(item.id)}
-        showInlineApprove={shouldShowInlineApprove({
-          featureEnabled: BOOKINGS_INLINE_APPROVE_ENABLED,
-          canManageOps,
-          item,
-          selected,
-          narrowViewport: isNarrowViewport,
-        })}
-        inlineApproveBusy={actionBusy}
-        inlineApproveArmed={armedInlineApproveId === item.id}
-        onInlineApprove={() => handleInlineApproveClick(item.id)}
-        onInlineApproveDisarm={clearInlineApproveArm}
-        showTourTitle={!isWorkspaceEmbed}
-      />
-      </>
+          item={item}
+          selected={selected}
+          bulkChecked={bulkSelectedIds.includes(item.id)}
+          showBulkSelect={canManageOps && isBulkApprovable(item)}
+          onBulkToggle={() => toggleBulkSelection(item.id)}
+          onSelect={() => selectBooking(item.id)}
+          showInlineApprove={shouldShowInlineApprove({
+            featureEnabled: BOOKINGS_INLINE_APPROVE_ENABLED,
+            canManageOps,
+            item,
+            selected,
+            narrowViewport: isNarrowViewport,
+          })}
+          inlineApproveBusy={actionBusy}
+          inlineApproveArmed={armedInlineApproveId === item.id}
+          onInlineApprove={() => handleInlineApproveClick(item.id)}
+          onInlineApproveDisarm={clearInlineApproveArm}
+          showTourTitle={!isWorkspaceEmbed}
+        />
+      </Fragment>
     );
   };
 
@@ -927,7 +902,12 @@ export function BookingsPageClient({
       )}
       {!embedded && query.tourId.trim().length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline" size="sm" data-testid="operator-bookings-open-tour-workspace">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            data-testid="operator-bookings-open-tour-workspace"
+          >
             <Link href={workspaceBasePath(query.tourId)}>{tWorkspace("openWorkspace")}</Link>
           </Button>
         </div>
@@ -1214,11 +1194,7 @@ export function BookingsPageClient({
                   return;
                 }
                 if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                  const nextId = resolveInboxSelectionAfterKey(
-                    displayItems,
-                    selectedId,
-                    event.key
-                  );
+                  const nextId = resolveInboxSelectionAfterKey(displayItems, selectedId, event.key);
                   if (nextId !== null) {
                     selectBooking(nextId);
                   }
@@ -1298,9 +1274,7 @@ export function BookingsPageClient({
                   onCopyId={() => void copyBookingId(inspectionTarget.id)}
                   onReject={() => openRejectDialog(inspectionTarget.id)}
                   onApprove={() => requestApprove(inspectionTarget.id)}
-                  onApproveWithoutPayment={() =>
-                    requestApproveWithoutPayment(inspectionTarget.id)
-                  }
+                  onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex"
@@ -1346,9 +1320,7 @@ export function BookingsPageClient({
                   onCopyId={() => void copyBookingId(inspectionTarget.id)}
                   onReject={() => openRejectDialog(inspectionTarget.id)}
                   onApprove={() => requestApprove(inspectionTarget.id)}
-                  onApproveWithoutPayment={() =>
-                    requestApproveWithoutPayment(inspectionTarget.id)
-                  }
+                  onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex w-full flex-wrap"
@@ -1368,8 +1340,7 @@ export function BookingsPageClient({
         busy={actionBusy}
         requiresReason={rejectRequiresReason}
         canConfirm={
-          rejectTargetId !== null &&
-          (!rejectRequiresReason || rejectReasonDraft.trim().length > 0)
+          rejectTargetId !== null && (!rejectRequiresReason || rejectReasonDraft.trim().length > 0)
         }
         onOpenChange={(open) => {
           setRejectDialogOpen(open);

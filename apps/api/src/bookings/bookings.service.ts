@@ -6,6 +6,7 @@ import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabil
 import type { BookingAssistedRegistrationMembersPort } from "./ports/booking-assisted-registration-members.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
 import type { BookingTourCapacityPort } from "./ports/booking-tour-capacity.port";
+import type { BookingFinancialDisplayStatePort } from "./ports/booking-financial-display-state.port";
 import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking-http-contracts";
 import type {
   ApproveBookingResponse,
@@ -34,10 +35,7 @@ import {
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
 import type { BookingRecord } from "./bookings.types";
-import {
-  BookingCapabilityViolationError,
-  BookingNotFoundError,
-} from "./bookings.errors";
+import { BookingCapabilityViolationError, BookingNotFoundError } from "./bookings.errors";
 import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
@@ -68,13 +66,11 @@ export type BookingsServiceDeps = {
   readonly productionGradeIntegrity: boolean;
   readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
   readonly registrationSlo: BookingRegistrationSloPort;
+  readonly financialDisplayState: BookingFinancialDisplayStatePort;
 };
 
-
 /** Booking-owned capacity: missing max is never a silent allow. */
-function requireTourCapacityMax(
-  intake: Readonly<Record<string, unknown>> | undefined
-): number {
+function requireTourCapacityMax(intake: Readonly<Record<string, unknown>> | undefined): number {
   const max = readTourCapacityMaxFromIntake(intake);
   if (max === null) {
     throw new Error(BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE);
@@ -85,7 +81,10 @@ function requireTourCapacityMax(
 function toListItem(
   record: BookingRecord,
   capacitySnapshot?: BookingCapacitySnapshot,
-  options?: { readonly includeRegistrationIntake?: boolean }
+  options?: {
+    readonly includeRegistrationIntake?: boolean;
+    readonly financialDisplayState?: BookingListItem["financialDisplayState"];
+  }
 ): BookingListItem {
   const guestEmail =
     record.guestEmail !== null && record.guestEmail.trim().length > 0
@@ -103,6 +102,7 @@ function toListItem(
   const registrantTarget = record.registrantTarget ?? "self";
   const transportKind = record.transportKind ?? null;
   const personalCarOccupants = record.personalCarOccupants ?? null;
+  const financialDisplayState = options?.financialDisplayState;
   return {
     id: record.id,
     tourId: record.tourId,
@@ -116,6 +116,7 @@ function toListItem(
     partySize: record.partySize,
     status: record.status,
     paymentStatus: record.paymentStatus,
+    ...(financialDisplayState !== undefined ? { financialDisplayState } : {}),
     departureAt: record.departureAt,
     submittedAt: record.submittedAt,
     ...(approvedAt !== undefined ? { approvedAt } : {}),
@@ -153,6 +154,7 @@ export class BookingsService {
   private readonly productionGradeIntegrity: boolean;
   private readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
   private readonly registrationSlo: BookingRegistrationSloPort;
+  private readonly financialDisplayState: BookingFinancialDisplayStatePort;
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -197,6 +199,9 @@ export class BookingsService {
     if (deps.registrationSlo == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:registrationSlo");
     }
+    if (deps.financialDisplayState == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:financialDisplayState");
+    }
     const workspaceType = deps.workspaceType.trim().toLowerCase();
     if (workspaceType.length === 0) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:workspaceType");
@@ -216,6 +221,7 @@ export class BookingsService {
     this.productionGradeIntegrity = deps.productionGradeIntegrity;
     this.postCancelSideEffects = deps.postCancelSideEffects;
     this.registrationSlo = deps.registrationSlo;
+    this.financialDisplayState = deps.financialDisplayState;
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -318,9 +324,7 @@ export class BookingsService {
       ...(query.departureWithinDays !== undefined
         ? (() => {
             const now = this.clock.now();
-            const to = new Date(
-              now.getTime() + query.departureWithinDays * 24 * 60 * 60 * 1000
-            );
+            const to = new Date(now.getTime() + query.departureWithinDays * 24 * 60 * 60 * 1000);
             return {
               departureFrom: now.toISOString(),
               departureTo: to.toISOString(),
@@ -337,9 +341,7 @@ export class BookingsService {
         ...filters,
         limit: query.limit,
         sort: query.sort === "departureAt" ? "departureAt" : "submittedAt",
-        ...(query.cursor !== undefined && query.cursor.length > 0
-          ? { cursor: query.cursor }
-          : {}),
+        ...(query.cursor !== undefined && query.cursor.length > 0 ? { cursor: query.cursor } : {}),
       }),
       this.repository.countByTenantFilters(filters),
     ]);
@@ -360,10 +362,17 @@ export class BookingsService {
         page.items as BookingRecord[],
         page.items.map((row) => {
           const record = row as BookingRecord;
-          return toListItem(record, {
-            occupied: occupiedByTour[record.tourId] ?? 0,
-            max: maxByTour[record.tourId] ?? null,
-          });
+          return toListItem(
+            record,
+            {
+              occupied: occupiedByTour[record.tourId] ?? 0,
+              max: maxByTour[record.tourId] ?? null,
+            },
+            {
+              financialDisplayState:
+                record.financialDisplayState ?? this.financialDisplayState.resolve(record),
+            }
+          );
         })
       ),
       total,
@@ -387,7 +396,10 @@ export class BookingsService {
       return toListItem(
         record,
         { occupied: 0, max: null },
-        { includeRegistrationIntake: false }
+        {
+          includeRegistrationIntake: false,
+          financialDisplayState: this.financialDisplayState.resolve(record),
+        }
       );
     }
 
@@ -402,7 +414,10 @@ export class BookingsService {
         occupied: occupiedByTour[record.tourId] ?? 0,
         max: maxByTour[record.tourId] ?? null,
       },
-      { includeRegistrationIntake: true }
+      {
+        includeRegistrationIntake: true,
+        financialDisplayState: this.financialDisplayState.resolve(record),
+      }
     );
   }
 
@@ -731,10 +746,7 @@ export class BookingsService {
       await this.invokeApproveReaction(input.tenantId, updated.id);
       return { id: updated.id, status: updated.status };
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.startsWith("BOOKING_CAPACITY_REJECTED")
-      ) {
+      if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
         return { id: booking.id, status: booking.status };
       }
       throw error;

@@ -110,8 +110,7 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         type: "string",
         nullable: true,
         enum: ["primary", "personal_car", "no_car_dong", "no_car_acquaintance"],
-        description:
-          "Guest intake transport kind — list scalar (H5-T3); not the intake blob.",
+        description: "Guest intake transport kind — list scalar (H5-T3); not the intake blob.",
         examples: ["personal_car"],
       },
       personalCarOccupants: {
@@ -124,6 +123,13 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
       partySize: { type: "integer", minimum: 1, examples: [2] },
       status: ref("BookingStatus"),
       paymentStatus: ref("BookingPaymentStatus"),
+      financialDisplayState: {
+        type: "string",
+        enum: ["WAIVED"],
+        description:
+          "Display-only Finance state; when present with paymentStatus=paid, no payment was required.",
+        examples: ["WAIVED"],
+      },
       departureAt: { type: "string", format: "date-time", examples: ["2031-08-01T10:00:00.000Z"] },
       submittedAt: { type: "string", format: "date-time", examples: ["2026-07-20T08:00:00.000Z"] },
       rejectReason: {
@@ -458,7 +464,11 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
     additionalProperties: true,
     properties: {
       id: { type: "string", format: "uuid", examples: ["00000000-0000-4000-8000-000000000701"] },
-      paymentId: { type: "string", format: "uuid", examples: ["00000000-0000-4000-8000-000000000702"] },
+      paymentId: {
+        type: "string",
+        format: "uuid",
+        examples: ["00000000-0000-4000-8000-000000000702"],
+      },
       status: { type: "string", examples: ["Pending"] },
       fileKey: { type: "string", examples: ["tenants/…/receipts/proof.bin"] },
     },
@@ -830,4 +840,6 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
 };
 
 /** OperationIds that must be fully schema-covered. */
-export const BOOKING_OPENAPI_OPERATION_IDS = Object.keys(BOOKING_OPENAPI_OVERRIDES) as readonly string[];
+export const BOOKING_OPENAPI_OPERATION_IDS = Object.keys(
+  BOOKING_OPENAPI_OVERRIDES
+) as readonly string[];

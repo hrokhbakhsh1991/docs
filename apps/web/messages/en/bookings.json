@@ -142,7 +142,8 @@
     "paymentValue": {
       "unpaid": "Unpaid (booking)",
       "partial": "Partially paid (booking)",
-      "paid": "Paid (booking)"
+      "paid": "Payment received",
+      "waived": "No payment required"
     }
   },
   "fields": {
@@ -179,7 +180,8 @@
     "all": "All settlement states",
     "unpaid": "Unpaid (booking)",
     "partial": "Partially paid (booking)",
-    "paid": "Payment received"
+    "paid": "Payment received",
+    "waived": "No payment required"
   },
   "actionReason": {
     "terminal_state": "This registration is closed — approve or reject is not available.",

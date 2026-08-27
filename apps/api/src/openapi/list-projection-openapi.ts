@@ -54,6 +54,7 @@ export const LIST_PROJECTION_OPENAPI_COMPONENTS = {
         partySize: { type: "integer", minimum: 1 },
         status: { type: "string", enum: [...bookingStatusEnum] },
         paymentStatus: { type: "string", enum: [...bookingPaymentStatusEnum] },
+        financialDisplayState: { type: "string", enum: ["WAIVED"] },
         departureAt: { type: "string", format: "date-time" },
         submittedAt: { type: "string", format: "date-time" },
         approvedAt: { type: "string", format: "date-time" },
