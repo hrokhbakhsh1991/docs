@@ -47,6 +47,20 @@ function writePath(target: Record<string, unknown>, path: string, value: unknown
   current[parts[parts.length - 1]!] = value;
 }
 
+function deletePath(target: Record<string, unknown>, path: string): void {
+  const parts = path.split(".");
+  let current: unknown = target;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    if (current == null || typeof current !== "object" || Array.isArray(current)) {
+      return;
+    }
+    current = (current as Record<string, unknown>)[parts[index]!];
+  }
+  if (current != null && typeof current === "object" && !Array.isArray(current)) {
+    delete (current as Record<string, unknown>)[parts[parts.length - 1]!];
+  }
+}
+
 function isLegacyTripDetailsForm(value: unknown): value is Record<string, unknown> {
   return (
     value != null && typeof value === "object" && !Array.isArray(value) && "basicInfo" in value
@@ -104,6 +118,9 @@ export function prepareDenaliSubmitArtifact(
   const link = readPath(data, "socialMediaLink");
   if (typeof link === "string") {
     writePath(data, "socialMediaLink", stripSocialMediaLinkForSubmit(link));
+  }
+  if (readPath(data, "transport.transportCost") === "") {
+    deletePath(data, "transport.transportCost");
   }
   copyDenaliLocationZoneGhostsOntoOverview(data, form);
   return data;

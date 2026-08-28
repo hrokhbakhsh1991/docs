@@ -53,6 +53,19 @@ describe("prepare-denali-submit-artifact.spec.ts — Phase 11.10", () => {
     assert.equal((participants.gearItems as unknown[]).length, 1);
   });
 
+  it("DENALI-P11-10-03 removes empty optional transport cost from submit payload", () => {
+    const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
+    form.transport = {
+      ...(form.transport as Record<string, unknown>),
+      mode: "bus",
+      transportCost: "",
+    };
+
+    const data = prepareDenaliSubmitArtifact(form);
+    const transport = data.transport as Record<string, unknown>;
+    assert.equal("transportCost" in transport, false);
+  });
+
   it("DEN-CAMP-PERSIST-01 copies campPoint onto tripDetails.overview and keeps trailDistanceKm", () => {
     const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
     const campPoint = {
