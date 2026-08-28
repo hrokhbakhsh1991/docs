@@ -109,7 +109,7 @@ for f in start-api-artifact.sh start-next-artifact.sh install-staging-artifact.s
   start-staging-artifact-stack.sh recover-vps-staging.sh smoke-four-process.sh \
   sync-staging-surface-auth-env.sh probe-staging-minio.sh seed-staging-artifact.sh \
   ensure-staging-artifact-prerequisites.sh ensure-staging-jwt-keys.sh \
-  sync-staging-profile-b-public-urls.sh; do
+  sync-staging-profile-b-public-urls.sh retain-staging-artifact-history.sh; do
   scp_with_retry "${SCRIPT_DIR}/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
 done
 for f in ports.sh staging-ssh.sh artifact-self-check.sh; do
@@ -132,6 +132,10 @@ ssh_cmd "ENV_DIR=${ENV_DIR} UNIT_PREFIX=app-tour-staging \
 
 log "minio live probe"
 ssh_cmd "ENV_DIR=${ENV_DIR} bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/probe-staging-minio.sh"
+
+log "retain staging release/artifact history"
+ssh_cmd "DEPLOY_ROOT=${DEPLOY_ROOT} RETAIN_RELEASES=${RETAIN_RELEASES:-3} \
+  bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/retain-staging-artifact-history.sh"
 
 log "resource sample"
 ssh_cmd 'uptime; free -h; swapon --show 2>/dev/null || true; \
