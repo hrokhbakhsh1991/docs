@@ -156,7 +156,7 @@ export const DENALI_SUBMIT_CATALOG_BFF_PATHS = Object.freeze({
   tourThemes: "/api/settings/resources/tour_themes",
   guideLanguages: "/api/settings/resources/guide_languages",
   locations: "/api/settings/resources/locations",
-  activeUsers: "/api/users?role=all&status=active",
+  activeUsers: "/api/users?role=all&status=active&limit=100",
 });
 
 export type DenaliSubmitCatalogIds = {

@@ -102,6 +102,7 @@ describe("denali-wizard-catalog-ids.spec.ts (P15-W-C1)", () => {
   it("DENALI_SUBMIT_CATALOG_BFF_PATHS exposes operator catalog fetch routes", () => {
     assert.equal(DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment, "/api/settings/resources/equipment");
     assert.match(DENALI_SUBMIT_CATALOG_BFF_PATHS.activeUsers, /role=all/);
+    assert.match(DENALI_SUBMIT_CATALOG_BFF_PATHS.activeUsers, /limit=100/);
   });
 
   it("readActiveThemeIds alias matches readActiveCatalogIds", () => {
