@@ -48,14 +48,21 @@ export function finalizeBookingTourChips(
   scope: BookingTourChipScope = "ops"
 ): BookingTourChipStats[] {
   const selected = scope === "all" ? drafts : drafts.filter(isOpsBookingTourChip);
-  return selected
-    .map(({ tourId, tourTitle, pendingCount, totalCount }) => ({
+  const byTourId = new Map<string, BookingTourChipStats>();
+  for (const { tourId, tourTitle, pendingCount, totalCount } of selected) {
+    const existing = byTourId.get(tourId);
+    if (existing === undefined) {
+      byTourId.set(tourId, { tourId, tourTitle, pendingCount, totalCount });
+      continue;
+    }
+    byTourId.set(tourId, {
       tourId,
-      tourTitle,
-      pendingCount,
-      totalCount,
-    }))
-    .sort(compareBookingTourChips);
+      tourTitle: existing.tourTitle,
+      pendingCount: existing.pendingCount + pendingCount,
+      totalCount: existing.totalCount + totalCount,
+    });
+  }
+  return [...byTourId.values()].sort(compareBookingTourChips);
 }
 
 /** @deprecated Prefer finalizeBookingTourChips(..., "ops") — kept for call-site clarity. */

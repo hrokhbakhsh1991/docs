@@ -645,32 +645,43 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           where: { tenantId: input.tenantId, status: "waitlisted" },
         }),
         tx.operatorRegistration.groupBy({
-          by: ["tourId", "tourTitle"],
+          by: ["tourId"],
           where: { tenantId: input.tenantId },
           _count: { _all: true },
         }),
       ]);
+      const chipTourIds = chipRows.map((row) => row.tourId);
 
-      const [pendingByTour, waitlistedByTour, upcomingTourRows] = await Promise.all([
-        tx.operatorRegistration.groupBy({
-          by: ["tourId"],
-          where: { tenantId: input.tenantId, status: "pending" },
-          _count: { _all: true },
-        }),
-        tx.operatorRegistration.groupBy({
-          by: ["tourId"],
-          where: { tenantId: input.tenantId, status: "waitlisted" },
-          _count: { _all: true },
-        }),
-        tx.operatorRegistration.groupBy({
-          by: ["tourId"],
-          where: {
-            tenantId: input.tenantId,
-            departureAt: { gte: input.now },
-          },
-          _count: { _all: true },
-        }),
-      ]);
+      const [pendingByTour, waitlistedByTour, upcomingTourRows, currentTours, fallbackTitleRows] =
+        await Promise.all([
+          tx.operatorRegistration.groupBy({
+            by: ["tourId"],
+            where: { tenantId: input.tenantId, status: "pending" },
+            _count: { _all: true },
+          }),
+          tx.operatorRegistration.groupBy({
+            by: ["tourId"],
+            where: { tenantId: input.tenantId, status: "waitlisted" },
+            _count: { _all: true },
+          }),
+          tx.operatorRegistration.groupBy({
+            by: ["tourId"],
+            where: {
+              tenantId: input.tenantId,
+              departureAt: { gte: input.now },
+            },
+            _count: { _all: true },
+          }),
+          tx.tour.findMany({
+            where: { tenantId: input.tenantId, id: { in: chipTourIds } },
+            select: { id: true, title: true },
+          }),
+          tx.operatorRegistration.groupBy({
+            by: ["tourId", "tourTitle"],
+            where: { tenantId: input.tenantId, tourId: { in: chipTourIds } },
+            _max: { submittedAt: true },
+          }),
+        ]);
       const pendingMap = new Map(
         pendingByTour.map((row) => [row.tourId, row._count._all] as const)
       );
@@ -678,11 +689,30 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         waitlistedByTour.map((row) => [row.tourId, row._count._all] as const)
       );
       const upcomingTourIds = new Set(upcomingTourRows.map((row) => row.tourId));
+      const currentTourTitleMap = new Map(
+        currentTours
+          .map((row) => [row.id, row.title?.trim() ?? ""] as const)
+          .filter(([, title]) => title.length > 0)
+      );
+      const fallbackTourTitleMap = new Map<string, string>();
+      const latestFallbackTitleRows = [...fallbackTitleRows].sort((left, right) => {
+        const leftTime = left._max.submittedAt?.getTime() ?? 0;
+        const rightTime = right._max.submittedAt?.getTime() ?? 0;
+        return rightTime - leftTime;
+      });
+      for (const row of latestFallbackTitleRows) {
+        if (!fallbackTourTitleMap.has(row.tourId) && row.tourTitle.trim().length > 0) {
+          fallbackTourTitleMap.set(row.tourId, row.tourTitle);
+        }
+      }
 
       const tourChips = finalizeBookingTourChips(
         chipRows.map((row) => ({
           tourId: row.tourId,
-          tourTitle: row.tourTitle,
+          tourTitle:
+            currentTourTitleMap.get(row.tourId) ??
+            fallbackTourTitleMap.get(row.tourId) ??
+            row.tourId,
           pendingCount: pendingMap.get(row.tourId) ?? 0,
           totalCount: row._count._all,
           waitlistedCount: waitlistedMap.get(row.tourId) ?? 0,

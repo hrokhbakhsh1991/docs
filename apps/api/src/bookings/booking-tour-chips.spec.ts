@@ -101,12 +101,15 @@ describe("booking-tour-chips.spec.ts — P4a/P4c", () => {
     );
     assert.ok(!chips.some((chip) => chip.tourId === "past"));
     // Public DTO strips waitlistedCount; pendingCount stays pending-only.
-    assert.deepEqual(chips.find((chip) => chip.tourId === "waitlist-past"), {
-      tourId: "waitlist-past",
-      tourTitle: "Stuck Waitlist",
-      pendingCount: 0,
-      totalCount: 2,
-    });
+    assert.deepEqual(
+      chips.find((chip) => chip.tourId === "waitlist-past"),
+      {
+        tourId: "waitlist-past",
+        tourTitle: "Stuck Waitlist",
+        pendingCount: 0,
+        totalCount: 2,
+      }
+    );
   });
 
   it("API-9.5-P4c scope=all includes pure-history tours", () => {
@@ -115,6 +118,39 @@ describe("booking-tour-chips.spec.ts — P4a/P4c", () => {
       chips.map((chip) => chip.tourId),
       ["hot", "pending-past", "past", "future", "waitlist-past"]
     );
+  });
+
+  it("API-9.5-P4d collapses duplicate tour ids before returning UI chips", () => {
+    const chips = finalizeBookingTourChips(
+      [
+        {
+          tourId: "renamed",
+          tourTitle: "Current Title",
+          pendingCount: 1,
+          waitlistedCount: 0,
+          totalCount: 2,
+          hasUpcomingDeparture: true,
+        },
+        {
+          tourId: "renamed",
+          tourTitle: "Old Snapshot Title",
+          pendingCount: 3,
+          waitlistedCount: 1,
+          totalCount: 5,
+          hasUpcomingDeparture: true,
+        },
+      ],
+      "ops"
+    );
+
+    assert.deepEqual(chips, [
+      {
+        tourId: "renamed",
+        tourTitle: "Current Title",
+        pendingCount: 4,
+        totalCount: 7,
+      },
+    ]);
   });
 
   it("API-9.5-P4a sort is pending desc then total desc then title", () => {
@@ -138,5 +174,15 @@ describe("booking-tour-chips.spec.ts — P4a/P4c", () => {
       mem.indexOf("async sumApprovedPartySizeByTourIds")
     );
     assert.doesNotMatch(memSummary, /\.sort\(\s*\(a,\s*b\)\s*=>/);
+    const prismaSummary = prisma.slice(
+      prisma.indexOf("async getBookingsSummaryStats"),
+      prisma.indexOf("async sumApprovedPartySizeByTourIds")
+    );
+    const primaryChipRowsBlock = prismaSummary.slice(
+      prismaSummary.indexOf("waitlist, chipRows"),
+      prismaSummary.indexOf("const chipTourIds")
+    );
+    assert.match(primaryChipRowsBlock, /by:\s*\["tourId"\]/);
+    assert.doesNotMatch(primaryChipRowsBlock, /by:\s*\["tourId",\s*"tourTitle"\]/);
   });
 });
