@@ -50,6 +50,14 @@ describe("PR21-G2 settlement summary (once, not per row)", () => {
     assert.equal(
       resolveStripBookingSettlementSummary({
         bookingPaymentStatus: "paid",
+        financialDisplayState: "WAIVED",
+        items: [],
+      }),
+      "booking_waived"
+    );
+    assert.equal(
+      resolveStripBookingSettlementSummary({
+        bookingPaymentStatus: "paid",
         items: [{ status: "Paid" }],
       }),
       "booking_paid"
@@ -63,6 +71,8 @@ describe("PR21-G2 settlement summary (once, not per row)", () => {
     );
     assert.match(EN.payments.stripBookingSettlementPartialRecorded, /partially paid/i);
     assert.doesNotMatch(EN.payments.stripBookingSettlementPartialRecorded, /booking is fully paid/i);
+    assert.match(EN.payments.stripBookingSettlementWaived, /No payment is required/i);
+    assert.match(FA.payments.stripBookingSettlementWaived, /بدون نیاز به پرداخت/);
     assert.match(FA.payments.stripBookingSettlementPartialRecorded, /جزئی/);
   });
 });

@@ -13,6 +13,7 @@ import {
   resolveStripNextStep,
   type StripBookingPaymentStatus,
   type StripBookingSettlementSummary,
+  type StripFinancialDisplayState,
   type StripNextStepPlan,
 } from "@/finance/booking-financial-strip-logic";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
@@ -50,6 +51,7 @@ type BookingFinancialStripProps = {
   readonly registrationId: string;
   readonly bookingPaymentStatus?: StripBookingPaymentStatus;
   readonly bookingStatus?: string;
+  readonly financialDisplayState?: StripFinancialDisplayState | null;
   readonly refreshKey?: string | number;
 };
 
@@ -76,6 +78,8 @@ function settlementSummaryCopy(
   switch (kind) {
     case "booking_paid":
       return t("stripBookingSettlementPaid");
+    case "booking_waived":
+      return t("stripBookingSettlementWaived");
     case "booking_partial_recorded":
       return t("stripBookingSettlementPartialRecorded");
     case "booking_partial_pending":
@@ -106,6 +110,7 @@ export function BookingFinancialStrip({
   registrationId,
   bookingPaymentStatus,
   bookingStatus = "",
+  financialDisplayState = null,
   refreshKey,
 }: BookingFinancialStripProps) {
   const locale = useLocale() as AppLocale;
@@ -257,9 +262,10 @@ export function BookingFinancialStrip({
     }
     return resolveStripBookingSettlementSummary({
       bookingPaymentStatus,
+      financialDisplayState,
       items,
     });
-  }, [bookingPaymentStatus, items, loading]);
+  }, [bookingPaymentStatus, financialDisplayState, items, loading]);
 
   const nextStep = useMemo(() => {
     if (loading) {

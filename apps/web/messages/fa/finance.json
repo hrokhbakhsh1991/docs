@@ -285,6 +285,7 @@
     "paidPaymentScopeHint": "این پرداخت ثبت شده است. اگر مانده باشد، تسویه رزرو ممکن است هنوز جزئی باشد.",
     "stripLatestPaymentsTitle": "آخرین پرداخت‌ها",
     "stripBookingSettlementPaid": "رزرو کاملاً پرداخت شده است.",
+    "stripBookingSettlementWaived": "این رزرو بدون نیاز به پرداخت تسویه شده است.",
     "stripBookingSettlementPartialRecorded": "رزرو پرداخت جزئی است — ثبت‌شدن پرداخت به‌معنای تسویه کامل رزرو نیست؛ هنوز مانده دارد.",
     "stripBookingSettlementPartialPending": "رزرو پرداخت جزئی است — هنوز پرداخت بازی در انتظار است.",
     "stripBookingSettlementPartial": "رزرو پرداخت جزئی است — هنوز مانده دارد.",

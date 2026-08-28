@@ -7,6 +7,7 @@ import { withFinanceRegistrationQuery } from "@/finance/finance-registration-con
 
 /** Booking obligation settlement (not payment-row status). */
 export type StripBookingPaymentStatus = "unpaid" | "partial" | "paid";
+export type StripFinancialDisplayState = "WAIVED" | string;
 
 /**
  * Single strip-level settlement summary (not per payment row).
@@ -14,6 +15,7 @@ export type StripBookingPaymentStatus = "unpaid" | "partial" | "paid";
  */
 export type StripBookingSettlementSummary =
   | "booking_paid"
+  | "booking_waived"
   | "booking_partial_recorded"
   | "booking_partial_pending"
   | "booking_unpaid_pending"
@@ -80,11 +82,15 @@ export function hasInvoiceRemainingBalance(
  */
 export function resolveStripBookingSettlementSummary(input: {
   readonly bookingPaymentStatus: StripBookingPaymentStatus | null | undefined;
+  readonly financialDisplayState?: StripFinancialDisplayState | null | undefined;
   readonly items: ReadonlyArray<Pick<FinancePaymentRow, "status">>;
 }): StripBookingSettlementSummary | null {
   const booking = input.bookingPaymentStatus ?? null;
   if (booking === null) {
     return null;
+  }
+  if (input.financialDisplayState?.trim().toUpperCase() === "WAIVED") {
+    return "booking_waived";
   }
   const pending = hasOpenPendingManualPayment(input.items);
   const recorded = hasRecordedManualPayment(input.items);

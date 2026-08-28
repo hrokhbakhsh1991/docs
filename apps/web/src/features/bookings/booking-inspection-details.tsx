@@ -159,6 +159,7 @@ export function BookingInspectionDetails({
         registrationId={booking.id}
         bookingPaymentStatus={booking.paymentStatus}
         bookingStatus={booking.status}
+        financialDisplayState={booking.financialDisplayState}
       />
       {canManageOps &&
       (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (

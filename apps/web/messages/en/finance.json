@@ -285,6 +285,7 @@
     "paidPaymentScopeHint": "This payment is recorded. Booking settlement may still be partial if remaining balance exists.",
     "stripLatestPaymentsTitle": "Latest payments",
     "stripBookingSettlementPaid": "Booking is fully paid.",
+    "stripBookingSettlementWaived": "No payment is required for this booking.",
     "stripBookingSettlementPartialRecorded": "Booking is partially paid — payments recorded here do not mean the booking is settled while a balance remains.",
     "stripBookingSettlementPartialPending": "Booking is partially paid — an open payment is still pending.",
     "stripBookingSettlementPartial": "Booking is partially paid — balance remains.",
