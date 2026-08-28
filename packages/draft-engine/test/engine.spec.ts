@@ -256,6 +256,45 @@ test("clearDraft resets pendingSync so queued flush does not run after clear", a
   assert.equal(engine.getState().data, null);
 });
 
+test("flush waits for queued update behind an in-flight push", async () => {
+  const pushed: DraftSyncPayload<TestData>[] = [];
+  let resolveFirstPush: (() => void) | undefined;
+  const firstPushGate = new Promise<void>((resolve) => {
+    resolveFirstPush = resolve;
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushed.push(p);
+      if (pushed.length === 1) {
+        await firstPushGate;
+      }
+      return { ...p, version: pushed.length };
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "field-edit" });
+  const firstFlush = engine.flush();
+  await sleep(0);
+  assert.equal(engine.getState().status, "SYNCING");
+
+  engine.setDraftData({ value: "step-change" });
+  const queuedFlush = engine.flush();
+  resolveFirstPush?.();
+  await Promise.all([firstFlush, queuedFlush]);
+
+  assert.equal(pushed.length, 2);
+  assert.deepEqual(pushed.map((entry) => entry.data.value), ["field-edit", "step-change"]);
+  const state = engine.getState();
+  assert.equal(state.status, "IDLE");
+  assert.deepEqual(state.data, { value: "step-change" });
+  assert.equal(state.version, 2);
+});
+
 test("initialize sets ERROR when onFetch throws", async () => {
   const engine = new DraftEngine<TestData>({
     id: "test",

@@ -152,7 +152,33 @@ export class DraftEngine<T> {
   /** Push local DIRTY state immediately (skips debounce). No-op when not DIRTY. */
   async flush(): Promise<void> {
     this.clearDebounce();
+    const epochAtStart = this.syncEpoch;
+    const shouldDrainQueuedSync = this.syncInFlight != null;
     await this.flushSync();
+    if (this.syncEpoch !== epochAtStart) {
+      return;
+    }
+    if (!shouldDrainQueuedSync) {
+      return;
+    }
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      if (this.syncEpoch !== epochAtStart) {
+        return;
+      }
+      if (
+        this.syncInFlight == null &&
+        !this.pendingSync &&
+        this.status !== "DIRTY" &&
+        this.status !== "SYNCING"
+      ) {
+        return;
+      }
+      await this.flushSync();
+      if (this.syncEpoch !== epochAtStart) {
+        return;
+      }
+      await Promise.resolve();
+    }
   }
 
   /**
@@ -635,6 +661,11 @@ export class DraftEngine<T> {
   private async flushSync(): Promise<void> {
     if (this.syncInFlight != null) {
       this.pendingSync = true;
+      try {
+        await this.syncInFlight;
+      } catch {
+        // doPush records ERROR state; callers read state after flush.
+      }
       return;
     }
 
@@ -742,7 +773,6 @@ export class DraftEngine<T> {
       if (err instanceof Error && err.message === "WORKSPACE_DRAFT_PATCH_ABORTED") {
         if (this.status === "SYNCING") {
           this.status = "DIRTY";
-          this.scheduleSync();
         }
         return;
       }
