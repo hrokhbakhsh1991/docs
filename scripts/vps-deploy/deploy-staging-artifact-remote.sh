@@ -28,11 +28,69 @@ ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 
 REMOTE="${VPS_USER}@${VPS_HOST}"
 BASENAME="$(basename "$ARTIFACT")"
+EXPECTED_SHA="$(awk '{print $1}' "${ARTIFACT}.sha256")"
 
 log() { printf '[deploy-remote] %s\n' "$*"; }
 
 ssh_cmd() {
   staging_ssh_cmd "$@"
+}
+
+scp_with_retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    if staging_scp_cmd "$@"; then
+      return 0
+    fi
+    log "scp attempt ${attempt}/3 failed; retrying"
+    sleep $((attempt * 2))
+  done
+  return 1
+}
+
+remote_sha_for() {
+  local remote_path="$1"
+  local remote_path_q
+  remote_path_q="$(printf '%q' "$remote_path")"
+  ssh_cmd "if [[ -f ${remote_path_q} ]]; then sha256sum ${remote_path_q} | awk '{print \$1}'; fi"
+}
+
+transfer_artifact() {
+  local remote_artifact="/tmp/app-tour-artifacts/${BASENAME}"
+  local remote_artifact_q
+  remote_artifact_q="$(printf '%q' "$remote_artifact")"
+
+  if [[ "$(remote_sha_for "$remote_artifact")" == "$EXPECTED_SHA" ]]; then
+    log "artifact already present with matching checksum"
+    scp_with_retry "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+    return 0
+  fi
+
+  local chunk_dir
+  chunk_dir="$(mktemp -d)"
+  split -b "${STAGING_ARTIFACT_CHUNK_SIZE:-24m}" "$ARTIFACT" "${chunk_dir}/${BASENAME}.part."
+
+  local remote_parts="/tmp/app-tour-artifacts/${BASENAME}.parts"
+  local remote_parts_q
+  remote_parts_q="$(printf '%q' "$remote_parts")"
+  ssh_cmd "rm -rf ${remote_parts_q} && mkdir -p ${remote_parts_q}"
+
+  local part
+  for part in "${chunk_dir}"/*; do
+    scp_with_retry "$part" "${REMOTE}:${remote_parts}/"
+  done
+
+  ssh_cmd "cat ${remote_parts_q}/${BASENAME}.part.* > ${remote_artifact_q}.tmp && \
+    mv ${remote_artifact_q}.tmp ${remote_artifact_q} && rm -rf ${remote_parts_q}"
+  scp_with_retry "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+
+  local remote_sha
+  remote_sha="$(remote_sha_for "$remote_artifact")"
+  rm -rf "$chunk_dir"
+  if [[ "$remote_sha" != "$EXPECTED_SHA" ]]; then
+    echo "deploy-staging-artifact-remote: checksum mismatch after transfer: ${remote_sha}" >&2
+    return 1
+  fi
 }
 
 log "preflight SSH"
@@ -46,16 +104,16 @@ ssh_cmd "chmod +x ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/ensure-staging-artif
 
 log "transfer artifact + checksum"
 ssh_cmd "mkdir -p /tmp/app-tour-artifacts ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/lib"
-staging_scp_cmd "$ARTIFACT" "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+transfer_artifact
 for f in start-api-artifact.sh start-next-artifact.sh install-staging-artifact.sh \
   start-staging-artifact-stack.sh recover-vps-staging.sh smoke-four-process.sh \
   sync-staging-surface-auth-env.sh probe-staging-minio.sh seed-staging-artifact.sh \
   ensure-staging-artifact-prerequisites.sh ensure-staging-jwt-keys.sh \
   sync-staging-profile-b-public-urls.sh; do
-  staging_scp_cmd "${SCRIPT_DIR}/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
+  scp_with_retry "${SCRIPT_DIR}/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
 done
 for f in ports.sh staging-ssh.sh artifact-self-check.sh; do
-  staging_scp_cmd "${SCRIPT_DIR}/lib/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/lib/${f}"
+  scp_with_retry "${SCRIPT_DIR}/lib/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/lib/${f}"
 done
 
 log "install artifact (extract, migrate, systemd — no build)"
