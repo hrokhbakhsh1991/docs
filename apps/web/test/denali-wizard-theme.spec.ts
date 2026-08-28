@@ -400,6 +400,8 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(stepper, /workspace-wizard-shell__actions-group/);
     assert.match(stepper, /workspace-wizard-shell__progress-rail/);
     assert.match(stepper, /\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*nowrap/);
+    assert.match(stepper, /@media \(min-width: 640px\) and \(max-width: 820px\)/);
+    assert.match(stepper, /@media \(min-width: 640px\) and \(max-width: 820px\)[\s\S]*\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*wrap/);
     const gear = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-gear-field.tsx"),
       "utf8"

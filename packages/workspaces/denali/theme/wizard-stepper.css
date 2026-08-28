@@ -186,6 +186,19 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
   }
 }
 
+@media (min-width: 640px) and (max-width: 820px) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    scrollbar-gutter: auto;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item {
+    scroll-snap-align: none;
+  }
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-summary {
   margin: var(--space-2, 0.5rem) 0 0;
   font-size: 0.875rem;
