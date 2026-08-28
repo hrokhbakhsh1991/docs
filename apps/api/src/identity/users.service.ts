@@ -748,16 +748,21 @@ export async function getWorkspaceUserBookingSummary(
 
   const bookingsRepo = getBookingsRepository();
   const now = new Date();
-  const [totalTrips, cancelledTrips, completedTrips, recentTrips] = await Promise.all([
-    bookingsRepo.countBookingsBySubmittedUser(auth.tenantId, targetUserId),
-    bookingsRepo.countCancelledBookingsBySubmittedUser(auth.tenantId, targetUserId),
-    bookingsRepo.countCompletedTripsBySubmittedUser(auth.tenantId, targetUserId, now),
-    bookingsRepo.listRecentBySubmittedUser(
-      auth.tenantId,
-      targetUserId,
-      MAX_MEMBER_BOOKINGS_RECENT_TRIPS
-    ),
-  ]);
+  const totalTrips = await bookingsRepo.countBookingsBySubmittedUser(auth.tenantId, targetUserId);
+  const cancelledTrips = await bookingsRepo.countCancelledBookingsBySubmittedUser(
+    auth.tenantId,
+    targetUserId
+  );
+  const completedTrips = await bookingsRepo.countCompletedTripsBySubmittedUser(
+    auth.tenantId,
+    targetUserId,
+    now
+  );
+  const recentTrips = await bookingsRepo.listRecentBySubmittedUser(
+    auth.tenantId,
+    targetUserId,
+    MAX_MEMBER_BOOKINGS_RECENT_TRIPS
+  );
   return compileUserBookingSummaryFromCounts(
     { totalTrips, completedTrips, cancelledTrips },
     recentTrips

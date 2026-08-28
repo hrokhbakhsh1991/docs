@@ -46,6 +46,7 @@ describe("bookings-member-summary-projection.spec.ts", () => {
     assert.match(body, /listRecentBySubmittedUser/);
     assert.match(body, /compileUserBookingSummaryFromCounts/);
     assert.doesNotMatch(body, /listBySubmittedUser\s*\(/);
+    assert.doesNotMatch(body, /Promise\.all/);
 
     const recentRow: BookingRecord = {
       id: "b1",
