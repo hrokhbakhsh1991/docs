@@ -97,7 +97,7 @@ log "preflight SSH"
 ssh_cmd 'echo SSH_OK; uptime; free -h | head -2'
 
 log "remote prerequisites (zstd)"
-staging_scp_cmd "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh" \
+scp_with_retry "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh" \
   "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
 ssh_cmd "chmod +x ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/ensure-staging-artifact-prerequisites.sh && \
   bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/ensure-staging-artifact-prerequisites.sh"
