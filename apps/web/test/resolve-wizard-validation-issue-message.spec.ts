@@ -23,6 +23,22 @@ describe("resolve-wizard-validation-issue-message.spec.ts — Phase 2", () => {
     assert.equal(message, "Tour title (translated:REQUIRED_FIELD_EMPTY)");
   });
 
+  it("maps missing canonical-path platform copy to required-field text", () => {
+    const message = resolveWizardValidationIssueMessage(
+      {
+        path: "participants.minimumAge",
+        code: "UNKNOWN_CANONICAL_PATH",
+        message: 'No value at canonical path "participants.minimumAge"',
+      },
+      {
+        has: (key) => key === "REQUIRED_FIELD_EMPTY",
+        translate: (key, values) => `${values.field} (translated:${key})`,
+      },
+      "Minimum age"
+    );
+    assert.equal(message, "Minimum age (translated:REQUIRED_FIELD_EMPTY)");
+  });
+
   it("falls back to violation.message when code has no translation", () => {
     const message = resolveWizardValidationIssueMessage(
       {
