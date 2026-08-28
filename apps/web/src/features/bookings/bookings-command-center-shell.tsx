@@ -33,6 +33,7 @@ import {
   buildBookingLifecycleActionNotice,
   buildRejectBookingRequestBody,
   filterBulkApprovableIds,
+  findExactBooking,
   findSelectedBooking,
   isBookingCancellable,
   isBookingWaitlistable,
@@ -46,6 +47,7 @@ import {
   parseBulkApproveBookingsResponse,
   readBookingIdFromCommandCenterParams,
   readBookingPaymentDueAt,
+  resolveBookingsSelectedId,
   applyDepartureWindow,
   BOOKINGS_UPCOMING_FACET_DAYS,
   resolveBookingsKpiQueryPatch,
@@ -209,13 +211,11 @@ export function BookingsPageClient({
     const bookingIdFromUrl = readBookingIdFromCommandCenterParams(
       new URLSearchParams(searchParams.toString())
     );
-    if (
-      bookingIdFromUrl.length > 0 &&
-      initialPrefetch?.list.items.some((item) => item.id === bookingIdFromUrl)
-    ) {
-      return bookingIdFromUrl;
-    }
-    return initialPrefetch?.list.items[0]?.id ?? null;
+    return resolveBookingsSelectedId({
+      bookingIdFromUrl,
+      currentSelectedId: null,
+      items: initialPrefetch?.list.items ?? [],
+    });
   });
   const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
   const [actionBusy, setActionBusy] = useState(false);
@@ -372,16 +372,11 @@ export function BookingsPageClient({
             new URLSearchParams(searchParams.toString())
           );
           setSelectedId((current) => {
-            if (
-              bookingIdFromUrl.length > 0 &&
-              listJson.items.some((item) => item.id === bookingIdFromUrl)
-            ) {
-              return bookingIdFromUrl;
-            }
-            if (current !== null && listJson.items.some((item) => item.id === current)) {
-              return current;
-            }
-            return listJson.items[0]?.id ?? null;
+            return resolveBookingsSelectedId({
+              bookingIdFromUrl,
+              currentSelectedId: current,
+              items: listJson.items,
+            });
           });
           setBulkSelectedIds((current) =>
             current.filter((id) => listJson.items.some((item) => item.id === id))
@@ -425,7 +420,7 @@ export function BookingsPageClient({
     [listData?.items, query.sort]
   );
 
-  const selectedBooking = findSelectedBooking(displayItems, selectedId);
+  const selectedBooking = findExactBooking(displayItems, selectedId);
 
   useEffect(() => {
     if (selectedId === null || selectedBooking === null) {
@@ -442,9 +437,11 @@ export function BookingsPageClient({
       setInspectionBooking(null);
       return;
     }
-    const listRow = findSelectedBooking(displayItems, selectedId);
+    const listRow = findExactBooking(displayItems, selectedId);
     if (listRow !== null) {
       setInspectionBooking(listRow);
+    } else {
+      setInspectionBooking((current) => (current?.id === selectedId ? current : null));
     }
     let cancelled = false;
     void (async () => {
@@ -468,7 +465,7 @@ export function BookingsPageClient({
     };
   }, [selectedId, displayItems, fetchNonce]);
 
-  const inspectionTarget = inspectionBooking ?? selectedBooking;
+  const inspectionTarget = inspectionBooking?.id === selectedId ? inspectionBooking : selectedBooking;
 
   const applyKpiFilter = (kpi: BookingsKpiFilterId) => {
     if (kpi === "departures7d") {
@@ -784,23 +781,23 @@ export function BookingsPageClient({
   const showLeaderBanner = !embedded && (leaderAlias || isLeaderReviewAlias(query.scope));
   const canActOnSelected =
     canManageOps &&
-    selectedBooking !== null &&
-    (selectedBooking.status === "pending" || selectedBooking.status === "waitlisted");
+    inspectionTarget !== null &&
+    (inspectionTarget.status === "pending" || inspectionTarget.status === "waitlisted");
   const canWaitlistSelected =
-    canManageOps && selectedBooking !== null && isBookingWaitlistable(selectedBooking);
+    canManageOps && inspectionTarget !== null && isBookingWaitlistable(inspectionTarget);
   const canCancelSelected =
-    canManageOps && selectedBooking !== null && isBookingCancellable(selectedBooking);
+    canManageOps && inspectionTarget !== null && isBookingCancellable(inspectionTarget);
   const capacityFull = tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard);
   const actionAvailability = useMemo(
     () =>
       resolveBookingActionAvailability({
         canManageOps,
-        booking: selectedBooking,
+        booking: inspectionTarget,
         isWaitlistable: canWaitlistSelected,
         isCancellable: canCancelSelected,
         capacityFull,
       }),
-    [canCancelSelected, canManageOps, canWaitlistSelected, capacityFull, selectedBooking]
+    [canCancelSelected, canManageOps, canWaitlistSelected, capacityFull, inspectionTarget]
   );
   const actionUnavailableHint = useMemo(() => {
     if (actionAvailability.unavailableReason === "approved_use_finance" && !canActOnSelected) {
@@ -1288,7 +1285,7 @@ export function BookingsPageClient({
       ) : null}
 
       <Sheet
-        open={isNarrowViewport && mobileSheetOpen && selectedBooking !== null}
+        open={isNarrowViewport && mobileSheetOpen && inspectionTarget !== null}
         onOpenChange={(open) => {
           if (!open) {
             clearSelection();

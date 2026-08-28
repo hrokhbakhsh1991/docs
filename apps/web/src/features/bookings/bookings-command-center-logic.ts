@@ -727,6 +727,35 @@ export function findSelectedBooking(
   return items.find((item) => item.id === selectedId) ?? items[0] ?? null;
 }
 
+export function findExactBooking<T extends Pick<BookingListItem, "id">>(
+  items: readonly T[],
+  selectedId: string | null
+): T | null {
+  if (selectedId === null) {
+    return null;
+  }
+  return items.find((item) => item.id === selectedId) ?? null;
+}
+
+export function resolveBookingsSelectedId({
+  bookingIdFromUrl,
+  currentSelectedId,
+  items,
+}: {
+  readonly bookingIdFromUrl: string;
+  readonly currentSelectedId: string | null;
+  readonly items: readonly Pick<BookingListItem, "id">[];
+}): string | null {
+  const deepLinkedId = bookingIdFromUrl.trim();
+  if (deepLinkedId.length > 0) {
+    return deepLinkedId;
+  }
+  if (currentSelectedId !== null && findExactBooking(items, currentSelectedId) !== null) {
+    return currentSelectedId;
+  }
+  return items[0]?.id ?? null;
+}
+
 export function isLeaderReviewAlias(scope: string): boolean {
   return scope === "leader";
 }

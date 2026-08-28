@@ -19,6 +19,7 @@ import {
   capacitySnapshotFillPercent,
   clearBookingsCommandCenterFilters,
   filterBulkApprovableIds,
+  findExactBooking,
   findSelectedBooking,
   formatBookingDateTime,
   formatBookingDeparture,
@@ -32,6 +33,7 @@ import {
   parseBookingsCommandCenterQuery,
   parseBulkApproveBookingsResponse,
   readBookingIdFromCommandCenterParams,
+  resolveBookingsSelectedId,
   resolveBookingsKpiQueryPatch,
   resolveBookingsKpiStatusFilter,
   resolveInboxSelectionAfterKey,
@@ -181,6 +183,33 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       readBookingIdFromCommandCenterParams(new URLSearchParams(`bookingId=${bookingId}`)),
       bookingId
     );
+    assert.equal(
+      resolveBookingsSelectedId({
+        bookingIdFromUrl: bookingId,
+        currentSelectedId: null,
+        items: items.map((item) => ({ id: item.id })),
+      }),
+      bookingId,
+      "deep-linked bookingId must remain selected even when it is outside the loaded page"
+    );
+    assert.equal(
+      resolveBookingsSelectedId({
+        bookingIdFromUrl: "",
+        currentSelectedId: "b2",
+        items: items.map((item) => ({ id: item.id })),
+      }),
+      "b2"
+    );
+    assert.equal(
+      resolveBookingsSelectedId({
+        bookingIdFromUrl: "",
+        currentSelectedId: "missing",
+        items: items.map((item) => ({ id: item.id })),
+      }),
+      "b1"
+    );
+    assert.equal(findExactBooking(items, "missing"), null);
+    assert.equal(findSelectedBooking(items, "missing")?.id, "b1");
   });
 
   it("WEB-9.5-03 leader/review alias renders shared shell", () => {
