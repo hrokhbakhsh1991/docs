@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { Input } from "../adapters/platform-primitives";
 import { CheckIcon } from "../components/icons/tour-service-icons";
@@ -81,15 +81,7 @@ export function DenaliCatalogMultiPicker({
 }: DenaliCatalogMultiPickerProps) {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [pickerExpanded, setPickerExpanded] = useState(() =>
-    resolveDenaliCatalogPickerDefaultExpanded(selectedIds.length)
-  );
-
-  useEffect(() => {
-    if (selectedIds.length === 0) {
-      setPickerExpanded(true);
-    }
-  }, [selectedIds.length]);
+  const [pickerExpanded, setPickerExpanded] = useState(resolveDenaliCatalogPickerDefaultExpanded);
 
   const itemById = useMemo(() => new Map(items.map((item) => [item.id, item] as const)), [items]);
 
@@ -111,7 +103,7 @@ export function DenaliCatalogMultiPicker({
     [items, searchQuery]
   );
 
-  const showCollapsedSummary = selectedIds.length > 0 && !pickerExpanded;
+  const showCollapsedSummary = !pickerExpanded;
 
   return (
     <div
@@ -121,7 +113,7 @@ export function DenaliCatalogMultiPicker({
       data-operator-catalog-multi-picker-expanded={pickerExpanded ? "true" : "false"}
     >
       <div className="denali-catalog-multi-picker__header-row">
-        {selectedIds.length > 0 ? (
+        {items.length > 0 ? (
           <button
             type="button"
             className="denali-catalog-multi-picker__toggle"

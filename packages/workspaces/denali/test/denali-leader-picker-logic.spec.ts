@@ -17,9 +17,8 @@ describe("denali-leader-picker-logic", () => {
     assert.equal(leaderDisplayInitials("Mary Jane Watson"), "MW");
   });
 
-  it("opens picker when nothing selected", () => {
-    assert.equal(resolveDenaliLeaderPickerDefaultExpanded(0), true);
-    assert.equal(resolveDenaliLeaderPickerDefaultExpanded(2), false);
+  it("keeps picker compact until the operator expands it", () => {
+    assert.equal(resolveDenaliLeaderPickerDefaultExpanded(), false);
   });
 
   it("previews first chips and overflow count", () => {

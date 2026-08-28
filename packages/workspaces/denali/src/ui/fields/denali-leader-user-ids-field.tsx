@@ -1,7 +1,7 @@
 "use client";
 
 import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -83,15 +83,7 @@ export function DenaliLeaderUserIdsField({
   );
   const users = data ?? [];
   const [searchQuery, setSearchQuery] = useState("");
-  const [pickerExpanded, setPickerExpanded] = useState(() =>
-    resolveDenaliLeaderPickerDefaultExpanded(selected.length)
-  );
-
-  useEffect(() => {
-    if (selected.length === 0) {
-      setPickerExpanded(true);
-    }
-  }, [selected.length]);
+  const [pickerExpanded, setPickerExpanded] = useState(resolveDenaliLeaderPickerDefaultExpanded);
 
   const userById = useMemo(() => new Map(users.map((user) => [user.userId, user])), [users]);
 
@@ -140,7 +132,7 @@ export function DenaliLeaderUserIdsField({
     setSelected(selected.filter((id) => id !== userId));
   };
 
-  const showCollapsedSummary = selected.length > 0 && !pickerExpanded;
+  const showCollapsedSummary = !pickerExpanded;
 
   return (
     <div
@@ -154,7 +146,7 @@ export function DenaliLeaderUserIdsField({
       <div className="denali-wizard-composite__header denali-leader-picker__header">
         <div className="denali-leader-picker__header-row">
           <h3 className="denali-wizard-composite__title">{label}</h3>
-          {selected.length > 0 ? (
+          {users.length > 0 ? (
             <button
               type="button"
               className="denali-leader-picker__toggle"

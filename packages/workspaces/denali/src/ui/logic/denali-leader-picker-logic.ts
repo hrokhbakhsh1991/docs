@@ -23,9 +23,9 @@ export function hasLeaderPickerAvatarUrl(
   return typeof avatarUrl === "string" && avatarUrl.trim().length > 0;
 }
 
-/** Picker stays open when empty; collapses to chip summary once leaders are chosen. */
-export function resolveDenaliLeaderPickerDefaultExpanded(selectedCount: number): boolean {
-  return selectedCount === 0;
+/** Picker starts compact; operators expand it when they need to search the catalog. */
+export function resolveDenaliLeaderPickerDefaultExpanded(): boolean {
+  return false;
 }
 
 export function partitionLeaderChipPreview(

@@ -1,7 +1,7 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -104,15 +104,7 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
   const catalog = data?.catalog ?? [];
   const themes = data?.themes ?? [];
   const [searchQuery, setSearchQuery] = useState("");
-  const [pickerExpanded, setPickerExpanded] = useState(() =>
-    resolveDenaliCatalogPickerDefaultExpanded(selected.length)
-  );
-
-  useEffect(() => {
-    if (selected.length === 0) {
-      setPickerExpanded(true);
-    }
-  }, [selected.length]);
+  const [pickerExpanded, setPickerExpanded] = useState(resolveDenaliCatalogPickerDefaultExpanded);
 
   const themesById = useMemo(
     () => new Map(themes.map((theme) => [theme.id, theme] as const)),
@@ -227,7 +219,7 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
     () => partitionCatalogChipPreview(selectedChipItems),
     [selectedChipItems]
   );
-  const showCollapsedSummary = selected.length > 0 && !pickerExpanded;
+  const showCollapsedSummary = !pickerExpanded;
 
   return (
     <div
@@ -241,7 +233,7 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
       <div className="denali-wizard-composite__header">
         <div className="denali-gear-picker__header-row">
           <h3 className="denali-wizard-composite__title">{label}</h3>
-          {selected.length > 0 ? (
+          {visibleCatalog.length > 0 ? (
             <button
               type="button"
               className="denali-gear-picker__toggle"

@@ -1,8 +1,8 @@
 export const DENALI_CATALOG_CHIP_PREVIEW_LIMIT = 3;
 
-/** Picker panel stays open when empty; collapses to chip summary once items are chosen. */
-export function resolveDenaliCatalogPickerDefaultExpanded(selectedCount: number): boolean {
-  return selectedCount === 0;
+/** Picker starts compact; operators expand it when they need to search the catalog. */
+export function resolveDenaliCatalogPickerDefaultExpanded(): boolean {
+  return false;
 }
 
 export function partitionCatalogChipPreview<T>(
