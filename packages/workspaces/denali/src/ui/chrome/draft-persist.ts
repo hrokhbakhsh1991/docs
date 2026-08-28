@@ -13,6 +13,7 @@ import { seedEmptyVisibleDestinationCatalogMetrics } from "../../settings/apply-
 import type { DenaliWizardRulesModule } from "../../wizard/rules-loader";
 import type { DenaliWizardRulesModule as StrictDenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
 import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-submit-payload";
+import { isDraftEssentiallyEmpty } from "../../wizard/resolve-initial-step-index";
 import type { DestinationResource } from "../adapters/catalog-types";
 import { sanitizeDenaliWizardDraft } from "./draft-form-adapter";
 import { rebaseDraftChangeOntoLatest } from "../logic/denali-tour-kind-field-logic";
@@ -53,6 +54,21 @@ function prepareDenaliWizardDraftEnvelope(
   return denaliPrepareDraftEnvelope(form, meta);
 }
 
+function resolvePersistMeta(
+  form: DenaliTourWizardDraft,
+  meta: DenaliWizardDraftMeta
+): DenaliWizardDraftMeta {
+  if (
+    meta.freshStart !== true ||
+    isDraftEssentiallyEmpty(form as unknown as Record<string, unknown>)
+  ) {
+    return { ...meta };
+  }
+  const next = { ...meta };
+  delete next.freshStart;
+  return next;
+}
+
 /** Rebase → sanitize → dedup → persist Denali wizard draft envelope (create + flat edit). */
 export function persistDenaliWizardDraftChange(
   next: DenaliTourWizardDraft,
@@ -84,9 +100,11 @@ export function persistDenaliWizardDraftChange(
     return;
   }
 
-  const prepared = prepareDenaliWizardDraftEnvelope(input.denaliPlugin, seeded, {
-    ...envelope.meta,
-  });
+  const prepared = prepareDenaliWizardDraftEnvelope(
+    input.denaliPlugin,
+    seeded,
+    resolvePersistMeta(seeded, envelope.meta)
+  );
   if (
     JSON.stringify(prepared.form) === JSON.stringify(envelope.form) &&
     prepared.meta.currentStepIndex === envelope.meta.currentStepIndex &&

@@ -9,8 +9,12 @@ export function buildDenaliWizardStepChangeEnvelope<TForm>(
   if (envelope === null || envelope.meta.currentStepIndex === nextStepIndex) {
     return null;
   }
+  const nextMeta = { ...envelope.meta };
+  if (nextStepIndex > 0) {
+    delete nextMeta.freshStart;
+  }
   return prepareEnvelope(envelope.form, {
-    ...envelope.meta,
+    ...nextMeta,
     currentStepIndex: nextStepIndex,
   });
 }

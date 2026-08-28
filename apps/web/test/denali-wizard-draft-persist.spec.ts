@@ -49,7 +49,25 @@ describe("denali-wizard-draft-persist.spec.ts", () => {
     assert.equal(getCanonicalStringValue(last!.form, "title"), "تور جدید");
   });
 
-  it("WEB-WIZ-PERSIST-03 rebases stale incoming onto latest envelope form", () => {
+  it("WEB-WIZ-PERSIST-03 clears freshStart after meaningful user draft input", () => {
+    const envelope = freshEnvelope();
+    let last: NewTourWizardDraftEnvelope | null = null;
+    const next = setCanonicalStringValue(envelope.form, "title", "صعود تست واقعی");
+    persistDenaliWizardDraftChange(next, {
+      getEnvelope: () => envelope,
+      setEnvelope: (prepared) => {
+        last = prepared;
+      },
+      denaliRules: null,
+      denaliPlugin: null,
+      wizardRuleEvalContext: undefined,
+    });
+    assert.notEqual(last, null);
+    assert.equal(getCanonicalStringValue(last!.form, "title"), "صعود تست واقعی");
+    assert.equal(last!.meta.freshStart, undefined);
+  });
+
+  it("WEB-WIZ-PERSIST-04 rebases stale incoming onto latest envelope form", () => {
     const envelope = freshEnvelope();
     const latest = setCanonicalStringValue(envelope.form, "title", "Latest title");
     const latestEnvelope = denaliPrepareDraftEnvelope(latest, { ...envelope.meta });

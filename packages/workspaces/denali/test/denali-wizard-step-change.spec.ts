@@ -49,4 +49,21 @@ describe("denali-wizard-step-change.spec.ts", () => {
     );
     assert.equal(prepared, null);
   });
+
+  it("DN-WIZ-STEP-03 clears freshStart when advancing past the first step", () => {
+    const envelope = denaliPrepareDraftEnvelope(emptyDenaliTourWizardDraft(), {
+      currentStepIndex: 0,
+      wizardSessionId: "sess-fresh-step",
+      freshStart: true,
+    });
+    const prepared = buildDenaliWizardStepChangeFromLatestRef(
+      () => envelope,
+      1,
+      denaliPrepareDraftEnvelope
+    );
+
+    assert.notEqual(prepared, null);
+    assert.equal(prepared!.meta.currentStepIndex, 1);
+    assert.equal(prepared!.meta.freshStart, undefined);
+  });
 });
