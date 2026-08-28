@@ -38,14 +38,19 @@ ssh_cmd() {
 
 scp_with_retry() {
   local attempt
+  local status
   for attempt in 1 2 3; do
-    if staging_scp_cmd "$@"; then
+    set +e
+    staging_scp_cmd "$@"
+    status=$?
+    set -e
+    if [[ "$status" -eq 0 ]]; then
       return 0
     fi
     log "scp attempt ${attempt}/3 failed; retrying"
     sleep $((attempt * 2))
   done
-  return 1
+  return "$status"
 }
 
 remote_sha_for() {
