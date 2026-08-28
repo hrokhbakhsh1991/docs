@@ -58,6 +58,16 @@ describe("Wave H.l.b — operator datetime chrome", () => {
     assert.match(fields, /data-operator-time-picker/);
   });
 
+  it("H.l.b-04 denali time picker closes on Escape", () => {
+    const source = readFileSync(
+      join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/denali-time-input.tsx"),
+      "utf8"
+    );
+    assert.match(source, /event\.key === "Escape"/);
+    assert.match(source, /document\.addEventListener\("keydown"/);
+    assert.match(source, /document\.removeEventListener\("keydown"/);
+  });
+
   it("H.l.b-03 operator UI surface is registry/capability-only (binder deleted)", () => {
     const registry = readFileSync(
       join(WEB_ROOT, "src/wizard/operator-ui-components-registry.ts"),

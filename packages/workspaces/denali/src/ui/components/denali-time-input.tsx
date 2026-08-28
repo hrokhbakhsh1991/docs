@@ -74,6 +74,11 @@ export function DenaliTimeInput({
     if (!open) {
       return;
     }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
     const handlePointerDown = (event: PointerEvent) => {
       const root = rootRef.current;
       if (root == null) {
@@ -85,8 +90,12 @@ export function DenaliTimeInput({
       }
       setOpen(false);
     };
+    document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
   }, [open]);
 
   const openPicker = () => {
