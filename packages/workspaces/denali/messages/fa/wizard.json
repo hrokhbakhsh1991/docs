@@ -445,8 +445,8 @@
       "loadingPlaceholder": "در حال بارگذاری مقصدها…",
       "selectPlaceholder": "انتخاب مقصد",
       "searchLabel": "جستجوی مقصد",
-      "searchPlaceholder": "نام مقصد را بنویسید…",
-      "searchEmpty": "مقصدی با این عبارت پیدا نشد.",
+      "searchPlaceholder": "جستجوی مقصد…",
+      "searchEmpty": "مقصدی پیدا نشد",
       "empty": "مقصدی نیست. از تنظیمات → مقصدها و مناطق، مقصد اضافه کنید."
     },
     "destinationCatalogMetric": {

@@ -72,11 +72,14 @@ export function DenaliDestinationField({
               : t("composites.destination.selectPlaceholder")
           }
           loading={loading}
+          disabled={error !== null}
           required={required}
           invalid={invalid}
           searchableThreshold={0}
+          requireQueryToBrowse
           searchLabel={t("composites.destination.searchLabel")}
           searchPlaceholder={t("composites.destination.searchPlaceholder")}
+          searchPromptMessage={t("composites.destination.searchPlaceholder")}
           searchEmptyMessage={t("composites.destination.searchEmpty")}
           onChange={(nextId) => {
             if (nextId.length === 0) {

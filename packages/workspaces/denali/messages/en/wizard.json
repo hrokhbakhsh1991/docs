@@ -445,8 +445,8 @@
       "loadingPlaceholder": "Loading destinations…",
       "selectPlaceholder": "Select destination",
       "searchLabel": "Search destinations",
-      "searchPlaceholder": "Type destination name…",
-      "searchEmpty": "No destination matches your search.",
+      "searchPlaceholder": "Search destination…",
+      "searchEmpty": "No destination found",
       "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
     },
     "destinationCatalogMetric": {
