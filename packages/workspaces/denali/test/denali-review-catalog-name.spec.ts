@@ -36,7 +36,6 @@ const LABELS: DenaliReviewFormatLabels = {
   photoCount: (count) => `${count}`,
   dayLabel: (day) => `day ${day}`,
   primaryGathering: "primary",
-  socialMediaTelegramAutoLabel: "Telegram",
   optionalEmptyValue: "Not selected (optional)",
 };
 

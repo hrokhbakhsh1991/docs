@@ -140,14 +140,14 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(calendarCss, /operator-wizard-calendar__day--today:not\(\[aria-pressed="true"\]\)/);
   });
 
-  it("WEB-DENALI-WIZARD-16 social media kind toggle BEM", () => {
-    const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
-    assert.match(fields, /denali-social-media__kind-btn/);
+  it("WEB-DENALI-WIZARD-16 social media link input wiring", () => {
     const social = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-social-media-link-field.tsx"),
       "utf8"
     );
     assert.match(social, /data-operator-social-media-link/);
+    assert.match(social, /DENALI_SOCIAL_MEDIA_TEST_IDS\.input/);
+    assert.doesNotMatch(social, /denali-social-media__kind-btn/);
     const registry = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/composites/denali-composite-registry.ts"),
       "utf8"

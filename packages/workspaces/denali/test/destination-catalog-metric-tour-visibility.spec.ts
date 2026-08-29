@@ -83,7 +83,6 @@ const REVIEW_LABELS = {
   photoCount: (count: number) => String(count),
   dayLabel: (day: number) => String(day),
   primaryGathering: "primary",
-  socialMediaTelegramAutoLabel: "telegram-auto",
   optionalEmptyValue: "Not selected (optional)",
 } as const;
 

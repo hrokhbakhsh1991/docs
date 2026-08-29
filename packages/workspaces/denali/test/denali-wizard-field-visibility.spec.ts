@@ -25,23 +25,17 @@ describe("denali-wizard-field-visibility.spec.ts", () => {
     );
   });
 
-  it("DN-VIS-03 gates socialMediaLink on telegramIntegrationActive", () => {
+  it("DN-VIS-03 keeps socialMediaLink visible regardless of telegram integration gate", () => {
     const draft = setCanonicalStringValue(emptyDenaliTourWizardDraft(), "category", "mountain_day");
     const activeCtx = buildDenaliWizardRuleEvalContext({ telegramIntegrationActive: true });
     const inactiveCtx = buildDenaliWizardRuleEvalContext({ telegramIntegrationActive: false });
     const defaultCtx = buildDenaliWizardRuleEvalContext();
 
-    assert.equal(
-      isDenaliWizardFieldVisibleOnDraft(draft, "socialMediaLink", "denali_basic", activeCtx),
-      true
-    );
-    assert.equal(
-      isDenaliWizardFieldVisibleOnDraft(draft, "socialMediaLink", "denali_basic", inactiveCtx),
-      false
-    );
-    assert.equal(
-      isDenaliWizardFieldVisibleOnDraft(draft, "socialMediaLink", "denali_basic", defaultCtx),
-      true
-    );
+    for (const ctx of [activeCtx, inactiveCtx, defaultCtx]) {
+      assert.equal(
+        isDenaliWizardFieldVisibleOnDraft(draft, "socialMediaLink", "denali_basic", ctx),
+        true
+      );
+    }
   });
 });

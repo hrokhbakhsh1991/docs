@@ -94,7 +94,6 @@ export type DenaliReviewFormatLabels = {
   readonly photoCount: (count: number) => string;
   readonly dayLabel: (day: number) => string;
   readonly primaryGathering: string;
-  readonly socialMediaTelegramAutoLabel: string;
   /** ED-EMPTY-OPT-01 — review value when an optional catalog field was skipped. */
   readonly optionalEmptyValue: string;
   /** ED-REV-CURR-01 — review toman grouping. Defaults to fa. */
@@ -324,10 +323,7 @@ export function buildDenaliReviewSections(
     basicRows,
     "socialMediaLink",
     labels.fieldLabel("socialMediaLink"),
-    formatSocialMediaLinkForReview(
-      getCanonicalStringValue(draft, "socialMediaLink"),
-      labels.socialMediaTelegramAutoLabel
-    )
+    formatSocialMediaLinkForReview(getCanonicalStringValue(draft, "socialMediaLink"))
   );
   if (basicRows.length > 0) {
     sections.push({
