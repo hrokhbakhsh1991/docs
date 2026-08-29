@@ -4,6 +4,10 @@ import {
   OPERATOR_PUBLISHED_TOUR_TITLE,
   completePortalCatalogRegistration,
 } from "./fixtures/complete-portal-registration";
+import {
+  openMemberRegistrationDetailByTitle,
+  openMemberRegistrationsFromSuccess,
+} from "./fixtures/portal-member-navigation";
 
 const REGISTRATION_EMAIL = `smk-ptl-02-${Date.now()}@denali-smoke.local`;
 const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
@@ -17,12 +21,13 @@ test("SMK-PTL-02 member /me lists registration after catalog intake (VS-04)", as
     phone: DEV_PHONE,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
-  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
+  await openMemberRegistrationsFromSuccess(page);
+  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
-  await expect(page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE })).toBeVisible();
+  await expect(page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE })).toBeVisible({
+    timeout: 60_000,
+  });
 });
 
 test("SMK-PTL-05 portal home redirects authenticated member to /me/registrations", async ({
@@ -56,8 +61,8 @@ test("SMK-PTL-04 member detail awaits club approval before receipt upload (appro
     phone: RECEIPT_PHONE,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
-  await page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE }).first().click();
+  await openMemberRegistrationsFromSuccess(page);
+  await openMemberRegistrationDetailByTitle(page, OPERATOR_PUBLISHED_TOUR_TITLE);
   await expect(page.locator("[data-portal-member-receipt-awaiting-approval]")).toBeVisible({
     timeout: 60_000,
   });
@@ -133,10 +138,7 @@ test("SMK-PTL-09 entitled modules appear in shell nav (PS-5)", async ({ page }) 
     phone,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
-  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
-    timeout: 60_000,
-  });
+  await openMemberRegistrationsFromSuccess(page);
 
   const entitlementsResponse = await page.request.get("/api/me/entitlements");
   expect(entitlementsResponse.ok(), "entitlements BFF must succeed for session").toBeTruthy();

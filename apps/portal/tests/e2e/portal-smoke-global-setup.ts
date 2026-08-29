@@ -12,21 +12,27 @@ const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
 /** Compile portal BFF routes before tests — avoids Next dev HMR reload mid-flow. */
-async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
+async function warmPortalBffRoute(
+  base: string,
+  path: string,
+  method: "GET" | "POST" | "PATCH",
+  body?: object
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const url = new URL(`${base}${path}`);
-    const payload = JSON.stringify(body);
+    const payload = body === undefined ? undefined : JSON.stringify(body);
+    const headers: Record<string, string> = { host: url.host };
+    if (payload !== undefined) {
+      headers["Content-Type"] = "application/json";
+      headers["Content-Length"] = String(Buffer.byteLength(payload));
+    }
     const req = http.request(
       {
         hostname: url.hostname,
         port: url.port || (url.protocol === "https:" ? 443 : 80),
-        path: url.pathname,
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(payload),
-          host: url.host,
-        },
+        path: `${url.pathname}${url.search}`,
+        method,
+        headers,
       },
       (res) => {
         res.resume();
@@ -34,9 +40,15 @@ async function warmPortalBffPostRoute(base: string, path: string, body: object):
       }
     );
     req.on("error", reject);
-    req.write(payload);
+    if (payload !== undefined) {
+      req.write(payload);
+    }
     req.end();
   });
+}
+
+async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
+  await warmPortalBffRoute(base, path, "POST", body);
 }
 
 async function warmPublicAuthBffRoutes(base: string): Promise<void> {
@@ -110,4 +122,24 @@ export default async function globalSetup(): Promise<void> {
   await waitForUrl(`${base}/me/registrations`);
   await waitForUrl(`${base}/api/me/registrations`);
   await warmPublicAuthBffRoutes(base);
+
+  const warmupRegistrationId = "00000000-0000-4000-8000-000000000299";
+  const meBffRoutes = [
+    ["GET", "/api/me/profile"],
+    ["GET", "/api/me/entitlements"],
+    ["GET", "/api/me/home"],
+    ["GET", "/api/me/notifications"],
+    ["PATCH", "/api/me/profile", { displayName: "Warmup" }],
+    ["GET", `/api/me/registrations/${warmupRegistrationId}`],
+    ["GET", `/api/me/registrations/${warmupRegistrationId}/receipt`],
+    ["GET", `/me/registrations/${warmupRegistrationId}`],
+  ] as const;
+  for (const [method, path, body] of meBffRoutes) {
+    await warmPortalBffRoute(
+      base,
+      path,
+      method,
+      body as object | undefined
+    );
+  }
 }
