@@ -105,4 +105,40 @@ describe("operator-ui-consistency.spec.ts", () => {
     assert.match(select, /role="listbox"/);
     assert.match(select, /ArrowDown/);
   });
+
+  it("WEB-OPUI-08 shared select affordance + motion wired in admin bootstrap", () => {
+    const bootstrap = readFileSync(
+      resolve(WEB_ROOT, "../../packages/design-tokens/src/admin-bootstrap.css"),
+      "utf8"
+    );
+    assert.match(bootstrap, /operator-select-affordance\.css/);
+    assert.match(bootstrap, /operator-select-motion\.css/);
+
+    const affordanceCss = readFileSync(
+      resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-select-affordance.css"),
+      "utf8"
+    );
+    assert.match(affordanceCss, /\[data-operator-searchable-select-trigger\]/);
+    assert.match(affordanceCss, /background-position:\s*center inline-end/);
+
+    const motionCss = readFileSync(
+      resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-select-motion.css"),
+      "utf8"
+    );
+    assert.match(motionCss, /\[data-operator-searchable-select-panel\]\[data-state="open"\]/);
+    assert.match(motionCss, /180ms/);
+    assert.match(motionCss, /140ms/);
+    assert.match(motionCss, /prefers-reduced-motion:\s*reduce/);
+
+    const popover = read("src/components/ui/popover.tsx");
+    assert.doesNotMatch(popover, /animate-in/);
+    assert.match(popover, /motion-reduce:animate-none/);
+
+    const denaliSelect = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/ui/components/denali-searchable-select.tsx"),
+      "utf8"
+    );
+    assert.match(denaliSelect, /data-operator-searchable-select-panel/);
+    assert.match(denaliSelect, /data-state=\{panelState\}/);
+  });
 });
