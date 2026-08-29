@@ -35,6 +35,10 @@ describe("smoke-marketing-e2e-servers", () => {
       resolve(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
       "utf8"
     );
+    const adminNextConfig = readFileSync(resolve(repoRoot, "apps/web/next.config.ts"), "utf8");
+    const adminFonts = readFileSync(resolve(repoRoot, "apps/web/src/i18n/app-fonts.ts"), "utf8");
+    const marketingFonts = readFileSync(resolve(marketingRoot, "src/i18n/app-fonts.ts"), "utf8");
+    const portalFonts = readFileSync(resolve(repoRoot, "apps/portal/src/i18n/app-fonts.ts"), "utf8");
 
     assert.match(runner, /MARKETING_SMOKE_READY_PORT/);
     assert.match(runner, /readinessReady = true/);
@@ -59,6 +63,14 @@ describe("smoke-marketing-e2e-servers", () => {
     assert.match(nextConfig, /app-fonts\.offline\.ts/);
     assert.match(portalNextConfig, /NEXT_FONT_OFFLINE === "1"/);
     assert.match(portalNextConfig, /app-fonts\.offline\.ts/);
+    assert.match(adminNextConfig, /NEXT_FONT_OFFLINE === "1"/);
+    assert.match(adminNextConfig, /app-fonts\.offline\.ts/);
+    assert.match(adminFonts, /@\/i18n\/app-fonts\.google/);
+    assert.match(marketingFonts, /@\/i18n\/app-fonts\.google/);
+    assert.match(portalFonts, /@\/i18n\/app-fonts\.google/);
+    assert.doesNotMatch(adminFonts, /from "\.\/app-fonts\.google"/);
+    assert.doesNotMatch(marketingFonts, /from "\.\/app-fonts\.google"/);
+    assert.doesNotMatch(portalFonts, /from "\.\/app-fonts\.google"/);
     assert.match(marketingResolveLocale, /fetchPublicTenantBrandingForHost\(host, null\)/);
     assert.match(portalResolveLocale, /fetchPublicTenantBrandingForHost\(host, null\)/);
     assert.match(marketingBranding, /locale === undefined \?/);

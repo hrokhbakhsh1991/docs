@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { ADMIN_TRANSPILE_PACKAGES } from "./src/bootstrap/admin-transpile-packages.generated.mjs";
 import {
@@ -8,6 +10,7 @@ import {
 } from "./src/bootstrap/admin-client-workspace-ignore.generated.mjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+const appDir = dirname(fileURLToPath(import.meta.url));
 
 const securityHeaders = [
   {
@@ -57,6 +60,15 @@ const nextConfig: NextConfig = {
    * Plus static geocoding landmarks (non-product; dist or src — always transpile for admin BFF). */
   transpilePackages: [...ADMIN_TRANSPILE_PACKAGES, "@app-tour/iran-mountain-landmarks"],
   webpack: (config, { webpack, isServer }) => {
+    if (process.env.NEXT_FONT_OFFLINE === "1") {
+      config.resolve ??= {};
+      config.resolve.alias ??= {};
+      config.resolve.alias["@/i18n/app-fonts.google"] = resolve(
+        appDir,
+        "src/i18n/app-fonts.offline.ts"
+      );
+    }
+
     if (!isServer) {
       // Client never bundles Node minio SDK.
       config.plugins.push(

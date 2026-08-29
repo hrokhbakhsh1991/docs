@@ -1,6 +1,6 @@
 import type { AppLocale } from "./routing";
 
-import { inter, vazirmatn, calistoga } from "./app-fonts.google";
+import { inter, vazirmatn, calistoga } from "@/i18n/app-fonts.google";
 
 export { inter, vazirmatn, calistoga };
 
