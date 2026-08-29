@@ -266,7 +266,12 @@
       "removePhoto": "Remove photo",
       "multiDayHelperWithMax": "Multi-day tour — assign each photo to a day (up to {max, number} total).",
       "dayOption": "Day {n, number}",
-      "dayLabel": "Day"
+      "dayLabel": "Day",
+      "daySectionTitle": "Day {n, number}",
+      "dayPhotoCount": "{count, plural, =0 {No photos} one {# photo} other {# photos}}",
+      "addPhotoToDay": "Add photo to day {n, number}",
+      "tourCoverBadge": "Tour cover",
+      "daySectionEmpty": "No photos for this day yet."
     },
     "customServices": {
       "helper": "Optional service tags shown on the tour (workspace custom-services capability).",
