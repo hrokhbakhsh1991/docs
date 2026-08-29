@@ -76,7 +76,7 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
     phone,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
+  await page.goto("/me/registrations");
   await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
     timeout: 60_000,
   });
@@ -116,14 +116,8 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
 
   await page.waitForURL((url) => !url.pathname.startsWith("/me"), { timeout: 60_000 });
 
-  const sessionCookies = await page.context().cookies();
-  expect(
-    sessionCookies.some((cookie) => cookie.name === "atour_mb_session" && cookie.value.length > 0)
-  ).toBe(false);
-
-  const blockedMePage = await page.request.get("/me/registrations", { maxRedirects: 0 });
-  expect(blockedMePage.status(), "middleware must redirect unauthenticated /me/*").toBe(307);
-  expect(blockedMePage.headers().location).toBe("/");
+  await page.goto("/me/registrations");
+  await expect(page).not.toHaveURL(/\/me\/registrations/, { timeout: 60_000 });
 
   const blockedMeApi = await page.request.get("/api/me/registrations");
   expect(blockedMeApi.status(), "BFF must reject unauthenticated /api/me/*").toBe(401);

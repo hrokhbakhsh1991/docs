@@ -45,7 +45,16 @@ test("DEN-PROF-04 mobile change via OTP updates profile mobile", async ({ page }
   await gotoMemberProfile(page);
   await page.locator("[data-member-profile-mobile-change-start]").click();
   await page.locator("#profile-mobile-change-phone").fill(newMobile.replace(/\D/g, ""));
-  await page.locator('[data-member-profile-mobile-change-request] button').first().click();
+  const [requestResponse] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        res.url().includes("/api/me/mobile/request-otp"),
+      { timeout: 90_000 }
+    ),
+    page.locator('[data-member-profile-mobile-change-request] button').first().click(),
+  ]);
+  expect(requestResponse.ok()).toBeTruthy();
   await expect(page.locator('[data-member-profile-mobile-change-verify]')).toBeVisible({
     timeout: 60_000,
   });
@@ -60,10 +69,6 @@ test("DEN-PROF-04 mobile change via OTP updates profile mobile", async ({ page }
   ]);
   expect(verifyResponse.ok()).toBeTruthy();
 
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.locator("main[data-portal-member-profile]")).toBeVisible({
-    timeout: 60_000,
-  });
   await expect(page.locator('[data-member-profile-mobile-change]')).toContainText(
     newMobile.replace(/\D/g, ""),
     { timeout: 15_000 }

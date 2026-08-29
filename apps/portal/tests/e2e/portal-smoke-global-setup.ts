@@ -11,41 +11,48 @@ const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
-/** Compile public-auth BFF routes before tests — avoids Next dev HMR reload mid-OTP. */
+/** Compile portal BFF routes before tests — avoids Next dev HMR reload mid-flow. */
+async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const url = new URL(`${base}${path}`);
+    const payload = JSON.stringify(body);
+    const req = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port || (url.protocol === "https:" ? 443 : 80),
+        path: url.pathname,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+          host: url.host,
+        },
+      },
+      (res) => {
+        res.resume();
+        resolve();
+      }
+    );
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
 async function warmPublicAuthBffRoutes(base: string): Promise<void> {
   const routes = [
-    "/api/public-auth/phone-preflight",
-    "/api/public-auth/request-otp",
-    "/api/public-auth/verify-otp",
-    "/api/public-auth/register-complete",
-    "/api/catalog/registrations",
-    "/api/catalog/pricing-preview",
+    ["/api/public-auth/phone-preflight", { phone: "+15550009999" }],
+    ["/api/public-auth/request-otp", { phone: "+15550009999" }],
+    ["/api/public-auth/verify-otp", { phone: "+15550009999", otp: "1234", challenge_id: "warmup" }],
+    ["/api/public-auth/register-complete", { phone: "+15550009999" }],
+    ["/api/public-auth/logout", {}],
+    ["/api/catalog/registrations", { phone: "+15550009999" }],
+    ["/api/catalog/pricing-preview", { phone: "+15550009999" }],
+    ["/api/me/mobile/request-otp", { phone: "+15550009999" }],
+    ["/api/me/mobile/verify", { phone: "+15550009999", otp: "1234" }],
   ] as const;
-  for (const path of routes) {
-    await new Promise<void>((resolve, reject) => {
-      const url = new URL(`${base}${path}`);
-      const body = JSON.stringify({ phone: "+15550009999" });
-      const req = http.request(
-        {
-          hostname: url.hostname,
-          port: url.port || (url.protocol === "https:" ? 443 : 80),
-          path: url.pathname,
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(body),
-            host: url.host,
-          },
-        },
-        (res) => {
-          res.resume();
-          resolve();
-        }
-      );
-      req.on("error", reject);
-      req.write(body);
-      req.end();
-    });
+  for (const [path, body] of routes) {
+    await warmPortalBffPostRoute(base, path, body);
   }
 }
 
@@ -101,5 +108,6 @@ export default async function globalSetup(): Promise<void> {
   await waitForUrl(`${base}/catalog/${TRANSPORT_SHARED_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/me/profile`);
   await waitForUrl(`${base}/me/registrations`);
+  await waitForUrl(`${base}/api/me/registrations`);
   await warmPublicAuthBffRoutes(base);
 }
