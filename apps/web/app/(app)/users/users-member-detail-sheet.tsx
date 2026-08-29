@@ -2,7 +2,6 @@
 
 import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-import { Input as PrimitiveInput } from "@app-tour/ui-primitives/input";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -37,7 +36,6 @@ import {
 } from "@/features/users/users-page-logic";
 import {
   addRewardLabel,
-  LOYALTY_REWARD_BADGE_IDS,
   removeRewardLabel,
   type LoyaltyTier,
 } from "@/features/users/users-rewards-logic";
@@ -47,6 +45,7 @@ import { isAppLocale } from "@/i18n/routing";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
 import { UsersDirectoryAvatar } from "./users-directory-avatar";
+import { UsersLoyaltyTierSelector } from "./users-loyalty-tier-selector";
 
 type UsersMemberDetailSheetProps = {
   readonly user: UsersDirectoryRow | null;
@@ -464,41 +463,11 @@ export function UsersMemberDetailSheet({
                   />
                 </div>
 
-                <fieldset
-                  className="space-y-2"
-                  data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier}
-                >
-                  <legend className="text-sm font-medium">{t("rewards.loyaltyTierLabel")}</legend>
-                  <div className="flex flex-wrap gap-2 text-sm">
-                    <label className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5">
-                      <PrimitiveInput
-                        type="radio"
-                        name="member-benefits-loyalty-tier"
-                        className="h-4 w-4 shrink-0 p-0"
-                        checked={rewardsLoyaltyTier === "none"}
-                        onChange={() => onRewardsLoyaltyTierChange("none")}
-                      />
-                      {t("rewards.loyaltyNone")}
-                    </label>
-                    {LOYALTY_REWARD_BADGE_IDS.map((badgeId) => (
-                      <label
-                        key={badgeId}
-                        className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5"
-                      >
-                        <PrimitiveInput
-                          type="radio"
-                          name="member-benefits-loyalty-tier"
-                          className="h-4 w-4 shrink-0 p-0"
-                          checked={rewardsLoyaltyTier === badgeId}
-                          onChange={() => onRewardsLoyaltyTierChange(badgeId)}
-                        />
-                        {badgeId === "VIP_MEMBER"
-                          ? t("rewards.loyaltyVip")
-                          : t("rewards.loyaltyGold")}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                <UsersLoyaltyTierSelector
+                  value={rewardsLoyaltyTier}
+                  disabled={rewardsSaving}
+                  onChange={onRewardsLoyaltyTierChange}
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="member-benefits-label-input">{t("rewards.labelsLabel")}</Label>
