@@ -22,6 +22,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  ...(process.env.ARTIFACT_STANDALONE_BUILD === "1" ? { output: "standalone" as const } : {}),
   env: resolveAdminClientWorkspaceBundleEnv(process.env),
   /** VPS staging sync (`pnpm run p7:sync-staging-web`) — trunk TS debt; webpack output still valid. */
   typescript: {

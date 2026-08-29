@@ -2,6 +2,7 @@
 # VPS build — workspace deps + Next.js web. API runs via tsx until trunk tsc is green.
 set -euo pipefail
 
+PNPM="${PNPM:-$(command -v pnpm)}"
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
 WEB_DIR="${DEPLOY_PATH}/apps/web"
 cd "${DEPLOY_PATH}"
@@ -25,17 +26,17 @@ build_web_production() {
     if (
       cd "${DEPLOY_PATH}"
       if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
-        /usr/local/bin/pnpm run apply:deploy-profile -- --write
+        "$PNPM" run apply:deploy-profile -- --write
       fi
       cd "${WEB_DIR}"
       export NODE_ENV=production
       export CI=true
       export NEXT_FONT_OFFLINE=1
-      /usr/local/bin/pnpm exec next build
+      "$PNPM" exec next build
       status=$?
       if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
         cd "${DEPLOY_PATH}"
-        /usr/local/bin/pnpm run generate:workspace-registry
+        "$PNPM" run generate:workspace-registry
       fi
       exit $status
     ); then
@@ -72,6 +73,8 @@ if [[ ! -f "${DEPLOY_PATH}/apps/api/dist/main.js" ]]; then
   exit 1
 fi
 
+pnpm --dir "${DEPLOY_PATH}/packages/iran-mountain-landmarks" run build
+
 build_web_production
 
 build_next_app() {
@@ -83,7 +86,7 @@ build_next_app() {
     export NODE_ENV=production
     export CI=true
     export NEXT_FONT_OFFLINE=1
-    /usr/local/bin/pnpm exec next build
+    "$PNPM" exec next build
   ) || {
     echo "[vps-build] ERROR: ${label} next build failed" >&2
     return 1
