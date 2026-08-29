@@ -195,13 +195,16 @@ export function ProfileSettingsClient({
   }
 
   return (
-    <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.profilePage}>
+    <div
+      className="min-w-0 w-full max-w-full space-y-6"
+      data-testid={SETTINGS_HUB_TEST_IDS.profilePage}
+    >
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {loading ? (
-        <Skeleton className="h-64 w-full max-w-xl" />
+        <Skeleton className="mx-auto h-64 w-full max-w-xl" />
       ) : (
-        <Card className="max-w-xl">
+        <Card className="mx-auto w-full min-w-0 max-w-xl">
           <CardHeader>
             <CardTitle>{t("cardTitle")}</CardTitle>
             <CardDescription>
@@ -210,13 +213,13 @@ export function ProfileSettingsClient({
           </CardHeader>
           <CardContent>
             <form
-              className="space-y-4"
+              className="min-w-0 space-y-4"
               data-testid={SETTINGS_HUB_TEST_IDS.profileForm}
               onSubmit={(event) => void handleSave(event)}
             >
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label>{t("avatarLabel")}</Label>
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex min-w-0 flex-wrap items-center gap-4">
                   <OperatorProfileAvatar
                     userId={session.userId}
                     displayName={displayName}
@@ -248,7 +251,7 @@ export function ProfileSettingsClient({
                       ref={fileInputRef}
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
-                      className="sr-only"
+                      className="sr-only !size-px !min-w-0 !max-w-px border-0 p-0 shadow-none"
                       onChange={(event) => void handleAvatarSelected(event.target.files?.[0])}
                     />
                   </div>
@@ -301,7 +304,7 @@ export function ProfileSettingsClient({
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="profile-role">{t("role")}</Label>
                   <Input

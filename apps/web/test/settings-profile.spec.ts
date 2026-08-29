@@ -2,6 +2,8 @@
  * Phase 9.6 — profile settings web (S9-R7)
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -93,5 +95,16 @@ describe("settings-profile.spec.ts — Phase 9.6", () => {
     };
     assert.equal(labelForSettingsModule(module), SETTINGS_MODULE_LABEL_KEYS.reconciliation_triage);
     assert.equal(hrefForSettingsModule(module), "/settings/reconciliation-triage");
+  });
+
+  it("WEB-9.6-ME-05 profile layout uses containment + centered card", () => {
+    const WEB_ROOT = resolve(import.meta.dirname, "..");
+    const profileClient = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/settings/me/profile-settings-client.tsx"),
+      "utf8"
+    );
+    assert.match(profileClient, /min-w-0 w-full max-w-full/);
+    assert.match(profileClient, /mx-auto w-full min-w-0 max-w-xl/);
+    assert.match(profileClient, /type="file"[\s\S]*className="sr-only !size-px/);
   });
 });

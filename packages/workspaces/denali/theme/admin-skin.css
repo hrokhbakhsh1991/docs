@@ -924,6 +924,13 @@ body[data-workspace-plugin="denali"] [data-operator-settings-back-link] svg {
   flex-shrink: 0;
 }
 
+html[dir="rtl"]
+  body[data-workspace-plugin="denali"]
+  [data-testid="operator-settings-profile-page"]
+  [data-operator-settings-back-icon] {
+  transform: scaleX(-1);
+}
+
 body[data-workspace-plugin="denali"] input:focus-visible,
 body[data-workspace-plugin="denali"] textarea:focus-visible,
 body[data-workspace-plugin="denali"] select:focus-visible {
