@@ -63,6 +63,7 @@ import {
 } from "@/features/bookings/bookings-command-center-logic";
 import { BookingsDirectoryControls } from "@/features/bookings/bookings-directory-controls";
 import { BookingsDirectoryPagination } from "@/features/bookings/bookings-directory-pagination";
+import { BookingsWorkspaceEmbeddedControls } from "@/features/bookings/bookings-workspace-embedded-controls";
 import { BookingsKpiCard } from "@/features/bookings/bookings-kpi-card";
 import {
   BookingsBulkConfirmDialog,
@@ -960,21 +961,30 @@ export function BookingsPageClient({
         </div>
       ) : null}
 
-      <BookingsDirectoryControls
-        query={query}
-        searchInput={searchInput}
-        onSearchInputChange={setSearchInput}
-        onReplaceQuery={replaceQuery}
-        tourChips={summary?.tourChips ?? []}
-        showTourFilter={
-          canManageOps &&
-          !embedded &&
-          lockedTour.length === 0 &&
-          summary !== null &&
-          (summary.tourChips.length > 0 || query.tourId.length > 0)
-        }
-        showTourScope={!embedded && canManageOps}
-      />
+      {embedded ? (
+        <BookingsWorkspaceEmbeddedControls
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onReplaceQuery={replaceQuery}
+          showStatusFilter={lockedStatusFilter.length === 0}
+        />
+      ) : (
+        <BookingsDirectoryControls
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onReplaceQuery={replaceQuery}
+          tourChips={summary?.tourChips ?? []}
+          showTourFilter={
+            canManageOps &&
+            lockedTour.length === 0 &&
+            summary !== null &&
+            (summary.tourChips.length > 0 || query.tourId.length > 0)
+          }
+          showTourScope={canManageOps}
+        />
+      )}
 
       {actionError !== null ? (
         <div

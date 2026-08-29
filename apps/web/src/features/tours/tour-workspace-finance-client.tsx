@@ -9,7 +9,7 @@ import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { TourWorkspaceFinanceControls } from "@/features/tours/tour-workspace-finance-controls";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
 import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
@@ -74,8 +74,6 @@ type TourWorkspaceFinanceClientProps = {
   readonly tourId: string;
   readonly session: OperatorSessionContext;
 };
-
-const FILTERS: readonly TourFinanceListFilter[] = ["all", "unpaid", "partial"];
 
 function mapFollowUpListKindToFinanceRowKind(
   kind: TourWorkspacePaymentFollowUpParticipantRow["listKind"]
@@ -1004,33 +1002,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         ) : null}
 
         {showGuestTools ? (
-          <div className="flex flex-col gap-3">
-            <div
-              className="flex flex-wrap gap-2"
-              data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.filters}
-              role="group"
-              aria-label={t("filtersAria")}
-            >
-              {FILTERS.map((filter) => (
-                <Button
-                  key={filter}
-                  type="button"
-                  size="sm"
-                  variant={listFilter === filter ? "default" : "outline"}
-                  onClick={() => setListFilter(filter)}
-                >
-                  {t(`filter.${filter}`)}
-                </Button>
-              ))}
-            </div>
-            <Input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={t("searchPlaceholder")}
-              data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.search}
-              aria-label={t("searchPlaceholder")}
-            />
-          </div>
+          <TourWorkspaceFinanceControls
+            listFilter={listFilter}
+            searchQuery={searchQuery}
+            onListFilterChange={setListFilter}
+            onSearchQueryChange={setSearchQuery}
+          />
         ) : null}
 
         {showGuestTools ? (

@@ -214,6 +214,22 @@
       "empty": "هنوز عضوی تایید نشده است.",
       "cta": "مشاهده لیست نهایی"
     },
+    "controls": {
+      "filtersToggle": "فیلترها",
+      "clearAll": "پاک کردن فیلترها",
+      "removeFilter": "حذف {filter}",
+      "paymentFilterLabel": "وضعیت پرداخت",
+      "statusFilterLabel": "وضعیت ثبت‌نام",
+      "sortFilterLabel": "مرتب‌سازی",
+      "rosterFilterLabel": "نمای لیست",
+      "activeFilters": {
+        "status": "وضعیت: {value}",
+        "payment": "پرداخت: {value}",
+        "sort": "مرتب‌سازی: {value}",
+        "search": "جستجو: {value}",
+        "roster": "حمل‌ونقل: {value}"
+      }
+    },
     "finance": {
       "title": "پیگیری پرداخت تور",
       "description": "مهمان‌های همین تور با مانده یا فیش در انتظار.",

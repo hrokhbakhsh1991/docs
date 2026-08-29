@@ -15,13 +15,13 @@ import {
   type PublicCatalogRegistrationTransportKind,
 } from "@app-tour/workspace-sdk";
 import { TOUR_WORKSPACE_TEST_IDS } from "@/features/tours/tour-workspace-types";
+import { TourWorkspaceTransportControls } from "@/features/tours/tour-workspace-transport-controls";
 import {
   buildTourOperationalRosterHref,
   buildTourTransportCommandCenterHref,
   countTransportRosterByIntakeKind,
   extractTransportModesFromTourPayload,
   formatOperationalRosterAmountDue,
-  OPERATIONAL_ROSTER_FILTERS,
   resolveOperationalRosterActionablePaymentDueAt,
   sortTransportRosterRows,
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
@@ -190,22 +190,7 @@ export function TourWorkspaceTransportClient({
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div
-          className="flex flex-wrap gap-2"
-          data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.filters}
-        >
-          {OPERATIONAL_ROSTER_FILTERS.map((filterId) => (
-            <Button
-              key={filterId}
-              type="button"
-              size="sm"
-              variant={filter === filterId ? "default" : "outline"}
-              onClick={() => setFilter(filterId)}
-            >
-              {t(`filters.${filterId}`)}
-            </Button>
-          ))}
-        </div>
+        <TourWorkspaceTransportControls filter={filter} onFilterChange={setFilter} />
 
         {loading ? <Skeleton className="h-32 w-full rounded-lg" /> : null}
         {localizedError !== null ? (
