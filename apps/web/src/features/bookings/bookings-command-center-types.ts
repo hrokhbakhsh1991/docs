@@ -39,6 +39,10 @@ export type BookingsCommandCenterQuery = {
   readonly tourChipScope: "" | "all";
   /** Thin layout: inbox · by departure (timeline) · by tour (board wire token). */
   readonly layout: BookingsCommandCenterLayout;
+  /** Explicit list page (1-based). Resets when filters/search change. */
+  readonly page: number;
+  /** Keyset cursor for `page` > 1 (serialized in URL when set). */
+  readonly listCursor: string;
 };
 
 export type BookingTourChip = {
@@ -111,6 +115,12 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   tourChips: "operator-bookings-tour-chips",
   tourChipsMore: "operator-bookings-tour-chips-more",
   tourFilter: "operator-bookings-tour-filter",
+  controls: "operator-bookings-controls",
+  queueStatus: "operator-bookings-queue-status",
+  filtersToggle: "operator-bookings-filters-toggle",
+  filtersPanel: "operator-bookings-filters-panel",
+  activeFilters: "operator-bookings-active-filters",
+  pagination: "operator-bookings-pagination",
   upcomingFacet: "operator-bookings-upcoming-facet",
   upcomingFacetDay: (days: 7 | 14 | 30) => `operator-bookings-upcoming-${days}d`,
   departureWindowHint: "operator-bookings-departure-window-hint",
@@ -179,11 +189,25 @@ export const DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY: BookingsCommandCenterQuery =
   approvedWithinDays: "",
   tourChipScope: "",
   layout: "inbox",
+  page: 1,
+  listCursor: "",
 };
 
-export const BOOKINGS_LIST_SORT_OPTIONS = ["submittedAt", "departureAt"] as const;
+export const BOOKINGS_LIST_PAGE_SIZE = 25;
+
+export const BOOKINGS_QUEUE_STATUS_OPTIONS = [
+  "actionable",
+  "pending",
+  "waitlisted",
+  "approved",
+  "rejected",
+  "cancelled",
+  "all",
+] as const;
 
 export const PAYMENT_STATUS_FILTER_OPTIONS = ["all", "unpaid", "partial", "paid"] as const;
+
+export const BOOKINGS_LIST_SORT_OPTIONS = ["submittedAt", "departureAt"] as const satisfies readonly BookingsListSort[];
 
 /** Status chips — excludes L1 actionable (Work Queue preset / bare URL). */
 export const BOOKING_STATUS_FILTER_OPTIONS = [

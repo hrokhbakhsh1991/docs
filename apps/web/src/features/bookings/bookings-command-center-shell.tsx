@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { Check, Plus, Search } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
@@ -12,7 +12,6 @@ import { PageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingActionNotice } from "@/features/bookings/booking-action-notice";
 import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
@@ -26,7 +25,6 @@ import {
   BOOKINGS_INLINE_APPROVE_ENABLED,
   BOOKINGS_INLINE_APPROVE_ARM_MS,
   BOOKINGS_MOBILE_INSPECTION_MAX_WIDTH_MQ,
-  bookingsAdvancedFiltersDirty,
   bookingsCommandCenterHasActiveFilters,
   buildBookingsApiQuery,
   buildBookingsCommandCenterHref,
@@ -46,6 +44,7 @@ import {
   parseBookingsCommandCenterQuery,
   parseBulkApproveBookingsResponse,
   readBookingIdFromCommandCenterParams,
+  resolveBookingsListTotalPages,
   resolveBookingsSelectedId,
   applyDepartureWindow,
   BOOKINGS_UPCOMING_FACET_DAYS,
@@ -53,16 +52,17 @@ import {
   resolveInboxSelectionAfterKey,
   resolveInlineApproveClick,
   serializeBookingsCommandCenterQuery,
+  shouldResetBookingsPagination,
   sortBookingListItems,
   shouldShowInlineApprove,
   shouldRunBookingsQueueSoftRefresh,
   BOOKINGS_QUEUE_FRESHNESS_COOLDOWN_MS,
-  toggleTourChipFilter,
+  withBookingsPaginationReset,
   type BookingsKpiFilterId,
   type BookingActionNoticeModel,
 } from "@/features/bookings/bookings-command-center-logic";
-import { BookingsFilterControls } from "@/features/bookings/bookings-filter-controls";
-import { BookingsDisplayMenu } from "@/features/bookings/bookings-display-menu";
+import { BookingsDirectoryControls } from "@/features/bookings/bookings-directory-controls";
+import { BookingsDirectoryPagination } from "@/features/bookings/bookings-directory-pagination";
 import { BookingsKpiCard } from "@/features/bookings/bookings-kpi-card";
 import {
   BookingsBulkConfirmDialog,
@@ -70,15 +70,13 @@ import {
   BookingsOverbookConfirmDialog,
   BookingsRejectDialog,
 } from "@/features/bookings/bookings-ops-dialogs";
-import { BookingsTourFilter } from "@/features/bookings/bookings-tour-filter";
-import { BookingsUpcomingFacetButton } from "@/features/bookings/bookings-upcoming-facet-button";
-import { BookingsOpsPresetsBar } from "@/features/bookings/bookings-ops-presets-bar";
 import {
   groupBookingsByDepartureDay,
   groupBookingsByTour,
 } from "@/features/bookings/bookings-ops-path-logic";
 import {
   BOOKINGS_COMMAND_CENTER_TEST_IDS,
+  BOOKINGS_LIST_PAGE_SIZE,
   isAdminOrOwnerRole,
   resolveBookingsViewForRole,
   type BookingListItem,
@@ -196,12 +194,12 @@ export function BookingsPageClient({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | BookingActionNoticeModel | null>(null);
   const [loading, setLoading] = useState(initialPrefetch === null);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
   const skipInitialFetchRef = useRef(initialPrefetch !== null);
   const lastFetchSucceededAtRef = useRef<number | null>(
     initialPrefetch !== null ? Date.now() : null
   );
+  const pageStartCursorsRef = useRef<Record<number, string>>({ 1: "" });
   const listDataRef = useRef(listData);
   listDataRef.current = listData;
   const queryRef = useRef(query);
@@ -233,12 +231,21 @@ export function BookingsPageClient({
     "approve" | "approve_without_payment"
   >("approve");
   const [armedInlineApproveId, setArmedInlineApproveId] = useState<string | null>(null);
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [inspectionBooking, setInspectionBooking] = useState<BookingListItem | null>(null);
   const inlineApproveArmTimeoutRef = useRef<number | null>(null);
 
-  const replaceQuery = (next: BookingsCommandCenterQuery) => {
-    let scoped = lockedTour.length > 0 ? { ...next, tourId: lockedTour } : next;
+  const replaceQuery = (
+    next: BookingsCommandCenterQuery,
+    options?: { preservePagination?: boolean }
+  ) => {
+    const shouldReset =
+      options?.preservePagination !== true &&
+      shouldResetBookingsPagination(queryRef.current, next);
+    let scoped = shouldReset ? withBookingsPaginationReset(next) : next;
+    if (shouldReset) {
+      pageStartCursorsRef.current = { 1: "" };
+    }
+    scoped = lockedTour.length > 0 ? { ...scoped, tourId: lockedTour } : scoped;
     if (lockedStatusFilter.length > 0) {
       scoped = {
         ...scoped,
@@ -253,6 +260,18 @@ export function BookingsPageClient({
     router.replace(serialized.length > 0 ? `${pathname}?${serialized}` : pathname, {
       scroll: false,
     });
+  };
+
+  const goToBookingsPage = (nextPage: number) => {
+    const listCursor = pageStartCursorsRef.current[nextPage] ?? "";
+    replaceQuery(
+      {
+        ...queryRef.current,
+        page: nextPage,
+        listCursor,
+      },
+      { preservePagination: true }
+    );
   };
 
   const selectBooking = (bookingId: string) => {
@@ -340,7 +359,10 @@ export function BookingsPageClient({
     }
     setError(null);
 
-    const apiQuery = buildBookingsApiQuery(query);
+    const apiQuery = buildBookingsApiQuery(query, {
+      cursor: query.page > 1 ? query.listCursor : undefined,
+      limit: BOOKINGS_LIST_PAGE_SIZE,
+    });
     const listPromise = fetch(`/api/bookings?${apiQuery}`, { cache: "no-store" });
     const summaryQs = buildBookingsSummaryApiQuery(query);
     const summaryPromise = canManageOps
@@ -366,6 +388,9 @@ export function BookingsPageClient({
         if (!cancelled) {
           lastFetchSucceededAtRef.current = Date.now();
           setListData(mergeBookingsListPages(null, listJson, "replace"));
+          if (listJson.nextCursor) {
+            pageStartCursorsRef.current[query.page + 1] = listJson.nextCursor;
+          }
           setSummary(summaryJson);
           const bookingIdFromUrl = readBookingIdFromCommandCenterParams(
             new URLSearchParams(searchParams.toString())
@@ -514,7 +539,7 @@ export function BookingsPageClient({
           lastFetchSucceededAtMs: lastFetchSucceededAtRef.current,
           cooldownMs: BOOKINGS_QUEUE_FRESHNESS_COOLDOWN_MS,
           actionBusy,
-          loadingMore,
+          loadingMore: loading,
           dialogOpen: rejectDialogOpen || bulkConfirmOpen || cancelDialogOpen,
         })
       ) {
@@ -524,29 +549,7 @@ export function BookingsPageClient({
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [actionBusy, bulkConfirmOpen, cancelDialogOpen, loadingMore, rejectDialogOpen]);
-
-  const loadMore = async () => {
-    const cursor = listData?.nextCursor?.trim() ?? "";
-    if (cursor.length === 0 || loadingMore) {
-      return;
-    }
-    setLoadingMore(true);
-    setActionError(null);
-    try {
-      const apiQuery = buildBookingsApiQuery(query, { cursor });
-      const response = await fetch(`/api/bookings?${apiQuery}`, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`BOOKINGS_LIST_HTTP_${response.status}`);
-      }
-      const page = (await response.json()) as BookingsListResponse;
-      setListData((current) => mergeBookingsListPages(current, page, "append"));
-    } catch (loadError: unknown) {
-      setActionError(loadError instanceof Error ? loadError.message : "BOOKINGS_FETCH_FAILED");
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  }, [actionBusy, bulkConfirmOpen, cancelDialogOpen, loading, rejectDialogOpen]);
 
   const bulkApprovableIds = useMemo(
     () => filterBulkApprovableIds(listData?.items ?? [], bulkSelectedIds, bulkApproveMaxBatch),
@@ -824,16 +827,16 @@ export function BookingsPageClient({
     actionAvailability.showCapacityFullHint && canActOnSelected
       ? t("actionReason.capacityFull")
       : null;
-  const hasActiveFilters = bookingsCommandCenterHasActiveFilters(query);
-  const advancedFiltersDirty = bookingsAdvancedFiltersDirty(query);
-  const showLoadMore = (listData?.nextCursor?.trim().length ?? 0) > 0;
+  const totalPages =
+    listData !== null ? resolveBookingsListTotalPages(listData.total, BOOKINGS_LIST_PAGE_SIZE) : 1;
   const inboxTitle =
-    listData !== null && listData.items.length < listData.total
-      ? t("inboxLoaded", {
-          loaded: listData.items.length,
+    listData !== null
+      ? t("inboxPage", {
+          page: query.page,
+          totalPages,
           total: listData.total,
         })
-      : t("inbox", { count: listData?.total ?? 0 });
+      : t("inbox", { count: 0 });
 
   const renderInboxRow = (item: (typeof displayItems)[number]) => {
     const selected = selectedBooking?.id === item.id;
@@ -957,104 +960,21 @@ export function BookingsPageClient({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="ps-9"
-            placeholder={t("searchPlaceholder")}
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDetails}
-            aria-expanded={advancedFiltersOpen}
-            onClick={() => setAdvancedFiltersOpen((open) => !open)}
-          >
-            {t("filtersToggle")}
-            {advancedFiltersDirty ? (
-              <span
-                className="ms-1 inline-block size-1.5 rounded-full bg-primary"
-                data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDirtyBadge}
-                aria-hidden
-              />
-            ) : null}
-          </Button>
-          {canManageOps && !embedded ? (
-            <BookingsDisplayMenu query={query} onReplaceQuery={replaceQuery} />
-          ) : null}
-        </div>
-      </div>
-
-      {canManageOps && !embedded ? (
-        <div
-          className="flex flex-col gap-2"
-          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome}
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <BookingsOpsPresetsBar query={query} onReplaceQuery={replaceQuery} />
-            <BookingsUpcomingFacetButton query={query} onReplaceQuery={replaceQuery} />
-          </div>
-          <p
-            className="text-xs text-muted-foreground"
-            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint}
-          >
-            {t("presetsHint")}
-          </p>
-          {query.departureWithinDays.length > 0 ? (
-            <p
-              className="text-xs text-muted-foreground"
-              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.departureWindowHint}
-            >
-              {t("departureWindowActive", { days: query.departureWithinDays })}
-            </p>
-          ) : null}
-          {lockedTour.length === 0 &&
+      <BookingsDirectoryControls
+        query={query}
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
+        onReplaceQuery={replaceQuery}
+        tourChips={summary?.tourChips ?? []}
+        showTourFilter={
+          canManageOps &&
+          !embedded &&
+          lockedTour.length === 0 &&
           summary !== null &&
-          (summary.tourChips.length > 0 || query.tourId.length > 0) ? (
-            <BookingsTourFilter
-              chips={summary.tourChips}
-              value={query.tourId}
-              onValueChange={(tourId) =>
-                replaceQuery(
-                  tourId.length === 0
-                    ? { ...query, tourId: "" }
-                    : toggleTourChipFilter(query, tourId)
-                )
-              }
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      {advancedFiltersOpen ? (
-        <div
-          className="rounded-md border border-border bg-muted/20 px-3 py-3"
-          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.advancedFiltersPanel}
-        >
-          <BookingsFilterControls
-            query={query}
-            hasActiveFilters={hasActiveFilters}
-            onReplaceQuery={replaceQuery}
-            showStatusFilter={lockedStatusFilter.length === 0}
-            showTourScope={!embedded && canManageOps}
-          />
-        </div>
-      ) : null}
-
-      {canManageOps && !embedded && query.status === "all" ? (
-        <p
-          className="text-xs text-muted-foreground"
-          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.historyHint}
-        >
-          {t("historyHint")}
-        </p>
-      ) : null}
+          (summary.tourChips.length > 0 || query.tourId.length > 0)
+        }
+        showTourScope={!embedded && canManageOps}
+      />
 
       {actionError !== null ? (
         <div
@@ -1216,17 +1136,13 @@ export function BookingsPageClient({
                   ))
                 : null}
               {query.layout === "inbox" ? displayItems.map((item) => renderInboxRow(item)) : null}
-              {showLoadMore ? (
-                <Button
-                  variant="outline"
-                  className="m-2 w-[calc(100%-1rem)]"
-                  disabled={loadingMore}
-                  data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.loadMoreButton}
-                  onClick={() => void loadMore()}
-                >
-                  {loadingMore ? t("loadingMore") : t("loadMore")}
-                </Button>
-              ) : null}
+              <BookingsDirectoryPagination
+                page={query.page}
+                totalPages={totalPages}
+                total={listData.total}
+                disabled={loading}
+                onPageChange={goToBookingsPage}
+              />
             </CardContent>
           </Card>
 

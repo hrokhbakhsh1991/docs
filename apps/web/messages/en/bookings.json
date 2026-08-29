@@ -104,6 +104,28 @@
     "board": "By tour"
   },
   "filtersToggle": "Filters",
+  "filters": {
+    "toggle": "Filters",
+    "clearAll": "Clear all"
+  },
+  "queueStatusLabel": "Queue status",
+  "paymentFilterLabel": "Payment",
+  "activeFilters": {
+    "status": "Status: {value}",
+    "payment": "Payment: {value}",
+    "tour": "Tour: {value}",
+    "departure": "Departure: next {days} days",
+    "approvedToday": "Approved today",
+    "allToursScope": "All tours scope",
+    "layout": "Display: {value}",
+    "sort": "Sort: {value}",
+    "search": "Search: {value}",
+    "remove": "Remove {filter}"
+  },
+  "pagination": {
+    "summary": "Page {page} of {totalPages} ({total, number} results)"
+  },
+  "inboxPage": "Queue — page {page} of {totalPages} ({total, number} total)",
   "advancedFiltersHeading": "Advanced filters",
   "capacity": "Capacity",
   "capacityShort": "{occupied}/{max}",

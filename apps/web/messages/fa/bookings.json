@@ -116,6 +116,28 @@
     "board": "بر اساس تور"
   },
   "filtersToggle": "فیلترها",
+  "filters": {
+    "toggle": "فیلترها",
+    "clearAll": "پاک کردن همه"
+  },
+  "queueStatusLabel": "وضعیت صف",
+  "paymentFilterLabel": "پرداخت",
+  "activeFilters": {
+    "status": "وضعیت: {value}",
+    "payment": "پرداخت: {value}",
+    "tour": "تور: {value}",
+    "departure": "حرکت: {days} روز آینده",
+    "approvedToday": "تأیید امروز",
+    "allToursScope": "همه تورها",
+    "layout": "نمایش: {value}",
+    "sort": "مرتب‌سازی: {value}",
+    "search": "جستجو: {value}",
+    "remove": "حذف {filter}"
+  },
+  "pagination": {
+    "summary": "صفحه {page} از {totalPages} ({total, number} نتیجه)"
+  },
+  "inboxPage": "صف — صفحه {page} از {totalPages} ({total, number} کل)",
   "advancedFiltersHeading": "فیلترهای پیشرفته",
   "capacity": "ظرفیت",
   "capacityShort": "{occupied}/{max}",
