@@ -148,18 +148,22 @@ describe("health priority ingress (NN-08)", () => {
   let priorStorageDriver: string | undefined;
   let priorDatabaseUrl: string | undefined;
   let priorDatabaseUrlAdmin: string | undefined;
+  let priorLogLevel: string | undefined;
 
   before(() => {
     // Ingress unit tests must not depend on CI gate Postgres — probeDatabaseHealth would 503.
     priorStorageDriver = process.env.STORAGE_DRIVER;
     priorDatabaseUrl = process.env.DATABASE_URL;
     priorDatabaseUrlAdmin = process.env.DATABASE_URL_ADMIN;
+    priorLogLevel = process.env.LOG_LEVEL;
     process.env.STORAGE_DRIVER = "memory";
+    process.env.LOG_LEVEL = "error";
+    logger.level = "error";
     delete process.env.DATABASE_URL;
     delete process.env.DATABASE_URL_ADMIN;
   });
 
-  after(() => {
+  after(async () => {
     if (priorStorageDriver === undefined) {
       delete process.env.STORAGE_DRIVER;
     } else {
@@ -175,6 +179,13 @@ describe("health priority ingress (NN-08)", () => {
     } else {
       process.env.DATABASE_URL_ADMIN = priorDatabaseUrlAdmin;
     }
+    if (priorLogLevel === undefined) {
+      delete process.env.LOG_LEVEL;
+    } else {
+      process.env.LOG_LEVEL = priorLogLevel;
+    }
+    logger.level = process.env.LOG_LEVEL ?? "info";
+    await flushLogSink();
   });
 
   afterEach(async () => {
