@@ -13,19 +13,25 @@ export async function enrichBookingListItemsWithMemberAvatars(
     return [...items];
   }
 
-  const userIds = [...new Set(records.map((record) => record.submittedByUserId))];
-  const memberships = await getIdentityRepository().findMembershipsByUserIds(tenantId, userIds);
+  const recordById = new Map(records.map((record) => [record.id, record]));
+  const memberUserIds = [...new Set(records.map((record) => record.submittedByUserId))];
+  const memberships = await getIdentityRepository().findMembershipsByUserIds(
+    tenantId,
+    memberUserIds
+  );
   const avatarUrls = await resolveOperatorAvatarUrlsForMemberships(
-    userIds.map((userId) => ({
+    memberUserIds.map((userId) => ({
       tenantId,
       userId,
       storageKey: memberships.get(userId)?.avatar?.storageKey,
     }))
   );
-  const avatarByUserId = new Map(userIds.map((userId, index) => [userId, avatarUrls[index] ?? null]));
+  const avatarByMemberUserId = new Map(
+    memberUserIds.map((memberUserId, index) => [memberUserId, avatarUrls[index] ?? null])
+  );
 
-  return items.map((item, index) => {
-    const record = records[index];
+  return items.map((item) => {
+    const record = recordById.get(item.id);
     if (record === undefined) {
       return item;
     }
@@ -33,7 +39,7 @@ export async function enrichBookingListItemsWithMemberAvatars(
     return {
       ...item,
       memberUserId,
-      memberAvatarUrl: avatarByUserId.get(memberUserId) ?? null,
+      memberAvatarUrl: avatarByMemberUserId.get(memberUserId) ?? null,
     };
   });
 }

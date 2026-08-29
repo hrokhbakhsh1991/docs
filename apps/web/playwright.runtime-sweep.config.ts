@@ -8,6 +8,7 @@ export default defineConfig({
     "users-directory-controls-responsive.spec.ts",
     "users-loyalty-detail-responsive.spec.ts",
     "bookings-directory-controls-responsive.spec.ts",
+    "bookings-avatar-row-identity.spec.ts",
   ],
   workers: 1,
   timeout: 120_000,

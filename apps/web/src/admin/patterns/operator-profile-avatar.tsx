@@ -43,10 +43,12 @@ export function OperatorProfileAvatar({
   shellChrome,
 }: OperatorProfileAvatarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     setAvatarUrl(initialAvatarUrl);
-  }, [initialAvatarUrl]);
+    setImageError(false);
+  }, [initialAvatarUrl, userId]);
 
   useEffect(() => {
     if (!resolvePreview) {
@@ -57,11 +59,13 @@ export function OperatorProfileAvatar({
       .then((url) => {
         if (!cancelled) {
           setAvatarUrl(url);
+          setImageError(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setAvatarUrl(null);
+          setImageError(false);
         }
       });
     return () => {
@@ -71,6 +75,7 @@ export function OperatorProfileAvatar({
 
   const fallbackInitials = resolveFallbackInitials(displayName, userId);
   const showIconFallback = fallbackMode === "icon" || fallbackInitials === "OP";
+  const showImage = avatarUrl !== null && avatarUrl.length > 0 && !imageError;
 
   const isAccountMenuChrome = shellChrome === "account-menu";
 
@@ -80,8 +85,16 @@ export function OperatorProfileAvatar({
       {...(isAccountMenuChrome ? {} : { "data-operator-profile-avatar-size": size })}
       data-testid={testId}
     >
-      {avatarUrl !== null && avatarUrl.length > 0 ? (
-        <AvatarImage src={avatarUrl} alt="" data-operator-profile-avatar-image={true} />
+      {showImage ? (
+        <AvatarImage
+          key={`${userId}:${avatarUrl}`}
+          src={avatarUrl}
+          alt=""
+          data-operator-profile-avatar-image={true}
+          onError={() => {
+            setImageError(true);
+          }}
+        />
       ) : null}
       <AvatarFallback data-operator-profile-avatar-fallback={true}>
         {showIconFallback ? (

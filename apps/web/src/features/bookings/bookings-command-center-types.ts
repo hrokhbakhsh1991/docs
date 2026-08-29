@@ -177,6 +177,10 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   leaderAlias: "operator-leader-review-alias",
 } as const;
 
+export function bookingsRowAvatarTestId(bookingId: string): string {
+  return `${BOOKINGS_COMMAND_CENTER_TEST_IDS.rowAvatar}-${bookingId}`;
+}
+
 export const DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY: BookingsCommandCenterQuery = {
   view: "ops",
   status: "actionable",

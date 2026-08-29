@@ -36,9 +36,9 @@ Constants: `bookings-member-summary-projection.ts`.
 
 ### Ops list member avatar (OP-UI batch)
 
-`listBookings` enriches each row with `memberUserId` (submittedByUserId) and optional `memberAvatarUrl` via batch `findMembershipsByUserIds` + `resolveOperatorAvatarUrlsForMemberships` — same presign path as the users directory. No `registrationIntake` on the list wire. Helper: `enrich-booking-list-member-avatars.ts`.
+`listBookings` enriches each row with `memberUserId` (submittedByUserId) and optional `memberAvatarUrl` via batch `findMembershipsByUserIds` + `resolveOperatorAvatarUrlsForMemberships` — same presign path as the users directory. Enrichment joins each list item to its booking record by **`item.id`** (not parallel array index) and resolves avatars through `Map<memberUserId, memberAvatarUrl | null>`. No `registrationIntake` on the list wire. Helper: `enrich-booking-list-member-avatars.ts`.
 
-**Static checks:** `test/enrich-booking-list-member-avatars.spec.ts` (API-OPUI-01)
+**Static checks:** `test/enrich-booking-list-member-avatars.spec.ts` (API-OPUI-01) · `test/bookings-avatar-enrichment.spec.ts` (BKG-AVT-01..04)
 
 ## Finance registration invoice facts (AP15 — P1)
 

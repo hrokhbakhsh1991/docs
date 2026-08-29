@@ -67,7 +67,7 @@ describe("operator-ui-consistency.spec.ts", () => {
     const avatar = read("src/features/bookings/booking-member-avatar.tsx");
     assert.match(row, /BookingMemberAvatar/);
     assert.match(row, /OperatorStatusBadge/);
-    assert.match(avatar, /BOOKINGS_COMMAND_CENTER_TEST_IDS\.rowAvatar/);
+    assert.match(avatar, /bookingsRowAvatarTestId/);
   });
 
   it("WEB-OPUI-04 users detail sheet uses detailSheet motion profile", () => {
