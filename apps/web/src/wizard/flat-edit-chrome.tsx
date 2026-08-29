@@ -48,7 +48,6 @@ export function OperatorFlatEditPageHeader(props: {
   readonly metaLine: string | null;
   readonly toursNavLabel: string;
   readonly workspaceNavLabel: string;
-  readonly primaryAction?: ReactNode;
   readonly draftSync: OperatorFlatEditDraftSync;
 }) {
   return (
@@ -106,11 +105,6 @@ export function OperatorFlatEditPageHeader(props: {
           </div>
         </div>
       </header>
-      {props.primaryAction != null ? (
-        <div className="new-tour-wizard-page__primary-save" data-operator-flat-edit-primary-save>
-          {props.primaryAction}
-        </div>
-      ) : null}
     </>
   );
 }

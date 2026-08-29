@@ -122,6 +122,8 @@
     "published": "Tour published to catalog.",
     "unpublished": "Tour moved to draft.",
     "cancelEdits": "Cancel",
+    "moreActions": "More",
+    "unsavedHint": "Unsaved changes",
     "wizardTitle": "Edit tour",
     "loading": "Loading tour…",
     "warmErrorTitle": "Edit tour is not ready",

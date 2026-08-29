@@ -122,6 +122,8 @@
     "published": "تور در کاتالوگ منتشر شد.",
     "unpublished": "تور به پیش‌نویس برگشت.",
     "cancelEdits": "انصراف",
+    "moreActions": "بیشتر",
+    "unsavedHint": "تغییرات ذخیره‌نشده",
     "wizardTitle": "ویرایش تور",
     "loading": "در حال بارگذاری تور…",
     "warmErrorTitle": "ویرایش تور آماده نشد",
