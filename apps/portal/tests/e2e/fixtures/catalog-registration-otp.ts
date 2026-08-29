@@ -3,6 +3,11 @@ import { expect } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
+/** Next dev HMR can invalidate response bodies before .text() — status is enough for smoke. */
+function assertAuthBffOk(response: { ok(): boolean; status(): number }, label: string): void {
+  expect(response.ok(), `${label} failed (${response.status()})`).toBeTruthy();
+}
+
 export async function gotoPortalRegistration(page: Page, tourId: string): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
   // Guest path: OTP phone inside dialog[open] (PCMS-UX-MODAL-04). Resume: intake.
@@ -37,11 +42,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
     await cell.fill(digits[i]!);
   }
   const response = await responsePromise;
-  const body = await response.text();
-  expect(
-    response.ok(),
-    `verify-otp failed (${response.status()}): ${body.slice(0, 240)}`
-  ).toBeTruthy();
+  assertAuthBffOk(response, "verify-otp");
 }
 
 /** Reliable phone entry for portal LocalizedNumericInput (fa locale). */
@@ -72,11 +73,7 @@ export async function requestRegistrationOtp(page: Page, phone: string): Promise
     ),
     sendCode.click(),
   ]);
-  const body = await response.text();
-  expect(
-    response.ok(),
-    `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
-  ).toBeTruthy();
+  assertAuthBffOk(response, "request-otp");
   await expect(page.locator("[data-public-registration-otp]")).toBeVisible({
     timeout: 60_000,
   });
