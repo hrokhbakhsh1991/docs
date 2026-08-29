@@ -12,6 +12,9 @@ import {
   OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
 } from "./fixtures/complete-portal-registration";
 
+/** Seeded operator smoke member — verify-otp issues session without register-complete. */
+const OPERATOR_SMOKE_MEMBER_PHONE = "+15550001003";
+
 /**
  * PCMS-REG-01 — member with valid portal cookie skips OTP on a second tour register page.
  * @see docs/standards/member-session-portal-authority.mdoc
@@ -19,7 +22,7 @@ import {
 test("SMK-PTL-07b second register page resumes at intake after OTP session only", async ({
   page,
 }) => {
-  const phone = `+1555${String(Date.now()).slice(-7)}`;
+  const phone = OPERATOR_SMOKE_MEMBER_PHONE;
 
   await page.context().clearCookies();
   await gotoPortalRegistration(page, OPERATOR_PUBLISHED_TOUR_ID);

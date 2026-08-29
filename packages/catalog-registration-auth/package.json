@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "prebuild": "pnpm --dir ../iran-mobile run build",
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""

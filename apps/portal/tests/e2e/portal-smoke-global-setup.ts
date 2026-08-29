@@ -11,6 +11,63 @@ const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
+/** Compile portal BFF routes before tests — avoids Next dev HMR reload mid-flow. */
+async function warmPortalBffRoute(
+  base: string,
+  path: string,
+  method: "GET" | "POST" | "PATCH",
+  body?: object
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const url = new URL(`${base}${path}`);
+    const payload = body === undefined ? undefined : JSON.stringify(body);
+    const headers: Record<string, string> = { host: url.host };
+    if (payload !== undefined) {
+      headers["Content-Type"] = "application/json";
+      headers["Content-Length"] = String(Buffer.byteLength(payload));
+    }
+    const req = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port || (url.protocol === "https:" ? 443 : 80),
+        path: `${url.pathname}${url.search}`,
+        method,
+        headers,
+      },
+      (res) => {
+        res.resume();
+        resolve();
+      }
+    );
+    req.on("error", reject);
+    if (payload !== undefined) {
+      req.write(payload);
+    }
+    req.end();
+  });
+}
+
+async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
+  await warmPortalBffRoute(base, path, "POST", body);
+}
+
+async function warmPublicAuthBffRoutes(base: string): Promise<void> {
+  const routes = [
+    ["/api/public-auth/phone-preflight", { phone: "+15550009999" }],
+    ["/api/public-auth/request-otp", { phone: "+15550009999" }],
+    ["/api/public-auth/verify-otp", { phone: "+15550009999", otp: "1234", challenge_id: "warmup" }],
+    ["/api/public-auth/register-complete", { phone: "+15550009999" }],
+    ["/api/public-auth/logout", {}],
+    ["/api/catalog/registrations", { phone: "+15550009999" }],
+    ["/api/catalog/pricing-preview", { phone: "+15550009999" }],
+    ["/api/me/mobile/request-otp", { phone: "+15550009999" }],
+    ["/api/me/mobile/verify", { phone: "+15550009999", otp: "1234" }],
+  ] as const;
+  for (const [path, body] of routes) {
+    await warmPortalBffPostRoute(base, path, body);
+  }
+}
+
 function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let inFlight = false;
@@ -63,4 +120,26 @@ export default async function globalSetup(): Promise<void> {
   await waitForUrl(`${base}/catalog/${TRANSPORT_SHARED_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/me/profile`);
   await waitForUrl(`${base}/me/registrations`);
+  await waitForUrl(`${base}/api/me/registrations`);
+  await warmPublicAuthBffRoutes(base);
+
+  const warmupRegistrationId = "00000000-0000-4000-8000-000000000299";
+  const meBffRoutes = [
+    ["GET", "/api/me/profile"],
+    ["GET", "/api/me/entitlements"],
+    ["GET", "/api/me/home"],
+    ["GET", "/api/me/notifications"],
+    ["PATCH", "/api/me/profile", { displayName: "Warmup" }],
+    ["GET", `/api/me/registrations/${warmupRegistrationId}`],
+    ["GET", `/api/me/registrations/${warmupRegistrationId}/receipt`],
+    ["GET", `/me/registrations/${warmupRegistrationId}`],
+  ] as const;
+  for (const [method, path, body] of meBffRoutes) {
+    await warmPortalBffRoute(
+      base,
+      path,
+      method,
+      body as object | undefined
+    );
+  }
 }

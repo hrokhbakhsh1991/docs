@@ -45,4 +45,12 @@ export async function completePortalCatalogRegistration(
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 60_000,
   });
+
+  // Pre-warm authenticated member trips SSR while the session cookie is fresh.
+  await page.goto("/me/registrations", { waitUntil: "domcontentloaded" });
+  await page
+    .locator("[data-portal-member-registrations-list] li")
+    .first()
+    .waitFor({ state: "visible", timeout: 120_000 })
+    .catch(() => undefined);
 }
