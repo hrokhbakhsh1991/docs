@@ -32,6 +32,20 @@ const REGISTRATION_INTAKE = {
   transport: { kind: "primary" },
 };
 
+const WAIVED_INTAKE = {
+  ...REGISTRATION_INTAKE,
+  obligationOverride: {
+    obligationMinor: "0",
+    setAt: "2026-07-08T12:00:00.000Z",
+    setByUserId: USER_ID,
+  },
+};
+
+const WAIVED_BOOKING_ID = "00000000-0000-4000-8000-000000000902";
+const PAID_BOOKING_ID = "00000000-0000-4000-8000-000000000903";
+const PARTIAL_BOOKING_ID = "00000000-0000-4000-8000-000000000904";
+const UNPAID_BOOKING_ID = "00000000-0000-4000-8000-000000000905";
+
 function seedDetailBooking(repo: InMemoryBookingsRepository): void {
   const record: BookingRecord = {
     id: BOOKING_ID,
@@ -51,6 +65,38 @@ function seedDetailBooking(repo: InMemoryBookingsRepository): void {
     registrationIntake: REGISTRATION_INTAKE,
   };
   repo.seedBooking(record);
+  repo.seedBooking({
+    ...record,
+    id: WAIVED_BOOKING_ID,
+    status: "approved",
+    paymentStatus: "paid",
+    approvedAt: "2026-07-08T12:00:00.000Z",
+    registrationIntake: WAIVED_INTAKE,
+    guestLabel: "Waived Guest",
+  });
+  repo.seedBooking({
+    ...record,
+    id: PAID_BOOKING_ID,
+    status: "approved",
+    paymentStatus: "paid",
+    approvedAt: "2026-07-08T12:00:00.000Z",
+    guestLabel: "Paid Guest",
+  });
+  repo.seedBooking({
+    ...record,
+    id: PARTIAL_BOOKING_ID,
+    status: "approved",
+    paymentStatus: "partial",
+    approvedAt: "2026-07-08T12:00:00.000Z",
+    guestLabel: "Partial Guest",
+  });
+  repo.seedBooking({
+    ...record,
+    id: UNPAID_BOOKING_ID,
+    status: "pending",
+    paymentStatus: "unpaid",
+    guestLabel: "Unpaid Guest",
+  });
 }
 
 describe("bookings-safety.spec.ts", () => {
@@ -70,12 +116,48 @@ describe("bookings-safety.spec.ts", () => {
       tenantId: TENANT_ID,
       limit: 10,
     });
-    assert.equal(page.items.length, 1);
-    assert.equal(page.items[0]?.id, BOOKING_ID);
-    assert.equal(page.items[0]?.registrationIntake, undefined);
-    assert.equal(page.items[0]?.registrantTarget, "other");
-    assert.equal(page.items[0]?.transportKind, "primary");
-    assert.equal(page.items[0]?.personalCarOccupants, null);
+    const listItem = page.items.find((row) => row.id === BOOKING_ID);
+    assert.ok(listItem !== undefined);
+    assert.equal(listItem.registrationIntake, undefined);
+    assert.equal(listItem.registrantTarget, "other");
+    assert.equal(listItem.transportKind, "primary");
+    assert.equal(listItem.personalCarOccupants, null);
+  });
+
+  it("BK-SAFE-01b list projection preserves financialDisplayState for waived bookings", async () => {
+    const repo = new InMemoryBookingsRepository();
+    const page = await repo.listByTenantPage({
+      tenantId: TENANT_ID,
+      limit: 20,
+    });
+    const waived = page.items.find((row) => row.id === WAIVED_BOOKING_ID);
+    const paid = page.items.find((row) => row.id === PAID_BOOKING_ID);
+    const partial = page.items.find((row) => row.id === PARTIAL_BOOKING_ID);
+    const unpaid = page.items.find((row) => row.id === UNPAID_BOOKING_ID);
+
+    assert.equal(waived?.financialDisplayState, "WAIVED");
+    assert.equal(waived?.registrationIntake, undefined);
+    assert.equal(paid?.financialDisplayState, undefined);
+    assert.equal(partial?.financialDisplayState, undefined);
+    assert.equal(unpaid?.financialDisplayState, undefined);
+  });
+
+  it("BK-SAFE-01c list pagination still returns stable nextCursor", async () => {
+    const repo = new InMemoryBookingsRepository();
+    const first = await repo.listByTenantPage({
+      tenantId: TENANT_ID,
+      limit: 2,
+    });
+    assert.equal(first.items.length, 2);
+    assert.ok(first.nextCursor !== null);
+
+    const second = await repo.listByTenantPage({
+      tenantId: TENANT_ID,
+      limit: 2,
+      cursor: first.nextCursor ?? undefined,
+    });
+    assert.ok(second.items.length > 0);
+    assert.ok(!second.items.some((row) => first.items.some((firstRow) => firstRow.id === row.id)));
   });
 
   it("BK-SAFE-01a BOOKING_LIST_SELECT must not select registrationIntake", () => {
@@ -85,6 +167,7 @@ describe("bookings-safety.spec.ts", () => {
     )?.[0];
     assert.ok(selectBody !== undefined, "BOOKING_LIST_SELECT must exist");
     assert.doesNotMatch(selectBody, /registrationIntake\s*:/);
+    assert.match(source, /enrichBookingListRecordsWithIntakeScalars/);
   });
 
   it("BK-SAFE-02 prisma listByTenantPage uses withTenantRls for paginated query", () => {
