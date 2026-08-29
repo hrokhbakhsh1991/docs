@@ -164,6 +164,11 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   primaryChrome: "operator-bookings-primary-chrome",
   locked: "operator-bookings-locked",
   leaderAlias: "operator-leader-review-alias",
+  workspaceControls: "operator-bookings-workspace-controls",
+  search: "operator-bookings-search",
+  filtersToggle: "operator-bookings-filters-toggle",
+  filtersPanel: "operator-bookings-filters-panel",
+  activeFilters: "operator-bookings-active-filters",
 } as const;
 
 export const DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY: BookingsCommandCenterQuery = {

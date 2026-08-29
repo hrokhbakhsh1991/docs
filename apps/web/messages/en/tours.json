@@ -191,6 +191,22 @@
       "empty": "No members are approved yet.",
       "cta": "View final list"
     },
+    "controls": {
+      "filtersToggle": "Filters",
+      "clearAll": "Clear filters",
+      "removeFilter": "Remove {filter}",
+      "paymentFilterLabel": "Payment status",
+      "statusFilterLabel": "Registration status",
+      "sortFilterLabel": "Sort",
+      "rosterFilterLabel": "Roster view",
+      "activeFilters": {
+        "status": "Status: {value}",
+        "payment": "Payment: {value}",
+        "sort": "Sort: {value}",
+        "search": "Search: {value}",
+        "roster": "Transport: {value}"
+      }
+    },
     "finance": {
       "title": "Tour payment follow-up",
       "description": "Guests on this tour with a balance due or a receipt waiting.",

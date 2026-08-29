@@ -62,6 +62,7 @@ import {
   type BookingActionNoticeModel,
 } from "@/features/bookings/bookings-command-center-logic";
 import { BookingsFilterControls } from "@/features/bookings/bookings-filter-controls";
+import { BookingsWorkspaceEmbeddedControls } from "@/features/bookings/bookings-workspace-embedded-controls";
 import { BookingsDisplayMenu } from "@/features/bookings/bookings-display-menu";
 import { BookingsKpiCard } from "@/features/bookings/bookings-kpi-card";
 import {
@@ -957,41 +958,68 @@ export function BookingsPageClient({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="ps-9"
-            placeholder={t("searchPlaceholder")}
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDetails}
-            aria-expanded={advancedFiltersOpen}
-            onClick={() => setAdvancedFiltersOpen((open) => !open)}
-          >
-            {t("filtersToggle")}
-            {advancedFiltersDirty ? (
-              <span
-                className="ms-1 inline-block size-1.5 rounded-full bg-primary"
-                data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDirtyBadge}
-                aria-hidden
+      {embedded ? (
+        <BookingsWorkspaceEmbeddedControls
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onReplaceQuery={replaceQuery}
+          showStatusFilter={lockedStatusFilter.length === 0}
+        />
+      ) : (
+        <>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="ps-9"
+                placeholder={t("searchPlaceholder")}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
               />
-            ) : null}
-          </Button>
-          {canManageOps && !embedded ? (
-            <BookingsDisplayMenu query={query} onReplaceQuery={replaceQuery} />
-          ) : null}
-        </div>
-      </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDetails}
+                aria-expanded={advancedFiltersOpen}
+                onClick={() => setAdvancedFiltersOpen((open) => !open)}
+              >
+                {t("filtersToggle")}
+                {advancedFiltersDirty ? (
+                  <span
+                    className="ms-1 inline-block size-1.5 rounded-full bg-primary"
+                    data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDirtyBadge}
+                    aria-hidden
+                  />
+                ) : null}
+              </Button>
+              {canManageOps ? (
+                <BookingsDisplayMenu query={query} onReplaceQuery={replaceQuery} />
+              ) : null}
+            </div>
+          </div>
 
-      {canManageOps && !embedded ? (
+          {advancedFiltersOpen ? (
+            <div
+              className="rounded-md border border-border bg-muted/20 px-3 py-3"
+              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.advancedFiltersPanel}
+            >
+              <BookingsFilterControls
+                query={query}
+                hasActiveFilters={hasActiveFilters}
+                onReplaceQuery={replaceQuery}
+                showStatusFilter={lockedStatusFilter.length === 0}
+                showTourScope={canManageOps}
+              />
+            </div>
+          ) : null}
+        </>
+      )}
+
+      {!embedded && canManageOps ? (
         <div
           className="flex flex-col gap-2"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome}
@@ -1026,21 +1054,6 @@ export function BookingsPageClient({
               onSelectTour={(tourId) => replaceQuery(toggleTourChipFilter(query, tourId))}
             />
           ) : null}
-        </div>
-      ) : null}
-
-      {advancedFiltersOpen ? (
-        <div
-          className="rounded-md border border-border bg-muted/20 px-3 py-3"
-          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.advancedFiltersPanel}
-        >
-          <BookingsFilterControls
-            query={query}
-            hasActiveFilters={hasActiveFilters}
-            onReplaceQuery={replaceQuery}
-            showStatusFilter={lockedStatusFilter.length === 0}
-            showTourScope={!embedded && canManageOps}
-          />
         </div>
       ) : null}
 

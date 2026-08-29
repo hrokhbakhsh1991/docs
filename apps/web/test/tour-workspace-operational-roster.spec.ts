@@ -47,7 +47,7 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.driverBadge/);
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.rowAvatar/);
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.mobileList/);
-    assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.filters/);
+    assert.match(client, /TourWorkspaceTransportControls/);
   });
 
   it("exposes approved DP-2 roster filters", () => {
