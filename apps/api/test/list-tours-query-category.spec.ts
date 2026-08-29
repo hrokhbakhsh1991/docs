@@ -25,4 +25,18 @@ describe("list-tours-query-category.spec.ts", () => {
     assert.equal(query.operator?.sortBy, "departure_at");
     assert.equal(query.operator?.sortDir, "asc");
   });
+
+  it("defaults operator sort to nearest departure", () => {
+    const query = parseListToursQuery(new URLSearchParams("view=operator"));
+    assert.equal(query.operator?.sortBy, "departure_at");
+    assert.equal(query.operator?.sortDir, "asc");
+  });
+
+  it("preserves explicit created_at descending sort", () => {
+    const query = parseListToursQuery(
+      new URLSearchParams("view=operator&sort_by=created_at&sort_dir=desc")
+    );
+    assert.equal(query.operator?.sortBy, "created_at");
+    assert.equal(query.operator?.sortDir, "desc");
+  });
 });

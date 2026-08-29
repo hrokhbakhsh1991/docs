@@ -46,7 +46,6 @@ import {
   parseBookingsCommandCenterQuery,
   parseBulkApproveBookingsResponse,
   readBookingIdFromCommandCenterParams,
-  readBookingPaymentDueAt,
   resolveBookingsSelectedId,
   applyDepartureWindow,
   BOOKINGS_UPCOMING_FACET_DAYS,
@@ -465,7 +464,8 @@ export function BookingsPageClient({
     };
   }, [selectedId, displayItems, fetchNonce]);
 
-  const inspectionTarget = inspectionBooking?.id === selectedId ? inspectionBooking : selectedBooking;
+  const inspectionTarget =
+    inspectionBooking?.id === selectedId ? inspectionBooking : selectedBooking;
 
   const applyKpiFilter = (kpi: BookingsKpiFilterId) => {
     if (kpi === "departures7d") {
@@ -837,14 +837,8 @@ export function BookingsPageClient({
 
   const renderInboxRow = (item: (typeof displayItems)[number]) => {
     const selected = selectedBooking?.id === item.id;
-    const paymentDueAt = readBookingPaymentDueAt(item);
     return (
       <Fragment key={item.id}>
-        {paymentDueAt !== undefined ? (
-          <span className="sr-only" data-operator-booking-payment-due-at>
-            {paymentDueAt}
-          </span>
-        ) : null}
         {item.status === "cancelled" && item.cancelSource === "payment_deadline" ? (
           <span className="sr-only" data-operator-booking-cancel-source>
             payment_deadline

@@ -10,21 +10,20 @@ import { fileURLToPath } from "node:url";
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("DP1-I operator payment deadline contract", () => {
-  it("S1 BR-OP-01: bookings command center shows paymentDueAt column", () => {
-    const shell = readFileSync(
-      join(webRoot, "src/features/bookings/bookings-command-center-shell.tsx"),
-      "utf8"
-    );
+  it("S1 BR-OP-01: bookings command center row shows actionable paymentDueAt", () => {
+    const row = readFileSync(join(webRoot, "src/features/bookings/booking-inbox-row.tsx"), "utf8");
     const types = readFileSync(
       join(webRoot, "src/features/bookings/bookings-command-center-types.ts"),
       "utf8"
     );
     assert.match(
-      shell,
+      row,
       /paymentDueAt/,
-      "DP1-EXPECTED-FAIL: operator bookings list must render paymentDueAt"
+      "DP1-EXPECTED-FAIL: operator bookings row must render actionable paymentDueAt"
     );
-    assert.match(shell, /data-operator-booking-payment-due-at/);
+    assert.match(row, /data-operator-booking-payment-due-at/);
+    assert.match(row, /resolveBookingActionablePaymentDueAt/);
+    assert.match(row, /formatBookingDeparture/);
     assert.match(types, /paymentDueAt\?:/);
   });
 

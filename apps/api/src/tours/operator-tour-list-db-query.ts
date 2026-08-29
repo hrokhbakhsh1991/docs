@@ -40,7 +40,7 @@ export function buildOperatorTourOrderBy(
     return [{ title: sortDir }, { id: sortDir }];
   }
   if (sortBy === "departure_at") {
-    return [{ startDate: sortDir }, { id: sortDir }];
+    return [{ startDate: { sort: sortDir, nulls: "last" } }, { id: sortDir }];
   }
   if (sortBy === "price") {
     return [{ createdAt: sortDir }, { id: sortDir }];

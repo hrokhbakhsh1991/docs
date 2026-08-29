@@ -193,7 +193,7 @@
   },
   "equipment": {
     "title": "Equipment",
-    "subtitle": "Generic CRUD pilot (SMK-P9-08)",
+    "subtitle": "Manage equipment used on tours",
     "addTitle": "Add equipment",
     "category": "Category",
     "themes": "Related tour themes",
@@ -207,7 +207,7 @@
   },
   "equipmentPage": {
     "title": "Equipment",
-    "subtitle": "Generic CRUD pilot (SMK-P9-08)"
+    "subtitle": "Manage equipment used on tours"
   },
   "guideLanguages": {
     "title": "Guide languages",
@@ -219,11 +219,11 @@
   },
   "tourThemes": {
     "title": "Tour themes",
-    "subtitle": "Workspace tour theme catalog (Phase 9.6 R4)",
+    "subtitle": "Manage tour themes available for tours",
     "addTitle": "Add theme",
     "listTitle": "Themes ({count})",
     "empty": "No tour themes yet.",
-    "iconPreviewSubtitle": "Optional icon shown in wizard and lists"
+    "iconPreviewSubtitle": "Optional symbol shown in create/edit tour forms and lists"
   },
   "locations": {
     "title": "Locations",

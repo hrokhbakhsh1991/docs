@@ -61,6 +61,7 @@ import {
   isBookingsDepartureWindowChipActive,
   isBookingsUpcomingFacetActive,
   resolveBookingDepartureUrgency,
+  resolveBookingActionablePaymentDueAt,
   resolveBookingPendingAgeDays,
   resolveBookingRowUrgencySlot,
   BOOKINGS_UPCOMING_FACET_DAYS,
@@ -1188,6 +1189,12 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       advancedFiltersHeading: string;
       filtersToggle: string;
       waitlistActionAria: string;
+      detailSections: {
+        contact: string;
+        payment: string;
+        intake: string;
+        history: string;
+      };
     };
     assert.equal(enBookings.upcomingWindow, "Departure window");
     assert.equal(enBookings.kpi.departures7d, "Leaving in 7d");
@@ -1212,10 +1219,11 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(enBookings.emptyUpcoming, /Widen to 14d/i);
     assert.match(enBookings.historyHint, /^History shows/i);
     assert.match(enBookings.inbox, /^Queue \(/);
-    assert.equal(enBookings.inspection, "Decide");
+    assert.equal(enBookings.inspection, "Review registration");
     assert.match(enBookings.selectRegistration, /Approve, Waitlist, or Reject/i);
     assert.match(enBookings.inspectionActionsHint, /Waitlisted: Approve or Reject/i);
     assert.match(enBookings.waitlistActionAria, /hold for a seat/i);
+    assert.equal(enBookings.detailSections.payment, "Payment details");
 
     const faBookings = JSON.parse(
       readFileSync(new URL("../messages/fa/bookings.json", import.meta.url), "utf8")
@@ -1224,11 +1232,13 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       presets: { upcoming: string };
       inspection: string;
       emptyInbox: string;
+      detailSections: { contact: string };
     };
     assert.equal(faBookings.presets.upcoming, "به‌زودی (۷ر)");
-    assert.equal(faBookings.inspection, "تصمیم");
+    assert.equal(faBookings.inspection, "بررسی ثبت‌نام");
     assert.match(faBookings.presetsHint, /صف کار/);
     assert.match(faBookings.emptyInbox, /کار تمام/);
+    assert.equal(faBookings.detailSections.contact, "اطلاعات تماس و شناسه");
 
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint, "operator-bookings-presets-hint");
     assert.equal(
@@ -1323,6 +1333,15 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "utf8"
     );
     assert.match(rowSource, /data-queue-row="dense"/);
+    assert.match(rowSource, /sm:flex-nowrap/);
+    assert.match(rowSource, /flex-col gap-2 sm:flex-row/);
+    assert.match(rowSource, /sm:w-36/);
+    assert.match(rowSource, /sm:w-auto/);
+    assert.match(rowSource, /fields\.departure/);
+    assert.match(rowSource, /paymentDueAt/);
+    assert.match(rowSource, /resolveBookingActionablePaymentDueAt/);
+    assert.doesNotMatch(rowSource, /rowMetaParts/);
+    assert.doesNotMatch(rowSource, /join\(" · "\)/);
     assert.match(rowSource, /border-b/);
     assert.doesNotMatch(rowSource, /rounded-lg border/);
     assert.doesNotMatch(rowSource, /BookingCapacityBar/);
@@ -1333,7 +1352,20 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "utf8"
     );
     assert.ok(
-      detailSource.indexOf("BookingActionButtons") < detailSource.indexOf("BookingFinancialStrip")
+      detailSource.indexOf("<BookingActionButtons") < detailSource.indexOf("<BookingFinancialStrip")
+    );
+    assert.ok(detailSource.indexOf("<BookingActionButtons") < detailSource.indexOf("<details"));
+    assert.ok(
+      detailSource.indexOf("detailSections.payment") <
+        detailSource.indexOf("<BookingFinancialStrip")
+    );
+    assert.ok(
+      detailSource.indexOf("detailSections.intake") <
+        detailSource.indexOf("<BookingRegistrationIntakeDetails")
+    );
+    assert.ok(
+      detailSource.indexOf("detailSections.history") <
+        detailSource.indexOf("<BookingActivityTimeline")
     );
 
     const timelineKeepsWindow = applyBookingsCommandCenterLayout(
@@ -1354,6 +1386,36 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     });
     assert.equal(kpiPortfolio.status, "all");
     assert.equal(kpiPortfolio.departureWithinDays, "7");
+
+    assert.equal(
+      resolveBookingActionablePaymentDueAt({
+        paymentStatus: "unpaid",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      "2026-08-30T00:00:00.000Z"
+    );
+    assert.equal(
+      resolveBookingActionablePaymentDueAt({
+        paymentStatus: "partial",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      "2026-08-30T00:00:00.000Z"
+    );
+    assert.equal(
+      resolveBookingActionablePaymentDueAt({
+        paymentStatus: "paid",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      undefined
+    );
+    assert.equal(
+      resolveBookingActionablePaymentDueAt({
+        paymentStatus: "unpaid",
+        financialDisplayState: "WAIVED",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      undefined
+    );
 
     const items = [
       {

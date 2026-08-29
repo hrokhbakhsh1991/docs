@@ -134,17 +134,17 @@ export function TourWorkspacePaymentActionsSection({
           onChanged={onPaymentChanged}
         />
       </div>
-      <BookingFinancialStrip
-        registrationId={registrationId}
-        bookingPaymentStatus={rowKind}
-        bookingStatus="approved"
-        refreshKey={refreshKey}
-      />
       <details className="rounded-md border border-dashed px-3 py-2">
         <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
           {t("detailAdvancedToggle")}
         </summary>
         <div className="mt-4 space-y-4">
+          <BookingFinancialStrip
+            registrationId={registrationId}
+            bookingPaymentStatus={rowKind}
+            bookingStatus="approved"
+            refreshKey={refreshKey}
+          />
           <TourWorkspacePaymentOverrideActions
             tourId={tourId}
             registrationId={registrationId}

@@ -27,6 +27,7 @@ export const TOURS_LIST_TEST_IDS = {
   emptyCatalog: "operator-tours-empty-catalog",
   duplicate: "operator-tours-duplicate",
   duplicateServer: "operator-tours-duplicate-server",
+  secondaryActions: "operator-tours-secondary-actions",
   workspace: "operator-tours-workspace",
   retry: "operator-tours-retry",
   createdNotice: "operator-tours-created-notice",
@@ -45,8 +46,8 @@ export const DEFAULT_TOUR_LIST_QUERY: TourListQueryModel = {
   limit: 10,
   status: "all",
   category: TOUR_CATEGORY_FILTER_ALL,
-  sortBy: "created_at",
-  sortDir: "desc",
+  sortBy: "departure_at",
+  sortDir: "asc",
 };
 
 export function serializeTourListQuery(query: TourListQueryModel): string {
@@ -67,10 +68,10 @@ export function serializeTourListQuery(query: TourListQueryModel): string {
   if (query.limit !== 10) {
     params.set("limit", String(query.limit));
   }
-  if (query.sortBy !== "created_at") {
+  if (query.sortBy !== DEFAULT_TOUR_LIST_QUERY.sortBy) {
     params.set("sort_by", query.sortBy);
   }
-  if (query.sortDir !== "desc") {
+  if (query.sortDir !== DEFAULT_TOUR_LIST_QUERY.sortDir) {
     params.set("sort_dir", query.sortDir);
   }
   return params.toString();
@@ -87,10 +88,13 @@ export function parseTourListQuery(
       : "all";
   const sortByRaw = searchParams.get("sort_by");
   const sortBy =
-    sortByRaw === "title" || sortByRaw === "price" || sortByRaw === "departure_at"
+    sortByRaw === "created_at" ||
+    sortByRaw === "title" ||
+    sortByRaw === "price" ||
+    sortByRaw === "departure_at"
       ? sortByRaw
-      : "created_at";
-  const sortDir = searchParams.get("sort_dir") === "asc" ? "asc" : "desc";
+      : DEFAULT_TOUR_LIST_QUERY.sortBy;
+  const sortDir = searchParams.get("sort_dir") === "desc" ? "desc" : DEFAULT_TOUR_LIST_QUERY.sortDir;
   const pageRaw = Number(searchParams.get("page") ?? "1");
   const limitRaw = Number(searchParams.get("limit") ?? "10");
   const categoryRaw = searchParams.get("category");

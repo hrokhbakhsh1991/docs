@@ -12,6 +12,10 @@ export type DashboardServerPrefetch = {
 };
 
 export const DASHBOARD_WIDGETS_TEST_IDS = {
+  attention: "dashboard-attention-section",
+  attentionList: "dashboard-attention-list",
+  attentionItem: (id: string) => `dashboard-attention-item-${id}`,
+  attentionAllClear: "dashboard-attention-all-clear",
   overview: "dashboard-widget-stats",
   overviewKpi: "dashboard-overview-kpi-strip",
   tours: "dashboard-widget-tours",
@@ -25,6 +29,67 @@ export type DashboardKpiCard = {
   readonly id: string;
   readonly value: number;
 };
+
+export type DashboardAttentionItemId =
+  | "pending-registrations"
+  | "pending-receipts"
+  | "pending-manual-payments"
+  | "waitlist"
+  | "near-departures";
+
+export type DashboardAttentionItem = {
+  readonly id: DashboardAttentionItemId;
+  readonly count: number;
+  readonly href: string;
+};
+
+export function buildDashboardAttentionItems(input: {
+  readonly summary: BookingsSummaryResponse;
+  readonly financeSummary: FinanceSummary | null;
+  readonly financeEnabled: boolean;
+  readonly limit?: number;
+}): readonly DashboardAttentionItem[] {
+  const items: DashboardAttentionItem[] = [];
+  if (input.summary.pending > 0) {
+    items.push({
+      id: "pending-registrations",
+      count: input.summary.pending,
+      href: dashboardPendingBookingsHref(),
+    });
+  }
+  if (input.financeEnabled && input.financeSummary != null) {
+    if (input.financeSummary.pendingReceiptReviews > 0) {
+      items.push({
+        id: "pending-receipts",
+        count: input.financeSummary.pendingReceiptReviews,
+        href: "/finance?tab=receipts",
+      });
+    }
+    if (input.financeSummary.pendingManualPayments > 0) {
+      items.push({
+        id: "pending-manual-payments",
+        count: input.financeSummary.pendingManualPayments,
+        href: "/finance?tab=payments",
+      });
+    }
+  }
+  if (input.summary.waitlist > 0) {
+    items.push({
+      id: "waitlist",
+      count: input.summary.waitlist,
+      href: "/bookings?status=waitlisted",
+    });
+  }
+  if (input.summary.departures7d > 0) {
+    items.push({
+      id: "near-departures",
+      count: input.summary.departures7d,
+      href: "/bookings?departureWithinDays=7&sort=departureAt",
+    });
+  }
+
+  return items.slice(0, input.limit ?? 5);
+}
 
 export function parseDashboardToursList(raw: unknown): OperatorTourListResponse {
   if (raw === null || typeof raw !== "object") {

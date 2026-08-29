@@ -399,7 +399,7 @@
       "overflowCount": "+{count, number} more",
       "removeItem": "Remove {name}",
       "iconPickerLabel": "Equipment icon",
-      "iconPickerHelper": "The same symbol appears in the tour wizard and settings list.",
+      "iconPickerHelper": "This symbol appears in create/edit tour forms and the settings list.",
       "iconPreviewPlaceholder": "Equipment name",
       "iconSearchLabel": "Search icons",
       "iconSearchPlaceholder": "Icon or gear name…",

@@ -62,14 +62,14 @@ function parseListView(searchParams: URLSearchParams): ListToursView {
 }
 
 function parseOperatorSortBy(raw: string | null): OperatorListSortBy {
-  if (raw === "title" || raw === "price" || raw === "departure_at") {
+  if (raw === "created_at" || raw === "title" || raw === "price" || raw === "departure_at") {
     return raw;
   }
-  return "created_at";
+  return "departure_at";
 }
 
 function parseOperatorSortDir(raw: string | null): OperatorListSortDir {
-  return raw === "asc" ? "asc" : "desc";
+  return raw === "desc" ? "desc" : "asc";
 }
 
 function parseOperatorStatus(raw: string | null): OperatorListStatusFilter | undefined {

@@ -12,6 +12,7 @@ import {
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
   buildTourOperationalRosterHref,
   formatOperationalRosterAmountDue,
+  resolveOperationalRosterActionablePaymentDueAt,
 } from "../src/features/tours/tour-workspace-transport-logic";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,10 +20,7 @@ const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 describe("DP-2 tour workspace operational roster contract", () => {
   it("transport tab loads unified operational roster endpoint", () => {
     const client = readFileSync(
-      join(
-        webRoot,
-        "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"
-      ),
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
       "utf8"
     );
     assert.match(client, /buildTourOperationalRosterHref/);
@@ -40,16 +38,15 @@ describe("DP-2 tour workspace operational roster contract", () => {
 
   it("renders final participant, amount due, deadline, driver badges", () => {
     const client = readFileSync(
-      join(
-        webRoot,
-        "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"
-      ),
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
       "utf8"
     );
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.finalBadge/);
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.amountDue/);
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.paymentDeadline/);
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.driverBadge/);
+    assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.rowAvatar/);
+    assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.mobileList/);
     assert.match(client, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.filters/);
   });
 
@@ -86,6 +83,37 @@ describe("DP-2 tour workspace operational roster contract", () => {
         remainingMinor: "0",
         currency: "IRR",
         financialDisplayState: "WAIVED",
+      }),
+      null
+    );
+  });
+
+  it("deadline is actionable only while payment follow-up remains open", () => {
+    assert.equal(
+      resolveOperationalRosterActionablePaymentDueAt({
+        financialDisplayState: "UNPAID",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      "2026-08-30T00:00:00.000Z"
+    );
+    assert.equal(
+      resolveOperationalRosterActionablePaymentDueAt({
+        financialDisplayState: "PARTIALLY_PAID",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      "2026-08-30T00:00:00.000Z"
+    );
+    assert.equal(
+      resolveOperationalRosterActionablePaymentDueAt({
+        financialDisplayState: "PAID",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
+      }),
+      null
+    );
+    assert.equal(
+      resolveOperationalRosterActionablePaymentDueAt({
+        financialDisplayState: "WAIVED",
+        paymentDueAt: "2026-08-30T00:00:00.000Z",
       }),
       null
     );

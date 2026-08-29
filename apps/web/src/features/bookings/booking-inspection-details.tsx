@@ -17,6 +17,7 @@ import {
 import { BookingDepartureUrgencyBadge } from "@/features/bookings/booking-overdue-badge";
 import {
   formatBookingDeparture,
+  resolveBookingActionablePaymentDueAt,
   truncateBookingId,
 } from "@/features/bookings/bookings-command-center-logic";
 import {
@@ -72,49 +73,20 @@ export function BookingInspectionDetails({
   const t = useTranslations("bookings");
   const identityLabel =
     booking.registrantTarget === "self" ? t("intake.registrantSelf") : t("intake.registrantOther");
+  const paymentDueAt = resolveBookingActionablePaymentDueAt(booking);
+  const paymentDeadlineLabel =
+    paymentDueAt !== undefined ? formatBookingDeparture(paymentDueAt, locale) : null;
   return (
     <>
-      <div className="space-y-1">
-        <p className="text-lg font-semibold">{booking.guestLabel}</p>
-        <p className="text-sm text-muted-foreground">{booking.tourTitle}</p>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>
-            {t("bookingId")}:{" "}
-            <span dir="ltr" className="font-mono">
-              {truncateBookingId(booking.id)}
-            </span>
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2"
-            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.copyBookingIdButton}
-            onClick={onCopyId}
-          >
-            <Copy className="me-1 size-3" />
-            {idCopied ? t("copiedId") : t("copyId")}
-          </Button>
+      <div className="space-y-2">
+        <div>
+          <p className="text-lg font-semibold">{booking.guestLabel}</p>
+          <p className="text-sm text-muted-foreground">{booking.tourTitle}</p>
         </div>
-        <Badge variant="outline" className="w-fit">
-          {identityLabel}
-        </Badge>
-      </div>
-      <dl className="grid grid-cols-2 gap-2 text-sm">
-        <dt className="text-muted-foreground">{t("fields.party")}</dt>
-        <dd>{formatLocalizedNumber(booking.partySize, locale)}</dd>
-        {booking.capacitySnapshot !== undefined ? (
-          <>
-            <dt className="text-muted-foreground">{t("capacity")}</dt>
-            <dd>
-              <BookingCapacityBar snapshot={booking.capacitySnapshot} locale={locale} />
-            </dd>
-          </>
-        ) : null}
-        <dt className="text-muted-foreground">{t("fields.departure")}</dt>
-        <dd>{formatBookingDeparture(booking.departureAt, locale)}</dd>
-        <dt className="text-muted-foreground">{t("fields.payment")}</dt>
-        <dd>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={bookingStatusBadgeVariant(booking.status)}>
+            {t(`status.${booking.status}`)}
+          </Badge>
           <Badge
             variant={bookingPaymentBadgeVariant(booking.paymentStatus)}
             data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInspection}
@@ -123,44 +95,32 @@ export function BookingInspectionDetails({
           >
             {t(bookingPaymentLabelKey(booking))}
           </Badge>
-        </dd>
-        <dt className="text-muted-foreground">{t("fields.status")}</dt>
-        <dd className="flex flex-wrap items-center gap-1">
-          <Badge variant={bookingStatusBadgeVariant(booking.status)}>
-            {t(`status.${booking.status}`)}
-          </Badge>
           <BookingDepartureUrgencyBadge item={booking} />
-        </dd>
-        {booking.guestPhone !== undefined && booking.guestPhone.length > 0 ? (
+        </div>
+        <Badge variant="outline" className="w-fit">
+          {identityLabel}
+        </Badge>
+      </div>
+      <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+        <dt className="text-muted-foreground">{t("fields.party")}</dt>
+        <dd>{formatLocalizedNumber(booking.partySize, locale)}</dd>
+        <dt className="text-muted-foreground">{t("fields.departure")}</dt>
+        <dd>{formatBookingDeparture(booking.departureAt, locale)}</dd>
+        {paymentDeadlineLabel !== null ? (
           <>
-            <dt className="text-muted-foreground">{t("fields.phone")}</dt>
-            <dd dir="ltr" className="text-start">
-              {formatIranMobileForDisplay(booking.guestPhone)}
-            </dd>
+            <dt className="text-muted-foreground">{t("fields.payment")}</dt>
+            <dd>{t("paymentDueAt", { date: paymentDeadlineLabel })}</dd>
           </>
         ) : null}
-        {booking.guestEmail !== undefined && booking.guestEmail.length > 0 ? (
+        {booking.capacitySnapshot !== undefined ? (
           <>
-            <dt className="text-muted-foreground">{t("fields.email")}</dt>
-            <dd dir="ltr" className="text-start">
-              {booking.guestEmail}
+            <dt className="text-muted-foreground">{t("capacity")}</dt>
+            <dd>
+              <BookingCapacityBar snapshot={booking.capacitySnapshot} locale={locale} />
             </dd>
-          </>
-        ) : null}
-        {booking.rejectReason !== undefined && booking.rejectReason.length > 0 ? (
-          <>
-            <dt className="text-muted-foreground">{t("fields.rejectReason")}</dt>
-            <dd>{booking.rejectReason}</dd>
           </>
         ) : null}
       </dl>
-      {/* PR21-G2: money state before ops/cancel so finance is not buried. */}
-      <BookingFinancialStrip
-        registrationId={booking.id}
-        bookingPaymentStatus={booking.paymentStatus}
-        bookingStatus={booking.status}
-        financialDisplayState={booking.financialDisplayState}
-      />
       {canManageOps &&
       (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (
         <BookingActionButtons
@@ -179,8 +139,81 @@ export function BookingInspectionDetails({
           includeTestIds={includeActionTestIds}
         />
       ) : null}
-      <BookingRegistrationIntakeDetails booking={booking} />
-      <BookingActivityTimeline booking={booking} />
+      <details className="rounded-md border border-dashed px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          {t("detailSections.contact")}
+        </summary>
+        <dl className="mt-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+          <dt className="text-muted-foreground">{t("bookingId")}</dt>
+          <dd className="flex flex-wrap items-center gap-2">
+            <span dir="ltr" className="font-mono">
+              {truncateBookingId(booking.id)}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2"
+              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.copyBookingIdButton}
+              onClick={onCopyId}
+            >
+              <Copy className="me-1 size-3" />
+              {idCopied ? t("copiedId") : t("copyId")}
+            </Button>
+          </dd>
+          {booking.guestPhone !== undefined && booking.guestPhone.length > 0 ? (
+            <>
+              <dt className="text-muted-foreground">{t("fields.phone")}</dt>
+              <dd dir="ltr" className="text-start">
+                {formatIranMobileForDisplay(booking.guestPhone)}
+              </dd>
+            </>
+          ) : null}
+          {booking.guestEmail !== undefined && booking.guestEmail.length > 0 ? (
+            <>
+              <dt className="text-muted-foreground">{t("fields.email")}</dt>
+              <dd dir="ltr" className="text-start">
+                {booking.guestEmail}
+              </dd>
+            </>
+          ) : null}
+          {booking.rejectReason !== undefined && booking.rejectReason.length > 0 ? (
+            <>
+              <dt className="text-muted-foreground">{t("fields.rejectReason")}</dt>
+              <dd>{booking.rejectReason}</dd>
+            </>
+          ) : null}
+        </dl>
+      </details>
+      <details className="rounded-md border border-dashed px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          {t("detailSections.payment")}
+        </summary>
+        <div className="mt-3">
+          <BookingFinancialStrip
+            registrationId={booking.id}
+            bookingPaymentStatus={booking.paymentStatus}
+            bookingStatus={booking.status}
+            financialDisplayState={booking.financialDisplayState}
+          />
+        </div>
+      </details>
+      <details className="rounded-md border border-dashed px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          {t("detailSections.intake")}
+        </summary>
+        <div className="mt-3">
+          <BookingRegistrationIntakeDetails booking={booking} />
+        </div>
+      </details>
+      <details className="rounded-md border border-dashed px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          {t("detailSections.history")}
+        </summary>
+        <div className="mt-3">
+          <BookingActivityTimeline booking={booking} />
+        </div>
+      </details>
     </>
   );
 }

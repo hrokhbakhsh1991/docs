@@ -17,6 +17,7 @@ import {
   formatBookingDateTime,
   formatBookingDeparture,
   formatCapacitySnapshotLabel,
+  resolveBookingActionablePaymentDueAt,
   resolveBookingPendingAgeDays,
   resolveBookingRowUrgencySlot,
 } from "@/features/bookings/bookings-command-center-logic";
@@ -66,17 +67,13 @@ export function BookingInboxRow({
   const capacityLabel = formatCapacitySnapshotLabel(item.capacitySnapshot, locale);
   const urgencySlot = resolveBookingRowUrgencySlot(item);
   const pendingAgeDays = urgencySlot === "aging" ? resolveBookingPendingAgeDays(item) : null;
-  const rowMetaParts = [
-    ...(showTourTitle ? [item.tourTitle] : []),
-    t("partyShort", { count: item.partySize }),
-    formatBookingDeparture(item.departureAt, locale),
-  ];
-  if (capacityLabel !== null) {
-    rowMetaParts.push(capacityLabel);
-  }
-  if (typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0) {
-    rowMetaParts.push(item.paymentDueAt);
-  }
+  const paymentDueAt = resolveBookingActionablePaymentDueAt(item);
+  const paymentDeadlineLabel =
+    paymentDueAt !== undefined ? formatBookingDeparture(paymentDueAt, locale) : null;
+  const departureLabel = formatBookingDeparture(item.departureAt, locale);
+  const submittedLabel = t("submittedShort", {
+    date: formatBookingDateTime(item.submittedAt, locale),
+  });
 
   return (
     <div
@@ -84,7 +81,7 @@ export function BookingInboxRow({
       data-queue-row="dense"
       role="option"
       aria-selected={selected}
-      className={`group flex w-full min-w-0 items-stretch gap-2 border-b border-border/60 transition-colors last:border-b-0 ${
+      className={`group flex w-full min-w-0 flex-wrap items-stretch gap-2 border-b border-border/60 transition-colors last:border-b-0 sm:flex-nowrap ${
         selected
           ? "bg-primary/5 shadow-[inset_0_0_0_1px_rgb(59_130_246/0.16)]"
           : "hover:bg-muted/40 focus-within:bg-muted/30"
@@ -108,42 +105,61 @@ export function BookingInboxRow({
       <button
         type="button"
         onClick={onSelect}
-        className="flex min-w-0 flex-1 items-start gap-3 py-2.5 pe-2 text-start outline-none"
+        className="flex min-w-0 flex-1 basis-0 items-start gap-3 py-2.5 pe-2 text-start outline-none"
       >
         <BookingMemberAvatar item={item} size="sm" />
-        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex min-w-0 items-center gap-2">
               <p className="truncate text-sm font-medium leading-5 text-foreground">
                 {item.guestLabel}
               </p>
-              <OperatorStatusBadge variant="outline">{identityLabel}</OperatorStatusBadge>
-            </div>
-            <p className="truncate text-xs leading-4 text-muted-foreground">
-              {rowMetaParts.join(" · ")}
-            </p>
-            <p className="truncate text-[11px] leading-4 text-muted-foreground/80">
-              {t("submittedShort", { date: formatBookingDateTime(item.submittedAt, locale) })}
-              {pendingAgeDays !== null ? ` · ${t("pendingAgeDays", { days: pendingAgeDays })}` : ""}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-0.5">
-            <BookingDepartureUrgencyBadge item={item} />
-            <OperatorStatusBadge variant={bookingStatusBadgeVariant(item.status)}>
-              {t(`status.${item.status}`)}
-            </OperatorStatusBadge>
-            <OperatorStatusBadge
-              variant={bookingPaymentBadgeVariant(item.paymentStatus)}
-              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInbox}
-              data-payment-status={item.paymentStatus}
-              data-financial-display-state={item.financialDisplayState}
-            >
-              {t(bookingPaymentLabelKey(item))}
-            </OperatorStatusBadge>
-            {typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0 ? (
-              <span className="sr-only" data-operator-booking-payment-due-at>
-                {item.paymentDueAt}
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {t("partyShort", { count: item.partySize })}
               </span>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <OperatorStatusBadge variant={bookingStatusBadgeVariant(item.status)}>
+                {t(`status.${item.status}`)}
+              </OperatorStatusBadge>
+              <OperatorStatusBadge
+                variant={bookingPaymentBadgeVariant(item.paymentStatus)}
+                data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInbox}
+                data-payment-status={item.paymentStatus}
+                data-financial-display-state={item.financialDisplayState}
+              >
+                {t(bookingPaymentLabelKey(item))}
+              </OperatorStatusBadge>
+              <BookingDepartureUrgencyBadge item={item} />
+            </div>
+            <div className="grid gap-0.5 text-xs leading-4 text-muted-foreground">
+              {showTourTitle ? <p className="truncate">{item.tourTitle}</p> : null}
+              <p className="truncate">
+                {t("fields.departure")}: {departureLabel}
+              </p>
+              {capacityLabel !== null ? (
+                <p className="truncate">
+                  {t("capacity")}: {capacityLabel}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <div className="min-w-0 space-y-1 text-xs leading-4 text-muted-foreground sm:w-36 sm:shrink-0 sm:text-end">
+            <p className="truncate text-muted-foreground/80">
+              {identityLabel} · {submittedLabel}
+            </p>
+            {pendingAgeDays !== null ? (
+              <p className="truncate text-muted-foreground/80">
+                {t("pendingAgeDays", { days: pendingAgeDays })}
+              </p>
+            ) : null}
+            {paymentDeadlineLabel !== null ? (
+              <p
+                className="truncate font-medium text-foreground"
+                data-operator-booking-payment-due-at
+              >
+                {t("paymentDueAt", { date: paymentDeadlineLabel })}
+              </p>
             ) : null}
             {item.status === "cancelled" && item.cancelSource === "payment_deadline" ? (
               <span className="sr-only" data-operator-booking-cancel-source>
@@ -154,7 +170,7 @@ export function BookingInboxRow({
         </div>
       </button>
       {showInlineApprove && onInlineApprove !== undefined ? (
-        <div className="flex shrink-0 items-center pe-2">
+        <div className="flex w-full shrink-0 justify-end border-t border-border/50 px-3 pb-2 pt-2 sm:w-auto sm:items-center sm:border-t-0 sm:px-0 sm:pe-2 sm:pt-0">
           <Button
             type="button"
             size="sm"

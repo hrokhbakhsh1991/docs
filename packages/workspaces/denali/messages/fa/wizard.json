@@ -399,7 +399,7 @@
       "overflowCount": "+{count, number} مورد دیگر",
       "removeItem": "حذف {name}",
       "iconPickerLabel": "نماد تجهیزات",
-      "iconPickerHelper": "نماد در ویزارد ساخت تور و فهرست تنظیمات همین‌طور نمایش داده می‌شود.",
+      "iconPickerHelper": "این نماد در فرم ساخت/ویرایش تور و فهرست تنظیمات نمایش داده می‌شود.",
       "iconPreviewPlaceholder": "نام تجهیز",
       "iconSearchLabel": "جستجوی نماد",
       "iconSearchPlaceholder": "نام نماد یا تجهیز…",

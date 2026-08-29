@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertCircle } from "lucide-react";
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 import {
@@ -92,24 +93,91 @@ export function OperatorFlatEditPageClient({ session, tourId }: OperatorFlatEdit
     // Create warm alone leaves flat-edit surfaces cold — do not mount Ready from that cache.
     return cached != null && areFlatEditSurfacesWarm(session.pluginId) ? cached : null;
   });
+  const [warmLoading, setWarmLoading] = useState(plugin == null);
+  const [warmFailed, setWarmFailed] = useState(false);
+  const warmRequestRef = useRef(0);
+  const warmInFlightRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    void warmFlatEditOperatorShell(session.pluginId).then((loaded) => {
-      if (!cancelled) {
-        setPlugin(loaded);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
+  const runWarm = useCallback(() => {
+    if (warmInFlightRef.current) {
+      return;
+    }
+    const requestId = warmRequestRef.current + 1;
+    warmRequestRef.current = requestId;
+    warmInFlightRef.current = true;
+    setWarmLoading(true);
+    setWarmFailed(false);
+    void warmFlatEditOperatorShell(session.pluginId)
+      .then((loaded) => {
+        if (warmRequestRef.current === requestId) {
+          setPlugin(loaded);
+        }
+      })
+      .catch(() => {
+        if (warmRequestRef.current === requestId) {
+          setPlugin(null);
+          setWarmFailed(true);
+        }
+      })
+      .finally(() => {
+        if (warmRequestRef.current === requestId) {
+          setWarmLoading(false);
+          warmInFlightRef.current = false;
+        }
+      });
   }, [session.pluginId]);
 
+  useEffect(() => {
+    runWarm();
+    return () => {
+      warmRequestRef.current += 1;
+      warmInFlightRef.current = false;
+    };
+  }, [runWarm]);
+
   if (plugin == null) {
+    if (warmFailed && !warmLoading) {
+      return <OperatorFlatEditWarmError tourId={tourId} onRetry={runWarm} />;
+    }
     return <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />;
   }
 
   return <OperatorFlatEditPageClientReady session={session} tourId={tourId} plugin={plugin} />;
+}
+
+function OperatorFlatEditWarmError({
+  tourId,
+  onRetry,
+}: {
+  readonly tourId: string;
+  readonly onRetry: () => void;
+}) {
+  const t = useTranslations("tours.edit");
+  const tCommon = useTranslations("common");
+  return (
+    <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
+      <section
+        className="new-tour-wizard-page__empty"
+        role="alert"
+        aria-live="assertive"
+        data-testid={TOUR_EDIT_TEST_IDS.warmError}
+      >
+        <AlertCircle className="mx-auto h-5 w-5 text-destructive" aria-hidden />
+        <h1 className="text-lg font-semibold text-foreground">{t("warmErrorTitle")}</h1>
+        <p className="new-tour-wizard-page__empty-desc">{t("warmErrorBody")}</p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" data-testid={TOUR_EDIT_TEST_IDS.warmRetry} onClick={onRetry}>
+            {tCommon("retry")}
+          </Button>
+          <Button asChild variant="outline" data-testid={TOUR_EDIT_TEST_IDS.warmBack}>
+            <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
+              {t("warmErrorBack")}
+            </TourInternalLink>
+          </Button>
+        </div>
+      </section>
+    </OperatorFlatEditPageShell>
+  );
 }
 
 type OperatorFlatEditPageClientReadyProps = OperatorFlatEditPageClientProps & {
@@ -197,6 +265,12 @@ function OperatorFlatEditPageClientReady({
             priceLabel,
             seatsLabel,
           ]);
+          const saveDisabled = readyCore.pending || readyCore.draftSync.navLocked;
+          const saveLabel =
+            readyCore.pending && readyCore.pendingIntent === "save"
+              ? tCommon("saving")
+              : t("saveChanges");
+          const handleSave = () => void readyCore.handlePatch("save");
 
           return (
             <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
@@ -209,6 +283,19 @@ function OperatorFlatEditPageClientReady({
                 metaLine={metaLine}
                 toursNavLabel={tNav("tours")}
                 workspaceNavLabel={tNav("workspace")}
+                primaryAction={
+                  <Button
+                    type="button"
+                    data-testid={TOUR_EDIT_TEST_IDS.save}
+                    disabled={saveDisabled}
+                    aria-busy={
+                      readyCore.pending && readyCore.pendingIntent === "save" ? true : undefined
+                    }
+                    onClick={handleSave}
+                  >
+                    {saveLabel}
+                  </Button>
+                }
                 draftSync={draftSyncEngine}
               />
 
@@ -257,13 +344,16 @@ function OperatorFlatEditPageClientReady({
                       <Button
                         type="button"
                         variant="outline"
-                        data-testid={TOUR_EDIT_TEST_IDS.save}
-                        disabled={readyCore.pending || readyCore.draftSync.navLocked}
-                        onClick={() => void readyCore.handlePatch("save")}
+                        data-testid={TOUR_EDIT_TEST_IDS.saveSecondary}
+                        disabled={saveDisabled}
+                        aria-busy={
+                          readyCore.pending && readyCore.pendingIntent === "save"
+                            ? true
+                            : undefined
+                        }
+                        onClick={handleSave}
                       >
-                        {readyCore.pending && readyCore.pendingIntent === "save"
-                          ? tCommon("saving")
-                          : t("saveChanges")}
+                        {saveLabel}
                       </Button>
                       {readyCore.canPublish ? (
                         <Button

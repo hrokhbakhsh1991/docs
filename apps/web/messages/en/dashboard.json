@@ -24,10 +24,23 @@
     "allTours": "All tours",
     "bookings": "Bookings"
   },
+  "attention": {
+    "title": "Needs attention",
+    "allClear": "Nothing urgent needs follow-up.",
+    "count": "{count} item(s)",
+    "open": "Open",
+    "items": {
+      "pending-registrations": "Pending registrations",
+      "pending-receipts": "Receipts awaiting review",
+      "pending-manual-payments": "Payments needing follow-up",
+      "waitlist": "Waitlist",
+      "near-departures": "Tours leaving soon"
+    }
+  },
   "overview": {
     "title": "Overview",
     "description": "{brandName} snapshot",
-    "openBookings": "View bookings"
+    "openBookings": "View all bookings"
   },
   "tours": {
     "title": "Tours",
@@ -37,17 +50,17 @@
     "viewAll": "View all tours"
   },
   "bookings": {
-    "title": "Bookings",
-    "description": "Booking pipeline KPIs",
-    "openCommandCenter": "View bookings"
+    "title": "Booking status",
+    "description": "Overview of the booking queue",
+    "openCommandCenter": "View all bookings"
   },
   "registrations": {
-    "title": "Registrations",
+    "title": "Needs review",
     "loading": "Loading queue…",
     "pendingCount": "{count, number} pending approval",
     "empty": "No pending registrations.",
     "pendingOnTour": "{count, number} pending",
-    "reviewPending": "Review pending"
+    "reviewPending": "Review pending registrations"
   },
   "kpi": {
     "active-tours": "Active tours",

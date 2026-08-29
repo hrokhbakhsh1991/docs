@@ -81,11 +81,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       TOUR_WORKSPACE_TEST_IDS.registrationsPanel,
       "operator-tour-workspace-registrations-panel"
     );
-    assert.equal(TOUR_WORKSPACE_TEST_IDS.headerKpis, "operator-tour-workspace-header-kpis");
-    assert.equal(
-      TOUR_WORKSPACE_TEST_IDS.headerMoneyKpis,
-      "operator-tour-workspace-header-money-kpis"
-    );
+    assert.equal(TOUR_WORKSPACE_TEST_IDS.header, "operator-tour-workspace-header");
+    assert.equal(TOUR_WORKSPACE_TEST_IDS.tabBadge, "operator-tour-workspace-tab-badge");
   });
 
   it("WEB-9.3-W02 subnav resolver highlights active tab (CP-9.3-W02)", () => {
@@ -953,7 +950,9 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       ),
       "utf8"
     );
-    assert.match(layout, /loadTourWorkspaceCollectionsPage/);
+    assert.doesNotMatch(layout, /loadTourWorkspaceCollectionsPage/);
+    assert.doesNotMatch(layout, /headerMoneyKpis/);
+    assert.doesNotMatch(layout, /headerKpis/);
     assert.match(finance, /useTourWorkspaceFinanceData/);
     assert.match(finance, /resolveTextDirection/);
     assert.match(financeData, /loadTourWorkspacePendingReceiptsPage/);
@@ -983,6 +982,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       join(root, "src/features/tours/tour-workspace-finance-client.tsx"),
       "utf8"
     );
+    const followUpRow = readFileSync(
+      join(root, "src/features/tours/tour-workspace-payment-follow-up-row.tsx"),
+      "utf8"
+    );
     const receiptReview = readFileSync(
       join(root, "src/finance/finance-receipt-review-content.tsx"),
       "utf8"
@@ -1003,11 +1006,11 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(featureClient, /TourWorkspacePaymentEvidenceList/);
     assert.match(featureClient, /resolveTourWorkspaceDetailActionMode/);
     assert.match(featureClient, /workspaceExitNotice/);
-    assert.match(featureClient, /aria-pressed=\{selected\}/);
-    assert.match(featureClient, /kindAccentClass/);
+    assert.match(followUpRow, /aria-pressed=\{selected\}/);
+    assert.match(followUpRow, /bookingPaymentBadgeVariant/);
     assert.doesNotMatch(featureClient, /guestListItemSelectedHint/);
     assert.doesNotMatch(featureClient, /guestListItemOpenHint/);
-    assert.match(featureClient, /guestListItemRemainingLabel/);
+    assert.match(followUpRow, /amountDue/);
     assert.match(featureClient, /queueCurrency !== null/);
     assert.doesNotMatch(featureClient, /rollup\?\.currency \?\?\s*"IRR"/);
     assert.match(featureClient, /guestRowsHasMore/);

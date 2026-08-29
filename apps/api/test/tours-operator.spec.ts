@@ -21,13 +21,15 @@ import { createTestToursService, installMemoryStorageDriverForDescribe } from ".
 function starterTourBody(
   title: string,
   summary?: string,
-  category?: string
+  category?: string,
+  startDateTime?: string
 ): { data: Record<string, unknown> } {
   return {
     data: {
       basics: { title },
       details: { summary: summary ?? title },
       ...(category !== undefined ? { category } : {}),
+      ...(startDateTime !== undefined ? { startDateTime } : {}),
     },
   };
 }
@@ -179,14 +181,89 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     assert.deepEqual(titles, sorted);
   });
 
-  it("CP-9.3-L04b sort_by=departure_at accepts query (null departures sort last)", async () => {
+  it("API-TL-ORDER-01 default operator list prefers nearest upcoming departure", async () => {
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody(
+        "Default order far departure",
+        undefined,
+        undefined,
+        "2031-10-20T06:30:00.000Z"
+      ),
+    });
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody(
+        "Default order near departure",
+        undefined,
+        undefined,
+        "2031-02-10T06:30:00.000Z"
+      ),
+    });
+
     const list = await client.requestJson<OperatorListResponse>(
       "GET",
-      "/tours?view=operator&sort_by=departure_at&sort_dir=desc",
+      "/tours?view=operator&search=Default%20order",
       { headers: operatorAuthHeaders() }
     );
     assert.equal(list.status, 200);
-    assert.ok(Array.isArray(list.body.items));
+    assert.ok((list.body.items?.length ?? 0) >= 2);
+    assert.equal(list.body.items![0]!.title, "Default order near departure");
+  });
+
+  it("API-TL-ORDER-02 explicit created_at sort still orders rows by creation", async () => {
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody(
+        "Created order older",
+        undefined,
+        undefined,
+        "2031-10-20T06:30:00.000Z"
+      ),
+    });
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody(
+        "Created order newer",
+        undefined,
+        undefined,
+        "2031-02-10T06:30:00.000Z"
+      ),
+    });
+
+    const list = await client.requestJson<OperatorListResponse>(
+      "GET",
+      "/tours?view=operator&search=Created%20order&sort_by=created_at&sort_dir=desc",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(list.status, 200);
+    assert.ok((list.body.items?.length ?? 0) >= 2);
+    assert.equal(list.body.items![0]!.title, "Created order newer");
+  });
+
+  it("CP-9.3-L04b sort_by=departure_at accepts query (null departures sort last)", async () => {
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Null departure order"),
+    });
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody(
+        "Dated departure order",
+        undefined,
+        undefined,
+        "2031-03-10T06:30:00.000Z"
+      ),
+    });
+    const list = await client.requestJson<OperatorListResponse>(
+      "GET",
+      "/tours?view=operator&search=departure%20order&sort_by=departure_at&sort_dir=asc",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(list.status, 200);
+    assert.ok((list.body.items?.length ?? 0) >= 2);
+    const titles = list.body.items!.map((row) => String(row.title));
+    assert.deepEqual(titles, ["Dated departure order", "Null departure order"]);
   });
 
   it("API-9.3-E01 GET /tours/{id} requires operator session (CP-9.3-E01)", async () => {

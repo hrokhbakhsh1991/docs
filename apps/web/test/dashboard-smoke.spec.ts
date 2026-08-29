@@ -51,6 +51,30 @@ describe("dashboard-smoke.spec.ts — Phase 9.2", () => {
     assert.equal(DASHBOARD_WIDGET_REGISTRY[0]?.testId, "dashboard-widget-stats");
   });
 
+  it("WEB-DASH-ATTN-04 dashboard renders attention section before generic widgets", () => {
+    const page = readFileSync("app/(app)/dashboard/dashboard-page-client.tsx", "utf8");
+    const attentionIndex = page.indexOf("<DashboardAttentionSection");
+    const gridIndex = page.indexOf("data-operator-dashboard-grid");
+    assert.ok(attentionIndex > 0);
+    assert.ok(gridIndex > attentionIndex);
+    assert.match(page, /buildDashboardAttentionItems/);
+  });
+
+  it("WEB-DASH-MOBILE-01 dashboard prioritizes action widgets before generic cards on mobile", () => {
+    const page = readFileSync("app/(app)/dashboard/dashboard-page-client.tsx", "utf8");
+    const skin = readFileSync(
+      "../../packages/workspaces/denali/theme/admin-skin.css",
+      "utf8"
+    );
+    assert.match(page, /order-1 md:order-none md:col-span-1 xl:col-span-6/);
+    assert.match(page, /order-2 md:order-none md:col-span-2 xl:col-span-6/);
+    assert.match(page, /order-4 md:order-none xl:col-span-4/);
+    assert.match(skin, /@media \(max-width: 639px\)/);
+    assert.match(skin, /\[data-operator-dashboard-widget\][\s\S]*?min-height: 0/);
+    assert.match(skin, /\[data-operator-dashboard-kpi-grid\][\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
+    assert.match(skin, /\[data-operator-dashboard-tour-row-link\][\s\S]*?-webkit-line-clamp: 2/);
+  });
+
   it("WEB-9.2-08 finance nav hidden on urban plugin", async () => {
     await ensureFinanceNavSupported("denali");
     await ensureFinanceNavSupported("urban");

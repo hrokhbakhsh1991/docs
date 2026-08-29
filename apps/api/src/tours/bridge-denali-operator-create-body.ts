@@ -73,10 +73,15 @@ export function shouldUseStarterValidationForDenaliCreate(
 export function pickStarterCreateDataForValidation(data: Record<string, unknown>): {
   readonly createData: Record<string, unknown>;
   readonly category?: string;
+  readonly startDateTime?: string;
 } {
   const category =
     typeof data.category === "string" && data.category.trim().length > 0
       ? data.category.trim()
+      : undefined;
+  const startDateTime =
+    typeof data.startDateTime === "string" && data.startDateTime.trim().length > 0
+      ? data.startDateTime.trim()
       : undefined;
   return {
     createData: {
@@ -84,12 +89,13 @@ export function pickStarterCreateDataForValidation(data: Record<string, unknown>
       details: data.details,
     },
     category,
+    startDateTime,
   };
 }
 
 export function enrichStarterDocumentForDenaliOperatorList(
   document: import("@app-tour/workspace-sdk").CanonicalDocument,
-  extras?: { readonly category?: string }
+  extras?: { readonly category?: string; readonly startDateTime?: string }
 ): import("@app-tour/workspace-sdk").CanonicalDocument {
   const data = structuredClone(document.data) as Record<string, unknown>;
   const title = readTrimmedString(data, "basics.title");
@@ -103,6 +109,9 @@ export function enrichStarterDocumentForDenaliOperatorList(
   }
   if (extras?.category !== undefined && extras.category.length > 0) {
     data.category = extras.category;
+  }
+  if (extras?.startDateTime !== undefined && extras.startDateTime.length > 0) {
+    data.startDateTime = extras.startDateTime;
   }
   const roots = Object.keys(data).sort();
   return { ...document, roots, data };

@@ -34,6 +34,15 @@ export function readBookingPaymentDueAt(
     : undefined;
 }
 
+export function resolveBookingActionablePaymentDueAt(
+  item: Pick<BookingListItem, "paymentDueAt" | "paymentStatus" | "financialDisplayState">
+): string | undefined {
+  if (item.financialDisplayState === "WAIVED" || item.paymentStatus === "paid") {
+    return undefined;
+  }
+  return readBookingPaymentDueAt(item);
+}
+
 export function buildBookingsDetailDeepLinkHref(bookingId: string): string {
   const id = bookingId.trim();
   // status=all so deep links are not masked by the L1 work-queue default.

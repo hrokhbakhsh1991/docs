@@ -53,6 +53,11 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.equal(TOUR_EDIT_TEST_IDS.page, "operator-tour-edit-page");
     assert.equal(TOUR_EDIT_TEST_IDS.title, "operator-tour-edit-title");
     assert.equal(TOUR_EDIT_TEST_IDS.save, "operator-tour-edit-save");
+    assert.equal(TOUR_EDIT_TEST_IDS.saveSecondary, "operator-tour-edit-save-secondary");
+    assert.equal(TOUR_EDIT_TEST_IDS.draftManualSave, "operator-tour-edit-draft-manual-save");
+    assert.equal(TOUR_EDIT_TEST_IDS.warmError, "operator-tour-edit-warm-error");
+    assert.equal(TOUR_EDIT_TEST_IDS.warmRetry, "operator-tour-edit-warm-retry");
+    assert.equal(TOUR_EDIT_TEST_IDS.warmBack, "operator-tour-edit-warm-back");
     assert.equal(TOUR_EDIT_TEST_IDS.publish, "operator-tour-edit-publish");
     assert.equal(TOUR_EDIT_TEST_IDS.unpublish, "operator-tour-edit-unpublish");
     assert.equal(TOUR_EDIT_TEST_IDS.cancel, "operator-tour-edit-cancel");
@@ -133,5 +138,72 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.match(flatEdit, /new-tour-wizard-page__header/);
     assert.match(pageClient, /OperatorFlatEditPageShell/);
     assert.match(pageClient, /OperatorFlatEditPageHeader/);
+  });
+
+  it("WEB-DENALI-FLAT-EDIT-02 flat edit keeps one canonical primary save action", () => {
+    const flatEdit = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"
+      ),
+      "utf8"
+    );
+    const chrome = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/flat-edit-chrome.tsx"),
+      "utf8"
+    );
+    const skin = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../packages/workspaces/denali/theme/wizard-skin.css"
+      ),
+      "utf8"
+    );
+    assert.match(flatEdit, /primaryAction=\{/);
+    assert.match(flatEdit, /const handleSave = \(\) => void readyCore\.handlePatch\("save"\)/);
+    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.save\}/);
+    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.saveSecondary\}/);
+    assert.match(chrome, /new-tour-wizard-page__primary-save/);
+    assert.match(chrome, /TOUR_EDIT_TEST_IDS\.draftManualSave/);
+    assert.match(skin, /\.new-tour-wizard-page__primary-save/);
+    assert.match(skin, /position: fixed/);
+    assert.match(skin, /safe-area-inset-bottom/);
+  });
+
+  it("WEB-DENALI-FLAT-EDIT-03 warm failure is recoverable and user-triggered", () => {
+    const flatEdit = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"
+      ),
+      "utf8"
+    );
+    const faMessages = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../messages/fa/tours.json"),
+      "utf8"
+    );
+    const enMessages = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../messages/en/tours.json"),
+      "utf8"
+    );
+
+    assert.match(flatEdit, /warmFlatEditOperatorShell\(session\.pluginId\)/);
+    assert.match(flatEdit, /\.then\(\(loaded\) =>/);
+    assert.match(flatEdit, /\.catch\(\(\) =>/);
+    assert.match(flatEdit, /setWarmFailed\(true\)/);
+    assert.match(flatEdit, /OperatorFlatEditWarmError/);
+    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.warmError\}/);
+    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.warmRetry\}/);
+    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.warmBack\}/);
+    assert.match(flatEdit, /onClick=\{onRetry\}/);
+    assert.match(flatEdit, /warmInFlightRef\.current/);
+    assert.match(flatEdit, /if \(warmInFlightRef\.current\) \{/);
+    assert.match(flatEdit, /setWarmLoading\(true\)/);
+    assert.match(flatEdit, /setWarmFailed\(false\)/);
+    assert.doesNotMatch(flatEdit, /cause instanceof Error/);
+    assert.doesNotMatch(flatEdit, /message: warm/);
+    assert.match(faMessages, /"warmErrorTitle": "ویرایش تور آماده نشد"/);
+    assert.match(faMessages, /"warmErrorBody": "بارگذاری اطلاعات ویرایش با مشکل روبه‌رو شد\."/);
+    assert.match(enMessages, /"warmErrorTitle": "Edit tour is not ready"/);
   });
 });

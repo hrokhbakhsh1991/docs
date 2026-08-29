@@ -49,12 +49,21 @@ function compareInMemoryOperatorTours(
     delta = (leftProj.title ?? "").localeCompare(rightProj.title ?? "");
   } else if (sortBy === "departure_at") {
     const leftDate =
-      typeof left.canonical.data?.startDateTime === "string" ? left.canonical.data.startDateTime : "";
+      typeof left.canonical.data?.startDateTime === "string" ? left.canonical.data.startDateTime : null;
     const rightDate =
-      typeof right.canonical.data?.startDateTime === "string" ? right.canonical.data.startDateTime : "";
-    delta = leftDate.localeCompare(rightDate);
+      typeof right.canonical.data?.startDateTime === "string" ? right.canonical.data.startDateTime : null;
+    if (leftDate === null && rightDate !== null) {
+      return 1;
+    }
+    if (leftDate !== null && rightDate === null) {
+      return -1;
+    }
+    delta = (leftDate ?? "").localeCompare(rightDate ?? "");
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
+  }
+  if (delta === 0) {
+    delta = left.id.localeCompare(right.id);
   }
   return sortDir === "asc" ? delta : -delta;
 }

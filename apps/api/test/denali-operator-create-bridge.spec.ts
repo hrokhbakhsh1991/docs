@@ -52,11 +52,13 @@ describe("denali-operator-create-bridge.spec.ts", () => {
           basics: { title: "Operator list seed" },
           details: { summary: "Memory spec tour" },
           category: "mountain_day",
+          startDateTime: "2031-02-10T06:30:00.000Z",
         },
       },
     });
     assert.equal(document.data.title, "Operator list seed");
     assert.equal(document.data.basics?.title, "Operator list seed");
+    assert.equal(document.data.startDateTime, "2031-02-10T06:30:00.000Z");
   });
 
   it("BRIDGE-03 title-only ingress skips starter validation bridge", async () => {

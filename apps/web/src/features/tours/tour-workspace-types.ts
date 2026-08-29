@@ -4,8 +4,6 @@ export const TOUR_WORKSPACE_TEST_IDS = {
   page: "operator-tour-workspace-page",
   subnav: "operator-tour-workspace-subnav",
   header: "operator-tour-workspace-header",
-  headerKpis: "operator-tour-workspace-header-kpis",
-  headerMoneyKpis: "operator-tour-workspace-header-money-kpis",
   tabRegistrations: "operator-tour-workspace-tab-registrations",
   tabWaitlist: "operator-tour-workspace-tab-waitlist",
   tabTransport: "operator-tour-workspace-tab-transport",

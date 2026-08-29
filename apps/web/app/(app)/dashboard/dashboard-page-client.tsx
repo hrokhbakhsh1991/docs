@@ -9,11 +9,16 @@ import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
 import { PageHeader } from "@/admin/patterns/page-header";
 import { Button } from "@/components/ui/button";
 import { DASHBOARD_GRID_TEST_ID } from "@/admin/dashboard/dashboard-widget-registry";
+import { DashboardAttentionSection } from "@/admin/dashboard/dashboard-attention-section";
 import { DashboardBookingsWidget } from "@/admin/dashboard/dashboard-bookings-widget";
 import { DashboardOverviewWidget } from "@/admin/dashboard/dashboard-overview-widget";
 import { DashboardRegistrationsWidget } from "@/admin/dashboard/dashboard-registrations-widget";
 import { DashboardToursWidget } from "@/admin/dashboard/dashboard-tours-widget";
-import type { DashboardServerPrefetch } from "@/admin/dashboard/dashboard-widgets-logic";
+import {
+  buildDashboardAttentionItems,
+  parseDashboardBookingsSummary,
+  type DashboardServerPrefetch,
+} from "@/admin/dashboard/dashboard-widgets-logic";
 import { shouldShowFinanceDashboardWidget } from "@/finance/finance-dashboard-widget-logic";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
 import { FinanceDashboardWidget } from "@/finance/finance-dashboard-widget";
@@ -36,6 +41,11 @@ export function DashboardPageClient({
   const t = useTranslations("dashboard");
   const brandName = useTenantBrandTitle();
   const [showFinanceWidget, setShowFinanceWidget] = useState(false);
+  const attentionItems = buildDashboardAttentionItems({
+    summary: initialPrefetch?.bookingsSummary ?? parseDashboardBookingsSummary(null),
+    financeSummary: initialPrefetch?.financeSummary ?? null,
+    financeEnabled: showFinanceWidget,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -74,26 +84,31 @@ export function DashboardPageClient({
         }
       />
 
+      <DashboardAttentionSection items={attentionItems} />
+
       <div
         data-testid={DASHBOARD_GRID_TEST_ID}
         data-operator-dashboard-grid
         className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-12"
       >
-        <div className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")} data-operator-animate="fade-up">
+        <div
+          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-4 md:order-none xl:col-span-4")}
+          data-operator-animate="fade-up"
+        >
           <DashboardOverviewWidget
             initialToursTotal={initialPrefetch?.tours?.total ?? null}
             initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
           />
         </div>
         <div
-          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")}
+          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-3 md:order-none xl:col-span-4")}
           data-operator-animate="fade-up"
           data-operator-animate-delay="1"
         >
           <DashboardToursWidget initialTours={initialPrefetch?.tours ?? null} />
         </div>
         <div
-          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")}
+          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-5 md:order-none xl:col-span-4")}
           data-operator-animate="fade-up"
           data-operator-animate-delay="2"
         >
@@ -102,7 +117,7 @@ export function DashboardPageClient({
           />
         </div>
         <div
-          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "md:col-span-1 xl:col-span-6")}
+          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-1 md:order-none md:col-span-1 xl:col-span-6")}
           data-operator-animate="fade-up"
           data-operator-animate-delay="3"
         >
@@ -112,7 +127,7 @@ export function DashboardPageClient({
         </div>
         {showFinanceWidget ? (
           <div
-            className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "md:col-span-2 xl:col-span-6")}
+            className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-2 md:order-none md:col-span-2 xl:col-span-6")}
             data-operator-animate="fade-up"
             data-operator-animate-delay="4"
           >

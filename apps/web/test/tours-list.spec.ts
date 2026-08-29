@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { after, before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
+import { resolveTourCardActionHierarchy } from "../app/(app)/tours/tour-card";
 import { ensureTourListCategorySurface } from "../src/features/tours/tour-list-category-registry";
 import {
   DEFAULT_TOUR_LIST_QUERY,
@@ -18,6 +19,7 @@ import {
 } from "../src/features/tours/query-model";
 import {
   queryStatusToUiStatus,
+  TOUR_STATUS_UI_OPTIONS,
   tourListQueryHasFilters,
   tourListTotalPages,
   uiStatusToQueryStatus,
@@ -78,6 +80,15 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.match(serialized, /view=operator/);
   });
 
+  it("WEB-TL-ORDER-01 defaults to nearest departure for operator scan", () => {
+    assert.equal(DEFAULT_TOUR_LIST_QUERY.sortBy, "departure_at");
+    assert.equal(DEFAULT_TOUR_LIST_QUERY.sortDir, "asc");
+    const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams("view=operator"));
+    assert.equal(parsed.sortBy, "departure_at");
+    assert.equal(parsed.sortDir, "asc");
+    assert.doesNotMatch(serializeTourListQuery(DEFAULT_TOUR_LIST_QUERY), /sort_by=/);
+  });
+
   it("WEB-9.3-03 status select maps draft UI to API active bucket", () => {
     assert.equal(uiStatusToQueryStatus("draft"), "active");
     assert.equal(queryStatusToUiStatus("active"), "draft");
@@ -98,6 +109,94 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     const cloneUrl = `${OPERATOR_WIZARD_PATH}?clone=${encodeURIComponent(tourId)}`;
     assert.equal(cloneUrl, `/tours/new?clone=${tourId}`);
     assert.equal(TOURS_LIST_TEST_IDS.duplicate, "operator-tours-duplicate");
+    assert.equal(TOURS_LIST_TEST_IDS.duplicateServer, "operator-tours-duplicate-server");
+    assert.equal(TOURS_LIST_TEST_IDS.secondaryActions, "operator-tours-secondary-actions");
+  });
+
+  it("WEB-TL-ACTIONS-01 uses edit as the primary action for draft tours", () => {
+    assert.deepEqual(resolveTourCardActionHierarchy("draft", true), {
+      editVariant: "default",
+      workspaceVariant: "outline",
+    });
+  });
+
+  it("WEB-TL-ACTIONS-02 uses manage as the primary action for active tours", () => {
+    assert.deepEqual(resolveTourCardActionHierarchy("active", true), {
+      editVariant: "outline",
+      workspaceVariant: "default",
+    });
+  });
+
+  it("WEB-TL-ACTIONS-03 keeps edit and workspace routes stable", () => {
+    const card = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+      "utf8"
+    );
+    assert.match(card, /href=\{`\/tours\/\$\{tour\.id\}\/edit`\}/);
+    assert.match(card, /href=\{`\/tours\/\$\{tour\.id\}\/workspace`\}/);
+  });
+
+  it("WEB-TL-ACTIONS-04 action copy removes ambiguous view label", async () => {
+    const { loadAppMessages } = await import("../src/i18n/load-messages");
+    const messages = await loadAppMessages("fa");
+    const card = messages.tours.card as { view: string; workspace: string };
+    assert.equal(card.view, "ویرایش تور");
+    assert.equal(card.workspace, "مدیریت تور");
+    assert.notEqual(card.view, "مشاهده");
+  });
+
+  it("WEB-TL-ACTIONS-05 duplicate actions live behind secondary menu", () => {
+    const card = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+      "utf8"
+    );
+    const duplicateActions = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-duplicate-actions.tsx"),
+      "utf8"
+    );
+    assert.match(card, /<TourDuplicateActions tourId=\{tour\.id\}/);
+    assert.match(duplicateActions, /DropdownMenuTrigger/);
+    assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.secondaryActions/);
+    assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.duplicate/);
+    assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.duplicateServer/);
+    assert.doesNotMatch(duplicateActions, /<Button asChild variant="outline" size="sm" data-testid=\{TOURS_LIST_TEST_IDS\.duplicate\}/);
+  });
+
+  it("WEB-TL-ACTIONS-06 duplicate copy hides implementation wording", async () => {
+    const { loadAppMessages } = await import("../src/i18n/load-messages");
+    const messages = await loadAppMessages("fa");
+    const card = messages.tours.card as {
+      duplicate: string;
+      duplicateServer: string;
+      moreActions: string;
+    };
+    assert.equal(card.moreActions, "بیشتر");
+    assert.equal(card.duplicate, "ساخت نسخه مشابه");
+    assert.equal(card.duplicateServer, "کپی سریع");
+    assert.doesNotMatch(card.duplicate, /ویزارد/);
+  });
+
+  it("WEB-TL-FINAL-01 card leads with title before supporting badges", () => {
+    const card = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+      "utf8"
+    );
+    assert.ok(card.indexOf("<CardTitle") < card.indexOf("<TourStatusBadge"));
+    assert.ok(card.indexOf("t(\"departure\")") < card.indexOf("<TourCardCover"));
+    assert.ok(card.indexOf("t(\"capacity\")") < card.indexOf("<TourCardCover"));
+  });
+
+  it("WEB-TL-FINAL-02 hides disabled archived filter from launch UI", () => {
+    assert.deepEqual(TOUR_STATUS_UI_OPTIONS, ["all", "draft", "active"]);
+    assert.equal(uiStatusToQueryStatus("archived"), "archived");
+    assert.equal(queryStatusToUiStatus("archived"), "archived");
+  });
+
+  it("WEB-TL-FINAL-03 tours page copy avoids internal launch wording", async () => {
+    const { loadAppMessages } = await import("../src/i18n/load-messages");
+    const messages = await loadAppMessages("fa");
+    assert.equal(messages.tours.pageSubtitle, "مدیریت و انتشار تورهای باشگاه");
+    assert.doesNotMatch(messages.tours.pageSubtitle, /workspace|ویزارد|server|lifecycle/i);
   });
 
   it("WEB-9.3-06 category query serializes for Denali list filter", () => {
@@ -120,14 +219,24 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       sortBy: "departure_at",
       sortDir: "asc",
     });
-    assert.match(serialized, /sort_by=departure_at/);
-    assert.match(serialized, /sort_dir=asc/);
+    assert.doesNotMatch(serialized, /sort_by=/);
+    assert.doesNotMatch(serialized, /sort_dir=/);
     const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams(serialized));
     assert.equal(parsed.sortBy, "departure_at");
     assert.equal(parsed.sortDir, "asc");
   });
 
-  it("WEB-9.3-08 created_at sort label key distinguishes from departure", () => {
+  it("WEB-9.3-08 created_at sort remains explicit after departure default", () => {
+    const serialized = serializeTourListQuery({
+      ...DEFAULT_TOUR_LIST_QUERY,
+      sortBy: "created_at",
+      sortDir: "desc",
+    });
+    assert.match(serialized, /sort_by=created_at/);
+    assert.match(serialized, /sort_dir=desc/);
+    const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams(serialized));
+    assert.equal(parsed.sortBy, "created_at");
+    assert.equal(parsed.sortDir, "desc");
     assert.equal(TOURS_LIST_TEST_IDS.cardMeta, "operator-tours-card-meta");
     assert.equal(TOURS_LIST_TEST_IDS.cardDuration, "operator-tours-card-duration");
   });
@@ -186,11 +295,12 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(resolveTourKindDuration(PLUGIN_ID, null), null);
   });
 
-  it("WEB-9.3-10 category filter groups cover all Denali slugs", () => {
+  it("WEB-9.3-10 category filter groups match Denali launch surface", () => {
     const slugs = tourCategoryFilterGroupsForPlugin(PLUGIN_ID).flatMap((group) => group.slugs);
-    assert.equal(slugs.length, 10);
+    assert.equal(slugs.length, 6);
     assert.ok(slugs.includes("mountain_day"));
-    assert.ok(slugs.includes("event_cinema_multi"));
+    assert.ok(slugs.includes("desert_multi"));
+    assert.equal(slugs.some((slug) => slug.startsWith("event_")), false);
   });
 
   it("WEB-W5-FMT-01 fa locale formatters use Persian copy", async () => {

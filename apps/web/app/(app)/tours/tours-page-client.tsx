@@ -292,19 +292,14 @@ export function OperatorToursPageClient({
           >
             <div className="flex flex-wrap gap-2">
               {TOUR_STATUS_UI_OPTIONS.map((option) => {
-                const isArchived = option === "archived";
                 return (
                   <Button
                     key={option}
                     type="button"
                     size="sm"
                     variant={statusUi === option ? "default" : "outline"}
-                    disabled={isArchived}
-                    title={isArchived ? t("status.archivedHint") : undefined}
                     onClick={() => {
-                      if (!isArchived) {
-                        handleStatusChange(option);
-                      }
+                      handleStatusChange(option);
                     }}
                   >
                     {t(`status.${option}`)}

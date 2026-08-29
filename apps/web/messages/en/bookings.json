@@ -121,9 +121,15 @@
   "bulkConfirmCancel": "Cancel",
   "inbox": "Queue ({count, number})",
   "inboxLoaded": "Queue ({loaded, number} of {total, number})",
-  "inspection": "Decide",
+  "inspection": "Review registration",
   "selectRegistration": "Select a row — Approve, Waitlist, or Reject here.",
   "inspectionActionsHint": "Pending: Approve, Waitlist, or Reject. Waitlisted: Approve or Reject.",
+  "detailSections": {
+    "contact": "Contact and ID",
+    "payment": "Payment details",
+    "intake": "Registration details",
+    "history": "Change history"
+  },
   "timeline": {
     "snapshotNote": "Current status snapshot — not a full audit trail",
     "submitted": "Submitted",
@@ -183,6 +189,7 @@
     "paid": "Payment received",
     "waived": "No payment required"
   },
+  "paymentDueAt": "Payment due: {date}",
   "actionReason": {
     "terminal_state": "This registration is closed — approve or reject is not available.",
     "wrong_status": "This status cannot be approved or rejected here.",

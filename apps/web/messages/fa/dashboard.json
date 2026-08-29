@@ -24,10 +24,23 @@
     "allTours": "همه تورها",
     "bookings": "رزروها"
   },
+  "attention": {
+    "title": "نیازمند پیگیری",
+    "allClear": "مورد فوری برای پیگیری نیست.",
+    "count": "{count} مورد",
+    "open": "باز کردن",
+    "items": {
+      "pending-registrations": "ثبت‌نام‌های در انتظار",
+      "pending-receipts": "رسیدهای در انتظار بررسی",
+      "pending-manual-payments": "پرداخت‌های نیازمند پیگیری",
+      "waitlist": "لیست انتظار",
+      "near-departures": "تورهای نزدیک به حرکت"
+    }
+  },
   "overview": {
     "title": "خلاصه",
     "description": "وضعیت {brandName}",
-    "openBookings": "رفتن به رزروها"
+    "openBookings": "مشاهده همه رزروها"
   },
   "tours": {
     "title": "تورها",
@@ -37,17 +50,17 @@
     "viewAll": "مشاهده همه تورها"
   },
   "bookings": {
-    "title": "رزروها",
-    "description": "شاخص‌های رزرو",
-    "openCommandCenter": "رفتن به رزروها"
+    "title": "وضعیت رزروها",
+    "description": "نمای کلی صف رزروها",
+    "openCommandCenter": "مشاهده همه رزروها"
   },
   "registrations": {
-    "title": "ثبت‌نام‌ها",
+    "title": "در انتظار بررسی",
     "loading": "در حال بارگذاری صف…",
     "pendingCount": "{count, number} در انتظار تأیید",
     "empty": "ثبت‌نام در انتظاری نیست.",
     "pendingOnTour": "{count, number} در انتظار",
-    "reviewPending": "بررسی در انتظارها"
+    "reviewPending": "بررسی ثبت‌نام‌های در انتظار"
   },
   "kpi": {
     "active-tours": "تورهای فعال",

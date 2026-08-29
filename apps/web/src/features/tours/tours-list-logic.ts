@@ -8,7 +8,6 @@ export const TOUR_STATUS_UI_OPTIONS: readonly TourStatusUiFilter[] = [
   "all",
   "draft",
   "active",
-  "archived",
 ] as const;
 
 export function uiStatusToQueryStatus(ui: TourStatusUiFilter): TourListStatusFilter {

@@ -523,9 +523,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         ? formatMinorAmount(selectedRow.remainingMinor, selectedRow.currency, locale)
         : null;
     const selectedDeadlineLabel =
-      selectedRow.paymentDueAt !== null
-        ? formatDetailDate(locale, selectedRow.paymentDueAt)
-        : null;
+      selectedRow.paymentDueAt !== null ? formatDetailDate(locale, selectedRow.paymentDueAt) : null;
     const requirementAmountLabel =
       detailData.detailState !== null &&
       detailData.detailState.currentRequirement.amountMinor !== "0" &&
@@ -608,16 +606,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                 </p>
               </div>
             </div>
-            {detailAmountRows.length > 0 ? (
-              <div className="grid gap-2 sm:grid-cols-3">
-                {detailAmountRows.map((item) => (
-                  <div key={item.label} className="rounded-md border bg-background/70 px-3 py-3">
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                    <p className="mt-1 text-sm font-medium">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
             {(() => {
               const recommendation = resolveTourWorkspaceDetailActionRecommendation({
                 status: detailData.detailState.summaryStatus,
@@ -632,6 +620,57 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                 </p>
               );
             })()}
+          </>
+        ) : null}
+
+        {selectedRow.listKind !== "pending" && selectedRow.registrationId !== null ? (
+          <TourWorkspacePaymentActionsSection
+            tourId={tourId}
+            pluginId={session.pluginId}
+            registrationId={selectedRow.registrationId}
+            canManage={canManage}
+            actionMode={actionMode}
+            hasActiveSchedule={hasActiveSchedule}
+            rowKind={mapFollowUpListKindToFinanceRowKind(selectedRow.listKind)}
+            invoice={detailData.invoice}
+            pendingReceipts={pendingReceiptsForSelected}
+            refreshKey={financeMutationRefreshKey}
+            onOverrideChanged={(event) => {
+              setFinanceMutationRefreshKey((current) => current + 1);
+              setWorkspaceExitNotice(
+                event.obligationMinor === "0"
+                  ? t("detailExitNoticeNoPayment", {
+                      guest: selectedRow.displayName,
+                    })
+                  : t("detailExitNoticeBalanceUpdated", {
+                      guest: selectedRow.displayName,
+                    })
+              );
+              detailData.refresh();
+              refreshWorkspaceFinanceView();
+            }}
+            onPaymentChanged={handleRegistrationPaymentChanged}
+            onReceiptReviewed={handleReceiptReviewed}
+          />
+        ) : null}
+
+        {detailData.detailState !== null ? (
+          <>
+            {detailAmountRows.length > 0 ? (
+              <details className="rounded-md border border-dashed px-3 py-2">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                  {t("detailPaymentHistoryTitle")}
+                </summary>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {detailAmountRows.map((item) => (
+                    <div key={item.label} className="rounded-md border bg-background/70 px-3 py-3">
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="mt-1 text-sm font-medium">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ) : null}
 
             <details className="rounded-md border border-dashed px-3 py-2">
               <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
@@ -751,37 +790,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </>
         ) : null}
 
-        {selectedRow.listKind !== "pending" && selectedRow.registrationId !== null ? (
-          <TourWorkspacePaymentActionsSection
-            tourId={tourId}
-            pluginId={session.pluginId}
-            registrationId={selectedRow.registrationId}
-            canManage={canManage}
-            actionMode={actionMode}
-            hasActiveSchedule={hasActiveSchedule}
-            rowKind={mapFollowUpListKindToFinanceRowKind(selectedRow.listKind)}
-            invoice={detailData.invoice}
-            pendingReceipts={pendingReceiptsForSelected}
-            refreshKey={financeMutationRefreshKey}
-            onOverrideChanged={(event) => {
-              setFinanceMutationRefreshKey((current) => current + 1);
-              setWorkspaceExitNotice(
-                event.obligationMinor === "0"
-                  ? t("detailExitNoticeNoPayment", {
-                      guest: selectedRow.displayName,
-                    })
-                  : t("detailExitNoticeBalanceUpdated", {
-                      guest: selectedRow.displayName,
-                    })
-              );
-              detailData.refresh();
-              refreshWorkspaceFinanceView();
-            }}
-            onPaymentChanged={handleRegistrationPaymentChanged}
-            onReceiptReviewed={handleReceiptReviewed}
-          />
-        ) : null}
-
         {detailAmountRows.length > 0 && selectedRow.registrationId === null ? (
           <div className="grid gap-2 sm:grid-cols-3">
             {detailAmountRows.map((item) => (
@@ -793,18 +801,23 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </div>
         ) : null}
 
-        <div className={cn("flex flex-wrap gap-2", mobile && "w-full")}>
-          {selectedRow.registrationId !== null ? (
-            <Button asChild size="sm" variant="ghost">
-              <OperatorInternalLink
-                href={buildFinanceCommercialMeaningHref(selectedRow.registrationId)}
-                data-testid={`${TOUR_WORKSPACE_FINANCE_TEST_IDS.openCase}-${selectedRow.registrationId}`}
-              >
-                {t("ctaOpenCase")}
-              </OperatorInternalLink>
-            </Button>
-          ) : null}
-        </div>
+        {selectedRow.registrationId !== null ? (
+          <details className="rounded-md border border-dashed px-3 py-2">
+            <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+              {t("detailMoreLinksTitle")}
+            </summary>
+            <div className={cn("mt-3 flex flex-wrap gap-2", mobile && "w-full")}>
+              <Button asChild size="sm" variant="ghost">
+                <OperatorInternalLink
+                  href={buildFinanceCommercialMeaningHref(selectedRow.registrationId)}
+                  data-testid={`${TOUR_WORKSPACE_FINANCE_TEST_IDS.openCase}-${selectedRow.registrationId}`}
+                >
+                  {t("ctaOpenCase")}
+                </OperatorInternalLink>
+              </Button>
+            </div>
+          </details>
+        ) : null}
       </div>
     );
   };
@@ -812,7 +825,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const detailPanel = (
     <WorkspaceStickyDetailCard
       title={selectedRow?.displayName ?? t("detailTitle")}
-      description={t("detailTitle")}
+      description={t("detailDescription")}
       testId={TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel}
     >
       {renderDetailBody()}
@@ -1032,45 +1045,50 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           />
         ) : null}
 
-        {!panelBlocking ? (
-          <div className="space-y-2 border-t pt-4">
-            <p
-              className="text-xs text-muted-foreground"
-              data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.rollup}
-            >
-              <span className="font-medium">{t("rollupTitle")}: </span>
-              {t("expected")}{" "}
-              {rollup !== null
-                ? formatMinorAmount(rollup.invoiceTotalMinor, rollup.currency, locale)
-                : "—"}
-              {" · "}
-              {t("collected")}{" "}
-              {rollup !== null
-                ? formatMinorAmount(rollup.collectedMinor, rollup.currency, locale)
-                : "—"}
-              {" · "}
-              {t("remaining")}{" "}
-              {rollup !== null
-                ? formatMinorAmount(rollup.remainingMinor, rollup.currency, locale)
-                : "—"}
-            </p>
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <OperatorInternalLink
-                href={buildTourFinanceHubHref(tourId, "payments")}
-                className="underline-offset-2 hover:underline"
-                data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.openPayments}
+        {!panelBlocking && inbox.leadSection !== "settled" ? (
+          <details className="border-t pt-4">
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+              {t("rollupTitle")}
+            </summary>
+            <div className="mt-3 space-y-2">
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.rollup}
               >
-                {t("escapePaymentsHub")}
-              </OperatorInternalLink>
-              <OperatorInternalLink
-                href={buildTourWorkspaceFinanceHref(tourId)}
-                className="underline-offset-2 hover:underline"
-                data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.openHub}
-              >
-                {t("escapeFullHub")}
-              </OperatorInternalLink>
+                <span className="font-medium">{t("rollupTitle")}: </span>
+                {t("expected")}{" "}
+                {rollup !== null
+                  ? formatMinorAmount(rollup.invoiceTotalMinor, rollup.currency, locale)
+                  : "—"}
+                {" · "}
+                {t("collected")}{" "}
+                {rollup !== null
+                  ? formatMinorAmount(rollup.collectedMinor, rollup.currency, locale)
+                  : "—"}
+                {" · "}
+                {t("remaining")}{" "}
+                {rollup !== null
+                  ? formatMinorAmount(rollup.remainingMinor, rollup.currency, locale)
+                  : "—"}
+              </p>
+              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <OperatorInternalLink
+                  href={buildTourFinanceHubHref(tourId, "payments")}
+                  className="underline-offset-2 hover:underline"
+                  data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.openPayments}
+                >
+                  {t("escapePaymentsHub")}
+                </OperatorInternalLink>
+                <OperatorInternalLink
+                  href={buildTourWorkspaceFinanceHref(tourId)}
+                  className="underline-offset-2 hover:underline"
+                  data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.openHub}
+                >
+                  {t("escapeFullHub")}
+                </OperatorInternalLink>
+              </div>
             </div>
-          </div>
+          </details>
         ) : null}
       </CardContent>
     </Card>

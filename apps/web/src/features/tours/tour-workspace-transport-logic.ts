@@ -51,12 +51,14 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   modes: "operator-tour-workspace-transport-modes",
   modeCounts: "operator-tour-workspace-transport-mode-counts",
   table: "operator-tour-workspace-transport-table",
+  mobileList: "operator-tour-workspace-transport-mobile-list",
   empty: "operator-tour-workspace-transport-empty",
   filters: "operator-tour-workspace-operational-roster-filters",
   finalBadge: "operator-tour-workspace-operational-roster-final",
   amountDue: "operator-tour-workspace-operational-roster-amount-due",
   paymentDeadline: "operator-tour-workspace-operational-roster-deadline",
   driverBadge: "operator-tour-workspace-operational-roster-driver",
+  rowAvatar: "operator-tour-workspace-operational-roster-avatar",
   settlementPanel: "operator-tour-workspace-driver-settlement",
   settlementTotal: "operator-tour-workspace-driver-settlement-total",
   settlementStatus: "operator-tour-workspace-driver-settlement-status",
@@ -168,4 +170,17 @@ export function formatOperationalRosterAmountDue(
     return null;
   }
   return row.currency !== null ? `${digits} ${row.currency}` : digits;
+}
+
+export function resolveOperationalRosterActionablePaymentDueAt(
+  row: Pick<TourOperationalRosterRow, "financialDisplayState" | "paymentDueAt">
+): string | null {
+  if (
+    row.financialDisplayState === "PAID" ||
+    row.financialDisplayState === "WAIVED" ||
+    row.financialDisplayState === "NOT_APPLICABLE"
+  ) {
+    return null;
+  }
+  return row.paymentDueAt;
 }

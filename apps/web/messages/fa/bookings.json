@@ -133,9 +133,15 @@
   "bulkConfirmCancel": "انصراف",
   "inbox": "صف ({count, number})",
   "inboxLoaded": "صف ({loaded, number} از {total, number})",
-  "inspection": "تصمیم",
+  "inspection": "بررسی ثبت‌نام",
   "selectRegistration": "یک ردیف را انتخاب کنید — تأیید، لیست انتظار یا رد اینجا.",
   "inspectionActionsHint": "در انتظار: تأیید، لیست انتظار یا رد. لیست انتظار: تأیید یا رد.",
+  "detailSections": {
+    "contact": "اطلاعات تماس و شناسه",
+    "payment": "جزئیات پرداخت",
+    "intake": "اطلاعات ثبت‌نام",
+    "history": "سابقه تغییرات"
+  },
   "timeline": {
     "snapshotNote": "نمای وضعیت فعلی — نه تاریخچهٔ کامل ممیزی",
     "submitted": "ثبت درخواست",
@@ -183,6 +189,7 @@
     "paid": "وجه دریافت شد",
     "waived": "بدون نیاز به پرداخت"
   },
+  "paymentDueAt": "مهلت پرداخت: {date}",
   "actionReason": {
     "terminal_state": "این ثبت‌نام پایان یافته — تأیید یا رد ممکن نیست.",
     "wrong_status": "این وضعیت برای تأیید یا رد مناسب نیست.",

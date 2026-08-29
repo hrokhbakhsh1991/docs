@@ -308,6 +308,7 @@ function validateCanonicalDocumentWithEngine(
   if (useStarterValidation) {
     document = enrichStarterDocumentForDenaliOperatorList(document, {
       category: starterPick?.category,
+      startDateTime: starterPick?.startDateTime,
     });
   }
 
