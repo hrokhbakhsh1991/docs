@@ -199,6 +199,52 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
   }
 }
 
+@media (max-width: 639px) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::before,
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::after {
+    display: none;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1, 0.25rem);
+    overflow-x: visible;
+    scroll-snap-type: none;
+    scrollbar-gutter: auto;
+    scrollbar-width: none;
+    padding-block-end: 0;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item {
+    min-width: 0;
+    width: 100%;
+    justify-content: center;
+    scroll-snap-align: none;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-step-btn,
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-step-label {
+    width: 100%;
+    min-height: 2.75rem;
+    justify-content: center;
+    padding: var(--space-2, 0.5rem);
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-label {
+    display: none;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-index {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-summary {
   margin: var(--space-2, 0.5rem) 0 0;
   font-size: 0.875rem;

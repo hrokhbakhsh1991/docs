@@ -402,6 +402,15 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(stepper, /\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*nowrap/);
     assert.match(stepper, /@media \(min-width: 640px\) and \(max-width: 820px\)/);
     assert.match(stepper, /@media \(min-width: 640px\) and \(max-width: 820px\)[\s\S]*\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*wrap/);
+    assert.match(stepper, /@media \(max-width: 639px\)/);
+    assert.match(
+      stepper,
+      /@media \(max-width: 639px\)[\s\S]*\.workspace-wizard-shell__progress-list \{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);[\s\S]*overflow-x:\s*visible/
+    );
+    assert.match(
+      stepper,
+      /@media \(max-width: 639px\)[\s\S]*\.workspace-wizard-shell__progress-label \{[\s\S]*display:\s*none/
+    );
     const gear = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-gear-field.tsx"),
       "utf8"
