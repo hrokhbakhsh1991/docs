@@ -108,7 +108,7 @@ export function OperatorSearchableSelect({
           data-testid={OPERATOR_SEARCHABLE_SELECT_TEST_IDS.trigger}
           data-operator-searchable-select-trigger
           className={cn(
-            "h-9 w-full max-w-md justify-between gap-2 px-3 font-normal",
+            "h-9 w-full max-w-md justify-between font-normal",
             className
           )}
         >

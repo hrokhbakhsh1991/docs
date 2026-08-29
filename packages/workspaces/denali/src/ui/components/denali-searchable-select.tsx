@@ -15,6 +15,8 @@ import { cn } from "../utils/cn";
 
 export { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "../test-ids/denali-searchable-select-test-ids";
 
+const DENALI_SEARCHABLE_SELECT_PANEL_CLOSE_MS = 140;
+
 function ChevronDownIcon({ className }: { readonly className?: string }) {
   return (
     <svg
@@ -77,6 +79,8 @@ export function DenaliSearchableSelect({
   const searchRef = useRef<HTMLInputElement>(null);
   const ignoreNextTriggerOpenRef = useRef(false);
   const [open, setOpen] = useState(false);
+  const [panelMounted, setPanelMounted] = useState(false);
+  const [panelState, setPanelState] = useState<"open" | "closed">("closed");
   const [searchQuery, setSearchQuery] = useState("");
 
   const isDisabled = disabled || loading;
@@ -97,6 +101,22 @@ export function DenaliSearchableSelect({
     onChange(nextValue);
     closePanel();
   };
+
+  useEffect(() => {
+    if (open) {
+      setPanelMounted(true);
+      setPanelState("open");
+      return;
+    }
+    if (!panelMounted) {
+      return;
+    }
+    setPanelState("closed");
+    const timeoutId = window.setTimeout(() => {
+      setPanelMounted(false);
+    }, DENALI_SEARCHABLE_SELECT_PANEL_CLOSE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [open, panelMounted]);
 
   useEffect(() => {
     if (!open) {
@@ -196,10 +216,13 @@ export function DenaliSearchableSelect({
         </span>
         <ChevronDownIcon className="denali-searchable-select__trigger-icon" />
       </button>
-      {open ? (
+      {panelMounted ? (
         <div
           className="denali-searchable-select__panel"
           data-testid={DENALI_SEARCHABLE_SELECT_TEST_IDS.panel}
+          data-operator-searchable-select-panel
+          data-state={panelState}
+          data-side="bottom"
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}

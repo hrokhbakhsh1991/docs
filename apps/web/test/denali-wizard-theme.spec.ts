@@ -179,8 +179,8 @@ describe("denali-wizard-theme.spec.ts", () => {
 
   it("WEB-DENALI-WIZARD-20 select chevron inset for RTL wizard fields", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
-    assert.match(fields, /denali-searchable-select__trigger-icon[\s\S]*margin-inline:/);
-    assert.match(
+    assert.match(fields, /denali-searchable-select__trigger-icon[\s\S]*margin-inline-end:/);
+    assert.doesNotMatch(
       fields,
       /\[dir="rtl"\][\s\S]*denali-searchable-select__trigger[\s\S]*padding-inline-start:/
     );
@@ -189,12 +189,9 @@ describe("denali-wizard-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(selectCss, /appearance:\s*none/);
-    assert.match(selectCss, /background-position:\s*right var\(--select-chevron-inset\) center/);
-    assert.match(
-      selectCss,
-      /\[dir="rtl"\][\s\S]*background-position:\s*left var\(--select-chevron-inset\) center/
-    );
-    assert.match(fields, /\[dir="rtl"\][\s\S]*select[\s\S]*background-position:\s*left var\(--select-chevron-inset\) center/);
+    assert.match(selectCss, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
+    assert.doesNotMatch(selectCss, /\[dir="rtl"\]/);
+    assert.match(fields, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
   });
 
   it("WEB-DENALI-WIZARD-12 composite UX phase 3 (WZ-P1-06…10)", () => {
