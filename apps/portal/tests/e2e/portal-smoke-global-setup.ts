@@ -11,6 +11,44 @@ const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
+/** Compile public-auth BFF routes before tests — avoids Next dev HMR reload mid-OTP. */
+async function warmPublicAuthBffRoutes(base: string): Promise<void> {
+  const routes = [
+    "/api/public-auth/phone-preflight",
+    "/api/public-auth/request-otp",
+    "/api/public-auth/verify-otp",
+    "/api/public-auth/register-complete",
+    "/api/catalog/registrations",
+    "/api/catalog/pricing-preview",
+  ] as const;
+  for (const path of routes) {
+    await new Promise<void>((resolve, reject) => {
+      const url = new URL(`${base}${path}`);
+      const body = JSON.stringify({ phone: "+15550009999" });
+      const req = http.request(
+        {
+          hostname: url.hostname,
+          port: url.port || (url.protocol === "https:" ? 443 : 80),
+          path: url.pathname,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(body),
+            host: url.host,
+          },
+        },
+        (res) => {
+          res.resume();
+          resolve();
+        }
+      );
+      req.on("error", reject);
+      req.write(body);
+      req.end();
+    });
+  }
+}
+
 function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let inFlight = false;
@@ -63,4 +101,5 @@ export default async function globalSetup(): Promise<void> {
   await waitForUrl(`${base}/catalog/${TRANSPORT_SHARED_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/me/profile`);
   await waitForUrl(`${base}/me/registrations`);
+  await warmPublicAuthBffRoutes(base);
 }
