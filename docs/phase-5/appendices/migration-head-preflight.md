@@ -50,9 +50,10 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260820150000_finance_commercial_quote_member_discount` | Finance | Commercial quote member-discount support |
 | `20260821100000_operator_user_role_audit_app_tour_grants` | Identity / grants | Operator user-role audit grants |
 | `20260824120000_dp1_payment_holds` | Wave B DP1 | Payment hold persistence |
-| `20260826120000_workspace_tour_theme_icon_key` | Denali settings | Optional icon key for workspace tour themes; current tip |
+| `20260826120000_workspace_tour_theme_icon_key` | Denali settings | Optional icon key for workspace tour themes |
+| `20260829120000_finance_payment_holds_rls_grants` | Wave B DP1 | Payment hold app-role RLS + grants; current tip |
 
-Current head: **`20260826120000_workspace_tour_theme_icon_key`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260829120000_finance_payment_holds_rls_grants`** — must move in lockstep with `prisma/migrations/`.
 
 **Why self-unique tip:** Denali allows one booker to register multiple `other` guests; legacy `uq_operator_reg_active_user` blocked that. See [registration-self-other-uniqueness.mdoc](../../workspaces/denali/registration-self-other-uniqueness.mdoc).
 

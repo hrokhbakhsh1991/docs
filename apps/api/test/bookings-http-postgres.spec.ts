@@ -148,6 +148,7 @@ describe(
       process.env.STORAGE_DRIVER = "prisma";
       process.env.OUTBOX_RELAY_ENABLED = "false";
       process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
+      process.env.PAYMENT_HOLD_ENABLED = "true";
 
       resetLazyRouteHandlersForTests();
       resetLazyFinanceServiceForTests();
@@ -213,6 +214,7 @@ describe(
     after(async () => {
       try {
         for (const tenantId of [tenantA, tenantB]) {
+          await admin.financePaymentHold.deleteMany({ where: { tenantId } });
           await admin.paymentReceipt.deleteMany({ where: { tenantId } });
           await admin.payment.deleteMany({ where: { tenantId } });
           await admin.outboxEvent.deleteMany({ where: { tenantId } });
@@ -373,10 +375,40 @@ describe(
       assert.equal(response.status, 200, JSON.stringify(response.body));
       assert.equal(response.body.status, "approved");
       assert.equal(typeof response.body.approvedAt, "string");
+      assert.equal(typeof response.body.paymentDueAt, "string");
 
       const row = await admin.operatorRegistration.findUnique({ where: { id } });
       assert.equal(row?.status, "approved");
       assert.ok(row?.approvedAt !== null);
+
+      const hold = await admin.financePaymentHold.findUnique({
+        where: { tenantId_registrationId: { tenantId: tenantA, registrationId: id } },
+      });
+      assert.ok(hold !== null);
+      assert.equal(hold?.status, "open");
+      assert.equal(hold?.dueAt.toISOString(), response.body.paymentDueAt);
+
+      const detail = await requestJson(listener, {
+        method: "GET",
+        path: `/bookings/${id}`,
+        tenantId: tenantA,
+        userId: operatorA,
+      });
+      assert.equal(detail.status, 200, JSON.stringify(detail.body));
+      assert.equal(detail.body.paymentDueAt, response.body.paymentDueAt);
+
+      const list = await requestJson(listener, {
+        method: "GET",
+        path: "/bookings?view=ops",
+        tenantId: tenantA,
+        userId: operatorA,
+      });
+      assert.equal(list.status, 200, JSON.stringify(list.body));
+      const listItems = list.body.items as Array<Record<string, unknown>>;
+      assert.equal(
+        listItems.find((item) => item.id === id)?.paymentDueAt,
+        response.body.paymentDueAt
+      );
 
       const outbox = await admin.outboxEvent.findMany({
         where: { tenantId: tenantA, aggregateId: id, eventType: "registration.approved" },

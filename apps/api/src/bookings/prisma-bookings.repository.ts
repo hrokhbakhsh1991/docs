@@ -189,6 +189,34 @@ function toBookingRecord(row: {
   };
 }
 
+async function attachPaymentDueAtProjection(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  records: readonly BookingRecord[]
+): Promise<BookingRecord[]> {
+  const registrationIds = [
+    ...new Set(records.map((record) => record.id.trim()).filter((id) => id.length > 0)),
+  ];
+  if (registrationIds.length === 0) {
+    return [...records];
+  }
+  const holds = await tx.financePaymentHold.findMany({
+    where: {
+      tenantId,
+      registrationId: { in: registrationIds },
+      status: "open",
+    },
+    select: { registrationId: true, dueAt: true },
+  });
+  const dueAtByRegistrationId = new Map(
+    holds.map((hold) => [hold.registrationId, hold.dueAt.toISOString()] as const)
+  );
+  return records.map((record) => {
+    const paymentDueAt = dueAtByRegistrationId.get(record.id);
+    return paymentDueAt === undefined ? record : { ...record, paymentDueAt };
+  });
+}
+
 function buildBookingListWhere(
   input: Omit<BookingListPageInput, "limit" | "cursor">
 ): Prisma.OperatorRegistrationWhereInput {
@@ -407,7 +435,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
 
       const hasMore = rows.length > input.limit;
       const pageRows = rows.slice(0, input.limit);
-      const baseItems = pageRows.map(toBookingListRecord);
+      const baseItems = await attachPaymentDueAtProjection(
+        tx,
+        input.tenantId,
+        pageRows.map(toBookingListRecord)
+      );
 
       if (baseItems.length === 0) {
         return {
@@ -756,7 +788,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const row = await tx.operatorRegistration.findFirst({
         where: { id, tenantId },
       });
-      return row === null ? null : toBookingRecord(row);
+      if (row === null) {
+        return null;
+      }
+      const [record] = await attachPaymentDueAtProjection(tx, tenantId, [toBookingRecord(row)]);
+      return record ?? null;
     });
   }
 
@@ -771,7 +807,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: { tenantId, id: { in: unique } },
         select: BOOKING_LIST_SELECT,
       });
-      return rows.map(toBookingListRecord);
+      return attachPaymentDueAtProjection(tx, tenantId, rows.map(toBookingListRecord));
     });
   }
 
