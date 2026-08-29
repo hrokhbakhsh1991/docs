@@ -50,6 +50,7 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.isFinalParticipant, false);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.equal(row.remainingMinor, "2500000");
+    assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
     assert.equal(row.holdStatus, "open");
   });
 
@@ -68,9 +69,10 @@ describe("DP-2 compose tour operational roster", () => {
     });
     assert.equal(row.financialDisplayState, "PARTIALLY_PAID");
     assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
   });
 
-  it("paid final participant", () => {
+  it("paid final participant has no actionable payment deadline after hold is satisfied", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking(),
       invoice: {
@@ -85,12 +87,16 @@ describe("DP-2 compose tour operational roster", () => {
     });
     assert.equal(row.financialDisplayState, "PAID");
     assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.paymentDueAt, null);
     assert.equal(row.holdStatus, "satisfied");
   });
 
-  it("waived zero-obligation registration", () => {
+  it("waived zero-obligation registration has no actionable payment deadline", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking({ paymentStatus: "paid" }),
+      booking: booking({
+        paymentStatus: "paid",
+        paymentDueAt: "2026-08-25T12:00:00.000Z",
+      }),
       invoice: {
         remainingMinor: "0",
         paidAmountMinor: "0",
@@ -103,6 +109,26 @@ describe("DP-2 compose tour operational roster", () => {
     });
     assert.equal(row.financialDisplayState, "WAIVED");
     assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.paymentDueAt, null);
+  });
+
+  it("satisfied hold does not expose an actionable payment deadline", () => {
+    const row = composeTourOperationalRosterRow({
+      booking: booking({ paymentDueAt: null }),
+      invoice: {
+        remainingMinor: "2500000",
+        paidAmountMinor: "0",
+        invoiceTotalMinor: "2500000",
+        currency: "IRR",
+      },
+      hold: { status: "satisfied", dueAt: "2026-08-25T12:00:00.000Z" },
+      refundStatuses: [],
+      nowIso: NOW,
+    });
+    assert.equal(row.financialDisplayState, "UNPAID");
+    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.paymentDueAt, null);
+    assert.equal(row.holdStatus, "satisfied");
   });
 
   it("waitlisted row", () => {

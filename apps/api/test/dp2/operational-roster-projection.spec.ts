@@ -57,6 +57,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     assert.equal(row.isOperationalParticipant, true);
     assert.equal(row.isFinalParticipant, false);
     assert.equal(row.financialDisplayState, "UNPAID");
+    assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
     assert.ok(unpaid.items.some((item) => item.registrationId === created.id));
   });
 
@@ -79,6 +80,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     assert.ok(row);
     assert.equal(row.financialDisplayState, "PARTIALLY_PAID");
     assert.equal(row.isFinalParticipant, false);
+    assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
   });
 
   it("matrix: full payment yields final + paid filters", async () => {
@@ -110,7 +112,34 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     assert.ok(row);
     assert.equal(row.isFinalParticipant, true);
     assert.equal(row.financialDisplayState, "PAID");
+    assert.equal(row.paymentDueAt, null);
     assert.ok(final.items.some((item) => item.registrationId === created.id));
+  });
+
+  it("matrix: waived obligation yields final participant without actionable deadline", async () => {
+    const created = await createBooking(dp1OpsAuth(), dp1BookingBody());
+    await approveBooking(dp1OpsAuth(), created.id);
+    const finance = await resolveFinanceServiceForTenant(DP1_TENANT_DENALI);
+    await finance.setRegistrationObligationOverride(financeAuth(), {
+      registrationId: created.id,
+      obligationMinor: "0",
+      reason: "waived by operator",
+    });
+
+    const roster = await listTourOperationalRoster(dp1OpsAuth(), DP1_TOUR_ID, {
+      view: "ops",
+      filter: "final",
+      limit: 50,
+    });
+    const row = roster.items.find((item) => item.registrationId === created.id);
+    assert.ok(row);
+    assert.equal(row.registrationStatus, "approved");
+    assert.equal(row.financialDisplayState, "WAIVED");
+    assert.equal(row.remainingMinor, "0");
+    assert.equal(row.paidMinor, "0");
+    assert.equal(row.paymentDueAt, null);
+    assert.equal(row.holdStatus, "satisfied");
+    assert.equal(row.isFinalParticipant, true);
   });
 
   it("matrix: waitlisted row appears only in waitlist filter", async () => {

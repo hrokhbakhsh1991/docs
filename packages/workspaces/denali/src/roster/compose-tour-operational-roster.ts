@@ -63,6 +63,23 @@ function deriveWaivedFlag(invoice: ComposeTourOperationalRosterInvoice | null): 
   return total !== null && total === BigInt(0);
 }
 
+export function resolveActionablePaymentDueAt(input: {
+  readonly financialDisplayState: ReturnType<typeof deriveFinancialDisplayState>;
+  readonly remainingMinor: string | null;
+  readonly holdStatus: string | null;
+  readonly holdDueAt: string | null;
+  readonly bookingDueAt: string | null | undefined;
+}): string | null {
+  if (
+    input.financialDisplayState === "WAIVED" ||
+    input.holdStatus === "satisfied" ||
+    isFinanciallySettled(input.remainingMinor)
+  ) {
+    return null;
+  }
+  return input.holdDueAt ?? input.bookingDueAt ?? null;
+}
+
 export function composeTourOperationalRosterRow(
   input: ComposeTourOperationalRosterInput
 ): TourOperationalRosterRow {
@@ -72,6 +89,13 @@ export function composeTourOperationalRosterRow(
   const currency = input.invoice?.currency ?? null;
   const waived = deriveWaivedFlag(input.invoice);
   const financiallySettled = isFinanciallySettled(remainingMinor);
+  const financialDisplayState = deriveFinancialDisplayState({
+    status: registrationStatus,
+    remainingMinor,
+    paidMinor,
+    waived,
+  });
+  const holdStatus = input.hold?.status ?? null;
 
   return {
     registrationId: input.booking.id,
@@ -85,17 +109,18 @@ export function composeTourOperationalRosterRow(
       : {}),
     partySize: input.booking.partySize,
     registrationStatus,
-    financialDisplayState: deriveFinancialDisplayState({
-      status: registrationStatus,
-      remainingMinor,
-      paidMinor,
-      waived,
-    }),
+    financialDisplayState,
     remainingMinor,
     paidMinor,
     currency,
-    paymentDueAt: input.hold?.dueAt ?? input.booking.paymentDueAt ?? null,
-    holdStatus: input.hold?.status ?? null,
+    paymentDueAt: resolveActionablePaymentDueAt({
+      financialDisplayState,
+      remainingMinor,
+      holdStatus,
+      holdDueAt: input.hold?.dueAt ?? null,
+      bookingDueAt: input.booking.paymentDueAt,
+    }),
+    holdStatus,
     transportKind: input.booking.transportKind,
     personalCarOccupants: input.booking.personalCarOccupants,
     isDriverOffer: isDriverOffer(input.booking.transportKind),
