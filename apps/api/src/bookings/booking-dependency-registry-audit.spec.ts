@@ -183,6 +183,9 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
         }),
       },
       registrationSlo: { record: () => undefined },
+      financialDisplayState: {
+        resolve: () => undefined,
+      },
     });
 
     await assert.rejects(
