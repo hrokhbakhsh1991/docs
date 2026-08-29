@@ -50,6 +50,10 @@ async function openMemberDetailForRewards(page: import("@playwright/test").Page)
     OPERATOR_ADMIN_DISPLAY_NAME;
   test.skip(needle.length === 0, "No editable non-owner member in roster seed");
 
+  const searchInput = page.getByPlaceholder(/Search by name or phone|جستجو/i);
+  await searchInput.fill(needle);
+  await page.waitForTimeout(400);
+
   const memberRow = page.locator("tr").filter({ hasText: needle });
   await expect(memberRow).toBeVisible({ timeout: 15_000 });
   await memberRow.getByTestId(USERS_DIRECTORY_TEST_IDS.rowDetails).click();

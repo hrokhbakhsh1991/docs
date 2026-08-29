@@ -57,7 +57,7 @@ test.describe("users-directory-controls-responsive", () => {
       }
 
       await page.screenshot({
-        path: `/opt/cursor/artifacts/users-directory-${viewport.label}.png`,
+        path: `test-results/users-directory-${viewport.label}.png`,
         fullPage: true,
       });
     }
