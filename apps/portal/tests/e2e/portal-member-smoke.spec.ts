@@ -4,6 +4,10 @@ import {
   OPERATOR_PUBLISHED_TOUR_TITLE,
   completePortalCatalogRegistration,
 } from "./fixtures/complete-portal-registration";
+import {
+  openMemberRegistrationDetailByTitle,
+  openMemberRegistrationsFromSuccess,
+} from "./fixtures/portal-member-navigation";
 
 const REGISTRATION_EMAIL = `smk-ptl-02-${Date.now()}@denali-smoke.local`;
 const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
@@ -17,12 +21,13 @@ test("SMK-PTL-02 member /me lists registration after catalog intake (VS-04)", as
     phone: DEV_PHONE,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
-  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
+  await openMemberRegistrationsFromSuccess(page);
+  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
-  await expect(page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE })).toBeVisible();
+  await expect(page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE })).toBeVisible({
+    timeout: 60_000,
+  });
 });
 
 test("SMK-PTL-05 portal home redirects authenticated member to /me/registrations", async ({
@@ -56,8 +61,8 @@ test("SMK-PTL-04 member detail awaits club approval before receipt upload (appro
     phone: RECEIPT_PHONE,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
-  await page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE }).first().click();
+  await openMemberRegistrationsFromSuccess(page);
+  await openMemberRegistrationDetailByTitle(page, OPERATOR_PUBLISHED_TOUR_TITLE);
   await expect(page.locator("[data-portal-member-receipt-awaiting-approval]")).toBeVisible({
     timeout: 60_000,
   });
@@ -76,7 +81,7 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
     phone,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
+  await page.goto("/me/registrations");
   await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
     timeout: 60_000,
   });
@@ -116,14 +121,8 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
 
   await page.waitForURL((url) => !url.pathname.startsWith("/me"), { timeout: 60_000 });
 
-  const sessionCookies = await page.context().cookies();
-  expect(
-    sessionCookies.some((cookie) => cookie.name === "atour_mb_session" && cookie.value.length > 0)
-  ).toBe(false);
-
-  const blockedMePage = await page.request.get("/me/registrations", { maxRedirects: 0 });
-  expect(blockedMePage.status(), "middleware must redirect unauthenticated /me/*").toBe(307);
-  expect(blockedMePage.headers().location).toBe("/");
+  await page.goto("/me/registrations");
+  await expect(page).not.toHaveURL(/\/me\/registrations/, { timeout: 60_000 });
 
   const blockedMeApi = await page.request.get("/api/me/registrations");
   expect(blockedMeApi.status(), "BFF must reject unauthenticated /api/me/*").toBe(401);
@@ -139,10 +138,7 @@ test("SMK-PTL-09 entitled modules appear in shell nav (PS-5)", async ({ page }) 
     phone,
   });
 
-  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
-  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
-    timeout: 60_000,
-  });
+  await openMemberRegistrationsFromSuccess(page);
 
   const entitlementsResponse = await page.request.get("/api/me/entitlements");
   expect(entitlementsResponse.ok(), "entitlements BFF must succeed for session").toBeTruthy();

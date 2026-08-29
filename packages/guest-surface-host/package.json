@@ -21,6 +21,7 @@
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
   },
   "dependencies": {
+    "@app-tour/iran-mobile": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*"
   },

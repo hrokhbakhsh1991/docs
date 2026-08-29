@@ -1,6 +1,8 @@
+import { normalizeIranMobile } from "@app-tour/iran-mobile";
+
 /**
- * Canonical E.164-ish mobile for portal public-auth BFF + registration UI.
- * Mirrors `apps/api` `canonicalizeLoginMobile` so OTP challenges match seeded `+1555…` rows.
+ * Canonical mobile for portal public-auth BFF + registration UI.
+ * Iranian numbers → `09…`; US dev/smoke → `+1…` (matches seeded identity rows).
  */
 export function normalizePublicRegistrationMobile(mobile: string): string {
   const trimmed = mobile.trim();
@@ -8,20 +10,16 @@ export function normalizePublicRegistrationMobile(mobile: string): string {
     return trimmed;
   }
 
+  const iran = normalizeIranMobile(trimmed);
+  if (iran !== null) {
+    return iran;
+  }
+
   const digits = trimmed.replace(/\D/g, "");
   if (trimmed.startsWith("+")) {
     return `+${digits}`;
   }
 
-  if (digits.length === 11 && digits.startsWith("09")) {
-    return `+98${digits.slice(1)}`;
-  }
-
-  if (digits.length === 12 && digits.startsWith("98")) {
-    return `+${digits}`;
-  }
-
-  // US dev/smoke numbers without leading + (e.g. 15550001001 → +15550001001)
   if (digits.length === 11 && digits.startsWith("1")) {
     return `+${digits}`;
   }

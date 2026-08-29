@@ -1,8 +1,8 @@
 {
-  "name": "@app-tour/catalog-registration-auth",
+  "name": "@app-tour/iran-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Platform-neutral catalog registration auth helpers (OTP/profile)",
+  "description": "Canonical Iranian mobile normalization, display, and provider E.164 boundary",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,13 +12,9 @@
     }
   },
   "scripts": {
-    "prebuild": "pnpm --dir ../iran-mobile run build",
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
-  },
-  "dependencies": {
-    "@app-tour/iran-mobile": "workspace:*"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

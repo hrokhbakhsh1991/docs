@@ -24,8 +24,8 @@ describe("denali registration intake client logic", () => {
   });
 
   it("DN-INTAKE-DUP-01 detects two guest cards with the same IR mobile", () => {
-    assert.equal(findDuplicateOtherGuestMobile(["09128003999", "09128003999"]), "+989128003999");
-    assert.equal(findDuplicateOtherGuestMobile(["09128003999", "+989128003999"]), "+989128003999");
+    assert.equal(findDuplicateOtherGuestMobile(["09128003999", "09128003999"]), "09128003999");
+    assert.equal(findDuplicateOtherGuestMobile(["09128003999", "+989128003999"]), "09128003999");
     assert.equal(findDuplicateOtherGuestMobile(["09128003999", "09128003101"]), null);
   });
 

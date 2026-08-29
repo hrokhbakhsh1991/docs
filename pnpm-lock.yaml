@@ -61,6 +61,9 @@ importers:
       '@app-tour/finance-http-contracts':
         specifier: workspace:*
         version: link:../../packages/finance-http-contracts
+      '@app-tour/iran-mobile':
+        specifier: workspace:*
+        version: link:../../packages/iran-mobile
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../packages/platform-core
@@ -602,6 +605,10 @@ importers:
         version: 5.9.3
 
   packages/catalog-registration-auth:
+    dependencies:
+      '@app-tour/iran-mobile':
+        specifier: workspace:*
+        version: link:../iran-mobile
     devDependencies:
       '@app-tour/config':
         specifier: workspace:*
@@ -771,6 +778,9 @@ importers:
 
   packages/guest-surface-host:
     dependencies:
+      '@app-tour/iran-mobile':
+        specifier: workspace:*
+        version: link:../iran-mobile
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../tenant-kernel
@@ -833,6 +843,21 @@ importers:
       '@app-tour/workspace-alpine':
         specifier: workspace:*
         version: link:../workspaces/alpine
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/iran-mobile:
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4

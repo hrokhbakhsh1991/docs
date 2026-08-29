@@ -1,7 +1,17 @@
+import { isValidIranMobile, toIranMobileE164 } from "@app-tour/iran-mobile";
+
 import { logger } from "../observability/logger";
 
+function resolveProviderMobile(mobile: string): string {
+  if (isValidIranMobile(mobile)) {
+    return toIranMobileE164(mobile);
+  }
+  return mobile;
+}
+
 export function deliverOtpCode(mobile: string, code: string): void {
-  void mobile;
+  const providerMobile = resolveProviderMobile(mobile);
+  void providerMobile;
   void code;
   if (process.env.RESEND_API_KEY?.trim()) {
     return;

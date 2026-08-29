@@ -1,6 +1,9 @@
 "use client";
 
-import { normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
+import {
+  formatIranMobileForDisplay,
+  normalizePublicRegistrationMobile,
+} from "@app-tour/catalog-registration-auth";
 import { Input } from "@app-tour/ui-primitives/input";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -193,7 +196,9 @@ export function MemberProfileMobileChange({
         <p>{t("fieldLabels.mobile")}</p>
         <p>{t("mobileChange.viewHint")}</p>
       </div>
-      <p data-member-profile-mobile-change-value>{currentMobile ?? "—"}</p>
+      <p data-member-profile-mobile-change-value>
+        {currentMobile ? formatIranMobileForDisplay(currentMobile) : "—"}
+      </p>
       {success !== null ? (
         <p role="status" data-member-profile-mobile-change-success>
           {success}

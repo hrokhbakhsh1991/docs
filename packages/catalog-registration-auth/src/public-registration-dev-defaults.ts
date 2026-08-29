@@ -1,3 +1,5 @@
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
+
 export const PUBLIC_REGISTRATION_DEV_PHONE = "+15550009901";
 export const PUBLIC_REGISTRATION_DEV_OTP = "1234";
 
@@ -24,7 +26,7 @@ export function guestVisibleProfileMobile(mobile: string | null | undefined): st
   if (trimmed.length === 0 || trimmed === PUBLIC_REGISTRATION_DEV_PHONE) {
     return "";
   }
-  return trimmed;
+  return formatIranMobileForDisplay(trimmed);
 }
 
 /**
@@ -33,5 +35,8 @@ export function guestVisibleProfileMobile(mobile: string | null | undefined): st
  * Unlike {@link guestVisibleProfileMobile}, mid-typing spaces are preserved.
  */
 export function guestLoginPhoneFieldValue(phone: string): string {
-  return phone.trim() === PUBLIC_REGISTRATION_DEV_PHONE ? "" : phone;
+  if (phone.trim() === PUBLIC_REGISTRATION_DEV_PHONE) {
+    return "";
+  }
+  return formatIranMobileForDisplay(phone);
 }

@@ -22,6 +22,7 @@ export {
   putDenaliTourPhoto,
   putDenaliWizardDraftPhoto,
   readMinioPhotoConfigFromEnv,
+  resolveMinioPhotoPresignConfig,
 } from "./minio-photo-storage";
 export {
   assertDenaliWizardDraftDestKey,

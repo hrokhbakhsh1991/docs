@@ -11,6 +11,7 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   # Root build establishes every API workspace dependency above; prevent the
   # API package prebuild from rebuilding the same graph before tsc.
   export APP_TOUR_SKIP_API_WORKSPACE_DEPS=1
+  pnpm --dir packages/iran-mobile run build
   pnpm --dir packages/catalog-registration-auth run build
   pnpm --dir packages/booking-http-contracts run build
   pnpm --dir packages/tour-core run build

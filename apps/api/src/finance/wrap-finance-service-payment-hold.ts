@@ -4,6 +4,7 @@
 import type { FinanceService } from "@app-tour/finance-core/application";
 
 import { satisfyPaymentHoldIfFullyPaid } from "../finance/apply-payment-hold-after-booking-approve.ts";
+import { isPaymentHoldEnabled } from "./payment-hold.service.ts";
 
 export function wrapFinanceServiceWithPaymentHold(service: FinanceService): FinanceService {
   const createManualPayment = service.createManualPayment.bind(service);
@@ -12,6 +13,9 @@ export function wrapFinanceServiceWithPaymentHold(service: FinanceService): Fina
 
   service.createManualPayment = async (auth, body, idempotencyKey) => {
     const payment = await createManualPayment(auth, body, idempotencyKey);
+    if (!isPaymentHoldEnabled()) {
+      return payment;
+    }
     if (auth.role === "admin" || auth.role === "owner") {
       const paymentStatus = String(payment.status ?? "").toLowerCase();
       if (paymentStatus === "paid") {

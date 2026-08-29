@@ -44,7 +44,7 @@ export async function resolvePlatformOpsPhoneAccess(
     // fall through to env whitelist
   }
 
-  const allowed = readPlatformOpsPhones();
+  const allowed = readPlatformOpsPhones().map((entry) => normalizeLoginMobile(entry));
   if (allowed.length === 0) {
     if (requiresProductionGradeIntegrity()) {
       return null;

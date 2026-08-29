@@ -6,7 +6,7 @@ import type {
   OperatorProfileGender,
 } from "@app-tour/workspace-sdk";
 
-import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import { canonicalizeLoginMobile, resolveLoginMobileLookupKeys } from "./canonicalize-login-mobile";
 import {
   computeInviteExpiresAt,
   isOperatorInviteActive,
@@ -239,7 +239,13 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   }
 
   async findUserByMobile(mobile: string): Promise<IdentityUserRecord | null> {
-    return this.usersByMobile.get(normalizeMobile(mobile)) ?? null;
+    for (const key of resolveLoginMobileLookupKeys(mobile)) {
+      const user = this.usersByMobile.get(key);
+      if (user !== undefined) {
+        return user;
+      }
+    }
+    return null;
   }
 
   async findUserById(userId: string): Promise<IdentityUserRecord | null> {
@@ -977,7 +983,7 @@ const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
 const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
 const OPERATOR_SMOKE_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
-const DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE = "+15550001001";
+const DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE = "09174070937";
 const OPERATOR_SMOKE_ADMIN_MOBILE = "+15550001002";
 const OPERATOR_SMOKE_MEMBER_MOBILE = "+15550001003";
 const OPERATOR_SMOKE_INVITEE_USER_ID = "00000000-0000-4000-8000-000000000195";
@@ -988,7 +994,12 @@ function resolveOperatorSmokeOwnerSeed(): {
   readonly mobile: string;
   readonly displayName: string;
 } {
-  const mobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const configured = process.env.OPERATOR_OWNER_MOBILE?.trim();
+  const raw =
+    configured !== undefined && configured.length > 0
+      ? configured
+      : DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const mobile = canonicalizeLoginMobile(raw);
   const userId = process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
   const displayName = process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
   return { userId, mobile, displayName };
