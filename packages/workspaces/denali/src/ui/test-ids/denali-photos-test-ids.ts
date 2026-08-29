@@ -5,6 +5,11 @@ export const DENALI_PHOTOS_TEST_IDS = {
   preview: "denali-composite-photos-preview",
   uploading: "denali-composite-photos-uploading",
   optionalEmpty: "denali-photos-optional-empty",
+  daySections: "denali-photos-day-sections",
+  daySection: (day: number) => `denali-photos-day-${day}`,
+  dayGrid: (day: number) => `denali-photos-day-grid-${day}`,
+  addPhotoToDay: (day: number) => `denali-photos-day-add-${day}`,
+  coverBadge: "denali-photos-cover-badge",
 } as const;
 
 export const DENALI_PHOTO_PREVIEW_TEST_ID = "denali-composite-photos-preview";
