@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  SETTINGS_HIDDEN_FILE_INPUT_CLASS,
+  SettingsPageShell,
+} from "@/admin/patterns/settings-page-shell";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import { TenantBrandMark } from "@/admin/shell/tenant-brand-mark";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -54,7 +56,6 @@ export function BrandingSettingsClient({
 }: BrandingSettingsClientProps) {
   const t = useTranslations("settings.branding");
   const tErrors = useTranslations("settings.errors");
-  const tCommon = useTranslations("common");
   const router = useRouter();
   const brandingContext = useTenantBrandingOptional();
   const canManage = isAdminOrOwnerRole(session.role);
@@ -231,20 +232,11 @@ export function BrandingSettingsClient({
   }
 
   return (
-    <div
-      className="space-y-6"
-      data-testid={BRANDING_SETTINGS_TEST_IDS.page}
+    <SettingsPageShell
+      testId={BRANDING_SETTINGS_TEST_IDS.page}
+      maxWidth="3xl"
       data-can-manage={canManage ? "true" : "false"}
     >
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/settings">
-            <ArrowLeft className="h-4 w-4" />
-            {tCommon("back")}
-          </Link>
-        </Button>
-      </div>
-
       <SettingsPageHeader title={t("title")} description={t("description")} />
 
       {!canManage ? (
@@ -259,13 +251,13 @@ export function BrandingSettingsClient({
       {loading ? (
         <OperatorSkeleton size="panel-xl" />
       ) : (
-        <Card data-operator-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="w-full min-w-0 shadow-sm">
           <CardHeader>
             <CardTitle>{t("logoSectionTitle")}</CardTitle>
             <CardDescription>{t("logoSectionDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid gap-3 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-3 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
               <div
                 className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2 shadow-sm"
                 data-testid={BRANDING_SETTINGS_TEST_IDS.previewFa}
@@ -322,7 +314,7 @@ export function BrandingSettingsClient({
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border bg-muted/40">
                 {logoPreviewUrl !== null ? (
                   <img
@@ -366,7 +358,7 @@ export function BrandingSettingsClient({
                     ref={fileInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
+                    className={SETTINGS_HIDDEN_FILE_INPUT_CLASS}
                     onChange={(event) => void handleLogoSelected(event.target.files?.[0])}
                   />
                 </div>
@@ -421,6 +413,6 @@ export function BrandingSettingsClient({
           </CardContent>
         </Card>
       )}
-    </div>
+    </SettingsPageShell>
   );
 }

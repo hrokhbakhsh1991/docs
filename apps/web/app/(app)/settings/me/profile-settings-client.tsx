@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { OperatorProfileAvatar } from "@/admin/patterns/operator-profile-avatar";
+import {
+  SETTINGS_HIDDEN_FILE_INPUT_CLASS,
+  SettingsPageShell,
+} from "@/admin/patterns/settings-page-shell";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -195,16 +199,13 @@ export function ProfileSettingsClient({
   }
 
   return (
-    <div
-      className="min-w-0 w-full max-w-full space-y-6"
-      data-testid={SETTINGS_HUB_TEST_IDS.profilePage}
-    >
+    <SettingsPageShell testId={SETTINGS_HUB_TEST_IDS.profilePage} maxWidth="xl">
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {loading ? (
-        <Skeleton className="mx-auto h-64 w-full max-w-xl" />
+        <Skeleton className="h-64 w-full" />
       ) : (
-        <Card className="mx-auto w-full min-w-0 max-w-xl">
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>{t("cardTitle")}</CardTitle>
             <CardDescription>
@@ -251,7 +252,7 @@ export function ProfileSettingsClient({
                       ref={fileInputRef}
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
-                      className="sr-only !size-px !min-w-0 !max-w-px border-0 p-0 shadow-none"
+                      className={SETTINGS_HIDDEN_FILE_INPUT_CLASS}
                       onChange={(event) => void handleAvatarSelected(event.target.files?.[0])}
                     />
                   </div>
@@ -343,6 +344,6 @@ export function ProfileSettingsClient({
           </CardContent>
         </Card>
       )}
-    </div>
+    </SettingsPageShell>
   );
 }

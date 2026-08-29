@@ -97,14 +97,20 @@ describe("settings-profile.spec.ts — Phase 9.6", () => {
     assert.equal(hrefForSettingsModule(module), "/settings/reconciliation-triage");
   });
 
-  it("WEB-9.6-ME-05 profile layout uses containment + centered card", () => {
+  it("WEB-9.6-ME-05 profile layout uses shared settings shell + centered card", () => {
     const WEB_ROOT = resolve(import.meta.dirname, "..");
     const profileClient = readFileSync(
       resolve(WEB_ROOT, "app/(app)/settings/me/profile-settings-client.tsx"),
       "utf8"
     );
-    assert.match(profileClient, /min-w-0 w-full max-w-full/);
-    assert.match(profileClient, /mx-auto w-full min-w-0 max-w-xl/);
-    assert.match(profileClient, /type="file"[\s\S]*className="sr-only !size-px/);
+    const shell = readFileSync(
+      resolve(WEB_ROOT, "src/admin/patterns/settings-page-shell.tsx"),
+      "utf8"
+    );
+    assert.match(profileClient, /SettingsPageShell/);
+    assert.match(profileClient, /SETTINGS_HIDDEN_FILE_INPUT_CLASS/);
+    assert.match(profileClient, /maxWidth="xl"/);
+    assert.match(shell, /data-operator-settings-page/);
+    assert.match(shell, /SETTINGS_HIDDEN_FILE_INPUT_CLASS/);
   });
 });

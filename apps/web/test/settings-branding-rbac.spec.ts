@@ -45,6 +45,17 @@ describe("settings-branding-rbac.spec.ts", () => {
     assert.match(client, /notifyBrandingChanged/);
   });
 
+  it("WEB-BRANDING-LAYOUT-01 uses shared settings shell + collapsed file input", () => {
+    const client = readFileSync(
+      join(WEB_ROOT, "app/(app)/settings/branding/branding-settings-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /SettingsPageShell/);
+    assert.match(client, /SETTINGS_HIDDEN_FILE_INPUT_CLASS/);
+    assert.match(client, /maxWidth="3xl"/);
+    assert.doesNotMatch(client, /ArrowLeft/);
+  });
+
   it("WEB-BRANDING-LIVE-02 TenantBrandingProvider wraps operator shell", () => {
     const shell = readFileSync(join(WEB_ROOT, "src/admin/shell/operator-shell.tsx"), "utf8");
     assert.match(shell, /TenantBrandingProvider/);
