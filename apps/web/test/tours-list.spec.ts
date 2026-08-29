@@ -18,9 +18,11 @@ import {
   TOURS_LIST_TEST_IDS,
 } from "../src/features/tours/query-model";
 import {
+  clearToursListAdvancedFilters,
   queryStatusToUiStatus,
   TOUR_STATUS_UI_OPTIONS,
   tourListQueryHasFilters,
+  toursListAdvancedFiltersDirty,
   tourListTotalPages,
   uiStatusToQueryStatus,
 } from "../src/features/tours/tours-list-logic";
@@ -55,10 +57,15 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
 
   it("WEB-9.3-01 tour list exposes page landmarks (CP-9.3-L06)", () => {
     assert.equal(TOURS_LIST_TEST_IDS.page, "operator-tours-page");
+    assert.equal(TOURS_LIST_TEST_IDS.controls, "operator-tours-controls");
     assert.equal(TOURS_LIST_TEST_IDS.list, "operator-tours-list");
     assert.equal(TOURS_LIST_TEST_IDS.search, "operator-tours-search");
     assert.equal(TOURS_LIST_TEST_IDS.status, "operator-tours-status");
+    assert.equal(TOURS_LIST_TEST_IDS.filtersToggle, "operator-tours-filters-toggle");
+    assert.equal(TOURS_LIST_TEST_IDS.filtersPanel, "operator-tours-filters-panel");
+    assert.equal(TOURS_LIST_TEST_IDS.activeFilters, "operator-tours-active-filters");
     assert.equal(TOURS_LIST_TEST_IDS.sort, "operator-tours-sort");
+    assert.equal(TOURS_LIST_TEST_IDS.sortSelect, "operator-tours-sort-select");
     assert.equal(TOURS_LIST_TEST_IDS.pagination, "operator-tours-pagination");
   });
 
@@ -330,6 +337,39 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(faPrice?.includes("۲۰۰") ?? faPrice?.includes("200"), true);
   });
 
+  it("WEB-TL-FILTER-01 advanced filter dirty + clear helpers preserve URL defaults", () => {
+    assert.equal(toursListAdvancedFiltersDirty(DEFAULT_TOUR_LIST_QUERY), false);
+    assert.equal(
+      toursListAdvancedFiltersDirty({ ...DEFAULT_TOUR_LIST_QUERY, status: "active" }),
+      true
+    );
+    const cleared = clearToursListAdvancedFilters({
+      ...DEFAULT_TOUR_LIST_QUERY,
+      status: "completed",
+      category: "mountain_day",
+      sortBy: "title",
+      sortDir: "asc",
+      page: 3,
+    });
+    assert.equal(cleared.status, "all");
+    assert.equal(cleared.category, "all");
+    assert.equal(cleared.sortBy, "departure_at");
+    assert.equal(cleared.sortDir, "asc");
+    assert.equal(cleared.page, 1);
+  });
+
+  it("WEB-TL-FILTER-02 compact controls hide status button wall", () => {
+    const controls = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-controls.tsx"),
+      "utf8"
+    );
+    assert.match(controls, /TOUR_STATUS_UI_OPTIONS\.map/);
+    assert.match(controls, /<option key=\{option\}/);
+    assert.doesNotMatch(controls, /variant=\{statusUi === option \? "default" : "outline"\}/);
+    assert.match(controls, /TOURS_LIST_TEST_IDS\.filtersToggle/);
+    assert.match(controls, /TOURS_LIST_TEST_IDS\.sortSelect/);
+  });
+
   it("pagination total pages helper (CP-9.3-L08)", () => {
     assert.equal(tourListTotalPages(0, 10), 1);
     assert.equal(tourListTotalPages(24, 10), 3);
@@ -344,13 +384,21 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
       "utf8"
     );
-    assert.match(skeleton, /OperatorSkeleton size="hero"/);
+    const controls = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-controls.tsx"),
+      "utf8"
+    );
+    assert.match(skeleton, /OperatorSkeleton size="search"/);
     assert.match(skeleton, /CardHeader/);
     assert.match(skeleton, /CardFooter/);
     assert.match(skeleton, /TOURS_LIST_TEST_IDS\.listSkeleton/);
     assert.match(pageClient, /isInitialLoad/);
     assert.match(pageClient, /isRefetching/);
     assert.match(pageClient, /aria-busy=\{isRefetching/);
+    assert.match(pageClient, /ToursDirectoryControls/);
+    assert.match(controls, /TOURS_LIST_TEST_IDS\.filtersToggle/);
+    assert.match(controls, /TOURS_LIST_TEST_IDS\.activeFilters/);
+    assert.match(controls, /Popover/);
     assert.doesNotMatch(pageClient, /\bisDenali\b/);
     assert.match(pageClient, /resolveCatalogListFeatures/);
     assert.match(pageClient, /hasCategoryFilter/);

@@ -18,10 +18,15 @@ export type TourListQueryModel = {
 
 export const TOURS_LIST_TEST_IDS = {
   page: "operator-tours-page",
+  controls: "operator-tours-controls",
   list: "operator-tours-list",
   search: "operator-tours-search",
   status: "operator-tours-status",
+  filtersToggle: "operator-tours-filters-toggle",
+  filtersPanel: "operator-tours-filters-panel",
+  activeFilters: "operator-tours-active-filters",
   sort: "operator-tours-sort",
+  sortSelect: "operator-tours-sort-select",
   pagination: "operator-tours-pagination",
   empty: "operator-tours-empty",
   emptyCatalog: "operator-tours-empty-catalog",

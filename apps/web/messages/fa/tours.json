@@ -4,6 +4,27 @@
   "newTour": "تور جدید",
   "searchPlaceholder": "جستجوی تور…",
   "sortLabel": "مرتب‌سازی:",
+  "sortOption": {
+    "departure_at:asc": "نزدیک‌ترین حرکت",
+    "departure_at:desc": "دورترین حرکت",
+    "created_at:desc": "جدیدترین",
+    "created_at:asc": "قدیمی‌ترین",
+    "title:asc": "عنوان (الف–ی)",
+    "title:desc": "عنوان (ی–الف)",
+    "price:desc": "بیشترین قیمت",
+    "price:asc": "کمترین قیمت"
+  },
+  "filters": {
+    "toggle": "فیلترها",
+    "statusLabel": "وضعیت",
+    "clearAll": "پاک کردن همه"
+  },
+  "activeFilters": {
+    "status": "وضعیت: {value}",
+    "category": "دسته: {value}",
+    "sort": "مرتب‌سازی: {value}",
+    "remove": "حذف {filter}"
+  },
   "empty": "هنوز توری ثبت نشده است.",
   "sort": {
     "created_at": "تاریخ ثبت",

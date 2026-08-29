@@ -3,21 +3,15 @@
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
 import { PageHeader } from "@/admin/patterns/page-header";
-import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
-import {
-  resolveWizardTourCategoryGroupLabel,
-  resolveWizardTourKindLabel,
-} from "@/wizard/wizard-label-surface-registry";
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import type { OperatorTourListResponse } from "@/features/tours/operator-tours-types";
 import {
   DEFAULT_TOUR_LIST_QUERY,
@@ -26,25 +20,15 @@ import {
   TOURS_LIST_TEST_IDS,
   type TourListQueryModel,
 } from "@/features/tours/query-model";
-import {
-  TOUR_CATEGORY_FILTER_ALL,
-  tourCategoryFilterGroupsForPlugin,
-  type TourCategoryFilter,
-} from "@/features/tours/tour-list-category-logic";
 import { ensureTourListCategorySurface } from "@/features/tours/tour-list-category-registry";
+import { tourCategoryFilterGroupsForPlugin } from "@/features/tours/tour-list-category-logic";
 import { ensureGeneratedLabelResolver } from "@/wizard/wizard-label-registry";
 import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
-import {
-  queryStatusToUiStatus,
-  TOUR_STATUS_UI_OPTIONS,
-  tourListQueryHasFilters,
-  tourListTotalPages,
-  uiStatusToQueryStatus,
-  type TourStatusUiFilter,
-} from "@/features/tours/tours-list-logic";
+import { tourListQueryHasFilters, tourListTotalPages } from "@/features/tours/tours-list-logic";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 import { TourCard } from "./tour-card";
+import { ToursDirectoryControls } from "./tours-directory-controls";
 import { ToursListSkeleton, ToursListToolbarSkeleton } from "./tours-list-skeleton";
 
 type OperatorToursPageClientProps = {
@@ -56,19 +40,11 @@ function canManageTours(role: OperatorSessionContext["role"]): boolean {
   return role === "owner" || role === "admin";
 }
 
-const SORT_COLUMNS: readonly TourListQueryModel["sortBy"][] = [
-  "created_at",
-  "departure_at",
-  "title",
-  "price",
-] as const;
-
 export function OperatorToursPageClient({
   session,
   initialToursList = null,
 }: OperatorToursPageClientProps) {
   const t = useTranslations("tours");
-  const tWorkspace = useWorkspaceWizardTranslator(session.pluginId);
   const tErrors = useTranslations("tours.errors");
   const tCommon = useTranslations("common");
   const catalogListFeatures = useMemo(
@@ -87,7 +63,6 @@ export function OperatorToursPageClient({
     const warmCategorySurface = async () => {
       let surface = await ensureTourListCategorySurface(session.pluginId);
       if (surface == null) {
-        // ED-LIST-CAT-01: cold plugin load / gate race — one retry before giving up.
         surface = await ensureTourListCategorySurface(session.pluginId);
       }
       await ensureGeneratedLabelResolver(session.pluginId);
@@ -202,7 +177,6 @@ export function OperatorToursPageClient({
   }, [query, fetchNonce]);
 
   const showCreate = canManageTours(session.role);
-  const statusUi = queryStatusToUiStatus(query.status);
   const totalPages = data ? tourListTotalPages(data.total, data.limit) : 1;
   const hasFilters = tourListQueryHasFilters(query);
   const items = data?.items ?? [];
@@ -210,39 +184,6 @@ export function OperatorToursPageClient({
   const isRefetching = loading && data !== null;
   const showEmptyCatalog = !loading && !error && items.length === 0 && !hasFilters;
   const showEmptyFilter = !loading && !error && items.length === 0 && hasFilters;
-
-  const handleStatusChange = (nextUi: TourStatusUiFilter) => {
-    replaceQuery({
-      ...query,
-      status: uiStatusToQueryStatus(nextUi),
-      page: 1,
-    });
-  };
-
-  const handleCategoryChange = (next: TourCategoryFilter) => {
-    replaceQuery({
-      ...query,
-      category: next,
-      page: 1,
-    });
-  };
-
-  const handleSortChange = (column: TourListQueryModel["sortBy"]) => {
-    if (query.sortBy === column) {
-      replaceQuery({
-        ...query,
-        sortDir: query.sortDir === "asc" ? "desc" : "asc",
-        page: 1,
-      });
-      return;
-    }
-    replaceQuery({
-      ...query,
-      sortBy: column,
-      sortDir: column === "title" ? "asc" : "desc",
-      page: 1,
-    });
-  };
 
   return (
     <div className="space-y-6" data-testid={TOURS_LIST_TEST_IDS.page}>
@@ -272,124 +213,20 @@ export function OperatorToursPageClient({
       ) : null}
 
       {isInitialLoad ? (
-        <ToursListToolbarSkeleton hasCategoryFilter={hasCategoryFilter} />
+        <ToursListToolbarSkeleton />
       ) : (
-        <div className="space-y-4">
-          <div className="relative max-w-xl">
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              data-testid={TOURS_LIST_TEST_IDS.search}
-              className="ps-9"
-              value={searchInput}
-              placeholder={t("searchPlaceholder")}
-              onChange={(event) => setSearchInput(event.target.value)}
-            />
-          </div>
-
-          <div
-            className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
-            data-testid={TOURS_LIST_TEST_IDS.status}
-          >
-            <div className="flex flex-wrap gap-2">
-              {TOUR_STATUS_UI_OPTIONS.map((option) => {
-                return (
-                  <Button
-                    key={option}
-                    type="button"
-                    size="sm"
-                    variant={statusUi === option ? "default" : "outline"}
-                    onClick={() => {
-                      handleStatusChange(option);
-                    }}
-                  >
-                    {t(`status.${option}`)}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          {hasCategoryFilter ? (
-            <div className="space-y-3" data-testid={TOURS_LIST_TEST_IDS.category}>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">{t("categoryFilterLabel")}</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={query.category === TOUR_CATEGORY_FILTER_ALL ? "default" : "outline"}
-                  onClick={() => handleCategoryChange(TOUR_CATEGORY_FILTER_ALL)}
-                >
-                  {t("categoryAll")}
-                </Button>
-              </div>
-              {categorySurfaceReady ? (
-                categoryFilterGroups.map((group) => (
-                <div key={group.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="min-w-20 text-xs font-medium text-muted-foreground">
-                    {resolveWizardTourCategoryGroupLabel(
-                      session.pluginId,
-                      tWorkspace,
-                      group.id
-                    )}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {group.slugs.map((slug) => (
-                      <Button
-                        key={slug}
-                        type="button"
-                        size="sm"
-                        variant={query.category === slug ? "default" : "outline"}
-                        onClick={() => handleCategoryChange(slug)}
-                      >
-                        {resolveWizardTourKindLabel(session.pluginId, tWorkspace, slug)}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ))
-              ) : categorySurfaceFailed ? (
-                <div
-                  className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
-                  data-operator-category-filters-failed
-                >
-                  <span>{t("categoryFiltersUnavailable")}</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setCategoryWarmNonce((n) => n + 1)}
-                  >
-                    {tCommon("retry")}
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground" data-operator-category-filters-pending>
-                  {tCommon("loading")}
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-2" data-testid={TOURS_LIST_TEST_IDS.sort}>
-            <span className="text-sm text-muted-foreground">{t("sortLabel")}</span>
-            {SORT_COLUMNS.map((column) => {
-              const active = query.sortBy === column;
-              const dir = active ? query.sortDir : null;
-              return (
-                <Button
-                  key={column}
-                  type="button"
-                  size="sm"
-                  variant={active ? "secondary" : "outline"}
-                  onClick={() => handleSortChange(column)}
-                >
-                  {t(`sort.${column}`)}
-                  {dir ? ` (${dir})` : ""}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
+        <ToursDirectoryControls
+          pluginId={session.pluginId}
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onReplaceQuery={replaceQuery}
+          hasCategoryFilter={hasCategoryFilter}
+          categoryFilterGroups={categoryFilterGroups}
+          categorySurfaceReady={categorySurfaceReady}
+          categorySurfaceFailed={categorySurfaceFailed}
+          onRetryCategorySurface={() => setCategoryWarmNonce((n) => n + 1)}
+        />
       )}
 
       {isInitialLoad ? <ToursListSkeleton /> : null}
