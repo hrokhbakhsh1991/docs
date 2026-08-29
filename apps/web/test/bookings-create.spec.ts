@@ -34,6 +34,17 @@ describe("bookings-create.spec.ts — Phase 9.5 Web", () => {
     assert.equal(BOOKINGS_CREATE_TEST_IDS.locked, "operator-bookings-create-locked");
   });
 
+  it("WEB-9.5-05b manual create uses searchable tour select", async () => {
+    const page = await import("node:fs/promises").then((fs) =>
+      fs.readFile(
+        new URL("../app/(app)/bookings/new/bookings-create-page-client.tsx", import.meta.url),
+        "utf8"
+      )
+    );
+    assert.match(page, /OperatorTourSelect/);
+    assert.doesNotMatch(page, /<select[\s\S]*tourSelect/);
+  });
+
   it("WEB-9.5-06 create payload validates and builds pending body", () => {
     const invalid = validateBookingCreateForm(DEFAULT_BOOKING_CREATE_FORM, TOURS);
     assert.equal(invalid.ok, false);

@@ -4,10 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import {
-  OperatorSearchableSelect,
-  type OperatorSearchableSelectOption,
-} from "@/admin/patterns/operator-searchable-select";
+import { OperatorTourSelect } from "@/admin/patterns/operator-tour-select";
+import type { OperatorSearchableSelectOption } from "@/admin/patterns/operator-searchable-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BookingsSummaryResponse } from "@/features/bookings/bookings-command-center-types";
 
@@ -94,22 +92,15 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
     };
   }, []);
 
-  const options = useMemo((): readonly OperatorSearchableSelectOption[] => {
-    const allOption: OperatorSearchableSelectOption = {
-      value: "",
-      label: t("allTours"),
-    };
-    return [
-      allOption,
-      ...tourChips.map((chip) => ({
-        value: chip.tourId,
-        label: chip.tourTitle,
-        description: t("tourFilterChipMeta", {
-          pending: chip.pendingCount,
-          total: chip.totalCount,
-        }),
-      })),
-    ];
+  const seedOptions = useMemo((): readonly OperatorSearchableSelectOption[] => {
+    return tourChips.map((chip) => ({
+      value: chip.tourId,
+      label: chip.tourTitle,
+      description: t("tourFilterChipMeta", {
+        pending: chip.pendingCount,
+        total: chip.totalCount,
+      }),
+    }));
   }, [t, tourChips]);
 
   const replaceTour = (tourId: string) => {
@@ -143,13 +134,16 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
     >
       <label className="flex min-w-0 flex-col gap-1.5 sm:max-w-md">
         <span className="text-xs font-medium text-muted-foreground">{t("tourFilterLabel")}</span>
-        <OperatorSearchableSelect
+        <OperatorTourSelect
           value={activeTourId}
-          options={options}
           onValueChange={replaceTour}
+          allowAll
+          allLabel={t("allTours")}
+          seedOptions={seedOptions}
           placeholder={t("allTours")}
           searchPlaceholder={t("tourFilterSearchPlaceholder")}
           emptyLabel={t("tourFilterNoResults")}
+          loadingLabel={t("tourFilterLoading")}
           ariaLabel={t("tourFilterAria")}
         />
       </label>

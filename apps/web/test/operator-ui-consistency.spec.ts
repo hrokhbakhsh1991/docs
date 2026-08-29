@@ -18,9 +18,9 @@ function read(rel: string): string {
 }
 
 describe("operator-ui-consistency.spec.ts", () => {
-  it("WEB-OPUI-01 finance tour filter uses compact searchable select", () => {
+  it("WEB-OPUI-01 finance tour filter uses scalable tour autocomplete", () => {
     const filter = read("src/finance/finance-tour-filter.tsx");
-    assert.match(filter, /OperatorSearchableSelect/);
+    assert.match(filter, /OperatorTourSelect/);
     assert.match(filter, new RegExp(FINANCE_TOUR_FILTER_TEST_IDS.root));
     assert.match(filter, /data-operator-finance-tour-filter/);
     assert.doesNotMatch(filter, /tourChips\.map\(\(chip\) => \(\s*<Button/);

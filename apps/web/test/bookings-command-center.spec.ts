@@ -36,9 +36,12 @@ import {
   resolveBookingsSelectedId,
   resolveBookingsKpiQueryPatch,
   resolveBookingsKpiStatusFilter,
+  resolveBookingsListTotalPages,
   resolveInboxSelectionAfterKey,
   serializeBookingsCommandCenterQuery,
+  shouldResetBookingsPagination,
   sortBookingListItems,
+  withBookingsPaginationReset,
   applyDepartureWindow,
   applyBookingsDepartureWindowChip,
   BOOKINGS_DEPARTURE_WINDOW_DAYS,
@@ -82,6 +85,7 @@ import {
 } from "../src/features/bookings/bookings-ops-path-logic";
 import {
   BOOKINGS_COMMAND_CENTER_TEST_IDS,
+  BOOKINGS_LIST_PAGE_SIZE,
   DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
   isAdminOrOwnerRole,
 } from "../src/features/bookings/bookings-command-center-types";
@@ -115,8 +119,8 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(apiQuery, /q=ali/);
   });
 
-  it("WEB-9.5-04 tour chips and bulk approve helpers (S9.5-R3)", () => {
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.tourChips, "operator-bookings-tour-chips");
+  it("WEB-9.5-04 tour filter and bulk approve helpers (S9.5-R3)", () => {
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.tourFilter, "operator-bookings-tour-filter");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.bulkApproveButton,
       "operator-bookings-bulk-approve"
@@ -228,8 +232,13 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(state.type, "ready");
   });
 
-  it("WEB-9.5-06 keyset load-more helpers + bookingId href (UX-BKG P0)", () => {
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.loadMoreButton, "operator-bookings-load-more");
+  it("WEB-9.5-06 keyset pagination helpers + bookingId href (UX-BKG P0)", () => {
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.pagination, "operator-bookings-pagination");
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.controls, "operator-bookings-controls");
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.queueStatus, "operator-bookings-queue-status");
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersToggle, "operator-bookings-filters-toggle");
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.activeFilters, "operator-bookings-active-filters");
+    assert.equal(BOOKINGS_LIST_PAGE_SIZE, 25);
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionError, "operator-bookings-action-error");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.mobileActionBar,
@@ -238,11 +247,46 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
 
     const withCursor = buildBookingsApiQuery(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, {
       cursor: "cursor-2",
-      limit: 50,
+      limit: BOOKINGS_LIST_PAGE_SIZE,
     });
     assert.match(withCursor, /cursor=cursor-2/);
-    assert.match(withCursor, /limit=50/);
+    assert.match(withCursor, /limit=25/);
     assert.match(withCursor, /status=pending%2Cwaitlisted/);
+
+    const page2Query = parseBookingsCommandCenterQuery(
+      new URLSearchParams("page=2&listCursor=cursor-2")
+    );
+    assert.equal(page2Query.page, 2);
+    assert.equal(page2Query.listCursor, "cursor-2");
+    const page2Serialized = serializeBookingsCommandCenterQuery(page2Query);
+    assert.match(page2Serialized, /page=2/);
+    assert.match(page2Serialized, /listCursor=cursor-2/);
+
+    assert.equal(resolveBookingsListTotalPages(0), 1);
+    assert.equal(resolveBookingsListTotalPages(25, BOOKINGS_LIST_PAGE_SIZE), 1);
+    assert.equal(resolveBookingsListTotalPages(26, BOOKINGS_LIST_PAGE_SIZE), 2);
+
+    assert.equal(
+      shouldResetBookingsPagination(
+        DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
+        { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, search: "ali" }
+      ),
+      true
+    );
+    assert.equal(
+      shouldResetBookingsPagination(
+        { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, page: 2, listCursor: "c2" },
+        { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, page: 3, listCursor: "c3" }
+      ),
+      false
+    );
+    const reset = withBookingsPaginationReset({
+      ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
+      page: 3,
+      listCursor: "c3",
+    });
+    assert.equal(reset.page, 1);
+    assert.equal(reset.listCursor, "");
 
     const page1 = {
       items: [
@@ -795,11 +839,18 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
   });
 
-  it("WEB-9.5-10 tour chip bar partition, truncate, ensure-active (P4a)", () => {
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.tourChipsMore,
-      "operator-bookings-tour-chips-more"
+  it("WEB-9.5-10 tour chip helpers + searchable tour filter wiring (P4a)", () => {
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.tourFilter, "operator-bookings-tour-filter");
+    const controls = readFileSync(
+      new URL("../src/features/bookings/bookings-directory-controls.tsx", import.meta.url),
+      "utf8"
     );
+    assert.match(controls, /BookingsTourFilter/);
+    const shell = readFileSync(
+      new URL("../src/features/bookings/bookings-command-center-shell.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.doesNotMatch(shell, /BookingsTourChipBar/);
     assert.equal(truncateTourChipTitle("Short"), "Short");
     assert.equal(truncateTourChipTitle("ABCDEFGHIJKLMNOPQRSTUVWXYZ12", 10), "ABCDEFGHI…");
     assert.equal(truncateTourChipTitle("ExactTen!!", 10), "ExactTen!!");
@@ -1187,6 +1238,12 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       displayLabel: string;
       layoutLabel: string;
       advancedFiltersHeading: string;
+      filters: { toggle: string; clearAll: string };
+      queueStatusLabel: string;
+      paymentFilterLabel: string;
+      activeFilters: { status: string; payment: string; departure: string };
+      pagination: { summary: string };
+      inboxPage: string;
       filtersToggle: string;
       waitlistActionAria: string;
       detailSections: {
@@ -1205,6 +1262,14 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(enBookings.displayLabel, "Display");
     assert.equal(enBookings.layoutLabel, "Display");
     assert.equal(enBookings.advancedFiltersHeading, "Advanced filters");
+    assert.equal(enBookings.filters.toggle, "Filters");
+    assert.equal(enBookings.filters.clearAll, "Clear all");
+    assert.equal(enBookings.queueStatusLabel, "Queue status");
+    assert.equal(enBookings.paymentFilterLabel, "Payment");
+    assert.match(enBookings.activeFilters.status, /\{value\}/);
+    assert.match(enBookings.activeFilters.departure, /\{days\}/);
+    assert.match(enBookings.pagination.summary, /\{page\}/);
+    assert.match(enBookings.inboxPage, /\{totalPages\}/);
     assert.equal(enBookings.filtersToggle, "Filters");
     assert.match(enBookings.pageSubtitle, /pending and waitlisted/i);
     assert.match(enBookings.presetsHint, /pending \+ waitlist/i);
@@ -1233,12 +1298,17 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       inspection: string;
       emptyInbox: string;
       detailSections: { contact: string };
+      filters: { toggle: string; clearAll: string };
+      activeFilters: { departure: string };
     };
     assert.equal(faBookings.presets.upcoming, "به‌زودی (۷ر)");
     assert.equal(faBookings.inspection, "بررسی ثبت‌نام");
     assert.match(faBookings.presetsHint, /صف کار/);
     assert.match(faBookings.emptyInbox, /کار تمام/);
     assert.equal(faBookings.detailSections.contact, "اطلاعات تماس و شناسه");
+    assert.equal(faBookings.filters.toggle, "فیلترها");
+    assert.equal(faBookings.filters.clearAll, "پاک کردن همه");
+    assert.match(faBookings.activeFilters.departure, /روز آینده/);
 
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint, "operator-bookings-presets-hint");
     assert.equal(
@@ -1246,15 +1316,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "operator-bookings-inspection-actions-hint"
     );
 
-    // UX-BKG-53 — chrome hierarchy test ids + advanced dirty helper.
+    // UX-BKG-53 — directory controls + pagination shell wiring.
     assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome,
-      "operator-bookings-primary-chrome"
-    );
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.displayMenu, "operator-bookings-display-menu");
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.advancedFiltersPanel,
-      "operator-bookings-advanced-filters"
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersPanel,
+      "operator-bookings-filters-panel"
     );
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDirtyBadge,
@@ -1287,7 +1352,8 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
         ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
         status: "pending",
       }),
-      true
+      false,
+      "Queue status is primary chrome, not advanced dirty"
     );
     assert.equal(
       bookingsAdvancedFiltersDirty(
@@ -1301,11 +1367,12 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       new URL("../src/features/bookings/bookings-command-center-shell.tsx", import.meta.url),
       "utf8"
     );
-    assert.match(pageSource, /BookingsDisplayMenu/);
-    assert.match(pageSource, /advancedFiltersOpen/);
-    assert.match(pageSource, /showStatusFilter=\{lockedStatusFilter\.length === 0\}/);
+    assert.match(pageSource, /BookingsDirectoryControls/);
+    assert.match(pageSource, /BookingsDirectoryPagination/);
+    assert.match(pageSource, /goToBookingsPage/);
+    assert.match(pageSource, /BOOKINGS_LIST_PAGE_SIZE/);
+    assert.doesNotMatch(pageSource, /loadMore/);
     assert.match(pageSource, /showTourScope=\{!embedded && canManageOps\}/);
-    assert.match(pageSource, /presetsHint/);
     assert.match(pageSource, /inspectionActionsHint/);
     assert.match(pageSource, /kpi\.pendingAria/);
     assert.match(pageSource, /kpi\.waitlistAria/);
@@ -1316,7 +1383,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.doesNotMatch(pageSource, /import \{ BookingsTourChipScopeToggle/);
     assert.match(
       readFileSync(
-        new URL("../src/features/bookings/bookings-filter-controls.tsx", import.meta.url),
+        new URL("../src/features/bookings/bookings-directory-controls.tsx", import.meta.url),
         "utf8"
       ),
       /BookingsTourChipScopeToggle/
