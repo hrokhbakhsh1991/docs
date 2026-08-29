@@ -27,6 +27,10 @@ const DENALI_FIELD_PRESENTATION_BY_ID: Readonly<Record<string, DenaliFieldPresen
     "denali.pricing-participants": { adminLabel: "Participant Pricing", group: "Pricing" },
     "denali.pricing-payment": { adminLabel: "Payment Requirements", group: "Pricing" },
     "denali.photos": { adminLabel: "Tour Photos", group: "Media" },
+    "denali.social-media-link": {
+      adminLabel: "Group / Social Link",
+      group: "General",
+    },
   });
 
 function inferDenaliPresentationGroup(canonicalPath: string, tags: readonly string[]): string {

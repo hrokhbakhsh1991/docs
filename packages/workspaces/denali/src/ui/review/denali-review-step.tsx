@@ -376,7 +376,6 @@ export function DenaliReviewStep({
       photoCount: (count) => t("review.photoCount", { count }),
       dayLabel: (day) => t("review.dayLabel", { day }),
       primaryGathering: t("review.primaryGathering"),
-      socialMediaTelegramAutoLabel: t("composites.socialMedia.reviewTelegramAuto"),
       optionalEmptyValue: t("review.optionalEmpty"),
       locale,
     };

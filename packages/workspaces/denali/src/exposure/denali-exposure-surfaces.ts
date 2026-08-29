@@ -14,6 +14,7 @@ export const DENALI_DELIVERABLE_FIELD_IDS = Object.freeze([
   "denali.pricing-participants",
   "denali.pricing-payment",
   "denali.photos",
+  "denali.social-media-link",
 ] as const);
 
 export const DENALI_EXPOSURE_SURFACE = Object.freeze({

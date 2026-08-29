@@ -40,7 +40,7 @@
     "requiresLocalGuide": "نیاز به راهنمای محلی",
     "localGuideName": "نام راهنمای محلی",
     "requiresManualAdminApproval": "نیاز به تأیید ادمین برای نهایی‌سازی رزرو",
-    "socialMediaLink": "کانال / شبکه اجتماعی",
+    "socialMediaLink": "لینک گروه یا شبکه اجتماعی",
     "program": {
       "themeIds": "تم‌ها (اختیاری)",
       "guideLanguageIds": "زبان‌های راهنما (اختیاری)",
@@ -339,15 +339,8 @@
       }
     },
     "socialMedia": {
-      "helper": "محل اطلاع‌رسانی و گروه شرکت‌کنندگان را مشخص کنید.",
-      "telegram": "تلگرام",
-      "other": "سایر پلتفرم‌ها",
-      "urlFieldLabel": "لینک گروه",
-      "urlPlaceholder": "https://instagram.com/...",
-      "telegramAutoInfo": "با انتخاب تلگرام، لینک گروه پس از ایجاد تور به‌صورت خودکار ساخته می‌شود — نیازی به وارد کردن لینک نیست.",
-      "reviewTelegramAuto": "تلگرام — ایجاد خودکار گروه",
-      "urlHint": "لینک کامل گروه را با https:// وارد کنید.",
-      "invalidTelegram": "نام کانال یا یوزرنیم تلگرام معتبر نیست.",
+      "helper": "لینک گروه تلگرام، واتساپ، اینستاگرام یا صفحه مرتبط را وارد کنید.",
+      "urlPlaceholder": "https://t.me/...",
       "invalidUrl": "لینک باید با http:// یا https:// شروع شود."
     },
     "leaders": {
