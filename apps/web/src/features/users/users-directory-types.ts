@@ -35,6 +35,11 @@ export const USERS_DIRECTORY_TEST_IDS = {
   rewardsLeaderBuddy: "operator-users-rewards-leader-buddy",
   rowMicroBadges: "operator-users-row-micro-badges",
   sortFilter: "operator-users-sort-filter",
+  filtersToggle: "operator-users-filters-toggle",
+  filtersPanel: "operator-users-filters-panel",
+  activeFilters: "operator-users-active-filters",
+  pagination: "operator-users-pagination",
+  controls: "operator-users-controls",
   tableDesktop: "operator-users-table-desktop",
   tableMemberHeader: "operator-users-table-member-header",
   tableAccessHeader: "operator-users-table-access-header",
@@ -180,6 +185,7 @@ export type UsersDirectoryQuery = {
   readonly status: UsersDirectoryStatus;
   readonly sort: "name_asc" | "name_desc" | "email_asc" | "email_desc";
   readonly tab: UsersDirectoryTab;
+  readonly page: number;
 };
 
 export const DEFAULT_USERS_DIRECTORY_QUERY: UsersDirectoryQuery = {
@@ -188,6 +194,7 @@ export const DEFAULT_USERS_DIRECTORY_QUERY: UsersDirectoryQuery = {
   status: "all",
   sort: "name_asc",
   tab: "active",
+  page: 1,
 };
 
 export function serializeUsersDirectoryQuery(query: UsersDirectoryQuery): string {
@@ -207,7 +214,15 @@ export function serializeUsersDirectoryQuery(query: UsersDirectoryQuery): string
   if (query.tab === "pending") {
     params.set("tab", "pending");
   }
+  if (query.page > 1) {
+    params.set("page", String(query.page));
+  }
   return params.toString();
+}
+
+function parsePositivePage(raw: string | null): number {
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
 export function parseUsersDirectoryQuery(searchParams: URLSearchParams): UsersDirectoryQuery {
@@ -230,6 +245,7 @@ export function parseUsersDirectoryQuery(searchParams: URLSearchParams): UsersDi
     status,
     sort,
     tab,
+    page: parsePositivePage(searchParams.get("page")),
   };
 }
 

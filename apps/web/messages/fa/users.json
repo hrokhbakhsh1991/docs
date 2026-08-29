@@ -30,7 +30,21 @@
     "suspended": "معطل"
   },
   "filters": {
-    "clear": "پاک کردن فیلترها"
+    "clear": "پاک کردن فیلترها",
+    "toggle": "فیلترها",
+    "roleLabel": "نقش",
+    "statusLabel": "وضعیت",
+    "sortLabel": "مرتب‌سازی",
+    "clearAll": "پاک کردن همه"
+  },
+  "activeFilters": {
+    "role": "نقش: {value}",
+    "status": "وضعیت: {value}",
+    "sort": "مرتب‌سازی: {value}",
+    "remove": "حذف {filter}"
+  },
+  "pagination": {
+    "summary": "صفحه {page} از {totalPages} · {total, number} عضو"
   },
   "inviteForm": {
     "title": "دعوت هم‌تیمی",

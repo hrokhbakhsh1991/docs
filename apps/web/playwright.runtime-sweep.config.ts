@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./test",
-  testMatch: ["operator-ux-runtime-sweep.spec.ts", "settings-responsive.spec.ts"],
+  testMatch: ["operator-ux-runtime-sweep.spec.ts", "settings-responsive.spec.ts", "users-directory-controls-responsive.spec.ts"],
   workers: 1,
   timeout: 120_000,
   use: {
