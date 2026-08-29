@@ -886,6 +886,10 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-searchable-s
   font-weight: 600;
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-searchable-select__option--active {
+  background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-searchable-select__option:focus-visible {
   outline: var(--focus-outline-width, 2px) solid var(--color-focus-ring);
   outline-offset: 1px;
