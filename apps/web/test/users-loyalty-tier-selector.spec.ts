@@ -8,7 +8,7 @@ import { describe, it } from "node:test";
 import { USERS_DIRECTORY_TEST_IDS } from "../src/features/users/users-directory-types";
 
 describe("users-loyalty-tier-selector.spec.ts", () => {
-  it("WEB-USERS-LOY-01 loyalty selector avoids ui-primitives Input for radios", () => {
+  it("WEB-USERS-LOY-01 loyalty selector uses ui-primitives Input for compact radios", () => {
     const sheet = readFileSync("app/(app)/users/users-member-detail-sheet.tsx", "utf8");
     const selector = readFileSync("app/(app)/users/users-loyalty-tier-selector.tsx", "utf8");
 
@@ -17,7 +17,7 @@ describe("users-loyalty-tier-selector.spec.ts", () => {
     assert.match(selector, /role="radiogroup"/);
     assert.match(selector, /type="radio"/);
     assert.match(selector, /size-4/);
-    assert.doesNotMatch(selector, /@app-tour\/ui-primitives\/input/);
+    assert.match(selector, /@app-tour\/ui-primitives\/input/);
     assert.equal(
       USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier,
       "operator-users-rewards-loyalty-tier"
