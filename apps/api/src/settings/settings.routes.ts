@@ -109,14 +109,20 @@ function readBooleanField(body: unknown, key: string): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
-function parseSlugCatalogCreateBody(body: unknown): CreateTourThemeRequest | CreateGuideLanguageRequest | null {
+function parseSlugCatalogCreateBody(
+  moduleId: string,
+  body: unknown
+): CreateTourThemeRequest | CreateGuideLanguageRequest | null {
   const name = readStringField(body, "name");
   const slug = readStringField(body, "slug");
   const isActive = readBooleanField(body, "isActive");
+  const iconKey =
+    moduleId === "tour_themes" ? readOptionalStringOrNullField(body, "iconKey") : undefined;
   if (name.length === 0) return null;
   return {
     name,
     ...(slug.length > 0 ? { slug } : {}),
+    ...(iconKey !== undefined ? { iconKey } : {}),
     ...(isActive !== undefined ? { isActive } : {}),
   };
 }
@@ -132,7 +138,7 @@ function parseCreateBodyForModule(
   | CreateLocationResourceRequest
   | null {
   if (moduleId === "tour_themes" || moduleId === "guide_languages") {
-    return parseSlugCatalogCreateBody(body);
+    return parseSlugCatalogCreateBody(moduleId, body);
   }
 
   if (moduleId === "tour_presets") {
@@ -191,9 +197,12 @@ function parsePatchBodyForModule(
     const name = readStringField(body, "name");
     const slug = readStringField(body, "slug");
     const isActive = readBooleanField(body, "isActive");
+    const iconKey =
+      moduleId === "tour_themes" ? readOptionalStringOrNullField(body, "iconKey") : undefined;
     return {
       ...(name.length > 0 ? { name } : {}),
       ...(slug.length > 0 ? { slug } : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
     };
   }

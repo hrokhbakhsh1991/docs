@@ -154,12 +154,13 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
       "/settings/resources/tour_themes",
       {
         headers: operatorAuthHeaders(),
-        body: { name: "Alpine Trek", slug: "alpine-trek" },
+        body: { name: "Alpine Trek", slug: "alpine-trek", iconKey: "mountain" },
       }
     );
     assert.equal(createRes.status, 201);
     assert.equal(createRes.body.name, "Alpine Trek");
     assert.equal(createRes.body.slug, "alpine-trek");
+    assert.equal(createRes.body.iconKey, "mountain");
     const itemId = createRes.body.id as string;
 
     const listRes = await client.requestJson<ResourceResponse>(
@@ -173,6 +174,18 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
     const items = listRes.body.items as Array<Record<string, unknown>>;
     assert.equal(items.length, 1);
     assert.equal(items[0]?.id, itemId);
+    assert.equal(items[0]?.iconKey, "mountain");
+
+    const patchRes = await client.requestJson<ResourceResponse>(
+      "PATCH",
+      `/settings/resources/tour_themes/${itemId}`,
+      {
+        headers: operatorAuthHeaders(),
+        body: { iconKey: "backpack" },
+      }
+    );
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.iconKey, "backpack");
 
     const deleteRes = await client.requestJson<ResourceResponse>(
       "DELETE",
