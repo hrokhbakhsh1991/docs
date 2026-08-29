@@ -119,6 +119,11 @@ export async function satisfyPaymentHoldIfFullyPaid(input: {
     return;
   }
   await holdService.satisfy(input.tenantId, input.registrationId);
+  setBookingPaymentDueAtProjection({
+    tenantId: input.tenantId,
+    bookingId: input.registrationId,
+    paymentDueAt: null,
+  });
 }
 
 /** Test helper — seed booking row for migration fixtures. */

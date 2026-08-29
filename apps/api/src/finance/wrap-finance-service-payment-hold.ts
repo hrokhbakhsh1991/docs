@@ -9,6 +9,8 @@ export function wrapFinanceServiceWithPaymentHold(service: FinanceService): Fina
   const createManualPayment = service.createManualPayment.bind(service);
   const reviewReceipt = service.reviewReceipt.bind(service);
   const getRegistrationInvoice = service.getRegistrationInvoice.bind(service);
+  const setRegistrationObligationOverride =
+    service.setRegistrationObligationOverride.bind(service);
 
   service.createManualPayment = async (auth, body, idempotencyKey) => {
     const payment = await createManualPayment(auth, body, idempotencyKey);
@@ -47,6 +49,19 @@ export function wrapFinanceServiceWithPaymentHold(service: FinanceService): Fina
           remainingMinor: invoice.balanceDueMinor,
         });
       }
+    }
+    return result;
+  };
+
+  service.setRegistrationObligationOverride = async (auth, input) => {
+    const result = await setRegistrationObligationOverride(auth, input);
+    if (result.freePaidApplied === true && result.paymentStatus === "paid") {
+      const invoice = await getRegistrationInvoice(auth, input.registrationId);
+      await satisfyPaymentHoldIfFullyPaid({
+        tenantId: auth.tenantId,
+        registrationId: input.registrationId,
+        remainingMinor: invoice.balanceDueMinor,
+      });
     }
     return result;
   };
