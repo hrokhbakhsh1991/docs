@@ -127,14 +127,13 @@ export function EquipmentIconPicker({
         </div>
       ) : null}
 
-      <div className="denali-equipment-icon-picker__grid" role="list">
+      <div className="denali-equipment-icon-picker__grid">
         {filteredIcons.map((entry) => {
           const selected = value === entry.key;
           return (
             <button
               key={entry.key}
               type="button"
-              role="listitem"
               className={
                 selected
                   ? "denali-equipment-icon-picker__option denali-equipment-icon-picker__option--selected"

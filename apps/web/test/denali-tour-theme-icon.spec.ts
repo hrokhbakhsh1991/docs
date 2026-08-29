@@ -43,4 +43,13 @@ describe("denali-tour-theme-icon.spec.ts", () => {
     assert.match(picker, /renderItemLeading/);
     assert.match(picker, /renderChipLeading/);
   });
+
+  it("DN-THEME-ICON-05 icon picker preserves button semantics", () => {
+    const picker = readFileSync(
+      join(DENALI_ROOT, "src/ui/components/equipment-icon-picker.tsx"),
+      "utf8"
+    );
+    assert.match(picker, /type="button"/);
+    assert.doesNotMatch(picker, /role="listitem"/);
+  });
 });
