@@ -23,6 +23,15 @@ describe("settings-themes-locations.spec.ts — Phase 9.6 Web", () => {
     assert.equal(isSettingsPilotModule("tour_themes"), true);
     assert.equal(SETTINGS_MODULE_LABEL_KEYS.tour_themes, "modules.tour_themes.title");
     assert.equal(SETTINGS_HUB_TEST_IDS.tourThemesPage, "operator-settings-tour-themes-page");
+    assert.equal(SETTINGS_HUB_TEST_IDS.tourThemesEdit, "operator-settings-tour-themes-edit");
+    assert.equal(
+      SETTINGS_HUB_TEST_IDS.tourThemesEditSave,
+      "operator-settings-tour-themes-edit-save"
+    );
+    assert.equal(
+      SETTINGS_HUB_TEST_IDS.tourThemesEditCancel,
+      "operator-settings-tour-themes-edit-cancel"
+    );
 
     const module = {
       id: "tour_themes",

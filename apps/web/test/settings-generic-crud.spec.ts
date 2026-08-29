@@ -22,6 +22,15 @@ describe("settings-generic-crud.spec.ts — Phase 9.6", () => {
     assert.equal(SETTINGS_HUB_TEST_IDS.equipmentList, "operator-settings-equipment-list");
     assert.equal(SETTINGS_HUB_TEST_IDS.equipmentForm, "operator-settings-equipment-form");
     assert.equal(SETTINGS_HUB_TEST_IDS.equipmentCreate, "operator-settings-equipment-create");
+    assert.equal(SETTINGS_HUB_TEST_IDS.equipmentEdit, "operator-settings-equipment-edit");
+    assert.equal(
+      SETTINGS_HUB_TEST_IDS.equipmentEditSave,
+      "operator-settings-equipment-edit-save"
+    );
+    assert.equal(
+      SETTINGS_HUB_TEST_IDS.equipmentEditCancel,
+      "operator-settings-equipment-edit-cancel"
+    );
     assert.equal(isEquipmentModuleSupported("equipment"), true);
     assert.equal(isEquipmentModuleSupported("tour_themes"), false);
     assert.equal(SETTINGS_MODULE_LABEL_KEYS.equipment, "modules.equipment.title");

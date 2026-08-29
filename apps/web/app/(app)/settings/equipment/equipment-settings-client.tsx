@@ -3,7 +3,7 @@
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   ensureSettingsEquipmentUiSurface,
@@ -72,6 +72,7 @@ function EquipmentSettingsClientReady({
   const t = useTranslations("settings.equipment");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
+  const tSettings = useTranslations("settings");
   const canManage = isAdminOrOwnerRole(session.role);
   const [items, setItems] = useState<readonly EquipmentResource[]>([]);
   const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
@@ -81,6 +82,10 @@ function EquipmentSettingsClientReady({
   const [name, setName] = useState("");
   const [iconKey, setIconKey] = useState<string | null>(null);
   const [selectedThemeIds, setSelectedThemeIds] = useState<readonly string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editIconKey, setEditIconKey] = useState<string | null>(null);
+  const [editSelectedThemeIds, setEditSelectedThemeIds] = useState<readonly string[]>([]);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
 
@@ -159,6 +164,12 @@ function EquipmentSettingsClientReady({
     );
   };
 
+  const toggleEditTheme = (themeId: string, checked: boolean) => {
+    setEditSelectedThemeIds((current) =>
+      checked ? [...current, themeId] : current.filter((id) => id !== themeId)
+    );
+  };
+
   const resolveThemeLabels = (themeIds: readonly string[]) =>
     themeIds
       .map((id) => themesById.get(id)?.name)
@@ -171,6 +182,28 @@ function EquipmentSettingsClientReady({
     }
     return t("allThemes");
   }, [selectedThemeIds, themesById, t]);
+
+  const editPreviewSubtitle = useMemo(() => {
+    const themeLabels = resolveThemeLabels(editSelectedThemeIds);
+    if (themeLabels.length > 0) {
+      return themeLabels.join("، ");
+    }
+    return t("allThemes");
+  }, [editSelectedThemeIds, themesById, t]);
+
+  const startEdit = (item: EquipmentResource) => {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditIconKey(item.iconKey ?? null);
+    setEditSelectedThemeIds(item.themeIds ?? []);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditIconKey(null);
+    setEditSelectedThemeIds([]);
+  };
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -219,6 +252,35 @@ function EquipmentSettingsClientReady({
       refresh();
     } catch (deleteError: unknown) {
       setError(deleteError instanceof Error ? deleteError.message : "EQUIPMENT_DELETE_FAILED");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (event: React.FormEvent<HTMLFormElement>, itemId: string) => {
+    event.preventDefault();
+    if (!canManage || editName.trim().length === 0) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/settings/resources/equipment/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName.trim(),
+          themeIds: editSelectedThemeIds,
+          iconKey: editIconKey,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`EQUIPMENT_UPDATE_HTTP_${response.status}`);
+      }
+      cancelEdit();
+      refresh();
+    } catch (updateError: unknown) {
+      setError(updateError instanceof Error ? updateError.message : "EQUIPMENT_UPDATE_FAILED");
     } finally {
       setSaving(false);
     }
@@ -311,37 +373,134 @@ function EquipmentSettingsClientReady({
           ) : (
             items.map((item) => {
               const themeLabels = resolveThemeLabels(item.themeIds ?? []);
+              const isEditing = editingId === item.id;
               return (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <EquipmentCatalogAvatar
-                      id={item.id}
-                      name={item.name}
-                      iconKey={item.iconKey}
-                    />
-                    <div className="min-w-0">
-                      <p className="font-medium">{item.name}</p>
-                      {themeLabels.length > 0 ? (
-                        <p className="text-xs text-muted-foreground">{themeLabels.join("، ")}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">{t("allThemes")}</p>
-                      )}
-                    </div>
-                  </div>
-                  {canManage ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={saving}
-                      aria-label={t("deleteItem", { name: item.name })}
-                      onClick={() => void handleDelete(item.id)}
+                <div key={item.id} className="rounded-lg border p-3">
+                  {isEditing ? (
+                    <form
+                      className="space-y-4"
+                      onSubmit={(event) => void handleUpdate(event, item.id)}
                     >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  ) : null}
+                      <div className="space-y-2">
+                        <Label htmlFor={`equipment-edit-name-${item.id}`}>
+                          {tCommon("name")}
+                        </Label>
+                        <Input
+                          id={`equipment-edit-name-${item.id}`}
+                          value={editName}
+                          onChange={(event) => setEditName(event.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <EquipmentIconPicker
+                        name={editName}
+                        value={editIconKey}
+                        onChange={setEditIconKey}
+                        previewSubtitle={editPreviewSubtitle}
+                      />
+
+                      <div className="space-y-2">
+                        <Label>{t("themes")}</Label>
+                        <p className="text-xs text-muted-foreground">{t("themesHint")}</p>
+                        {themesLoading ? <Skeleton className="h-20 w-full" /> : null}
+                        {!themesLoading && themes.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            {t("noThemes")}{" "}
+                            <Link
+                              href="/settings/tour-themes"
+                              className="text-primary underline-offset-4 hover:underline"
+                            >
+                              {t("themesLink")}
+                            </Link>
+                          </p>
+                        ) : null}
+                        {!themesLoading && themes.length > 0 ? (
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {themes.map((theme) => (
+                              <label
+                                key={theme.id}
+                                className="flex items-center gap-2 rounded-md border p-2 text-sm"
+                              >
+                                <Checkbox
+                                  aria-label={theme.name}
+                                  checked={editSelectedThemeIds.includes(theme.id)}
+                                  onChange={(event) =>
+                                    toggleEditTheme(theme.id, event.target.checked)
+                                  }
+                                />
+                                <span>{theme.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="submit"
+                          disabled={saving}
+                          data-testid={SETTINGS_HUB_TEST_IDS.equipmentEditSave}
+                        >
+                          <Save className="me-1 size-4" />
+                          {tCommon("save")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={saving}
+                          data-testid={SETTINGS_HUB_TEST_IDS.equipmentEditCancel}
+                          onClick={cancelEdit}
+                        >
+                          <X className="me-1 size-4" />
+                          {tCommon("cancel")}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <EquipmentCatalogAvatar
+                          id={item.id}
+                          name={item.name}
+                          iconKey={item.iconKey}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-medium">{item.name}</p>
+                          {themeLabels.length > 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              {themeLabels.join("، ")}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">{t("allThemes")}</p>
+                          )}
+                        </div>
+                      </div>
+                      {canManage ? (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={saving}
+                            data-testid={SETTINGS_HUB_TEST_IDS.equipmentEdit}
+                            aria-label={tSettings("editItem", { name: item.name })}
+                            onClick={() => startEdit(item)}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={saving}
+                            aria-label={t("deleteItem", { name: item.name })}
+                            onClick={() => void handleDelete(item.id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               );
             })

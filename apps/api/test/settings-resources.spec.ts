@@ -75,11 +75,12 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
       `/settings/resources/equipment/${itemId}`,
       {
         headers: operatorAuthHeaders(),
-        body: { name: "Carbon Poles" },
+        body: { name: "Carbon Poles", iconKey: "trekking_poles" },
       }
     );
     assert.equal(patchRes.status, 200);
     assert.equal(patchRes.body.name, "Carbon Poles");
+    assert.equal(patchRes.body.iconKey, "trekking_poles");
 
     const deleteRes = await client.requestJson<ResourceResponse>(
       "DELETE",

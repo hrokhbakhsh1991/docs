@@ -2,7 +2,7 @@
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import { useTranslations } from "next-intl";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   ensureSettingsEquipmentUiSurface,
@@ -76,6 +76,10 @@ function TourThemesClientReady({
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [iconKey, setIconKey] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editIconKey, setEditIconKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
 
@@ -111,6 +115,20 @@ function TourThemesClientReady({
   }, [fetchNonce]);
 
   const refresh = () => setFetchNonce((value) => value + 1);
+
+  const startEdit = (item: TourThemeResource) => {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditSlug(item.slug);
+    setEditIconKey(item.iconKey ?? null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditSlug("");
+    setEditIconKey(null);
+  };
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -159,6 +177,35 @@ function TourThemesClientReady({
       refresh();
     } catch (deleteError: unknown) {
       setError(deleteError instanceof Error ? deleteError.message : "TOUR_THEMES_DELETE_FAILED");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (event: React.FormEvent<HTMLFormElement>, itemId: string) => {
+    event.preventDefault();
+    if (!canManage || editName.trim().length === 0) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/settings/resources/tour_themes/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName.trim(),
+          ...(editSlug.trim().length > 0 ? { slug: editSlug.trim() } : {}),
+          iconKey: editIconKey,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`TOUR_THEMES_UPDATE_HTTP_${response.status}`);
+      }
+      cancelEdit();
+      refresh();
+    } catch (updateError: unknown) {
+      setError(updateError instanceof Error ? updateError.message : "TOUR_THEMES_UPDATE_FAILED");
     } finally {
       setSaving(false);
     }
@@ -225,37 +272,106 @@ function TourThemesClientReady({
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : (
-            items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-lg border p-3"
-                data-tour-theme-list-row
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <TourThemeCatalogAvatar
-                    id={item.id}
-                    name={item.name}
-                    iconKey={item.iconKey}
-                    size="chip"
-                  />
-                  <div className="min-w-0">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.slug}</p>
-                  </div>
+            items.map((item) => {
+              const isEditing = editingId === item.id;
+              return (
+                <div key={item.id} className="rounded-lg border p-3" data-tour-theme-list-row>
+                  {isEditing ? (
+                    <form
+                      className="space-y-4"
+                      onSubmit={(event) => void handleUpdate(event, item.id)}
+                    >
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor={`theme-edit-name-${item.id}`}>{tCommon("name")}</Label>
+                          <Input
+                            id={`theme-edit-name-${item.id}`}
+                            value={editName}
+                            onChange={(event) => setEditName(event.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`theme-edit-slug-${item.id}`}>{tCommon("slug")}</Label>
+                          <Input
+                            id={`theme-edit-slug-${item.id}`}
+                            value={editSlug}
+                            onChange={(event) => setEditSlug(event.target.value)}
+                            placeholder={tCommon("optional")}
+                          />
+                        </div>
+                      </div>
+
+                      <EquipmentIconPicker
+                        name={editName}
+                        value={editIconKey}
+                        onChange={setEditIconKey}
+                        previewSubtitle={t("iconPreviewSubtitle")}
+                      />
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="submit"
+                          disabled={saving}
+                          data-testid={SETTINGS_HUB_TEST_IDS.tourThemesEditSave}
+                        >
+                          <Save className="me-1 size-4" />
+                          {tCommon("save")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={saving}
+                          data-testid={SETTINGS_HUB_TEST_IDS.tourThemesEditCancel}
+                          onClick={cancelEdit}
+                        >
+                          <X className="me-1 size-4" />
+                          {tCommon("cancel")}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <TourThemeCatalogAvatar
+                          id={item.id}
+                          name={item.name}
+                          iconKey={item.iconKey}
+                          size="chip"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.slug}</p>
+                        </div>
+                      </div>
+                      {canManage ? (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={saving}
+                            data-testid={SETTINGS_HUB_TEST_IDS.tourThemesEdit}
+                            aria-label={tSettings("editItem", { name: item.name })}
+                            onClick={() => startEdit(item)}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={saving}
+                            aria-label={tSettings("deleteItem", { name: item.name })}
+                            onClick={() => void handleDelete(item.id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
-                {canManage ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={saving}
-                    aria-label={tSettings("deleteItem", { name: item.name })}
-                    onClick={() => void handleDelete(item.id)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                ) : null}
-              </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>
