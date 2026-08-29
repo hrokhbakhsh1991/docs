@@ -73,7 +73,14 @@ export function mergeOperatorTourSelectOptions(
   return merged;
 }
 
-export function parseOperatorTourListResponse(raw: unknown): OperatorTourListResponse | null {
+export type OperatorTourSelectListResponse = {
+  readonly items: readonly OperatorTourSelectItem[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
+};
+
+export function parseOperatorTourListResponse(raw: unknown): OperatorTourSelectListResponse | null {
   if (raw === null || typeof raw !== "object") {
     return null;
   }

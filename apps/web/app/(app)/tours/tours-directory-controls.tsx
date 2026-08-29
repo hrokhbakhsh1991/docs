@@ -17,7 +17,7 @@ import {
 import {
   TOUR_CATEGORY_FILTER_ALL,
   type TourCategoryFilter,
-  type TourListCategoryFilterGroup,
+  type TourCategoryFilterGroup,
 } from "@/features/tours/tour-list-category-logic";
 import {
   clearToursListAdvancedFilters,
@@ -42,7 +42,7 @@ type ToursDirectoryControlsProps = {
   readonly onSearchInputChange: (value: string) => void;
   readonly onReplaceQuery: (next: TourListQueryModel) => void;
   readonly hasCategoryFilter: boolean;
-  readonly categoryFilterGroups: readonly TourListCategoryFilterGroup[];
+  readonly categoryFilterGroups: readonly TourCategoryFilterGroup[];
   readonly categorySurfaceReady: boolean;
   readonly categorySurfaceFailed: boolean;
   readonly onRetryCategorySurface: () => void;

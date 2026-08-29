@@ -1368,11 +1368,13 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "utf8"
     );
     assert.match(pageSource, /BookingsDirectoryControls/);
+    assert.match(pageSource, /BookingsWorkspaceEmbeddedControls/);
     assert.match(pageSource, /BookingsDirectoryPagination/);
     assert.match(pageSource, /goToBookingsPage/);
     assert.match(pageSource, /BOOKINGS_LIST_PAGE_SIZE/);
     assert.doesNotMatch(pageSource, /loadMore/);
-    assert.match(pageSource, /showTourScope=\{!embedded && canManageOps\}/);
+    assert.match(pageSource, /embedded \? \(/);
+    assert.match(pageSource, /showTourScope=\{canManageOps\}/);
     assert.match(pageSource, /inspectionActionsHint/);
     assert.match(pageSource, /kpi\.pendingAria/);
     assert.match(pageSource, /kpi\.waitlistAria/);

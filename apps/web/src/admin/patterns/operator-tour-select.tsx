@@ -10,7 +10,6 @@ import {
 } from "./operator-searchable-select";
 import {
   buildOperatorTourListUrl,
-  mapOperatorTourListToSelectItems,
   mapOperatorTourSelectItemsToOptions,
   mergeOperatorTourSelectOptions,
   OPERATOR_TOUR_SELECT_DEFAULT_LIMIT,
@@ -55,7 +54,7 @@ async function fetchOperatorTourSelectItems(
     throw new Error(`TOURS_LIST_HTTP_${response.status}`);
   }
   const payload = parseOperatorTourListResponse(await response.json());
-  return payload === null ? [] : mapOperatorTourListToSelectItems(payload.items);
+  return payload === null ? [] : payload.items;
 }
 
 export function OperatorTourSelect({
@@ -131,7 +130,7 @@ export function OperatorTourSelect({
     void fetchTourDetailCached(trimmedValue)
       .then((detail) => {
         if (!cancelled) {
-          setHydratedLabel(detail.title);
+          setHydratedLabel(detail.projection.title);
         }
       })
       .catch(() => {
