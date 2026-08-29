@@ -32,6 +32,11 @@ type OperatorSearchableSelectProps = {
   readonly ariaLabel: string;
   readonly className?: string;
   readonly disabled?: boolean;
+  readonly loading?: boolean;
+  readonly loadingLabel?: string;
+  readonly filterMode?: "local" | "remote";
+  readonly onQueryChange?: (query: string) => void;
+  readonly selectedLabel?: string;
 };
 
 export function OperatorSearchableSelect({
@@ -44,6 +49,11 @@ export function OperatorSearchableSelect({
   ariaLabel,
   className,
   disabled = false,
+  loading = false,
+  loadingLabel,
+  filterMode = "local",
+  onQueryChange,
+  selectedLabel,
 }: OperatorSearchableSelectProps) {
   const listboxId = useId();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -57,6 +67,9 @@ export function OperatorSearchableSelect({
   );
 
   const filtered = useMemo(() => {
+    if (filterMode === "remote") {
+      return options;
+    }
     const normalized = query.trim().toLocaleLowerCase();
     if (normalized.length === 0) {
       return options;
@@ -65,7 +78,7 @@ export function OperatorSearchableSelect({
       const haystack = `${option.label} ${option.description ?? ""}`.toLocaleLowerCase();
       return haystack.includes(normalized);
     });
-  }, [options, query]);
+  }, [filterMode, options, query]);
 
   useEffect(() => {
     if (!open) {
@@ -113,7 +126,11 @@ export function OperatorSearchableSelect({
           )}
         >
           <span className="min-w-0 truncate text-start">
-            {selected !== null ? selected.label : placeholder}
+            {selected !== null
+              ? selected.label
+              : selectedLabel !== undefined && value.trim().length > 0
+                ? selectedLabel
+                : placeholder}
           </span>
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" aria-hidden />
         </Button>
@@ -135,6 +152,7 @@ export function OperatorSearchableSelect({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
+              onQueryChange?.(event.target.value);
               setActiveIndex(0);
             }}
             placeholder={searchPlaceholder}
@@ -164,7 +182,11 @@ export function OperatorSearchableSelect({
           aria-label={ariaLabel}
           className="max-h-60 overflow-y-auto p-1"
         >
-          {filtered.length === 0 ? (
+          {loading ? (
+            <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+              {loadingLabel ?? emptyLabel}
+            </li>
+          ) : filtered.length === 0 ? (
             <li className="px-3 py-6 text-center text-sm text-muted-foreground">{emptyLabel}</li>
           ) : (
             filtered.map((option, index) => {

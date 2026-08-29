@@ -5,6 +5,7 @@
 import { expect, test } from "@playwright/test";
 
 import { BOOKINGS_CREATE_TEST_IDS } from "../../src/features/bookings/bookings-create-types";
+import { OPERATOR_SEARCHABLE_SELECT_TEST_IDS } from "../../src/admin/patterns/operator-searchable-select";
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../src/features/bookings/bookings-command-center-types";
 import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-module-types";
 import { FINANCE_OVERVIEW_TEST_IDS } from "../../src/finance/finance-reports-logic";
@@ -239,9 +240,9 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       timeout: 60_000,
     });
 
-    await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.tourSelect).selectOption({
-      label: "North Ridge Trek",
-    });
+    await page.getByTestId(OPERATOR_SEARCHABLE_SELECT_TEST_IDS.trigger).click();
+    await page.getByTestId(OPERATOR_SEARCHABLE_SELECT_TEST_IDS.search).fill("North Ridge");
+    await page.getByRole("option", { name: /North Ridge Trek/i }).click();
     await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.guestInput).fill(guestLabel);
     await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.departureInput).fill("2026-12-15");
     await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.submitButton).click();

@@ -110,6 +110,7 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   kpiStrip: "operator-bookings-kpi",
   tourChips: "operator-bookings-tour-chips",
   tourChipsMore: "operator-bookings-tour-chips-more",
+  tourFilter: "operator-bookings-tour-filter",
   upcomingFacet: "operator-bookings-upcoming-facet",
   upcomingFacetDay: (days: 7 | 14 | 30) => `operator-bookings-upcoming-${days}d`,
   departureWindowHint: "operator-bookings-departure-window-hint",

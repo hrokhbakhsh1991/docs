@@ -70,7 +70,7 @@ import {
   BookingsOverbookConfirmDialog,
   BookingsRejectDialog,
 } from "@/features/bookings/bookings-ops-dialogs";
-import { BookingsTourChipBar } from "@/features/bookings/bookings-tour-chip-bar";
+import { BookingsTourFilter } from "@/features/bookings/bookings-tour-filter";
 import { BookingsUpcomingFacetButton } from "@/features/bookings/bookings-upcoming-facet-button";
 import { BookingsOpsPresetsBar } from "@/features/bookings/bookings-ops-presets-bar";
 import {
@@ -1017,13 +1017,16 @@ export function BookingsPageClient({
           {lockedTour.length === 0 &&
           summary !== null &&
           (summary.tourChips.length > 0 || query.tourId.length > 0) ? (
-            <BookingsTourChipBar
+            <BookingsTourFilter
               chips={summary.tourChips}
-              query={query}
-              listItems={listData?.items ?? []}
-              locale={locale}
-              onAllTours={() => replaceQuery({ ...query, tourId: "" })}
-              onSelectTour={(tourId) => replaceQuery(toggleTourChipFilter(query, tourId))}
+              value={query.tourId}
+              onValueChange={(tourId) =>
+                replaceQuery(
+                  tourId.length === 0
+                    ? { ...query, tourId: "" }
+                    : toggleTourChipFilter(query, tourId)
+                )
+              }
             />
           ) : null}
         </div>

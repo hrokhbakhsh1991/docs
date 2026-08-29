@@ -115,8 +115,8 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(apiQuery, /q=ali/);
   });
 
-  it("WEB-9.5-04 tour chips and bulk approve helpers (S9.5-R3)", () => {
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.tourChips, "operator-bookings-tour-chips");
+  it("WEB-9.5-04 tour filter and bulk approve helpers (S9.5-R3)", () => {
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.tourFilter, "operator-bookings-tour-filter");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.bulkApproveButton,
       "operator-bookings-bulk-approve"
@@ -795,11 +795,14 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
   });
 
-  it("WEB-9.5-10 tour chip bar partition, truncate, ensure-active (P4a)", () => {
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.tourChipsMore,
-      "operator-bookings-tour-chips-more"
+  it("WEB-9.5-10 tour chip helpers + searchable tour filter wiring (P4a)", () => {
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.tourFilter, "operator-bookings-tour-filter");
+    const shell = readFileSync(
+      new URL("../src/features/bookings/bookings-command-center-shell.tsx", import.meta.url),
+      "utf8"
     );
+    assert.match(shell, /BookingsTourFilter/);
+    assert.doesNotMatch(shell, /BookingsTourChipBar/);
     assert.equal(truncateTourChipTitle("Short"), "Short");
     assert.equal(truncateTourChipTitle("ABCDEFGHIJKLMNOPQRSTUVWXYZ12", 10), "ABCDEFGHI…");
     assert.equal(truncateTourChipTitle("ExactTen!!", 10), "ExactTen!!");

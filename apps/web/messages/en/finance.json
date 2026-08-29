@@ -23,6 +23,7 @@
     "allTours": "All tours",
     "tourFilterSearchPlaceholder": "Search tours…",
     "tourFilterNoResults": "No tours match your search.",
+    "tourFilterLoading": "Loading tours…",
     "tourFilterChipMeta": "{pending} pending · {total} total",
     "decisionGuideTitle": "Which action should I use?",
     "operatorHelpSummary": "Help: states and wording",
