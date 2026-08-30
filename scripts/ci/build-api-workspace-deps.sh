@@ -20,6 +20,7 @@ pnpm --dir packages/finance-http run build
 pnpm --dir packages/finance-case-encounter-ui run build
 pnpm --dir packages/design-tokens run build
 pnpm --dir packages/ui-primitives run build
+pnpm --dir packages/localized-calendar run build
 pnpm --dir packages/theme-react run build
 pnpm --dir packages/draft-engine run build
 pnpm --dir packages/wizard-navigation run build
