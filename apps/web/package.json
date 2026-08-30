@@ -17,7 +17,7 @@
     "pretest": "pnpm --dir ../../packages/iran-mountain-landmarks run build",
     "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit --test-concurrency=1 $(node ./scripts/list-node-unit-specs.mjs)",
     "test:runtime-sweep": "playwright test -c playwright.runtime-sweep.config.ts",
-    "test:file": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit --test-concurrency=1",
+    "test:file": "node ./scripts/run-node-test-file.mjs",
     "test:e2e:th-1": "playwright test tests/e2e/th-1-tenant-theme-isolation.spec.ts",
     "test:e2e:ec33": "playwright test -c playwright.ec33.config.ts",
     "test:e2e:ec33:install": "playwright install chromium",

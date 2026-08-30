@@ -53,8 +53,29 @@ test("web resolver selects direct references and bounds unknown paths", () => {
 
   assert.deepEqual(resolveSpecs(WEB_RESOLVER, ["apps/web/src/unknown/component.tsx"]), {
     specs: [],
+    playwrightSpecs: [],
     fallbackBaseline: true,
   });
+});
+
+test("web resolver partitions Playwright runtime specs from node unit specs", () => {
+  const result = resolveSpecs(WEB_RESOLVER, [
+    "apps/web/test/settings-responsive.spec.ts",
+    "apps/web/test/dashboard-smoke.spec.ts",
+  ]);
+  assert.equal(result.fallbackBaseline, false);
+  assert.ok(result.specs.includes("test/dashboard-smoke.spec.ts"));
+  assert.ok(!result.specs.includes("test/settings-responsive.spec.ts"));
+  assert.ok(result.playwrightSpecs.includes("test/settings-responsive.spec.ts"));
+});
+
+test("web resolver does not fallback when only Playwright runtime specs change", () => {
+  const result = resolveSpecs(WEB_RESOLVER, [
+    "apps/web/test/operator-ux-runtime-sweep.spec.ts",
+  ]);
+  assert.equal(result.fallbackBaseline, false);
+  assert.deepEqual(result.specs, []);
+  assert.ok(result.playwrightSpecs.includes("test/operator-ux-runtime-sweep.spec.ts"));
 });
 
 test("web pre-commit uses targeted specs or the bounded baseline", () => {

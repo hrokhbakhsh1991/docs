@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * Emit apps/web spec paths owned by node:test.
- * Excludes test/e2e (Playwright platform smoke) and any *.spec.* that imports @playwright/test
- * (Playwright runtime sweep — see playwright.runtime-sweep.config.ts).
+ * Classification: scripts/lib/classify-web-test-spec.mjs (canonical).
+ * Playwright runtime sweep: playwright.runtime-sweep.config.ts / test:runtime-sweep.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
+import { isNodeUnitSpec } from "../../../scripts/lib/classify-web-test-spec.mjs";
 
 const testRoot = join(import.meta.dirname, "../test");
 
@@ -22,13 +23,13 @@ function collectSpecFiles(dir, out = []) {
   return out;
 }
 
-function isPlaywrightRuntimeSpec(filePath) {
-  return readFileSync(filePath, "utf8").includes("@playwright/test");
-}
+const webRoot = join(import.meta.dirname, "..");
 
 const unitSpecs = collectSpecFiles(testRoot)
-  .filter((filePath) => !isPlaywrightRuntimeSpec(filePath))
-  .sort();
+  .map((filePath) => filePath.slice(webRoot.length + 1))
+  .filter((webRelative) => isNodeUnitSpec(webRelative))
+  .sort()
+  .map((webRelative) => join(webRoot, webRelative));
 
 for (const filePath of unitSpecs) {
   process.stdout.write(`${filePath}\n`);
