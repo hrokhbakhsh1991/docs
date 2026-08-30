@@ -1,0 +1,18 @@
+{
+  "calendar": {
+    "pickDate": "انتخاب تاریخ",
+    "today": "امروز",
+    "previousMonth": "ماه قبل",
+    "nextMonth": "ماه بعد",
+    "previousYears": "سال‌های قبل",
+    "nextYears": "سال‌های بعد",
+    "pickMonth": "انتخاب ماه",
+    "pickYear": "انتخاب سال",
+    "timeLabel": "ساعت",
+    "pickTime": "انتخاب ساعت",
+    "confirmTime": "تأیید",
+    "timePickerHint": "ساعت و دقیقه را از لیست انتخاب کنید",
+    "hour": "ساعت",
+    "minute": "دقیقه"
+  }
+}

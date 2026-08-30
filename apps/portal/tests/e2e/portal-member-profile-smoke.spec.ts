@@ -6,12 +6,14 @@ import {
 } from "./fixtures/complete-portal-registration";
 import {
   DENALI_PROFILE_BIRTH_DATE,
+  DENALI_PROFILE_BIRTH_DATE_LABEL_FA,
   DENALI_PROFILE_FATHER_NAME,
   DENALI_PROFILE_NATIONAL_ID,
   gotoMemberProfile,
   openRegistrationIntakeForAuthenticatedMember,
   saveMemberProfileFields,
 } from "./fixtures/portal-member-profile";
+import { pickProfileBirthDate } from "./fixtures/profile-birth-date-picker";
 
 const PROFILE_EMAIL = `den-prof-${Date.now()}@denali-smoke.local`;
 let authenticatedPhone = `+1555${String(Date.now()).slice(-7)}`;
@@ -33,7 +35,11 @@ test("DEN-PROF-01 Denali /me/profile shows identity and participant fields", asy
   await expect(page.locator('[data-member-profile-field="mobile"]')).toBeVisible();
   await expect(page.locator('[data-member-profile-field="nationalId"] input')).toBeVisible();
   await expect(page.locator('[data-member-profile-field="fatherName"] input')).toBeVisible();
-  await expect(page.locator('[data-member-profile-field="birthDate"] input')).toBeVisible();
+  await expect(
+    page.locator(
+      '[data-member-profile-field="birthDate"] [data-testid="member-profile-birth-date-picker"]'
+    )
+  ).toBeVisible();
   await expect(page.locator('[data-member-profile-field="gender"] select')).toBeVisible();
   await expect(page.locator("[data-member-profile-mobile-change]")).toBeVisible();
   await expect(page.locator("[data-member-profile-save]")).toBeVisible();
@@ -125,8 +131,8 @@ test("DEN-PROF-02 profile PATCH persists and intake omits saved nationalId", asy
   await expect(page.locator('[data-member-profile-field="fatherName"] input')).toHaveValue(
     DENALI_PROFILE_FATHER_NAME
   );
-  await expect(page.locator('[data-member-profile-field="birthDate"] input')).toHaveValue(
-    DENALI_PROFILE_BIRTH_DATE
+  await expect(page.locator('[data-testid="member-profile-birth-date-picker"]')).toContainText(
+    DENALI_PROFILE_BIRTH_DATE_LABEL_FA
   );
 
   await openRegistrationIntakeForAuthenticatedMember(
@@ -164,4 +170,95 @@ test("DEN-PROF-05 gender select PATCH persists after reload", async ({ page }) =
     timeout: 60_000,
   });
   await expect(page.locator('[data-member-profile-field="gender"] select')).toHaveValue("female");
+});
+
+function readPatchBirthDate(postData: string | null): string | null | undefined {
+  if (postData == null) {
+    return undefined;
+  }
+  const body = JSON.parse(postData) as { fields?: { birthDate?: string | null } };
+  return body.fields?.birthDate;
+}
+
+test("DEN-PROF-06 seeded birth date survives open/save without edit", async ({ page }) => {
+  await gotoMemberProfile(page);
+  await saveMemberProfileFields(page, {
+    birthDate: DENALI_PROFILE_BIRTH_DATE,
+  });
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await gotoMemberProfile(page);
+
+  const birthField = page.locator('[data-member-profile-field="birthDate"]');
+  const picker = birthField.locator('[data-testid="member-profile-birth-date-picker"]');
+  await expect(picker).toContainText(DENALI_PROFILE_BIRTH_DATE_LABEL_FA);
+
+  await picker.click();
+  const popover = page.locator("[data-operator-wizard-calendar-popover]");
+  await expect(popover).toBeVisible();
+  await expect(
+    popover.locator(`button[aria-label="${DENALI_PROFILE_BIRTH_DATE}"][aria-pressed="true"]`)
+  ).toBeVisible();
+  await page.locator("body").click({ position: { x: 8, y: 8 } });
+  await expect(popover).toBeHidden({ timeout: 10_000 });
+
+  const patchAfterSave = await page
+    .waitForRequest(
+      (req) => req.method() === "PATCH" && req.url().includes("/api/me/profile"),
+      { timeout: 8_000 }
+    )
+    .catch(() => null);
+
+  if (patchAfterSave !== null) {
+    expect(readPatchBirthDate(patchAfterSave.postData())).toBe(DENALI_PROFILE_BIRTH_DATE);
+  } else {
+    const profileRes = await page.request.get("/api/me/profile");
+    expect(profileRes.ok()).toBeTruthy();
+    const profileBody = (await profileRes.json()) as {
+      profile?: { fields?: { birthDate?: string | null } };
+    };
+    expect(profileBody.profile?.fields?.birthDate).toBe(DENALI_PROFILE_BIRTH_DATE);
+  }
+});
+
+test("DEN-PROF-07 clear birth date to null and re-select via Jalali picker", async ({ page }) => {
+  await gotoMemberProfile(page);
+  await saveMemberProfileFields(page, {
+    birthDate: DENALI_PROFILE_BIRTH_DATE,
+  });
+
+  const birthField = page.locator('[data-member-profile-field="birthDate"]');
+  const picker = birthField.locator('[data-testid="member-profile-birth-date-picker"]');
+  const clearButton = birthField.locator("[data-member-profile-birth-date-clear]");
+
+  await expect(clearButton).toBeVisible();
+  await clearButton.click();
+  await expect(clearButton).toBeHidden();
+
+  const clearedPatch = await Promise.all([
+    page.waitForRequest(
+      (req) =>
+        req.method() === "PATCH" &&
+        req.url().includes("/api/me/profile") &&
+        readPatchBirthDate(req.postData()) === null,
+      { timeout: 90_000 }
+    ),
+    page.locator("[data-member-profile-save]").click(),
+  ]).then(([request]) => request);
+  expect(readPatchBirthDate(clearedPatch.postData())).toBeNull();
+
+  await pickProfileBirthDate(page, birthField, DENALI_PROFILE_BIRTH_DATE);
+  await expect(picker).toContainText(DENALI_PROFILE_BIRTH_DATE_LABEL_FA);
+
+  const selectedPatch = await Promise.all([
+    page.waitForRequest(
+      (req) =>
+        req.method() === "PATCH" &&
+        req.url().includes("/api/me/profile") &&
+        readPatchBirthDate(req.postData()) === DENALI_PROFILE_BIRTH_DATE,
+      { timeout: 90_000 }
+    ),
+    page.locator("[data-member-profile-save]").click(),
+  ]).then(([request]) => request);
+  expect(readPatchBirthDate(selectedPatch.postData())).toBe(DENALI_PROFILE_BIRTH_DATE);
 });

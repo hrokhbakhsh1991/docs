@@ -32,6 +32,7 @@
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/guest-workspace-runtime": "workspace:*",
+    "@app-tour/localized-calendar": "workspace:*",
     "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/theme-react": "workspace:*",

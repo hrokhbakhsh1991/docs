@@ -2,6 +2,7 @@
  * Denali Portal — Party Ledger registration intake (Phase 3).
  * Scoped to catalog registration resume + success. Does not restyle login or member pages.
  */
+@import "../wizard-calendar.css";
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"] {
@@ -56,6 +57,42 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-portal-registration-chrome] {
   padding: 1rem 0 0.5rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-registration-intake-chrome]
+  [data-portal-registration-back] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-registration-brand-icon] {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--denali-ledger-forest);
+  flex-shrink: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-registration-workspace-label] {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 769px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-portal-registration-workspace-label] {
+    font-size: clamp(1rem, 1.6vw, 1.25rem);
+  }
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -275,6 +312,41 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-intake-participant-lead] {
+  margin: 0 0 1rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--denali-ledger-ink);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-other-guests-lead] {
+  margin: 0.35rem 0 0.85rem;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--denali-ledger-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-intake-section-kind="self"][data-denali-intake-self-selected] {
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--denali-ledger-forest) 28%, var(--denali-ledger-hair));
+  border-radius: var(--denali-ledger-radius);
+  background: color-mix(in srgb, var(--denali-ledger-surface) 92%, #e8f3ec);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-intake-section-kind="self"][data-denali-intake-self-selected]
+  [data-denali-self-ident] {
+  margin-bottom: 0.65rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-denali-intake-section-kind="self"] {
   border-top: 0;
   padding-top: 0;
@@ -410,6 +482,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-intake-field-block="phone"],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-intake-field-block="birthDate"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-intake-field-block="notes"] {
   grid-column: 1 / -1;
 }
@@ -454,6 +529,43 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-public-registration-intake]
   input[aria-invalid="true"] {
   border-color: var(--denali-ledger-danger);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-intake-field-block="birthDate"]
+  .operator-date-picker {
+  width: 100%;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-intake-field-block="birthDate"]
+  [data-operator-date-picker] {
+  width: 100%;
+  min-height: var(--denali-ledger-field);
+  border: 1px solid var(--denali-ledger-line);
+  border-radius: var(--denali-ledger-radius);
+  background: var(--denali-ledger-surface);
+  padding: 0 0.85rem;
+  color: var(--denali-ledger-ink);
+  justify-content: flex-start;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-intake-field-block="birthDate"]
+  [data-operator-date-picker][aria-invalid="true"] {
+  border-color: var(--denali-ledger-danger);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-intake-field-block="birthDate"]
+  [data-operator-date-picker]:focus-visible {
+  outline: none;
+  border-color: var(--denali-ledger-forest-600);
+  box-shadow: 0 0 0 3px rgb(5 150 105 / 0.28);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -513,35 +625,68 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
+  button[data-denali-add-guest] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--denali-ledger-line);
+  border-radius: var(--denali-ledger-radius);
+  background: var(--denali-ledger-surface);
+  box-shadow: none;
+  color: var(--denali-ledger-ink);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  button[data-denali-add-guest]:hover:not(:disabled) {
+  border-color: var(--denali-ledger-forest-600);
+  background: color-mix(in srgb, var(--denali-ledger-surface) 88%, #e8f3ec);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-add-guest-icon] {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-denali-add-guest],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-denali-remove-guest],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
-  button[data-denali-add-guest],
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page][data-registration-resume="intake"]
   button[data-denali-remove-guest] {
   align-self: auto;
   width: auto;
+  margin: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-remove-guest],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  button[data-denali-remove-guest] {
   min-height: 44px;
   min-width: 44px;
-  margin: 0;
   padding: 0.35rem 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: var(--denali-ledger-ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page][data-registration-resume="intake"]
-  [data-denali-remove-guest] {
   color: var(--denali-ledger-muted);
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -552,6 +697,28 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   border: 0;
   background: none;
   box-shadow: none;
+}
+
+@media (min-width: 769px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-denali-intake-summary-card] {
+    padding: 1rem 1.05rem;
+    border: 1px solid var(--denali-ledger-hair);
+    border-radius: var(--denali-ledger-radius);
+    background: color-mix(in srgb, var(--denali-ledger-surface) 96%, #fff);
+    box-shadow: 0 1px 2px rgb(26 31 38 / 0.04);
+  }
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-rail-price-label] {
+  display: block;
+  margin: 0 0 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--denali-ledger-muted);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -758,11 +925,30 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 @media (max-width: 768px) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"] {
+    --denali-intake-sticky-cta-reserve: calc(
+      var(--denali-ledger-field) + 1.75rem + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-catalog-registration-page][data-registration-resume="intake"]
     [data-portal-auth-layout] {
     width: 100%;
-    padding: 0 0.875rem max(5.25rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem));
-    scroll-padding-bottom: 5.5rem;
+    padding: 0 0.875rem max(6.75rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem));
+    scroll-padding-bottom: var(--denali-intake-sticky-cta-reserve);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-denali-ledger-main] {
+    padding-bottom: var(--denali-intake-sticky-cta-reserve);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-denali-other-guest-list] {
+    scroll-margin-bottom: var(--denali-intake-sticky-cta-reserve);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]

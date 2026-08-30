@@ -1,0 +1,18 @@
+{
+  "calendar": {
+    "pickDate": "Pick a date",
+    "today": "Today",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "previousYears": "Previous years",
+    "nextYears": "Next years",
+    "pickMonth": "Pick month",
+    "pickYear": "Pick year",
+    "timeLabel": "Time",
+    "pickTime": "Pick time",
+    "confirmTime": "Confirm",
+    "timePickerHint": "Choose hour and minute from the lists",
+    "hour": "Hour",
+    "minute": "Minute"
+  }
+}

@@ -1,7 +1,6 @@
 "use client";
 
 import { createClientSafeId } from "@app-tour/draft-engine";
-import { RenderIntakeForm } from "@app-tour/catalog-intake-ui";
 import {
   catalogRegistrationAuthFlowSteps,
   CatalogRegistrationOtpStep,
@@ -19,6 +18,7 @@ import {
 } from "@app-tour/workspace-sdk";
 import { classifyPublicRegistrationMobileInput } from "@app-tour/catalog-registration-auth";
 import { useLocale, useTranslations } from "next-intl";
+import { Plus } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import {
@@ -33,6 +33,7 @@ import {
   findDuplicateOtherGuestMobile,
   parseCatalogRegistrationResponseBody,
 } from "./denali-registration-intake-client-logic";
+import { DenaliRenderIntakeForm } from "./denali-intake-form";
 
 /** Product hard cap: other-guest cards per intake submit (self is separate). */
 export const DENALI_MAX_OTHER_GUESTS = 10;
@@ -757,7 +758,7 @@ export function DenaliIntakeStep({
             <>
               {" · "}
               <strong>{t("intake.priceAmount", { amount: formattedPrice })}</strong>{" "}
-              <span>{t("intake.perPerson")}</span>
+              <span>{t("intake.pricePerPerson")}</span>
             </>
           ) : null}
         </p>
@@ -770,7 +771,7 @@ export function DenaliIntakeStep({
       {formattedPreviewPayable !== null ? (
         <div data-registration-pricing-preview>
           <div data-registration-pricing-row="gross">
-            <span>{t("intake.originalTourPrice")}</span>
+            <span>{t("intake.pricePerPerson")}</span>
             <strong data-registration-pricing-gross>
               {t("intake.priceAmount", {
                 amount: formattedPreviewGross ?? formattedPreviewPayable,
@@ -803,7 +804,7 @@ export function DenaliIntakeStep({
           })}
           {hasMembershipDiscount ? (
             <div data-registration-pricing-row="payable">
-              <span>{t("intake.yourPrice")}</span>
+              <span>{t("intake.payableAmount")}</span>
               <strong data-registration-pricing-payable>
                 {t("intake.priceAmount", { amount: formattedPreviewPayable })}
               </strong>
@@ -859,7 +860,12 @@ export function DenaliIntakeStep({
 
       <div data-denali-intake-layout>
         <div data-denali-ledger-main id="denali-ledger-main">
-          <section data-denali-intake-section data-denali-intake-section-kind="self">
+          <p data-denali-intake-participant-lead>{t("intake.participantLead")}</p>
+          <section
+            data-denali-intake-section
+            data-denali-intake-section-kind="self"
+            {...(selfSelected ? { "data-denali-intake-self-selected": "" } : {})}
+          >
             <div data-denali-self-ident>
               <h2 data-denali-self-name>
                 {selfDisplayName.length > 0 || showKnownNameHintSelf
@@ -900,7 +906,7 @@ export function DenaliIntakeStep({
 
             {selfSelected ? (
               <div data-denali-self-guest-card>
-                <RenderIntakeForm
+                <DenaliRenderIntakeForm
                   schema={effectiveSchemaSelf}
                   values={{
                     fullName: selfDraft.intakeName,
@@ -1084,6 +1090,7 @@ export function DenaliIntakeStep({
                         )
                       }
                     >
+                      <Plus aria-hidden="true" data-denali-add-guest-icon />
                       {t("intake.addGuestShort")}
                     </button>
                   ) : null}
@@ -1095,6 +1102,7 @@ export function DenaliIntakeStep({
                 </p>
               ) : null}
             </div>
+            <p data-denali-other-guests-lead>{t("intake.otherGuestsLead")}</p>
 
             {otherGuests.length > 0 ? (
               <div data-denali-other-guest-cards>
@@ -1115,7 +1123,7 @@ export function DenaliIntakeStep({
                           ? guestName
                           : t("intake.guestCardTitle", { index: guestIdx + 1 })}
                       </h3>
-                      <RenderIntakeForm
+                      <DenaliRenderIntakeForm
                         schema={effectiveSchemaOther}
                         values={{
                           fullName: guest.intakeName,
@@ -1357,19 +1365,23 @@ export function DenaliIntakeStep({
             </ul>
             {formattedPreviewPayable !== null ? (
               <>
+                <p data-denali-rail-price-label>{t("intake.payableAmount")}</p>
                 <p data-registration-price-hint>
                   {t("intake.priceAmount", { amount: formattedPreviewPayable })}
                 </p>
                 <p data-denali-price-per>
-                  {hasMembershipDiscount ? t("intake.memberPriceSummary") : t("intake.perPerson")}
+                  {hasMembershipDiscount
+                    ? t("intake.memberPriceSummary")
+                    : t("intake.pricePerPerson")}
                 </p>
               </>
             ) : formattedPrice !== null ? (
               <>
+                <p data-denali-rail-price-label>{t("intake.pricePerPerson")}</p>
                 <p data-registration-price-hint>
                   {t("intake.priceAmount", { amount: formattedPrice })}
                 </p>
-                <p data-denali-price-per>{t("intake.perPerson")}</p>
+                <p data-denali-price-per>{t("intake.pricePerPerson")}</p>
               </>
             ) : null}
           </aside>

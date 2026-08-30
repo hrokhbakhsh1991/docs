@@ -34,7 +34,7 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(denaliIntake, /data-denali-intake-summary-card/);
     assert.match(denaliIntake, /data-denali-other-guest-toolbar/);
     assert.match(denaliIntake, /data-public-registration-transport/);
-    assert.match(denaliIntake, /RenderIntakeForm/);
+    assert.match(denaliIntake, /DenaliRenderIntakeForm/);
     assert.match(denaliIntake, /tourRequirements: context\.tourRequirements/);
   });
 

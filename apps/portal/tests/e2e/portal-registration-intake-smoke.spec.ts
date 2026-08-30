@@ -111,7 +111,7 @@ test("DEN-INTAKE-04 self intake persists participant fields to member profile", 
   await expect(page.locator('[data-member-profile-field="fatherName"] input')).toHaveValue(
     fatherName
   );
-  await expect(page.locator('[data-member-profile-field="birthDate"] input')).toHaveValue(
-    birthDate
+  await expect(page.locator('[data-testid="member-profile-birth-date-picker"]')).toContainText(
+    "۲۱ فروردین ۱۳۷۲"
   );
 });

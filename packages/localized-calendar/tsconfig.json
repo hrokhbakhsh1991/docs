@@ -1,0 +1,14 @@
+{
+  "extends": "@app-tour/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@app-tour/ui-primitives/button": ["../ui-primitives/dist/Button/Button"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

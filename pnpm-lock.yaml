@@ -303,6 +303,9 @@ importers:
       '@app-tour/guest-workspace-runtime':
         specifier: workspace:*
         version: link:../../packages/guest-workspace-runtime
+      '@app-tour/localized-calendar':
+        specifier: workspace:*
+        version: link:../../packages/localized-calendar
       '@app-tour/session-client':
         specifier: workspace:*
         version: link:../../packages/session-client
@@ -886,6 +889,49 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/localized-calendar:
+    dependencies:
+      '@app-tour/ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@happy-dom/global-registrator':
+        specifier: ^17.4.4
+        version: 17.6.3
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.16)
+      happy-dom:
+        specifier: ^17.4.4
+        version: 17.6.3
+      next-intl:
+        specifier: ^4.11.1
+        version: 4.13.0(next@15.5.21(@playwright/test@1.60.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/platform-core:
     dependencies:
       '@app-tour/workspace-sdk':
@@ -1318,6 +1364,9 @@ importers:
       '@app-tour/iran-mobile':
         specifier: workspace:*
         version: link:../../iran-mobile
+      '@app-tour/localized-calendar':
+        specifier: workspace:*
+        version: link:../../localized-calendar
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../platform-core

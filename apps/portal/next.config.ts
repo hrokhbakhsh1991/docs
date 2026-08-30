@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
     "denali.club",
   ],
   /** Wave C.b — product workspace packages from manifests (see guest-transpile-packages.generated.mjs). */
-  transpilePackages: [...GUEST_TRANSPILE_PACKAGES],
+  transpilePackages: [...GUEST_TRANSPILE_PACKAGES, "@app-tour/localized-calendar"],
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon.svg" }];
   },

@@ -7,19 +7,21 @@ import {
   canShiftViewMonthBackward,
   compareIsoDates,
   formatCalendarMonthName,
+  formatIsoDateLabel,
+  initialViewFromIso,
   isCalendarMonthBeforeMinIso,
   isCalendarYearBeforeMinIso,
   lastIsoDateInCalendarMonth,
-} from "../src/ui/adapters/calendar-format";
+} from "../src/calendar-format";
 
-describe("calendar-format.spec.ts", () => {
-  it("DN-CAL-01 compareIsoDates orders YYYY-MM-DD lexically", () => {
+describe("calendar-format (LC-CAL)", () => {
+  it("LC-CAL-01 compareIsoDates orders YYYY-MM-DD lexically", () => {
     assert.equal(compareIsoDates("2026-06-22", "2026-06-23"), -1);
     assert.equal(compareIsoDates("2026-06-23", "2026-06-23"), 0);
     assert.equal(compareIsoDates("2026-06-24", "2026-06-23"), 1);
   });
 
-  it("DN-CAL-02 gregorian month grid marks days before min as disabled", () => {
+  it("LC-CAL-02 gregorian month grid marks days before min as disabled", () => {
     const cells = buildGregorianMonthGrid(2026, 6, "", "2026-06-23", "2026-06-23");
     const june22 = cells.find((cell) => cell.iso === "2026-06-22");
     const june23 = cells.find((cell) => cell.iso === "2026-06-23");
@@ -27,7 +29,7 @@ describe("calendar-format.spec.ts", () => {
     assert.equal(june23?.isDisabled, false);
   });
 
-  it("DN-CAL-03 persian month grid marks days before min as disabled", () => {
+  it("LC-CAL-03 persian month grid marks days before min as disabled", () => {
     const cells = buildPersianMonthGrid(1405, 4, "", "2026-06-23", "2026-06-23");
     const beforeMin = cells.find((cell) => cell.iso === "2026-06-22");
     const onMin = cells.find((cell) => cell.iso === "2026-06-23");
@@ -35,7 +37,7 @@ describe("calendar-format.spec.ts", () => {
     assert.equal(onMin?.isDisabled, false);
   });
 
-  it("DN-CAL-04 month and year before-min helpers respect locale calendar", () => {
+  it("LC-CAL-04 month and year before-min helpers respect locale calendar", () => {
     assert.equal(isCalendarMonthBeforeMinIso(2026, 5, "en", "2026-06-23"), true);
     assert.equal(isCalendarMonthBeforeMinIso(2026, 6, "en", "2026-06-23"), false);
     assert.equal(isCalendarYearBeforeMinIso(2025, "en", "2026-06-23"), true);
@@ -44,12 +46,12 @@ describe("calendar-format.spec.ts", () => {
     assert.equal(formatCalendarMonthName(4, "fa"), "تیر");
   });
 
-  it("DN-CAL-05 cannot shift to previous month when entirely before min", () => {
+  it("LC-CAL-05 cannot shift to previous month when entirely before min", () => {
     assert.equal(canShiftViewMonthBackward(2026, 6, "en", "2026-06-23"), false);
     assert.equal(canShiftViewMonthBackward(2026, 7, "en", "2026-06-23"), true);
   });
 
-  it("DN-CAL-06 persian grid cells emit Gregorian ISO, not Jalali year strings", () => {
+  it("LC-CAL-06 persian grid cells emit Gregorian ISO, not Jalali year strings", () => {
     const cells = buildPersianMonthGrid(1405, 5, "2026-08-16", "2026-08-16");
     assert.ok(cells.length > 0);
     for (const cell of cells) {
@@ -58,5 +60,33 @@ describe("calendar-format.spec.ts", () => {
     }
     const selected = cells.find((cell) => cell.isSelected);
     assert.equal(selected?.iso, "2026-08-16");
+  });
+
+  it("LC-CAL-11 Gregorian value reopens with same Jalali visual label", () => {
+    const label = formatIsoDateLabel("1990-05-20", "fa");
+    assert.match(label, /۱۳۶۹/);
+    const view = initialViewFromIso("1990-05-20", "fa");
+    assert.equal(view.month, 2);
+    assert.equal(view.year, 1369);
+  });
+
+  it("LC-CAL-12 no timezone shift for stored civil ISO strings", () => {
+    const originalTz = process.env.TZ;
+    try {
+      process.env.TZ = "Pacific/Kiritimati";
+      const cells = buildPersianMonthGrid(1369, 2, "1990-05-20", "1990-05-20");
+      const selected = cells.find((cell) => cell.isSelected);
+      assert.equal(selected?.iso, "1990-05-20");
+
+      process.env.TZ = "Pacific/Niue";
+      const cellsWest = buildPersianMonthGrid(1369, 2, "1990-05-20", "1990-05-20");
+      assert.equal(cellsWest.find((cell) => cell.isSelected)?.iso, "1990-05-20");
+    } finally {
+      if (originalTz === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = originalTz;
+      }
+    }
   });
 });

@@ -1,0 +1,66 @@
+{
+  "name": "@app-tour/localized-calendar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Neutral Jalali/Gregorian calendar utilities and LocalizedDatePicker (YYYY-MM-DD contract)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./jalaali-calendar": {
+      "types": "./dist/jalaali-calendar.d.ts",
+      "default": "./dist/jalaali-calendar.js"
+    },
+    "./calendar-format": {
+      "types": "./dist/calendar-format.d.ts",
+      "default": "./dist/calendar-format.js"
+    },
+    "./calendar-date-policy": {
+      "types": "./dist/calendar-date-policy.d.ts",
+      "default": "./dist/calendar-date-policy.js"
+    },
+    "./localized-date-picker": {
+      "types": "./dist/localized-date-picker.d.ts",
+      "default": "./dist/localized-date-picker.js"
+    },
+    "./solar-hijri-calendar": {
+      "types": "./dist/solar-hijri-calendar.d.ts",
+      "default": "./dist/solar-hijri-calendar.js"
+    },
+    "./theme/localized-calendar.css": "./theme/localized-calendar.css"
+  },
+  "files": [
+    "dist",
+    "theme"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\""
+  },
+  "dependencies": {
+    "@app-tour/ui-primitives": "workspace:*"
+  },
+  "peerDependencies": {
+    "next-intl": "^4.11.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@happy-dom/global-registrator": "^17.4.4",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "happy-dom": "^17.4.4",
+    "next-intl": "^4.11.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

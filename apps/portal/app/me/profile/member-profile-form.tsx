@@ -9,6 +9,7 @@ import { MemberLogoutButton } from "@/me/member-logout-button";
 import { resolveMemberProfileErrorMessage } from "@/me/resolve-member-profile-error";
 
 import { MemberProfileAvatar } from "./member-profile-avatar";
+import { MemberProfileBirthDateField } from "./member-profile-birth-date-field";
 import { MemberProfileGenderField } from "./member-profile-gender-field";
 import { MemberProfileMobileChange } from "./member-profile-mobile-change";
 
@@ -252,6 +253,15 @@ export function MemberProfileForm({
                     invalid={fieldErrorCode !== undefined}
                     describedBy={fieldErrorMessage !== null ? fieldErrorId : undefined}
                     onChange={(nextValue) => updateFieldValue("gender", nextValue)}
+                  />
+                ) : fieldId === "birthDate" ? (
+                  <MemberProfileBirthDateField
+                    id={controlId}
+                    label={label}
+                    value={fieldValues[fieldId] ?? ""}
+                    invalid={fieldErrorCode !== undefined}
+                    describedBy={fieldErrorMessage !== null ? fieldErrorId : undefined}
+                    onChange={(nextValue) => updateFieldValue("birthDate", nextValue)}
                   />
                 ) : (
                   <>

@@ -190,6 +190,21 @@ export async function completeCatalogRegistrationIntake(
     fieldId: string,
     value: string
   ): Promise<void> => {
+    if (fieldId === "birthDate") {
+      const picker = root.locator('[data-intake-field="birthDate"]').first();
+      if (await picker.isVisible({ timeout: 1_000 }).catch(() => false)) {
+        const tagName = await picker.evaluate((el) => el.tagName);
+        if (tagName === "BUTTON") {
+          await picker.click();
+          const day = page
+            .locator(`[data-testid="localized-calendar"] button[aria-label="${value}"]`)
+            .first();
+          await day.waitFor({ state: "visible", timeout: 10_000 });
+          await day.click();
+          return;
+        }
+      }
+    }
     const inputEl = root
       .locator(
         `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`

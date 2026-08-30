@@ -755,6 +755,7 @@
   },
   "dependencies": {
     "@app-tour/iran-mobile": "workspace:*",
+    "@app-tour/localized-calendar": "workspace:*",
     "@app-tour/catalog-intake-ui": "workspace:*",
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/catalog-registration-auth": "workspace:*",

@@ -1,6 +1,5 @@
 /**
- * Denali wizard calendar — portal-safe (Radix Popover renders on document.body).
- * @see docs/workspaces/denali/wizard-experience.md § Date picker exception
+ * Localized calendar popover + trigger chrome (surface-scoped by host CSS).
  */
 body[data-workspace-plugin="denali"] {
   --operator-wizard-calendar-primary: var(--color-primary);

@@ -5,10 +5,12 @@ import {
   OPERATOR_PUBLISHED_TOUR_ID,
   OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
 } from "./complete-portal-registration";
+import { pickProfileBirthDate } from "./profile-birth-date-picker";
 
 export const DENALI_PROFILE_NATIONAL_ID = "0013542419";
 export const DENALI_PROFILE_FATHER_NAME = "Portal Profile Father";
 export const DENALI_PROFILE_BIRTH_DATE = "1991-06-15";
+export const DENALI_PROFILE_BIRTH_DATE_LABEL_FA = "۲۵ خرداد ۱۳۷۰";
 
 export async function gotoMemberProfile(page: Page): Promise<void> {
   await page.goto("/me/profile", { waitUntil: "domcontentloaded" });
@@ -59,7 +61,15 @@ export async function saveMemberProfileFields(
     await fillProfileField("fatherName", input.fatherName);
   }
   if (input.birthDate !== undefined) {
-    await fillProfileField("birthDate", input.birthDate);
+    const fieldRoot = page.locator('[data-member-profile-field="birthDate"]');
+    if (input.birthDate.length === 0) {
+      const clearButton = fieldRoot.locator("[data-member-profile-birth-date-clear]");
+      if (await clearButton.isVisible().catch(() => false)) {
+        await clearButton.click();
+      }
+    } else {
+      await pickProfileBirthDate(page, fieldRoot, input.birthDate);
+    }
   }
 
   const saveButton = page.locator(

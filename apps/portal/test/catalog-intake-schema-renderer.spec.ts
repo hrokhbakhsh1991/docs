@@ -21,7 +21,7 @@ describe("catalog-intake-schema-renderer", () => {
   it("P8-SCH-01 denali intake step uses schema renderer only for fields", () => {
     const source = readFileSync(denaliIntakePath, "utf8");
     assert.match(source, /resolveEffectiveIntakeSchema/);
-    assert.match(source, /RenderIntakeForm/);
+    assert.match(source, /DenaliRenderIntakeForm/);
     assert.match(source, /idPrefix="denali-intake-self"/);
     assert.match(source, /idPrefix=\{`denali-intake-other-\$\{guestIdx\}`\}/);
     assert.match(source, /invalidFieldId/);

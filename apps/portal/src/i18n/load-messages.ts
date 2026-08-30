@@ -7,7 +7,8 @@ async function loadFaMessages(): Promise<AppMessages> {
     "../../messages/fa/catalogRegistration.json"
   );
   const { default: portalMember } = await import("../../messages/fa/portalMember.json");
-  return { catalogRegistration, portalMember };
+  const { default: common } = await import("../../messages/fa/common.json");
+  return { catalogRegistration, portalMember, common };
 }
 
 async function loadEnMessages(): Promise<AppMessages> {
@@ -15,7 +16,8 @@ async function loadEnMessages(): Promise<AppMessages> {
     "../../messages/en/catalogRegistration.json"
   );
   const { default: portalMember } = await import("../../messages/en/portalMember.json");
-  return { catalogRegistration, portalMember };
+  const { default: common } = await import("../../messages/en/common.json");
+  return { catalogRegistration, portalMember, common };
 }
 
 const loaders: Record<AppLocale, () => Promise<AppMessages>> = {
