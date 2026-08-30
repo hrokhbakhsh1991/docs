@@ -137,7 +137,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   margin-top: var(--space-1);
   border: none;
   border-radius: var(--portal-pocket-radius, 0.75rem);
-  background: var(--color-primary);
+  background: var(--denali-forest-600, var(--color-primary));
   color: var(--color-primary-fg);
   font-size: 0.9375rem;
   font-weight: 700;
@@ -313,4 +313,41 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   font-size: 0.875rem;
   line-height: 1.5;
   margin: 0;
+}
+
+/* Profile — invalid field affordance + action-row button reset */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-portal-member-profile]
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"])[aria-invalid="true"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-portal-member-profile]
+  select[aria-invalid="true"] {
+  border-color: color-mix(in oklab, var(--destructive) 42%, var(--color-border-default));
+  background: color-mix(in oklab, var(--destructive) 4%, var(--color-bg-surface));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--destructive) 16%, transparent),
+    0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-portal-member-profile]
+  [data-member-profile-actions]
+  :is([data-member-profile-save], [data-member-profile-discard]) {
+  margin-top: 0;
+  align-self: auto;
+  width: 100%;
+}
+
+@media (min-width: 48rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-portal-member-profile]
+    [data-member-profile-actions]
+    :is([data-member-profile-save], [data-member-profile-discard]) {
+    width: auto;
+    min-width: 8rem;
+  }
 }

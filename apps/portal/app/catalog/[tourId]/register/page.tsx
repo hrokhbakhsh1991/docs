@@ -117,6 +117,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
       heroKicker={heroKicker}
       heroLede={heroLede}
       sessionBadge={sessionBadge}
+      registrationIntakeResume={resumeAtIntake}
       pageKind="registration"
       workspace={workspace}
       mainAttributes={

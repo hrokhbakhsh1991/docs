@@ -165,18 +165,27 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   flex-shrink: 0;
 }
 
+/* Pocket wordmark — parity with Marketing solid header brand title (shell.css), not overlay hero */
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-workspace-label] {
   font-family: inherit;
-  font-size: 0.9375rem;
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--color-text-primary);
 }
 
+@media (min-width: 1024px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-workspace-label] {
+    font-size: clamp(1.125rem, 2vw, 1.375rem);
+  }
+}
+
+/* Member chip — Pocket mobile collapse; Marketing `/tours` parity from tablet up */
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member] {
+  a[data-marketing-header-member] {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -199,30 +208,21 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member]:hover {
-  border-color: var(--color-border-default);
-  background: var(--color-bg-surface);
-  text-decoration: none;
-  transform: none;
-  box-shadow: none;
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-shell]
-  [data-marketing-header-member]:focus-visible {
+  a[data-marketing-header-member]:focus-visible {
   outline: 2px solid var(--color-focus-ring, var(--color-primary));
   outline-offset: 2px;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member]:active {
+  a[data-marketing-header-member]:active {
   transform: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member-avatar-wrap] {
+  a[data-marketing-header-member]
+  span[data-marketing-header-member-avatar-wrap] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -230,7 +230,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   height: 2rem;
   border-radius: 9999px;
   background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg-surface));
-  color: var(--color-primary);
+  color: var(--denali-forest-600, var(--color-primary));
   overflow: hidden;
   flex-shrink: 0;
   box-shadow: none;
@@ -238,7 +238,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member-avatar] {
+  a[data-marketing-header-member]
+  img[data-marketing-header-member-avatar] {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -246,16 +247,22 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member-meta] {
+  a[data-marketing-header-member]
+  span[data-marketing-header-member-meta] {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 0.0625rem;
   min-width: 0;
   flex: 1 1 auto;
+  line-height: 1.2;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member-label] {
+  a[data-marketing-header-member]
+  span[data-marketing-header-member-label] {
+  display: block;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -269,31 +276,138 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member-hint] {
+  a[data-marketing-header-member]
+  span[data-marketing-header-member-hint] {
   display: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
-  [data-marketing-header-member-icon] {
-  width: 1rem;
-  height: 1rem;
+  a[data-marketing-header-member]
+  svg[data-marketing-header-member-icon] {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--denali-forest-600, var(--color-primary));
+  stroke: currentColor;
 }
 
 @media (max-width: 25rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-shell]
-    [data-marketing-header-member] {
+    a[data-marketing-header-member] {
     max-width: 2.75rem;
     min-width: var(--portal-pocket-touch, 2.75rem);
     padding: 0.125rem;
     justify-content: center;
+    border-color: var(--color-border-subtle);
+    background: var(--color-bg-surface);
+    box-shadow: none;
+    transform: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-shell]
-    [data-marketing-header-member-meta] {
+    a[data-marketing-header-member]:hover {
+    border-color: var(--color-border-default);
+    background: var(--color-bg-surface);
+    transform: none;
+    box-shadow: none;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member]
+    span[data-marketing-header-member-meta] {
     display: none;
+  }
+}
+
+@media (min-width: 26rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member] {
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+    min-width: auto;
+    max-width: min(100%, 14rem);
+    border-color: color-mix(in srgb, var(--color-primary) 22%, var(--border));
+    background: color-mix(in srgb, var(--card) 88%, var(--color-primary) 12%);
+    box-shadow:
+      0 0.0625rem 0 rgba(15, 23, 42, 0.05),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member]:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--border));
+    background: color-mix(in srgb, var(--card) 82%, var(--color-primary) 18%);
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow:
+      0 0.35rem 0.85rem rgba(15, 23, 42, 0.08),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member]
+    span[data-marketing-header-member-avatar-wrap] {
+    width: 2.25rem;
+    height: 2.25rem;
+    background: color-mix(in srgb, var(--color-primary) 12%, white);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 55%, white);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member]
+    span[data-marketing-header-member-label] {
+    max-width: 9rem;
+    font-weight: 700;
+    color: var(--foreground);
+  }
+}
+
+@media (min-width: 26rem) and (max-width: 1023px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member] {
+    max-width: min(100%, 10.5rem);
+    padding-inline-end: var(--space-2);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member]
+    span[data-marketing-header-member-label] {
+    max-width: 5.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member] {
+    padding-block: var(--space-2);
+    padding-inline-start: var(--space-1);
+    padding-inline-end: var(--space-4);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    a[data-marketing-header-member]
+    span[data-marketing-header-member-hint] {
+    display: block;
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--muted-foreground);
   }
 }
 

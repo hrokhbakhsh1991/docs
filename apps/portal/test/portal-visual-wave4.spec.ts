@@ -214,7 +214,16 @@ describe("portal-visual-wave4.spec.ts", () => {
 
   it("VIS-SHELL-07 Pocket desktop chrome has no danger hex fallback", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-shell-desktop.css"), "utf8");
-    assert.match(css, /--destructive/);
     assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}/);
+    const logoutFooter = css.slice(css.indexOf("[data-portal-shell-nav-footer]"));
+    assert.match(
+      logoutFooter,
+      /\[data-public-auth-logout\][\s\S]*?color:\s*var\(--color-text-muted\)/
+    );
+    assert.match(
+      logoutFooter,
+      /\[data-public-auth-logout\]:hover:not\(:disabled\)[\s\S]*?color:\s*var\(--color-text-secondary\)/
+    );
+    assert.doesNotMatch(logoutFooter, /--destructive/);
   });
 });

@@ -11,6 +11,7 @@ export type PortalAuthExperienceShellProps = {
   readonly heroLede?: string | null;
   readonly sessionBadge?: string | null;
   readonly memberLoginEgress?: boolean;
+  readonly registrationIntakeResume?: boolean;
   readonly pageKind: "login" | "registration";
   readonly workspace: string;
   readonly mainAttributes?: Record<string, string>;
@@ -26,6 +27,7 @@ export function PortalAuthExperienceShell({
   heroLede = null,
   sessionBadge = null,
   memberLoginEgress = false,
+  registrationIntakeResume = false,
   pageKind,
   workspace,
   mainAttributes,
@@ -47,6 +49,7 @@ export function PortalAuthExperienceShell({
           branding={branding}
           backHref={backHref}
           memberLoginEgress={memberLoginEgress}
+          registrationIntakeResume={registrationIntakeResume}
         />
         <section data-portal-auth-card>
           <header data-portal-auth-hero>

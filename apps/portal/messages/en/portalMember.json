@@ -69,6 +69,7 @@
     },
     "save": "Save",
     "discard": "Discard",
+    "birthDateClear": "Clear birth date",
     "saving": "Saving…",
     "saved": "Profile saved.",
     "failed": "Save failed.",

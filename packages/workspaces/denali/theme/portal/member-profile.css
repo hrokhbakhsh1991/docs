@@ -73,7 +73,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-profile] {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
   padding: 0;
   border: none;
   background: transparent;
@@ -83,14 +85,29 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
-  [data-member-profile-card] {
+  [data-portal-member-profile]
+  > :is(section, fieldset)[data-member-profile-card] {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
   padding: var(--space-4);
   border-radius: var(--portal-pocket-radius, 0.75rem);
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-card] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--portal-pocket-radius, 0.75rem);
+  border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-surface);
   box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
 }
@@ -98,7 +115,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
   fieldset[data-member-profile-card] {
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--color-border-subtle);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -109,7 +126,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   border: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -117,12 +135,22 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   fieldset
   legend {
   padding: 0;
-  margin-bottom: var(--space-1);
+  margin: 0 0 var(--space-1);
   font-size: 0.9375rem;
   font-weight: 650;
   letter-spacing: -0.01em;
+  line-height: 1.3;
   text-transform: none;
   color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -130,13 +158,11 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-field]
   label {
   display: block;
-  margin-bottom: var(--space-2);
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-portal-member-profile]
-  [data-member-profile-field] {
-  min-width: 0;
+  margin: 0;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -164,10 +190,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-3);
+  padding: var(--space-4);
   border-radius: var(--portal-pocket-radius, 0.75rem);
-  border: 1px solid var(--color-border-default);
-  background: var(--color-bg-page);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in oklab, var(--color-bg-page) 72%, var(--color-bg-surface));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -237,6 +263,24 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-mobile-change-actions]
   button {
   width: 100%;
+  min-height: var(--portal-pocket-touch, 2.75rem);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-action-row] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-success] {
+  margin: 0;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
+  line-height: 1.45;
+  color: var(--color-primary);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -245,6 +289,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  margin-top: var(--space-1);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -256,13 +301,12 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   position: sticky;
   bottom: 0;
   z-index: 4;
-  margin-top: var(--space-1);
-  padding: var(--space-3) 0;
-  border: none;
-  border-top: 1px solid var(--color-border-subtle);
-  border-radius: 0;
-  background: var(--color-bg-page);
-  box-shadow: none;
+  margin-top: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--portal-pocket-radius, 0.75rem);
+  background: color-mix(in oklab, var(--color-bg-surface) 96%, var(--color-bg-page));
+  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -279,9 +323,15 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-save] {
   min-height: var(--portal-pocket-cta-height, 3rem);
   border-radius: var(--portal-pocket-radius, 0.75rem);
-  background: var(--color-primary);
+  background: var(--denali-forest-600, var(--color-primary));
   color: var(--color-primary-fg);
   box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-save]:not(:disabled):hover {
+  background: var(--denali-forest-700, var(--color-primary-hover, var(--color-primary)));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -403,20 +453,110 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
   [data-member-profile-avatar] {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "preview"
+    "meta"
+    "actions"
+    "hint"
+    "alert";
+  justify-items: center;
+  gap: var(--space-3);
   text-align: center;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
+  [data-member-profile-avatar-preview] {
+  grid-area: preview;
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius-full, 9999px);
+  overflow: hidden;
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-bg-muted));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 18%, var(--color-border-default));
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-surface));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
   [data-member-profile-avatar-meta] {
+  grid-area: meta;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1);
   align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-avatar-actions] {
+  grid-area: actions;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-avatar-hint] {
+  grid-area: hint;
+  margin: 0;
+  max-width: 24rem;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-avatar]
+  > [role="alert"] {
+  grid-area: alert;
+  width: 100%;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field-hint],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field-error],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-form-error] {
+  margin: 0;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
+  line-height: 1.45;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field-hint] {
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field-error],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-form-error] {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent);
+  background: color-mix(in oklab, var(--destructive) 8%, var(--color-bg-surface));
+  color: var(--destructive);
+  font-weight: 500;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -435,25 +575,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-avatar-name] {
   margin: 0;
   font-family: inherit;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   font-weight: 650;
   line-height: 1.25;
   color: var(--color-text-primary);
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-portal-member-profile]
-  [data-member-profile-avatar-preview] {
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: var(--radius-full, 9999px);
-  overflow: hidden;
-  background: var(--color-bg-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border-default);
-  box-shadow: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -467,20 +592,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
   [data-member-profile-avatar-initials] {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 650;
-  color: var(--color-primary);
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-portal-member-profile]
-  [data-member-profile-avatar-actions] {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
+  color: var(--denali-forest-600, var(--color-primary));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -515,11 +629,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
-  [data-member-profile-avatar-hint] {
-  margin: 0;
-  font-size: var(--portal-pocket-meta-size, 0.8125rem);
-  line-height: 1.45;
-  color: var(--color-text-muted);
+  [data-member-profile-avatar-actions]
+  [data-member-profile-avatar-remove] {
+  border-color: color-mix(in oklab, var(--destructive) 28%, var(--color-border-default));
+  color: var(--destructive);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -607,6 +720,20 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-portal-member-profile][data-member-profile-layout="sectioned"] {
     gap: var(--space-1);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-portal-member-profile][data-member-profile-layout="sectioned"]
+    > :is(section, fieldset)[data-member-profile-card] {
+    gap: var(--space-4);
+    margin: 0;
+    padding: var(--space-5) 0;
+    border: none;
+    border-bottom: 1px solid var(--color-border-subtle);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -786,12 +913,46 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-member-profile-card="photo"]
     [data-member-profile-avatar-preview] {
     grid-area: preview;
-    width: 4.5rem;
-    height: 4.5rem;
+    width: 5rem;
+    height: 5rem;
     flex-shrink: 0;
-    border-width: 1px;
-    box-shadow: none;
     align-self: start;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-card="photo"]
+    [data-member-profile-avatar]
+    > [role="alert"] {
+    grid-area: alert;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-action-row],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-mobile-change-actions] {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-footer] {
+    position: static;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    margin: var(--space-2) 0 0;
+    padding: var(--space-5) 0 0;
+    width: 100%;
+    max-width: none;
+    border-top: 1px solid var(--color-border-subtle);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -832,27 +993,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     text-align: start;
     margin: 0;
     max-width: 32rem;
-  }
-
-  body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    main[data-portal-member-profile]
-    [data-member-profile-card="photo"]
-    [role="alert"] {
-    grid-area: alert;
-  }
-
-  body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    main[data-portal-member-profile]
-    [data-member-profile-footer] {
-    position: sticky;
-    bottom: var(--space-4);
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: var(--space-3);
-    margin-inline-start: auto;
-    width: min(100%, 26rem);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
