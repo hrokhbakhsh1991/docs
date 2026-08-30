@@ -44,5 +44,31 @@ artifact_self_check() {
     echo "artifact-self-check: Denali client bundle disabled in web server config" >&2
     return 1
   fi
+
+  local denali_acl
+  denali_acl="$(find "${vroot}/api/node_modules" -path '*/@app-tour/workspace-denali/dist/acl/migrateDenaliCanonical.js' 2>/dev/null | head -1)"
+  [[ -n "$denali_acl" ]] || {
+    echo "artifact-self-check: missing @app-tour/workspace-denali/dist/acl/migrateDenaliCanonical.js" >&2
+    return 1
+  }
+  if head -1 "$denali_acl" | grep -q '^import '; then
+    echo "artifact-self-check: denali migrateDenaliCanonical must be CJS for staging seed" >&2
+    return 1
+  fi
+  if ! grep -q '"use strict"' "$denali_acl"; then
+    echo "artifact-self-check: denali migrateDenaliCanonical missing CJS prologue" >&2
+    return 1
+  fi
+  if ! DENALI_ACL_JS="$denali_acl" node -e "
+    const { createRequire } = require('node:module');
+    const path = process.env.DENALI_ACL_JS;
+    const req = createRequire(path);
+    const mod = req(path);
+    if (typeof mod.migrateDenaliCanonical !== 'function') process.exit(2);
+  "; then
+    echo "artifact-self-check: denali host/acl runtime require probe failed" >&2
+    return 1
+  fi
+
   echo "artifact-self-check: OK"
 }
