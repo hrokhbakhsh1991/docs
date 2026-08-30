@@ -57,7 +57,18 @@ ALLOW_DENALI_WEB_PLUGIN=true
 ALLOW_URBAN_WEB_PLUGIN=true
 TOUR_OPS_API_URL=http://127.0.0.1:3001
 API_INTERNAL_URL=http://127.0.0.1:3001
+NEXT_FONT_OFFLINE=1
 EOF
+done
+
+# Existing .env.local files (write_if_missing is a no-op) still need the
+# offline-font flag so next/font/google does not hang on blocked TLS.
+for app in web marketing portal; do
+  dest="$repo_root/apps/$app/.env.local"
+  if [ -f "$dest" ] && ! grep -q '^NEXT_FONT_OFFLINE=' "$dest" 2>/dev/null; then
+    printf '\nNEXT_FONT_OFFLINE=1\n' >> "$dest"
+    echo "agent-start: appended NEXT_FONT_OFFLINE=1 to $dest"
+  fi
 done
 
 # PCMS-SEC-02 — copy RS256 *public* verify material into guest surfaces (never private key).

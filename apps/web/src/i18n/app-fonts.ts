@@ -1,6 +1,8 @@
 import type { AppLocale } from "./routing";
 
-import { inter, vazirmatn } from "@/i18n/app-fonts.google";
+// Offline system stack. `app-fonts.google.ts` (`next/font/google`) hangs
+// `next dev` when fonts.googleapis.com TLS is blocked (see NEXT_FONT_OFFLINE).
+import { inter, vazirmatn } from "./app-fonts.offline";
 
 export { inter, vazirmatn };
 

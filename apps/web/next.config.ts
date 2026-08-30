@@ -61,12 +61,25 @@ const nextConfig: NextConfig = {
   transpilePackages: [...ADMIN_TRANSPILE_PACKAGES, "@app-tour/iran-mountain-landmarks"],
   webpack: (config, { webpack, isServer }) => {
     if (process.env.NEXT_FONT_OFFLINE === "1") {
+      // Alias the resolved file path: `@/` is rewritten via tsconfig before the
+      // string key `@/i18n/app-fonts.google`, so that key never matched and
+      // next/font/google still fetched fonts.gstatic over TLS.
       config.resolve ??= {};
-      config.resolve.alias ??= {};
-      config.resolve.alias["@/i18n/app-fonts.google"] = resolve(
-        appDir,
-        "src/i18n/app-fonts.offline.ts"
-      );
+      const offlineFonts = resolve(appDir, "src/i18n/app-fonts.offline.ts");
+      const googleFonts = resolve(appDir, "src/i18n/app-fonts.google.ts");
+      const extraAlias: Record<string, string> = {
+        "@/i18n/app-fonts.google": offlineFonts,
+        "@/i18n/app-fonts.google.ts": offlineFonts,
+        [googleFonts]: offlineFonts,
+      };
+      const existing = config.resolve.alias;
+      if (Array.isArray(existing)) {
+        for (const [name, alias] of Object.entries(extraAlias)) {
+          existing.push({ name, alias });
+        }
+      } else {
+        config.resolve.alias = { ...(existing ?? {}), ...extraAlias };
+      }
     }
 
     if (!isServer) {

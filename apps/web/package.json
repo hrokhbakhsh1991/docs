@@ -9,7 +9,7 @@
     "guard:ui-primitives-boundary": "pnpm run audit-boundary",
     "guard:no-raw-wizard-input": "node ./scripts/guard-no-raw-wizard-input.mjs",
     "predev": "node ./scripts/run-prebuild-guards.mjs",
-    "dev": "next dev --port 3000",
+    "dev": "NEXT_FONT_OFFLINE=1 next dev --port 3000",
     "prebuild": "node ./scripts/run-prebuild-guards.mjs",
     "build": "next build",
     "prelint": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
