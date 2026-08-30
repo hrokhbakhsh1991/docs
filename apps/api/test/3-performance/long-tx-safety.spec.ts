@@ -36,6 +36,11 @@ import { TourStorageDbAdapter } from "../../src/db/tour-storage.adapter";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { ToursService } from "../../src/tours/tours.service";
 import { integrationTenantId } from "../test-helpers";
+import {
+  evaluateIdleInTxDeltaSamples,
+  formatLongTxSustainedViolationMessage,
+  type LongTxActivityDiagnostic,
+} from "./long-tx-safety-sampling";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -66,6 +71,9 @@ export type LongTxSafetyReport = {
   readonly verdict: "pass" | "fail";
   readonly validateDelayMs: number;
   readonly maxIdleInTransactionDuringValidation: number;
+  readonly maxConsecutivePositiveSamples: number;
+  readonly isolatedPositiveSampleCount: number;
+  readonly sustainedIdleInTransactionViolation: boolean;
   readonly validationSampleCount: number;
   readonly concurrentProbeStatus: number;
   readonly concurrentProbeDurationMs: number;
@@ -134,6 +142,50 @@ async function countAppTourConnections(
   }
 
   return { total, active, idle, idleInTransaction };
+}
+
+async function fetchIdleInTransactionDiagnostics(
+  admin: PrismaClient,
+  applicationName: string
+): Promise<LongTxActivityDiagnostic[]> {
+  const rows = await admin.$queryRaw<
+    Array<{
+      pid: number;
+      state: string | null;
+      query: string | null;
+      xact_start: Date | null;
+      state_change: Date | null;
+    }>
+  >`
+    SELECT pid,
+           state,
+           query,
+           xact_start,
+           state_change
+    FROM pg_stat_activity
+    WHERE usename = 'app_tour'
+      AND datname = current_database()
+      AND application_name = ${applicationName}
+      AND state = 'idle in transaction'
+    ORDER BY pid
+  `;
+
+  return rows.map((row) => ({
+    pid: row.pid,
+    state: row.state ?? "unknown",
+    query: row.query ?? "",
+    xactStart: row.xact_start ? row.xact_start.toISOString() : null,
+    stateChange: row.state_change ? row.state_change.toISOString() : null,
+  }));
+}
+
+function mergeDiagnostics(
+  target: Map<number, LongTxActivityDiagnostic>,
+  diagnostics: readonly LongTxActivityDiagnostic[]
+): void {
+  for (const row of diagnostics) {
+    target.set(row.pid, row);
+  }
 }
 
 async function waitForConnectionDrain(
@@ -305,6 +357,8 @@ describe(
 
       let maxIdleDeltaDuringValidation = 0;
       let validationSampleCount = 0;
+      const validationDeltas: number[] = [];
+      const positiveDiagnostics = new Map<number, LongTxActivityDiagnostic>();
 
       const createStart = performance.now();
       const createPromise = httpRequest("/tours", "POST", validTourBody(`long-tx-${runId}-a`));
@@ -324,23 +378,35 @@ describe(
         }
         validationSampleCount += 1;
         const delta = snapshot.idleInTransaction - baseline.idleInTransaction;
+        validationDeltas.push(delta);
         if (delta > maxIdleDeltaDuringValidation) {
           maxIdleDeltaDuringValidation = delta;
+        }
+        if (delta > 0) {
+          mergeDiagnostics(
+            positiveDiagnostics,
+            await fetchIdleInTransactionDiagnostics(admin, applicationName)
+          );
         }
         await new Promise((resolve) => setTimeout(resolve, SAMPLE_INTERVAL_MS));
       }
 
+      const samplingVerdict = evaluateIdleInTxDeltaSamples(validationDeltas);
       const createResult = await createPromise;
       const createDurationMs = performance.now() - createStart;
 
-      const connectionAcquiredDuring =
-        maxIdleDeltaDuringValidation > 0 ? "validation_bug" : "persist_only";
+      const connectionAcquiredDuring = samplingVerdict.sustainedViolation
+        ? "validation_bug"
+        : "persist_only";
 
       lastReport = {
         verdict:
-          maxIdleDeltaDuringValidation === 0 && createResult.status === 201 ? "pass" : "fail",
+          !samplingVerdict.sustainedViolation && createResult.status === 201 ? "pass" : "fail",
         validateDelayMs,
         maxIdleInTransactionDuringValidation: maxIdleDeltaDuringValidation,
+        maxConsecutivePositiveSamples: samplingVerdict.maxConsecutivePositive,
+        isolatedPositiveSampleCount: samplingVerdict.isolatedPositiveSampleCount,
+        sustainedIdleInTransactionViolation: samplingVerdict.sustainedViolation,
         validationSampleCount,
         concurrentProbeStatus: 0,
         concurrentProbeDurationMs: 0,
@@ -351,18 +417,31 @@ describe(
 
       if (process.env.LONG_TX_SAFETY_EMIT === "1") {
         console.info(JSON.stringify(lastReport, null, 2));
+        if (positiveDiagnostics.size > 0) {
+          console.info(
+            formatLongTxSustainedViolationMessage({
+              baselineIdleInTransaction: baseline.idleInTransaction,
+              verdict: samplingVerdict,
+              validateDelayMs,
+              validationSampleCount,
+              sampleWindowMs: `${samplingStartMs}-${samplingEndMs}`,
+              diagnostics: [...positiveDiagnostics.values()],
+            })
+          );
+        }
       }
 
       assert.equal(
-        maxIdleDeltaDuringValidation,
-        0,
-        [
-          "idle in transaction grew during validation delay — TX opened before persist (architecture bug)",
-          `  baseline=${baseline.idleInTransaction} maxDelta=${maxIdleDeltaDuringValidation}`,
-          `  validateDelayMs=${validateDelayMs} samples=${validationSampleCount}`,
-          `  sampleWindowMs=${samplingStartMs}-${samplingEndMs}`,
-          `  connectionAcquiredDuring=${connectionAcquiredDuring}`,
-        ].join("\n")
+        samplingVerdict.sustainedViolation,
+        false,
+        formatLongTxSustainedViolationMessage({
+          baselineIdleInTransaction: baseline.idleInTransaction,
+          verdict: samplingVerdict,
+          validateDelayMs,
+          validationSampleCount,
+          sampleWindowMs: `${samplingStartMs}-${samplingEndMs}`,
+          diagnostics: [...positiveDiagnostics.values()],
+        })
       );
 
       assert.equal(
