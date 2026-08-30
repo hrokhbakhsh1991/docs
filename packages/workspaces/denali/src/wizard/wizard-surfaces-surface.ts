@@ -8,6 +8,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 export const WIZARD_COMPOSITE_SURFACE_CACHE_KEY = "app-cloud.wizardCompositeSurfaceCache";
 export const WIZARD_REVIEW_SURFACE_CACHE_KEY = "app-cloud.wizardReviewSurfaceCache";
@@ -66,7 +67,7 @@ export async function ensureWizardCompositePackageSurface(): Promise<WizardCompo
   if (existing != null) {
     return existing;
   }
-  const compositeMod = await import("../ui/surfaces/composite-surface");
+  const compositeMod = await importUiSurface("../ui/surfaces/composite-surface");
   const surface = compositeMod.createDenaliCompositeSurface() as WizardCompositeSurface;
   getCompositeCache().set(surfaceId, surface);
   return surface;
@@ -82,7 +83,7 @@ export async function ensureWizardReviewPackageSurface(): Promise<WizardReviewSu
   if (existing != null) {
     return existing;
   }
-  const reviewMod = await import("../ui/surfaces/review-surface");
+  const reviewMod = await importUiSurface("../ui/surfaces/review-surface");
   const surface = reviewMod.createDenaliReviewSurface() as WizardReviewSurface;
   getReviewCache().set(surfaceId, surface);
   return surface;

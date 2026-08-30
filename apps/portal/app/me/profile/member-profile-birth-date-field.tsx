@@ -1,6 +1,6 @@
 "use client";
 
-import { LocalizedDatePicker } from "@app-tour/localized-calendar";
+import { LocalizedDatePicker } from "@app-tour/localized-calendar/localized-date-picker";
 import { useTranslations } from "next-intl";
 
 import "./member-profile-calendar.css";

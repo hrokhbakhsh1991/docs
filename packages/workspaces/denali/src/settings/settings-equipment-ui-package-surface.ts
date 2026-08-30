@@ -6,6 +6,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "../wizard/import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no product token). */
 export const SETTINGS_EQUIPMENT_UI_SURFACE_KEY = "app-cloud.settingsEquipmentUiSurface";
@@ -55,7 +56,7 @@ export async function ensureSettingsEquipmentUiPackageSurface(
   }
 
   // String-keyed so plugin tsc does not pull `src/ui` statically.
-  const mod = await import("../ui/settings/settings-equipment-ui-surface");
+  const mod = await importUiSurface("../ui/settings/settings-equipment-ui-surface");
   const next = Object.freeze({
     EquipmentCatalogAvatar: mod.denaliSettingsEquipmentUiSurface.EquipmentCatalogAvatar,
     EquipmentIconPicker: mod.denaliSettingsEquipmentUiSurface.EquipmentIconPicker,

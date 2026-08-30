@@ -7,6 +7,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no Denali token). */
 export const OPERATOR_UI_COMPONENTS_SURFACE_KEY = "app-cloud.operatorUiComponentsSurface";
@@ -71,7 +72,7 @@ export async function ensureOperatorUiComponentsPackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const mod = await import("../ui/operator-ui-components-surface");
+  const mod = await importUiSurface("../ui/operator-ui-components-surface");
   const next = Object.freeze({
     TimeInput: mod.denaliOperatorUiComponentsSurface.TimeInput,
     DifficultyRangeSlider: mod.denaliOperatorUiComponentsSurface.DifficultyRangeSlider,

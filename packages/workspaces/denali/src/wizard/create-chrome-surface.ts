@@ -7,6 +7,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no Denali token). */
 export const WIZARD_CREATE_CHROME_SURFACE_KEY = "app-cloud.wizardCreateChromeSurface";
@@ -67,7 +68,7 @@ export async function ensureWizardCreateChromePackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const mod = await import("../ui/chrome/wizard-create-chrome-surface");
+  const mod = await importUiSurface("../ui/chrome/wizard-create-chrome-surface");
   const next = Object.freeze({
     useCreateTourWizardCore: mod.denaliWizardCreateChromeSurface.useCreateTourWizardCore,
     isDraftEssentiallyEmpty: mod.denaliWizardCreateChromeSurface.isDraftEssentiallyEmpty,

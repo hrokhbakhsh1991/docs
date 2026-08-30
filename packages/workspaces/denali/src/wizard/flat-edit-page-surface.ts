@@ -7,6 +7,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no Denali token). */
 export const WIZARD_FLAT_EDIT_PAGE_SURFACE_KEY = "app-cloud.wizardFlatEditPageSurface";
@@ -69,7 +70,7 @@ export async function ensureWizardFlatEditPagePackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const mod = await import("../ui/chrome/wizard-flat-edit-page-surface");
+  const mod = await importUiSurface("../ui/chrome/wizard-flat-edit-page-surface");
   const next = Object.freeze({
     FlatEditPageView: mod.denaliWizardFlatEditPageSurface.FlatEditPageView,
     FlatEditValidationList: mod.denaliWizardFlatEditPageSurface.FlatEditValidationList,

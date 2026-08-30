@@ -1,0 +1,68 @@
+---
+title: Localized calendar — Node-safe barrel vs UI subpaths
+format: markdoc
+doc_role: architecture_sot
+---
+
+# Localized calendar — Node-safe barrel vs UI subpaths
+
+Package: `@app-tour/localized-calendar`.
+
+## Problem
+
+Denali wizard **validation** is a Node path. `denali.plugin` → `denaliWizardHostHooks` → `denali-wizard-validation` → `denali-schedule-date-policy` → `ui/adapters/calendar-format` → `@app-tour/localized-calendar`.
+
+If the package **root barrel** (`"."` / `src/index.ts`) re-exports `LocalizedDatePicker` / `SolarHijriCalendar`, Node loads `ui-primitives` `Button.js`, which `require()`s `Button.module.css`. `tsx` then throws `SyntaxError: Unexpected token '.'` and `@apps/api` never listens.
+
+Wizard schedule min-date helpers (`todayIsoDate`, `compareIsoDates`, `addIsoDateDays`) are pure ISO math. They must not pull CSS modules. Client pickers import `@app-tour/localized-calendar/localized-date-picker`. Denali UI tsc uses `moduleResolution: bundler`. Plugin tsc stays `Node` and loads UI only via `importUiSurface(string)` so it does not typecheck CSS modules.
+
+## Decision
+
+Split the public graph:
+
+| Import | Allowed in | Contents |
+| ------ | ---------- | -------- |
+| `@app-tour/localized-calendar` (root) | Node + UI | `jalaali-calendar`, `calendar-format`, `calendar-date-policy`, `i18n-format` only. No `.tsx`. No `@app-tour/ui-primitives`. |
+| `@app-tour/localized-calendar/localized-date-picker` | Client UI | `LocalizedDatePicker`. Denali `tsconfig.ui.json` uses `moduleResolution: bundler` plus `paths` to `dist/` because plugin `moduleResolution: Node` cannot consume package `exports`. |
+| `@app-tour/localized-calendar/solar-hijri-calendar` | Client UI | `SolarHijriCalendar` |
+| `@app-tour/localized-calendar/calendar-format` | Node + UI | ISO/Jalali format helpers (explicit subpath; same symbols as root) |
+| `@app-tour/localized-calendar/jalaali-calendar` | Node + UI | Intl Jalali ↔ Gregorian |
+
+```text
+API boot
+  denali.plugin
+    wizardHost.validate*
+      denali-schedule-date-policy
+        adapters/calendar-format
+          @app-tour/localized-calendar          # Node-safe
+          @app-tour/localized-calendar/calendar-format
+
+Portal / Denali intake (client)
+  DenaliIntakeBirthDateField / member profile
+    @app-tour/localized-calendar/localized-date-picker
+      ui-primitives/button + CSS modules        # webpack / Next only
+```
+
+Storage contract unchanged: Gregorian ISO `YYYY-MM-DD` (INV-DENALI-CAL-01). Jalali is presentation only.
+
+## Out of scope
+
+- Changing ISO persistence in `apps/api` / `platform-core`
+- Moving wizard validation off `denali-schedule-date-policy`
+
+## Verify
+
+```bash
+# Root barrel has no React picker / ui-primitives
+rg 'localized-date-picker|solar-hijri|ui-primitives' packages/localized-calendar/src/index.ts
+# expect empty
+
+pnpm --filter @app-tour/localized-calendar exec node --import tsx --test \
+  test/package-neutrality.spec.ts \
+  test/calendar-format.spec.ts \
+  test/jalaali-calendar.spec.ts
+
+# API must boot without CSS parse
+pnpm --filter @apps/api run dev
+# expect: "@apps/api listening"
+```

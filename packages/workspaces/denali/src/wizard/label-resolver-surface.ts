@@ -7,6 +7,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no Denali token). */
 export const WIZARD_LABEL_RESOLVER_CACHE_KEY = "app-cloud.wizardLabelResolverCache";
@@ -55,7 +56,7 @@ export async function ensureWizardLabelResolverPackageSurface(): Promise<WizardL
   if (existing != null) {
     return existing;
   }
-  const mod = await import("../ui/surfaces/field-label-resolver");
+  const mod = await importUiSurface("../ui/surfaces/field-label-resolver");
   const next = mod.createDenaliFieldLabelResolver() as WizardLabelResolverSurface;
   getCache().set(surfaceId, next);
   return next;

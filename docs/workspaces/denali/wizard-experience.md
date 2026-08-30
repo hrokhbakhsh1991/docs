@@ -494,7 +494,7 @@ Imported via [`denali-admin.css`](../../../packages/workspaces/denali/theme/dena
 
 ## Date picker exception
 
-`LocalizedDatePicker` / `LocalizedDatetimePicker` (`src/components/i18n/`) use shadcn for calendar popover — allowed outside `app/tours`.
+`LocalizedDatePicker` lives in `@app-tour/localized-calendar/localized-date-picker` (React/CSS). Node-safe ISO/Jalali helpers use the root barrel `@app-tour/localized-calendar` so API wizard validation does not load CSS modules — see [`docs/dev/localized-calendar.mdoc`](../../dev/localized-calendar.mdoc).
 
 | Layer          | Scoping                                                                                                                                                                             |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

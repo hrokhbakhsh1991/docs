@@ -6,6 +6,7 @@
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "../wizard/import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no product token). */
 export const SETTINGS_EXPOSURE_SURFACES_UI_SURFACE_KEY =
@@ -58,7 +59,7 @@ export async function ensureSettingsExposureSurfacesUiPackageSurface(
 
   // String-keyed so plugin tsc does not pull `src/ui` statically.
   // Host binding barrel owns the frozen surface object (panel + export).
-  const mod = await import("../ui/settings/settings-exposure-surfaces-ui-binding");
+  const mod = await importUiSurface("../ui/settings/settings-exposure-surfaces-ui-binding");
   const next = Object.freeze({
     WorkspaceSurfacesPanel: mod.denaliSettingsExposureSurfacesUiSurface.WorkspaceSurfacesPanel,
   }) as SettingsExposureSurfacesUiPackageSurface;

@@ -22,6 +22,10 @@
       "types": "./dist/calendar-date-policy.d.ts",
       "default": "./dist/calendar-date-policy.js"
     },
+    "./i18n-format": {
+      "types": "./dist/i18n-format.d.ts",
+      "default": "./dist/i18n-format.js"
+    },
     "./localized-date-picker": {
       "types": "./dist/localized-date-picker.d.ts",
       "default": "./dist/localized-date-picker.js"

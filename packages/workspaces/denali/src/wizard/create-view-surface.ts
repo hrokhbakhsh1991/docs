@@ -9,6 +9,7 @@
 import type { ComponentType } from "react";
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 /** Product-blind registry key (shell + workspace agree; no Denali token). */
 export const WIZARD_CREATE_VIEW_SURFACE_KEY = "app-cloud.wizardCreateViewSurface";
@@ -68,7 +69,7 @@ export async function ensureWizardCreateViewPackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const mod = await import("../ui/chrome/wizard-create-view-surface");
+  const mod = await importUiSurface("../ui/chrome/wizard-create-view-surface");
   const next = Object.freeze({
     CreateTourWizardView: mod.denaliWizardCreateViewSurface.CreateTourWizardView,
   }) as WizardCreateViewSurface;

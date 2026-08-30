@@ -1,6 +1,6 @@
 "use client";
 
-import { LocalizedDatePicker } from "@app-tour/localized-calendar";
+import { LocalizedDatePicker } from "../../ui/components/localized-date-picker";
 import type { IntakeField } from "@app-tour/workspace-sdk";
 
 export type DenaliIntakeBirthDateFieldProps = {

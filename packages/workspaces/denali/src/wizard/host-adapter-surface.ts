@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
+import { importUiSurface } from "./import-ui-surface";
 
 /**
  * Thin Shell Phase 2b / 4br / 4bt — package-owned host-adapter surface.
@@ -108,14 +109,14 @@ export async function ensureWizardHostAdapterSurface(
     catalogMod,
   ] = await Promise.all([
     import("../draft"),
-    import("../ui/chrome/build-denali-flat-edit-tour-load-result"),
-    import("../ui/chrome/map-denali-flat-edit-tour-http-status"),
-    import("../ui/hooks/denali-wizard-catalog-prefetch-context"),
+    importUiSurface("../ui/chrome/build-denali-flat-edit-tour-load-result"),
+    importUiSurface("../ui/chrome/map-denali-flat-edit-tour-http-status"),
+    importUiSurface("../ui/hooks/denali-wizard-catalog-prefetch-context"),
     import("./denali-wizard-catalog-sanitize"),
-    import("../ui/adapters/localize-exposure-catalog-fields"),
-    import("../ui/chrome/build-denali-flat-edit-meta-line"),
+    importUiSurface("../ui/adapters/localize-exposure-catalog-fields"),
+    importUiSurface("../ui/chrome/build-denali-flat-edit-meta-line"),
     import("./localize-denali-validation-message"),
-    import("../ui/adapters/read-active-catalog-ids-from-payload"),
+    importUiSurface("../ui/adapters/read-active-catalog-ids-from-payload"),
   ]);
 
   const next = Object.freeze({

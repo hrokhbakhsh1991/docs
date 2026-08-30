@@ -65,4 +65,12 @@ describe("@app-tour/localized-calendar package neutrality (LC-NEUTRAL)", () => {
     assert.doesNotMatch(hook, /member-profile/);
     assert.match(hook, /collisionSelectors: readonly string\[\] = \[\]/);
   });
+
+  it("LC-NEUTRAL-03 root barrel does not import React pickers or ui-primitives", () => {
+    const index = readFileSync(join(packageRoot, "src/index.ts"), "utf8");
+    assert.doesNotMatch(index, /from ["']\.\/localized-date-picker["']/);
+    assert.doesNotMatch(index, /from ["']\.\/solar-hijri-calendar["']/);
+    assert.doesNotMatch(index, /ui-primitives/);
+    assert.doesNotMatch(index, /from ["']\.\/use-calendar-popover-placement["']/);
+  });
 });
