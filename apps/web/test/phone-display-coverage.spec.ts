@@ -37,6 +37,7 @@ describe("phone-display-coverage.spec.ts", () => {
       join(repoRoot, "apps/web/app/(app)/users/users-member-detail-sheet.tsx"),
       "utf8"
     );
-    assert.match(source, /formatIranMobileForDisplay\(user\.phone\)/);
+    assert.match(source, /formatIranMobileForDisplay\(activeUser\.phone\)/);
+    assert.doesNotMatch(source, />\s*\{activeUser\.phone\}\s*</);
   });
 });

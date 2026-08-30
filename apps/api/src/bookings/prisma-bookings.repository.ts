@@ -1,5 +1,4 @@
 import { buildIranMobileSearchPatterns } from "@app-tour/iran-mobile";
-import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
 import { Prisma } from "@prisma/client";
 
 import {
@@ -32,11 +31,11 @@ import {
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
+import { enrichBookingListRecordsWithIntakeScalars } from "./booking-list-intake-scalars";
 import { readRegistrantTargetFromIntake } from "./read-registrant-target";
 import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
-  type BookingTransportKind,
 } from "./read-transport-kind-from-intake";
 
 /**
@@ -94,7 +93,6 @@ export const BOOKING_LIST_SELECT = {
   submittedByUserId: true,
   approvedAt: true,
   rejectReason: true,
-  registrationIntake: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
 type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
@@ -102,21 +100,6 @@ type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
 }>;
 
 function toBookingListRecord(row: BookingListRow): BookingRecord {
-  const registrationIntake =
-    row.registrationIntake !== null &&
-    row.registrationIntake !== undefined &&
-    typeof row.registrationIntake === "object" &&
-    !Array.isArray(row.registrationIntake)
-      ? (row.registrationIntake as Readonly<Record<string, unknown>>)
-      : undefined;
-  const override = readObligationOverrideFromIntake(registrationIntake);
-  const financialDisplayState =
-    row.status === "approved" &&
-    row.paymentStatus === "paid" &&
-    override !== null &&
-    isZeroObligationMinor(override.obligationMinor)
-      ? "WAIVED"
-      : undefined;
   return {
     id: row.id,
     tenantId: row.tenantId,
@@ -128,7 +111,6 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     partySize: row.partySize,
     status: row.status as BookingStatus,
     paymentStatus: row.paymentStatus as BookingRecord["paymentStatus"],
-    ...(financialDisplayState !== undefined ? { financialDisplayState } : {}),
     departureAt: row.departureAt.toISOString(),
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
@@ -386,22 +368,26 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     limit: number
   ): Promise<BookingRecord[]> {
     const capped = Math.min(Math.max(limit, 1), MAX_MEMBER_BOOKINGS_LIST_CAP);
-    const rows = await withTenantRls(tenantId, (tx) =>
-      tx.operatorRegistration.findMany({
+    return withTenantRls(tenantId, async (tx) => {
+      const rows = await tx.operatorRegistration.findMany({
         where: { tenantId, submittedByUserId },
         select: BOOKING_LIST_SELECT,
         orderBy: [{ departureAt: "desc" }, { id: "desc" }],
         take: capped,
-      })
-    );
-    return rows.map((row) => toBookingListRecord(row));
+      });
+      return enrichBookingListRecordsWithIntakeScalars(
+        tx,
+        tenantId,
+        rows.map(toBookingListRecord)
+      );
+    });
   }
 
   async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
     const baseWhere = buildBookingListWhere(input);
     const sortMode = input.sort === "departureAt" ? "departureAt" : "submittedAt";
 
-    const { baseItems, targetById, hasMore } = await withTenantRls(input.tenantId, async (tx) => {
+    const { items, hasMore } = await withTenantRls(input.tenantId, async (tx) => {
       let where = baseWhere;
 
       if (input.cursor !== undefined && input.cursor.length > 0) {
@@ -440,92 +426,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         input.tenantId,
         pageRows.map(toBookingListRecord)
       );
-
-      if (baseItems.length === 0) {
-        return {
-          baseItems,
-          targetById: new Map<
-            string,
-            {
-              readonly registrantTarget: "self" | "other";
-              readonly transportKind: BookingTransportKind | null;
-              readonly personalCarOccupants: 1 | 2 | 3 | null;
-            }
-          >(),
-          hasMore,
-        };
-      }
-
-      // Performance: derive only the allowed list scalars using SQL JSON operators;
-      // the list DTO still omits the full `registrationIntake` JSON blob.
-      const ids = baseItems.map((row) => row.id);
-      const idSql = Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`));
-
-      const scalarRows = await tx.$queryRaw<
-        Array<{
-          readonly id: string;
-          readonly registrant_target: "self" | "other";
-          readonly transport_kind: BookingTransportKind | null;
-          readonly personal_car_occupants: number | null;
-        }>
-      >`
-          SELECT
-            id,
-            CASE
-              WHEN registration_intake->>'registrantTarget' = 'other' THEN 'other'
-              ELSE 'self'
-            END AS registrant_target,
-            CASE
-              WHEN registration_intake->'transport'->>'kind' IN (
-                'primary',
-                'personal_car',
-                'no_car_dong',
-                'no_car_acquaintance'
-              )
-              THEN registration_intake->'transport'->>'kind'
-              ELSE NULL
-            END AS transport_kind,
-            CASE
-              WHEN registration_intake->'transport'->>'personalCarOccupants' IN ('1','2','3')
-              THEN (registration_intake->'transport'->>'personalCarOccupants')::int
-              ELSE NULL
-            END AS personal_car_occupants
-          FROM operator_registrations
-          WHERE tenant_id = ${input.tenantId}::uuid
-            AND id IN (${idSql})
-        `;
-
-      const targetById = new Map(
-        scalarRows.map((row) => {
-          const personalCarOccupants =
-            row.personal_car_occupants === 1 ||
-            row.personal_car_occupants === 2 ||
-            row.personal_car_occupants === 3
-              ? (row.personal_car_occupants as 1 | 2 | 3)
-              : null;
-
-          return [
-            row.id,
-            {
-              registrantTarget: row.registrant_target,
-              transportKind: row.transport_kind,
-              personalCarOccupants,
-            },
-          ] as const;
-        })
+      const items = await enrichBookingListRecordsWithIntakeScalars(
+        tx,
+        input.tenantId,
+        baseItems
       );
 
-      return { baseItems, targetById, hasMore };
-    });
-
-    const items = baseItems.map((row) => {
-      const scalars = targetById.get(row.id);
-      return {
-        ...row,
-        registrantTarget: scalars?.registrantTarget ?? "self",
-        transportKind: scalars?.transportKind ?? null,
-        personalCarOccupants: scalars?.personalCarOccupants ?? null,
-      };
+      return { items, hasMore };
     });
 
     return {
@@ -628,7 +535,10 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (row === null) {
         return null;
       }
-      return toBookingListRecord(row);
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? null;
     });
   }
 
@@ -807,7 +717,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: { tenantId, id: { in: unique } },
         select: BOOKING_LIST_SELECT,
       });
-      return attachPaymentDueAtProjection(tx, tenantId, rows.map(toBookingListRecord));
+      const enriched = await enrichBookingListRecordsWithIntakeScalars(
+        tx,
+        tenantId,
+        rows.map(toBookingListRecord)
+      );
+      return attachPaymentDueAtProjection(tx, tenantId, enriched);
     });
   }
 
@@ -828,7 +743,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const current = existing.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
       if (next === current) {
-        return toBookingListRecord(existing);
+        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(
+          tx,
+          input.tenantId,
+          [toBookingListRecord(existing)]
+        );
+        return enriched ?? null;
       }
       const updated = await tx.operatorRegistration.updateMany({
         where: { id: input.bookingId, tenantId: input.tenantId },
@@ -841,7 +761,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: { id: input.bookingId, tenantId: input.tenantId },
         select: BOOKING_LIST_SELECT,
       });
-      return row === null ? null : toBookingListRecord(row);
+      if (row === null) {
+        return null;
+      }
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? null;
     });
   }
 

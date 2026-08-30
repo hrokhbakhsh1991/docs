@@ -149,9 +149,14 @@ describe("PR21-F3 / G2 next-step + CTA hierarchy (superseded routing details in 
     assert.equal(EN.payments.stripLatestPaymentsTitle, "Latest payments");
     assert.equal(FA.payments.stripLatestPaymentsTitle, "آخرین پرداخت‌ها");
     assert.match(inspection, /BookingFinancialStrip/);
-    const stripJsx = inspection.indexOf("<BookingFinancialStrip");
+    assert.match(inspection, /BookingActionButtons/);
     const actionsJsx = inspection.indexOf("<BookingActionButtons");
-    assert.ok(stripJsx >= 0 && actionsJsx > stripJsx, "finance strip before action buttons");
+    const stripJsx = inspection.indexOf("<BookingFinancialStrip");
+    assert.ok(actionsJsx >= 0 && stripJsx > actionsJsx, "action buttons before finance strip");
+    const paymentDisclosure = inspection.match(
+      /detailSections\.payment[\s\S]*?<BookingFinancialStrip[\s\S]*?<\/details>/
+    );
+    assert.ok(paymentDisclosure, "finance strip inside payment disclosure");
     assert.match(stripSrc, /data-cta-tier="primary"/);
     assert.equal(hasOpenPendingManualPayment([{ status: "Pending" }]), true);
   });

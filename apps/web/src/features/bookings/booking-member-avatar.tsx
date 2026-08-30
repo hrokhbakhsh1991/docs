@@ -2,24 +2,28 @@
 
 import { OperatorProfileAvatar } from "@/admin/patterns/operator-profile-avatar";
 
-import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "./bookings-command-center-types";
-import type { BookingListItem } from "./bookings-command-center-types";
+import {
+  bookingsRowAvatarTestId,
+  type BookingListItem,
+} from "./bookings-command-center-types";
 
 type BookingMemberAvatarProps = {
-  readonly item: Pick<BookingListItem, "guestLabel" | "memberUserId" | "memberAvatarUrl">;
+  readonly item: Pick<BookingListItem, "id" | "guestLabel" | "memberUserId" | "memberAvatarUrl">;
   readonly size?: "sm" | "md";
 };
 
 export function BookingMemberAvatar({ item, size = "sm" }: BookingMemberAvatarProps) {
-  const userId = item.memberUserId ?? item.guestLabel;
+  const memberUserId = item.memberUserId ?? item.id;
+  const avatarUrl = item.memberAvatarUrl ?? null;
   return (
     <OperatorProfileAvatar
-      userId={userId}
-      displayName={item.guestLabel}
-      avatarUrl={item.memberAvatarUrl ?? null}
+      key={`${memberUserId}:${avatarUrl ?? "none"}`}
+      userId={memberUserId}
+      displayName={null}
+      avatarUrl={avatarUrl}
       size={size}
       fallbackMode="icon"
-      testId={BOOKINGS_COMMAND_CENTER_TEST_IDS.rowAvatar}
+      testId={bookingsRowAvatarTestId(item.id)}
     />
   );
 }

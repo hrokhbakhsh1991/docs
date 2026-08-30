@@ -54,6 +54,8 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.equal(TOUR_EDIT_TEST_IDS.title, "operator-tour-edit-title");
     assert.equal(TOUR_EDIT_TEST_IDS.save, "operator-tour-edit-save");
     assert.equal(TOUR_EDIT_TEST_IDS.saveSecondary, "operator-tour-edit-save-secondary");
+    assert.equal(TOUR_EDIT_TEST_IDS.stickyActions, "operator-tour-edit-sticky-actions");
+    assert.equal(TOUR_EDIT_TEST_IDS.lifecycleMenu, "operator-tour-edit-lifecycle-menu");
     assert.equal(TOUR_EDIT_TEST_IDS.draftManualSave, "operator-tour-edit-draft-manual-save");
     assert.equal(TOUR_EDIT_TEST_IDS.warmError, "operator-tour-edit-warm-error");
     assert.equal(TOUR_EDIT_TEST_IDS.warmRetry, "operator-tour-edit-warm-retry");
@@ -148,6 +150,10 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
       ),
       "utf8"
     );
+    const stickyActions = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/flat-edit-sticky-actions.tsx"),
+      "utf8"
+    );
     const chrome = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/flat-edit-chrome.tsx"),
       "utf8"
@@ -159,15 +165,28 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
       ),
       "utf8"
     );
-    assert.match(flatEdit, /primaryAction=\{/);
+    assert.match(flatEdit, /OperatorFlatEditStickyActionBar/);
     assert.match(flatEdit, /const handleSave = \(\) => void readyCore\.handlePatch\("save"\)/);
-    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.save\}/);
-    assert.match(flatEdit, /data-testid=\{TOUR_EDIT_TEST_IDS\.saveSecondary\}/);
-    assert.match(chrome, /new-tour-wizard-page__primary-save/);
+    assert.match(stickyActions, /data-testid=\{TOUR_EDIT_TEST_IDS\.save\}/);
+    assert.match(stickyActions, /data-testid=\{TOUR_EDIT_TEST_IDS\.lifecycleMenu\}/);
+    assert.match(stickyActions, /DropdownMenuItem/);
+    assert.doesNotMatch(flatEdit, /saveSecondary/);
+    assert.doesNotMatch(chrome, /primaryAction/);
     assert.match(chrome, /TOUR_EDIT_TEST_IDS\.draftManualSave/);
-    assert.match(skin, /\.new-tour-wizard-page__primary-save/);
+    assert.match(skin, /\.new-tour-wizard-page__sticky-actions/);
     assert.match(skin, /position: fixed/);
     assert.match(skin, /safe-area-inset-bottom/);
+    assert.match(skin, /@media \(max-width: 1023px\)/);
+  });
+
+  it("WEB-DENALI-FLAT-EDIT-04 lifecycle actions stay secondary behind more menu", () => {
+    const stickyActions = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/flat-edit-sticky-actions.tsx"),
+      "utf8"
+    );
+    assert.match(stickyActions, /TOUR_EDIT_TEST_IDS\.publish/);
+    assert.match(stickyActions, /TOUR_EDIT_TEST_IDS\.unpublish/);
+    assert.doesNotMatch(stickyActions, /variant="default"[\s\S]*publish/);
   });
 
   it("WEB-DENALI-FLAT-EDIT-03 warm failure is recoverable and user-triggered", () => {

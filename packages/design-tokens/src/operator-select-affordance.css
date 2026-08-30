@@ -1,0 +1,47 @@
+/**
+ * Operator admin — shared select chevron spacing for primitives + bypassed native <select>.
+ * Mirrors ui-primitives select-affordance tokens; loaded via admin-bootstrap.css.
+ */
+
+[data-operator-shell] select:not([multiple]):not([size]) {
+  --select-chevron-size: 1rem;
+  --select-chevron-edge-inset: var(--space-3);
+  --select-chevron-gap: var(--space-2);
+
+  padding-inline-end: calc(
+    var(--select-chevron-edge-inset) + var(--select-chevron-size) + var(--select-chevron-gap)
+  ) !important;
+  text-align: start;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: var(--select-chevron-size) var(--select-chevron-size);
+  background-position: center inline-end var(--select-chevron-edge-inset);
+}
+
+html.dark [data-operator-shell] select:not([multiple]):not([size]),
+.theme-dark [data-operator-shell] select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8b0a4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+[data-operator-searchable-select-trigger] {
+  --select-chevron-size: 1rem;
+  --select-chevron-edge-inset: var(--space-2);
+  --select-chevron-gap: var(--space-2);
+
+  gap: var(--select-chevron-gap);
+  padding-inline-start: var(--space-3);
+  padding-inline-end: calc(
+    var(--select-chevron-edge-inset) + var(--select-chevron-size) + var(--space-1)
+  );
+}
+
+[data-operator-searchable-select-trigger] svg:last-child,
+[data-operator-searchable-select-trigger] [aria-hidden]:last-child {
+  width: var(--select-chevron-size);
+  height: var(--select-chevron-size);
+  flex-shrink: 0;
+  margin-inline-end: var(--select-chevron-edge-inset);
+}

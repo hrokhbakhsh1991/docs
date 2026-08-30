@@ -9,12 +9,9 @@ import { fileURLToPath } from "node:url";
 
 const API_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-describe("enrich-booking-list-member-avatars", () => {
+describe("enrich-booking-list-member-avatars.spec.ts — wiring", () => {
   it("API-OPUI-01 listBookings wires avatar enrichment helper", () => {
-    const service = readFileSync(
-      resolve(API_ROOT, "src/bookings/bookings.service.ts"),
-      "utf8"
-    );
+    const service = readFileSync(resolve(API_ROOT, "src/bookings/bookings.service.ts"), "utf8");
     const helper = readFileSync(
       resolve(API_ROOT, "src/bookings/enrich-booking-list-member-avatars.ts"),
       "utf8"
@@ -23,5 +20,6 @@ describe("enrich-booking-list-member-avatars", () => {
     assert.match(helper, /memberUserId/);
     assert.match(helper, /memberAvatarUrl/);
     assert.match(helper, /findMembershipsByUserIds/);
+    assert.match(helper, /recordById/);
   });
 });

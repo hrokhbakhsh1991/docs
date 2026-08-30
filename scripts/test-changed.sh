@@ -260,6 +260,7 @@ hash_pkg() {
     hash_file_if_present "scripts/test-changed.sh"
     hash_file_if_present "scripts/lib/resolve-api-test-specs.mjs"
     hash_file_if_present "scripts/lib/resolve-web-test-specs.mjs"
+    hash_file_if_present "scripts/lib/classify-web-test-spec.mjs"
   } | sha256sum | awk '{print $1}'
 }
 
@@ -278,6 +279,7 @@ hash_target_specs() {
     hash_file_if_present "scripts/test-changed.sh"
     hash_file_if_present "scripts/lib/resolve-api-test-specs.mjs"
     hash_file_if_present "scripts/lib/resolve-web-test-specs.mjs"
+    hash_file_if_present "scripts/lib/classify-web-test-spec.mjs"
   } | sha256sum | awk '{print $1}'
 }
 
@@ -359,13 +361,26 @@ run_web_tests() {
     return $?
   fi
   specs_list="$(node -e "
-    const specs = JSON.parse(process.argv[1]).specs;
-    if (!specs.length) process.exit(2);
+    const payload = JSON.parse(process.argv[1]);
+    const specs = payload.specs ?? [];
+    const playwrightSpecs = payload.playwrightSpecs ?? [];
+    if (!specs.length && !playwrightSpecs.length) process.exit(2);
     process.stdout.write(specs.join(' '));
   " "$resolve_json")" || {
     echo "test-changed: no runnable web specs resolved — skip"
     return 0
   }
+  playwright_specs="$(node -e "
+    const playwrightSpecs = JSON.parse(process.argv[1]).playwrightSpecs ?? [];
+    process.stdout.write(playwrightSpecs.join(' '));
+  " "$resolve_json")"
+  if [ -n "$playwright_specs" ]; then
+    echo "test-changed: DEFER playwright runtime specs to test:runtime-sweep (Phase 6 Playwright ownership): ${playwright_specs}"
+  fi
+  if [ -z "$(echo "$specs_list" | tr -d '[:space:]')" ]; then
+    echo "test-changed: no node unit web specs — skip test:file"
+    return 0
+  fi
   echo "test-changed: RUN pnpm --filter @apps/web run test:file ${specs_list}"
   # shellcheck disable=SC2086
   pnpm --filter @apps/web run test:file ${specs_list}

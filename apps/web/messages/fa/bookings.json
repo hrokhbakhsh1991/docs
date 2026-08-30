@@ -65,6 +65,12 @@
   },
   "allTours": "همه تورها",
   "moreTours": "تورهای بیشتر…",
+  "tourFilterLabel": "تور",
+  "tourFilterAria": "فیلتر رزروها بر اساس تور",
+  "tourFilterSearchPlaceholder": "جستجوی تور…",
+  "tourFilterNoResults": "توری با این جستجو پیدا نشد.",
+  "tourFilterLoading": "در حال بارگذاری تورها…",
+  "tourFilterChipMeta": "{pending} در انتظار · {total} کل",
   "kpi": {
     "pending": "در انتظار",
     "pendingAria": "فقط در انتظار — هنوز تصمیم گرفته نشده",
@@ -110,6 +116,28 @@
     "board": "بر اساس تور"
   },
   "filtersToggle": "فیلترها",
+  "filters": {
+    "toggle": "فیلترها",
+    "clearAll": "پاک کردن همه"
+  },
+  "queueStatusLabel": "وضعیت صف",
+  "paymentFilterLabel": "پرداخت",
+  "activeFilters": {
+    "status": "وضعیت: {value}",
+    "payment": "پرداخت: {value}",
+    "tour": "تور: {value}",
+    "departure": "حرکت: {days} روز آینده",
+    "approvedToday": "تأیید امروز",
+    "allToursScope": "همه تورها",
+    "layout": "نمایش: {value}",
+    "sort": "مرتب‌سازی: {value}",
+    "search": "جستجو: {value}",
+    "remove": "حذف {filter}"
+  },
+  "pagination": {
+    "summary": "صفحه {page} از {totalPages} ({total, number} نتیجه)"
+  },
+  "inboxPage": "صف — صفحه {page} از {totalPages} ({total, number} کل)",
   "advancedFiltersHeading": "فیلترهای پیشرفته",
   "capacity": "ظرفیت",
   "capacityShort": "{occupied}/{max}",
@@ -236,6 +264,9 @@
     "formDescription": "ثبت‌نام‌های ارسالی در مرکز رزروها به‌صورت در انتظار نمایش داده می‌شوند",
     "tour": "تور",
     "selectTour": "انتخاب تور",
+    "tourSearchPlaceholder": "جستجوی تور…",
+    "tourNoResults": "توری با این جستجو پیدا نشد.",
+    "tourLoading": "در حال بارگذاری تورها…",
     "scheduledDeparture": "حرکت برنامه‌ریزی‌شده: {date}",
     "guestName": "نام مهمان",
     "guestNamePlaceholder": "نام کامل",

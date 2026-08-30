@@ -17,6 +17,8 @@ export const TOUR_EDIT_TEST_IDS = {
   publish: "operator-tour-edit-publish",
   unpublish: "operator-tour-edit-unpublish",
   cancel: "operator-tour-edit-cancel",
+  stickyActions: "operator-tour-edit-sticky-actions",
+  lifecycleMenu: "operator-tour-edit-lifecycle-menu",
   draftSync: "operator-tour-edit-draft-sync",
 } as const;
 

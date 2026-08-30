@@ -30,7 +30,21 @@
     "suspended": "Suspended"
   },
   "filters": {
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "toggle": "Filters",
+    "roleLabel": "Role",
+    "statusLabel": "Status",
+    "sortLabel": "Sort",
+    "clearAll": "Clear all"
+  },
+  "activeFilters": {
+    "role": "Role: {value}",
+    "status": "Status: {value}",
+    "sort": "Sort: {value}",
+    "remove": "Remove {filter}"
+  },
+  "pagination": {
+    "summary": "Page {page} of {totalPages} · {total, number} members"
   },
   "inviteForm": {
     "title": "Invite teammate",
@@ -76,8 +90,11 @@
     "discountPlaceholder": "0–100",
     "loyaltyTierLabel": "Loyalty tier",
     "loyaltyNone": "None",
+    "loyaltyNoneDescription": "No loyalty benefits for this member",
     "loyaltyVip": "VIP",
+    "loyaltyVipDescription": "Priority perks for VIP members",
     "loyaltyGold": "GOLD",
+    "loyaltyGoldDescription": "Gold club member benefits",
     "labelsLabel": "Labels",
     "labelsPlaceholder": "New label…",
     "labelsAdd": "Add",

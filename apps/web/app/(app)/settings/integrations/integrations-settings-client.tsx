@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
+import { SettingsPageShell } from "@/admin/patterns/settings-page-shell";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -655,19 +656,21 @@ export function IntegrationsSettingsClient({
 
   if (!canManage) {
     return (
-      <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.integrationsPage}>
-        <Card data-operator-surface="card" className="shadow-sm">
+      <SettingsPageShell testId={SETTINGS_HUB_TEST_IDS.integrationsPage} maxWidth="5xl">
+        <Card data-operator-surface="card" className="w-full min-w-0 shadow-sm">
           <CardContent className="pt-6 text-sm text-muted-foreground">{t("forbidden")}</CardContent>
         </Card>
-      </div>
+      </SettingsPageShell>
     );
   }
 
   return (
-    <div
-      className="space-y-6"
-      data-testid={SETTINGS_HUB_TEST_IDS.integrationsPage}
-      data-exposure-catalog-field-count={exposureCatalog?.fields.length ?? 0}
+    <SettingsPageShell
+      testId={SETTINGS_HUB_TEST_IDS.integrationsPage}
+      maxWidth="5xl"
+      rootDataAttributes={{
+        "data-exposure-catalog-field-count": String(exposureCatalog?.fields.length ?? 0),
+      }}
     >
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
       <p
@@ -715,7 +718,7 @@ export function IntegrationsSettingsClient({
       {showScenarioCard ? (
         <Card
           data-operator-surface="card"
-          className="shadow-sm"
+          className="w-full min-w-0 shadow-sm"
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.scenario}
           data-scenario={scenario}
         >
@@ -727,7 +730,7 @@ export function IntegrationsSettingsClient({
       ) : null}
 
       {list !== null ? (
-        <Card data-operator-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="w-full min-w-0 shadow-sm">
           <CardHeader>
             <CardTitle>{t("summary.title")}</CardTitle>
             <CardDescription>
@@ -758,7 +761,7 @@ export function IntegrationsSettingsClient({
       ) : null}
 
       {(loading && list === null) || (metaLoading && meta === null) ? (
-        <Skeleton className="h-48 w-full max-w-5xl" />
+        <Skeleton className="h-48 w-full" />
       ) : null}
 
       {error !== null ? (
@@ -773,7 +776,7 @@ export function IntegrationsSettingsClient({
       {showCreateForm ? (
         <Card
           data-operator-surface="card"
-          className="max-w-5xl shadow-sm"
+          className="w-full min-w-0 shadow-sm"
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.addForm}
         >
           <CardHeader>
@@ -856,7 +859,7 @@ export function IntegrationsSettingsClient({
         <Card
           data-operator-surface="card"
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.emptyState}
-          className="shadow-sm"
+          className="w-full min-w-0 shadow-sm"
         >
           <CardHeader>
             <CardTitle>{t("empty.title")}</CardTitle>
@@ -866,44 +869,48 @@ export function IntegrationsSettingsClient({
       ) : null}
 
       {!loading && error === null && list !== null && list.items.length > 0 ? (
-        <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="grid w-full min-w-0 gap-4 lg:grid-cols-2 lg:items-stretch">
           <Card
             data-operator-surface="card"
-            className="shadow-sm"
+            className="flex min-h-0 min-w-0 flex-col shadow-sm"
             data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.list}
           >
             <CardHeader>
               <CardTitle>{t("listTitle", { count: list.items.length })}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="grid min-w-0 gap-3">
               {list.items.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className={`w-full rounded-md border p-3 text-left transition hover:bg-muted/50 ${
+                  className={`flex min-h-[6.5rem] min-w-0 flex-col gap-2 rounded-md border p-3 text-start transition hover:bg-muted/50 ${
                     selectedId === item.id ? "border-primary bg-muted/40" : "border-border"
                   }`}
                   onClick={() => setSelectedId(item.id)}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                     <span className="font-medium capitalize">{item.provider}</span>
-                    {backingBadge(item)}
-                    {statusBadge(item)}
-                    {item.isActiveDeliverySource ? (
-                      <Badge variant="outline" data-testid="integration-active-delivery">
-                        {t("badges.activeDelivery")}
-                      </Badge>
-                    ) : null}
-                    {fallbackLabelBadge(item)}
+                    <div className="flex min-w-0 flex-wrap items-center gap-1">
+                      {backingBadge(item)}
+                      {statusBadge(item)}
+                      {item.isActiveDeliverySource ? (
+                        <Badge variant="outline" data-testid="integration-active-delivery">
+                          {t("badges.activeDelivery")}
+                        </Badge>
+                      ) : null}
+                      {fallbackLabelBadge(item)}
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("rowMeta", { channelId: channelIdFromConfig(item.config) })}
-                  </p>
-                  {isLegacyBackedIntegration(item) ? (
-                    <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
-                      {t("badges.legacyWarning")}
+                  <div className="mt-auto min-w-0 space-y-1">
+                    <p className="break-words text-xs text-muted-foreground">
+                      {t("rowMeta", { channelId: channelIdFromConfig(item.config) })}
                     </p>
-                  ) : null}
+                    {isLegacyBackedIntegration(item) ? (
+                      <p className="break-words text-xs text-amber-800 dark:text-amber-200">
+                        {t("badges.legacyWarning")}
+                      </p>
+                    ) : null}
+                  </div>
                 </button>
               ))}
             </CardContent>
@@ -911,7 +918,7 @@ export function IntegrationsSettingsClient({
 
           <Card
             data-operator-surface="card"
-            className="shadow-sm"
+            className="flex min-h-0 min-w-0 flex-col shadow-sm"
             data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.detail}
           >
             <CardHeader>
@@ -1181,6 +1188,6 @@ export function IntegrationsSettingsClient({
           </Card>
         </div>
       ) : null}
-    </div>
+    </SettingsPageShell>
   );
 }

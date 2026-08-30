@@ -22,15 +22,16 @@ describe("PR22-D finance customer handoff polish", () => {
     assert.match(FA.payments.status.Paid, /ثبت‌شده \(این پرداخت\)/);
     assert.match(FA.payments.status.Pending, /در انتظار \(این پرداخت\)/);
     assert.match(FA.receipts.status.Pending, /در انتظار بررسی \(فیش\)/);
-    assert.match(bookingsFa.payment.paid, /پرداخت‌شده \(رزرو\)/);
+    assert.equal(bookingsFa.payment.paid, "وجه دریافت شد");
+    assert.match(FA.commandCenter.operatorStateVocabBookingPaid, /پرداخت‌شده \(رزرو\)/);
     assert.notEqual(FA.payments.status.Pending, FA.receipts.status.Pending);
     assert.notEqual(FA.payments.status.Paid, bookingsFa.payment.paid);
+    assert.notEqual(FA.commandCenter.operatorStateVocabBookingPaid, bookingsFa.payment.paid);
     assert.match(EN.commandCenter.operatorStateVocabRecorded, /Recorded \(this payment\)/i);
     assert.match(EN.commandCenter.operatorStateVocabBookingPaid, /Paid \(booking\)/i);
     assert.match(EN.commandCenter.operatorStateVocabPaymentPending, /Pending \(this payment\)/i);
     assert.match(EN.commandCenter.operatorStateVocabReceiptPending, /Pending review \(receipt\)/i);
     assert.match(FA.commandCenter.operatorStateVocabRecorded, /ثبت‌شده \(این پرداخت\)/);
-    assert.match(FA.commandCenter.operatorStateVocabBookingPaid, /پرداخت‌شده \(رزرو\)/);
     assert.match(FA.commandCenter.operatorStateVocabPaymentPending, /در انتظار \(این پرداخت\)/);
     assert.match(FA.commandCenter.operatorStateVocabReceiptPending, /در انتظار بررسی \(فیش\)/);
   });

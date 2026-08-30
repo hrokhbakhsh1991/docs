@@ -57,6 +57,7 @@ import {
 } from "@/wizard/use-flat-edit-page";
 import { warmOperatorWizardShell } from "@/wizard/warm-operator-wizard-shell";
 import { TourStatusBadge } from "../../tour-status-badge";
+import { OperatorFlatEditStickyActionBar } from "@/wizard/flat-edit-sticky-actions";
 
 type OperatorFlatEditPageClientProps = {
   readonly session: OperatorSessionContext;
@@ -271,6 +272,7 @@ function OperatorFlatEditPageClientReady({
               ? tCommon("saving")
               : t("saveChanges");
           const handleSave = () => void readyCore.handlePatch("save");
+          const lifecycleDisabled = readyCore.pending || readyCore.draftSync.navLocked;
 
           return (
             <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
@@ -283,20 +285,38 @@ function OperatorFlatEditPageClientReady({
                 metaLine={metaLine}
                 toursNavLabel={tNav("tours")}
                 workspaceNavLabel={tNav("workspace")}
-                primaryAction={
-                  <Button
-                    type="button"
-                    data-testid={TOUR_EDIT_TEST_IDS.save}
-                    disabled={saveDisabled}
-                    aria-busy={
-                      readyCore.pending && readyCore.pendingIntent === "save" ? true : undefined
-                    }
-                    onClick={handleSave}
-                  >
-                    {saveLabel}
-                  </Button>
-                }
                 draftSync={draftSyncEngine}
+              />
+
+              <OperatorFlatEditStickyActionBar
+                saveLabel={saveLabel}
+                saveDisabled={saveDisabled}
+                saveBusy={readyCore.pending && readyCore.pendingIntent === "save"}
+                onSave={handleSave}
+                canPublish={readyCore.canPublish}
+                canUnpublish={readyCore.canUnpublish}
+                publishDisabled={lifecycleDisabled}
+                unpublishDisabled={lifecycleDisabled}
+                publishLabel={
+                  readyCore.pending && readyCore.pendingIntent === "publish"
+                    ? t("publishing")
+                    : t("publishChanges")
+                }
+                unpublishLabel={
+                  readyCore.pending && readyCore.pendingIntent === "unpublish"
+                    ? t("unpublishing")
+                    : t("unpublishChanges")
+                }
+                onPublish={() => void readyCore.handlePatch("publish")}
+                onUnpublish={() => void readyCore.handlePatch("unpublish")}
+                cancelLabel={t("cancelEdits")}
+                draftStatus={readyCore.draftSync.status}
+                saved={readyCore.saved}
+                published={readyCore.published}
+                unpublished={readyCore.unpublished}
+                savedLabel={t("saved")}
+                publishedLabel={t("published")}
+                unpublishedLabel={t("unpublished")}
               />
 
               <OperatorFlatEditForm
@@ -323,64 +343,6 @@ function OperatorFlatEditPageClientReady({
                       presentation={submitPresentation}
                       className="text-sm text-destructive"
                     />
-                    {readyCore.saved ? (
-                      <p className="text-sm text-muted-foreground">{t("saved")}</p>
-                    ) : null}
-                    {readyCore.published ? (
-                      <p className="text-sm text-muted-foreground">{t("published")}</p>
-                    ) : null}
-                    {readyCore.unpublished ? (
-                      <p className="text-sm text-muted-foreground">{t("unpublished")}</p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        asChild
-                        variant="ghost"
-                        data-testid={TOUR_EDIT_TEST_IDS.cancel}
-                        disabled={readyCore.pending}
-                      >
-                        <TourInternalLink href="/tours">{t("cancelEdits")}</TourInternalLink>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        data-testid={TOUR_EDIT_TEST_IDS.saveSecondary}
-                        disabled={saveDisabled}
-                        aria-busy={
-                          readyCore.pending && readyCore.pendingIntent === "save"
-                            ? true
-                            : undefined
-                        }
-                        onClick={handleSave}
-                      >
-                        {saveLabel}
-                      </Button>
-                      {readyCore.canPublish ? (
-                        <Button
-                          type="button"
-                          data-testid={TOUR_EDIT_TEST_IDS.publish}
-                          disabled={readyCore.pending || readyCore.draftSync.navLocked}
-                          onClick={() => void readyCore.handlePatch("publish")}
-                        >
-                          {readyCore.pending && readyCore.pendingIntent === "publish"
-                            ? t("publishing")
-                            : t("publishChanges")}
-                        </Button>
-                      ) : null}
-                      {readyCore.canUnpublish ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          data-testid={TOUR_EDIT_TEST_IDS.unpublish}
-                          disabled={readyCore.pending || readyCore.draftSync.navLocked}
-                          onClick={() => void readyCore.handlePatch("unpublish")}
-                        >
-                          {readyCore.pending && readyCore.pendingIntent === "unpublish"
-                            ? t("unpublishing")
-                            : t("unpublishChanges")}
-                        </Button>
-                      ) : null}
-                    </div>
                   </div>
                 }
               />

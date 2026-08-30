@@ -57,25 +57,15 @@ Tenant `wizard_template` JSON in `tenant_config` may be trimmed in Settings. Den
 
 ## Social channel (`socialMediaLink` composite)
 
-Step 1 composite **`denali.social-media-link`** — operator picks how guests join the tour group:
+Step 1 composite **`denali.social-media-link`** — optional manual URL for the tour group or related social page (Telegram, WhatsApp, Instagram, etc.).
 
-| Kind                   | Wizard UI                                                    | Stored `socialMediaLink`                                     |
-| ---------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| **Telegram** (default) | No manual link input — info banner only                      | Empty until platform provisions the group link after publish |
-| **Other platform**     | Full URL input (required when template marks field required) | Normalized `https://…` external URL                          |
+| Wizard UI | Stored `socialMediaLink` |
+| --------- | ------------------------ |
+| Single URL input (`http://` / `https://`) with trim + validation | Normalized URL string, or empty when cleared |
 
-Telegram group creation is **automatic**; leaders must not paste `@channel` or `t.me/…` in create-tour. Implementation: `denali-social-media-link-field.tsx` · logic: `denali-social-media-link-logic.ts`.
+Operators enter the link themselves; there is **no** automatic Telegram group provisioning in create/edit. When set, the same canonical field is included in Telegram delivery output via the `deliverable` registry tag and `DENALI_DELIVERABLE_FIELD_IDS`. Implementation: `denali-social-media-link-field.tsx` · logic: `denali-social-media-link-logic.ts`.
 
-### Integration gate (Settings → Integrations)
-
-The entire `socialMediaLink` composite (Telegram + other platform) is shown in create and flat-edit wizards **only when** the workspace has an **active Telegram delivery source** (`isActiveDeliverySource` on a `telegram` row from `GET /workspaces/:workspaceId/integrations`). That matches Settings: enabled `integration_connections` telegram row, or enabled legacy `workspace_telegram_bots` fallback when not suppressed.
-
-| Integration state        | Wizard behaviour                                                                                         |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Active telegram delivery | Composite renders as today (`denali.social-media-link`)                                                  |
-| No active telegram       | Field removed from render plan; `clearWhenNotVisible` strips stored `socialMediaLink` on sanitize/submit |
-
-Runtime flag: `uiOptions.telegramIntegrationActive` on `DenaliWizardRuleEvalContext`, fed by web hook `useWorkspaceIntegrationRuntimeState` (no server prop drilling). Create wizard waits on integration fetch alongside template gate to avoid show-then-hide flicker. Rule kind: `telegramIntegrationActive` on registry field `socialMediaLink`. When the flag is omitted (unit tests, non-web callers), visibility stays **unchanged** (backwards compatible).
+The composite is **always visible** in create and flat-edit wizards when the template includes the field — it is **not** gated on Telegram integration being active.
 
 ### Review validation issue labels
 

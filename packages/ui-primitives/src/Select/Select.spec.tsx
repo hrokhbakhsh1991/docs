@@ -36,4 +36,16 @@ describe("Select", () => {
     const control = container.querySelector("select");
     assert.equal(control?.getAttribute("aria-invalid"), "true");
   });
+
+  it("exposes data-ui-select affordance hook", () => {
+    const { container } = render(
+      <Select
+        aria-label="Status"
+        options={[{ value: "a", label: "A" }]}
+        onChange={() => {}}
+      />,
+    );
+    const control = container.querySelector("select");
+    assert.ok(control?.hasAttribute("data-ui-select"));
+  });
 });

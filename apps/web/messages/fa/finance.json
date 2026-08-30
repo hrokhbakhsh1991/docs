@@ -23,6 +23,7 @@
     "allTours": "همه تورها",
     "tourFilterSearchPlaceholder": "جستجوی تور…",
     "tourFilterNoResults": "توری با این جستجو پیدا نشد.",
+    "tourFilterLoading": "در حال بارگذاری تورها…",
     "tourFilterChipMeta": "{pending} در انتظار · {total} کل",
     "decisionGuideTitle": "کدام اقدام را بزنم؟",
     "operatorHelpSummary": "راهنما: وضعیت‌ها و واژه‌ها",

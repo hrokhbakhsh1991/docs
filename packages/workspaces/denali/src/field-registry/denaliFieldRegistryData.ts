@@ -300,12 +300,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     rhfPath: "basicInfo.socialMediaLink",
     zodPath: "basicInfo.socialMediaLink",
     zodKind: "socialMediaLink",
-    tags: ["optional_basic"] as const,
+    tags: ["optional_basic", "deliverable"] as const,
     ruleDefaults: { required: false, hidden: false },
-    contextualVisibility: { kind: "telegramIntegrationActive" },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-    notes:
-      "Shown only when workspace telegram integration is an active delivery source (Settings).",
+    notes: "Optional group/social URL — manual entry; included in Telegram delivery when set.",
   },
   {
     canonicalPath: "program.themeIds",

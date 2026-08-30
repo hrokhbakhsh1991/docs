@@ -79,12 +79,15 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
       search: "ali",
       role: "admin",
       sort: "name_desc",
+      page: 2,
     });
     const parsed = parseUsersDirectoryQuery(new URLSearchParams(serialized));
     assert.equal(parsed.search, "ali");
     assert.equal(parsed.role, "admin");
     assert.equal(parsed.sort, "name_desc");
     assert.equal(parsed.tab, "active");
+    assert.equal(parsed.page, 2);
+    assert.ok(serialized.includes("page=2"));
   });
 
   it("WEB-9.4-06 pending tab query round-trips (R2)", () => {
@@ -330,9 +333,14 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(state.type, "loading");
   });
 
-  it("WEB-9.4-17 R4 list fetch query includes sort and limit", async () => {
-    const { buildUsersListFetchQuery, mergeUsersDirectoryPages, USERS_DIRECTORY_PAGE_SIZE } =
-      await import("../src/features/users/users-directory-list-logic");
+  it("WEB-9.4-17 R4 list fetch query includes sort, limit, and page cursor", async () => {
+    const {
+      buildUsersListFetchQuery,
+      encodeUsersDirectoryPageCursor,
+      mergeUsersDirectoryPages,
+      resolveUsersDirectoryTotalPages,
+      USERS_DIRECTORY_PAGE_SIZE,
+    } = await import("../src/features/users/users-directory-list-logic");
     const qs = buildUsersListFetchQuery({
       ...DEFAULT_USERS_DIRECTORY_QUERY,
       search: "ali",
@@ -340,6 +348,7 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
       sort: "name_desc",
       tab: "active",
       status: "all",
+      page: 1,
     });
     const params = new URLSearchParams(qs);
     assert.equal(params.get("search"), "ali");
@@ -347,6 +356,16 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(params.get("sort"), "name_desc");
     assert.equal(params.get("limit"), String(USERS_DIRECTORY_PAGE_SIZE));
     assert.equal(params.get("cursor"), null);
+
+    const qsPage2 = buildUsersListFetchQuery({
+      ...DEFAULT_USERS_DIRECTORY_QUERY,
+      page: 2,
+    });
+    assert.equal(
+      new URLSearchParams(qsPage2).get("cursor"),
+      encodeUsersDirectoryPageCursor(USERS_DIRECTORY_PAGE_SIZE)
+    );
+    assert.equal(resolveUsersDirectoryTotalPages(26), 2);
 
     const merged = mergeUsersDirectoryPages(
       [
@@ -381,7 +400,7 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(merged.length, 2);
   });
 
-  it("WEB-9.4-18 R4 invite role preview keys (CP-9.4-13)", async () => {
+  it("WEB-9.4-18 R4 invite role preview keys and directory control landmarks (CP-9.4-13)", async () => {
     const { resolveInviteRolePreviewKeys } =
       await import("../src/features/users/users-invite-role-preview");
     assert.deepEqual(resolveInviteRolePreviewKeys("viewer"), {
@@ -390,7 +409,11 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     });
     assert.equal(USERS_DIRECTORY_TEST_IDS.sortFilter, "operator-users-sort-filter");
     assert.equal(USERS_DIRECTORY_TEST_IDS.tableDesktop, "operator-users-table-desktop");
-    assert.equal(USERS_DIRECTORY_TEST_IDS.listLoadMore, "operator-users-list-load-more");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.controls, "operator-users-controls");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.filtersToggle, "operator-users-filters-toggle");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.filtersPanel, "operator-users-filters-panel");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.activeFilters, "operator-users-active-filters");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.pagination, "operator-users-pagination");
     assert.equal(USERS_DIRECTORY_TEST_IDS.inviteRolePreview, "operator-users-invite-role-preview");
   });
 
@@ -440,20 +463,13 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     const { buildUsersListFetchQuery } =
       await import("../src/features/users/users-directory-list-logic");
     const suspendedQs = buildUsersListFetchQuery({
-      tab: "active",
-      search: "",
-      role: "all",
+      ...DEFAULT_USERS_DIRECTORY_QUERY,
       status: "suspended",
-      sort: "name_asc",
     });
     assert.equal(new URLSearchParams(suspendedQs).get("status"), "suspended");
 
     const allStatusQs = buildUsersListFetchQuery({
-      tab: "active",
-      search: "",
-      role: "all",
-      status: "all",
-      sort: "name_asc",
+      ...DEFAULT_USERS_DIRECTORY_QUERY,
     });
     assert.equal(allStatusQs.includes("status="), false);
   });

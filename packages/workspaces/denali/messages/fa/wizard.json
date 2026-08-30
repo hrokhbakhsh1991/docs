@@ -40,7 +40,7 @@
     "requiresLocalGuide": "نیاز به راهنمای محلی",
     "localGuideName": "نام راهنمای محلی",
     "requiresManualAdminApproval": "نیاز به تأیید ادمین برای نهایی‌سازی رزرو",
-    "socialMediaLink": "کانال / شبکه اجتماعی",
+    "socialMediaLink": "لینک گروه یا شبکه اجتماعی",
     "program": {
       "themeIds": "تم‌ها (اختیاری)",
       "guideLanguageIds": "زبان‌های راهنما (اختیاری)",
@@ -266,7 +266,12 @@
       "removePhoto": "حذف عکس",
       "multiDayHelperWithMax": "تور چندروزه — هر عکس را به یک روز اختصاص دهید (حداکثر {max, number} عکس).",
       "dayOption": "روز {n, number}",
-      "dayLabel": "روز"
+      "dayLabel": "روز",
+      "daySectionTitle": "روز {n, number}",
+      "dayPhotoCount": "{count, plural, =0 {بدون عکس} one {# عکس} other {# عکس}}",
+      "addPhotoToDay": "افزودن عکس به روز {n, number}",
+      "tourCoverBadge": "کاور تور",
+      "daySectionEmpty": "هنوز عکسی برای این روز نیست."
     },
     "customServices": {
       "helper": "برچسب‌های اختیاری سرویس که در صفحه تور نمایش داده می‌شوند.",
@@ -339,15 +344,8 @@
       }
     },
     "socialMedia": {
-      "helper": "محل اطلاع‌رسانی و گروه شرکت‌کنندگان را مشخص کنید.",
-      "telegram": "تلگرام",
-      "other": "سایر پلتفرم‌ها",
-      "urlFieldLabel": "لینک گروه",
-      "urlPlaceholder": "https://instagram.com/...",
-      "telegramAutoInfo": "با انتخاب تلگرام، لینک گروه پس از ایجاد تور به‌صورت خودکار ساخته می‌شود — نیازی به وارد کردن لینک نیست.",
-      "reviewTelegramAuto": "تلگرام — ایجاد خودکار گروه",
-      "urlHint": "لینک کامل گروه را با https:// وارد کنید.",
-      "invalidTelegram": "نام کانال یا یوزرنیم تلگرام معتبر نیست.",
+      "helper": "لینک گروه تلگرام، واتساپ، اینستاگرام یا صفحه مرتبط را وارد کنید.",
+      "urlPlaceholder": "https://t.me/...",
       "invalidUrl": "لینک باید با http:// یا https:// شروع شود."
     },
     "leaders": {
@@ -445,8 +443,8 @@
       "loadingPlaceholder": "در حال بارگذاری مقصدها…",
       "selectPlaceholder": "انتخاب مقصد",
       "searchLabel": "جستجوی مقصد",
-      "searchPlaceholder": "نام مقصد را بنویسید…",
-      "searchEmpty": "مقصدی با این عبارت پیدا نشد.",
+      "searchPlaceholder": "جستجوی مقصد…",
+      "searchEmpty": "مقصدی پیدا نشد",
       "empty": "مقصدی نیست. از تنظیمات → مقصدها و مناطق، مقصد اضافه کنید."
     },
     "destinationCatalogMetric": {

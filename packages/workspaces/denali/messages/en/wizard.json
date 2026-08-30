@@ -40,7 +40,7 @@
     "requiresLocalGuide": "Requires local guide",
     "localGuideName": "Local guide name",
     "requiresManualAdminApproval": "Requires admin approval to finalize booking",
-    "socialMediaLink": "Social channel / link",
+    "socialMediaLink": "Group or social link",
     "program": {
       "themeIds": "Themes (optional)",
       "guideLanguageIds": "Guide languages (optional)",
@@ -266,7 +266,12 @@
       "removePhoto": "Remove photo",
       "multiDayHelperWithMax": "Multi-day tour — assign each photo to a day (up to {max, number} total).",
       "dayOption": "Day {n, number}",
-      "dayLabel": "Day"
+      "dayLabel": "Day",
+      "daySectionTitle": "Day {n, number}",
+      "dayPhotoCount": "{count, plural, =0 {No photos} one {# photo} other {# photos}}",
+      "addPhotoToDay": "Add photo to day {n, number}",
+      "tourCoverBadge": "Tour cover",
+      "daySectionEmpty": "No photos for this day yet."
     },
     "customServices": {
       "helper": "Optional service tags shown on the tour (workspace custom-services capability).",
@@ -339,15 +344,8 @@
       }
     },
     "socialMedia": {
-      "helper": "Where participants get tour updates and join the group.",
-      "telegram": "Telegram",
-      "other": "Other platform",
-      "urlFieldLabel": "Group link",
-      "urlPlaceholder": "https://instagram.com/...",
-      "telegramAutoInfo": "With Telegram selected, the group link is created automatically after the tour is published — no manual link needed.",
-      "reviewTelegramAuto": "Telegram — group created automatically",
-      "urlHint": "Enter the full group link starting with https://",
-      "invalidTelegram": "Enter a valid Telegram channel or username.",
+      "helper": "Enter the Telegram group, WhatsApp, Instagram, or related page link.",
+      "urlPlaceholder": "https://t.me/...",
       "invalidUrl": "Link must start with http:// or https://"
     },
     "leaders": {
@@ -445,8 +443,8 @@
       "loadingPlaceholder": "Loading destinations…",
       "selectPlaceholder": "Select destination",
       "searchLabel": "Search destinations",
-      "searchPlaceholder": "Type destination name…",
-      "searchEmpty": "No destination matches your search.",
+      "searchPlaceholder": "Search destination…",
+      "searchEmpty": "No destination found",
       "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
     },
     "destinationCatalogMetric": {

@@ -154,7 +154,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     );
     assert.match(fallbackMark, /resolveWizardCustomBrandFallbackMark/);
     assert.doesNotMatch(fallbackMark, /WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS/);
-    assert.match(fallbackMark, /data-tenant-brand-initial/);
+    assert.match(fallbackMark, /data-tenant-brand-icon-fallback/);
+    assert.match(fallbackMark, /Building2/);
+    assert.doesNotMatch(fallbackMark, /data-tenant-brand-initial/);
+    assert.doesNotMatch(fallbackMark, /charAt\(0\)|\.slice\(0,\s*1\)/);
   });
 
   it("P14-0b-06b resolve-workspace-label uses codegen namespaces", () => {

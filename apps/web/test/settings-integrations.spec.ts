@@ -42,6 +42,18 @@ describe("settings-integrations.spec.ts — Denali wiring", () => {
     assert.equal(SETTINGS_HUB_TEST_IDS.integrationsPage, "operator-settings-integrations-page");
   });
 
+  it("WEB-INT-LAYOUT-01 integrations uses shared shell + equal master-detail grid", () => {
+    const client = readFileSync(
+      join(import.meta.dirname, "../app/(app)/settings/integrations/integrations-settings-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /SettingsPageShell/);
+    assert.match(client, /maxWidth="5xl"/);
+    assert.match(client, /lg:grid-cols-2 lg:items-stretch/);
+    assert.match(client, /text-start/);
+    assert.match(client, /min-h-\[6\.5rem\]/);
+  });
+
   it("WEB-INT-03 parses list response with legacy + integration rows", () => {
     const parsed = parseWorkspaceIntegrationsListResponse({
       items: [

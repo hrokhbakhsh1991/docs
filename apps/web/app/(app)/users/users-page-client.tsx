@@ -3,7 +3,7 @@
 import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Download, Plus, Search, UserPlus } from "lucide-react";
+import { Download, Plus, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -40,8 +40,7 @@ import {
 } from "@/features/users/users-directory-types";
 import {
   buildUsersListFetchQuery,
-  mergeUsersDirectoryPages,
-  USERS_DIRECTORY_SORT_OPTIONS,
+  resolveUsersDirectoryTotalPages,
 } from "@/features/users/users-directory-list-logic";
 import { resolveInviteRolePreviewKeys } from "@/features/users/users-invite-role-preview";
 import {
@@ -66,6 +65,8 @@ import { UsersDirectoryLockedPanel } from "./users-directory-locked-panel";
 import { UsersDirectoryMobileCard } from "./users-directory-row-actions-sheet";
 import { UsersDirectoryTable } from "./users-directory-table";
 import { UsersDirectoryBulkToolbar } from "./users-directory-bulk-toolbar";
+import { UsersDirectoryControls } from "./users-directory-controls";
+import { UsersDirectoryPagination } from "./users-directory-pagination";
 import { UsersMemberDetailSheet } from "./users-member-detail-sheet";
 import { UsersOwnershipTransferPanel } from "./users-ownership-transfer-panel";
 
@@ -74,9 +75,6 @@ type UsersPageClientProps = {
   readonly initialUsersList?: UsersListResponse | null;
   readonly initialOwnershipRoster?: UsersListResponse | null;
 };
-
-const ROLE_FILTER_OPTIONS = ["all", "owner", "admin", "member", "viewer"] as const;
-const STATUS_FILTER_OPTIONS = ["all", "active", "suspended"] as const;
 
 export function UsersPageClient({
   session,
@@ -98,13 +96,6 @@ export function UsersPageClient({
     () => initialUsersList?.items ?? []
   );
   const [listTotal, setListTotal] = useState(initialUsersList?.total ?? 0);
-  const [nextCursor, setNextCursor] = useState<string | undefined>(
-    initialUsersList?.nextCursor ?? undefined
-  );
-  const [loadingMore, setLoadingMore] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const loadMoreInFlightRef = useRef(false);
-  const nextCursorRef = useRef<string | undefined>(initialUsersList?.nextCursor ?? undefined);
   const [pendingData, setPendingData] = useState<PendingInvitesListResponse | null>(null);
   const [pendingLoading, setPendingLoading] = useState(
     () => query.tab === "pending" && isOwnerRole(session.role)
@@ -158,10 +149,13 @@ export function UsersPageClient({
     setDetailOpen(true);
   };
 
-  const replaceQuery = (next: UsersDirectoryQuery) => {
-    const serialized = serializeUsersDirectoryQuery(next);
-    router.replace(serialized.length > 0 ? `${pathname}?${serialized}` : pathname);
-  };
+  const replaceQuery = useCallback(
+    (next: UsersDirectoryQuery) => {
+      const serialized = serializeUsersDirectoryQuery(next);
+      router.replace(serialized.length > 0 ? `${pathname}?${serialized}` : pathname);
+    },
+    [pathname, router]
+  );
 
   useEffect(() => {
     setSearchInput(query.search);
@@ -172,10 +166,10 @@ export function UsersPageClient({
       if (searchInput === query.search) {
         return;
       }
-      replaceQuery({ ...query, search: searchInput });
+      replaceQuery({ ...query, search: searchInput, page: 1 });
     }, 350);
     return () => window.clearTimeout(handle);
-  }, [pathname, query, router, searchInput]);
+  }, [query, replaceQuery, searchInput]);
 
   const isPendingTab = query.tab === "pending";
   const directoryLoading = isPendingTab ? pendingLoading : loading;
@@ -186,26 +180,20 @@ export function UsersPageClient({
     }
   }, [canManage, isPendingTab]);
 
-  const fetchUsersPage = useCallback(
-    async (cursor: string | undefined, append: boolean) => {
-      const qs = buildUsersListFetchQuery(query, cursor);
-      const response = await fetch(`/api/users?${qs}`, { cache: "no-store" });
-      if (response.status === 403) {
-        throw new Error("USERS_DIRECTORY_FORBIDDEN");
-      }
-      if (!response.ok) {
-        throw new Error(`USERS_LIST_HTTP_${response.status}`);
-      }
-      const payload = (await response.json()) as UsersListResponse;
-      setListItems((current) =>
-        append ? mergeUsersDirectoryPages(current, payload.items) : [...payload.items]
-      );
-      setListTotal(payload.total);
-      setNextCursor(payload.nextCursor);
-      return payload;
-    },
-    [query]
-  );
+  const fetchUsersPage = useCallback(async () => {
+    const qs = buildUsersListFetchQuery(query);
+    const response = await fetch(`/api/users?${qs}`, { cache: "no-store" });
+    if (response.status === 403) {
+      throw new Error("USERS_DIRECTORY_FORBIDDEN");
+    }
+    if (!response.ok) {
+      throw new Error(`USERS_LIST_HTTP_${response.status}`);
+    }
+    const payload = (await response.json()) as UsersListResponse;
+    setListItems([...payload.items]);
+    setListTotal(payload.total);
+    return payload;
+  }, [query]);
 
   useEffect(() => {
     if (!canManage || isPendingTab) {
@@ -222,8 +210,7 @@ export function UsersPageClient({
     setLoading(true);
     setError(null);
     setListItems([]);
-    setNextCursor(undefined);
-    void fetchUsersPage(undefined, false)
+    void fetchUsersPage()
       .catch((fetchError: unknown) => {
         if (!cancelled) {
           setError(fetchError instanceof Error ? fetchError.message : "USERS_LIST_FAILED");
@@ -238,42 +225,6 @@ export function UsersPageClient({
       cancelled = true;
     };
   }, [canManage, isPendingTab, query, fetchNonce, fetchUsersPage]);
-
-  useEffect(() => {
-    nextCursorRef.current = nextCursor;
-  }, [nextCursor]);
-
-  useEffect(() => {
-    if (!canManage || isPendingTab || loading || nextCursor === undefined) {
-      return;
-    }
-    const node = loadMoreRef.current;
-    if (node === null) {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        const cursor = nextCursorRef.current;
-        if (!entry?.isIntersecting || loadMoreInFlightRef.current || cursor === undefined) {
-          return;
-        }
-        loadMoreInFlightRef.current = true;
-        setLoadingMore(true);
-        void fetchUsersPage(cursor, true)
-          .catch((fetchError: unknown) => {
-            setError(fetchError instanceof Error ? fetchError.message : "USERS_LIST_FAILED");
-          })
-          .finally(() => {
-            loadMoreInFlightRef.current = false;
-            setLoadingMore(false);
-          });
-      },
-      { rootMargin: "120px" }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [canManage, fetchUsersPage, isPendingTab, loading, nextCursor]);
 
   useEffect(() => {
     if (!canManage || !isPendingTab) {
@@ -313,7 +264,11 @@ export function UsersPageClient({
   }, [canManage, isPendingTab, pendingFetchNonce]);
 
   const hasActiveFilters =
-    query.search.trim().length > 0 || query.role !== "all" || query.status !== "all";
+    query.search.trim().length > 0 ||
+    query.role !== "all" ||
+    query.status !== "all" ||
+    query.sort !== "name_asc";
+  const totalPages = resolveUsersDirectoryTotalPages(listTotal);
   const visibleUsers = filterUsersDirectoryByStatus(listItems, query.status);
   const manageableVisibleUsers = useMemo(
     () => visibleUsers.filter((user) => canManageUserRow(session.role, session.userId, user)),
@@ -330,7 +285,7 @@ export function UsersPageClient({
 
   useEffect(() => {
     setSelectedUserIds(new Set());
-  }, [query.tab, query.search, query.role, query.status, query.sort]);
+  }, [query.tab, query.search, query.role, query.status, query.sort, query.page]);
 
   useEffect(() => {
     if (detailUser === null) {
@@ -592,8 +547,20 @@ export function UsersPageClient({
     }
   };
 
-  const handleExportCsv = () => {
-    const rows = toUsersCsvRows(filterUsersDirectoryByStatus(listItems, query.status));
+  const handleExportCsv = async () => {
+    const exportTotalPages = resolveUsersDirectoryTotalPages(listTotal);
+    const collected: UsersDirectoryRow[] = [];
+    for (let page = 1; page <= exportTotalPages; page++) {
+      const qs = buildUsersListFetchQuery({ ...query, page });
+      const response = await fetch(`/api/users?${qs}`, { cache: "no-store" });
+      if (!response.ok) {
+        setError(`USERS_LIST_HTTP_${response.status}`);
+        return;
+      }
+      const payload = (await response.json()) as UsersListResponse;
+      collected.push(...payload.items);
+    }
+    const rows = toUsersCsvRows(filterUsersDirectoryByStatus(collected, query.status));
     const csv = buildUsersCsvContent(rows);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -653,7 +620,7 @@ export function UsersPageClient({
           size="sm"
           variant={query.tab === "active" ? "default" : "outline"}
           data-testid={USERS_DIRECTORY_TEST_IDS.tabActive}
-          onClick={() => replaceQuery({ ...query, tab: "active" })}
+          onClick={() => replaceQuery({ ...query, tab: "active", page: 1 })}
         >
           {t("tabs.active")}
         </Button>
@@ -662,7 +629,7 @@ export function UsersPageClient({
           size="sm"
           variant={query.tab === "pending" ? "default" : "outline"}
           data-testid={USERS_DIRECTORY_TEST_IDS.tabPending}
-          onClick={() => replaceQuery({ ...query, tab: "pending" })}
+          onClick={() => replaceQuery({ ...query, tab: "pending", page: 1 })}
         >
           {t("tabs.pending")}
           {pendingData && pendingData.total > 0 ? (
@@ -674,78 +641,12 @@ export function UsersPageClient({
       </div>
 
       {!isPendingTab ? (
-        <div className="space-y-4">
-          <div className="relative max-w-xl">
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              data-testid={USERS_DIRECTORY_TEST_IDS.search}
-              className="ps-9"
-              value={searchInput}
-              placeholder={t("searchPlaceholder")}
-              onChange={(event) => setSearchInput(event.target.value)}
-            />
-          </div>
-
-          {hasActiveFilters ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() =>
-                replaceQuery({
-                  ...query,
-                  search: "",
-                  role: "all",
-                  status: "all",
-                })
-              }
-            >
-              {t("filters.clear")}
-            </Button>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2" data-testid={USERS_DIRECTORY_TEST_IDS.roleFilter}>
-            {ROLE_FILTER_OPTIONS.map((option) => (
-              <Button
-                key={option}
-                type="button"
-                size="sm"
-                variant={query.role === option ? "default" : "outline"}
-                onClick={() => replaceQuery({ ...query, role: option })}
-              >
-                {t(`roles.${option}`)}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2" data-testid={USERS_DIRECTORY_TEST_IDS.statusFilter}>
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <Button
-                key={option}
-                type="button"
-                size="sm"
-                variant={query.status === option ? "default" : "outline"}
-                onClick={() => replaceQuery({ ...query, status: option })}
-              >
-                {t(`statusFilter.${option}`)}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2" data-testid={USERS_DIRECTORY_TEST_IDS.sortFilter}>
-            {USERS_DIRECTORY_SORT_OPTIONS.map((option) => (
-              <Button
-                key={option}
-                type="button"
-                size="sm"
-                variant={query.sort === option ? "default" : "outline"}
-                onClick={() => replaceQuery({ ...query, sort: option })}
-              >
-                {t(`sort.${option}`)}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <UsersDirectoryControls
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onQueryChange={replaceQuery}
+        />
       ) : null}
 
       <Dialog
@@ -911,15 +812,12 @@ export function UsersPageClient({
               </li>
             ))}
           </ul>
-          {nextCursor !== undefined ? (
-            <div
-              ref={loadMoreRef}
-              className="py-4 text-center text-sm text-muted-foreground"
-              data-testid={USERS_DIRECTORY_TEST_IDS.listLoadMore}
-            >
-              {loadingMore ? t("loadingMore") : null}
-            </div>
-          ) : null}
+          <UsersDirectoryPagination
+            page={query.page}
+            totalPages={totalPages}
+            total={listTotal}
+            onPageChange={(page) => replaceQuery({ ...query, page })}
+          />
         </div>
       ) : null}
 
@@ -939,10 +837,6 @@ export function UsersPageClient({
             </li>
           ))}
         </ul>
-      ) : null}
-
-      {!isPendingTab && listTotal > 0 ? (
-        <p className="text-sm text-muted-foreground">{t("counts.members", { count: listTotal })}</p>
       ) : null}
 
       {canManage && !isPendingTab && USERS_OWNERSHIP_TRANSFER_UI_ENABLED ? (

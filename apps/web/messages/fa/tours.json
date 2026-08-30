@@ -4,6 +4,27 @@
   "newTour": "تور جدید",
   "searchPlaceholder": "جستجوی تور…",
   "sortLabel": "مرتب‌سازی:",
+  "sortOption": {
+    "departure_at:asc": "نزدیک‌ترین حرکت",
+    "departure_at:desc": "دورترین حرکت",
+    "created_at:desc": "جدیدترین",
+    "created_at:asc": "قدیمی‌ترین",
+    "title:asc": "عنوان (الف–ی)",
+    "title:desc": "عنوان (ی–الف)",
+    "price:desc": "بیشترین قیمت",
+    "price:asc": "کمترین قیمت"
+  },
+  "filters": {
+    "toggle": "فیلترها",
+    "statusLabel": "وضعیت",
+    "clearAll": "پاک کردن همه"
+  },
+  "activeFilters": {
+    "status": "وضعیت: {value}",
+    "category": "دسته: {value}",
+    "sort": "مرتب‌سازی: {value}",
+    "remove": "حذف {filter}"
+  },
   "empty": "هنوز توری ثبت نشده است.",
   "sort": {
     "created_at": "تاریخ ثبت",
@@ -101,6 +122,8 @@
     "published": "تور در کاتالوگ منتشر شد.",
     "unpublished": "تور به پیش‌نویس برگشت.",
     "cancelEdits": "انصراف",
+    "moreActions": "بیشتر",
+    "unsavedHint": "تغییرات ذخیره‌نشده",
     "wizardTitle": "ویرایش تور",
     "loading": "در حال بارگذاری تور…",
     "warmErrorTitle": "ویرایش تور آماده نشد",
@@ -190,6 +213,22 @@
       "count": "{count, number} نفر تایید شده‌اند",
       "empty": "هنوز عضوی تایید نشده است.",
       "cta": "مشاهده لیست نهایی"
+    },
+    "controls": {
+      "filtersToggle": "فیلترها",
+      "clearAll": "پاک کردن فیلترها",
+      "removeFilter": "حذف {filter}",
+      "paymentFilterLabel": "وضعیت پرداخت",
+      "statusFilterLabel": "وضعیت ثبت‌نام",
+      "sortFilterLabel": "مرتب‌سازی",
+      "rosterFilterLabel": "نمای لیست",
+      "activeFilters": {
+        "status": "وضعیت: {value}",
+        "payment": "پرداخت: {value}",
+        "sort": "مرتب‌سازی: {value}",
+        "search": "جستجو: {value}",
+        "roster": "حمل‌ونقل: {value}"
+      }
     },
     "finance": {
       "title": "پیگیری پرداخت تور",

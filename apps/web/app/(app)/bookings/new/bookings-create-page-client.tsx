@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { UserPlus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
+import { OperatorTourSelect } from "@/admin/patterns/operator-tour-select";
 import { PageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,10 @@ import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatBookingDeparture } from "@/features/bookings/bookings-command-center-logic";
 import {
   buildBookingCreatePayload,
   departureInputFromTour,
-  mapToursToCreateOptions,
 } from "@/features/bookings/bookings-create-logic";
 import {
   BOOKINGS_CREATE_TEST_IDS,
@@ -29,7 +28,6 @@ import {
   type BookingCreateTourOption,
 } from "@/features/bookings/bookings-create-types";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
-import type { OperatorTourListResponse } from "@/features/tours/operator-tours-types";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 
@@ -47,56 +45,21 @@ export function BookingsCreatePageClient({ session }: BookingsCreatePageClientPr
   const router = useRouter();
   const canManage = isAdminOrOwnerRole(session.role);
   const [form, setForm] = useState<BookingCreateFormState>(DEFAULT_BOOKING_CREATE_FORM);
-  const [tours, setTours] = useState<readonly BookingCreateTourOption[]>([]);
-  const [loadingTours, setLoadingTours] = useState(canManage);
+  const [knownTours, setKnownTours] = useState<readonly BookingCreateTourOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pageState = resolveBookingsCreatePageState({
     canManage,
-    loadingTours,
+    loadingTours: false,
     submitting,
     error,
   });
 
   const selectedTour = useMemo(
-    () => tours.find((tour) => tour.id === form.tourId),
-    [form.tourId, tours]
+    () => knownTours.find((tour) => tour.id === form.tourId),
+    [form.tourId, knownTours]
   );
-
-  useEffect(() => {
-    if (!canManage) {
-      setLoadingTours(false);
-      return;
-    }
-    let cancelled = false;
-    setLoadingTours(true);
-    void fetch("/api/tours?limit=50&view=operator", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`TOURS_LIST_HTTP_${response.status}`);
-        }
-        return (await response.json()) as OperatorTourListResponse;
-      })
-      .then((payload) => {
-        if (!cancelled) {
-          setTours(mapToursToCreateOptions(payload.items));
-        }
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "TOURS_FETCH_FAILED");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingTours(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [canManage]);
 
   const updateField = <K extends keyof BookingCreateFormState>(
     key: K,
@@ -106,7 +69,7 @@ export function BookingsCreatePageClient({ session }: BookingsCreatePageClientPr
   };
 
   const handleTourChange = (tourId: string) => {
-    const tour = tours.find((item) => item.id === tourId);
+    const tour = knownTours.find((item) => item.id === tourId);
     setForm((current) => ({
       ...current,
       tourId,
@@ -114,10 +77,33 @@ export function BookingsCreatePageClient({ session }: BookingsCreatePageClientPr
     }));
   };
 
+  const handleTourResolved = (tour: {
+    readonly id: string;
+    readonly title: string;
+    readonly departureAt: string | null;
+  }) => {
+    const option: BookingCreateTourOption = {
+      id: tour.id,
+      title: tour.title,
+      departureAt: tour.departureAt,
+    };
+    setKnownTours((current) => {
+      if (current.some((item) => item.id === option.id)) {
+        return current;
+      }
+      return [...current, option];
+    });
+    setForm((current) => ({
+      ...current,
+      tourId: tour.id,
+      departureAt: departureInputFromTour(option) || current.departureAt,
+    }));
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    const payload = buildBookingCreatePayload(form, tours);
+    const payload = buildBookingCreatePayload(form, knownTours);
     if (payload === null) {
       setError("BOOKING_CREATE_INVALID");
       return;
@@ -164,13 +150,6 @@ export function BookingsCreatePageClient({ session }: BookingsCreatePageClientPr
         </Card>
       ) : null}
 
-      {pageState.type === "loading_tours" ? (
-        <div className="space-y-3">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      ) : null}
-
       {pageState.type === "error" ? (
         <Card>
           <CardContent className="pt-6 text-sm text-destructive">{localizedError}</CardContent>
@@ -194,21 +173,17 @@ export function BookingsCreatePageClient({ session }: BookingsCreatePageClientPr
             >
               <div className="space-y-2">
                 <Label htmlFor="booking-tour">{t("tour")}</Label>
-                <select
-                  id="booking-tour"
-                  data-testid={BOOKINGS_CREATE_TEST_IDS.tourSelect}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                <OperatorTourSelect
                   value={form.tourId}
-                  onChange={(event) => handleTourChange(event.target.value)}
-                  required
-                >
-                  <option value="">{t("selectTour")}</option>
-                  {tours.map((tour) => (
-                    <option key={tour.id} value={tour.id}>
-                      {tour.title}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={handleTourChange}
+                  onTourResolved={handleTourResolved}
+                  placeholder={t("selectTour")}
+                  searchPlaceholder={t("tourSearchPlaceholder")}
+                  emptyLabel={t("tourNoResults")}
+                  loadingLabel={t("tourLoading")}
+                  ariaLabel={t("tour")}
+                  testId={BOOKINGS_CREATE_TEST_IDS.tourSelect}
+                />
                 {selectedTour?.departureAt ? (
                   <p className="text-xs text-muted-foreground">
                     {t("scheduledDeparture", {

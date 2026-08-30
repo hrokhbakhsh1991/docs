@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { OperatorProfileAvatar } from "@/admin/patterns/operator-profile-avatar";
+import {
+  SETTINGS_HIDDEN_FILE_INPUT_CLASS,
+  SettingsPageShell,
+} from "@/admin/patterns/settings-page-shell";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -195,13 +199,13 @@ export function ProfileSettingsClient({
   }
 
   return (
-    <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.profilePage}>
+    <SettingsPageShell testId={SETTINGS_HUB_TEST_IDS.profilePage} maxWidth="xl">
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {loading ? (
-        <Skeleton className="h-64 w-full max-w-xl" />
+        <Skeleton className="h-64 w-full" />
       ) : (
-        <Card className="max-w-xl">
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>{t("cardTitle")}</CardTitle>
             <CardDescription>
@@ -210,13 +214,13 @@ export function ProfileSettingsClient({
           </CardHeader>
           <CardContent>
             <form
-              className="space-y-4"
+              className="min-w-0 space-y-4"
               data-testid={SETTINGS_HUB_TEST_IDS.profileForm}
               onSubmit={(event) => void handleSave(event)}
             >
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label>{t("avatarLabel")}</Label>
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex min-w-0 flex-wrap items-center gap-4">
                   <OperatorProfileAvatar
                     userId={session.userId}
                     displayName={displayName}
@@ -248,7 +252,7 @@ export function ProfileSettingsClient({
                       ref={fileInputRef}
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
-                      className="sr-only"
+                      className={SETTINGS_HIDDEN_FILE_INPUT_CLASS}
                       onChange={(event) => void handleAvatarSelected(event.target.files?.[0])}
                     />
                   </div>
@@ -301,7 +305,7 @@ export function ProfileSettingsClient({
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="profile-role">{t("role")}</Label>
                   <Input
@@ -340,6 +344,6 @@ export function ProfileSettingsClient({
           </CardContent>
         </Card>
       )}
-    </div>
+    </SettingsPageShell>
   );
 }

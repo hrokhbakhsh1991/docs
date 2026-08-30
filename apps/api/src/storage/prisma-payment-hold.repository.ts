@@ -1,5 +1,5 @@
 /**
- * DP1-A — PostgreSQL Payment Hold repository.
+ * DP1-A — PostgreSQL Payment Hold repository (storage adapter).
  *
  * The memory adapter remains the dev/test implementation; staging/prod must persist
  * holds because booking deadline projections are read after the approve request.

@@ -2,48 +2,18 @@ import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { TOURS_LIST_TEST_IDS } from "@/features/tours/query-model";
 
-type ToursListToolbarSkeletonProps = {
-  readonly hasCategoryFilter?: boolean;
-};
-
-/** Mirrors search + status + optional category groups + sort toolbar layout. */
-export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursListToolbarSkeletonProps) {
+/** Mirrors compact search + filters trigger + sort toolbar layout. */
+export function ToursListToolbarSkeleton() {
   return (
-    <div className="space-y-4" data-testid={TOURS_LIST_TEST_IDS.toolbarSkeleton}>
-      <OperatorSkeleton size="search" />
-
-      <div className="flex flex-wrap gap-2">
-        <OperatorSkeleton size="chip-xs" />
-        <OperatorSkeleton size="chip-md" />
-        <OperatorSkeleton size="chip-sm" />
-        <OperatorSkeleton size="chip-md" />
-      </div>
-
-      {hasCategoryFilter ? (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <OperatorSkeleton size="label-lg" />
-            <OperatorSkeleton size="chip-sm" />
-          </div>
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <OperatorSkeleton size="label-md" />
-              <div className="flex flex-wrap gap-1">
-                <OperatorSkeleton size="chip-lg" />
-                <OperatorSkeleton size="chip-xl" />
-                <OperatorSkeleton size="chip-md" />
-              </div>
-            </div>
-          ))}
+    <div className="space-y-3" data-testid={TOURS_LIST_TEST_IDS.toolbarSkeleton}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="max-w-xl flex-1">
+          <OperatorSkeleton size="search" />
         </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <OperatorSkeleton size="label-sm" />
-        <OperatorSkeleton size="chip-lg" />
-        <OperatorSkeleton size="chip-xl" />
-        <OperatorSkeleton size="chip-md" />
-        <OperatorSkeleton size="chip-xl" />
+        <div className="flex flex-wrap items-center gap-2">
+          <OperatorSkeleton size="chip-md" />
+          <OperatorSkeleton size="chip-lg" />
+        </div>
       </div>
     </div>
   );

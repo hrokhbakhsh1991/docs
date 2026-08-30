@@ -33,7 +33,10 @@ import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
 } from "./read-transport-kind-from-intake";
-import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
+import {
+  enrichInMemoryBookingListRecord,
+  resolveFinancialDisplayStateForListRecord,
+} from "./booking-list-intake-scalars";
 import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
@@ -184,10 +187,19 @@ function seedOperatorSmokeDevBookingsFixture(): void {
 
 function cloneBooking(record: BookingRecord): BookingRecord {
   const registrationIntake = record.registrationIntake;
+  const obligationOverride =
+    registrationIntake !== undefined &&
+    registrationIntake !== null &&
+    typeof registrationIntake.obligationOverride === "object" &&
+    registrationIntake.obligationOverride !== null &&
+    !Array.isArray(registrationIntake.obligationOverride)
+      ? (registrationIntake.obligationOverride as Readonly<Record<string, unknown>>)
+      : null;
   return {
     ...record,
     financialDisplayState:
-      record.financialDisplayState ?? resolveFinancialDisplayStateFromIntake(record),
+      record.financialDisplayState ??
+      resolveFinancialDisplayStateForListRecord(record, obligationOverride),
     registrantTarget: record.registrantTarget ?? readRegistrantTargetFromIntake(registrationIntake),
     transportKind:
       record.transportKind !== undefined
@@ -200,28 +212,9 @@ function cloneBooking(record: BookingRecord): BookingRecord {
   };
 }
 
-function resolveFinancialDisplayStateFromIntake(
-  record: BookingRecord
-): BookingRecord["financialDisplayState"] {
-  if (record.status !== "approved" || record.paymentStatus !== "paid") {
-    return undefined;
-  }
-  const override = readObligationOverrideFromIntake(record.registrationIntake);
-  if (override === null || !isZeroObligationMinor(override.obligationMinor)) {
-    return undefined;
-  }
-  return "WAIVED";
-}
-
-/** List projection — strip `registrationIntake` (BK-SAFE-01); keep scalars. */
+/** List projection — strip `registrationIntake` (BK-SAFE-01); keep scalars + WAIVED display. */
 function toBookingListRecord(record: BookingRecord): BookingRecord {
-  const { registrationIntake, ...rest } = cloneBooking(record);
-  return {
-    ...rest,
-    registrantTarget: readRegistrantTargetFromIntake(registrationIntake),
-    transportKind: readTransportKindFromIntake(registrationIntake),
-    personalCarOccupants: readPersonalCarOccupantsFromIntake(registrationIntake),
-  };
+  return enrichInMemoryBookingListRecord(record);
 }
 
 function snapshotState(): RepositorySnapshot {

@@ -245,8 +245,10 @@
           "kind": "text",
           "required": false,
           "tags": [
-            "optional_basic"
+            "optional_basic",
+            "deliverable"
           ],
+          "adminLabel": "Group / Social Link",
           "group": "General"
         },
         {
@@ -2391,5 +2393,5 @@
       "wizardCapacityStepRedundant": false
     }
   },
-  "checksum": "0c7971f80cb51bae0879b57ac3bd5033ed01bc719051d8dfe88e8ef32ecdd00d"
+  "checksum": "91330beaebef9169fe6b9389e6428d83898a7ad72a3a17cfefd99a98f92e4a28"
 }

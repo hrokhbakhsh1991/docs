@@ -2,25 +2,26 @@ export type SocialMediaKind = "telegram" | "other";
 
 const TELEGRAM_HOSTS = new Set(["t.me", "telegram.me", "telegram.dog"]);
 
-/** Wizard-only marker: external platform selected but URL not entered yet. Never persisted on tour submit. */
+/** Wizard-only marker: legacy drafts only. Stripped before tour submit. */
 export const DENALI_SOCIAL_MEDIA_EXTERNAL_PENDING = "__denali_social_external_pending__";
 
 export function isSocialMediaExternalPending(stored: string): boolean {
   return stored.trim() === DENALI_SOCIAL_MEDIA_EXTERNAL_PENDING;
 }
 
+/** @deprecated Kind toggle removed — kept for legacy callers/tests. */
 export function detectSocialMediaKind(stored: string): SocialMediaKind {
   const trimmed = stored.trim();
   if (isSocialMediaExternalPending(trimmed)) {
     return "other";
   }
   if (trimmed.length === 0) {
-    return "telegram";
+    return "other";
   }
   return isTelegramSocialLink(trimmed) ? "telegram" : "other";
 }
 
-/** Whether the operator has satisfied the social-media step (Telegram empty = OK; external needs URL). */
+/** Optional field — satisfied when empty or a normalized URL is stored. */
 export function isSocialMediaLinkWizardSatisfied(stored: string): boolean {
   const trimmed = stored.trim();
   if (trimmed.length === 0) {
@@ -36,15 +37,9 @@ export function stripSocialMediaLinkForSubmit(stored: string): string {
   return stored.trim();
 }
 
-export function formatSocialMediaLinkForReview(
-  stored: string,
-  telegramAutoLabel: string
-): string {
+export function formatSocialMediaLinkForReview(stored: string): string {
   const trimmed = stored.trim();
-  if (trimmed.length === 0) {
-    return telegramAutoLabel;
-  }
-  if (isSocialMediaExternalPending(trimmed)) {
+  if (trimmed.length === 0 || isSocialMediaExternalPending(trimmed)) {
     return "";
   }
   return trimmed;
@@ -66,6 +61,7 @@ export function isTelegramSocialLink(value: string): boolean {
   }
 }
 
+/** @deprecated Kind toggle removed — kept for legacy tests. */
 export function formatTelegramInputDisplay(stored: string): string {
   const trimmed = stored.trim();
   if (trimmed.length === 0) {
@@ -83,6 +79,7 @@ export function formatTelegramInputDisplay(stored: string): string {
   }
 }
 
+/** @deprecated Use {@link normalizeSocialMediaLink}. */
 export function normalizeTelegramSocialLink(input: string): string {
   const trimmed = input.trim();
   if (trimmed.length === 0) {
@@ -122,6 +119,7 @@ export function normalizeTelegramSocialLink(input: string): string {
   return `https://t.me/${handle}`;
 }
 
+/** @deprecated Use {@link normalizeSocialMediaLink}. */
 export function normalizeExternalSocialLink(input: string): string | null {
   const trimmed = input.trim();
   if (trimmed.length === 0) {
@@ -136,12 +134,29 @@ export function normalizeExternalSocialLink(input: string): string | null {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return null;
   }
-  if (TELEGRAM_HOSTS.has(url.hostname.replace(/^www\./i, "").toLowerCase())) {
-    return null;
-  }
   return url.href;
 }
 
+/** Normalize operator-entered group/social URL (http/https). Empty input clears the field. */
+export function normalizeSocialMediaLink(
+  input: string
+): { readonly ok: true; readonly value: string } | { readonly ok: false } {
+  const trimmed = input.trim();
+  if (trimmed.length === 0) {
+    return { ok: true, value: "" };
+  }
+  try {
+    const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { ok: false };
+    }
+    return { ok: true, value: url.href };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** @deprecated Kind toggle removed — kept for legacy tests. */
 export function normalizeSocialMediaLinkForKind(
   kind: SocialMediaKind,
   input: string
@@ -157,5 +172,5 @@ export function normalizeSocialMediaLinkForKind(
   if (value === null) {
     return { ok: false };
   }
-  return { ok: true, value };
+  return { ok: true, value: value };
 }

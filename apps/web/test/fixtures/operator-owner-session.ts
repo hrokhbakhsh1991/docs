@@ -74,7 +74,10 @@ async function loginOperatorSessionViaBff(
     await persistOperatorSessionCookie(page, { session_token: cachedToken });
     if (!skipAbilityPreflight) {
       const abilityRes = await page.request.get("/api/auth/membership-ability-context");
-      expect(abilityRes.ok()).toBeTruthy();
+      if (!abilityRes.ok()) {
+        OPERATOR_SESSION_TOKEN_CACHE.delete(cacheKey);
+        return loginOperatorSessionViaBff(page, phone, skipAbilityPreflight, true);
+      }
     }
     return;
   }

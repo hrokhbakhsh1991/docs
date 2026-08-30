@@ -88,6 +88,9 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
         }),
       },
       registrationSlo: { record: () => undefined },
+      financialDisplayState: {
+        resolve: () => undefined,
+      },
     });
 
     await assert.rejects(
@@ -177,6 +180,9 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
           }),
         },
         registrationSlo: { record: () => undefined },
+        financialDisplayState: {
+          resolve: () => undefined,
+        },
       });
 
       await assert.rejects(

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { SelectOption } from "../adapters/platform-primitives";
 import { Input, Select } from "../adapters/platform-primitives";
 import {
+  DEFAULT_DENALI_SEARCHABLE_SELECT_MAX_VISIBLE,
   DEFAULT_DENALI_SEARCHABLE_SELECT_THRESHOLD,
   filterSelectOptionsByQuery,
   resolveSelectOptionLabel,
@@ -14,6 +15,8 @@ import { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "../test-ids/denali-searchable
 import { cn } from "../utils/cn";
 
 export { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "../test-ids/denali-searchable-select-test-ids";
+
+const DENALI_SEARCHABLE_SELECT_PANEL_CLOSE_MS = 140;
 
 function ChevronDownIcon({ className }: { readonly className?: string }) {
   return (
@@ -47,9 +50,15 @@ export type DenaliSearchableSelectProps = {
   readonly searchLabel: string;
   readonly searchPlaceholder: string;
   readonly searchEmptyMessage: string;
+  /** Shown when requireQueryToBrowse and search is empty. Defaults to searchPlaceholder. */
+  readonly searchPromptMessage?: string;
   readonly className?: string;
   readonly testId?: string;
   readonly searchableThreshold?: number;
+  /** When true, list stays empty until operator types (selected value may still hydrate). */
+  readonly requireQueryToBrowse?: boolean;
+  /** Max options rendered in the listbox. */
+  readonly maxVisibleOptions?: number;
 };
 
 export function DenaliSearchableSelect({
@@ -66,37 +75,74 @@ export function DenaliSearchableSelect({
   searchLabel,
   searchPlaceholder,
   searchEmptyMessage,
+  searchPromptMessage,
   className,
   testId = DENALI_SEARCHABLE_SELECT_TEST_IDS.root,
   searchableThreshold = DEFAULT_DENALI_SEARCHABLE_SELECT_THRESHOLD,
+  requireQueryToBrowse = false,
+  maxVisibleOptions = DEFAULT_DENALI_SEARCHABLE_SELECT_MAX_VISIBLE,
 }: DenaliSearchableSelectProps) {
   const reactId = useId();
   const fieldId = id ?? `denali-searchable-select-${reactId.replace(/:/g, "")}`;
   const listboxId = `${fieldId}-listbox`;
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const ignoreNextTriggerOpenRef = useRef(false);
   const [open, setOpen] = useState(false);
+  const [panelMounted, setPanelMounted] = useState(false);
+  const [panelState, setPanelState] = useState<"open" | "closed">("closed");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const isDisabled = disabled || loading;
   const useSearchable = shouldUseDenaliSearchableSelect(options.length, searchableThreshold);
   const selectedLabel = resolveSelectOptionLabel(options, value);
   const filteredOptions = useMemo(
-    () => filterSelectOptionsByQuery(options, searchQuery),
-    [options, searchQuery]
+    () =>
+      filterSelectOptionsByQuery(options, searchQuery, {
+        maxVisible: maxVisibleOptions,
+        pinnedValue: value,
+        requireQuery: requireQueryToBrowse,
+      }),
+    [maxVisibleOptions, options, requireQueryToBrowse, searchQuery, value]
   );
 
-  const closePanel = () => {
+  const showSearchPrompt =
+    requireQueryToBrowse && searchQuery.trim().length === 0 && filteredOptions.length === 0;
+  const showNoResults =
+    !showSearchPrompt && searchQuery.trim().length > 0 && filteredOptions.length === 0;
+
+  const closePanel = useCallback(() => {
     setOpen(false);
     setSearchQuery("");
-  };
+    setActiveIndex(-1);
+  }, []);
 
-  const selectOption = (nextValue: string) => {
-    ignoreNextTriggerOpenRef.current = true;
-    onChange(nextValue);
-    closePanel();
-  };
+  const selectOption = useCallback(
+    (nextValue: string) => {
+      ignoreNextTriggerOpenRef.current = true;
+      onChange(nextValue);
+      closePanel();
+    },
+    [closePanel, onChange]
+  );
+
+  useEffect(() => {
+    if (open) {
+      setPanelMounted(true);
+      setPanelState("open");
+      return;
+    }
+    if (!panelMounted) {
+      return;
+    }
+    setPanelState("closed");
+    const timeoutId = window.setTimeout(() => {
+      setPanelMounted(false);
+    }, DENALI_SEARCHABLE_SELECT_PANEL_CLOSE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [open, panelMounted]);
 
   useEffect(() => {
     if (!open) {
@@ -124,7 +170,7 @@ export function DenaliSearchableSelect({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [closePanel, open]);
 
   useEffect(() => {
     if (!open) {
@@ -132,6 +178,52 @@ export function DenaliSearchableSelect({
     }
     searchRef.current?.focus();
   }, [open]);
+
+  useEffect(() => {
+    if (!open || activeIndex < 0) {
+      return;
+    }
+    const item = listRef.current?.children.item(activeIndex);
+    if (item instanceof HTMLElement) {
+      item.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex, open]);
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closePanel();
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (filteredOptions.length === 0) {
+        return;
+      }
+      setActiveIndex((current) => (current + 1) % filteredOptions.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (filteredOptions.length === 0) {
+        return;
+      }
+      setActiveIndex((current) =>
+        current <= 0 ? filteredOptions.length - 1 : current - 1
+      );
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const picked = filteredOptions[activeIndex] ?? filteredOptions[0];
+      if (picked) {
+        selectOption(picked.value);
+      }
+    }
+  };
 
   if (!useSearchable) {
     return (
@@ -157,6 +249,7 @@ export function DenaliSearchableSelect({
       className={cn("denali-searchable-select", className)}
       data-testid={testId}
       data-operator-searchable-select
+      data-open={open ? "true" : "false"}
     >
       <button
         id={fieldId}
@@ -186,6 +279,7 @@ export function DenaliSearchableSelect({
           setOpen((current) => {
             if (current) {
               setSearchQuery("");
+              setActiveIndex(-1);
             }
             return !current;
           });
@@ -196,10 +290,13 @@ export function DenaliSearchableSelect({
         </span>
         <ChevronDownIcon className="denali-searchable-select__trigger-icon" />
       </button>
-      {open ? (
+      {panelMounted ? (
         <div
           className="denali-searchable-select__panel"
           data-testid={DENALI_SEARCHABLE_SELECT_TEST_IDS.panel}
+          data-operator-searchable-select-panel
+          data-state={panelState}
+          data-side="bottom"
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
@@ -210,35 +307,57 @@ export function DenaliSearchableSelect({
               ref={searchRef}
               type="search"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setActiveIndex(0);
+              }}
+              onKeyDown={handleSearchKeyDown}
               placeholder={searchPlaceholder}
               aria-label={searchLabel}
+              aria-autocomplete="list"
+              aria-controls={listboxId}
+              aria-activedescendant={
+                activeIndex >= 0 && filteredOptions[activeIndex]
+                  ? `${fieldId}-option-${filteredOptions[activeIndex]!.value}`
+                  : undefined
+              }
               data-testid={DENALI_SEARCHABLE_SELECT_TEST_IDS.search}
             />
           </label>
-          {filteredOptions.length === 0 ? (
+          {showSearchPrompt ? (
+            <p className="denali-wizard-composite__status">
+              {searchPromptMessage ?? searchPlaceholder}
+            </p>
+          ) : null}
+          {showNoResults ? (
             <p className="denali-wizard-composite__status">{searchEmptyMessage}</p>
-          ) : (
+          ) : null}
+          {!showSearchPrompt && !showNoResults && filteredOptions.length > 0 ? (
             <div className="denali-wizard-picker__scroll">
               <ul
+                ref={listRef}
                 id={listboxId}
                 className="denali-searchable-select__list"
                 role="listbox"
                 aria-label={ariaLabel}
               >
-                {filteredOptions.map((option) => {
+                {filteredOptions.map((option, index) => {
                   const isSelected = option.value === value;
+                  const isActive = index === activeIndex;
                   return (
                     <li key={option.value} role="presentation">
                       <button
                         type="button"
+                        id={`${fieldId}-option-${option.value}`}
                         role="option"
                         aria-selected={isSelected}
                         className={cn(
                           "denali-searchable-select__option",
-                          isSelected && "denali-searchable-select__option--selected"
+                          isSelected && "denali-searchable-select__option--selected",
+                          isActive && "denali-searchable-select__option--active"
                         )}
                         data-testid={DENALI_SEARCHABLE_SELECT_TEST_IDS.option(option.value)}
+                        onMouseEnter={() => setActiveIndex(index)}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -252,7 +371,7 @@ export function DenaliSearchableSelect({
                 })}
               </ul>
             </div>
-          )}
+          ) : null}
         </div>
       ) : null}
     </div>

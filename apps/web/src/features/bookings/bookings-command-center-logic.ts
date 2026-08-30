@@ -8,6 +8,7 @@ import {
 
 import {
   BOOKING_STATUS_FILTER_OPTIONS,
+  BOOKINGS_LIST_PAGE_SIZE,
   BOOKINGS_LIST_SORT_OPTIONS,
   BOOKINGS_WORK_QUEUE_STATUSES,
   BULK_APPROVE_MAX_BATCH,
@@ -116,6 +117,10 @@ export function parseBookingsCommandCenterQuery(
     layoutRaw === "timeline" || layoutRaw === "board" || layoutRaw === "inbox"
       ? layoutRaw
       : DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.layout;
+  const pageRaw = Number(params.get("page") ?? "1");
+  const page =
+    Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.page;
+  const listCursor = params.get("listCursor")?.trim() ?? "";
 
   return {
     view,
@@ -129,6 +134,8 @@ export function parseBookingsCommandCenterQuery(
     approvedWithinDays,
     tourChipScope,
     layout,
+    page,
+    listCursor,
   };
 }
 
@@ -166,6 +173,12 @@ export function serializeBookingsCommandCenterQuery(query: BookingsCommandCenter
   }
   if (query.layout !== DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.layout) {
     params.set("layout", query.layout);
+  }
+  if (query.page > 1) {
+    params.set("page", String(query.page));
+  }
+  if (query.listCursor.length > 0) {
+    params.set("listCursor", query.listCursor);
   }
   return params.toString();
 }
@@ -212,6 +225,45 @@ export function buildBookingsApiQuery(
     params.set("limit", String(Math.min(Math.floor(options.limit), 100)));
   }
   return params.toString();
+}
+
+export function resolveBookingsListTotalPages(
+  total: number,
+  pageSize: number = BOOKINGS_LIST_PAGE_SIZE
+): number {
+  if (!Number.isFinite(total) || total <= 0) {
+    return 1;
+  }
+  return Math.max(1, Math.ceil(total / pageSize));
+}
+
+export function shouldResetBookingsPagination(
+  prev: BookingsCommandCenterQuery,
+  next: BookingsCommandCenterQuery
+): boolean {
+  return (
+    prev.view !== next.view ||
+    prev.status !== next.status ||
+    prev.paymentStatus !== next.paymentStatus ||
+    prev.tourId !== next.tourId ||
+    prev.search !== next.search ||
+    prev.scope !== next.scope ||
+    prev.sort !== next.sort ||
+    prev.departureWithinDays !== next.departureWithinDays ||
+    prev.approvedWithinDays !== next.approvedWithinDays ||
+    prev.tourChipScope !== next.tourChipScope ||
+    prev.layout !== next.layout
+  );
+}
+
+export function withBookingsPaginationReset(
+  query: BookingsCommandCenterQuery
+): BookingsCommandCenterQuery {
+  return {
+    ...query,
+    page: 1,
+    listCursor: "",
+  };
 }
 
 export function buildBookingsCommandCenterHref(
@@ -841,11 +893,9 @@ export function bookingsCommandCenterHasActiveFilters(query: BookingsCommandCent
  * `sort=departureAt` without opening Filters.
  */
 export function bookingsAdvancedFiltersDirty(query: BookingsCommandCenterQuery): boolean {
-  const statusIsFineGrain = query.status !== "actionable" && query.status !== "all";
   return (
     query.paymentStatus !== DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.paymentStatus ||
     query.tourChipScope === "all" ||
-    statusIsFineGrain ||
     query.approvedWithinDays.length > 0
   );
 }

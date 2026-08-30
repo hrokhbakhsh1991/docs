@@ -53,6 +53,12 @@
   },
   "allTours": "All tours",
   "moreTours": "More tours…",
+  "tourFilterLabel": "Tour",
+  "tourFilterAria": "Filter bookings by tour",
+  "tourFilterSearchPlaceholder": "Search tours…",
+  "tourFilterNoResults": "No tours match your search.",
+  "tourFilterLoading": "Loading tours…",
+  "tourFilterChipMeta": "{pending} pending · {total} total",
   "kpi": {
     "pending": "Pending",
     "pendingAria": "Pending only — not yet decided",
@@ -98,6 +104,28 @@
     "board": "By tour"
   },
   "filtersToggle": "Filters",
+  "filters": {
+    "toggle": "Filters",
+    "clearAll": "Clear all"
+  },
+  "queueStatusLabel": "Queue status",
+  "paymentFilterLabel": "Payment",
+  "activeFilters": {
+    "status": "Status: {value}",
+    "payment": "Payment: {value}",
+    "tour": "Tour: {value}",
+    "departure": "Departure: next {days} days",
+    "approvedToday": "Approved today",
+    "allToursScope": "All tours scope",
+    "layout": "Display: {value}",
+    "sort": "Sort: {value}",
+    "search": "Search: {value}",
+    "remove": "Remove {filter}"
+  },
+  "pagination": {
+    "summary": "Page {page} of {totalPages} ({total, number} results)"
+  },
+  "inboxPage": "Queue — page {page} of {totalPages} ({total, number} total)",
   "advancedFiltersHeading": "Advanced filters",
   "capacity": "Capacity",
   "capacityShort": "{occupied}/{max}",
@@ -236,6 +264,9 @@
     "formDescription": "Submitted bookings appear in the Command Center as pending",
     "tour": "Tour",
     "selectTour": "Select a tour",
+    "tourSearchPlaceholder": "Search tours…",
+    "tourNoResults": "No tours match your search.",
+    "tourLoading": "Loading tours…",
     "scheduledDeparture": "Scheduled departure: {date}",
     "guestName": "Guest name",
     "guestNamePlaceholder": "Full name",

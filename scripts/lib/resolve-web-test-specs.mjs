@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 /**
  * Map changed apps/web paths to directly related unit/contract specs.
- * Prints JSON: { specs: string[], fallbackBaseline: boolean }
+ * Prints JSON: { specs: string[], playwrightSpecs: string[], fallbackBaseline: boolean }
+ * Node specs run via test:file; Playwright runtime specs are owned by test:runtime-sweep.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  isNodeUnitSpec,
+  isPlaywrightRuntimeSpec,
+} from "./classify-web-test-spec.mjs";
 
 const REPO_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
 const WEB_ROOT = join(REPO_ROOT, "apps/web");
@@ -66,25 +71,45 @@ function specsForPath(path) {
   };
 }
 
+function partitionSpecs(specPaths) {
+  const nodeSpecs = new Set();
+  const playwrightSpecs = new Set();
+  for (const spec of specPaths) {
+    if (isPlaywrightRuntimeSpec(spec)) {
+      playwrightSpecs.add(spec);
+    } else if (isNodeUnitSpec(spec)) {
+      nodeSpecs.add(spec);
+    }
+  }
+  return {
+    nodeSpecs: [...nodeSpecs].sort(),
+    playwrightSpecs: [...playwrightSpecs].sort(),
+  };
+}
+
 function main() {
   const paths = readFileSync(0, "utf8")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  const specs = new Set();
+  const discovered = new Set();
   let hasResolvableWeb = false;
 
   for (const path of paths) {
     const result = specsForPath(path);
     if (result.ignorable) continue;
     if (result.resolvable) hasResolvableWeb = true;
-    for (const spec of result.specs) specs.add(spec);
+    for (const spec of result.specs) discovered.add(spec);
   }
+
+  const { nodeSpecs, playwrightSpecs } = partitionSpecs(discovered);
 
   process.stdout.write(
     `${JSON.stringify({
-      specs: [...specs].sort(),
-      fallbackBaseline: hasResolvableWeb && specs.size === 0,
+      specs: nodeSpecs,
+      playwrightSpecs,
+      fallbackBaseline:
+        hasResolvableWeb && nodeSpecs.length === 0 && playwrightSpecs.length === 0,
     })}\n`
   );
 }

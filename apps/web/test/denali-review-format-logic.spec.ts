@@ -33,7 +33,6 @@ const LABELS: DenaliReviewFormatLabels = {
   photoCount: (count) => `${count} photos`,
   dayLabel: (day) => `day ${day}`,
   primaryGathering: "primary",
-  socialMediaTelegramAutoLabel: "Telegram — auto",
   optionalEmptyValue: "Not selected (optional)",
 };
 
@@ -79,7 +78,7 @@ describe("denali-review-format-logic.spec.ts", () => {
     assert.doesNotMatch(hero.schedule, /^2026-08-07T04:30:00\.000Z/);
   });
 
-  it("WEB-DENALI-REVIEW-02b shows telegram auto label when social link is empty", () => {
+  it("WEB-DENALI-REVIEW-02b omits social link row when empty", () => {
     const sections = buildDenaliReviewSections(
       {
         data: {
@@ -93,7 +92,25 @@ describe("denali-review-format-logic.spec.ts", () => {
     );
     const basic = sections.find((section) => section.stepId === "denali_basic");
     const socialRow = basic?.rows.find((row) => row.label === "socialMediaLink");
-    assert.equal(socialRow?.value, "Telegram — auto");
+    assert.equal(socialRow, undefined);
+  });
+
+  it("WEB-DENALI-REVIEW-02c shows stored social link URL in review", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "Spring climb",
+          category: "mountain_day",
+          destinationId: "dest-1",
+          socialMediaLink: "https://t.me/example-group",
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const basic = sections.find((section) => section.stepId === "denali_basic");
+    const socialRow = basic?.rows.find((row) => row.label === "socialMediaLink");
+    assert.equal(socialRow?.value, "https://t.me/example-group");
   });
 
   it("WEB-DENALI-REVIEW-02 groups filled fields into wizard sections", () => {

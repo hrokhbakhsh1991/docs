@@ -4,6 +4,27 @@
   "newTour": "New tour",
   "searchPlaceholder": "Search tours…",
   "sortLabel": "Sort:",
+  "sortOption": {
+    "departure_at:asc": "Nearest departure",
+    "departure_at:desc": "Furthest departure",
+    "created_at:desc": "Newest first",
+    "created_at:asc": "Oldest first",
+    "title:asc": "Title A–Z",
+    "title:desc": "Title Z–A",
+    "price:desc": "Highest price",
+    "price:asc": "Lowest price"
+  },
+  "filters": {
+    "toggle": "Filters",
+    "statusLabel": "Status",
+    "clearAll": "Clear all"
+  },
+  "activeFilters": {
+    "status": "Status: {value}",
+    "category": "Category: {value}",
+    "sort": "Sort: {value}",
+    "remove": "Remove {filter}"
+  },
   "empty": "No tours in the catalog yet.",
   "sort": {
     "created_at": "Created",
@@ -101,6 +122,8 @@
     "published": "Tour published to catalog.",
     "unpublished": "Tour moved to draft.",
     "cancelEdits": "Cancel",
+    "moreActions": "More",
+    "unsavedHint": "Unsaved changes",
     "wizardTitle": "Edit tour",
     "loading": "Loading tour…",
     "warmErrorTitle": "Edit tour is not ready",
@@ -190,6 +213,22 @@
       "count": "{count, number} members approved",
       "empty": "No members are approved yet.",
       "cta": "View final list"
+    },
+    "controls": {
+      "filtersToggle": "Filters",
+      "clearAll": "Clear filters",
+      "removeFilter": "Remove {filter}",
+      "paymentFilterLabel": "Payment status",
+      "statusFilterLabel": "Registration status",
+      "sortFilterLabel": "Sort",
+      "rosterFilterLabel": "Roster view",
+      "activeFilters": {
+        "status": "Status: {value}",
+        "payment": "Payment: {value}",
+        "sort": "Sort: {value}",
+        "search": "Search: {value}",
+        "roster": "Transport: {value}"
+      }
     },
     "finance": {
       "title": "Tour payment follow-up",
