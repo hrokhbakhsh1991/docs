@@ -1,7 +1,7 @@
 /**
  * Platform composition helper — BookingPaymentAdapter wired to the process bookings repo.
  * Finance must import this (not `create-bookings-repository`) so projection stays behind
- * the booking payment port (TODO-008 / PREV-AUD-008).
+ * the booking payment port (PREV-AUD-008 / PREV-AUD-008).
  */
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import { getBookingsRepository } from "./create-bookings-repository";

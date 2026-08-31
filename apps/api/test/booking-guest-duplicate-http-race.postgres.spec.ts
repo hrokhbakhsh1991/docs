@@ -1,5 +1,5 @@
 /**
- * TODO-007 — parallel HTTP guest duplicate race against Postgres unique indexes.
+ * PREV-AUD-007 — parallel HTTP guest duplicate race against Postgres unique indexes.
  */
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -24,7 +24,7 @@ const hasDatabase =
 
 const postgresSkip = hasDatabase
   ? false
-  : "BOOKING_GUEST_RACE_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-007)";
+  : "BOOKING_GUEST_RACE_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (PREV-AUD-007)";
 
 function authHeaders(tenantId: string, userId: string): Record<string, string> {
   return {
@@ -91,7 +91,7 @@ async function requestJson(
   });
 }
 
-describe("TODO-007 parallel HTTP guest duplicate race", { concurrency: false, skip: postgresSkip }, () => {
+describe("PREV-AUD-007 parallel HTTP guest duplicate race", { concurrency: false, skip: postgresSkip }, () => {
   const tenantId = integrationTenantId();
   const tourId = randomUUID();
   const userA = randomUUID();

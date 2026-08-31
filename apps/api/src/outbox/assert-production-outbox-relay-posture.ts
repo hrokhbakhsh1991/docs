@@ -3,7 +3,7 @@ import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 export const PRODUCTION_OUTBOX_RELAY_REQUIRED = "PRODUCTION_OUTBOX_RELAY_REQUIRED";
 
 /**
- * MR-P0-008 / TODO-006 — production/prodlike must run outbox effects somehow.
+ * MR-P0-008 / PREV-AUD-006 — production/prodlike must run outbox effects somehow.
  * Either in-process (`OUTBOX_RELAY_ENABLED=true`) or an external worker
  * (`OUTBOX_RELAY_EXTERNAL_WORKER=true` **and** `APPS_API_WORKER_ROLE=outbox-relay`).
  */

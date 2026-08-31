@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Repo-wide TODO/FIXME debt ratchet — count must not exceed baseline.
+ * Repo-wide debt-marker ratchet — counted files must not exceed baseline.
  * @see docs/dev/todo-debt-baseline.json
  */
 import fs from "node:fs";
@@ -67,7 +67,7 @@ for (const root of ["apps", "packages", "scripts"]) {
 
 if (hits.size > baselineCount) {
   violations.push(
-    `TODO/FIXME file count ${hits.size} exceeds baseline ${baselineCount}: ${[...hits].sort().join(", ")}`
+    `Outstanding marker file count ${hits.size} exceeds baseline ${baselineCount}: ${[...hits].sort().join(", ")}`
   );
 }
 

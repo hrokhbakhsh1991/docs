@@ -24,7 +24,7 @@ export {
 } from "./production-env-codes";
 
 /**
- * Fail-closed production / prodlike boot checks (DEC-GAP-03, V-004, V-009, TODO-003).
+ * Fail-closed production / prodlike boot checks (DEC-GAP-03, V-004, V-009, PREV-AUD-003).
  * @see docs/phase-4/production-deploy-checklist.md
  * @see docs/phase-20/p7/appendices/HOSTILE_AUDIT_REMEDIATION_2026-07-20.md
  */

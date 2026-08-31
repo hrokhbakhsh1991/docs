@@ -7,7 +7,7 @@ import type {
 /**
  * Infrastructure adapter — maps Booking list identity fields into finance display DTO.
  * `guestLabel` → `memberDisplayName` (API contract unchanged).
- * Bookings port must be injected (no silent getBookingsRepository — TODO-008).
+ * Bookings port must be injected (no silent getBookingsRepository — PREV-AUD-008).
  */
 export class BookingRegistrationDisplayAdapter implements RegistrationDisplayPort {
   constructor(private readonly bookings: BookingRepositoryPort) {}

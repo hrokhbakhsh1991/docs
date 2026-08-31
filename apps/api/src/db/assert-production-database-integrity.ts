@@ -10,7 +10,7 @@ export const PRODUCTION_DATABASE_RLS_NOT_APPLIED = "PRODUCTION_DATABASE_RLS_NOT_
 
 /**
  * Tenant-scoped tables that must have RLS enabled+forced before production ingress.
- * Keep in sync with ENABLE+FORCE migrations (TODO-003 / PREV-AUD-003).
+ * Keep in sync with ENABLE+FORCE migrations (PREV-AUD-003 / PREV-AUD-003).
  */
 export const TENANT_RLS_TABLES = [
   "tours",
@@ -90,7 +90,7 @@ function shouldProbeDatabaseIntegrity(): boolean {
 }
 
 /**
- * Live Postgres probe at production / prodlike boot (DM-CT-02 / DI-PRISMA-01 / TODO-003).
+ * Live Postgres probe at production / prodlike boot (DM-CT-02 / DI-PRISMA-01 / PREV-AUD-003).
  */
 export async function assertProductionDatabaseIntegrity(): Promise<void> {
   if (!shouldProbeDatabaseIntegrity()) {
