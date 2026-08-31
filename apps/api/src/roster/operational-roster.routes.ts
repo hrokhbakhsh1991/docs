@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { parseOperationalRosterListQuery } from "@app-tour/workspace-denali/roster";
+import { parseOperationalRosterListQuery } from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";

@@ -57,16 +57,18 @@ describe("thin-shell-create-view-capability — Phase 4ad/4ak", () => {
     assert.doesNotMatch(registry, /workspace-wizard-create-view-bindings/);
   });
 
-  it("TS-4AD-03 package create-view surface uses bundler-visible dynamic import", () => {
+  it("TS-4AD-03 package create-view surface loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/create-view-surface.ts"),
       "utf8"
     );
-    assert.match(pkg, /WIZARD_CREATE_VIEW_SURFACE_KEY/);
-    assert.match(pkg, /ensureWizardCreateViewPackageSurface/);
-    assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
-    assert.match(pkg, /Map<string,\s*WizardCreateViewSurface>/);
-    assert.match(pkg, /import\(/);
-    assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-create-view-surface\"/);
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
+      "utf8"
+    );
+    assert.match(pkg, /importUiSurface\("..\/ui\/chrome\/wizard-create-view-surface"\)/);
+    assert.doesNotMatch(pkg, /from \"..\/ui\/chrome\/wizard-create-view-surface\"/);
+    assert.match(loaders, /"..\/ui\/chrome\/wizard-create-view-surface":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 });

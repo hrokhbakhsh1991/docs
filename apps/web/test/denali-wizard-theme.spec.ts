@@ -121,17 +121,27 @@ describe("denali-wizard-theme.spec.ts", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.doesNotMatch(fields, /data-selected="true"/);
     const calendar = readFileSync(
+      join(REPO_ROOT, "packages/localized-calendar/src/solar-hijri-calendar.tsx"),
+      "utf8"
+    );
+    const denaliCalendar = readFileSync(
       join(
         REPO_ROOT,
         "packages/workspaces/denali/src/ui/components/calendar/denali-calendar.tsx"
       ),
       "utf8"
     );
+    assert.match(denaliCalendar, /@app-tour\/localized-calendar\/solar-hijri-calendar/);
     assert.match(calendar, /data-operator-wizard-calendar/);
     const picker = readFileSync(
+      join(REPO_ROOT, "packages/localized-calendar/src/localized-date-picker.tsx"),
+      "utf8"
+    );
+    const denaliPicker = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/localized-date-picker.tsx"),
       "utf8"
     );
+    assert.match(denaliPicker, /@app-tour\/localized-calendar\/localized-date-picker/);
     assert.match(picker, /data-operator-wizard-calendar-popover/);
     assert.match(calendarCss, /operator-wizard-calendar__grid/);
     assert.match(calendarCss, /operator-wizard-calendar__picker-grid/);

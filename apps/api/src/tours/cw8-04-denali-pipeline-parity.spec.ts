@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { projectDenaliWizardFormToCanonicalIngressData } from "@app-tour/workspace-denali";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
-import { createDenaliTourWorkspacePolicyValidator } from "@app-tour/workspace-denali/policy/tour-policy";
+import { createDenaliTourWorkspacePolicyValidator } from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 import { isValidationFailure } from "../canonical/validation-failure.ts";
 import {

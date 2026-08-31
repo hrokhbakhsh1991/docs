@@ -6,7 +6,7 @@ import {
   filterOperationalRosterRows,
   type OperationalRosterListQuery,
   type OperationalRosterListResponse,
-} from "@app-tour/workspace-denali/roster";
+} from "../workspace/denali-host-legacy-bindings.generated.ts";
 import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service.ts";

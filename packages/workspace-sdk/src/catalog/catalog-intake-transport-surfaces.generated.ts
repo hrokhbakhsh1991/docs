@@ -24,7 +24,7 @@ export async function resolveCatalogIntakeTransportSurface(
   }
   switch (workspaceType) {
     case "denali": {
-      const mod = await import("@app-tour/workspace-denali/catalog/denali-catalog-transport-intake");
+      const mod = await import("@app-tour/workspace-denali/host/catalog/denali-catalog-transport-intake");
       return mod.denaliCatalogTransportIntakeSurface;
     }
     default:

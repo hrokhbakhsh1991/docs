@@ -24,7 +24,7 @@
     "module": "./http/routes"
   },
   "httpRoutes": {
-    "handlerPackage": "@app-tour/workspace-profile-cert/http",
+    "handlerPackage": "@app-tour/workspace-profile-cert/host/http",
     "loadHandlersFromPackage": true,
     "groups": [
       {
