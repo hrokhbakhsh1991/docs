@@ -2,7 +2,7 @@
   "name": "@app-tour/workspace-denali",
   "version": "0.1.0",
   "private": true,
-  "description": "Denali workspace plugin \u2014 registry, rules, composites, finance hooks (Phase 6)",
+  "description": "Denali workspace plugin — registry, rules, composites, finance hooks (Phase 6)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,10 +13,6 @@
     "./plugin": {
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
-    },
-    "./policy/tour-policy": {
-      "types": "./dist/policy/tour-policy.d.ts",
-      "default": "./dist/policy/tour-policy.js"
     },
     "./host/policy/tour-policy": {
       "types": "./dist/policy/tour-policy.d.ts",
@@ -37,26 +33,6 @@
     "./host/catalog/denali-publish-status": {
       "types": "./dist/catalog/denali-publish-status.d.ts",
       "default": "./dist/catalog/denali-publish-status.js"
-    },
-    "./catalog/denali-publish-status": {
-      "types": "./dist/catalog/denali-publish-status.d.ts",
-      "default": "./dist/catalog/denali-publish-status.js"
-    },
-    "./catalog/read-denali-catalog-transport": {
-      "types": "./dist/catalog/read-denali-catalog-transport.d.ts",
-      "default": "./dist/catalog/read-denali-catalog-transport.js"
-    },
-    "./catalog/denali-catalog-transport-intake": {
-      "types": "./dist/catalog/denali-catalog-transport-intake.d.ts",
-      "default": "./dist/catalog/denali-catalog-transport-intake.js"
-    },
-    "./catalog/registration-flow/register-transport-initializer": {
-      "types": "./dist/catalog/registration-flow/register-transport-initializer.d.ts",
-      "default": "./dist/catalog/registration-flow/register-transport-initializer.js"
-    },
-    "./marketing/marketing-catalog-surface": {
-      "types": "./dist/marketing/marketing-catalog-surface.d.ts",
-      "default": "./dist/marketing/marketing-catalog-surface.js"
     },
     "./host/catalog/read-denali-catalog-transport": {
       "types": "./dist/catalog/read-denali-catalog-transport.d.ts",
@@ -98,38 +74,6 @@
       "types": "./dist/settings/equipment-icon-registry.d.ts",
       "default": "./dist/settings/equipment-icon-registry.js"
     },
-    "./field-registry/denali-equipment-field-module": {
-      "types": "./dist/field-registry/denali-equipment-field-module.d.ts",
-      "default": "./dist/field-registry/denali-equipment-field-module.js"
-    },
-    "./field-registry/denali-difficulty-fitness-field-module": {
-      "types": "./dist/field-registry/denali-difficulty-fitness-field-module.d.ts",
-      "default": "./dist/field-registry/denali-difficulty-fitness-field-module.js"
-    },
-    "./field-registry/denali-transport-field-module": {
-      "types": "./dist/field-registry/denali-transport-field-module.d.ts",
-      "default": "./dist/field-registry/denali-transport-field-module.js"
-    },
-    "./field-registry/denali-itinerary-field-module": {
-      "types": "./dist/field-registry/denali-itinerary-field-module.d.ts",
-      "default": "./dist/field-registry/denali-itinerary-field-module.js"
-    },
-    "./field-registry/denali-pricing-field-module": {
-      "types": "./dist/field-registry/denali-pricing-field-module.d.ts",
-      "default": "./dist/field-registry/denali-pricing-field-module.js"
-    },
-    "./composites/denali-transport-composite-binding": {
-      "types": "./dist/composites/denali-transport-composite-binding.d.ts",
-      "default": "./dist/composites/denali-transport-composite-binding.js"
-    },
-    "./composites/denali-itinerary-composite-binding": {
-      "types": "./dist/composites/denali-itinerary-composite-binding.d.ts",
-      "default": "./dist/composites/denali-itinerary-composite-binding.js"
-    },
-    "./composites/denali-pricing-composite-binding": {
-      "types": "./dist/composites/denali-pricing-composite-binding.d.ts",
-      "default": "./dist/composites/denali-pricing-composite-binding.js"
-    },
     "./host/composites/denali-transport-composite-binding": {
       "types": "./dist/composites/denali-transport-composite-binding.d.ts",
       "default": "./dist/composites/denali-transport-composite-binding.js"
@@ -141,10 +85,6 @@
     "./host/composites/denali-pricing-composite-binding": {
       "types": "./dist/composites/denali-pricing-composite-binding.d.ts",
       "default": "./dist/composites/denali-pricing-composite-binding.js"
-    },
-    "./marketing/denali-difficulty-fitness-filter-presentation": {
-      "types": "./dist/marketing/denali-difficulty-fitness-filter-presentation.d.ts",
-      "default": "./dist/marketing/denali-difficulty-fitness-filter-presentation.js"
     },
     "./settings/equipment-compatible-themes": {
       "types": "./dist/settings/equipment-compatible-themes.d.ts",
@@ -270,26 +210,6 @@
       "types": "./dist/finance/index.d.ts",
       "default": "./dist/finance/index.js"
     },
-    "./roster": {
-      "types": "./dist/roster/index.d.ts",
-      "default": "./dist/roster/index.js"
-    },
-    "./booking": {
-      "types": "./dist/booking/index.d.ts",
-      "default": "./dist/booking/index.js"
-    },
-    "./finance": {
-      "types": "./dist/finance/index.d.ts",
-      "default": "./dist/finance/index.js"
-    },
-    "./tours": {
-      "types": "./dist/tours/index.d.ts",
-      "default": "./dist/tours/index.js"
-    },
-    "./workspace-owner": {
-      "types": "./dist/http/require-workspace-owner.d.ts",
-      "default": "./dist/http/require-workspace-owner.js"
-    },
     "./host/finance/manifest": {
       "types": "./dist/finance/finance-ops-manifest.d.ts",
       "default": "./dist/finance/finance-ops-manifest.js"
@@ -310,15 +230,6 @@
       "types": "./dist/finance/case-read/index.d.ts",
       "default": "./dist/finance/case-read/index.js"
     },
-    "./transport": {
-      "types": "./dist/transport/index.d.ts",
-      "default": "./dist/transport/index.js"
-    },
-    "./settlement": {
-      "types": "./dist/settlement/index.d.ts",
-      "default": "./dist/settlement/index.js"
-    },
-
     "./settings/denaliFullWizardTemplate": {
       "types": "./dist/settings/denaliFullWizardTemplate.d.ts",
       "default": "./dist/settings/denaliFullWizardTemplate.js"
@@ -326,10 +237,6 @@
     "./host/http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
-    },
-    "./errors/tour-mutation": {
-      "types": "./dist/http/errors/denali-tour-mutation.error.d.ts",
-      "default": "./dist/http/errors/denali-tour-mutation.error.js"
     },
     "./host/http/resolve-denali-registration-transport": {
       "types": "./dist/http/resolve-denali-registration-transport.d.ts",
@@ -732,6 +639,54 @@
     "./host/ui/adapters/theme-catalog-fetch": {
       "types": "./dist/ui/adapters/theme-catalog-fetch.d.ts",
       "default": "./dist/ui/adapters/theme-catalog-fetch.js"
+    },
+    "./host/catalog/registration-flow/register-transport-initializer": {
+      "types": "./dist/catalog/registration-flow/register-transport-initializer.d.ts",
+      "default": "./dist/catalog/registration-flow/register-transport-initializer.js"
+    },
+    "./host/field-registry/denali-equipment-field-module": {
+      "types": "./dist/field-registry/denali-equipment-field-module.d.ts",
+      "default": "./dist/field-registry/denali-equipment-field-module.js"
+    },
+    "./host/field-registry/denali-difficulty-fitness-field-module": {
+      "types": "./dist/field-registry/denali-difficulty-fitness-field-module.d.ts",
+      "default": "./dist/field-registry/denali-difficulty-fitness-field-module.js"
+    },
+    "./host/field-registry/denali-transport-field-module": {
+      "types": "./dist/field-registry/denali-transport-field-module.d.ts",
+      "default": "./dist/field-registry/denali-transport-field-module.js"
+    },
+    "./host/field-registry/denali-itinerary-field-module": {
+      "types": "./dist/field-registry/denali-itinerary-field-module.d.ts",
+      "default": "./dist/field-registry/denali-itinerary-field-module.js"
+    },
+    "./host/field-registry/denali-pricing-field-module": {
+      "types": "./dist/field-registry/denali-pricing-field-module.d.ts",
+      "default": "./dist/field-registry/denali-pricing-field-module.js"
+    },
+    "./host/marketing/denali-difficulty-fitness-filter-presentation": {
+      "types": "./dist/marketing/denali-difficulty-fitness-filter-presentation.d.ts",
+      "default": "./dist/marketing/denali-difficulty-fitness-filter-presentation.js"
+    },
+    "./host/roster": {
+      "types": "./dist/roster/index.d.ts",
+      "default": "./dist/roster/index.js"
+    },
+    "./host/workspace-owner": {
+      "types": "./dist/http/require-workspace-owner.d.ts",
+      "default": "./dist/http/require-workspace-owner.js"
+    },
+    "./host/transport": {
+      "types": "./dist/transport/index.d.ts",
+      "default": "./dist/transport/index.js"
+    },
+    "./host/settlement": {
+      "types": "./dist/settlement/index.d.ts",
+      "default": "./dist/settlement/index.js"
+    },
+    "./host/errors/tour-mutation": {
+      "types": "./dist/http/errors/denali-tour-mutation.error.d.ts",
+      "default": "./dist/http/errors/denali-tour-mutation.error.js"
     }
   },
   "files": [
@@ -741,7 +696,7 @@
     "design-language"
   ],
   "scripts": {
-    "build": "pnpm --dir ../../workspace-sdk run build && tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
+    "build": "pnpm --dir ../../workspace-sdk run build && tsc -p tsconfig.json && tsc -p tsconfig.ui.json && tsc -p tsconfig.json",
     "denali:codegen": "node --import tsx ./scripts/denali-codegen.mjs",
     "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
