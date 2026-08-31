@@ -3,7 +3,7 @@ import {
   tryResolveMemberPortalDefaultRoutePath,
 } from "@app-tour/workspace-sdk";
 
-import { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
+import { resolveEffectivePluginIdForMemberEgress } from "./resolve-effective-plugin-id-for-member-egress";
 import { resolvePortalPublicBaseUrl } from "./resolve-portal-public-base-url";
 
 function sanitizePortalReturn(returnPath: string | undefined, pluginId: string): string {
@@ -20,8 +20,12 @@ function sanitizePortalReturn(returnPath: string | undefined, pluginId: string):
  * Relative portal member login path — dedicated `/login` (PCMS-03 sign-in egress).
  * Optional `portalReturn` query when `returnPath` is a safe relative member route.
  */
-export function resolvePortalMemberLoginPath(host: string, returnPath?: string): string | null {
-  const pluginId = resolvePluginIdFromIngressHost(host);
+export function resolvePortalMemberLoginPath(
+  host: string,
+  returnPath?: string,
+  pluginIdOverride?: string
+): string | null {
+  const pluginId = resolveEffectivePluginIdForMemberEgress(host, pluginIdOverride);
   if (pluginId === null || !isMemberPortalEnabled(pluginId)) {
     return null;
   }
@@ -33,8 +37,12 @@ export function resolvePortalMemberLoginPath(host: string, returnPath?: string):
 }
 
 /** Cross-host member login URL for marketing sign-in egress. */
-export function resolvePortalMemberLoginUrl(host: string, returnPath?: string): string | null {
-  const loginPath = resolvePortalMemberLoginPath(host, returnPath);
+export function resolvePortalMemberLoginUrl(
+  host: string,
+  returnPath?: string,
+  pluginIdOverride?: string
+): string | null {
+  const loginPath = resolvePortalMemberLoginPath(host, returnPath, pluginIdOverride);
   if (loginPath === null) {
     return null;
   }

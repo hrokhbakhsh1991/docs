@@ -4,8 +4,19 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
-import { resolveTextDirection, isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
-import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn, calistoga } from "@/i18n/app-fonts";
+import {
+  resolveTextDirection,
+  isAppLocale,
+  resolveMarketingLocalePath,
+  routing,
+} from "@/i18n/routing";
+import {
+  inter,
+  resolveAppFontClassName,
+  resolveAppFontFamilyCss,
+  vazirmatn,
+  calistoga,
+} from "@/i18n/app-fonts";
 import { MaintenancePage } from "@/platform/maintenance-page";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
 import { PlatformMotherShell } from "@/platform/platform-mother-shell";
@@ -115,12 +126,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
-  const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host);
-  const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host);
+  const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host, undefined, bootstrap.pluginId);
+  const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host, undefined, bootstrap.pluginId);
   const portalPublicBaseUrl = resolvePortalPublicBaseUrl(host);
   const memberLoginTourId = resolveMemberLoginCatalogTourId(bootstrap.pluginId);
   const marketingHomeHref = resolveMarketingLocalePath("/", locale);
-  const memberHeader = await resolveMarketingMemberHeader(host, bootstrap.tenantId);
+  const memberHeader = await resolveMarketingMemberHeader(
+    host,
+    bootstrap.tenantId,
+    bootstrap.pluginId
+  );
   const primaryNavLinks = resolveMarketingShellNavLinks(host, bootstrap.pluginId, locale);
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
 

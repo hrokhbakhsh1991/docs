@@ -65,7 +65,8 @@ describe("smoke-marketing-e2e-servers", () => {
     assert.match(portalNextConfig, /app-fonts\.offline\.ts/);
     assert.match(adminNextConfig, /NEXT_FONT_OFFLINE === "1"/);
     assert.match(adminNextConfig, /app-fonts\.offline\.ts/);
-    assert.match(adminFonts, /@\/i18n\/app-fonts\.google/);
+    assert.match(adminFonts, /\.\/app-fonts\.offline/);
+    assert.match(adminFonts, /fonts\.googleapis\.com TLS is blocked/);
     assert.match(marketingFonts, /@\/i18n\/app-fonts\.google/);
     assert.match(portalFonts, /@\/i18n\/app-fonts\.google/);
     assert.doesNotMatch(adminFonts, /from "\.\/app-fonts\.google"/);
