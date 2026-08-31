@@ -48,7 +48,6 @@ import {
   INVITE_EXPIRED,
   assertOwnerCreateAllowed,
   evaluateInviteLifecycleForAccept,
-  isActiveOwner,
 } from "./users-rbac.policy";
 import {
   mergeMembershipMetadata,
@@ -364,7 +363,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
 
   async createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }> {
     const id = randomUUID();
-    // OTP table: FORCE RLS with no app_cloud policies — identity admin client (TODO-002).
+    // OTP table: FORCE RLS with no app_cloud policies — identity admin client (PREV-AUD-002).
     await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.create({
       data: {
         id,
@@ -471,6 +470,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
                 memberships: { some: { tenantId, status: "ACTIVE" } },
               },
               select: { mobile: true },
+              take: phones.length,
             });
       const activePhones = new Set(activeMembers.map((row) => row.mobile));
       return pending.filter((row) => !activePhones.has(row.phone));
@@ -594,13 +594,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
 
       // P1.3-B write-boundary race guard — same evaluateOwnerCreate as service.
       if (invite.role === "owner") {
-        const ownerRows = await tx.userTenant.findMany({
+        const activeOwnerCount = await tx.userTenant.count({
           where: { tenantId: invite.tenantId, role: "owner", status: "ACTIVE" },
-          select: { userId: true, role: true, status: true },
         });
-        const activeOwnerCount = ownerRows.filter((row) =>
-          isActiveOwner({ role: row.role, status: row.status })
-        ).length;
         assertOwnerCreateAllowed(activeOwnerCount);
       }
 

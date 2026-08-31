@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
+import { MAX_WORKSPACE_DRAFTS_PER_SCOPE } from "./workspace-drafts-list-projection";
 import type { WorkspaceDraftsRepository } from "./in-memory-workspace-drafts.repository";
 import { WorkspaceDraftVersionConflictError } from "./workspace-draft-version-conflict";
 import type {
@@ -87,6 +88,7 @@ export class PrismaWorkspaceDraftsRepository implements WorkspaceDraftsRepositor
           lastModified: true,
           updatedAt: true,
         },
+        take: MAX_WORKSPACE_DRAFTS_PER_SCOPE,
       })
     );
 

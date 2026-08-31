@@ -141,6 +141,7 @@ export class PrismaExposureIntentRepository implements ExposureIntentRepository 
           })),
         },
         select: EXPOSURE_INTENT_LIST_SELECT,
+        take: Math.min(contexts.length, MAX_EXPOSURE_INTENTS_CONNECTION_BATCH),
       }),
     );
 
