@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   createContext,
   useCallback,
@@ -20,7 +21,6 @@ export type CatalogTourDetailPhotoLightboxLabels = Readonly<{
   readonly prev: string;
   readonly next: string;
   readonly openPhoto: string;
-  readonly counter: string;
 }>;
 
 type LightboxContextValue = Readonly<{
@@ -50,6 +50,7 @@ export function CatalogTourDetailPhotoLightbox({
   labels,
   children,
 }: CatalogTourDetailPhotoLightboxProps) {
+  const t = useTranslations("catalog");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -133,9 +134,10 @@ export function CatalogTourDetailPhotoLightbox({
   const activePhoto = activeIndex != null ? photos[activeIndex] : null;
   const counterLabel =
     activeIndex != null
-      ? labels.counter
-          .replace("{current}", String(activeIndex + 1))
-          .replace("{total}", String(photos.length))
+      ? t("detail.gallery.lightboxCounter", {
+          current: activeIndex + 1,
+          total: photos.length,
+        })
       : "";
 
   return (

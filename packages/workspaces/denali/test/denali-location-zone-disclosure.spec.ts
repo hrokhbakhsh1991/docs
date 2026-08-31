@@ -28,23 +28,30 @@ describe("denali-location-zone-disclosure (INV-DENALI-WIZ-019)", () => {
     assert.equal(isDenaliLocationDataPopulated({ latitude: 35.7 }), false);
   });
 
-  it("DN-LOC-ZONE-03 point editor defaults closed when empty and defers map", () => {
+  it("DN-LOC-ZONE-03 point editor keeps disclosure; map editing is modal-only", () => {
     const editor = readFileSync(
       join(root, "src/ui/components/denali-location-point-editor.tsx"),
       "utf8"
     );
     assert.match(editor, /isDenaliLocationDataPopulated/);
-    assert.match(editor, /mapMounted=\{open\}/);
     assert.match(editor, /data-location-zone-open/);
     assert.match(editor, /open=\{open\}/);
     assert.doesNotMatch(editor, /<details[^>]*\sopen>/);
+    assert.doesNotMatch(editor, /mapMounted/);
+    assert.doesNotMatch(editor, /useCurrentPosition/);
+    assert.match(editor, /denali-location-point--primary/);
+    assert.match(editor, /data-location-zone-primary/);
+    assert.match(editor, /zoneStartHint/);
+    assert.match(editor, /zoneOptionalHint/);
 
     const picker = readFileSync(
       join(root, "src/ui/components/denali-location-address-picker.tsx"),
       "utf8"
     );
-    assert.match(picker, /mapMounted/);
-    assert.match(picker, /map-deferred/);
-    assert.match(picker, /DenaliLocationPickerMap/);
+    assert.match(picker, /DenaliLocationMapModal/);
+    assert.doesNotMatch(picker, /mapMounted/);
+    assert.doesNotMatch(picker, /map-deferred/);
+    assert.doesNotMatch(picker, /DenaliLocationPickerMap/);
+    assert.doesNotMatch(picker, /toFixed\(5\)/);
   });
 });

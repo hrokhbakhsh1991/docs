@@ -29,8 +29,8 @@ describe("Phase 5 regression", () => {
   it("P5-ID-01 unnamed guest always renders h3 with guestCardTitle", () => {
     assert.match(
       steps,
-      /guestCardTitle.*index:\s*guestIdx\s*\+\s*1/s,
-      "unnamed guest heading must use guestCardTitle with 1-indexed label"
+      /guestCardTitle[\s\S]*localizedUserFacingCount\(guestIdx\s*\+\s*1,\s*locale\)/,
+      "unnamed guest heading must use guestCardTitle with localized 1-indexed label"
     );
     assert.doesNotMatch(
       steps,

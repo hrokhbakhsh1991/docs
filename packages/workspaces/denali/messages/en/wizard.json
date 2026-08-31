@@ -199,7 +199,7 @@
     },
     "location": {
       "sectionTitle": "Route locations & addresses",
-      "zonesHelper": "Search and pick an address for each route point. The map preview updates automatically when you select a suggestion.",
+      "zonesHelper": "Set each route point with “Pick on map”. Search and fine-tune inside the location picker for each point.",
       "searchLabel": "Search address",
       "searchHint": "Type at least 2 characters to see suggestions.",
       "searchPlaceholder": "e.g. Damavand camp or street name…",
@@ -208,12 +208,23 @@
       "selectedAddress": "Selected address: {address}",
       "coordinatesSet": "Coordinates: {lat}, {lng}",
       "pickFromMapHint": "Search for an address or click on the map to pick a location.",
-      "mapInteractionHint": "Click the map or drag the marker — the address field updates automatically.",
-      "mapDeferredHint": "Expand this point to load the map picker.",
-      "zoneCollapsedHint": "optional — expand to edit",
+      "mapInteractionHint": "After searching, you can fine-tune the location by moving the marker on the map.",
+      "zoneOptionalHint": "optional",
+      "zoneStartHint": "main route point",
+      "zonePrimaryBadge": "main route point",
+      "inlineEmptyHint": "No location selected yet.",
+      "inlineCoordinatesOnly": "A map location is set",
       "useCurrentLocation": "Use current location",
+      "geolocationError": "Could not access your current location. You can search for an address or choose a point on the map.",
       "mapPreviewTitle": "Map preview",
-      "openFullMapLink": "Open full map"
+      "openFullMapLink": "Open full map",
+      "mapModalTitleForLocation": "Pick location — {name}",
+      "mapModalDescription": "Search, pan the map, or use your current location. Changes apply only after you confirm.",
+      "mapModalCancel": "Cancel",
+      "mapModalConfirm": "Confirm location",
+      "mapModalOpenAction": "Pick on map",
+      "mapModalChangeAction": "Change location",
+      "mapModalRemoveAction": "Remove location"
     },
     "locationTypes": {
       "startPoint": "Start point",
@@ -223,8 +234,8 @@
       "endPoint": "End point"
     },
     "gatheringPoints": {
-      "helper": "Add one or more meeting stations. Mark one as primary for the default meeting point.",
-      "addressHint": "Search for the meeting address; the map syncs with your selection.",
+      "helper": "Meeting stations where participants join transportation. Pick each station address in the map picker. Route points are recorded in the “Route locations & addresses” section below.",
+      "locationPickerContext": "Gathering station",
       "station": "Station {n, number}",
       "primary": " (primary)",
       "setPrimary": "Set as primary",

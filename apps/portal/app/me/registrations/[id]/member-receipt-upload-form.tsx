@@ -1,8 +1,11 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+
+import { formatMemberMinorAmount } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 import type {
   MemberReceiptPanel,
@@ -39,16 +42,6 @@ type ReceiptStateCardProps = {
   readonly rootProps: Record<string, string>;
   readonly title: string;
 };
-
-function formatMinorAmount(amountMinor: string, currency: string): string {
-  const digits = amountMinor.replace(/\D/g, "");
-  const n = digits.length > 0 ? Number.parseInt(digits, 10) : NaN;
-  if (!Number.isFinite(n)) {
-    return amountMinor;
-  }
-  const formatted = n.toLocaleString("fa-IR");
-  return currency.toUpperCase() === "IRR" ? `${formatted} ریال` : `${formatted} ${currency}`;
-}
 
 function isPositiveMinor(value: string | null): boolean {
   if (value === null) {
@@ -122,6 +115,7 @@ export function MemberReceiptUploadForm({
   cancelSource,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
+  const locale = useLocale() as AppLocale;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
@@ -223,12 +217,16 @@ export function MemberReceiptUploadForm({
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-remaining>
           <strong>
-            {t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}
+            {t("dueRemaining", {
+              amount: formatMemberMinorAmount(remainingDue, dueCurrency, locale),
+            })}
           </strong>
         </p>
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
-            {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}
+            {t("duePaid", {
+              amount: formatMemberMinorAmount(panel.paidMinor, dueCurrency, locale),
+            })}
           </p>
         ) : null}
         {showCatalogLines && catalogDue !== null && catalogDue.lines.length > 0 ? (
@@ -242,7 +240,7 @@ export function MemberReceiptUploadForm({
                     : t("dueLineTransport");
               return (
                 <li key={line.code} data-portal-member-receipt-due-line data-due-code={line.code}>
-                  {label}: {formatMinorAmount(line.amountMinor, dueCurrency)}
+                  {label}: {formatMemberMinorAmount(line.amountMinor, dueCurrency, locale)}
                 </li>
               );
             })}

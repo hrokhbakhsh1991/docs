@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   formatLocalizedNumber,
+  formatMemberMinorAmount,
   normalizeNumericInputValue,
   toAsciiDigits,
   toLocalizedDigits,
@@ -48,5 +49,10 @@ describe("portal format-localized-digits", () => {
 
   it("PTL-L10N-06 toAsciiDigits leaves technical ASCII identifiers unchanged", () => {
     assert.equal(toAsciiDigits("uuid-9a0b-1234"), "uuid-9a0b-1234");
+  });
+
+  it("PTL-L10N-11 formatMemberMinorAmount localizes receipt-style amounts", () => {
+    assert.equal(formatMemberMinorAmount("1500000", "IRR", "fa"), "۱٬۵۰۰٬۰۰۰ ریال");
+    assert.equal(formatMemberMinorAmount("1500000", "IRR", "en"), "1,500,000 IRR");
   });
 });

@@ -634,6 +634,15 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-location-poi
   color: var(--color-text-muted);
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-location-point--primary .denali-location-point__summary {
+  font-weight: 600;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-location-point__primary-badge {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__photos-layout {
   display: grid;
   gap: var(--space-4, 1rem);
@@ -2499,4 +2508,131 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-mult
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
+}
+
+/* Location map modal / mobile sheet */
+body[data-workspace-plugin="denali"] .denali-location-map-modal {
+  border: none;
+  padding: 0;
+  margin: auto;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  background: var(--color-bg-surface);
+  color: inherit;
+  box-shadow: var(--shadow-lg, 0 16px 40px rgb(0 0 0 / 0.18));
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal--dialog {
+  width: min(48rem, calc(100vw - 2rem));
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal--sheet {
+  width: 100%;
+  max-width: 100%;
+  height: min(90dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
+  margin-block: auto 0;
+  border-radius: var(--radius-lg, 0.75rem) var(--radius-lg, 0.75rem) 0 0;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__header {
+  display: grid;
+  gap: var(--space-1, 0.25rem);
+  flex-shrink: 0;
+  padding: var(--space-4, 1rem);
+  padding-bottom: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline: var(--space-4, 1rem);
+  padding-bottom: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__search {
+  flex-shrink: 0;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__map-hint {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__coords {
+  font-size: 0.85rem;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__map-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 14rem;
+  height: min(40dvh, 18rem);
+  display: flex;
+}
+
+body[data-workspace-plugin="denali"] .denali-wizard-composite__interactive-map--fill,
+body[data-workspace-plugin="denali"] .denali-wizard-composite__map-skeleton--fill {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 16rem;
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__summary {
+  display: grid;
+  gap: var(--space-1, 0.25rem);
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+  flex-shrink: 0;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  padding-bottom: calc(var(--space-3, 0.75rem) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border-muted, rgb(0 0 0 / 0.08));
+  background: var(--color-bg-surface);
+}
+
+body[data-workspace-plugin="denali"] .denali-location-map-modal__footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  margin-inline-start: auto;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__location-map-trigger {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
 }

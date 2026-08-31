@@ -34,7 +34,7 @@ import {
   parseCatalogRegistrationResponseBody,
 } from "./denali-registration-intake-client-logic";
 import { DenaliRenderIntakeForm } from "./denali-intake-form";
-import { formatLocalizedNumber } from "../../ui/adapters/i18n-format";
+import { formatGroupedDigitsString, formatLocalizedNumber, type AppLocale } from "../../ui/adapters/i18n-format";
 
 /** User-facing party count for ICU (en) vs plain label (fa). State stays numeric. */
 function localizedUserFacingCount(count: number, locale: string): string | number {
@@ -62,11 +62,12 @@ function parseMinorToNumber(minor: string): number | null {
 }
 
 function formatMinor(minor: string, locale: string): string | null {
-  const value = parseMinorToNumber(minor);
-  if (value === null) {
+  const digits = minor.replace(/\D/g, "");
+  if (digits.length === 0) {
     return null;
   }
-  return value.toLocaleString(locale);
+  const appLocale: AppLocale = locale === "fa" ? "fa" : "en";
+  return formatGroupedDigitsString(digits, appLocale);
 }
 
 function intakeValidationMessage(
@@ -829,8 +830,11 @@ export function DenaliIntakeStep({
           {submitResults.some((r) => r.ok) ? (
             <p data-denali-submit-partial-success>
               {t("intake.partialSuccess", {
-                okCount: submitResults.filter((r) => r.ok).length,
-                totalCount: submitResults.length,
+                okCount: localizedUserFacingCount(
+                  submitResults.filter((r) => r.ok).length,
+                  locale
+                ),
+                totalCount: localizedUserFacingCount(submitResults.length, locale),
               })}{" "}
               {context.memberModuleHref !== null ? (
                 <a href={context.memberModuleHref}>{t("intake.viewMyRegistrations")}</a>
@@ -859,7 +863,9 @@ export function DenaliIntakeStep({
             const label =
               r.target === "self"
                 ? t("intake.forSelfTab")
-                : t("intake.guestCardTitle", { index: r.idx + 1 });
+                : t("intake.guestCardTitle", {
+                    index: localizedUserFacingCount(r.idx + 1, locale),
+                  });
             return (
               <p key={`${r.target}-${r.idx}`} data-denali-submit-result-error>
                 {label}: {r.error ?? ""}
@@ -1109,7 +1115,9 @@ export function DenaliIntakeStep({
               </div>
               {otherGuests.length >= DENALI_MAX_OTHER_GUESTS ? (
                 <p data-denali-guest-limit role="status">
-                  {t("intake.guestLimitReached", { max: DENALI_MAX_OTHER_GUESTS })}
+                  {t("intake.guestLimitReached", {
+                    max: localizedUserFacingCount(DENALI_MAX_OTHER_GUESTS, locale),
+                  })}
                 </p>
               ) : null}
             </div>
@@ -1132,7 +1140,9 @@ export function DenaliIntakeStep({
                       <h3 data-denali-guest-name>
                         {guestName.length > 0
                           ? guestName
-                          : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                          : t("intake.guestCardTitle", {
+                              index: localizedUserFacingCount(guestIdx + 1, locale),
+                            })}
                       </h3>
                       <DenaliRenderIntakeForm
                         schema={effectiveSchemaOther}
@@ -1369,7 +1379,11 @@ export function DenaliIntakeStep({
                 const name = guest.intakeName.trim();
                 return (
                   <li key={guestIdx}>
-                    {name.length > 0 ? name : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                    {name.length > 0
+                      ? name
+                      : t("intake.guestCardTitle", {
+                          index: localizedUserFacingCount(guestIdx + 1, locale),
+                        })}
                   </li>
                 );
               })}

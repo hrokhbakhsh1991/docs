@@ -99,8 +99,8 @@
   },
   "pricing": {
     "originalTourPrice": "Tour price",
-    "membershipDiscount": "Membership discount {percent}%",
-    "membershipDiscountCompact": "{percent}% membership discount",
+    "membershipDiscount": "Membership discount {percent, number}%",
+    "membershipDiscountCompact": "{percent, number}% membership discount",
     "yourPrice": "Your price",
     "ancillary": {
       "transport": "Vehicle",
@@ -208,7 +208,7 @@
       "lightboxClose": "Close gallery",
       "lightboxPrev": "Previous photo",
       "lightboxNext": "Next photo",
-      "lightboxCounter": "{current} of {total}"
+      "lightboxCounter": "{current, number} of {total, number}"
     },
     "registerPreview": {
       "heading": "Before you register",

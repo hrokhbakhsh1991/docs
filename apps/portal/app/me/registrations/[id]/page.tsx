@@ -169,7 +169,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               <div data-portal-member-detail-kpi data-kpi="payment-due">
                 <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
                 <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
-                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt)}
+                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt, locale)}
                 </p>
               </div>
             ) : null}

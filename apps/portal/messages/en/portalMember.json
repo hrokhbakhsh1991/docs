@@ -235,7 +235,7 @@
     "requestAction": "Request cancellation",
     "blocked": "Cancellation is not available ({reason}).",
     "error": "Could not submit cancellation ({code}).",
-    "refundEligible": "Eligible refund: {amount} {currency}"
+    "refundEligible": "Eligible refund: {amount}"
   },
   "intakeAmend": {
     "eyebrow": "Before approval",
