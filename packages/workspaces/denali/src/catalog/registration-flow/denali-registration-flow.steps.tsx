@@ -34,6 +34,12 @@ import {
   parseCatalogRegistrationResponseBody,
 } from "./denali-registration-intake-client-logic";
 import { DenaliRenderIntakeForm } from "./denali-intake-form";
+import { formatLocalizedNumber } from "../../ui/adapters/i18n-format";
+
+/** User-facing party count for ICU (en) vs plain label (fa). State stays numeric. */
+function localizedUserFacingCount(count: number, locale: string): string | number {
+  return locale === "fa" ? formatLocalizedNumber(count, "fa") : count;
+}
 
 /** Product hard cap: other-guest cards per intake submit (self is separate). */
 export const DENALI_MAX_OTHER_GUESTS = 10;
@@ -667,7 +673,9 @@ export function DenaliIntakeStep({
   const partyLineText =
     namedParty.length > 0
       ? namedParty.join(" · ")
-      : t("intake.partyCount", { count: travelerDraftCount });
+      : t("intake.partyCount", {
+          count: localizedUserFacingCount(travelerDraftCount, locale),
+        });
   const priceLocale = locale === "fa" ? "fa-IR" : "en-US";
   const formattedPrice =
     estimatedPrice !== null ? estimatedPrice.toLocaleString(priceLocale) : null;
@@ -727,7 +735,7 @@ export function DenaliIntakeStep({
       <p data-denali-intake-progress aria-live="polite">
         {t("intake.stageEyebrow")}
         {travelerDraftCount > 0 ? (
-          <> · {t("intake.partyCount", { count: travelerDraftCount })}</>
+          <> · {t("intake.partyCount", { count: localizedUserFacingCount(travelerDraftCount, locale) })}</>
         ) : null}
       </p>
       {selfTabLocked ? (
@@ -782,7 +790,10 @@ export function DenaliIntakeStep({
             <div data-registration-pricing-row="membership-discount">
               <span>
                 {t("intake.membershipDiscount", {
-                  percentage: commercialPricingPreview?.memberDiscountPercentage ?? 0,
+                  percentage: localizedUserFacingCount(
+                    commercialPricingPreview?.memberDiscountPercentage ?? 0,
+                    locale
+                  ),
                 })}
               </span>
               <strong data-registration-pricing-discount>

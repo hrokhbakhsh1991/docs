@@ -4,9 +4,12 @@ import {
   formatIranMobileForDisplay,
   normalizePublicRegistrationMobile,
 } from "@app-tour/catalog-registration-auth";
-import { Input } from "@app-tour/ui-primitives/input";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+
+import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
+import { normalizeNumericInputValue, toLocalizedDigits } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 import {
   requestMemberMobileChangeOtp,
@@ -39,6 +42,7 @@ export function MemberProfileMobileChange({
   onMobileChanged,
 }: MemberProfileMobileChangeProps) {
   const t = useTranslations("portalMember.profile");
+  const locale = useLocale() as AppLocale;
   const [step, setStep] = useState<MobileChangeStep>("view");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -68,7 +72,7 @@ export function MemberProfileMobileChange({
 
   async function handleVerify(): Promise<void> {
     // INV-MP-07 — OTP validity codes come from BFF (no local length gate).
-    const code = otp.replace(/\D/g, "");
+    const code = normalizeNumericInputValue(otp, "digits");
     setLoading(true);
     setError(null);
     try {
@@ -96,14 +100,14 @@ export function MemberProfileMobileChange({
           <p>{t("mobileChange.phoneDescription")}</p>
         </div>
         <label htmlFor="profile-mobile-change-phone">{t("mobileChange.newPhoneLabel")}</label>
-        <Input
+        <PrimitiveLocalizedNumericInput
           id="profile-mobile-change-phone"
           value={phone}
-          onChange={(event) => {
+          mode="phone"
+          onChange={(next) => {
             setError(null);
-            setPhone(event.target.value);
+            setPhone(next);
           }}
-          inputMode="tel"
           autoComplete="tel"
         />
         {error !== null ? (
@@ -145,14 +149,14 @@ export function MemberProfileMobileChange({
           <p>{t("mobileChange.otpDescription")}</p>
         </div>
         <label htmlFor="profile-mobile-change-otp">{t("mobileChange.otpLabel")}</label>
-        <Input
+        <PrimitiveLocalizedNumericInput
           id="profile-mobile-change-otp"
           value={otp}
-          onChange={(event) => {
+          mode="digits"
+          onChange={(next) => {
             setError(null);
-            setOtp(event.target.value);
+            setOtp(next);
           }}
-          inputMode="numeric"
           autoComplete="one-time-code"
         />
         {error !== null ? (
@@ -197,7 +201,9 @@ export function MemberProfileMobileChange({
         <p>{t("mobileChange.viewHint")}</p>
       </div>
       <p data-member-profile-mobile-change-value>
-        {currentMobile ? formatIranMobileForDisplay(currentMobile) : "—"}
+        {currentMobile
+          ? toLocalizedDigits(formatIranMobileForDisplay(currentMobile), locale)
+          : "—"}
       </p>
       {success !== null ? (
         <p role="status" data-member-profile-mobile-change-success>

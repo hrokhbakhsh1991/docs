@@ -250,6 +250,7 @@
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "فقط تصاویر JPEG، PNG یا WebP مجاز است.",
         "PHOTO_FILE_TOO_LARGE": "حجم تصویر باید حداکثر ۵ مگابایت باشد.",
+        "PHOTO_UPLOAD_IN_PROGRESS": "قبل از ذخیره، منتظر پایان آپلود عکس‌ها بمانید.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "فضای ذخیره‌سازی عکس پیکربندی نشده است. به‌جای آن URL تصویر وارد کنید.",
         "PHOTO_STORAGE_FULL": "فضای ذخیره‌سازی عکس پر است. با مدیر تماس بگیرید یا از URL تصویر استفاده کنید.",
         "PHOTO_STORAGE_UNAVAILABLE": "فضای ذخیره‌سازی موقتاً در دسترس نیست. دوباره تلاش کنید یا URL تصویر وارد کنید.",

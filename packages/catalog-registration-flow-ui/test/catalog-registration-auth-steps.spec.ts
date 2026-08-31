@@ -104,7 +104,10 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
       ),
       "utf8"
     );
-    assert.match(authSteps, /readMemberLoginEgress\(context\) \? data\.phone : t\("otp\.sentTo"/);
+    assert.match(
+      authSteps,
+      /readMemberLoginEgress\(context\)\s*\?\s*toLocalizedDigits\(data\.phone, locale\)\s*:\s*t\("otp\.sentTo", \{ phone: toLocalizedDigits\(data\.phone, locale\) \}\)/
+    );
     assert.match(authSteps, /transport\.requestOtp/);
     assert.match(authSteps, /transport\.verifyOtp/);
     assert.match(authSteps, /PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC/);

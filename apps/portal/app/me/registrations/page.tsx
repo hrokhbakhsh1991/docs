@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
 import {
@@ -42,6 +45,7 @@ export default async function MeRegistrationsPage({
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const items = await fetchMemberRegistrations(host);
+  const locale = (await getLocale()) as AppLocale;
   const t = await getTranslations("portalMember.registrations");
   const params = await searchParams;
   const activeFilter = parseRegistrantListFilter(params.target);
@@ -111,7 +115,9 @@ export default async function MeRegistrationsPage({
                   {...(active ? { "aria-current": "page" as const } : {})}
                 >
                   <span data-portal-member-registrations-filter-label>{label}</span>
-                  <span data-portal-member-registrations-filter-count>{count}</span>
+                  <span data-portal-member-registrations-filter-count>
+                    {formatLocalizedNumber(count, locale)}
+                  </span>
                 </a>
               );
             })}

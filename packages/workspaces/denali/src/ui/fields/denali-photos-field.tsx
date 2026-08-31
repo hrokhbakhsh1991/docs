@@ -15,6 +15,7 @@ import {
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { resolveDenaliPhotoUploadError } from "../adapters/photo-upload-errors";
 import { uploadDenaliWizardPhoto } from "../adapters/photo-upload-client";
+import { trackDenaliPhotoUploadLifecycle } from "../logic/denali-photo-upload-tracker";
 import { Button, Input, Select, type SelectOption } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { DenaliPhotoPreview } from "../components/denali-photo-preview";
@@ -430,6 +431,7 @@ export function DenaliPhotosField({
 
     setLocalPreview(normalizedId, file);
     setPhotoUploading(normalizedId, true);
+    const releaseUploadTracker = trackDenaliPhotoUploadLifecycle();
     setPhotoUploadErrors((previous) => {
       const next = { ...previous };
       delete next[normalizedId];
@@ -454,6 +456,7 @@ export function DenaliPhotosField({
         resolveDenaliPhotoUploadError(t, code) || t("composites.photos.uploadFailed");
       setPhotoUploadErrors((previous) => ({ ...previous, [normalizedId]: message }));
     } finally {
+      releaseUploadTracker();
       setPhotoUploading(normalizedId, false);
       const input = fileInputRefs.current[normalizedId];
       if (input !== null && input !== undefined) {

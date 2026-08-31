@@ -52,7 +52,11 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8b0a4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-size: var(--select-chevron-size) var(--select-chevron-size);
-  background-position: center inline-end var(--select-chevron-edge-inset);
+  background-position: right var(--select-chevron-edge-inset) center;
+}
+
+:dir(rtl) body[data-workspace-plugin="denali"] [data-new-tour-wizard] select {
+  background-position: left var(--select-chevron-edge-inset) center;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite {

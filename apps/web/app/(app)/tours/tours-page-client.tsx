@@ -27,7 +27,8 @@ import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@ap
 import { tourListQueryHasFilters, tourListTotalPages } from "@/features/tours/tours-list-logic";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
-import { TourCard } from "./tour-card";
+import { ToursDirectoryMobileRow } from "./tours-directory-mobile-row";
+import { ToursDirectoryTable } from "./tours-directory-table";
 import { ToursDirectoryControls } from "./tours-directory-controls";
 import { ToursListSkeleton, ToursListToolbarSkeleton } from "./tours-list-skeleton";
 
@@ -279,22 +280,26 @@ export function OperatorToursPageClient({
       ) : null}
 
       {!isInitialLoad && !error && items.length > 0 ? (
-        <ul
-          className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3${isRefetching ? " opacity-60" : ""}`}
-          data-testid={TOURS_LIST_TEST_IDS.list}
-          aria-busy={isRefetching ? true : undefined}
-        >
-          {items.map((tour) => (
-            <li key={tour.id}>
-              <TourCard
-                pluginId={session.pluginId}
-                tour={tour}
-                canManage={showCreate}
-                showExtendedCard={showExtendedCard}
-              />
-            </li>
-          ))}
-        </ul>
+        <div className={isRefetching ? "space-y-4 opacity-60" : "space-y-4"} aria-busy={isRefetching ? true : undefined}>
+          <ToursDirectoryTable
+            pluginId={session.pluginId}
+            tours={items}
+            canManage={showCreate}
+            showExtendedMeta={showExtendedCard}
+          />
+          <ul className="grid grid-cols-1 gap-4 lg:hidden" data-testid={TOURS_LIST_TEST_IDS.listMobile}>
+            {items.map((tour) => (
+              <li key={tour.id} data-testid={TOURS_LIST_TEST_IDS.row(tour.id)}>
+                <ToursDirectoryMobileRow
+                  pluginId={session.pluginId}
+                  tour={tour}
+                  canManage={showCreate}
+                  showExtendedMeta={showExtendedCard}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       {data && data.total > 0 ? (

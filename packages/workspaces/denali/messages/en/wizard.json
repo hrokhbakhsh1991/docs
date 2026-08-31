@@ -250,6 +250,7 @@
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "Only JPEG, PNG, or WebP images are allowed.",
         "PHOTO_FILE_TOO_LARGE": "Image must be 5 MB or smaller.",
+        "PHOTO_UPLOAD_IN_PROGRESS": "Wait for photo uploads to finish before saving.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "Photo storage is not configured. Use an image URL instead.",
         "PHOTO_STORAGE_FULL": "Photo storage is full. Contact your administrator or use an image URL instead.",
         "PHOTO_STORAGE_UNAVAILABLE": "Photo storage is temporarily unavailable. Try again or use an image URL.",

@@ -10,6 +10,7 @@ import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
 import { MarketingFooter } from "./marketing-footer";
 import { MarketingHeaderOverlayScroll } from "./marketing-header-overlay-scroll";
+import { MarketingHeaderOverlaySync } from "./marketing-header-overlay-sync";
 import { MarketingNavDrawerKeyboard } from "./marketing-nav-drawer-keyboard";
 import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
@@ -57,6 +58,7 @@ export async function MarketingShell({
     <div
       data-marketing-shell
       data-slot="shell"
+      {...(isFullLanding ? { "data-marketing-full-landing": true } : {})}
       {...(memberHeader !== null ? { "data-marketing-member-authenticated": "" } : {})}
     >
       <a href="#main-content" data-marketing-skip-link data-slot="shell-skip-link">
@@ -208,6 +210,7 @@ export async function MarketingShell({
               </nav>
             </details>
             <MarketingNavDrawerKeyboard />
+            <MarketingHeaderOverlaySync />
             <MarketingHeaderOverlayScroll />
           </div>
         </div>

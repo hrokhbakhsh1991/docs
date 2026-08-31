@@ -77,4 +77,9 @@ describe("iran-mobile.spec.ts", () => {
     assert.ok(patterns.some((pattern) => pattern.includes("+989123456789")));
     assert.ok(patterns.some((pattern) => pattern.includes("09123456789")));
   });
+
+  it("IR-MOB-14 normalize Persian digit mobile", () => {
+    assert.equal(normalizeIranMobile("۰۹۱۲۱۲۳۴۵۶۷"), "09121234567");
+    assert.equal(formatIranMobileForDisplay("۰۹۱۲۱۲۳۴۵۶۷"), "09121234567");
+  });
 });

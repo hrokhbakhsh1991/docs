@@ -199,9 +199,16 @@ describe("denali-wizard-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(selectCss, /appearance:\s*none/);
-    assert.match(selectCss, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
-    assert.doesNotMatch(selectCss, /\[dir="rtl"\]/);
-    assert.match(fields, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
+    assert.match(
+      selectCss,
+      /background-position:\s*right var\(--select-chevron-edge-inset\) center/
+    );
+    assert.match(selectCss, /:dir\(rtl\)\s*\[data-ui-select\]/);
+    assert.match(
+      fields,
+      /background-position:\s*right var\(--select-chevron-edge-inset\) center/
+    );
+    assert.match(fields, /:dir\(rtl\)[\s\S]*background-position:\s*left var\(--select-chevron-edge-inset\) center/);
   });
 
   it("WEB-DENALI-WIZARD-12 composite UX phase 3 (WZ-P1-06…10)", () => {

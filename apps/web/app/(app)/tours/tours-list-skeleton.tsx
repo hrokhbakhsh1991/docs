@@ -1,5 +1,4 @@
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { TOURS_LIST_TEST_IDS } from "@/features/tours/query-model";
 
 /** Mirrors compact search + filters trigger + sort toolbar layout. */
@@ -19,35 +18,25 @@ export function ToursListToolbarSkeleton() {
   );
 }
 
-/** Mirrors `TourCard` — 16:9 cover, badges, title, meta, description, footer actions. */
-export function TourCardSkeleton() {
+function ToursDirectoryRowSkeleton() {
   return (
-    <Card
-      data-operator-surface="card"
-      className="flex h-full flex-col overflow-hidden shadow-sm"
-      data-testid={TOURS_LIST_TEST_IDS.cardSkeleton}
+    <div
+      className="flex flex-col gap-3 rounded-xl border bg-card/40 p-4 lg:flex-row lg:items-center"
+      data-testid={TOURS_LIST_TEST_IDS.rowSkeleton}
     >
-      <OperatorSkeleton size="hero" />
-      <CardHeader className="space-y-3 pb-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <OperatorSkeleton size="badge-sm" />
-          <OperatorSkeleton size="badge-lg" />
-          <OperatorSkeleton size="badge-md" />
-        </div>
+      <div className="min-w-0 flex-1 space-y-2">
         <OperatorSkeleton size="title" />
         <OperatorSkeleton size="subtitle" />
-      </CardHeader>
-      <CardContent className="flex-1 space-y-2">
-        <OperatorSkeleton size="line-full" />
-        <OperatorSkeleton size="line-full" />
-        <OperatorSkeleton size="line-partial" />
-      </CardContent>
-      <CardFooter className="flex flex-wrap gap-2">
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <OperatorSkeleton size="badge-sm" />
+        <OperatorSkeleton size="badge-md" />
+      </div>
+      <div className="flex gap-2">
         <OperatorSkeleton size="chip-md" />
         <OperatorSkeleton size="chip-lg" />
-        <OperatorSkeleton size="chip-sm" />
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -57,17 +46,15 @@ type ToursListSkeletonProps = {
 
 export function ToursListSkeleton({ count = 6 }: ToursListSkeletonProps) {
   return (
-    <ul
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    <div
+      className="space-y-3"
       data-testid={TOURS_LIST_TEST_IDS.listSkeleton}
       aria-busy="true"
       aria-label="Loading tours"
     >
       {Array.from({ length: count }).map((_, index) => (
-        <li key={index}>
-          <TourCardSkeleton />
-        </li>
+        <ToursDirectoryRowSkeleton key={index} />
       ))}
-    </ul>
+    </div>
   );
 }

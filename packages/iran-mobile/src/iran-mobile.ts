@@ -1,8 +1,12 @@
+import { toAsciiDigits } from "./ascii-digits";
+
 const IRAN_MOBILE_CANONICAL = /^09\d{9}$/;
 
 function readDigits(raw: string): string {
-  return raw.replace(/\D/g, "");
+  return toAsciiDigits(raw).replace(/\D/g, "");
 }
+
+export { toAsciiDigits } from "./ascii-digits";
 
 /**
  * Canonical Iranian mobile identity: `09xxxxxxxxx` (11 digits).

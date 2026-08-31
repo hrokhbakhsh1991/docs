@@ -53,6 +53,7 @@ describe("Phase 5 regression", () => {
     assert.match(steps, /data-denali-intake-progress/);
     assert.match(steps, /stageEyebrow/);
     assert.match(steps, /partyCount/);
+    assert.match(steps, /localizedUserFacingCount\(travelerDraftCount, locale\)/);
   });
 
   it("P5-SUC-01 success primary CTA uses forest !important to beat cascade", () => {

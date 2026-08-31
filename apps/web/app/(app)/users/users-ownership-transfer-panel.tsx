@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Crown } from "lucide-react";
 
+import { OperatorConfirmDialog } from "@/admin/patterns/operator-confirm-dialog";
 import { clearOperatorWelcomeSession } from "@/admin/onboarding/operator-welcome-dismiss";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export function UsersOwnershipTransferPanel({
   onInviteClick,
 }: UsersOwnershipTransferPanelProps) {
   const t = useTranslations("users");
+  const tCommon = useTranslations("common");
   const tErrors = useTranslations("users.errors");
   const router = useRouter();
   const [roster, setRoster] = useState<readonly UsersDirectoryRow[]>(initialRoster ?? []);
@@ -42,6 +44,7 @@ export function UsersOwnershipTransferPanel({
   const [selectedUserId, setSelectedUserId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [transferConfirmOpen, setTransferConfirmOpen] = useState(false);
   const skipInitialFetchRef = useRef(initialRoster !== null);
 
   useEffect(() => {
@@ -94,9 +97,6 @@ export function UsersOwnershipTransferPanel({
 
   const handleTransfer = async () => {
     if (selectedUserId.length === 0 || selectedCandidate === null) {
-      return;
-    }
-    if (!window.confirm(t("ownershipTransfer.confirm", { name: selectedCandidate.displayName }))) {
       return;
     }
 
@@ -198,13 +198,31 @@ export function UsersOwnershipTransferPanel({
               variant="destructive"
               disabled={submitting || selectedUserId.length === 0}
               data-testid={USERS_DIRECTORY_TEST_IDS.ownershipTransferSubmit}
-              onClick={() => void handleTransfer()}
+              onClick={() => setTransferConfirmOpen(true)}
             >
               {submitting ? t("ownershipTransfer.submitting") : t("ownershipTransfer.submit")}
             </Button>
           </>
         ) : null}
       </CardContent>
+      <OperatorConfirmDialog
+        open={transferConfirmOpen && selectedCandidate !== null}
+        title={t("ownershipTransfer.title")}
+        description={
+          selectedCandidate !== null
+            ? t("ownershipTransfer.confirm", { name: selectedCandidate.displayName })
+            : ""
+        }
+        cancelLabel={tCommon("cancel")}
+        confirmLabel={t("ownershipTransfer.submit")}
+        confirmPending={submitting}
+        testIdPrefix="operator-users-ownership-transfer"
+        onOpenChange={setTransferConfirmOpen}
+        onConfirm={() => {
+          setTransferConfirmOpen(false);
+          void handleTransfer();
+        }}
+      />
     </Card>
   );
 }
