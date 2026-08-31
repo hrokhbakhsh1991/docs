@@ -1,3 +1,4 @@
+import { OPERATOR_SUCCESS_BADGE_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import Link from "next/link";
 
 import { WorkspaceProductionCertificationBadge } from "./workspace-production-certification-badge";
@@ -56,7 +57,7 @@ export function PlatformClubsTable({ items }: PlatformClubsTableProps) {
                   className={
                     item.status === "suspended"
                       ? "rounded-full bg-destructive/10 px-2 py-0.5 text-destructive"
-                      : "rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-700"
+                      : OPERATOR_SUCCESS_BADGE_CLASS
                   }
                 >
                   {item.status}

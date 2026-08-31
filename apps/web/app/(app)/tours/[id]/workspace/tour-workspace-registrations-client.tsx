@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 
+import { OPERATOR_WARNING_CALLOUT_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import type { BookingsOpsActionChrome } from "@/features/bookings/bookings-ops-action-chrome";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
@@ -59,7 +60,7 @@ export function TourWorkspaceRegistrationsClient({
     >
       {capacityFull ? (
         <div
-          className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between"
+          className={`flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between ${OPERATOR_WARNING_CALLOUT_CLASS}`}
           data-testid={TOUR_WORKSPACE_TEST_IDS.registrationsCapacityFullBanner}
         >
           <p>{t("capacityFullBanner")}</p>
