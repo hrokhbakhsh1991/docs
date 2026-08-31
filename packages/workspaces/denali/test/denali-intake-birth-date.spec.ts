@@ -24,7 +24,12 @@ describe("denali intake birth date picker", () => {
     assert.match(intakeForm, /DenaliIntakeBirthDateField/);
     assert.match(intakeForm, /field\.id === "birthDate"/);
     assert.match(intakeForm, /RenderIntakeField/);
-    assert.match(birthField, /@app-tour\/localized-calendar/);
+    assert.match(birthField, /from "\.\.\/\.\.\/ui\/components\/localized-date-picker"/);
+    const pickerWrapper = readFileSync(
+      join(denaliRoot, "src/ui/components/localized-date-picker.tsx"),
+      "utf8"
+    );
+    assert.match(pickerWrapper, /@app-tour\/localized-calendar\/localized-date-picker/);
     assert.match(birthField, /triggerDataAttributes/);
     assert.match(birthField, /data-intake-field/);
     assert.match(steps, /DenaliRenderIntakeForm/);
