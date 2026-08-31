@@ -33,7 +33,7 @@ async function loadTenantRouteRow(normalized: string): Promise<TenantRouteRow | 
     schemaName: string | null;
   } | null;
   try {
-    // tenant_routes is FORCE RLS — must set GUC (TODO-002).
+    // tenant_routes is FORCE RLS — must set GUC (PREV-AUD-002).
     row = await withTenantRls(normalized, (tx) =>
       tx.tenantRoute.findUnique({
         where: { tenantId: normalized },

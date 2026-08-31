@@ -32,10 +32,7 @@ function readTrimmedString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function resolveDisplayLabel(
-  identity: IdentityMeUpstream,
-  fallback: string
-): string {
+function resolveDisplayLabel(identity: IdentityMeUpstream, fallback: string): string {
   return resolveGuestMemberChipLabel({
     displayName: readTrimmedString(identity.displayName),
     mobile: readTrimmedString(identity.mobile),
@@ -46,7 +43,8 @@ function resolveDisplayLabel(
 /** Authenticated marketing header chip — portal profile egress when member cookie matches tenant. */
 export async function resolveMarketingMemberHeader(
   host: string,
-  tenantId: string
+  tenantId: string,
+  pluginId: string
 ): Promise<MarketingMemberHeader | null> {
   const session = await readMarketingMemberSessionFromCookies();
   if (
@@ -56,7 +54,7 @@ export async function resolveMarketingMemberHeader(
     return null;
   }
 
-  const profileHref = resolvePortalMemberModuleUrl(host, "profile");
+  const profileHref = resolvePortalMemberModuleUrl(host, "profile", pluginId);
   if (profileHref === null) {
     return null;
   }

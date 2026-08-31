@@ -21,7 +21,7 @@ afterEach(() => {
   }
 });
 
-describe("TODO-004 platform ops auth fail-closed", () => {
+describe("PREV-AUD-004 platform ops auth fail-closed", () => {
   it("production without PLATFORM_OPS_BEARER_TOKEN throws", () => {
     process.env.NODE_ENV = "production";
     delete process.env.PLATFORM_OPS_BEARER_TOKEN;

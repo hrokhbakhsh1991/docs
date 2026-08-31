@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
+import { OPERATOR_SUCCESS_CALLOUT_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { Label } from "@/components/ui/label";
@@ -541,7 +542,7 @@ export function IntegrationEventDeliveryPolicyPanel({
               </p>
             ) : null}
             {successEvent === eventType ? (
-              <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-900 dark:text-emerald-100">
+              <p className={`${OPERATOR_SUCCESS_CALLOUT_CLASS} px-3 py-2 text-xs`}>
                 {t("success")}
               </p>
             ) : null}

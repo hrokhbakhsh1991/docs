@@ -5,7 +5,7 @@
  */
 
 import type { WorkspaceEquipmentFieldRegistryFragment } from "@app-tour/workspace-sdk/equipment";
-import { denaliEquipmentFieldRegistryFragment as denali_equipment_field_module } from "@app-tour/workspace-denali/field-registry/denali-equipment-field-module";
+import { denaliEquipmentFieldRegistryFragment as denali_equipment_field_module } from "@app-tour/workspace-denali/host/field-registry/denali-equipment-field-module";
 
 export type WorkspaceEquipmentFieldModuleBinding = {
   readonly workspaceType: string;

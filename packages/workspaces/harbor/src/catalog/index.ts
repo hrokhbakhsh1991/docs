@@ -6,7 +6,7 @@ export {
   HARBOR_SMOKE_PUBLISHED_TOUR_ID,
   HARBOR_SMOKE_PUBLISHED_TOUR_TITLE,
   type HarborSmokeCatalogCard,
-} from "./harbor-smoke-catalog.fixture";
+} from "./harbor-smoke-catalog";
 export {
   isHarborTourPublished,
   toHarborCatalogCard,

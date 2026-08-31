@@ -21,10 +21,8 @@ export {
   HARBOR_REGISTRATION_DUPLICATE,
   HarborRegistrationDuplicateError,
   isHarborRegistrationDuplicateError,
-} from "../registration/harbor-registration-duplicate.error";
-export {
   HARBOR_WORKSPACE_REQUIRED,
   HarborWorkspaceRequiredError,
   isHarborWorkspaceRequiredError,
-} from "../registration/harbor-workspace-required.error";
+} from "../registration/harbor-registration.errors";
 export { HARBOR_HTTP_ROUTE_MANIFEST };

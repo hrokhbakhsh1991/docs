@@ -5,7 +5,7 @@ import type { BookingPublicPort } from "@app-tour/booking-http-contracts";
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import { createHarborRegistration } from "../src/registration/create-harbor-registration";
-import { HarborRegistrationDuplicateError } from "../src/registration/harbor-registration-duplicate.error";
+import { HarborRegistrationDuplicateError } from "../src/registration/harbor-registration.errors";
 import type { HarborTourStorePort } from "../src/http/harbor-http-host";
 
 const tourId = "00000000-0000-4000-8000-000000000888";

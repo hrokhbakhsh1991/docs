@@ -617,6 +617,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tx.tour.findMany({
             where: { tenantId: input.tenantId, id: { in: chipTourIds } },
             select: { id: true, title: true },
+            take: chipTourIds.length,
           }),
           tx.operatorRegistration.groupBy({
             by: ["tourId", "tourTitle"],
@@ -716,6 +717,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const rows = await tx.operatorRegistration.findMany({
         where: { tenantId, id: { in: unique } },
         select: BOOKING_LIST_SELECT,
+        take: unique.length,
       });
       const enriched = await enrichBookingListRecordsWithIntakeScalars(
         tx,

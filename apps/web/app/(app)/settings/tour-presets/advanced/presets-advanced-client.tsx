@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { OPERATOR_SUCCESS_TEXT_SM_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,7 @@ export function PresetsAdvancedClient({ session }: PresetsAdvancedClientProps) {
         <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
       ) : null}
       {saved ? (
-        <p className="text-sm text-green-600" data-testid={PRESETS_ADVANCED_TEST_IDS.success}>
+        <p className={OPERATOR_SUCCESS_TEXT_SM_CLASS} data-testid={PRESETS_ADVANCED_TEST_IDS.success}>
           {t("saved")}
         </p>
       ) : null}

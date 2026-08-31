@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
+import { OPERATOR_WARNING_TEXT_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,7 +145,7 @@ function ScheduleCard({
       <p className="text-xs text-muted-foreground">{tCommon("due", { date: dueDate })}</p>
       {item.status === "partial" ? (
         <p
-          className="mt-1 text-xs text-amber-700 dark:text-amber-400"
+          className={OPERATOR_WARNING_TEXT_CLASS}
           data-testid="finance-installment-partial-hint"
         >
           {t("partialHint")}

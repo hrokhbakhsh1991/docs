@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  OPERATOR_SUCCESS_TEXT_SM_CLASS,
+  OPERATOR_WARNING_CALLOUT_SOFT_PANEL_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
+import {
   buildReviewReceiptCommandBody,
   canSubmitCommandFromPhase,
   createCommandIdempotencyKey,
@@ -376,7 +380,7 @@ export function FinanceCaseCommandReviewReceiptUi({
 
           {phase === "confirm" || phase === "submitting" ? (
             <div
-              className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3"
+              className={OPERATOR_WARNING_CALLOUT_SOFT_PANEL_CLASS}
               data-testid="finance-case-command-confirm"
             >
               <p className="text-sm font-medium">{t("confirmTitle")}</p>
@@ -412,7 +416,7 @@ export function FinanceCaseCommandReviewReceiptUi({
       ) : null}
 
       {phase === "success" && result?.ok === true ? (
-        <p className="text-sm text-green-700" data-testid="finance-case-command-success" role="status">
+        <p className={OPERATOR_SUCCESS_TEXT_SM_CLASS} data-testid="finance-case-command-success" role="status">
           {t("success", { executionId: result.executionId })}
         </p>
       ) : null}

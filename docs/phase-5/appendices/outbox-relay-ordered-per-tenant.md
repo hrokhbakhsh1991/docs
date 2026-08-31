@@ -33,10 +33,12 @@ WHERE status = 'pending'
     WHERE o2.tenant_id = outbox_events.tenant_id
       AND o2.status = 'processing'
   )
-ORDER BY created_at ASC
+ORDER BY created_at ASC, id ASC
 LIMIT $batch
 FOR UPDATE SKIP LOCKED
 ```
+
+`id ASC` is the deterministic tiebreaker when multiple pending rows share the same `created_at` (e.g. same-transaction `createMany` with `@default(now())`). Without it, Postgres may return either row and per-tenant FIFO becomes undefined.
 
 Cross-tenant parallelism unchanged; within a tenant at most one `processing` row at a time.
 

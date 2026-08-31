@@ -15,7 +15,7 @@ export function isWorkspaceTypeUnresolvedError(error: unknown): boolean {
 /**
  * Loads workspace_type for validation-time plugin resolution (5.2).
  * Postgres `tenants.workspace_type` when present; else static registry.
- * Missing tenant → fail closed (no silent `starter` — TODO-011 / PREV-AUD-013).
+ * Missing tenant → fail closed (no silent `starter` — PREV-AUD-013 / PREV-AUD-013).
  *
  * `URBAN_TEST_WORKSPACE_TYPE` applies only when `NODE_ENV=test` and urban tenant.
  */

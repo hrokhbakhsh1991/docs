@@ -4,6 +4,7 @@ import { OperatorInternalLink } from "@/features/tours/tour-internal-link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { OPERATOR_WARNING_TEXT_MEDIUM_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import type { BookingsOpsActionChrome } from "@/features/bookings/bookings-ops-action-chrome";
@@ -91,7 +92,7 @@ export function TourWorkspaceWaitlistClient({
           <p
             className={
               capacityFull
-                ? "text-sm font-medium text-amber-700 dark:text-amber-400"
+                ? OPERATOR_WARNING_TEXT_MEDIUM_CLASS
                 : "text-sm text-muted-foreground"
             }
             data-testid={TOUR_WORKSPACE_WAITLIST_TEST_IDS.capacity}

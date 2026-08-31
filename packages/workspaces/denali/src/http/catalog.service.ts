@@ -16,6 +16,7 @@ import {
 import { withSpotsRemaining } from "@app-tour/tour-core";
 import { applyDenaliCatalogCardExposure } from "../catalog/denali-catalog-exposure-bindings";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
+import { isPersistedCatalogTourId } from "../catalog/is-persisted-catalog-tour-id";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 import { resolveDenaliCatalogPhotoEnrichment } from "../catalog/enrich-denali-catalog-photo-urls";
 import {
@@ -226,6 +227,9 @@ export async function getDenaliCatalogTour(params: {
     DENALI_WORKSPACE_TYPE,
     () => new DenaliWorkspaceRequiredError(),
   );
+  if (!isPersistedCatalogTourId(params.tourId)) {
+    return null;
+  }
   const tour = await loadWorkspaceTourIfPublished({
     findFirst: () => params.store.findFirst({ tenantId: params.tenantId, id: params.tourId }),
     isPublished: isDenaliTourPublished,

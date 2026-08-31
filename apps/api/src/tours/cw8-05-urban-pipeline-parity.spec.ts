@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban";
-import { createUrbanTourWorkspacePolicyValidator } from "@app-tour/workspace-urban/policy/tour-policy";
+import { createUrbanTourWorkspacePolicyValidator } from "@app-tour/workspace-urban/host/policy/tour-policy";
 
 import { isValidationFailure } from "../canonical/validation-failure.ts";
 import {

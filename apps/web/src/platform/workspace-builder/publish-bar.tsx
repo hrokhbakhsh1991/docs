@@ -1,5 +1,6 @@
 "use client";
 
+import { OPERATOR_SUCCESS_TEXT_SM_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
@@ -76,7 +77,7 @@ export function PublishBar({ definitionId, draft, isOwner }: PublishBarProps) {
       ) : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {publishedVersion !== null ? (
-        <p className="text-sm text-emerald-700">Published version {publishedVersion}.</p>
+        <p className={OPERATOR_SUCCESS_TEXT_SM_CLASS}>Published version {publishedVersion}.</p>
       ) : null}
     </section>
   );

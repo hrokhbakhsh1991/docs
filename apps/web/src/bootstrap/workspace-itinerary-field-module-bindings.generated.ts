@@ -5,7 +5,7 @@
  */
 
 import type { WorkspaceItineraryFieldRegistryFragment } from "@app-tour/workspace-sdk/itinerary";
-import { denaliItineraryFieldRegistryFragment as denali_itinerary_field_module } from "@app-tour/workspace-denali/field-registry/denali-itinerary-field-module";
+import { denaliItineraryFieldRegistryFragment as denali_itinerary_field_module } from "@app-tour/workspace-denali/host/field-registry/denali-itinerary-field-module";
 
 export type WorkspaceItineraryFieldModuleBinding = {
   readonly workspaceType: string;

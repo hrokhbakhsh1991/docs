@@ -21,7 +21,7 @@ describe("resolveCorrelationId (TRACE-REGEN-02 / DEC-126)", () => {
   });
 });
 
-describe("handleHttpError — WORKSPACE_TYPE_UNRESOLVED (TODO-011)", () => {
+describe("handleHttpError — WORKSPACE_TYPE_UNRESOLVED (PREV-AUD-013)", () => {
   function createMockResponse(): ServerResponse & {
     statusCode: number;
     body: string;

@@ -53,19 +53,18 @@ describe("thin-shell-settings-equipment-ui-capability — Phase 4ba", () => {
     assert.doesNotMatch(page, /workspace-settings-equipment-ui-bindings/);
   });
 
-  it("TS-4BA-03 package settings-equipment surface uses bundler-visible dynamic import", () => {
+  it("TS-4BA-03 package settings-equipment surface loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
-      resolve(
-        WEB_ROOT,
-        "../../packages/workspaces/denali/src/settings/settings-equipment-ui-package-surface.ts"
-      ),
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/settings/settings-equipment-ui-package-surface.ts"),
       "utf8"
     );
-    assert.match(pkg, /SETTINGS_EQUIPMENT_UI_SURFACE_KEY/);
-    assert.match(pkg, /ensureSettingsEquipmentUiPackageSurface/);
-    assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
-    assert.match(pkg, /Map<string,\s*SettingsEquipmentUiPackageSurface>/);
-    assert.match(pkg, /import\(/);
-    assert.doesNotMatch(pkg, /from \"\.\.\/ui\/settings\/settings-equipment-ui-surface\"/);
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
+      "utf8"
+    );
+    assert.match(pkg, /importUiSurface\("..\/ui\/settings\/settings-equipment-ui-surface"\)/);
+    assert.doesNotMatch(pkg, /from \"..\/ui\/settings\/settings-equipment-ui-surface\"/);
+    assert.match(loaders, /"..\/ui\/settings\/settings-equipment-ui-surface":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 });
