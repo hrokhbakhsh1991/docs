@@ -40,3 +40,9 @@ export {
   type CommercialQuotePaymentCollectionMode,
 } from "./freeze-input";
 export { readTourAllowMembershipDiscount } from "./read-tour-membership-discount-gate";
+export {
+  hasAppliedMemberDiscountDisplay,
+  mapFreezeInputToCommercialPricingDisplay,
+  mapQuoteVersionToCommercialPricingDisplay,
+  type RegistrationCommercialPricingDisplay,
+} from "./pricing-display";

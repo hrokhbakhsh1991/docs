@@ -261,16 +261,12 @@ export class FinanceService {
     registrationId: string
   ): Promise<string | undefined> {
     if (this.commercialQuotes !== null) {
-      const quote = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
-      if (quote !== null) {
-        return quote.payableMinor;
-      }
-      const preview = await this.commercialQuotes.resolveCommercialQuotePreview(
+      const pricing = await this.commercialQuotes.resolveRegistrationCommercialPricing(
         tenantId,
         registrationId
       );
-      if (preview !== null) {
-        return preview.payableMinor;
+      if (pricing !== null) {
+        return pricing.payableMinor;
       }
     }
     const obligation = await this.obligation.resolveRegistrationObligation({
@@ -1583,7 +1579,21 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const normalizedRegistrationId = registrationId.trim();
-    return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
+    const invoice = await this.compileRegistrationInvoiceInternal(
+      auth.tenantId,
+      normalizedRegistrationId
+    );
+    const commercialPricing =
+      this.commercialQuotes === null
+        ? null
+        : await this.commercialQuotes.resolveRegistrationCommercialPricing(
+            auth.tenantId,
+            normalizedRegistrationId
+          );
+    return {
+      ...invoice,
+      ...(commercialPricing !== null ? { commercialPricing } : {}),
+    };
   }
 
   private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {

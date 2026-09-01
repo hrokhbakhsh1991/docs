@@ -8,10 +8,13 @@ import {
   buildCommercialQuoteFreezeInput,
   commercialQuoteMatchesFreezeInput,
   COMMERCIAL_QUOTE_CALCULATION_VERSION,
+  mapFreezeInputToCommercialPricingDisplay,
+  mapQuoteVersionToCommercialPricingDisplay,
   normalizeCommercialQuoteCurrency,
   type CommercialQuoteFreezeInput,
   type CommercialQuoteVersion,
   type CreateCommercialQuoteVersionInput,
+  type RegistrationCommercialPricingDisplay,
 } from "../domain/commercial-quote";
 import type { FinanceObligationPort } from "../ports/finance-receipt-defaults.port";
 import type { FinanceClockPort } from "../ports/finance-clock.port";
@@ -124,6 +127,87 @@ export class CommercialQuoteService {
   }
 
   /**
+   * Authoritative commercial pricing for cross-surface display (portal, operator, invoice).
+   * Prefers live reducer when frozen quote is stale on same gross but different membership terms.
+   */
+  async resolveRegistrationCommercialPricing(
+    tenantId: string,
+    registrationId: string
+  ): Promise<RegistrationCommercialPricingDisplay | null> {
+    const normalizedTenantId = tenantId.trim();
+    const normalizedRegistrationId = registrationId.trim();
+    const quoteInput = await this.buildCurrentQuoteInput(normalizedTenantId, normalizedRegistrationId);
+    if (quoteInput === null) {
+      return null;
+    }
+
+    const displayOptions = await this.resolveMembershipDisplayOptions(
+      normalizedTenantId,
+      normalizedRegistrationId,
+      quoteInput
+    );
+    const active = await this.quotes.getActive(normalizedTenantId, normalizedRegistrationId);
+    if (active !== null) {
+      if (commercialQuoteMatchesFreezeInput(active, quoteInput)) {
+        return mapQuoteVersionToCommercialPricingDisplay(active, displayOptions);
+      }
+      if (active.status === "FROZEN") {
+        const frozenPayableMinor = BigInt(active.payableMinor.replace(/\D/g, "") || "0");
+        const previewPayableMinor = BigInt(quoteInput.payableMinor.replace(/\D/g, "") || "0");
+        if (previewPayableMinor < frozenPayableMinor) {
+          return mapFreezeInputToCommercialPricingDisplay(quoteInput, {
+            quoteStatus: active.status,
+            ...displayOptions,
+          });
+        }
+        return mapQuoteVersionToCommercialPricingDisplay(active, displayOptions);
+      }
+      return mapFreezeInputToCommercialPricingDisplay(quoteInput, {
+        quoteStatus: active.status,
+        ...displayOptions,
+      });
+    }
+
+    return mapFreezeInputToCommercialPricingDisplay(quoteInput, {
+      quoteStatus: null,
+      ...displayOptions,
+    });
+  }
+
+  private async resolveMembershipDisplayOptions(
+    tenantId: string,
+    registrationId: string,
+    quoteInput: CommercialQuoteFreezeInput
+  ): Promise<{
+    readonly membershipDiscountBlocked?: boolean;
+    readonly memberPermanentDiscountPercentage?: number | null;
+  }> {
+    if (this.freezeContext === null || this.membershipDiscount === null) {
+      return {};
+    }
+    const freezeContext = await this.freezeContext.resolveRegistrationFreezeContext({
+      tenantId,
+      registrationId,
+    });
+    if (freezeContext === null || freezeContext.memberUserId === null) {
+      return {};
+    }
+    const memberPermanentDiscountPercentage =
+      await this.membershipDiscount.getMembershipDiscountPercentage(
+        tenantId,
+        freezeContext.memberUserId
+      );
+    const membershipDiscountBlocked =
+      (memberPermanentDiscountPercentage ?? 0) > 0 &&
+      !freezeContext.allowMembershipDiscount &&
+      quoteInput.source === "tour_canonical";
+    return {
+      memberPermanentDiscountPercentage,
+      ...(membershipDiscountBlocked ? { membershipDiscountBlocked: true } : {}),
+    };
+  }
+
+  /**
    * DEC-CQ-008 — freeze on money path when registration is quotable.
    * Returns null when obligation cannot resolve (legacy path continues).
    */
@@ -140,9 +224,6 @@ export class CommercialQuoteService {
 
     const active = await this.quotes.getActive(normalizedTenantId, normalizedRegistrationId);
     if (active?.status === "LOCKED") {
-      return active;
-    }
-    if (active?.status === "FROZEN") {
       return active;
     }
 

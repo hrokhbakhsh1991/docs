@@ -346,12 +346,41 @@ Design fields only — **no prescribed storage table or API** in this contract.
 | Workspace gross resolver | Catalog + workspace bind | **Input** to gross only |
 | Quote freeze | Finance | **Creates** version |
 | Identity membership read | Identity → Finance | **Input** to member reducer at freeze |
-| Invoice compile | Finance | **Reads** active quote payable (legacy: live obligation) |
+| Invoice compile | Finance | **Reads** active quote payable via `resolveRegistrationCommercialPricing` (live preview when no quote; member-benefit override on stale FROZEN) |
 | Member receipt / payment | Finance | **Requires** quote or legacy fallback; respects LOCKED |
 | Refund | Finance | **Ignores** quote for cap; may **display** quote for context |
 | Operator override (today) | Finance | **Creates** quote version with `source=operator_override`; legacy intake override valid until first freeze |
+| Cross-surface display | Finance → portal / operator / marketing adapters | **`RegistrationCommercialPricingDisplay`** — gross, discount, payable, quote source/status |
 
 Member-facing catalog estimate may mirror gross formula for UX; **Commercial Quote** is authoritative at freeze.
+
+### Cross-surface pricing read model (`RegistrationCommercialPricingDisplay`)
+
+Server-only DTO shared by portal registration detail, operator finance invoice, and member receipt surfaces. Fields:
+
+| Field | Meaning |
+| ----- | ------- |
+| `grossMinor` | Catalog obligation before reducer |
+| `memberDiscountPercentage` | Percent applied when `quoteSource = member_discount`; otherwise `null` |
+| `memberDiscountMinor` | Absolute deduction (`"0"` when none) |
+| `payableMinor` | Authoritative commercial amount for display and `dueTotalMinor` |
+| `currency` | ISO currency |
+| `quoteSource` | `tour_canonical` · `member_discount` · `operator_override` · `free_collection` |
+| `quoteStatus` | Active quote status when frozen (`FROZEN` / `LOCKED`) or `null` for live preview |
+| `membershipDiscountBlocked` | Optional — member has permanent % but tour `allowMembershipDiscount !== true` |
+| `memberPermanentDiscountPercentage` | Optional — identity reward % for operator explanation |
+
+**Resolution (`resolveRegistrationCommercialPricing`):**
+
+1. Build current freeze input from obligation + membership gate (same reducer as freeze; never mutates quote rows).
+2. If active quote **matches** current input → return frozen version fields.
+3. If active quote is **FROZEN** and preview payable **&lt;** frozen payable → return live preview (member benefit when discount assigned after freeze).
+4. If active quote is **FROZEN** and preview payable **≥** frozen payable → return frozen quote (do not increase charge after freeze).
+5. If no active quote → return live preview.
+
+**`ensureFrozenOnApprove` re-match (DEC-CQ-001 amend):** No longer returns stale FROZEN without input comparison. When approve runs and current reducer differs, Finance **supersedes** with a new version (e.g. discount assigned between first freeze and approval).
+
+**Operator visibility:** When `membershipDiscountBlocked` is true, operator UI must explain that the member has a permanent discount but the tour gate disallows it — payable remains `tour_canonical` gross.
 
 ---
 
