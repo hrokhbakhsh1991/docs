@@ -69,7 +69,7 @@ describe("thin-shell-create-chrome-capability — Phase 4ab/4ag", () => {
     assert.match(pkg, /ensureWizardCreateChromePackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*WizardCreateChromeSurface>/);
-    assert.match(pkg, /import\(/);
+    assert.match(pkg, /importUiSurface\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-create-chrome-surface\"/);
   });
 });

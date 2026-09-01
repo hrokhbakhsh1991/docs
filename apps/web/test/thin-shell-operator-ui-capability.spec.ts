@@ -72,7 +72,7 @@ describe("thin-shell-operator-ui-capability — Phase 4ao", () => {
     assert.match(pkg, /ensureOperatorUiComponentsPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*OperatorUiComponentsSurface>/);
-    assert.match(pkg, /import\(/);
+    assert.match(pkg, /importUiSurface\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/operator-ui-components-surface\"/);
   });
 });

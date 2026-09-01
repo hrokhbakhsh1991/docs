@@ -65,7 +65,7 @@ describe("thin-shell-settings-equipment-ui-capability — Phase 4ba", () => {
     assert.match(pkg, /ensureSettingsEquipmentUiPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*SettingsEquipmentUiPackageSurface>/);
-    assert.match(pkg, /import\(/);
+    assert.match(pkg, /importUiSurface\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/settings\/settings-equipment-ui-surface\"/);
   });
 });

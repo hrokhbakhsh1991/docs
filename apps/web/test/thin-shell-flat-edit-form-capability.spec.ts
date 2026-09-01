@@ -67,7 +67,7 @@ describe("thin-shell-flat-edit-form-capability — Phase 4ae/4ai", () => {
     assert.match(pkg, /ensureWizardFlatEditFormPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*WizardFlatEditFormSurface>/);
-    assert.match(pkg, /import\(/);
+    assert.match(pkg, /importUiSurface\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-flat-edit-form-surface\"/);
   });
 });
