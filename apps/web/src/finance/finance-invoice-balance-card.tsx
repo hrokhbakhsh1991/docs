@@ -9,6 +9,7 @@ import {
   parseRegistrationInvoice,
   type RegistrationInvoice,
 } from "@/finance/finance-invoice-logic";
+import { FinanceCommercialPricingBreakdown } from "@/finance/finance-commercial-pricing-breakdown";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import {
   FINANCE_REGISTRATION_CACHE_NS,
@@ -120,24 +121,33 @@ export function FinanceInvoiceBalanceCard({
         </p>
       ) : null}
       {invoice !== null ? (
-        <div className="grid gap-3 rounded-md border bg-muted/30 p-4 sm:grid-cols-3">
-          <div>
-            <p className="text-xs text-muted-foreground">{t("invoiceTotal")}</p>
-            <p className="font-medium">
-              {formatMinorAmount(invoice.invoiceTotalMinor, invoice.currency, locale)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">{t("paid")}</p>
-            <p className="font-medium">
-              {formatMinorAmount(invoice.paidAmountMinor, invoice.currency, locale)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">{t("balanceDue")}</p>
-            <p className="font-medium">
-              {formatMinorAmount(invoice.balanceDueMinor, invoice.currency, locale)}
-            </p>
+        <div className="space-y-4">
+          {invoice.commercialPricing !== undefined ? (
+            <FinanceCommercialPricingBreakdown
+              pricing={invoice.commercialPricing}
+              currency={invoice.currency}
+              className="grid gap-3 rounded-md border bg-muted/20 p-4"
+            />
+          ) : null}
+          <div className="grid gap-3 rounded-md border bg-muted/30 p-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-muted-foreground">{t("invoiceTotal")}</p>
+              <p className="font-medium">
+                {formatMinorAmount(invoice.invoiceTotalMinor, invoice.currency, locale)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("paid")}</p>
+              <p className="font-medium">
+                {formatMinorAmount(invoice.paidAmountMinor, invoice.currency, locale)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("balanceDue")}</p>
+              <p className="font-medium">
+                {formatMinorAmount(invoice.balanceDueMinor, invoice.currency, locale)}
+              </p>
+            </div>
           </div>
         </div>
       ) : null}

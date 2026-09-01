@@ -413,6 +413,12 @@
     "recentTitle": "پیش‌پرداخت‌های اخیر",
     "empty": "هنوز پیش‌پرداختی ثبت نشده است."
   },
+  "commercialPricing": {
+    "gross": "قیمت اصلی",
+    "membershipDiscount": "تخفیف عضویت ({percent}٪)",
+    "payable": "مبلغ قابل پرداخت",
+    "membershipDiscountBlocked": "این عضو {percent}٪ تخفیف دائمی دارد، اما این تور اجازه تخفیف عضویت نمی‌دهد. قیمت کامل کاتالوگ اعمال می‌شود."
+  },
   "picker": {
     "label": "رزرو / ثبت‌نام",
     "searchPlaceholder": "جستجو با عنوان تور یا نام مهمان…",

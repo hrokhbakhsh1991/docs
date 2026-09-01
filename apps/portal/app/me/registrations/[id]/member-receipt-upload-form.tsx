@@ -25,6 +25,16 @@ export type MemberReceiptDue = {
   readonly lines: readonly MemberReceiptDueLine[];
 };
 
+export type MemberReceiptCommercialPricing = {
+  readonly grossMinor: string;
+  readonly memberDiscountPercentage: number | null;
+  readonly memberDiscountMinor: string;
+  readonly payableMinor: string;
+  readonly currency: string;
+  readonly quoteSource: string;
+  readonly quoteStatus: string | null;
+};
+
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: RegistrationLifecycleStatus;
@@ -32,6 +42,7 @@ type Props = {
   readonly tripsListHref: string;
   readonly tourHref: string | null;
   readonly catalogDue: MemberReceiptDue | null;
+  readonly commercialPricing?: MemberReceiptCommercialPricing | null;
   readonly cancelSource?: string | null;
 };
 
@@ -112,6 +123,7 @@ export function MemberReceiptUploadForm({
   tripsListHref,
   tourHref,
   catalogDue,
+  commercialPricing = null,
   cancelSource,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
@@ -200,7 +212,12 @@ export function MemberReceiptUploadForm({
   const showCatalogLines =
     catalogDue !== null &&
     remainingDue !== null &&
+    commercialPricing === null &&
     (remainingDue === catalogDue.totalMinor || remainingDue === panel.obligationMinor);
+  const showCommercialPricing =
+    commercialPricing !== null &&
+    commercialPricing.quoteSource === "member_discount" &&
+    Number.parseInt(commercialPricing.memberDiscountMinor, 10) > 0;
   const dueCurrency =
     typeof panel.currency === "string" && panel.currency.length > 0 ? panel.currency : null;
 
@@ -222,6 +239,37 @@ export function MemberReceiptUploadForm({
             })}
           </strong>
         </p>
+        {showCommercialPricing && commercialPricing !== null ? (
+          <dl data-portal-member-receipt-commercial-pricing>
+            <div>
+              <dt>{t("pricingGross")}</dt>
+              <dd>
+                {formatMemberMinorAmount(commercialPricing.grossMinor, dueCurrency, locale)}
+              </dd>
+            </div>
+            <div>
+              <dt>
+                {t("pricingMembershipDiscount", {
+                  percent: commercialPricing.memberDiscountPercentage ?? 0,
+                })}
+              </dt>
+              <dd>
+                −
+                {formatMemberMinorAmount(
+                  commercialPricing.memberDiscountMinor,
+                  dueCurrency,
+                  locale
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("pricingPayable")}</dt>
+              <dd>
+                {formatMemberMinorAmount(commercialPricing.payableMinor, dueCurrency, locale)}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
             {t("duePaid", {

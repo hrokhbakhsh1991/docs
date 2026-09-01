@@ -209,6 +209,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
+          commercialPricing={row.commercialPricing ?? null}
           cancelSource={row.cancelSource ?? null}
         />
       </main>

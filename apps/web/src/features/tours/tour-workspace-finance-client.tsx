@@ -20,6 +20,7 @@ import { TourWorkspaceFinanceControls } from "@/features/tours/tour-workspace-fi
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
 import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
+import { FinanceCommercialPricingBreakdown } from "@/finance/finance-commercial-pricing-breakdown";
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
 import { type OutstandingBalanceListItem } from "@/finance/finance-outstanding-logic";
@@ -661,6 +662,13 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
 
         {detailData.detailState !== null ? (
           <>
+            {detailData.invoice?.commercialPricing !== undefined ? (
+              <FinanceCommercialPricingBreakdown
+                pricing={detailData.invoice.commercialPricing}
+                currency={detailData.invoice.currency}
+                className="grid gap-2 rounded-md border bg-background/70 px-3 py-3 text-sm"
+              />
+            ) : null}
             {detailAmountRows.length > 0 ? (
               <details className="rounded-md border border-dashed px-3 py-2">
                 <summary className="cursor-pointer text-sm font-medium text-muted-foreground">

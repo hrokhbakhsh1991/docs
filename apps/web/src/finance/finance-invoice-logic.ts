@@ -1,3 +1,9 @@
+import type { RegistrationCommercialPricingDisplay } from "@app-tour/finance-http-contracts";
+
+import { parseRegistrationCommercialPricing } from "./finance-commercial-pricing-logic";
+
+export type { RegistrationCommercialPricingDisplay };
+
 export const FINANCE_INVOICE_TEST_IDS = {
   lookupForm: "finance-invoice-lookup-form",
   balancePanel: "finance-invoice-balance-panel",
@@ -10,6 +16,7 @@ export type RegistrationInvoice = {
   readonly paidAmountMinor: string;
   readonly balanceDueMinor: string;
   readonly walletNetMinor: string;
+  readonly commercialPricing?: RegistrationCommercialPricingDisplay;
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -30,6 +37,12 @@ export function parseRegistrationInvoice(raw: unknown): RegistrationInvoice | nu
     paidAmountMinor: String(record.paidAmountMinor ?? "0"),
     balanceDueMinor: String(record.balanceDueMinor ?? "0"),
     walletNetMinor: String(record.walletNetMinor ?? "0"),
+    ...(record.commercialPricing !== undefined
+      ? {
+          commercialPricing:
+            parseRegistrationCommercialPricing(record.commercialPricing) ?? undefined,
+        }
+      : {}),
   };
 }
 
