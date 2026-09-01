@@ -19,6 +19,7 @@ import {
   buildUrbanExposureResolverPort,
 } from "../exposure/workspace-exposure-host-bindings.generated";
 import { buildDenaliReminderFeedPort } from "../exposure/denali-reminder-activation.repository";
+import { RegistrationCommercialPricingReadAdapter } from "../workspace-finance/infrastructure/registration-commercial-pricing-read.adapter.ts";
 import { createHostBookingPublicAdapter } from "../bookings/infrastructure/host-booking-public.adapter";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { getSettingsResourcesRepository } from "../settings/create-settings-resources-repository";
@@ -95,6 +96,13 @@ function resolveReminderFeedPort(deps: DenaliProductRouteDeps) {
   return buildDenaliReminderFeedPort();
 }
 
+function resolveRegistrationCommercialPricingPort(deps: DenaliProductRouteDeps) {
+  if (deps.registrationCommercialPricingPort !== undefined) {
+    return deps.registrationCommercialPricingPort;
+  }
+  return new RegistrationCommercialPricingReadAdapter();
+}
+
 function resolveUrbanExposureResolverPort(deps: UrbanProductRouteDeps) {
   if (deps.exposureResolverPort !== undefined) {
     return deps.exposureResolverPort;
@@ -133,6 +141,7 @@ configureDenaliProductHttpHost({
   resolvePublicDestinationPort,
   resolveExposureResolverPort: resolveDenaliExposureResolverPort,
   resolveReminderFeedPort,
+  resolveRegistrationCommercialPricingPort,
 });
 
 configureHarborHttpHost({

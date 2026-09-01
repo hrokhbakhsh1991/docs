@@ -5,6 +5,7 @@ import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliPublicDestinationPort } from "./ports/public-destination.port";
 import type { DenaliExposureResolverPort } from "./ports/exposure-resolver.port";
 import type { DenaliReminderFeedPort } from "./ports/reminder-feed.port";
+import type { RegistrationCommercialPricingPort } from "./ports/registration-commercial-pricing.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 
 export type DenaliProductRouteDeps = {
@@ -13,6 +14,7 @@ export type DenaliProductRouteDeps = {
   readonly publicDestinationPort?: DenaliPublicDestinationPort;
   readonly exposureResolverPort?: DenaliExposureResolverPort;
   readonly reminderFeedPort?: DenaliReminderFeedPort;
+  readonly registrationCommercialPricingPort?: RegistrationCommercialPricingPort;
   readonly resolveGuestMembership?: (
     tenantId: string,
     userId: string
@@ -47,4 +49,7 @@ export type DenaliProductHttpHostPorts = WorkspaceProductHttpHostBasePorts & {
   readonly resolveReminderFeedPort: (
     deps: DenaliProductRouteDeps
   ) => DenaliReminderFeedPort | undefined;
+  readonly resolveRegistrationCommercialPricingPort: (
+    deps: DenaliProductRouteDeps
+  ) => RegistrationCommercialPricingPort;
 };
