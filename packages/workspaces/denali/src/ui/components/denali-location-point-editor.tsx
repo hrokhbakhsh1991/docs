@@ -13,8 +13,9 @@ import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-
 import {
   denaliLocationZoneOverviewPath,
   isDenaliLocationDataPopulated,
+  mergeDenaliLocationDataPatch,
   resolveDenaliLocationZoneFromStorage,
-  toPersistableDenaliLocationData,
+  toStoredDenaliLocationZoneValue,
   type DenaliLocationData,
   type DenaliLocationZonePath,
 } from "../logic/denali-location-types";
@@ -60,9 +61,10 @@ export function DenaliLocationPointEditor({
         getCanonicalValue(base, canonicalPath),
         getCanonicalValue(base, nestedPath)
       );
-      const next = toPersistableDenaliLocationData({ ...current, ...patch });
-      const withRoot = setCanonicalValue(base, canonicalPath, next);
-      return setCanonicalValue(withRoot, nestedPath, next);
+      const merged = mergeDenaliLocationDataPatch(current, patch);
+      const stored = toStoredDenaliLocationZoneValue(merged);
+      const withRoot = setCanonicalValue(base, canonicalPath, stored);
+      return setCanonicalValue(withRoot, nestedPath, stored);
     });
   };
 

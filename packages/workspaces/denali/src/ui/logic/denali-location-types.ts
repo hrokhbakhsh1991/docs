@@ -66,11 +66,8 @@ export function parseDenaliLocationData(value: unknown): DenaliLocationData {
   };
 }
 
-/** True when the zone has any operator-entered label, address, or coordinates (INV-DENALI-WIZ-019). */
-export function isDenaliLocationDataPopulated(location: DenaliLocationData): boolean {
-  if ((location.label ?? "").trim().length > 0) {
-    return true;
-  }
+/** True when the zone has address text or finite coordinates (label alone does not count). */
+export function hasDenaliLocationAddressOrCoordinates(location: DenaliLocationData): boolean {
   if ((location.address ?? "").trim().length > 0) {
     return true;
   }
@@ -82,6 +79,14 @@ export function isDenaliLocationDataPopulated(location: DenaliLocationData): boo
   );
 }
 
+/** True when the zone has any operator-entered label, address, or coordinates (INV-DENALI-WIZ-019). */
+export function isDenaliLocationDataPopulated(location: DenaliLocationData): boolean {
+  if ((location.label ?? "").trim().length > 0) {
+    return true;
+  }
+  return hasDenaliLocationAddressOrCoordinates(location);
+}
+
 /**
  * Persist-safe location value — label/address/lat/lng only (ED-CAMP-PERSIST-01).
  * Empty zones are omitted (`undefined`) so submit does not store a fake pin.
@@ -91,6 +96,47 @@ export function toPersistableDenaliLocationData(
 ): DenaliLocationData | undefined {
   const parsed = parseDenaliLocationData(location);
   return isDenaliLocationDataPopulated(parsed) ? parsed : undefined;
+}
+
+/**
+ * Draft-storage shape for route-zone location edits.
+ * Cleared address/coordinates stay explicit `undefined` fields so
+ * `rebaseDraftChangeOntoLatest` cannot resurrect stale nested pins when keys are omitted.
+ */
+export function toStoredDenaliLocationZoneValue(location: DenaliLocationData): DenaliLocationData {
+  const parsed = parseDenaliLocationData(location);
+  if (hasDenaliLocationAddressOrCoordinates(parsed)) {
+    return toPersistableDenaliLocationData(parsed) ?? parsed;
+  }
+  const labelPart =
+    typeof parsed.label === "string" && parsed.label.trim().length > 0
+      ? { label: parsed.label }
+      : {};
+  return {
+    ...labelPart,
+    address: undefined,
+    latitude: undefined,
+    longitude: undefined,
+  };
+}
+
+/** Merge zone patch — `in` semantics preserve explicit `undefined` clears (DEF-LOC-001). */
+export function mergeDenaliLocationDataPatch(
+  current: DenaliLocationData,
+  patch: Partial<DenaliLocationData>
+): DenaliLocationData {
+  const hasAddressPatch = "address" in patch || "latitude" in patch || "longitude" in patch;
+  return {
+    ...current,
+    ...(patch.label !== undefined ? { label: patch.label } : {}),
+    ...(hasAddressPatch
+      ? {
+          address: "address" in patch ? patch.address : current.address,
+          latitude: "latitude" in patch ? patch.latitude : current.latitude,
+          longitude: "longitude" in patch ? patch.longitude : current.longitude,
+        }
+      : {}),
+  };
 }
 
 /**

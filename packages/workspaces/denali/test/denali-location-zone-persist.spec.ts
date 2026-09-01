@@ -8,10 +8,16 @@ import { DENALI_FORM_PROFILE_GHOST_PATHS } from "../src/composites/denali-compos
 import {
   DENALI_LOCATION_ZONE_GHOST_PATHS,
   denaliLocationZoneOverviewPath,
+  hasDenaliLocationAddressOrCoordinates,
   resolveDenaliLocationZoneFromStorage,
   toPersistableDenaliLocationData,
+  toStoredDenaliLocationZoneValue,
+  mergeDenaliLocationDataPatch,
+  type DenaliLocationData,
 } from "../src/ui/logic/denali-location-types";
-import { getCanonicalValueFromDraft } from "../src/wizard/canonical-draft-access";
+import { resolveLocationConfirmPatch } from "../src/ui/logic/denali-location-modal-logic";
+import { rebaseDraftChangeOntoLatest } from "../src/ui/logic/denali-tour-kind-field-logic";
+import { getCanonicalValueFromDraft, setCanonicalValueOnDraft, type CanonicalWizardDraftEnvelope } from "../src/wizard/canonical-draft-access";
 import { sanitizeDenaliWizardDraftEnvelope } from "../src/wizard/denali-wizard-draft-sanitize";
 import { buildDenaliWizardRuleEvalContext } from "../src/wizard/denali-wizard-rule-eval-context";
 import { loadDenaliWizardRulesModule } from "../src/wizard/denali-wizard-host-hooks";
@@ -27,6 +33,42 @@ const ASKLIM_CAMP = {
   latitude: 36.16399,
   longitude: 52.76416,
 } as const;
+
+const QA_LOC_A = {
+  address: "آدرس آزمایشی A",
+  latitude: 35.7,
+  longitude: 51.4,
+} as const;
+
+function applyCampPointLocationPatch(
+  draft: CanonicalWizardDraftEnvelope,
+  patch: Partial<DenaliLocationData>
+): CanonicalWizardDraftEnvelope {
+  const canonicalPath = "campPoint";
+  const nestedPath = denaliLocationZoneOverviewPath("campPoint");
+  const current = resolveDenaliLocationZoneFromStorage(
+    getCanonicalValueFromDraft(draft, canonicalPath),
+    getCanonicalValueFromDraft(draft, nestedPath)
+  );
+  const merged = mergeDenaliLocationDataPatch(current, patch);
+  const stored = toStoredDenaliLocationZoneValue(merged);
+  const withRoot = setCanonicalValueOnDraft(draft, canonicalPath, stored);
+  return setCanonicalValueOnDraft(withRoot, nestedPath, stored);
+}
+
+function resolveCampPoint(draft: CanonicalWizardDraftEnvelope): DenaliLocationData {
+  return resolveDenaliLocationZoneFromStorage(
+    getCanonicalValueFromDraft(draft, "campPoint"),
+    getCanonicalValueFromDraft(draft, denaliLocationZoneOverviewPath("campPoint"))
+  );
+}
+
+function persistLikeWizardDraftChange(
+  latest: CanonicalWizardDraftEnvelope,
+  incoming: CanonicalWizardDraftEnvelope
+): CanonicalWizardDraftEnvelope {
+  return rebaseDraftChangeOntoLatest(latest, incoming);
+}
 
 describe("denali-location-zone-persist.spec.ts (ED-CAMP-PERSIST-01)", () => {
   it("DEN-CAMP-PERSIST-01 populated root wins over nested overview", () => {
@@ -59,7 +101,8 @@ describe("denali-location-zone-persist.spec.ts (ED-CAMP-PERSIST-01)", () => {
   it("DEN-CAMP-PERSIST-01 field dual-writes root and tripDetails.overview", () => {
     assert.match(EDITOR_SRC, /resolveDenaliLocationZoneFromStorage/);
     assert.match(EDITOR_SRC, /denaliLocationZoneOverviewPath/);
-    assert.match(EDITOR_SRC, /toPersistableDenaliLocationData/);
+    assert.match(EDITOR_SRC, /toStoredDenaliLocationZoneValue/);
+    assert.match(EDITOR_SRC, /mergeDenaliLocationDataPatch/);
     assert.match(EDITOR_SRC, /setCanonicalValue\(withRoot, nestedPath/);
   });
 
@@ -114,5 +157,88 @@ describe("denali-location-zone-persist.spec.ts (ED-CAMP-PERSIST-01)", () => {
       Number(getCanonicalValueFromDraft(sanitized, "tripDetails.overview.trailDistanceKm")),
       8
     );
+  });
+
+  it("DEF-LOC-001 clear confirm empties canonical location after draft rebase", () => {
+    const latest: CanonicalWizardDraftEnvelope = {
+      data: {
+        category: "nature_multi",
+        campPoint: { ...QA_LOC_A },
+        tripDetails: { overview: { campPoint: { ...QA_LOC_A } } },
+      },
+    };
+    const incoming = applyCampPointLocationPatch(latest, resolveLocationConfirmPatch({}));
+    const persisted = persistLikeWizardDraftChange(latest, incoming);
+    const resolved = resolveCampPoint(persisted);
+    assert.equal(hasDenaliLocationAddressOrCoordinates(resolved), false);
+    assert.equal(resolved.address, undefined);
+    assert.equal(toPersistableDenaliLocationData(resolved), undefined);
+  });
+
+  it("DEF-LOC-001 clear cancel leaves canonical location unchanged", () => {
+    const latest: CanonicalWizardDraftEnvelope = {
+      data: {
+        category: "nature_multi",
+        campPoint: { ...QA_LOC_A },
+        tripDetails: { overview: { campPoint: { ...QA_LOC_A } } },
+      },
+    };
+    const before = resolveCampPoint(latest);
+    const afterCancel = persistLikeWizardDraftChange(latest, latest);
+    assert.deepEqual(resolveCampPoint(afterCancel), before);
+  });
+
+  it("DEF-LOC-001 clear confirm then reopen resolves empty canonical state", () => {
+    const latest: CanonicalWizardDraftEnvelope = {
+      data: {
+        category: "nature_multi",
+        campPoint: { ...QA_LOC_A },
+        tripDetails: { overview: { campPoint: { ...QA_LOC_A } } },
+      },
+    };
+    const cleared = persistLikeWizardDraftChange(
+      latest,
+      applyCampPointLocationPatch(latest, resolveLocationConfirmPatch({}))
+    );
+    const reopened = resolveCampPoint(cleared);
+    assert.equal(hasDenaliLocationAddressOrCoordinates(reopened), false);
+    assert.equal(reopened.address, undefined);
+  });
+
+  it("DEF-LOC-001 clear confirm preserves label without mutating it", () => {
+    const latest: CanonicalWizardDraftEnvelope = {
+      data: {
+        category: "nature_multi",
+        campPoint: { label: "کمپ", ...QA_LOC_A },
+        tripDetails: { overview: { campPoint: { label: "کمپ", ...QA_LOC_A } } },
+      },
+    };
+    const cleared = persistLikeWizardDraftChange(
+      latest,
+      applyCampPointLocationPatch(latest, resolveLocationConfirmPatch({}))
+    );
+    const resolved = resolveCampPoint(cleared);
+    assert.equal(resolved.label, "کمپ");
+    assert.equal(hasDenaliLocationAddressOrCoordinates(resolved), false);
+  });
+
+  it("DEF-LOC-001 modal clear patch does not mutate canonical before confirm apply", () => {
+    const latest: CanonicalWizardDraftEnvelope = {
+      data: {
+        category: "nature_multi",
+        campPoint: { ...QA_LOC_A },
+      },
+    };
+    const clearPatch = resolveLocationConfirmPatch({});
+    assert.deepEqual(clearPatch, {
+      address: undefined,
+      latitude: undefined,
+      longitude: undefined,
+    });
+    assert.deepEqual(resolveCampPoint(latest), {
+      address: QA_LOC_A.address,
+      latitude: QA_LOC_A.latitude,
+      longitude: QA_LOC_A.longitude,
+    });
   });
 });
