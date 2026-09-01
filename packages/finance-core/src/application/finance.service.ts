@@ -1074,6 +1074,10 @@ export class FinanceService {
       tenantId: auth.tenantId,
       registrationId,
     });
+    const payableObligationPromise = this.resolveInvoiceObligationMinor(
+      auth.tenantId,
+      registrationId
+    );
     const invoicePromise = this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
       .then((invoice) => ({
         remainingMinor: invoice.balanceDueMinor,
@@ -1089,11 +1093,12 @@ export class FinanceService {
       }));
 
     const latest = await latestPromise;
-    const [collection, obligation, invoice, preview] = await Promise.all([
+    const [collection, obligation, invoice, preview, payableObligationMinor] = await Promise.all([
       collectionPromise,
       obligationPromise,
       invoicePromise,
       this.resolveMemberReceiptPreview(auth.tenantId, latest),
+      payableObligationPromise,
     ]);
     const zeroObligation =
       collection === "free" ||
@@ -1105,7 +1110,7 @@ export class FinanceService {
 
     const base = {
       remainingMinor,
-      obligationMinor: obligation?.obligationMinor ?? null,
+      obligationMinor: payableObligationMinor ?? obligation?.obligationMinor ?? null,
       paidMinor,
       currency,
       previewUrl: preview.url,

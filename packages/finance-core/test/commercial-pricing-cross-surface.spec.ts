@@ -409,4 +409,193 @@ describe("commercial-pricing-cross-surface.spec.ts — CQ-DISPLAY", () => {
     const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
     assert.equal(invoice.invoiceTotalMinor, "500000");
   });
+
+  it("CQ-DISPLAY-06: member receipt obligationMinor matches discounted invoice total", async () => {
+    const { finance, registrationId } = createHarness({
+      tourCanonical: tourCanonical(true),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "10000000",
+        source: "tour_canonical",
+      },
+      discountPercent: 50,
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+    const member = await finance.getMemberReceiptStatusForRegistration(
+      memberAuth(),
+      registrationId
+    );
+
+    assert.equal(invoice.invoiceTotalMinor, "5000000");
+    assert.equal(invoice.balanceDueMinor, "5000000");
+    assert.equal(member.remainingMinor, "5000000");
+    assert.equal(member.obligationMinor, "5000000");
+  });
+
+  it("CQ-DISPLAY-07: gate-off member receipt keeps gross obligationMinor", async () => {
+    const { finance, registrationId } = createHarness({
+      tourCanonical: tourCanonical(false),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "10000000",
+        source: "tour_canonical",
+      },
+      discountPercent: 50,
+    });
+
+    const member = await finance.getMemberReceiptStatusForRegistration(
+      memberAuth(),
+      registrationId
+    );
+
+    assert.equal(member.remainingMinor, "10000000");
+    assert.equal(member.obligationMinor, "10000000");
+  });
+
+  it("CQ-DISPLAY-08: no member discount keeps gross across receipt and invoice", async () => {
+    const { finance, registrationId } = createHarness({
+      tourCanonical: tourCanonical(true),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "10000000",
+        source: "tour_canonical",
+      },
+      discountPercent: 0,
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+    const member = await finance.getMemberReceiptStatusForRegistration(
+      memberAuth(),
+      registrationId
+    );
+
+    assert.equal(invoice.invoiceTotalMinor, "10000000");
+    assert.equal(member.remainingMinor, "10000000");
+    assert.equal(member.obligationMinor, "10000000");
+  });
+
+  it("CQ-DISPLAY-09: frozen quote keeps payable obligation on member receipt", async () => {
+    const registrationId = randomUUID();
+    const obligation: LiveRegistrationObligation = {
+      currency: "IRR",
+      obligationMinor: "10000000",
+      source: "tour_canonical",
+    };
+    const obligationPort: FinanceObligationPort = {
+      async resolveRegistrationObligation() {
+        return obligation;
+      },
+      async resolveRegistrationPaymentCollection() {
+        return "offline";
+      },
+      async setRegistrationObligationOverride() {
+        return false;
+      },
+    };
+    const quoteRepo = new InMemoryCommercialQuoteRepository();
+    const commercialQuotes = new CommercialQuoteService(
+      quoteRepo,
+      obligationPort,
+      FakeClock,
+      {
+        async resolveRegistrationFreezeContext() {
+          return { memberUserId: MEMBER_USER, allowMembershipDiscount: true };
+        },
+      },
+      {
+        async getMembershipDiscountPercentage() {
+          return 50;
+        },
+      }
+    );
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      new InMemoryFinanceRepository({
+        async syncStatus(i) {
+          return i.paymentStatus;
+        },
+        async raisePaidInTx() {
+          return "paid";
+        },
+        async memberOwnsRegistration() {
+          return true;
+        },
+        async getPaymentStatus() {
+          return "unpaid";
+        },
+        async getRegistrationLifecycleStatus() {
+          return "approved";
+        },
+      }),
+      {
+        async syncStatus(i) {
+          return i.paymentStatus;
+        },
+        async raisePaidInTx() {
+          return "paid";
+        },
+        async memberOwnsRegistration() {
+          return true;
+        },
+        async getPaymentStatus() {
+          return "unpaid";
+        },
+        async getRegistrationLifecycleStatus() {
+          return "approved";
+        },
+      },
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock,
+      obligationPort,
+      "0",
+      nullFinanceArObservationPort,
+      commercialQuotes
+    );
+
+    await commercialQuotes.ensureFrozenOnApprove(TENANT, registrationId);
+    const member = await finance.getMemberReceiptStatusForRegistration(
+      memberAuth(),
+      registrationId
+    );
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+
+    assert.equal(invoice.invoiceTotalMinor, "5000000");
+    assert.equal(member.remainingMinor, "5000000");
+    assert.equal(member.obligationMinor, "5000000");
+  });
+
+  it("CQ-DISPLAY-10: 50% discount + 30% prepayment uses discounted payable obligation", async () => {
+    const { finance, registrationId } = createHarness({
+      tourCanonical: tourCanonical(true, 30),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "10000000",
+        source: "tour_canonical",
+      },
+      discountPercent: 50,
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+    const member = await finance.getMemberReceiptStatusForRegistration(
+      memberAuth(),
+      registrationId
+    );
+    const prepayment = (
+      (BigInt(invoice.invoiceTotalMinor) * BigInt(30)) /
+      BigInt(100)
+    ).toString();
+
+    assert.equal(invoice.invoiceTotalMinor, "5000000");
+    assert.equal(member.obligationMinor, "5000000");
+    assert.equal(prepayment, "1500000");
+  });
 });
