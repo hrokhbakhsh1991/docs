@@ -68,6 +68,42 @@ export function formatLocalizedNumber(
   return new Intl.NumberFormat(INTL_LOCALE[locale], options).format(value);
 }
 
+/** Formats an ASCII digit string with locale-aware thousand grouping and digits. */
+export function formatGroupedDigitsString(asciiDigits: string, locale: AppLocale): string {
+  const digits = asciiDigits.replace(/\D/g, "");
+  if (digits.length === 0) {
+    return "";
+  }
+  if (digits.length <= 15) {
+    const numeric = Number(digits);
+    if (Number.isFinite(numeric)) {
+      return formatLocalizedNumber(numeric, locale, {
+        maximumFractionDigits: 0,
+        useGrouping: true,
+      });
+    }
+  }
+  return toLocalizedDigits(digits.replace(/\B(?=(\d{3})+(?!\d))/g, ","), locale);
+}
+
+/** Formats minor-unit money strings for member-facing surfaces (display only). */
+export function formatMemberMinorAmount(
+  amountMinor: string,
+  currency: string,
+  locale: AppLocale
+): string {
+  const digits = amountMinor.replace(/\D/g, "");
+  const formatted = formatGroupedDigitsString(digits, locale);
+  if (formatted.length === 0) {
+    return amountMinor;
+  }
+  const code = currency.trim().toUpperCase();
+  if (code === "IRR") {
+    return locale === "fa" ? `${formatted} ریال` : `${formatted} IRR`;
+  }
+  return `${formatted} ${code}`;
+}
+
 /** Applies Persian digit mapping to an already-formatted string (e.g. legacy manual grouping). */
 export function localizeFormattedDigits(formatted: string, locale: AppLocale): string {
   return toLocalizedDigits(formatted, locale);

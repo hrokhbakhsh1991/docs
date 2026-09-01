@@ -214,6 +214,7 @@ export async function handleGetDenaliRegistration(
           registrationId,
           bookingPort,
           store: await host.resolveTourStore(deps),
+          commercialPricingPort: host.resolveRegistrationCommercialPricingPort(deps),
         });
         host.sendJson(res, 200, buildWorkspaceSuccessDataBody(result));
       },

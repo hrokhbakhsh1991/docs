@@ -7,7 +7,7 @@ export const PRODUCTION_STORAGE_DRIVER_FORBIDDEN = "PRODUCTION_STORAGE_DRIVER_FO
 
 /**
  * Resolve tour/booking storage driver.
- * Explicit STORAGE_DRIVER wins; else prisma when DATABASE_URL is set (TODO-009);
+ * Explicit STORAGE_DRIVER wins; else prisma when DATABASE_URL is set (PREV-AUD-009);
  * else production→prisma, otherwise memory.
  * @see docs/phase-20/p7/appendices/BOOKING_REMEDIATION_TODO_009_STORAGE_DEFAULT.md
  */

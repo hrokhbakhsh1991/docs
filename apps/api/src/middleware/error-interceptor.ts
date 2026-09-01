@@ -106,7 +106,7 @@ import { isPaidTourOpenGateBlockedError } from "../registrations/assert-paid-tou
 import {
   isDenaliTourMutationBlockedError,
   isDenaliTourMutationOverrideRequiredError,
-} from "@app-tour/workspace-denali/errors/tour-mutation";
+} from "../workspace/denali-host-legacy-bindings.generated.ts";
 import { isPublicRegistrationThrottleExceededError } from "../registrations/public-registration-throttle.ts";
 import { isRegistrationCapacityExceededError } from "../registrations/registration-capacity.service.ts";
 import { DbCircuitOpenError } from "../db/transient-db-error";

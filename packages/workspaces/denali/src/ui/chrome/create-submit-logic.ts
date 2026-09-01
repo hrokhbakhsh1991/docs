@@ -1,6 +1,7 @@
 import type { CreateTourPayload, WorkspacePlugin } from "@app-tour/workspace-sdk";
 import { mapValidationResultToIssues, type ValidationIssue } from "@app-tour/wizard-navigation";
 import { validateDenaliCreateTourSubmitSync } from "../../wizard/denali-wizard-validation";
+import { assertDenaliPhotoUploadsIdle } from "../logic/denali-photo-upload-tracker";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
 import type { DenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
@@ -41,6 +42,14 @@ export async function runDenaliCreateTourSubmit(input: {
     return {
       ok: false,
       failure: { kind: "rules-not-ready", code: "WIZARD_RULES_NOT_READY" },
+    };
+  }
+
+  const photoUploadIdleCode = assertDenaliPhotoUploadsIdle();
+  if (photoUploadIdleCode !== null) {
+    return {
+      ok: false,
+      failure: { kind: "submit-config", code: photoUploadIdleCode },
     };
   }
 

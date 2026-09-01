@@ -1,7 +1,7 @@
 /**
  * DP-6 — refund orchestration after cancellation (uses FinanceRefund SoT).
  */
-import { computeDenaliRefundEligibility } from "@app-tour/workspace-denali/booking";
+import { computeDenaliRefundEligibility } from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service.ts";
 import type { FinanceService } from "../workspace-finance/finance.service.ts";

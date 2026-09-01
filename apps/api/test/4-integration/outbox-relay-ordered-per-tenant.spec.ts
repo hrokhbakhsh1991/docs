@@ -73,6 +73,8 @@ describe(
       const firstId = randomUUID();
       const secondId = randomUUID();
       const aggregateId = randomUUID();
+      const firstCreatedAt = new Date("2026-01-01T00:00:00.000Z");
+      const secondCreatedAt = new Date("2026-01-01T00:00:00.001Z");
 
       await admin.outboxEvent.createMany({
         data: [
@@ -85,6 +87,7 @@ describe(
             payload: { tenantId, seq: 1 },
             status: "pending",
             domainEventId: randomUUID(),
+            createdAt: firstCreatedAt,
           },
           {
             id: secondId,
@@ -95,6 +98,7 @@ describe(
             payload: { tenantId, seq: 2 },
             status: "pending",
             domainEventId: randomUUID(),
+            createdAt: secondCreatedAt,
           },
         ],
       });

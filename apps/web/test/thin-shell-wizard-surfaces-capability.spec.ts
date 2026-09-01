@@ -29,7 +29,10 @@ describe("thin-shell-wizard-surfaces-capability — Phase 4as", () => {
     const binder = resolve(WEB_ROOT, "src/bootstrap/wizard-surface-bindings.generated.ts");
     assert.equal(existsSync(binder), false);
 
-    const warm = readFileSync(resolve(WEB_ROOT, "src/wizard/warm-operator-wizard-shell.ts"), "utf8");
+    const warm = readFileSync(
+      resolve(WEB_ROOT, "src/wizard/warm-operator-wizard-shell.ts"),
+      "utf8"
+    );
     const shellRegistry = readFileSync(
       resolve(WEB_ROOT, "src/wizard/wizard-surface-registry.ts"),
       "utf8"
@@ -58,9 +61,13 @@ describe("thin-shell-wizard-surfaces-capability — Phase 4as", () => {
     assert.doesNotMatch(review, /wizard-surface-bindings/);
   });
 
-  it("TS-4AS-03 package surface uses bundler-visible dynamic import", () => {
+  it("TS-4AS-03 package surface routes UI loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/wizard-surfaces-surface.ts"),
+      "utf8"
+    );
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
       "utf8"
     );
     assert.match(pkg, /WIZARD_COMPOSITE_SURFACE_CACHE_KEY/);
@@ -68,19 +75,20 @@ describe("thin-shell-wizard-surfaces-capability — Phase 4as", () => {
     assert.match(pkg, /ensureWizardCompositePackageSurface/);
     assert.match(pkg, /ensureWizardReviewPackageSurface/);
     assert.match(pkg, /ensureWizardSurfacesPackageSurface/);
-    assert.match(pkg, /import\("\.\.\/ui\/surfaces\/composite-surface"\)/);
-    assert.match(pkg, /import\("\.\.\/ui\/surfaces\/review-surface"\)/);
+    assert.match(pkg, /importUiSurface\("\.\.\/ui\/surfaces\/composite-surface"\)/);
+    assert.match(pkg, /importUiSurface\("\.\.\/ui\/surfaces\/review-surface"\)/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/composite-surface\"/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/review-surface\"/);
+    assert.match(loaders, /\"\.\.\/ui\/surfaces\/composite-surface\":/);
+    assert.match(loaders, /\"\.\.\/ui\/surfaces\/review-surface\":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 
   it("TS-4AS-04 ensureReady publishes composite + review under denali surface id", async () => {
     const plugin = getDenaliPlugin();
     await resolveWizardSurfacesCapability(plugin)!.ensureReady();
-    const {
-      resolveGeneratedCompositeSurface,
-      resolveGeneratedReviewSurface,
-    } = await import("../src/wizard/wizard-surface-registry");
+    const { resolveGeneratedCompositeSurface, resolveGeneratedReviewSurface } =
+      await import("../src/wizard/wizard-surface-registry");
     const composite = resolveGeneratedCompositeSurface("denali");
     const review = resolveGeneratedReviewSurface("denali");
     assert.ok(composite);

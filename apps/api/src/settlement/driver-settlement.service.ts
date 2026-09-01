@@ -5,15 +5,13 @@ import {
   assertDriverSettlementTransition,
   buildSettlementIdempotencyKey,
   calculateDriverSettlement,
-  type DriverSettlement,
-} from "@app-tour/workspace-denali/settlement";
-import {
   countAssignedPassengers,
   validateTransportAllocations,
+  type DriverSettlement,
   type RosterParticipant,
   type TransportAllocation,
   type TransportAllocationInput,
-} from "@app-tour/workspace-denali/transport";
+} from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 import { listBookings } from "../bookings/create-bookings-service.ts";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";

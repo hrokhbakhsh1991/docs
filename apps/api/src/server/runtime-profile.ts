@@ -1,5 +1,5 @@
 /**
- * Explicit runtime profile for staging / prodlike boots (TODO-003 / MR-P1-005).
+ * Explicit runtime profile for staging / prodlike boots (PREV-AUD-003 / MR-P1-005).
  * When `APP_RUNTIME_PROFILE=prodlike`, production-grade integrity probes run
  * even if NODE_ENV is not `production`.
  */

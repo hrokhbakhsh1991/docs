@@ -117,7 +117,7 @@ export async function claimPendingOutboxBatch(
               WHERE o2.tenant_id = outbox_events.tenant_id
                 AND o2.status = 'processing'
             )
-          ORDER BY created_at ASC
+          ORDER BY created_at ASC, id ASC
           LIMIT ${effectiveBatch}
           FOR UPDATE SKIP LOCKED
         `
@@ -135,7 +135,7 @@ export async function claimPendingOutboxBatch(
             last_error AS "lastError"
           FROM outbox_events
           WHERE status = 'pending'
-          ORDER BY created_at ASC
+          ORDER BY created_at ASC, id ASC
           LIMIT ${effectiveBatch}
           FOR UPDATE SKIP LOCKED
         `;
@@ -181,7 +181,7 @@ export async function claimPendingOutboxBatchForTenant(
               WHERE o2.tenant_id = outbox_events.tenant_id
                 AND o2.status = 'processing'
             )
-          ORDER BY created_at ASC
+          ORDER BY created_at ASC, id ASC
           LIMIT ${effectiveBatch}
           FOR UPDATE SKIP LOCKED
         `
@@ -199,7 +199,7 @@ export async function claimPendingOutboxBatchForTenant(
             last_error AS "lastError"
           FROM outbox_events
           WHERE status = 'pending' AND tenant_id = ${tenantId}::uuid
-          ORDER BY created_at ASC
+          ORDER BY created_at ASC, id ASC
           LIMIT ${effectiveBatch}
           FOR UPDATE SKIP LOCKED
         `;

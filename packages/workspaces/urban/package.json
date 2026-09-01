@@ -58,10 +58,6 @@
       "types": "./dist/exposure/index.d.ts",
       "default": "./dist/exposure/index.js"
     },
-    "./policy/tour-policy": {
-      "types": "./dist/policy/tour-policy.d.ts",
-      "default": "./dist/policy/tour-policy.js"
-    },
     "./host/policy/tour-policy": {
       "types": "./dist/policy/tour-policy.d.ts",
       "default": "./dist/policy/tour-policy.js"

@@ -1,8 +1,11 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+
+import { formatMemberMinorAmount } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 import type {
   MemberReceiptPanel,
@@ -22,6 +25,16 @@ export type MemberReceiptDue = {
   readonly lines: readonly MemberReceiptDueLine[];
 };
 
+export type MemberReceiptCommercialPricing = {
+  readonly grossMinor: string;
+  readonly memberDiscountPercentage: number | null;
+  readonly memberDiscountMinor: string;
+  readonly payableMinor: string;
+  readonly currency: string;
+  readonly quoteSource: string;
+  readonly quoteStatus: string | null;
+};
+
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: RegistrationLifecycleStatus;
@@ -29,6 +42,7 @@ type Props = {
   readonly tripsListHref: string;
   readonly tourHref: string | null;
   readonly catalogDue: MemberReceiptDue | null;
+  readonly commercialPricing?: MemberReceiptCommercialPricing | null;
   readonly cancelSource?: string | null;
 };
 
@@ -39,16 +53,6 @@ type ReceiptStateCardProps = {
   readonly rootProps: Record<string, string>;
   readonly title: string;
 };
-
-function formatMinorAmount(amountMinor: string, currency: string): string {
-  const digits = amountMinor.replace(/\D/g, "");
-  const n = digits.length > 0 ? Number.parseInt(digits, 10) : NaN;
-  if (!Number.isFinite(n)) {
-    return amountMinor;
-  }
-  const formatted = n.toLocaleString("fa-IR");
-  return currency.toUpperCase() === "IRR" ? `${formatted} ریال` : `${formatted} ${currency}`;
-}
 
 function isPositiveMinor(value: string | null): boolean {
   if (value === null) {
@@ -119,9 +123,11 @@ export function MemberReceiptUploadForm({
   tripsListHref,
   tourHref,
   catalogDue,
+  commercialPricing = null,
   cancelSource,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
+  const locale = useLocale() as AppLocale;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
@@ -206,7 +212,12 @@ export function MemberReceiptUploadForm({
   const showCatalogLines =
     catalogDue !== null &&
     remainingDue !== null &&
+    commercialPricing === null &&
     (remainingDue === catalogDue.totalMinor || remainingDue === panel.obligationMinor);
+  const showCommercialPricing =
+    commercialPricing !== null &&
+    commercialPricing.quoteSource === "member_discount" &&
+    Number.parseInt(commercialPricing.memberDiscountMinor, 10) > 0;
   const dueCurrency =
     typeof panel.currency === "string" && panel.currency.length > 0 ? panel.currency : null;
 
@@ -223,12 +234,47 @@ export function MemberReceiptUploadForm({
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-remaining>
           <strong>
-            {t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}
+            {t("dueRemaining", {
+              amount: formatMemberMinorAmount(remainingDue, dueCurrency, locale),
+            })}
           </strong>
         </p>
+        {showCommercialPricing && commercialPricing !== null ? (
+          <dl data-portal-member-receipt-commercial-pricing>
+            <div>
+              <dt>{t("pricingGross")}</dt>
+              <dd>
+                {formatMemberMinorAmount(commercialPricing.grossMinor, dueCurrency, locale)}
+              </dd>
+            </div>
+            <div>
+              <dt>
+                {t("pricingMembershipDiscount", {
+                  percent: commercialPricing.memberDiscountPercentage ?? 0,
+                })}
+              </dt>
+              <dd>
+                −
+                {formatMemberMinorAmount(
+                  commercialPricing.memberDiscountMinor,
+                  dueCurrency,
+                  locale
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("pricingPayable")}</dt>
+              <dd>
+                {formatMemberMinorAmount(commercialPricing.payableMinor, dueCurrency, locale)}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
-            {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}
+            {t("duePaid", {
+              amount: formatMemberMinorAmount(panel.paidMinor, dueCurrency, locale),
+            })}
           </p>
         ) : null}
         {showCatalogLines && catalogDue !== null && catalogDue.lines.length > 0 ? (
@@ -242,7 +288,7 @@ export function MemberReceiptUploadForm({
                     : t("dueLineTransport");
               return (
                 <li key={line.code} data-portal-member-receipt-due-line data-due-code={line.code}>
-                  {label}: {formatMinorAmount(line.amountMinor, dueCurrency)}
+                  {label}: {formatMemberMinorAmount(line.amountMinor, dueCurrency, locale)}
                 </li>
               );
             })}

@@ -1,8 +1,12 @@
 "use client";
 
 import { Input } from "@app-tour/ui-primitives/input";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState, useEffect } from "react";
+
+import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
+import { toLocalizedDigits } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 import type { MemberProfileFieldId, MemberProfileViewProfile } from "@/me/member-profile-types";
 import { MemberLogoutButton } from "@/me/member-logout-button";
@@ -78,6 +82,7 @@ export function MemberProfileForm({
 }: MemberProfileFormProps) {
   const t = useTranslations("portalMember.profile");
   const tNav = useTranslations("portalMember.nav");
+  const locale = useLocale() as AppLocale;
   const [profile, setProfile] = useState(initialProfile);
   const [fieldValues, setFieldValues] = useState(() => initialEditableValues(initialProfile));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
@@ -227,7 +232,11 @@ export function MemberProfileForm({
               return (
                 <div key={fieldId} data-member-profile-field={fieldId}>
                   <p>{label}</p>
-                  <p>{profile.fields[fieldId] ?? "—"}</p>
+                  <p>
+                    {fieldId === "nationalId" && profile.fields[fieldId]
+                      ? toLocalizedDigits(profile.fields[fieldId]!, locale)
+                      : (profile.fields[fieldId] ?? "—")}
+                  </p>
                   {fieldId === "mobile" && !mobileChangeViaOtp ? (
                     <p data-member-profile-field-hint>{t("mobileReadOnlyHint")}</p>
                   ) : null}
@@ -263,6 +272,23 @@ export function MemberProfileForm({
                     describedBy={fieldErrorMessage !== null ? fieldErrorId : undefined}
                     onChange={(nextValue) => updateFieldValue("birthDate", nextValue)}
                   />
+                ) : fieldId === "nationalId" ? (
+                  <>
+                    <label htmlFor={controlId}>{label}</label>
+                    <PrimitiveLocalizedNumericInput
+                      id={controlId}
+                      name={fieldId}
+                      value={fieldValues[fieldId] ?? ""}
+                      mode="digits"
+                      maxLength={10}
+                      aria-invalid={fieldErrorCode !== undefined ? true : undefined}
+                      aria-describedby={
+                        fieldErrorMessage !== null ? fieldErrorId : undefined
+                      }
+                      onChange={(nextValue) => updateFieldValue("nationalId", nextValue)}
+                      autoComplete="off"
+                    />
+                  </>
                 ) : (
                   <>
                     <label htmlFor={controlId}>{label}</label>

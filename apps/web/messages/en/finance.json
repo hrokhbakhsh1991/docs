@@ -413,6 +413,12 @@
     "recentTitle": "Recent prepayments",
     "empty": "No prepayments recorded yet."
   },
+  "commercialPricing": {
+    "gross": "Gross price",
+    "membershipDiscount": "Membership discount ({percent}%)",
+    "payable": "Payable amount",
+    "membershipDiscountBlocked": "This member has a {percent}% permanent discount, but this tour does not allow membership discounts. Full catalog price applies."
+  },
   "picker": {
     "label": "Booking / registration",
     "searchPlaceholder": "Search by tour title or guest name…",

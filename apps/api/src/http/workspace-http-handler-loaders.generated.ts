@@ -110,12 +110,12 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceSubmitReceipt: "@app-tour/finance-http",
   handleFinanceSummary: "@app-tour/finance-http",
   handleFinanceTourCollections: "@app-tour/finance-http",
-  handleGetCertClubCatalog: "@app-tour/workspace-cert-club/http",
-  handleGetCertClubCatalogTour: "@app-tour/workspace-cert-club/http",
-  handlePostCertClubRegistration: "@app-tour/workspace-cert-club/http",
-  handleGetCertEventsCatalog: "@app-tour/workspace-cert-events/http",
-  handleGetCertEventsCatalogTour: "@app-tour/workspace-cert-events/http",
-  handlePostCertEventsRegistration: "@app-tour/workspace-cert-events/http",
+  handleGetCertClubCatalog: "@app-tour/workspace-cert-club/host/http",
+  handleGetCertClubCatalogTour: "@app-tour/workspace-cert-club/host/http",
+  handlePostCertClubRegistration: "@app-tour/workspace-cert-club/host/http",
+  handleGetCertEventsCatalog: "@app-tour/workspace-cert-events/host/http",
+  handleGetCertEventsCatalogTour: "@app-tour/workspace-cert-events/host/http",
+  handlePostCertEventsRegistration: "@app-tour/workspace-cert-events/host/http",
   handleGetDenaliCatalog: "@app-tour/workspace-denali/host/http",
   handleGetDenaliCatalogTour: "@app-tour/workspace-denali/host/http",
   handleGetDenaliDashboardTour: "@app-tour/workspace-denali/host/http",
@@ -130,9 +130,9 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleGetHarborCatalog: "@app-tour/workspace-harbor/host/http",
   handleGetHarborCatalogTour: "@app-tour/workspace-harbor/host/http",
   handlePostHarborRegistration: "@app-tour/workspace-harbor/host/http",
-  handleGetProfileCertCatalog: "@app-tour/workspace-profile-cert/http",
-  handleGetProfileCertCatalogTour: "@app-tour/workspace-profile-cert/http",
-  handlePostProfileCertRegistration: "@app-tour/workspace-profile-cert/http",
+  handleGetProfileCertCatalog: "@app-tour/workspace-profile-cert/host/http",
+  handleGetProfileCertCatalogTour: "@app-tour/workspace-profile-cert/host/http",
+  handlePostProfileCertRegistration: "@app-tour/workspace-profile-cert/host/http",
   handleGetUrbanCatalog: "@app-tour/workspace-urban/host/http",
   handleGetUrbanCatalogTour: "@app-tour/workspace-urban/host/http",
   handleGetUrbanSettings: "@app-tour/workspace-urban/host/http",
@@ -142,12 +142,12 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
 
 const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
   "@app-tour/finance-http",
-  "@app-tour/workspace-cert-club/http",
-  "@app-tour/workspace-cert-events/http",
+  "@app-tour/workspace-cert-club/host/http",
+  "@app-tour/workspace-cert-events/host/http",
   "@app-tour/workspace-denali/host/http",
   "@app-tour/workspace-guest-club/host/http",
   "@app-tour/workspace-harbor/host/http",
-  "@app-tour/workspace-profile-cert/http",
+  "@app-tour/workspace-profile-cert/host/http",
   "@app-tour/workspace-urban/host/http",
 ] as const);
 
@@ -198,16 +198,16 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleFinanceTourCollections: mod.handleFinanceTourCollections,
       };
     }
-    case "@app-tour/workspace-cert-club/http": {
-      const mod = await import("@app-tour/workspace-cert-club/http");
+    case "@app-tour/workspace-cert-club/host/http": {
+      const mod = await import("@app-tour/workspace-cert-club/host/http");
       return {
         handleGetCertClubCatalog: mod.handleGetCertClubCatalog,
         handleGetCertClubCatalogTour: mod.handleGetCertClubCatalogTour,
         handlePostCertClubRegistration: mod.handlePostCertClubRegistration,
       };
     }
-    case "@app-tour/workspace-cert-events/http": {
-      const mod = await import("@app-tour/workspace-cert-events/http");
+    case "@app-tour/workspace-cert-events/host/http": {
+      const mod = await import("@app-tour/workspace-cert-events/host/http");
       return {
         handleGetCertEventsCatalog: mod.handleGetCertEventsCatalog,
         handleGetCertEventsCatalogTour: mod.handleGetCertEventsCatalogTour,
@@ -243,8 +243,8 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handlePostHarborRegistration: mod.handlePostHarborRegistration,
       };
     }
-    case "@app-tour/workspace-profile-cert/http": {
-      const mod = await import("@app-tour/workspace-profile-cert/http");
+    case "@app-tour/workspace-profile-cert/host/http": {
+      const mod = await import("@app-tour/workspace-profile-cert/host/http");
       return {
         handleGetProfileCertCatalog: mod.handleGetProfileCertCatalog,
         handleGetProfileCertCatalogTour: mod.handleGetProfileCertCatalogTour,

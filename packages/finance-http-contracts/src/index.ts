@@ -90,3 +90,12 @@ export {
   deriveFinanceCaseCommandCapability,
   parseFinanceCaseCommandReviewReceiptBody,
 } from "./finance-case-command.contracts";
+
+export {
+  REGISTRATION_COMMERCIAL_QUOTE_SOURCES,
+  REGISTRATION_COMMERCIAL_QUOTE_STATUSES,
+  hasAppliedRegistrationMemberDiscount,
+  type RegistrationCommercialPricingDisplay,
+  type RegistrationCommercialQuoteSource,
+  type RegistrationCommercialQuoteStatus,
+} from "./registration-commercial-pricing.contracts";

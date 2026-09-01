@@ -19,7 +19,7 @@ export async function resolveWorkspaceDifficultyFitnessFilterPresentation(
   }
   switch (workspaceType) {
     case "denali": {
-      const mod = await import("@app-tour/workspace-denali/marketing/denali-difficulty-fitness-filter-presentation");
+      const mod = await import("@app-tour/workspace-denali/host/marketing/denali-difficulty-fitness-filter-presentation");
       return mod.denaliDifficultyFitnessFilterPresentation;
     }
     default:

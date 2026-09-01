@@ -1,5 +1,5 @@
 /**
- * TODO-002 — adversarial RLS on previously unprotected tables.
+ * PREV-AUD-002 — adversarial RLS on previously unprotected tables.
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -15,9 +15,9 @@ const hasDatabase =
 
 const postgresSkip = hasDatabase
   ? false
-  : "TENANT_RLS_UNPROTECTED_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-002)";
+  : "TENANT_RLS_UNPROTECTED_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (PREV-AUD-002)";
 
-describe("TODO-002 tenant RLS closure adversarial", { concurrency: false, skip: postgresSkip }, () => {
+describe("PREV-AUD-002 tenant RLS closure adversarial", { concurrency: false, skip: postgresSkip }, () => {
   const tenantA = integrationTenantId();
   const tenantB = integrationTenantId();
   const tourId = randomUUID();

@@ -220,6 +220,9 @@
     "dueLineDong": "Dong",
     "dueLineTransport": "Transport",
     "dueHint": "Your receipt should cover the remaining amount (trip plus dong/transport when applicable).",
+    "pricingGross": "List price",
+    "pricingMembershipDiscount": "Membership discount {percent}%",
+    "pricingPayable": "Payable amount",
     "previewLabel": "Preview of your receipt",
     "waivedTitle": "No payment needed",
     "waivedBody": "The club confirmed this registration without a transfer. You do not need to upload a receipt.",
@@ -235,7 +238,7 @@
     "requestAction": "Request cancellation",
     "blocked": "Cancellation is not available ({reason}).",
     "error": "Could not submit cancellation ({code}).",
-    "refundEligible": "Eligible refund: {amount} {currency}"
+    "refundEligible": "Eligible refund: {amount}"
   },
   "intakeAmend": {
     "eyebrow": "Before approval",

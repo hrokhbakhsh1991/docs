@@ -3,7 +3,7 @@
  */
 import { randomUUID } from "node:crypto";
 
-import type { DriverSettlement, DriverSettlementAuditEvent } from "@app-tour/workspace-denali/settlement";
+import type { DriverSettlement, DriverSettlementAuditEvent } from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 type Store = {
   settlements: Map<string, DriverSettlement>;

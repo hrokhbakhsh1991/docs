@@ -5,6 +5,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
+import {
+  OPERATOR_SUCCESS_CALLOUT_BORDER_CLASS,
+  OPERATOR_SUCCESS_CALLOUT_CLASS,
+  OPERATOR_WARNING_CALLOUT_CLASS,
+  OPERATOR_WARNING_CALLOUT_PANEL_CLASS,
+  OPERATOR_WARNING_OUTLINE_BUTTON_CLASS,
+  OPERATOR_WARNING_TEXT_XS_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
 import { SettingsPageShell } from "@/admin/patterns/settings-page-shell";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -595,7 +603,7 @@ export function IntegrationsSettingsClient({
       return (
         <Badge
           variant="outline"
-          className="border-amber-500/60 text-amber-900 dark:text-amber-100"
+          className={OPERATOR_WARNING_OUTLINE_BUTTON_CLASS}
           data-testid="integration-backing-legacy"
         >
           {t("badges.legacy")}
@@ -752,7 +760,7 @@ export function IntegrationsSettingsClient({
               </p>
             )}
             {hasSuppressedLegacy ? (
-              <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-amber-900 dark:text-amber-100">
+              <p className={OPERATOR_WARNING_CALLOUT_PANEL_CLASS}>
                 {t("summary.legacyFallbackSuppressed")}
               </p>
             ) : null}
@@ -840,7 +848,7 @@ export function IntegrationsSettingsClient({
               </p>
             ) : null}
             {createSuccess ? (
-              <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-900 dark:text-emerald-100">
+              <p className={OPERATOR_SUCCESS_CALLOUT_CLASS}>
                 {t("create.success")}
               </p>
             ) : null}
@@ -906,7 +914,7 @@ export function IntegrationsSettingsClient({
                       {t("rowMeta", { channelId: channelIdFromConfig(item.config) })}
                     </p>
                     {isLegacyBackedIntegration(item) ? (
-                      <p className="break-words text-xs text-amber-800 dark:text-amber-200">
+                      <p className={OPERATOR_WARNING_TEXT_XS_CLASS}>
                         {t("badges.legacyWarning")}
                       </p>
                     ) : null}
@@ -1029,7 +1037,7 @@ export function IntegrationsSettingsClient({
                   </details>
 
                   {activeItem.fallbackSuppressed ? (
-                    <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
+                    <p className={OPERATOR_WARNING_CALLOUT_CLASS}>
                       {t("detail.fallbackSuppressed")}
                     </p>
                   ) : null}
@@ -1102,7 +1110,7 @@ export function IntegrationsSettingsClient({
                         </p>
                       ) : null}
                       {patchSuccess ? (
-                        <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-900 dark:text-emerald-100">
+                        <p className={OPERATOR_SUCCESS_CALLOUT_CLASS}>
                           {t("edit.success")}
                         </p>
                       ) : null}
@@ -1161,7 +1169,7 @@ export function IntegrationsSettingsClient({
                       data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.testResult}
                       className={`rounded-md border p-3 text-sm ${
                         testResult.ok
-                          ? "border-emerald-500/40 bg-emerald-500/10"
+                          ? OPERATOR_SUCCESS_CALLOUT_BORDER_CLASS
                           : "border-destructive/40 bg-destructive/10"
                       }`}
                     >

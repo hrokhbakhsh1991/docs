@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
 
+import { MAX_EXPOSURE_PROFILE_SEEDS_PER_BATCH } from "./exposure-intent-list-projection";
 import {
   NATIVE_PERSISTED_EXPOSURE_PROFILE_SOURCE,
   REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED,
@@ -101,6 +102,7 @@ export class PrismaExposureProfileRepository implements ExposureProfileRepositor
           tenantId: input.tenantId,
           profileId: { in: uniqueSeeds.map((seed) => seed.id) },
         },
+        take: Math.min(uniqueSeeds.length, MAX_EXPOSURE_PROFILE_SEEDS_PER_BATCH),
       }),
     );
 
@@ -133,6 +135,7 @@ export class PrismaExposureProfileRepository implements ExposureProfileRepositor
             tenantId: input.tenantId,
             profileId: { in: missingSeeds.map((seed) => seed.id) },
           },
+          take: Math.min(missingSeeds.length, MAX_EXPOSURE_PROFILE_SEEDS_PER_BATCH),
         }),
       );
       for (const row of createdRows) {

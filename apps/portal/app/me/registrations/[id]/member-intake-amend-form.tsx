@@ -1,7 +1,12 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+
+import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
+
+const AMEND_OCCUPANT_OPTIONS = [1, 2, 3] as const;
 
 type TransportKind = "primary" | "personal_car" | "no_car_dong" | "no_car_acquaintance";
 
@@ -39,6 +44,7 @@ export function MemberIntakeAmendForm({
   initialOccupants,
 }: Props) {
   const t = useTranslations("portalMember.intakeAmend");
+  const locale = useLocale() as AppLocale;
   const [kind, setKind] = useState<TransportKind>(() => resolveAmendKind(initialKind, sharedCarsMode));
   const [occupants, setOccupants] = useState<1 | 2 | 3>(() => resolveAmendOccupants(initialOccupants));
   const [phase, setPhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -151,9 +157,11 @@ export function MemberIntakeAmendForm({
             value={occupants}
             onChange={(event) => setOccupants(Number(event.target.value) as 1 | 2 | 3)}
           >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
+            {AMEND_OCCUPANT_OPTIONS.map((value) => (
+              <option key={value} value={value}>
+                {formatLocalizedNumber(value, locale)}
+              </option>
+            ))}
           </select>
         </label>
       ) : null}

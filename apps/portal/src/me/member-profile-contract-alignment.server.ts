@@ -26,6 +26,12 @@ export function resolveMemberProfileContractSnapshotPath(): string {
     return moduleSibling;
   }
 
+  // Next standalone server.js chdirs to apps/<app>; snapshot ships at src/me/ beside server root.
+  const standaloneAppRelative = join(process.cwd(), "src/me", SNAPSHOT_FILE_NAME);
+  if (existsSync(standaloneAppRelative)) {
+    return standaloneAppRelative;
+  }
+
   const artifactRelative = join(process.cwd(), "apps/portal/src/me", SNAPSHOT_FILE_NAME);
   if (existsSync(artifactRelative)) {
     return artifactRelative;

@@ -77,4 +77,29 @@ describe("bookings payment vocabulary PR21-H1", () => {
       assert.doesNotMatch(src, /FinanceService|@app-cloud\/finance-core/);
     }
   });
+
+  it("B3-01: bookings.status.actionable is non-empty in EN/FA catalogs (work queue label)", () => {
+    for (const catalog of [en, fa] as const) {
+      assert.equal(typeof catalog.status.actionable, "string");
+      assert.ok(catalog.status.actionable.trim().length > 0);
+    }
+    assert.equal(en.status.actionable, en.presets.workQueue);
+    assert.equal(fa.status.actionable, fa.presets.workQueue);
+  });
+
+  it("B3-01: queue status filter resolves actionable via bookings.status.* key", () => {
+    const types = readFileSync(
+      resolve(WEB_ROOT, "src/features/bookings/bookings-command-center-types.ts"),
+      "utf8"
+    );
+    assert.match(types, /BOOKINGS_QUEUE_STATUS_OPTIONS[\s\S]*?"actionable"/);
+
+    const directoryControls = readFileSync(
+      resolve(WEB_ROOT, "src/features/bookings/bookings-directory-controls.tsx"),
+      "utf8"
+    );
+    assert.match(directoryControls, /BOOKINGS_QUEUE_STATUS_OPTIONS/);
+    assert.match(directoryControls, /t\(`status\.\$\{status\}`\)/);
+    assert.match(directoryControls, /t\(`status\.\$\{query\.status\}`\)/);
+  });
 });

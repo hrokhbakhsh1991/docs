@@ -42,6 +42,8 @@ describe("marketing-shell-contract.spec.ts — MKT-SHELL landmarks", () => {
     assert.match(shell, /data-slot="shell-nav-drawer-panel"|data-slot=\{isFullLanding \? "shell-nav-drawer-panel" : "shell-nav"\}/);
     assert.match(shell, /data-marketing-shell-main/);
     assert.match(shell, /data-slot="shell-main"/);
+    assert.match(shell, /data-marketing-full-landing/);
+    assert.match(shell, /<MarketingHeaderOverlaySync \/>/);
     assert.match(shell, /id="main-content"/);
 
     assert.match(footer, /data-marketing-footer/);

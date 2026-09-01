@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
+import { OPERATOR_WARNING_CALLOUT_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import {
   SETTINGS_HIDDEN_FILE_INPUT_CLASS,
   SettingsPageShell,
@@ -241,7 +242,7 @@ export function BrandingSettingsClient({
 
       {!canManage ? (
         <p
-          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          className={OPERATOR_WARNING_CALLOUT_CLASS}
           data-testid={BRANDING_SETTINGS_TEST_IDS.readOnlyBanner}
         >
           {t("readOnlyBanner")}

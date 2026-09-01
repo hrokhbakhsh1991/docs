@@ -23,7 +23,7 @@
     "module": "./http/routes"
   },
   "httpRoutes": {
-    "handlerPackage": "@app-tour/workspace-cert-events/http",
+    "handlerPackage": "@app-tour/workspace-cert-events/host/http",
     "loadHandlersFromPackage": true,
     "groups": [
       {

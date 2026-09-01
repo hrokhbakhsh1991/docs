@@ -5,7 +5,7 @@
  */
 
 import { registerCertClubCatalogRegistrationTransportInitializer } from "@app-tour/workspace-cert-club/host/transport/register-transport-initializer";
-import { registerDenaliCatalogRegistrationTransportInitializer } from "@app-tour/workspace-denali/catalog/registration-flow/register-transport-initializer";
+import { registerDenaliCatalogRegistrationTransportInitializer } from "@app-tour/workspace-denali/host/catalog/registration-flow/register-transport-initializer";
 
 export function registerWorkspaceRegistrationTransportInitializersFromManifest(): void {
   registerCertClubCatalogRegistrationTransportInitializer();

@@ -8,6 +8,7 @@ import {
   pruneItinerarySegmentDestinationIds,
   pruneItinerarySegmentPhotoIds,
 } from "../schemas/denaliItineraryDaySchema";
+import { parseDenaliTourPhotos } from "../ui/logic/denali-photo-types";
 
 function parseStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -98,6 +99,27 @@ function collectAllowedPhotoIds(photosValue: unknown): ReadonlySet<string> {
     }
   }
   return ids;
+}
+
+function isPersistableDenaliTourPhoto(photo: {
+  readonly storageKey?: string;
+  readonly url?: string;
+}): boolean {
+  const storageKey = photo.storageKey?.trim() ?? "";
+  const url = photo.url?.trim() ?? "";
+  return storageKey.length > 0 || url.length > 0;
+}
+
+/** Drop empty photo slots (no storageKey/url) before submit persistence. */
+export function sanitizeCompleteTourPhotosOnDraft(
+  draft: CanonicalWizardDraftEnvelope
+): CanonicalWizardDraftEnvelope {
+  const photos = parseDenaliTourPhotos(getCanonicalValueFromDraft(draft, "photos"));
+  const complete = photos.filter((photo) => isPersistableDenaliTourPhoto(photo));
+  if (complete.length === photos.length) {
+    return draft;
+  }
+  return setCanonicalValueOnDraft(draft, "photos", complete);
 }
 
 export function sanitizeItineraryPhotoIdsOnDraft(

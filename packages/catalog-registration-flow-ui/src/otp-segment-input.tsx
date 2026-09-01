@@ -1,6 +1,12 @@
 "use client";
 
 import { Input } from "@app-tour/ui-primitives/input";
+import {
+  digitsFromOtpValue,
+  normalizeOtpDigits,
+  OTP_SEGMENT_LENGTH,
+} from "@app-tour/ui-primitives/otp-segment-input-logic";
+import { toLocalizedDigits } from "@app-tour/catalog-registration-auth";
 import { useLocale, useTranslations } from "next-intl";
 import {
   useCallback,
@@ -24,9 +30,6 @@ type OtpSegmentInputProps = {
   readonly "aria-describedby"?: string;
 };
 
-const OTP_SEGMENT_LENGTH = 4;
-
-/** Visually hide the group name; cells remain the only textboxes. */
 const visuallyHiddenStyle: CSSProperties = {
   position: "absolute",
   width: 1,
@@ -39,13 +42,12 @@ const visuallyHiddenStyle: CSSProperties = {
   border: 0,
 };
 
-function normalizeOtpDigits(value: string): string {
-  return value.replace(/\D/g, "").slice(0, OTP_SEGMENT_LENGTH);
+function digitsFromValue(value: string): string[] {
+  return digitsFromOtpValue(value);
 }
 
-function digitsFromValue(value: string): string[] {
-  const normalized = normalizeOtpDigits(value);
-  return Array.from({ length: OTP_SEGMENT_LENGTH }, (_, index) => normalized[index] ?? "");
+function displayDigit(digit: string, locale: string): string {
+  return digit.length > 0 ? toLocalizedDigits(digit, locale) : "";
 }
 
 export function OtpSegmentInput({
@@ -200,7 +202,7 @@ export function OtpSegmentInput({
               autoCorrect="off"
               spellCheck={false}
               maxLength={index === 0 ? OTP_SEGMENT_LENGTH : 1}
-              value={digit}
+              value={displayDigit(digit, locale)}
               disabled={disabled}
               aria-invalid={ariaInvalid}
               aria-label={t("otp.digitLabel", {

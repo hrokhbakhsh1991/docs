@@ -107,4 +107,20 @@ describe("denali-marketing-chrome.spec.ts", () => {
     assert.match(css, /scroll-margin-block-start: var\(--mkt-header-height\)/);
     assert.match(aggregator, /@import "\.\/home\/header-overlay-scrolled\.css"/);
   });
+
+  it("client navigations sync overlay header mode from pathname", () => {
+    const shell = readFileSync(
+      join(repoRoot, "apps/marketing/src/shell/marketing-shell.tsx"),
+      "utf8",
+    );
+    const sync = readFileSync(
+      join(repoRoot, "apps/marketing/src/shell/marketing-header-overlay-sync.tsx"),
+      "utf8",
+    );
+    assert.match(shell, /data-marketing-full-landing/);
+    assert.match(shell, /<MarketingHeaderOverlaySync \/>/);
+    assert.match(sync, /usePathname/);
+    assert.match(sync, /isMarketingHomePath/);
+    assert.match(sync, /removeAttribute\("data-marketing-header-overlay"\)/);
+  });
 });

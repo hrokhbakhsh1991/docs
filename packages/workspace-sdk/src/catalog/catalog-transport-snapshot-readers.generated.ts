@@ -33,7 +33,7 @@ export async function resolveCatalogTransportSnapshotReader(
       return mod.readCertClubCatalogTransportSnapshot;
     }
     case "denali": {
-      const mod = await import("@app-tour/workspace-denali/catalog/read-denali-catalog-transport");
+      const mod = await import("@app-tour/workspace-denali/host/catalog/read-denali-catalog-transport");
       return mod.readDenaliCatalogTransportSnapshot;
     }
     default:

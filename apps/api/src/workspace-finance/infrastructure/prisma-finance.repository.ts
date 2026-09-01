@@ -9,7 +9,11 @@ import { loadRegistrationInvoiceFacts } from "../../finance/load-registration-in
 import { enqueueOutboxEvent } from "../../outbox/enqueue-domain-event";
 import { shouldAbortAtomicTx } from "../../test-hooks/atomic-tx-test-abort";
 import { enqueueFinanceLedgerCaptureOutbox } from "../enqueue-finance-ledger-capture";
-import { MAX_PAYMENTS_PER_REGISTRATION } from "../finance-list-projection";
+import {
+  MAX_FINANCE_CANCELLED_PAYMENTS_PER_TENANT,
+  MAX_OUTSTANDING_BALANCE_CANDIDATES_PER_TENANT,
+  MAX_PAYMENTS_PER_REGISTRATION,
+} from "../finance-list-projection";
 import {
   advisoryLockRegistrationWalletCredit,
   registrationHasTourCreatedWalletCredit,
@@ -821,16 +825,22 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           createdAt: true,
           updatedAt: true,
         },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: MAX_FINANCE_CANCELLED_PAYMENTS_PER_TENANT,
       });
 
-      const cancelEvents = await tx.outboxEvent.findMany({
-        where: {
-          tenantId,
-          eventType: "finance.payment.cancelled",
-          aggregateId: { in: cancelled.map((row) => row.id) },
-        },
-        select: { aggregateId: true, payload: true, createdAt: true },
-      });
+      const cancelEvents =
+        cancelled.length === 0
+          ? []
+          : await tx.outboxEvent.findMany({
+              where: {
+                tenantId,
+                eventType: "finance.payment.cancelled",
+                aggregateId: { in: cancelled.map((row) => row.id) },
+              },
+              select: { aggregateId: true, payload: true, createdAt: true },
+              take: cancelled.length,
+            });
       const cancelByPayment = new Map(
         cancelEvents.map((event) => [event.aggregateId, event] as const)
       );
@@ -885,6 +895,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         where: { tenantId },
         select: { id: true, createdAt: true },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: MAX_OUTSTANDING_BALANCE_CANDIDATES_PER_TENANT,
       });
       return {
         candidates: rows.map((row) => ({
@@ -1479,14 +1490,6 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     limit: number
   ): Promise<readonly PrepaymentBookingSyncDegradedRow[]> {
     return withTenantRls(tenantId, async (tx) => {
-      const recovered = await tx.outboxEvent.findMany({
-        where: {
-          tenantId,
-          eventType: "finance.prepayment.booking_sync.recovered",
-        },
-        select: { aggregateId: true },
-      });
-      const recoveredIds = new Set(recovered.map((row) => row.aggregateId));
       const rows = await tx.outboxEvent.findMany({
         where: {
           tenantId,
@@ -1500,6 +1503,20 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           createdAt: true,
         },
       });
+      const degradedIds = rows.map((row) => row.aggregateId);
+      const recovered =
+        degradedIds.length === 0
+          ? []
+          : await tx.outboxEvent.findMany({
+              where: {
+                tenantId,
+                eventType: "finance.prepayment.booking_sync.recovered",
+                aggregateId: { in: degradedIds },
+              },
+              select: { aggregateId: true },
+              take: degradedIds.length,
+            });
+      const recoveredIds = new Set(recovered.map((row) => row.aggregateId));
       const out: PrepaymentBookingSyncDegradedRow[] = [];
       for (const row of rows) {
         if (recoveredIds.has(row.aggregateId)) {

@@ -14,10 +14,6 @@
       "types": "./dist/policy-cert.plugin.d.ts",
       "default": "./dist/policy-cert.plugin.js"
     },
-    "./policy/tour-policy": {
-      "types": "./dist/policy/tour-policy.d.ts",
-      "default": "./dist/policy/tour-policy.js"
-    },
     "./host/policy/tour-policy": {
       "types": "./dist/policy/tour-policy.d.ts",
       "default": "./dist/policy/tour-policy.js"

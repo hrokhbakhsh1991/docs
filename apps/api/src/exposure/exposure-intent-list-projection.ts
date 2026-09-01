@@ -2,6 +2,9 @@
 export const MAX_EXPOSURE_INTENTS_PER_CONNECTION = 100;
 export const MAX_EXPOSURE_INTENTS_CONNECTION_BATCH = 500;
 
+/** Exposure profile seed batch — one row per unique profile id in ensureSeededProfiles. */
+export const MAX_EXPOSURE_PROFILE_SEEDS_PER_BATCH = 500;
+
 export const EXPOSURE_INTENT_LIST_SELECT = {
   id: true,
   workspaceType: true,

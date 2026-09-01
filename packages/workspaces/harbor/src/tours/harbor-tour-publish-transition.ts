@@ -1,5 +1,8 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
-import { detectWorkspaceTourPublishTransition } from "@app-tour/workspace-sdk";
+import {
+  detectWorkspaceTourPublishTransition,
+  mergeWorkspaceCanonicalPatchData,
+} from "@app-tour/workspace-sdk";
 
 import { isHarborTourPublished } from "../catalog/to-harbor-catalog-card";
 
@@ -54,4 +57,21 @@ export function detectHarborTourPublishTransition(
     isHarborTourPublished(before),
     isHarborTourPublished(after),
   );
+}
+
+/**
+ * Harbor canonical PATCH merge — deep-merge root objects (G1 stub workspace).
+ */
+export function mergeHarborCanonicalPatchData<T extends Record<string, unknown>>(
+  existing: T,
+  patch: Record<string, unknown> | undefined,
+): T {
+  return mergeWorkspaceCanonicalPatchData(existing, patch, "deep-root");
+}
+
+/** CASL surface id for owner-only harbor tour publish-field PATCH (stub). */
+export const HARBOR_TOUR_PUBLISH_FIELDS_OWNER_SURFACE = "harbor.tour.publish_fields" as const;
+
+export function harborTourPatchRequiresOwner(_body: unknown): boolean {
+  return false;
 }

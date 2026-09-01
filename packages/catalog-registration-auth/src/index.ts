@@ -1,5 +1,7 @@
 import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 
+import { toAsciiDigits } from "./localized-digits";
+
 import { normalizePublicRegistrationMobile } from "./normalize-public-registration-mobile";
 
 export type PublicRegistrationApiError = {
@@ -40,10 +42,16 @@ export {
 
 export { normalizePublicRegistrationMobile };
 
+export {
+  formatLocalizedInteger,
+  toAsciiDigits,
+  toLocalizedDigits,
+} from "./localized-digits";
+
 export { formatIranMobileForDisplay };
 
 export function isPublicRegistrationMobileValid(mobile: string): boolean {
-  const digits = mobile.replace(/\D/g, "");
+  const digits = toAsciiDigits(mobile).replace(/\D/g, "");
   return digits.length >= PUBLIC_REGISTRATION_MIN_MOBILE_DIGITS;
 }
 

@@ -1,15 +1,13 @@
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
-import { assertDenaliWorkspaceOwner } from "@app-tour/workspace-denali/workspace-owner";
 import {
+  assertDenaliWorkspaceOwner,
   DenaliTourMutationBlockedError,
   DenaliTourMutationOverrideRequiredError,
-} from "@app-tour/workspace-denali/errors/tour-mutation";
-import {
   evaluateDenaliTourMutation,
   readDenaliTransportAllocationsLocked,
   type DenaliTourMutationDecision,
   type DenaliTourMutationSideEffect,
-} from "@app-tour/workspace-denali/tours";
+} from "../workspace/denali-host-legacy-bindings.generated.ts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import type { TourMutationFacts } from "./resolve-tour-mutation-facts";

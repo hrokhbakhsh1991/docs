@@ -4,9 +4,6 @@ export function isWorkspaceContractExportPath(entry) {
   if (entry === "./plugin") return true;
   if (entry.startsWith("./theme/")) return true;
   if (entry.startsWith("./settings/")) return true;
-  if (entry.startsWith("./field-registry/")) return true;
-  if (entry.startsWith("./marketing/")) return true;
-  if (entry.startsWith("./catalog/")) return true;
   return false;
 }
 

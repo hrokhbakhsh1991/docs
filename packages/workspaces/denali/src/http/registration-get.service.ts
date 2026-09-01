@@ -1,7 +1,10 @@
+import type { RegistrationCommercialPricingDisplay } from "@app-tour/finance-http-contracts";
+
 import { resolveDenaliRegistrationDueBreakdown } from "../finance/resolve-denali-registration-obligation";
 import type { DenaliRegistrationDueLine } from "../finance/resolve-denali-registration-obligation";
 import { DenaliRegistrationNotFoundError } from "./errors/denali-registration-not-found.error";
 import type { BookingPublicPort } from "./ports/public-booking.port";
+import type { RegistrationCommercialPricingPort } from "./ports/registration-commercial-pricing.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 
 export type DenaliOwnedTransportKind =
@@ -66,6 +69,7 @@ export type DenaliRegistrationOwnedDetail = {
   readonly dueCurrency?: string;
   readonly dueTotalMinor?: string;
   readonly dueLines?: readonly DenaliRegistrationDueLine[];
+  readonly commercialPricing?: RegistrationCommercialPricingDisplay;
   readonly paymentDueAt?: string | null;
   readonly cancelSource?: string | null;
 };
@@ -81,6 +85,7 @@ export async function getDenaliRegistrationOwned(params: {
   readonly registrationId: string;
   readonly bookingPort: BookingPublicPort;
   readonly store: DenaliTourStorePort;
+  readonly commercialPricingPort?: RegistrationCommercialPricingPort;
 }): Promise<DenaliRegistrationOwnedDetail> {
   const owned = await params.bookingPort.findOwnedBooking(
     params.tenantId,
@@ -128,10 +133,19 @@ export async function getDenaliRegistrationOwned(params: {
     return base;
   }
 
+  const commercialPricing =
+    params.commercialPricingPort === undefined
+      ? null
+      : await params.commercialPricingPort.resolveRegistrationCommercialPricing({
+          tenantId: params.tenantId,
+          registrationId: params.registrationId,
+        });
+
   return {
     ...base,
-    dueCurrency: due.currency,
-    dueTotalMinor: due.obligationMinor,
+    dueCurrency: commercialPricing?.currency ?? due.currency,
+    dueTotalMinor: commercialPricing?.payableMinor ?? due.obligationMinor,
     dueLines: due.lines,
+    ...(commercialPricing !== null ? { commercialPricing } : {}),
   };
 }

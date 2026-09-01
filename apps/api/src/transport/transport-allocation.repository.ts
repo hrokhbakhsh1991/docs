@@ -3,7 +3,7 @@
  */
 import { randomUUID } from "node:crypto";
 
-import type { TransportAllocation, TransportAllocationInput } from "@app-tour/workspace-denali/transport";
+import type { TransportAllocation, TransportAllocationInput } from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 export type TourRosterFreeze = {
   readonly tenantId: string;

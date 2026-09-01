@@ -57,19 +57,18 @@ describe("thin-shell-create-chrome-capability — Phase 4ab/4ag", () => {
     assert.doesNotMatch(draftShell, /workspace-wizard-create-chrome-bindings/);
   });
 
-  it("TS-4AB-03 package create-chrome surface uses bundler-visible dynamic import", () => {
+  it("TS-4AB-03 package create-chrome surface loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
-      resolve(
-        WEB_ROOT,
-        "../../packages/workspaces/denali/src/wizard/create-chrome-surface.ts"
-      ),
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/create-chrome-surface.ts"),
       "utf8"
     );
-    assert.match(pkg, /WIZARD_CREATE_CHROME_SURFACE_KEY/);
-    assert.match(pkg, /ensureWizardCreateChromePackageSurface/);
-    assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
-    assert.match(pkg, /Map<string,\s*WizardCreateChromeSurface>/);
-    assert.match(pkg, /import\(/);
-    assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-create-chrome-surface\"/);
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
+      "utf8"
+    );
+    assert.match(pkg, /importUiSurface\("..\/ui\/chrome\/wizard-create-chrome-surface"\)/);
+    assert.doesNotMatch(pkg, /from \"..\/ui\/chrome\/wizard-create-chrome-surface\"/);
+    assert.match(loaders, /"..\/ui\/chrome\/wizard-create-chrome-surface":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 });

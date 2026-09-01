@@ -19,6 +19,17 @@ export type MemberRegistrationItem = {
     readonly code: "trip" | "dong" | "transport";
     readonly amountMinor: string;
   }[];
+  readonly commercialPricing?: {
+    readonly grossMinor: string;
+    readonly memberDiscountPercentage: number | null;
+    readonly memberDiscountMinor: string;
+    readonly payableMinor: string;
+    readonly currency: string;
+    readonly quoteSource: string;
+    readonly quoteStatus: string | null;
+    readonly membershipDiscountBlocked?: boolean;
+    readonly memberPermanentDiscountPercentage?: number | null;
+  };
   /** DP1 — Finance hold dueAt (UTC ISO). */
   readonly paymentDueAt?: string;
   readonly cancelSource?: string | null;

@@ -10,6 +10,7 @@ import {
   remintDenaliClonePhotosInCanonical,
   type DenaliPhotoRemintPlanEntry,
 } from "./remint-denali-clone-photos";
+import { readDenaliCanonicalPhotoRows } from "../list/read-denali-first-photo";
 
 export const DENALI_CLONE_TITLE_SUFFIX = " (Copy)" as const;
 
@@ -145,7 +146,16 @@ function normalizeCanonicalToWizardData(source: Record<string, unknown>): Record
   delete cloned.basics;
   delete cloned.details;
 
+  normalizePhotosCanonicalPaths(cloned);
+
   return cloned;
+}
+
+function normalizePhotosCanonicalPaths(target: Record<string, unknown>): void {
+  const rows = readDenaliCanonicalPhotoRows(target);
+  if (rows.length > 0) {
+    writePath(target, "photos", structuredClone(rows));
+  }
 }
 
 /** Drops gear rows whose equipment id is not in the workspace active catalog. */

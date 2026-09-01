@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  OPERATOR_WARNING_CALLOUT_PANEL_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
+import {
   hasIntegrationLoadWarnings,
   partitionIntegrationLoadWarnings,
 } from "@/integrations/integration-connection-load-warnings";
@@ -29,7 +32,7 @@ export function IntegrationConnectionLoadWarningsBanner({
     <div className="space-y-2" data-testid={testId}>
       {tourPublishedPolicyDrift ? (
         <div
-          className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100"
+          className={`${OPERATOR_WARNING_CALLOUT_PANEL_CLASS} p-4`}
           role="status"
           data-testid="integration-tour-published-policy-drift-banner"
         >
@@ -38,7 +41,7 @@ export function IntegrationConnectionLoadWarningsBanner({
       ) : null}
       {other.length > 0 ? (
         <div
-          className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100"
+          className={`${OPERATOR_WARNING_CALLOUT_PANEL_CLASS} p-4`}
           role="status"
           data-testid="integration-detail-degraded"
         >

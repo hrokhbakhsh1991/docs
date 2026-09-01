@@ -8,14 +8,14 @@ import {
   getCanonicalValue,
   setCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
-import { Button, Input } from "../adapters/platform-primitives";
+import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
-import { fetchReverseGeocodeAddress } from "../adapters/reverse-geocode-client";
 import {
   denaliLocationZoneOverviewPath,
   isDenaliLocationDataPopulated,
+  mergeDenaliLocationDataPatch,
   resolveDenaliLocationZoneFromStorage,
-  toPersistableDenaliLocationData,
+  toStoredDenaliLocationZoneValue,
   type DenaliLocationData,
   type DenaliLocationZonePath,
 } from "../logic/denali-location-types";
@@ -40,19 +40,20 @@ export function DenaliLocationPointEditor({
   const tLocation = useTranslations("denali.composites.location");
   const draftRef = useLatestWizardDraft(draft);
 
+  const isStartPoint = canonicalPath === "startPoint";
   const nestedPath = denaliLocationZoneOverviewPath(canonicalPath as DenaliLocationZonePath);
   const location = resolveDenaliLocationZoneFromStorage(
     getCanonicalValue(draft, canonicalPath),
     getCanonicalValue(draft, nestedPath)
   );
   const populated = isDenaliLocationDataPopulated(location);
-  const [open, setOpen] = useState(populated);
+  const [open, setOpen] = useState(populated || isStartPoint);
 
   useEffect(() => {
-    if (populated) {
+    if (populated || isStartPoint) {
       setOpen(true);
     }
-  }, [populated]);
+  }, [isStartPoint, populated]);
 
   const updateLocation = (patch: Partial<DenaliLocationData>) => {
     commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
@@ -60,32 +61,11 @@ export function DenaliLocationPointEditor({
         getCanonicalValue(base, canonicalPath),
         getCanonicalValue(base, nestedPath)
       );
-      const next = toPersistableDenaliLocationData({ ...current, ...patch });
-      const withRoot = setCanonicalValue(base, canonicalPath, next);
-      return setCanonicalValue(withRoot, nestedPath, next);
+      const merged = mergeDenaliLocationDataPatch(current, patch);
+      const stored = toStoredDenaliLocationZoneValue(merged);
+      const withRoot = setCanonicalValue(base, canonicalPath, stored);
+      return setCanonicalValue(withRoot, nestedPath, stored);
     });
-  };
-
-  const useCurrentPosition = () => {
-    if (!navigator.geolocation) {
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        void (async () => {
-          const address = await fetchReverseGeocodeAddress(latitude, longitude);
-          updateLocation({
-            latitude,
-            longitude,
-            ...(address !== null ? { address } : {}),
-          });
-        })();
-      },
-      () => undefined,
-      { enableHighAccuracy: true, timeout: 10_000 }
-    );
   };
 
   const onToggle = (event: SyntheticEvent<HTMLDetailsElement>) => {
@@ -94,19 +74,27 @@ export function DenaliLocationPointEditor({
 
   return (
     <details
-      className="denali-wizard-composite__panel denali-location-point"
+      className={`denali-wizard-composite__panel denali-location-point${
+        isStartPoint ? " denali-location-point--primary" : ""
+      }`}
       open={open}
       onToggle={onToggle}
       data-testid={`denali-location-zone-${testIdKey}`}
       data-location-zone-open={open ? "true" : "false"}
       data-location-zone-populated={populated ? "true" : "false"}
+      data-location-zone-primary={isStartPoint ? "true" : "false"}
     >
       <summary className="denali-wizard-composite__legend denali-location-point__summary">
         {heading}
         {!populated ? (
           <span className="denali-location-point__summary-hint">
             {" — "}
-            {tLocation("zoneCollapsedHint")}
+            {isStartPoint ? tLocation("zoneStartHint") : tLocation("zoneOptionalHint")}
+          </span>
+        ) : isStartPoint ? (
+          <span className="denali-location-point__primary-badge">
+            {" — "}
+            {tLocation("zonePrimaryBadge")}
           </span>
         ) : null}
       </summary>
@@ -121,11 +109,8 @@ export function DenaliLocationPointEditor({
         testIdKey={testIdKey}
         value={location}
         onChange={updateLocation}
-        mapMounted={open}
+        locationContextName={heading}
       />
-      <Button type="button" variant="secondary" onClick={useCurrentPosition}>
-        {tLocation("useCurrentLocation")}
-      </Button>
     </details>
   );
 }

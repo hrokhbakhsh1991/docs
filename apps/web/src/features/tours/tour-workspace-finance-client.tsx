@@ -4,6 +4,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  OPERATOR_DANGER_STATUS_BADGE_CLASS,
+  OPERATOR_INFO_STATUS_BADGE_CLASS,
+  OPERATOR_SUCCESS_STATUS_BADGE_CLASS,
+  OPERATOR_WARNING_STATUS_BADGE_CLASS,
+  OPERATOR_WARNING_TEXT_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +20,7 @@ import { TourWorkspaceFinanceControls } from "@/features/tours/tour-workspace-fi
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
 import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
+import { FinanceCommercialPricingBreakdown } from "@/finance/finance-commercial-pricing-breakdown";
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
 import { type OutstandingBalanceListItem } from "@/finance/finance-outstanding-logic";
@@ -85,15 +93,15 @@ function followUpListKindBadgeClass(
   kind: TourWorkspacePaymentFollowUpParticipantRow["listKind"]
 ): string {
   if (kind === "partial") {
-    return "border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-300";
+    return OPERATOR_INFO_STATUS_BADGE_CLASS;
   }
   if (kind === "settled") {
-    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
+    return OPERATOR_SUCCESS_STATUS_BADGE_CLASS;
   }
   if (kind === "pending") {
-    return "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300";
+    return OPERATOR_WARNING_STATUS_BADGE_CLASS;
   }
-  return "border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-300";
+  return OPERATOR_DANGER_STATUS_BADGE_CLASS;
 }
 
 function followUpListKindLabel(
@@ -654,6 +662,13 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
 
         {detailData.detailState !== null ? (
           <>
+            {detailData.invoice?.commercialPricing !== undefined ? (
+              <FinanceCommercialPricingBreakdown
+                pricing={detailData.invoice.commercialPricing}
+                currency={detailData.invoice.currency}
+                className="grid gap-2 rounded-md border bg-background/70 px-3 py-3 text-sm"
+              />
+            ) : null}
             {detailAmountRows.length > 0 ? (
               <details className="rounded-md border border-dashed px-3 py-2">
                 <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
@@ -951,11 +966,11 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
 
         {!panelBlocking && loadSucceeded && degradedSections.length > 0 ? (
           <div
-            className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm"
+            className="space-y-1 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-3 py-2 text-sm"
             role="status"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.degraded}
           >
-            <p className="font-medium text-amber-950 dark:text-amber-200">{t("degradedTitle")}</p>
+            <p className={cn("font-medium", OPERATOR_WARNING_TEXT_CLASS)}>{t("degradedTitle")}</p>
             <p className="text-muted-foreground">{t("degradedDescription")}</p>
             <p className="text-xs text-muted-foreground">
               {t("degradedAffected", {

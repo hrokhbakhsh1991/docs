@@ -5,7 +5,7 @@
  */
 
 import type { WorkspacePricingFieldRegistryFragment } from "@app-tour/workspace-sdk/pricing";
-import { denaliPricingFieldRegistryFragment as denali_pricing_field_module } from "@app-tour/workspace-denali/field-registry/denali-pricing-field-module";
+import { denaliPricingFieldRegistryFragment as denali_pricing_field_module } from "@app-tour/workspace-denali/host/field-registry/denali-pricing-field-module";
 
 export type WorkspacePricingFieldModuleBinding = {
   readonly workspaceType: string;

@@ -1,4 +1,4 @@
-import { normalizeIranMobile } from "@app-tour/iran-mobile";
+import { normalizeIranMobile, toAsciiDigits } from "@app-tour/iran-mobile";
 
 /**
  * Canonical mobile for portal public-auth BFF + registration UI.
@@ -15,7 +15,7 @@ export function normalizePublicRegistrationMobile(mobile: string): string {
     return iran;
   }
 
-  const digits = trimmed.replace(/\D/g, "");
+  const digits = toAsciiDigits(trimmed).replace(/\D/g, "");
   if (trimmed.startsWith("+")) {
     return `+${digits}`;
   }

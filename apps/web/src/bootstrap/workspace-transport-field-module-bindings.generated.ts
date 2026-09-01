@@ -5,7 +5,7 @@
  */
 
 import type { WorkspaceTransportFieldRegistryFragment } from "@app-tour/workspace-sdk/transport";
-import { denaliTransportFieldRegistryFragment as denali_transport_field_module } from "@app-tour/workspace-denali/field-registry/denali-transport-field-module";
+import { denaliTransportFieldRegistryFragment as denali_transport_field_module } from "@app-tour/workspace-denali/host/field-registry/denali-transport-field-module";
 
 export type WorkspaceTransportFieldModuleBinding = {
   readonly workspaceType: string;

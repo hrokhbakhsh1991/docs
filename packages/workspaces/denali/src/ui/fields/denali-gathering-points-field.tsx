@@ -115,6 +115,11 @@ export function DenaliGatheringPointsField({
             testIdKey={`gathering-${index}`}
             value={point}
             onChange={(patch) => patchPoint(index, patch)}
+            locationContextName={
+              (point.name ?? "").trim().length > 0
+                ? (point.name ?? "").trim()
+                : t("composites.gatheringPoints.locationPickerContext")
+            }
             onPlaceSelect={(place) => {
               const current = readCurrentOrScaffold();
               const currentName = (current[index]?.name ?? "").trim();
@@ -123,8 +128,6 @@ export function DenaliGatheringPointsField({
                 patchPoint(index, { name: osmName });
               }
             }}
-            label={tCommon("address")}
-            hint={t("composites.gatheringPoints.addressHint")}
           />
           <div className="denali-wizard-composite__actions">
             <Button type="button" variant="secondary" onClick={() => setPrimary(index)}>
