@@ -14,12 +14,14 @@ import {
   readSessionCookieMetadata,
   resolveMarketingBaseUrl,
   resolvePortalBaseUrl,
+  resolveSessionCookieDomainSuffix,
   resolveSmokeTourId,
 } from "./fixtures/portal-session-bridge";
 
 const TOUR_ID = resolveSmokeTourId();
 const MARKETING_PDP = `/tours/${TOUR_ID}`;
 const PORTAL_BASE = resolvePortalBaseUrl();
+const SESSION_COOKIE_DOMAIN = resolveSessionCookieDomainSuffix();
 
 async function scrollTourDetailCtaIntoView(page: import("@playwright/test").Page): Promise<void> {
   await page.locator("[data-marketing-catalog-tour-detail]").scrollIntoViewIfNeeded();
@@ -115,7 +117,7 @@ for (const viewport of [
       const cookie = await readSessionCookieMetadata(context);
       expect(cookie).not.toBeNull();
       expect(cookie?.name).toBe("atour_mb_session");
-      expect(cookie?.domain).toMatch(/operator\.localhost$/);
+      expect(cookie?.domain).toMatch(new RegExp(`${SESSION_COOKIE_DOMAIN.replace(/\./g, "\\.")}$`));
 
       await page.goto(MARKETING_PDP, { waitUntil: "domcontentloaded" });
       await expect(page.locator("[data-marketing-member-authenticated]")).toBeVisible({
@@ -217,7 +219,7 @@ for (const viewport of [
       await expect(page.locator("[data-portal-login-full-page]")).toHaveCount(0);
     });
 
-    test(`REG-MKT-PTL-04 cookie shared operator.localhost ↔ portal.operator.localhost (${viewport.label})`, async ({
+    test(`REG-MKT-PTL-04 cookie shared marketing ↔ portal on same tenant domain (${viewport.label})`, async ({
       page,
       context,
     }) => {
@@ -230,8 +232,12 @@ for (const viewport of [
       const portalSession = portalCookies.find((c) => c.name === "atour_mb_session");
       expect(marketingSession).toBeDefined();
       expect(portalSession).toBeDefined();
-      expect(marketingSession?.domain).toMatch(/operator\.localhost$/);
-      expect(portalSession?.domain).toMatch(/operator\.localhost$/);
+      expect(marketingSession?.domain).toMatch(
+        new RegExp(`${SESSION_COOKIE_DOMAIN.replace(/\./g, "\\.")}$`)
+      );
+      expect(portalSession?.domain).toMatch(
+        new RegExp(`${SESSION_COOKIE_DOMAIN.replace(/\./g, "\\.")}$`)
+      );
     });
   });
 }

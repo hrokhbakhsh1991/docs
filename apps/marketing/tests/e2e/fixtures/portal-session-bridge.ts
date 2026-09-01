@@ -2,6 +2,8 @@ import { expect, type BrowserContext, type Page } from "@playwright/test";
 
 import {
   CATALOG_DEV_OTP,
+  fillCatalogOtp,
+  requestRegistrationOtp,
 } from "./catalog-registration-otp";
 import { resolveSmokePublishedTourId } from "./smoke-published-tour";
 
@@ -25,6 +27,18 @@ export function resolveSmokeTourId(): string {
   return resolveSmokePublishedTourId(resolveMarketingBaseUrl());
 }
 
+/** Cookie Domain suffix for the active smoke tenant (e.g. `denali.localhost`). */
+export function resolveSessionCookieDomainSuffix(): string {
+  const marketingHost = new URL(resolveMarketingBaseUrl()).hostname;
+  if (marketingHost === "denali.club") {
+    return "denali.club";
+  }
+  if (marketingHost.endsWith(".localhost")) {
+    return marketingHost;
+  }
+  return "operator.localhost";
+}
+
 /** Portal-first OTP login — establishes shared atour_mb_session before marketing PDP. */
 export async function authenticateMemberViaPortal(
   page: Page,
@@ -46,17 +60,24 @@ export async function authenticateMemberViaPortal(
   });
   expect(verifyOtp.ok()).toBeTruthy();
 
+  const storage = await page.request.storageState();
+  if (storage.cookies.length > 0) {
+    await page.context().addCookies(storage.cookies);
+  }
+
   await page.goto(`${portalBase}/catalog/${tourId}/register`, {
     waitUntil: "domcontentloaded",
   });
 
-  await expect(
-    page
-      .locator(
-        "[data-registration-resume='intake'], [data-public-registration-intake], [data-public-registration-profile]"
-      )
-      .first()
-  ).toBeVisible({ timeout: 120_000 });
+  const registrationSurface = page.locator(
+    "[data-registration-resume='intake'], [data-public-registration-intake], [data-public-registration-profile]"
+  );
+  if ((await registrationSurface.count()) === 0) {
+    await requestRegistrationOtp(page, phone);
+    await fillCatalogOtp(page, CATALOG_DEV_OTP);
+  }
+
+  await expect(registrationSurface.first()).toBeVisible({ timeout: 120_000 });
 }
 
 export async function readSessionCookieMetadata(context: BrowserContext): Promise<{
@@ -66,7 +87,9 @@ export async function readSessionCookieMetadata(context: BrowserContext): Promis
   readonly sameSite: string;
   readonly secure: boolean;
 } | null> {
-  const cookies = await context.cookies();
+  const marketingBase = resolveMarketingBaseUrl();
+  const portalBase = resolvePortalBaseUrl();
+  const cookies = await context.cookies(marketingBase, portalBase);
   const session = cookies.find((c) => c.name === "atour_mb_session");
   if (session === undefined) {
     return null;

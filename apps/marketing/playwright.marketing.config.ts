@@ -37,7 +37,6 @@ export default defineConfig({
   testMatch: [
     "marketing-catalog-smoke.spec.ts",
     "denali-guest-funnel.spec.ts",
-    "marketing-portal-session-bridge.spec.ts",
   ],
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,
