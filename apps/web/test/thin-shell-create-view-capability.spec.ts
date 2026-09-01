@@ -66,7 +66,7 @@ describe("thin-shell-create-view-capability — Phase 4ad/4ak", () => {
     assert.match(pkg, /ensureWizardCreateViewPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*WizardCreateViewSurface>/);
-    assert.match(pkg, /import\(/);
+    assert.match(pkg, /importUiSurface\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-create-view-surface\"/);
   });
 });

@@ -62,7 +62,7 @@ describe("thin-shell-labels-capability — Phase 4aq", () => {
     );
     assert.match(pkg, /WIZARD_LABEL_RESOLVER_CACHE_KEY/);
     assert.match(pkg, /ensureWizardLabelResolverPackageSurface/);
-    assert.match(pkg, /import\(/);
+    assert.match(pkg, /importUiSurface\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/field-label-resolver\"/);
   });
 

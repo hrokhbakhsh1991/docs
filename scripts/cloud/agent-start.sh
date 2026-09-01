@@ -71,29 +71,48 @@ for app in web marketing portal; do
   fi
 done
 
-# PCMS-SEC-02 — copy RS256 *public* verify material into guest surfaces (never private key).
+# PCMS-SEC-02 — sync RS256 *public* verify material into guest surfaces (never private key).
+# Re-sync when API key fingerprint changes — stale portal/marketing keys cause
+# Marketing-authenticated → Portal /login on /me/* (DG-4.7.2 class).
 sync_jwt_public_verify_into_surface() {
   local dest="$1"
   local api_env="$repo_root/apps/api/.env.local"
   [ -f "$api_env" ] || return 0
   [ -f "$dest" ] || return 0
-  if grep -q '^AUTH_JWT_PUBLIC_KEY=' "$dest" 2>/dev/null; then
+
+  local api_pub_line api_iss_line api_aud_line dest_pub_line
+  api_pub_line=$(grep -E '^AUTH_JWT_PUBLIC_KEY=' "$api_env" | tail -1 || true)
+  api_iss_line=$(grep -E '^AUTH_JWT_ISSUER=' "$api_env" | tail -1 || true)
+  api_aud_line=$(grep -E '^AUTH_JWT_AUDIENCE=' "$api_env" | tail -1 || true)
+  [ -n "$api_pub_line" ] || return 0
+
+  dest_pub_line=$(grep -E '^AUTH_JWT_PUBLIC_KEY=' "$dest" | tail -1 || true)
+  if [ "$dest_pub_line" = "$api_pub_line" ]; then
     return 0
   fi
+
+  local tmp
+  tmp="$(mktemp)"
+  grep -v -E '^AUTH_JWT_PUBLIC_KEY=|^AUTH_JWT_ISSUER=|^AUTH_JWT_AUDIENCE=|^# Copied from apps/api/.env.local — RS256 verify only' "$dest" > "$tmp" || true
   {
     echo ""
     echo "# Copied from apps/api/.env.local — RS256 verify only (never AUTH_JWT_PRIVATE_KEY)"
-    grep -E '^AUTH_JWT_PUBLIC_KEY=' "$api_env" || true
-    grep -E '^AUTH_JWT_ISSUER=' "$api_env" || true
-    grep -E '^AUTH_JWT_AUDIENCE=' "$api_env" || true
-  } >> "$dest"
-  if grep -q '^AUTH_JWT_PUBLIC_KEY=' "$dest" 2>/dev/null; then
-    echo "agent-start: copied AUTH_JWT public verify env into $dest"
-  fi
+    printf '%s\n' "$api_pub_line"
+    [ -n "$api_iss_line" ] && printf '%s\n' "$api_iss_line"
+    [ -n "$api_aud_line" ] && printf '%s\n' "$api_aud_line"
+  } >> "$tmp"
+  mv "$tmp" "$dest"
+  echo "agent-start: synced AUTH_JWT public verify env into $dest"
 }
 for app in web marketing portal; do
   sync_jwt_public_verify_into_surface "$repo_root/apps/$app/.env.local"
 done
+
+if node "$repo_root/scripts/guard-dev-jwt-parity.mjs" 2>/dev/null; then
+  echo "agent-start: JWT public verify parity OK"
+else
+  echo "agent-start: warn — JWT parity check failed; guest surfaces may reject valid sessions"
+fi
 
 # --- Dev host aliases for browser testing (host-based tenant routing) ---
 hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost portal.denali.localhost portal.operator.localhost operator.portal.localhost denali.admin.localhost admin.denali.localhost operator.admin.localhost admin.operator.localhost urban.admin.localhost admin.urban.localhost operator.portal.localhost admin.localhost"

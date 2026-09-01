@@ -46,6 +46,7 @@
     "audit-boundary": "node scripts/guards/audit-ui-primitives-boundary.mjs",
     "//guard:documentation-sync": "REMOVED executable in PSR-3c — prefer `pnpm run guard:doc-sync`. See docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc",
     "guard:doc-sync": "node scripts/guards/documentation-sync.mjs",
+    "guard:dev-jwt-parity": "node scripts/guard-dev-jwt-parity.mjs",
     "doc:markdoc:validate": "node scripts/doc/markdoc-validate.mjs",
     "doc-gate": "node scripts/guards/doc-gate.mjs",
     "//phase-3:doc-scaffold": "REMOVED executable in PSR-3c — prefer `pnpm run doc-gate`. See docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc",
