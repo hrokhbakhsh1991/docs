@@ -122,6 +122,7 @@ export class PrismaTourRepository implements TourStorageRepository {
     return withTenantRls(tenantId, async (tx) => {
       const rows = await tx.tour.findMany({
         where: { tenantId, id: { in: unique } },
+        take: unique.length,
       });
       return rows.map(toTour);
     });

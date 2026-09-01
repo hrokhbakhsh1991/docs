@@ -17,6 +17,9 @@ export type DenaliLocationPickerMapInnerProps = {
   onChange: (_coords: { latitude: number; longitude: number }) => void;
   defaultCenter?: { latitude: number; longitude: number };
   height?: number;
+  layout?: "fixed" | "fill";
+  scrollWheelZoom?: boolean;
+  resizeSignal?: number;
   "data-testid"?: string;
 };
 
@@ -39,6 +42,9 @@ function DenaliLocationPickerMapInnerComponent({
   onChange,
   defaultCenter = DEFAULT_CENTER,
   height = 220,
+  layout = "fixed",
+  scrollWheelZoom = true,
+  resizeSignal = 0,
   "data-testid": testId,
 }: DenaliLocationPickerMapInnerProps) {
   const containerRef = useRef<LeafletContainer>(null);
@@ -65,7 +71,7 @@ function DenaliLocationPickerMapInnerComponent({
       : L.latLng(initialCenter.latitude, initialCenter.longitude);
     const initialZoom = initialValue ? 14 : 6;
 
-    const map = L.map(container, { scrollWheelZoom: true }).setView(mapCenter, initialZoom);
+    const map = L.map(container, { scrollWheelZoom }).setView(mapCenter, initialZoom);
     L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION }).addTo(map);
 
     map.on("click", (event) => {
@@ -73,7 +79,7 @@ function DenaliLocationPickerMapInnerComponent({
     });
 
     mapRef.current = map;
-    const resizeTimer = window.setTimeout(() => map.invalidateSize(), 120);
+    const resizeTimer = window.setTimeout(() => map.invalidateSize(), 0);
 
     return () => {
       window.clearTimeout(resizeTimer);
@@ -82,7 +88,19 @@ function DenaliLocationPickerMapInnerComponent({
       mapRef.current = null;
       resetLeafletContainer(container);
     };
-  }, []);
+  }, [scrollWheelZoom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map == null) {
+      return;
+    }
+    let frame = 0;
+    frame = window.requestAnimationFrame(() => {
+      map.invalidateSize();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [resizeSignal]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -104,19 +122,26 @@ function DenaliLocationPickerMapInnerComponent({
         onChangeRef.current({ latitude: position.lat, longitude: position.lng });
       });
       markerRef.current = marker;
-    } else {
-      markerRef.current.setLatLng(latlng);
+      map.setView(latlng, 14);
+      return;
     }
 
-    map.flyTo(latlng, 14, { duration: 0.8 });
+    markerRef.current.setLatLng(latlng);
+    if (!map.getBounds().contains(latlng)) {
+      map.panTo(latlng);
+    }
   }, [value?.latitude, value?.longitude]);
 
   return (
     <div
       ref={containerRef}
       data-testid={testId}
-      className="denali-wizard-composite__interactive-map"
-      style={{ height, width: "100%" }}
+      className={
+        layout === "fill"
+          ? "denali-wizard-composite__interactive-map denali-wizard-composite__interactive-map--fill"
+          : "denali-wizard-composite__interactive-map"
+      }
+      style={layout === "fill" ? undefined : { height, width: "100%" }}
     />
   );
 }

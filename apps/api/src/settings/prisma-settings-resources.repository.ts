@@ -214,11 +214,13 @@ async function resolveUniqueSlug(
       return tx.workspaceTourTheme.findMany({
         where: { tenantId, ...(excludeId !== undefined ? { id: { not: excludeId } } : {}) },
         select: { slug: true },
+        take: MAX_SETTINGS_CATALOG,
       });
     }
     return tx.workspaceGuideLanguage.findMany({
       where: { tenantId, ...(excludeId !== undefined ? { id: { not: excludeId } } : {}) },
       select: { slug: true },
+      take: MAX_SETTINGS_CATALOG,
     });
   });
   return uniqueCatalogSlug(
@@ -387,6 +389,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         tx.workspaceTourTheme.findMany({
           where: { tenantId, id: { not: itemId } },
           select: { slug: true },
+          take: MAX_SETTINGS_CATALOG,
         })
       );
       const conflict = rows.some((row) => row.slug === candidate);
@@ -501,6 +504,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         tx.workspaceGuideLanguage.findMany({
           where: { tenantId, id: { not: itemId } },
           select: { slug: true },
+          take: MAX_SETTINGS_CATALOG,
         })
       );
       const conflict = rows.some((row) => row.slug === candidate);

@@ -3,18 +3,22 @@
 import { Input } from "@app-tour/ui-primitives/input";
 import {
   classifyPublicRegistrationMobileInput,
+  formatLocalizedInteger,
   guestLoginPhoneFieldValue,
   normalizePublicRegistrationMobile,
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
+  toAsciiDigits,
+  toLocalizedDigits,
 } from "@app-tour/catalog-registration-auth";
+import { normalizeOtpDigits } from "@app-tour/ui-primitives/otp-segment-input-logic";
 import {
   mergeFlowState,
   transitionFlowStep,
   type RegistrationFlowContext,
   type RegistrationFlowStepProps,
 } from "@app-tour/workspace-sdk";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { readCatalogRegistrationFlowData } from "./flow-data";
@@ -53,6 +57,7 @@ export function CatalogRegistrationPhoneStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
+  const locale = useLocale();
   const { transport } = useGuestAuthHost();
   const data = readCatalogRegistrationFlowData(state);
   const errorId = useId();
@@ -159,15 +164,16 @@ export function CatalogRegistrationPhoneStep({
       <Input
         id="phone"
         name="guest-mobile"
-        value={guestLoginPhoneFieldValue(data.phone)}
+        value={toLocalizedDigits(guestLoginPhoneFieldValue(data.phone), locale)}
         autoComplete="off"
         inputMode="tel"
         autoCorrect="off"
         spellCheck={false}
+        dir="ltr"
         onChange={(event) => {
           setError(null);
           mergeFlowState(state, dispatch, {
-            phone: guestLoginPhoneFieldValue(event.target.value),
+            phone: guestLoginPhoneFieldValue(toAsciiDigits(event.target.value)),
           });
         }}
         onBlur={() => void refreshPhoneHint()}
@@ -193,6 +199,7 @@ export function CatalogRegistrationOtpStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
+  const locale = useLocale();
   const host = useGuestAuthHost();
   const data = readCatalogRegistrationFlowData(state);
   const errorId = useId();
@@ -210,7 +217,7 @@ export function CatalogRegistrationOtpStep({
   }, [resendCooldown]);
 
   async function verifyOtp(otpOverride?: string): Promise<void> {
-    const code = (otpOverride ?? data.otp).replace(/\D/g, "");
+    const code = normalizeOtpDigits(otpOverride ?? data.otp);
     if (verifyInFlightRef.current) return;
     verifyInFlightRef.current = true;
     setLoading(true);
@@ -268,7 +275,9 @@ export function CatalogRegistrationOtpStep({
         </div>
         <div data-portal-otp-meta>
           <p data-portal-otp-phone-chip>
-            {readMemberLoginEgress(context) ? data.phone : t("otp.sentTo", { phone: data.phone })}
+            {readMemberLoginEgress(context)
+              ? toLocalizedDigits(data.phone, locale)
+              : t("otp.sentTo", { phone: toLocalizedDigits(data.phone, locale) })}
           </p>
           <p data-portal-otp-autofill-hint>{t("otp.autoFillHint")}</p>
         </div>
@@ -301,7 +310,9 @@ export function CatalogRegistrationOtpStep({
             onClick={() => void resendOtp()}
             disabled={loading || resendCooldown > 0}
           >
-            {resendCooldown > 0 ? t("otp.resendIn", { seconds: resendCooldown }) : t("otp.resend")}
+            {resendCooldown > 0
+              ? t("otp.resendIn", { seconds: formatLocalizedInteger(resendCooldown, locale) })
+              : t("otp.resend")}
           </button>
           <button
             type="button"

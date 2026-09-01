@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { OPERATOR_SUCCESS_BADGE_MD_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { PlatformErrorState } from "../platform-async-states";
 import { fetchPlatformApi } from "../platform-api-client";
 import { TabBilling } from "./tab-billing";
@@ -171,7 +172,7 @@ export function PlatformClubDetailClient({
           className={
             detail.tenant.status === "suspended"
               ? "rounded-full bg-destructive/10 px-3 py-1 text-sm text-destructive"
-              : "rounded-full bg-emerald-500/10 px-3 py-1 text-sm text-emerald-700"
+              : OPERATOR_SUCCESS_BADGE_MD_CLASS
           }
         >
           {detail.tenant.status}

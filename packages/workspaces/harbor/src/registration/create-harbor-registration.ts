@@ -16,8 +16,7 @@ import { HARBOR_WORKSPACE_TYPE } from "../harbor.plugin";
 import { toHarborCatalogCard } from "../catalog/to-harbor-catalog-card";
 import { resolveHarborRegistrationTourPublishVisibility } from "./harbor-registration-tour-publish-visibility";
 import type { HarborTourStorePort } from "../http/harbor-http-host";
-import { HarborRegistrationDuplicateError } from "./harbor-registration-duplicate.error";
-import { HarborWorkspaceRequiredError } from "./harbor-workspace-required.error";
+import { HarborRegistrationDuplicateError, HarborWorkspaceRequiredError } from "./harbor-registration.errors";
 
 export type HarborRegistrationContact = {
   readonly fullName: string;

@@ -7,6 +7,6 @@ declare module "@app-tour/workspace-cert-club/host/transport/register-transport-
   export function registerCertClubCatalogRegistrationTransportInitializer(): void;
 }
 
-declare module "@app-tour/workspace-denali/catalog/registration-flow/register-transport-initializer" {
+declare module "@app-tour/workspace-denali/host/catalog/registration-flow/register-transport-initializer" {
   export function registerDenaliCatalogRegistrationTransportInitializer(): void;
 }

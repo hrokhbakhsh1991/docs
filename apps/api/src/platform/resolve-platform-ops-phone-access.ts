@@ -23,7 +23,7 @@ export function normalizePlatformOpsRole(role: string): PlatformOpsRole {
 
 /**
  * DB role wins.
- * Empty PLATFORM_OPS_PHONES: fail-closed under production/prodlike; owner fallback only in test/dev (TODO-004).
+ * Empty PLATFORM_OPS_PHONES: fail-closed under production/prodlike; owner fallback only in test/dev (PREV-AUD-004).
  */
 export async function resolvePlatformOpsPhoneAccess(
   phone: string,

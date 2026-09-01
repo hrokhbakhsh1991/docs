@@ -23,11 +23,11 @@
       "@app-tour/workspace-denali/settings/equipment-icon-registry": [
         "../../packages/workspaces/denali/dist/settings/equipment-icon-registry"
       ],
-      "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
+      "@app-tour/workspace-denali/host/tours": ["../../packages/workspaces/denali/dist/tours/index"],
       "@app-tour/workspace-denali/host/finance": [
         "../../packages/workspaces/denali/dist/finance/index"
       ],
-      "@app-tour/workspace-denali/roster": [
+      "@app-tour/workspace-denali/host/roster": [
         "../../packages/workspaces/denali/dist/roster/index"
       ],
       "@app-tour/workspace-denali/host/finance/case-read": [

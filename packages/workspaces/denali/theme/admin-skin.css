@@ -412,6 +412,27 @@ body[data-workspace-plugin="denali"] [data-radix-dialog-overlay] {
   background-color: rgb(0 0 0 / 0.5);
 }
 
+body[data-workspace-plugin="denali"] [data-operator-users-invite-dialog] {
+  max-width: min(100%, 32rem);
+  max-height: min(90vh, 40rem);
+  overflow: hidden;
+  padding: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-operator-users-invite-dialog-header] {
+  text-align: start;
+}
+
+body[data-workspace-plugin="denali"] [data-operator-users-invite-dialog-footer] {
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-operator-users-invite-dialog-footer] {
+    justify-content: flex-end;
+  }
+}
+
 body[data-workspace-plugin="denali"] [data-operator-confirm-dialog] {
   max-width: min(100%, 28rem);
 }

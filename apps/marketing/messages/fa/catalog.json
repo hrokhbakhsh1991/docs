@@ -99,8 +99,8 @@
   },
   "pricing": {
     "originalTourPrice": "قیمت تور",
-    "membershipDiscount": "تخفیف عضویت {percent}٪",
-    "membershipDiscountCompact": "{percent}٪ تخفیف عضویت",
+    "membershipDiscount": "تخفیف عضویت {percent, number}٪",
+    "membershipDiscountCompact": "{percent, number}٪ تخفیف عضویت",
     "yourPrice": "قیمت برای شما",
     "ancillary": {
       "transport": "خودرو",
@@ -208,7 +208,7 @@
       "lightboxClose": "بستن گالری",
       "lightboxPrev": "تصویر قبلی",
       "lightboxNext": "تصویر بعدی",
-      "lightboxCounter": "{current} از {total}"
+      "lightboxCounter": "{current, number} از {total, number}"
     },
     "registerPreview": {
       "heading": "پیش از ثبت‌نام",
@@ -455,7 +455,7 @@
         },
         "q3": {
           "question": "آیا تجربه قبلی لازم است؟",
-          "answer": "هر تور سطح fitness و difficulty مشخص دارد. قبل از ثبت‌نام سطح موردنیاز را در جزئیات تور بخوانید."
+          "answer": "هر تور سطح توان بدنی و درجه سختی مشخص دارد. قبل از ثبت‌نام سطح موردنیاز را در جزئیات تور بخوانید."
         },
         "q4": {
           "question": "سیاست لغو چگونه است؟",

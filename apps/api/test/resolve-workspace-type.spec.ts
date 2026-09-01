@@ -59,7 +59,7 @@ describe("resolve-workspace-type.spec.ts — Phase 11.0", () => {
     assert.equal(urbanType, "urban");
   });
 
-  it("TODO-011 unknown tenant fails closed (no starter fallback)", async () => {
+  it("PREV-AUD-013 unknown tenant fails closed (no starter fallback)", async () => {
     process.env.STORAGE_DRIVER = "memory";
     await assert.rejects(
       () => resolveWorkspaceTypeForTenant("00000000-0000-4000-8000-00000000dead"),

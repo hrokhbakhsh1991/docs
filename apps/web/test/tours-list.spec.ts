@@ -135,12 +135,18 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   });
 
   it("WEB-TL-ACTIONS-03 keeps edit and workspace routes stable", () => {
-    const card = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+    const table = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-table.tsx"),
       "utf8"
     );
-    assert.match(card, /href=\{`\/tours\/\$\{tour\.id\}\/edit`\}/);
-    assert.match(card, /href=\{`\/tours\/\$\{tour\.id\}\/workspace`\}/);
+    const mobile = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-mobile-row.tsx"),
+      "utf8"
+    );
+    assert.match(table, /href=\{`\/tours\/\$\{tour\.id\}\/edit`\}/);
+    assert.match(table, /href=\{`\/tours\/\$\{tour\.id\}\/workspace`\}/);
+    assert.match(mobile, /href=\{`\/tours\/\$\{tour\.id\}\/edit`\}/);
+    assert.match(mobile, /href=\{`\/tours\/\$\{tour\.id\}\/workspace`\}/);
   });
 
   it("WEB-TL-ACTIONS-04 action copy removes ambiguous view label", async () => {
@@ -153,15 +159,15 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   });
 
   it("WEB-TL-ACTIONS-05 duplicate actions live behind secondary menu", () => {
-    const card = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+    const table = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-table.tsx"),
       "utf8"
     );
     const duplicateActions = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-duplicate-actions.tsx"),
       "utf8"
     );
-    assert.match(card, /<TourDuplicateActions tourId=\{tour\.id\}/);
+    assert.match(table, /<TourDuplicateActions tourId=\{tour\.id\}/);
     assert.match(duplicateActions, /DropdownMenuTrigger/);
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.secondaryActions/);
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.duplicate/);
@@ -183,14 +189,22 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.doesNotMatch(card.duplicate, /ویزارد/);
   });
 
-  it("WEB-TL-FINAL-01 card leads with title before supporting badges", () => {
-    const card = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+  it("WEB-TL-FINAL-01 directory table leads with title before badges (no cover image)", () => {
+    const table = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-table.tsx"),
       "utf8"
     );
-    assert.ok(card.indexOf("<CardTitle") < card.indexOf("<TourStatusBadge"));
-    assert.ok(card.indexOf("t(\"departure\")") < card.indexOf("<TourCardCover"));
-    assert.ok(card.indexOf("t(\"capacity\")") < card.indexOf("<TourCardCover"));
+    const pageClient = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(table, /tour\.title/);
+    assert.match(table, /<TourStatusBadge/);
+    assert.doesNotMatch(table, /TourListCoverImage/);
+    assert.doesNotMatch(table, /cardCover/);
+    assert.match(pageClient, /<ToursDirectoryTable/);
+    assert.match(pageClient, /<ToursDirectoryMobileRow/);
+    assert.doesNotMatch(pageClient, /<TourCard/);
   });
 
   it("WEB-TL-FINAL-02 hides disabled archived filter from launch UI", () => {
@@ -244,8 +258,9 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams(serialized));
     assert.equal(parsed.sortBy, "created_at");
     assert.equal(parsed.sortDir, "desc");
-    assert.equal(TOURS_LIST_TEST_IDS.cardMeta, "operator-tours-card-meta");
-    assert.equal(TOURS_LIST_TEST_IDS.cardDuration, "operator-tours-card-duration");
+    assert.equal(TOURS_LIST_TEST_IDS.rowMeta, "operator-tours-row-meta");
+    assert.equal(TOURS_LIST_TEST_IDS.tableDesktop, "operator-tours-table-desktop");
+    assert.equal(TOURS_LIST_TEST_IDS.mobileRow, "operator-tours-mobile-row");
   });
 
   it("WEB-9.3-05 empty catalog vs filter semantics (CP-9.3-L08)", () => {
@@ -375,7 +390,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(tourListTotalPages(24, 10), 3);
   });
 
-  it("WEB-9.3-L15 tours list skeleton mirrors card and toolbar layout", () => {
+  it("WEB-9.3-L15 tours list skeleton mirrors directory row layout", () => {
     const skeleton = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-list-skeleton.tsx"),
       "utf8"
@@ -389,8 +404,9 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       "utf8"
     );
     assert.match(skeleton, /OperatorSkeleton size="search"/);
-    assert.match(skeleton, /CardHeader/);
-    assert.match(skeleton, /CardFooter/);
+    assert.match(skeleton, /TOURS_LIST_TEST_IDS\.rowSkeleton/);
+    assert.doesNotMatch(skeleton, /CardHeader/);
+    assert.doesNotMatch(skeleton, /CardFooter/);
     assert.match(skeleton, /TOURS_LIST_TEST_IDS\.listSkeleton/);
     assert.match(pageClient, /isInitialLoad/);
     assert.match(pageClient, /isRefetching/);

@@ -9,7 +9,7 @@ import { type LoyaltyTier } from "@/features/users/users-rewards-logic";
 import { cn } from "@/lib/utils";
 
 const LOYALTY_RADIO_CLASS =
-  "mt-0.5 size-4 shrink-0 !min-h-0 !w-4 !p-0 !border-0 !bg-transparent cursor-pointer accent-[hsl(var(--primary))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50";
+  "mt-0.5 size-4 shrink-0 !min-h-0 !w-4 !p-0 !border-0 !bg-transparent cursor-pointer accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 type UsersLoyaltyTierSelectorProps = {
   readonly value: LoyaltyTier;

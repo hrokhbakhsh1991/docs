@@ -50,6 +50,15 @@
   "emptyFilter": "توری با این فیلترها پیدا نشد. جستجو یا وضعیت را تغییر دهید.",
   "createdNotice": "تور با موفقیت ساخته شد.",
   "pagination": "صفحه {page, number} از {totalPages, number} · {total, number} تور",
+  "table": {
+    "tour": "تور",
+    "status": "وضعیت",
+    "schedule": "حرکت",
+    "capacity": "ظرفیت",
+    "price": "قیمت",
+    "updated": "به‌روزرسانی",
+    "actions": "عملیات"
+  },
   "card": {
     "noDescription": "بدون توضیحات",
     "noCover": "بدون تصویر کاور",

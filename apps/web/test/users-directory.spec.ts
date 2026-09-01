@@ -227,6 +227,20 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     );
   });
 
+  it("WEB-9.4-11d users directory uses operator confirm dialog instead of window.confirm", () => {
+    const pageSource = readFileSync("app/(app)/users/users-page-client.tsx", "utf8");
+    const ownershipSource = readFileSync(
+      "app/(app)/users/users-ownership-transfer-panel.tsx",
+      "utf8"
+    );
+    assert.doesNotMatch(pageSource, /window\.confirm/);
+    assert.doesNotMatch(ownershipSource, /window\.confirm/);
+    assert.match(pageSource, /OperatorConfirmDialog/);
+    assert.match(pageSource, /data-operator-users-invite-dialog/);
+    assert.match(pageSource, /data-operator-surface="card"/);
+    assert.match(ownershipSource, /OperatorConfirmDialog/);
+  });
+
   it("WEB-9.4-11c users table exposes focused management columns", () => {
     assert.equal(
       USERS_DIRECTORY_TEST_IDS.tableMemberHeader,

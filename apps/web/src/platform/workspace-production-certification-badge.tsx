@@ -1,3 +1,7 @@
+import {
+  OPERATOR_SUCCESS_BADGE_CLASS,
+  OPERATOR_WARNING_BADGE_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
 import type { WorkspaceProductionTier } from "./resolve-workspace-production-tier";
 
 export type WorkspaceProductionCertificationBadgeProps = {
@@ -17,11 +21,7 @@ export function WorkspaceProductionCertificationBadge({
   const certified = tier === "certified";
   return (
     <span
-      className={
-        certified
-          ? "rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700"
-          : "rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-800"
-      }
+      className={certified ? OPERATOR_SUCCESS_BADGE_CLASS : OPERATOR_WARNING_BADGE_CLASS}
       data-testid="workspace-production-certification-badge"
       data-production-tier={tier}
     >

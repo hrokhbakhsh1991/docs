@@ -9,16 +9,23 @@ import type {
 
 export type { DenaliMapCoordinates, DenaliLocationPickerMapInnerProps };
 
-const MapLoadingShell = ({ height = 220 }: { height?: number }) => (
+const MapLoadingShell = ({
+  height = 220,
+  layout = "fixed",
+}: Pick<DenaliLocationPickerMapInnerProps, "height" | "layout">) => (
   <div
     aria-hidden
-    className="denali-wizard-composite__map-skeleton"
-    style={{ height, width: "100%" }}
+    className={
+      layout === "fill"
+        ? "denali-wizard-composite__map-skeleton denali-wizard-composite__map-skeleton--fill"
+        : "denali-wizard-composite__map-skeleton"
+    }
+    style={layout === "fill" ? undefined : { height, width: "100%" }}
   />
 );
 
 /** Leaflet map shell — loaded client-only to avoid SSR `window` errors. */
-export const DenaliLocationPickerMap = dynamic(
+export const DenaliLocationPickerMap = dynamic<DenaliLocationPickerMapInnerProps>(
   () =>
     import("./denali-location-picker-map-inner").then((mod) => mod.DenaliLocationPickerMapInner),
   {

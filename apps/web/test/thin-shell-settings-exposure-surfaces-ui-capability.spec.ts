@@ -53,19 +53,18 @@ describe("thin-shell-settings-exposure-surfaces-ui-capability — Phase 4bb", ()
     assert.doesNotMatch(page, /workspace-settings-exposure-surfaces-ui-bindings/);
   });
 
-  it("TS-4BB-03 package settings-exposure surface uses bundler-visible dynamic import", () => {
+  it("TS-4BB-03 package settings-exposure surface loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
-      resolve(
-        WEB_ROOT,
-        "../../packages/workspaces/denali/src/settings/settings-exposure-surfaces-ui-package-surface.ts"
-      ),
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/settings/settings-exposure-surfaces-ui-package-surface.ts"),
       "utf8"
     );
-    assert.match(pkg, /SETTINGS_EXPOSURE_SURFACES_UI_SURFACE_KEY/);
-    assert.match(pkg, /ensureSettingsExposureSurfacesUiPackageSurface/);
-    assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
-    assert.match(pkg, /Map<string,\s*SettingsExposureSurfacesUiPackageSurface>/);
-    assert.match(pkg, /import\(/);
-    assert.doesNotMatch(pkg, /from \"\.\.\/ui\/settings\/settings-exposure-surfaces-ui-binding\"/);
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
+      "utf8"
+    );
+    assert.match(pkg, /importUiSurface\("..\/ui\/settings\/settings-exposure-surfaces-ui-binding"\)/);
+    assert.doesNotMatch(pkg, /from \"..\/ui\/settings\/settings-exposure-surfaces-ui-binding\"/);
+    assert.match(loaders, /"..\/ui\/settings\/settings-exposure-surfaces-ui-binding":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 });

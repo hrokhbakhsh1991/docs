@@ -14,6 +14,7 @@ import {
   validateDenaliPublishTransitionSync,
   validateDenaliWizardDraftSync,
 } from "./wizard-validation";
+import { assertDenaliPhotoUploadsIdle } from "../logic/denali-photo-upload-tracker";
 
 export type DenaliFlatEditPatchIntent = "save" | "publish" | "unpublish";
 
@@ -58,6 +59,14 @@ export async function runDenaliFlatEditPatch(input: {
     return {
       ok: false,
       failure: { kind: "not-ready", code: "TOUR_EDIT_NOT_READY" },
+    };
+  }
+
+  const photoUploadIdleCode = assertDenaliPhotoUploadsIdle();
+  if (photoUploadIdleCode !== null) {
+    return {
+      ok: false,
+      failure: { kind: "patch-config", code: photoUploadIdleCode },
     };
   }
 

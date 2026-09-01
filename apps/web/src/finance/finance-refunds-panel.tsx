@@ -6,6 +6,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
+import {
+  OPERATOR_SUCCESS_CALLOUT_SOFT_CLASS,
+  OPERATOR_WARNING_CALLOUT_SOFT_PANEL_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -305,7 +309,7 @@ export function FinanceRefundsPanel() {
 
           {actionSuccess ? (
             <div
-              className="space-y-2 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-3 py-2"
+              className={OPERATOR_SUCCESS_CALLOUT_SOFT_CLASS}
               role="status"
               data-testid={FINANCE_REFUNDS_TEST_IDS.completeSuccess}
             >
@@ -603,7 +607,7 @@ export function FinanceRefundsPanel() {
                       {actions.complete ? (
                         confirming ? (
                           <div
-                            className="w-full space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2"
+                            className={`w-full ${OPERATOR_WARNING_CALLOUT_SOFT_PANEL_CLASS} p-2`}
                             data-testid={FINANCE_REFUNDS_TEST_IDS.completeConfirm}
                           >
                             <p className="text-xs">{t("completeConfirmBody")}</p>

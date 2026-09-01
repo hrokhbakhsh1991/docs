@@ -38,11 +38,33 @@ if [[ -f "${ARTIFACT}.sha256" ]]; then
   )
 fi
 
-log "stop staging units"
-for u in ${UNIT_PREFIX}-{api,web,marketing,portal}; do
-  systemctl stop "$u" 2>/dev/null || true
-  systemctl disable "$u" 2>/dev/null || true
-done
+PREVIOUS_CURRENT=""
+SERVICES_STOPPED=false
+if [[ -L "${DEPLOY_ROOT}/current" ]]; then
+  PREVIOUS_CURRENT="$(readlink -f "${DEPLOY_ROOT}/current")"
+  echo "$PREVIOUS_CURRENT" >"${DEPLOY_ROOT}/previous-release"
+fi
+
+restore_previous_stack_on_failure() {
+  local ec=$?
+  if [[ "$SERVICES_STOPPED" != "true" ]]; then
+    echo "install-staging-artifact: INSTALL_FAILED exit=${ec} (active stack left running)" >&2
+    exit "$ec"
+  fi
+  if [[ -z "$PREVIOUS_CURRENT" || ! -d "$PREVIOUS_CURRENT" ]]; then
+    echo "install-staging-artifact: INSTALL_FAILED exit=${ec} after stop — no previous release to restore" >&2
+    exit "$ec"
+  fi
+  log "failure after stop — restoring previous release ${PREVIOUS_CURRENT}"
+  ln -sfn "$PREVIOUS_CURRENT" "${DEPLOY_ROOT}/current"
+  if [[ -x "${TOOLING}/scripts/vps-deploy/start-staging-artifact-stack.sh" ]]; then
+    ENV_DIR="$ENV_DIR" UNIT_PREFIX="$UNIT_PREFIX" \
+      bash "${TOOLING}/scripts/vps-deploy/start-staging-artifact-stack.sh" || true
+  fi
+  echo "install-staging-artifact: INSTALL_FAILED exit=${ec} restored=${PREVIOUS_CURRENT}" >&2
+  exit "$ec"
+}
+trap restore_previous_stack_on_failure ERR
 
 log "extract release ${SHA}"
 mkdir -p "$RELEASES_DIR" "${TOOLING}/scripts/vps-deploy"
@@ -91,10 +113,16 @@ log "seed staging (synthetic operator/Denali)"
 sudo -u "$APP_USER" env HOME="$DEPLOY_ROOT" \
   bash "${RELEASES_DIR}/${SHA}/bin/seed-staging.sh" "${ENV_DIR}/api.env"
 
+log "stop staging units (post-seed cutover)"
+SERVICES_STOPPED=true
+for u in ${UNIT_PREFIX}-{api,web,marketing,portal}; do
+  systemctl stop "$u" 2>/dev/null || true
+  systemctl disable "$u" 2>/dev/null || true
+done
+
 PREVIOUS=""
-if [[ -L "${DEPLOY_ROOT}/current" ]]; then
-  PREVIOUS="$(readlink -f "${DEPLOY_ROOT}/current")"
-  echo "$PREVIOUS" >"${DEPLOY_ROOT}/previous-release"
+if [[ -n "$PREVIOUS_CURRENT" ]]; then
+  PREVIOUS="$PREVIOUS_CURRENT"
 fi
 ln -sfn "${RELEASES_DIR}/${SHA}" "${DEPLOY_ROOT}/current"
 
@@ -137,6 +165,8 @@ systemctl daemon-reload
 for u in ${UNIT_PREFIX}-{api,web,marketing,portal}; do
   systemctl enable "$u"
 done
+
+trap - ERR
 
 log "INSTALL_ARTIFACT_OK sha=${SHA} previous=${PREVIOUS:-none}"
 log "start: systemctl start ${UNIT_PREFIX}-api && health; then web, portal, marketing"

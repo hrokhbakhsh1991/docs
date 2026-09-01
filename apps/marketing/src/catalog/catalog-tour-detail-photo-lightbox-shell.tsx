@@ -36,8 +36,6 @@ export async function CatalogTourDetailPhotoLightboxShell({
         next: t("detail.gallery.lightboxNext"),
         // Placeholder index — triggers pass per-photo aria labels at render time.
         openPhoto: t("detail.gallery.openPhoto", { index: 1 }),
-        // Note: counter is formatted client-side via string replacement.
-        counter: t.raw("detail.gallery.lightboxCounter"),
       }}
     >
       {children}

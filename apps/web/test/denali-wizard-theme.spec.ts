@@ -121,17 +121,27 @@ describe("denali-wizard-theme.spec.ts", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.doesNotMatch(fields, /data-selected="true"/);
     const calendar = readFileSync(
+      join(REPO_ROOT, "packages/localized-calendar/src/solar-hijri-calendar.tsx"),
+      "utf8"
+    );
+    const denaliCalendar = readFileSync(
       join(
         REPO_ROOT,
         "packages/workspaces/denali/src/ui/components/calendar/denali-calendar.tsx"
       ),
       "utf8"
     );
+    assert.match(denaliCalendar, /@app-tour\/localized-calendar\/solar-hijri-calendar/);
     assert.match(calendar, /data-operator-wizard-calendar/);
     const picker = readFileSync(
+      join(REPO_ROOT, "packages/localized-calendar/src/localized-date-picker.tsx"),
+      "utf8"
+    );
+    const denaliPicker = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/localized-date-picker.tsx"),
       "utf8"
     );
+    assert.match(denaliPicker, /@app-tour\/localized-calendar\/localized-date-picker/);
     assert.match(picker, /data-operator-wizard-calendar-popover/);
     assert.match(calendarCss, /operator-wizard-calendar__grid/);
     assert.match(calendarCss, /operator-wizard-calendar__picker-grid/);
@@ -189,9 +199,16 @@ describe("denali-wizard-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(selectCss, /appearance:\s*none/);
-    assert.match(selectCss, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
-    assert.doesNotMatch(selectCss, /\[dir="rtl"\]/);
-    assert.match(fields, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
+    assert.match(
+      selectCss,
+      /background-position:\s*right var\(--select-chevron-edge-inset\) center/
+    );
+    assert.match(selectCss, /:dir\(rtl\)\s*\[data-ui-select\]/);
+    assert.match(
+      fields,
+      /background-position:\s*right var\(--select-chevron-edge-inset\) center/
+    );
+    assert.match(fields, /:dir\(rtl\)[\s\S]*background-position:\s*left var\(--select-chevron-edge-inset\) center/);
   });
 
   it("WEB-DENALI-WIZARD-12 composite UX phase 3 (WZ-P1-06…10)", () => {

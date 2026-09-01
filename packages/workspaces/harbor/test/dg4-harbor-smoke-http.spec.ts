@@ -17,11 +17,11 @@ import {
   HARBOR_SMOKE_PUBLISHED_TOUR_CITY,
   HARBOR_SMOKE_PUBLISHED_TOUR_ID,
   HARBOR_SMOKE_PUBLISHED_TOUR_TITLE,
-} from "../src/catalog/harbor-smoke-catalog.fixture";
+} from "../src/catalog/harbor-smoke-catalog";
 import {
   getHarborSmokeCatalogStore,
   resetHarborSmokeCatalogStoreForTests,
-} from "../src/catalog/harbor-smoke-catalog.store";
+} from "../src/catalog/harbor-smoke-catalog";
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 function mockRes(): ServerResponse & {

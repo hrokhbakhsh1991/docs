@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
@@ -42,6 +45,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   if (row === null) {
     notFound();
   }
+  const locale = (await getLocale()) as AppLocale;
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
   const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
@@ -155,7 +159,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                   {transportKind === "personal_car" && personalCarOccupants !== null
                     ? t("transportLineOccupants", {
                         kind: transportKindLabel,
-                        occupants: personalCarOccupants,
+                        occupants: formatLocalizedNumber(personalCarOccupants, locale),
                       })
                     : transportKindLabel}
                 </p>
@@ -165,7 +169,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               <div data-portal-member-detail-kpi data-kpi="payment-due">
                 <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
                 <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
-                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt)}
+                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt, locale)}
                 </p>
               </div>
             ) : null}

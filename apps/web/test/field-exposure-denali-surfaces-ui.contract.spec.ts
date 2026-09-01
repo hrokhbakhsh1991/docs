@@ -90,7 +90,10 @@ describe("Denali workspace surfaces UI contract", () => {
     assert.match(registry, /app-cloud\.settingsExposureSurfacesUiSurface/);
     assert.doesNotMatch(registry, /workspace-settings-exposure-surfaces-ui-bindings/);
     assert.match(packageWarm, /ensureSettingsExposureSurfacesUiPackageSurface/);
-    assert.match(packageWarm, /import\(/);
+    assert.match(
+      packageWarm,
+      /importUiSurface\("\.\.\/ui\/settings\/settings-exposure-surfaces-ui-binding"\)/
+    );
     assert.doesNotMatch(packageWarm, /from \"\.\.\/ui\/settings\/settings-exposure-surfaces-ui-binding\"/);
     assert.match(packagePanel, /selection\.toggleExposureFieldSelection/);
     assert.match(packagePanel, /io\.loadSurfaces/);

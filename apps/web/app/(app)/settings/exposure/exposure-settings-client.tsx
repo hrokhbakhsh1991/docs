@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { operatorCapabilitySupportsFieldExposureSurfaces } from "@app-tour/workspace-sdk";
 
+import { OPERATOR_WARNING_CALLOUT_PANEL_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -301,7 +302,7 @@ export function ExposureSettingsClient({
 
           {!catalogError && catalog?.source === "registry_deliverable_migration_seed" ? (
             <p
-              className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100"
+              className={OPERATOR_WARNING_CALLOUT_PANEL_CLASS}
               data-testid="exposure-catalog-seed-banner"
             >
               {t("catalogSeedBanner")}

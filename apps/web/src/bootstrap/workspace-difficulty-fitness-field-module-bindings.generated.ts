@@ -5,7 +5,7 @@
  */
 
 import type { WorkspaceDifficultyFitnessFieldRegistryFragment } from "../difficulty-fitness/workspace-difficulty-fitness-field-module";
-import { denaliDifficultyFitnessFieldRegistryFragment as denali_difficulty_fitness_field_module } from "@app-tour/workspace-denali/field-registry/denali-difficulty-fitness-field-module";
+import { denaliDifficultyFitnessFieldRegistryFragment as denali_difficulty_fitness_field_module } from "@app-tour/workspace-denali/host/field-registry/denali-difficulty-fitness-field-module";
 
 export type WorkspaceDifficultyFitnessFieldModuleBinding = {
   readonly workspaceType: string;

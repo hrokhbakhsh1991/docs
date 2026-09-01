@@ -78,12 +78,24 @@ describe("denali-gathering-points.spec.ts", () => {
     assert.match(FIELD_SRC, /onPlaceSelect/);
     assert.match(FIELD_SRC, /place\.displayName/);
     assert.match(FIELD_SRC, /readCurrentOrScaffold\(\)/);
+    assert.match(FIELD_SRC, /locationPickerContext/);
+    assert.match(FIELD_SRC, /locationContextName/);
+    const modal = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/ui/components/denali-location-map-modal.tsx"),
+      "utf8"
+    );
     const picker = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../src/ui/components/denali-location-address-picker.tsx"),
       "utf8"
     );
-    assert.match(picker, /onPlaceSelect\?\.\(item\)/);
-    assert.match(picker, /address: item\.addressText/);
+    assert.match(picker, /onPlaceSelect=\{onPlaceSelect\}/);
+    assert.match(modal, /onPlaceSelect\?\.\(place\)/);
+    const logic = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/ui/logic/denali-location-modal-logic.ts"),
+      "utf8"
+    );
+    assert.match(logic, /address: item\.addressText/);
+    assert.match(modal, /beginSearchSelectionIntent/);
     assert.equal(/osmName/.test(picker), false);
   });
 });

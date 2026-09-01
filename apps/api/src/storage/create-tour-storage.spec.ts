@@ -25,7 +25,7 @@ afterEach(() => {
   }
 });
 
-describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01 / TODO-009)", () => {
+describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01 / PREV-AUD-009)", () => {
   it("returns in-memory repository outside production", async () => {
     process.env.NODE_ENV = "test";
     delete process.env.DATABASE_URL;
@@ -36,7 +36,7 @@ describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01 / TODO-009)", () => 
     assert.ok(repo instanceof InMemoryTourRepository);
   });
 
-  it("TODO-009: DATABASE_URL set + STORAGE_DRIVER unset → prisma", async () => {
+  it("PREV-AUD-009: DATABASE_URL set + STORAGE_DRIVER unset → prisma", async () => {
     process.env.NODE_ENV = "test";
     process.env.DATABASE_URL = "postgresql://app/db";
     delete process.env.STORAGE_DRIVER;
@@ -47,7 +47,7 @@ describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01 / TODO-009)", () => 
     assert.ok(createTourStorageRepository() instanceof PrismaTourRepository);
   });
 
-  it("TODO-009: explicit STORAGE_DRIVER=memory wins over DATABASE_URL", async () => {
+  it("PREV-AUD-009: explicit STORAGE_DRIVER=memory wins over DATABASE_URL", async () => {
     process.env.NODE_ENV = "test";
     process.env.DATABASE_URL = "postgresql://app/db";
     process.env.STORAGE_DRIVER = "memory";

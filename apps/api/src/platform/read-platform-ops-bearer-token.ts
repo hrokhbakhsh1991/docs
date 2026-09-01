@@ -3,7 +3,7 @@ const DEFAULT_DEV_BEARER = "platform-ops";
 export const PLATFORM_OPS_BEARER_TOKEN_REQUIRED = "PLATFORM_OPS_BEARER_TOKEN_REQUIRED";
 
 /**
- * Shared platform-ops bearer (TODO-004).
+ * Shared platform-ops bearer (PREV-AUD-004).
  * - test: may fall back to DEFAULT_DEV_BEARER when unset
  * - production / prodlike: env required (no default secret)
  */

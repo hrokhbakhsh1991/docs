@@ -55,15 +55,19 @@ describe("thin-shell-labels-capability — Phase 4aq", () => {
     assert.doesNotMatch(submit, /wizard-label-bindings/);
   });
 
-  it("TS-4AQ-03 package label surface uses bundler-visible dynamic import", () => {
+  it("TS-4AQ-03 package label surface loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/label-resolver-surface.ts"),
       "utf8"
     );
-    assert.match(pkg, /WIZARD_LABEL_RESOLVER_CACHE_KEY/);
-    assert.match(pkg, /ensureWizardLabelResolverPackageSurface/);
-    assert.match(pkg, /import\(/);
-    assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/field-label-resolver\"/);
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
+      "utf8"
+    );
+    assert.match(pkg, /importUiSurface\("..\/ui\/surfaces\/field-label-resolver"\)/);
+    assert.doesNotMatch(pkg, /from \"..\/ui\/surfaces\/field-label-resolver\"/);
+    assert.match(loaders, /"..\/ui\/surfaces\/field-label-resolver":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 
   it("TS-4AQ-04 ensureReady publishes resolver under denali surface id", async () => {

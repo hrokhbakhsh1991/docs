@@ -1,5 +1,5 @@
 /**
- * TODO-001 / PREV-AUD-001 — honest production JWT → HTTP → Prisma booking write.
+ * PREV-AUD-001 / PREV-AUD-001 — honest production JWT → HTTP → Prisma booking write.
  *
  * Forbidden: x-* header auth, memory SoT, silent skip without DATABASE_URL reason.
  * Missing DATABASE_URL(+ADMIN) → honest describe skip (visible `*_REQUIRES_DATABASE` reason).
@@ -30,7 +30,7 @@ const hasDatabase =
 
 const postgresSkip = hasDatabase
   ? false
-  : "BOOKING_HTTP_POSTGRES_JWT_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-001)";
+  : "BOOKING_HTTP_POSTGRES_JWT_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (PREV-AUD-001)";
 
 const ENV_KEYS = [
   "NODE_ENV",
@@ -125,7 +125,7 @@ async function requestJson(
 }
 
 describe(
-  "bookings-http-postgres-jwt-production — TODO-001 production JWT path",
+  "bookings-http-postgres-jwt-production — PREV-AUD-001 production JWT path",
   { concurrency: false, skip: postgresSkip },
   () => {
     const tenantId = integrationTenantId();
@@ -294,7 +294,7 @@ describe(
       assert.ok(response.status === 401 || response.status === 403, JSON.stringify(response.body));
     });
 
-    it("TODO-009 sess_ver mismatch after bump → 401 on create", async () => {
+    it("PREV-AUD-009 sess_ver mismatch after bump → 401 on create", async () => {
       await withTenantRls(tenantId, (tx) =>
         tx.userTenant.update({
           where: { userId_tenantId: { userId, tenantId } },
@@ -317,7 +317,7 @@ describe(
       );
     });
 
-    it("TODO-009 binary receipt on unknown booking fails before MinIO put", async () => {
+    it("PREV-AUD-009 binary receipt on unknown booking fails before MinIO put", async () => {
       // Ownership/status check must reject before putMemberReceiptProof (MINIO_NOT_CONFIGURED).
       const token = await signJwt(1);
       const foreignBookingId = randomUUID();

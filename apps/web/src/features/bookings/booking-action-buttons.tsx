@@ -3,6 +3,7 @@
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { OPERATOR_WARNING_CALLOUT_COMPACT_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { Button } from "@/components/ui/button";
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "@/features/bookings/bookings-command-center-types";
 
@@ -42,7 +43,7 @@ export function BookingActionButtons({
     <div className={`flex flex-col gap-2 ${className ?? ""}`}>
       {capacityFullHint !== null && capacityFullHint.length > 0 ? (
         <p
-          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-950 dark:text-amber-100"
+          className={OPERATOR_WARNING_CALLOUT_COMPACT_CLASS}
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.capacityFullHint}
         >
           {capacityFullHint}

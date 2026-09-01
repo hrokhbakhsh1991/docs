@@ -61,7 +61,8 @@
     "approved": "تأییدشده",
     "waitlisted": "در لیست انتظار",
     "rejected": "ردشده",
-    "cancelled": "لغوشده"
+    "cancelled": "لغوشده",
+    "actionable": "صف کار"
   },
   "allTours": "همه تورها",
   "moreTours": "تورهای بیشتر…",

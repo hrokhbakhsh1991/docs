@@ -7,6 +7,7 @@ import { Download, Plus, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { OperatorConfirmDialog } from "@/admin/patterns/operator-confirm-dialog";
 import { PageHeader as AdminPageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -126,8 +127,24 @@ export function UsersPageClient({
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<ReadonlySet<string>>(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [destructiveConfirm, setDestructiveConfirm] = useState<{
+    readonly title: string;
+    readonly description: string;
+    readonly onConfirm: () => void;
+  } | null>(null);
 
   const canManage = isOwnerRole(session.role);
+
+  const requestDestructiveConfirm = useCallback(
+    (input: {
+      readonly title: string;
+      readonly description: string;
+      readonly onConfirm: () => void;
+    }) => {
+      setDestructiveConfirm(input);
+    },
+    []
+  );
 
   const prepareRewardsForm = (user: UsersDirectoryRow) => {
     setRewardsDiscount(
@@ -358,11 +375,14 @@ export function UsersPageClient({
   };
 
   const handleBulkSuspend = () => {
-    if (!window.confirm(t("bulk.suspendConfirm"))) {
-      return;
-    }
-    void runBulkMutation("/api/users/bulk/suspend", "PATCH", {
-      userIds: [...selectedUserIds],
+    requestDestructiveConfirm({
+      title: t("bulk.suspend"),
+      description: t("bulk.suspendConfirm"),
+      onConfirm: () => {
+        void runBulkMutation("/api/users/bulk/suspend", "PATCH", {
+          userIds: [...selectedUserIds],
+        });
+      },
     });
   };
 
@@ -373,11 +393,14 @@ export function UsersPageClient({
   };
 
   const handleBulkRemove = () => {
-    if (!window.confirm(t("bulk.removeConfirm"))) {
-      return;
-    }
-    void runBulkMutation("/api/users/bulk/remove", "POST", {
-      userIds: [...selectedUserIds],
+    requestDestructiveConfirm({
+      title: t("bulk.remove"),
+      description: t("bulk.removeConfirm"),
+      onConfirm: () => {
+        void runBulkMutation("/api/users/bulk/remove", "POST", {
+          userIds: [...selectedUserIds],
+        });
+      },
     });
   };
 
@@ -455,10 +478,17 @@ export function UsersPageClient({
     }
   };
 
-  const handleRemoveUser = async (userId: string) => {
-    if (!window.confirm(t("actions.removeConfirm"))) {
-      return;
-    }
+  const handleRemoveUser = (userId: string) => {
+    requestDestructiveConfirm({
+      title: t("actions.remove"),
+      description: t("actions.removeConfirm"),
+      onConfirm: () => {
+        void executeRemoveUser(userId);
+      },
+    });
+  };
+
+  const executeRemoveUser = async (userId: string) => {
     setRowActionId(userId);
     try {
       const response = await fetch(`/api/users/${userId}`, { method: "DELETE" });
@@ -473,10 +503,17 @@ export function UsersPageClient({
     }
   };
 
-  const handleSuspendUser = async (userId: string) => {
-    if (!window.confirm(t("actions.suspendConfirm"))) {
-      return;
-    }
+  const handleSuspendUser = (userId: string) => {
+    requestDestructiveConfirm({
+      title: t("actions.suspend"),
+      description: t("actions.suspendConfirm"),
+      onConfirm: () => {
+        void executeSuspendUser(userId);
+      },
+    });
+  };
+
+  const executeSuspendUser = async (userId: string) => {
     setRowActionId(userId);
     try {
       const response = await fetch(`/api/users/${userId}/suspend`, { method: "PATCH" });
@@ -658,15 +695,23 @@ export function UsersPageClient({
           }
         }}
       >
-        <DialogContent className="max-w-lg" data-testid={USERS_DIRECTORY_TEST_IDS.inviteModal}>
-          <DialogHeader>
+        <DialogContent
+          className="max-w-lg gap-0 p-0"
+          data-operator-users-invite-dialog
+          data-operator-surface="card"
+          data-testid={USERS_DIRECTORY_TEST_IDS.inviteModal}
+        >
+          <DialogHeader
+            className="space-y-2 px-6 pb-4 pt-6 text-start"
+            data-operator-users-invite-dialog-header
+          >
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
               {t("inviteForm.title")}
             </DialogTitle>
             <DialogDescription>{t("inviteForm.description")}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="max-h-[min(60vh,28rem)] space-y-4 overflow-y-auto px-6 pb-2">
             <div className="rounded-lg border bg-muted/30 p-3 text-sm">
               <p className="text-muted-foreground">{t("inviteForm.workspace")}</p>
               <p className="font-medium">{t("inviteForm.workspaceValue")}</p>
@@ -723,7 +768,10 @@ export function UsersPageClient({
               </p>
             ) : null}
           </div>
-          <DialogFooter>
+          <DialogFooter
+            className="gap-2 border-t px-6 py-4 sm:justify-end"
+            data-operator-users-invite-dialog-footer
+          >
             <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
               {tCommon("cancel")}
             </Button>
@@ -738,6 +786,25 @@ export function UsersPageClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OperatorConfirmDialog
+        open={destructiveConfirm !== null}
+        title={destructiveConfirm?.title ?? ""}
+        description={destructiveConfirm?.description ?? ""}
+        cancelLabel={tCommon("cancel")}
+        confirmLabel={destructiveConfirm?.title ?? tCommon("continue")}
+        testIdPrefix="operator-users"
+        onOpenChange={(open) => {
+          if (!open) {
+            setDestructiveConfirm(null);
+          }
+        }}
+        onConfirm={() => {
+          const action = destructiveConfirm?.onConfirm;
+          setDestructiveConfirm(null);
+          action?.();
+        }}
+      />
 
       {bodyState.type === "loading" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

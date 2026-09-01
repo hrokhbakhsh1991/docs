@@ -9,7 +9,7 @@ import type {
 } from "@app-tour/workspace-sdk";
 
 import { buildHarborEventJsonLd } from "./build-harbor-event-jsonld";
-import type { HarborSmokeCatalogCard } from "./harbor-smoke-catalog.fixture";
+import type { HarborSmokeCatalogCard } from "./harbor-smoke-catalog";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {

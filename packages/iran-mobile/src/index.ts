@@ -1,3 +1,4 @@
+export { toAsciiDigits } from "./ascii-digits";
 export {
   buildIranMobileSearchPatterns,
   formatIranMobileForDisplay,

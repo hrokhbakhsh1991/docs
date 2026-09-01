@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
+import { OPERATOR_WARNING_CALLOUT_PANEL_CLASS } from "@/admin/patterns/operator-semantic-surfaces";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -172,7 +173,7 @@ export function ExposureControlPlaneClient({
                             <dd className="font-mono text-sm">{eventContext.effectiveContext.trigger}</dd>
                           </div>
                         </dl>
-                        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+                        <div className={`${OPERATOR_WARNING_CALLOUT_PANEL_CLASS} text-xs text-muted-foreground`}>
                           <p className="font-medium text-foreground">{t("coordinateRuntimeNotice")}</p>
                           <dl className="mt-2 grid gap-2 sm:grid-cols-3">
                             <div>

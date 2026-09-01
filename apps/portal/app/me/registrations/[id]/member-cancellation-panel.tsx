@@ -1,8 +1,11 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+
+import { formatMemberMinorAmount } from "@/i18n/format-localized-digits";
+import type { AppLocale } from "@/i18n/routing";
 
 type CancellationEligibility = {
   readonly eligible: boolean;
@@ -23,6 +26,7 @@ type Props = {
 
 export function MemberCancellationPanel({ registrationId, registrationStatus }: Props) {
   const t = useTranslations("portalMember.cancellation");
+  const locale = useLocale() as AppLocale;
   const router = useRouter();
   const [eligibility, setEligibility] = useState<CancellationEligibility | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -80,8 +84,11 @@ export function MemberCancellationPanel({ registrationId, registrationStatus }: 
       {eligibility.refund !== undefined ? (
         <p data-portal-member-refund-eligible={eligibility.refund.eligibleRefundMinor}>
           {t("refundEligible", {
-            amount: eligibility.refund.eligibleRefundMinor,
-            currency: eligibility.refund.currency,
+            amount: formatMemberMinorAmount(
+              eligibility.refund.eligibleRefundMinor,
+              eligibility.refund.currency,
+              locale
+            ),
           })}
         </p>
       ) : null}

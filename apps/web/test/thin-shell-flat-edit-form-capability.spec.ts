@@ -55,19 +55,18 @@ describe("thin-shell-flat-edit-form-capability — Phase 4ae/4ai", () => {
     assert.doesNotMatch(registry, /workspace-wizard-flat-edit-form-bindings/);
   });
 
-  it("TS-4AE-03 package flat-edit form surface uses bundler-visible dynamic import", () => {
+  it("TS-4AE-03 package flat-edit form surface loads through static importUiSurface registry", () => {
     const pkg = readFileSync(
-      resolve(
-        WEB_ROOT,
-        "../../packages/workspaces/denali/src/wizard/flat-edit-form-surface.ts"
-      ),
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/flat-edit-form-surface.ts"),
       "utf8"
     );
-    assert.match(pkg, /WIZARD_FLAT_EDIT_FORM_SURFACE_KEY/);
-    assert.match(pkg, /ensureWizardFlatEditFormPackageSurface/);
-    assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
-    assert.match(pkg, /Map<string,\s*WizardFlatEditFormSurface>/);
-    assert.match(pkg, /import\(/);
-    assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-flat-edit-form-surface\"/);
+    const loaders = readFileSync(
+      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/import-ui-surface.loaders.ts"),
+      "utf8"
+    );
+    assert.match(pkg, /importUiSurface\("..\/ui\/chrome\/wizard-flat-edit-form-surface"\)/);
+    assert.doesNotMatch(pkg, /from \"..\/ui\/chrome\/wizard-flat-edit-form-surface\"/);
+    assert.match(loaders, /"..\/ui\/chrome\/wizard-flat-edit-form-surface":/);
+    assert.doesNotMatch(loaders, /webpackIgnore/);
   });
 });

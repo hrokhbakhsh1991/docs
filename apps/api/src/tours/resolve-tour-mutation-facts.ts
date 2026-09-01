@@ -1,4 +1,4 @@
-import type { DenaliTourOperationalFacts } from "@app-tour/workspace-denali/tours";
+import type { DenaliTourOperationalFacts } from "../workspace/denali-host-legacy-bindings.generated.ts";
 
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import type { BookingPaymentStatus, BookingRecord } from "../bookings/bookings.types";

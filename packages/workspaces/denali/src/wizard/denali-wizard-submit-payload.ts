@@ -22,6 +22,7 @@ import type { CanonicalWizardDraftEnvelope } from "./canonical-draft-access";
 import {
   sanitizeGearCatalogRefsOnDraft,
   sanitizeGuideLanguageIdsOnDraft,
+  sanitizeCompleteTourPhotosOnDraft,
   sanitizeItineraryDestinationIdsOnDraft,
   sanitizeItineraryPhotoIdsOnDraft,
   sanitizeLeaderUserIdsOnDraft,
@@ -74,6 +75,7 @@ export function prepareDenaliTourCreatePayload(
   envelope = sanitizeThemeIdsOnDraft(envelope, options?.activeThemeIds);
   envelope = sanitizeGuideLanguageIdsOnDraft(envelope, options?.activeGuideLanguageIds);
   envelope = sanitizeLeaderUserIdsOnDraft(envelope, options?.selectableLeaderIds);
+  envelope = sanitizeCompleteTourPhotosOnDraft(envelope);
   envelope = sanitizeItineraryPhotoIdsOnDraft(envelope);
   envelope = sanitizeItineraryDestinationIdsOnDraft(envelope, options?.activeDestinationIds);
   const form = tourWizardDraftToDenaliForm(envelope, rules) as unknown as Record<string, unknown>;

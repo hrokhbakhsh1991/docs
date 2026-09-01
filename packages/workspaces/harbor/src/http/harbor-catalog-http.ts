@@ -16,8 +16,8 @@ import {
   buildHarborSmokeCatalogCard,
   HARBOR_SMOKE_PUBLISHED_TOUR_ID,
   type HarborSmokeCatalogCard,
-} from "../catalog/harbor-smoke-catalog.fixture";
-import { getHarborSmokeCatalogStore } from "../catalog/harbor-smoke-catalog.store";
+} from "../catalog/harbor-smoke-catalog";
+import { getHarborSmokeCatalogStore } from "../catalog/harbor-smoke-catalog";
 import {
   isHarborTourPublished,
   toHarborCatalogCard,

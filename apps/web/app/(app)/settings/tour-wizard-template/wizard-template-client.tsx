@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { LayoutTemplate, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  OPERATOR_SUCCESS_TEXT_SM_CLASS,
+  OPERATOR_WARNING_CALLOUT_CLASS,
+} from "@/admin/patterns/operator-semantic-surfaces";
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -314,7 +318,7 @@ function WizardTemplateClientReady({
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {!canManage ? (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p className={OPERATOR_WARNING_CALLOUT_CLASS}>
           {t("readOnlyBanner")}
         </p>
       ) : null}
@@ -325,7 +329,7 @@ function WizardTemplateClientReady({
         <p className="text-sm text-destructive">{t("errors.loadFailed")}</p>
       ) : null}
       {saved ? (
-        <p className="text-sm text-green-600" data-testid={WIZARD_TEMPLATE_TEST_IDS.success}>
+        <p className={OPERATOR_SUCCESS_TEXT_SM_CLASS} data-testid={WIZARD_TEMPLATE_TEST_IDS.success}>
           {t("success")}
         </p>
       ) : null}

@@ -119,7 +119,8 @@ describe("operator-ui-consistency.spec.ts", () => {
       "utf8"
     );
     assert.match(affordanceCss, /\[data-operator-searchable-select-trigger\]/);
-    assert.match(affordanceCss, /background-position:\s*center inline-end/);
+    assert.match(affordanceCss, /background-position:\s*right var\(--select-chevron-edge-inset\) center/);
+    assert.match(affordanceCss, /:dir\(rtl\)/);
 
     const motionCss = readFileSync(
       resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-select-motion.css"),

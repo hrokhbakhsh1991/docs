@@ -1,5 +1,5 @@
 /**
- * TODO-006 residual — approve HTTP enqueues outbox; relay tick marks status=done.
+ * PREV-AUD-006 residual — approve HTTP enqueues outbox; relay tick marks status=done.
  * Fail-closed without DATABASE_URL(+ADMIN).
  */
 import assert from "node:assert/strict";
@@ -103,7 +103,7 @@ async function requestJson(
   });
 }
 
-describe("TODO-006 booking approve → outbox relay effect", { concurrency: false, skip: postgresSkip }, () => {
+describe("PREV-AUD-006 booking approve → outbox relay effect", { concurrency: false, skip: postgresSkip }, () => {
   const tenantId = integrationTenantId();
   const tourId = randomUUID();
   const operatorId = randomUUID();

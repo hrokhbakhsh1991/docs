@@ -226,7 +226,7 @@ describe("tenant-security (TenantKernel ingress)", { concurrency: false }, () =>
 
   it("POST with dev Bearer returns 401 when AUTH_ALLOW_DEV_BEARER is disabled", async () => {
     process.env.NODE_ENV = "production";
-    // TODO-001: harness ignored in production; JWT/auth path still enforces fail-closed
+    // PREV-AUD-001: harness ignored in production; JWT/auth path still enforces fail-closed
     delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
     delete process.env.AUTH_ALLOW_DEV_BEARER;
     const authorization = encodeDevBearerToken({
@@ -281,7 +281,7 @@ describe("tenant-security (TenantKernel ingress)", { concurrency: false }, () =>
 
   it("POST with RS256 JWT in production mode resolves tenant context (F-17)", async () => {
     process.env.NODE_ENV = "production";
-    // TODO-001: harness must not reopen memory/static-registry under production.
+    // PREV-AUD-001: harness must not reopen memory/static-registry under production.
     // Auth acceptance is proven at TenantKernel; HTTP tour create needs Postgres registry.
     delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
     delete process.env.AUTH_ALLOW_DEV_BEARER;
