@@ -49,9 +49,9 @@ describe("smoke-marketing-e2e-servers", () => {
     assert.match(runner, /portalRegistrationPrimeTimeoutMs = 240_000/);
     assert.match(runner, /App Router page warmup must complete before readiness/);
     assert.doesNotMatch(runner, /resolveOnTimeout: true/);
-    assert.match(runner, /warmPortalPath\(`\/catalog\/\$\{smokePublishedTourId\}\/register`, "GET", null, \{/);
+    assert.match(runner, /warmPortalPath\(`\/catalog\/\$\{resolvedSmokePublishedTourId\}\/register`, "GET", null, \{/);
     assert.match(runner, /warmMarketingPath\("\/tours"\)/);
-    assert.match(runner, /warmMarketingPath\(`\/tours\/\$\{smokePublishedTourId\}`\)/);
+    assert.match(runner, /warmMarketingPath\(`\/tours\/\$\{resolvedSmokePublishedTourId\}`\)/);
     assert.match(runner, /NEXT_FONT_OFFLINE: "1"/);
     assert.match(runner, /timed out/);
     assert.doesNotMatch(runner, /portal register page warm skipped/);
@@ -65,7 +65,7 @@ describe("smoke-marketing-e2e-servers", () => {
     assert.match(portalNextConfig, /app-fonts\.offline\.ts/);
     assert.match(adminNextConfig, /NEXT_FONT_OFFLINE === "1"/);
     assert.match(adminNextConfig, /app-fonts\.offline\.ts/);
-    assert.match(adminFonts, /@\/i18n\/app-fonts\.google/);
+    assert.match(adminFonts, /app-fonts\.offline/);
     assert.match(marketingFonts, /@\/i18n\/app-fonts\.google/);
     assert.match(portalFonts, /@\/i18n\/app-fonts\.google/);
     assert.doesNotMatch(adminFonts, /from "\.\/app-fonts\.google"/);
