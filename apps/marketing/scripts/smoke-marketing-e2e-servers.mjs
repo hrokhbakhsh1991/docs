@@ -27,11 +27,14 @@ const browserWarmHeaders = {
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "user-agent": "app-tour-marketing-smoke-warmup/1.0",
 };
-const smokePublishedTourId =
-  process.env.SMOKE_PUBLISHED_TOUR_ID?.trim() || "00000000-0000-4000-8000-000000000220";
 const smokeUsesDenaliHost =
   marketingSmokeOrigin.hostname === "denali.localhost" ||
   marketingSmokeOrigin.hostname === "denali.club";
+const resolvedSmokePublishedTourId =
+  process.env.SMOKE_PUBLISHED_TOUR_ID?.trim() ||
+  (smokeUsesDenaliHost
+    ? "00000000-0000-4000-8000-000000000220"
+    : "00000000-0000-4000-8000-000000000210");
 const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ||
   (smokeUsesDenaliHost ? DENALI_SMOKE_TENANT_ID : OPERATOR_SMOKE_TENANT_ID);
@@ -49,24 +52,39 @@ function freePort(port) {
   } catch {
     // fuser missing (Cloud image) or port already free
   }
-  try {
-    const out = execSync(`lsof -ti tcp:${port} -sTCP:LISTEN`, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    for (const pid of out.split(/\s+/).filter(Boolean)) {
-      const n = Number(pid);
-      if (Number.isInteger(n) && n > 1) {
-        try {
-          process.kill(n, "SIGTERM");
-        } catch {
-          // already gone
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const out = execSync(`lsof -ti tcp:${port}`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      for (const pid of out.split(/\s+/).filter(Boolean)) {
+        const n = Number(pid);
+        if (Number.isInteger(n) && n > 1) {
+          try {
+            process.kill(n, attempt < 2 ? "SIGTERM" : "SIGKILL");
+          } catch {
+            // already gone
+          }
         }
       }
+    } catch {
+      return;
     }
-  } catch {
-    // nothing listening
   }
+}
+
+async function waitForPortFree(port, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      execSync(`lsof -ti tcp:${port}`, { stdio: "ignore" });
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    } catch {
+      return;
+    }
+  }
+  throw new Error(`smoke-marketing-e2e-servers: port ${port} still in use after cleanup`);
 }
 
 function waitForUrl(url, timeoutMs = 300_000) {
@@ -298,10 +316,16 @@ try {
   // prior run signs cookies with a different key → invalid_signature → guest OTP
   // loop on portal register (SMK-MKT-03).
   console.warn("smoke-marketing-e2e-servers: freeing 3001–3003 so JWT matches portal");
+  execSync("pnpm --filter @app-tour/catalog-registration-flow-ui run build", {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
   freePort(3001);
   freePort(3002);
   freePort(3003);
-  await new Promise((resolve) => setTimeout(resolve, 2_000));
+  await waitForPortFree(3001);
+  await waitForPortFree(3002);
+  await waitForPortFree(3003);
 
   api = spawn("node", ["--import", "tsx", "src/main.ts"], {
     cwd: path.join(repoRoot, "apps/api"),
@@ -346,11 +370,11 @@ try {
   });
   // App Router page warmup must complete before readiness; the Playwright
   // browser journey below remains the semantic assertion for registration behavior.
-  await warmPortalPath(`/catalog/${smokePublishedTourId}/register`, "GET", null, {
+  await warmPortalPath(`/catalog/${resolvedSmokePublishedTourId}/register`, "GET", null, {
     timeoutMs: portalRegistrationPrimeTimeoutMs,
   });
   await warmMarketingPath("/tours");
-  await warmMarketingPath(`/tours/${smokePublishedTourId}`);
+  await warmMarketingPath(`/tours/${resolvedSmokePublishedTourId}`);
 
   readinessReady = true;
   console.log("smoke-marketing-e2e-servers: API + portal + marketing ready");

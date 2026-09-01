@@ -105,7 +105,7 @@ Portal middleware and `readPublicCatalogSessionFromCookies` use `validateSession
 
 Full `sess_ver` vs DB membership version remains **API authority** on BFF upstream calls (`AUTH_TOKEN_REVOKED`). Middleware signature verify closes the forge gap; revoke is enforced on `/api/*` and `/api/me/*` upstream.
 
-When `AUTH_JWT_*` unset (unit tests / legacy dev), decode-only fallback remains for velocity. **Dev Cloud / agent-start** must still copy `AUTH_JWT_PUBLIC_KEY` + issuer/audience from API into portal (and marketing/web) `.env.local` so Edge verify is on — otherwise a decode-valid JWT with a dead membership still enters `/me/*`.
+When `AUTH_JWT_*` unset (unit tests / legacy dev), decode-only fallback remains for velocity. **Dev Cloud / agent-start** must still copy `AUTH_JWT_PUBLIC_KEY` + issuer/audience from API into portal (and marketing/web) `.env.local` so Edge verify is on — otherwise a decode-valid JWT with a dead membership still enters `/me/*`. **agent-start re-syncs** when the API public key fingerprint changes (not only on first copy); run `pnpm run guard:dev-jwt-parity` to verify parity across api/marketing/portal.
 
 ### Dead member session fail-close (PCMS-SEC-03 — 2026-08-18)
 
