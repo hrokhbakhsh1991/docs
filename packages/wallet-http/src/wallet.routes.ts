@@ -20,6 +20,58 @@ import type { WalletRouteDeps } from "./host-ports";
 
 export type { WalletRouteDeps } from "./host-ports";
 
+export async function handleWalletMemberOwnBalance(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: WalletRouteDeps,
+): Promise<void> {
+  const host = getWalletHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const walletService = await host.resolveWalletService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const summary = await walletService.getMemberOwnBalance(auth);
+        host.sendJson(res, 200, summary);
+      },
+      { rateLimit: "read" },
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleWalletMemberOwnTransactions(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: WalletRouteDeps,
+): Promise<void> {
+  const host = getWalletHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const limit = parseWalletTransactionsLimit(url.searchParams.get("limit"));
+    const cursor = parseOptionalListCursor(url.searchParams.get("cursor"));
+    const walletService = await host.resolveWalletService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const page = await walletService.getMemberOwnTransactions(auth, {
+          limit,
+          ...(cursor !== undefined ? { cursor } : {}),
+        });
+        host.sendJson(res, 200, page);
+      },
+      { rateLimit: "read" },
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
 export async function handleWalletMemberBalance(
   req: IncomingMessage,
   res: ServerResponse,

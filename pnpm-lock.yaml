@@ -330,6 +330,9 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/wallet-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/wallet-http-contracts
       '@app-tour/workspace-alpine':
         specifier: workspace:*
         version: link:../../packages/workspaces/alpine

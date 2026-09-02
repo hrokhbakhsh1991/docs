@@ -46,3 +46,7 @@ export type WalletOperatorAccountLookupQuery = {
   readonly workspaceId?: string;
   readonly currency?: string;
 };
+
+export type FindMemberWalletAccountQuery = WalletMemberScope & {
+  readonly currency: string;
+};

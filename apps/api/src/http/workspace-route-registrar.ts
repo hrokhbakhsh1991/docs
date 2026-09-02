@@ -124,6 +124,8 @@ const HANDLER_DISPATCH_KIND = {
   handlePostHarborRegistration: "product",
   handlePostProfileCertRegistration: "product",
   handlePostUrbanRegistration: "product",
+  handleWalletMemberOwnBalance: "wallet",
+  handleWalletMemberOwnTransactions: "wallet",
   handleWalletMemberBalance: "wallet-param",
   handleWalletMemberTransactions: "wallet-param",
   handleWalletOperatorAccounts: "wallet",

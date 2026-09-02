@@ -11,6 +11,15 @@ import type {
 
 /** Wallet domain port — implemented by API `WalletService` (persistence stays in host). */
 export type WalletServicePort = {
+  readonly getMemberOwnBalance: (
+    auth: TenantAuthContext,
+  ) => Promise<import("@app-tour/wallet-http-contracts").WalletMemberSummaryHttpResponse>;
+
+  readonly getMemberOwnTransactions: (
+    auth: TenantAuthContext,
+    query: { readonly limit: number; readonly cursor?: string },
+  ) => Promise<WalletTransactionHistoryHttpResponse>;
+
   readonly getMemberBalance: (
     auth: TenantAuthContext,
     accountId: string,

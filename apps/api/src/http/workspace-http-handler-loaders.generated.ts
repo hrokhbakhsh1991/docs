@@ -70,6 +70,8 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handlePostProfileCertRegistration"
   | "handlePostUrbanRegistration"
   | "handleWalletMemberBalance"
+  | "handleWalletMemberOwnBalance"
+  | "handleWalletMemberOwnTransactions"
   | "handleWalletMemberTransactions"
   | "handleWalletOperatorAccounts"
   | "handleWalletOperatorCredit"
@@ -117,6 +119,8 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceSummary: "@app-tour/finance-http",
   handleFinanceTourCollections: "@app-tour/finance-http",
   handleWalletMemberBalance: "@app-tour/wallet-http",
+  handleWalletMemberOwnBalance: "@app-tour/wallet-http",
+  handleWalletMemberOwnTransactions: "@app-tour/wallet-http",
   handleWalletMemberTransactions: "@app-tour/wallet-http",
   handleWalletOperatorAccounts: "@app-tour/wallet-http",
   handleWalletOperatorCredit: "@app-tour/wallet-http",
@@ -215,6 +219,8 @@ export async function loadWorkspaceHttpHandlersForPackage(
       const mod = await import("@app-tour/wallet-http");
       return {
         handleWalletMemberBalance: mod.handleWalletMemberBalance,
+        handleWalletMemberOwnBalance: mod.handleWalletMemberOwnBalance,
+        handleWalletMemberOwnTransactions: mod.handleWalletMemberOwnTransactions,
         handleWalletMemberTransactions: mod.handleWalletMemberTransactions,
         handleWalletOperatorAccounts: mod.handleWalletOperatorAccounts,
         handleWalletOperatorCredit: mod.handleWalletOperatorCredit,

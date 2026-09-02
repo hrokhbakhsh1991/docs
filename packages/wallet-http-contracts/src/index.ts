@@ -30,6 +30,7 @@ export {
 
 export type {
   WalletBalanceHttpResponse,
+  WalletMemberSummaryHttpResponse,
   WalletTransactionHttpItem,
   WalletTransactionHistoryHttpResponse,
   WalletOperatorAccountHttpItem,

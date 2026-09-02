@@ -33,7 +33,9 @@
       {
         "manifestExport": "WALLET_HTTP_ROUTE_MANIFEST",
         "staticHandlers": {
-          "GET /wallet/accounts": "handleWalletOperatorAccounts"
+          "GET /wallet/accounts": "handleWalletOperatorAccounts",
+          "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+          "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
         },
         "paramHandlers": {
           "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",

@@ -31,6 +31,7 @@ import {
 import { withTenantRls } from "../../db/with-tenant-rls";
 import { appendWalletMutationAudit } from "../wallet-audit-writer";
 import type {
+  FindMemberWalletAccountQuery,
   GetOrCreateWalletAccountInput,
   WalletMemberScope,
   WalletMemberTransactionsQuery,
@@ -188,6 +189,30 @@ async function resolveExistingIdempotency<T>(
 }
 
 export class PrismaWalletRepository {
+  async findMemberAccount(
+    query: FindMemberWalletAccountQuery,
+  ): Promise<WalletResult<WalletAccount | null>> {
+    const tenantId = query.tenantId.trim();
+    const workspaceId = query.workspaceId.trim();
+    const userId = query.userId.trim();
+    const currencyResult = normalizeCurrency(query.currency);
+    if (!currencyResult.ok) {
+      return currencyResult;
+    }
+
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.walletAccount.findFirst({
+        where: {
+          tenantId,
+          workspaceId,
+          userId,
+          currency: currencyResult.value,
+        },
+      });
+      return walletOk(row === null ? null : mapWalletAccount(row));
+    });
+  }
+
   async getOrCreateAccount(
     input: GetOrCreateWalletAccountInput,
   ): Promise<WalletResult<WalletAccount>> {

@@ -8,6 +8,8 @@ import { beforeEach, describe, it } from "node:test";
 import {
   configureWalletHttpHost,
   handleWalletMemberBalance,
+  handleWalletMemberOwnBalance,
+  handleWalletMemberOwnTransactions,
   handleWalletOperatorAccounts,
   handleWalletOperatorCredit,
   handleWalletOperatorDebit,
@@ -110,6 +112,26 @@ describe("WALLET-P2D wallet HTTP handlers", () => {
     assert.equal(res.statusCode, 200);
     const body = JSON.parse(res.body) as { balanceMinor: string };
     assert.equal(body.balanceMinor, "5000");
+  });
+
+  it("returns member own balance without account id in path", async () => {
+    const res = createMockRes();
+    await handleWalletMemberOwnBalance({} as IncomingMessage, res, { walletService });
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.body) as {
+      balanceMinor: string;
+      availableBalanceMinor: string;
+    };
+    assert.equal(body.balanceMinor, "5000");
+    assert.equal(body.availableBalanceMinor, "5000");
+  });
+
+  it("returns member own transactions without account id in path", async () => {
+    const res = createMockRes();
+    await handleWalletMemberOwnTransactions({} as IncomingMessage, res, { walletService });
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.body) as { items: unknown[] };
+    assert.ok(Array.isArray(body.items));
   });
 
   it("rejects unsupported workspace", async () => {

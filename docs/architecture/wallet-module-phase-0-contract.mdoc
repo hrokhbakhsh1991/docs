@@ -24,13 +24,13 @@ code_sot:
   - packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts
   - scripts/codegen/workspace-registry/domains/wallet.mjs
   - apps/api/src/workspace-wallet/
-implementation_status: phase_2d_http
+implementation_status: phase_3a_portal
 ---
 
 # Wallet module — Phase 0 architecture contract
 
 **Phase:** 0 (foundational preparation)  
-**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C) + guarded generic HTTP contracts/handlers (Phase 2D). No portal/operator UI, gateway top-up, withdrawals, or Denali activation.
+**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C) + guarded generic HTTP contracts/handlers (Phase 2D) + workspace-agnostic member portal read UI (Phase 3A). No operator wallet UI, gateway top-up, withdrawals, or Denali activation.
 **Authority:** [ADR-WALLET-001](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc)
 
 ---
@@ -176,6 +176,8 @@ Manifest-driven routes on `/wallet/*` (mirror `/finance/*` prefix convention). R
 
 | Method | Path | Actor | Idempotency-Key |
 | ------ | ---- | ----- | --------------- |
+| `GET` | `/wallet/me/balance` | member (session-derived scope) | — |
+| `GET` | `/wallet/me/transactions` | member (session-derived scope) | — |
 | `GET` | `/wallet/accounts/:accountId/balance` | member (own account) | — |
 | `GET` | `/wallet/accounts/:accountId/transactions` | member (own account) | — |
 | `GET` | `/wallet/accounts` | operator (`admin` \| `owner`) | — |
@@ -207,7 +209,23 @@ Manifest-driven routes on `/wallet/*` (mirror `/finance/*` prefix convention). R
 | `packages/workspace-sdk/src/portal/member-portal-renderer-registry.ts` | Unchanged registry API |
 | `packages/workspace-sdk/src/plugin/workspace-plugin-capabilities.ts` | Optional `walletNav` / extend `memberPortalRenderers` typing |
 | `apps/portal/app/me/[...modulePath]/page.tsx` | No platform change if renderer registered |
+| `apps/portal/src/me/wallet/` | **Shipped (Phase 3A)** — BFF + shared member wallet UI |
+| `packages/workspace-sdk/src/portal/member-wallet-portal-contract.ts` | Presentation policy resolver (no Denali branches) |
 | `apps/web/src/wallet/` | **New** — `wallet-nav-registry.ts`, enablement (mirror `finance-nav-*`) |
+
+### 3.4.1 Phase 3A member portal read surface (shipped)
+
+| Concern | Contract |
+| ------- | -------- |
+| Route | `/me/wallet` (unchanged — catch-all dispatcher) |
+| Entitlement | `member.module.wallet` via `isMemberModuleEntitled` before renderer |
+| Renderer | `registerWorkspaceMemberPortalRenderers(pluginId, { renderers: { wallet } })` from portal layout bootstrap |
+| BFF | `GET /api/me/wallet`, `GET /api/me/wallet/transactions` — session cookie only; never accepts `userId` / `tenantId` / `workspaceId` query params |
+| Upstream | `GET /wallet/me/balance`, `GET /wallet/me/transactions` — account scope derived from JWT + `workspaceId` |
+| UI | Read-only balance card + transaction history; loading / empty / error / unauthorized / workspace-disabled states |
+| RTL | Uses portal `dir` + existing locale conventions (`fa` / `en`) |
+| Denali | Remains `WALLET_WORKSPACE_UNSUPPORTED` — UI shows disabled state; wallet not enabled in manifest |
+
 
 ### 3.5 Package layout (Phase 1+)
 
@@ -294,5 +312,5 @@ Mandatory for any Wallet schema PR:
 | 0 | This contract + ADR-WALLET-001 + doc guard |
 | 1 | `wallet-core`, Prisma models, RLS SQL, `workspaceWallet` codegen |
 | 2 | `wallet-http`, API host, `WalletCapabilityPort`, authorization |
-| 3 | Portal renderer, web `walletNav`, workspace adapters |
+| 3 | Portal renderer (Phase 3A shipped — read-only member UI), web `walletNav`, workspace adapters |
 | 4 | Isolation tests, observability, certification workspace `wallet-ws1` |

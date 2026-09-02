@@ -95,6 +95,44 @@ export function createFakeWalletService(
 
   return {
     state,
+    async getMemberOwnBalance(auth) {
+      gate(auth);
+      if (auth.role !== "member") {
+        throw new Error("FORBIDDEN_OPERATOR_FORBIDDEN");
+      }
+      const balance = state.balances.get(ACCOUNT_ID);
+      if (balance === undefined) {
+        return {
+          accountId: null,
+          currency: "IRR",
+          balanceMinor: "0",
+          availableBalanceMinor: "0",
+        };
+      }
+      return {
+        accountId: balance.accountId,
+        currency: balance.currency,
+        balanceMinor: balance.balanceMinor,
+        availableBalanceMinor: balance.balanceMinor,
+      };
+    },
+    async getMemberOwnTransactions(auth, query) {
+      gate(auth);
+      if (auth.role !== "member") {
+        throw new Error("FORBIDDEN_OPERATOR_FORBIDDEN");
+      }
+      const page = state.transactions.get(ACCOUNT_ID);
+      if (page === undefined) {
+        return {
+          accountId: "",
+          currency: "IRR",
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        };
+      }
+      return { ...page, ...query };
+    },
     async getMemberBalance(auth, accountId) {
       gate(auth);
       if (auth.role !== "member") {

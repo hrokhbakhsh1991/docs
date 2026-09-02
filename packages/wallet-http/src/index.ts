@@ -11,6 +11,8 @@ export {
   throwWalletDomainError,
 } from "./wallet-error-map";
 export {
+  handleWalletMemberOwnBalance,
+  handleWalletMemberOwnTransactions,
   handleWalletMemberBalance,
   handleWalletMemberTransactions,
   handleWalletOperatorAccounts,

@@ -13,7 +13,7 @@ describe("member-profile-contract-alignment.spec.ts", () => {
 
   it("MP-SNAPSHOT-01 resolves sibling snapshot in dev src layout", async () => {
     const { resolveMemberProfileContractSnapshotPath } = await import(
-      "./member-profile-contract-alignment.server.ts"
+      "./member-profile-contract-alignment.server"
     );
     const resolved = resolveMemberProfileContractSnapshotPath();
     assert.equal(existsSync(resolved), true);
@@ -32,7 +32,7 @@ describe("member-profile-contract-alignment.spec.ts", () => {
     process.env.MEMBER_PROFILE_CONTRACT_SNAPSHOT_PATH = snapshotPath;
 
     const { resolveMemberProfileContractSnapshotPath } = await import(
-      "./member-profile-contract-alignment.server.ts"
+      "./member-profile-contract-alignment.server"
     );
     assert.equal(resolveMemberProfileContractSnapshotPath(), snapshotPath);
     rmSync(tmpDir, { recursive: true, force: true });

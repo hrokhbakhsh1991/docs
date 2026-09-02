@@ -4,6 +4,7 @@ export {
   getWorkspaceMemberPortalRenderer,
   registerWorkspaceMemberPortalRenderers,
 } from "./portal/member-portal-renderer-registry";
+export type { MemberPortalModuleRendererProps } from "./plugin/workspace-plugin-capabilities";
 export {
   assertCanonicalDocument,
   assertCanonicalDocumentRoots,
@@ -620,6 +621,15 @@ export {
   mergePlatformMemberPortalModules,
   memberPortalEntitlementKey,
 } from "./portal/platform-member-portal-modules";
+export {
+  isZeroDecimalWalletCurrency,
+  resolveMemberWalletPresentation,
+  type MemberWalletBalanceView,
+  type MemberWalletHistoryView,
+  type MemberWalletPresentationPolicy,
+  type MemberWalletTransactionView,
+  type MemberWalletTransactionViewKind,
+} from "./portal/member-wallet-portal-contract";
 export {
   GUEST_CROSS_SURFACE_PLATFORM_MOTHER_ONLY_PATHS,
   validateGuestCrossSurfaceNavLinks,

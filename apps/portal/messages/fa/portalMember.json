@@ -179,8 +179,30 @@
   },
   "moduleStub": {
     "lede": "این ماژول ثبت شده اما هنوز کامل نشده است.",
-    "walletLede": "کیف پول عضو به‌زودی فعال می‌شود. تا آن زمان از بخش سفرها و پروفایل استفاده کنید.",
     "backToHome": "بازگشت به خانه"
+  },
+  "wallet": {
+    "title": "کیف پول",
+    "lede": "موجودی قابل استفاده و فعالیت‌های اخیر کیف پول خود را ببینید.",
+    "balanceHeading": "موجودی کیف پول",
+    "availableBalance": "موجودی قابل استفاده",
+    "totalBalance": "موجودی کل: {amount}",
+    "currencyLabel": "واحد پول: {currency}",
+    "historyTitle": "فعالیت‌های اخیر",
+    "emptyHistory": "هنوز تراکنشی در کیف پول ثبت نشده است.",
+    "loadFailed": "بارگذاری کیف پول ممکن نشد.",
+    "historyError": "بارگذاری تراکنش‌های بیشتر ممکن نشد. دوباره تلاش کنید.",
+    "loadMore": "نمایش بیشتر",
+    "loadingMore": "در حال بارگذاری…",
+    "backToHome": "بازگشت به خانه",
+    "workspaceDisabled": "کیف پول برای این فضای کاری فعال نیست.",
+    "moduleDisabled": "کیف پول برای این باشگاه خاموش است.",
+    "entitlementDenied": "طرح شما به کیف پول دسترسی ندارد.",
+    "transactionKinds": {
+      "operator_credit": "واریز",
+      "operator_debit": "برداشت",
+      "reversal": "برگشت"
+    }
   },
   "detail": {
     "backToList": "بازگشت به ثبت‌نام‌های من",

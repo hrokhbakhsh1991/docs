@@ -179,8 +179,30 @@
   },
   "moduleStub": {
     "lede": "This module is registered but not fully built yet.",
-    "walletLede": "Member wallet is coming soon. Use Trips and Profile in the meantime.",
     "backToHome": "Back to home"
+  },
+  "wallet": {
+    "title": "Wallet",
+    "lede": "View your available balance and recent wallet activity.",
+    "balanceHeading": "Wallet balance",
+    "availableBalance": "Available balance",
+    "totalBalance": "Total balance: {amount}",
+    "currencyLabel": "Currency: {currency}",
+    "historyTitle": "Recent activity",
+    "emptyHistory": "No wallet transactions yet.",
+    "loadFailed": "Could not load wallet.",
+    "historyError": "Could not load more transactions. Try again.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "backToHome": "Back to home",
+    "workspaceDisabled": "Wallet is not available for this workspace.",
+    "moduleDisabled": "Wallet is turned off for this club.",
+    "entitlementDenied": "Your plan does not include wallet access.",
+    "transactionKinds": {
+      "operator_credit": "Credit",
+      "operator_debit": "Debit",
+      "reversal": "Reversal"
+    }
   },
   "detail": {
     "backToList": "Back to my registrations",

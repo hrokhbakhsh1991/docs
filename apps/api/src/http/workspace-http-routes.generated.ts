@@ -84,6 +84,8 @@ export type WorkspaceHttpHandlerKey =
   | "handlePostProfileCertRegistration"
   | "handlePostUrbanRegistration"
   | "handleWalletMemberBalance"
+  | "handleWalletMemberOwnBalance"
+  | "handleWalletMemberOwnTransactions"
   | "handleWalletMemberTransactions"
   | "handleWalletOperatorAccounts"
   | "handleWalletOperatorCredit"
@@ -188,7 +190,9 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
-  "GET /wallet/accounts": "handleWalletOperatorAccounts"
+  "GET /wallet/accounts": "handleWalletOperatorAccounts",
+  "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+  "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {

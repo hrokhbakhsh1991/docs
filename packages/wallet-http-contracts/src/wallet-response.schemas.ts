@@ -8,6 +8,14 @@ export type WalletBalanceHttpResponse = {
   readonly balanceMinor: string;
 };
 
+/** Member self-read summary — account may be absent until first operator credit. */
+export type WalletMemberSummaryHttpResponse = {
+  readonly accountId: string | null;
+  readonly currency: string;
+  readonly balanceMinor: string;
+  readonly availableBalanceMinor: string;
+};
+
 export type WalletTransactionHttpItem = {
   readonly id: string;
   readonly accountId: string;

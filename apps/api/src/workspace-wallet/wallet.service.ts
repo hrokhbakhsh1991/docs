@@ -4,6 +4,7 @@
 import type { WalletServicePort } from "@app-tour/wallet-http";
 import type {
   WalletBalanceHttpResponse,
+  WalletMemberSummaryHttpResponse,
   WalletMutationHttpResponse,
   WalletOperatorAccountsHttpResponse,
   WalletTransactionHistoryHttpResponse,
@@ -11,9 +12,10 @@ import type {
 } from "@app-tour/wallet-http-contracts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import type { WalletAuthorizationPort } from "@app-tour/wallet-core/ports";
-import type { WalletCapabilityPort } from "@app-tour/workspace-sdk/wallet";
+import type { WalletCapabilityPort, WalletWorkspaceGateResult } from "@app-tour/workspace-sdk/wallet";
 
 import { throwWalletDomainError } from "@app-tour/wallet-http";
+import { assertWalletMemberReadAccess } from "./assert-wallet-operator-access";
 import type { PrismaWalletRepository } from "./infrastructure/prisma-wallet.repository";
 import { HostWalletAuthorizationAdapter } from "./infrastructure/host-wallet-authorization.adapter";
 
@@ -58,6 +60,28 @@ export type WalletServiceDeps = {
   readonly capability: WalletCapabilityPort;
 };
 
+function resolveMemberWalletCurrency(gate: WalletWorkspaceGateResult): string {
+  const theme = gate.theme;
+  if (theme !== null && typeof theme === "object" && !Array.isArray(theme)) {
+    const commerce = (theme as { commerce?: unknown }).commerce;
+    if (commerce !== null && typeof commerce === "object" && !Array.isArray(commerce)) {
+      const currency = (commerce as { currency?: unknown }).currency;
+      if (typeof currency === "string" && currency.trim().length > 0) {
+        return currency.trim().toUpperCase();
+      }
+    }
+  }
+  return "USD";
+}
+
+function requireMemberWorkspaceId(auth: TenantAuthContext): string {
+  const workspaceId = auth.workspaceId?.trim();
+  if (workspaceId === undefined || workspaceId.length === 0) {
+    throw new Error("WALLET_OWNERSHIP_MISMATCH");
+  }
+  return workspaceId;
+}
+
 export function createWalletService(deps: WalletServiceDeps): WalletServicePort {
   const { repository, capability } = deps;
 
@@ -90,6 +114,106 @@ export function createWalletService(deps: WalletServiceDeps): WalletServicePort 
   }
 
   return {
+    async getMemberOwnBalance(auth) {
+      assertWalletMemberReadAccess(auth);
+      const gate = await capability.assertEnabled(auth.tenantId);
+      const authorization = new HostWalletAuthorizationAdapter(auth, gate);
+      const workspaceId = requireMemberWorkspaceId(auth);
+      const currency = resolveMemberWalletCurrency(gate);
+      const accountResult = await repository.findMemberAccount({
+        tenantId: auth.tenantId,
+        workspaceId,
+        userId: auth.userId,
+        currency,
+      });
+      if (!accountResult.ok) {
+        throwWalletDomainError(accountResult.error);
+      }
+      const account = accountResult.value;
+      if (account === null) {
+        const empty: WalletMemberSummaryHttpResponse = {
+          accountId: null,
+          currency,
+          balanceMinor: "0",
+          availableBalanceMinor: "0",
+        };
+        return empty;
+      }
+      const authz = await authorization.assertMemberReadOwnAccount({
+        tenantId: auth.tenantId,
+        workspaceId: account.workspaceId,
+        actorUserId: auth.userId,
+        accountUserId: account.userId,
+      });
+      if (!authz.ok) {
+        throwWalletDomainError(authz.error);
+      }
+      const balance = await repository.getMemberBalance(
+        { tenantId: auth.tenantId, workspaceId, userId: auth.userId },
+        account.id,
+      );
+      if (!balance.ok) {
+        throwWalletDomainError(balance.error);
+      }
+      return {
+        accountId: balance.value.accountId,
+        currency: balance.value.currency,
+        balanceMinor: balance.value.balanceMinor,
+        availableBalanceMinor: balance.value.balanceMinor,
+      };
+    },
+
+    async getMemberOwnTransactions(auth, query) {
+      assertWalletMemberReadAccess(auth);
+      const gate = await capability.assertEnabled(auth.tenantId);
+      const authorization = new HostWalletAuthorizationAdapter(auth, gate);
+      const workspaceId = requireMemberWorkspaceId(auth);
+      const currency = resolveMemberWalletCurrency(gate);
+      const accountResult = await repository.findMemberAccount({
+        tenantId: auth.tenantId,
+        workspaceId,
+        userId: auth.userId,
+        currency,
+      });
+      if (!accountResult.ok) {
+        throwWalletDomainError(accountResult.error);
+      }
+      const account = accountResult.value;
+      if (account === null) {
+        return {
+          accountId: "",
+          currency,
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        };
+      }
+      const authz = await authorization.assertMemberReadOwnAccount({
+        tenantId: auth.tenantId,
+        workspaceId: account.workspaceId,
+        actorUserId: auth.userId,
+        accountUserId: account.userId,
+      });
+      if (!authz.ok) {
+        throwWalletDomainError(authz.error);
+      }
+      const result = await repository.listMemberTransactions(
+        { tenantId: auth.tenantId, workspaceId, userId: auth.userId },
+        account.id,
+        query,
+      );
+      if (!result.ok) {
+        throwWalletDomainError(result.error);
+      }
+      return {
+        accountId: result.value.page.accountId,
+        currency: result.value.page.currency,
+        items: result.value.page.items.map((item) => mapTransactionItem(item.transaction)),
+        nextCursor: result.value.nextCursor,
+        hasMore: result.value.hasMore,
+      };
+    },
+
     async getMemberBalance(auth, accountId) {
       const authorization = await resolveGateAndAuth(auth);
       const account = await loadAccountForMember(auth, accountId, authorization);
