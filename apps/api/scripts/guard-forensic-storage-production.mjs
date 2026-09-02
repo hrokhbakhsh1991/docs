@@ -40,6 +40,7 @@ if (!mainTs.includes("assertProductionRuntimeIntegrity()")) {
 const AUDIT_CALL_SITES = new Set([
   "src/canonical/atomic-canonical-tour-persist.ts",
   "src/internal/provisioning.service.ts", // DEC-127 TENANT_PROVISIONED in admin TX
+  "src/workspace-wallet/wallet-audit-writer.ts",
 ]);
 
 function walk(dir, out = []) {

@@ -169,6 +169,7 @@
     "@app-tour/platform-events": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/tour-core": "workspace:*",
+    "@app-tour/wallet-core": "workspace:*",
     "@app-tour/workspace-acme": "workspace:*",
     "@app-tour/workspace-alpine": "workspace:*",
     "@app-tour/workspace-booking-ws2": "workspace:*",

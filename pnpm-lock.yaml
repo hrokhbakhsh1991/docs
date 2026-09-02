@@ -76,6 +76,9 @@ importers:
       '@app-tour/tour-core':
         specifier: workspace:*
         version: link:../../packages/tour-core
+      '@app-tour/wallet-core':
+        specifier: workspace:*
+        version: link:../../packages/wallet-core
       '@app-tour/workspace-acme':
         specifier: workspace:*
         version: link:../../packages/workspaces/acme

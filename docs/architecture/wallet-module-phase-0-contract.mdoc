@@ -15,18 +15,20 @@ mandatory_for:
   - future apps/api workspace-wallet host
 code_sot:
   - packages/wallet-core
+  - apps/api/prisma/schema.prisma
+  - apps/api/src/workspace-wallet/infrastructure/
   - packages/workspace-sdk/src/manifest.schema.ts
   - packages/workspace-sdk/src/wallet/
   - packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts
   - scripts/codegen/workspace-registry/domains/wallet.mjs
   - apps/api/src/workspace-wallet/
-implementation_status: phase_2b_domain_core
+implementation_status: phase_2c_persistence
 ---
 
 # Wallet module — Phase 0 architecture contract
 
 **Phase:** 0 (foundational preparation)  
-**Runtime status:** Pure `packages/wallet-core` domain package shipped (Phase 2B). No database tables, API routes, or product UI implemented.
+**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C). No HTTP routes or product UI implemented.
 **Authority:** [ADR-WALLET-001](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc)
 
 ---
@@ -221,7 +223,9 @@ flowchart TD
 
 ---
 
-## 5. Database and RLS invariants (future tables)
+## 5. Database and RLS invariants (Phase 2C tables)
+
+Shipped tables: `wallet_accounts`, `wallet_transactions`, `wallet_ledger_entries` (Prisma migration `20260902120000_wallet_member_accounts_rls`).
 
 Mandatory for any Wallet schema PR:
 
