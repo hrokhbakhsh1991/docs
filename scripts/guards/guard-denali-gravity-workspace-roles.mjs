@@ -36,9 +36,15 @@ if (bookingProof.workspaceBooking?.supported !== true) {
   violations.push("booking-ws2: must remain a supported booking capability proof");
 }
 
+const walletProof = manifest("wallet-ws1");
+if (walletProof.workspaceWallet?.supported !== true) {
+  violations.push("wallet-ws1: must remain a supported wallet capability proof");
+}
+
 for (const [id, value] of [
   ["finance-ws5", financeProof],
   ["booking-ws2", bookingProof],
+  ["wallet-ws1", walletProof],
 ]) {
   if (value.guestConformance?.productionTier === "certified") {
     violations.push(`${id}: capability proof must not become a certified guest product implicitly`);
@@ -52,5 +58,5 @@ if (violations.length > 0) {
 }
 
 console.log(
-  "guard-denali-gravity-workspace-roles: PASS (4 registry fixtures; finance-ws5 + booking-ws2 capability proofs; 0 implicit guest products)",
+  "guard-denali-gravity-workspace-roles: PASS (4 registry fixtures; finance-ws5 + booking-ws2 + wallet-ws1 capability proofs; 0 implicit guest products)",
 );

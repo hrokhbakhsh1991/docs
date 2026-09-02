@@ -34,6 +34,9 @@ export const WORKSPACE_CAPABILITY_VERSION_CATALOG = Object.freeze({
     "finance-ws5": Object.freeze({
       "workspaceFinance": Object.freeze([1]),
     }),
+    "wallet-ws1": Object.freeze({
+      "workspaceWallet": Object.freeze([1]),
+    }),
 });
 
 export function createWorkspaceUpgradePreflightInput(

@@ -48,6 +48,7 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   pnpm --dir packages/workspaces/finance-ws4 run build
   pnpm --dir packages/workspaces/finance-ws5 run build
   pnpm --dir packages/workspaces/finance-ws6 run build
+  pnpm --dir packages/workspaces/wallet-ws1 run build
   pnpm --dir packages/session-client run build
   pnpm --dir packages/guest-surface-host run build
   pnpm --dir packages/guest-workspace-runtime run build

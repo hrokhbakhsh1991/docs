@@ -12,10 +12,10 @@ import {
 import { assertWorkspacePluginClientBundleEnabled } from "./workspace-plugin-client-bundle-gate";
 
 /** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,alpine,booking-ws2,cert-club,cert-events,denali,finance-ws5,guest-club,harbor,policy-cert,profile-cert,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,alpine,booking-ws2,cert-club,cert-events,denali,finance-ws5,guest-club,harbor,policy-cert,profile-cert,starter,urban,wallet-ws1";
 
 /** Upper bound for per-process plugin load cache (= product trunk plugin count). */
-export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 13;
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 14;
 
 export { invalidateWorkspacePluginLoadCache };
 
@@ -87,6 +87,10 @@ export async function loadWorkspacePluginByIdFromRegistry(
           );
           const mod = await import("@app-tour/workspace-urban/plugin");
           return mod.getWorkspacePlugin();
+        }
+        case "wallet-ws1": {
+          const mod = await import("@app-tour/workspace-wallet-ws1/plugin");
+          return mod.getWalletWs1WorkspacePlugin();
         }
         default:
           throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);

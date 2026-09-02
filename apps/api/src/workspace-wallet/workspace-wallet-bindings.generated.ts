@@ -4,12 +4,27 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-export const WORKSPACE_WALLET_BINDINGS = [] as const;
+export const WORKSPACE_WALLET_BINDINGS = [
+  {
+    workspaceType: "wallet-ws1",
+    defaultModuleEnabledWhenUnset: true as const,
+  },
+] as const;
 
-export function isWalletSupportedWorkspace(_workspaceType: string): boolean {
-  return false;
+const supportedWorkspaceTypes = new Set(
+  WORKSPACE_WALLET_BINDINGS.map((binding) => binding.workspaceType as string)
+);
+
+const defaultEnabledWhenUnset = new Set(
+  WORKSPACE_WALLET_BINDINGS.filter(
+    (binding) => "defaultModuleEnabledWhenUnset" in binding && binding.defaultModuleEnabledWhenUnset === true
+  ).map((binding) => binding.workspaceType as string)
+);
+
+export function isWalletSupportedWorkspace(workspaceType: string): boolean {
+  return supportedWorkspaceTypes.has(workspaceType.trim().toLowerCase());
 }
 
-export function isWalletDefaultEnabledWhenModulesUnset(_workspaceType: string): boolean {
-  return false;
+export function isWalletDefaultEnabledWhenModulesUnset(workspaceType: string): boolean {
+  return defaultEnabledWhenUnset.has(workspaceType.trim().toLowerCase());
 }

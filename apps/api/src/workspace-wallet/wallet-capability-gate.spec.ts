@@ -16,17 +16,20 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 
 describe("WALLET-P1 wallet capability gate", () => {
-  it("generated bindings are empty until a workspace declares workspaceWallet", () => {
+  it("generated bindings include wallet-ws1 certification fixture; production workspaces unchanged", () => {
+    assert.equal(isWalletSupportedWorkspace("wallet-ws1"), true);
+    assert.equal(isWalletDefaultEnabledWhenModulesUnset("wallet-ws1"), true);
     assert.equal(isWalletSupportedWorkspace("denali"), false);
-    assert.equal(isWalletSupportedWorkspace("urban"), false);
+    assert.equal(isWalletSupportedWorkspace("finance-ws5"), false);
     assert.equal(isWalletDefaultEnabledWhenModulesUnset("denali"), false);
     assert.equal(isWalletDefaultEnabledWhenModulesUnset("urban"), false);
   });
 
-  it("module enablement: explicit wallet / empty modules / other modules with unsupported workspace", () => {
+  it("module enablement: explicit wallet / empty modules / other modules", () => {
+    assert.equal(isWalletModuleEnabled({ enabledModules: ["wallet"] }, "wallet-ws1"), true);
+    assert.equal(isWalletModuleEnabled({}, "wallet-ws1"), true);
+    assert.equal(isWalletModuleEnabled({ enabledModules: ["tours"] }, "wallet-ws1"), false);
     assert.equal(isWalletModuleEnabled({ enabledModules: ["wallet"] }, "urban"), false);
-    assert.equal(isWalletModuleEnabled({}, "denali"), false);
-    assert.equal(isWalletModuleEnabled({ enabledModules: ["tours"] }, "denali"), false);
   });
 
   it("gate sources have no hardcoded workspace arrays", () => {

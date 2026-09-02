@@ -32,6 +32,9 @@ export const WORKSPACE_CAPABILITY_REVISION_REGISTRY: WorkspaceCapabilityRevision
   "finance-ws5": Object.freeze({
     "workspaceFinance": 1,
   }),
+  "wallet-ws1": Object.freeze({
+    "workspaceWallet": 1,
+  }),
 });
 
 export function listWorkspaceCapabilityRevisions(

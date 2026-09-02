@@ -187,6 +187,7 @@
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
     "@app-tour/workspace-urban": "workspace:*",
+    "@app-tour/workspace-wallet-ws1": "workspace:*",
     "@casl/ability": "^6.7.3",
     "@prisma/client": "^6.19.0",
     "archiver": "^7.0.1",

@@ -13,21 +13,43 @@ export type WorkspaceWalletCapabilities = {
   readonly withdrawals: boolean;
 };
 
-export const WORKSPACE_WALLET_CAPABILITIES = {} as const;
+/**
+ * Capability matrix — product gate (`supported`) vs wallet surface flags.
+ * Keys are literal workspaceType strings from workspace.manifest.json.
+ */
+export const WORKSPACE_WALLET_CAPABILITIES = {
+  "wallet-ws1": {
+    supported: true as const,
+    defaultModuleEnabledWhenUnset: true as const,
+    memberAccounts: true as const,
+    ops: true as const,
+    gatewayTopUp: false as const,
+    withdrawals: false as const,
+  },
+} as const satisfies Record<string, WorkspaceWalletCapabilities>;
 
 export function getWorkspaceWalletCapabilities(
-  _workspaceType: string
+  workspaceType: string
 ): WorkspaceWalletCapabilities | null {
-  return null;
+  const key = workspaceType.trim().toLowerCase();
+  if (key.length === 0) {
+    return null;
+  }
+  const caps = (WORKSPACE_WALLET_CAPABILITIES as Record<string, WorkspaceWalletCapabilities>)[key];
+  return caps ?? null;
 }
 
 export function listWalletCapableWorkspaceTypes(): readonly string[] {
-  return [];
+  return Object.keys(WORKSPACE_WALLET_CAPABILITIES).sort();
 }
 
 export function walletWorkspaceHasCapability(
-  _workspaceType: string,
-  _capability: "memberAccounts" | "ops" | "gatewayTopUp" | "withdrawals"
+  workspaceType: string,
+  capability: "memberAccounts" | "ops" | "gatewayTopUp" | "withdrawals"
 ): boolean {
-  return false;
+  const caps = getWorkspaceWalletCapabilities(workspaceType);
+  if (caps === null) {
+    return false;
+  }
+  return caps[capability] === true;
 }

@@ -163,4 +163,5 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
       }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
+  "wallet-ws1": Object.freeze({ availability: "off" as const }),
 });

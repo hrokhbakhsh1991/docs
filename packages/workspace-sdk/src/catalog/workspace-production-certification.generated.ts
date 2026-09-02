@@ -25,6 +25,7 @@ export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
   "profile-cert": "stub",
   "starter": "stub",
   "urban": "stub",
+  "wallet-ws1": "stub",
 });
 
 export type WorkspaceProductionCertificationTier = "stub" | "certified";

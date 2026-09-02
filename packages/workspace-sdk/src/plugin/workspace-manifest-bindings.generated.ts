@@ -95,4 +95,5 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
       defaultLocale: "en",
     } as const,
   },
+  { workspaceType: "wallet-ws1", pluginId: "wallet-ws1" },
 ];

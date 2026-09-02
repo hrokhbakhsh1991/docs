@@ -94,6 +94,7 @@
     "@app-tour/workspace-profile-cert": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
     "@app-tour/workspace-urban": "workspace:*",
+    "@app-tour/workspace-wallet-ws1": "workspace:*",
     "@happy-dom/global-registrator": "^17.4.4",
     "@playwright/test": "^1.51.1",
     "@testing-library/react": "^16.3.0",

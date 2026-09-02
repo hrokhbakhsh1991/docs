@@ -1,6 +1,11 @@
 /**
  * WALLET-P1 — tenant → workspaceType for wallet module gate.
  * Lookup mirrors finance gate (Prisma tenant row, then registered-tenant fallback).
+ *
+ * Postgres path uses {@link findTenantFinanceWorkspaceRow} — **misnamed shared resolver**:
+ * it returns raw `{ workspaceType, theme }` with no finance-specific filtering.
+ * Safe for wallet enablement today; future extraction to `findTenantModuleGateRow` is tracked
+ * in wallet-contract-certification.spec.ts (WALLET-P1.1) — no broad rename in this phase.
  */
 
 import { resolveRegisteredTenantById } from "../tenant/resolve-registered-tenant";

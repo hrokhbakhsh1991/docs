@@ -39,10 +39,24 @@ describe("wallet codegen manifest validation", () => {
     );
   });
 
+  it("assertWorkspaceWalletManifest rejects withdrawals without operatorPolicy", () => {
+    assert.throws(
+      () =>
+        assertWalletCapabilities({
+          id: "demo",
+          workspaceWallet: {
+            supported: true,
+            capabilities: { memberAccounts: false, ops: false, withdrawals: true },
+          },
+        }),
+      /operatorPolicy/,
+    );
+  });
+
   it("assertWorkspaceWalletManifest accepts valid platform-neutral block", () => {
     assert.doesNotThrow(() =>
       assertWorkspaceWalletManifest({
-        id: "demo",
+        id: "wallet-ws1",
         workspaceWallet: {
           supported: true,
           defaultModuleEnabledWhenUnset: true,
@@ -52,9 +66,9 @@ describe("wallet codegen manifest validation", () => {
             gatewayTopUp: false,
             withdrawals: false,
           },
-          ledgerPolicy: { module: "./wallet/ledger", export: "DemoLedgerPolicy" },
+          ledgerPolicy: { module: "./wallet", export: "WalletWs1LedgerPolicyAdapter" },
           opsManifest: {
-            module: "./wallet/ops",
+            module: "./wallet",
             defaultExport: "DEFAULT_WALLET_OPS_MANIFEST",
           },
         },

@@ -1,0 +1,29 @@
+{
+  "id": "wallet-ws1",
+  "version": 1,
+  "package": "@app-tour/workspace-wallet-ws1",
+  "workspaceTypes": ["wallet-ws1"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWalletWs1WorkspacePlugin"
+  },
+  "workspaceWallet": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "memberAccounts": true,
+      "ops": true,
+      "gatewayTopUp": false,
+      "withdrawals": false
+    },
+    "ledgerPolicy": {
+      "module": "./wallet",
+      "export": "WalletWs1LedgerPolicyAdapter"
+    },
+    "opsManifest": {
+      "module": "./wallet",
+      "defaultExport": "DEFAULT_WALLET_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveWalletOpsManifestFromTheme"
+    }
+  }
+}
