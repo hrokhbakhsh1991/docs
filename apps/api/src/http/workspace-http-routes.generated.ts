@@ -167,6 +167,12 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "POST /finance/case/commands/review-receipt": "handleFinanceCaseCommandReviewReceipt"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const DENALI_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /wallet/accounts": "handleWalletOperatorAccounts",
+  "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+  "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /guest-club/catalog": "handleGetGuestClubCatalog",
   "POST /guest-club/registrations": "handlePostGuestClubRegistration"
@@ -227,6 +233,14 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /finance/case/encounters/:registrationId": "handleFinanceCaseEncounter"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const DENALI_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+  "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+  "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+  "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+  "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /guest-club/catalog/:tourId": "handleGetGuestClubCatalogTour"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
@@ -256,6 +270,7 @@ export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] =
 ...staticRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, DENALI_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(GUEST_CLUB_HTTP_ROUTE_MANIFEST, GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(HARBOR_HTTP_ROUTE_MANIFEST, HARBOR_HARBOR_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(PROFILE_CERT_HTTP_ROUTE_MANIFEST, PROFILE_CERT_PROFILE_CERT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
@@ -268,6 +283,7 @@ export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
 ...paramRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, DENALI_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(GUEST_CLUB_HTTP_ROUTE_MANIFEST, GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(HARBOR_HTTP_ROUTE_MANIFEST, HARBOR_HARBOR_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(PROFILE_CERT_HTTP_ROUTE_MANIFEST, PROFILE_CERT_PROFILE_CERT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),

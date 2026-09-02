@@ -7,162 +7,163 @@
 import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-manifest";
 
 /** Enabled member portal surfaces — subset of WORKSPACE_MEMBER_PORTAL_CONTRACTS. */
-export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<Record<string, MemberPortalSurface>> =
-  Object.freeze({
-    alpine: Object.freeze({
-      manifestVersion: 1 as const,
-      defaultPrimaryModuleId: "trips",
-      modules: Object.freeze([
-        Object.freeze({
-          id: "trips",
-          routePath: "/me/registrations",
-          nav: Object.freeze({
-            tier: "primary",
-            labelKey: "trips",
-          }),
+export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
+  Record<string, MemberPortalSurface>
+> = Object.freeze({
+  "alpine": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
         }),
-        Object.freeze({
-          id: "profile",
-          routePath: "/me/profile",
-          nav: Object.freeze({
-            tier: "user_menu",
-            labelKey: "profile",
-          }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
         }),
-        Object.freeze({
-          id: "alpine-notes",
-          routePath: "/me/alpine-notes",
-          nav: Object.freeze({
-            tier: "secondary",
-            labelKey: "alpineNotes",
-          }),
+      }),
+      Object.freeze({
+        id: "alpine-notes",
+        routePath: "/me/alpine-notes",
+        nav: Object.freeze({
+          tier: "secondary",
+          labelKey: "alpineNotes",
         }),
-      ] as const satisfies readonly MemberModuleManifest[]),
-    }),
-    "cert-events": Object.freeze({
-      manifestVersion: 1 as const,
-      defaultPrimaryModuleId: "trips",
-      modules: Object.freeze([
-        Object.freeze({
-          id: "trips",
-          routePath: "/me/registrations",
-          nav: Object.freeze({
-            tier: "primary",
-            labelKey: "trips",
-          }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "cert-events": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
         }),
-        Object.freeze({
-          id: "profile",
-          routePath: "/me/profile",
-          nav: Object.freeze({
-            tier: "user_menu",
-            labelKey: "profile",
-          }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
         }),
-      ] as const satisfies readonly MemberModuleManifest[]),
-    }),
-    denali: Object.freeze({
-      manifestVersion: 1 as const,
-      defaultPrimaryModuleId: "trips",
-      modules: Object.freeze([
-        Object.freeze({
-          id: "trips",
-          routePath: "/me/registrations",
-          nav: Object.freeze({
-            tier: "primary",
-            labelKey: "trips",
-          }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "denali": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
         }),
-        Object.freeze({
-          id: "profile",
-          routePath: "/me/profile",
-          nav: Object.freeze({
-            tier: "user_menu",
-            labelKey: "profile",
-          }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
         }),
-        Object.freeze({
-          id: "wallet",
-          routePath: "/me/wallet",
-          nav: Object.freeze({
-            tier: "hidden",
-            labelKey: "wallet",
-          }),
+      }),
+      Object.freeze({
+        id: "wallet",
+        routePath: "/me/wallet",
+        nav: Object.freeze({
+          tier: "hidden",
+          labelKey: "wallet",
         }),
-      ] as const satisfies readonly MemberModuleManifest[]),
-    }),
-    "guest-club": Object.freeze({
-      manifestVersion: 1 as const,
-      defaultPrimaryModuleId: "trips",
-      modules: Object.freeze([
-        Object.freeze({
-          id: "trips",
-          routePath: "/me/registrations",
-          nav: Object.freeze({
-            tier: "primary",
-            labelKey: "trips",
-          }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "guest-club": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
         }),
-        Object.freeze({
-          id: "profile",
-          routePath: "/me/profile",
-          nav: Object.freeze({
-            tier: "user_menu",
-            labelKey: "profile",
-          }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
         }),
-      ] as const satisfies readonly MemberModuleManifest[]),
-    }),
-    urban: Object.freeze({
-      manifestVersion: 1 as const,
-      defaultPrimaryModuleId: "trips",
-      modules: Object.freeze([
-        Object.freeze({
-          id: "trips",
-          routePath: "/me/registrations",
-          nav: Object.freeze({
-            tier: "primary",
-            labelKey: "trips",
-          }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "urban": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
         }),
-        Object.freeze({
-          id: "profile",
-          routePath: "/me/profile",
-          nav: Object.freeze({
-            tier: "user_menu",
-            labelKey: "profile",
-          }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
         }),
-      ] as const satisfies readonly MemberModuleManifest[]),
-    }),
-    "wallet-ws1": Object.freeze({
-      manifestVersion: 1 as const,
-      defaultPrimaryModuleId: "trips",
-      modules: Object.freeze([
-        Object.freeze({
-          id: "trips",
-          routePath: "/me/registrations",
-          nav: Object.freeze({
-            tier: "primary",
-            labelKey: "trips",
-          }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "wallet-ws1": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
         }),
-        Object.freeze({
-          id: "profile",
-          routePath: "/me/profile",
-          nav: Object.freeze({
-            tier: "user_menu",
-            labelKey: "profile",
-          }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
         }),
-        Object.freeze({
-          id: "wallet",
-          routePath: "/me/wallet",
-          nav: Object.freeze({
-            tier: "hidden",
-            labelKey: "wallet",
-          }),
+      }),
+      Object.freeze({
+        id: "wallet",
+        routePath: "/me/wallet",
+        nav: Object.freeze({
+          tier: "hidden",
+          labelKey: "wallet",
         }),
-      ] as const satisfies readonly MemberModuleManifest[]),
-    }),
-  });
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+});

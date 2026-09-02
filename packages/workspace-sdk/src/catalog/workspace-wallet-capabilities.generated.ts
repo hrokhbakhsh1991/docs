@@ -18,6 +18,14 @@ export type WorkspaceWalletCapabilities = {
  * Keys are literal workspaceType strings from workspace.manifest.json.
  */
 export const WORKSPACE_WALLET_CAPABILITIES = {
+  "denali": {
+    supported: true as const,
+    defaultModuleEnabledWhenUnset: false as const,
+    memberAccounts: true as const,
+    ops: true as const,
+    gatewayTopUp: false as const,
+    withdrawals: false as const,
+  },
   "wallet-ws1": {
     supported: true as const,
     defaultModuleEnabledWhenUnset: true as const,

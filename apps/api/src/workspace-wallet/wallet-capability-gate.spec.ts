@@ -16,12 +16,12 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 
 describe("WALLET-P1 wallet capability gate", () => {
-  it("generated bindings include wallet-ws1 certification fixture; production workspaces unchanged", () => {
+  it("generated bindings include wallet-capable workspaces; others remain unsupported", () => {
     assert.equal(isWalletSupportedWorkspace("wallet-ws1"), true);
     assert.equal(isWalletDefaultEnabledWhenModulesUnset("wallet-ws1"), true);
-    assert.equal(isWalletSupportedWorkspace("denali"), false);
-    assert.equal(isWalletSupportedWorkspace("finance-ws5"), false);
+    assert.equal(isWalletSupportedWorkspace("denali"), true);
     assert.equal(isWalletDefaultEnabledWhenModulesUnset("denali"), false);
+    assert.equal(isWalletSupportedWorkspace("finance-ws5"), false);
     assert.equal(isWalletDefaultEnabledWhenModulesUnset("urban"), false);
   });
 
@@ -29,6 +29,8 @@ describe("WALLET-P1 wallet capability gate", () => {
     assert.equal(isWalletModuleEnabled({ enabledModules: ["wallet"] }, "wallet-ws1"), true);
     assert.equal(isWalletModuleEnabled({}, "wallet-ws1"), true);
     assert.equal(isWalletModuleEnabled({ enabledModules: ["tours"] }, "wallet-ws1"), false);
+    assert.equal(isWalletModuleEnabled({ enabledModules: ["wallet"] }, "denali"), true);
+    assert.equal(isWalletModuleEnabled({}, "denali"), false);
     assert.equal(isWalletModuleEnabled({ enabledModules: ["wallet"] }, "urban"), false);
   });
 

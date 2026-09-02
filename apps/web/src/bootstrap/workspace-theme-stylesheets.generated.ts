@@ -8,16 +8,18 @@
 const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
   "cert-club": Object.freeze(["theme/tokens.css"]),
   "cert-events": Object.freeze(["theme/tokens.css"]),
-  denali: Object.freeze(["theme/denali-admin.css"]),
+  "denali": Object.freeze(["theme/denali-admin.css"]),
   "guest-club": Object.freeze(["theme/tokens.css"]),
   "profile-cert": Object.freeze(["theme/tokens.css"]),
-  starter: Object.freeze(["theme/tokens.css"]),
-  urban: Object.freeze(["theme/tokens.css"]),
+  "starter": Object.freeze(["theme/tokens.css"]),
+  "urban": Object.freeze(["theme/tokens.css"]),
   "wallet-ws1": Object.freeze(["theme/tokens.css"]),
 }) as Readonly<Record<string, readonly string[]>>;
 
 /** Stylesheet path list for pluginId, if declared in manifest themeStylesheets. */
-export function resolveAdminThemeStylesheets(pluginId: string): readonly string[] | undefined {
+export function resolveAdminThemeStylesheets(
+  pluginId: string
+): readonly string[] | undefined {
   const id = pluginId.trim();
   if (id.length === 0) {
     return undefined;

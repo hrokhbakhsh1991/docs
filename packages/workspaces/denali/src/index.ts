@@ -139,6 +139,11 @@ export {
   resolveFinanceOpsManifestFromTheme,
 } from "./finance";
 export {
+  DEFAULT_WALLET_OPS_MANIFEST,
+  DenaliWalletLedgerPolicyAdapter,
+  resolveWalletOpsManifestFromTheme,
+} from "./wallet";
+export {
   DenaliBookingCapacityPolicyAdapter,
   DenaliBookingEventReactionAdapter,
   DenaliBookingPublicAdapter,

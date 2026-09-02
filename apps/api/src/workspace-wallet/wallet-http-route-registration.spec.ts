@@ -18,7 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(here, "../../../..");
 
 describe("WALLET-P2D wallet HTTP route registration", () => {
-  it("wallet-ws1 registers all WALLET_HTTP_ROUTE_MANIFEST routes", () => {
+  it("wallet-capable workspaces register all WALLET_HTTP_ROUTE_MANIFEST routes", () => {
     const handlerKeys = new Set(
       [...WORKSPACE_HTTP_STATIC_ROUTES, ...WORKSPACE_HTTP_PARAM_ROUTES].map(
         (route) => route.handlerKey,
@@ -26,6 +26,8 @@ describe("WALLET-P2D wallet HTTP route registration", () => {
     );
     const expectedHandlers = [
       "handleWalletMemberBalance",
+      "handleWalletMemberOwnBalance",
+      "handleWalletMemberOwnTransactions",
       "handleWalletMemberTransactions",
       "handleWalletOperatorAccounts",
       "handleWalletOperatorCredit",
@@ -38,13 +40,14 @@ describe("WALLET-P2D wallet HTTP route registration", () => {
     assert.equal(WALLET_HTTP_ROUTE_MANIFEST.length, expectedHandlers.length);
   });
 
-  it("Denali manifest does not register wallet routes", () => {
+  it("Denali manifest registers WALLET_HTTP_ROUTE_MANIFEST routes", () => {
     const denaliManifest = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/workspace.manifest.json"),
       "utf8",
     );
-    assert.doesNotMatch(denaliManifest, /WALLET_HTTP_ROUTE_MANIFEST/);
-    assert.doesNotMatch(denaliManifest, /handleWallet/);
+    assert.match(denaliManifest, /WALLET_HTTP_ROUTE_MANIFEST/);
+    assert.match(denaliManifest, /handleWalletOperatorAccounts/);
+    assert.match(denaliManifest, /"@app-tour\/wallet-http"/);
   });
 
   it("finance route manifest unchanged (no wallet paths)", () => {

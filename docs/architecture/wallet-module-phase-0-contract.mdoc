@@ -74,7 +74,7 @@ Wallet will mirror this pattern under `workspaceWallet` (Section 3).
 
 ## 2. `workspaceWallet` manifest contract (Phase 1 foundation)
 
-Normative shape implemented in Phase 1 (`WorkspaceWalletBlockSchema` + codegen). **No production workspace manifest declares `workspaceWallet` yet** — bindings remain empty until a workspace opts in.
+Normative shape implemented in Phase 1 (`WorkspaceWalletBlockSchema` + codegen). **Certification fixture `wallet-ws1` and Denali workspace bindings declare `workspaceWallet`; tenant activation remains theme-gated** — no production Denali tenant enables the module until theme `enabledModules` includes `"wallet"`.
 
 ```typescript
 /** Documentation contract — not shipped TypeScript */
@@ -417,3 +417,61 @@ pnpm --filter @apps/api run guard:tenant-isolation && pnpm --filter @apps/api ru
 ```
 
 Optional: skip redundant package builds when deps are already built — `WALLET_CERT_SKIP_BUILD=1` on the smoke server script. Reuse running API/web/portal when health endpoints respond (Playwright `reuseExistingServer`, default locally).
+
+## 9. Phase 1 — Denali workspace enablement (manifest + capability only)
+
+Phase 1 adds **workspace-level** Wallet support for Denali without activating Wallet for any Denali tenant. This is distinct from tenant rollout (Phase 2+).
+
+### 9.1 Workspace vs tenant gates
+
+| Layer | Denali Phase 1 state | Gate code when blocked |
+| ----- | -------------------- | ---------------------- |
+| **Workspace support** | `workspaceWallet.supported: true` in `packages/workspaces/denali/workspace.manifest.json` | `WALLET_WORKSPACE_UNSUPPORTED` (unsupported workspaces only, e.g. `urban`) |
+| **Tenant module enablement** | **Not activated** — no Denali seed or dev tenant theme adds `"wallet"` to `enabledModules`; `defaultModuleEnabledWhenUnset: false` | `FORBIDDEN_WALLET_MODULE_DISABLED` |
+| **Operator `walletNav` capability** | `capabilities.walletNav.supported: true` in `denali.plugin.ts` | Nav/route still hidden until tenant module enablement passes (`ensureWalletNavSupported`) |
+
+Workspace support and tenant enablement are **independent**:
+
+- A supported workspace with wallet omitted from theme → API/portal fail closed with `FORBIDDEN_WALLET_MODULE_DISABLED`.
+- An unsupported workspace → `WALLET_WORKSPACE_UNSUPPORTED` regardless of theme.
+
+### 9.2 Denali manifest bindings (Phase 1)
+
+| Field | Value | Notes |
+| ----- | ----- | ----- |
+| `supported` | `true` | Product declares Denali can host Wallet |
+| `defaultModuleEnabledWhenUnset` | `false` | Unlike `wallet-ws1`, Denali does **not** auto-enable when `enabledModules` is empty |
+| `capabilities.memberAccounts` | `true` | Member stored-value accounts (when tenant-enabled) |
+| `capabilities.ops` | `true` | Operator reconciliation UI (when tenant-enabled) |
+| `capabilities.gatewayTopUp` | `false` | Out of scope Phase 1 |
+| `capabilities.withdrawals` | `false` | Out of scope Phase 1 |
+| `capabilityRevision` | `1` | MAT-001 revision pin |
+| `ledgerPolicy` | `./wallet` → `DenaliWalletLedgerPolicyAdapter` | Manifest-bound placeholder; no finance-core import |
+| `opsManifest` | `./wallet` → `DEFAULT_WALLET_OPS_MANIFEST` | Theme resolver stub; no runtime ops |
+| HTTP routes | `WALLET_HTTP_ROUTE_MANIFEST` group | Handler package `@app-tour/wallet-http` (same as certification fixture) |
+
+`versionPins.capabilityPins.workspaceWallet.revision: 1` aligns codegen capability versioning with the block revision.
+
+### 9.3 Refund and finance terminology (unchanged)
+
+| Concept | Phase 1 contract |
+| ------- | ---------------- |
+| **Refund-to-wallet** | **Manual in v1** — operator credit via Wallet ops when tenant-enabled; no automatic `completeRefund` → member wallet write |
+| **`bookingWalletId`** | Registration finance GL identifier in `packages/workspaces/denali/src/finance/` — **not** a member wallet account id |
+| **`walletNetMinor`** | Finance invoice/reporting field only — **not** member wallet balance |
+
+Phase 1 does not modify `finance-core`, Denali registration-finance semantics, refund automation, checkout Wallet payment, holds, gateway top-up, withdrawals, or P2P transfers.
+
+### 9.4 Verification (Phase 1 isolated)
+
+```bash
+pnpm run generate:workspace-registry --check
+pnpm --filter @apps/api run test:file -- src/workspace-wallet/wallet-contract-certification.spec.ts
+pnpm --filter @apps/api run test:file -- src/workspace-wallet/wallet-http-route-registration.spec.ts
+pnpm --filter @apps/web run test:file -- test/thin-shell-wallet-nav-capability.spec.ts
+pnpm run guard:import-boundary
+pnpm run guard:wallet-core-boundary
+git diff --check
+```
+
+Negative paths preserved: unsupported workspace → `WALLET_WORKSPACE_UNSUPPORTED`; supported workspace without wallet theme → `FORBIDDEN_WALLET_MODULE_DISABLED`. E2E `WALLET-CERT-D01` (Denali admin has no wallet nav, `/wallet` 404) remains valid until tenant theme activation in a later phase.

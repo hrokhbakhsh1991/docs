@@ -6,6 +6,9 @@
 
 export const WORKSPACE_WALLET_BINDINGS = [
   {
+    workspaceType: "denali",
+  },
+  {
     workspaceType: "wallet-ws1",
     defaultModuleEnabledWhenUnset: true as const,
   },

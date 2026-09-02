@@ -17,6 +17,7 @@
       "workspaceDifficultyFitness": { "revision": 1 },
       "workspaceEquipment": { "revision": 1 },
       "workspaceFinance": { "revision": 1 },
+      "workspaceWallet": { "revision": 1 },
       "workspaceItinerary": { "revision": 1 },
       "workspacePricing": { "revision": 1 },
       "workspaceTransport": { "revision": 1 }
@@ -116,6 +117,22 @@
           "GET /finance/case/encounters/:registrationId": "handleFinanceCaseEncounter"
         },
         "handlerPackage": "@app-tour/finance-http"
+      },
+      {
+        "manifestExport": "WALLET_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /wallet/accounts": "handleWalletOperatorAccounts",
+          "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+          "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
+        },
+        "paramHandlers": {
+          "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+          "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+          "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+          "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+          "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+        },
+        "handlerPackage": "@app-tour/wallet-http"
       }
     ]
   },
@@ -201,6 +218,26 @@
     "paymentCollection": {
       "module": "./finance",
       "export": "resolveDenaliPaymentCollectionMode"
+    }
+  },
+  "workspaceWallet": {
+    "supported": true,
+    "capabilityRevision": 1,
+    "defaultModuleEnabledWhenUnset": false,
+    "capabilities": {
+      "memberAccounts": true,
+      "ops": true,
+      "gatewayTopUp": false,
+      "withdrawals": false
+    },
+    "ledgerPolicy": {
+      "module": "./wallet",
+      "export": "DenaliWalletLedgerPolicyAdapter"
+    },
+    "opsManifest": {
+      "module": "./wallet",
+      "defaultExport": "DEFAULT_WALLET_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveWalletOpsManifestFromTheme"
     }
   },
   "workspaceBooking": {

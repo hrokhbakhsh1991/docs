@@ -29,9 +29,14 @@ const viewerSession = {
 };
 
 describe("thin-shell-wallet-nav-capability — WALLET-P3B", () => {
-  it("TS-WALLET-P3B-01 wallet-ws1 publishes capabilities.walletNav; denali does not", () => {
+  it("TS-WALLET-P3B-01 wallet-capable workspaces publish capabilities.walletNav", () => {
     assert.equal(resolveWalletNavCapability(getWalletWs1Plugin())?.supported, true);
-    assert.equal(resolveWalletNavCapability(getDenaliPlugin()), undefined);
+    assert.equal(resolveWalletNavCapability(getDenaliPlugin())?.supported, true);
+  });
+
+  it("TS-WALLET-P3B-01b denali walletNav capability does not bypass tenant module gate", async () => {
+    const { ensureWalletNavSupported } = await import("../src/wallet/wallet-nav-enablement");
+    assert.equal(await ensureWalletNavSupported("denali", {}), false);
   });
 
   it("TS-WALLET-P3B-02 layout warms wallet nav; operator nav includes wallet for owner", async () => {

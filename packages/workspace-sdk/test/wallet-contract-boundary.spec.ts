@@ -34,10 +34,10 @@ describe("WALLET-P1 workspace-sdk wallet contract boundary", () => {
     assert.doesNotMatch(src, /@prisma|Prisma|finance-core/);
   });
 
-  it("generated wallet capabilities include wallet-ws1 certification fixture only", async () => {
+  it("generated wallet capabilities include wallet-capable workspaces from manifests", async () => {
     const mod = await import("../src/catalog/workspace-wallet-capabilities.generated.js");
-    assert.deepEqual(mod.listWalletCapableWorkspaceTypes(), ["wallet-ws1"]);
-    assert.equal(mod.getWorkspaceWalletCapabilities("denali"), null);
+    assert.deepEqual(mod.listWalletCapableWorkspaceTypes().sort(), ["denali", "wallet-ws1"]);
+    assert.equal(mod.getWorkspaceWalletCapabilities("denali")?.defaultModuleEnabledWhenUnset, false);
     assert.equal(mod.getWorkspaceWalletCapabilities("wallet-ws1")?.memberAccounts, true);
     assert.equal(mod.walletWorkspaceHasCapability("urban", "memberAccounts"), false);
   });
