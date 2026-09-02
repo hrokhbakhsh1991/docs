@@ -78,6 +78,11 @@ import {
   generateWorkspaceFinanceObligationBindings,
 } from "./domains/finance.mjs";
 import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
+import {
+  assertWorkspaceWalletManifest,
+  generateWorkspaceWalletBindings,
+  generateWorkspaceWalletCapabilities,
+} from "./domains/wallet.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
 import { generateProductHttpHostBindings } from "./domains/product-http-host.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
@@ -220,6 +225,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspaceFinanceObligation",
   ],
   booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingEventReactions"],
+  wallet: ["workspaceWallet", "workspaceWalletCapabilities"],
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
   "profile-expansion": ["profileExpansionAudit"],
@@ -300,6 +306,8 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspaceBookingCapabilities",
   "workspaceBookingDependencies",
   "workspaceBookingEventReactions",
+  "workspaceWallet",
+  "workspaceWalletCapabilities",
   "integrationCapabilities",
   "exposureHostBindings",
   "marketingCatalogBindings",
@@ -364,6 +372,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     assertWizardResumeManifest(manifest);
     assertWorkspaceItineraryManifest(manifest);
     assertWorkspacePricingManifest(manifest);
+    assertWorkspaceWalletManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
@@ -421,6 +430,8 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     workspaceBookingCapabilities: generateWorkspaceBookingCapabilities(manifests),
     workspaceBookingDependencies: generateWorkspaceBookingDependencyBindings(manifests),
     workspaceBookingEventReactions: generateWorkspaceBookingEventReactionBindings(manifests),
+    workspaceWallet: generateWorkspaceWalletBindings(manifests),
+    workspaceWalletCapabilities: generateWorkspaceWalletCapabilities(manifests),
     integrationCapabilities: generateWorkspaceIntegrationCapabilities(manifests),
     exposureHostBindings: generateExposureHostBindings(manifests),
     productHttpHostBindings: generateProductHttpHostBindings(manifests),
@@ -626,6 +637,14 @@ export const OUTPUT_PATHS = {
   workspaceBookingEventReactions: join(
     REPO_ROOT,
     "apps/api/src/bookings/workspace-booking-event-reaction-bindings.generated.ts"
+  ),
+  workspaceWallet: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-wallet/workspace-wallet-bindings.generated.ts"
+  ),
+  workspaceWalletCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts"
   ),
   integrationCapabilities: join(
     REPO_ROOT,

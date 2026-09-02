@@ -392,6 +392,20 @@ export {
   type WorkspaceEquipmentCapabilities,
 } from "./catalog/workspace-equipment-capabilities.generated";
 export {
+  FORBIDDEN_WALLET_MODULE_DISABLED,
+  WALLET_MODULE_THEME_KEY,
+  WALLET_WORKSPACE_UNSUPPORTED,
+  getWorkspaceWalletCapabilities,
+  isWalletModuleEnabled,
+  listWalletCapableWorkspaceTypes,
+  parseEnabledModulesFromTheme,
+  walletWorkspaceHasCapability,
+  type WalletCapabilityPort,
+  type WalletModuleEnablementBindings,
+  type WalletWorkspaceGateResult,
+  type WorkspaceWalletCapabilities,
+} from "./wallet";
+export {
   getWorkspaceTransportCapabilities,
   type WorkspaceTransportCapabilities,
 } from "./catalog/workspace-transport-capabilities.generated";
