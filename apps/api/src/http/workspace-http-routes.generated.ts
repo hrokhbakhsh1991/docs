@@ -18,6 +18,7 @@ import { GUEST_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-guest-club/h
 import { HARBOR_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-harbor/host/http";
 import { PROFILE_CERT_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-profile-cert/http";
 import { URBAN_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-urban/host/http";
+import { WALLET_HTTP_ROUTE_MANIFEST } from "@app-tour/wallet-http";
 
 export type WorkspaceHttpHandlerKey =
   | "handleFinanceApproveRefund"
@@ -81,7 +82,13 @@ export type WorkspaceHttpHandlerKey =
   | "handlePostGuestClubRegistration"
   | "handlePostHarborRegistration"
   | "handlePostProfileCertRegistration"
-  | "handlePostUrbanRegistration";
+  | "handlePostUrbanRegistration"
+  | "handleWalletMemberBalance"
+  | "handleWalletMemberTransactions"
+  | "handleWalletOperatorAccounts"
+  | "handleWalletOperatorCredit"
+  | "handleWalletOperatorDebit"
+  | "handleWalletOperatorReversal";
 
 export type WorkspaceHttpStaticRoute = {
   readonly method: WorkspaceHttpMethod;
@@ -180,6 +187,10 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "POST /urban/registrations": "handlePostUrbanRegistration"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /wallet/accounts": "handleWalletOperatorAccounts"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /cert-club/catalog/:tourId": "handleGetCertClubCatalogTour"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
@@ -228,6 +239,14 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /urban/catalog/:tourId": "handleGetUrbanCatalogTour"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+  "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+  "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+  "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+  "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] = [
 ...staticRoutesFromManifest(CERT_CLUB_HTTP_ROUTE_MANIFEST, CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
@@ -237,6 +256,7 @@ export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] =
 ...staticRoutesFromManifest(HARBOR_HTTP_ROUTE_MANIFEST, HARBOR_HARBOR_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(PROFILE_CERT_HTTP_ROUTE_MANIFEST, PROFILE_CERT_PROFILE_CERT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(URBAN_HTTP_ROUTE_MANIFEST, URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ];
 
 export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
@@ -248,4 +268,5 @@ export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
 ...paramRoutesFromManifest(HARBOR_HTTP_ROUTE_MANIFEST, HARBOR_HARBOR_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(PROFILE_CERT_HTTP_ROUTE_MANIFEST, PROFILE_CERT_PROFILE_CERT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(URBAN_HTTP_ROUTE_MANIFEST, URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ];

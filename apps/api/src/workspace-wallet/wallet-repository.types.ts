@@ -34,3 +34,15 @@ export type WalletOperatorDebitInput = WalletOperatorMutationInput & {
 export type WalletReversalInput = WalletOperatorMutationInput & {
   readonly originalTransactionId: string;
 };
+
+export type WalletMemberTransactionsQuery = {
+  readonly limit: number;
+  readonly cursor?: string;
+};
+
+export type WalletOperatorAccountLookupQuery = {
+  readonly tenantId: string;
+  readonly userId: string;
+  readonly workspaceId?: string;
+  readonly currency?: string;
+};

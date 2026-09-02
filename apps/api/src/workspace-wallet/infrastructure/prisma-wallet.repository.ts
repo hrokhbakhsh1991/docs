@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import {
   buildMemberBalanceView,
+  buildMemberTransactionHistory,
   createOperatorCredit,
   createOperatorDebit,
   createReversal,
@@ -20,6 +21,7 @@ import {
   walletOk,
   type WalletAccount,
   type WalletBalance,
+  type WalletHistoryPage,
   type WalletLedgerEntry,
   type WalletMutationResult,
   type WalletResult,
@@ -31,6 +33,8 @@ import { appendWalletMutationAudit } from "../wallet-audit-writer";
 import type {
   GetOrCreateWalletAccountInput,
   WalletMemberScope,
+  WalletMemberTransactionsQuery,
+  WalletOperatorAccountLookupQuery,
   WalletOperatorCreditInput,
   WalletOperatorDebitInput,
   WalletReversalInput,
@@ -588,6 +592,114 @@ export class PrismaWalletRepository {
         }
         throw error;
       }
+    });
+  }
+
+  async listMemberTransactions(
+    scope: WalletMemberScope,
+    accountId: string,
+    query: WalletMemberTransactionsQuery,
+  ): Promise<
+    WalletResult<{
+      readonly page: WalletHistoryPage;
+      readonly nextCursor: string | null;
+      readonly hasMore: boolean;
+    }>
+  > {
+    const tenantId = scope.tenantId.trim();
+    const limit = Math.min(Math.max(query.limit, 1), 200);
+
+    return withTenantRls(tenantId, async (tx) => {
+      const account = await loadAccount(tx, tenantId, accountId.trim());
+      if (account === null) {
+        return walletErr("WALLET_OWNERSHIP_MISMATCH", "wallet account not found");
+      }
+      const ownership = assertMemberScope(account, scope);
+      if (!ownership.ok) {
+        return ownership;
+      }
+
+      const cursor = query.cursor?.trim();
+      const rows = await tx.walletTransaction.findMany({
+        where: {
+          tenantId,
+          accountId: account.id,
+          status: "posted",
+          ...(cursor !== undefined && cursor.length > 0
+            ? { id: { lt: cursor } }
+            : {}),
+        },
+        orderBy: { id: "desc" },
+        take: limit + 1,
+        include: { ledgerEntries: true },
+      });
+
+      const hasMore = rows.length > limit;
+      const pageRows = hasMore ? rows.slice(0, limit) : rows;
+      const transactions = pageRows.map(mapWalletTransaction);
+      const entries = pageRows.flatMap((row) =>
+        row.ledgerEntries.map(mapWalletLedgerEntry),
+      );
+
+      const history = buildMemberTransactionHistory(account, transactions, entries);
+      if (!history.ok) {
+        return history;
+      }
+
+      const nextCursor =
+        hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.id : null;
+
+      return walletOk({
+        page: history.value,
+        nextCursor,
+        hasMore,
+      });
+    });
+  }
+
+  async lookupOperatorAccounts(
+    query: WalletOperatorAccountLookupQuery,
+  ): Promise<
+    WalletResult<
+      readonly {
+        readonly account: WalletAccount;
+        readonly balanceMinor: string;
+      }[]
+    >
+  > {
+    const tenantId = query.tenantId.trim();
+    const userId = query.userId.trim();
+
+    return withTenantRls(tenantId, async (tx) => {
+      const where: Prisma.WalletAccountWhereInput = {
+        tenantId,
+        userId,
+        ...(query.workspaceId !== undefined
+          ? { workspaceId: query.workspaceId.trim() }
+          : {}),
+        ...(query.currency !== undefined ? { currency: query.currency.trim() } : {}),
+      };
+
+      const accounts = await tx.walletAccount.findMany({
+        where,
+        orderBy: { currency: "asc" },
+      });
+
+      const items: { account: WalletAccount; balanceMinor: string }[] = [];
+      for (const row of accounts) {
+        const account = mapWalletAccount(row);
+        const entries = await loadLedgerEntriesForAccount(tx, tenantId, account.id);
+        const balance = buildMemberBalanceView(account, entries);
+        if (!balance.ok) {
+          return balance;
+        }
+        items.push({
+          account,
+          balanceMinor: balance.value.balanceMinor,
+        });
+      }
+
+      return walletOk(items);
     });
   }
 }

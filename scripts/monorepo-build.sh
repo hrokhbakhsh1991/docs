@@ -43,6 +43,8 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   pnpm --dir packages/platform-events run build
   pnpm --dir packages/finance-core run build
   pnpm --dir packages/wallet-core run build
+  pnpm --dir packages/wallet-http-contracts run build
+  pnpm --dir packages/wallet-http run build
   pnpm --dir packages/workspaces/booking-ws2 run build
   pnpm --dir packages/workspaces/finance-ws2 run build
   pnpm --dir packages/workspaces/finance-ws3 run build

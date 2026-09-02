@@ -25,5 +25,24 @@
       "defaultExport": "DEFAULT_WALLET_OPS_MANIFEST",
       "resolveFromThemeExport": "resolveWalletOpsManifestFromTheme"
     }
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/wallet-http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "WALLET_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /wallet/accounts": "handleWalletOperatorAccounts"
+        },
+        "paramHandlers": {
+          "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+          "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+          "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+          "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+          "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+        }
+      }
+    ]
   }
 }

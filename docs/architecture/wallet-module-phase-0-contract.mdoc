@@ -15,6 +15,8 @@ mandatory_for:
   - future apps/api workspace-wallet host
 code_sot:
   - packages/wallet-core
+  - packages/wallet-http-contracts
+  - packages/wallet-http
   - apps/api/prisma/schema.prisma
   - apps/api/src/workspace-wallet/infrastructure/
   - packages/workspace-sdk/src/manifest.schema.ts
@@ -22,13 +24,13 @@ code_sot:
   - packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts
   - scripts/codegen/workspace-registry/domains/wallet.mjs
   - apps/api/src/workspace-wallet/
-implementation_status: phase_2c_persistence
+implementation_status: phase_2d_http
 ---
 
 # Wallet module — Phase 0 architecture contract
 
 **Phase:** 0 (foundational preparation)  
-**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C). No HTTP routes or product UI implemented.
+**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C) + guarded generic HTTP contracts/handlers (Phase 2D). No portal/operator UI, gateway top-up, withdrawals, or Denali activation.
 **Authority:** [ADR-WALLET-001](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc)
 
 ---
@@ -167,6 +169,35 @@ When implementing `workspaceWallet`, expect edits/additions aligned with `worksp
 | `apps/api/src/http/workspace-route-registrar.ts` | `HANDLER_DISPATCH_KIND` entries for `handleWallet*` |
 | `apps/api/src/boot/lazy-workspace-wallet-handlers.ts` | **New** — lazy handler load (mirror finance) |
 | `packages/workspaces/<id>/workspace.manifest.json` | `httpRoutes.groups[]` with `handlerPackage: @app-tour/wallet-http` |
+
+### 3.3.1 Phase 2D MVP HTTP surface (shipped)
+
+Manifest-driven routes on `/wallet/*` (mirror `/finance/*` prefix convention). Registered only on `wallet-ws1` certification fixture; Denali and other production workspaces remain route-inaccessible (`WALLET_WORKSPACE_UNSUPPORTED`).
+
+| Method | Path | Actor | Idempotency-Key |
+| ------ | ---- | ----- | --------------- |
+| `GET` | `/wallet/accounts/:accountId/balance` | member (own account) | — |
+| `GET` | `/wallet/accounts/:accountId/transactions` | member (own account) | — |
+| `GET` | `/wallet/accounts` | operator (`admin` \| `owner`) | — |
+| `POST` | `/wallet/accounts/:accountId/credit` | operator | required |
+| `POST` | `/wallet/accounts/:accountId/debit` | operator | required |
+| `POST` | `/wallet/transactions/:transactionId/reverse` | operator | required |
+
+**Handler pipeline (strict order):**
+
+1. Resolve tenant context (`TenantAuthContext` from JWT — never from body).
+2. Resolve workspace context (`workspaceId` on member auth; operator tenant scope).
+3. `WalletCapabilityPort.assertEnabled(tenantId)` — workspace support + module enablement.
+4. Member entitlement (`member.module.wallet`) or operator role (`admin` \| `owner`, `ACTIVE`).
+5. Validate request DTO (`wallet-http-contracts` Zod parsers).
+6. Require `Idempotency-Key` header on mutations; hash body for HTTP idempotency relay.
+7. Invoke `WalletService` → `wallet-core` application services via host repository.
+8. Map stable domain errors (`WALLET_*`) — never Prisma/stack traces.
+9. Return safe read models (derived balance, immutable transaction history).
+
+**Idempotency:** HTTP `Idempotency-Key` + request hash → `creationIdempotencyKey` + `commandFingerprint` in `wallet_transactions`. Same key + same fingerprint replays; same key + different fingerprint → `WALLET_IDEMPOTENCY_CONFLICT`.
+
+**Response safety:** String minor-unit amounts only; no raw ledger-entry mutation endpoints; no synthetic finance booking wallet ids; no internal tenant-resolution fields in JSON.
 
 ### 3.4 Portal renderer registration
 

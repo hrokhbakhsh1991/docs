@@ -68,7 +68,13 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handlePostGuestClubRegistration"
   | "handlePostHarborRegistration"
   | "handlePostProfileCertRegistration"
-  | "handlePostUrbanRegistration";
+  | "handlePostUrbanRegistration"
+  | "handleWalletMemberBalance"
+  | "handleWalletMemberTransactions"
+  | "handleWalletOperatorAccounts"
+  | "handleWalletOperatorCredit"
+  | "handleWalletOperatorDebit"
+  | "handleWalletOperatorReversal";
 
 export type WorkspaceHttpPackageHandlers = Pick<
   WorkspaceRouteHandlers,
@@ -110,6 +116,12 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceSubmitReceipt: "@app-tour/finance-http",
   handleFinanceSummary: "@app-tour/finance-http",
   handleFinanceTourCollections: "@app-tour/finance-http",
+  handleWalletMemberBalance: "@app-tour/wallet-http",
+  handleWalletMemberTransactions: "@app-tour/wallet-http",
+  handleWalletOperatorAccounts: "@app-tour/wallet-http",
+  handleWalletOperatorCredit: "@app-tour/wallet-http",
+  handleWalletOperatorDebit: "@app-tour/wallet-http",
+  handleWalletOperatorReversal: "@app-tour/wallet-http",
   handleGetCertClubCatalog: "@app-tour/workspace-cert-club/http",
   handleGetCertClubCatalogTour: "@app-tour/workspace-cert-club/http",
   handlePostCertClubRegistration: "@app-tour/workspace-cert-club/http",
@@ -142,6 +154,7 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
 
 const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
   "@app-tour/finance-http",
+  "@app-tour/wallet-http",
   "@app-tour/workspace-cert-club/http",
   "@app-tour/workspace-cert-events/http",
   "@app-tour/workspace-denali/host/http",
@@ -196,6 +209,17 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleFinanceSubmitReceipt: mod.handleFinanceSubmitReceipt,
         handleFinanceSummary: mod.handleFinanceSummary,
         handleFinanceTourCollections: mod.handleFinanceTourCollections,
+      };
+    }
+    case "@app-tour/wallet-http": {
+      const mod = await import("@app-tour/wallet-http");
+      return {
+        handleWalletMemberBalance: mod.handleWalletMemberBalance,
+        handleWalletMemberTransactions: mod.handleWalletMemberTransactions,
+        handleWalletOperatorAccounts: mod.handleWalletOperatorAccounts,
+        handleWalletOperatorCredit: mod.handleWalletOperatorCredit,
+        handleWalletOperatorDebit: mod.handleWalletOperatorDebit,
+        handleWalletOperatorReversal: mod.handleWalletOperatorReversal,
       };
     }
     case "@app-tour/workspace-cert-club/http": {
