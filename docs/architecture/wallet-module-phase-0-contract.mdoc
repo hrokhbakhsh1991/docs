@@ -14,18 +14,19 @@ mandatory_for:
   - future packages/wallet-core
   - future apps/api workspace-wallet host
 code_sot:
+  - packages/wallet-core
   - packages/workspace-sdk/src/manifest.schema.ts
   - packages/workspace-sdk/src/wallet/
   - packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts
   - scripts/codegen/workspace-registry/domains/wallet.mjs
   - apps/api/src/workspace-wallet/
-implementation_status: phase_1_contract_foundation
+implementation_status: phase_2b_domain_core
 ---
 
 # Wallet module — Phase 0 architecture contract
 
 **Phase:** 0 (foundational preparation)  
-**Runtime status:** No Wallet domain, database tables, API routes, or product UI implemented.  
+**Runtime status:** Pure `packages/wallet-core` domain package shipped (Phase 2B). No database tables, API routes, or product UI implemented.
 **Authority:** [ADR-WALLET-001](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc)
 
 ---
@@ -179,7 +180,7 @@ When implementing `workspaceWallet`, expect edits/additions aligned with `worksp
 
 | Package | Role |
 | ------- | ---- |
-| `packages/wallet-core` | Domain, ports, `WalletService` |
+| `packages/wallet-core` | **Shipped (Phase 2B)** — pure domain, ports, application services (no persistence) |
 | `packages/wallet-http-contracts` | DTOs / Zod |
 | `packages/wallet-http` | Generic HTTP handlers |
 | `apps/api/src/workspace-wallet/` | Host adapters, Prisma repo, DI |

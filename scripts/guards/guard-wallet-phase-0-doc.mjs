@@ -83,8 +83,9 @@ function main() {
     "Balance authority",
     "wallet.mjs",
     "Phase 0",
-    "phase_1_contract_foundation",
-    "No Wallet domain",
+    "phase_2b_domain_core",
+    "packages/wallet-core",
+    "No database tables",
   ]);
 
   const readme = read("docs/architecture/README.md");
