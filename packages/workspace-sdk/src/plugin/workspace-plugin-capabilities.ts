@@ -208,6 +208,14 @@ export type WorkspaceFinanceNavCapability = {
   readonly supported: true;
 };
 
+/**
+ * Wallet ops hub enablement (WALLET-P3B).
+ * Pure data — mirrors manifest `workspaceWallet.supported` + ops capability.
+ */
+export type WorkspaceWalletNavCapability = {
+  readonly supported: true;
+};
+
 export type WorkspaceFinanceCaseMeaningCapability = {
   readonly supported: true;
 };
@@ -414,6 +422,8 @@ export type WorkspacePluginCapabilities = {
   readonly operatorShellNav?: WorkspaceOperatorShellNavCapability;
   /** Phase 4bd — pure finance hub enablement (workspaceFinance.supported). */
   readonly financeNav?: WorkspaceFinanceNavCapability;
+  /** WALLET-P3B — pure wallet ops hub enablement (workspaceWallet.supported + ops). */
+  readonly walletNav?: WorkspaceWalletNavCapability;
   readonly financeCaseMeaning?: WorkspaceFinanceCaseMeaningCapability;
   /** Phase 4be — pure finance ops panel resolve (theme-aware). */
   readonly financeOps?: WorkspaceFinanceOpsCapability;
@@ -669,6 +679,13 @@ export function resolveFinanceNavCapability(
   plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
 ): WorkspaceFinanceNavCapability | undefined {
   return plugin.capabilities?.financeNav;
+}
+
+/** Resolve wallet-nav enablement from the bag (no legacy fallback). */
+export function resolveWalletNavCapability(
+  plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
+): WorkspaceWalletNavCapability | undefined {
+  return plugin.capabilities?.walletNav;
 }
 
 export function resolveFinanceCaseMeaningCapability(

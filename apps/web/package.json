@@ -56,6 +56,7 @@
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",
+    "@app-tour/wallet-http-contracts": "workspace:*",
     "@app-tour/wizard-navigation": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "@radix-ui/react-avatar": "^1.1.12",

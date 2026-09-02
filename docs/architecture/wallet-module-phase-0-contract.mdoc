@@ -24,13 +24,13 @@ code_sot:
   - packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts
   - scripts/codegen/workspace-registry/domains/wallet.mjs
   - apps/api/src/workspace-wallet/
-implementation_status: phase_3a_portal
+implementation_status: phase_3b_operator
 ---
 
 # Wallet module — Phase 0 architecture contract
 
 **Phase:** 0 (foundational preparation)  
-**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C) + guarded generic HTTP contracts/handlers (Phase 2D) + workspace-agnostic member portal read UI (Phase 3A). No operator wallet UI, gateway top-up, withdrawals, or Denali activation.
+**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C) + guarded generic HTTP contracts/handlers (Phase 2D) + workspace-agnostic member portal read UI (Phase 3A) + operator wallet ops UI (Phase 3B). No gateway top-up, withdrawals, or Denali activation.
 **Authority:** [ADR-WALLET-001](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc)
 
 ---
@@ -211,7 +211,20 @@ Manifest-driven routes on `/wallet/*` (mirror `/finance/*` prefix convention). R
 | `apps/portal/app/me/[...modulePath]/page.tsx` | No platform change if renderer registered |
 | `apps/portal/src/me/wallet/` | **Shipped (Phase 3A)** — BFF + shared member wallet UI |
 | `packages/workspace-sdk/src/portal/member-wallet-portal-contract.ts` | Presentation policy resolver (no Denali branches) |
-| `apps/web/src/wallet/` | **New** — `wallet-nav-registry.ts`, enablement (mirror `finance-nav-*`) |
+| `apps/web/src/wallet/` | **Shipped (Phase 3B)** — `wallet-nav-registry.ts`, enablement, BFF, operator ops panel |
+
+### 3.4.2 Phase 3B operator wallet ops surface (shipped)
+
+| Concern | Contract |
+| ------- | -------- |
+| Route | `/wallet` — operator shell page |
+| Nav | `capabilities.walletNav` + `walletWorkspaceHasCapability(ops)` + `isWalletModuleEnabled(theme)` + owner/admin role |
+| BFF | `GET/POST /api/wallet/**` — session cookie + `Idempotency-Key` on mutations; never accepts `tenantId` / `workspaceId` as authority |
+| Upstream | Existing `/wallet/accounts`, `/wallet/accounts/:id/balance`, `/wallet/accounts/:id/transactions`, credit/debit/reverse |
+| UI | Account lookup by member `userId`, balance + paginated history, manual credit/debit/reversal with required reason + confirmation modal |
+| Idempotency | Client generates `Idempotency-Key` per submission; preserved on retry; replay feedback from `replay: true` |
+| RTL | Operator shell `dir` + `fa` / `en` message namespaces |
+| Denali | No `walletNav` capability — nav hidden, route `notFound()` |
 
 ### 3.4.1 Phase 3A member portal read surface (shipped)
 

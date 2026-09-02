@@ -278,6 +278,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "resolveEffectiveTenantBranding",
   "resolveFinanceCaseMeaningCapability",
   "resolveFinanceNavCapability",
+  "resolveWalletNavCapability",
   "resolveFinanceOpsCapability",
   "resolveFlatEditChromeCapability",
   "resolveFlatEditFormCapability",

@@ -13,6 +13,9 @@ const walletWs1WorkspacePlugin = Object.freeze({
   ...base,
   id: "wallet-ws1",
   supportedWorkspaceTypes: Object.freeze(["wallet-ws1"] as const),
+  capabilities: Object.freeze({
+    walletNav: Object.freeze({ supported: true as const }),
+  }),
 }) as WorkspacePlugin;
 
 export function getWalletWs1WorkspacePlugin(): WorkspacePlugin {

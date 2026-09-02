@@ -445,6 +445,9 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/wallet-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/wallet-http-contracts
       '@app-tour/wizard-navigation':
         specifier: workspace:*
         version: link:../../packages/wizard-navigation

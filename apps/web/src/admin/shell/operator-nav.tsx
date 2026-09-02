@@ -12,6 +12,7 @@ import {
   Settings,
   Users,
   Wallet,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -28,6 +29,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   users: Users,
   settings: Settings,
   finance: Wallet,
+  wallet: Coins,
 };
 
 type OperatorNavProps = {
