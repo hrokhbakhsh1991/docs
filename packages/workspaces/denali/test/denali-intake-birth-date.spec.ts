@@ -20,11 +20,17 @@ describe("denali intake birth date picker", () => {
       join(denaliRoot, "src/catalog/registration-flow/denali-intake-birth-date-field.tsx"),
       "utf8"
     );
+    const pickerShim = readFileSync(
+      join(denaliRoot, "src/ui/components/localized-date-picker.tsx"),
+      "utf8"
+    );
 
     assert.match(intakeForm, /DenaliIntakeBirthDateField/);
     assert.match(intakeForm, /field\.id === "birthDate"/);
     assert.match(intakeForm, /RenderIntakeField/);
-    assert.match(birthField, /@app-tour\/localized-calendar/);
+    assert.match(birthField, /from ["']\.\.\/\.\.\/ui\/components\/localized-date-picker["']/);
+    assert.doesNotMatch(birthField, /from ["']@app-tour\/localized-calendar["']/);
+    assert.match(pickerShim, /@app-tour\/localized-calendar\/localized-date-picker/);
     assert.match(birthField, /triggerDataAttributes/);
     assert.match(birthField, /data-intake-field/);
     assert.match(steps, /DenaliRenderIntakeForm/);
