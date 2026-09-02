@@ -11,21 +11,17 @@ export type MemberWalletPresentationPolicy = {
 const ZERO_DECIMAL_CURRENCIES = new Set(["IRR", "JPY", "KRW"]);
 
 /** Workspace commerce currency hints — presentation only, not authority. */
-const WORKSPACE_WALLET_PRESENTATION: Readonly<
-  Record<string, MemberWalletPresentationPolicy>
-> = Object.freeze({
-  denali: Object.freeze({ defaultCurrency: "IRR", zeroDecimalCurrency: true }),
-  "wallet-ws1": Object.freeze({ defaultCurrency: "USD", zeroDecimalCurrency: false }),
-});
+const WORKSPACE_WALLET_PRESENTATION: Readonly<Record<string, MemberWalletPresentationPolicy>> =
+  Object.freeze({
+    "wallet-ws1": Object.freeze({ defaultCurrency: "USD", zeroDecimalCurrency: false }),
+  });
 
 const DEFAULT_PRESENTATION: MemberWalletPresentationPolicy = Object.freeze({
   defaultCurrency: "USD",
   zeroDecimalCurrency: false,
 });
 
-export function resolveMemberWalletPresentation(
-  pluginId: string,
-): MemberWalletPresentationPolicy {
+export function resolveMemberWalletPresentation(pluginId: string): MemberWalletPresentationPolicy {
   return WORKSPACE_WALLET_PRESENTATION[pluginId] ?? DEFAULT_PRESENTATION;
 }
 
@@ -33,10 +29,7 @@ export function isZeroDecimalWalletCurrency(currency: string): boolean {
   return ZERO_DECIMAL_CURRENCIES.has(currency.trim().toUpperCase());
 }
 
-export type MemberWalletTransactionViewKind =
-  | "operator_credit"
-  | "operator_debit"
-  | "reversal";
+export type MemberWalletTransactionViewKind = "operator_credit" | "operator_debit" | "reversal";
 
 export type MemberWalletTransactionView = {
   readonly id: string;

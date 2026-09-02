@@ -30,6 +30,7 @@
     "test:e2e:urban": "playwright test -c playwright.urban.config.ts",
     "test:e2e:urban:smk-p8": "playwright test -c playwright.urban.config.ts --grep SMK-P8",
     "test:e2e:urban:install": "playwright install chromium",
+    "test:certify:wallet-ws1": "playwright test -c playwright.wallet-ws1-certification.config.ts",
     "test:e2e:platform": "playwright test -c playwright.platform.config.ts",
     "test:e2e:platform:install": "playwright install chromium",
     "test:e2e:host-probe": "playwright test -c playwright.host-probe.config.ts",

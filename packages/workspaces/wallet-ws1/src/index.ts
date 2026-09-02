@@ -5,3 +5,4 @@ export {
   resolveWalletOpsManifestFromTheme,
 } from "./wallet/index.js";
 export { getWalletWs1WorkspacePlugin } from "./plugin.js";
+export { WALLET_WS1_SMOKE_SUBDOMAIN, WALLET_WS1_SMOKE_TENANT_ID } from "./smoke/tenant.js";

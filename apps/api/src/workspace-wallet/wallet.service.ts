@@ -12,15 +12,21 @@ import type {
 } from "@app-tour/wallet-http-contracts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import type { WalletAuthorizationPort } from "@app-tour/wallet-core/ports";
-import type { WalletCapabilityPort, WalletWorkspaceGateResult } from "@app-tour/workspace-sdk/wallet";
+import type {
+  WalletCapabilityPort,
+  WalletWorkspaceGateResult,
+} from "@app-tour/workspace-sdk/wallet";
 
 import { throwWalletDomainError } from "@app-tour/wallet-http";
-import { assertWalletMemberReadAccess } from "./assert-wallet-operator-access";
+import {
+  assertWalletMemberReadAccess,
+  assertWalletOperatorAccess,
+} from "./assert-wallet-operator-access";
 import type { PrismaWalletRepository } from "./infrastructure/prisma-wallet.repository";
 import { HostWalletAuthorizationAdapter } from "./infrastructure/host-wallet-authorization.adapter";
 
 function mapTransactionItem(
-  transaction: import("@app-tour/wallet-core").WalletTransaction,
+  transaction: import("@app-tour/wallet-core").WalletTransaction
 ): WalletTransactionHttpItem {
   return {
     id: transaction.id,
@@ -40,7 +46,7 @@ function mapTransactionItem(
 
 function mapMutationResult(
   mutation: import("@app-tour/wallet-core").WalletMutationResult,
-  replay: boolean,
+  replay: boolean
 ): WalletMutationHttpResponse {
   const transaction = mutation.transaction;
   return {
@@ -85,9 +91,7 @@ function requireMemberWorkspaceId(auth: TenantAuthContext): string {
 export function createWalletService(deps: WalletServiceDeps): WalletServicePort {
   const { repository, capability } = deps;
 
-  async function resolveGateAndAuth(
-    auth: TenantAuthContext,
-  ): Promise<WalletAuthorizationPort> {
+  async function resolveGateAndAuth(auth: TenantAuthContext): Promise<WalletAuthorizationPort> {
     const gate = await capability.assertEnabled(auth.tenantId);
     return new HostWalletAuthorizationAdapter(auth, gate);
   }
@@ -95,11 +99,23 @@ export function createWalletService(deps: WalletServiceDeps): WalletServicePort 
   async function loadAccountForMember(
     auth: TenantAuthContext,
     accountId: string,
-    authorization: WalletAuthorizationPort,
+    authorization: WalletAuthorizationPort
   ) {
     const account = await repository.findAccountById(auth.tenantId, accountId);
     if (account === null) {
       throw new Error("WALLET_OWNERSHIP_MISMATCH");
+    }
+    if (auth.role === "owner" || auth.role === "admin") {
+      assertWalletOperatorAccess(auth);
+      const authz = await authorization.assertOperatorCredit({
+        tenantId: auth.tenantId,
+        workspaceId: account.workspaceId,
+        actorUserId: auth.userId,
+      });
+      if (!authz.ok) {
+        throwWalletDomainError(authz.error);
+      }
+      return account;
     }
     const authz = await authorization.assertMemberReadOwnAccount({
       tenantId: auth.tenantId,
@@ -150,7 +166,7 @@ export function createWalletService(deps: WalletServiceDeps): WalletServicePort 
       }
       const balance = await repository.getMemberBalance(
         { tenantId: auth.tenantId, workspaceId, userId: auth.userId },
-        account.id,
+        account.id
       );
       if (!balance.ok) {
         throwWalletDomainError(balance.error);
@@ -200,7 +216,7 @@ export function createWalletService(deps: WalletServiceDeps): WalletServicePort 
       const result = await repository.listMemberTransactions(
         { tenantId: auth.tenantId, workspaceId, userId: auth.userId },
         account.id,
-        query,
+        query
       );
       if (!result.ok) {
         throwWalletDomainError(result.error);
@@ -249,9 +265,7 @@ export function createWalletService(deps: WalletServiceDeps): WalletServicePort 
       const body: WalletTransactionHistoryHttpResponse = {
         accountId: result.value.page.accountId,
         currency: result.value.page.currency,
-        items: result.value.page.items.map((item) =>
-          mapTransactionItem(item.transaction),
-        ),
+        items: result.value.page.items.map((item) => mapTransactionItem(item.transaction)),
         nextCursor: result.value.nextCursor,
         hasMore: result.value.hasMore,
       };

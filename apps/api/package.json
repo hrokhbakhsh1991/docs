@@ -149,6 +149,8 @@
     "phase-4:resilience-regression-gate": "node ./scripts/phase-4-resilience-regression-gate.mjs",
     "db:migrate:deploy": "node ./scripts/db-migrate-deploy.mjs",
     "db:seed": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/db-seed.ts",
+    "seed:wallet-ws1-certification": "NODE_ENV=development node --import tsx scripts/seed-wallet-ws1-certification.ts",
+    "test:wallet-postgres-certification": "NODE_ENV=test STORAGE_DRIVER=prisma TENANT_MAX_CONCURRENT_DB_OPS=32 PRISMA_TRANSACTION_TIMEOUT_MS=60000 PRISMA_TRANSACTION_MAX_WAIT_MS=30000 node --import tsx --env-file=.env --env-file=.env.local --test --test-force-exit --test-concurrency=1 src/workspace-wallet/wallet-persistence.postgres.spec.ts src/workspace-wallet/wallet-ws1-certification.postgres.spec.ts",
     "seed:wrs-denali-club-domains": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/seed-wrs-denali-club-domains.ts",
     "export:workspace-definition": "node --import tsx scripts/export-workspace-definition.ts",
     "seed:workspace-definitions": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/run-seed-workspace-definitions.ts",

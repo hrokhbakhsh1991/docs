@@ -1,11 +1,36 @@
 {
   "id": "wallet-ws1",
   "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "productionTier": "stub"
+  },
   "package": "@app-tour/workspace-wallet-ws1",
   "workspaceTypes": ["wallet-ws1"],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#6366f1",
+    "cssVariables": {
+      "--color-primary": "#6366f1"
+    },
+    "defaultLocale": "en"
+  },
+  "themeStylesheets": ["theme/tokens.css"],
   "plugin": {
     "entry": "./plugin",
     "export": "getWalletWs1WorkspacePlugin"
+  },
+  "devBootstrap": {
+    "pluginTenantIds": ["00000000-0000-4000-8000-000000000420"],
+    "smokeTenant": {
+      "tenantIdExport": "WALLET_WS1_SMOKE_TENANT_ID",
+      "subdomainExport": "WALLET_WS1_SMOKE_SUBDOMAIN"
+    }
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-full-v1"
   },
   "workspaceWallet": {
     "supported": true,

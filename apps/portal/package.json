@@ -24,6 +24,7 @@
     "test:smoke:visual:guest-club:update": "playwright test -c playwright.portal-visual-guest-club.config.ts --update-snapshots",
     "test:smoke:visual:matrix": "pnpm run test:smoke:visual && pnpm run test:smoke:visual:urban && pnpm run test:smoke:visual:guest-club",
     "test:smoke:install": "playwright install chromium",
+    "test:certify:wallet-ws1": "playwright test -c playwright.wallet-ws1-certification.config.ts",
     "start": "next start --port 3003"
   },
   "dependencies": {

@@ -22,9 +22,12 @@ export function resolveWorkspaceDevSmokeTenantByTenantId(
 
 const denaliSmokeBinding = resolveWorkspaceDevSmokeTenant("denali");
 const urbanSmokeBinding = resolveWorkspaceDevSmokeTenant("urban");
+const walletWs1SmokeBinding = resolveWorkspaceDevSmokeTenant("wallet-ws1");
 
 /** Stable re-exports for host callers — sourced from manifest devBootstrap.smokeTenant. */
 export const DENALI_SMOKE_TENANT_ID = denaliSmokeBinding.tenantId;
 export const DENALI_SMOKE_SUBDOMAIN = denaliSmokeBinding.subdomain;
 export const URBAN_SMOKE_TENANT_ID = urbanSmokeBinding.tenantId;
 export const URBAN_SMOKE_SUBDOMAIN = urbanSmokeBinding.subdomain;
+export const WALLET_WS1_SMOKE_TENANT_ID = walletWs1SmokeBinding.tenantId;
+export const WALLET_WS1_SMOKE_SUBDOMAIN = walletWs1SmokeBinding.subdomain;

@@ -17,151 +17,180 @@ export type MemberPortalContractRow =
     };
 
 /** SSOT — compiled member portal contract per workspace (manifest → codegen). */
-export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
-  Record<string, MemberPortalContractRow>
-> = Object.freeze({
-  "acme": Object.freeze({ availability: "off" as const }),
-  "alpine": Object.freeze({
-    availability: "minimal",
-    includePlatformHome: false,
-    defaultPrimaryModuleId: "trips",
-    modules: Object.freeze([
-      Object.freeze({
-        id: "trips",
-        routePath: "/me/registrations",
-        nav: Object.freeze({
-          tier: "primary",
-          labelKey: "trips",
+export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<Record<string, MemberPortalContractRow>> =
+  Object.freeze({
+    acme: Object.freeze({ availability: "off" as const }),
+    alpine: Object.freeze({
+      availability: "minimal",
+      includePlatformHome: false,
+      defaultPrimaryModuleId: "trips",
+      modules: Object.freeze([
+        Object.freeze({
+          id: "trips",
+          routePath: "/me/registrations",
+          nav: Object.freeze({
+            tier: "primary",
+            labelKey: "trips",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "profile",
-        routePath: "/me/profile",
-        nav: Object.freeze({
-          tier: "user_menu",
-          labelKey: "profile",
+        Object.freeze({
+          id: "profile",
+          routePath: "/me/profile",
+          nav: Object.freeze({
+            tier: "user_menu",
+            labelKey: "profile",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "alpine-notes",
-        routePath: "/me/alpine-notes",
-        nav: Object.freeze({
-          tier: "secondary",
-          labelKey: "alpineNotes",
+        Object.freeze({
+          id: "alpine-notes",
+          routePath: "/me/alpine-notes",
+          nav: Object.freeze({
+            tier: "secondary",
+            labelKey: "alpineNotes",
+          }),
         }),
-      }),
-    ] as const satisfies readonly MemberModuleManifest[]),
-  }),
-  "booking-ws2": Object.freeze({ availability: "off" as const }),
-  "cert-club": Object.freeze({ availability: "off" as const }),
-  "cert-events": Object.freeze({
-    availability: "minimal",
-    includePlatformHome: false,
-    defaultPrimaryModuleId: "trips",
-    modules: Object.freeze([
-      Object.freeze({
-        id: "trips",
-        routePath: "/me/registrations",
-        nav: Object.freeze({
-          tier: "primary",
-          labelKey: "trips",
+      ] as const satisfies readonly MemberModuleManifest[]),
+    }),
+    "booking-ws2": Object.freeze({ availability: "off" as const }),
+    "cert-club": Object.freeze({ availability: "off" as const }),
+    "cert-events": Object.freeze({
+      availability: "minimal",
+      includePlatformHome: false,
+      defaultPrimaryModuleId: "trips",
+      modules: Object.freeze([
+        Object.freeze({
+          id: "trips",
+          routePath: "/me/registrations",
+          nav: Object.freeze({
+            tier: "primary",
+            labelKey: "trips",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "profile",
-        routePath: "/me/profile",
-        nav: Object.freeze({
-          tier: "user_menu",
-          labelKey: "profile",
+        Object.freeze({
+          id: "profile",
+          routePath: "/me/profile",
+          nav: Object.freeze({
+            tier: "user_menu",
+            labelKey: "profile",
+          }),
         }),
-      }),
-    ] as const satisfies readonly MemberModuleManifest[]),
-  }),
-  "denali": Object.freeze({
-    availability: "full",
-    includePlatformHome: true,
-    defaultPrimaryModuleId: "trips",
-    modules: Object.freeze([
-      Object.freeze({
-        id: "trips",
-        routePath: "/me/registrations",
-        nav: Object.freeze({
-          tier: "primary",
-          labelKey: "trips",
+      ] as const satisfies readonly MemberModuleManifest[]),
+    }),
+    denali: Object.freeze({
+      availability: "full",
+      includePlatformHome: true,
+      defaultPrimaryModuleId: "trips",
+      modules: Object.freeze([
+        Object.freeze({
+          id: "trips",
+          routePath: "/me/registrations",
+          nav: Object.freeze({
+            tier: "primary",
+            labelKey: "trips",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "profile",
-        routePath: "/me/profile",
-        nav: Object.freeze({
-          tier: "user_menu",
-          labelKey: "profile",
+        Object.freeze({
+          id: "profile",
+          routePath: "/me/profile",
+          nav: Object.freeze({
+            tier: "user_menu",
+            labelKey: "profile",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "wallet",
-        routePath: "/me/wallet",
-        nav: Object.freeze({
-          tier: "hidden",
-          labelKey: "wallet",
+        Object.freeze({
+          id: "wallet",
+          routePath: "/me/wallet",
+          nav: Object.freeze({
+            tier: "hidden",
+            labelKey: "wallet",
+          }),
         }),
-      }),
-    ] as const satisfies readonly MemberModuleManifest[]),
-  }),
-  "finance-ws2": Object.freeze({ availability: "off" as const }),
-  "finance-ws3": Object.freeze({ availability: "off" as const }),
-  "finance-ws4": Object.freeze({ availability: "off" as const }),
-  "finance-ws5": Object.freeze({ availability: "off" as const }),
-  "finance-ws6": Object.freeze({ availability: "off" as const }),
-  "guest-club": Object.freeze({
-    availability: "minimal",
-    includePlatformHome: false,
-    defaultPrimaryModuleId: "trips",
-    modules: Object.freeze([
-      Object.freeze({
-        id: "trips",
-        routePath: "/me/registrations",
-        nav: Object.freeze({
-          tier: "primary",
-          labelKey: "trips",
+      ] as const satisfies readonly MemberModuleManifest[]),
+    }),
+    "finance-ws2": Object.freeze({ availability: "off" as const }),
+    "finance-ws3": Object.freeze({ availability: "off" as const }),
+    "finance-ws4": Object.freeze({ availability: "off" as const }),
+    "finance-ws5": Object.freeze({ availability: "off" as const }),
+    "finance-ws6": Object.freeze({ availability: "off" as const }),
+    "guest-club": Object.freeze({
+      availability: "minimal",
+      includePlatformHome: false,
+      defaultPrimaryModuleId: "trips",
+      modules: Object.freeze([
+        Object.freeze({
+          id: "trips",
+          routePath: "/me/registrations",
+          nav: Object.freeze({
+            tier: "primary",
+            labelKey: "trips",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "profile",
-        routePath: "/me/profile",
-        nav: Object.freeze({
-          tier: "user_menu",
-          labelKey: "profile",
+        Object.freeze({
+          id: "profile",
+          routePath: "/me/profile",
+          nav: Object.freeze({
+            tier: "user_menu",
+            labelKey: "profile",
+          }),
         }),
-      }),
-    ] as const satisfies readonly MemberModuleManifest[]),
-  }),
-  "harbor": Object.freeze({ availability: "off" as const }),
-  "policy-cert": Object.freeze({ availability: "off" as const }),
-  "profile-cert": Object.freeze({ availability: "off" as const }),
-  "starter": Object.freeze({ availability: "off" as const }),
-  "urban": Object.freeze({
-    availability: "minimal",
-    includePlatformHome: false,
-    defaultPrimaryModuleId: "trips",
-    modules: Object.freeze([
-      Object.freeze({
-        id: "trips",
-        routePath: "/me/registrations",
-        nav: Object.freeze({
-          tier: "primary",
-          labelKey: "trips",
+      ] as const satisfies readonly MemberModuleManifest[]),
+    }),
+    harbor: Object.freeze({ availability: "off" as const }),
+    "policy-cert": Object.freeze({ availability: "off" as const }),
+    "profile-cert": Object.freeze({ availability: "off" as const }),
+    starter: Object.freeze({ availability: "off" as const }),
+    urban: Object.freeze({
+      availability: "minimal",
+      includePlatformHome: false,
+      defaultPrimaryModuleId: "trips",
+      modules: Object.freeze([
+        Object.freeze({
+          id: "trips",
+          routePath: "/me/registrations",
+          nav: Object.freeze({
+            tier: "primary",
+            labelKey: "trips",
+          }),
         }),
-      }),
-      Object.freeze({
-        id: "profile",
-        routePath: "/me/profile",
-        nav: Object.freeze({
-          tier: "user_menu",
-          labelKey: "profile",
+        Object.freeze({
+          id: "profile",
+          routePath: "/me/profile",
+          nav: Object.freeze({
+            tier: "user_menu",
+            labelKey: "profile",
+          }),
         }),
-      }),
-    ] as const satisfies readonly MemberModuleManifest[]),
-  }),
-  "wallet-ws1": Object.freeze({ availability: "off" as const }),
-});
+      ] as const satisfies readonly MemberModuleManifest[]),
+    }),
+    "wallet-ws1": Object.freeze({
+      availability: "minimal",
+      includePlatformHome: true,
+      defaultPrimaryModuleId: "trips",
+      modules: Object.freeze([
+        Object.freeze({
+          id: "trips",
+          routePath: "/me/registrations",
+          nav: Object.freeze({
+            tier: "primary",
+            labelKey: "trips",
+          }),
+        }),
+        Object.freeze({
+          id: "profile",
+          routePath: "/me/profile",
+          nav: Object.freeze({
+            tier: "user_menu",
+            labelKey: "profile",
+          }),
+        }),
+        Object.freeze({
+          id: "wallet",
+          routePath: "/me/wallet",
+          nav: Object.freeze({
+            tier: "hidden",
+            labelKey: "wallet",
+          }),
+        }),
+      ] as const satisfies readonly MemberModuleManifest[]),
+    }),
+  });

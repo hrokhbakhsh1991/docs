@@ -4,20 +4,36 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { CERT_CLUB_SMOKE_TENANT_ID, CERT_CLUB_SMOKE_SUBDOMAIN } from "@app-tour/workspace-cert-club";
-import { CERT_EVENTS_SMOKE_TENANT_ID, CERT_EVENTS_SMOKE_SUBDOMAIN } from "@app-tour/workspace-cert-events";
+import {
+  CERT_CLUB_SMOKE_TENANT_ID,
+  CERT_CLUB_SMOKE_SUBDOMAIN,
+} from "@app-tour/workspace-cert-club";
+import {
+  CERT_EVENTS_SMOKE_TENANT_ID,
+  CERT_EVENTS_SMOKE_SUBDOMAIN,
+} from "@app-tour/workspace-cert-events";
 import { DENALI_SMOKE_TENANT_ID, DENALI_SMOKE_SUBDOMAIN } from "@app-tour/workspace-denali";
-import { GUEST_CLUB_SMOKE_TENANT_ID, GUEST_CLUB_SMOKE_SUBDOMAIN } from "@app-tour/workspace-guest-club";
+import {
+  GUEST_CLUB_SMOKE_TENANT_ID,
+  GUEST_CLUB_SMOKE_SUBDOMAIN,
+} from "@app-tour/workspace-guest-club";
 import { HARBOR_SMOKE_TENANT_ID, HARBOR_SMOKE_SUBDOMAIN } from "@app-tour/workspace-harbor";
-import { PROFILE_CERT_SMOKE_TENANT_ID, PROFILE_CERT_SMOKE_SUBDOMAIN } from "@app-tour/workspace-profile-cert";
+import {
+  PROFILE_CERT_SMOKE_TENANT_ID,
+  PROFILE_CERT_SMOKE_SUBDOMAIN,
+} from "@app-tour/workspace-profile-cert";
 import { URBAN_SMOKE_TENANT_ID, URBAN_SMOKE_SUBDOMAIN } from "@app-tour/workspace-urban";
+import {
+  WALLET_WS1_SMOKE_TENANT_ID,
+  WALLET_WS1_SMOKE_SUBDOMAIN,
+} from "@app-tour/workspace-wallet-ws1";
 import { buildDenaliTenantWizardTemplatePayload } from "@app-tour/workspace-denali";
 import { buildUrbanMinimalWizardTemplatePayload } from "@app-tour/workspace-urban";
 
 export const WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS = [
   {
     workspaceId: "denali",
-    tenantIds: ["00000000-0000-4000-8000-000000000003","00000000-0000-4000-8000-000000000014"],
+    tenantIds: ["00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000014"],
     buildPayload: buildDenaliTenantWizardTemplatePayload,
     minPublishedSteps: 2,
   },
@@ -64,5 +80,10 @@ export const WORKSPACE_DEV_SMOKE_TENANT_BINDINGS = [
     workspaceId: "urban",
     tenantId: URBAN_SMOKE_TENANT_ID,
     subdomain: URBAN_SMOKE_SUBDOMAIN,
+  },
+  {
+    workspaceId: "wallet-ws1",
+    tenantId: WALLET_WS1_SMOKE_TENANT_ID,
+    subdomain: WALLET_WS1_SMOKE_SUBDOMAIN,
   },
 ] as const;

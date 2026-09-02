@@ -7,6 +7,8 @@ import {
   DENALI_SMOKE_TENANT_ID,
   URBAN_SMOKE_SUBDOMAIN,
   URBAN_SMOKE_TENANT_ID,
+  WALLET_WS1_SMOKE_SUBDOMAIN,
+  WALLET_WS1_SMOKE_TENANT_ID,
 } from "../settings/resolve-workspace-dev-smoke-tenant";
 
 import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
@@ -33,6 +35,7 @@ export const PHASE_43_SEED_TENANT_IDS: Record<Phase43SeedSubdomain, string> = {
 
 export { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID };
 export { URBAN_SMOKE_SUBDOMAIN, URBAN_SMOKE_TENANT_ID };
+export { WALLET_WS1_SMOKE_SUBDOMAIN, WALLET_WS1_SMOKE_TENANT_ID };
 
 export const TENANT_STATUS_ACTIVE = "active" as const;
 
@@ -110,6 +113,23 @@ export class ProvisioningService {
       subdomain: URBAN_SMOKE_SUBDOMAIN,
       tenantId: URBAN_SMOKE_TENANT_ID,
       workspaceType: "urban",
+    });
+  }
+
+  /** WALLET-P3C — certification-only wallet-ws1 tenant (`wallet-ws1.*.localhost`). */
+  async seedWalletWs1CertificationTenant(): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly();
+    return this.upsertSeedTenant({
+      subdomain: WALLET_WS1_SMOKE_SUBDOMAIN,
+      tenantId: WALLET_WS1_SMOKE_TENANT_ID,
+      workspaceType: "wallet-ws1",
+      theme: {
+        primaryColor: "#6366f1",
+        cssVariables: { "--color-primary": "#6366f1" },
+        defaultLocale: "en",
+        enabledModules: ["wallet"],
+        portalModuleGrants: ["wallet"],
+      },
     });
   }
 
