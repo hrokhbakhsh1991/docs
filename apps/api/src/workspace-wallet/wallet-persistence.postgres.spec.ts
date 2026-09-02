@@ -85,15 +85,22 @@ describe(
       process.env.STORAGE_DRIVER = priorDriver;
       const admin = getPrismaAdmin();
       try {
-        await admin.walletLedgerEntry.deleteMany({
-          where: { tenantId: { in: [tenantA, tenantB] } },
-        });
-        await admin.walletTransaction.deleteMany({
-          where: { tenantId: { in: [tenantA, tenantB] } },
-        });
-        await admin.walletAccount.deleteMany({
-          where: { tenantId: { in: [tenantA, tenantB] } },
-        });
+        // Append-only trigger blocks DELETE; TRUNCATE is test-teardown only (postgres admin).
+        await admin.$executeRawUnsafe(
+          "TRUNCATE wallet_ledger_entries, wallet_transactions, wallet_accounts",
+        );
+        await admin.$executeRawUnsafe(
+          "ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only",
+        );
+        try {
+          await admin.auditEvent.deleteMany({
+            where: { tenantId: { in: [tenantA, tenantB] } },
+          });
+        } finally {
+          await admin.$executeRawUnsafe(
+            "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only",
+          );
+        }
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await disconnectPrisma();
