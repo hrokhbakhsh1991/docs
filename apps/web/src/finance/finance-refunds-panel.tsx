@@ -56,6 +56,7 @@ export function FinanceRefundsPanel() {
   } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [completeConfirmId, setCompleteConfirmId] = useState<string | null>(null);
+  const [walletCreditConfirmId, setWalletCreditConfirmId] = useState<string | null>(null);
 
   const [reqRegistrationId, setReqRegistrationId] = useState(registrationFilter);
   const [reqSourceKind, setReqSourceKind] = useState<RefundSourceKind>("payment");
@@ -126,6 +127,7 @@ export function FinanceRefundsPanel() {
       setBusyId(refundId);
       setActionError(null);
       setCompleteHandoff(null);
+      setWalletCreditConfirmId(null);
       try {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
@@ -149,6 +151,7 @@ export function FinanceRefundsPanel() {
           return;
         }
         setCompleteConfirmId(null);
+        setWalletCreditConfirmId(null);
         if (path.endsWith("/complete") && raw !== null && typeof raw === "object") {
           const responseBody = raw as Record<string, unknown>;
           const invoice =
@@ -188,6 +191,9 @@ export function FinanceRefundsPanel() {
             setActionSuccess(t("completeSuccess"));
             setCompleteHandoff(registrationId ? { registrationId, showOutstanding: false } : null);
           }
+        } else if (path.endsWith("/credit-to-wallet")) {
+          setActionSuccess(t("walletCreditSuccess"));
+          setCompleteHandoff(null);
         } else {
           setActionSuccess(null);
           setCompleteHandoff(null);
@@ -484,6 +490,7 @@ export function FinanceRefundsPanel() {
               {items.map((item) => {
                 const actions = refundActionsForStatus(item.status);
                 const confirming = completeConfirmId === item.id;
+                const walletConfirming = walletCreditConfirmId === item.id;
                 return (
                   <li
                     key={item.id}
@@ -567,6 +574,16 @@ export function FinanceRefundsPanel() {
                     <p className="text-xs text-muted-foreground">
                       {t("requestedAt")}: {formatFinanceTimestamp(item.requestedAt, locale)}
                     </p>
+                    {item.walletCredit.credited ? (
+                      <p
+                        className="text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                        data-testid={FINANCE_REFUNDS_TEST_IDS.walletCredited}
+                      >
+                        {t("walletAlreadyCredited", {
+                          accountId: item.walletCredit.accountId ?? "—",
+                        })}
+                      </p>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       <Button asChild variant="outline" size="sm">
                         <Link
@@ -680,6 +697,69 @@ export function FinanceRefundsPanel() {
                             onClick={() => setCompleteConfirmId(item.id)}
                           >
                             {t("actionComplete")}
+                          </Button>
+                        )
+                      ) : null}
+                      {item.canCreditToWallet ? (
+                        walletConfirming ? (
+                          <div
+                            className="w-full space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2"
+                            data-testid={FINANCE_REFUNDS_TEST_IDS.creditToWalletConfirm}
+                          >
+                            <p className="text-xs font-medium">{t("walletCreditConfirmTitle")}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("walletCreditConfirmMember")}:{" "}
+                              {item.identity.memberDisplayName ?? item.memberUserId ?? "—"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("walletCreditConfirmRefundId")}: <code>{item.id}</code>
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("walletCreditConfirmAmount")}:{" "}
+                              {formatMinorAmount(item.amountMinor, item.currency, locale)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("walletCreditConfirmDestination")}: {t("walletCreditDestination")}
+                            </p>
+                            <p className="text-xs text-amber-800 dark:text-amber-300">
+                              {t("walletCreditConfirmWarning")}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                data-testid={FINANCE_REFUNDS_TEST_IDS.creditToWallet}
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  void runMutation(
+                                    item.id,
+                                    `/api/finance/refunds/${item.id}/credit-to-wallet`,
+                                    {}
+                                  )
+                                }
+                              >
+                                {t("actionCreditToWalletConfirm")}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setWalletCreditConfirmId(null)}
+                              >
+                                {t("dismiss")}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            data-testid={FINANCE_REFUNDS_TEST_IDS.creditToWallet}
+                            disabled={busyId === item.id}
+                            onClick={() => setWalletCreditConfirmId(item.id)}
+                          >
+                            {t("actionCreditToWallet")}
                           </Button>
                         )
                       ) : null}

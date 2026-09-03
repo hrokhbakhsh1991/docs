@@ -337,6 +337,9 @@ function mapErrorMessageToStatus(message: string): number {
   ) {
     return 409;
   }
+  if (message === "REFUND_WALLET_NOT_COMPLETED") return 409;
+  if (message === "REFUND_WALLET_MEMBER_OWNER_MISSING") return 400;
+  if (message === "REFUND_WALLET_UNSUPPORTED") return 404;
   // PR23-A3 — cancel command; NOT_IN_SCOPE collapses to same 404 (no tenant leak).
   if (message === "PAYMENT_NOT_FOUND" || message === "PAYMENT_NOT_IN_SCOPE") return 404;
   if (message === "PAYMENT_CANCEL_REASON_INVALID") return 400;

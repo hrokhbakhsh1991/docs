@@ -28,6 +28,7 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceCaseEncounter"
   | "handleFinanceCompleteRefund"
   | "handleFinanceCreateManualPayment"
+  | "handleFinanceCreditRefundToWallet"
   | "handleFinanceGenerateSchedule"
   | "handleFinanceGetRefund"
   | "handleFinanceGetRegistrationInvoice"
@@ -222,6 +223,7 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /finance/refunds/:refundId": "handleFinanceGetRefund",
   "POST /finance/refunds/:refundId/approve": "handleFinanceApproveRefund",
   "POST /finance/refunds/:refundId/complete": "handleFinanceCompleteRefund",
+  "POST /finance/refunds/:refundId/credit-to-wallet": "handleFinanceCreditRefundToWallet",
   "POST /finance/refunds/:refundId/reject": "handleFinanceRejectRefund",
   "POST /finance/refunds/:refundId/cancel": "handleFinanceCancelRefund",
   "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",

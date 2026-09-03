@@ -19,6 +19,10 @@ export type WalletOperatorMutationInput = WalletMemberScope & {
   readonly creationIdempotencyKey: string;
   readonly reference: WalletReference | null;
   readonly actor: WalletActor;
+  readonly refundCreditAudit?: {
+    readonly refundId: string;
+    readonly reason: string;
+  };
 };
 
 export type WalletOperatorCreditInput = WalletOperatorMutationInput & {

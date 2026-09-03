@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import {
   financeRefundsLogicForbidsClientMoneyMath,
   mapRefundMutationHttpError,
+  parseFinanceRefundItem,
   parseFinanceRefundsResponse,
   refundActionsForStatus,
   sanitizeFinanceRefundHref,
@@ -69,6 +70,45 @@ describe("finance-refunds-pr23e3", () => {
     assert.equal(page.items[0]?.status, "Requested");
     assert.equal(page.items[0]?.invoice?.refundedMinor, "0");
     assert.equal(page.items[0]?.linkedPayment?.status, "Paid");
+  });
+
+  it("parses wallet credit enrichment fields", () => {
+    const item = parseFinanceRefundItem({
+      id: "r-completed",
+      registrationId: "reg-1",
+      paymentId: "pay-1",
+      sourceKind: "payment",
+      amountMinor: "1000",
+      currency: "IRR",
+      reasonCode: "overpayment",
+      reasonNote: null,
+      status: "Completed",
+      requestedAt: "2026-08-09T10:00:00.000Z",
+      approvedAt: null,
+      completedAt: "2026-08-10T10:00:00.000Z",
+      rejectedAt: null,
+      cancelledAt: null,
+      evidenceFileKey: null,
+      identity: { memberDisplayName: "Ada", tourTitle: "Peak", tourId: "tour-1" },
+      invoice: null,
+      linkedPayment: null,
+      memberUserId: "member-1",
+      canCreditToWallet: true,
+      walletCredit: {
+        credited: false,
+        transactionId: null,
+        accountId: null,
+        creditedAt: null,
+        replay: false,
+      },
+      href: {
+        payments: "/finance?tab=payments&registrationId=reg-1",
+        receipts: "/finance?tab=receipts&registrationId=reg-1",
+      },
+    });
+    assert.equal(item?.canCreditToWallet, true);
+    assert.equal(item?.walletCredit.credited, false);
+    assert.equal(item?.memberUserId, "member-1");
   });
 
   it("renders action visibility by lifecycle", () => {

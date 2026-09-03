@@ -14,6 +14,7 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceCaseEncounter"
   | "handleFinanceCompleteRefund"
   | "handleFinanceCreateManualPayment"
+  | "handleFinanceCreditRefundToWallet"
   | "handleFinanceGenerateSchedule"
   | "handleFinanceGetRefund"
   | "handleFinanceGetRegistrationInvoice"
@@ -91,6 +92,7 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceCaseEncounter: "@app-tour/finance-http",
   handleFinanceCompleteRefund: "@app-tour/finance-http",
   handleFinanceCreateManualPayment: "@app-tour/finance-http",
+  handleFinanceCreditRefundToWallet: "@app-tour/finance-http",
   handleFinanceGenerateSchedule: "@app-tour/finance-http",
   handleFinanceGetRefund: "@app-tour/finance-http",
   handleFinanceGetRegistrationInvoice: "@app-tour/finance-http",
@@ -186,6 +188,7 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleFinanceCaseEncounter: mod.handleFinanceCaseEncounter,
         handleFinanceCompleteRefund: mod.handleFinanceCompleteRefund,
         handleFinanceCreateManualPayment: mod.handleFinanceCreateManualPayment,
+        handleFinanceCreditRefundToWallet: mod.handleFinanceCreditRefundToWallet,
         handleFinanceGenerateSchedule: mod.handleFinanceGenerateSchedule,
         handleFinanceGetRefund: mod.handleFinanceGetRefund,
         handleFinanceGetRegistrationInvoice: mod.handleFinanceGetRegistrationInvoice,

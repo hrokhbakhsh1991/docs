@@ -33,6 +33,7 @@ export {
   handleFinanceRequestRefund,
   handleFinanceApproveRefund,
   handleFinanceCompleteRefund,
+  handleFinanceCreditRefundToWallet,
   handleFinanceRejectRefund,
   handleFinanceCancelRefund,
   handleFinanceListPrepayments,

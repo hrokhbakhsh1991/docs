@@ -534,16 +534,43 @@ NODE_ENV=development DATABASE_URL=... DATABASE_URL_ADMIN=... \
   pnpm --filter @apps/api run seed:denali-wallet-pilot
 ```
 
-### 10.4 Manual refund-to-wallet SOP (v1 — no automation)
+### 10.4 Manual refund-to-wallet workflow (v1 — operator-initiated, no automation)
 
-Automatic refund → member wallet is **out of scope**. Operators follow this sequence when finance approves a refund that should land in the member Wallet:
+Automatic refund → member wallet is **out of scope**. Phase 3 adds a **single explicit operator action** on Completed refunds; finance refund status and amount remain authoritative and are never mutated by the wallet credit path.
 
-1. **Complete the finance refund first** in the finance command center (existing refund flow; no wallet write).
-2. **Credit the member Wallet manually** from the operator `/wallet` panel (pilot tenant only until broader rollout).
-3. **Include `refundId` in the reason/reference** field so support can correlate ledger rows with finance.
-4. **Use a stable `Idempotency-Key`** per intended credit (e.g. `refund-to-wallet:{refundId}`) so retries replay safely without double-credit.
+#### Preconditions (fail-closed)
 
-No checkout Wallet payment, gateway top-up, withdrawal, hold, P2P, or `completeRefund` → wallet automation in Phase 2.
+| Gate | Requirement |
+| ---- | ----------- |
+| Operator role | `owner` or `admin`, `ACTIVE` |
+| Wallet module | Tenant `enabledModules` includes `"wallet"` |
+| Finance refund | `status === Completed` (read-only load) |
+| Member owner | Booking `submittedByUserId` resolves for `refund.registrationId` |
+| Currency | Wallet credit uses refund `amountMinor` + `currency` (no client override) |
+
+#### HTTP surface (Denali manifest only until broader rollout)
+
+| Method | Path | Handler |
+| ------ | ---- | ------- |
+| `POST` | `/finance/refunds/:refundId/credit-to-wallet` | `handleFinanceCreditRefundToWallet` |
+
+**Idempotency (server-derived):** `wallet:refund-credit:{tenantId}:{refundId}` → `wallet_transactions.creation_idempotency_key`. Retries and concurrent duplicate requests replay the original posted transaction; a refund can produce **at most one** wallet credit.
+
+**Wallet reference (correlation):** `reference.type = finance_refund`, `reference.id = refundId`.
+
+**Audit metadata (append-only):** `actorUserId`, `refundId`, `accountId`, `amountMinor`, `currency`, `reason` (refund `reasonCode` + optional `reasonNote`), `timestamp` (ISO posted-at).
+
+#### Operator UX (finance command center)
+
+On **Completed** refunds with a resolvable member owner and wallet-enabled tenant:
+
+1. Show action **Credit refund to member wallet**.
+2. Confirmation surfaces member display, refund ID, amount, currency, destination wallet account, and warning that this creates wallet credit (not a finance mutation).
+3. After success or replay, UI shows **already credited** state (from wallet reference / idempotency replay).
+
+Fallback SOP when the action is hidden (wallet-disabled tenant): complete refund in finance, then manual operator credit from `/wallet` with `refundId` in reference — unchanged from Phase 2.
+
+No checkout Wallet payment, gateway top-up, withdrawal, hold, P2P, background consumers, or `completeRefund` → wallet automation.
 
 ### 10.5 Verification (Phase 2 isolated)
 

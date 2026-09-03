@@ -81,6 +81,7 @@ const HANDLER_DISPATCH_KIND = {
   handleFinanceGetRefund: "finance-param",
   handleFinanceApproveRefund: "finance-param",
   handleFinanceCompleteRefund: "finance-param",
+  handleFinanceCreditRefundToWallet: "finance-param",
   handleFinanceRejectRefund: "finance-param",
   handleFinanceCancelRefund: "finance-param",
   handleFinanceReceiptUpload: "finance",

@@ -29,7 +29,7 @@ import {
 } from "@app-tour/wallet-core";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import { appendWalletMutationAudit } from "../wallet-audit-writer";
+import { appendRefundWalletCreditAudit, appendWalletMutationAudit } from "../wallet-audit-writer";
 import type {
   FindMemberWalletAccountQuery,
   GetOrCreateWalletAccountInput,
@@ -365,6 +365,14 @@ export class PrismaWalletRepository {
       try {
         await persistMutation(tx, mutation.value, fingerprint);
         await appendWalletMutationAudit(tx, mutation.value, input.actor);
+        if (input.refundCreditAudit !== undefined) {
+          await appendRefundWalletCreditAudit(tx, {
+            mutation: mutation.value,
+            actorUserId: input.actor.actorUserId,
+            refundId: input.refundCreditAudit.refundId,
+            reason: input.refundCreditAudit.reason,
+          });
+        }
         return mutation;
       } catch (error) {
         if (
@@ -725,6 +733,91 @@ export class PrismaWalletRepository {
       }
 
       return walletOk(items);
+    });
+  }
+
+  async findPostedTransactionByIdempotencyKey(
+    tenantId: string,
+    creationIdempotencyKey: string,
+  ): Promise<WalletTransaction | null> {
+    const trimmedTenant = tenantId.trim();
+    const trimmedKey = creationIdempotencyKey.trim();
+    if (trimmedTenant.length === 0 || trimmedKey.length === 0) {
+      return null;
+    }
+
+    return withTenantRls(trimmedTenant, async (tx) => {
+      const row = await tx.walletTransaction.findUnique({
+        where: {
+          tenantId_creationIdempotencyKey: {
+            tenantId: trimmedTenant,
+            creationIdempotencyKey: trimmedKey,
+          },
+        },
+      });
+      return row === null || row.status !== "posted"
+        ? null
+        : mapWalletTransaction(row);
+    });
+  }
+
+  async findPostedTransactionByReference(
+    tenantId: string,
+    referenceType: string,
+    referenceId: string,
+  ): Promise<WalletTransaction | null> {
+    const trimmedTenant = tenantId.trim();
+    const trimmedType = referenceType.trim();
+    const trimmedId = referenceId.trim();
+    if (trimmedTenant.length === 0 || trimmedType.length === 0 || trimmedId.length === 0) {
+      return null;
+    }
+
+    return withTenantRls(trimmedTenant, async (tx) => {
+      const row = await tx.walletTransaction.findFirst({
+        where: {
+          tenantId: trimmedTenant,
+          referenceType: trimmedType,
+          referenceId: trimmedId,
+          status: "posted",
+        },
+        orderBy: { createdAt: "asc" },
+      });
+      return row === null ? null : mapWalletTransaction(row);
+    });
+  }
+
+  async findPostedTransactionsByReferences(
+    tenantId: string,
+    referenceType: string,
+    referenceIds: readonly string[],
+  ): Promise<Map<string, WalletTransaction>> {
+    const trimmedTenant = tenantId.trim();
+    const trimmedType = referenceType.trim();
+    const uniqueIds = [
+      ...new Set(referenceIds.map((id) => id.trim()).filter((id) => id.length > 0)),
+    ];
+    const result = new Map<string, WalletTransaction>();
+    if (trimmedTenant.length === 0 || trimmedType.length === 0 || uniqueIds.length === 0) {
+      return result;
+    }
+
+    return withTenantRls(trimmedTenant, async (tx) => {
+      const rows = await tx.walletTransaction.findMany({
+        where: {
+          tenantId: trimmedTenant,
+          referenceType: trimmedType,
+          referenceId: { in: uniqueIds },
+          status: "posted",
+        },
+        orderBy: { createdAt: "asc" },
+      });
+      for (const row of rows) {
+        if (row.referenceId !== null && !result.has(row.referenceId)) {
+          result.set(row.referenceId, mapWalletTransaction(row));
+        }
+      }
+      return result;
     });
   }
 }

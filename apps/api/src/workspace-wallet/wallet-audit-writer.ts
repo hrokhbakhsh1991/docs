@@ -11,6 +11,35 @@ const WALLET_AUDIT_ACTION_CREDIT = "WALLET_OPERATOR_CREDIT";
 const WALLET_AUDIT_ACTION_DEBIT = "WALLET_OPERATOR_DEBIT";
 const WALLET_AUDIT_ACTION_REVERSAL = "WALLET_REVERSAL";
 
+const WALLET_AUDIT_ACTION_REFUND_CREDIT = "WALLET_REFUND_CREDIT";
+
+export async function appendRefundWalletCreditAudit(
+  tx: Prisma.TransactionClient,
+  input: {
+    readonly mutation: WalletMutationResult;
+    readonly actorUserId: string;
+    readonly refundId: string;
+    readonly reason: string;
+  },
+): Promise<void> {
+  const transaction = input.mutation.transaction;
+  const timestamp = transaction.postedAt ?? transaction.createdAt;
+  await appendAuditEvent(tx, {
+    action: WALLET_AUDIT_ACTION_REFUND_CREDIT,
+    entityType: "wallet_transaction",
+    entityId: transaction.id,
+    metadata: {
+      actorUserId: input.actorUserId,
+      refundId: input.refundId,
+      accountId: transaction.accountId,
+      amountMinor: transaction.amountMinor,
+      currency: transaction.currency,
+      reason: input.reason,
+      timestamp,
+    },
+  });
+}
+
 export async function appendWalletMutationAudit(
   tx: Prisma.TransactionClient,
   mutation: WalletMutationResult,
