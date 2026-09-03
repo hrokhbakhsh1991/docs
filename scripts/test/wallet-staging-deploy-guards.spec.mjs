@@ -206,6 +206,15 @@ describe("wallet-staging-deploy-guards", () => {
     assert.match(read("scripts/vps-deploy/install-staging-artifact.sh"), /release-integrity\.json/);
   });
 
+  it("WSD-15 keeps pilot seed runtime resolution inside the artifact", () => {
+    const wrapper = read("scripts/vps-deploy/seed-denali-wallet-pilot-artifact.sh");
+    const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
+    assert.match(wrapper, /ARTIFACT_NODE_MODULES=.*api\/node_modules/);
+    assert.match(wrapper, /export NODE_PATH=/);
+    assert.match(selfCheck, /@app-tour\/booking-http-contracts/);
+    assert.match(selfCheck, /runtime-resolvable/);
+  });
+
   it("WSD-12 runbook documents VPS-side command and production block", () => {
     const doc = read("docs/phase-23/runbooks/denali-wallet-v1-staging-deploy.md");
     assert.match(doc, /DENALI_WALLET_DEPLOY_TARGET=staging/);

@@ -262,7 +262,11 @@ async function main(): Promise<void> {
   await seedWalletWs1Certification();
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+const isDirectWalletWs1SeedExecution =
+  process.argv[1]?.endsWith("seed-wallet-ws1-certification.cjs") === true ||
+  (typeof import.meta.url === "string" && process.argv[1] === fileURLToPath(import.meta.url));
+
+if (isDirectWalletWs1SeedExecution) {
   main().catch((error: unknown) => {
     logger.error(
       {

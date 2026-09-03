@@ -207,7 +207,11 @@ async function main(): Promise<void> {
   await seedDenaliWalletPilot();
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+const isDirectPilotSeedExecution =
+  process.argv[1]?.endsWith("seed-denali-wallet-pilot.cjs") === true ||
+  (typeof import.meta.url === "string" && process.argv[1] === fileURLToPath(import.meta.url));
+
+if (isDirectPilotSeedExecution) {
   main().catch((error: unknown) => {
     logger.error(
       {

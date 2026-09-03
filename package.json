@@ -228,6 +228,7 @@
     "p6:staging-deploy-verify": "bash scripts/p6-staging-deploy-verify.sh",
     "deploy:denali-wallet-staging:dry-run": "DENALI_WALLET_DEPLOY_TARGET=staging DENALI_WALLET_STAGING_CONFIRM=1 DENALI_WALLET_DEPLOY_DRY_RUN=1 ENV_DIR=/etc/app-tour-staging DEPLOY_ROOT=/opt/app-tour-staging STORAGE_DRIVER=prisma DATABASE_URL=postgres://placeholder DATABASE_URL_ADMIN=postgres://placeholder bash scripts/vps-deploy/deploy-denali-wallet-staging.sh",
     "test:wallet-staging-deploy-guards": "node --test scripts/test/wallet-staging-deploy-guards.spec.mjs",
+    "test:wallet-staging-artifact-runtime": "node --test scripts/test/wallet-staging-artifact-runtime.spec.mjs",
     "p6:closure": "bash scripts/p6-closure.sh",
     "p4:e2e-gate": "bash scripts/p4-club-product-e2e-gate.sh",
     "stage:p4": "bash scripts/stage-p4-club-product.sh",

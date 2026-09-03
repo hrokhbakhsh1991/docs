@@ -16,12 +16,29 @@ artifact_self_check() {
     echo "artifact-self-check: missing @prisma/client in api bundle" >&2
     return 1
   }
+  [[ -f "${vroot}/api/node_modules/@app-tour/booking-http-contracts/package.json" ]] || {
+    echo "artifact-self-check: missing @app-tour/booking-http-contracts in api bundle" >&2
+    return 1
+  }
+  NODE_PATH="${vroot}/api/node_modules:${vroot}/api/node_modules/.pnpm/node_modules${NODE_PATH:+:${NODE_PATH}}" \
+    node -e 'require.resolve("@app-tour/booking-http-contracts")' >/dev/null || {
+    echo "artifact-self-check: @app-tour/booking-http-contracts is not runtime-resolvable" >&2
+    return 1
+  }
   [[ -f "${vroot}/bin/migrate-deploy.sh" ]] || {
     echo "artifact-self-check: missing bin/migrate-deploy.sh" >&2
     return 1
   }
   [[ -f "${vroot}/bin/seed-staging.cjs" ]] || {
     echo "artifact-self-check: missing bin/seed-staging.cjs" >&2
+    return 1
+  }
+  [[ -f "${vroot}/bin/seed-denali-wallet-pilot.cjs" ]] || {
+    echo "artifact-self-check: missing bin/seed-denali-wallet-pilot.cjs" >&2
+    return 1
+  }
+  [[ -x "${vroot}/bin/seed-denali-wallet-pilot.sh" ]] || {
+    echo "artifact-self-check: missing executable pilot seed wrapper" >&2
     return 1
   }
   for k in web portal marketing; do
