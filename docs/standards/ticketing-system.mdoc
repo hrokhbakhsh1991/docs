@@ -249,13 +249,7 @@ operator.tickets.reports
 | `priority` | enum | yes | low \| normal \| high \| urgent |
 | `status` | enum | yes | §9 |
 | `subject` | string(200) | yes | |
-| `relatedTourId` | UUID | null | same-tenant tour |
-| `relatedRegistrationId` | UUID | null | same-tenant registration |
-| `relatedPaymentId` | UUID | null | optional payment link |
-| `relatedWalletAccountId` | UUID | null | optional wallet link |
-| `slaPolicyId` | UUID | null | FK → TicketSlaPolicy |
-| `onHold` | boolean | yes | default false — operator pause (§9) |
-| `onHoldReason` | string(500) | null | required when onHold |
+| `creationIdempotencyKey` | string | null | unique per tenant; create-ticket retry safety (Phase B1) |
 | `lastActivityAt` | timestamptz | yes | |
 | `resolvedAt` | timestamptz | null | |
 | `closedAt` | timestamptz | null | |
@@ -286,11 +280,14 @@ operator.tickets.reports
 | Field | Type | Notes |
 | ----- | ---- | ----- |
 | `id`, `tenantId`, `ticketId`, `messageId` | UUID | optional message link |
-| `storageKey` | string | `tickets/{tenantId}/{ticketId}/{uuid}/{safeName}` |
+| `objectKey` | string | `tickets/{tenantId}/{ticketId}/{uuid}/{safeName}` — DB CHECK enforces tenant prefix (Phase B1) |
+| `originalFileName` | string | display name |
 | `contentType` | string | jpeg, png, webp, pdf |
-| `sizeBytes` | int | max 8 MiB |
+| `sizeBytes` | int | max 8 MiB (DB CHECK) |
 | `uploadedByUserId` | UUID | |
-| `scanStatus` | enum | pending \| clean \| rejected |
+| `checksum` | string | null — optional integrity hash |
+| `deletedAt` | timestamptz | null — soft-delete metadata (Phase B1) |
+| `scanStatus` | enum | pending \| clean \| rejected — Phase E adapter |
 | `createdAt` | timestamptz | |
 
 **Security:** pre-signed upload URL; download via short-lived signed GET; member only own ticket.
@@ -351,16 +348,35 @@ SLA clocks are **persisted**, not UI-only. Breach emits `TicketEvent` + `TicketN
 
 `code`, `name`, `body`, `categoryCode?`, `visibility` (public reply vs internal), `enabled`, `workspaceType`.
 
-### 7.12 Linked business entities
+### 7.12 Linked business entities (`TicketLink`)
 
-| Entity | Link field | Validation |
-| ------ | ---------- | ---------- |
-| Tour | `relatedTourId` | tour.tenantId = ticket.tenantId |
-| Registration | `relatedRegistrationId` | registration.tenantId match |
-| Payment | `relatedPaymentId` | finance module port |
-| Wallet | `relatedWalletAccountId` | wallet ownership port |
+**DECISION (Phase B1):** Normalized `TicketLink` table — not nullable `related*` columns on `Ticket`.
+
+| Rationale | Detail |
+| --------- | ------ |
+| Multiple links | One ticket may reference tour + registration + payment concurrently |
+| Extensibility | New `entityType` values without `Ticket` schema migration |
+| Duplicate safety | `(tenantId, ticketId, entityType, entityId)` unique per tenant |
+| Tenant scope | `entityId` validated in API phase via module ports; composite FK to `Ticket(tenantId, id)` |
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `tenantId`, `ticketId` | UUID | composite FK → `Ticket` |
+| `entityType` | enum | `tour` \| `registration` \| `payment` \| `wallet` |
+| `entityId` | UUID | same-tenant entity reference |
+| `metadata` | JSON | null — optional link context |
+| `createdAt` | timestamptz | |
+
+| Entity | Validation (API phase) |
+| ------ | ---------------------- |
+| Tour | `tour.tenantId = ticket.tenantId` |
+| Registration | `registration.tenantId` match |
+| Payment | finance module port |
+| Wallet | wallet ownership port |
 
 UI shows deep links; no cross-module writes from ticketing.
+
+**Deferred on `Ticket` (later phases):** `assigneeTeamId`, `queueId`, `slaPolicyId`, `onHold`, `archivedAt` — not in Phase B1 core persistence.
 
 ### 7.13 TicketEvent vs AuditEvent
 
@@ -695,6 +711,22 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | **Tests** | `ticketing-persistence.postgres.spec.ts`, cross-tenant deny |
 | **Acceptance** | RLS ENABLE+FORCE; memory driver rejected |
 | **Rollback** | flag off; tables empty |
+
+#### Phase B1 — core persistence (shipped)
+
+Migration `20260903120000_ticketing_core_persistence_rls` creates tenant-bound tables:
+
+| Table | Idempotency | Cascade on ticket hard-delete |
+| ----- | ----------- | ----------------------------- |
+| `tickets` | `(tenantId, creationIdempotencyKey)` unique | — |
+| `ticket_messages` | `(tenantId, ticketId, idempotencyKey)` unique | CASCADE |
+| `ticket_events` | — (append-only timeline) | CASCADE |
+| `ticket_attachments` | — (metadata only; upload Phase E) | CASCADE |
+| `ticket_links` | `(tenantId, ticketId, entityType, entityId)` unique | CASCADE |
+
+All tables: `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` + `app.current_tenant_id` isolation policy (wallet/finance standard). Child rows use composite FK `(tenantId, ticketId)` → `tickets(tenantId, id)`.
+
+`TicketEvent` holds product timeline payloads; `AuditEvent` remains the compliance store (`ticket.*` actions) — no duplication.
 
 ### Phase C — Ticket lifecycle and messaging
 

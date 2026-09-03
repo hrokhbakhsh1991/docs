@@ -64,6 +64,11 @@ model Tenant {
   financeReconFindings        FinanceReconFinding[]
   financeReconActions         FinanceReconAction[]
   outboxReplayRuns            OutboxReplayRun[]
+  tickets                     Ticket[]
+  ticketMessages              TicketMessage[]
+  ticketEvents                TicketEvent[]
+  ticketAttachments           TicketAttachment[]
+  ticketLinks                 TicketLink[]
 
   @@map("tenants")
 }
@@ -1068,4 +1073,113 @@ model DenaliExposureReminderActivation {
   @@unique([tenantId, tourId, reminderOffset], map: "uq_denali_exposure_reminder_activations_idempotency")
   @@index([tenantId, activatedAt(sort: Desc)], map: "idx_denali_exposure_reminder_activations_tenant_activated")
   @@map("denali_exposure_reminder_activations")
+}
+
+/// TKT-001 Phase B1 — support ticket aggregate root (tenant-scoped; RLS enforced).
+model Ticket {
+  id                     String             @id @default(uuid()) @db.Uuid
+  tenantId               String             @map("tenant_id") @db.Uuid
+  requesterUserId        String             @map("requester_user_id") @db.Uuid
+  assigneeUserId         String?            @map("assignee_user_id") @db.Uuid
+  categoryCode           String             @map("category_code") @db.VarChar(64)
+  priority               String
+  status                 String
+  subject                String             @db.VarChar(200)
+  creationIdempotencyKey String?            @map("creation_idempotency_key")
+  lastActivityAt         DateTime           @map("last_activity_at") @db.Timestamptz
+  resolvedAt             DateTime?          @map("resolved_at") @db.Timestamptz
+  closedAt               DateTime?          @map("closed_at") @db.Timestamptz
+  rowVersion             Int                @default(1) @map("row_version")
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                 Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages               TicketMessage[]
+  events                 TicketEvent[]
+  attachments            TicketAttachment[]
+  links                  TicketLink[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, creationIdempotencyKey])
+  @@index([tenantId, status, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_status_last_activity")
+  @@index([tenantId, requesterUserId, createdAt(sort: Desc)], map: "idx_tickets_tenant_requester_created")
+  @@index([tenantId, assigneeUserId, status], map: "idx_tickets_tenant_assignee_status")
+  @@index([tenantId, priority, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_priority_last_activity")
+  @@index([tenantId, categoryCode, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_category_last_activity")
+  @@map("tickets")
+}
+
+/// TKT-001 Phase B1 — ticket thread messages (public member-visible or internal operator notes).
+model TicketMessage {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  ticketId       String             @map("ticket_id") @db.Uuid
+  authorUserId   String             @map("author_user_id") @db.Uuid
+  visibility     String
+  body           String             @db.Text
+  idempotencyKey String?            @map("idempotency_key") @db.VarChar(128)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket         Ticket             @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  attachments    TicketAttachment[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, ticketId, idempotencyKey])
+  @@index([tenantId, ticketId, createdAt], map: "idx_ticket_messages_tenant_ticket_created")
+  @@map("ticket_messages")
+}
+
+/// TKT-001 Phase B1 — product timeline events (distinct from compliance AuditEvent).
+model TicketEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  ticketId    String   @map("ticket_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  eventType   String   @map("event_type")
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket      Ticket   @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([tenantId, ticketId, createdAt(sort: Desc)], map: "idx_ticket_events_tenant_ticket_created")
+  @@index([tenantId, createdAt(sort: Desc)], map: "idx_ticket_events_tenant_created")
+  @@map("ticket_events")
+}
+
+/// TKT-001 Phase B1 — attachment metadata only (upload/storage adapter deferred).
+model TicketAttachment {
+  id               String         @id @default(uuid()) @db.Uuid
+  tenantId         String         @map("tenant_id") @db.Uuid
+  ticketId         String         @map("ticket_id") @db.Uuid
+  messageId        String?        @map("message_id") @db.Uuid
+  uploadedByUserId String         @map("uploaded_by_user_id") @db.Uuid
+  objectKey        String         @map("object_key")
+  originalFileName String         @map("original_file_name")
+  contentType      String         @map("content_type")
+  sizeBytes        Int            @map("size_bytes")
+  checksum         String?
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket           Ticket         @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  message          TicketMessage? @relation(fields: [tenantId, messageId], references: [tenantId, id], onDelete: Restrict)
+
+  @@index([tenantId, ticketId, createdAt(sort: Desc)], map: "idx_ticket_attachments_tenant_ticket_created")
+  @@map("ticket_attachments")
+}
+
+/// TKT-001 Phase B1 — normalized business-entity links (tour, registration, payment, wallet).
+model TicketLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket     Ticket   @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, ticketId, entityType, entityId], map: "uq_ticket_links_tenant_ticket_entity")
+  @@index([tenantId, entityType, entityId], map: "idx_ticket_links_tenant_entity")
+  @@map("ticket_links")
 }
