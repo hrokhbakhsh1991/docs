@@ -10,7 +10,6 @@ import { fileURLToPath } from "node:url";
 
 import {
   DENALI_WALLET_PILOT_TENANT_ID,
-  DENALI_WALLET_VERIFIED_RELEASE_SHA,
 } from "../vps-deploy/lib/wallet-staging-constants.mjs";
 import {
   containsTrackedSecretPattern,
@@ -22,6 +21,7 @@ import {
 } from "../vps-deploy/lib/wallet-staging-guards.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const TEST_RELEASE_HEAD = "d6c51682497cc701270b2a7dda735f410821d24e";
 
 function read(rel) {
   return readFileSync(resolve(ROOT, rel), "utf8");
@@ -36,6 +36,7 @@ function baseDeployEnv(overrides = {}) {
     STORAGE_DRIVER: "prisma",
     DATABASE_URL: "postgres://placeholder",
     DATABASE_URL_ADMIN: "postgres://placeholder",
+    EXPECTED_RELEASE_SHA: TEST_RELEASE_HEAD,
     ...overrides,
   };
 }
@@ -123,8 +124,8 @@ describe("wallet-staging-deploy-guards", () => {
   });
 
   it("WSD-08 rejects wrong application SHA and accepts verified artifact SHA", () => {
-    assert.equal(releaseShaMatchesVerified(DENALI_WALLET_VERIFIED_RELEASE_SHA), true);
-    assert.equal(releaseShaMatchesVerified("145b8056"), true);
+    assert.equal(releaseShaMatchesVerified(TEST_RELEASE_HEAD), true);
+    assert.equal(releaseShaMatchesVerified("deadbeef"), false);
     assert.equal(releaseShaMatchesVerified("deadbeef"), false);
     assert.equal(
       validateWalletStagingDeploy(
@@ -134,7 +135,7 @@ describe("wallet-staging-deploy-guards", () => {
     );
     assert.equal(
       validateWalletStagingDeploy(
-        baseDeployEnv({ EXPECTED_RELEASE_SHA: DENALI_WALLET_VERIFIED_RELEASE_SHA })
+        baseDeployEnv({ EXPECTED_RELEASE_SHA: TEST_RELEASE_HEAD })
       ).ok,
       true
     );
@@ -198,6 +199,11 @@ describe("wallet-staging-deploy-guards", () => {
     assert.match(read("scripts/vps-deploy/lib/artifact-self-check.sh"), /manifest_sha/);
     assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifact_self_check "\$ARTIFACT_ROOT" "\$SHA"/);
     assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifact_self_check "\$VROOT" "\$SHA"/);
+    assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifactDigestSha256/);
+    assert.match(read("scripts/vps-deploy/install-staging-artifact.sh"), /MANIFEST_DIGEST_SHA256/);
+    assert.match(read("scripts/vps-deploy/verify-denali-wallet-staging.sh"), /INSTALLED_RELEASE_SHA/);
+    assert.match(read("scripts/vps-deploy/verify-denali-wallet-staging.sh"), /ARTIFACT_DIGEST_SHA256/);
+    assert.match(read("scripts/vps-deploy/install-staging-artifact.sh"), /release-integrity\.json/);
   });
 
   it("WSD-12 runbook documents VPS-side command and production block", () => {

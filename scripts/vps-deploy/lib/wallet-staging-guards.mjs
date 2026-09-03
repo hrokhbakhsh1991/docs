@@ -4,8 +4,6 @@
 import {
   DENALI_WALLET_PILOT_SUBDOMAIN,
   DENALI_WALLET_PILOT_TENANT_ID,
-  DENALI_WALLET_VERIFIED_RELEASE_PREFIX,
-  DENALI_WALLET_VERIFIED_RELEASE_SHA,
   WALLET_STAGING_PRODUCTION_HOST_FRAGMENTS,
   WALLET_STAGING_PRODUCTION_PATH_FRAGMENTS,
   WALLET_STAGING_SECRET_ENV_KEYS,
@@ -120,8 +118,11 @@ export function validateWalletStagingDeploy(env) {
   const releaseSha = env.EXPECTED_RELEASE_SHA?.trim() ?? "";
   if (releaseSha.length > 0 && !releaseShaMatchesVerified(releaseSha)) {
     errors.push(
-      `EXPECTED_RELEASE_SHA must match verified Wallet v1 release (${DENALI_WALLET_VERIFIED_RELEASE_PREFIX}…)`
+      "EXPECTED_RELEASE_SHA must be the full 40-character Git HEAD SHA"
     );
+  }
+  if (env.DENALI_WALLET_DEPLOY_DRY_RUN?.trim() !== "1" && releaseSha.length === 0) {
+    errors.push("EXPECTED_RELEASE_SHA is required for deployment verification");
   }
 
   const isConfirmedStagingVps =
@@ -203,10 +204,7 @@ export function validateStagingHostname(hostname, label) {
  */
 export function releaseShaMatchesVerified(sha) {
   const normalized = sha.trim().toLowerCase();
-  return (
-    normalized === DENALI_WALLET_VERIFIED_RELEASE_SHA ||
-    normalized.startsWith(DENALI_WALLET_VERIFIED_RELEASE_PREFIX)
-  );
+  return /^[0-9a-f]{40}$/.test(normalized);
 }
 
 /**

@@ -160,6 +160,13 @@ tar -C "${WORK_DIR}" -cf - "${ARTIFACT_NAME}" | zstd -19 -T0 -f -o "${TARBALL}"
   cd "$OUT_DIR"
   sha256sum "$TARBALL_BASE" | tee "${TARBALL_BASE}.sha256"
 )
+ARTIFACT_DIGEST_SHA256="$(cut -d' ' -f1 "${TARBALL}.sha256")"
+cat >"${TARBALL}.manifest.json" <<EOF
+{
+  "releaseSha": "${SHA}",
+  "artifactDigestSha256": "${ARTIFACT_DIGEST_SHA256}"
+}
+EOF
 
 log "self-check extract"
 VERIFY_DIR="${WORK_DIR}/verify-${SHA}"
@@ -171,4 +178,4 @@ artifact_self_check "$VROOT" "$SHA"
 artifact_clean_room_check "$VROOT" "$REPO_ROOT"
 
 log "ARTIFACT_OK ${TARBALL}"
-log "SHA256 $(cut -d' ' -f1 "${TARBALL}.sha256")"
+log "SHA256 ${ARTIFACT_DIGEST_SHA256}"

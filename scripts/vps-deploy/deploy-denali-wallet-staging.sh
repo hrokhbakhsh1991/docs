@@ -20,7 +20,7 @@
 #   DENALI_WALLET_EXECUTION_CONTEXT=vps \
 #   ENV_DIR=/etc/app-tour-staging \
 #   DEPLOY_ROOT=/opt/app-tour-staging \
-#   EXPECTED_RELEASE_SHA=145b8056 \
+#   EXPECTED_RELEASE_SHA=<release-head-sha> \
 #   DENALI_WALLET_SEED_PILOT=1 \
 #   bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 set -euo pipefail
@@ -79,7 +79,7 @@ RELEASE_ROOT="${DEPLOY_ROOT}/current"
 if [[ -n "$EXPECTED_RELEASE_SHA" && -f "${RELEASE_ROOT}/release-manifest.json" ]]; then
   INSTALLED_SHA="$(python3 -c "import json; print(json.load(open('${RELEASE_ROOT}/release-manifest.json'))['releaseSha'])" 2>/dev/null || true)"
   if [[ -n "$INSTALLED_SHA" && -n "$EXPECTED_RELEASE_SHA" ]]; then
-    if [[ "$INSTALLED_SHA" != "$EXPECTED_RELEASE_SHA" && "$INSTALLED_SHA" != "${EXPECTED_RELEASE_SHA}"* && "$EXPECTED_RELEASE_SHA" != "${INSTALLED_SHA}"* ]]; then
+    if [[ "$INSTALLED_SHA" != "$EXPECTED_RELEASE_SHA" ]]; then
       die "installed release ${INSTALLED_SHA} does not match EXPECTED_RELEASE_SHA=${EXPECTED_RELEASE_SHA}"
     fi
   fi
@@ -125,6 +125,7 @@ done
 
 log "post-deploy verification"
 ENV_DIR="$ENV_DIR" DEPLOY_ROOT="$DEPLOY_ROOT" UNIT_PREFIX="$UNIT_PREFIX" \
+  EXPECTED_RELEASE_SHA="$EXPECTED_RELEASE_SHA" \
   bash "${SCRIPT_DIR}/verify-denali-wallet-staging.sh"
 
 log "WALLET_STAGING_DEPLOY_OK"

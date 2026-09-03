@@ -25,6 +25,10 @@ ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
   echo "deploy-staging-artifact-remote: missing ${ARTIFACT}.sha256" >&2
   exit 1
 }
+[[ -f "${ARTIFACT}.manifest.json" ]] || {
+  echo "deploy-staging-artifact-remote: missing ${ARTIFACT}.manifest.json" >&2
+  exit 1
+}
 
 REMOTE="${VPS_USER}@${VPS_HOST}"
 BASENAME="$(basename "$ARTIFACT")"
@@ -69,6 +73,7 @@ transfer_artifact() {
   if [[ "$(remote_sha_for "$remote_artifact")" == "$EXPECTED_SHA" ]]; then
     log "artifact already present with matching checksum"
     scp_with_retry "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+    scp_with_retry "${ARTIFACT}.manifest.json" "${REMOTE}:/tmp/app-tour-artifacts/"
     return 0
   fi
 
@@ -88,6 +93,7 @@ transfer_artifact() {
 
   reassemble_verified_chunks "$chunk_dir" "$remote_parts" "$remote_artifact"
   scp_with_retry "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+  scp_with_retry "${ARTIFACT}.manifest.json" "${REMOTE}:/tmp/app-tour-artifacts/"
 
   local remote_sha
   remote_sha="$(remote_sha_for "$remote_artifact")"

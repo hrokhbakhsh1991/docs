@@ -4,7 +4,7 @@
 runbook_id: DENALI-WALLET-V1-STAGING
 pack: wallet
 status: ACTIVE
-verified_release_sha: 145b8056ba95290b24a5e9fab9abd847a67fdf20
+release_sha_contract: checked-out Git HEAD
 scope: staging-only · pilot tenant 00000000-0000-4000-8000-000000000430
 ```
 
@@ -16,15 +16,15 @@ scope: staging-only · pilot tenant 00000000-0000-4000-8000-000000000430
 
 ## 1 — Prerequisites
 
-| Item                 | Staging example                            |
-| -------------------- | ------------------------------------------ |
-| VPS deploy root      | `/opt/app-tour-staging`                    |
-| Env directory        | `/etc/app-tour-staging`                    |
-| Systemd prefix       | `app-tour-staging`                         |
-| Loopback ports       | API `23001`, Web `23000`, Portal `23003`   |
-| Pilot tenant id      | `00000000-0000-4000-8000-000000000430`     |
-| Pilot subdomain      | `denali-wallet-pilot`                      |
-| Verified release SHA | `145b8056ba95290b24a5e9fab9abd847a67fdf20` |
+| Item            | Staging example                              |
+| --------------- | -------------------------------------------- |
+| VPS deploy root | `/opt/app-tour-staging`                      |
+| Env directory   | `/etc/app-tour-staging`                      |
+| Systemd prefix  | `app-tour-staging`                           |
+| Loopback ports  | API `23001`, Web `23000`, Portal `23003`     |
+| Pilot tenant id | `00000000-0000-4000-8000-000000000430`       |
+| Pilot subdomain | `denali-wallet-pilot`                        |
+| Release SHA     | checked-out Git HEAD (full 40-character SHA) |
 
 DNS (replace `staging.yourclub.ir` with your apex):
 
@@ -54,17 +54,17 @@ Set on VPS in `/etc/app-tour-staging/api.env` (and surface env files as today):
 
 Deploy orchestration (set only when running wallet deploy scripts):
 
-| Variable                             | Required    | Purpose                                         |
-| ------------------------------------ | ----------- | ----------------------------------------------- |
-| `DENALI_WALLET_DEPLOY_TARGET`        | yes         | Must be `staging`                               |
-| `DENALI_WALLET_STAGING_CONFIRM`      | yes         | Must be `1`                                     |
-| `ENV_DIR`                            | yes         | `/etc/app-tour-staging`                         |
-| `DEPLOY_ROOT`                        | yes         | `/opt/app-tour-staging`                         |
-| `EXPECTED_RELEASE_SHA`               | recommended | Pin `145b8056…`                                 |
-| `DENALI_WALLET_SEED_PILOT`           | opt-in      | `1` runs pilot seed only                        |
-| `DENALI_WALLET_ADMIN_HOST`           | verify      | Pilot operator host for tenant-config check     |
-| `DENALI_WALLET_PORTAL_HOST`          | verify      | Pilot portal host                               |
-| `DENALI_WALLET_NON_PILOT_ADMIN_HOST` | verify      | Negative check (e.g. `operator.admin.staging…`) |
+| Variable                             | Required                  | Purpose                                         |
+| ------------------------------------ | ------------------------- | ----------------------------------------------- |
+| `DENALI_WALLET_DEPLOY_TARGET`        | yes                       | Must be `staging`                               |
+| `DENALI_WALLET_STAGING_CONFIRM`      | yes                       | Must be `1`                                     |
+| `ENV_DIR`                            | yes                       | `/etc/app-tour-staging`                         |
+| `DEPLOY_ROOT`                        | yes                       | `/opt/app-tour-staging`                         |
+| `EXPECTED_RELEASE_SHA`               | required for verification | Exact checked-out Git HEAD SHA                  |
+| `DENALI_WALLET_SEED_PILOT`           | opt-in                    | `1` runs pilot seed only                        |
+| `DENALI_WALLET_ADMIN_HOST`           | verify                    | Pilot operator host for tenant-config check     |
+| `DENALI_WALLET_PORTAL_HOST`          | verify                    | Pilot portal host                               |
+| `DENALI_WALLET_NON_PILOT_ADMIN_HOST` | verify                    | Negative check (e.g. `operator.admin.staging…`) |
 
 **Never commit** connection strings, JWT PEM bodies, OTP values, or cookies.
 
@@ -75,7 +75,7 @@ Deploy orchestration (set only when running wallet deploy scripts):
 From the clean `release/denali-wallet-v1` checkout at the verified SHA:
 
 ```bash
-git rev-parse HEAD   # must match 145b8056…
+EXPECTED_RELEASE_SHA="$(git rev-parse HEAD)"
 
 # 1. Install + generate
 nvm use && pnpm install --frozen-lockfile
@@ -95,7 +95,7 @@ Artifact contains **API, Web, Portal** standalone Next layouts (marketing includ
 
 ```bash
 VPS_HOST=<staging-ip> VPS_USER=root \
-ARTIFACT=dist/staging-artifacts/app-tour-staging-145b8056ba95290b24a5e9fab9abd847a67fdf20.tar.zst \
+ARTIFACT=dist/staging-artifacts/app-tour-staging-<release-head-sha>.tar.zst \
 bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
 ```
 
@@ -121,7 +121,7 @@ DENALI_WALLET_STAGING_CONFIRM=1 \
 DENALI_WALLET_EXECUTION_CONTEXT=vps \
 ENV_DIR=/etc/app-tour-staging \
 DEPLOY_ROOT=/opt/app-tour-staging \
-EXPECTED_RELEASE_SHA=145b8056 \
+EXPECTED_RELEASE_SHA=<release-head-sha> \
 DENALI_WALLET_SEED_PILOT=1 \
 bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 ```
@@ -223,7 +223,7 @@ DENALI_WALLET_STAGING_CONFIRM=1 \
 DENALI_WALLET_EXECUTION_CONTEXT=vps \
 ENV_DIR=/etc/app-tour-staging \
 DEPLOY_ROOT=/opt/app-tour-staging \
-EXPECTED_RELEASE_SHA=145b8056ba95290b24a5e9fab9abd847a67fdf20 \
+EXPECTED_RELEASE_SHA=<release-head-sha> \
 DENALI_WALLET_SEED_PILOT=1 \
 DENALI_WALLET_ADMIN_HOST=admin.denali-wallet-pilot.staging.yourclub.ir \
 DENALI_WALLET_PORTAL_HOST=portal.denali-wallet-pilot.staging.yourclub.ir \

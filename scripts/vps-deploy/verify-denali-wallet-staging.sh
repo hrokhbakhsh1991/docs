@@ -9,6 +9,8 @@ source "${SCRIPT_DIR}/lib/ports.sh"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/app-tour-staging}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
+EXPECTED_RELEASE_SHA="${EXPECTED_RELEASE_SHA:-}"
+ARTIFACT_DIGEST_SHA256="${ARTIFACT_DIGEST_SHA256:-}"
 
 DENALI_WALLET_PILOT_TENANT_ID="${DENALI_WALLET_PILOT_TENANT_ID:-00000000-0000-4000-8000-000000000430}"
 DENALI_WALLET_ADMIN_HOST="${DENALI_WALLET_ADMIN_HOST:-}"
@@ -19,6 +21,8 @@ log() { printf '[wallet-staging-verify] %s\n' "$*"; }
 fail() { printf '[wallet-staging-verify] FAIL: %s\n' "$*" >&2; exit 1; }
 
 collect_app_ports "$ENV_DIR"
+
+[[ "$EXPECTED_RELEASE_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || fail "EXPECTED_RELEASE_SHA must be the full release HEAD SHA"
 
 API_HEALTH="http://127.0.0.1:${API_PORT}/health"
 WEB_LOGIN="http://127.0.0.1:${WEB_PORT}/auth/login"
@@ -41,6 +45,41 @@ log "web reachability OK (HTTP ${web_code})"
 portal_code="$(curl -sS -o /dev/null -w "%{http_code}" "$PORTAL_HEALTH" 2>/dev/null || echo 000)"
 [[ "$portal_code" =~ ^[23] ]] || fail "portal health HTTP ${portal_code}"
 log "portal reachability OK (HTTP ${portal_code})"
+
+RELEASE_MANIFEST="${DEPLOY_ROOT}/current/release-manifest.json"
+[[ -f "$RELEASE_MANIFEST" ]] || fail "release manifest missing"
+INSTALLED_RELEASE_SHA="$(python3 - "$RELEASE_MANIFEST" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    print(json.load(manifest_file).get("releaseSha", ""))
+PY
+  )"
+[[ "$INSTALLED_RELEASE_SHA" == "$EXPECTED_RELEASE_SHA" ]] || \
+  fail "releaseSha does not match checked-out release HEAD"
+log "releaseSha matches expected release HEAD"
+
+INTEGRITY_MANIFEST="${DEPLOY_ROOT}/current/release-integrity.json"
+[[ -f "$INTEGRITY_MANIFEST" ]] || fail "artifact integrity manifest missing"
+RECORDED_RELEASE_SHA="$(python3 - "$INTEGRITY_MANIFEST" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    manifest = json.load(manifest_file)
+print(manifest.get("releaseSha", ""))
+print(manifest.get("artifactDigestSha256", ""))
+PY
+  )"
+RECORDED_RELEASE_SHA="${RECORDED_RELEASE_SHA%%$'\n'*}"
+RECORDED_ARTIFACT_DIGEST_SHA256="${RECORDED_RELEASE_SHA#*$'\n'}"
+[[ "$RECORDED_RELEASE_SHA" == "$EXPECTED_RELEASE_SHA" ]] || fail "integrity manifest releaseSha mismatch"
+[[ "$RECORDED_ARTIFACT_DIGEST_SHA256" =~ ^[0-9a-fA-F]{64}$ ]] || fail "artifactDigestSha256 is invalid"
+if [[ -n "$ARTIFACT_DIGEST_SHA256" && "$ARTIFACT_DIGEST_SHA256" != "$RECORDED_ARTIFACT_DIGEST_SHA256" ]]; then
+  fail "artifactDigestSha256 does not match supplied artifact digest"
+fi
+log "artifactDigestSha256 verified independently"
 
 if [[ -f "${ENV_DIR}/api.env" ]]; then
   set -a
