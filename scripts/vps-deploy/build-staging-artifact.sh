@@ -97,6 +97,16 @@ pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-operato
   --packages=external \
   --outfile="${ARTIFACT_ROOT}/bin/seed-staging.cjs"
 
+log "bundle Denali Wallet pilot seed (explicit staging opt-in)"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-wallet-pilot.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-wallet-pilot-artifact.sh" "${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.sh"
+
 log "bundle migrate helper"
 mkdir -p "${ARTIFACT_ROOT}/bin"
 cat >"${ARTIFACT_ROOT}/bin/migrate-deploy.sh" <<'MIG'
@@ -125,6 +135,7 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
   "pnpmVersion": "${PNPM_V}",
   "migrationHead": "${MIGRATION_HEAD}",
   "denaliClientBundle": true,
+  "denaliWalletPilotSeedBundle": true,
   "layout": {
     "api": "api/dist/main.js",
     "web": "web/RUNTIME.json",
