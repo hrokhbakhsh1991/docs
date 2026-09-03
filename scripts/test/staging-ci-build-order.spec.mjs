@@ -11,6 +11,15 @@ test("staging dependency install cannot dirty the artifact build checkout", () =
   assert.match(workflow, /pnpm install --frozen-lockfile --ignore-scripts/);
 });
 
+test("staging proves and normalizes only the known timestamped build report", () => {
+  assert.match(workflow, /name: Prove clean artifact checkout/);
+  assert.match(workflow, /docs\/phase-19\/architecture-truth-drift-report\.json/);
+  assert.match(workflow, /git diff --name-only/);
+  assert.match(workflow, /git ls-files --others --exclude-standard/);
+  assert.match(workflow, /git restore --worktree --/);
+  assert.match(workflow, /test -z "\$\(git status --porcelain\)"/);
+});
+
 test("build order materializes workspace-sdk runtime dependencies", () => {
   const packages = [
     "catalog-registration-auth",

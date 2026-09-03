@@ -74,6 +74,23 @@ jobs:
         run: pnpm run lint
       - name: Build
         run: pnpm run build
+      - name: Prove clean artifact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_report="docs/phase-19/architecture-truth-drift-report.json"
+          changed="$(git diff --name-only)"
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [[ -n "$untracked" || ( -n "$changed" && "$changed" != "$generated_report" ) ]]; then
+            echo "Unexpected build changes before artifact packaging:" >&2
+            git diff --name-status >&2
+            [[ -z "$untracked" ]] || printf '?? %s\n' "$untracked" >&2
+            exit 1
+          fi
+          if [[ "$changed" == "$generated_report" ]]; then
+            git restore --worktree -- "$generated_report"
+          fi
+          test -z "$(git status --porcelain)"
       - name: Build staging artifact on runner
         run: bash scripts/vps-deploy/build-staging-artifact.sh
       - name: Verify release SHA and artifact digest
