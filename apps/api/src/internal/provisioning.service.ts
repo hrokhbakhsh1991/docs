@@ -5,8 +5,12 @@ import { resolveDefaultTenantBranding } from "../tenant/workspace-default-tenant
 import {
   DENALI_SMOKE_SUBDOMAIN,
   DENALI_SMOKE_TENANT_ID,
+  DENALI_WALLET_PILOT_SUBDOMAIN,
+  DENALI_WALLET_PILOT_TENANT_ID,
   URBAN_SMOKE_SUBDOMAIN,
   URBAN_SMOKE_TENANT_ID,
+  WALLET_WS1_SMOKE_SUBDOMAIN,
+  WALLET_WS1_SMOKE_TENANT_ID,
 } from "../settings/resolve-workspace-dev-smoke-tenant";
 
 import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
@@ -19,7 +23,10 @@ import {
 } from "../tenant/tenant-registry";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { TenantProvisionConflictError } from "./provisioning.errors";
-import { assertProvisioningDevelopmentOnly } from "./provisioning-guard";
+import {
+  assertProvisioningDevelopmentOnly,
+  type ProvisioningGuardOptions,
+} from "./provisioning-guard";
 import { assertProductionCertifiedWorkspaceType } from "./assert-production-certified-workspace";
 
 /** MAP 4.3 — canonical dev seed labels (subphase 4.3). */
@@ -32,7 +39,9 @@ export const PHASE_43_SEED_TENANT_IDS: Record<Phase43SeedSubdomain, string> = {
 };
 
 export { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID };
+export { DENALI_WALLET_PILOT_SUBDOMAIN, DENALI_WALLET_PILOT_TENANT_ID };
 export { URBAN_SMOKE_SUBDOMAIN, URBAN_SMOKE_TENANT_ID };
+export { WALLET_WS1_SMOKE_SUBDOMAIN, WALLET_WS1_SMOKE_TENANT_ID };
 
 export const TENANT_STATUS_ACTIVE = "active" as const;
 
@@ -113,6 +122,49 @@ export class ProvisioningService {
     });
   }
 
+  /** WALLET-P3C — certification-only wallet-ws1 tenant (`wallet-ws1.*.localhost`). */
+  async seedWalletWs1CertificationTenant(): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly();
+    return this.upsertSeedTenant({
+      subdomain: WALLET_WS1_SMOKE_SUBDOMAIN,
+      tenantId: WALLET_WS1_SMOKE_TENANT_ID,
+      workspaceType: "wallet-ws1",
+      theme: {
+        primaryColor: "#6366f1",
+        cssVariables: { "--color-primary": "#6366f1" },
+        defaultLocale: "en",
+        enabledModules: ["wallet"],
+        portalModuleGrants: ["wallet"],
+      },
+    });
+  }
+
+  /** Phase 2 — Denali Wallet pilot tenant only (`denali-wallet-pilot.*.localhost`). */
+  async seedDenaliWalletPilotTenant(): Promise<ProvisionedTenant> {
+    const stagingPilotGuard: ProvisioningGuardOptions = {
+      stagingPilotTenantId: DENALI_WALLET_PILOT_TENANT_ID,
+    };
+    assertProvisioningDevelopmentOnly(stagingPilotGuard);
+    return this.upsertSeedTenant({
+      subdomain: DENALI_WALLET_PILOT_SUBDOMAIN,
+      tenantId: DENALI_WALLET_PILOT_TENANT_ID,
+      workspaceType: "denali",
+      theme: {
+        primaryColor: "#059669",
+        cssVariables: { "--color-primary": "#059669" },
+        defaultLocale: "fa",
+        enabledModules: ["wallet"],
+        portalModuleGrants: ["wallet"],
+        commerce: {
+          currency: "IRR",
+          paymentMode: "offline_receipt",
+          gatewayProvider: null,
+          frozen: true,
+        },
+      },
+    }, stagingPilotGuard);
+  }
+
   /** Phase 11.0 — operator smoke tenant (`operator` / `…000014`). */
   async seedOperatorSmokeTenant(): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
@@ -146,8 +198,11 @@ export class ProvisioningService {
   }
 
   /** Idempotent MAP 4.3 seed — upsert by subdomain. */
-  private async upsertSeedTenant(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
-    assertProvisioningDevelopmentOnly();
+  private async upsertSeedTenant(
+    input: ProvisionTenantInput,
+    guardOptions?: ProvisioningGuardOptions
+  ): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly(guardOptions);
     const identity = resolveTenantIdentity(input);
     const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
 

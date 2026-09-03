@@ -13,6 +13,7 @@ const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
   "profile-cert": Object.freeze(["theme/tokens.css"]),
   "starter": Object.freeze(["theme/tokens.css"]),
   "urban": Object.freeze(["theme/tokens.css"]),
+  "wallet-ws1": Object.freeze(["theme/tokens.css"]),
 }) as Readonly<Record<string, readonly string[]>>;
 
 /** Stylesheet path list for pluginId, if declared in manifest themeStylesheets. */
@@ -60,6 +61,10 @@ export async function importAdminThemeForPlugin(pluginId: string): Promise<void>
 
     case "urban":
       await import("@app-tour/workspace-urban/theme/tokens.css");
+      return;
+
+    case "wallet-ws1":
+      await import("@app-tour/workspace-wallet-ws1/theme/tokens.css");
       return;
     default:
       return;

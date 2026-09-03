@@ -259,6 +259,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
         },
       }),
       financeNav: deepFreeze({ supported: true as const }),
+      walletNav: deepFreeze({ supported: true as const }),
       financeCaseMeaning: deepFreeze({ supported: true as const }),
       financeOps: deepFreeze({
         resolveManifest: (theme: unknown = null) =>

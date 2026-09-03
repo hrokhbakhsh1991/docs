@@ -9,6 +9,7 @@ import {
 } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { ensureOperatorShellNavLinks } from "@/shell/operator-shell-nav-registry";
@@ -74,6 +75,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const locale = (await getLocale()) === "fa" ? "fa" : "en";
   const tWorkspaces = await getTranslations("app.workspaces");
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
+  await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme);
   const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
   const workspaceNavLinks = await ensureOperatorShellNavLinks(bootstrap.session.pluginId);
   const navItems = resolveOperatorNav({

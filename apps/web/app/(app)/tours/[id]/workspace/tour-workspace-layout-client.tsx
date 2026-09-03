@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { ArrowLeft, MoreHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -67,8 +67,8 @@ function TourWorkspaceLayoutInner({
   const tFormat = useTranslations("tours.format");
   const tErrors = useTranslations("tours.workspace.errors");
   const tNav = useTranslations("tours.nav");
-  const pathname = usePathname() ?? "";
-  const searchParams = useSearchParams();
+  const pathname = useAppPathname();
+  const searchParams = useAppSearchParams();
   const tabParam = searchParams.get(WORKSPACE_TAB_QUERY_KEY);
   const activeTab = resolveWorkspaceSubnavTab(pathname, tourId, tabParam);
   const { reloadNonce, navigateWorkspaceTab } = useTourWorkspaceChrome();

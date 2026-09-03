@@ -27,6 +27,7 @@ test("DG-6 workspace-role ratchet rejects implicit guest certification", () => {
         guestConformance: { productionTier: "certified" },
       },
       "booking-ws2": { workspaceBooking: { supported: true } },
+      "wallet-ws1": { workspaceWallet: { supported: true } },
     };
     for (const [id, value] of Object.entries(manifests)) {
       mkdirSync(join(root, id), { recursive: true });

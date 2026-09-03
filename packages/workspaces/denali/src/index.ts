@@ -32,6 +32,10 @@ export {
   DENALI_SMOKE_TENANT_ID,
 } from "./smoke/phase-6-denali-smoke-tenant";
 export {
+  DENALI_WALLET_PILOT_SUBDOMAIN,
+  DENALI_WALLET_PILOT_TENANT_ID,
+} from "./smoke/denali-wallet-pilot-tenant";
+export {
   buildDenaliFieldPolicyDefinitions,
   DENALI_FIELD_POLICY_WORKSPACE_TYPE,
 } from "./field-policy/denali-field-policy-definitions";
@@ -138,6 +142,11 @@ export {
   stableLedgerIdentifiersFromSeed,
   resolveFinanceOpsManifestFromTheme,
 } from "./finance";
+export {
+  DEFAULT_WALLET_OPS_MANIFEST,
+  DenaliWalletLedgerPolicyAdapter,
+  resolveWalletOpsManifestFromTheme,
+} from "./wallet";
 export {
   DenaliBookingCapacityPolicyAdapter,
   DenaliBookingEventReactionAdapter,

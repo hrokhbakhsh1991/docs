@@ -77,6 +77,16 @@ export type FinanceHttpHostPorts = {
     readonly idempotencyKey?: string;
     readonly requestHash?: string;
   }) => Promise<FinanceCaseCommandHttpResult>;
+  /** Phase 3 — manual Completed refund → member wallet credit (host orchestration). */
+  readonly creditCompletedRefundToWallet?: (input: {
+    readonly auth: TenantAuthContext;
+    readonly refundId: string;
+  }) => Promise<Record<string, unknown>>;
+  /** Phase 3 — wallet credit enrichment for operator refund list/detail. */
+  readonly enrichOperatorRefundItems?: (
+    auth: TenantAuthContext,
+    items: readonly Record<string, unknown>[]
+  ) => Promise<readonly Record<string, unknown>[]>;
 };
 
 /** @deprecated Alias — Denali compat (Phase 1.4 Commit 2). */

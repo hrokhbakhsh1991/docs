@@ -557,8 +557,15 @@ export async function handleFinanceListRefunds(
           ...(registrationId !== undefined ? { registrationId } : {}),
           ...(status !== undefined ? { status } : {}),
         });
+        const items =
+          host.enrichOperatorRefundItems !== undefined
+            ? await host.enrichOperatorRefundItems(
+                auth,
+                page.items as unknown as Record<string, unknown>[]
+              )
+            : page.items;
         host.sendJson(res, 200, {
-          items: page.items,
+          items,
           nextCursor: page.nextCursor,
           hasMore: page.hasMore,
         });
@@ -586,7 +593,15 @@ export async function handleFinanceGetRefund(
       auth,
       async () => {
         const item = await financeService.getOperatorRefund(auth, refundId);
-        host.sendJson(res, 200, item);
+        const enriched =
+          host.enrichOperatorRefundItems !== undefined
+            ? (
+                await host.enrichOperatorRefundItems(auth, [
+                  item as unknown as Record<string, unknown>,
+                ])
+              )[0]
+            : item;
+        host.sendJson(res, 200, enriched);
       },
       { rateLimit: "read" }
     );
@@ -693,6 +708,35 @@ export async function handleFinanceCompleteRefund(
           ...result,
           invoice: item.invoice ?? null,
         });
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleFinanceCreditRefundToWallet(
+  req: IncomingMessage,
+  res: ServerResponse,
+  _deps: FinanceRouteDeps,
+  refundId: string
+): Promise<void> {
+  const host = getFinanceHttpHost();
+  try {
+    if (host.creditCompletedRefundToWallet === undefined) {
+      throw new Error("REFUND_WALLET_UNSUPPORTED");
+    }
+    const auth = await host.resolveTenantContextFromRequest(req);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await host.creditCompletedRefundToWallet!({
+          auth,
+          refundId,
+        });
+        host.sendJson(res, 200, result);
       },
       { rateLimit: "write" }
     );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
@@ -191,8 +192,8 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const tValidation = useTranslations("finance.validation");
   const dir = resolveTextDirection(locale);
   const router = useRouter();
-  const pathname = usePathname() ?? workspaceBasePath(tourId);
-  const searchParams = useSearchParams();
+  const pathname = useAppPathname() || workspaceBasePath(tourId);
+  const searchParams = useAppSearchParams();
   const { reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const focusFromUrl = parseWorkspaceFocusRegistrationId(
     searchParams.get(WORKSPACE_FOCUS_REGISTRATION_QUERY_KEY)

@@ -163,4 +163,35 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
       }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
+  "wallet-ws1": Object.freeze({
+    availability: "minimal",
+    includePlatformHome: true,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+      Object.freeze({
+        id: "wallet",
+        routePath: "/me/wallet",
+        nav: Object.freeze({
+          tier: "hidden",
+          labelKey: "wallet",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
 });

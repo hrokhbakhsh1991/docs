@@ -1,0 +1,75 @@
+{
+  "id": "wallet-ws1",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "productionTier": "stub"
+  },
+  "package": "@app-tour/workspace-wallet-ws1",
+  "workspaceTypes": ["wallet-ws1"],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#6366f1",
+    "cssVariables": {
+      "--color-primary": "#6366f1"
+    },
+    "defaultLocale": "en"
+  },
+  "themeStylesheets": ["theme/tokens.css"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWalletWs1WorkspacePlugin"
+  },
+  "devBootstrap": {
+    "pluginTenantIds": ["00000000-0000-4000-8000-000000000420"],
+    "smokeTenant": {
+      "tenantIdExport": "WALLET_WS1_SMOKE_TENANT_ID",
+      "subdomainExport": "WALLET_WS1_SMOKE_SUBDOMAIN"
+    }
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-full-v1"
+  },
+  "workspaceWallet": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "memberAccounts": true,
+      "ops": true,
+      "gatewayTopUp": false,
+      "withdrawals": false
+    },
+    "ledgerPolicy": {
+      "module": "./wallet",
+      "export": "WalletWs1LedgerPolicyAdapter"
+    },
+    "opsManifest": {
+      "module": "./wallet",
+      "defaultExport": "DEFAULT_WALLET_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveWalletOpsManifestFromTheme"
+    }
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/wallet-http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "WALLET_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /wallet/accounts": "handleWalletOperatorAccounts",
+          "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+          "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
+        },
+        "paramHandlers": {
+          "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+          "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+          "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+          "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+          "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+        }
+      }
+    ]
+  }
+}

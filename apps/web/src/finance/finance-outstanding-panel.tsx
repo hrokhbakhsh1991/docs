@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ export function FinanceOutstandingPanel() {
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const tourFilter = searchParams.get("tourId")?.trim() || "";
   const registrationFilter = searchParams.get("registrationId")?.trim() || "";
 

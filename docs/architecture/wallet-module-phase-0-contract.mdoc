@@ -1,0 +1,587 @@
+---
+title: Wallet module — Phase 0 architecture contract
+format: markdoc
+doc_role: architecture_sot
+status: active
+date: 2026-09-02
+standard_id: WALLET-P0-001
+extends:
+  - docs/architecture/adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc
+  - docs/architecture/platform-architecture-v2.md
+  - docs/standards/workspace-api-capabilities.mdoc
+  - docs/phase-19/platform-portal-member-entitlements.mdoc
+mandatory_for:
+  - future packages/wallet-core
+  - future apps/api workspace-wallet host
+code_sot:
+  - packages/wallet-core
+  - packages/wallet-http-contracts
+  - packages/wallet-http
+  - apps/api/prisma/schema.prisma
+  - apps/api/src/workspace-wallet/infrastructure/
+  - packages/workspace-sdk/src/manifest.schema.ts
+  - packages/workspace-sdk/src/wallet/
+  - packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts
+  - scripts/codegen/workspace-registry/domains/wallet.mjs
+  - apps/api/src/workspace-wallet/
+implementation_status: phase_3c_certification
+---
+
+# Wallet module — Phase 0 architecture contract
+
+**Phase:** 0 (foundational preparation)  
+**Runtime status:** Pure `packages/wallet-core` domain + tenant-scoped Prisma persistence (Phase 2C) + guarded generic HTTP contracts/handlers (Phase 2D) + workspace-agnostic member portal read UI (Phase 3A) + operator wallet ops UI (Phase 3B). No gateway top-up, withdrawals, or Denali activation.
+**Authority:** [ADR-WALLET-001](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc)
+
+---
+
+## 1. Existing “wallet” name collision impact report
+
+### 1.1 Registration finance / synthetic ledger (not Member Wallet)
+
+| Symbol / pattern                                                | Location                                                                            | Meaning                                                             | Member Wallet conflict                                                  |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `bookingWalletId(registrationId)`                               | `packages/workspaces/denali/src/finance/ledger-accounts.ts`                         | GL credit account `booking:{registrationId}`                        | **High** — name implies member wallet; actually registration sub-ledger |
+| `financeWs2BookingWalletId` … `financeWs6BookingWalletId`       | `packages/workspaces/finance-ws*/src/finance/chart-of-accounts.ts`                  | Prefixed `wsN:booking:{registrationId}` accounts                    | **High** — same semantics, certification workspaces                     |
+| `LEDGER_ACCOUNTS` / `FINANCE_WS*_LEDGER_ACCOUNTS`               | Denali + finance-ws chart-of-accounts                                               | Operator clearing, discount contra GL codes                         | **Low** — no “wallet” in export name except comments                    |
+| `walletNetMinor`                                                | `packages/finance-core/src/domain/compile-invoice-balances.ts`, web finance/tour UI | Invoice field: prepayment + paid − refunds for one registration     | **High** — reads like member balance; is derived read model only        |
+| `finance.ledger.capture`, `finance.ledger.double_entry_applied` | Outbox / `prisma-finance.repository.ts`                                             | Registration payment journal events                                 | **Medium** — “ledger” overlap; different aggregate                      |
+| ADR-010 “booking wallet credit”                                 | `docs/phase-20/p7/appendices/adr/ADR-010-*.md`                                      | XOR between TourCreated and payment capture on registration account | **Medium** — terminology only; finance scoped                           |
+
+**Phase 0 action:** Document only. No renames (production strings, tests, and finance golden guards depend on current names).
+
+### 1.2 Member portal stub (placeholder for future Member Wallet)
+
+| Symbol / pattern                  | Location                                                   | Meaning                                       | Member Wallet conflict                               |
+| --------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
+| `member.module.wallet`            | `evaluate-member-portal-entitlements.ts`, API entitlements | Entitlement key for portal module id `wallet` | **None** — correct future surface                    |
+| `/me/wallet`                      | `guest-full-v1` preset, generated portal surfaces          | Route path for hidden module                  | **None**                                             |
+| `MemberModuleStub` + `walletLede` | `apps/portal/src/me/member-module-stub.tsx`                | Placeholder copy when no workspace renderer   | **Low** — replace with workspace renderer in Phase 3 |
+| `portalModuleGrants: ["wallet"]`  | `PortalMemberPlan`, membership metadata                    | Tenant opt-in for hidden module               | **None** — enablement model                          |
+
+### 1.3 Module gates (finance reference — not wallet yet)
+
+| Mechanism                                                          | Location                                           | Purpose                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------- |
+| `workspaceFinance.supported`                                       | `workspace.manifest.json`                          | Product declares finance capability         |
+| `isFinanceModuleEnabled(theme, workspaceType)`                     | `apps/api/.../finance-module-enabled.ts`           | Theme `enabledModules` + default-when-unset |
+| `assertFinanceWorkspaceGate` / `FORBIDDEN_FINANCE_MODULE_DISABLED` | `assert-finance-access.ts`                         | API fail-closed gate                        |
+| `capabilities.financeNav`                                          | workspace plugin + `apps/web` finance-nav-registry | Operator UI visibility                      |
+
+Wallet will mirror this pattern under `workspaceWallet` (Section 3).
+
+---
+
+## 2. `workspaceWallet` manifest contract (Phase 1 foundation)
+
+Normative shape implemented in Phase 1 (`WorkspaceWalletBlockSchema` + codegen). **Certification fixture `wallet-ws1` and Denali workspace bindings declare `workspaceWallet`; tenant activation remains theme-gated** — no production Denali tenant enables the module until theme `enabledModules` includes `"wallet"`.
+
+```typescript
+/** Documentation contract — not shipped TypeScript */
+type WorkspaceWalletBlock = {
+  /** Product declares wallet support for this workspace package. */
+  readonly supported: boolean;
+  /** When theme.enabledModules is empty/unset, default enable if true (finance pattern). */
+  readonly defaultModuleEnabledWhenUnset?: boolean;
+  readonly capabilities: {
+    /** Member stored-value accounts + ledger. */
+    readonly memberAccounts: boolean;
+    /** Operator reconciliation / adjustments UI. */
+    readonly ops: boolean;
+    /** Top-up via gateway PSP (optional Phase 2+; requires commerce.paymentMode gateway — not Phase 0/1) */
+    readonly gatewayTopUp?: boolean;
+    /** Withdrawal / payout workflow (optional). */
+    readonly withdrawals?: boolean;
+  };
+  /** Workspace-owned ledger policy (account naming, limits) — module + export binding. */
+  readonly ledgerPolicy?: { readonly module: string; readonly export: string };
+  /** Workspace-owned operator limits / KYC policy adapter. */
+  readonly operatorPolicy?: { readonly module: string; readonly export: string };
+  /** Operator ops panel manifest (theme-aware), mirror workspaceFinance.opsManifest. */
+  readonly opsManifest?: {
+    readonly module: string;
+    readonly defaultExport: string;
+    readonly resolveFromThemeExport?: string;
+  };
+};
+```
+
+### 2.1 Enablement semantics (mirror finance)
+
+| Input                                           | Expected behavior                                        |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| `theme.enabledModules` contains `"wallet"`      | Module enabled                                           |
+| `enabledModules` non-empty and omits `"wallet"` | Module disabled → `FORBIDDEN_WALLET_MODULE_DISABLED`     |
+| `enabledModules` empty/unset                    | Use `defaultModuleEnabledWhenUnset` from codegen binding |
+| `workspaceWallet.supported !== true`            | `WALLET_WORKSPACE_UNSUPPORTED`                           |
+
+Theme key name **`wallet`** is reserved for module enablement (parallel to `"finance"`).
+
+### 2.2 Member portal integration
+
+| Concern          | Contract                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| Module id        | `wallet` (existing preset `guest-full-v1`)                                                                |
+| Entitlement key  | `member.module.wallet`                                                                                    |
+| Default tier     | `hidden` — requires `portalModuleGrants` or plan `moduleGrants`                                           |
+| Renderer         | `plugin.capabilities.memberPortalRenderers.renderers.wallet` via `registerWorkspaceMemberPortalRenderers` |
+| Route gate       | Portal dispatcher + `isMemberModuleEntitled` (unchanged)                                                  |
+| Capability flags | `member.module.wallet.{read,export,...}` via `PortalMemberPlan.capabilityFlags`                           |
+
+### 2.3 Workspace-specific adapters (never in platform core)
+
+- Ledger account prefix / naming policy
+- Per-tenant currency default (from `commerce.currency` or wallet-specific override)
+- Operator adjustment reason codes
+- Optional integration with registration finance (event subscription only)
+
+---
+
+## 3. Future codegen and file surface (exact touch list)
+
+When implementing `workspaceWallet`, expect edits/additions aligned with `workspaceFinance`:
+
+### 3.1 Manifest schema and validation
+
+| File                                                    | Change                                                          |
+| ------------------------------------------------------- | --------------------------------------------------------------- |
+| `packages/workspace-sdk/src/manifest.schema.ts`         | Add `WorkspaceWalletBlockSchema`                                |
+| `scripts/codegen/workspace-registry/domains/wallet.mjs` | **New** — `assertWalletCapabilities`, binding generators        |
+| `scripts/codegen/workspace-registry/orchestrator.mjs`   | Register domain outputs in `OUTPUT_PATHS`, `DOMAIN_OUTPUT_KEYS` |
+| `scripts/codegen/workspace-registry/validation.mjs`     | Optional cross-manifest asserts                                 |
+
+### 3.2 Generated bindings (predicted paths)
+
+| Output key                    | Predicted path                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `workspaceWallet`             | `apps/api/src/workspace-wallet/workspace-wallet-bindings.generated.ts`                    |
+| `workspaceWalletCapabilities` | `apps/api/src/workspace-wallet/workspace-wallet-capabilities.generated.ts`                |
+| `workspaceWalletDependencies` | `apps/api/src/workspace-wallet/workspace-wallet-dependency-bindings.generated.ts`         |
+| SDK capability map            | `packages/workspace-sdk/src/catalog/workspace-wallet-capabilities.generated.ts`           |
+| Version pins                  | `packages/workspace-sdk/src/manifest/workspace-capability-revision-registry.generated.ts` |
+
+### 3.3 HTTP route groups
+
+| File                                                         | Change                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `scripts/codegen/workspace-registry/domains/http-routes.mjs` | Merge `httpRoutes.groups` with `WALLET_HTTP_ROUTE_MANIFEST`        |
+| `apps/api/src/http/workspace-http-routes.generated.ts`       | Generated static/param routes                                      |
+| `apps/api/src/http/workspace-route-registrar.ts`             | `HANDLER_DISPATCH_KIND` entries for `handleWallet*`                |
+| `apps/api/src/boot/lazy-workspace-wallet-handlers.ts`        | **New** — lazy handler load (mirror finance)                       |
+| `packages/workspaces/<id>/workspace.manifest.json`           | `httpRoutes.groups[]` with `handlerPackage: @app-tour/wallet-http` |
+
+### 3.3.1 Phase 2D MVP HTTP surface (shipped)
+
+Manifest-driven routes on `/wallet/*` (mirror `/finance/*` prefix convention). Registered only on `wallet-ws1` certification fixture; Denali and other production workspaces remain route-inaccessible (`WALLET_WORKSPACE_UNSUPPORTED`).
+
+| Method | Path                                          | Actor                          | Idempotency-Key |
+| ------ | --------------------------------------------- | ------------------------------ | --------------- |
+| `GET`  | `/wallet/me/balance`                          | member (session-derived scope) | —               |
+| `GET`  | `/wallet/me/transactions`                     | member (session-derived scope) | —               |
+| `GET`  | `/wallet/accounts/:accountId/balance`         | member (own account)           | —               |
+| `GET`  | `/wallet/accounts/:accountId/transactions`    | member (own account)           | —               |
+| `GET`  | `/wallet/accounts`                            | operator (`admin` \| `owner`)  | —               |
+| `POST` | `/wallet/accounts/:accountId/credit`          | operator                       | required        |
+| `POST` | `/wallet/accounts/:accountId/debit`           | operator                       | required        |
+| `POST` | `/wallet/transactions/:transactionId/reverse` | operator                       | required        |
+
+**Handler pipeline (strict order):**
+
+1. Resolve tenant context (`TenantAuthContext` from JWT — never from body).
+2. Resolve workspace context (`workspaceId` on member auth; operator tenant scope).
+3. `WalletCapabilityPort.assertEnabled(tenantId)` — workspace support + module enablement.
+4. Member entitlement (`member.module.wallet`) or operator role (`admin` \| `owner`, `ACTIVE`).
+5. Validate request DTO (`wallet-http-contracts` Zod parsers).
+6. Require `Idempotency-Key` header on mutations; hash body for HTTP idempotency relay.
+7. Invoke `WalletService` → `wallet-core` application services via host repository.
+8. Map stable domain errors (`WALLET_*`) — never Prisma/stack traces.
+9. Return safe read models (derived balance, immutable transaction history).
+
+**Idempotency:** HTTP `Idempotency-Key` + request hash → `creationIdempotencyKey` + `commandFingerprint` in `wallet_transactions`. Same key + same fingerprint replays; same key + different fingerprint → `WALLET_IDEMPOTENCY_CONFLICT`.
+
+**Response safety:** String minor-unit amounts only; no raw ledger-entry mutation endpoints; no synthetic finance booking wallet ids; no internal tenant-resolution fields in JSON.
+
+### 3.4 Portal renderer registration
+
+| File                                                                   | Change                                                                                                                 |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `scripts/codegen/workspace-registry/domains/registration.mjs`          | Already calls `registerWorkspaceMemberPortalRenderers` — workspace plugin exports `capabilities.memberPortalRenderers` |
+| `packages/workspace-sdk/src/portal/member-portal-renderer-registry.ts` | Unchanged registry API                                                                                                 |
+| `packages/workspace-sdk/src/plugin/workspace-plugin-capabilities.ts`   | Optional `walletNav` / extend `memberPortalRenderers` typing                                                           |
+| `apps/portal/app/me/[...modulePath]/page.tsx`                          | No platform change if renderer registered                                                                              |
+| `apps/portal/src/me/wallet/`                                           | **Shipped (Phase 3A)** — BFF + shared member wallet UI                                                                 |
+| `packages/workspace-sdk/src/portal/member-wallet-portal-contract.ts`   | Presentation policy resolver (no Denali branches)                                                                      |
+| `apps/web/src/wallet/`                                                 | **Shipped (Phase 3B)** — `wallet-nav-registry.ts`, enablement, BFF, operator ops panel                                 |
+
+### 3.4.2 Phase 3B operator wallet ops surface (shipped)
+
+| Concern     | Contract                                                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Route       | `/wallet` — operator shell page                                                                                                        |
+| Nav         | `capabilities.walletNav` + `walletWorkspaceHasCapability(ops)` + `isWalletModuleEnabled(theme)` + owner/admin role                     |
+| BFF         | `GET/POST /api/wallet/**` — session cookie + `Idempotency-Key` on mutations; never accepts `tenantId` / `workspaceId` as authority     |
+| Upstream    | Existing `/wallet/accounts`, `/wallet/accounts/:id/balance`, `/wallet/accounts/:id/transactions`, credit/debit/reverse                 |
+| UI          | Account lookup by member `userId`, balance + paginated history, manual credit/debit/reversal with required reason + confirmation modal |
+| Idempotency | Client generates `Idempotency-Key` per submission; preserved on retry; replay feedback from `replay: true`                             |
+| RTL         | Operator shell `dir` + `fa` / `en` message namespaces                                                                                  |
+| Denali      | No `walletNav` capability — nav hidden, route `notFound()`                                                                             |
+
+### 3.4.1 Phase 3A member portal read surface (shipped)
+
+| Concern     | Contract                                                                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route       | `/me/wallet` (unchanged — catch-all dispatcher)                                                                                                 |
+| Entitlement | `member.module.wallet` via `isMemberModuleEntitled` before renderer                                                                             |
+| Renderer    | `registerWorkspaceMemberPortalRenderers(pluginId, { renderers: { wallet } })` from portal layout bootstrap                                      |
+| BFF         | `GET /api/me/wallet`, `GET /api/me/wallet/transactions` — session cookie only; never accepts `userId` / `tenantId` / `workspaceId` query params |
+| Upstream    | `GET /wallet/me/balance`, `GET /wallet/me/transactions` — account scope derived from JWT + `workspaceId`                                        |
+| UI          | Read-only balance card + transaction history; loading / empty / error / unauthorized / workspace-disabled states                                |
+| RTL         | Uses portal `dir` + existing locale conventions (`fa` / `en`)                                                                                   |
+| Denali      | Remains `WALLET_WORKSPACE_UNSUPPORTED` — UI shows disabled state; wallet not enabled in manifest                                                |
+
+### 3.5 Package layout (Phase 1+)
+
+| Package                                | Role                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| `packages/wallet-core`                 | **Shipped (Phase 2B)** — pure domain, ports, application services (no persistence) |
+| `packages/wallet-http-contracts`       | DTOs / Zod                                                                         |
+| `packages/wallet-http`                 | Generic HTTP handlers                                                              |
+| `apps/api/src/workspace-wallet/`       | Host adapters, Prisma repo, DI                                                     |
+| `packages/workspaces/<id>/src/wallet/` | Policy adapters                                                                    |
+
+---
+
+## 4. Authorization boundary (recommended)
+
+Layered fail-closed model — same separation as finance:
+
+```mermaid
+flowchart TD
+  A[HTTP / Portal request] --> B{Tenant resolved?}
+  B -->|no| X401[401/403]
+  B --> C{workspaceWallet supported + module enabled?}
+  C -->|no| XW[WALLET_WORKSPACE_UNSUPPORTED / FORBIDDEN_WALLET_MODULE_DISABLED]
+  C --> D{Surface}
+  D -->|member| E{member.module.wallet entitled?}
+  E -->|no| XE[MemberModuleUnauthorized / 403]
+  E --> F{Member workspaceId matches?}
+  D -->|operator| G{admin or owner?}
+  G -->|no| XO[FORBIDDEN_OPERATOR_FORBIDDEN]
+  F --> H[WalletService + tenant RLS]
+  G --> H
+```
+
+| Layer                        | Owner        | Mechanism                                                                                  |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------ |
+| **Module enablement**        | API host     | `WalletCapabilityPort.assertEnabled(tenantId)` — mirror `FinanceCapabilityPort`            |
+| **Member entitlement**       | API + portal | `evaluateMemberPortalEntitlements` + `portalModuleGrants`; portal `isMemberModuleEntitled` |
+| **Operator role**            | API host     | `assertWalletOperatorAccess` — `admin` \| `owner`, `ACTIVE`, tenant scope                  |
+| **Tenant scope**             | All layers   | `tenantId` on auth context; `withTenantRls` / ALS alignment                                |
+| **Workspace scope (member)** | Member APIs  | `workspaceId` required for `role === member` (`tenant-kernel.ts`)                          |
+| **Direct URL / API**         | Fail closed  | Portal: unauthorized component; API: stable error codes before business logic              |
+
+**Not in scope Phase 0:** CASL subjects for wallet (today CASL is Tour-only in `api-ability.ts`). Wallet should use dedicated `WalletAuthorizationPort`, not extend Tour CASL.
+
+---
+
+## 5. Database and RLS invariants (Phase 2C tables)
+
+Shipped tables: `wallet_accounts`, `wallet_transactions`, `wallet_ledger_entries` (Prisma migration `20260902120000_wallet_member_accounts_rls`).
+
+Mandatory for any Wallet schema PR:
+
+| Invariant             | Requirement                                                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **tenant_id**         | `UUID NOT NULL` on every wallet table; FK to `tenants`                                                                                                                |
+| **Ownership**         | Member accounts: `tenant_id` + `user_id` + `workspace_id`; operator mutations record `actor_user_id`                                                                  |
+| **RLS**               | `ENABLE ROW LEVEL SECURITY` + `FORCE`; policy `tenant_id = current_setting('app.current_tenant_id', true)::uuid` (see `infra/sql/008_finance_payments_delta.sql`)     |
+| **Immutable ledger**  | Append-only `wallet_ledger_entries` (or equivalent); no UPDATE/DELETE on posted entries; corrections via reversing entries                                            |
+| **Balance authority** | Published balance is **derived** from the sum of posted entries per account; no authoritative mutable `balance` column (optional snapshots must reconcile to entries) |
+| **Idempotency**       | `creation_idempotency_key` + `@@unique([tenantId, creationIdempotencyKey])` on mutating aggregates; HTTP `Idempotency-Key` hashing pattern from finance               |
+| **Concurrency**       | Balance-affecting mutations run in `prisma.$transaction` + `withTenantRls`; serialize per account (e.g. advisory locks)                                               |
+| **Audit**             | `audit_events` and/or wallet-specific audit append-only table for operator adjustments                                                                                |
+| **Currency**          | `currency VARCHAR(8)` per account or entry; amounts as **string integer minor units** (finance convention)                                                            |
+| **ALS alignment**     | All writes inside `runWithTenantContext` + `assertActiveTenantMatchesRlsTarget`                                                                                       |
+
+**Out of scope for wallet tables:** Reusing `payments`, `finance_refunds`, or `outbox_events` as the member wallet ledger (integration only).
+
+---
+
+## 6. Verification (Phase 0)
+
+| Command                                            | Purpose                               |
+| -------------------------------------------------- | ------------------------------------- |
+| `node scripts/guards/guard-wallet-phase-0-doc.mjs` | Doc contract presence                 |
+| `pnpm run generate:workspace-registry --check`     | No codegen drift from doc-only change |
+| `pnpm run guard:import-boundary`                   | No accidental code imports            |
+
+---
+
+## 7. Phase roadmap (no implementation in Phase 0)
+
+| Phase | Deliverable                                                                       |
+| ----- | --------------------------------------------------------------------------------- |
+| 0     | This contract + ADR-WALLET-001 + doc guard                                        |
+| 1     | `wallet-core`, Prisma models, RLS SQL, `workspaceWallet` codegen                  |
+| 2     | `wallet-http`, API host, `WalletCapabilityPort`, authorization                    |
+| 3A    | Portal member read UI                                                             |
+| 3B    | Operator wallet ops UI (`walletNav`, BFF, mutations)                              |
+| 3C    | Local Postgres certification fixture `wallet-ws1` + Playwright E2E (this section) |
+| 4     | Observability, production workspace opt-in (not Denali)                           |
+
+---
+
+## 8. Phase 3C — local certification fixture (`wallet-ws1`)
+
+**Certification-only.** Does not enable Wallet for Denali or any production workspace manifest.
+
+### 8.1 Fixture identity (deterministic UUIDs)
+
+| Role                                | ID / host                                               |
+| ----------------------------------- | ------------------------------------------------------- |
+| Tenant                              | `00000000-0000-4000-8000-000000000420`                  |
+| Workspace                           | `00000000-0000-4000-8000-000000000421`                  |
+| Owner/admin operator                | `00000000-0000-4000-8000-000000000422` — `+15550004201` |
+| Entitled member                     | `00000000-0000-4000-8000-000000000423` — `+15550004202` |
+| Non-entitled member                 | `00000000-0000-4000-8000-000000000424` — `+15550004203` |
+| Wallet account                      | `00000000-0000-4000-8000-000000000425` (USD)            |
+| Subdomain                           | `wallet-ws1`                                            |
+| Operator admin host (WRS canonical) | `admin.wallet-ws1.localhost:3000`                       |
+| Member portal host                  | `portal.wallet-ws1.localhost:3003`                      |
+
+Constants: `packages/workspaces/wallet-ws1/src/smoke/tenant.ts` (`WALLET_WS1_SMOKE_*`).
+E2E SoT: `apps/api/test/fixtures/wallet-ws1-certification-tenant.ts`.
+
+### 8.2 Tenant theme (module + API entitlement)
+
+Postgres `tenants.theme` for certification tenant:
+
+```json
+{
+  "enabledModules": ["wallet"],
+  "portalModuleGrants": ["wallet"],
+  "defaultLocale": "en"
+}
+```
+
+`assertWalletMemberEntitlement` reads **tenant theme** `portalModuleGrants`. Portal UI reads **membership** `portalModuleGrants` via `/me/entitlements`.
+
+| Member       | Membership `portalModuleGrants` | Portal `/me/wallet`        | API `/wallet/me/*`                                               |
+| ------------ | ------------------------------- | -------------------------- | ---------------------------------------------------------------- |
+| Entitled     | `["wallet"]`                    | Allowed                    | Allowed (theme grant)                                            |
+| Non-entitled | `[]`                            | `MemberModuleUnauthorized` | Theme grant still passes — isolation is account `user_id` scoped |
+
+### 8.3 Seeding (Postgres only)
+
+Idempotent script: `apps/api/scripts/seed-wallet-ws1-certification.ts`
+
+1. `ProvisioningService.seedWalletWs1CertificationTenant()` — upsert tenant row (`workspaceType: wallet-ws1`).
+2. Identity upserts (owner + two members) via Prisma admin + `withTenantRls`.
+3. Wallet account + deterministic credit/debit history via `PrismaWalletRepository` under `runWithTenantContext`.
+4. Denali smoke tenant + operator identity (negative-path host only — **no** wallet enablement).
+
+Run before certification E2E when `STORAGE_DRIVER=prisma`:
+
+```bash
+NODE_ENV=development DATABASE_URL=... DATABASE_URL_ADMIN=... \
+  pnpm --filter @apps/api run seed:wallet-ws1-certification
+```
+
+### 8.4 Local runtime
+
+| Piece                                    | Location                                                                                                                                                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/etc/hosts` aliases                     | `scripts/cloud/agent-start.sh` — `wallet-ws1.localhost`, `admin.wallet-ws1.localhost`, `portal.wallet-ws1.localhost` (legacy `wallet-ws1.admin.localhost` also mapped) |
+| E2E servers (API + web + portal, Prisma) | `scripts/smoke-wallet-ws1-certification-servers.mjs`                                                                                                                   |
+| Member Playwright                        | `apps/portal/playwright.wallet-ws1-certification.config.ts`                                                                                                            |
+| Operator + Denali negative Playwright    | `apps/web/playwright.wallet-ws1-certification.config.ts`                                                                                                               |
+| HTTP isolation (Postgres)                | `apps/api/src/workspace-wallet/wallet-ws1-certification.postgres.spec.ts`                                                                                              |
+
+`devBootstrap.smokeTenant` in `wallet-ws1/workspace.manifest.json` registers codegen bindings only — not production provisioning.
+
+### 8.5 Verification commands
+
+```bash
+pnpm run generate:workspace-registry --check
+# Isolated API Postgres specs (do not use `pnpm run test -- <file>` — runs full glob)
+pnpm --filter @apps/api run test:wallet-postgres-certification
+pnpm --filter @app-tour/wallet-core run test
+pnpm --filter @app-tour/wallet-http run test
+pnpm --filter @app-tour/wallet-http-contracts run test
+node --import ./test/css-hook.mjs --import tsx --test test/portal-member-wallet.spec.ts  # cwd: apps/portal
+NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit test/wallet-nav-enablement.spec.ts test/wallet-page.spec.ts test/wallet-ops-logic.spec.ts  # cwd: apps/web
+pnpm --filter @apps/portal run test:certify:wallet-ws1
+pnpm --filter @apps/web run test:certify:wallet-ws1
+pnpm run guard:import-boundary && pnpm run guard:wallet-core-boundary
+pnpm --filter @apps/api run guard:tenant-isolation && pnpm --filter @apps/api run guard:rls-session-local
+```
+
+Optional: skip redundant package builds when deps are already built — `WALLET_CERT_SKIP_BUILD=1` on the smoke server script. Reuse running API/web/portal when health endpoints respond (Playwright `reuseExistingServer`, default locally).
+
+## 9. Phase 1 — Denali workspace enablement (manifest + capability only)
+
+Phase 1 adds **workspace-level** Wallet support for Denali without activating Wallet for any Denali tenant. This is distinct from tenant rollout (Phase 2+).
+
+### 9.1 Workspace vs tenant gates
+
+| Layer                               | Denali Phase 1 state                                                                                                               | Gate code when blocked                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Workspace support**               | `workspaceWallet.supported: true` in `packages/workspaces/denali/workspace.manifest.json`                                          | `WALLET_WORKSPACE_UNSUPPORTED` (unsupported workspaces only, e.g. `urban`)                |
+| **Tenant module enablement**        | **Not activated** — no Denali seed or dev tenant theme adds `"wallet"` to `enabledModules`; `defaultModuleEnabledWhenUnset: false` | `FORBIDDEN_WALLET_MODULE_DISABLED`                                                        |
+| **Operator `walletNav` capability** | `capabilities.walletNav.supported: true` in `denali.plugin.ts`                                                                     | Nav/route still hidden until tenant module enablement passes (`ensureWalletNavSupported`) |
+
+Workspace support and tenant enablement are **independent**:
+
+- A supported workspace with wallet omitted from theme → API/portal fail closed with `FORBIDDEN_WALLET_MODULE_DISABLED`.
+- An unsupported workspace → `WALLET_WORKSPACE_UNSUPPORTED` regardless of theme.
+
+### 9.2 Denali manifest bindings (Phase 1)
+
+| Field                           | Value                                          | Notes                                                                               |
+| ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `supported`                     | `true`                                         | Product declares Denali can host Wallet                                             |
+| `defaultModuleEnabledWhenUnset` | `false`                                        | Unlike `wallet-ws1`, Denali does **not** auto-enable when `enabledModules` is empty |
+| `capabilities.memberAccounts`   | `true`                                         | Member stored-value accounts (when tenant-enabled)                                  |
+| `capabilities.ops`              | `true`                                         | Operator reconciliation UI (when tenant-enabled)                                    |
+| `capabilities.gatewayTopUp`     | `false`                                        | Out of scope Phase 1                                                                |
+| `capabilities.withdrawals`      | `false`                                        | Out of scope Phase 1                                                                |
+| `capabilityRevision`            | `1`                                            | MAT-001 revision pin                                                                |
+| `ledgerPolicy`                  | `./wallet` → `DenaliWalletLedgerPolicyAdapter` | Manifest-bound placeholder; no finance-core import                                  |
+| `opsManifest`                   | `./wallet` → `DEFAULT_WALLET_OPS_MANIFEST`     | Theme resolver stub; no runtime ops                                                 |
+| HTTP routes                     | `WALLET_HTTP_ROUTE_MANIFEST` group             | Handler package `@app-tour/wallet-http` (same as certification fixture)             |
+
+`versionPins.capabilityPins.workspaceWallet.revision: 1` aligns codegen capability versioning with the block revision.
+
+### 9.3 Refund and finance terminology (unchanged)
+
+| Concept               | Phase 1 contract                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Refund-to-wallet**  | **Manual in v1** — operator credit via Wallet ops when tenant-enabled; no automatic `completeRefund` → member wallet write |
+| **`bookingWalletId`** | Registration finance GL identifier in `packages/workspaces/denali/src/finance/` — **not** a member wallet account id       |
+| **`walletNetMinor`**  | Finance invoice/reporting field only — **not** member wallet balance                                                       |
+
+Phase 1 does not modify `finance-core`, Denali registration-finance semantics, refund automation, checkout Wallet payment, holds, gateway top-up, withdrawals, or P2P transfers.
+
+### 9.4 Verification (Phase 1 isolated)
+
+```bash
+pnpm run generate:workspace-registry --check
+pnpm --filter @apps/api run test:file -- src/workspace-wallet/wallet-contract-certification.spec.ts
+pnpm --filter @apps/api run test:file -- src/workspace-wallet/wallet-http-route-registration.spec.ts
+pnpm --filter @apps/web run test:file -- test/thin-shell-wallet-nav-capability.spec.ts
+pnpm run guard:import-boundary
+pnpm run guard:wallet-core-boundary
+git diff --check
+```
+
+Negative paths preserved: unsupported workspace → `WALLET_WORKSPACE_UNSUPPORTED`; supported workspace without wallet theme → `FORBIDDEN_WALLET_MODULE_DISABLED`. E2E `WALLET-CERT-D01` (Denali club smoke `denali.admin.localhost` / tenant `…000003`) remains valid — **only** the isolated pilot tenant enables Wallet.
+
+## 10. Phase 2 — Denali pilot tenant activation (dev/cert only)
+
+Phase 2 activates Wallet for **one** Denali dev/cert tenant. All other Denali tenants (club smoke `…000003`, operator smoke `…000014`, production rows) remain wallet-disabled.
+
+### 10.1 Pilot identity (non-secret)
+
+| Field                | Value                                                                |
+| -------------------- | -------------------------------------------------------------------- |
+| **Tenant id**        | `00000000-0000-4000-8000-000000000430`                               |
+| **Subdomain**        | `denali-wallet-pilot`                                                |
+| **Workspace type**   | `denali`                                                             |
+| **Admin host**       | `admin.denali-wallet-pilot.localhost:3000`                           |
+| **Portal host**      | `portal.denali-wallet-pilot.localhost:3003`                          |
+| **Constants export** | `packages/workspaces/denali/src/smoke/denali-wallet-pilot-tenant.ts` |
+| **Fixture SoT**      | `apps/api/test/fixtures/denali-wallet-pilot-tenant.ts`               |
+
+### 10.2 Tenant theme (module + commerce currency)
+
+Postgres `tenants.theme` for the pilot tenant only:
+
+```json
+{
+  "enabledModules": ["wallet"],
+  "portalModuleGrants": ["wallet"],
+  "defaultLocale": "fa",
+  "commerce": {
+    "currency": "IRR",
+    "paymentMode": "offline_receipt",
+    "gatewayProvider": null,
+    "frozen": true
+  }
+}
+```
+
+Member API currency authority: `theme.commerce.currency` → `IRR` (zero-decimal display). **No** hardcoded Denali currency inside `wallet-core`.
+
+**Operator / portal surface gating:** `GET /api/v2/tenant-config` merges branding from `resolveRegisteredTenantById` with **raw** Postgres `tenants.theme` capability fields (`enabledModules`, `portalModuleGrants`, `commerce`) via `mergeTenantConfigSurfaceTheme`. Denali sets `defaultModuleEnabledWhenUnset: false` in workspace wallet bindings — without `enabledModules` in the tenant-config payload, operator Wallet nav stays hidden even when the DB row is correct. Finance uses the same raw-theme pattern (`findTenantFinanceWorkspaceRow`); wallet surfaces consume the merged tenant-config theme.
+
+| Member                                 | Membership `portalModuleGrants` | Portal `/me/wallet`        | API `/wallet/me/*`                 |
+| -------------------------------------- | ------------------------------- | -------------------------- | ---------------------------------- |
+| Entitled pilot member                  | `["wallet"]`                    | Allowed                    | Allowed                            |
+| Non-entitled pilot member              | `[]`                            | `MemberModuleUnauthorized` | Account isolation by `user_id`     |
+| Any member on `denali` smoke `…000003` | n/a                             | No wallet nav              | `FORBIDDEN_WALLET_MODULE_DISABLED` |
+
+### 10.3 Seeding (Postgres only)
+
+Idempotent script: `apps/api/scripts/seed-denali-wallet-pilot.ts`
+
+1. `ProvisioningService.seedDenaliWalletPilotTenant()` — upsert pilot row (`workspaceType: denali`, wallet theme above).
+2. Owner + entitled/denied members via Prisma admin + `withTenantRls`.
+3. Wallet account + deterministic IRR credit/debit history via `PrismaWalletRepository`.
+4. **Does not** modify `denali` smoke tenant `…000003` or operator smoke `…000014`.
+
+```bash
+NODE_ENV=development DATABASE_URL=... DATABASE_URL_ADMIN=... \
+  pnpm --filter @apps/api run seed:denali-wallet-pilot
+```
+
+### 10.4 Manual refund-to-wallet workflow (v1 — operator-initiated, no automation)
+
+Automatic refund → member wallet is **out of scope**. Phase 3 adds a **single explicit operator action** on Completed refunds; finance refund status and amount remain authoritative and are never mutated by the wallet credit path.
+
+#### Preconditions (fail-closed)
+
+| Gate | Requirement |
+| ---- | ----------- |
+| Operator role | `owner` or `admin`, `ACTIVE` |
+| Wallet module | Tenant `enabledModules` includes `"wallet"` |
+| Finance refund | `status === Completed` (read-only load) |
+| Member owner | Booking `submittedByUserId` resolves for `refund.registrationId` |
+| Currency | Wallet credit uses refund `amountMinor` + `currency` (no client override) |
+
+#### HTTP surface (Denali manifest only until broader rollout)
+
+| Method | Path | Handler |
+| ------ | ---- | ------- |
+| `POST` | `/finance/refunds/:refundId/credit-to-wallet` | `handleFinanceCreditRefundToWallet` |
+
+**Idempotency (server-derived):** `wallet:refund-credit:{tenantId}:{refundId}` → `wallet_transactions.creation_idempotency_key`. Retries and concurrent duplicate requests replay the original posted transaction; a refund can produce **at most one** wallet credit.
+
+**Wallet reference (correlation):** `reference.type = finance_refund`, `reference.id = refundId`.
+
+**Audit metadata (append-only):** `actorUserId`, `refundId`, `accountId`, `amountMinor`, `currency`, `reason` (refund `reasonCode` + optional `reasonNote`), `timestamp` (ISO posted-at).
+
+#### Operator UX (finance command center)
+
+On **Completed** refunds with a resolvable member owner and wallet-enabled tenant:
+
+1. Show action **Credit refund to member wallet**.
+2. Confirmation surfaces member display, refund ID, amount, currency, destination wallet account, and warning that this creates wallet credit (not a finance mutation).
+3. After success or replay, UI shows **already credited** state (from wallet reference / idempotency replay).
+
+Fallback SOP when the action is hidden (wallet-disabled tenant): complete refund in finance, then manual operator credit from `/wallet` with `refundId` in reference — unchanged from Phase 2.
+
+No checkout Wallet payment, gateway top-up, withdrawal, hold, P2P, background consumers, or `completeRefund` → wallet automation.
+
+### 10.5 Verification (Phase 2 isolated)
+
+```bash
+pnpm run generate:workspace-registry --check
+pnpm --filter @app-tour/wallet-core run test
+pnpm --filter @app-tour/wallet-http run test
+pnpm --filter @app-tour/wallet-http-contracts run test
+pnpm --filter @apps/api run test:wallet-postgres-certification
+pnpm --filter @apps/portal run test:certify:denali-wallet-pilot
+pnpm --filter @apps/web run test:certify:denali-wallet-pilot
+pnpm --filter @apps/web run test:certify:wallet-ws1   # includes WALLET-CERT-D01 negative
+pnpm run guard:import-boundary && pnpm run guard:wallet-core-boundary
+```

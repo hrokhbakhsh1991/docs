@@ -14,3 +14,4 @@ declare module "@app-tour/workspace-harbor/theme/tokens.css";
 declare module "@app-tour/workspace-profile-cert/theme/tokens.css";
 declare module "@app-tour/workspace-starter/theme/tokens.css";
 declare module "@app-tour/workspace-urban/theme/tokens.css";
+declare module "@app-tour/workspace-wallet-ws1/theme/tokens.css";

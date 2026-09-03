@@ -26,6 +26,7 @@ import type { TourStorageRepository } from "./db/tour.repository";
 import { handleHealth } from "./health/health.routes";
 import "./http/configure-product-http-hosts";
 import "./http/configure-finance-http-host";
+import "./http/configure-wallet-http-host";
 import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";

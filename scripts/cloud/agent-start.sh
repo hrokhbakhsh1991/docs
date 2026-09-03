@@ -115,7 +115,7 @@ else
 fi
 
 # --- Dev host aliases for browser testing (host-based tenant routing) ---
-hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost portal.denali.localhost portal.operator.localhost operator.portal.localhost denali.admin.localhost admin.denali.localhost operator.admin.localhost admin.operator.localhost urban.admin.localhost admin.urban.localhost operator.portal.localhost admin.localhost"
+hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost wallet-ws1.localhost wallet-ws1.admin.localhost admin.wallet-ws1.localhost wallet-ws1.portal.localhost portal.wallet-ws1.localhost denali-wallet-pilot.localhost admin.denali-wallet-pilot.localhost portal.denali-wallet-pilot.localhost denali.portal.localhost portal.denali.localhost portal.operator.localhost operator.portal.localhost denali.admin.localhost admin.denali.localhost operator.admin.localhost admin.operator.localhost urban.admin.localhost admin.urban.localhost operator.portal.localhost admin.localhost"
 if ! grep -q "admin.denali.localhost" /etc/hosts 2>/dev/null; then
   printf '%s\n' "$hosts_line" | sudo tee -a /etc/hosts >/dev/null 2>&1 \
     && echo "agent-start: added dev host aliases to /etc/hosts" || true

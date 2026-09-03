@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { Check, Plus } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
@@ -153,8 +154,8 @@ export function BookingsPageClient({
   const t = useTranslations("bookings");
   const tErrors = useTranslations("bookings.errors");
   const tWorkspace = useTranslations("tours.workspace");
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const searchParams = useAppSearchParams();
+  const pathname = useAppPathname();
   const router = useRouter();
   const bulkApproveMaxBatch = opsActions.bulkApproveMaxBatch;
   const rejectRequiresReason = opsActions.rejectRequiresReason;

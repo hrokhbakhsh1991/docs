@@ -148,6 +148,30 @@ export const WorkspaceItineraryBlockSchema = z.object({
   wizardComposite: workspaceModuleBindingSchema.optional(),
 });
 
+/** WALLET-P1 — member wallet capability block (top-level manifest extension). */
+const workspaceWalletOpsManifestBindingSchema = z.object({
+  module: z.string().min(1),
+  defaultExport: z.string().min(1),
+  resolveFromThemeExport: z.string().min(1).optional(),
+});
+
+export const WorkspaceWalletBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      memberAccounts: z.boolean(),
+      ops: z.boolean(),
+      gatewayTopUp: z.boolean().optional(),
+      withdrawals: z.boolean().optional(),
+    })
+    .optional(),
+  ledgerPolicy: workspaceModuleBindingSchema.optional(),
+  operatorPolicy: workspaceModuleBindingSchema.optional(),
+  opsManifest: workspaceWalletOpsManifestBindingSchema.optional(),
+});
+
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
@@ -280,6 +304,7 @@ export const WorkspaceManifestCiSchema = z
     workspaceItinerary: WorkspaceItineraryBlockSchema.optional(),
     workspacePricing: WorkspacePricingBlockSchema.optional(),
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
+    workspaceWallet: WorkspaceWalletBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     wizardResume: WorkspaceWizardResumeBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),

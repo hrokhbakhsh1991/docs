@@ -97,6 +97,16 @@ pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-operato
   --packages=external \
   --outfile="${ARTIFACT_ROOT}/bin/seed-staging.cjs"
 
+log "bundle Denali Wallet pilot seed (explicit staging opt-in)"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-wallet-pilot.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-wallet-pilot-artifact.sh" "${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.sh"
+
 log "bundle migrate helper"
 mkdir -p "${ARTIFACT_ROOT}/bin"
 cat >"${ARTIFACT_ROOT}/bin/migrate-deploy.sh" <<'MIG'
@@ -113,6 +123,11 @@ chmod +x "${ARTIFACT_ROOT}/bin/migrate-deploy.sh"
 cp -a "${SCRIPT_DIR}/seed-staging-artifact.sh" "${ARTIFACT_ROOT}/bin/seed-staging.sh"
 chmod +x "${ARTIFACT_ROOT}/bin/seed-staging.sh"
 
+log "package complete staging tooling"
+mkdir -p "${ARTIFACT_ROOT}/tooling/scripts/vps-deploy"
+cp -a "${SCRIPT_DIR}/." "${ARTIFACT_ROOT}/tooling/scripts/vps-deploy/"
+chmod +x "${ARTIFACT_ROOT}/tooling/scripts/vps-deploy/"*.sh
+
 NODE_V="$(node -v)"
 PNPM_V="$(pnpm -v)"
 BUILD_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -125,6 +140,7 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
   "pnpmVersion": "${PNPM_V}",
   "migrationHead": "${MIGRATION_HEAD}",
   "denaliClientBundle": true,
+  "denaliWalletPilotSeedBundle": true,
   "layout": {
     "api": "api/dist/main.js",
     "web": "web/RUNTIME.json",
@@ -141,7 +157,7 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
 EOF
 
 log "artifact layout self-check (pre-tar)"
-artifact_self_check "$ARTIFACT_ROOT"
+artifact_self_check "$ARTIFACT_ROOT" "$SHA"
 
 log "tar.zst ${TARBALL}"
 tar -C "${WORK_DIR}" -cf - "${ARTIFACT_NAME}" | zstd -19 -T0 -f -o "${TARBALL}"
@@ -149,6 +165,13 @@ tar -C "${WORK_DIR}" -cf - "${ARTIFACT_NAME}" | zstd -19 -T0 -f -o "${TARBALL}"
   cd "$OUT_DIR"
   sha256sum "$TARBALL_BASE" | tee "${TARBALL_BASE}.sha256"
 )
+ARTIFACT_DIGEST_SHA256="$(cut -d' ' -f1 "${TARBALL}.sha256")"
+cat >"${TARBALL}.manifest.json" <<EOF
+{
+  "releaseSha": "${SHA}",
+  "artifactDigestSha256": "${ARTIFACT_DIGEST_SHA256}"
+}
+EOF
 
 log "self-check extract"
 VERIFY_DIR="${WORK_DIR}/verify-${SHA}"
@@ -156,8 +179,8 @@ rm -rf "$VERIFY_DIR"
 mkdir -p "$VERIFY_DIR"
 tar -I zstd -xf "${TARBALL}" -C "$VERIFY_DIR"
 VROOT="${VERIFY_DIR}/${ARTIFACT_NAME}"
-artifact_self_check "$VROOT"
+artifact_self_check "$VROOT" "$SHA"
 artifact_clean_room_check "$VROOT" "$REPO_ROOT"
 
 log "ARTIFACT_OK ${TARBALL}"
-log "SHA256 $(cut -d' ' -f1 "${TARBALL}.sha256")"
+log "SHA256 ${ARTIFACT_DIGEST_SHA256}"

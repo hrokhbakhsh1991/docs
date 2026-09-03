@@ -442,3 +442,144 @@ body[data-app-surface="portal"] [data-portal-member-hub-list][data-portal-member
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* --- Member wallet (WALLET-P3A) --- */
+body[data-app-surface="portal"] [data-portal-member-wallet-sr-only] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body[data-app-surface="portal"] main[data-portal-member-wallet] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+
+body[data-app-surface="portal"] main[data-portal-member-wallet] [data-portal-member-wallet-balance-card] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+body[data-app-surface="portal"] main[data-portal-member-wallet] [data-portal-member-wallet-balance-label] {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="portal"] main[data-portal-member-wallet] [data-portal-member-wallet-balance-amount] {
+  margin: 0;
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-app-surface="portal"] main[data-portal-member-wallet] [data-portal-member-wallet-currency],
+body[data-app-surface="portal"] main[data-portal-member-wallet] [data-portal-member-wallet-balance-secondary] {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transactions] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-list] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-main] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-label] {
+  font-weight: 600;
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-date] {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount] {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount][data-direction="incoming"] {
+  color: var(--color-success, #059669);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount][data-direction="outgoing"] {
+  color: var(--foreground);
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-load-more] {
+  align-self: flex-start;
+  min-height: 2.75rem;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--background);
+  cursor: pointer;
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-load-more]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-load-more]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+body[data-app-surface="portal"] [data-portal-member-wallet-empty] {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border);
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 48rem) {
+  body[data-app-surface="portal"] main[data-portal-member-wallet] {
+    max-width: 40rem;
+  }
+}

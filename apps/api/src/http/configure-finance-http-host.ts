@@ -6,6 +6,10 @@ import { enqueueScheduleItemWaivedAudit } from "../workspace-finance/enqueue-fin
 import { uploadOperatorReceiptProof } from "../workspace-finance/finance-receipt-upload";
 import { loadFinanceCaseEncounterHttp } from "../workspace-finance/case/encounter/load-finance-case-encounter-http";
 import { runFinanceCaseCommandReviewReceiptHttp } from "../workspace-finance/case/command-bridge/run-finance-case-command-review-receipt-http";
+import {
+  creditCompletedRefundToWallet,
+  enrichOperatorRefundsWithWalletCredit,
+} from "../workspace-wallet/refund-wallet-credit";
 import { handleHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { runWithHttpRequestContext } from "./bind-request-context";
@@ -42,4 +46,8 @@ configureFinanceHttpHost({
   loadFinanceCaseEncounter: (input) => loadFinanceCaseEncounterHttp(input),
   runFinanceCaseCommandReviewReceipt: (input) =>
     runFinanceCaseCommandReviewReceiptHttp(input),
+  creditCompletedRefundToWallet: (input) =>
+    creditCompletedRefundToWallet(input.auth, input.refundId),
+  enrichOperatorRefundItems: (auth, items) =>
+    enrichOperatorRefundsWithWalletCredit(auth, items),
 });

@@ -2,7 +2,8 @@
 
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { useTranslations } from "next-intl";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -88,8 +89,8 @@ export function OperatorToursPageClient({
         : [],
     [hasCategoryFilter, categorySurfaceReady, session.pluginId]
   );
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const searchParams = useAppSearchParams();
+  const pathname = useAppPathname();
   const router = useRouter();
   const query = useMemo(
     () => parseTourListQuery(session.pluginId, new URLSearchParams(searchParams.toString())),

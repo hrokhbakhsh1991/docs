@@ -34,6 +34,7 @@ import {
   ensureSettingsExposureSurfacesUiReady,
   resolveOperatorShellNavCapability,
   resolveFinanceNavCapability,
+  resolveWalletNavCapability,
   resolveFinanceCaseMeaningCapability,
   resolveFinanceOpsCapability,
   resolveBookingOpsCapability,
@@ -491,6 +492,12 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
     const financeNav = { supported: true as const };
     assert.equal(resolveFinanceNavCapability({ capabilities: { financeNav } })?.supported, true);
     assert.equal(resolveFinanceNavCapability({}), undefined);
+  });
+
+  it("SDK-WALLET-P3B-01 resolveWalletNavCapability reads capabilities.walletNav", () => {
+    const walletNav = { supported: true as const };
+    assert.equal(resolveWalletNavCapability({ capabilities: { walletNav } })?.supported, true);
+    assert.equal(resolveWalletNavCapability({}), undefined);
   });
 
   it("SDK-4BE-01 resolveFinanceOpsCapability reads capabilities.financeOps", () => {

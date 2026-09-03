@@ -73,6 +73,24 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
       defaultLocale: "en",
     },
   },
+  {
+    id: "00000000-0000-4000-8000-000000000430",
+    subdomain: "denali-wallet-pilot",
+    workspaceType: "denali",
+    theme: {
+      primaryColor: "#059669",
+      cssVariables: { "--color-primary": "#059669" },
+      defaultLocale: "fa",
+      enabledModules: ["wallet"],
+      portalModuleGrants: ["wallet"],
+      commerce: {
+        currency: "IRR",
+        paymentMode: "offline_receipt",
+        gatewayProvider: null,
+        frozen: true,
+      },
+    } as TenantThemeConfig,
+  },
 ];
 
 /**
