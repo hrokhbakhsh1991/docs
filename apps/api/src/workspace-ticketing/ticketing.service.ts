@@ -4,12 +4,15 @@ import {
   addInternalNote,
   addPublicMessage,
   assignTicket,
+  buildTicketEvent,
+  bumpTicketActivity,
   canListTicket,
   canReadTicket,
   changeTicketPriority,
   changeTicketStatus,
   createTicket,
   reopenTicket,
+  withIncrementedRowVersion,
   type TicketingResult,
 } from "@app-tour/ticketing-core";
 import type { TicketingServicePort } from "@app-tour/ticketing-http";
@@ -31,6 +34,15 @@ import type {
   OperatorReplyInput,
   OperatorTicketListQuery,
   OperatorTicketPatchInput,
+  TicketAssignInput,
+  TicketQueueChangeInput,
+  TicketQueueCreateInput,
+  TicketQueueUpdateInput,
+  TicketTagCreateInput,
+  TicketTagMutationInput,
+  TicketTagUpdateInput,
+  TicketTeamCreateInput,
+  TicketTeamUpdateInput,
 } from "@app-tour/ticketing-http-contracts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
@@ -39,6 +51,8 @@ import {
   buildTicketActorContext,
 } from "./ticketing-actor-context";
 import type { PrismaTicketingRepository } from "./infrastructure/prisma-ticketing.repository";
+import type { TicketingOperationalRepository } from "./infrastructure/ticketing-operational.repository";
+import type { TicketingCapabilityPort } from "./infrastructure/host-ticketing-capability.adapter";
 import type {
   PersistTicketMutationInput,
   TicketDetailRecord,
@@ -66,21 +80,78 @@ function requireDetail(detail: TicketDetailRecord | null): TicketDetailRecord {
 }
 
 function mapPersistenceError(error: unknown): never {
-  if (error instanceof Error && error.message === "ROW_VERSION_CONFLICT") {
-    throwTicketingDomainError({
-      code: "ROW_VERSION_CONFLICT",
-      message: "stale row version",
-    });
+  if (error instanceof Error) {
+    if (error.message === "ROW_VERSION_CONFLICT") {
+      throwTicketingDomainError({
+        code: "ROW_VERSION_CONFLICT",
+        message: "stale row version",
+      });
+    }
+    if (error.message === "DUPLICATE_TAG") {
+      throwTicketingDomainError({
+        code: "DUPLICATE_TAG",
+        message: "tag code already exists",
+        field: "code",
+      });
+    }
+    if (error.message === "TAG_NOT_FOUND") {
+      throwTicketingDomainError({
+        code: "TAG_NOT_FOUND",
+        message: "tag not found",
+      });
+    }
+    if (error.message === "QUEUE_NOT_FOUND") {
+      throwTicketingDomainError({
+        code: "QUEUE_NOT_FOUND",
+        message: "queue not found",
+      });
+    }
+    if (error.message === "TEAM_NOT_FOUND") {
+      throwTicketingDomainError({
+        code: "TEAM_NOT_FOUND",
+        message: "team not found",
+      });
+    }
   }
   throw error;
 }
 
+function assertAdminRole(auth: TenantAuthContext): void {
+  if (auth.role !== "admin" && auth.role !== "owner") {
+    throwTicketingDomainError({
+      code: "TICKET_ACCESS_DENIED",
+      message: "admin or owner role required",
+    });
+  }
+}
+
 export type TicketingServiceDeps = {
   readonly repository: PrismaTicketingRepository;
+  readonly operationalRepository: TicketingOperationalRepository;
+  readonly capability: TicketingCapabilityPort;
 };
 
 export function createTicketingService(deps: TicketingServiceDeps): TicketingServicePort {
-  const { repository } = deps;
+  const { repository, operationalRepository, capability } = deps;
+
+  async function resolveWorkspaceCapabilities(tenantId: string) {
+    const gate = await capability.assertEnabled(tenantId);
+    return gate.capabilities;
+  }
+
+  function assertCategoryAllowed(
+    categoryCode: string,
+    allowedCategories: readonly { readonly code: string }[],
+  ): void {
+    const normalized = categoryCode.trim();
+    if (!allowedCategories.some((entry) => entry.code === normalized)) {
+      throwTicketingDomainError({
+        code: "INVALID_CATEGORY_CODE",
+        message: "categoryCode is not enabled for this workspace",
+        field: "categoryCode",
+      });
+    }
+  }
 
   async function persistMutation(
     input: PersistTicketMutationInput,
@@ -181,6 +252,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         return { ticket: toMemberTicketDetailHttp(existing) };
       }
       const actor = await buildTicketActorContext(auth);
+      const capabilities = await resolveWorkspaceCapabilities(auth.tenantId);
+      assertCategoryAllowed(body.categoryCode, capabilities.categories);
       const links = await validateRelatedLinks(auth.tenantId, body);
       const ticketId = randomUUID();
       const messageId = randomUUID();
@@ -294,6 +367,10 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         ...(query.priority !== undefined ? { priority: query.priority } : {}),
         ...(query.categoryCode !== undefined ? { categoryCode: query.categoryCode } : {}),
         ...(query.assigneeUserId !== undefined ? { assigneeUserId: query.assigneeUserId } : {}),
+        ...(query.assigneeTeamId !== undefined ? { assigneeTeamId: query.assigneeTeamId } : {}),
+        ...(query.queueCode !== undefined ? { queueCode: query.queueCode } : {}),
+        ...(query.tagCode !== undefined ? { tagCode: query.tagCode } : {}),
+        ...(query.teamId !== undefined ? { teamId: query.teamId } : {}),
         ...(query.unassigned === true ? { unassigned: true } : {}),
         ...(query.q !== undefined ? { q: query.q } : {}),
       });
@@ -465,6 +542,448 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         events: outcome.events,
       });
       return { ticket: toOperatorTicketDetailHttp(persisted) };
+    },
+
+    async listTicketCategories(auth) {
+      assertOperatorEndpointRole(auth);
+      const capabilities = await resolveWorkspaceCapabilities(auth.tenantId);
+      return capabilities.categories.map((category) => ({
+        code: category.code,
+        labelKey: category.labelKey,
+        ...(category.description !== undefined ? { description: category.description } : {}),
+        ...(category.icon !== undefined ? { icon: category.icon } : {}),
+        sortOrder: category.sortOrder,
+        ...(category.defaultPriority !== undefined
+          ? { defaultPriority: category.defaultPriority }
+          : {}),
+      }));
+    },
+
+    async listTags(auth) {
+      assertAdminRole(auth);
+      const tags = await operationalRepository.listTags(auth.tenantId);
+      return tags.map((tag) => ({
+        code: tag.code,
+        label: tag.label,
+        colorToken: tag.colorToken,
+        archivedAt: tag.archivedAt,
+        rowVersion: tag.rowVersion,
+        createdAt: tag.createdAt,
+        updatedAt: tag.updatedAt,
+      }));
+    },
+
+    async createTag(auth, body: TicketTagCreateInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      try {
+        const tag = await operationalRepository.createTag(auth.tenantId, body);
+        return {
+          code: tag.code,
+          label: tag.label,
+          colorToken: tag.colorToken,
+          archivedAt: tag.archivedAt,
+          rowVersion: tag.rowVersion,
+          createdAt: tag.createdAt,
+          updatedAt: tag.updatedAt,
+        };
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+    },
+
+    async updateTag(auth, code, body: TicketTagUpdateInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      try {
+        const tag = await operationalRepository.updateTag(auth.tenantId, code, body);
+        return {
+          code: tag.code,
+          label: tag.label,
+          colorToken: tag.colorToken,
+          archivedAt: tag.archivedAt,
+          rowVersion: tag.rowVersion,
+          createdAt: tag.createdAt,
+          updatedAt: tag.updatedAt,
+        };
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+    },
+
+    async listQueues(auth) {
+      assertAdminRole(auth);
+      const queues = await operationalRepository.listQueues(auth.tenantId);
+      return queues.map((queue) => ({
+        code: queue.code,
+        name: queue.name,
+        description: queue.description,
+        enabled: queue.enabled,
+        sortOrder: queue.sortOrder,
+        filterJson: queue.filterJson,
+        teamCode: queue.teamCode,
+        isDefault: queue.isDefault,
+        archivedAt: queue.archivedAt,
+        rowVersion: queue.rowVersion,
+        createdAt: queue.createdAt,
+        updatedAt: queue.updatedAt,
+      }));
+    },
+
+    async createQueue(auth, body: TicketQueueCreateInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      try {
+        const queue = await operationalRepository.createQueue(auth.tenantId, body);
+        return {
+          code: queue.code,
+          name: queue.name,
+          description: queue.description,
+          enabled: queue.enabled,
+          sortOrder: queue.sortOrder,
+          filterJson: queue.filterJson,
+          teamCode: queue.teamCode,
+          isDefault: queue.isDefault,
+          archivedAt: queue.archivedAt,
+          rowVersion: queue.rowVersion,
+          createdAt: queue.createdAt,
+          updatedAt: queue.updatedAt,
+        };
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+    },
+
+    async updateQueue(auth, code, body: TicketQueueUpdateInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      try {
+        const queue =
+          body.archived === true
+            ? await operationalRepository.archiveQueue(auth.tenantId, code, body.rowVersion)
+            : await operationalRepository.updateQueue(auth.tenantId, code, body);
+        return {
+          code: queue.code,
+          name: queue.name,
+          description: queue.description,
+          enabled: queue.enabled,
+          sortOrder: queue.sortOrder,
+          filterJson: queue.filterJson,
+          teamCode: queue.teamCode,
+          isDefault: queue.isDefault,
+          archivedAt: queue.archivedAt,
+          rowVersion: queue.rowVersion,
+          createdAt: queue.createdAt,
+          updatedAt: queue.updatedAt,
+        };
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+    },
+
+    async listTeams(auth) {
+      assertAdminRole(auth);
+      const teams = await operationalRepository.listTeams(auth.tenantId);
+      return teams.map((team) => ({
+        code: team.code,
+        name: team.name,
+        description: team.description,
+        enabled: team.enabled,
+        isDefault: team.isDefault,
+        archivedAt: team.archivedAt,
+        rowVersion: team.rowVersion,
+        memberUserIds: team.memberUserIds,
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt,
+      }));
+    },
+
+    async createTeam(auth, body: TicketTeamCreateInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      if (body.memberUserIds !== undefined) {
+        for (const userId of body.memberUserIds) {
+          const inTenant = await repository.isAssigneeInTenant(auth.tenantId, userId);
+          if (!inTenant) {
+            throwTicketingDomainError({
+              code: "ASSIGNEE_NOT_IN_TENANT",
+              message: "team member is not in tenant",
+              field: "memberUserIds",
+            });
+          }
+        }
+      }
+      try {
+        const team = await operationalRepository.createTeam(auth.tenantId, body);
+        return {
+          code: team.code,
+          name: team.name,
+          description: team.description,
+          enabled: team.enabled,
+          isDefault: team.isDefault,
+          archivedAt: team.archivedAt,
+          rowVersion: team.rowVersion,
+          memberUserIds: team.memberUserIds,
+          createdAt: team.createdAt,
+          updatedAt: team.updatedAt,
+        };
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+    },
+
+    async updateTeam(auth, code, body: TicketTeamUpdateInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      if (body.memberUserIds !== undefined) {
+        for (const userId of body.memberUserIds) {
+          const inTenant = await repository.isAssigneeInTenant(auth.tenantId, userId);
+          if (!inTenant) {
+            throwTicketingDomainError({
+              code: "ASSIGNEE_NOT_IN_TENANT",
+              message: "team member is not in tenant",
+              field: "memberUserIds",
+            });
+          }
+        }
+      }
+      try {
+        const team =
+          body.archived === true
+            ? await operationalRepository.archiveTeam(auth.tenantId, code, body.rowVersion)
+            : await operationalRepository.updateTeam(auth.tenantId, code, body);
+        return {
+          code: team.code,
+          name: team.name,
+          description: team.description,
+          enabled: team.enabled,
+          isDefault: team.isDefault,
+          archivedAt: team.archivedAt,
+          rowVersion: team.rowVersion,
+          memberUserIds: team.memberUserIds,
+          createdAt: team.createdAt,
+          updatedAt: team.updatedAt,
+        };
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+    },
+
+    async assignTicket(auth, ticketId, body: TicketAssignInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      let detail = await loadReadableTicket(auth, ticketId, { operator: true });
+      const actor = await buildTicketActorContext(auth, { loadTenantMembers: true });
+      const now = nowIso();
+
+      if (body.assigneeUserId !== undefined) {
+        const outcome = unwrap(
+          assignTicket({
+            eventId: randomUUID(),
+            ticket: detail.ticket,
+            assigneeUserId: body.assigneeUserId,
+            actor,
+            expectedRowVersion: body.rowVersion,
+            nowIso: now,
+          }),
+        );
+        detail = await persistMutation({
+          ticket: { ...outcome.ticket, assigneeTeamId: null },
+          events: outcome.events,
+        });
+        return { ticket: toOperatorTicketDetailHttp(detail) };
+      }
+
+      const teamCode = body.assigneeTeamCode;
+      if (teamCode === null) {
+        if (detail.ticket.rowVersion !== body.rowVersion) {
+          throwTicketingDomainError({
+            code: "ROW_VERSION_CONFLICT",
+            message: "stale row version",
+          });
+        }
+        const event = buildTicketEvent({
+          id: randomUUID(),
+          tenantId: detail.ticket.tenantId,
+          ticketId: detail.ticket.id,
+          eventType: "ticket.team.assigned",
+          actorUserId: auth.userId,
+          payload: { from: detail.ticket.assigneeTeamId, to: null },
+          createdAt: now,
+        });
+        const updatedTicket = withIncrementedRowVersion(
+          bumpTicketActivity(
+            {
+              ...detail.ticket,
+              assigneeUserId: null,
+              assigneeTeamId: null,
+            },
+            now,
+          ),
+          now,
+        );
+        detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+        return { ticket: toOperatorTicketDetailHttp(detail) };
+      }
+
+      const team = await operationalRepository.findTeamByCode(auth.tenantId, teamCode!);
+      if (team === null) {
+        throwTicketingDomainError({
+          code: "TEAM_NOT_FOUND",
+          message: "team not found",
+          field: "assigneeTeamCode",
+        });
+      }
+      if (detail.ticket.rowVersion !== body.rowVersion) {
+        throwTicketingDomainError({
+          code: "ROW_VERSION_CONFLICT",
+          message: "stale row version",
+        });
+      }
+      const event = buildTicketEvent({
+        id: randomUUID(),
+        tenantId: detail.ticket.tenantId,
+        ticketId: detail.ticket.id,
+        eventType: "ticket.team.assigned",
+        actorUserId: auth.userId,
+        payload: { from: detail.ticket.assigneeTeamId, to: team.id, teamCode: team.code },
+        createdAt: now,
+      });
+      const updatedTicket = withIncrementedRowVersion(
+        bumpTicketActivity(
+          {
+            ...detail.ticket,
+            assigneeUserId: null,
+            assigneeTeamId: team.id,
+          },
+          now,
+        ),
+        now,
+      );
+      detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+      return { ticket: toOperatorTicketDetailHttp(detail) };
+    },
+
+    async changeTicketQueue(auth, ticketId, body: TicketQueueChangeInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      let detail = await loadReadableTicket(auth, ticketId, { operator: true });
+      const now = nowIso();
+      let queueId: string | null = null;
+      let queueCode: string | null = body.queueCode;
+
+      if (body.queueCode !== null) {
+        const queue = await operationalRepository.findQueueByCode(auth.tenantId, body.queueCode);
+        if (queue === null) {
+          throwTicketingDomainError({
+            code: "QUEUE_NOT_FOUND",
+            message: "queue not found",
+            field: "queueCode",
+          });
+        }
+        queueId = queue.id;
+        queueCode = queue.code;
+      }
+
+      const event = buildTicketEvent({
+        id: randomUUID(),
+        tenantId: detail.ticket.tenantId,
+        ticketId: detail.ticket.id,
+        eventType: "ticket.queue.changed",
+        actorUserId: auth.userId,
+        payload: {
+          from: detail.ticket.queueId,
+          to: queueId,
+          queueCode,
+        },
+        createdAt: now,
+      });
+      const updatedTicket = withIncrementedRowVersion(
+        bumpTicketActivity({ ...detail.ticket, queueId }, now),
+        now,
+      );
+      if (detail.ticket.rowVersion !== body.rowVersion) {
+        throwTicketingDomainError({
+          code: "ROW_VERSION_CONFLICT",
+          message: "stale row version",
+        });
+      }
+      detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+      return { ticket: toOperatorTicketDetailHttp(detail) };
+    },
+
+    async addTicketTag(auth, ticketId, body: TicketTagMutationInput, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      let detail = await loadReadableTicket(auth, ticketId, { operator: true });
+      const tag = await operationalRepository.findTagByCode(auth.tenantId, body.tagCode);
+      if (tag === null) {
+        throwTicketingDomainError({
+          code: "TAG_NOT_FOUND",
+          message: "tag not found",
+          field: "tagCode",
+        });
+      }
+      try {
+        await operationalRepository.addTicketTag(auth.tenantId, ticketId, body.tagCode);
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+      const now = nowIso();
+      const event = buildTicketEvent({
+        id: randomUUID(),
+        tenantId: detail.ticket.tenantId,
+        ticketId: detail.ticket.id,
+        eventType: "ticket.tag.added",
+        actorUserId: auth.userId,
+        payload: { tagCode: body.tagCode },
+        createdAt: now,
+      });
+      const updatedTicket = withIncrementedRowVersion(
+        bumpTicketActivity(detail.ticket, now),
+        now,
+      );
+      if (detail.ticket.rowVersion !== body.rowVersion) {
+        throwTicketingDomainError({
+          code: "ROW_VERSION_CONFLICT",
+          message: "stale row version",
+        });
+      }
+      detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+      return { ticket: toOperatorTicketDetailHttp(detail) };
+    },
+
+    async removeTicketTag(auth, ticketId, tagCode, rowVersion, idempotencyKey) {
+      void idempotencyKey;
+      assertAdminRole(auth);
+      let detail = await loadReadableTicket(auth, ticketId, { operator: true });
+      try {
+        await operationalRepository.removeTicketTag(auth.tenantId, ticketId, tagCode);
+      } catch (error) {
+        mapPersistenceError(error);
+      }
+      const now = nowIso();
+      const event = buildTicketEvent({
+        id: randomUUID(),
+        tenantId: detail.ticket.tenantId,
+        ticketId: detail.ticket.id,
+        eventType: "ticket.tag.removed",
+        actorUserId: auth.userId,
+        payload: { tagCode },
+        createdAt: now,
+      });
+      const updatedTicket = withIncrementedRowVersion(
+        bumpTicketActivity(detail.ticket, now),
+        now,
+      );
+      if (detail.ticket.rowVersion !== rowVersion) {
+        throwTicketingDomainError({
+          code: "ROW_VERSION_CONFLICT",
+          message: "stale row version",
+        });
+      }
+      detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+      return { ticket: toOperatorTicketDetailHttp(detail) };
     },
   };
 }

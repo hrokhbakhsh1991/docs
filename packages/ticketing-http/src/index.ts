@@ -15,6 +15,9 @@ export {
   toOperatorMessageHttp,
   toOperatorTicketDetailHttp,
   toTicketSummaryHttp,
+  toTicketTagHttp,
+  toTicketQueueHttp,
+  toTicketTeamHttp,
 } from "./ticketing-projections";
 export {
   handleTicketingMemberListTickets,
@@ -29,3 +32,19 @@ export {
   handleTicketingOperatorPatchTicket,
   handleTicketingOperatorReopenTicket,
 } from "./ticketing.routes";
+export {
+  handleTicketingAddTicketTag,
+  handleTicketingAssignTicket,
+  handleTicketingChangeTicketQueue,
+  handleTicketingCreateQueue,
+  handleTicketingCreateTag,
+  handleTicketingCreateTeam,
+  handleTicketingListCategories,
+  handleTicketingListQueues,
+  handleTicketingListTags,
+  handleTicketingListTeams,
+  handleTicketingRemoveTicketTag,
+  handleTicketingUpdateQueue,
+  handleTicketingUpdateTag,
+  handleTicketingUpdateTeam,
+} from "./ticketing-operational.routes";

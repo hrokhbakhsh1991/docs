@@ -643,9 +643,73 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 
 ## 19. Category and priority (summary)
 
-**Category:** `TicketCategory` per tenant/workspace; manifest seeds defaults.
+**Category:** manifest `workspaceTicketing.categories[]` is the validation source in Phase D1; `categoryCode` on tickets must match a declared code for the tenant workspace type. Runtime DB `TicketCategory` sync is deferred until settings UI (Phase K).
 
 **Priority:** member cannot set; operator triages. Values: `low`, `normal`, `high`, `urgent`.
+
+### 19.1 `workspaceTicketing` manifest contract (Phase D1)
+
+Top-level manifest block — codegen emits `WORKSPACE_TICKETING_CAPABILITIES` and `WORKSPACE_TICKETING_BINDINGS`.
+
+| Field | Required when `supported: true` | Notes |
+| ----- | ------------------------------- | ----- |
+| `supported` | yes | `false` or absent → ticketing API returns `TICKET_MODULE_DISABLED` |
+| `defaultModuleEnabledWhenUnset` | no | default `false` (fail-closed); theme `enabledModules` must include `ticketing` when unset |
+| `capabilities.memberCreate` | yes | member POST `/member/tickets` |
+| `capabilities.operatorInbox` | yes | operator `/tickets/*` |
+| `capabilities.tags` | yes | tag CRUD + assignment |
+| `capabilities.queues` | yes | queue CRUD + ticket queue mutation |
+| `capabilities.teams` | yes | team CRUD + team assignment policy |
+| `capabilities.attachments` | no | Phase E; default `false` |
+| `categories[]` | yes | `{ code, labelKey, description?, icon?, sortOrder?, defaultPriority? }` |
+| `defaultCategoryCode` | yes | must match a `categories[].code` |
+| `allowedPriorities` | yes | subset of `low \| normal \| high \| urgent` |
+| `maxAttachmentSizeBytes` | no | default 10_485_760 (10 MiB) for Phase E |
+| `queueDefaults` | no | seed hints for operator onboarding (not persisted) |
+
+**Workspace enablement (D1):**
+
+| Workspace | `supported` | `defaultModuleEnabledWhenUnset` | Notes |
+| --------- | ----------- | ------------------------------- | ----- |
+| denali | `true` | `false` | categories seeded in manifest |
+| urban | absent | — | unsupported until product decision (D6) |
+| starter | absent | — | unsupported scaffold |
+| wallet-ws1 / booking-ws2 | absent | — | cert fixtures only |
+
+Theme gate: `enabledModules` contains `ticketing` → enabled; non-empty list without `ticketing` → disabled; empty/unset → `defaultModuleEnabledWhenUnset`.
+
+### 19.2 Phase D1 persistence (operational backend)
+
+Additive migration `ticket_operational_d1` — does not rewrite B1.
+
+| Table | Tenant scope | Archive behavior |
+| ----- | ------------ | ---------------- |
+| `ticket_tags` | `(tenantId, code)` unique | `archivedAt` set; assignments remain readable |
+| `ticket_tag_assignments` | `(tenantId, ticketId, tagCode)` PK | cascade on ticket delete |
+| `ticket_queues` | `(tenantId, code)` unique | archive sets `archivedAt`; tickets `queueId` cleared (no orphan) |
+| `ticket_teams` | `(tenantId, code)` unique | archive sets `archivedAt`; `assigneeTeamId` cleared on tickets |
+| `ticket_team_members` | `(tenantId, teamId, userId)` PK | user must be ACTIVE `UserTenant` |
+
+`Ticket` extensions: `queueId`, `assigneeTeamId` (mutually exclusive with `assigneeUserId`).
+
+RLS: `ENABLE` + `FORCE` on all new tables; `USING` / `WITH CHECK` on `tenant_id = current_setting('app.current_tenant_id')::uuid`.
+
+### 19.3 Phase D1 operator API (no UI)
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| GET | `/ticket-categories` | operator | manifest categories for tenant workspace |
+| GET/POST | `/ticket-tags` | admin/owner | list/create |
+| PATCH | `/ticket-tags/:code` | admin/owner | update/archive |
+| GET/POST | `/ticket-queues` | admin/owner | list/create |
+| PATCH | `/ticket-queues/:code` | admin/owner | update/archive (clears ticket `queueId`) |
+| GET/POST | `/ticket-teams` | admin/owner | list/create |
+| PATCH | `/ticket-teams/:code` | admin/owner | update/archive |
+| POST | `/tickets/:id/assign` | admin/owner | user or team assignment |
+| POST | `/tickets/:id/queue` | admin/owner | change queue |
+| GET | `/tickets` | operator | filters: `tagCode`, `queueCode`, `teamId`, `assigneeTeamId` (existing filters retained) |
+
+Mutations: `Idempotency-Key` + `rowVersion` on ticket-scoped writes. Events: `ticket.assigned`, `ticket.queue.changed`, `ticket.tag.added`, `ticket.tag.removed`, `ticket.category.changed` (when PATCH changes category). Audit: `ticket.*` actions via existing audit writer.
 
 ---
 

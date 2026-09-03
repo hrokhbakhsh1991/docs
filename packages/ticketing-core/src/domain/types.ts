@@ -59,6 +59,8 @@ export type Ticket = {
   readonly tenantId: string;
   readonly requesterUserId: string;
   readonly assigneeUserId: string | null;
+  readonly assigneeTeamId: string | null;
+  readonly queueId: string | null;
   readonly categoryCode: TicketCategoryCode;
   readonly subject: string;
   readonly priority: TicketPriority;
@@ -94,6 +96,11 @@ export const TICKET_EVENT_TYPES = [
   "ticket.status.changed",
   "ticket.priority.changed",
   "ticket.assigned",
+  "ticket.team.assigned",
+  "ticket.queue.changed",
+  "ticket.tag.added",
+  "ticket.tag.removed",
+  "ticket.category.changed",
   "ticket.reopened",
   "ticket.closed",
 ] as const;

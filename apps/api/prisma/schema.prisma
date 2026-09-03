@@ -69,6 +69,11 @@ model Tenant {
   ticketEvents                TicketEvent[]
   ticketAttachments           TicketAttachment[]
   ticketLinks                 TicketLink[]
+  ticketTags                  TicketTag[]
+  ticketTagAssignments        TicketTagAssignment[]
+  ticketQueues                TicketQueue[]
+  ticketTeams                 TicketTeam[]
+  ticketTeamMembers           TicketTeamMember[]
 
   @@map("tenants")
 }
@@ -1081,6 +1086,8 @@ model Ticket {
   tenantId               String             @map("tenant_id") @db.Uuid
   requesterUserId        String             @map("requester_user_id") @db.Uuid
   assigneeUserId         String?            @map("assignee_user_id") @db.Uuid
+  assigneeTeamId         String?            @map("assignee_team_id") @db.Uuid
+  queueId                String?            @map("queue_id") @db.Uuid
   categoryCode           String             @map("category_code") @db.VarChar(64)
   priority               String
   status                 String
@@ -1093,16 +1100,21 @@ model Ticket {
   createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz
   tenant                 Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  queue                  TicketQueue?       @relation(fields: [tenantId, queueId], references: [tenantId, id], onDelete: SetNull)
+  assigneeTeam           TicketTeam?        @relation(fields: [tenantId, assigneeTeamId], references: [tenantId, id], onDelete: SetNull)
   messages               TicketMessage[]
   events                 TicketEvent[]
   attachments            TicketAttachment[]
   links                  TicketLink[]
+  tagAssignments         TicketTagAssignment[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, creationIdempotencyKey])
   @@index([tenantId, status, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_status_last_activity")
   @@index([tenantId, requesterUserId, createdAt(sort: Desc)], map: "idx_tickets_tenant_requester_created")
   @@index([tenantId, assigneeUserId, status], map: "idx_tickets_tenant_assignee_status")
+  @@index([tenantId, assigneeTeamId, status], map: "idx_tickets_tenant_assignee_team_status")
+  @@index([tenantId, queueId, status], map: "idx_tickets_tenant_queue_status")
   @@index([tenantId, priority, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_priority_last_activity")
   @@index([tenantId, categoryCode, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_category_last_activity")
   @@map("tickets")
@@ -1182,4 +1194,101 @@ model TicketLink {
   @@unique([tenantId, ticketId, entityType, entityId], map: "uq_ticket_links_tenant_ticket_entity")
   @@index([tenantId, entityType, entityId], map: "idx_ticket_links_tenant_entity")
   @@map("ticket_links")
+}
+
+/// TKT-001 Phase D1 — tenant-scoped operational tags.
+model TicketTag {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  code       String    @db.VarChar(64)
+  label      String
+  colorToken String?   @map("color_token")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion Int       @default(1) @map("row_version")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignments TicketTagAssignment[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, id])
+  @@map("ticket_tags")
+}
+
+/// TKT-001 Phase D1 — ticket ↔ tag composite relation.
+model TicketTagAssignment {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  tagCode   String   @map("tag_code") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket    Ticket   @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  tag       TicketTag @relation(fields: [tenantId, tagCode], references: [tenantId, code], onDelete: Cascade)
+
+  @@id([tenantId, ticketId, tagCode])
+  @@index([tenantId, tagCode], map: "idx_ticket_tag_assignments_tenant_tag")
+  @@map("ticket_tag_assignments")
+}
+
+/// TKT-001 Phase D1 — tenant-scoped operator queues (persisted filter views).
+model TicketQueue {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  code        String    @db.VarChar(64)
+  name        String
+  description String?
+  enabled     Boolean   @default(true)
+  sortOrder   Int       @default(0) @map("sort_order")
+  filterJson  Json      @default("{}") @map("filter_json")
+  teamId      String?   @map("team_id") @db.Uuid
+  isDefault   Boolean   @default(false) @map("is_default")
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion  Int       @default(1) @map("row_version")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team        TicketTeam? @relation(fields: [tenantId, teamId], references: [tenantId, id], onDelete: SetNull)
+  tickets     Ticket[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, id])
+  @@index([tenantId, enabled, sortOrder], map: "idx_ticket_queues_tenant_enabled_sort")
+  @@map("ticket_queues")
+}
+
+/// TKT-001 Phase D1 — tenant-scoped operator teams.
+model TicketTeam {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  code        String    @db.VarChar(64)
+  name        String
+  description String?
+  isDefault   Boolean   @default(false) @map("is_default")
+  enabled     Boolean   @default(true)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion  Int       @default(1) @map("row_version")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members     TicketTeamMember[]
+  queues      TicketQueue[]
+  tickets     Ticket[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, id])
+  @@map("ticket_teams")
+}
+
+/// TKT-001 Phase D1 — team membership (ACTIVE UserTenant required at API layer).
+model TicketTeamMember {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  teamId    String   @map("team_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team      TicketTeam @relation(fields: [tenantId, teamId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, teamId, userId])
+  @@index([tenantId, userId], map: "idx_ticket_team_members_tenant_user")
+  @@map("ticket_team_members")
 }

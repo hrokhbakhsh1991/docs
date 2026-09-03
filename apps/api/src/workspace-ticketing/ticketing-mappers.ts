@@ -30,6 +30,8 @@ export function mapTicketRow(
     tenantId: row.tenantId,
     requesterUserId: row.requesterUserId,
     assigneeUserId: row.assigneeUserId,
+    assigneeTeamId: row.assigneeTeamId ?? null,
+    queueId: row.queueId ?? null,
     categoryCode: row.categoryCode,
     subject: row.subject,
     priority: row.priority as Ticket["priority"],

@@ -54,6 +54,8 @@ function ticketWriteData(ticket: Ticket): Prisma.TicketUncheckedCreateInput {
     tenantId: ticket.tenantId,
     requesterUserId: ticket.requesterUserId,
     assigneeUserId: ticket.assigneeUserId,
+    assigneeTeamId: ticket.assigneeTeamId,
+    queueId: ticket.queueId,
     categoryCode: ticket.categoryCode,
     priority: ticket.priority,
     status: ticket.status,
@@ -164,6 +166,19 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
   async findOperatorTickets(query: OperatorTicketListQuery): Promise<TicketListResult> {
     return withTenantRls(query.tenantId, async (tx) => {
       const cursor = query.cursor ? decodeListCursor(query.cursor) : null;
+
+      let queueId: string | undefined;
+      if (query.queueCode !== undefined) {
+        const queue = await tx.ticketQueue.findFirst({
+          where: { tenantId: query.tenantId, code: query.queueCode },
+          select: { id: true },
+        });
+        if (queue === null) {
+          return { items: [], hasMore: false, nextCursor: null };
+        }
+        queueId = queue.id;
+      }
+
       const rows = await tx.ticket.findMany({
         where: {
           tenantId: query.tenantId,
@@ -173,7 +188,28 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
           ...(query.assigneeUserId !== undefined
             ? { assigneeUserId: query.assigneeUserId }
             : {}),
-          ...(query.unassigned === true ? { assigneeUserId: null } : {}),
+          ...(query.assigneeTeamId !== undefined
+            ? { assigneeTeamId: query.assigneeTeamId }
+            : {}),
+          ...(queueId !== undefined ? { queueId } : {}),
+          ...(query.tagCode !== undefined
+            ? {
+                tagAssignments: {
+                  some: { tenantId: query.tenantId, tagCode: query.tagCode },
+                },
+              }
+            : {}),
+          ...(query.teamId !== undefined
+            ? {
+                OR: [
+                  { assigneeTeamId: query.teamId },
+                  { queue: { teamId: query.teamId } },
+                ],
+              }
+            : {}),
+          ...(query.unassigned === true
+            ? { assigneeUserId: null, assigneeTeamId: null }
+            : {}),
           ...(query.q !== undefined
             ? { subject: { contains: query.q, mode: "insensitive" } }
             : {}),
@@ -266,6 +302,9 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
         },
         data: {
           assigneeUserId: input.ticket.assigneeUserId,
+          assigneeTeamId: input.ticket.assigneeTeamId,
+          queueId: input.ticket.queueId,
+          categoryCode: input.ticket.categoryCode,
           priority: input.ticket.priority,
           status: input.ticket.status,
           lastActivityAt: new Date(input.ticket.lastActivityAt),

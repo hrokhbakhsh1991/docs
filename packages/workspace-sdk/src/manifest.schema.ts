@@ -172,6 +172,49 @@ export const WorkspaceWalletBlockSchema = z.object({
   opsManifest: workspaceWalletOpsManifestBindingSchema.optional(),
 });
 
+const workspaceTicketingCategorySchema = z.object({
+  code: z
+    .string()
+    .regex(/^[a-z][a-z0-9_-]*$/, "workspaceTicketing.categories[].code must be a lowercase slug"),
+  labelKey: z.string().min(1),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  defaultPriority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+});
+
+/** TKT-001 Phase D1 — ticketing capability block (top-level manifest extension). */
+export const WorkspaceTicketingBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      memberCreate: z.boolean(),
+      operatorInbox: z.boolean(),
+      tags: z.boolean(),
+      queues: z.boolean(),
+      teams: z.boolean(),
+      attachments: z.boolean().optional(),
+    })
+    .optional(),
+  categories: z.array(workspaceTicketingCategorySchema).optional(),
+  defaultCategoryCode: z.string().min(1).optional(),
+  allowedPriorities: z.array(z.enum(["low", "normal", "high", "urgent"])).optional(),
+  maxAttachmentSizeBytes: z.number().int().positive().optional(),
+  queueDefaults: z
+    .object({
+      unassigned: z
+        .object({
+          code: z.string().min(1),
+          nameKey: z.string().min(1),
+          sortOrder: z.number().int().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
@@ -305,6 +348,7 @@ export const WorkspaceManifestCiSchema = z
     workspacePricing: WorkspacePricingBlockSchema.optional(),
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
     workspaceWallet: WorkspaceWalletBlockSchema.optional(),
+    workspaceTicketing: WorkspaceTicketingBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     wizardResume: WorkspaceWizardResumeBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),

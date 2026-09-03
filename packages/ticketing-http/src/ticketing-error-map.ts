@@ -20,6 +20,11 @@ const DOMAIN_HTTP_STATUS: Partial<Record<TicketingErrorCode, number>> = {
   INVALID_VISIBILITY: 422,
   INVALID_TICKET_ACTOR: 403,
   TENANT_CONTEXT_REQUIRED: 401,
+  DUPLICATE_TAG: 409,
+  TAG_NOT_FOUND: 404,
+  QUEUE_NOT_FOUND: 404,
+  TEAM_NOT_FOUND: 404,
+  ASSIGNEE_NOT_IN_TEAM: 422,
 };
 
 const DOMAIN_HTTP_CODE: Partial<Record<TicketingErrorCode, string>> = {
@@ -35,6 +40,11 @@ const DOMAIN_HTTP_CODE: Partial<Record<TicketingErrorCode, string>> = {
   TICKET_MODULE_DISABLED: "TICKET_MODULE_DISABLED",
   ASSIGNEE_NOT_IN_TENANT: "TICKET_ASSIGNEE_INVALID",
   INVALID_CATEGORY_CODE: "TICKET_CATEGORY_INVALID",
+  DUPLICATE_TAG: "TICKET_DUPLICATE_TAG",
+  TAG_NOT_FOUND: "TICKET_TAG_NOT_FOUND",
+  QUEUE_NOT_FOUND: "TICKET_QUEUE_NOT_FOUND",
+  TEAM_NOT_FOUND: "TICKET_TEAM_NOT_FOUND",
+  ASSIGNEE_NOT_IN_TEAM: "TICKET_ASSIGNEE_NOT_IN_TEAM",
 };
 
 export function mapTicketingDomainErrorToHttp(error: TicketingDomainError): {
@@ -68,6 +78,12 @@ export function resolveTicketingHttpError(error: unknown): {
     return null;
   }
   const code = error.message;
+  if (
+    code === "TICKETING_WORKSPACE_UNSUPPORTED" ||
+    code === "FORBIDDEN_TICKETING_MODULE_DISABLED"
+  ) {
+    return { status: 404, code: "TICKET_MODULE_DISABLED" };
+  }
   if (code === "IDEMPOTENCY_KEY_REQUIRED" || code.startsWith("ZOD_VALIDATION_FAILED")) {
     return {
       status: code === "IDEMPOTENCY_KEY_REQUIRED" ? 422 : 422,

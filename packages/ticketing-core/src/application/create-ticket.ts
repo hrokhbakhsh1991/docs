@@ -44,6 +44,8 @@ export function createTicket(command: CreateTicketCommand): TicketingResult<Tick
     tenantId: command.tenantId,
     requesterUserId: command.requesterUserId,
     assigneeUserId: null,
+    assigneeTeamId: null,
+    queueId: null,
     categoryCode: category.value,
     subject: subject.value,
     priority,

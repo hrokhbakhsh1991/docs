@@ -42,6 +42,20 @@ import {
   handleTicketingOperatorReply,
   type TicketingRouteDeps,
   type TicketingServicePort,
+  handleTicketingListCategories,
+  handleTicketingListTags,
+  handleTicketingCreateTag,
+  handleTicketingUpdateTag,
+  handleTicketingListQueues,
+  handleTicketingCreateQueue,
+  handleTicketingUpdateQueue,
+  handleTicketingListTeams,
+  handleTicketingCreateTeam,
+  handleTicketingUpdateTeam,
+  handleTicketingAssignTicket,
+  handleTicketingChangeTicketQueue,
+  handleTicketingAddTicketTag,
+  handleTicketingRemoveTicketTag,
 } from "@app-tour/ticketing-http";
 import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
@@ -583,6 +597,89 @@ async function dispatchRequest(
   const operatorTicketReopenMatch = url.pathname.match(/^\/tickets\/([^/]+)\/reopen$/);
   if (method === "POST" && operatorTicketReopenMatch) {
     await handleTicketingOperatorReopenTicket(req, res, ticketingDeps, operatorTicketReopenMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-categories") {
+    await handleTicketingListCategories(req, res, ticketingDeps);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-tags") {
+    await handleTicketingListTags(req, res, ticketingDeps);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/ticket-tags") {
+    await handleTicketingCreateTag(req, res, ticketingDeps);
+    return;
+  }
+
+  const ticketTagPatchMatch = url.pathname.match(/^\/ticket-tags\/([^/]+)$/);
+  if (method === "PATCH" && ticketTagPatchMatch) {
+    await handleTicketingUpdateTag(req, res, ticketingDeps, ticketTagPatchMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-queues") {
+    await handleTicketingListQueues(req, res, ticketingDeps);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/ticket-queues") {
+    await handleTicketingCreateQueue(req, res, ticketingDeps);
+    return;
+  }
+
+  const ticketQueuePatchMatch = url.pathname.match(/^\/ticket-queues\/([^/]+)$/);
+  if (method === "PATCH" && ticketQueuePatchMatch) {
+    await handleTicketingUpdateQueue(req, res, ticketingDeps, ticketQueuePatchMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-teams") {
+    await handleTicketingListTeams(req, res, ticketingDeps);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/ticket-teams") {
+    await handleTicketingCreateTeam(req, res, ticketingDeps);
+    return;
+  }
+
+  const ticketTeamPatchMatch = url.pathname.match(/^\/ticket-teams\/([^/]+)$/);
+  if (method === "PATCH" && ticketTeamPatchMatch) {
+    await handleTicketingUpdateTeam(req, res, ticketingDeps, ticketTeamPatchMatch[1]!);
+    return;
+  }
+
+  const ticketAssignMatch = url.pathname.match(/^\/tickets\/([^/]+)\/assign$/);
+  if (method === "POST" && ticketAssignMatch) {
+    await handleTicketingAssignTicket(req, res, ticketingDeps, ticketAssignMatch[1]!);
+    return;
+  }
+
+  const ticketQueueChangeMatch = url.pathname.match(/^\/tickets\/([^/]+)\/queue$/);
+  if (method === "POST" && ticketQueueChangeMatch) {
+    await handleTicketingChangeTicketQueue(req, res, ticketingDeps, ticketQueueChangeMatch[1]!);
+    return;
+  }
+
+  const ticketTagAddMatch = url.pathname.match(/^\/tickets\/([^/]+)\/tags$/);
+  if (method === "POST" && ticketTagAddMatch) {
+    await handleTicketingAddTicketTag(req, res, ticketingDeps, ticketTagAddMatch[1]!);
+    return;
+  }
+
+  const ticketTagRemoveMatch = url.pathname.match(/^\/tickets\/([^/]+)\/tags\/([^/]+)$/);
+  if (method === "DELETE" && ticketTagRemoveMatch) {
+    await handleTicketingRemoveTicketTag(
+      req,
+      res,
+      ticketingDeps,
+      ticketTagRemoveMatch[1]!,
+      ticketTagRemoveMatch[2]!,
+    );
     return;
   }
 

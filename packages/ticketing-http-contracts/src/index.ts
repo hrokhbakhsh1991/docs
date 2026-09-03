@@ -70,6 +70,36 @@ export {
 } from "./ticketing-request.schemas";
 
 export {
+  ticketTagCreateInputSchema,
+  ticketTagUpdateInputSchema,
+  ticketQueueCreateInputSchema,
+  ticketQueueUpdateInputSchema,
+  ticketTeamCreateInputSchema,
+  ticketTeamUpdateInputSchema,
+  ticketAssignInputSchema,
+  ticketQueueChangeInputSchema,
+  ticketTagMutationInputSchema,
+  parseTicketTagCreateInput,
+  parseTicketTagUpdateInput,
+  parseTicketQueueCreateInput,
+  parseTicketQueueUpdateInput,
+  parseTicketTeamCreateInput,
+  parseTicketTeamUpdateInput,
+  parseTicketAssignInput,
+  parseTicketQueueChangeInput,
+  parseTicketTagMutationInput,
+  type TicketTagCreateInput,
+  type TicketTagUpdateInput,
+  type TicketQueueCreateInput,
+  type TicketQueueUpdateInput,
+  type TicketTeamCreateInput,
+  type TicketTeamUpdateInput,
+  type TicketAssignInput,
+  type TicketQueueChangeInput,
+  type TicketTagMutationInput,
+} from "./ticketing-operational.schemas";
+
+export {
   parseMemberTicketListQuery,
   parseOperatorTicketListQuery,
   parseTicketListLimit,

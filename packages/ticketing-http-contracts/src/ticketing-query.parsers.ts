@@ -24,6 +24,10 @@ export type OperatorTicketListQuery = {
   readonly priority?: TicketPriority;
   readonly categoryCode?: string;
   readonly assigneeUserId?: string;
+  readonly assigneeTeamId?: string;
+  readonly queueCode?: string;
+  readonly tagCode?: string;
+  readonly teamId?: string;
   readonly unassigned?: boolean;
   readonly q?: string;
   readonly sort: TicketListSort;
@@ -101,6 +105,10 @@ export function parseMemberTicketListQuery(url: URL): MemberTicketListQuery {
 export function parseOperatorTicketListQuery(url: URL): OperatorTicketListQuery {
   const categoryRaw = url.searchParams.get("categoryCode")?.trim();
   const assigneeRaw = url.searchParams.get("assigneeUserId")?.trim();
+  const assigneeTeamRaw = url.searchParams.get("assigneeTeamId")?.trim();
+  const queueCodeRaw = url.searchParams.get("queueCode")?.trim();
+  const tagCodeRaw = url.searchParams.get("tagCode")?.trim();
+  const teamIdRaw = url.searchParams.get("teamId")?.trim();
   const unassignedRaw = url.searchParams.get("unassigned")?.trim().toLowerCase();
   const qRaw = url.searchParams.get("q")?.trim();
 
@@ -111,6 +119,24 @@ export function parseOperatorTicketListQuery(url: URL): OperatorTicketListQuery 
       throw new Error("ZOD_VALIDATION_FAILED: assigneeUserId invalid");
     }
     assigneeUserId = result.data;
+  }
+
+  let assigneeTeamId: string | undefined;
+  if (assigneeTeamRaw !== undefined && assigneeTeamRaw.length > 0) {
+    const result = uuidSchema.safeParse(assigneeTeamRaw);
+    if (!result.success) {
+      throw new Error("ZOD_VALIDATION_FAILED: assigneeTeamId invalid");
+    }
+    assigneeTeamId = result.data;
+  }
+
+  let teamId: string | undefined;
+  if (teamIdRaw !== undefined && teamIdRaw.length > 0) {
+    const result = uuidSchema.safeParse(teamIdRaw);
+    if (!result.success) {
+      throw new Error("ZOD_VALIDATION_FAILED: teamId invalid");
+    }
+    teamId = result.data;
   }
 
   return {
@@ -126,6 +152,10 @@ export function parseOperatorTicketListQuery(url: URL): OperatorTicketListQuery 
       : {}),
     ...(categoryRaw !== undefined && categoryRaw.length > 0 ? { categoryCode: categoryRaw } : {}),
     ...(assigneeUserId !== undefined ? { assigneeUserId } : {}),
+    ...(assigneeTeamId !== undefined ? { assigneeTeamId } : {}),
+    ...(queueCodeRaw !== undefined && queueCodeRaw.length > 0 ? { queueCode: queueCodeRaw } : {}),
+    ...(tagCodeRaw !== undefined && tagCodeRaw.length > 0 ? { tagCode: tagCodeRaw } : {}),
+    ...(teamId !== undefined ? { teamId } : {}),
     ...(unassignedRaw === "true" || unassignedRaw === "1" ? { unassigned: true } : {}),
     ...(qRaw !== undefined && qRaw.length > 0 ? { q: qRaw.slice(0, 200) } : {}),
     sort: parseOptionalSort(url.searchParams.get("sort")),

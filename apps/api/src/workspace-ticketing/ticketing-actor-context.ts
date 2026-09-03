@@ -12,7 +12,10 @@ function mapRole(role: TenantAuthContext["role"]): TicketActorRole {
 
 export async function buildTicketActorContext(
   auth: TenantAuthContext,
-  options?: { readonly loadTenantMembers?: boolean },
+  options?: {
+    readonly loadTenantMembers?: boolean;
+    readonly workspaceTicketingEnabled?: boolean;
+  },
 ): Promise<TicketActorContext> {
   const role = mapRole(auth.role);
   let tenantMemberUserIds: readonly string[] | undefined;
@@ -27,7 +30,7 @@ export async function buildTicketActorContext(
     tenantId: auth.tenantId,
     userId: auth.userId,
     role,
-    workspaceTicketingEnabled: true,
+    workspaceTicketingEnabled: options?.workspaceTicketingEnabled ?? true,
     readOnly: role === "viewer",
     ...(tenantMemberUserIds !== undefined ? { tenantMemberUserIds } : {}),
   };

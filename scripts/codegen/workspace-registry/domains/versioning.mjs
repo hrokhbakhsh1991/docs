@@ -14,6 +14,7 @@ const CAPABILITY_BLOCK_KEYS = [
   "workspaceBooking",
   "workspaceFinance",
   "workspaceWallet",
+  "workspaceTicketing",
 ];
 
 /**

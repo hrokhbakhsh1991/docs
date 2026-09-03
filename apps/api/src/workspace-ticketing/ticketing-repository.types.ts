@@ -45,6 +45,10 @@ export type OperatorTicketListQuery = {
   readonly priority?: string;
   readonly categoryCode?: string;
   readonly assigneeUserId?: string;
+  readonly assigneeTeamId?: string;
+  readonly queueCode?: string;
+  readonly tagCode?: string;
+  readonly teamId?: string;
   readonly unassigned?: boolean;
   readonly q?: string;
   readonly cursor?: string;

@@ -17,8 +17,24 @@ import type {
   OperatorReplyInput,
   OperatorTicketListQuery,
   OperatorTicketPatchInput,
+  TicketAssignInput,
+  TicketQueueChangeInput,
+  TicketQueueCreateInput,
+  TicketQueueUpdateInput,
+  TicketTagCreateInput,
+  TicketTagMutationInput,
+  TicketTagUpdateInput,
+  TicketTeamCreateInput,
+  TicketTeamUpdateInput,
 } from "@app-tour/ticketing-http-contracts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
+
+import type {
+  TicketCategoryHttp,
+  TicketQueueHttp,
+  TicketTagHttp,
+  TicketTeamHttp,
+} from "./ticketing-projections";
 
 export type TicketingServicePort = {
   readonly listMemberTickets: (
@@ -76,6 +92,68 @@ export type TicketingServicePort = {
     auth: TenantAuthContext,
     ticketId: string,
     body: MemberReopenTicketInput,
+    idempotencyKey: string,
+  ) => Promise<OperatorTicketMutationHttpResponse>;
+  readonly listTicketCategories: (auth: TenantAuthContext) => Promise<readonly TicketCategoryHttp[]>;
+  readonly listTags: (auth: TenantAuthContext) => Promise<readonly TicketTagHttp[]>;
+  readonly createTag: (
+    auth: TenantAuthContext,
+    body: TicketTagCreateInput,
+    idempotencyKey: string,
+  ) => Promise<TicketTagHttp>;
+  readonly updateTag: (
+    auth: TenantAuthContext,
+    code: string,
+    body: TicketTagUpdateInput,
+    idempotencyKey: string,
+  ) => Promise<TicketTagHttp>;
+  readonly listQueues: (auth: TenantAuthContext) => Promise<readonly TicketQueueHttp[]>;
+  readonly createQueue: (
+    auth: TenantAuthContext,
+    body: TicketQueueCreateInput,
+    idempotencyKey: string,
+  ) => Promise<TicketQueueHttp>;
+  readonly updateQueue: (
+    auth: TenantAuthContext,
+    code: string,
+    body: TicketQueueUpdateInput,
+    idempotencyKey: string,
+  ) => Promise<TicketQueueHttp>;
+  readonly listTeams: (auth: TenantAuthContext) => Promise<readonly TicketTeamHttp[]>;
+  readonly createTeam: (
+    auth: TenantAuthContext,
+    body: TicketTeamCreateInput,
+    idempotencyKey: string,
+  ) => Promise<TicketTeamHttp>;
+  readonly updateTeam: (
+    auth: TenantAuthContext,
+    code: string,
+    body: TicketTeamUpdateInput,
+    idempotencyKey: string,
+  ) => Promise<TicketTeamHttp>;
+  readonly assignTicket: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    body: TicketAssignInput,
+    idempotencyKey: string,
+  ) => Promise<OperatorTicketMutationHttpResponse>;
+  readonly changeTicketQueue: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    body: TicketQueueChangeInput,
+    idempotencyKey: string,
+  ) => Promise<OperatorTicketMutationHttpResponse>;
+  readonly addTicketTag: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    body: TicketTagMutationInput,
+    idempotencyKey: string,
+  ) => Promise<OperatorTicketMutationHttpResponse>;
+  readonly removeTicketTag: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    tagCode: string,
+    rowVersion: number,
     idempotencyKey: string,
   ) => Promise<OperatorTicketMutationHttpResponse>;
 };

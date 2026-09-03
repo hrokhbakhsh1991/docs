@@ -110,3 +110,132 @@ export function toOperatorListHttp(input: {
     hasMore: input.hasMore,
   };
 }
+
+export type TicketTagHttp = {
+  readonly code: string;
+  readonly label: string;
+  readonly colorToken: string | null;
+  readonly archivedAt: string | null;
+  readonly rowVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type TicketQueueHttp = {
+  readonly code: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly enabled: boolean;
+  readonly sortOrder: number;
+  readonly filterJson: Readonly<Record<string, unknown>>;
+  readonly teamCode: string | null;
+  readonly isDefault: boolean;
+  readonly archivedAt: string | null;
+  readonly rowVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type TicketTeamHttp = {
+  readonly code: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly enabled: boolean;
+  readonly isDefault: boolean;
+  readonly archivedAt: string | null;
+  readonly rowVersion: number;
+  readonly memberUserIds: readonly string[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type TicketCategoryHttp = {
+  readonly code: string;
+  readonly labelKey: string;
+  readonly description?: string;
+  readonly icon?: string;
+  readonly sortOrder: number;
+  readonly defaultPriority?: string;
+};
+
+export function toTicketTagHttp(
+  tag: {
+    readonly code: string;
+    readonly label: string;
+    readonly colorToken: string | null;
+    readonly archivedAt: string | null;
+    readonly rowVersion: number;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+  },
+): TicketTagHttp {
+  return {
+    code: tag.code,
+    label: tag.label,
+    colorToken: tag.colorToken,
+    archivedAt: tag.archivedAt,
+    rowVersion: tag.rowVersion,
+    createdAt: tag.createdAt,
+    updatedAt: tag.updatedAt,
+  };
+}
+
+export function toTicketQueueHttp(
+  queue: {
+    readonly code: string;
+    readonly name: string;
+    readonly description: string | null;
+    readonly enabled: boolean;
+    readonly sortOrder: number;
+    readonly filterJson: Readonly<Record<string, unknown>>;
+    readonly teamCode: string | null;
+    readonly isDefault: boolean;
+    readonly archivedAt: string | null;
+    readonly rowVersion: number;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+  },
+): TicketQueueHttp {
+  return {
+    code: queue.code,
+    name: queue.name,
+    description: queue.description,
+    enabled: queue.enabled,
+    sortOrder: queue.sortOrder,
+    filterJson: queue.filterJson,
+    teamCode: queue.teamCode,
+    isDefault: queue.isDefault,
+    archivedAt: queue.archivedAt,
+    rowVersion: queue.rowVersion,
+    createdAt: queue.createdAt,
+    updatedAt: queue.updatedAt,
+  };
+}
+
+export function toTicketTeamHttp(
+  team: {
+    readonly code: string;
+    readonly name: string;
+    readonly description: string | null;
+    readonly enabled: boolean;
+    readonly isDefault: boolean;
+    readonly archivedAt: string | null;
+    readonly rowVersion: number;
+    readonly memberUserIds: readonly string[];
+    readonly createdAt: string;
+    readonly updatedAt: string;
+  },
+): TicketTeamHttp {
+  return {
+    code: team.code,
+    name: team.name,
+    description: team.description,
+    enabled: team.enabled,
+    isDefault: team.isDefault,
+    archivedAt: team.archivedAt,
+    rowVersion: team.rowVersion,
+    memberUserIds: team.memberUserIds,
+    createdAt: team.createdAt,
+    updatedAt: team.updatedAt,
+  };
+}

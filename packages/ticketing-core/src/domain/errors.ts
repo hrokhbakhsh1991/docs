@@ -22,6 +22,11 @@ export const TICKETING_ERROR_CODES = [
   "INVALID_STATUS",
   "INVALID_VISIBILITY",
   "DUPLICATE_COMMAND",
+  "DUPLICATE_TAG",
+  "TAG_NOT_FOUND",
+  "QUEUE_NOT_FOUND",
+  "TEAM_NOT_FOUND",
+  "ASSIGNEE_NOT_IN_TEAM",
 ] as const;
 
 export type TicketingErrorCode = (typeof TICKETING_ERROR_CODES)[number];
