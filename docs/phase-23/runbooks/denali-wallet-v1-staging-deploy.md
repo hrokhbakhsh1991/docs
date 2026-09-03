@@ -126,7 +126,7 @@ DENALI_WALLET_SEED_PILOT=1 \
 bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 ```
 
-Pilot seed runs with the staging service `NODE_ENV` (including `production`) only when the target is staging, confirmation is explicit, and execution context is `vps`. Development/test seed behavior remains supported. It does **not** enable Wallet on club smoke `…000003` or operator smoke `…000014`.
+Pilot seed runs with the staging service `NODE_ENV` (including `production`) only when the target is staging, confirmation is explicit, execution context is `vps`, `DENALI_WALLET_SEED_PILOT=1`, the exact pilot tenant id is `00000000-0000-4000-8000-000000000430`, and the configured paths/hosts are not production. This exception is passed only by the Denali Wallet pilot seed; wallet-ws1 certification and all ordinary provisioning remain development/test-only. It does **not** enable Wallet on club smoke `…000003` or operator smoke `…000014`.
 
 ---
 

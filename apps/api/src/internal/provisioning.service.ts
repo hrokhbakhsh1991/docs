@@ -23,7 +23,10 @@ import {
 } from "../tenant/tenant-registry";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { TenantProvisionConflictError } from "./provisioning.errors";
-import { assertProvisioningDevelopmentOnly } from "./provisioning-guard";
+import {
+  assertProvisioningDevelopmentOnly,
+  type ProvisioningGuardOptions,
+} from "./provisioning-guard";
 import { assertProductionCertifiedWorkspaceType } from "./assert-production-certified-workspace";
 
 /** MAP 4.3 — canonical dev seed labels (subphase 4.3). */
@@ -138,7 +141,10 @@ export class ProvisioningService {
 
   /** Phase 2 — Denali Wallet pilot tenant only (`denali-wallet-pilot.*.localhost`). */
   async seedDenaliWalletPilotTenant(): Promise<ProvisionedTenant> {
-    assertProvisioningDevelopmentOnly();
+    const stagingPilotGuard: ProvisioningGuardOptions = {
+      stagingPilotTenantId: DENALI_WALLET_PILOT_TENANT_ID,
+    };
+    assertProvisioningDevelopmentOnly(stagingPilotGuard);
     return this.upsertSeedTenant({
       subdomain: DENALI_WALLET_PILOT_SUBDOMAIN,
       tenantId: DENALI_WALLET_PILOT_TENANT_ID,
@@ -156,7 +162,7 @@ export class ProvisioningService {
           frozen: true,
         },
       },
-    });
+    }, stagingPilotGuard);
   }
 
   /** Phase 11.0 — operator smoke tenant (`operator` / `…000014`). */
@@ -192,8 +198,11 @@ export class ProvisioningService {
   }
 
   /** Idempotent MAP 4.3 seed — upsert by subdomain. */
-  private async upsertSeedTenant(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
-    assertProvisioningDevelopmentOnly();
+  private async upsertSeedTenant(
+    input: ProvisionTenantInput,
+    guardOptions?: ProvisioningGuardOptions
+  ): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly(guardOptions);
     const identity = resolveTenantIdentity(input);
     const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
 
