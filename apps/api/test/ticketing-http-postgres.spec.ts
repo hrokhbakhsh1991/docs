@@ -150,13 +150,13 @@ describe(
             id: tenantA,
             subdomain: `tkt-http-a-${tenantA.slice(0, 8)}`,
             workspaceType: "denali",
-            theme: {},
+            theme: { enabledModules: ["ticketing"] },
           },
           {
             id: tenantB,
             subdomain: `tkt-http-b-${tenantB.slice(0, 8)}`,
             workspaceType: "denali",
-            theme: {},
+            theme: { enabledModules: ["ticketing"] },
           },
         ],
       });
@@ -567,7 +567,7 @@ describe(
           id: tenantB,
           subdomain: `tkt-http-b-${tenantB.slice(0, 8)}`,
           workspaceType: "denali",
-          theme: {},
+          theme: { enabledModules: ["ticketing"] },
         },
         update: {},
       });

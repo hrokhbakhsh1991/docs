@@ -21,7 +21,7 @@ import type {
   TicketDetailRecord,
   TicketListResult,
   TicketingRepositoryPort,
-} from "./ticketing-repository.types";
+} from "../ticketing-repository.types";
 
 async function loadDetail(
   tx: Prisma.TransactionClient,

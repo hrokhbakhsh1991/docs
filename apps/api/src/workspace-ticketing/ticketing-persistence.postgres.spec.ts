@@ -25,6 +25,11 @@ const TICKETING_TABLES = [
   "ticket_events",
   "ticket_attachments",
   "ticket_links",
+  "ticket_tags",
+  "ticket_tag_assignments",
+  "ticket_queues",
+  "ticket_teams",
+  "ticket_team_members",
 ] as const;
 
 function ticketObjectKey(tenantId: string, ticketId: string, fileName: string): string {
@@ -55,13 +60,13 @@ describe(
             id: tenantA,
             subdomain: `tkt-a-${tenantA.slice(0, 8)}`,
             workspaceType: "denali",
-            theme: {},
+            theme: { enabledModules: ["ticketing"] },
           },
           {
             id: tenantB,
             subdomain: `tkt-b-${tenantB.slice(0, 8)}`,
             workspaceType: "denali",
-            theme: {},
+            theme: { enabledModules: ["ticketing"] },
           },
         ],
       });

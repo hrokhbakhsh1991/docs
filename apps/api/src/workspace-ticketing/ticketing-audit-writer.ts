@@ -19,7 +19,7 @@ export async function appendTicketingAuditEvents(
         eventType: event.eventType,
         status: ticket.status,
         priority: ticket.priority,
-        payload: event.payload,
+        payload: event.payload as Prisma.InputJsonValue,
       },
       createdAt: new Date(event.createdAt),
     });
