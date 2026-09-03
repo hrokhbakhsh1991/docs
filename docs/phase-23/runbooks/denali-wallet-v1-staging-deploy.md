@@ -4,7 +4,7 @@
 runbook_id: DENALI-WALLET-V1-STAGING
 pack: wallet
 status: ACTIVE
-verified_release_sha: b7cb0c1741ab0c73c76b1c394581706de92ddc8f
+verified_release_sha: 86ccdcc481825b45e561afd30051a7e079b42f83
 scope: staging-only · pilot tenant 00000000-0000-4000-8000-000000000430
 ```
 
@@ -24,7 +24,7 @@ scope: staging-only · pilot tenant 00000000-0000-4000-8000-000000000430
 | Loopback ports | API `23001`, Web `23000`, Portal `23003` |
 | Pilot tenant id | `00000000-0000-4000-8000-000000000430` |
 | Pilot subdomain | `denali-wallet-pilot` |
-| Verified release SHA | `b7cb0c1741ab0c73c76b1c394581706de92ddc8f` |
+| Verified release SHA | `86ccdcc481825b45e561afd30051a7e079b42f83` |
 
 DNS (replace `staging.yourclub.ir` with your apex):
 
@@ -60,7 +60,7 @@ Deploy orchestration (set only when running wallet deploy scripts):
 | `DENALI_WALLET_STAGING_CONFIRM` | yes | Must be `1` |
 | `ENV_DIR` | yes | `/etc/app-tour-staging` |
 | `DEPLOY_ROOT` | yes | `/opt/app-tour-staging` |
-| `EXPECTED_RELEASE_SHA` | recommended | Pin `b7cb0c17…` |
+| `EXPECTED_RELEASE_SHA` | recommended | Pin `86ccdcc4…` |
 | `DENALI_WALLET_SEED_PILOT` | opt-in | `1` runs pilot seed only |
 | `DENALI_WALLET_ADMIN_HOST` | verify | Pilot operator host for tenant-config check |
 | `DENALI_WALLET_PORTAL_HOST` | verify | Pilot portal host |
@@ -75,7 +75,7 @@ Deploy orchestration (set only when running wallet deploy scripts):
 From the clean `release/denali-wallet-v1` checkout at the verified SHA:
 
 ```bash
-git rev-parse HEAD   # must match b7cb0c17…
+git rev-parse HEAD   # must match 86ccdcc4…
 
 # 1. Install + generate
 nvm use && pnpm install --frozen-lockfile
@@ -95,7 +95,7 @@ Artifact contains **API, Web, Portal** standalone Next layouts (marketing includ
 
 ```bash
 VPS_HOST=<staging-ip> VPS_USER=root \
-ARTIFACT=dist/staging-artifacts/app-tour-staging-b7cb0c1741ab0c73c76b1c394581706de92ddc8f.tar.zst \
+ARTIFACT=dist/staging-artifacts/app-tour-staging-86ccdcc481825b45e561afd30051a7e079b42f83.tar.zst \
 bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
 ```
 
@@ -121,7 +121,7 @@ DENALI_WALLET_STAGING_CONFIRM=1 \
 DENALI_WALLET_EXECUTION_CONTEXT=vps \
 ENV_DIR=/etc/app-tour-staging \
 DEPLOY_ROOT=/opt/app-tour-staging \
-EXPECTED_RELEASE_SHA=b7cb0c17 \
+EXPECTED_RELEASE_SHA=86ccdcc4 \
 DENALI_WALLET_SEED_PILOT=1 \
 bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 ```
@@ -223,7 +223,7 @@ DENALI_WALLET_STAGING_CONFIRM=1 \
 DENALI_WALLET_EXECUTION_CONTEXT=vps \
 ENV_DIR=/etc/app-tour-staging \
 DEPLOY_ROOT=/opt/app-tour-staging \
-EXPECTED_RELEASE_SHA=b7cb0c1741ab0c73c76b1c394581706de92ddc8f \
+EXPECTED_RELEASE_SHA=86ccdcc481825b45e561afd30051a7e079b42f83 \
 DENALI_WALLET_SEED_PILOT=1 \
 DENALI_WALLET_ADMIN_HOST=admin.denali-wallet-pilot.staging.yourclub.ir \
 DENALI_WALLET_PORTAL_HOST=portal.denali-wallet-pilot.staging.yourclub.ir \

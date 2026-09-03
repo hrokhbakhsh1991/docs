@@ -20,7 +20,7 @@
 #   DENALI_WALLET_EXECUTION_CONTEXT=vps \
 #   ENV_DIR=/etc/app-tour-staging \
 #   DEPLOY_ROOT=/opt/app-tour-staging \
-#   EXPECTED_RELEASE_SHA=b7cb0c17 \
+#   EXPECTED_RELEASE_SHA=86ccdcc4 \
 #   DENALI_WALLET_SEED_PILOT=1 \
 #   bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 set -euo pipefail
