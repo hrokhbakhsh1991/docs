@@ -27,6 +27,27 @@ export function assertMemberOwnsTicket(
   return ticketingOk(undefined);
 }
 
+export function assertViewerTenantMembership(
+  ctx: TicketActorContext,
+): TicketingResult<void> {
+  if (ctx.role !== "viewer") {
+    return ticketingOk(undefined);
+  }
+  if (ctx.tenantMemberUserIds === undefined) {
+    return ticketingErr(
+      "TICKET_ACCESS_DENIED",
+      "viewer requires tenant membership context",
+    );
+  }
+  if (!ctx.tenantMemberUserIds.includes(ctx.userId)) {
+    return ticketingErr(
+      "TICKET_ACCESS_DENIED",
+      "viewer is not a member of the tenant",
+    );
+  }
+  return ticketingOk(undefined);
+}
+
 export function assertAssigneeInTenant(
   assigneeUserId: string | null,
   tenantMemberUserIds: readonly string[] | undefined,

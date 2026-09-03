@@ -18,7 +18,7 @@ export function actor(
     userId: role === "member" || role === "viewer" ? MEMBER_A : ADMIN_A,
     role,
     workspaceTicketingEnabled: true,
-    tenantMemberUserIds: [MEMBER_A, MEMBER_B, ADMIN_A, OWNER_A],
+    tenantMemberUserIds: [MEMBER_A, MEMBER_B, ADMIN_A, OWNER_A, "00000000-0000-4000-8000-000000000501"],
     ...overrides,
   };
 }

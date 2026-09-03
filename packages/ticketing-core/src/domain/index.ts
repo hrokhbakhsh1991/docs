@@ -86,6 +86,7 @@ export {
   assertRequiredTicketFields,
   assertTicketNotClosedForReply,
   assertTicketTenantMatch,
+  assertViewerTenantMembership,
   assertWorkspaceTicketingEnabled,
   bumpTicketActivity,
   deriveTicketActivityTimestamp,
@@ -102,5 +103,6 @@ export {
 export {
   assertMemberSafeMessage,
   filterMessagesForMember,
+  filterMessagesForViewer,
   isPublicMessage,
 } from "./visibility";

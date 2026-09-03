@@ -5,6 +5,7 @@ import { ticketingErr, ticketingOk, type TicketingResult } from "./errors";
 import {
   assertMemberOwnsTicket,
   assertTicketTenantMatch,
+  assertViewerTenantMembership,
   assertWorkspaceTicketingEnabled,
 } from "./invariants";
 import { canActorTransitionStatus } from "./lifecycle";
@@ -46,8 +47,11 @@ export function canReadTicket(ticket: Ticket, ctx: TicketActorContext): boolean 
   if (assertTicketTenantMatch(ticket, ctx.tenantId).ok === false) return false;
   if (assertWorkspaceTicketingEnabled(ctx).ok === false) return false;
 
-  if (ctx.role === "member" || ctx.role === "viewer") {
+  if (ctx.role === "member") {
     return assertMemberOwnsTicket(ticket, ctx.userId).ok;
+  }
+  if (ctx.role === "viewer") {
+    return assertViewerTenantMembership(ctx).ok;
   }
   if (isOperatorRole(ctx.role)) {
     return true;
@@ -61,7 +65,10 @@ export function canListTicket(ctx: TicketActorContext, scope: "own" | "tenant"):
   if (assertWorkspaceTicketingEnabled(ctx).ok === false) return false;
 
   if (scope === "own") {
-    return ctx.role === "member" || ctx.role === "viewer";
+    return ctx.role === "member";
+  }
+  if (ctx.role === "viewer") {
+    return assertViewerTenantMembership(ctx).ok;
   }
   return isOperatorRole(ctx.role);
 }
