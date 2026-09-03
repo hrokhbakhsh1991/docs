@@ -424,11 +424,11 @@ Phase 1 adds **workspace-level** Wallet support for Denali without activating Wa
 
 ### 9.1 Workspace vs tenant gates
 
-| Layer | Denali Phase 1 state | Gate code when blocked |
-| ----- | -------------------- | ---------------------- |
-| **Workspace support** | `workspaceWallet.supported: true` in `packages/workspaces/denali/workspace.manifest.json` | `WALLET_WORKSPACE_UNSUPPORTED` (unsupported workspaces only, e.g. `urban`) |
-| **Tenant module enablement** | **Not activated** — no Denali seed or dev tenant theme adds `"wallet"` to `enabledModules`; `defaultModuleEnabledWhenUnset: false` | `FORBIDDEN_WALLET_MODULE_DISABLED` |
-| **Operator `walletNav` capability** | `capabilities.walletNav.supported: true` in `denali.plugin.ts` | Nav/route still hidden until tenant module enablement passes (`ensureWalletNavSupported`) |
+| Layer                               | Denali Phase 1 state                                                                                                               | Gate code when blocked                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Workspace support**               | `workspaceWallet.supported: true` in `packages/workspaces/denali/workspace.manifest.json`                                          | `WALLET_WORKSPACE_UNSUPPORTED` (unsupported workspaces only, e.g. `urban`)                |
+| **Tenant module enablement**        | **Not activated** — no Denali seed or dev tenant theme adds `"wallet"` to `enabledModules`; `defaultModuleEnabledWhenUnset: false` | `FORBIDDEN_WALLET_MODULE_DISABLED`                                                        |
+| **Operator `walletNav` capability** | `capabilities.walletNav.supported: true` in `denali.plugin.ts`                                                                     | Nav/route still hidden until tenant module enablement passes (`ensureWalletNavSupported`) |
 
 Workspace support and tenant enablement are **independent**:
 
@@ -437,28 +437,28 @@ Workspace support and tenant enablement are **independent**:
 
 ### 9.2 Denali manifest bindings (Phase 1)
 
-| Field | Value | Notes |
-| ----- | ----- | ----- |
-| `supported` | `true` | Product declares Denali can host Wallet |
-| `defaultModuleEnabledWhenUnset` | `false` | Unlike `wallet-ws1`, Denali does **not** auto-enable when `enabledModules` is empty |
-| `capabilities.memberAccounts` | `true` | Member stored-value accounts (when tenant-enabled) |
-| `capabilities.ops` | `true` | Operator reconciliation UI (when tenant-enabled) |
-| `capabilities.gatewayTopUp` | `false` | Out of scope Phase 1 |
-| `capabilities.withdrawals` | `false` | Out of scope Phase 1 |
-| `capabilityRevision` | `1` | MAT-001 revision pin |
-| `ledgerPolicy` | `./wallet` → `DenaliWalletLedgerPolicyAdapter` | Manifest-bound placeholder; no finance-core import |
-| `opsManifest` | `./wallet` → `DEFAULT_WALLET_OPS_MANIFEST` | Theme resolver stub; no runtime ops |
-| HTTP routes | `WALLET_HTTP_ROUTE_MANIFEST` group | Handler package `@app-tour/wallet-http` (same as certification fixture) |
+| Field                           | Value                                          | Notes                                                                               |
+| ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `supported`                     | `true`                                         | Product declares Denali can host Wallet                                             |
+| `defaultModuleEnabledWhenUnset` | `false`                                        | Unlike `wallet-ws1`, Denali does **not** auto-enable when `enabledModules` is empty |
+| `capabilities.memberAccounts`   | `true`                                         | Member stored-value accounts (when tenant-enabled)                                  |
+| `capabilities.ops`              | `true`                                         | Operator reconciliation UI (when tenant-enabled)                                    |
+| `capabilities.gatewayTopUp`     | `false`                                        | Out of scope Phase 1                                                                |
+| `capabilities.withdrawals`      | `false`                                        | Out of scope Phase 1                                                                |
+| `capabilityRevision`            | `1`                                            | MAT-001 revision pin                                                                |
+| `ledgerPolicy`                  | `./wallet` → `DenaliWalletLedgerPolicyAdapter` | Manifest-bound placeholder; no finance-core import                                  |
+| `opsManifest`                   | `./wallet` → `DEFAULT_WALLET_OPS_MANIFEST`     | Theme resolver stub; no runtime ops                                                 |
+| HTTP routes                     | `WALLET_HTTP_ROUTE_MANIFEST` group             | Handler package `@app-tour/wallet-http` (same as certification fixture)             |
 
 `versionPins.capabilityPins.workspaceWallet.revision: 1` aligns codegen capability versioning with the block revision.
 
 ### 9.3 Refund and finance terminology (unchanged)
 
-| Concept | Phase 1 contract |
-| ------- | ---------------- |
-| **Refund-to-wallet** | **Manual in v1** — operator credit via Wallet ops when tenant-enabled; no automatic `completeRefund` → member wallet write |
-| **`bookingWalletId`** | Registration finance GL identifier in `packages/workspaces/denali/src/finance/` — **not** a member wallet account id |
-| **`walletNetMinor`** | Finance invoice/reporting field only — **not** member wallet balance |
+| Concept               | Phase 1 contract                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Refund-to-wallet**  | **Manual in v1** — operator credit via Wallet ops when tenant-enabled; no automatic `completeRefund` → member wallet write |
+| **`bookingWalletId`** | Registration finance GL identifier in `packages/workspaces/denali/src/finance/` — **not** a member wallet account id       |
+| **`walletNetMinor`**  | Finance invoice/reporting field only — **not** member wallet balance                                                       |
 
 Phase 1 does not modify `finance-core`, Denali registration-finance semantics, refund automation, checkout Wallet payment, holds, gateway top-up, withdrawals, or P2P transfers.
 
@@ -474,4 +474,87 @@ pnpm run guard:wallet-core-boundary
 git diff --check
 ```
 
-Negative paths preserved: unsupported workspace → `WALLET_WORKSPACE_UNSUPPORTED`; supported workspace without wallet theme → `FORBIDDEN_WALLET_MODULE_DISABLED`. E2E `WALLET-CERT-D01` (Denali admin has no wallet nav, `/wallet` 404) remains valid until tenant theme activation in a later phase.
+Negative paths preserved: unsupported workspace → `WALLET_WORKSPACE_UNSUPPORTED`; supported workspace without wallet theme → `FORBIDDEN_WALLET_MODULE_DISABLED`. E2E `WALLET-CERT-D01` (Denali club smoke `denali.admin.localhost` / tenant `…000003`) remains valid — **only** the isolated pilot tenant enables Wallet.
+
+## 10. Phase 2 — Denali pilot tenant activation (dev/cert only)
+
+Phase 2 activates Wallet for **one** Denali dev/cert tenant. All other Denali tenants (club smoke `…000003`, operator smoke `…000014`, production rows) remain wallet-disabled.
+
+### 10.1 Pilot identity (non-secret)
+
+| Field                | Value                                                                |
+| -------------------- | -------------------------------------------------------------------- |
+| **Tenant id**        | `00000000-0000-4000-8000-000000000430`                               |
+| **Subdomain**        | `denali-wallet-pilot`                                                |
+| **Workspace type**   | `denali`                                                             |
+| **Admin host**       | `admin.denali-wallet-pilot.localhost:3000`                           |
+| **Portal host**      | `portal.denali-wallet-pilot.localhost:3003`                          |
+| **Constants export** | `packages/workspaces/denali/src/smoke/denali-wallet-pilot-tenant.ts` |
+| **Fixture SoT**      | `apps/api/test/fixtures/denali-wallet-pilot-tenant.ts`               |
+
+### 10.2 Tenant theme (module + commerce currency)
+
+Postgres `tenants.theme` for the pilot tenant only:
+
+```json
+{
+  "enabledModules": ["wallet"],
+  "portalModuleGrants": ["wallet"],
+  "defaultLocale": "fa",
+  "commerce": {
+    "currency": "IRR",
+    "paymentMode": "offline_receipt",
+    "gatewayProvider": null,
+    "frozen": true
+  }
+}
+```
+
+Member API currency authority: `theme.commerce.currency` → `IRR` (zero-decimal display). **No** hardcoded Denali currency inside `wallet-core`.
+
+**Operator / portal surface gating:** `GET /api/v2/tenant-config` merges branding from `resolveRegisteredTenantById` with **raw** Postgres `tenants.theme` capability fields (`enabledModules`, `portalModuleGrants`, `commerce`) via `mergeTenantConfigSurfaceTheme`. Denali sets `defaultModuleEnabledWhenUnset: false` in workspace wallet bindings — without `enabledModules` in the tenant-config payload, operator Wallet nav stays hidden even when the DB row is correct. Finance uses the same raw-theme pattern (`findTenantFinanceWorkspaceRow`); wallet surfaces consume the merged tenant-config theme.
+
+| Member                                 | Membership `portalModuleGrants` | Portal `/me/wallet`        | API `/wallet/me/*`                 |
+| -------------------------------------- | ------------------------------- | -------------------------- | ---------------------------------- |
+| Entitled pilot member                  | `["wallet"]`                    | Allowed                    | Allowed                            |
+| Non-entitled pilot member              | `[]`                            | `MemberModuleUnauthorized` | Account isolation by `user_id`     |
+| Any member on `denali` smoke `…000003` | n/a                             | No wallet nav              | `FORBIDDEN_WALLET_MODULE_DISABLED` |
+
+### 10.3 Seeding (Postgres only)
+
+Idempotent script: `apps/api/scripts/seed-denali-wallet-pilot.ts`
+
+1. `ProvisioningService.seedDenaliWalletPilotTenant()` — upsert pilot row (`workspaceType: denali`, wallet theme above).
+2. Owner + entitled/denied members via Prisma admin + `withTenantRls`.
+3. Wallet account + deterministic IRR credit/debit history via `PrismaWalletRepository`.
+4. **Does not** modify `denali` smoke tenant `…000003` or operator smoke `…000014`.
+
+```bash
+NODE_ENV=development DATABASE_URL=... DATABASE_URL_ADMIN=... \
+  pnpm --filter @apps/api run seed:denali-wallet-pilot
+```
+
+### 10.4 Manual refund-to-wallet SOP (v1 — no automation)
+
+Automatic refund → member wallet is **out of scope**. Operators follow this sequence when finance approves a refund that should land in the member Wallet:
+
+1. **Complete the finance refund first** in the finance command center (existing refund flow; no wallet write).
+2. **Credit the member Wallet manually** from the operator `/wallet` panel (pilot tenant only until broader rollout).
+3. **Include `refundId` in the reason/reference** field so support can correlate ledger rows with finance.
+4. **Use a stable `Idempotency-Key`** per intended credit (e.g. `refund-to-wallet:{refundId}`) so retries replay safely without double-credit.
+
+No checkout Wallet payment, gateway top-up, withdrawal, hold, P2P, or `completeRefund` → wallet automation in Phase 2.
+
+### 10.5 Verification (Phase 2 isolated)
+
+```bash
+pnpm run generate:workspace-registry --check
+pnpm --filter @app-tour/wallet-core run test
+pnpm --filter @app-tour/wallet-http run test
+pnpm --filter @app-tour/wallet-http-contracts run test
+pnpm --filter @apps/api run test:wallet-postgres-certification
+pnpm --filter @apps/portal run test:certify:denali-wallet-pilot
+pnpm --filter @apps/web run test:certify:denali-wallet-pilot
+pnpm --filter @apps/web run test:certify:wallet-ws1   # includes WALLET-CERT-D01 negative
+pnpm run guard:import-boundary && pnpm run guard:wallet-core-boundary
+```

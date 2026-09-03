@@ -10,6 +10,7 @@ export const DEV_PLUGIN_ID_BY_TENANT_ID: Readonly<Record<string, string>> = Obje
   "00000000-0000-4000-8000-000000000004": "urban",
   "00000000-0000-4000-8000-000000000014": "denali",
   "00000000-0000-4000-8000-000000000420": "wallet-ws1",
+  "00000000-0000-4000-8000-000000000430": "denali",
   "78951423-370e-4eb8-b5bc-11c643fd775e": "profile-cert",
   "83d7dd00-d961-4fe3-ade9-1aaf0a6b84a5": "cert-club",
   "89205133-892b-4b58-9554-f8afb5634157": "cert-events",

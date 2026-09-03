@@ -5,6 +5,8 @@ import { resolveDefaultTenantBranding } from "../tenant/workspace-default-tenant
 import {
   DENALI_SMOKE_SUBDOMAIN,
   DENALI_SMOKE_TENANT_ID,
+  DENALI_WALLET_PILOT_SUBDOMAIN,
+  DENALI_WALLET_PILOT_TENANT_ID,
   URBAN_SMOKE_SUBDOMAIN,
   URBAN_SMOKE_TENANT_ID,
   WALLET_WS1_SMOKE_SUBDOMAIN,
@@ -34,6 +36,7 @@ export const PHASE_43_SEED_TENANT_IDS: Record<Phase43SeedSubdomain, string> = {
 };
 
 export { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID };
+export { DENALI_WALLET_PILOT_SUBDOMAIN, DENALI_WALLET_PILOT_TENANT_ID };
 export { URBAN_SMOKE_SUBDOMAIN, URBAN_SMOKE_TENANT_ID };
 export { WALLET_WS1_SMOKE_SUBDOMAIN, WALLET_WS1_SMOKE_TENANT_ID };
 
@@ -129,6 +132,29 @@ export class ProvisioningService {
         defaultLocale: "en",
         enabledModules: ["wallet"],
         portalModuleGrants: ["wallet"],
+      },
+    });
+  }
+
+  /** Phase 2 — Denali Wallet pilot tenant only (`denali-wallet-pilot.*.localhost`). */
+  async seedDenaliWalletPilotTenant(): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly();
+    return this.upsertSeedTenant({
+      subdomain: DENALI_WALLET_PILOT_SUBDOMAIN,
+      tenantId: DENALI_WALLET_PILOT_TENANT_ID,
+      workspaceType: "denali",
+      theme: {
+        primaryColor: "#059669",
+        cssVariables: { "--color-primary": "#059669" },
+        defaultLocale: "fa",
+        enabledModules: ["wallet"],
+        portalModuleGrants: ["wallet"],
+        commerce: {
+          currency: "IRR",
+          paymentMode: "offline_receipt",
+          gatewayProvider: null,
+          frozen: true,
+        },
       },
     });
   }

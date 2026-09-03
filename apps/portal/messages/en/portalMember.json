@@ -13,7 +13,8 @@
     "skipToMain": "Skip to main content",
     "primaryNav": "Primary navigation",
     "more": "More",
-    "memberFallback": "Member"
+    "memberFallback": "Member",
+    "wallet": "Wallet"
   },
   "locale": {
     "fa": "FA",

@@ -13,9 +13,11 @@ import {
   setCachedTenantConfigPayload,
 } from "./tenant-config-response-cache";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
+import { mergeTenantConfigSurfaceTheme } from "./merge-tenant-config-surface-theme";
 import {
   resolveRegisteredTenantById,
   resolveRegisteredTenantBySubdomain,
+  resolveTenantThemeJsonById,
 } from "./resolve-registered-tenant";
 
 const reserved = new Set(DEFAULT_TENANT_HOST_RESERVED_LABELS);
@@ -61,11 +63,14 @@ export async function handleTenantConfig(req: IncomingMessage, res: ServerRespon
           return;
         }
 
+        const rawTheme = await resolveTenantThemeJsonById(tenant.id);
+        const theme = mergeTenantConfigSurfaceTheme(tenant.theme, rawTheme);
+
         const payload = JSON.stringify({
           tenantId: tenant.id,
           subdomain: tenant.subdomain,
           workspaceType: tenant.workspaceType,
-          theme: tenant.theme,
+          theme,
         });
         setCachedTenantConfigPayload(tenant.id, payload);
         sendJson(res, 200, payload);
