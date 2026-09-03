@@ -7,6 +7,7 @@ const read = (path) => fs.readFileSync(new URL(path, root), 'utf8');
 const staging = read('.github/workflows/deploy-staging.yml');
 const production = read('.github/workflows/deploy-vps.yml');
 const adapter = read('scripts/ci/staging-deployment-adapter.sh');
+const packageManager = JSON.parse(read('package.json')).packageManager;
 
 test('dev deploys staging only', () => {
   assert.match(staging, /branches:\s*\n\s*- dev/);
@@ -49,4 +50,14 @@ test('staging uses the repository-local guarded adapter contract', () => {
   assert.match(adapter, /DEPLOY_TARGET.*staging/);
   assert.match(adapter, /STAGING_TENANT_SCOPE.*pilot-only/);
   assert.match(adapter, /BULK_TENANT_ENABLEMENT/);
+});
+
+test('staging bootstraps the pinned pnpm before setup-node cache', () => {
+  const pinnedPnpm = packageManager.match(/^pnpm@(.+)$/)?.[1];
+  assert.ok(pinnedPnpm, 'package.json must pin pnpm');
+  const pnpmSetup = staging.indexOf('uses: pnpm/action-setup@v4');
+  const nodeSetup = staging.indexOf('uses: actions/setup-node@v4');
+  assert.ok(pnpmSetup >= 0 && nodeSetup > pnpmSetup);
+  assert.match(staging.slice(pnpmSetup, nodeSetup), new RegExp(`version: ${pinnedPnpm.replaceAll('.', '\\.')}`));
+  assert.match(staging.slice(nodeSetup), /cache: pnpm/);
 });
