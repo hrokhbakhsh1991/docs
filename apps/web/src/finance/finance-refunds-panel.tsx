@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ export function FinanceRefundsPanel() {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.refunds");
   const tCommon = useTranslations("finance.common");
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const registrationFilter = searchParams.get("registrationId")?.trim() || "";
   const paymentPrefill = searchParams.get("paymentId")?.trim() || "";
   const amountPrefill = searchParams.get("amountMinor")?.trim() || "";

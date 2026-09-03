@@ -2,7 +2,8 @@
 
 import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { Download, Plus, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -84,8 +85,8 @@ export function UsersPageClient({
   const t = useTranslations("users");
   const tErrors = useTranslations("users.errors");
   const tCommon = useTranslations("common");
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const searchParams = useAppSearchParams();
+  const pathname = useAppPathname();
   const router = useRouter();
   const query = useMemo(
     () => parseUsersDirectoryQuery(new URLSearchParams(searchParams.toString())),

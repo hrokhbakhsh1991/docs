@@ -8,7 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 
 import {
   buildWorkspaceTabReplacePath,
@@ -43,8 +44,8 @@ export function TourWorkspaceChromeProvider({
   children,
 }: TourWorkspaceChromeProviderProps) {
   const router = useRouter();
-  const pathname = usePathname() ?? "";
-  const searchParams = useSearchParams();
+  const pathname = useAppPathname();
+  const searchParams = useAppSearchParams();
   const workspacePath = workspaceBasePath(tourId);
   const [reloadNonce, setReloadNonce] = useState(0);
 

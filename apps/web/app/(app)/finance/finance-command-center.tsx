@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useTranslations } from "next-intl";
 
 import { PageHeader } from "@/admin/patterns/page-header";
@@ -54,8 +55,8 @@ export function FinanceCommandCenter({
 }: FinanceCommandCenterProps) {
   const t = useTranslations("finance.commandCenter");
   const tWorkspace = useTranslations("tours.workspace");
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const searchParams = useAppSearchParams();
+  const pathname = useAppPathname();
   const router = useRouter();
 
   const [capability, setCapability] = useState<FinanceOpsCapability | null | undefined>(undefined);

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useTranslations } from "next-intl";
 
 import {
@@ -82,7 +83,7 @@ export type WorkspaceCreateTourWizardClientProps = {
 export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTourWizardClientProps) {
   const t = useTranslations("wizard");
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const session = useAppSession();
   const cloneTourId = useMemo(
     () => resolveCloneTourId(searchParams.get("clone")),

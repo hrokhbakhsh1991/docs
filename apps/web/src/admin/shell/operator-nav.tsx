@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useAppPathname } from "@/navigation/app-navigation-hooks";
 import {
   CalendarCheck,
   PanelLeftClose,
@@ -51,7 +51,7 @@ export function OperatorNav({
   collapsed = false,
   onCollapsedChange,
 }: OperatorNavProps) {
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const tNav = useTranslations("nav");
   const tTours = useTranslations("tours.shell");
   const tApp = useTranslations("app");
@@ -94,7 +94,9 @@ export function OperatorNav({
         <p data-operator-nav-group-label>{tApp("operatorNavGroup")}</p>
         <ul data-operator-nav-list>
           {items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              pathname !== null &&
+              (pathname === item.href || pathname.startsWith(`${item.href}/`));
             const Icon = NAV_ICONS[item.pathKey];
             const label =
               item.labelNamespace === "tours.shell" && item.labelKey !== undefined
