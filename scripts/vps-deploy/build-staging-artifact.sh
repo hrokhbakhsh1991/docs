@@ -123,6 +123,11 @@ chmod +x "${ARTIFACT_ROOT}/bin/migrate-deploy.sh"
 cp -a "${SCRIPT_DIR}/seed-staging-artifact.sh" "${ARTIFACT_ROOT}/bin/seed-staging.sh"
 chmod +x "${ARTIFACT_ROOT}/bin/seed-staging.sh"
 
+log "package complete staging tooling"
+mkdir -p "${ARTIFACT_ROOT}/tooling/scripts/vps-deploy"
+cp -a "${SCRIPT_DIR}/." "${ARTIFACT_ROOT}/tooling/scripts/vps-deploy/"
+chmod +x "${ARTIFACT_ROOT}/tooling/scripts/vps-deploy/"*.sh
+
 NODE_V="$(node -v)"
 PNPM_V="$(pnpm -v)"
 BUILD_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"

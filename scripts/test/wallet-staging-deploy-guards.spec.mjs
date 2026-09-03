@@ -21,7 +21,7 @@ import {
 } from "../vps-deploy/lib/wallet-staging-guards.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const TEST_RELEASE_HEAD = "d6c51682497cc701270b2a7dda735f410821d24e";
+const TEST_RELEASE_HEAD = "267b662065c59980037894fff143df4e5495f94e";
 
 function read(rel) {
   return readFileSync(resolve(ROOT, rel), "utf8");
@@ -213,6 +213,16 @@ describe("wallet-staging-deploy-guards", () => {
     assert.match(wrapper, /export NODE_PATH=/);
     assert.match(selfCheck, /@app-tour\/booking-http-contracts/);
     assert.match(selfCheck, /runtime-resolvable/);
+  });
+
+  it("WSD-16 keeps installed guard paths relative to the tooling location", () => {
+    const deploy = read("scripts/vps-deploy/deploy-denali-wallet-staging.sh");
+    const verify = read("scripts/vps-deploy/verify-denali-wallet-staging.sh");
+    assert.match(deploy, /SCRIPT_DIR=.*BASH_SOURCE/);
+    assert.match(deploy, /SCRIPT_DIR}\/lib\/wallet-staging-guards-cli\.mjs/);
+    assert.match(deploy, /SCRIPT_DIR}\/verify-denali-wallet-staging\.sh/);
+    assert.match(verify, /SCRIPT_DIR=.*BASH_SOURCE/);
+    assert.match(verify, /SCRIPT_DIR}\/lib\/ports\.sh/);
   });
 
   it("WSD-12 runbook documents VPS-side command and production block", () => {

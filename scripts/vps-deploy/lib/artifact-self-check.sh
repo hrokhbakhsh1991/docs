@@ -20,6 +20,20 @@ artifact_self_check() {
     echo "artifact-self-check: missing @app-tour/booking-http-contracts in api bundle" >&2
     return 1
   }
+  local tooling_root="${vroot}/tooling/scripts/vps-deploy"
+  [[ -f "${tooling_root}/lib/wallet-staging-constants.mjs" ]] || {
+    echo "artifact-self-check: missing wallet staging constants in tooling" >&2
+    return 1
+  }
+  [[ -f "${tooling_root}/lib/wallet-staging-guards.mjs" ]] || {
+    echo "artifact-self-check: missing wallet staging guards in tooling" >&2
+    return 1
+  }
+  node --input-type=module -e 'import(process.argv[1])' \
+    "${tooling_root}/lib/wallet-staging-constants.mjs" >/dev/null || {
+    echo "artifact-self-check: wallet staging constants are not importable" >&2
+    return 1
+  }
   NODE_PATH="${vroot}/api/node_modules:${vroot}/api/node_modules/.pnpm/node_modules${NODE_PATH:+:${NODE_PATH}}" \
     node -e 'require.resolve("@app-tour/booking-http-contracts")' >/dev/null || {
     echo "artifact-self-check: @app-tour/booking-http-contracts is not runtime-resolvable" >&2

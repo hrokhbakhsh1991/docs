@@ -88,6 +88,14 @@ mkdir -p "${RELEASES_DIR}/${SHA}"
 tar -I zstd -xf "$ARTIFACT" -C "${RELEASES_DIR}/${SHA}" --strip-components=1
 cp -a "${ARTIFACT}.manifest.json" "${RELEASES_DIR}/${SHA}/release-integrity.json"
 
+ARTIFACT_TOOLING="${RELEASES_DIR}/${SHA}/tooling/scripts/vps-deploy"
+[[ -d "$ARTIFACT_TOOLING/lib" ]] || {
+  echo "install-staging-artifact: artifact tooling lib directory missing" >&2
+  exit 1
+}
+cp -a "${ARTIFACT_TOOLING}/." "${TOOLING}/scripts/vps-deploy/"
+chmod +x "${TOOLING}/scripts/vps-deploy/"*.sh
+
 chown -R "${APP_USER}:${APP_USER}" "${RELEASES_DIR}/${SHA}"
 
 [[ -f "${RELEASES_DIR}/${SHA}/api/dist/main.js" ]] || {

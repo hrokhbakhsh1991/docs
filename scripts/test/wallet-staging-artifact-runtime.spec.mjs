@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
@@ -26,6 +26,14 @@ describe("wallet-staging-artifact-runtime", () => {
         stdio: "pipe",
       });
       const releaseDir = join(work, artifactPath.match(/([^/]+)\.tar\.zst$/u)?.[1] ?? "");
+      const toolingLib = join(releaseDir, "tooling", "scripts", "vps-deploy", "lib");
+      assert.ok(readdirSync(toolingLib).length > 0);
+      const constantsPath = join(toolingLib, "wallet-staging-constants.mjs");
+      assert.ok(readFileSync(constantsPath, "utf8").includes("DENALI_WALLET_PILOT_TENANT_ID"));
+      execFileSync(process.execPath, ["--input-type=module", "-e", "import(process.argv[1])", constantsPath], {
+        cwd: work,
+        stdio: "pipe",
+      });
       const apiNodeModules = join(releaseDir, "api", "node_modules");
       const pilotPackage = join(apiNodeModules, "@app-tour", "booking-http-contracts");
       const resolved = execFileSync(
