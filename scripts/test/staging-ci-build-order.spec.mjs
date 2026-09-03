@@ -54,3 +54,13 @@ test("staging bounds each focused stage independently", () => {
   assert.match(workflow, /timeout[^\n]+10m bash -c 'cd packages\/workspace-sdk/);
   assert.match(workflow, /timeout[^\n]+5m node --test scripts\/test\/deployment-branch-contract\.spec\.mjs/);
 });
+
+test("staging verifies the downloaded artifact from its actual download layout", () => {
+  assert.match(workflow, /path: dist\/staging-artifacts\/downloaded/);
+  assert.match(workflow, /find "\$download_root" -type f -name 'app-tour-staging-\*\.tar\.zst'/);
+  assert.match(workflow, /cd "\$\(dirname "\$artifact"\)"/);
+  assert.match(workflow, /sha256sum -c "\$\(basename "\$digest_file"\)"/);
+  assert.match(workflow, /release_sha=.*release-manifest\.json/);
+  assert.match(workflow, /STAGING_ARTIFACT=%s/);
+  assert.doesNotMatch(workflow, /sha256sum -c "\$\{artifact\}\.sha256"/);
+});
