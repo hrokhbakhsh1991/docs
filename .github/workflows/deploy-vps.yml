@@ -43,10 +43,19 @@ jobs:
     needs: [require-release-checks]
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.repository == 'hrokhbakhsh1991/docs'
+    if: github.repository == 'hrokhbakhsh1991/docs' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Fail closed outside main
+        run: |
+          test "${GITHUB_REF}" = "refs/heads/main" || {
+            echo "Production deployment is restricted to refs/heads/main."
+            exit 1
+          }
 
       - name: Require VPS deploy secrets (no silent skip)
         id: vps
@@ -87,6 +96,10 @@ jobs:
           if [ "$PATH_ON_SERVER" = "/opt/app-tour" ]; then
             PATH_ON_SERVER="/srv/app-tour"
           fi
+          case "$PATH_ON_SERVER" in
+            /srv/app-tour|/srv/app-tour/*) ;;
+            *) echo "Production deployment path rejected: $PATH_ON_SERVER"; exit 1 ;;
+          esac
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
             "${USER}@${VPS_HOST}" \
             "set -euo pipefail

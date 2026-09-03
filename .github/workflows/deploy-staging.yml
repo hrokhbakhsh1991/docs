@@ -1,0 +1,150 @@
+name: Deploy staging (dev)
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: deploy-staging-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  STAGING_DEPLOY_ROOT: /opt/app-tour-staging
+  STAGING_ENV_DIR: /etc/app-tour-staging
+
+jobs:
+  build:
+    name: Build and verify immutable staging artifact
+    if: github.repository == 'hrokhbakhsh1991/docs' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      artifact: ${{ steps.manifest.outputs.artifact }}
+      digest: ${{ steps.manifest.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Focused tests
+        run: |
+          pnpm run test:changed
+          node --test scripts/test/deployment-branch-contract.spec.mjs
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Lint
+        run: pnpm run lint
+      - name: Build
+        run: pnpm run build
+      - name: Build staging artifact on runner
+        run: bash scripts/vps-deploy/build-staging-artifact.sh
+      - name: Verify release SHA and artifact digest
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="dist/staging-artifacts/app-tour-staging-${GITHUB_SHA}.tar.zst"
+          digest_file="${artifact}.sha256"
+          test -f "$artifact" && test -f "$digest_file"
+          actual_digest="$(awk '{print $1}' "$digest_file")"
+          test "${#actual_digest}" -eq 64
+          test "$(tar -I zstd -xOf "$artifact" "app-tour-staging-${GITHUB_SHA}/release-manifest.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).releaseSha))')" = "$GITHUB_SHA"
+          echo "artifact=$(basename "$artifact")" >> "$GITHUB_OUTPUT"
+          echo "digest=$actual_digest" >> "$GITHUB_OUTPUT"
+      - name: Upload immutable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-${{ github.sha }}-${{ steps.manifest.outputs.digest }}
+          path: |
+            dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}
+            dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    name: Deploy and verify staging
+    needs: build
+    if: github.repository == 'hrokhbakhsh1991/docs' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: staging-${{ github.sha }}-${{ needs.build.outputs.digest }}
+          path: dist/staging-artifacts
+      - name: Require staging secrets and paths
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_USER: ${{ vars.VPS_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST" || { echo "Missing staging secret VPS_HOST"; exit 1; }
+          test -n "$VPS_SSH_KEY" || { echo "Missing staging secret VPS_SSH_KEY"; exit 1; }
+          test "${STAGING_DEPLOY_ROOT}" = "/opt/app-tour-staging"
+          test "${STAGING_ENV_DIR}" = "/etc/app-tour-staging"
+          test "${GITHUB_REF}" = "refs/heads/dev"
+          test -z "${PRODUCTION_TARGET:-}" || { echo "Production target rejected"; exit 1; }
+      - name: Verify downloaded artifact
+        run: |
+          set -euo pipefail
+          artifact="dist/staging-artifacts/app-tour-staging-${GITHUB_SHA}.tar.zst"
+          sha256sum -c "${artifact}.sha256"
+          test "$(tar -I zstd -xOf "$artifact" "app-tour-staging-${GITHUB_SHA}/release-manifest.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).releaseSha))')" = "$GITHUB_SHA"
+      - name: Configure SSH without printing secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/staging-key"
+          ssh-keyscan -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+      - name: Transfer, install, migrate, and standard seed
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          ARTIFACT: dist/staging-artifacts/app-tour-staging-${{ github.sha }}.tar.zst
+          DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
+          ENV_DIR: ${{ env.STAGING_ENV_DIR }}
+        run: bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
+      - name: Staging health and RLS verification
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_DEPLOY_PATH: ${{ env.STAGING_DEPLOY_ROOT }}
+          ENV_DIR: ${{ env.STAGING_ENV_DIR }}
+          UNIT_PREFIX: app-tour-staging
+        run: bash scripts/p10-staging-remote-gate.sh
+      - name: Run workspace staging adapter
+        env:
+          STAGING_ADAPTER_PATH: ${{ vars.STAGING_ADAPTER_PATH }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_ADAPTER_PATH" || { echo "Missing staging adapter path"; exit 1; }
+          case "$STAGING_ADAPTER_PATH" in scripts/ci/*) ;; *) echo "Adapter must be repository-local"; exit 1 ;; esac
+          test -x "$STAGING_ADAPTER_PATH" || { echo "Staging adapter is not executable: $STAGING_ADAPTER_PATH"; exit 1; }
+          "$STAGING_ADAPTER_PATH" verify-staging
