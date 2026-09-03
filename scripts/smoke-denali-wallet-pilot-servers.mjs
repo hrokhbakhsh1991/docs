@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { resolveSmokeApiJwtEnv } from "../apps/api/scripts/smoke-api-jwt-env.mjs";
+import { cleanNextDevCache, freePort } from "./lib/smoke-cert-server-utils.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const apiDir = path.join(repoRoot, "apps/api");
@@ -41,14 +42,6 @@ function ensureDevHosts() {
         console.warn(`smoke-denali-wallet-pilot-servers: could not map ${host} in /etc/hosts`);
       }
     }
-  }
-}
-
-function freePort(port) {
-  try {
-    execSync(`fuser -k ${port}/tcp`, { stdio: "ignore" });
-  } catch {
-    // port free or fuser missing
   }
 }
 
@@ -204,6 +197,7 @@ async function start() {
   children.push(api);
   await waitForUrl("http://127.0.0.1:3001/health");
 
+  cleanNextDevCache(portalDir);
   const portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
     cwd: portalDir,
     env: portalEnv,
@@ -212,6 +206,7 @@ async function start() {
   children.push(portal);
   await waitForUrl("http://127.0.0.1:3003/health");
 
+  cleanNextDevCache(webDir);
   const web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000"], {
     cwd: webDir,
     env: webEnv,
