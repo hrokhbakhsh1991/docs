@@ -64,3 +64,10 @@ test("staging verifies the downloaded artifact from its actual download layout",
   assert.match(workflow, /STAGING_ARTIFACT=%s/);
   assert.doesNotMatch(workflow, /sha256sum -c "\$\{artifact\}\.sha256"/);
 });
+
+test("staging passes the verified artifact through the transfer script contract", () => {
+  assert.match(
+    workflow,
+    /ARTIFACT="\$STAGING_ARTIFACT" bash scripts\/vps-deploy\/deploy-staging-artifact-remote\.sh/,
+  );
+});
