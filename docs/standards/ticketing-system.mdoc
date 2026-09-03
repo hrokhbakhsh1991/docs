@@ -728,6 +728,8 @@ All tables: `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` + `app.curr
 
 `TicketEvent` holds product timeline payloads; `AuditEvent` remains the compliance store (`ticket.*` actions) — no duplication.
 
+PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_events` teardown disables trigger in test harness only; attachment→message FK uses `ON DELETE RESTRICT`.
+
 ### Phase C — Ticket lifecycle and messaging
 
 | | |

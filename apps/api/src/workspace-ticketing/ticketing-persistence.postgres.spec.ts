@@ -96,6 +96,18 @@ describe(
         await admin.ticketEvent.deleteMany({ where: { tenantId: { in: [tenantA, tenantB] } } });
         await admin.ticketMessage.deleteMany({ where: { tenantId: { in: [tenantA, tenantB] } } });
         await admin.ticket.deleteMany({ where: { tenantId: { in: [tenantA, tenantB] } } });
+        await admin.$executeRawUnsafe(
+          "ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only",
+        );
+        try {
+          await admin.auditEvent.deleteMany({
+            where: { tenantId: { in: [tenantA, tenantB] } },
+          });
+        } finally {
+          await admin.$executeRawUnsafe(
+            "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only",
+          );
+        }
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await disconnectPrisma();
@@ -642,8 +654,59 @@ describe(
       const row = await admin.auditEvent.findUnique({ where: { id: auditId } });
       assert.ok(row !== null);
       assert.equal(row?.entityType, "ticket");
+      assert.equal(row?.action, "ticket.proof");
+    });
 
-      await admin.auditEvent.delete({ where: { id: auditId } });
+    it("rejects message delete while attachment references it (RESTRICT)", async () => {
+      const restrictTicketId = randomUUID();
+      const restrictMessageId = randomUUID();
+
+      await withTenantRls(tenantA, async (tx) => {
+        await tx.ticket.create({
+          data: {
+            id: restrictTicketId,
+            tenantId: tenantA,
+            requesterUserId: requesterA,
+            categoryCode: "general",
+            priority: "normal",
+            status: "open",
+            subject: "Restrict proof",
+            lastActivityAt: new Date(),
+          },
+        });
+        await tx.ticketMessage.create({
+          data: {
+            id: restrictMessageId,
+            tenantId: tenantA,
+            ticketId: restrictTicketId,
+            authorUserId: requesterA,
+            visibility: "public",
+            body: "Message with attachment",
+          },
+        });
+        await tx.ticketAttachment.create({
+          data: {
+            tenantId: tenantA,
+            ticketId: restrictTicketId,
+            messageId: restrictMessageId,
+            uploadedByUserId: requesterA,
+            objectKey: ticketObjectKey(tenantA, restrictTicketId, "restrict.pdf"),
+            originalFileName: "restrict.pdf",
+            contentType: "application/pdf",
+            sizeBytes: 128,
+          },
+        });
+      });
+
+      let rejected = false;
+      try {
+        await withTenantRls(tenantA, async (tx) => {
+          await tx.ticketMessage.delete({ where: { id: restrictMessageId } });
+        });
+      } catch {
+        rejected = true;
+      }
+      assert.equal(rejected, true, "message delete must be blocked while attachment references it");
     });
   },
 );
