@@ -113,6 +113,7 @@ jobs:
           path: |
             dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}
             dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}.sha256
+            dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}.manifest.json
           if-no-files-found: error
           retention-days: 14
 

@@ -71,3 +71,10 @@ test("staging passes the verified artifact through the transfer script contract"
     /ARTIFACT="\$STAGING_ARTIFACT" bash scripts\/vps-deploy\/deploy-staging-artifact-remote\.sh/,
   );
 });
+
+test("staging uploads the transfer manifest beside the artifact and checksum", () => {
+  assert.match(
+    workflow,
+    /dist\/staging-artifacts\/\$\{\{ steps\.manifest\.outputs\.artifact \}\}\.manifest\.json/,
+  );
+});
