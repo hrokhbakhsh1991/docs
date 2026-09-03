@@ -431,6 +431,15 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
       return row !== null;
     });
   }
+
+  async findTicketRowById(
+    tenantId: string,
+    ticketId: string,
+  ): Promise<import("@prisma/client").Ticket | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      return tx.ticket.findFirst({ where: { tenantId, id: ticketId } });
+    });
+  }
 }
 
 export function createTicketingRepository(): PrismaTicketingRepository {

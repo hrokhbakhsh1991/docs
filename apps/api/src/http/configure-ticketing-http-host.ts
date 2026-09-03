@@ -12,6 +12,7 @@ import {
   runIdempotentHttpMutation,
 } from "./http-idempotency";
 import { parseJsonBody, readRequestBodyRaw, sendJson } from "./json";
+import { readBinaryRequestBody } from "./read-binary-body";
 
 configureTicketingHttpHost({
   runWithHttpRequestContext,
@@ -34,4 +35,5 @@ configureTicketingHttpHost({
   hashIdempotentRequest,
   runIdempotentHttpMutation,
   assertTicketingIdempotencyKeyPresent,
+  readBinaryRequestBody,
 });

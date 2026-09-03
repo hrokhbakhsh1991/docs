@@ -79,6 +79,50 @@ export type Ticket = {
   readonly queueCode?: string | null;
 };
 
+export const TICKET_ATTACHMENT_SCAN_STATUSES = [
+  "pending",
+  "clean",
+  "rejected",
+  "failed",
+] as const;
+
+export type TicketAttachmentScanStatus = (typeof TICKET_ATTACHMENT_SCAN_STATUSES)[number];
+
+export const TICKET_LINK_ENTITY_TYPES = [
+  "tour",
+  "registration",
+  "payment",
+  "wallet",
+] as const;
+
+export type TicketLinkEntityType = (typeof TICKET_LINK_ENTITY_TYPES)[number];
+
+export type TicketAttachment = {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly ticketId: string;
+  readonly messageId: string | null;
+  readonly uploadedByUserId: string;
+  readonly objectKey: string;
+  readonly originalFileName: string;
+  readonly contentType: string;
+  readonly sizeBytes: number;
+  readonly scanStatus: TicketAttachmentScanStatus;
+  readonly uploadedAt: string | null;
+  readonly uploadIntentExpiresAt: string | null;
+  readonly createdAt: string;
+  readonly deletedAt: string | null;
+};
+
+export type TicketLink = {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly ticketId: string;
+  readonly entityType: TicketLinkEntityType;
+  readonly entityId: string;
+  readonly createdAt: string;
+};
+
 export type TicketMessage = {
   readonly id: string;
   readonly tenantId: string;
@@ -103,6 +147,10 @@ export const TICKET_EVENT_TYPES = [
   "ticket.category.changed",
   "ticket.reopened",
   "ticket.closed",
+  "attachment.completed",
+  "attachment.deleted",
+  "ticket.link.created",
+  "ticket.link.deleted",
 ] as const;
 
 export type TicketEventType = (typeof TICKET_EVENT_TYPES)[number];

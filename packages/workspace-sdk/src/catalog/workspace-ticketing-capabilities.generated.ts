@@ -37,7 +37,7 @@ export const WORKSPACE_TICKETING_CAPABILITIES = {
     tags: true as const,
     queues: true as const,
     teams: true as const,
-    attachments: false as const,
+    attachments: true as const,
     defaultCategoryCode: "general",
     allowedPriorities: ["low","normal","high","urgent"] as const,
     maxAttachmentSizeBytes: 10485760,

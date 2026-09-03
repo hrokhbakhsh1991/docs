@@ -53,6 +53,17 @@ import {
 import type { PrismaTicketingRepository } from "./infrastructure/prisma-ticketing.repository";
 import type { TicketingOperationalRepository } from "./infrastructure/ticketing-operational.repository";
 import type { TicketingCapabilityPort } from "./infrastructure/host-ticketing-capability.adapter";
+import { createTicketingAttachmentRepository } from "./infrastructure/ticketing-attachment.repository";
+import type { TicketingAttachmentRepository } from "./infrastructure/ticketing-attachment.repository";
+import {
+  createTicketingEntityValidationRepository,
+  createTicketingLinkRepository,
+} from "./infrastructure/ticketing-link.repository";
+import type {
+  TicketingEntityValidationRepository,
+  TicketingLinkRepository,
+} from "./infrastructure/ticketing-link.repository";
+import { createTicketingE1Operations } from "./ticketing-e1.operations";
 import type {
   PersistTicketMutationInput,
   TicketDetailRecord,
@@ -129,10 +140,20 @@ export type TicketingServiceDeps = {
   readonly repository: PrismaTicketingRepository;
   readonly operationalRepository: TicketingOperationalRepository;
   readonly capability: TicketingCapabilityPort;
+  readonly attachmentRepository?: TicketingAttachmentRepository;
+  readonly linkRepository?: TicketingLinkRepository;
+  readonly entityRepository?: TicketingEntityValidationRepository;
 };
 
 export function createTicketingService(deps: TicketingServiceDeps): TicketingServicePort {
-  const { repository, operationalRepository, capability } = deps;
+  const {
+    repository,
+    operationalRepository,
+    capability,
+    attachmentRepository = createTicketingAttachmentRepository(),
+    linkRepository = createTicketingLinkRepository(),
+    entityRepository = createTicketingEntityValidationRepository(),
+  } = deps;
 
   async function resolveWorkspaceCapabilities(tenantId: string) {
     const gate = await capability.assertEnabled(tenantId);
@@ -224,6 +245,24 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
     return links;
   }
 
+  async function enrichDetail(detail: TicketDetailRecord): Promise<TicketDetailRecord> {
+    const [attachments, links] = await Promise.all([
+      attachmentRepository.listByTicket(detail.ticket.tenantId, detail.ticket.id),
+      linkRepository.listByTicket(detail.ticket.tenantId, detail.ticket.id),
+    ]);
+    return { ...detail, attachments, links };
+  }
+
+  const e1 = createTicketingE1Operations({
+    repository,
+    attachmentRepository,
+    linkRepository,
+    entityRepository,
+    capability,
+    loadReadableTicket,
+    loadTicketRow: (tenantId, ticketId) => repository.findTicketRowById(tenantId, ticketId),
+  });
+
   return {
     async listMemberTickets(auth, query: MemberTicketListQuery) {
       const actor = await buildTicketActorContext(auth, { loadTenantMembers: auth.role === "viewer" });
@@ -286,7 +325,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
     },
 
     async getMemberTicket(auth, ticketId) {
-      const detail = await loadReadableTicket(auth, ticketId);
+      const detail = await enrichDetail(await loadReadableTicket(auth, ticketId));
       return toMemberTicketDetailHttp(detail);
     },
 
@@ -379,7 +418,9 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
 
     async getOperatorTicket(auth, ticketId) {
       assertOperatorEndpointRole(auth);
-      const detail = await loadReadableTicket(auth, ticketId, { operator: true });
+      const detail = await enrichDetail(
+        await loadReadableTicket(auth, ticketId, { operator: true }),
+      );
       return toOperatorTicketDetailHttp(detail);
     },
 
@@ -985,5 +1026,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
       detail = await persistMutation({ ticket: updatedTicket, events: [event] });
       return { ticket: toOperatorTicketDetailHttp(detail) };
     },
+
+    ...e1,
   };
 }

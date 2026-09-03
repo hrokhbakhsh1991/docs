@@ -1,4 +1,6 @@
 export {
+  TICKET_ATTACHMENT_SCAN_STATUSES,
+  TICKET_LINK_ENTITY_TYPES,
   TICKET_STATUSES,
   TICKET_PRIORITIES,
   TICKET_MESSAGE_VISIBILITIES,
@@ -17,6 +19,10 @@ export {
 export type {
   Ticket,
   TicketMessage,
+  TicketAttachment,
+  TicketLink,
+  TicketAttachmentScanStatus,
+  TicketLinkEntityType,
   TicketEvent,
   TicketEventType,
   TicketStatus,
@@ -75,6 +81,11 @@ export {
   canReadTicket,
   canReopenTicket,
   canReplyToTicket,
+  canManageTicketLinks,
+  canCreateTicketLink,
+  canUploadAttachment,
+  canReadAttachment,
+  canDeleteAttachment,
 } from "./permissions";
 
 export {
@@ -104,5 +115,7 @@ export {
   assertMemberSafeMessage,
   filterMessagesForMember,
   filterMessagesForViewer,
+  filterAttachmentsForMember,
+  filterAttachmentsForOperator,
   isPublicMessage,
 } from "./visibility";

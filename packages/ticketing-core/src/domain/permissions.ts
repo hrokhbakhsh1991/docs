@@ -141,6 +141,86 @@ export function canCloseTicket(ticket: Ticket, ctx: TicketActorContext): boolean
   return canActorTransitionStatus(ticket.status, "closed", ctx.role);
 }
 
+export function canManageTicketLinks(ticket: Ticket, ctx: TicketActorContext): boolean {
+  if (isReadOnlyActor(ctx)) return false;
+  if (!canReadTicket(ticket, ctx)) return false;
+  return isOperatorRole(ctx.role);
+}
+
+export function canCreateTicketLink(
+  ticket: Ticket,
+  ctx: TicketActorContext,
+  entityType: import("./types").TicketLinkEntityType,
+): boolean {
+  if (isReadOnlyActor(ctx)) return false;
+  if (!canReadTicket(ticket, ctx)) return false;
+  if (isOperatorRole(ctx.role)) return true;
+  if (ctx.role === "member" && assertMemberOwnsTicket(ticket, ctx.userId).ok) {
+    return entityType === "tour" || entityType === "registration";
+  }
+  return false;
+}
+
+export function canUploadAttachment(
+  ticket: Ticket,
+  ctx: TicketActorContext,
+  messageVisibility: import("./types").TicketMessageVisibility,
+): boolean {
+  if (isReadOnlyActor(ctx)) return false;
+  if (!canReadTicket(ticket, ctx)) return false;
+  if (ticket.status === "closed") return false;
+  if (isOperatorRole(ctx.role)) return true;
+  if (ctx.role === "member" && assertMemberOwnsTicket(ticket, ctx.userId).ok) {
+    return messageVisibility === "public";
+  }
+  return false;
+}
+
+export function canReadAttachment(
+  ticket: Ticket,
+  ctx: TicketActorContext,
+  attachment: import("./types").TicketAttachment,
+  messageVisibility: import("./types").TicketMessageVisibility | null,
+): boolean {
+  if (!canReadTicket(ticket, ctx)) return false;
+  if (attachment.deletedAt !== null) return false;
+  if (attachment.scanStatus === "rejected" || attachment.scanStatus === "failed") {
+    return false;
+  }
+  if (ctx.role === "member") {
+    if (!assertMemberOwnsTicket(ticket, ctx.userId).ok) return false;
+    if (messageVisibility !== "public") return false;
+    return attachment.scanStatus === "clean";
+  }
+  if (ctx.role === "viewer") {
+    return attachment.scanStatus === "clean";
+  }
+  if (isOperatorRole(ctx.role)) {
+    return true;
+  }
+  return false;
+}
+
+export function canDeleteAttachment(
+  ticket: Ticket,
+  ctx: TicketActorContext,
+  attachment: import("./types").TicketAttachment,
+  messageVisibility: import("./types").TicketMessageVisibility | null,
+): boolean {
+  if (isReadOnlyActor(ctx)) return false;
+  if (!canReadTicket(ticket, ctx)) return false;
+  if (isOperatorRole(ctx.role)) return true;
+  if (
+    ctx.role === "member" &&
+    assertMemberOwnsTicket(ticket, ctx.userId).ok &&
+    attachment.uploadedByUserId === ctx.userId &&
+    messageVisibility === "public"
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function assertTicketPermission(
   permission: TicketPermission,
   ctx: TicketActorContext,

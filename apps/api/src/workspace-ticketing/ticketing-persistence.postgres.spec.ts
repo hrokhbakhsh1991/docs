@@ -32,8 +32,13 @@ const TICKETING_TABLES = [
   "ticket_team_members",
 ] as const;
 
-function ticketObjectKey(tenantId: string, ticketId: string, fileName: string): string {
-  return `tickets/${tenantId}/${ticketId}/${randomUUID()}/${fileName}`;
+function ticketObjectKey(
+  tenantId: string,
+  ticketId: string,
+  messageId: string,
+  attachmentId: string,
+): string {
+  return `tickets/${tenantId}/${ticketId}/${messageId}/${attachmentId}`;
 }
 
 describe(
@@ -197,10 +202,12 @@ describe(
             ticketId: ticketAId,
             messageId: messageAId,
             uploadedByUserId: requesterA,
-            objectKey: ticketObjectKey(tenantA, ticketAId, "receipt.pdf"),
+            objectKey: ticketObjectKey(tenantA, ticketAId, messageAId, attachmentAId),
             originalFileName: "receipt.pdf",
             contentType: "application/pdf",
             sizeBytes: 1024,
+            scanStatus: "clean",
+            uploadedAt: new Date(),
             checksum: "sha256:abc",
           },
         });
@@ -520,10 +527,17 @@ describe(
                 tenantId: tenantA,
                 ticketId: ticketAId,
                 uploadedByUserId: requesterA,
-                objectKey: ticketObjectKey(tenantA, ticketAId, "x.pdf"),
+                objectKey: ticketObjectKey(
+                  tenantA,
+                  ticketAId,
+                  randomUUID(),
+                  randomUUID(),
+                ),
                 originalFileName: "x.pdf",
                 contentType: "application/pdf",
                 sizeBytes: 100,
+                scanStatus: "clean",
+                uploadedAt: new Date(),
               },
             });
           }),
@@ -615,11 +629,19 @@ describe(
             id: cascadeAttachmentId,
             tenantId: tenantA,
             ticketId: cascadeTicketId,
+            messageId: cascadeMessageId,
             uploadedByUserId: requesterA,
-            objectKey: ticketObjectKey(tenantA, cascadeTicketId, "cascade.pdf"),
+            objectKey: ticketObjectKey(
+              tenantA,
+              cascadeTicketId,
+              cascadeMessageId,
+              cascadeAttachmentId,
+            ),
             originalFileName: "cascade.pdf",
             contentType: "application/pdf",
             sizeBytes: 256,
+            scanStatus: "clean",
+            uploadedAt: new Date(),
           },
         });
         await tx.ticketLink.create({
@@ -695,10 +717,17 @@ describe(
             ticketId: restrictTicketId,
             messageId: restrictMessageId,
             uploadedByUserId: requesterA,
-            objectKey: ticketObjectKey(tenantA, restrictTicketId, "restrict.pdf"),
+            objectKey: ticketObjectKey(
+              tenantA,
+              restrictTicketId,
+              restrictMessageId,
+              randomUUID(),
+            ),
             originalFileName: "restrict.pdf",
             contentType: "application/pdf",
             sizeBytes: 128,
+            scanStatus: "clean",
+            uploadedAt: new Date(),
           },
         });
       });

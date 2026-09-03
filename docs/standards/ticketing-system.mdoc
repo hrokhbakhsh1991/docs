@@ -711,6 +711,68 @@ RLS: `ENABLE` + `FORCE` on all new tables; `USING` / `WITH CHECK` on `tenant_id 
 
 Mutations: `Idempotency-Key` + `rowVersion` on ticket-scoped writes. Events: `ticket.assigned`, `ticket.queue.changed`, `ticket.tag.added`, `ticket.tag.removed`, `ticket.category.changed` (when PATCH changes category). Audit: `ticket.*` actions via existing audit writer.
 
+### 19.4 Phase E1 — attachments and business-entity links
+
+Additive migration `20260903150000_ticketing_attachments_e1` — does not rewrite B1/D1 migrations.
+
+**Upload flow (3-step, receipt-style server upload — client never supplies `objectKey`):**
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+  participant Storage as TenantObjectStoragePort
+
+  Client->>API: POST …/attachments/intents { messageId, originalFileName, contentType, sizeBytes }
+  API->>DB: INSERT scanStatus=pending, sizeBytes=0, objectKey server-generated
+  API-->>Client: { attachmentId, expiresAt } (TTL 15 min)
+
+  Client->>API: PUT …/attachments/:attachmentId/upload (binary body)
+  API->>Storage: put(tickets/{tenantId}/{ticketId}/{messageId}/{attachmentId})
+
+  Client->>API: POST …/messages/:messageId/attachments/:attachmentId/complete
+  API->>Storage: head/exists check
+  API->>DB: sizeBytes, scanStatus=clean, uploadedAt
+  API-->>Client: attachment metadata + signed read URL optional
+```
+
+| Step | Operator path | Member path | Notes |
+| ---- | ------------- | ----------- | ----- |
+| 1 Intent | `POST /tickets/:ticketId/attachments/intents` | `POST /member/tickets/:ticketId/attachments/intents` | Zod body; validates message ∈ ticket, MIME ∈ {jpeg,png,webp,pdf}, `sizeBytes` ≤ manifest `maxAttachmentSizeBytes`; `Idempotency-Key` dedupes row |
+| 2 Upload | `PUT /tickets/:ticketId/attachments/:attachmentId/upload` | `PUT /member/tickets/:ticketId/attachments/:attachmentId/upload` | Raw body; max bytes enforced; `getTenantObjectStorage().put()` |
+| 3 Complete | `POST /tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | `POST /member/tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | Verifies object exists; sets `scanStatus=clean`, `uploadedAt`; emits `attachment.completed` + audit |
+
+**Object key (server-only):** `tickets/{tenantId}/{ticketId}/{messageId}/{attachmentId}` — DB `CHECK` enforces `tickets/{tenantId}/%/%/%` (three path segments after tenant). SK4 ACL: `assertTenantOwnsObjectKey` accepts `tickets/${tenantId}/` prefix (same family as `receipts/`).
+
+**Download:** `GET /tickets/:ticketId/attachments/:attachmentId` (and member mirror) → short-lived signed read URL; **clean** attachments only for member; operator/viewer per visibility matrix below.
+
+**Delete (`onDelete` policy):** `DELETE /tickets/:ticketId/attachments/:attachmentId` — soft-delete `deletedAt`, remove storage object via `TenantObjectStoragePort.remove()`. Authorized: admin/owner, or member uploader on own ticket **public** message attachment.
+
+| Actor | Read attachments | Upload | Delete |
+| ----- | ---------------- | ------ | ------ |
+| member (own ticket) | clean on **public** messages only | public message on own ticket | own upload on public message |
+| viewer | clean on all messages (incl. internal) | ❌ | ❌ |
+| admin/owner | all non-rejected/failed in operator projection | ✅ | ✅ |
+
+Rejected/failed scan statuses are hidden from normal member/operator projections; admin diagnostics may surface separately in later phases.
+
+**Links API:**
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| GET | `/tickets/:ticketId/links` | operator/viewer; member own ticket | list normalized `TicketLink` rows |
+| POST | `/tickets/:ticketId/links` | admin/owner; member restricted | member: `tour` + `registration` only (create-ticket path already exists); admin: all entity types |
+| DELETE | `/tickets/:ticketId/links/:linkId` | admin/owner only | emits `ticket.link.deleted` |
+
+Entity validation (tenant-bound, fail-closed): `existsTourInTenant`, `existsRegistrationInTenant`, `existsPaymentInTenant`, `existsWalletInTenant` (payment/wallet stubs query `payments` / `wallet_accounts` under RLS).
+
+Events: `attachment.completed`, `attachment.deleted`, `ticket.link.created`, `ticket.link.deleted`. Duplicate link → `TICKET_LINK_DUPLICATE` (409).
+
+**Schema additions (`ticket_attachments`):** `scan_status` (`pending` \| `clean` \| `rejected` \| `failed`), `uploaded_at`, `idempotency_key`, `upload_intent_expires_at`; `size_bytes` CHECK allows `0` when `pending`; unique `(tenant_id, idempotency_key)` where not null.
+
+**Capability gate:** `workspaceTicketing.capabilities.attachments` must be `true` (manifest/codegen); size/MIME limits from `maxAttachmentSizeBytes` + allowed types list in service layer.
+
 ---
 
 ## 20. Readiness

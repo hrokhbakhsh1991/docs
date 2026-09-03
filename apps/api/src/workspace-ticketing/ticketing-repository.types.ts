@@ -1,9 +1,11 @@
-import type { Ticket, TicketEvent, TicketMessage } from "@app-tour/ticketing-core";
+import type { Ticket, TicketEvent, TicketMessage, TicketAttachment, TicketLink } from "@app-tour/ticketing-core";
 
 export type TicketDetailRecord = {
   readonly ticket: Ticket;
   readonly messages: readonly TicketMessage[];
   readonly events: readonly TicketEvent[];
+  readonly attachments?: readonly TicketAttachment[];
+  readonly links?: readonly TicketLink[];
 };
 
 export type TicketListResult = {

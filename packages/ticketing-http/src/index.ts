@@ -33,6 +33,25 @@ export {
   handleTicketingOperatorReopenTicket,
 } from "./ticketing.routes";
 export {
+  handleTicketingMemberCreateAttachmentIntent,
+  handleTicketingOperatorCreateAttachmentIntent,
+  handleTicketingMemberUploadAttachment,
+  handleTicketingOperatorUploadAttachment,
+  handleTicketingMemberCompleteAttachment,
+  handleTicketingOperatorCompleteAttachment,
+  handleTicketingMemberGetAttachment,
+  handleTicketingOperatorGetAttachment,
+  handleTicketingMemberDeleteAttachment,
+  handleTicketingOperatorDeleteAttachment,
+} from "./ticketing-attachment.routes";
+export {
+  handleTicketingMemberListLinks,
+  handleTicketingOperatorListLinks,
+  handleTicketingMemberCreateLink,
+  handleTicketingOperatorCreateLink,
+  handleTicketingOperatorDeleteLink,
+} from "./ticketing-link.routes";
+export {
   handleTicketingAddTicketTag,
   handleTicketingAssignTicket,
   handleTicketingChangeTicketQueue,

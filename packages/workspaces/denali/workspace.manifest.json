@@ -252,7 +252,7 @@
       "tags": true,
       "queues": true,
       "teams": true,
-      "attachments": false
+      "attachments": true
     },
     "defaultCategoryCode": "general",
     "allowedPriorities": ["low", "normal", "high", "urgent"],

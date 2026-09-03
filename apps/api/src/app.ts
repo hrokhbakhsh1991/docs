@@ -56,6 +56,21 @@ import {
   handleTicketingChangeTicketQueue,
   handleTicketingAddTicketTag,
   handleTicketingRemoveTicketTag,
+  handleTicketingMemberCreateAttachmentIntent,
+  handleTicketingOperatorCreateAttachmentIntent,
+  handleTicketingMemberUploadAttachment,
+  handleTicketingOperatorUploadAttachment,
+  handleTicketingMemberCompleteAttachment,
+  handleTicketingOperatorCompleteAttachment,
+  handleTicketingMemberGetAttachment,
+  handleTicketingOperatorGetAttachment,
+  handleTicketingMemberDeleteAttachment,
+  handleTicketingOperatorDeleteAttachment,
+  handleTicketingMemberListLinks,
+  handleTicketingOperatorListLinks,
+  handleTicketingMemberCreateLink,
+  handleTicketingOperatorCreateLink,
+  handleTicketingOperatorDeleteLink,
 } from "@app-tour/ticketing-http";
 import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
@@ -679,6 +694,180 @@ async function dispatchRequest(
       ticketingDeps,
       ticketTagRemoveMatch[1]!,
       ticketTagRemoveMatch[2]!,
+    );
+    return;
+  }
+
+  const memberAttachmentIntentMatch = url.pathname.match(
+    /^\/member\/tickets\/([^/]+)\/attachments\/intents$/,
+  );
+  if (method === "POST" && memberAttachmentIntentMatch) {
+    await handleTicketingMemberCreateAttachmentIntent(
+      req,
+      res,
+      ticketingDeps,
+      memberAttachmentIntentMatch[1]!,
+    );
+    return;
+  }
+
+  const operatorAttachmentIntentMatch = url.pathname.match(
+    /^\/tickets\/([^/]+)\/attachments\/intents$/,
+  );
+  if (method === "POST" && operatorAttachmentIntentMatch) {
+    await handleTicketingOperatorCreateAttachmentIntent(
+      req,
+      res,
+      ticketingDeps,
+      operatorAttachmentIntentMatch[1]!,
+    );
+    return;
+  }
+
+  const memberAttachmentUploadMatch = url.pathname.match(
+    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)\/upload$/,
+  );
+  if (method === "PUT" && memberAttachmentUploadMatch) {
+    await handleTicketingMemberUploadAttachment(
+      req,
+      res,
+      ticketingDeps,
+      memberAttachmentUploadMatch[1]!,
+      memberAttachmentUploadMatch[2]!,
+    );
+    return;
+  }
+
+  const operatorAttachmentUploadMatch = url.pathname.match(
+    /^\/tickets\/([^/]+)\/attachments\/([^/]+)\/upload$/,
+  );
+  if (method === "PUT" && operatorAttachmentUploadMatch) {
+    await handleTicketingOperatorUploadAttachment(
+      req,
+      res,
+      ticketingDeps,
+      operatorAttachmentUploadMatch[1]!,
+      operatorAttachmentUploadMatch[2]!,
+    );
+    return;
+  }
+
+  const memberAttachmentCompleteMatch = url.pathname.match(
+    /^\/member\/tickets\/([^/]+)\/messages\/([^/]+)\/attachments\/([^/]+)\/complete$/,
+  );
+  if (method === "POST" && memberAttachmentCompleteMatch) {
+    await handleTicketingMemberCompleteAttachment(
+      req,
+      res,
+      ticketingDeps,
+      memberAttachmentCompleteMatch[1]!,
+      memberAttachmentCompleteMatch[2]!,
+      memberAttachmentCompleteMatch[3]!,
+    );
+    return;
+  }
+
+  const operatorAttachmentCompleteMatch = url.pathname.match(
+    /^\/tickets\/([^/]+)\/messages\/([^/]+)\/attachments\/([^/]+)\/complete$/,
+  );
+  if (method === "POST" && operatorAttachmentCompleteMatch) {
+    await handleTicketingOperatorCompleteAttachment(
+      req,
+      res,
+      ticketingDeps,
+      operatorAttachmentCompleteMatch[1]!,
+      operatorAttachmentCompleteMatch[2]!,
+      operatorAttachmentCompleteMatch[3]!,
+    );
+    return;
+  }
+
+  const memberAttachmentGetMatch = url.pathname.match(
+    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)$/,
+  );
+  if (method === "GET" && memberAttachmentGetMatch) {
+    await handleTicketingMemberGetAttachment(
+      req,
+      res,
+      ticketingDeps,
+      memberAttachmentGetMatch[1]!,
+      memberAttachmentGetMatch[2]!,
+    );
+    return;
+  }
+
+  const operatorAttachmentGetMatch = url.pathname.match(/^\/tickets\/([^/]+)\/attachments\/([^/]+)$/);
+  if (method === "GET" && operatorAttachmentGetMatch) {
+    await handleTicketingOperatorGetAttachment(
+      req,
+      res,
+      ticketingDeps,
+      operatorAttachmentGetMatch[1]!,
+      operatorAttachmentGetMatch[2]!,
+    );
+    return;
+  }
+
+  const memberAttachmentDeleteMatch = url.pathname.match(
+    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)$/,
+  );
+  if (method === "DELETE" && memberAttachmentDeleteMatch) {
+    await handleTicketingMemberDeleteAttachment(
+      req,
+      res,
+      ticketingDeps,
+      memberAttachmentDeleteMatch[1]!,
+      memberAttachmentDeleteMatch[2]!,
+    );
+    return;
+  }
+
+  const operatorAttachmentDeleteMatch = url.pathname.match(
+    /^\/tickets\/([^/]+)\/attachments\/([^/]+)$/,
+  );
+  if (method === "DELETE" && operatorAttachmentDeleteMatch) {
+    await handleTicketingOperatorDeleteAttachment(
+      req,
+      res,
+      ticketingDeps,
+      operatorAttachmentDeleteMatch[1]!,
+      operatorAttachmentDeleteMatch[2]!,
+    );
+    return;
+  }
+
+  const memberTicketLinksMatch = url.pathname.match(/^\/member\/tickets\/([^/]+)\/links$/);
+  if (memberTicketLinksMatch) {
+    if (method === "GET") {
+      await handleTicketingMemberListLinks(req, res, ticketingDeps, memberTicketLinksMatch[1]!);
+      return;
+    }
+    if (method === "POST") {
+      await handleTicketingMemberCreateLink(req, res, ticketingDeps, memberTicketLinksMatch[1]!);
+      return;
+    }
+  }
+
+  const operatorTicketLinksMatch = url.pathname.match(/^\/tickets\/([^/]+)\/links$/);
+  if (operatorTicketLinksMatch) {
+    if (method === "GET") {
+      await handleTicketingOperatorListLinks(req, res, ticketingDeps, operatorTicketLinksMatch[1]!);
+      return;
+    }
+    if (method === "POST") {
+      await handleTicketingOperatorCreateLink(req, res, ticketingDeps, operatorTicketLinksMatch[1]!);
+      return;
+    }
+  }
+
+  const operatorTicketLinkDeleteMatch = url.pathname.match(/^\/tickets\/([^/]+)\/links\/([^/]+)$/);
+  if (method === "DELETE" && operatorTicketLinkDeleteMatch) {
+    await handleTicketingOperatorDeleteLink(
+      req,
+      res,
+      ticketingDeps,
+      operatorTicketLinkDeleteMatch[1]!,
+      operatorTicketLinkDeleteMatch[2]!,
     );
     return;
   }

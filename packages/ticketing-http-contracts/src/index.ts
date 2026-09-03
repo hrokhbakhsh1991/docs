@@ -129,3 +129,21 @@ export {
   type TicketingHttpErrorCode,
   type TicketingHttpErrorResponse,
 } from "./ticketing-error.schemas";
+
+export {
+  TICKET_ATTACHMENT_ALLOWED_CONTENT_TYPES,
+  parseTicketAttachmentIntentInput,
+  type TicketAttachmentIntentInput,
+  type TicketAttachmentIntentResponse,
+  type TicketAttachmentCompleteResponse,
+  type TicketAttachmentDownloadResponse,
+  type TicketAttachmentHttp,
+} from "./ticketing-attachment.schemas";
+
+export {
+  TICKET_LINK_ENTITY_TYPES,
+  parseTicketLinkCreateInput,
+  type TicketLinkCreateInput,
+  type TicketLinkHttp,
+  type TicketLinkListHttpResponse,
+} from "./ticketing-link.schemas";

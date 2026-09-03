@@ -35,4 +35,5 @@ export type TicketingHttpHostPorts = {
     options?: { readonly statusCode?: number },
   ) => Promise<T>;
   readonly assertTicketingIdempotencyKeyPresent: (key: string | undefined) => asserts key is string;
+  readonly readBinaryRequestBody: (req: IncomingMessage, maxBytes: number) => Promise<Buffer>;
 };

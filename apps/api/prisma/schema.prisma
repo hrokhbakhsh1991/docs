@@ -1157,24 +1157,29 @@ model TicketEvent {
   @@map("ticket_events")
 }
 
-/// TKT-001 Phase B1 — attachment metadata only (upload/storage adapter deferred).
+/// TKT-001 Phase E1 — attachment metadata + upload intent (storage via TenantObjectStoragePort).
 model TicketAttachment {
-  id               String         @id @default(uuid()) @db.Uuid
-  tenantId         String         @map("tenant_id") @db.Uuid
-  ticketId         String         @map("ticket_id") @db.Uuid
-  messageId        String?        @map("message_id") @db.Uuid
-  uploadedByUserId String         @map("uploaded_by_user_id") @db.Uuid
-  objectKey        String         @map("object_key")
-  originalFileName String         @map("original_file_name")
-  contentType      String         @map("content_type")
-  sizeBytes        Int            @map("size_bytes")
-  checksum         String?
-  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz
-  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ticket           Ticket         @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
-  message          TicketMessage? @relation(fields: [tenantId, messageId], references: [tenantId, id], onDelete: Restrict)
+  id                     String         @id @default(uuid()) @db.Uuid
+  tenantId               String         @map("tenant_id") @db.Uuid
+  ticketId               String         @map("ticket_id") @db.Uuid
+  messageId              String?        @map("message_id") @db.Uuid
+  uploadedByUserId       String         @map("uploaded_by_user_id") @db.Uuid
+  objectKey              String         @map("object_key")
+  originalFileName       String         @map("original_file_name")
+  contentType            String         @map("content_type")
+  sizeBytes              Int            @map("size_bytes")
+  scanStatus             String         @default("pending") @map("scan_status")
+  uploadedAt             DateTime?      @map("uploaded_at") @db.Timestamptz
+  idempotencyKey         String?        @map("idempotency_key")
+  uploadIntentExpiresAt  DateTime?      @map("upload_intent_expires_at") @db.Timestamptz
+  checksum               String?
+  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt              DateTime?      @map("deleted_at") @db.Timestamptz
+  tenant                 Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket                 Ticket         @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  message                TicketMessage? @relation(fields: [tenantId, messageId], references: [tenantId, id], onDelete: Restrict)
 
+  @@unique([tenantId, idempotencyKey], map: "uq_ticket_attachments_tenant_idempotency_key")
   @@index([tenantId, ticketId, createdAt(sort: Desc)], map: "idx_ticket_attachments_tenant_ticket_created")
   @@map("ticket_attachments")
 }

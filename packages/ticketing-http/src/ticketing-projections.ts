@@ -1,4 +1,4 @@
-import { filterEventsForMember, filterMessagesForMember } from "@app-tour/ticketing-core";
+import { filterEventsForMember, filterMessagesForMember, filterAttachmentsForMember, filterAttachmentsForOperator } from "@app-tour/ticketing-core";
 import type {
   MemberTicketDetailHttp,
   MemberTicketMessageHttp,
@@ -9,8 +9,10 @@ import type {
   PaginatedOperatorTicketListHttp,
   TicketEventHttp,
   TicketSummaryHttp,
+  TicketAttachmentHttp,
+  TicketLinkHttp,
 } from "@app-tour/ticketing-http-contracts";
-import type { Ticket, TicketEvent, TicketMessage } from "@app-tour/ticketing-core";
+import type { Ticket, TicketEvent, TicketMessage, TicketAttachment, TicketLink } from "@app-tour/ticketing-core";
 
 export function toTicketSummaryHttp(ticket: Ticket): TicketSummaryHttp {
   return {
@@ -33,19 +35,59 @@ export function toOperatorTicketSummaryHttp(ticket: Ticket): OperatorTicketSumma
   };
 }
 
-export function toMemberMessageHttp(message: TicketMessage): MemberTicketMessageHttp {
+export function toTicketAttachmentHttp(attachment: TicketAttachment): TicketAttachmentHttp {
+  return {
+    id: attachment.id,
+    ticketId: attachment.ticketId,
+    messageId: attachment.messageId,
+    originalFileName: attachment.originalFileName,
+    contentType: attachment.contentType,
+    sizeBytes: attachment.sizeBytes,
+    scanStatus: attachment.scanStatus,
+    uploadedAt: attachment.uploadedAt,
+    createdAt: attachment.createdAt,
+  };
+}
+
+export function toTicketLinkHttp(link: TicketLink): TicketLinkHttp {
+  return {
+    id: link.id,
+    ticketId: link.ticketId,
+    entityType: link.entityType,
+    entityId: link.entityId,
+    createdAt: link.createdAt,
+  };
+}
+
+function attachmentsForMessage(
+  messageId: string,
+  attachments: readonly TicketAttachment[],
+): readonly TicketAttachmentHttp[] {
+  return attachments
+    .filter((attachment) => attachment.messageId === messageId)
+    .map(toTicketAttachmentHttp);
+}
+
+export function toMemberMessageHttp(
+  message: TicketMessage,
+  attachments: readonly TicketAttachment[] = [],
+): MemberTicketMessageHttp {
   return {
     id: message.id,
     ticketId: message.ticketId,
     authorUserId: message.authorUserId,
     body: message.body,
     createdAt: message.createdAt,
+    attachments: attachmentsForMessage(message.id, attachments),
   };
 }
 
-export function toOperatorMessageHttp(message: TicketMessage): OperatorTicketMessageHttp {
+export function toOperatorMessageHttp(
+  message: TicketMessage,
+  attachments: readonly TicketAttachment[] = [],
+): OperatorTicketMessageHttp {
   return {
-    ...toMemberMessageHttp(message),
+    ...toMemberMessageHttp(message, attachments),
     visibility: message.visibility,
   };
 }
@@ -65,11 +107,20 @@ export function toMemberTicketDetailHttp(input: {
   readonly ticket: Ticket;
   readonly messages: readonly TicketMessage[];
   readonly events: readonly TicketEvent[];
+  readonly attachments?: readonly TicketAttachment[];
+  readonly links?: readonly TicketLink[];
 }): MemberTicketDetailHttp {
+  const visibleAttachments = filterAttachmentsForMember(
+    input.attachments ?? [],
+    input.messages,
+  );
   return {
     ticket: toTicketSummaryHttp(input.ticket),
-    messages: filterMessagesForMember(input.messages).map(toMemberMessageHttp),
+    messages: filterMessagesForMember(input.messages).map((message) =>
+      toMemberMessageHttp(message, visibleAttachments),
+    ),
     events: filterEventsForMember(input.events).map(toTicketEventHttp),
+    ...(input.links !== undefined ? { links: input.links.map(toTicketLinkHttp) } : {}),
     rowVersion: input.ticket.rowVersion,
   };
 }
@@ -78,11 +129,17 @@ export function toOperatorTicketDetailHttp(input: {
   readonly ticket: Ticket;
   readonly messages: readonly TicketMessage[];
   readonly events: readonly TicketEvent[];
+  readonly attachments?: readonly TicketAttachment[];
+  readonly links?: readonly TicketLink[];
 }): OperatorTicketDetailHttp {
+  const visibleAttachments = filterAttachmentsForOperator(input.attachments ?? []);
   return {
     ticket: toOperatorTicketSummaryHttp(input.ticket),
-    messages: input.messages.map(toOperatorMessageHttp),
+    messages: input.messages.map((message) =>
+      toOperatorMessageHttp(message, visibleAttachments),
+    ),
     events: input.events.map(toTicketEventHttp),
+    ...(input.links !== undefined ? { links: input.links.map(toTicketLinkHttp) } : {}),
     rowVersion: input.ticket.rowVersion,
   };
 }

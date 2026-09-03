@@ -7,6 +7,13 @@ import type {
   OperatorTicketMutationHttpResponse,
   PaginatedMemberTicketListHttp,
   PaginatedOperatorTicketListHttp,
+  TicketAttachmentCompleteResponse,
+  TicketAttachmentDownloadResponse,
+  TicketAttachmentIntentInput,
+  TicketAttachmentIntentResponse,
+  TicketLinkCreateInput,
+  TicketLinkHttp,
+  TicketLinkListHttpResponse,
 } from "@app-tour/ticketing-http-contracts";
 import type {
   MemberAddMessageInput,
@@ -156,4 +163,56 @@ export type TicketingServicePort = {
     rowVersion: number,
     idempotencyKey: string,
   ) => Promise<OperatorTicketMutationHttpResponse>;
+  readonly createAttachmentIntent: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    body: TicketAttachmentIntentInput,
+    idempotencyKey: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<TicketAttachmentIntentResponse>;
+  readonly uploadAttachment: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    attachmentId: string,
+    body: Buffer,
+    contentType: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<void>;
+  readonly completeAttachment: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    messageId: string,
+    attachmentId: string,
+    idempotencyKey: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<TicketAttachmentCompleteResponse>;
+  readonly getAttachmentDownloadUrl: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    attachmentId: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<TicketAttachmentDownloadResponse>;
+  readonly deleteAttachment: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    attachmentId: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<void>;
+  readonly listTicketLinks: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<TicketLinkListHttpResponse>;
+  readonly createTicketLink: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    body: TicketLinkCreateInput,
+    idempotencyKey: string,
+    options?: { readonly operator?: boolean },
+  ) => Promise<TicketLinkHttp>;
+  readonly deleteTicketLink: (
+    auth: TenantAuthContext,
+    ticketId: string,
+    linkId: string,
+  ) => Promise<void>;
 };

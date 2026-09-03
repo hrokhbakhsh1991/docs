@@ -27,6 +27,7 @@ export type MemberTicketMessageHttp = {
   readonly authorUserId: string;
   readonly body: string;
   readonly createdAt: string;
+  readonly attachments?: readonly import("./ticketing-attachment.schemas").TicketAttachmentHttp[];
 };
 
 /** Operator message — includes visibility for internal/public separation. */
@@ -47,6 +48,7 @@ export type MemberTicketDetailHttp = {
   readonly ticket: TicketSummaryHttp;
   readonly messages: readonly MemberTicketMessageHttp[];
   readonly events: readonly TicketEventHttp[];
+  readonly links?: readonly import("./ticketing-link.schemas").TicketLinkHttp[];
   readonly rowVersion: number;
 };
 
@@ -54,6 +56,7 @@ export type OperatorTicketDetailHttp = {
   readonly ticket: OperatorTicketSummaryHttp;
   readonly messages: readonly OperatorTicketMessageHttp[];
   readonly events: readonly TicketEventHttp[];
+  readonly links?: readonly import("./ticketing-link.schemas").TicketLinkHttp[];
   readonly rowVersion: number;
 };
 
