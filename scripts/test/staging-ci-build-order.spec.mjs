@@ -7,6 +7,10 @@ const read = (path) => readFileSync(new URL(path, root), "utf8");
 const buildOrder = read("scripts/ci/build-api-workspace-deps.sh");
 const workflow = read(".github/workflows/deploy-staging.yml");
 
+test("staging dependency install cannot dirty the artifact build checkout", () => {
+  assert.match(workflow, /pnpm install --frozen-lockfile --ignore-scripts/);
+});
+
 test("build order materializes workspace-sdk runtime dependencies", () => {
   const packages = [
     "catalog-registration-auth",
