@@ -142,6 +142,13 @@ jobs:
       - name: Run workspace staging adapter
         env:
           STAGING_ADAPTER_PATH: ${{ vars.STAGING_ADAPTER_PATH }}
+          STAGING_ARTIFACT: dist/staging-artifacts/app-tour-staging-${{ github.sha }}.tar.zst
+          STAGING_ARTIFACT_DIGEST: ${{ needs.build.outputs.digest }}
+          STAGING_RELEASE_SHA: ${{ github.sha }}
+          STAGING_TENANT_SCOPE: pilot-only
+          STAGING_DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
+          STAGING_ENV_DIR: ${{ env.STAGING_ENV_DIR }}
+          DEPLOY_TARGET: staging
         run: |
           set -euo pipefail
           test -n "$STAGING_ADAPTER_PATH" || { echo "Missing staging adapter path"; exit 1; }

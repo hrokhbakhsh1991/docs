@@ -6,6 +6,7 @@ const root = new URL('../..', import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), 'utf8');
 const staging = read('.github/workflows/deploy-staging.yml');
 const production = read('.github/workflows/deploy-vps.yml');
+const adapter = read('scripts/ci/staging-deployment-adapter.sh');
 
 test('dev deploys staging only', () => {
   assert.match(staging, /branches:\s*\n\s*- dev/);
@@ -38,4 +39,14 @@ test('artifact release SHA is checked against the workflow commit and digest sep
 test('production cannot use staging paths or pilot behavior', () => {
   assert.doesNotMatch(production, /STAGING_DEPLOY_ROOT|STAGING_ENV_DIR|pilot|seed-pilot/i);
   assert.match(production, /Production deployment path rejected/);
+});
+
+test('staging uses the repository-local guarded adapter contract', () => {
+  assert.match(staging, /STAGING_ADAPTER_PATH/);
+  assert.match(staging, /STAGING_ARTIFACT_DIGEST/);
+  assert.match(staging, /STAGING_TENANT_SCOPE: pilot-only/);
+  assert.match(staging, /verify-staging/);
+  assert.match(adapter, /DEPLOY_TARGET.*staging/);
+  assert.match(adapter, /STAGING_TENANT_SCOPE.*pilot-only/);
+  assert.match(adapter, /BULK_TENANT_ENABLEMENT/);
 });
