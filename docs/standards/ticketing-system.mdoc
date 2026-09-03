@@ -55,7 +55,7 @@ planned_packages:
 | Area | Detail |
 | ---- | ------ |
 | Surfaces | Member Portal (`apps/portal`), Operator Web (`apps/web`) |
-| Actors | `member`, `viewer` (read-only), `admin`, `owner` |
+| Actors | `member` (own-ticket access), `viewer` (tenant-wide read-only), `admin`, `owner` |
 | Core flows | Create ticket, list, read, public reply, internal note, assign, status/priority change, reopen |
 | Persistence | PostgreSQL tables + RLS (`app.current_tenant_id`) |
 | Categories | Stable `categoryCode` + manifest labels |
@@ -96,13 +96,13 @@ planned_packages:
 
 | Persona | Role | App | MVP capabilities |
 | ------- | ---- | --- | ---------------- |
-| Club member | `member` | Portal | Create, list own, read own, public reply, reopen `resolved` |
-| Club viewer | `viewer` | Portal | List/read own tickets only; no create/reply |
+| Club member | `member` | Portal | Create, list own, read own, public reply, reopen `resolved` — **member = own-ticket access** |
+| Club viewer | `viewer` | Portal | List tenant tickets, read any member ticket in tenant (public + internal notes read-only); **viewer = tenant-wide read-only**; **viewer mutations = denied** |
 | Club operator | `admin` | Web | Full tenant inbox; reply, internal note, assign, status, priority |
 | Workspace owner | `owner` | Web | Same as admin + archive/delete (if enabled) |
 | Platform admin | — | — | **OUT OF SCOPE** MVP |
 
-**UNKNOWN:** Whether `viewer` should see tickets for tours they are registered on but did not create — MVP limits to **own tickets only** (`requesterUserId`).
+**DECISION:** `viewer` scope is **tenant-wide read-only** — not limited to `requesterUserId`. **viewer requires tenant membership** (`UserTenant` ACTIVE in auth tenant). Cross-tenant ticket access is denied. **member** remains **own-ticket access** only (`requesterUserId = auth.userId`).
 
 ---
 
@@ -164,7 +164,7 @@ operator.tickets.assign
 1. **Every** ticketing query includes `tenantId` from authenticated context — never from unvalidated body/query alone.
 2. **Every** persistence call uses `withTenantRls(tenantId, …)` — `apps/api/src/db/with-tenant-rls.ts:16-39`.
 3. **Never** fetch by `ticketId` alone; always `WHERE tenant_id = $auth.tenantId AND id = $ticketId`.
-4. Member routes filter `requesterUserId = auth.userId` unless operator role.
+4. **member** routes filter `requesterUserId = auth.userId` (**member = own-ticket access**). **viewer** routes list/read tenant tickets without `requesterUserId` filter (**viewer = tenant-wide read-only**); **viewer requires tenant membership** and valid tenant context; cross-tenant access denied.
 5. `assigneeUserId` must reference a `UserTenant` row with `tenantId = auth.tenantId` and `status = ACTIVE`.
 6. `relatedTourId` / `relatedRegistrationId` must be validated to belong to the same `tenantId` before persist.
 7. **DECISION:** Memory driver MUST NOT implement ticketing repositories. API boot MUST reject ticketing routes when `resolveStorageDriver() === "memory"` (same posture as wallet).
@@ -183,10 +183,20 @@ operator.tickets.assign
 | Risk | Mitigation | Severity |
 | ---- | ---------- | -------- |
 | Cross-tenant ticket read | RLS + auth.tenantId | P0 |
-| Member reads another member's ticket | `requesterUserId` filter | P0 |
-| Internal note leaked to member API | `visibility = public` filter on member routes | P0 |
+| Member reads another member's ticket | `requesterUserId` filter (**member = own-ticket access**) | P0 |
+| Viewer reads ticket without tenant membership | `UserTenant` membership check; deny without tenant context | P0 |
+| Viewer mutation (create/reply/status/assign) | **viewer mutations = denied** → `TICKET_VIEWER_READ_ONLY` | P0 |
+| Internal note leaked to member API | `visibility = public` filter on **member** routes | P0 |
+| Internal note hidden from viewer read path | Viewer read returns public + internal (read-only) per core policy | — |
 | Assignee from another tenant | `UserTenant` membership check | P1 |
 | Related tour from another tenant | FK validation query under RLS | P1 |
+
+### Privacy
+
+- **member = own-ticket access** — member never sees another member's tickets or internal notes.
+- **viewer = tenant-wide read-only** — viewer may read any ticket in the same tenant (public messages + internal notes read-only); **viewer mutations = denied**.
+- **viewer requires tenant membership** — no access without valid `UserTenant` in auth tenant; no cross-tenant reads.
+- Operator/admin/owner see full tenant inbox including internal notes (read + write per permission matrix).
 
 ---
 
@@ -252,8 +262,9 @@ operator.tickets.assign
 
 **Rules:**
 
-- Member API returns only `visibility = public`.
-- Operator API returns all messages.
+- **member** API returns only `visibility = public` (**member = own-ticket access**).
+- **viewer** API returns public messages and internal notes **read-only** (**viewer = tenant-wide read-only**); **viewer mutations = denied**.
+- Operator API returns all messages (read + write per role).
 - POST message on `status = closed` → **409** `TICKET_CLOSED`.
 - POST message on `status = resolved` by member → allowed (becomes reopen flow §8) OR auto-transition to `open` — **DECISION:** member reply on `resolved` auto-transitions to `open` and appends message (Zendesk solved-reopen pattern).
 
@@ -366,16 +377,19 @@ Rows = **from**, columns = **to**. Cell = allowed actors.
 
 **DECISION:** All permissions enforced in `ticketing-core` + API routes. UI hiding is not sufficient.
 
-Legend: ✅ allowed · ❌ denied · 🔒 own only · 👁 read-only
+Legend: ✅ allowed · ❌ denied · 🔒 own only · 👁 tenant read-only
+
+**Policy summary:** **member = own-ticket access** · **viewer = tenant-wide read-only** · **viewer mutations = denied** · **viewer requires tenant membership**
 
 | Operation | member | viewer | admin | owner | platform admin |
 | --------- | ------ | ------ | ----- | ----- | -------------- |
 | Create ticket | ✅ | ❌ | ✅ | ✅ | ❌ |
-| List own tickets | ✅ 🔒 | ✅ 🔒 | — | — | ❌ |
-| List tenant tickets | ❌ | ❌ | ✅ | ✅ | ❌ |
-| Read ticket | ✅ 🔒 | 👁 🔒 | ✅ | ✅ | ❌ |
+| List own tickets | ✅ 🔒 | — | — | — | ❌ |
+| List tenant tickets | ❌ | ✅ 👁 | ✅ | ✅ | ❌ |
+| Read ticket | ✅ 🔒 | ✅ 👁 | ✅ | ✅ | ❌ |
+| Read internal notes | ❌ | ✅ 👁 | ✅ | ✅ | ❌ |
 | Public reply | ✅ 🔒 | ❌ | ✅ | ✅ | ❌ |
-| Internal note | ❌ | ❌ | ✅ | ✅ | ❌ |
+| Internal note (create) | ❌ | ❌ | ✅ | ✅ | ❌ |
 | Change status | ❌ | ❌ | ✅ | ✅ | ❌ |
 | Change priority | ❌ | ❌ | ✅ | ✅ | ❌ |
 | Assign | ❌ | ❌ | ✅ | ✅ | ❌ |
@@ -387,9 +401,11 @@ Legend: ✅ allowed · ❌ denied · 🔒 own only · 👁 read-only
 
 **CASL mapping:**
 
-- Member routes: JWT with `role` in `member` | `viewer`; `viewer` is read-only subset.
+- Member routes: JWT with `role` in `member` | `viewer`.
+- **member = own-ticket access** — list/read filtered by `requesterUserId = auth.userId`; public messages only.
+- **viewer = tenant-wide read-only** — list/read any ticket in tenant; public + internal notes read-only; **viewer requires tenant membership**; `workspaceTicketingEnabled` must be true.
+- **viewer mutations = denied** — create, reply, internal note, status, priority, assign, reopen, close, archive/delete → **403** `TICKET_VIEWER_READ_ONLY`.
 - Operator routes: `requireOperatorSession` + `canPerformOperatorSurface('operator.tickets.*')`.
-- `viewer` on Portal: same session as member but mutation endpoints return **403** `TICKET_VIEWER_READ_ONLY`.
 
 **Priority change:** admin, owner only (not member).
 
@@ -407,24 +423,24 @@ Legend: ✅ allowed · ❌ denied · 🔒 own only · 👁 read-only
 
 ### 10.2 Member API (upstream)
 
-Auth: JWT Bearer (`resolveTenantContextFromRequest`). Role: `member` or `viewer` (viewer = read-only).
+Auth: JWT Bearer (`resolveTenantContextFromRequest`). Role: `member` or `viewer`. **viewer = tenant-wide read-only**; **viewer mutations = denied**.
 
 #### `GET /member/tickets`
 
 | Aspect | Detail |
 | ------ | ------ |
-| Auth | JWT; `member` or `viewer` |
+| Auth | JWT; `member` or `viewer` (**viewer requires tenant membership**) |
 | Query | `status?`, `cursor?`, `limit?` (default 20, max 50) |
 | Output | `{ items: TicketSummary[], nextCursor?: string }` |
-| Filter | `requesterUserId = auth.userId` always |
-| Isolation | `tenantId` from JWT |
-| Errors | 401 unauthorized |
+| Filter | **member:** `requesterUserId = auth.userId` (**member = own-ticket access**). **viewer:** tenant-wide list (no `requesterUserId` filter; same `tenantId` only) |
+| Isolation | `tenantId` from JWT; `workspaceTicketingEnabled` required |
+| Errors | 401 unauthorized; 403 if viewer lacks tenant membership |
 
 #### `POST /member/tickets`
 
 | Aspect | Detail |
 | ------ | ------ |
-| Auth | JWT; `member` only (viewer → 403) |
+| Auth | JWT; `member` only (**viewer mutations = denied** → 403) |
 | Body | `{ categoryCode, subject, body, relatedTourId?, relatedRegistrationId? }` |
 | Validation | Zod; subject 3-200; body 1-10000; categoryCode in manifest allowlist |
 | Output | `{ ticket: TicketDetail }` (includes first message) |
@@ -436,10 +452,10 @@ Auth: JWT Bearer (`resolveTenantContextFromRequest`). Role: `member` or `viewer`
 
 | Aspect | Detail |
 | ------ | ------ |
-| Auth | JWT; member/viewer |
-| Output | `TicketDetail` + `messages[]` (public only) + `events[]` (allowlist) |
-| Isolation | `tenantId` + `requesterUserId` |
-| Errors | 404 not found (no leak) |
+| Auth | JWT; `member` or `viewer` |
+| Output | `TicketDetail` + `messages[]` + `events[]` (allowlist). **member:** public messages only. **viewer:** public + internal notes (read-only) |
+| Isolation | `tenantId` from JWT. **member:** `requesterUserId = auth.userId`. **viewer:** any ticket in tenant (**viewer = tenant-wide read-only**) |
+| Errors | 404 not found (no leak); 403 if viewer lacks tenant membership |
 
 #### `POST /member/tickets/:ticketId/messages`
 
@@ -556,7 +572,7 @@ Auth: `requireOperatorSession` + `operator.tickets.read` / `operator.tickets.mut
 | Loading | Skeleton cards (portal wallet pattern) |
 | Error | «بارگذاری ناموفق» + «تلاش مجدد» |
 | Pagination | Infinite scroll or «بارگذاری بیشتر» with cursor |
-| Viewer | Same list; hide create CTA; show read-only banner |
+| Viewer | Tenant-wide ticket list (same tenant); hide create CTA; show read-only banner; **viewer mutations = denied** |
 
 ### 11.2 `/me/tickets/new` — Create
 
@@ -576,7 +592,7 @@ Auth: `requireOperatorSession` + `operator.tickets.read` / `operator.tickets.mut
 | ------ | ------ |
 | Desktop | Status banner top; message timeline; composer bottom |
 | Mobile | Timeline scroll; fixed composer |
-| Timeline | Public messages only; RTL bubbles (member end-aligned) |
+| Timeline | **member:** public messages only. **viewer:** public + internal notes (read-only, muted styling). RTL bubbles (member end-aligned) |
 | Resolved | Banner «این درخواست حل شده» + composer + «بازگشایی» |
 | Closed | Banner «بسته شده»; no composer; «برای پیگیری درخواست جدید بسازید» |
 | Reply | Textarea + «ارسال»; 409 → toast |
@@ -667,7 +683,7 @@ Auth: `requireOperatorSession` + `operator.tickets.read` / `operator.tickets.mut
 | --------- | ------------------ |
 | Contract Zod | `packages/ticketing-http-contracts/test/*.spec.ts` |
 | Core lifecycle | `packages/ticketing-core/test/lifecycle.spec.ts` |
-| Auth matrix | `packages/ticketing-core/test/permissions.spec.ts` |
+| Auth matrix | `packages/ticketing-core/test/permissions.spec.ts` (incl. viewer tenant-wide read, viewer mutations denied) |
 | API integration | `apps/api/src/workspace-ticketing/*.spec.ts` |
 | RLS postgres | `ticketing-persistence.postgres.spec.ts` — requires `STORAGE_DRIVER=prisma` + `DATABASE_URL` |
 | Cross-tenant deny | Same spec — pattern `wallet-persistence.postgres.spec.ts:499` |
@@ -742,7 +758,7 @@ See §17 (phase numbering aligned to user request).
 |-|-|
 | **Scope** | `ticketing-http`, `apps/api` wiring, operator surfaces, memory-driver guard |
 | **Tests** | HTTP spec per endpoint; auth matrix |
-| **Acceptance** | Member + operator paths green; viewer 403 on mutate |
+| **Acceptance** | Member + operator paths green; **viewer = tenant-wide read-only**; **viewer mutations = denied** (403) |
 | **Rollback** | Remove route registration |
 
 ### Phase 5 — Member Portal
@@ -778,7 +794,7 @@ See §17 (phase numbering aligned to user request).
 | ID | Risk | Severity | Mitigation |
 | -- | ---- | -------- | ---------- |
 | R1 | Memory driver in dev hides RLS bugs | P1 | Forbid ticketing on memory; postgres required |
-| R2 | Viewer role confusion on Portal | P2 | Read-only banner + 403 on mutate |
+| R2 | Viewer role confusion on Portal (tenant-wide read vs member own-ticket) | P2 | Read-only banner + tenant-wide list UX + **viewer mutations = denied** (403) |
 | R3 | Category codes drift across workspaces | P2 | Manifest validation at create |
 | R4 | Operator inbox perf at scale | P2 | Indexes §7.1; cursor pagination |
 | R5 | Persian RTL timeline bugs | P2 | Visual regression tests |
@@ -793,7 +809,8 @@ See §17 (phase numbering aligned to user request).
 | -- | -------- | ------ | -------- |
 | D1 | Exact manifest key name (`workspaceTicketing` vs `workspaceSupport`) | **DECISION:** `workspaceTicketing` | No |
 | D2 | Auto-transition on operator reply to `pending_member` | **DECISION:** manual via PATCH only in MVP | No |
-| D3 | Viewer can create tickets | **DECISION:** no | No |
+| D3 | Viewer can create tickets | **DECISION:** no (**viewer mutations = denied**) | No |
+| D7 | Viewer ticket scope | **DECISION:** **viewer = tenant-wide read-only** (not own-ticket); **viewer requires tenant membership**; **member = own-ticket access** | No |
 | D4 | Owner-only delete | **DECISION:** yes; soft via `closed` only in MVP | No |
 | D5 | Urban manifest enablement default | **UNKNOWN** — product to confirm per club | Before Phase 5 launch |
 | D6 | Platform admin support view | **OUT OF SCOPE** MVP | No |
