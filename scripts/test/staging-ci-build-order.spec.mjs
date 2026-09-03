@@ -22,8 +22,22 @@ test("build order materializes workspace-sdk runtime dependencies", () => {
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
 });
 
-test("staging builds the dependency chain before focused tests", () => {
-  const build = workflow.indexOf("bash scripts/ci/build-api-workspace-deps.sh");
-  const tests = workflow.indexOf("pnpm run test:changed");
-  assert.ok(build >= 0 && tests > build);
+test("staging exposes bounded focused test stages without broad globs", () => {
+  for (const stage of [
+    "Build workspace dependency artifacts",
+    "Wallet and API focused tests",
+    "Workspace SDK focused tests",
+    "Other changed tests",
+  ]) {
+    assert.match(workflow, new RegExp(`name: ${stage}`));
+  }
+  assert.doesNotMatch(workflow, /pnpm run test:changed/);
+  assert.doesNotMatch(workflow, /test:\/\*\//);
+});
+
+test("staging bounds each focused stage independently", () => {
+  assert.match(workflow, /timeout[^\n]+10m bash scripts\/ci\/build-api-workspace-deps\.sh/);
+  assert.match(workflow, /timeout[^\n]+5m pnpm run test:wallet-staging-deploy-guards/);
+  assert.match(workflow, /timeout[^\n]+10m bash -c 'cd packages\/workspace-sdk/);
+  assert.match(workflow, /timeout[^\n]+5m node --test scripts\/test\/deployment-branch-contract\.spec\.mjs/);
 });

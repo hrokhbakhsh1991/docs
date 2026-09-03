@@ -41,12 +41,33 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Focused tests
+      - name: Build workspace dependency artifacts
         run: |
-          bash scripts/ci/build-api-workspace-deps.sh
-          pnpm run test:changed
-          node --test scripts/test/deployment-branch-contract.spec.mjs
-          node --test scripts/test/staging-ci-build-order.spec.mjs
+          set -euo pipefail
+          echo '::group::build-api-workspace-deps'
+          timeout --signal=TERM --kill-after=30s 10m bash scripts/ci/build-api-workspace-deps.sh
+          echo '::endgroup::'
+      - name: Wallet and API focused tests
+        run: |
+          set -euo pipefail
+          echo '::group::wallet-staging-deploy-guards'
+          timeout --signal=TERM --kill-after=30s 5m pnpm run test:wallet-staging-deploy-guards
+          echo '::endgroup::'
+          echo '::group::workspace-sdk-wallet-contracts'
+          timeout --signal=TERM --kill-after=30s 10m bash -c 'cd packages/workspace-sdk && NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test test/wallet-contract-boundary.spec.ts test/wallet-module-enabled.spec.ts'
+          echo '::endgroup::'
+      - name: Workspace SDK focused tests
+        run: |
+          set -euo pipefail
+          echo '::group::workspace-sdk-foundation'
+          timeout --signal=TERM --kill-after=30s 10m bash -c 'cd packages/workspace-sdk && NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test test/foundation-import-purity.contract.spec.ts test/denali-coupling.contract.spec.ts'
+          echo '::endgroup::'
+      - name: Other changed tests
+        run: |
+          set -euo pipefail
+          echo '::group::deployment-contracts'
+          timeout --signal=TERM --kill-after=30s 5m node --test scripts/test/deployment-branch-contract.spec.mjs scripts/test/staging-ci-build-order.spec.mjs
+          echo '::endgroup::'
       - name: Typecheck
         run: pnpm run typecheck
       - name: Lint
