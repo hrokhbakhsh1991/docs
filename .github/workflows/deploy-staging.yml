@@ -43,8 +43,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Focused tests
         run: |
+          bash scripts/ci/build-api-workspace-deps.sh
           pnpm run test:changed
           node --test scripts/test/deployment-branch-contract.spec.mjs
+          node --test scripts/test/staging-ci-build-order.spec.mjs
       - name: Typecheck
         run: pnpm run typecheck
       - name: Lint
