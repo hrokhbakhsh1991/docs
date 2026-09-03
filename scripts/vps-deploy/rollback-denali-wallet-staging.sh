@@ -18,6 +18,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# shellcheck source=lib/psql-url.sh
+source "${SCRIPT_DIR}/lib/psql-url.sh"
+
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/app-tour-staging}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
@@ -61,7 +64,7 @@ fi
 
 log "disable wallet module for pilot tenant (theme.enabledModules only)"
 PILOT_TENANT_ID="$DENALI_WALLET_PILOT_TENANT_ID"
-psql "${DATABASE_URL_ADMIN}" -v ON_ERROR_STOP=1 <<SQL
+psql "$(psql_database_url "${DATABASE_URL_ADMIN}")" -v ON_ERROR_STOP=1 <<SQL
 UPDATE tenants
 SET theme = (
   COALESCE(theme::jsonb, '{}'::jsonb)

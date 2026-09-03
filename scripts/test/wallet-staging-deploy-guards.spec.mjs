@@ -2,6 +2,7 @@
  * Denali Wallet v1 staging deploy guard tests.
  */
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, it } from "node:test";
@@ -85,6 +86,25 @@ describe("wallet-staging-deploy-guards", () => {
       baseDeployEnv({ DENALI_WALLET_SEED_PILOT: "1", NODE_ENV: "production" })
     );
     assert.equal(seed.ok, false);
+    const stagingProductionSeed = validateWalletStagingDeploy(
+      baseDeployEnv({
+        DENALI_WALLET_SEED_PILOT: "1",
+        NODE_ENV: "production",
+        DENALI_WALLET_EXECUTION_CONTEXT: "vps",
+        DENALI_WALLET_IS_ROOT: "1",
+      })
+    );
+    assert.equal(stagingProductionSeed.ok, true);
+    const productionTarget = validateWalletStagingDeploy(
+      baseDeployEnv({
+        DENALI_WALLET_DEPLOY_TARGET: "production",
+        DENALI_WALLET_SEED_PILOT: "1",
+        NODE_ENV: "production",
+        DENALI_WALLET_EXECUTION_CONTEXT: "vps",
+        DENALI_WALLET_IS_ROOT: "1",
+      })
+    );
+    assert.equal(productionTarget.ok, false);
     const okSeed = validateWalletStagingDeploy(
       baseDeployEnv({ DENALI_WALLET_SEED_PILOT: "1", NODE_ENV: "development" })
     );
@@ -104,7 +124,7 @@ describe("wallet-staging-deploy-guards", () => {
 
   it("WSD-08 rejects wrong application SHA and accepts verified artifact SHA", () => {
     assert.equal(releaseShaMatchesVerified(DENALI_WALLET_VERIFIED_RELEASE_SHA), true);
-    assert.equal(releaseShaMatchesVerified("86ccdcc4"), true);
+    assert.equal(releaseShaMatchesVerified("145b8056"), true);
     assert.equal(releaseShaMatchesVerified("deadbeef"), false);
     assert.equal(
       validateWalletStagingDeploy(
@@ -161,6 +181,23 @@ describe("wallet-staging-deploy-guards", () => {
         `secret pattern found in ${rel}`
       );
     }
+  });
+
+  it("WSD-13 normalizes Prisma URLs before psql and rollback uses the helper", () => {
+    const normalized = execFileSync(
+      "bash",
+      ["-c", 'source "$1"; psql_database_url "$2"', "bash", "scripts/vps-deploy/lib/psql-url.sh", "postgresql://user:pass@db:5432/tour_db?connection_limit=5&schema=public"],
+      { cwd: ROOT, encoding: "utf8" }
+    ).trim();
+    assert.equal(normalized, "postgresql://user:pass@db:5432/tour_db");
+    assert.doesNotMatch(normalized, /connection_limit/);
+    assert.match(read("scripts/vps-deploy/rollback-denali-wallet-staging.sh"), /psql_database_url/);
+  });
+
+  it("WSD-14 artifact verification checks the manifest release SHA", () => {
+    assert.match(read("scripts/vps-deploy/lib/artifact-self-check.sh"), /manifest_sha/);
+    assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifact_self_check "\$ARTIFACT_ROOT" "\$SHA"/);
+    assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifact_self_check "\$VROOT" "\$SHA"/);
   });
 
   it("WSD-12 runbook documents VPS-side command and production block", () => {

@@ -4,7 +4,7 @@
 runbook_id: DENALI-WALLET-V1-STAGING
 pack: wallet
 status: ACTIVE
-verified_release_sha: 86ccdcc481825b45e561afd30051a7e079b42f83
+verified_release_sha: 145b8056ba95290b24a5e9fab9abd847a67fdf20
 scope: staging-only · pilot tenant 00000000-0000-4000-8000-000000000430
 ```
 
@@ -16,15 +16,15 @@ scope: staging-only · pilot tenant 00000000-0000-4000-8000-000000000430
 
 ## 1 — Prerequisites
 
-| Item | Staging example |
-| ---- | ---------------- |
-| VPS deploy root | `/opt/app-tour-staging` |
-| Env directory | `/etc/app-tour-staging` |
-| Systemd prefix | `app-tour-staging` |
-| Loopback ports | API `23001`, Web `23000`, Portal `23003` |
-| Pilot tenant id | `00000000-0000-4000-8000-000000000430` |
-| Pilot subdomain | `denali-wallet-pilot` |
-| Verified release SHA | `86ccdcc481825b45e561afd30051a7e079b42f83` |
+| Item                 | Staging example                            |
+| -------------------- | ------------------------------------------ |
+| VPS deploy root      | `/opt/app-tour-staging`                    |
+| Env directory        | `/etc/app-tour-staging`                    |
+| Systemd prefix       | `app-tour-staging`                         |
+| Loopback ports       | API `23001`, Web `23000`, Portal `23003`   |
+| Pilot tenant id      | `00000000-0000-4000-8000-000000000430`     |
+| Pilot subdomain      | `denali-wallet-pilot`                      |
+| Verified release SHA | `145b8056ba95290b24a5e9fab9abd847a67fdf20` |
 
 DNS (replace `staging.yourclub.ir` with your apex):
 
@@ -37,34 +37,34 @@ DNS (replace `staging.yourclub.ir` with your apex):
 
 Set on VPS in `/etc/app-tour-staging/api.env` (and surface env files as today):
 
-| Variable | Surface | Purpose |
-| -------- | ------- | ------- |
-| `DATABASE_URL` | API | App RLS connection |
-| `DATABASE_URL_ADMIN` | API | Migrations + pilot seed |
-| `STORAGE_DRIVER` | API | Must be `prisma` |
-| `AUTH_JWT_PUBLIC_KEY` | API | JWT verify |
-| `AUTH_JWT_PRIVATE_KEY` | API | JWT sign |
-| `AUTH_JWT_ISSUER` | API | JWT issuer |
-| `AUTH_JWT_AUDIENCE` | API | JWT audience |
-| `PORT` | API / Web / Portal | Loopback ports |
-| `TOUR_OPS_API_URL` | Web / Portal | Internal API base |
-| `PLATFORM_ROOT_DOMAIN` | All | Staging apex |
-| `TENANT_ROOT_DOMAIN` | All | Staging apex |
-| `ALLOW_DENALI_WEB_PLUGIN` | Web | Denali operator bundle |
+| Variable                  | Surface            | Purpose                                     |
+| ------------------------- | ------------------ | ------------------------------------------- |
+| `DATABASE_URL`            | API                | App RLS connection                          |
+| `DATABASE_URL_ADMIN`      | API                | Migrations + pilot seed                     |
+| `STORAGE_DRIVER`          | API                | Must be `prisma`                            |
+| `AUTH_JWT_PUBLIC_KEY`     | API                | JWT verify                                  |
+| `AUTH_JWT_PRIVATE_KEY`    | API                | JWT sign                                    |
+| `AUTH_JWT_ISSUER`         | API                | JWT issuer                                  |
+| `AUTH_JWT_AUDIENCE`       | API                | JWT audience                                |
+| `PORT`                    | API / Web / Portal | Loopback ports                              |
+| `TOUR_OPS_API_URL`        | Web / Portal       | Internal API base                           |
+| `PLATFORM_ROOT_DOMAIN`    | All                | Optional for external hostname smoke checks |
+| `TENANT_ROOT_DOMAIN`      | All                | Optional for external hostname smoke checks |
+| `ALLOW_DENALI_WEB_PLUGIN` | Web                | Denali operator bundle                      |
 
 Deploy orchestration (set only when running wallet deploy scripts):
 
-| Variable | Required | Purpose |
-| -------- | -------- | ------- |
-| `DENALI_WALLET_DEPLOY_TARGET` | yes | Must be `staging` |
-| `DENALI_WALLET_STAGING_CONFIRM` | yes | Must be `1` |
-| `ENV_DIR` | yes | `/etc/app-tour-staging` |
-| `DEPLOY_ROOT` | yes | `/opt/app-tour-staging` |
-| `EXPECTED_RELEASE_SHA` | recommended | Pin `86ccdcc4…` |
-| `DENALI_WALLET_SEED_PILOT` | opt-in | `1` runs pilot seed only |
-| `DENALI_WALLET_ADMIN_HOST` | verify | Pilot operator host for tenant-config check |
-| `DENALI_WALLET_PORTAL_HOST` | verify | Pilot portal host |
-| `DENALI_WALLET_NON_PILOT_ADMIN_HOST` | verify | Negative check (e.g. `operator.admin.staging…`) |
+| Variable                             | Required    | Purpose                                         |
+| ------------------------------------ | ----------- | ----------------------------------------------- |
+| `DENALI_WALLET_DEPLOY_TARGET`        | yes         | Must be `staging`                               |
+| `DENALI_WALLET_STAGING_CONFIRM`      | yes         | Must be `1`                                     |
+| `ENV_DIR`                            | yes         | `/etc/app-tour-staging`                         |
+| `DEPLOY_ROOT`                        | yes         | `/opt/app-tour-staging`                         |
+| `EXPECTED_RELEASE_SHA`               | recommended | Pin `145b8056…`                                 |
+| `DENALI_WALLET_SEED_PILOT`           | opt-in      | `1` runs pilot seed only                        |
+| `DENALI_WALLET_ADMIN_HOST`           | verify      | Pilot operator host for tenant-config check     |
+| `DENALI_WALLET_PORTAL_HOST`          | verify      | Pilot portal host                               |
+| `DENALI_WALLET_NON_PILOT_ADMIN_HOST` | verify      | Negative check (e.g. `operator.admin.staging…`) |
 
 **Never commit** connection strings, JWT PEM bodies, OTP values, or cookies.
 
@@ -75,7 +75,7 @@ Deploy orchestration (set only when running wallet deploy scripts):
 From the clean `release/denali-wallet-v1` checkout at the verified SHA:
 
 ```bash
-git rev-parse HEAD   # must match 86ccdcc4…
+git rev-parse HEAD   # must match 145b8056…
 
 # 1. Install + generate
 nvm use && pnpm install --frozen-lockfile
@@ -95,7 +95,7 @@ Artifact contains **API, Web, Portal** standalone Next layouts (marketing includ
 
 ```bash
 VPS_HOST=<staging-ip> VPS_USER=root \
-ARTIFACT=dist/staging-artifacts/app-tour-staging-86ccdcc481825b45e561afd30051a7e079b42f83.tar.zst \
+ARTIFACT=dist/staging-artifacts/app-tour-staging-145b8056ba95290b24a5e9fab9abd847a67fdf20.tar.zst \
 bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
 ```
 
@@ -121,12 +121,12 @@ DENALI_WALLET_STAGING_CONFIRM=1 \
 DENALI_WALLET_EXECUTION_CONTEXT=vps \
 ENV_DIR=/etc/app-tour-staging \
 DEPLOY_ROOT=/opt/app-tour-staging \
-EXPECTED_RELEASE_SHA=86ccdcc4 \
+EXPECTED_RELEASE_SHA=145b8056 \
 DENALI_WALLET_SEED_PILOT=1 \
 bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 ```
 
-Pilot seed runs with `NODE_ENV=development` (provisioning dev-only guard). It does **not** enable Wallet on club smoke `…000003` or operator smoke `…000014`.
+Pilot seed runs with the staging service `NODE_ENV` (including `production`) only when the target is staging, confirmation is explicit, and execution context is `vps`. Development/test seed behavior remains supported. It does **not** enable Wallet on club smoke `…000003` or operator smoke `…000014`.
 
 ---
 
@@ -148,15 +148,15 @@ bash /opt/app-tour-staging/tooling/scripts/vps-deploy/verify-denali-wallet-stagi
 
 ## 7 — Smoke checks (manual)
 
-| Flow | Check |
-| ---- | ----- |
-| Operator login | Admin host → OTP login → `/wallet` nav visible |
-| Operator ops | Credit/debit with reason; insufficient debit rejected |
-| Member portal | Entitled member → `/me/wallet` balance/history |
-| Non-entitled member | Portal gate denies wallet |
-| Non-pilot tenant | Operator smoke tenant has **no** wallet nav (`FORBIDDEN_WALLET_MODULE_DISABLED`) |
+| Flow                 | Check                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| Operator login       | Admin host → OTP login → `/wallet` nav visible                                      |
+| Operator ops         | Credit/debit with reason; insufficient debit rejected                               |
+| Member portal        | Entitled member → `/me/wallet` balance/history                                      |
+| Non-entitled member  | Portal gate denies wallet                                                           |
+| Non-pilot tenant     | Operator smoke tenant has **no** wallet nav (`FORBIDDEN_WALLET_MODULE_DISABLED`)    |
 | Manual refund credit | Finance → Completed refund → **Credit refund to member wallet** → idempotent replay |
-| Finance integrity | Refund status/amount unchanged after wallet credit |
+| Finance integrity    | Refund status/amount unchanged after wallet credit                                  |
 
 ---
 
@@ -223,7 +223,7 @@ DENALI_WALLET_STAGING_CONFIRM=1 \
 DENALI_WALLET_EXECUTION_CONTEXT=vps \
 ENV_DIR=/etc/app-tour-staging \
 DEPLOY_ROOT=/opt/app-tour-staging \
-EXPECTED_RELEASE_SHA=86ccdcc481825b45e561afd30051a7e079b42f83 \
+EXPECTED_RELEASE_SHA=145b8056ba95290b24a5e9fab9abd847a67fdf20 \
 DENALI_WALLET_SEED_PILOT=1 \
 DENALI_WALLET_ADMIN_HOST=admin.denali-wallet-pilot.staging.yourclub.ir \
 DENALI_WALLET_PORTAL_HOST=portal.denali-wallet-pilot.staging.yourclub.ir \

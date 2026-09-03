@@ -124,15 +124,26 @@ export function validateWalletStagingDeploy(env) {
     );
   }
 
+  const isConfirmedStagingVps =
+    env.DENALI_WALLET_DEPLOY_TARGET?.trim() === "staging" &&
+    env.DENALI_WALLET_STAGING_CONFIRM?.trim() === "1" &&
+    env.DENALI_WALLET_EXECUTION_CONTEXT?.trim() === "vps";
+
   if (env.DENALI_WALLET_SEED_PILOT?.trim() === "1") {
     const nodeEnv = env.NODE_ENV?.trim() ?? "";
-    if (nodeEnv !== "development" && nodeEnv !== "test") {
-      errors.push("DENALI_WALLET_SEED_PILOT requires NODE_ENV=development (provisioning dev-only guard)");
+    if (nodeEnv !== "development" && nodeEnv !== "test" && !(nodeEnv === "production" && isConfirmedStagingVps)) {
+      errors.push(
+        "DENALI_WALLET_SEED_PILOT requires NODE_ENV=development/test, or confirmed staging VPS production"
+      );
     }
   }
 
-  if (env.NODE_ENV?.trim() === "production" && env.DENALI_WALLET_DEPLOY_DRY_RUN?.trim() !== "1") {
-    errors.push("NODE_ENV=production is blocked for Wallet staging deploy orchestration");
+  if (
+    env.NODE_ENV?.trim() === "production" &&
+    !isConfirmedStagingVps &&
+    env.DENALI_WALLET_DEPLOY_DRY_RUN?.trim() !== "1"
+  ) {
+    errors.push("NODE_ENV=production is blocked unless deployment is confirmed staging on VPS");
   }
 
   if (errors.length > 0) {

@@ -20,7 +20,7 @@
 #   DENALI_WALLET_EXECUTION_CONTEXT=vps \
 #   ENV_DIR=/etc/app-tour-staging \
 #   DEPLOY_ROOT=/opt/app-tour-staging \
-#   EXPECTED_RELEASE_SHA=86ccdcc4 \
+#   EXPECTED_RELEASE_SHA=145b8056 \
 #   DENALI_WALLET_SEED_PILOT=1 \
 #   bash /opt/app-tour-staging/tooling/scripts/vps-deploy/deploy-denali-wallet-staging.sh
 set -euo pipefail
@@ -112,7 +112,7 @@ if [[ "$DENALI_WALLET_SEED_PILOT" == "1" ]]; then
   log "seed Denali Wallet pilot tenant (explicit opt-in)"
   [[ -f "${RELEASE_ROOT}/bin/seed-denali-wallet-pilot.sh" ]] || \
     die "missing ${RELEASE_ROOT}/bin/seed-denali-wallet-pilot.sh — rebuild artifact with wallet seed bundle"
-  sudo -u "$APP_USER" env HOME="$DEPLOY_ROOT" NODE_ENV=development \
+  sudo -u "$APP_USER" env HOME="$DEPLOY_ROOT" NODE_ENV="$NODE_ENV" \
     bash "${RELEASE_ROOT}/bin/seed-denali-wallet-pilot.sh" "${ENV_DIR}/api.env"
 else
   log "pilot seed skipped — set DENALI_WALLET_SEED_PILOT=1 to enable"

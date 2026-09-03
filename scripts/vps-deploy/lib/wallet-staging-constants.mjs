@@ -9,10 +9,10 @@ export const DENALI_WALLET_PILOT_SUBDOMAIN = "denali-wallet-pilot";
 
 /** Verified release for Denali Wallet v1 staging (artifact is built from HEAD). */
 export const DENALI_WALLET_VERIFIED_RELEASE_SHA =
-  "86ccdcc481825b45e561afd30051a7e079b42f83";
+  "145b8056ba95290b24a5e9fab9abd847a67fdf20";
 
 /** Short prefix accepted when pinning artifact SHA. */
-export const DENALI_WALLET_VERIFIED_RELEASE_PREFIX = "86ccdcc4";
+export const DENALI_WALLET_VERIFIED_RELEASE_PREFIX = "145b8056";
 
 /** Env keys that must never appear in logs or committed deploy output. */
 export const WALLET_STAGING_SECRET_ENV_KEYS = Object.freeze([

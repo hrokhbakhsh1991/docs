@@ -152,7 +152,7 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
 EOF
 
 log "artifact layout self-check (pre-tar)"
-artifact_self_check "$ARTIFACT_ROOT"
+artifact_self_check "$ARTIFACT_ROOT" "$SHA"
 
 log "tar.zst ${TARBALL}"
 tar -C "${WORK_DIR}" -cf - "${ARTIFACT_NAME}" | zstd -19 -T0 -f -o "${TARBALL}"
@@ -167,7 +167,7 @@ rm -rf "$VERIFY_DIR"
 mkdir -p "$VERIFY_DIR"
 tar -I zstd -xf "${TARBALL}" -C "$VERIFY_DIR"
 VROOT="${VERIFY_DIR}/${ARTIFACT_NAME}"
-artifact_self_check "$VROOT"
+artifact_self_check "$VROOT" "$SHA"
 artifact_clean_room_check "$VROOT" "$REPO_ROOT"
 
 log "ARTIFACT_OK ${TARBALL}"

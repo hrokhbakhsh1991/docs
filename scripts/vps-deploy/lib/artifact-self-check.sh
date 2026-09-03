@@ -44,5 +44,26 @@ artifact_self_check() {
     echo "artifact-self-check: Denali client bundle disabled in web server config" >&2
     return 1
   fi
+  if [[ -n "${2:-}" ]]; then
+    local expected_sha="$2"
+    local manifest_sha=""
+    [[ -f "${vroot}/release-manifest.json" ]] || {
+      echo "artifact-self-check: missing release-manifest.json" >&2
+      return 1
+    }
+    manifest_sha="$(python3 - "${vroot}/release-manifest.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    print(json.load(manifest_file).get("releaseSha", ""))
+PY
+    )"
+    [[ "$manifest_sha" == "$expected_sha" ]] || {
+      echo "artifact-self-check: release manifest SHA does not match expected release" >&2
+      return 1
+    }
+    echo "artifact-self-check: release manifest SHA matches expected release"
+  fi
   echo "artifact-self-check: OK"
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run bundled Denali Wallet pilot seed on staging artifact release (NODE_ENV=development).
+# Run bundled Denali Wallet pilot seed on a confirmed staging artifact release.
 set -euo pipefail
 
 RELEASE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,7 +16,7 @@ source "$ENV_FILE"
 set +a
 
 export DATABASE_URL="${DATABASE_URL_ADMIN:-$DATABASE_URL}"
-export NODE_ENV=development
+export NODE_ENV="${NODE_ENV:-development}"
 export STORAGE_DRIVER=prisma
 
 cd "${RELEASE_ROOT}/api"
