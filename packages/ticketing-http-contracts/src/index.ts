@@ -1,0 +1,101 @@
+/**
+ * Ticketing-owned HTTP contracts — TKT-001 Phase 1.
+ */
+export {
+  TICKET_STATUSES,
+  TICKET_PRIORITIES,
+  TICKET_MESSAGE_VISIBILITIES,
+  TICKET_LIST_SORTS,
+  DEFAULT_TICKET_LIST_LIMIT,
+  MAX_TICKET_LIST_LIMIT,
+  TICKET_SUBJECT_MIN_LENGTH,
+  TICKET_SUBJECT_MAX_LENGTH,
+  TICKET_BODY_MIN_LENGTH,
+  TICKET_BODY_MAX_LENGTH,
+  TICKET_CATEGORY_CODE_MIN_LENGTH,
+  TICKET_CATEGORY_CODE_MAX_LENGTH,
+  type TicketStatus,
+  type TicketPriority,
+  type TicketMessageVisibility,
+  type TicketListSort,
+} from "./ticketing-enums";
+
+export {
+  uuidSchema,
+  ticketStatusSchema,
+  ticketPrioritySchema,
+  categoryCodeSchema,
+  ticketSubjectSchema,
+  ticketBodySchema,
+  rowVersionSchema,
+  formatZodError,
+  parseWithZod,
+} from "./ticketing-validation";
+
+export {
+  TICKETING_IDEMPOTENCY_HEADER,
+  TICKETING_IDEMPOTENCY_CONTRACT,
+  assertTicketingIdempotencyKeyPresent,
+  type TicketingIdempotencyHeaderContract,
+} from "./ticketing-idempotency.contract";
+
+export {
+  memberCreateTicketInputSchema,
+  memberAddMessageInputSchema,
+  memberReopenTicketInputSchema,
+  operatorReplyInputSchema,
+  operatorInternalNoteInputSchema,
+  ticketStatusUpdateInputSchema,
+  ticketPriorityUpdateInputSchema,
+  ticketAssignmentInputSchema,
+  operatorTicketPatchInputSchema,
+  parseMemberCreateTicketInput,
+  parseMemberAddMessageInput,
+  parseMemberReopenTicketInput,
+  parseOperatorReplyInput,
+  parseOperatorInternalNoteInput,
+  parseTicketStatusUpdateInput,
+  parseTicketPriorityUpdateInput,
+  parseTicketAssignmentInput,
+  parseOperatorTicketPatchInput,
+  type MemberCreateTicketInput,
+  type MemberAddMessageInput,
+  type MemberReopenTicketInput,
+  type OperatorReplyInput,
+  type OperatorInternalNoteInput,
+  type TicketStatusUpdateInput,
+  type TicketPriorityUpdateInput,
+  type TicketAssignmentInput,
+  type OperatorTicketPatchInput,
+} from "./ticketing-request.schemas";
+
+export {
+  parseMemberTicketListQuery,
+  parseOperatorTicketListQuery,
+  parseTicketListLimit,
+  type MemberTicketListQuery,
+  type OperatorTicketListQuery,
+} from "./ticketing-query.parsers";
+
+export type {
+  TicketSummaryHttp,
+  OperatorTicketSummaryHttp,
+  MemberTicketMessageHttp,
+  OperatorTicketMessageHttp,
+  TicketEventHttp,
+  MemberTicketDetailHttp,
+  OperatorTicketDetailHttp,
+  PaginatedMemberTicketListHttp,
+  PaginatedOperatorTicketListHttp,
+  MemberCreateTicketHttpResponse,
+  MemberAddMessageHttpResponse,
+  OperatorTicketMutationHttpResponse,
+  OperatorMessageHttpResponse,
+} from "./ticketing-response.schemas";
+
+export {
+  TICKETING_HTTP_ERROR_CODES,
+  isTicketingHttpErrorCode,
+  type TicketingHttpErrorCode,
+  type TicketingHttpErrorResponse,
+} from "./ticketing-error.schemas";
