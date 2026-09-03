@@ -102,10 +102,22 @@ describe("wallet-staging-deploy-guards", () => {
     assert.match(result.errors.join(" "), /production hostname/);
   });
 
-  it("WSD-08 release SHA pin matches verified head", () => {
+  it("WSD-08 rejects wrong application SHA and accepts verified artifact SHA", () => {
     assert.equal(releaseShaMatchesVerified(DENALI_WALLET_VERIFIED_RELEASE_SHA), true);
-    assert.equal(releaseShaMatchesVerified("280692f5"), true);
+    assert.equal(releaseShaMatchesVerified("b7cb0c17"), true);
     assert.equal(releaseShaMatchesVerified("deadbeef"), false);
+    assert.equal(
+      validateWalletStagingDeploy(
+        baseDeployEnv({ EXPECTED_RELEASE_SHA: "280692f53dd53efc7b23811cf0792cd9670c8fcb" })
+      ).ok,
+      false
+    );
+    assert.equal(
+      validateWalletStagingDeploy(
+        baseDeployEnv({ EXPECTED_RELEASE_SHA: DENALI_WALLET_VERIFIED_RELEASE_SHA })
+      ).ok,
+      true
+    );
   });
 
   it("WSD-09 rollback requires staging confirmation", () => {
