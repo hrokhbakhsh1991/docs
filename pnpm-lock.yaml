@@ -73,6 +73,15 @@ importers:
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../../packages/tenant-kernel
+      '@app-tour/ticketing-core':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-core
+      '@app-tour/ticketing-http':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http-contracts
       '@app-tour/tour-core':
         specifier: workspace:*
         version: link:../../packages/tour-core
@@ -1066,6 +1075,31 @@ importers:
 
   packages/ticketing-core:
     devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ticketing-http:
+    dependencies:
+      '@app-tour/ticketing-core':
+        specifier: workspace:*
+        version: link:../ticketing-core
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../ticketing-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4

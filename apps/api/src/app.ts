@@ -27,6 +27,22 @@ import { handleHealth } from "./health/health.routes";
 import "./http/configure-product-http-hosts";
 import "./http/configure-finance-http-host";
 import "./http/configure-wallet-http-host";
+import "./http/configure-ticketing-http-host";
+import {
+  handleTicketingMemberAddMessage,
+  handleTicketingMemberCreateTicket,
+  handleTicketingMemberGetTicket,
+  handleTicketingMemberListTickets,
+  handleTicketingMemberReopenTicket,
+  handleTicketingOperatorGetTicket,
+  handleTicketingOperatorInternalNote,
+  handleTicketingOperatorListTickets,
+  handleTicketingOperatorPatchTicket,
+  handleTicketingOperatorReopenTicket,
+  handleTicketingOperatorReply,
+  type TicketingRouteDeps,
+  type TicketingServicePort,
+} from "@app-tour/ticketing-http";
 import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";
@@ -106,6 +122,7 @@ export type AppDeps = Partial<ToursRouteDeps> &
     readonly provisioningService?: ProvisioningService;
     readonly tourStore?: TourStorageRepository;
     readonly financeService?: FinanceService;
+    readonly ticketingService?: TicketingServicePort;
   };
 
 /** Phase 10 P7-T05 — compose finance API paths without `/finance/` string literals in app.ts. */
@@ -500,6 +517,72 @@ async function dispatchRequest(
   }
   if (method === "GET" && bookingReceiptMatch) {
     await handleGetBookingReceiptStatus(req, res, bookingReceiptMatch[1]!);
+    return;
+  }
+
+  const ticketingDeps: TicketingRouteDeps = {
+    ticketingService: deps.ticketingService,
+  };
+
+  if (method === "GET" && url.pathname === "/member/tickets") {
+    await handleTicketingMemberListTickets(req, res, ticketingDeps);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/member/tickets") {
+    await handleTicketingMemberCreateTicket(req, res, ticketingDeps);
+    return;
+  }
+
+  const memberTicketGetMatch = url.pathname.match(/^\/member\/tickets\/([^/]+)$/);
+  if (method === "GET" && memberTicketGetMatch) {
+    await handleTicketingMemberGetTicket(req, res, ticketingDeps, memberTicketGetMatch[1]!);
+    return;
+  }
+
+  const memberTicketMessageMatch = url.pathname.match(/^\/member\/tickets\/([^/]+)\/messages$/);
+  if (method === "POST" && memberTicketMessageMatch) {
+    await handleTicketingMemberAddMessage(req, res, ticketingDeps, memberTicketMessageMatch[1]!);
+    return;
+  }
+
+  const memberTicketReopenMatch = url.pathname.match(/^\/member\/tickets\/([^/]+)\/reopen$/);
+  if (method === "POST" && memberTicketReopenMatch) {
+    await handleTicketingMemberReopenTicket(req, res, ticketingDeps, memberTicketReopenMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/tickets") {
+    await handleTicketingOperatorListTickets(req, res, ticketingDeps);
+    return;
+  }
+
+  const operatorTicketGetMatch = url.pathname.match(/^\/tickets\/([^/]+)$/);
+  if (method === "GET" && operatorTicketGetMatch) {
+    await handleTicketingOperatorGetTicket(req, res, ticketingDeps, operatorTicketGetMatch[1]!);
+    return;
+  }
+
+  if (method === "PATCH" && operatorTicketGetMatch) {
+    await handleTicketingOperatorPatchTicket(req, res, ticketingDeps, operatorTicketGetMatch[1]!);
+    return;
+  }
+
+  const operatorTicketReplyMatch = url.pathname.match(/^\/tickets\/([^/]+)\/replies$/);
+  if (method === "POST" && operatorTicketReplyMatch) {
+    await handleTicketingOperatorReply(req, res, ticketingDeps, operatorTicketReplyMatch[1]!);
+    return;
+  }
+
+  const operatorTicketNoteMatch = url.pathname.match(/^\/tickets\/([^/]+)\/internal-notes$/);
+  if (method === "POST" && operatorTicketNoteMatch) {
+    await handleTicketingOperatorInternalNote(req, res, ticketingDeps, operatorTicketNoteMatch[1]!);
+    return;
+  }
+
+  const operatorTicketReopenMatch = url.pathname.match(/^\/tickets\/([^/]+)\/reopen$/);
+  if (method === "POST" && operatorTicketReopenMatch) {
+    await handleTicketingOperatorReopenTicket(req, res, ticketingDeps, operatorTicketReopenMatch[1]!);
     return;
   }
 
