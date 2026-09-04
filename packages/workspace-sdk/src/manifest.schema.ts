@@ -215,6 +215,19 @@ export const WorkspaceTicketingBlockSchema = z.object({
     .optional(),
 });
 
+/** MEG-001 — member engagement capability block. */
+export const WorkspaceEngagementBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      memberDashboard: z.boolean(),
+      operatorOverview: z.boolean(),
+    })
+    .optional(),
+});
+
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
@@ -349,6 +362,7 @@ export const WorkspaceManifestCiSchema = z
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
     workspaceWallet: WorkspaceWalletBlockSchema.optional(),
     workspaceTicketing: WorkspaceTicketingBlockSchema.optional(),
+    workspaceEngagement: WorkspaceEngagementBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     wizardResume: WorkspaceWizardResumeBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),

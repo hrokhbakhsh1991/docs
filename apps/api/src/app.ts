@@ -66,6 +66,7 @@ import "./http/configure-product-http-hosts";
 import "./http/configure-finance-http-host";
 import "./http/configure-wallet-http-host";
 import "./http/configure-ticketing-http-host";
+import "./http/configure-engagement-http-host";
 import {
   handleTicketingMemberAddMessage,
   handleTicketingMemberCreateTicket,

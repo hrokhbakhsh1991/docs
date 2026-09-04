@@ -164,6 +164,8 @@
   },
   "dependencies": {
     "@app-tour/booking-http-contracts": "workspace:*",
+    "@app-tour/engagement-http": "workspace:*",
+    "@app-tour/engagement-http-contracts": "workspace:*",
     "@app-tour/finance-core": "workspace:*",
     "@app-tour/finance-http": "workspace:*",
     "@app-tour/finance-http-contracts": "workspace:*",

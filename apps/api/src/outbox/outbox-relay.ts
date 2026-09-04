@@ -380,6 +380,10 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
     await import("../notifications/dispatch-wallet-notification-from-outbox");
   await dispatchWalletNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
 
+  const { dispatchEngagementFromOutbox } =
+    await import("../workspace-engagement/process-engagement-awards");
+  await dispatchEngagementFromOutbox(toWorkspaceOutboxPublishedRow(row));
+
   const { processTicketNotificationDeliveriesForTenantOnce } =
     await import("../notifications/process-ticket-notification-deliveries");
   await processTicketNotificationDeliveriesForTenantOnce(row.tenantId).catch(() => undefined);

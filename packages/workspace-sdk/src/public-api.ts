@@ -409,6 +409,10 @@ export {
   type WorkspaceWalletCapabilities,
 } from "./wallet";
 export {
+  getWorkspaceEngagementCapabilities,
+  type WorkspaceEngagementCapabilities,
+} from "./catalog/workspace-engagement-capabilities.generated";
+export {
   getWorkspaceTransportCapabilities,
   type WorkspaceTransportCapabilities,
 } from "./catalog/workspace-transport-capabilities.generated";

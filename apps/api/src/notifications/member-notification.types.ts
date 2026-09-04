@@ -1,6 +1,6 @@
-export type MemberNotificationSourceModule = "ticketing" | "booking" | "finance" | "wallet";
+export type MemberNotificationSourceModule = "ticketing" | "booking" | "finance" | "wallet" | "engagement";
 
-export type MemberNotificationEntityType = "ticket" | "registration" | "payment" | "wallet_event";
+export type MemberNotificationEntityType = "ticket" | "registration" | "payment" | "wallet_event" | "engagement_event";
 
 export type MemberNotificationRow = {
   readonly id: string;

@@ -13,7 +13,7 @@ describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
   it("expected head matches tip migration folder (member_notifications_platform)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260904180000_member_notifications_platform"
+      "20260905120000_member_engagement_meg_v1_rls"
     );
   });
 
