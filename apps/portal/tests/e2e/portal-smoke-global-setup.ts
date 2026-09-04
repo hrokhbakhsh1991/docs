@@ -71,6 +71,17 @@ async function warmPublicAuthBffRoutes(base: string): Promise<void> {
 function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let inFlight = false;
+  const target = new URL(url);
+  const connectHostname =
+    target.hostname === "localhost" || target.hostname.endsWith(".localhost")
+      ? "127.0.0.1"
+      : target.hostname;
+  const requestOptions = {
+    hostname: connectHostname,
+    port: target.port || (target.protocol === "https:" ? 443 : 80),
+    path: `${target.pathname}${target.search}`,
+    headers: { host: target.host },
+  };
 
   return new Promise((resolve, reject) => {
     const retry = () => {
@@ -85,7 +96,7 @@ function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
         return;
       }
       inFlight = true;
-      const req = http.get(url, (res) => {
+      const req = http.get(requestOptions, (res) => {
         inFlight = false;
         res.resume();
         if (res.statusCode && res.statusCode < 500) {
@@ -135,11 +146,6 @@ export default async function globalSetup(): Promise<void> {
     ["GET", `/me/registrations/${warmupRegistrationId}`],
   ] as const;
   for (const [method, path, body] of meBffRoutes) {
-    await warmPortalBffRoute(
-      base,
-      path,
-      method,
-      body as object | undefined
-    );
+    await warmPortalBffRoute(base, path, method, body as object | undefined);
   }
 }
