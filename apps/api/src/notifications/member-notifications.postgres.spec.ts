@@ -325,5 +325,148 @@ describe(
       });
       assert.ok(unread >= 1);
     });
+
+    it("relay: payment.confirmed via finance.ledger.double_entry_applied alias", async () => {
+      const registrationId = randomUUID();
+      const domainEventId = `payment:00000000-0000-4000-8000-000000000099:ledger-capture-anchor`;
+
+      await withTenantRls(tenantA, async (tx) => {
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "FinanceLedger",
+          aggregateId: randomUUID(),
+          eventType: "finance.ledger.double_entry_applied",
+          domainEventId,
+          payload: {
+            registrationId,
+            guestUserId: memberUser,
+            journalId: randomUUID(),
+          },
+        });
+      });
+
+      const relay = await processOutboxRelayForTenantOnce(tenantA, 20);
+      assert.ok(relay.published >= 1, JSON.stringify(relay));
+
+      const list = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "finance",
+        limit: 20,
+      });
+      const match = list.items.find(
+        (item) => item.eventType === "payment.confirmed" && item.dedupeKey === domainEventId,
+      );
+      assert.ok(match, "ledger capture must normalize to payment.confirmed inbox row");
+    });
+
+    it("relay: tour.schedule.changed via tour.mutation.notification_required alias", async () => {
+      const tourId = randomUUID();
+      const domainEventId = `tour.schedule.changed:${tourId}:${Date.now()}`;
+
+      await withTenantRls(tenantA, async (tx) => {
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "tour",
+          aggregateId: tourId,
+          eventType: "tour.mutation.notification_required",
+          domainEventId,
+          payload: {
+            guestUserId: memberUser,
+            tourId,
+            registrationId: randomUUID(),
+          },
+        });
+      });
+
+      const relay = await processOutboxRelayForTenantOnce(tenantA, 20);
+      assert.ok(relay.published >= 1, JSON.stringify(relay));
+
+      const list = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "booking",
+        limit: 20,
+      });
+      const match = list.items.find(
+        (item) => item.eventType === "tour.schedule.changed" && item.dedupeKey === domainEventId,
+      );
+      assert.ok(match, "tour mutation alias must normalize to tour.schedule.changed");
+    });
+
+    it("relay: attendance.marked via attendance.verified alias", async () => {
+      const registrationId = randomUUID();
+      const domainEventId = `attendance.marked:${registrationId}:${Date.now()}`;
+
+      await withTenantRls(tenantA, async (tx) => {
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "registration",
+          aggregateId: registrationId,
+          eventType: "attendance.verified",
+          domainEventId,
+          payload: {
+            guestUserId: memberUser,
+            registrationId,
+          },
+        });
+      });
+
+      const relay = await processOutboxRelayForTenantOnce(tenantA, 20);
+      assert.ok(relay.published >= 1, JSON.stringify(relay));
+
+      const list = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "booking",
+        limit: 20,
+      });
+      const match = list.items.find(
+        (item) => item.eventType === "attendance.marked" && item.dedupeKey === domainEventId,
+      );
+      assert.ok(match, "attendance.verified must normalize to attendance.marked");
+    });
+
+    it("sms delivery marks failed when SMS_ENABLED=false", async () => {
+      delete process.env.SMS_ENABLED;
+      await dispatchMemberNotificationFromOutbox({
+        tenantId: tenantA,
+        aggregateType: "registration",
+        aggregateId: randomUUID(),
+        eventType: "registration.approved",
+        domainEventId: `sms-test:${randomUUID()}`,
+        payload: { guestUserId: memberUser, bookingId: randomUUID() },
+        createdAt: new Date(),
+        correlationId: randomUUID(),
+      });
+
+      const admin = getPrismaAdmin();
+      const row = await admin.memberNotification.findFirst({
+        where: { tenantId: tenantA, userId: memberUser, eventType: "registration.approved" },
+        orderBy: { createdAt: "desc" },
+      });
+      assert.ok(row);
+
+      await admin.memberNotificationDelivery.create({
+        data: {
+          tenantId: tenantA,
+          notificationId: row!.id,
+          channel: "sms",
+          provider: "noop",
+          status: "pending",
+          nextAttemptAt: new Date(),
+        },
+      });
+
+      const { processTicketNotificationDeliveriesForTenantOnce } =
+        await import("../notifications/process-ticket-notification-deliveries");
+      const result = await processTicketNotificationDeliveriesForTenantOnce(tenantA, 5);
+      assert.ok(result.processed + result.failed >= 1);
+
+      const delivery = await admin.memberNotificationDelivery.findFirst({
+        where: { tenantId: tenantA, notificationId: row!.id, channel: "sms" },
+      });
+      assert.equal(delivery?.status, "failed");
+    });
   }
 );

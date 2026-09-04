@@ -1,6 +1,10 @@
 /**
  * DP-4 / MNI-001 — map outbox events to shared member notification inbox.
+ * Uses SDE-001 canonical event types after alias normalization.
  */
+import { normalizeDomainEventType } from "@app-tour/platform-events";
+
+import { withTenantRls } from "../db/with-tenant-rls";
 import type { WorkspaceOutboxPublishedRow } from "../workspace/workspace-outbox-row-context.ts";
 import { insertMemberNotificationRow } from "./member-notification.repository";
 import type {
@@ -62,10 +66,24 @@ const MEMBER_NOTIFICATION_EVENT_MAP: Readonly<
     titleKey: "notification.payment.expired.title",
     bodyKey: "notification.payment.expired.body",
   },
-  "tour.mutation.notification_required": {
+  "payment.confirmed": {
+    sourceModule: "finance",
+    entityType: "payment",
+    templateId: "finance.payment.confirmed",
+    titleKey: "notification.payment.confirmed.title",
+    bodyKey: "notification.payment.confirmed.body",
+  },
+  "attendance.marked": {
     sourceModule: "booking",
     entityType: "registration",
-    templateId: "tour.mutation.notification",
+    templateId: "booking.attendance.marked",
+    titleKey: "notification.attendance.marked.title",
+    bodyKey: "notification.attendance.marked.body",
+  },
+  "tour.schedule.changed": {
+    sourceModule: "booking",
+    entityType: "registration",
+    templateId: "tour.schedule.changed",
     titleKey: "notification.tour.changed.title",
     bodyKey: "notification.tour.changed.body",
   },
@@ -87,7 +105,35 @@ function resolveRecipientUserId(payload: Readonly<Record<string, unknown>>): str
   if (typeof submittedByUserId === "string" && submittedByUserId.trim().length > 0) {
     return submittedByUserId.trim();
   }
+  const userId = payload.userId ?? payload.memberUserId;
+  if (typeof userId === "string" && userId.trim().length > 0) {
+    return userId.trim();
+  }
   return null;
+}
+
+async function resolveRegistrationMemberUserId(
+  tenantId: string,
+  payload: Readonly<Record<string, unknown>>,
+): Promise<string | null> {
+  const direct = resolveRecipientUserId(payload);
+  if (direct !== null) {
+    return direct;
+  }
+  const registrationId = payload.registrationId ?? payload.bookingId;
+  if (typeof registrationId !== "string" || registrationId.trim().length === 0) {
+    return null;
+  }
+  if (process.env.STORAGE_DRIVER?.trim().toLowerCase() !== "prisma") {
+    return null;
+  }
+  return withTenantRls(tenantId, async (tx) => {
+    const registration = await tx.operatorRegistration.findFirst({
+      where: { tenantId, id: registrationId.trim() },
+      select: { submittedByUserId: true },
+    });
+    return registration?.submittedByUserId ?? null;
+  });
 }
 
 function resolveEntityId(
@@ -100,8 +146,8 @@ function resolveEntityId(
     return typeof registrationId === "string" ? registrationId : null;
   }
   if (entityType === "payment") {
-    const paymentId = payload.paymentId ?? payload.bookingId;
-    return typeof paymentId === "string" ? paymentId : null;
+    const paymentId = payload.paymentId ?? payload.bookingId ?? payload.registrationId;
+    return typeof paymentId === "string" ? paymentId : aggregateId.length > 0 ? aggregateId : null;
   }
   return null;
 }
@@ -109,13 +155,14 @@ function resolveEntityId(
 export async function dispatchMemberNotificationFromOutbox(
   row: WorkspaceOutboxPublishedRow,
 ): Promise<void> {
-  const mapping = MEMBER_NOTIFICATION_EVENT_MAP[row.eventType];
+  const canonicalEventType = normalizeDomainEventType(row.eventType);
+  const mapping = MEMBER_NOTIFICATION_EVENT_MAP[canonicalEventType];
   if (mapping === undefined) {
     return;
   }
 
   const payload = asRecord(row.payload);
-  const userId = resolveRecipientUserId(payload);
+  const userId = await resolveRegistrationMemberUserId(row.tenantId, payload);
   if (userId === null) {
     return;
   }
@@ -124,7 +171,7 @@ export async function dispatchMemberNotificationFromOutbox(
     tenantId: row.tenantId,
     userId,
     sourceModule: mapping.sourceModule,
-    eventType: row.eventType,
+    eventType: canonicalEventType,
     entityType: mapping.entityType,
     entityId: resolveEntityId(payload, mapping.entityType, row.aggregateId),
     title: mapping.titleKey,
@@ -135,7 +182,8 @@ export async function dispatchMemberNotificationFromOutbox(
     dedupeKey: row.domainEventId,
     payload: {
       ...payload,
-      eventType: row.eventType,
+      eventType: canonicalEventType,
+      sourceEventType: row.eventType,
       domainEventId: row.domainEventId,
     },
   });

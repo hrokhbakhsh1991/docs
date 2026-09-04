@@ -438,7 +438,7 @@
   },
   "notifications": {
     "title": "Notifications",
-    "lede": "Updates on your support tickets.",
+    "lede": "Updates on your trips, payments, wallet, and support tickets.",
     "bellAria": "{count, plural, =0 {Notifications} one {# unread notification} other {# unread notifications}}",
     "loading": "Loading notifications…",
     "loadError": "Could not load notifications.",
