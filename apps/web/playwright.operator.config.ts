@@ -31,6 +31,7 @@ export default defineConfig({
     "denali-finance-confidence.spec.ts",
     "denali-finance-ux2-browser-qa.spec.ts",
     "denali-workspace-finance-inbox.spec.ts",
+    "denali-settings-route-matrix.spec.ts",
     "denali-booking-confidence.spec.ts",
     "denali-edit-confidence.spec.ts",
     "denali-clone-confidence.spec.ts",
