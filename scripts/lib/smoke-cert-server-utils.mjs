@@ -16,9 +16,20 @@ export function freePort(port) {
     const pidMatch = out.match(/pid=(\d+)/);
     if (pidMatch) {
       execSync(`kill ${pidMatch[1]}`, { stdio: "ignore" });
+      return;
     }
   } catch {
-    // port free or ss unavailable
+    // ss unavailable — fall through to netstat
+  }
+
+  try {
+    const out = execSync(`netstat -tlnp 2>/dev/null | grep ":${port} "`, { encoding: "utf8" });
+    const pidMatch = out.match(/(\d+)\/node/);
+    if (pidMatch) {
+      execSync(`kill ${pidMatch[1]}`, { stdio: "ignore" });
+    }
+  } catch {
+    // port free or netstat unavailable
   }
 }
 
