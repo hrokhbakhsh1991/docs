@@ -9,6 +9,7 @@ export default defineConfig({
     "operator-ticketing-inbox.spec.ts",
     "operator-ticket-templates-smoke.spec.ts",
     "operator-ticketing-reports-settings-smoke.spec.ts",
+    "operator-ticketing-a11y.spec.ts",
   ],
   retries: process.env.CI ? 1 : 0,
   workers: 1,

@@ -21,6 +21,10 @@ export const OPERATOR_TICKETS_TEST_IDS = {
   loadMore: "operator-tickets-load-more",
   mutationNotice: "operator-tickets-mutation-notice",
   mobileSheet: "operator-tickets-mobile-sheet",
+  bulkToolbar: "operator-tickets-bulk-toolbar",
+  bulkSelectAll: "operator-tickets-bulk-select-all",
+  bulkApply: "operator-tickets-bulk-apply",
+  templatePicker: "operator-tickets-template-picker",
 } as const;
 
 export const TICKET_STATUS_FILTER_OPTIONS = [

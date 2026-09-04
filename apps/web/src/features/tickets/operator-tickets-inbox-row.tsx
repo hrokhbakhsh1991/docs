@@ -10,25 +10,51 @@ type Props = {
   readonly item: OperatorTicketListItemView;
   readonly selected: boolean;
   readonly onSelect: () => void;
+  readonly bulkMode?: boolean;
+  readonly bulkSelected?: boolean;
+  readonly onBulkToggle?: (ticketId: string) => void;
 };
 
-export function OperatorTicketsInboxRow({ item, selected, onSelect }: Props) {
+export function OperatorTicketsInboxRow({
+  item,
+  selected,
+  onSelect,
+  bulkMode = false,
+  bulkSelected = false,
+  onBulkToggle,
+}: Props) {
   const t = useTranslations("tickets");
 
   return (
-    <button
-      type="button"
+    <div
       role="option"
       aria-selected={selected}
       data-operator-tickets-row
       data-ticket-id={item.id}
       data-operator-tickets-row-selected={selected ? "true" : "false"}
       data-testid={OPERATOR_TICKETS_TEST_IDS.inboxRow}
-      className={`group flex w-full min-w-0 flex-col gap-1 border-b border-border/60 px-3 py-3 text-start transition-colors ${
+      className={`group flex w-full min-w-0 items-start gap-2 border-b border-border/60 px-3 py-3 transition-colors ${
         selected ? "bg-primary/5 ring-1 ring-inset ring-primary/20" : "hover:bg-muted/40"
       }`}
-      onClick={onSelect}
     >
+      {bulkMode ? (
+        <input
+          type="checkbox"
+          className="mt-1 shrink-0"
+          aria-label={t("bulkSelectTicket", { subject: item.subject })}
+          checked={bulkSelected}
+          onChange={(event) => {
+            event.stopPropagation();
+            onBulkToggle?.(item.id);
+          }}
+          onClick={(event) => event.stopPropagation()}
+        />
+      ) : null}
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 flex-col gap-1 text-start"
+        onClick={onSelect}
+      >
       <div className="flex min-w-0 items-start justify-between gap-2">
         <span className="min-w-0 flex-1 truncate font-medium text-foreground">{item.subject}</span>
         <OperatorStatusBadge variant="outline" className="shrink-0">
@@ -70,6 +96,7 @@ export function OperatorTicketsInboxRow({ item, selected, onSelect }: Props) {
           </span>
         ) : null}
       </div>
-    </button>
+      </button>
+    </div>
   );
 }

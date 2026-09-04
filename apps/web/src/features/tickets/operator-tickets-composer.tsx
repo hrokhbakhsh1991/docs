@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { createTicketsIdempotencyKey } from "@/features/tickets/operator-tickets-format";
@@ -10,6 +10,13 @@ import { OPERATOR_TICKETS_TEST_IDS } from "@/features/tickets/operator-tickets-t
 import { mapOperatorTicketsMutationErrorCode } from "@/features/tickets/classify-operator-tickets-bff-error";
 
 type ComposerMode = "public" | "internal";
+
+type TemplateItem = {
+  readonly code: string;
+  readonly title: string;
+  readonly channel: string;
+  readonly locale: string;
+};
 
 type Props = {
   readonly detail: OperatorTicketDetailView;
@@ -28,7 +35,55 @@ export function OperatorTicketsComposer({
   const [mode, setMode] = useState<ComposerMode>("public");
   const [body, setBody] = useState("");
   const [pending, setPending] = useState(false);
+  const [templates, setTemplates] = useState<readonly TemplateItem[]>([]);
+  const [selectedTemplateCode, setSelectedTemplateCode] = useState("");
   const idempotencyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!canMutate) {
+      return;
+    }
+    void (async () => {
+      try {
+        const res = await fetch("/api/ticket-templates?channel=public_reply&locale=en", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = (await res.json()) as { items?: TemplateItem[] };
+        if (Array.isArray(payload.items)) {
+          setTemplates(payload.items);
+        }
+      } catch {
+        // templates optional
+      }
+    })();
+  }, [canMutate]);
+
+  const applyTemplate = async () => {
+    if (selectedTemplateCode.length === 0) {
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/ticket-templates/${encodeURIComponent(selectedTemplateCode)}/preview?channel=public_reply&locale=en`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticketSubject: detail.ticket.subject,
+            ticketId: detail.ticket.id,
+            status: detail.ticket.status,
+          }),
+        },
+      );
+      const payload = (await res.json()) as { rendered?: string };
+      if (res.ok && typeof payload.rendered === "string") {
+        setBody(payload.rendered);
+      }
+    } catch {
+      onError("generic");
+    }
+  };
 
   if (!canMutate) {
     return (
@@ -104,6 +159,36 @@ export function OperatorTicketsComposer({
           {t("composerInternal")}
         </Button>
       </div>
+      {mode === "public" && templates.length > 0 ? (
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="operator-ticket-template-picker">
+            {t("templatePickerLabel")}
+          </label>
+          <select
+            id="operator-ticket-template-picker"
+            data-testid={OPERATOR_TICKETS_TEST_IDS.templatePicker}
+            className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm"
+            value={selectedTemplateCode}
+            onChange={(event) => setSelectedTemplateCode(event.target.value)}
+          >
+            <option value="">{t("templatePickerPlaceholder")}</option>
+            {templates.map((template) => (
+              <option key={`${template.code}-${template.locale}`} value={template.code}>
+                {template.title}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={selectedTemplateCode.length === 0}
+            onClick={() => void applyTemplate()}
+          >
+            {t("templateInsert")}
+          </Button>
+        </div>
+      ) : null}
       <label className="sr-only" htmlFor="operator-ticket-composer-body">
         {mode === "public" ? t("composerPublic") : t("composerInternal")}
       </label>

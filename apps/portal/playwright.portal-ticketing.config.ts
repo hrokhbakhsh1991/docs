@@ -5,7 +5,11 @@ const portalSmokeBaseUrl =
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["portal-member-tickets-smoke.spec.ts", "portal-ticket-notifications-smoke.spec.ts"],
+  testMatch: [
+    "portal-member-tickets-smoke.spec.ts",
+    "portal-ticket-notifications-smoke.spec.ts",
+    "portal-ticketing-a11y.spec.ts",
+  ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI ? 1 : 0,
   workers: 1,

@@ -23,6 +23,7 @@ import {
 import type { OperatorTicketsServerPrefetch } from "@/features/tickets/fetch-operator-tickets.server";
 import { OperatorTicketsDetailPanel } from "@/features/tickets/operator-tickets-detail-panel";
 import { OperatorTicketsInboxRow } from "@/features/tickets/operator-tickets-inbox-row";
+import { createTicketsIdempotencyKey } from "@/features/tickets/operator-tickets-format";
 import {
   canMutateTickets,
   DEFAULT_OPERATOR_TICKETS_QUERY,
@@ -74,6 +75,9 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
   const [detailState, setDetailState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [meta, setMeta] = useState<OperatorTicketsMetaView | null>(null);
   const [mutationNotice, setMutationNotice] = useState<string | null>(null);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState("resolved");
+  const [bulkPending, setBulkPending] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -242,6 +246,84 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
     setMutationNotice(t(`errors.${messageKey}` as "errors.generic"));
   };
 
+  const toggleBulkSelection = (ticketId: string) => {
+    setBulkSelectedIds((current) =>
+      current.includes(ticketId)
+        ? current.filter((id) => id !== ticketId)
+        : [...current, ticketId],
+    );
+  };
+
+  const toggleBulkSelectAll = () => {
+    if (bulkSelectedIds.length === list.items.length) {
+      setBulkSelectedIds([]);
+      return;
+    }
+    setBulkSelectedIds(list.items.map((item) => item.id));
+  };
+
+  const runBulkStatus = async () => {
+    if (!canMutate || bulkSelectedIds.length === 0 || bulkPending) {
+      return;
+    }
+    setBulkPending(true);
+    try {
+      const res = await fetch("/api/tickets/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": createTicketsIdempotencyKey("ticket-bulk"),
+        },
+        body: JSON.stringify({
+          ticketIds: bulkSelectedIds,
+          status: bulkStatus,
+        }),
+      });
+      const payload = (await res.json()) as
+        | {
+            readonly ok: true;
+            readonly succeeded: number;
+            readonly failed: number;
+            readonly results: ReadonlyArray<{
+              readonly ticketId: string;
+              readonly ok: boolean;
+              readonly detail?: OperatorTicketDetailView;
+            }>;
+          }
+        | { readonly ok: false; readonly code: string };
+      if (!res.ok || !payload.ok) {
+        handleError("generic");
+        return;
+      }
+      setList((current) => ({
+        ...current,
+        items: current.items.map((item) => {
+          const updated = payload.results.find(
+            (entry) => entry.ok && entry.detail !== undefined && entry.ticketId === item.id,
+          );
+          return updated?.detail !== undefined ? updated.detail.ticket : item;
+        }),
+      }));
+      if (
+        detail !== null &&
+        payload.results.some((entry) => entry.ok && entry.ticketId === detail.ticket.id)
+      ) {
+        const refreshed = payload.results.find(
+          (entry) => entry.ok && entry.detail !== undefined && entry.ticketId === detail.ticket.id,
+        );
+        if (refreshed?.detail !== undefined) {
+          setDetail(refreshed.detail);
+        }
+      }
+      setMutationNotice(t("bulkSuccess", { succeeded: payload.succeeded, failed: payload.failed }));
+      setBulkSelectedIds([]);
+    } catch {
+      handleError("generic");
+    } finally {
+      setBulkPending(false);
+    }
+  };
+
   const inboxPanel = (
     <div
       data-operator-tickets-inbox
@@ -250,6 +332,45 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
       className="flex h-full min-h-0 flex-col"
     >
       <div className="space-y-2 border-b border-border p-3">
+        {canMutate ? (
+          <div
+            data-operator-tickets-bulk-toolbar
+            data-testid={OPERATOR_TICKETS_TEST_IDS.bulkToolbar}
+            className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 bg-muted/30 p-2"
+          >
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                data-testid={OPERATOR_TICKETS_TEST_IDS.bulkSelectAll}
+                checked={list.items.length > 0 && bulkSelectedIds.length === list.items.length}
+                onChange={toggleBulkSelectAll}
+              />
+              <span>{t("bulkSelectAll")}</span>
+            </label>
+            <select
+              className="text-xs"
+              value={bulkStatus}
+              onChange={(event) => setBulkStatus(event.target.value)}
+              aria-label={t("bulkActionStatus")}
+            >
+              {["open", "pending_member", "resolved", "closed"].map((status) => (
+                <option key={status} value={status}>
+                  {t(`statuses.${status}`)}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid={OPERATOR_TICKETS_TEST_IDS.bulkApply}
+              disabled={bulkPending || bulkSelectedIds.length === 0}
+              onClick={() => void runBulkStatus()}
+            >
+              {bulkPending ? t("bulkApplying") : t("bulkApply", { count: bulkSelectedIds.length })}
+            </Button>
+          </div>
+        ) : null}
         <label className="block text-xs font-medium" htmlFor="operator-tickets-search">
           {t("searchLabel")}
         </label>
@@ -357,6 +478,9 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
               item={item}
               selected={item.id === selectedId}
               onSelect={() => handleSelect(item.id)}
+              bulkMode={canMutate}
+              bulkSelected={bulkSelectedIds.includes(item.id)}
+              onBulkToggle={toggleBulkSelection}
             />
           ))
         )}

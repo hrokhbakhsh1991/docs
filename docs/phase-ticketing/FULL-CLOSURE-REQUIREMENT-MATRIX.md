@@ -33,12 +33,12 @@
 | **D** | Categories, tags, queues, teams | COMPLETE | `ticketing-operational-d1-postgres.spec.ts` |
 | **E** | Attachments + links | COMPLETE | `ticketing-attachments-e1-postgres.spec.ts`; MinIO skip = BLOCKED_BY_ENVIRONMENT |
 | **F** | Member Portal BFF + UI | **PARTIAL→COMPLETE*** | Portal E2E 2/2; *viewer read-only slice completing this session |
-| **G** | Operator inbox | **PARTIAL** | E2E 4/4; **bulk actions MISSING** (§2.1 #19) |
+| **G** | Operator inbox | **COMPLETE** | bulk `POST /tickets/bulk` + operator multi-select toolbar |
 | **H** | Notifications in-app/email/SMS | **PARTIAL** | Ticket-scoped H1 shipped; **shared platform inbox MISSING** (user mandate) |
 | **I** | SLA + escalation | COMPLETE | `ticket-sla.postgres.spec.ts`; worker needs `TICKETING_SLA_WORKER_ENABLED=1` in prod |
-| **J** | Templates + automation | **PARTIAL** | API + postgres green; **composer picker UI MISSING** |
+| **J** | Templates + automation | **COMPLETE** | API + postgres + operator composer template picker |
 | **K/K1** | Search, reports, settings | COMPLETE | `ticket-k1.postgres.spec.ts`; operator E2E reports/settings |
-| **L** | Security, E2E, a11y, release | **PARTIAL** | L1 cert only; retention jobs, axe, orphan cleanup **MISSING** |
+| **L** | Security, E2E, a11y, release | **PARTIAL** | retention + orphan workers + axe specs green; unified notification platform still blocked |
 
 ---
 
@@ -62,14 +62,14 @@
 | TKT-CAP-14 | Persistent in-app notifications | H | **PARTIAL** | **Unified cross-domain Postgres inbox**; ticket bell ≠ platform bell | notification postgres + platform inbox spec |
 | TKT-CAP-15 | Email/SMS abstraction | H | COMPLETE | noop/SK2 adapter | notification delivery spec |
 | TKT-CAP-16 | SLA policies + escalation | I | COMPLETE | prod worker env flag | ticket-sla postgres |
-| TKT-CAP-17 | Reply templates | J | **PARTIAL** | Operator composer template picker UI | templates postgres |
+| TKT-CAP-17 | Reply templates | J | **COMPLETE** | operator composer template picker | templates postgres + composer UI |
 | TKT-CAP-18 | Search/filter/sort | K | COMPLETE | — | ticket-k1 postgres |
-| TKT-CAP-19 | **Bulk operator actions** | G | **MISSING** | `POST /tickets/bulk`, operator multi-select toolbar | bulk postgres + E2E |
+| TKT-CAP-19 | **Bulk operator actions** | G | **COMPLETE** | `POST /tickets/bulk`, operator multi-select toolbar | bulk postgres + operator UI |
 | TKT-CAP-20 | Reports dashboard | K | COMPLETE | — | k1 + operator E2E |
 | TKT-CAP-21 | Workspace settings UI | K | COMPLETE | — | operator E2E |
-| TKT-CAP-22 | RTL + responsive + **a11y** | L | **PARTIAL** | `@axe-core/playwright` on ticket routes (§14) | axe specs |
+| TKT-CAP-22 | RTL + responsive + **a11y** | L | **COMPLETE** | `@axe-core/playwright` portal + web ticket routes | axe specs |
 | TKT-CAP-23 | Idempotency + rowVersion | C | COMPLETE | — | postgres |
-| TKT-CAP-24 | Observability + **retention jobs** | L | **PARTIAL** | Structured logs yes; **scheduled purge jobs MISSING** (§2.1 #24) | retention job spec |
+| TKT-CAP-24 | Observability + **retention jobs** | L | **COMPLETE** | retention + orphan workers (`TICKETING_*_WORKER_ENABLED=1`) | retention + orphan postgres specs |
 
 ---
 
@@ -77,11 +77,11 @@
 
 | Item | L1 label | Full-closure status | Action |
 | ---- | -------- | ------------------- | ------ |
-| Bulk `POST /tickets/bulk` | post-v1 in §10.3 / L1 | **MISSING** — §2.1 #19 is V1 | Implement |
-| Retention scheduled purge | post-v1 in §13 | **MISSING** — §2.1 #24 is V1 | Implement job + spec |
-| Orphan attachment cleanup | TKT-GAP-007 accepted | **MISSING** — operational §13 implied | Implement job or EXPLICITLY_OUT_OF_SCOPE with doc |
+| Bulk `POST /tickets/bulk` | post-v1 in §10.3 / L1 | **COMPLETE** | Implemented API + operator UI + postgres spec |
+| Retention scheduled purge | post-v1 in §13 | **COMPLETE** | `process-ticket-retention-once.ts` + postgres spec |
+| Orphan attachment cleanup | TKT-GAP-007 accepted | **COMPLETE** | `process-ticket-orphan-attachments-once.ts` + postgres spec |
 | E2E memory storage | TKT-GAP-003 accepted | **COMPLETE** for dev; prod uses MinIO driver | Document; MinIO spec when env set |
-| `@axe-core/playwright` | TKT-GAP-008 accepted | **MISSING** — §14 requires axe | Implement axe specs |
+| `@axe-core/playwright` | TKT-GAP-008 accepted | **COMPLETE** | portal + operator axe specs |
 | TicketNotification module inbox | L1 accepted | **MISSING** for full closure — user requires **shared platform** | BLOCKED_BY_ARCHITECTURE until `IMPL-SK2.D+` + doc-first |
 | DP-4 in-memory member inbox | existing | **MISSING** — must migrate to unified Postgres | Same platform dependency |
 | External malware scan engine | post-v1 plug-in | EXPLICITLY_OUT_OF_SCOPE | MIME allowlist port sufficient for V1 |
@@ -111,11 +111,11 @@
 | Task | Depends | Scope |
 | ---- | ------- | ----- |
 | TKT-FC-01 | — | Complete viewer portal slice (API projection + BFF + UI) |
-| TKT-FC-02 | — | `POST /tickets/bulk` + operator UI multi-select |
-| TKT-FC-03 | — | Retention purge scheduled job + spec |
-| TKT-FC-04 | — | Orphan attachment cleanup job |
-| TKT-FC-05 | — | `@axe-core/playwright` ticketing portal + web specs |
-| TKT-FC-06 | — | Operator template composer picker |
+| TKT-FC-02 | — | `POST /tickets/bulk` + operator UI multi-select | **COMPLETE** |
+| TKT-FC-03 | — | Retention purge scheduled job + spec | **COMPLETE** |
+| TKT-FC-04 | — | Orphan attachment cleanup job | **COMPLETE** |
+| TKT-FC-05 | — | `@axe-core/playwright` ticketing portal + web specs | **COMPLETE** |
+| TKT-FC-06 | — | Operator template composer picker | **COMPLETE** |
 | TKT-FC-07 | TKT-FC-00 doc | Unified `member_notifications` platform (doc-first, migration, dispatchers, bell) |
 | TKT-FC-00 | — | `docs/standards/member-notification-inbox.mdoc` + Architect `IMPL-SK2.D+` |
 
@@ -127,4 +127,4 @@ See [`L1-CERTIFICATION-REPORT.md`](./L1-CERTIFICATION-REPORT.md) and [`GAP-REMED
 
 ---
 
-*CP0 inventory for FDA-001 `ticketing-system-complete`. Updated as slices land.*
+*CP0 inventory for FDA-001 `ticketing-system-complete`. TKT-FC-01–06 complete 2026-09-04. Remaining mandatory blocker: TKT-FC-07 unified `member_notifications` platform (BLOCKED_BY_ARCHITECTURE).*
