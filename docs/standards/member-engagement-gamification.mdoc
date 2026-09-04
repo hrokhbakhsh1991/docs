@@ -121,16 +121,47 @@ Levels (Denali V1):
 
 ## 5. HTTP API
 
+### 5.1 Member routes
+
 | Method | Path | Scope |
 | ------ | ---- | ----- |
 | GET | `/engagement/me/summary` | Member dashboard aggregate |
 | GET | `/engagement/me/points` | Point event history |
 | GET | `/engagement/me/badges` | Earned badges + progress |
+
+### 5.2 Operator routes — member operations
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
 | GET | `/engagement/operator/overview` | Recent awards + badge activity |
-| GET | `/engagement/operator/policy` | Read-only V1 levels, badges, and award rules (system-managed) |
 | GET | `/engagement/operator/members/:userId` | Member engagement lookup |
 | POST | `/engagement/operator/members/:userId/adjust` | Manual point award or deduction (idempotent, reason required) |
 | POST | `/engagement/operator/members/:userId/reverse` | Compensating reversal of a specific positive event (idempotent) |
+
+### 5.3 Operator routes — definition management (V1.1)
+
+Persisted per `(tenant_id, workspace_id)` with RLS, optimistic `row_version`, and append-only audit log.
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
+| GET | `/engagement/operator/badges` | List badge definitions (incl. archived when `includeArchived`) |
+| POST | `/engagement/operator/badges` | Create badge (idempotent POST) |
+| PATCH | `/engagement/operator/badges/:code` | Edit localized copy, icon, trigger, activate/deactivate/archive |
+| GET | `/engagement/operator/levels` | List level definitions |
+| POST | `/engagement/operator/levels` | Create level |
+| PATCH | `/engagement/operator/levels/:code` | Edit thresholds and status |
+| GET | `/engagement/operator/award-rules` | List award rules (all versions) |
+| POST | `/engagement/operator/award-rules` | Create new rule version |
+| PATCH | `/engagement/operator/award-rules/:ruleId` | Edit / activate / deactivate with effective dates |
+| GET | `/engagement/operator/audit-log` | Definition mutation audit trail |
+| GET | `/engagement/operator/catalog` | Approved icons + supported domain events |
+| GET | `/engagement/operator/policy` | Legacy aggregate snapshot (`managementMode: operator_managed`) |
+
+**Permissions:** `owner` and `admin` may mutate definitions and member points; `viewer` is read-only (GET allowed, POST/PATCH denied).
+
+**Award rule allowlist (V1):** only `profile.completed` (identity) and `registration.first_approved` (booking). Forbidden: wallet, payment, finance, or invented event names.
+
+**Immutability:** `engagement_point_events` and earned `member_engagement_badges` rows are never deleted; definition archive disables future awards only.
 
 ---
 
