@@ -73,6 +73,7 @@ export function MemberTicketsNewForm({ categories }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [state, setState] = useState<FormState>(() => ({
     categoryCode: categories.defaultCategoryCode,
     subject: "",
@@ -262,31 +263,39 @@ export function MemberTicketsNewForm({ categories }: Props) {
         ) : null}
       </div>
 
-      <div data-portal-member-tickets-field>
-        <label htmlFor={tourId}>{t("fields.relatedTourId")}</label>
-        <input
-          id={tourId}
-          name="relatedTourId"
-          type="text"
-          inputMode="text"
-          autoComplete="off"
-          value={state.relatedTourId}
-          onChange={(event) => updateField("relatedTourId", event.target.value)}
-        />
-      </div>
+      <details
+        data-portal-member-tickets-advanced
+        open={advancedOpen}
+        onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+      >
+        <summary>{t("advancedSectionToggle")}</summary>
+        <p data-portal-member-tickets-advanced-hint>{t("advancedSectionHint")}</p>
+        <div data-portal-member-tickets-field>
+          <label htmlFor={tourId}>{t("fields.relatedTourId")}</label>
+          <input
+            id={tourId}
+            name="relatedTourId"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            value={state.relatedTourId}
+            onChange={(event) => updateField("relatedTourId", event.target.value)}
+          />
+        </div>
 
-      <div data-portal-member-tickets-field>
-        <label htmlFor={registrationId}>{t("fields.relatedRegistrationId")}</label>
-        <input
-          id={registrationId}
-          name="relatedRegistrationId"
-          type="text"
-          inputMode="text"
-          autoComplete="off"
-          value={state.relatedRegistrationId}
-          onChange={(event) => updateField("relatedRegistrationId", event.target.value)}
-        />
-      </div>
+        <div data-portal-member-tickets-field>
+          <label htmlFor={registrationId}>{t("fields.relatedRegistrationId")}</label>
+          <input
+            id={registrationId}
+            name="relatedRegistrationId"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            value={state.relatedRegistrationId}
+            onChange={(event) => updateField("relatedRegistrationId", event.target.value)}
+          />
+        </div>
+      </details>
 
       {categories.attachmentsEnabled ? (
         <MemberTicketAttachmentField
