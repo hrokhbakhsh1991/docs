@@ -194,7 +194,7 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_DEPLOY_PATH: ${{ env.STAGING_DEPLOY_ROOT }}
+          VPS_DEPLOY_PATH: ${{ env.STAGING_DEPLOY_ROOT }}/tooling
           ENV_DIR: ${{ env.STAGING_ENV_DIR }}
           UNIT_PREFIX: app-tour-staging
         run: bash scripts/p10-staging-remote-gate.sh

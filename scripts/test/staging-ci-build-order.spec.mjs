@@ -78,3 +78,10 @@ test("staging uploads the transfer manifest beside the artifact and checksum", (
     /dist\/staging-artifacts\/\$\{\{ steps\.manifest\.outputs\.artifact \}\}\.manifest\.json/,
   );
 });
+
+test("staging health verification uses the installed tooling layout", () => {
+  assert.match(
+    workflow,
+    /VPS_DEPLOY_PATH: \$\{\{ env\.STAGING_DEPLOY_ROOT \}\}\/tooling/,
+  );
+});
