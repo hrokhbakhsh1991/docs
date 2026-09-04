@@ -12,7 +12,10 @@ import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-modu
 import { WIZARD_TEMPLATE_TEST_IDS } from "../../src/features/settings/wizard-template-types";
 import { RECONCILIATION_TRIAGE_TEST_IDS } from "../../src/finance/reconciliation-triage-logic";
 import { WIZARD_DRAFT_AUDIT_TEST_IDS } from "../../src/draft/workspace-draft-audit-logic";
-import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
+import {
+  loginOperatorWithPhone,
+  OPERATOR_OWNER_MOBILE,
+} from "../../test/fixtures/operator-owner-session";
 
 const SETTINGS_ROUTES = [
   ["settings hub", "/settings", SETTINGS_HUB_TEST_IDS.page],
@@ -49,7 +52,7 @@ const SETTINGS_ROUTES = [
 test.describe("Denali settings route matrix", () => {
   for (const [name, path, marker] of SETTINGS_ROUTES) {
     test(`${name} renders after owner login`, async ({ page }) => {
-      await loginOperatorOwner(page);
+      await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
 
       const response = await page.goto(path, { waitUntil: "domcontentloaded" });
       expect(response?.status(), `${path} response`).toBe(200);
