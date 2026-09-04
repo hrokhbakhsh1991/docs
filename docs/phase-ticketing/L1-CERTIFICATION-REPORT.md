@@ -57,7 +57,7 @@
 | `ticket-sla.postgres.spec.ts` | PASS |
 | `ticket-templates.postgres.spec.ts` | PASS |
 | `ticket-k1.postgres.spec.ts` | PASS |
-| **Total** | **83/83 PASS** |
+| **Total** | **84/84 PASS** |
 
 **Note:** Postgres specs require `DATABASE_URL=postgresql://app_tour:app_tour@…` (not superuser) so RLS is enforced.
 
@@ -154,6 +154,36 @@ git rev-parse origin/feature/ticketing-system
 ```
 
 Both SHAs must match after `git push origin feature/ticketing-system`.
+
+---
+
+## FDA-001 completion verification (2026-09-04)
+
+**Workflow:** Feature Delivery Skill (FDA-001) — CP0 audit + CP5 verification matrix re-run.
+**Verification HEAD:** `eeffa457` (includes gap remediation `85766523` + FDA agent wiring).
+**Architecture-reviewer:** `proceed_with_accepted_risk` — ticketing module scope only; shared cross-domain notification platform **blocked** per [`notification-case-study.mdoc`](../dev/feature-delivery/notification-case-study.mdoc).
+**Evidence ledger:** `.cache/feature-delivery/ticketing-l1-completion-20260904/` (session-local, not committed).
+
+| Gate | Result | Evidence |
+|------|--------|----------|
+| `@app-tour/ticketing-core` | 75/75 PASS | unit |
+| `@app-tour/ticketing-http-contracts` | 38/38 PASS | unit |
+| `@app-tour/ticketing-http` | 2/2 PASS | unit |
+| Portal `portal-member-tickets` | 10/10 PASS | RTL unit |
+| Web `operator-tickets` | 4/4 PASS | unit |
+| Postgres specs (8 files) | 84/84 PASS | `DATABASE_URL=app_tour` |
+| MinIO attachment spec | 1 pass, 1 skip | `MINIO_*` not set — TKT-GAP-002 accepted |
+| Portal Playwright ticketing | 2/2 PASS | `portal-playwright.log` |
+| Operator Playwright ticketing | 4/4 PASS | `operator-playwright.log` |
+| Builds (sdk, ticketing, api, portal, web) | PASS | typecheck |
+| Guards (import-boundary, repository-rls, api-workspace-isolation, pcms-authority) | PASS | |
+| `doc:markdoc:validate` | PASS (305 files) | |
+| `pre-commit:fast` | PASS | |
+| `prisma migrate status` | Up to date (92 migrations) | |
+
+**Gap audit:** All items in [`GAP-REMEDIATION-REPORT.md`](./GAP-REMEDIATION-REPORT.md) remain FIXED, ACCEPTED_RISK, or NOT_APPLICABLE — no new mandatory fixes required.
+
+**FDA final verdict:** **READY_WITH_ACCEPTED_RISKS** — Ticketing L1 complete on `feature/ticketing-system`.
 
 ---
 
