@@ -1,5 +1,7 @@
 import type { TenantAuthContext, TenantThemeConfig } from "@app-tour/workspace-sdk";
+import { cookies } from "next/headers";
 
+import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 /**
@@ -10,6 +12,7 @@ export async function fetchTenantThemeForContext(
   host: string,
 ): Promise<TenantThemeConfig | null> {
   const url = `${resolveTourOpsApiBaseUrl()}/api/v2/tenant-config`;
+  const sessionToken = (await cookies()).get(SESSION_TOKEN_COOKIE)?.value?.trim();
 
   const headers: Record<string, string> = {
     host,
@@ -20,6 +23,9 @@ export async function fetchTenantThemeForContext(
     "x-actor-role": context.role,
     "x-membership-status": context.status,
   };
+  if (sessionToken !== undefined && sessionToken.length > 0) {
+    headers.authorization = `Bearer ${sessionToken}`;
+  }
 
   try {
     const res = await fetch(url, { headers, cache: "no-store" });
