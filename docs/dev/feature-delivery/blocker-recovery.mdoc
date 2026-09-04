@@ -24,7 +24,9 @@ extends:
 | **Hard stop**    | Any condition in [stop-conditions](stop-conditions.mdoc) §1–§4, §7 — security/RLS ambiguity, migration rewrite, production mutation, unresolved product decision, architecture-reviewer `blocked`/`pivot` without acceptance |
 | **Queue resume** | After recovery — continue from last unfinished mandatory matrix item                                                                                                                                                         |
 
-**Never** mark a feature `COMPLETE` while any mandatory item is `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+**Never** mark a feature `COMPLETE` or `COMPLETE_WITH_ACCEPTED_RISKS` while any **mandatory** item carries a blocking status per [completion-rules](completion-rules.mdoc) §2: `broken`, `missing`, `partial`, `skipped`, `unverified`, `browser-unverified`, `producer-missing`, `data durability unverified`, `rls/security unverified`.
+
+Known **BROKEN** mandatory paths (e.g. payment-hold outbox durability) → verdict **`INCOMPLETE`** or **`BLOCKED`** only. **MISSING** mandatory event producers → **`INCOMPLETE`** only. Skipped browser/a11y evidence remains **`unverified`** and cannot support `COMPLETE`.
 
 ---
 

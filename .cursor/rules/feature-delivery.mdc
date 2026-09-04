@@ -3,7 +3,7 @@ description: Non-negotiable safety and architecture rules for Feature Delivery s
 alwaysApply: true
 ---
 
-# Feature Delivery — session safety (FDA-001 v1.2)
+# Feature Delivery — session safety (FDA-001 v1.3)
 
 Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/skills/feature-delivery/SKILL.md`](../skills/feature-delivery/SKILL.md). Charter: [`docs/dev/feature-delivery-agent.mdoc`](../../docs/dev/feature-delivery-agent.mdoc). Design/research: [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
 
@@ -67,9 +67,15 @@ Per [`blocker-recovery.mdoc`](../../docs/dev/feature-delivery/blocker-recovery.m
 
 ## Full closure
 
+Canonical rules: [`completion-rules.mdoc`](../../docs/dev/feature-delivery/completion-rules.mdoc) (FDA-001 v1.3).
+
 - Audit completion ≠ feature completion.
-- Process queue; blocked items must not stop unrelated work.
-- No `COMPLETE` while any mandatory row or queue item is `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED`.
+- Process queue; blocked items must not stop unrelated work; **final verdict must stay incomplete until mandatory rows close**.
+- **No `COMPLETE`** while any **mandatory** row has: `broken`, `missing`, `partial`, `skipped`, `unverified`, `browser-unverified`, `producer-missing`, `data durability unverified`, `rls/security unverified`.
+- **`COMPLETE_WITH_ACCEPTED_RISKS`** only when capability usable, tests pass, browser proof for UI, risk optional, and explicit approval record — never for security, tenant isolation, RLS, data durability, or mandatory producers.
+- Known **BROKEN** payment-hold outbox → `INCOMPLETE` or `BLOCKED`. **MISSING** mandatory producer → `INCOMPLETE`.
+- Skipped browser/a11y → `unverified`; cannot support `COMPLETE`.
+- Run `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` before emitting `*COMPLETE*`.
 - Final report lists **every** queue item status.
 
 ## Operations

@@ -11,7 +11,7 @@ description: >
 disable-model-invocation: true
 ---
 
-# Feature Delivery (FDA-001 v1.2)
+# Feature Delivery (FDA-001 v1.3)
 
 Orchestrate end-to-end feature work on a **locked branch** with mandatory discovery, design, architecture gates, evidence ledger, queued execution, and stop conditions. Feature-agnostic — ticketing is a regression example only.
 
@@ -26,6 +26,8 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 | Evidence ledger                 | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc)   |
 | Stop conditions                 | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc)                 |
 | Blocker recovery                | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc)               |
+| Completion rules (verdict gating) | [`docs/dev/feature-delivery/completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc)               |
+| Completion regression fixture   | [`docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc`](../../../docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc) |
 | Notification regression fixture | [`docs/dev/feature-delivery/notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) |
 | UI UX Pro Max (advisory)        | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../ui-ux-pro-max/FDA-INTEGRATION.md)                               |
 | Browser quality closure         | [`.cursor/skills/browser-quality-closure/SKILL.md`](../browser-quality-closure/SKILL.md)                                    |
@@ -218,7 +220,7 @@ Per [blocker-recovery.mdoc](../../../docs/dev/feature-delivery/blocker-recovery.
 3. Categories: code, test, dependency, environment, browser/runtime, architecture, security/product (hard stop).
 4. **Blocked sub-feature** must not stop unrelated queue items.
 5. After **3 failed hypotheses** or architecture/security/product issue → STOP with evidence and options.
-6. **Never** `COMPLETE` while mandatory rows `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+6. **Never** `COMPLETE` while mandatory rows carry blocking statuses per [completion-rules](completion-rules.mdoc) §2.
 
 **Artifacts:** `blocker-investigation.json`, `research.json` (when external), `requirement-queue.json`.
 
@@ -262,17 +264,25 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 
 ## Full closure (mandatory work queue)
 
+**Canonical rules:** [`completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc) (FDA-001 v1.3)
+
 **Audit completion ≠ feature completion.**
 
 | Rule | Behavior |
 | ---- | -------- |
-| Mandatory rows | `MISSING` / `PARTIAL` / `BLOCKED` / `UNVERIFIED` blocks `COMPLETE` |
-| SKIP | Never PASS or COMPLETE |
+| Blocking statuses | `broken`, `missing`, `partial`, `skipped`, `unverified`, `browser-unverified`, `producer-missing`, `data durability unverified`, `rls/security unverified` — **block `COMPLETE`** on mandatory rows |
+| Mandatory rows | Any § blocking status → forbid `COMPLETE` and `COMPLETE_WITH_ACCEPTED_RISKS` unless row is optional with valid approval |
+| `COMPLETE_WITH_ACCEPTED_RISKS` | Only when capability usable, tests pass, browser proof for UI, risk optional, explicit approval (`riskId`, `approvedBy`, `decision`, `release`/`scope`, `expiry`/`followUp`) |
+| Never accepted as risk | Security, tenant isolation, RLS, data durability, mandatory event producers |
+| Known BROKEN payment-hold outbox | Verdict **must** be `INCOMPLETE` or `BLOCKED` |
+| MISSING mandatory producer | Verdict **must** be `INCOMPLETE` |
+| SKIP | Never PASS or COMPLETE; skipped browser/a11y stays `unverified` |
 | Stub/route-only | Never complete capability |
-| Admin read-only catalog | Not admin-complete without mutation path |
 | Browser | curl/API/build ≠ browser-verified |
-| Queue | Process independent items when one blocked |
-| Final report | Lists every queue item; forbidden while rows open |
+| Queue | Process independent items when one blocked; **final verdict stays honest** |
+| Regression fixture | `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` |
+
+Run evaluator before any `*COMPLETE*` final report.
 
 ---
 
@@ -290,4 +300,4 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 
 ---
 
-_FDA-001 v1.2 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery._
+_FDA-001 v1.3 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery, completion gating._

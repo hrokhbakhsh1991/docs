@@ -26,6 +26,7 @@ Specialized **FDA sub-agent** for auditing and repairing **real browser quality 
 | Browser quality reviewer (read-only) | [`.cursor/agents/browser-quality-reviewer.md`](../../agents/browser-quality-reviewer.md) |
 | Evidence ledger | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc) |
 | Blocker recovery | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc) |
+| Completion rules | [`docs/dev/feature-delivery/completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc) |
 | Stop conditions | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc) |
 | Tiered testing | [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md) |
 | Walkthrough artifacts | [`walkthrough-artifacts` skill]($HOME/.cursor/skills-cursor/walkthrough-artifacts/SKILL.md) |
@@ -46,7 +47,7 @@ Specialized **FDA sub-agent** for auditing and repairing **real browser quality 
 | **Tenant / RLS hard stops** | `BR-SEC` — no guessing on entitlements, seeds, migrations, workspace isolation |
 | **Workspace isolation** | Preserve Denali / Urban / starter boundaries — no cross-workspace leakage in tests or fixes |
 | **No silent post-v1 downgrades** | Never weaken assertions, add skips, or mock critical APIs to green a suite |
-| **No fake COMPLETE** | Test file exists ≠ journey verified; build pass ≠ browser proof; API 200 ≠ UI success |
+| **No fake COMPLETE** | Test file exists ≠ journey verified; build pass ≠ browser proof; API 200 ≠ UI success; skipped browser/a11y stays `unverified` — [completion-rules.mdoc](../../../docs/dev/feature-delivery/completion-rules.mdoc) |
 
 Record at BQC-0: `lockedBranch`, `initialHead`, `scopePaths`, `sessionId`.
 
@@ -356,7 +357,9 @@ Every claim maps to a **ledger row** + artifact.
 | `BLOCKED` | env/RLS/product blocker |
 | `FLAKY` | intermittent without fix |
 
-**Forbidden final verdicts:** `BROWSER_QUALITY_COMPLETE` while any critical journey row is `MISSING`, `PARTIAL`, `BLOCKED`, `FLAKY`, or `UNVERIFIED`.
+**Forbidden final verdicts:** `BROWSER_GAPS_CLOSED` or parent `COMPLETE` while any **mandatory** critical journey row is `MISSING`, `PARTIAL`, `BLOCKED`, `FLAKY`, `UNVERIFIED`, or `browser-unverified` — [completion-rules.mdoc](../../../docs/dev/feature-delivery/completion-rules.mdoc).
+
+Before parent feature `COMPLETE` or `COMPLETE_WITH_ACCEPTED_RISKS`, run `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` when matrix is available.
 
 ---
 

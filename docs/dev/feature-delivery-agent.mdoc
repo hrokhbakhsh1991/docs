@@ -1,7 +1,7 @@
 ---
 title: Feature Delivery Agent (FDA-001)
 standard_id: FDA-001
-version: 1.2.0
+version: 1.3.0
 status: draft
 format: markdoc
 doc_role: agent_charter
@@ -12,7 +12,8 @@ extends:
   - docs/dev/feature-delivery/stop-conditions.mdoc
   - docs/dev/feature-delivery/blocker-recovery.mdoc
   - docs/dev/feature-delivery/notification-case-study.mdoc
-  - docs/dev/feature-delivery/research-and-design-gate.mdoc
+  - docs/dev/feature-delivery/completion-rules.mdoc
+  - docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc
 mandatory_for:
   - .cursor/agents
   - .cursor/skills
@@ -168,11 +169,28 @@ Mandatory per [blocker-recovery](feature-delivery/blocker-recovery.mdoc):
 2. 11-step loop with up to **3 hypotheses**.
 3. Blocked sub-features do not stop unrelated queue items.
 4. Hard stops not overridable by research.
-5. `COMPLETE` forbidden while mandatory rows open.
+5. `COMPLETE` forbidden while mandatory rows carry blocking statuses — [completion-rules](feature-delivery/completion-rules.mdoc) §2.
 
 ---
 
-## 7. Evidence and final report
+## 7. Completion rules and verdict gating
+
+**Canonical:** [completion-rules](feature-delivery/completion-rules.mdoc) (FDA-001 v1.3).
+
+| Verdict | Gate |
+| ------- | ---- |
+| `COMPLETE` | All mandatory rows closed; no §2 blocking status |
+| `COMPLETE_WITH_ACCEPTED_RISKS` | §3 conditions + explicit approval; never for security/RLS/durability/mandatory producers |
+| `INCOMPLETE` | Open mandatory rows; known broken/missing producers |
+| `BLOCKED` | Hard stop active |
+
+**Regression fixture:** [completion-rules-regression-fixture](feature-delivery/completion-rules-regression-fixture.mdoc) — run `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs`.
+
+Agents continue independent queue work after blockers; **final verdict stays incomplete** until mandatory matrix closes.
+
+---
+
+## 8. Evidence and final report
 
 Session artifacts per [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) and [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc).
 
@@ -187,11 +205,11 @@ Final report minimum:
 7. Remaining / accepted risks
 8. Commit SHAs and push result
 
-**Forbidden claims:** COMPLETE with open rows; admin usability from read-only catalog; browser success from curl; production readiness from local tests only; architecture approval without reviewer evidence; test pass without ledger command.
+**Forbidden claims:** COMPLETE with open mandatory blocking rows; COMPLETE_WITH_ACCEPTED_RISKS for security/RLS/durability/mandatory-producer gaps; admin usability from read-only catalog; browser success from curl; production readiness from local tests only; architecture approval without reviewer evidence; test pass without ledger command.
 
 ---
 
-## 8. Related standards
+## 9. Related standards
 
 | Standard | Link |
 | -------- | ---- |
@@ -205,7 +223,7 @@ Final report minimum:
 
 ---
 
-## 9. Phase rollout
+## 10. Phase rollout
 
 | Phase | Deliverable | Status |
 | ----- | ----------- | ------ |
@@ -214,14 +232,15 @@ Final report minimum:
 | **B.2** | v1.2 discovery, design, research, queue, recovery | **Current** |
 | **B.3** | Browser Quality & E2E Closure sub-agent (BQC-001) | **Current** |
 | **B.4** | UI UX Pro Max design-intelligence integration (advisory) | **Current** |
+| **B.5** | Completion rules + verdict regression fixture | **Current** |
 | **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI | Planned |
 | **D** | `test-changed` path map fixes | Planned |
 
 ---
 
-## 10. Specialized sub-agents
+## 11. Specialized sub-agents
 
-### 10.1 Browser Quality & E2E Closure (BQC-001)
+### 11.1 Browser Quality & E2E Closure (BQC-001)
 
 When work is **browser-quality audit or E2E gap closure** (not greenfield feature delivery), use the specialized sub-agent instead of improvising Playwright fixes:
 
@@ -230,13 +249,13 @@ When work is **browser-quality audit or E2E gap closure** (not greenfield featur
 | Skill | [`.cursor/skills/browser-quality-closure/SKILL.md`](../../.cursor/skills/browser-quality-closure/SKILL.md) |
 | Read-only reviewer | [`.cursor/agents/browser-quality-reviewer.md`](../../.cursor/agents/browser-quality-reviewer.md) |
 
-**Inherits FDA-001:** branch lock, scope lock, evidence ledger, blocker recovery (3 hypotheses), tenant/RLS hard stops, Denali/Urban/starter isolation, no silent post-v1 downgrades, no fake `COMPLETE` claims.
+**Inherits FDA-001:** branch lock, scope lock, evidence ledger, blocker recovery (3 hypotheses), tenant/RLS hard stops, Denali/Urban/starter isolation, no silent post-v1 downgrades, no fake `COMPLETE` claims — [completion-rules](feature-delivery/completion-rules.mdoc).
 
 **Delivers:** browser coverage matrix, test-realness audit, bug reproduction record, traces/screenshots, capability status per journey, explicit unverified items.
 
 **Critical flows** require real browser → real route → real backend → persistence/permission proof — not API-only or mock-only tests.
 
-### 10.2 UI UX Pro Max design intelligence (advisory)
+### 11.2 UI UX Pro Max design intelligence (advisory)
 
 For **every user-visible feature**, CP1 requires an evidence-based UI/UX decision brief before source implementation.
 
@@ -254,4 +273,4 @@ For **every user-visible feature**, CP1 requires an evidence-based UI/UX decisio
 
 ---
 
-_FDA-001 v1.2.0 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery._
+_FDA-001 v1.3.0 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery, completion gating._
