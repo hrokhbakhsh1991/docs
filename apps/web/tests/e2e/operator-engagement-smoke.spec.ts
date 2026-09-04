@@ -56,19 +56,10 @@ test.describe("MEG-001 Denali operator engagement", () => {
       ),
     ).toEqual([]);
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/operator-engagement-desktop.png",
-      fullPage: true,
-    });
-
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator("[data-operator-engagement-page]")).toBeVisible();
     const dir = await page.locator("html").getAttribute("dir");
     expect(dir === "rtl" || dir === "ltr").toBeTruthy();
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/operator-engagement-mobile.png",
-      fullPage: true,
-    });
   });
 
   test("SMK-MEG-OP-02 loading and error states", async ({ page }) => {

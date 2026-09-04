@@ -7,6 +7,14 @@ body[data-workspace-plugin="denali"] [data-operator-engagement-page] {
   gap: var(--space-5);
 }
 
+body[data-workspace-plugin="denali"] [data-operator-engagement-page] [data-operator-page-header-description] {
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-engagement-page] .text-muted-foreground {
+  color: var(--color-text-secondary);
+}
+
 body[data-workspace-plugin="denali"] [data-operator-engagement-grid] [data-operator-engagement-recent-points] {
   border-top: 3px solid var(--denali-alpine-600);
 }
