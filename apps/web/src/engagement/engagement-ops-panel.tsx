@@ -1,10 +1,12 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { PageHeader } from "@/admin/patterns/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppLocale } from "@/i18n/routing";
@@ -21,7 +23,6 @@ import {
   formatEngagementTimestamp,
   type EngagementOpsTab,
 } from "./engagement-ops-logic";
-import { EngagementMembersTab } from "./engagement-ops-members-tab";
 import type { OverviewPayload } from "./engagement-ops-types";
 import { engagementTabButtonClass } from "./engagement-ops-ui-primitives";
 
@@ -32,7 +33,6 @@ const TAB_TEST_IDS: Record<EngagementOpsTab, string> = {
   badges: ENGAGEMENT_OPS_TEST_IDS.tabBadges,
   levels: ENGAGEMENT_OPS_TEST_IDS.tabLevels,
   awardRules: ENGAGEMENT_OPS_TEST_IDS.tabAwardRules,
-  members: ENGAGEMENT_OPS_TEST_IDS.tabMembers,
   audit: ENGAGEMENT_OPS_TEST_IDS.tabAudit,
 };
 
@@ -132,7 +132,18 @@ export function EngagementOpsPanel() {
           ) : null}
 
           {overview !== null && overviewState === "ready" ? (
-            <div data-operator-engagement-grid className="mb-6 grid gap-6 lg:grid-cols-2">
+            <>
+              <Card className="mb-6 border-dashed" data-operator-engagement-member-ops-hint>
+                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">{t("memberOpsUsersHint")}</p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/users" data-testid={ENGAGEMENT_OPS_TEST_IDS.memberOpsUsersLink}>
+                      {t("memberOpsUsersAction")}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <div data-operator-engagement-grid className="mb-6 grid gap-6 lg:grid-cols-2">
               <Card
                 data-operator-engagement-recent-points
                 data-testid={ENGAGEMENT_OPS_TEST_IDS.recentPoints}
@@ -213,6 +224,7 @@ export function EngagementOpsPanel() {
                 </CardContent>
               </Card>
             </div>
+            </>
           ) : null}
         </>
       ) : null}
@@ -220,7 +232,6 @@ export function EngagementOpsPanel() {
       {activeTab === "badges" ? <EngagementBadgesTab active /> : null}
       {activeTab === "levels" ? <EngagementLevelsTab active /> : null}
       {activeTab === "awardRules" ? <EngagementAwardRulesTab active /> : null}
-      {activeTab === "members" ? <EngagementMembersTab /> : null}
       {activeTab === "audit" ? <EngagementAuditTab active /> : null}
     </div>
   );

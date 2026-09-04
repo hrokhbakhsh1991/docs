@@ -22,6 +22,10 @@
     "memberLookupInvalid": "Select a member from search results.",
     "memberLookupNotFound": "No engagement profile found for this member.",
     "memberLookupFailed": "Could not load member engagement.",
+    "memberLookupRetry": "Try again",
+    "readOnlyHint": "Read-only — contact an owner or admin to adjust points.",
+    "memberOpsUsersHint": "Member point adjustments, reversals, and history live in Users. Open a member's detail sheet to manage their engagement profile.",
+    "memberOpsUsersAction": "Open Users directory",
     "memberLookupResult": "Engagement summary",
     "memberLookupPoints": "Participation points",
     "memberLookupLevel": "Current level",
@@ -76,7 +80,6 @@
       "badges": "Badges",
       "levels": "Levels",
       "awardRules": "Award rules",
-      "members": "Members",
       "audit": "Audit"
     },
     "permissionDenied": "You do not have permission to manage engagement definitions.",

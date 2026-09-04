@@ -22,6 +22,10 @@
     "memberLookupInvalid": "عضو را از نتایج جستجو انتخاب کنید.",
     "memberLookupNotFound": "پروفایل مشارکت برای این عضو یافت نشد.",
     "memberLookupFailed": "بارگذاری مشارکت عضو ناموفق بود.",
+    "memberLookupRetry": "تلاش مجدد",
+    "readOnlyHint": "فقط مشاهده — برای تغییر امتیاز با مالک یا مدیر تماس بگیرید.",
+    "memberOpsUsersHint": "تنظیم امتیاز، برگشت و تاریخچه اعضا در بخش کاربران است. جزئیات عضو را باز کنید.",
+    "memberOpsUsersAction": "رفتن به کاربران",
     "memberLookupResult": "خلاصه مشارکت",
     "memberLookupPoints": "امتیاز مشارکت",
     "memberLookupLevel": "سطح فعلی",
@@ -76,7 +80,6 @@
       "badges": "نشان‌ها",
       "levels": "سطوح",
       "awardRules": "قواعد امتیاز",
-      "members": "اعضا",
       "audit": "ممیزی"
     },
     "permissionDenied": "مجوز مدیریت تعاریف مشارکت را ندارید.",

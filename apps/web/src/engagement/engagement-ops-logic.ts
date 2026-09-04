@@ -40,22 +40,19 @@ export const ENGAGEMENT_TRIGGER_KINDS = Object.freeze(["event", "points_threshol
 
 const ENGAGEMENT_CODE_SLUG_PATTERN = /^[a-z][a-z0-9_]*$/;
 
-export type EngagementOpsTab =
-  | "overview"
-  | "badges"
-  | "levels"
-  | "awardRules"
-  | "members"
-  | "audit";
+export type EngagementOpsTab = "overview" | "badges" | "levels" | "awardRules" | "audit";
 
 export const ENGAGEMENT_OPS_TABS: readonly EngagementOpsTab[] = Object.freeze([
   "overview",
   "badges",
   "levels",
   "awardRules",
-  "members",
   "audit",
 ]);
+
+export function canMutateEngagementAsOperator(role: string): boolean {
+  return role === "owner" || role === "admin";
+}
 
 export const ENGAGEMENT_OPS_TEST_IDS = Object.freeze({
   page: "operator-engagement-page",
@@ -64,9 +61,8 @@ export const ENGAGEMENT_OPS_TEST_IDS = Object.freeze({
   tabBadges: "operator-engagement-tab-badges",
   tabLevels: "operator-engagement-tab-levels",
   tabAwardRules: "operator-engagement-tab-award-rules",
-  tabMembers: "operator-engagement-tab-members",
   tabAudit: "operator-engagement-tab-audit",
-  membersPanel: "operator-engagement-members-panel",
+  memberOpsUsersLink: "operator-engagement-member-ops-users-link",
   recentPoints: "operator-engagement-recent-points",
   recentBadges: "operator-engagement-recent-badges",
   badgesPanel: "operator-engagement-badges-panel",

@@ -30,6 +30,7 @@ import {
   validateEngagementLevelCreateForm,
   validateEngagementMemberUserId,
   validateEngagementReversalForm,
+  canMutateEngagementAsOperator,
   canReverseEngagementPointEvent,
 } from "../src/engagement/engagement-ops-logic";
 
@@ -201,6 +202,13 @@ describe("engagement-ops-logic", () => {
       }),
       false,
     );
+  });
+
+  it("allows owner and admin to mutate engagement", () => {
+    assert.equal(canMutateEngagementAsOperator("owner"), true);
+    assert.equal(canMutateEngagementAsOperator("admin"), true);
+    assert.equal(canMutateEngagementAsOperator("viewer"), false);
+    assert.equal(canMutateEngagementAsOperator("member"), false);
   });
 
   it("creates idempotency keys", () => {

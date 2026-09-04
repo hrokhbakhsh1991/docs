@@ -34,6 +34,9 @@ test.describe("MEG-001 Denali operator engagement", () => {
     await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible();
     await expect(page.locator("[data-operator-engagement-recent-badges]")).toBeVisible();
 
+    await expect(page.getByTestId("operator-engagement-tab-members")).toHaveCount(0);
+    await expect(page.getByTestId("operator-engagement-member-ops-users-link")).toBeVisible();
+
     const lede = await page.locator("[data-operator-page-header-description]").innerText();
     expect(lede).toMatch(/wallet|کیف پول/i);
     expect(lede).not.toMatch(/ریال|تومان|\$/);
@@ -102,34 +105,25 @@ test.describe("MEG-001 Denali operator engagement", () => {
 
   test("SMK-MEG-OP-05 member search by phone and adjust/reverse", async ({ page }) => {
     await loginDenaliOperatorOwner(page);
-    await page.goto("/engagement", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("[data-operator-engagement-page]")).toBeVisible({ timeout: 60_000 });
-    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+    await page.goto("/users", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("operator-users-page")).toBeVisible({ timeout: 60_000 });
+
+    await page.getByTestId("operator-users-search").fill("09174070937");
+    await expect(page.getByTestId("operator-users-row-details").first()).toBeVisible({
       timeout: 60_000,
     });
-    await page.getByTestId("operator-engagement-tab-members").click();
-    await expect(page.getByTestId("operator-engagement-members-panel")).toBeVisible({
+    await page.getByTestId("operator-users-row-details").first().click();
+    await expect(page.getByTestId("operator-users-member-detail")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId("operator-users-member-engagement")).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.getByTestId("operator-engagement-member-lookup")).toBeVisible({
-      timeout: 60_000,
-    });
-    const searchResponse = page.waitForResponse(
-      (response) => response.url().includes("/api/users") && response.ok(),
-    );
-    await page.getByTestId("operator-engagement-member-search-input").fill("09174070937");
-    await searchResponse;
-    await expect(page.getByTestId("operator-engagement-member-search-results")).toBeVisible({
-      timeout: 30_000,
-    });
-    await page.getByTestId("operator-engagement-member-search-results").locator("button").first().click();
     await expect(page.getByTestId("operator-engagement-member-lookup-result")).toBeVisible({
       timeout: 60_000,
     });
     await expect(page.getByTestId("operator-engagement-member-history")).toBeVisible();
 
     await page.screenshot({
-      path: "/opt/cursor/artifacts/operator-engagement-member-search.png",
+      path: "/opt/cursor/artifacts/ia-after-users-member-engagement.png",
       fullPage: true,
     });
 
