@@ -224,6 +224,7 @@
     "loadingMore": "Loading…",
     "messageCount": "{count} messages",
     "backToList": "Back to list",
+    "viewerReadOnlyBanner": "Read-only access — you can view all club tickets but cannot reply or create requests.",
     "timelineTitle": "Conversation",
     "linksTitle": "Related links",
     "composerLabel": "Send reply",

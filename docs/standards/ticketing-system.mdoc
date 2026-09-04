@@ -1041,6 +1041,8 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 **Member visibility:** public messages and `scanStatus=clean` attachments only; internal notes/attachments never in member projections or BFF.
 
+**Viewer visibility (Portal + `/member/tickets/*`):** tenant-wide list/read on member routes; `toViewerTicketDetailHttp` includes internal notes with `visibility` (compliance read-only); portal hides create/reply/reopen/attachment upload when `session.role === "viewer"`.
+
 ### Phase G — Operator inbox
 
 | | |

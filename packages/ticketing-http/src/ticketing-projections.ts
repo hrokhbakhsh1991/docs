@@ -1,10 +1,11 @@
-import { filterEventsForMember, filterMessagesForMember, filterAttachmentsForMember, filterAttachmentsForOperator } from "@app-tour/ticketing-core";
+import { filterEventsForMember, filterMessagesForMember, filterMessagesForViewer, filterAttachmentsForMember, filterAttachmentsForOperator } from "@app-tour/ticketing-core";
 import type {
   MemberTicketDetailHttp,
   MemberTicketMessageHttp,
   OperatorTicketDetailHttp,
   OperatorTicketMessageHttp,
   OperatorTicketSummaryHttp,
+  ViewerTicketDetailHttp,
   PaginatedMemberTicketListHttp,
   PaginatedOperatorTicketListHttp,
   TicketEventHttp,
@@ -121,6 +122,25 @@ export function toMemberTicketDetailHttp(input: {
       toMemberMessageHttp(message, visibleAttachments),
     ),
     events: filterEventsForMember(input.events).map(toTicketEventHttp),
+    ...(input.links !== undefined ? { links: input.links.map(toTicketLinkHttp) } : {}),
+    rowVersion: input.ticket.rowVersion,
+  };
+}
+
+export function toViewerTicketDetailHttp(input: {
+  readonly ticket: Ticket;
+  readonly messages: readonly TicketMessage[];
+  readonly events: readonly TicketEvent[];
+  readonly attachments?: readonly TicketAttachment[];
+  readonly links?: readonly TicketLink[];
+}): ViewerTicketDetailHttp {
+  const visibleAttachments = filterAttachmentsForOperator(input.attachments ?? []);
+  return {
+    ticket: toOperatorTicketSummaryHttp(input.ticket),
+    messages: filterMessagesForViewer(input.messages).map((message) =>
+      toOperatorMessageHttp(message, visibleAttachments),
+    ),
+    events: input.events.map(toTicketEventHttp),
     ...(input.links !== undefined ? { links: input.links.map(toTicketLinkHttp) } : {}),
     rowVersion: input.ticket.rowVersion,
   };

@@ -427,6 +427,33 @@ describe(
       assert.ok(messages.every((message) => message.body !== "operator secret"));
     });
 
+    it("viewer reads internal notes on member ticket detail route", async () => {
+      const { ticketId } = await createTicket();
+      const noteResponse = await requestJson(listener, {
+        method: "POST",
+        path: `/tickets/${ticketId}/internal-notes`,
+        tenantId: tenantA,
+        userId: adminA,
+        role: "admin",
+        idempotencyKey: `viewer-internal-${randomUUID()}`,
+        body: { body: "viewer-visible internal" },
+      });
+      assert.equal(noteResponse.status, 201);
+
+      const viewerResponse = await requestJson(listener, {
+        method: "GET",
+        path: `/member/tickets/${ticketId}`,
+        tenantId: tenantA,
+        userId: viewerA,
+        role: "viewer",
+      });
+      assert.equal(viewerResponse.status, 200);
+      const messages = viewerResponse.body.messages as Array<Record<string, unknown>>;
+      const internal = messages.find((message) => message.visibility === "internal");
+      assert.ok(internal);
+      assert.equal(internal?.body, "viewer-visible internal");
+    });
+
     // ─── Operator API ───────────────────────────────────────────────────
 
     it("operator lists tenant tickets", async () => {

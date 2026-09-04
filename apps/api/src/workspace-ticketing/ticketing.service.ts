@@ -21,6 +21,7 @@ import {
   toMemberListHttp,
   toMemberMessageHttp,
   toMemberTicketDetailHttp,
+  toViewerTicketDetailHttp,
   toOperatorListHttp,
   toOperatorMessageHttp,
   toOperatorTicketDetailHttp,
@@ -348,6 +349,9 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
 
     async getMemberTicket(auth, ticketId) {
       const detail = await enrichDetail(await loadReadableTicket(auth, ticketId));
+      if (auth.role === "viewer") {
+        return toViewerTicketDetailHttp(detail);
+      }
       return toMemberTicketDetailHttp(detail);
     },
 

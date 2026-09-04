@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { getLocale } from "next-intl/server";
 
-import type { MemberTicketDetailHttp } from "@app-tour/ticketing-http-contracts";
+import type {
+  MemberTicketDetailHttp,
+  ViewerTicketDetailHttp,
+} from "@app-tour/ticketing-http-contracts";
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import {
   buildMemberTicketDetailView,
   type MemberTicketDetailBffPayload,
 } from "@/me/tickets/member-tickets-bff.server";
+import { resolveMemberTicketsPortalReadOnly } from "@/me/tickets/member-tickets-portal-mode.server";
 import {
   localizeMemberTicketsBffError,
   readMemberTicketsBffErrorCode,
@@ -46,16 +50,17 @@ export async function GET(req: Request, { params }: RouteParams): Promise<NextRe
     );
   }
 
-  const detail = (await upstream.json()) as MemberTicketDetailHttp;
+  const detail = (await upstream.json()) as MemberTicketDetailHttp | ViewerTicketDetailHttp;
   const session = await readPublicCatalogSessionFromCookies();
   const memberUserId =
     session !== null && session.tenantId === context.bootstrap.tenantId
       ? session.userId
       : "";
+  const readOnly = await resolveMemberTicketsPortalReadOnly(context.bootstrap.tenantId);
   const locale = await getLocale();
   const payload: MemberTicketDetailBffPayload = {
     ok: true,
-    detail: buildMemberTicketDetailView(detail, locale, memberUserId),
+    detail: buildMemberTicketDetailView(detail, locale, memberUserId, { readOnly }),
   };
 
   return NextResponse.json(payload, {

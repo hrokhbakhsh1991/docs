@@ -44,8 +44,9 @@ export function MemberTicketDetailPanel({
   }, []);
 
   const status = detail.ticket.status;
-  const composerHidden = status === "closed";
-  const canReopen = status === "resolved";
+  const readOnly = detail.readOnly === true;
+  const composerHidden = status === "closed" || readOnly;
+  const canReopen = status === "resolved" && !readOnly;
 
   const refreshDetail = async () => {
     const res = await fetch(`/api/me/tickets/${detail.ticket.id}`, { cache: "no-store" });
@@ -161,6 +162,12 @@ export function MemberTicketDetailPanel({
       >
         {t(`banners.${detail.ticket.status}`)}
       </div>
+
+      {readOnly ? (
+        <p data-portal-member-ticket-viewer-readonly role="status">
+          {t("viewerReadOnlyBanner")}
+        </p>
+      ) : null}
 
       {detail.links.length > 0 ? (
         <section data-portal-member-ticket-links aria-labelledby={`${formId}-links`}>

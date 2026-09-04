@@ -11,6 +11,7 @@ export {
   toMemberListHttp,
   toMemberMessageHttp,
   toMemberTicketDetailHttp,
+  toViewerTicketDetailHttp,
   toOperatorListHttp,
   toOperatorMessageHttp,
   toOperatorTicketDetailHttp,

@@ -58,6 +58,15 @@ export type MemberTicketDetailHttp = {
   readonly rowVersion: number;
 };
 
+/** Viewer read-only detail on member routes — tenant-wide; includes internal notes. */
+export type ViewerTicketDetailHttp = {
+  readonly ticket: OperatorTicketSummaryHttp;
+  readonly messages: readonly OperatorTicketMessageHttp[];
+  readonly events: readonly TicketEventHttp[];
+  readonly links?: readonly import("./ticketing-link.schemas").TicketLinkHttp[];
+  readonly rowVersion: number;
+};
+
 export type OperatorTicketDetailHttp = {
   readonly ticket: OperatorTicketSummaryHttp;
   readonly messages: readonly OperatorTicketMessageHttp[];

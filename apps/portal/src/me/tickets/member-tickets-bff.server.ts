@@ -7,6 +7,7 @@ import type {
   PaginatedMemberTicketListHttp,
   TicketAttachmentHttp,
   TicketLinkHttp,
+  ViewerTicketDetailHttp,
 } from "@app-tour/ticketing-http-contracts";
 
 import {
@@ -43,6 +44,7 @@ export type MemberTicketMessageView = {
   readonly createdAt: string;
   readonly createdAtLabel: string;
   readonly isMemberAuthor: boolean;
+  readonly visibility?: "public" | "internal";
   readonly attachments: readonly MemberTicketAttachmentView[];
 };
 
@@ -51,6 +53,7 @@ export type MemberTicketDetailView = {
   readonly messages: readonly MemberTicketMessageView[];
   readonly links: readonly TicketLinkHttp[];
   readonly rowVersion: number;
+  readonly readOnly: boolean;
 };
 
 export type MemberTicketCategoriesView = {
@@ -119,14 +122,18 @@ export function buildMemberTicketListView(
 }
 
 export function buildMemberTicketDetailView(
-  detail: MemberTicketDetailHttp,
+  detail: MemberTicketDetailHttp | ViewerTicketDetailHttp,
   locale: string,
   memberUserId: string,
+  options?: { readonly readOnly?: boolean },
 ): MemberTicketDetailView {
+  const readOnly = options?.readOnly === true;
   const ticket = mapListItem(
     {
       ...detail.ticket,
-      publicMessageCount: detail.messages.length,
+      publicMessageCount: detail.messages.filter(
+        (message) => ("visibility" in message ? message.visibility === "public" : true),
+      ).length,
     },
     locale,
   );
@@ -134,6 +141,7 @@ export function buildMemberTicketDetailView(
     ticket,
     rowVersion: detail.rowVersion,
     links: detail.links ?? [],
+    readOnly,
     messages: detail.messages.map((message) => ({
       id: message.id,
       ticketId: message.ticketId,
@@ -142,6 +150,9 @@ export function buildMemberTicketDetailView(
       createdAt: message.createdAt,
       createdAtLabel: formatMemberTicketDateTime(message.createdAt, locale),
       isMemberAuthor: message.authorUserId === memberUserId,
+      ...("visibility" in message && message.visibility !== undefined
+        ? { visibility: message.visibility }
+        : {}),
       attachments: (message.attachments ?? []).map((attachment) => ({
         ...attachment,
         uploadedAtLabel:

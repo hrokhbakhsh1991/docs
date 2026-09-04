@@ -224,6 +224,7 @@
     "loadingMore": "در حال بارگذاری…",
     "messageCount": "{count} پیام",
     "backToList": "بازگشت به فهرست",
+    "viewerReadOnlyBanner": "دسترسی فقط خواندنی — می‌توانید همه تیکت‌های باشگاه را ببینید اما نمی‌توانید پاسخ دهید یا درخواست جدید بسازید.",
     "timelineTitle": "گفتگو",
     "linksTitle": "پیوندهای مرتبط",
     "composerLabel": "ارسال پاسخ",
