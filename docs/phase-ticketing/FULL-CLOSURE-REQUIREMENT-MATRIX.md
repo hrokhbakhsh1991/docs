@@ -3,7 +3,7 @@
 **Feature ID:** `ticketing-system-complete`
 **Branch:** `feature/ticketing-system`
 **Authority:** [`docs/standards/ticketing-system.mdoc`](../standards/ticketing-system.mdoc) §2 Full Production V1, §22 Phase A–L
-**Session HEAD (bootstrap):** `e8e554bfe4cc7b9ebe45d28ffad4cab03eea4c6a`
+**Session HEAD (bootstrap):** `daf901bbfc53f04143d8000fbdc963fe25b8c26f`
 **Date:** 2026-09-04
 
 ---
@@ -32,13 +32,13 @@
 | **C** | Lifecycle + messaging API | COMPLETE | `ticketing-http-postgres.spec.ts` |
 | **D** | Categories, tags, queues, teams | COMPLETE | `ticketing-operational-d1-postgres.spec.ts` |
 | **E** | Attachments + links | COMPLETE | `ticketing-attachments-e1-postgres.spec.ts`; MinIO skip = BLOCKED_BY_ENVIRONMENT |
-| **F** | Member Portal BFF + UI | **PARTIAL→COMPLETE*** | Portal E2E 2/2; *viewer read-only slice completing this session |
+| **F** | Member Portal BFF + UI | COMPLETE | Portal E2E 2/2; viewer read-only slice (`toViewerTicketDetailHttp` + BFF + banner) |
 | **G** | Operator inbox | **COMPLETE** | bulk `POST /tickets/bulk` + operator multi-select toolbar |
 | **H** | Notifications in-app/email/SMS | **PARTIAL** | Ticket-scoped H1 shipped; **shared platform inbox MISSING** (user mandate) |
 | **I** | SLA + escalation | COMPLETE | `ticket-sla.postgres.spec.ts`; worker needs `TICKETING_SLA_WORKER_ENABLED=1` in prod |
 | **J** | Templates + automation | **COMPLETE** | API + postgres + operator composer template picker |
 | **K/K1** | Search, reports, settings | COMPLETE | `ticket-k1.postgres.spec.ts`; operator E2E reports/settings |
-| **L** | Security, E2E, a11y, release | **PARTIAL** | retention + orphan workers + axe specs green; unified notification platform still blocked |
+| **L** | Security, E2E, a11y, release | **PARTIAL** | TKT-CAP-22/24 COMPLETE; phase blocked only by unified notification platform (TKT-FC-07) |
 
 ---
 
