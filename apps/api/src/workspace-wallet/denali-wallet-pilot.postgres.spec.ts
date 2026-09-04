@@ -5,11 +5,11 @@ import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 
 import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
-import { FORBIDDEN_WALLET_MODULE_DISABLED } from "@app-tour/workspace-sdk/wallet";
 
 import { DENALI_WALLET_PILOT } from "../../test/fixtures/denali-wallet-pilot-tenant";
 import { disconnectPrisma } from "../db/prisma";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
+import { seedDenaliDefaultWallet } from "../../scripts/seed-denali-default-wallet";
 import { seedDenaliWalletPilot } from "../../scripts/seed-denali-wallet-pilot";
 import { ensureAppTourCanReadMigrationHead } from "../../scripts/seed-wallet-ws1-certification";
 import { assertWalletWorkspaceGate } from "./assert-wallet-access";
@@ -41,6 +41,7 @@ describe(
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
       await ensureAppTourCanReadMigrationHead();
+      await seedDenaliDefaultWallet();
       await seedDenaliWalletPilot();
     });
 
@@ -54,15 +55,9 @@ describe(
       assert.equal(gate.workspaceType, "denali");
     });
 
-    it("PILOT-PG-02 club smoke tenant remains wallet-disabled", async () => {
-      await assert.rejects(
-        () => assertWalletWorkspaceGate(DENALI_SMOKE_TENANT_ID),
-        (error: unknown) => {
-          assert.ok(error instanceof Error);
-          assert.equal(error.message, FORBIDDEN_WALLET_MODULE_DISABLED);
-          return true;
-        }
-      );
+    it("PILOT-PG-02 club smoke tenant passes wallet gate when theme enables module", async () => {
+      const gate = await assertWalletWorkspaceGate(DENALI_SMOKE_TENANT_ID);
+      assert.equal(gate.workspaceType, "denali");
     });
 
     it("PILOT-PG-03 entitled member reads IRR balance", async () => {

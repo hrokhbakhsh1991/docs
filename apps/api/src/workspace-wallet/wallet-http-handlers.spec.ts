@@ -199,7 +199,7 @@ describe("WALLET-P2D wallet HTTP handlers", () => {
       { walletService },
       WALLET_HTTP_TEST_ACCOUNT_ID,
     );
-    assert.equal(res.statusCode, 400);
+    assert.equal(res.statusCode, 422);
     const body = JSON.parse(res.body) as { code: string };
     assert.equal(body.code, "IDEMPOTENCY_KEY_REQUIRED");
   });

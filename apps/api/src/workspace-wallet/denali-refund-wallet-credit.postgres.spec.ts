@@ -5,7 +5,6 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
-import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 import { FORBIDDEN_WALLET_MODULE_DISABLED } from "@app-tour/workspace-sdk/wallet";
 
 import { DENALI_WALLET_PILOT } from "../../test/fixtures/denali-wallet-pilot-tenant";
@@ -24,6 +23,7 @@ import { PrismaWalletRepository } from "./infrastructure/prisma-wallet.repositor
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 const postgresSkip = !hasDatabase ? "DENALI_REFUND_WALLET_CREDIT_REQUIRES_DATABASE" : false;
+const OPERATOR_TICKETING_TENANT_ID = "00000000-0000-4000-8000-000000000014" as const;
 
 function operatorAuth(tenantId: string, userId: string) {
   return {
@@ -122,12 +122,12 @@ async function seedCompletedRefundRow(input: {
   });
 }
 
-async function creditInPilotContext(
+async function creditInTenantContext(
   auth: ReturnType<typeof operatorAuth>,
   refundId: string
 ) {
   return runWithTenantContext(
-    DENALI_WALLET_PILOT.tenantId,
+    auth.tenantId,
     () => creditCompletedRefundToWallet(auth, refundId),
     { actorId: auth.userId }
   );
@@ -171,7 +171,7 @@ describe(
       );
 
       const auth = operatorAuth(DENALI_WALLET_PILOT.tenantId, DENALI_WALLET_PILOT.ownerUserId);
-      const result = await creditInPilotContext(auth, refundId);
+      const result = await creditInTenantContext(auth, refundId);
 
       assert.equal(result.refundId, refundId);
       assert.equal(result.replay, false);
@@ -204,7 +204,7 @@ describe(
       });
 
       await assert.rejects(
-        () => creditInPilotContext(auth, refundId),
+        () => creditInTenantContext(auth, refundId),
         (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.equal(error.message, "REFUND_WALLET_NOT_COMPLETED");
@@ -228,7 +228,7 @@ describe(
       });
 
       await assert.rejects(
-        () => creditInPilotContext(auth, refundId),
+        () => creditInTenantContext(auth, refundId),
         (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.equal(error.message, "REFUND_WALLET_MEMBER_OWNER_MISSING");
@@ -238,9 +238,9 @@ describe(
     });
 
     it("RW-PG-04 rejects wallet-disabled tenant", async () => {
-      const auth = operatorAuth(DENALI_SMOKE_TENANT_ID, DENALI_WALLET_PILOT.ownerUserId);
+      const auth = operatorAuth(OPERATOR_TICKETING_TENANT_ID, DENALI_WALLET_PILOT.ownerUserId);
       await assert.rejects(
-        () => creditInPilotContext(auth, randomUUID()),
+        () => creditInTenantContext(auth, randomUUID()),
         (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.equal(error.message, FORBIDDEN_WALLET_MODULE_DISABLED);
@@ -255,7 +255,7 @@ describe(
         DENALI_WALLET_PILOT.entitledMemberUserId
       );
       await assert.rejects(
-        () => creditInPilotContext(auth, randomUUID()),
+        () => creditInTenantContext(auth, randomUUID()),
         (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.equal(error.message, "FORBIDDEN_OPERATOR_FORBIDDEN");
@@ -278,8 +278,8 @@ describe(
         submittedByUserId: DENALI_WALLET_PILOT.entitledMemberUserId,
       });
 
-      const first = await creditInPilotContext(auth, refundId);
-      const second = await creditInPilotContext(auth, refundId);
+      const first = await creditInTenantContext(auth, refundId);
+      const second = await creditInTenantContext(auth, refundId);
       assert.equal(first.transactionId, second.transactionId);
       assert.equal(second.replay, true);
     });
@@ -299,11 +299,11 @@ describe(
       });
 
       const results = await Promise.allSettled([
-        creditInPilotContext(auth, refundId),
-        creditInPilotContext(auth, refundId),
+        creditInTenantContext(auth, refundId),
+        creditInTenantContext(auth, refundId),
       ]);
       const fulfilled = results.filter(
-        (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof creditInPilotContext>>> =>
+        (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof creditInTenantContext>>> =>
           result.status === "fulfilled"
       );
       assert.ok(fulfilled.length >= 1);
@@ -339,7 +339,7 @@ describe(
       });
       assert.notEqual(before, null);
 
-      await creditInPilotContext(auth, refundId);
+      await creditInTenantContext(auth, refundId);
 
       const after = await getPrismaAdmin().financeRefund.findUnique({
         where: { id: refundId },

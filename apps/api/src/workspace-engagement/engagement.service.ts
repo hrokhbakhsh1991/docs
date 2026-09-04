@@ -3,7 +3,6 @@ import type {
   EngagementMemberLookupHttpResponse,
   EngagementMemberSummaryHttpResponse,
   EngagementOperatorOverviewHttpResponse,
-  EngagementPointHistoryHttpResponse,
   EngagementReversalHttpResponse,
 } from "@app-tour/engagement-http-contracts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
@@ -21,7 +20,7 @@ import {
 } from "./infrastructure/prisma-engagement.repository";
 
 function requireOperator(auth: TenantAuthContext): void {
-  if (auth.role !== "owner" && auth.role !== "operator" && auth.role !== "admin") {
+  if (auth.role !== "owner" && auth.role !== "admin") {
     throw new Error("FORBIDDEN_ENGAGEMENT_OPERATOR");
   }
 }

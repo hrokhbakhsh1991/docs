@@ -24,7 +24,6 @@ import {
   listWalletCapableWorkspaceTypes,
   walletWorkspaceHasCapability,
 } from "@app-tour/workspace-sdk/wallet";
-import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id.ts";
 import { assertWalletWorkspaceGate } from "./assert-wallet-access.ts";
 import { isWalletModuleEnabled } from "./wallet-module-enabled.ts";
 import {
@@ -92,9 +91,9 @@ describe("WALLET-P1.1 wallet contract certification", () => {
     assert.equal(isWalletModuleEnabled({ enabledModules: ["wallet"] }, "urban"), false);
   });
 
-  it("assertWalletWorkspaceGate fails closed for Denali tenant without wallet theme", async () => {
+  it("assertWalletWorkspaceGate fails closed for Denali operator ticketing tenant", async () => {
     await assert.rejects(
-      () => assertWalletWorkspaceGate(OPERATOR_DENALI_SMOKE_TENANT_ID),
+      () => assertWalletWorkspaceGate("00000000-0000-4000-8000-000000000014"),
       (error: unknown) => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, FORBIDDEN_WALLET_MODULE_DISABLED);

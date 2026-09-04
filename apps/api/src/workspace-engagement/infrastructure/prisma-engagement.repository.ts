@@ -7,7 +7,6 @@ import {
   type EngagementBadgeDefinition,
 } from "../engagement-policy";
 import type {
-  AwardEngagementPointsInput,
   AwardEngagementPointsResult,
   EngagementPointEventRow,
   EngagementProfileRow,
