@@ -3,7 +3,7 @@
 **Date:** 2026-09-04  
 **Branch:** `feature/ticketing-system`  
 **Base:** K1 (`f01b4fa0` — search, reports, settings)  
-**Certification commit:** _(see git log after push)_  
+**Certification commit:** `8327568f3b5039c7a8d179fcab3dcb4c514574da`  
 **Verdict:** **PRODUCTION-READY (v1)** — all L1 gates green in Cloud Agent environment
 
 ---
