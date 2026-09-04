@@ -22,8 +22,10 @@ function formatWalletTransactionKind(
 
 function MemberEngagementSummaryCard({
   engagement,
+  engagementHref,
 }: {
   readonly engagement: MemberEngagementSummaryView;
+  readonly engagementHref: string;
 }) {
   const t = useTranslations("portalMember.dashboard");
   const tEngagement = useTranslations("portalMember.engagement");
@@ -94,7 +96,7 @@ function MemberEngagementSummaryCard({
           </p>
         ) : null}
       </div>
-      <Link href="/me/engagement" data-portal-member-engagement-cta>
+      <Link href={engagementHref} data-portal-member-engagement-cta>
         {tEngagement("viewDetails")}
       </Link>
     </div>
@@ -108,6 +110,9 @@ export function MemberDashboardEngagementPanel({
   nextTourTitle,
   nextTourDepartureAt,
   profileComplete,
+  engagementHref,
+  registrationsHref,
+  walletHref,
 }: MemberDashboardEngagementProps) {
   const t = useTranslations("portalMember.dashboard");
   const tWallet = useTranslations("portalMember.wallet");
@@ -125,7 +130,7 @@ export function MemberDashboardEngagementPanel({
             {nextTourDepartureAt ? (
               <p data-portal-member-next-tour-date>{nextTourDepartureAt}</p>
             ) : null}
-            <a href="/me/registrations" data-portal-member-next-tour-cta>
+            <a href={registrationsHref} data-portal-member-next-tour-cta>
               {t("viewRegistrations")}
             </a>
           </div>
@@ -143,7 +148,10 @@ export function MemberDashboardEngagementPanel({
           <h2 id="portal-dashboard-engagement-title">{t("engagementTitle")}</h2>
         </div>
         {engagement.enabled ? (
-          <MemberEngagementSummaryCard engagement={engagement} />
+          <MemberEngagementSummaryCard
+            engagement={engagement}
+            engagementHref={engagementHref}
+          />
         ) : (
           <p data-portal-member-engagement-disabled>{t("engagementDisabled")}</p>
         )}
@@ -177,7 +185,7 @@ export function MemberDashboardEngagementPanel({
             ) : (
               <p data-portal-member-wallet-empty-history>{tWallet("emptyHistory")}</p>
             )}
-            <Link href="/me/wallet" data-portal-member-wallet-cta>
+            <Link href={walletHref} data-portal-member-wallet-cta>
               {t("walletViewDetails")}
             </Link>
           </div>

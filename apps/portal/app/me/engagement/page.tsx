@@ -8,6 +8,7 @@ import {
 } from "@/me/engagement/member-engagement-bff.server";
 import { MemberEngagementHistoryList } from "@/me/engagement/member-engagement-history-list";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
+import { resolveMemberPortalHomePath } from "@/me/resolve-member-portal-routes.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -22,6 +23,7 @@ export default async function MemberEngagementPage() {
   const locale = await getLocale();
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
+  const homeHref = resolveMemberPortalHomePath(bootstrap.pluginId);
 
   const [summaryResult, historyResult] = await Promise.all([
     fetchMemberEngagementSummary(host),
@@ -37,7 +39,7 @@ export default async function MemberEngagementPage() {
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="home">
       <main data-portal-member-engagement-page>
         <header data-portal-member-page-header>
-          <Link href="/me/home" data-portal-member-engagement-back>
+          <Link href={homeHref} data-portal-member-engagement-back>
             {t("backToHome")}
           </Link>
           <h1>{t("title")}</h1>

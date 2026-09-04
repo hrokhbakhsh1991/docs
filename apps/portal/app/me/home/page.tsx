@@ -10,7 +10,10 @@ import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import {
   memberPortalIncludesHomeModule,
+  resolveMemberPortalEngagementPath,
   resolveMemberPortalBackTargetPath,
+  resolveMemberPortalTripsListPath,
+  resolveMemberPortalWalletPath,
 } from "@/me/resolve-member-portal-routes.server";
 import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitlements-for-shell.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
@@ -41,6 +44,9 @@ export default async function MeHomePage() {
   const t = await getTranslations("portalMember.home");
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
+  const engagementHref = resolveMemberPortalEngagementPath(bootstrap.pluginId);
+  const registrationsHref = resolveMemberPortalTripsListPath(bootstrap.pluginId);
+  const walletHref = resolveMemberPortalWalletPath(bootstrap.pluginId);
 
   if (!memberPortalIncludesHomeModule(bootstrap.pluginId)) {
     const fallback = resolveMemberPortalBackTargetPath(bootstrap.pluginId);
@@ -97,6 +103,9 @@ export default async function MeHomePage() {
           nextTourTitle={nextTour.title}
           nextTourDepartureAt={nextTour.departureAt}
           profileComplete={profileComplete}
+          engagementHref={engagementHref}
+          registrationsHref={registrationsHref}
+          walletHref={walletHref}
         />
 
         <section data-portal-member-home-quick-links-section>

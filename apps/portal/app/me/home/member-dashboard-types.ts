@@ -9,4 +9,7 @@ export type MemberDashboardEngagementProps = {
   readonly nextTourTitle: string | null;
   readonly nextTourDepartureAt: string | null;
   readonly profileComplete: boolean;
+  readonly engagementHref: string;
+  readonly registrationsHref: string;
+  readonly walletHref: string;
 };
