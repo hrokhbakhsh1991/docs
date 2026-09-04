@@ -163,6 +163,17 @@ Persisted per `(tenant_id, workspace_id)` with RLS, optimistic `row_version`, an
 
 **Immutability:** `engagement_point_events` and earned `member_engagement_badges` rows are never deleted; definition archive disables future awards only.
 
+### 5.4 Operator UI information architecture
+
+| Surface | Route | Responsibility |
+| ------- | ----- | -------------- |
+| **Users** | `/users` | Directory search (name/phone) → member detail sheet **Engagement** section: points, level, badges, history, adjust/reverse |
+| **Engagement** | `/engagement` | Overview (tenant-wide activity), global badge/level/award-rule CRUD, definition audit log |
+
+Member-specific mutations are **not** duplicated under Engagement tabs. Engagement overview links to Users for member operations. Shared UI: `MemberEngagementPanel` (single BFF call chain).
+
+See: `docs/phase-engagement/GAMIFICATION_ADMIN_IA_REVIEW.md`.
+
 ---
 
 ## 6. Notifications (MNI-001)
@@ -182,7 +193,7 @@ Badge-earned events enqueue `member_notifications` with:
 | ----- | ------ |
 | `engagement-persistence.postgres.spec.ts` | RLS, dedupe, cross-tenant denial |
 | `engagement-awards.postgres.spec.ts` | Profile + registration award idempotency + outbox dispatch |
-| Operator E2E | Member search (name/phone), policy catalog, adjust/reverse workflows |
+| Operator E2E | Users member detail engagement + global definition CRUD + adjust/reverse |
 | `engagement-http-boundary.spec.ts` | Contract parsing |
 | Portal E2E | Dashboard renders points/badges separate from wallet |
 | Web E2E | Operator overview + permissions |

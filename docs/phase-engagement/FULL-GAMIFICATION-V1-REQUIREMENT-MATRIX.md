@@ -17,7 +17,7 @@
 | G5 | Level definition management | ADMIN_MANAGED | Owner/Admin | Levels tab + API | mutate: owner/admin | **COMPLETE** | postgres spec + UI threshold validation |
 | G6 | Award rule management | ADMIN_MANAGED | Owner/Admin | Award Rules tab + API | mutate: owner/admin; allowlisted events | **COMPLETE** | postgres spec + `SMK-MEG-OP-07` |
 | G7 | Definition audit history | ADMIN_MANAGED | Owner/Admin/Viewer | Audit tab | read: all operator roles | **COMPLETE** | postgres spec audit rows + Audit tab |
-| G8 | Tenant-scoped member search | ADMIN_MANAGED | Owner/Admin | Members tab | owner/admin mutate | **COMPLETE** | `/api/users` + `SMK-MEG-OP-05` |
+| G8 | Tenant-scoped member search | ADMIN_MANAGED | Owner/Admin | Users directory + member detail Engagement section | owner/admin mutate | **COMPLETE** | `/users` + `SMK-MEG-OP-05` |
 | G9 | Manual point adjustment | ADMIN_MANAGED | Owner/Admin | Adjust dialog | owner/admin | **COMPLETE** | `POST .../adjust` + `SMK-MEG-OP-05` |
 | G10 | Event reversal | ADMIN_MANAGED | Owner/Admin | Reverse on history row | owner/admin | **COMPLETE** | `POST .../reverse` + `SMK-MEG-OP-05` |
 | G11 | Profile completion award | SYSTEM_AUTOMATED | Identity | `PATCH /identity/me` | Member | **COMPLETE** | `SMK-MEG-02`, `engagement-awards.postgres.spec.ts` |
