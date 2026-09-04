@@ -19,6 +19,7 @@ import { logger } from "../src/observability/logger";
 import { runWithTenantContext } from "../src/tenant/tenant-request-context";
 import { PrismaWalletRepository } from "../src/workspace-wallet/infrastructure/prisma-wallet.repository";
 import { ensureAppTourCanReadMigrationHead } from "./seed-wallet-ws1-certification";
+import { seedDenaliWalletPilotEngagement } from "./seed-denali-wallet-pilot-engagement";
 
 function memberScope(userId: string) {
   return {
@@ -187,6 +188,7 @@ export async function seedDenaliWalletPilot(): Promise<void> {
   });
 
   await seedWalletLedgerHistory();
+  await seedDenaliWalletPilotEngagement();
 
   logger.info(
     {
