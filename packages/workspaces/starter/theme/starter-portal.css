@@ -543,7 +543,7 @@ body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount] {
 }
 
 body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount][data-direction="incoming"] {
-  color: var(--color-success, #059669);
+  color: var(--color-success);
 }
 
 body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount][data-direction="outgoing"] {
