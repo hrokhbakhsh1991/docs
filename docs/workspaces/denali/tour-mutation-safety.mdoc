@@ -78,6 +78,8 @@ Response body includes `reasonCode`, `fields[]`, optional `sideEffects[]` for op
 
 Finance obligation / refund flows are **not** mutated silently — DP-1 freeze + DP-6 own money paths.
 
+**Post-persist enqueue (Prisma):** `emitTourMutationSideEffects` writes via `persistStandaloneOutboxRowIfPrismaDriver`, which **must** call `withTenantRls(tenantId, …)` before `outbox_events` insert. Outbox RLS `WITH CHECK` compares `tenant_id` to `current_setting('app.current_tenant_id')::uuid`; a bare Prisma client without session bind yields invalid UUID cast / silent insert failure on schedule mutations.
+
 ## Write path
 
 Enforced in `CanonicalTourService.updateTourInActiveContext` **after** merge + pre-TX validation, **before** persist. Denali rules live in `@app-tour/workspace-denali` `tour-mutation-policy`; API supplies facts + override authorization + outbox enqueue.
