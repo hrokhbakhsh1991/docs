@@ -13,6 +13,11 @@ export function resolveMemberPortalTripsDetailPath(pluginId: string, registratio
   return `${resolveMemberPortalTripsListPath(pluginId)}/${encodeURIComponent(registrationId)}`;
 }
 
+/** List route for the member ticketing module. */
+export function resolveMemberPortalTicketsListPath(pluginId: string): string {
+  return resolveMemberPortalModuleRoutePath(pluginId, "tickets");
+}
+
 export function memberPortalIncludesHomeModule(pluginId: string): boolean {
   const contract = resolveMemberPortalContract(pluginId);
   if (contract.availability === "off") {
