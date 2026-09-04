@@ -14,6 +14,10 @@ import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import {
+  allowsOperatorEngagementTeamRole,
+  isOperatorEngagementTeamAccessPath,
+} from "@/engagement/resolve-operator-engagement-middleware-access";
 import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
@@ -72,7 +76,13 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       isOperatorTicketsTeamAccessPath(pathname) &&
       allowsOperatorTicketsTeamRole(session.role, "GET");
 
-    if (!ticketsTeamAccess) {
+    const engagementTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorEngagementTeamAccessPath(pathname) &&
+      allowsOperatorEngagementTeamRole(session.role, "GET");
+
+    if (!ticketsTeamAccess && !engagementTeamAccess) {
       const gate = requireOperatorSessionWeb({ session, pathname, host });
       if (!gate.allowed) {
         redirect(gate.redirectTo);

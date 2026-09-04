@@ -1,130 +1,49 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { PageHeader } from "@/admin/patterns/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { UsersDirectoryRow } from "@/features/users/users-directory-types";
 import type { AppLocale } from "@/i18n/routing";
 
+import { EngagementAuditTab } from "./engagement-ops-audit-tab";
+import { EngagementAwardRulesTab } from "./engagement-ops-award-rules-tab";
+import { EngagementBadgesTab } from "./engagement-ops-badges-tab";
+import { EngagementLevelsTab } from "./engagement-ops-levels-tab";
 import {
-  ENGAGEMENT_MEMBER_SEARCH_MIN_LENGTH,
+  ENGAGEMENT_OPS_TABS,
   ENGAGEMENT_OPS_TEST_IDS,
-  buildEngagementAdjustPath,
-  buildEngagementMemberLookupPath,
-  buildEngagementMemberSearchPath,
-  buildEngagementPolicyPath,
-  buildEngagementReversePath,
-  canReverseEngagementPointEvent,
-  createEngagementIdempotencyKey,
   engagementBadgeLabelKey,
   engagementEventTypeLabelKey,
-  engagementLevelLabelKey,
   formatEngagementTimestamp,
-  validateEngagementAdjustmentForm,
-  validateEngagementReversalForm,
-  type EngagementAdjustmentForm,
-  type EngagementMutationKind,
-  type EngagementReversalForm,
+  type EngagementOpsTab,
 } from "./engagement-ops-logic";
-
-type OverviewPayload = {
-  readonly recentPointEvents: readonly {
-    readonly userId: string;
-    readonly pointsDelta: number;
-    readonly sourceEventType: string;
-    readonly createdAt: string;
-    readonly displayHint: string | null;
-  }[];
-  readonly recentBadges: readonly {
-    readonly userId: string;
-    readonly badgeCode: string;
-    readonly labelKey: string;
-    readonly earnedAt: string;
-    readonly displayHint: string | null;
-  }[];
-};
-
-type PolicyPayload = {
-  readonly managementMode: "system_managed";
-  readonly editUnavailableReasonKey: string;
-  readonly levels: readonly { readonly code: string; readonly minPoints: number }[];
-  readonly badges: readonly { readonly code: string }[];
-  readonly awardRules: readonly {
-    readonly eventType: string;
-    readonly points: number;
-    readonly sourceModule: string;
-  }[];
-};
-
-type PointEventRow = {
-  readonly id: string;
-  readonly pointsDelta: number;
-  readonly sourceEventType: string;
-  readonly reason: string | null;
-  readonly createdAt: string;
-};
-
-type MemberLookupPayload = {
-  readonly userId: string;
-  readonly summary: {
-    readonly totalPoints: number;
-    readonly currentLevelCode: string;
-    readonly earnedBadgeCount: number;
-    readonly badges: readonly { readonly code: string; readonly earned: boolean }[];
-    readonly recentPointEvents: readonly PointEventRow[];
-  };
-};
+import { EngagementMembersTab } from "./engagement-ops-members-tab";
+import type { OverviewPayload } from "./engagement-ops-types";
+import { engagementTabButtonClass } from "./engagement-ops-ui-primitives";
 
 type LoadState = "idle" | "loading" | "error" | "ready";
 
-const EMPTY_ADJUSTMENT_FORM: EngagementAdjustmentForm = { pointsDelta: "", reason: "" };
-const EMPTY_REVERSAL_FORM: EngagementReversalForm = { reason: "" };
+const TAB_TEST_IDS: Record<EngagementOpsTab, string> = {
+  overview: ENGAGEMENT_OPS_TEST_IDS.tabOverview,
+  badges: ENGAGEMENT_OPS_TEST_IDS.tabBadges,
+  levels: ENGAGEMENT_OPS_TEST_IDS.tabLevels,
+  awardRules: ENGAGEMENT_OPS_TEST_IDS.tabAwardRules,
+  members: ENGAGEMENT_OPS_TEST_IDS.tabMembers,
+  audit: ENGAGEMENT_OPS_TEST_IDS.tabAudit,
+};
 
 export function EngagementOpsPanel() {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("engagement.ops");
 
+  const [activeTab, setActiveTab] = useState<EngagementOpsTab>("overview");
   const [overview, setOverview] = useState<OverviewPayload | null>(null);
   const [overviewState, setOverviewState] = useState<LoadState>("loading");
   const [overviewError, setOverviewError] = useState<string | null>(null);
-
-  const [policy, setPolicy] = useState<PolicyPayload | null>(null);
-  const [policyState, setPolicyState] = useState<LoadState>("loading");
-
-  const [searchInput, setSearchInput] = useState("");
-  const [memberResults, setMemberResults] = useState<readonly UsersDirectoryRow[]>([]);
-  const [memberSearchState, setMemberSearchState] = useState<LoadState>("idle");
-  const [selectedMember, setSelectedMember] = useState<UsersDirectoryRow | null>(null);
-
-  const [lookupResult, setLookupResult] = useState<MemberLookupPayload | null>(null);
-  const [lookupState, setLookupState] = useState<LoadState>("idle");
-  const [lookupError, setLookupError] = useState<string | null>(null);
-
-  const [mutationDialog, setMutationDialog] = useState<{
-    readonly kind: EngagementMutationKind;
-    readonly event?: PointEventRow;
-  } | null>(null);
-  const [adjustmentForm, setAdjustmentForm] = useState<EngagementAdjustmentForm>(EMPTY_ADJUSTMENT_FORM);
-  const [reversalForm, setReversalForm] = useState<EngagementReversalForm>(EMPTY_REVERSAL_FORM);
-  const [mutationPending, setMutationPending] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [mutationFeedback, setMutationFeedback] = useState<string | null>(null);
-  const idempotencyKeyRef = useRef<string | null>(null);
 
   const resolveEventLabel = useCallback(
     (sourceEventType: string): string => {
@@ -142,48 +61,6 @@ export function EngagementOpsPanel() {
     [t],
   );
 
-  const resolveLevelLabel = useCallback(
-    (levelCode: string): string => {
-      const key = engagementLevelLabelKey(levelCode);
-      return t.has(key) ? t(key) : levelCode;
-    },
-    [t],
-  );
-
-  const resolveMutationError = useCallback(
-    (code: string | null): string => {
-      if (code === null) {
-        return t("mutationFailed");
-      }
-      const key = `mutationErrors.${code}`;
-      return t.has(key) ? t(key) : t("mutationFailed");
-    },
-    [t],
-  );
-
-  const loadMemberLookup = useCallback(
-    async (userId: string) => {
-      setLookupState("loading");
-      setLookupError(null);
-      setLookupResult(null);
-      try {
-        const res = await fetch(buildEngagementMemberLookupPath(userId), { cache: "no-store" });
-        if (!res.ok) {
-          setLookupState("error");
-          setLookupError(res.status === 404 ? t("memberLookupNotFound") : t("memberLookupFailed"));
-          return;
-        }
-        const payload = (await res.json()) as MemberLookupPayload;
-        setLookupResult(payload);
-        setLookupState("ready");
-      } catch {
-        setLookupState("error");
-        setLookupError(t("memberLookupFailed"));
-      }
-    },
-    [t],
-  );
-
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -194,7 +71,9 @@ export function EngagementOpsPanel() {
         if (!res.ok) {
           if (!cancelled) {
             setOverviewState("error");
-            setOverviewError(t("loadFailed"));
+            setOverviewError(
+              res.status === 403 ? t("permissionDenied") : t("loadFailed"),
+            );
           }
           return;
         }
@@ -215,531 +94,134 @@ export function EngagementOpsPanel() {
     };
   }, [t]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      setPolicyState("loading");
-      try {
-        const res = await fetch(buildEngagementPolicyPath(), { cache: "no-store" });
-        if (!res.ok) {
-          if (!cancelled) {
-            setPolicyState("error");
-          }
-          return;
-        }
-        const payload = (await res.json()) as PolicyPayload;
-        if (!cancelled) {
-          setPolicy(payload);
-          setPolicyState("ready");
-        }
-      } catch {
-        if (!cancelled) {
-          setPolicyState("error");
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const search = searchInput.trim();
-    if (search.length < ENGAGEMENT_MEMBER_SEARCH_MIN_LENGTH) {
-      setMemberResults([]);
-      setMemberSearchState("idle");
-      return;
-    }
-    let cancelled = false;
-    const timeoutId = window.setTimeout(() => {
-      setMemberSearchState("loading");
-      void fetch(buildEngagementMemberSearchPath(search), { cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error(`USERS_LIST_HTTP_${response.status}`);
-          }
-          return (await response.json()) as { items?: readonly UsersDirectoryRow[] };
-        })
-        .then((payload) => {
-          if (!cancelled) {
-            setMemberResults(payload.items ?? []);
-            setMemberSearchState("ready");
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setMemberResults([]);
-            setMemberSearchState("error");
-          }
-        });
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [searchInput]);
-
-  const handleSelectMember = (member: UsersDirectoryRow) => {
-    setSelectedMember(member);
-    setSearchInput(member.displayName.trim().length > 0 ? member.displayName : (member.phone ?? member.userId));
-    setMemberResults([]);
-    void loadMemberLookup(member.userId);
-  };
-
-  const handleMemberSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (selectedMember !== null) {
-      void loadMemberLookup(selectedMember.userId);
-      return;
-    }
-    if (memberResults.length === 1) {
-      handleSelectMember(memberResults[0]!);
-    }
-  };
-
-  const openMutationDialog = (kind: EngagementMutationKind, event?: PointEventRow) => {
-    if (mutationPending || lookupResult === null) {
-      return;
-    }
-    setMutationError(null);
-    setMutationFeedback(null);
-    setAdjustmentForm(EMPTY_ADJUSTMENT_FORM);
-    setReversalForm(EMPTY_REVERSAL_FORM);
-    idempotencyKeyRef.current = createEngagementIdempotencyKey(`engagement-${kind}`);
-    setMutationDialog({ kind, ...(event !== undefined ? { event } : {}) });
-  };
-
-  const closeMutationDialog = () => {
-    if (mutationPending) {
-      return;
-    }
-    setMutationDialog(null);
-    setMutationError(null);
-  };
-
-  const handleMutationConfirm = async () => {
-    if (mutationPending || mutationDialog === null || lookupResult === null) {
-      return;
-    }
-    setMutationError(null);
-    setMutationFeedback(null);
-
-    const idempotencyKey =
-      idempotencyKeyRef.current ?? createEngagementIdempotencyKey("engagement-mutation");
-    idempotencyKeyRef.current = idempotencyKey;
-
-    let path = "";
-    let body = "";
-
-    if (mutationDialog.kind === "reverse") {
-      const validated = validateEngagementReversalForm(reversalForm);
-      if (!validated.ok) {
-        setMutationError(resolveMutationError(validated.error));
-        return;
-      }
-      if (mutationDialog.event === undefined) {
-        setMutationError(t("mutationFailed"));
-        return;
-      }
-      path = buildEngagementReversePath(lookupResult.userId);
-      body = JSON.stringify({
-        originalEventId: mutationDialog.event.id,
-        reason: validated.value.reason,
-      });
-    } else {
-      const validated = validateEngagementAdjustmentForm(adjustmentForm);
-      if (!validated.ok) {
-        setMutationError(resolveMutationError(validated.error));
-        return;
-      }
-      path = buildEngagementAdjustPath(lookupResult.userId);
-      body = JSON.stringify({
-        pointsDelta: validated.value.pointsDelta,
-        reason: validated.value.reason,
-      });
-    }
-
-    setMutationPending(true);
-    try {
-      const response = await fetch(path, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": idempotencyKey,
-        },
-        body,
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        code?: string;
-        error?: { code?: string };
-        replay?: boolean;
-      } | null;
-      if (!response.ok) {
-        const code = payload?.code ?? payload?.error?.code ?? null;
-        setMutationError(resolveMutationError(code));
-        return;
-      }
-      setMutationFeedback(payload?.replay === true ? t("mutationReplay") : t("mutationSuccess"));
-      setMutationDialog(null);
-      await loadMemberLookup(lookupResult.userId);
-    } catch {
-      setMutationError(t("mutationFailed"));
-    } finally {
-      setMutationPending(false);
-    }
-  };
-
   return (
     <div data-operator-engagement-page data-testid={ENGAGEMENT_OPS_TEST_IDS.page}>
       <PageHeader title={t("title")} description={t("lede")} />
 
-      {overviewState === "error" ? (
-        <p role="alert" data-operator-engagement-error className="text-destructive">
-          {overviewError}
-        </p>
-      ) : null}
-
-      {overviewState === "loading" ? (
-        <Skeleton className="mb-6 h-40 w-full" data-operator-engagement-loading />
-      ) : null}
-
-      {overview !== null && overviewState === "ready" ? (
-        <div data-operator-engagement-grid className="mb-6 grid gap-6 lg:grid-cols-2">
-          <Card data-operator-engagement-recent-points data-testid={ENGAGEMENT_OPS_TEST_IDS.recentPoints}>
-            <CardHeader>
-              <CardTitle>{t("recentPoints")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {overview.recentPointEvents.length === 0 ? (
-                <p data-operator-engagement-empty-points data-testid={ENGAGEMENT_OPS_TEST_IDS.emptyPoints}>
-                  {t("emptyPoints")}
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {overview.recentPointEvents.map((event) => (
-                    <li
-                      key={`${event.userId}-${event.createdAt}-${event.sourceEventType}`}
-                      className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-3 last:border-0 last:pb-0"
-                    >
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <span className="font-medium tabular-nums" dir="ltr">
-                          {event.pointsDelta > 0 ? "+" : ""}
-                          {event.pointsDelta}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {resolveEventLabel(event.sourceEventType)}
-                        </span>
-                      </div>
-                      <time className="shrink-0 text-xs text-muted-foreground" dateTime={event.createdAt}>
-                        {formatEngagementTimestamp(event.createdAt, locale)}
-                      </time>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card
-            data-operator-engagement-recent-badges
-            data-testid={ENGAGEMENT_OPS_TEST_IDS.recentBadges}
+      <nav
+        data-operator-engagement-tabs
+        data-testid={ENGAGEMENT_OPS_TEST_IDS.tabs}
+        className="mb-6 flex gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1"
+        aria-label={t("tabsAria")}
+      >
+        {ENGAGEMENT_OPS_TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            data-tab={tab}
+            data-testid={TAB_TEST_IDS[tab]}
+            aria-current={activeTab === tab ? "page" : undefined}
+            className={engagementTabButtonClass(activeTab === tab)}
+            onClick={() => setActiveTab(tab)}
           >
-            <CardHeader>
-              <CardTitle>{t("recentBadges")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {overview.recentBadges.length === 0 ? (
-                <p data-operator-engagement-empty-badges data-testid={ENGAGEMENT_OPS_TEST_IDS.emptyBadges}>
-                  {t("emptyBadges")}
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {overview.recentBadges.map((badge) => (
-                    <li
-                      key={`${badge.userId}-${badge.badgeCode}-${badge.earnedAt}`}
-                      className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 last:border-0 last:pb-0"
-                    >
-                      <Badge variant="secondary">{resolveBadgeLabel(badge.badgeCode)}</Badge>
-                      <time className="shrink-0 text-xs text-muted-foreground" dateTime={badge.earnedAt}>
-                        {formatEngagementTimestamp(badge.earnedAt, locale)}
-                      </time>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
+            {t(`tabs.${tab}`)}
+          </button>
+        ))}
+      </nav>
 
-      {policyState === "ready" && policy !== null ? (
-        <Card className="mb-6" data-operator-engagement-policy data-testid={ENGAGEMENT_OPS_TEST_IDS.policy}>
-          <CardHeader>
-            <CardTitle>{t("policyTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">{t("policySystemManaged")}</p>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div>
-                <h3 className="mb-2 text-sm font-medium">{t("policyLevels")}</h3>
-                <ul className="space-y-1 text-sm">
-                  {policy.levels.map((level) => (
-                    <li key={level.code}>
-                      {resolveLevelLabel(level.code)} —{" "}
-                      <span className="tabular-nums" dir="ltr">
-                        {level.minPoints}+
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="mb-2 text-sm font-medium">{t("policyBadges")}</h3>
-                <ul className="space-y-1 text-sm">
-                  {policy.badges.map((badge) => (
-                    <li key={badge.code}>{resolveBadgeLabel(badge.code)}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="mb-2 text-sm font-medium">{t("policyRules")}</h3>
-                <ul className="space-y-1 text-sm">
-                  {policy.awardRules.map((rule) => (
-                    <li key={rule.eventType}>
-                      {resolveEventLabel(rule.eventType)} —{" "}
-                      <span className="tabular-nums" dir="ltr">
-                        +{rule.points}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card data-operator-engagement-member-lookup data-testid={ENGAGEMENT_OPS_TEST_IDS.memberLookup}>
-        <CardHeader>
-          <CardTitle>{t("memberLookupTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={handleMemberSearchSubmit}
-            className="flex flex-col gap-4 sm:flex-row sm:items-end"
-          >
-            <div className="relative flex-1 space-y-2">
-              <Label htmlFor="engagement-member-search">{t("memberLookupLabel")}</Label>
-              <Input
-                id="engagement-member-search"
-                value={searchInput}
-                onChange={(event) => {
-                  setSearchInput(event.target.value);
-                  setSelectedMember(null);
-                }}
-                placeholder={t("memberLookupPlaceholder")}
-                autoComplete="off"
-                disabled={lookupState === "loading"}
-                data-testid={ENGAGEMENT_OPS_TEST_IDS.memberSearchInput}
-              />
-              {memberResults.length > 0 ? (
-                <ul
-                  className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-background shadow-md"
-                  data-testid={ENGAGEMENT_OPS_TEST_IDS.memberSearchResults}
-                >
-                  {memberResults.map((member) => (
-                    <li key={member.userId}>
-                      <button
-                        type="button"
-                        className="flex w-full flex-col gap-0.5 px-3 py-2 text-start hover:bg-muted/50"
-                        onClick={() => handleSelectMember(member)}
-                      >
-                        <span className="font-medium">{member.displayName}</span>
-                        {member.phone ? (
-                          <span className="text-xs text-muted-foreground" dir="ltr">
-                            {member.phone}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-            <Button type="submit" disabled={lookupState === "loading" || memberSearchState === "loading"}>
-              {lookupState === "loading" ? t("memberLookupSearching") : t("memberLookupAction")}
-            </Button>
-          </form>
-          {memberSearchState === "loading" ? (
-            <p className="mt-2 text-sm text-muted-foreground">{t("memberSearchLoading")}</p>
-          ) : null}
-          {lookupError !== null ? (
-            <p role="alert" className="mt-3 text-sm text-destructive">
-              {lookupError}
+      {activeTab === "overview" ? (
+        <>
+          {overviewState === "error" ? (
+            <p role="alert" data-operator-engagement-error className="mb-6 text-destructive">
+              {overviewError}
             </p>
           ) : null}
-          {mutationFeedback !== null ? (
-            <p className="mt-3 text-sm text-green-700 dark:text-green-400" role="status">
-              {mutationFeedback}
-            </p>
+
+          {overviewState === "loading" ? (
+            <Skeleton className="mb-6 h-40 w-full" data-operator-engagement-loading />
           ) : null}
-          {lookupResult !== null && lookupState === "ready" ? (
-            <div
-              className="mt-4 space-y-4 rounded-md border p-4"
-              data-operator-engagement-member-lookup-result
-              data-testid={ENGAGEMENT_OPS_TEST_IDS.memberLookupResult}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-muted-foreground">
-                  {selectedMember?.displayName ?? t("memberLookupResult")}
-                </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  data-testid={ENGAGEMENT_OPS_TEST_IDS.adjustButton}
-                  onClick={() => openMutationDialog("adjust")}
-                >
-                  {t("adjustAction")}
-                </Button>
-              </div>
-              <dl className="grid gap-2 sm:grid-cols-3">
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t("memberLookupPoints")}</dt>
-                  <dd
-                    className="font-medium tabular-nums"
-                    dir="ltr"
-                    data-testid={ENGAGEMENT_OPS_TEST_IDS.memberPoints}
-                  >
-                    {lookupResult.summary.totalPoints}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t("memberLookupLevel")}</dt>
-                  <dd>{resolveLevelLabel(lookupResult.summary.currentLevelCode)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t("memberLookupBadges")}</dt>
-                  <dd>{lookupResult.summary.earnedBadgeCount}</dd>
-                </div>
-              </dl>
-              <div data-testid={ENGAGEMENT_OPS_TEST_IDS.memberHistory}>
-                <h3 className="mb-2 text-sm font-medium">{t("memberHistoryTitle")}</h3>
-                {lookupResult.summary.recentPointEvents.length > 0 ? (
-                  <ul className="space-y-2 text-sm">
-                    {lookupResult.summary.recentPointEvents.map((event) => (
-                      <li
-                        key={event.id}
-                        className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2 last:border-0"
-                      >
-                        <div>
-                          <span className="tabular-nums font-medium" dir="ltr">
-                            {event.pointsDelta > 0 ? "+" : ""}
-                            {event.pointsDelta}
-                          </span>{" "}
-                          <span>{resolveEventLabel(event.sourceEventType)}</span>
-                          {event.reason ? (
-                            <p className="text-xs text-muted-foreground">{event.reason}</p>
-                          ) : null}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <time className="text-xs text-muted-foreground" dateTime={event.createdAt}>
+
+          {overview !== null && overviewState === "ready" ? (
+            <div data-operator-engagement-grid className="mb-6 grid gap-6 lg:grid-cols-2">
+              <Card
+                data-operator-engagement-recent-points
+                data-testid={ENGAGEMENT_OPS_TEST_IDS.recentPoints}
+              >
+                <CardHeader>
+                  <CardTitle>{t("recentPoints")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {overview.recentPointEvents.length === 0 ? (
+                    <p
+                      data-operator-engagement-empty-points
+                      data-testid={ENGAGEMENT_OPS_TEST_IDS.emptyPoints}
+                    >
+                      {t("emptyPoints")}
+                    </p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {overview.recentPointEvents.map((event) => (
+                        <li
+                          key={`${event.userId}-${event.createdAt}-${event.sourceEventType}`}
+                          className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-3 last:border-0 last:pb-0"
+                        >
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <span className="font-medium tabular-nums" dir="ltr">
+                              {event.pointsDelta > 0 ? "+" : ""}
+                              {event.pointsDelta}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {resolveEventLabel(event.sourceEventType)}
+                            </span>
+                          </div>
+                          <time
+                            className="shrink-0 text-xs text-muted-foreground"
+                            dateTime={event.createdAt}
+                          >
                             {formatEngagementTimestamp(event.createdAt, locale)}
                           </time>
-                          {canReverseEngagementPointEvent(event) ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              data-testid={ENGAGEMENT_OPS_TEST_IDS.reverseButton}
-                              onClick={() => openMutationDialog("reverse", event)}
-                            >
-                              {t("reverseAction")}
-                            </Button>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{t("memberLookupNoHistory")}</p>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
 
-      <Dialog open={mutationDialog !== null} onOpenChange={(open) => !open && closeMutationDialog()}>
-        <DialogContent
-          data-testid={
-            mutationDialog?.kind === "reverse"
-              ? ENGAGEMENT_OPS_TEST_IDS.reverseDialog
-              : ENGAGEMENT_OPS_TEST_IDS.adjustDialog
-          }
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {mutationDialog?.kind === "reverse" ? t("reverseDialogTitle") : t("adjustDialogTitle")}
-            </DialogTitle>
-            <DialogDescription>
-              {mutationDialog?.kind === "reverse"
-                ? t("reverseDialogDescription")
-                : t("adjustDialogDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          {mutationDialog?.kind === "adjust" ? (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="engagement-adjust-points">{t("adjustPointsLabel")}</Label>
-                <Input
-                  id="engagement-adjust-points"
-                  value={adjustmentForm.pointsDelta}
-                  onChange={(event) =>
-                    setAdjustmentForm((current) => ({ ...current, pointsDelta: event.target.value }))
-                  }
-                  placeholder={t("adjustPointsPlaceholder")}
-                  inputMode="numeric"
-                  dir="ltr"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="engagement-adjust-reason">{t("adjustReasonLabel")}</Label>
-                <Input
-                  id="engagement-adjust-reason"
-                  value={adjustmentForm.reason}
-                  onChange={(event) =>
-                    setAdjustmentForm((current) => ({ ...current, reason: event.target.value }))
-                  }
-                />
-              </div>
+              <Card
+                data-operator-engagement-recent-badges
+                data-testid={ENGAGEMENT_OPS_TEST_IDS.recentBadges}
+              >
+                <CardHeader>
+                  <CardTitle>{t("recentBadges")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {overview.recentBadges.length === 0 ? (
+                    <p
+                      data-operator-engagement-empty-badges
+                      data-testid={ENGAGEMENT_OPS_TEST_IDS.emptyBadges}
+                    >
+                      {t("emptyBadges")}
+                    </p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {overview.recentBadges.map((badge) => (
+                        <li
+                          key={`${badge.userId}-${badge.badgeCode}-${badge.earnedAt}`}
+                          className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 last:border-0 last:pb-0"
+                        >
+                          <Badge variant="secondary">{resolveBadgeLabel(badge.badgeCode)}</Badge>
+                          <time
+                            className="shrink-0 text-xs text-muted-foreground"
+                            dateTime={badge.earnedAt}
+                          >
+                            {formatEngagementTimestamp(badge.earnedAt, locale)}
+                          </time>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="engagement-reverse-reason">{t("reverseReasonLabel")}</Label>
-              <Input
-                id="engagement-reverse-reason"
-                value={reversalForm.reason}
-                onChange={(event) =>
-                  setReversalForm((current) => ({ ...current, reason: event.target.value }))
-                }
-              />
-            </div>
-          )}
-          {mutationError !== null ? (
-            <p role="alert" className="text-sm text-destructive">
-              {mutationError}
-            </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeMutationDialog} disabled={mutationPending}>
-              {t("mutationCancel")}
-            </Button>
-            <Button type="button" onClick={() => void handleMutationConfirm()} disabled={mutationPending}>
-              {mutationPending ? t("mutationPending") : t("mutationConfirm")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </>
+      ) : null}
+
+      {activeTab === "badges" ? <EngagementBadgesTab active /> : null}
+      {activeTab === "levels" ? <EngagementLevelsTab active /> : null}
+      {activeTab === "awardRules" ? <EngagementAwardRulesTab active /> : null}
+      {activeTab === "members" ? <EngagementMembersTab /> : null}
+      {activeTab === "audit" ? <EngagementAuditTab active /> : null}
     </div>
   );
 }

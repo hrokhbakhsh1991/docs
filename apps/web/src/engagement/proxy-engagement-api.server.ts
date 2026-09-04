@@ -60,3 +60,36 @@ export async function proxyEngagementApiPost(
     return NextResponse.json({ ok: false, error: { code: "BACKEND_UNREACHABLE" } }, { status: 502 });
   }
 }
+
+export async function proxyEngagementApiPatch(
+  req: Request,
+  backendPath: string,
+  body: string,
+): Promise<NextResponse> {
+  const sessionToken = readSessionTokenFromRequest(req);
+  if (sessionToken === null) {
+    return NextResponse.json({ error: { code: "AUTH_UNAUTHENTICATED" } }, { status: 401 });
+  }
+  const incoming = new URL(req.url);
+  try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${sessionToken}`,
+      host: incoming.host.split(":")[0] ?? "localhost",
+      "Content-Type": "application/json",
+    };
+    const idempotencyKey = req.headers.get("idempotency-key");
+    if (idempotencyKey !== null && idempotencyKey.trim().length > 0) {
+      headers["Idempotency-Key"] = idempotencyKey.trim();
+    }
+    const backendRes = await operatorApiFetch(`${resolveTourOpsApiBaseUrl()}${backendPath}`, {
+      method: "PATCH",
+      headers,
+      body,
+      cache: "no-store",
+    });
+    const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
+    return NextResponse.json(payload, { status: backendRes.status });
+  } catch {
+    return NextResponse.json({ ok: false, error: { code: "BACKEND_UNREACHABLE" } }, { status: 502 });
+  }
+}

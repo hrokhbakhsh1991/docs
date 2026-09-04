@@ -24,6 +24,10 @@ import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import {
+  allowsOperatorEngagementTeamRole,
+  isOperatorEngagementTeamAccessPath,
+} from "@/engagement/resolve-operator-engagement-middleware-access";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import {
   normalizeHostHeader,
@@ -303,6 +307,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
         isDevWebSessionAllowed() &&
         isOperatorTicketsTeamAccessPath(pathname) &&
         allowsOperatorTicketsTeamRole(validation.role, request.method)
+      ) {
+        return forwardPathname(request, pathname);
+      }
+      if (
+        isDevWebSessionAllowed() &&
+        isOperatorEngagementTeamAccessPath(pathname) &&
+        allowsOperatorEngagementTeamRole(validation.role, request.method)
       ) {
         return forwardPathname(request, pathname);
       }

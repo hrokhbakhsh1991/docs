@@ -72,12 +72,23 @@ test.describe("MEG-001 Denali operator engagement", () => {
     await expect(page.locator("[data-operator-engagement-error]")).toBeVisible({ timeout: 60_000 });
   });
 
-  test("SMK-MEG-OP-03 viewer receives permission denied from engagement API", async ({
-    page,
-  }) => {
+  test("SMK-MEG-OP-03 viewer can read overview but not mutate", async ({ page }) => {
     await loginDenaliOperatorViewer(page);
     const overviewRes = await page.request.get("/api/engagement/overview");
-    expect([403]).toContain(overviewRes.status());
+    expect(overviewRes.ok(), await overviewRes.text()).toBeTruthy();
+
+    const badgePostRes = await page.request.post("/api/engagement/badges", {
+      headers: { "Idempotency-Key": "smk-meg-op-03-viewer-denied" },
+      data: {
+        code: "viewer_denied_badge",
+        titleI18n: { en: "Denied", fa: "رد" },
+        descriptionI18n: { en: "Denied", fa: "رد" },
+        iconKey: "mountain",
+        triggerKind: "event",
+        triggerEventType: "profile.completed",
+      },
+    });
+    expect(badgePostRes.status()).toBe(403);
   });
 
   test("SMK-MEG-OP-04 member point history visible in recent awards list", async ({ page }) => {
@@ -89,12 +100,20 @@ test.describe("MEG-001 Denali operator engagement", () => {
     await expect(page.locator("[data-operator-engagement-recent-points]")).toContainText("+50");
   });
 
-  test("SMK-MEG-OP-05 policy catalog and member search by phone", async ({ page }) => {
+  test("SMK-MEG-OP-05 member search by phone and adjust/reverse", async ({ page }) => {
     await loginDenaliOperatorOwner(page);
     await page.goto("/engagement", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("operator-engagement-policy")).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId("operator-engagement-policy")).toContainText(/base camp|اردوگاه پایه/i);
-
+    await expect(page.locator("[data-operator-engagement-page]")).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("operator-engagement-tab-members").click();
+    await expect(page.getByTestId("operator-engagement-members-panel")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId("operator-engagement-member-lookup")).toBeVisible({
+      timeout: 60_000,
+    });
     const searchResponse = page.waitForResponse(
       (response) => response.url().includes("/api/users") && response.ok(),
     );
@@ -144,5 +163,121 @@ test.describe("MEG-001 Denali operator engagement", () => {
       path: "/opt/cursor/artifacts/operator-engagement-adjust-reverse.png",
       fullPage: true,
     });
+  });
+
+  test("SMK-MEG-OP-06 owner creates badge, activates, refreshes and sees it", async ({ page }) => {
+    await loginDenaliOperatorOwner(page);
+    const badgeCode = `smk_meg_op_06_${Date.now()}`;
+
+    await page.goto("/engagement", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("operator-engagement-tab-badges").click();
+    await expect(page.getByTestId("operator-engagement-badges-panel")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.getByTestId("operator-engagement-badges-create-button").click();
+    await expect(page.getByTestId("operator-engagement-badges-create-dialog")).toBeVisible();
+    await page.locator("#badge-code").fill(badgeCode);
+    await page.locator("#badge-title-en").fill("SMK OP 06 Badge");
+    await page.locator("#badge-title-fa").fill("نشان تست ۰۶");
+    await page.locator("#badge-desc-en").fill("Created by SMK-MEG-OP-06");
+    await page.locator("#badge-desc-fa").fill("ایجاد شده توسط SMK-MEG-OP-06");
+    await page.getByRole("button", { name: /create badge|ایجاد نشان/i }).click();
+
+    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toContainText(/inactive|غیرفعال/i);
+
+    await page
+      .locator(`[data-badge-code="${badgeCode}"]`)
+      .getByRole("button", { name: /activate|فعال/i })
+      .click();
+    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toContainText(/active|فعال/i, {
+      timeout: 60_000,
+    });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("operator-engagement-tab-badges").click();
+    await expect(page.getByTestId("operator-engagement-badges-panel")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toContainText(/active|فعال/i);
+  });
+
+  test("SMK-MEG-OP-07 owner creates award rule for profile.completed", async ({ page }) => {
+    await loginDenaliOperatorOwner(page);
+    const badgeCode = `smk_meg_op_07_${Date.now()}`;
+
+    const badgePostRes = await page.request.post("/api/engagement/badges", {
+      headers: { "Idempotency-Key": `smk-meg-op-07-badge-${badgeCode}` },
+      data: {
+        code: badgeCode,
+        titleI18n: { en: "SMK OP 07", fa: "تست ۰۷" },
+        descriptionI18n: { en: "Rule badge", fa: "نشان قاعده" },
+        iconKey: "star",
+        triggerKind: "event",
+        triggerEventType: "profile.completed",
+        status: "active",
+      },
+    });
+    expect(badgePostRes.ok(), await badgePostRes.text()).toBeTruthy();
+
+    await page.goto("/engagement", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("operator-engagement-tab-award-rules").click();
+    await expect(page.getByTestId("operator-engagement-award-rules-panel")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.getByTestId("operator-engagement-award-rules-create-button").click();
+    await page.locator("#rule-event").selectOption("profile.completed");
+    await page.locator("#rule-points").fill("12");
+    await page.locator("#rule-badge").selectOption(badgeCode);
+    await page.getByRole("button", { name: /create rule|ایجاد قاعده/i }).click();
+
+    await expect(
+      page.locator('[data-rule-event="profile.completed"]').filter({ hasText: "+12" }).first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("operator-engagement-tab-award-rules").click();
+    await expect(
+      page.locator('[data-rule-event="profile.completed"]').filter({ hasText: "+12" }).first(),
+    ).toBeVisible({ timeout: 60_000 });
+  });
+
+  test("SMK-MEG-OP-08 viewer GET overview OK but POST badge returns 403", async ({ page }) => {
+    await loginDenaliOperatorViewer(page);
+
+    const overviewRes = await page.request.get("/api/engagement/overview");
+    expect(overviewRes.ok(), await overviewRes.text()).toBeTruthy();
+
+    await page.goto("/engagement", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("operator-engagement-tab-badges")).toBeVisible({ timeout: 60_000 });
+    await page.getByTestId("operator-engagement-tab-badges").click();
+
+    const badgePostRes = await page.request.post("/api/engagement/badges", {
+      headers: { "Idempotency-Key": "smk-meg-op-08-viewer-denied" },
+      data: {
+        code: "viewer_denied_badge_08",
+        titleI18n: { en: "Denied", fa: "رد" },
+        descriptionI18n: { en: "Denied", fa: "رد" },
+        iconKey: "mountain",
+        triggerKind: "event",
+        triggerEventType: "profile.completed",
+      },
+    });
+    expect(badgePostRes.status()).toBe(403);
   });
 });
