@@ -2064,3 +2064,94 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     justify-content: flex-start;
   }
 }
+
+/* TKT-F1 — member tickets */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is(
+    [data-portal-member-tickets],
+    [data-portal-member-tickets-new],
+    [data-portal-member-ticket-detail-page]
+  ) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-filter] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-list] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-row] {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-surface-raised, var(--color-bg-surface));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-row-link] {
+  display: block;
+  padding: var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message][data-author="member"]
+  [data-portal-member-ticket-message-bubble] {
+  margin-inline-start: auto;
+  max-width: min(100%, 36rem);
+  background: var(--color-primary-subtle, color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-muted)));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message][data-author="operator"]
+  [data-portal-member-ticket-message-bubble] {
+  margin-inline-end: auto;
+  max-width: min(100%, 36rem);
+  background: var(--color-surface-muted, var(--color-bg-muted));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-composer] {
+  position: sticky;
+  bottom: 0;
+  padding-block: var(--space-3);
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  background: var(--color-surface-base, var(--color-bg-surface));
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-sr-only] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-ticket-row-link] {
+    padding: var(--space-3);
+  }
+}

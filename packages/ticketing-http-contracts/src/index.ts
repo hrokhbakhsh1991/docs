@@ -109,6 +109,7 @@ export {
 
 export type {
   TicketSummaryHttp,
+  MemberTicketListItemHttp,
   OperatorTicketSummaryHttp,
   MemberTicketMessageHttp,
   OperatorTicketMessageHttp,

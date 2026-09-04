@@ -899,14 +899,35 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 | | |
 |-|-|
-| **Scope** | `/me/tickets/*`, BFF, notifications read, viewer read-only |
+| **Scope** | `/me/tickets/*`, BFF, viewer read-only (notifications deferred to Phase H) |
 | **Dependencies** | C, E |
 | **Database** | — |
-| **API** | BFF routes |
-| **UI** | portal list, create, detail, notifications |
+| **API** | Portal BFF only; list projection adds `publicMessageCount` |
+| **UI** | portal list, create, detail |
 | **Tests** | portal unit + smoke E2E |
-| **Acceptance** | member E2E; viewer tenant-wide read-only |
-| **Rollback** | hide nav |
+| **Acceptance** | member E2E create → view → reply → reopen |
+| **Rollback** | hide nav; manifest `supported: false` |
+
+#### F1 — Portal routes and BFF
+
+| Surface | Route | Upstream |
+| ------- | ----- | -------- |
+| List | `/me/tickets` | `GET /member/tickets` |
+| Create | `/me/tickets/new` | `POST /member/tickets` |
+| Detail | `/me/tickets/[ticketId]` | `GET /member/tickets/:id` |
+| BFF list/create | `/api/me/tickets` | member tickets |
+| BFF detail | `/api/me/tickets/[ticketId]` | member get |
+| BFF reply | `/api/me/tickets/[ticketId]/messages` | `POST …/messages` |
+| BFF reopen | `/api/me/tickets/[ticketId]/reopen` | `POST …/reopen` |
+| BFF categories | `/api/me/tickets/categories` | workspace manifest (`getWorkspaceTicketingCapabilities`) + theme gate |
+| BFF attachments | `/api/me/tickets/[ticketId]/attachments/*` | E1 member mirror |
+| BFF links | `/api/me/tickets/[ticketId]/links` | member links |
+
+**Auth:** `buildMemberApiHeaders` — cookie → `Authorization: Bearer`; tenant from host bootstrap only.
+
+**Gating:** Denali `memberPortal.modules` adds `tickets` (primary nav). Urban/starter omit module. API `enabledModules` must include `ticketing`; otherwise `TICKET_MODULE_DISABLED`. No hardcoded plugin checks in portal.
+
+**Member visibility:** public messages and `scanStatus=clean` attachments only; internal notes/attachments never in member projections or BFF.
 
 ### Phase G — Operator inbox
 

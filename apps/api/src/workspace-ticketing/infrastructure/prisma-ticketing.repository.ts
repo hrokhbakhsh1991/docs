@@ -147,13 +147,23 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
         },
         orderBy: [{ lastActivityAt: "desc" }, { id: "desc" }],
         take: query.limit + 1,
-        include: { links: { select: { entityType: true, entityId: true } } },
+        include: {
+          links: { select: { entityType: true, entityId: true } },
+          _count: {
+            select: {
+              messages: { where: { visibility: "public" } },
+            },
+          },
+        },
       });
       const hasMore = rows.length > query.limit;
       const page = hasMore ? rows.slice(0, query.limit) : rows;
       const last = page.at(-1);
       return {
-        items: page.map((row) => mapTicketRow(row, row.links)),
+        items: page.map((row) => ({
+          ticket: mapTicketRow(row, row.links),
+          publicMessageCount: row._count.messages,
+        })),
         hasMore,
         nextCursor:
           hasMore && last !== undefined
@@ -233,7 +243,7 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
       const page = hasMore ? rows.slice(0, query.limit) : rows;
       const last = page.at(-1);
       return {
-        items: page.map((row) => mapTicketRow(row, row.links)),
+        items: page.map((row) => ({ ticket: mapTicketRow(row, row.links) })),
         hasMore,
         nextCursor:
           hasMore && last !== undefined

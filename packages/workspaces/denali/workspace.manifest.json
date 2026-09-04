@@ -739,7 +739,14 @@
   "memberPortal": {
     "manifestVersion": 2,
     "availability": "full",
-    "preset": "guest-full-v1"
+    "preset": "guest-full-v1",
+    "modules": [
+      {
+        "id": "tickets",
+        "routePath": "/me/tickets",
+        "nav": { "tier": "primary", "labelKey": "tickets" }
+      }
+    ]
   },
   "operatorCapabilities": {
     "usersDirectory": true,

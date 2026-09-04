@@ -55,7 +55,11 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     id: "00000000-0000-4000-8000-000000000014",
     subdomain: "operator",
     workspaceType: "denali",
-    theme: { primaryColor: "#059669", cssVariables: { "--color-primary": "#059669" } },
+    theme: {
+      primaryColor: "#059669",
+      cssVariables: { "--color-primary": "#059669" },
+      enabledModules: ["ticketing"],
+    },
   },
   {
     id: "00000000-0000-4000-8000-000000000015",
@@ -89,6 +93,17 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
         gatewayProvider: null,
         frozen: true,
       },
+    } as TenantThemeConfig,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000436",
+    subdomain: "denali-ticketing-pilot",
+    workspaceType: "denali",
+    theme: {
+      primaryColor: "#059669",
+      cssVariables: { "--color-primary": "#059669" },
+      defaultLocale: "fa",
+      enabledModules: ["ticketing"],
     } as TenantThemeConfig,
   },
 ];

@@ -15,6 +15,11 @@ export type TicketSummaryHttp = {
   readonly updatedAt: string;
 };
 
+/** Member list row — includes public message count for portal list UI. */
+export type MemberTicketListItemHttp = TicketSummaryHttp & {
+  readonly publicMessageCount: number;
+};
+
 /** Operator list item — includes requester for triage. */
 export type OperatorTicketSummaryHttp = TicketSummaryHttp & {
   readonly requesterUserId: string;
@@ -61,7 +66,7 @@ export type OperatorTicketDetailHttp = {
 };
 
 export type PaginatedMemberTicketListHttp = {
-  readonly items: readonly TicketSummaryHttp[];
+  readonly items: readonly MemberTicketListItemHttp[];
   readonly nextCursor: string | null;
   readonly hasMore: boolean;
 };

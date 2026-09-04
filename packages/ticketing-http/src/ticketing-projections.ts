@@ -145,24 +145,27 @@ export function toOperatorTicketDetailHttp(input: {
 }
 
 export function toMemberListHttp(input: {
-  readonly items: readonly Ticket[];
+  readonly items: readonly { readonly ticket: Ticket; readonly publicMessageCount?: number }[];
   readonly nextCursor: string | null;
   readonly hasMore: boolean;
 }): PaginatedMemberTicketListHttp {
   return {
-    items: input.items.map(toTicketSummaryHttp),
+    items: input.items.map((item) => ({
+      ...toTicketSummaryHttp(item.ticket),
+      publicMessageCount: item.publicMessageCount ?? 0,
+    })),
     nextCursor: input.nextCursor,
     hasMore: input.hasMore,
   };
 }
 
 export function toOperatorListHttp(input: {
-  readonly items: readonly Ticket[];
+  readonly items: readonly { readonly ticket: Ticket; readonly publicMessageCount?: number }[];
   readonly nextCursor: string | null;
   readonly hasMore: boolean;
 }): PaginatedOperatorTicketListHttp {
   return {
-    items: input.items.map(toOperatorTicketSummaryHttp),
+    items: input.items.map((item) => toOperatorTicketSummaryHttp(item.ticket)),
     nextCursor: input.nextCursor,
     hasMore: input.hasMore,
   };

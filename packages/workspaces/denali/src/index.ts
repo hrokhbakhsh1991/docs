@@ -36,6 +36,10 @@ export {
   DENALI_WALLET_PILOT_TENANT_ID,
 } from "./smoke/denali-wallet-pilot-tenant";
 export {
+  DENALI_TICKETING_PILOT_SUBDOMAIN,
+  DENALI_TICKETING_PILOT_TENANT_ID,
+} from "./smoke/denali-ticketing-pilot-tenant";
+export {
   buildDenaliFieldPolicyDefinitions,
   DENALI_FIELD_POLICY_WORKSPACE_TYPE,
 } from "./field-policy/denali-field-policy-definitions";

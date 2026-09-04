@@ -8,8 +8,13 @@ export type TicketDetailRecord = {
   readonly links?: readonly TicketLink[];
 };
 
+export type TicketListItemRecord = {
+  readonly ticket: Ticket;
+  readonly publicMessageCount?: number;
+};
+
 export type TicketListResult = {
-  readonly items: readonly Ticket[];
+  readonly items: readonly TicketListItemRecord[];
   readonly nextCursor: string | null;
   readonly hasMore: boolean;
 };

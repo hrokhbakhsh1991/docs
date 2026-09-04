@@ -14,7 +14,8 @@
     "primaryNav": "Primary navigation",
     "more": "More",
     "memberFallback": "Member",
-    "wallet": "Wallet"
+    "wallet": "Wallet",
+    "tickets": "Support"
   },
   "locale": {
     "fa": "FA",
@@ -170,7 +171,8 @@
     "empty": "No additional modules are available yet.",
     "linkDescriptions": {
       "default": "Open one of the supporting member tools from here when you need it.",
-      "wallet": "When available, your balance or member wallet tools will live here."
+      "wallet": "When available, your balance or member wallet tools will live here.",
+      "tickets": "Support requests and conversations with the club team."
     }
   },
   "unauthorized": {
@@ -203,6 +205,99 @@
       "operator_credit": "Credit",
       "operator_debit": "Debit",
       "reversal": "Reversal"
+    }
+  },
+  "tickets": {
+    "title": "Support",
+    "lede": "View your support requests and chat with the club team.",
+    "newTitle": "New support request",
+    "newLede": "Describe your issue so our team can help.",
+    "detailTitle": "Request {id}",
+    "newCta": "New support request",
+    "filterAria": "Status filter",
+    "filterAll": "All",
+    "loadError": "Could not load tickets.",
+    "retry": "Try again",
+    "emptyTitle": "No tickets yet",
+    "emptyBody": "Create a new support request to reach the team.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "messageCount": "{count} messages",
+    "backToList": "Back to list",
+    "timelineTitle": "Conversation",
+    "linksTitle": "Related links",
+    "composerLabel": "Send reply",
+    "submit": "Submit request",
+    "submitting": "Submitting…",
+    "sendReply": "Send message",
+    "createError": "Could not create ticket. Try again.",
+    "replyError": "Could not send message.",
+    "reopen": "Reopen ticket",
+    "reopening": "Reopening…",
+    "reopenError": "Could not reopen ticket.",
+    "fields": {
+      "category": "Category",
+      "subject": "Subject",
+      "body": "Message",
+      "relatedTourId": "Tour ID (optional)",
+      "relatedRegistrationId": "Registration ID (optional)"
+    },
+    "validation": {
+      "subject": "Subject must be at least 3 characters.",
+      "body": "Message is required.",
+      "category": "Choose a valid category."
+    },
+    "statuses": {
+      "open": "Open",
+      "pending_member": "Awaiting your reply",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "categories": {
+      "general": "General",
+      "billing": "Billing",
+      "tour": "Tour & registration",
+      "technical": "Technical"
+    },
+    "banners": {
+      "open": "Your request is open and the team is reviewing it.",
+      "pending_member": "The team replied — please send your message.",
+      "resolved": "This request is resolved. You can reopen it if needed.",
+      "closed": "This request is closed. New messages cannot be sent."
+    },
+    "linkTypes": {
+      "tour": "Tour",
+      "registration": "Registration",
+      "payment": "Payment",
+      "wallet": "Wallet"
+    },
+    "errors": {
+      "TICKET_CLOSED": "This ticket is closed.",
+      "TICKET_MODULE_DISABLED": "Support module is not enabled."
+    },
+    "disabled": {
+      "title": "Support",
+      "moduleDisabled": "Support is not enabled for this club.",
+      "workspaceDisabled": "Support is not available for this workspace.",
+      "entitlementDenied": "You do not have access to support."
+    },
+    "attachments": {
+      "label": "Attachment",
+      "upload": "Upload attachment",
+      "uploading": "Uploading…",
+      "success": "Attachment uploaded.",
+      "unsupportedType": "File type is not supported.",
+      "tooLarge": "File is too large.",
+      "intentFailed": "Could not start upload.",
+      "uploadFailed": "Upload failed.",
+      "completeFailed": "Could not complete upload.",
+      "createHint": "After submitting, you can add attachments on the conversation page."
     }
   },
   "detail": {

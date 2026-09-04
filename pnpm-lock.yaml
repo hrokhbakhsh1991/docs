@@ -336,6 +336,9 @@ importers:
       '@app-tour/theme-react':
         specifier: workspace:*
         version: link:../../packages/theme-react
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http-contracts
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
