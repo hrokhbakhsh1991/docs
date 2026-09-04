@@ -7,6 +7,8 @@
  */
 import { expect, test, type BrowserContext } from "@playwright/test";
 
+import { DENALI_WORKSPACE_SURFACES_TEST_IDS } from "@app-tour/workspace-denali/host/exposure";
+
 import { AUDIT_TRAIL_TEST_IDS } from "../../src/features/settings/audit-trail-types";
 import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-module-types";
 import { WIZARD_TEMPLATE_TEST_IDS } from "../../src/features/settings/wizard-template-types";
@@ -19,6 +21,7 @@ import {
 
 const SETTINGS_ROUTES = [
   ["settings hub", "/settings", SETTINGS_HUB_TEST_IDS.page],
+  ["workspace owner", "/settings/workspace-owner", DENALI_WORKSPACE_SURFACES_TEST_IDS.panel],
   ["profile", "/settings/me", SETTINGS_HUB_TEST_IDS.profilePage],
   ["branding", "/settings/branding", SETTINGS_HUB_TEST_IDS.brandingPage],
   ["equipment", "/settings/equipment", SETTINGS_HUB_TEST_IDS.equipmentPage],
