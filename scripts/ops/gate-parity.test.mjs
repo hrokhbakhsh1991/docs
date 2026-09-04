@@ -20,6 +20,8 @@ test("public gate front doors have package, catalog, and documentation parity", 
   const phase6 = readFileSync(".github/workflows/phase-6-gate.yml", "utf8");
   assert.match(phase6, /run phase-6:pr-fast-closure/);
   assert.match(phase6, /run phase-6:fast-closure/);
+  assert.match(phase6, /run: pnpm run generate:workspace-registry/);
+  assert.match(phase6, /run: bash scripts\/ci\/build-api-workspace-deps\.sh/);
 });
 
 test("workflow keeps aggregate release check and shared setup", () => {
