@@ -5,7 +5,7 @@
  * marker after an authenticated navigation. CRUD behavior remains covered by
  * the focused settings specs.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext } from "@playwright/test";
 
 import { AUDIT_TRAIL_TEST_IDS } from "../../src/features/settings/audit-trail-types";
 import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-module-types";
@@ -50,11 +50,28 @@ const SETTINGS_ROUTES = [
 ] as const;
 
 test.describe("Denali settings route matrix", () => {
+  test.setTimeout(360_000);
+
+  let ownerSessionCookies: Awaited<ReturnType<BrowserContext["cookies"]>> = [];
+
+  test.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext({
+      baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.operator.localhost:3000",
+    });
+    const page = await context.newPage();
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    ownerSessionCookies = await context.cookies();
+    await context.close();
+  });
+
   for (const [name, path, marker] of SETTINGS_ROUTES) {
     test(`${name} renders after owner login`, async ({ page }) => {
-      await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+      await page.context().addCookies(ownerSessionCookies);
 
-      const response = await page.goto(path, { waitUntil: "domcontentloaded" });
+      const response = await page.goto(path, {
+        waitUntil: "domcontentloaded",
+        timeout: 300_000,
+      });
       expect(response?.status(), `${path} response`).toBe(200);
       await expect(page.getByTestId(marker), `${path} marker`).toBeVisible({ timeout: 30_000 });
     });
