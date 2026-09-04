@@ -18,33 +18,51 @@ async function warmPortalBffRoute(
   method: "GET" | "POST" | "PATCH",
   body?: object
 ): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const url = new URL(`${base}${path}`);
-    const payload = body === undefined ? undefined : JSON.stringify(body);
-    const headers: Record<string, string> = { host: url.host };
-    if (payload !== undefined) {
-      headers["Content-Type"] = "application/json";
-      headers["Content-Length"] = String(Buffer.byteLength(payload));
-    }
-    const req = http.request(
-      {
-        hostname: url.hostname,
-        port: url.port || (url.protocol === "https:" ? 443 : 80),
-        path: `${url.pathname}${url.search}`,
-        method,
-        headers,
-      },
-      (res) => {
-        res.resume();
-        resolve();
+  let lastError: unknown = new Error(`warm-up failed for ${method} ${path}`);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const url = new URL(`${base}${path}`);
+        const payload = body === undefined ? undefined : JSON.stringify(body);
+        const headers: Record<string, string> = { host: url.host };
+        if (payload !== undefined) {
+          headers["Content-Type"] = "application/json";
+          headers["Content-Length"] = String(Buffer.byteLength(payload));
+        }
+        const req = http.request(
+          {
+            hostname:
+              url.hostname === "localhost" || url.hostname.endsWith(".localhost")
+                ? "127.0.0.1"
+                : url.hostname,
+            port: url.port || (url.protocol === "https:" ? 443 : 80),
+            path: `${url.pathname}${url.search}`,
+            method,
+            headers,
+          },
+          (res) => {
+            res.resume();
+            resolve();
+          }
+        );
+        req.on("error", reject);
+        req.setTimeout(120_000, () => {
+          req.destroy(new Error(`warm-up timeout for ${method} ${path}`));
+        });
+        if (payload !== undefined) {
+          req.write(payload);
+        }
+        req.end();
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
       }
-    );
-    req.on("error", reject);
-    if (payload !== undefined) {
-      req.write(payload);
     }
-    req.end();
-  });
+  }
+  throw lastError;
 }
 
 async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
