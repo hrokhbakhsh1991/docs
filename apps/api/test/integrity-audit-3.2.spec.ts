@@ -44,6 +44,7 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "canonical/migrate-canonical-workspace.service.ts",
   "outbox/",
   "workspace-finance/",
+  "workspace-wallet/",
   "boot/lazy-finance-service.ts",
   "exposure/",
   "health/",
