@@ -5,6 +5,37 @@
     "recentPoints": "امتیازهای اخیر",
     "recentBadges": "نشان‌های اخیر",
     "loading": "در حال بارگذاری نمای مشارکت…",
-    "loadFailed": "بارگذاری نمای مشارکت ناموفق بود."
+    "loadFailed": "بارگذاری نمای مشارکت ناموفق بود.",
+    "emptyPoints": "هنوز امتیاز اخیری ثبت نشده است.",
+    "emptyBadges": "اخیراً نشانی ثبت نشده است.",
+    "memberLookupTitle": "جستجوی عضو",
+    "memberLookupLabel": "شناسه کاربری عضو",
+    "memberLookupPlaceholder": "00000000-0000-4000-8000-000000000001",
+    "memberLookupAction": "جستجو",
+    "memberLookupSearching": "در حال جستجو…",
+    "memberLookupInvalid": "شناسه کاربری معتبر (UUID) وارد کنید.",
+    "memberLookupNotFound": "پروفایل مشارکت برای این عضو یافت نشد.",
+    "memberLookupFailed": "بارگذاری مشارکت عضو ناموفق بود.",
+    "memberLookupResult": "خلاصه مشارکت",
+    "memberLookupPoints": "امتیاز مشارکت",
+    "memberLookupLevel": "سطح فعلی",
+    "memberLookupBadges": "نشان‌های کسب‌شده",
+    "memberLookupNoHistory": "سابقه امتیازی برای این عضو وجود ندارد.",
+    "eventTypes": {
+      "profile_completed": "تکمیل پروفایل",
+      "registration_first_approved": "تأیید اولین ثبت‌نام تور",
+      "engagement_points_reversed": "تعدیل امتیاز"
+    },
+    "badges": {
+      "trailhead_ready": "آماده مسیر",
+      "first_expedition": "اولین اکسپدیشن",
+      "summit_rookie": "تازه‌کار قله",
+      "ridge_partner": "هم‌مسیر یال"
+    },
+    "levels": {
+      "base_camp": "اردوگاه پایه",
+      "trail_member": "عضو مسیر",
+      "summit_circle": "حلقه قله"
+    }
   }
 }

@@ -5,6 +5,37 @@
     "recentPoints": "Recent point awards",
     "recentBadges": "Recently earned badges",
     "loading": "Loading engagement overview…",
-    "loadFailed": "Could not load engagement overview."
+    "loadFailed": "Could not load engagement overview.",
+    "emptyPoints": "No recent point awards yet.",
+    "emptyBadges": "No badges earned recently.",
+    "memberLookupTitle": "Member lookup",
+    "memberLookupLabel": "Member user ID",
+    "memberLookupPlaceholder": "00000000-0000-4000-8000-000000000001",
+    "memberLookupAction": "Look up",
+    "memberLookupSearching": "Looking up…",
+    "memberLookupInvalid": "Enter a valid member user ID (UUID).",
+    "memberLookupNotFound": "No engagement profile found for this member.",
+    "memberLookupFailed": "Could not load member engagement.",
+    "memberLookupResult": "Engagement summary",
+    "memberLookupPoints": "Participation points",
+    "memberLookupLevel": "Current level",
+    "memberLookupBadges": "Earned badges",
+    "memberLookupNoHistory": "No point history for this member.",
+    "eventTypes": {
+      "profile_completed": "Profile completed",
+      "registration_first_approved": "First tour registration approved",
+      "engagement_points_reversed": "Points adjustment"
+    },
+    "badges": {
+      "trailhead_ready": "Trailhead ready",
+      "first_expedition": "First expedition",
+      "summit_rookie": "Summit rookie",
+      "ridge_partner": "Ridge partner"
+    },
+    "levels": {
+      "base_camp": "Base camp",
+      "trail_member": "Trail member",
+      "summit_circle": "Summit circle"
+    }
   }
 }

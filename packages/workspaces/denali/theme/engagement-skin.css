@@ -1,0 +1,33 @@
+/**
+ * Denali operator engagement — alpine accents, calm operational hierarchy.
+ */
+body[data-workspace-plugin="denali"] [data-operator-engagement-page] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-engagement-grid] [data-operator-engagement-recent-points] {
+  border-top: 3px solid var(--denali-alpine-600);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-engagement-grid] [data-operator-engagement-recent-badges] {
+  border-top: 3px solid var(--denali-forest-500);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-engagement-member-lookup] {
+  border-top: 3px solid color-mix(in oklch, var(--color-border-default) 80%, var(--denali-alpine-600));
+}
+
+body[data-workspace-plugin="denali"] [data-operator-engagement-recent-points] .font-medium[dir="ltr"],
+body[data-workspace-plugin="denali"] [data-operator-engagement-member-lookup-result] .tabular-nums[dir="ltr"] {
+  color: var(--denali-alpine-700);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-workspace-plugin="denali"] [data-operator-engagement-page] * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
