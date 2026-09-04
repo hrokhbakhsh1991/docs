@@ -31,6 +31,12 @@ import {
 
 const UNAUTHORIZED_LOGIN_MOBILE = "+15559999999";
 import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
+import {
+  fillDenaliMultiDayWizardThroughReview,
+  resetOperatorWizardToBasic,
+  submitDenaliWizardDraftCreate,
+} from "../../test/fixtures/denali-itinerary-wizard-fixture";
+import { navigateOperatorToNewTour } from "../../test/fixtures/operator-tour-navigation-fixture";
 
 test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
   test("SMK-P9-01 owner OTP login reaches dashboard", async ({ page }) => {
@@ -194,13 +200,11 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     const tourTitle = `SMK-P9-02 Tour ${Date.now()}`;
 
     await loginOperatorOwner(page);
-    await publishOperatorWizardTemplate(page);
-
-    await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 120_000 });
-    await page.getByRole("textbox", { name: "title" }).fill(tourTitle);
-    await page.getByRole("button", { name: "Create tour" }).click();
-    await expect(page.locator("[data-tour-created]")).toBeVisible({ timeout: 30_000 });
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+    await navigateOperatorToNewTour(page);
+    await resetOperatorWizardToBasic(page);
+    await fillDenaliMultiDayWizardThroughReview(page, tourTitle);
+    await submitDenaliWizardDraftCreate(page);
 
     await page.goto("/tours");
     await expect(page.getByTestId(TOURS_LIST_TEST_IDS.page)).toBeVisible({ timeout: 15_000 });

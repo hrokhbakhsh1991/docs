@@ -3,6 +3,8 @@
  */
 import { expect, type Page } from "@playwright/test";
 
+import { navigateOperatorToNewTour } from "./operator-tour-navigation-fixture";
+
 import { DENALI_DATETIME_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-datetime-test-ids";
 import { DENALI_ITINERARY_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-itinerary-test-ids";
 import { DENALI_COMPOSITE_TEST_IDS } from "@app-tour/workspace-denali/host/ui/logic/denali-location-types";
@@ -74,10 +76,8 @@ async function fillDenaliDatetimeField(
 }
 
 export async function resetOperatorWizardToBasic(page: Page): Promise<void> {
+  await navigateOperatorToNewTour(page);
   const wizard = page.locator("[data-workspace-wizard]");
-  if (!(await wizard.isVisible().catch(() => false))) {
-    await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-  }
   await expect(wizard).toBeVisible({ timeout: 90_000 });
   await clearOperatorWizardDraftIfPresent(page);
 
@@ -138,6 +138,14 @@ export async function fillDenaliMultiDayWizardBasics(
     await destinationSelect.selectOption({ label: destinationLabel });
   }
   await settleOperatorWizardDraftSync(page);
+
+  const peakHeight = page.getByRole("textbox", {
+    name: /ارتفاع قله|peakHeight|Peak height/i,
+  });
+  if (await peakHeight.isEnabled().catch(() => false)) {
+    await peakHeight.fill("5671");
+    await settleOperatorWizardDraftSync(page);
+  }
 
   await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.start, 1, "08", "00");
   await settleOperatorWizardDraftSync(page);
@@ -280,11 +288,15 @@ export async function fillDenaliMultiDayWizardThroughReview(
   await clickWizardNextToStep(page, "review");
 }
 
-export async function submitDenaliWizardDraftCreate(page: Page): Promise<void> {
+export async function submitDenaliWizardDraftCreate(page: Page): Promise<string> {
   const create = page
     .locator("[data-wizard-footer]")
     .getByRole("button", { name: /Create tour|ساخت تور/i });
   await expect(create).toBeEnabled({ timeout: 30_000 });
+  const createdRedirect = page.waitForURL(/\/tours\?created=/, { timeout: 60_000 });
   await create.click();
-  await expect(page.locator("[data-tour-created]")).toBeVisible({ timeout: 60_000 });
+  await createdRedirect;
+  const tourId = new URL(page.url()).searchParams.get("created")?.trim() ?? "";
+  expect(tourId.length).toBeGreaterThan(0);
+  return tourId;
 }
