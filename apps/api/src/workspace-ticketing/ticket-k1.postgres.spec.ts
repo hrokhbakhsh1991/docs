@@ -10,9 +10,10 @@ import { formatTicketCode } from "@app-tour/ticketing-core";
 
 import { createRequestListener } from "../app";
 import { resetLazyTicketingServiceForTests } from "../boot/lazy-ticketing-service";
-import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { integrationTenantId } from "../../test/test-helpers";
+import { assertPostgresAppRoleForRlsTests } from "./ticketing-postgres-test-helpers";
 import {
   buildTicketReportCacheKey,
   clearTicketReportCacheForTests,
@@ -130,6 +131,7 @@ describe(
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      await assertPostgresAppRoleForRlsTests(getPrisma());
       resetLazyTicketingServiceForTests();
       clearTicketReportCacheForTests();
       listener = createRequestListener({});

@@ -5,12 +5,15 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
-import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { processOutboxRelayForTenantOnce } from "../outbox/outbox-relay";
-import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
+import {
+  assertPostgresAppRoleForRlsTests,
+  nextPostgresTestTicketNumber,
+} from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import {
   countUnreadTicketNotifications,
@@ -42,6 +45,7 @@ describe(
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      await assertPostgresAppRoleForRlsTests(getPrisma());
       const admin = getPrismaAdmin();
       await admin.tenant.createMany({
         data: [

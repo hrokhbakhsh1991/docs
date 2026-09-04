@@ -10,10 +10,13 @@ import { findDisallowedTemplateTokens, sanitizeTicketTemplateBody } from "@app-t
 
 import { createRequestListener } from "../app";
 import { resetLazyTicketingServiceForTests } from "../boot/lazy-ticketing-service";
-import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
-import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
+import {
+  assertPostgresAppRoleForRlsTests,
+  nextPostgresTestTicketNumber,
+} from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import { applyTicketTemplateAutomation } from "./ticket-template-automation";
 import {
@@ -125,6 +128,7 @@ describe(
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      await assertPostgresAppRoleForRlsTests(getPrisma());
       resetLazyTicketingServiceForTests();
       listener = createRequestListener({});
       const admin = getPrismaAdmin();

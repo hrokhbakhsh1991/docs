@@ -8,10 +8,13 @@ import { after, before, describe, it } from "node:test";
 
 import { createRequestListener } from "../app";
 import { resetLazyTicketingServiceForTests } from "../boot/lazy-ticketing-service";
-import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
-import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
+import {
+  assertPostgresAppRoleForRlsTests,
+  nextPostgresTestTicketNumber,
+} from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import { processTicketSlaOnce } from "./process-ticket-sla-once";
 import {
@@ -129,6 +132,7 @@ describe(
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
       process.env.TICKETING_SLA_WORKER_ENABLED = "true";
+      await assertPostgresAppRoleForRlsTests(getPrisma());
       resetLazyTicketingServiceForTests();
       listener = createRequestListener({});
       const admin = getPrismaAdmin();

@@ -10,8 +10,9 @@ import { PrismaClient } from "@prisma/client";
 
 import { createRequestListener } from "../src/app";
 import { resetLazyTicketingServiceForTests } from "../src/boot/lazy-ticketing-service";
-import { disconnectPrisma } from "../src/db/prisma";
+import { disconnectPrisma, getPrisma } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
+import { assertPostgresAppRoleForRlsTests } from "../src/workspace-ticketing/ticketing-postgres-test-helpers";
 
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
@@ -141,6 +142,7 @@ describe(
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
       process.env.OUTBOX_RELAY_ENABLED = "false";
+      await assertPostgresAppRoleForRlsTests(getPrisma());
       resetLazyTicketingServiceForTests();
 
       admin = new PrismaClient({ datasources: { db: { url: resolveAdminUrl() } } });
