@@ -35,7 +35,7 @@ Repository Denali tokens (`member-pages.css`, `engagement-skin.css`) remain prim
 | 1 | Where does engagement appear on member dashboard? | **Second block** after next tour | Registration/trip is operational priority (hypothesis confirmed in browser) |
 | 2 | Above or below next-tour card? | **Below** | Payment/registration urgency outweighs points |
 | 3 | Dashboard vs dedicated page? | Dashboard: level, points, progress, ≤3 earned badges, next-badge hint, CTA. Detail: full history + all badges | Reduces noise; supports deep dive without cluttering home |
-| 4 | Points vs wallet? | Separate metric blocks + persistent `notMoney` disclaimer; status row labels wallet explicitly | Prevents financial confusion (MEG-001 non-goal) |
+| 4 | Points vs wallet? | **Separate sections** — engagement (points, no currency) then wallet (IRR balance, currency hint, last transaction, CTA). Status row excludes wallet | Prevents financial confusion (MEG-001); WALLET-MEG-01 browser proof |
 | 5 | Which badges on dashboard? | Up to 3 earned + next unearned hint | Enough recognition without flat four-badge list |
 | 6 | Primary CTA? | “View engagement details” → `/me/engagement` | Clear path to history |
 | 7 | Operator placement? | Secondary nav module `/engagement`; not dashboard hero | Operational audit tool, not decoration |
@@ -52,8 +52,8 @@ Repository Denali tokens (`member-pages.css`, `engagement-skin.css`) remain prim
 
 ## 3. Current strengths (post-remediation)
 
-- Next tour → engagement → account status order matches task priority
-- Participation points use alpine accent; wallet copy separated semantically
+- Next tour → engagement → **wallet** → account status order matches task priority
+- Participation points use alpine accent; wallet block uses monetary styling (`dir="ltr"`, IRR labels)
 - Progress bar accessible; reduced-motion safe
 - Dedicated `/me/engagement` for history and full badge grid
 - Operator overview uses PageHeader, Cards, localized labels, member lookup
@@ -81,7 +81,7 @@ Repository Denali tokens (`member-pages.css`, `engagement-skin.css`) remain prim
 
 ## 5. Acceptance criteria (closure)
 
-- [x] Member dashboard: next tour first, engagement second, status third
+- [x] Member dashboard: next tour first, engagement second, **wallet third**, status fourth
 - [x] Points visually distinct from wallet; `notMoney` visible on dashboard and detail
 - [x] Progress bar with ARIA on dashboard when next level exists
 - [x] `/me/engagement` with history, badges, localized event labels, formatted dates
@@ -89,7 +89,8 @@ Repository Denali tokens (`member-pages.css`, `engagement-skin.css`) remain prim
 - [x] Operator: PageHeader, Cards, localized events/badges, empty states, member lookup
 - [x] Denali `engagement-skin.css` imported in admin bundle
 - [x] BEFORE/AFTER screenshots at 1440×900, 1280×800, 390×844, 360×800 (member + operator)
-- [x] Playwright smoke + Axe updated and passing
+- [x] WALLET-MEG dashboard integration: points + IRR balance simultaneous (Playwright WALLET-MEG-01/02/03)
+- [x] Dashboard wallet screenshots desktop + mobile RTL (`denali-dashboard-wallet-engagement-*.png`)
 - [x] Lint/build on touched apps
 
 ---
@@ -97,9 +98,30 @@ Repository Denali tokens (`member-pages.css`, `engagement-skin.css`) remain prim
 ## 6. Remaining risks
 
 - Portal smoke uses `operator.portal.localhost` host (workspace fixture); Denali-specific portal host may differ in production apex routing — monitor WRS host binding.
-- Wallet balance on dashboard still `null` in BFF wiring (pre-existing); status row hidden until wallet module connected.
+- Denali **default club** (`denali.localhost` / tenant `…000003`) remains wallet-disabled by design (`WALLET-CERT-D01`); pilot tenant is authoritative wallet activation surface.
 - Member lookup requires operator to know UUID (acceptable V1; future: search by phone).
 
 ---
 
-_Verdict target: `GAMIFICATION_UI_UX_COMPLETE` when browser evidence ledger rows are green._
+## 7. Wallet dashboard integration (WALLET-MEG)
+
+| Check | Result | Evidence |
+| ----- | ------ | -------- |
+| Engagement points without currency | PASS | WALLET-MEG-01 asserts no ریال in points block |
+| Wallet balance with IRR formatting | PASS | `data-portal-member-wallet-dashboard-balance` |
+| CTA to `/me/wallet` | PASS | WALLET-MEG-02 |
+| Denied member wallet hidden on dashboard | PASS | WALLET-MEG-03 `data-portal-member-wallet-state=hidden` |
+| Upstream BFF (no engagement coupling) | PASS | `resolve-member-wallet-bff.server.ts` |
+| Entitlement gate before wallet fetch | PASS | `resolveMemberDashboardWalletSummary` |
+
+**External UX references (Phase 7)**
+
+| Source | Principle applied | Decision |
+| ------ | ----------------- | -------- |
+| [WCAG 2.2 — Understanding SC 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | Programmatic structure for distinct metrics | Separate `<section>` + headings for engagement vs wallet |
+| [Material Design 3 — Typography](https://m3.material.io/styles/typography/overview) | Hierarchy via type scale, not color alone | Eyebrow + title per block; wallet amount `dir="ltr"` |
+| [MDN — Intl.NumberFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat) | Locale-aware currency | Reuse `formatMemberWalletMinorAmount` for IRR zero-decimal |
+
+---
+
+_Verdict: `GAMIFICATION_UI_UX_COMPLETE` (engagement remediation). Wallet dashboard: `WALLET_V1_AND_GAMIFICATION_INTEGRATION_COMPLETE`._
