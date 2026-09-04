@@ -14,7 +14,8 @@
     "primaryNav": "ناوبری اصلی",
     "more": "بیشتر",
     "memberFallback": "عضو",
-    "wallet": "کیف پول"
+    "wallet": "کیف پول",
+    "tickets": "پشتیبانی"
   },
   "locale": {
     "fa": "FA",
@@ -160,6 +161,67 @@
       "trips": "ثبت‌نام‌ها، وضعیت پرداخت و جزئیات سفرهای فعال خود را پیگیری کنید."
     }
   },
+  "dashboard": {
+    "engagementEyebrow": "مشارکت",
+    "engagementTitle": "مشارکت و پیشرفت",
+    "engagementDisabled": "ردیابی مشارکت برای این باشگاه هنوز فعال نیست.",
+    "pointsValue": "{points} امتیاز مشارکت",
+    "levelValue": "سطح: {level}",
+    "nextLevelProgress": "{points} امتیاز تا سطح بعدی",
+    "badgeEarned": "کسب‌شده",
+    "badgeProgress": "{percent}٪ تا این نشان",
+    "nextTourTitle": "تور ثبت‌نام‌شده بعدی",
+    "noUpcomingTour": "تور ثبت‌نام‌شده‌ای در پیش نیست.",
+    "viewRegistrations": "مشاهده ثبت‌نام‌ها",
+    "statusTitle": "وضعیت حساب",
+    "profileComplete": "پروفایل تکمیل است",
+    "profileIncomplete": "برای ثبت‌نام امن‌تر پروفایل را تکمیل کنید",
+    "walletSeparate": "موجودی کیف پول (جدا از امتیاز): {balance}",
+    "walletTitle": "کیف پول",
+    "walletEyebrow": "موجودی پولی",
+    "walletViewDetails": "مشاهده کیف پول",
+    "walletLastTransaction": "آخرین تراکنش: {kind} {amount}",
+    "walletUnavailable": "موجودی کیف پول در حال حاضر در دسترس نیست.",
+    "openTickets": "{count} تیکت پشتیبانی باز",
+    "levels": {
+      "base_camp": "اردوگاه پایه",
+      "trail_member": "عضو مسیر",
+      "summit_circle": "حلقه قله"
+    },
+    "badges": {
+      "trailhead_ready": { "label": "آماده مسیر" },
+      "first_expedition": { "label": "اولین برنامه" },
+      "summit_rookie": { "label": "تازه‌کار قله" },
+      "ridge_partner": { "label": "هم‌مسیر یال" }
+    }
+  },
+  "engagement": {
+    "title": "مشارکت",
+    "lede": "امتیاز مشارکت، پیشرفت سطح و نشان‌های کسب‌شده.",
+    "pointsLabel": "امتیاز مشارکت",
+    "levelLabel": "سطح فعلی",
+    "notMoney": "امتیاز مشارکت — جدا از موجودی کیف پول.",
+    "viewDetails": "مشاهده جزئیات مشارکت",
+    "progressAria": "{percent}٪ پیشرفت تا سطح بعدی",
+    "nextBadge": "نشان بعدی: {badge} ({percent}٪ تکمیل)",
+    "historyTitle": "فعالیت امتیاز اخیر",
+    "badgesTitle": "نشان‌ها",
+    "emptyHistory": "هنوز فعالیت امتیازی ندارید. پروفایل را تکمیل کنید یا در تور ثبت‌نام کنید.",
+    "emptyBadges": "هنوز نشانی کسب نکرده‌اید.",
+    "loadFailed": "بارگذاری جزئیات مشارکت ناموفق بود.",
+    "backToHome": "بازگشت به خانه",
+    "eventTypes": {
+      "profile_completed": "تکمیل پروفایل",
+      "registration_first_approved": "تأیید اولین ثبت‌نام تور",
+      "engagement_points_reversed": "تعدیل امتیاز",
+      "engagement_points_manual_adjustment": "تعدیل امتیاز"
+    },
+    "history": {
+      "correction": "اصلاح امتیاز",
+      "reversal": "برگشت امتیاز",
+      "reversalDetail": "امتیاز این رویداد اصلاح شد"
+    }
+  },
   "hub": {
     "title": "بیشتر",
     "lede": "ماژول‌های کم‌استفاده‌تر یا مسیرهای تکمیلی حساب شما اینجا جمع می‌شوند.",
@@ -170,7 +232,8 @@
     "empty": "هنوز ماژول اضافه‌ای در دسترس نیست.",
     "linkDescriptions": {
       "default": "از این مسیر وارد یکی از ابزارهای تکمیلی حساب خود شوید.",
-      "wallet": "وقتی این ماژول فعال شود، وضعیت اعتبار یا کیف پول شما از اینجا در دسترس خواهد بود."
+      "wallet": "وقتی این ماژول فعال شود، وضعیت اعتبار یا کیف پول شما از اینجا در دسترس خواهد بود.",
+      "tickets": "درخواست‌های پشتیبانی و گفتگو با تیم باشگاه."
     }
   },
   "unauthorized": {
@@ -203,6 +266,104 @@
       "operator_credit": "واریز",
       "operator_debit": "برداشت",
       "reversal": "برگشت"
+    }
+  },
+  "tickets": {
+    "title": "پشتیبانی",
+    "lede": "درخواست‌های پشتیبانی خود را ببینید و با تیم باشگاه گفتگو کنید.",
+    "newTitle": "درخواست پشتیبانی جدید",
+    "newLede": "موضوع و توضیحات را وارد کنید تا تیم ما پیگیری کند.",
+    "detailTitle": "درخواست {id}",
+    "newCta": "درخواست پشتیبانی جدید",
+    "filterAria": "فیلتر وضعیت",
+    "filterAll": "همه",
+    "loadError": "بارگذاری درخواست‌ها ممکن نشد.",
+    "retry": "تلاش دوباره",
+    "emptyTitle": "هنوز درخواستی ندارید",
+    "emptyBody": "برای ارتباط با تیم پشتیبانی، یک درخواست جدید ثبت کنید.",
+    "loadMore": "نمایش بیشتر",
+    "loadingMore": "در حال بارگذاری…",
+    "messageCount": "{count} پیام",
+    "backToList": "بازگشت به فهرست",
+    "viewerReadOnlyBanner": "دسترسی فقط خواندنی — می‌توانید همه تیکت‌های باشگاه را ببینید اما نمی‌توانید پاسخ دهید یا درخواست جدید بسازید.",
+    "timelineTitle": "گفتگو",
+    "linksTitle": "پیوندهای مرتبط",
+    "composerLabel": "ارسال پاسخ",
+    "submit": "ثبت درخواست",
+    "submitting": "در حال ارسال…",
+    "sendReply": "ارسال پیام",
+    "createError": "ثبت درخواست ممکن نشد. دوباره تلاش کنید.",
+    "replyError": "ارسال پیام ممکن نشد.",
+    "reopen": "بازگشایی درخواست",
+    "reopening": "در حال بازگشایی…",
+    "reopenError": "بازگشایی درخواست ممکن نشد.",
+    "replySuccess": "پیام شما ارسال شد.",
+    "reopenSuccess": "درخواست بازگشایی شد.",
+    "advancedSectionToggle": "پیوند به تور یا ثبت‌نام (اختیاری)",
+    "advancedSectionHint": "فقط در صورتی که پشتیبانی از شما شناسه سفر خواسته است این بخش را پر کنید.",
+    "fields": {
+      "category": "دسته‌بندی",
+      "subject": "موضوع",
+      "body": "متن پیام",
+      "relatedTourId": "شناسه تور (اختیاری)",
+      "relatedRegistrationId": "شناسه ثبت‌نام (اختیاری)"
+    },
+    "validation": {
+      "subject": "موضوع باید حداقل ۳ کاراکتر باشد.",
+      "body": "متن پیام الزامی است.",
+      "category": "دسته‌بندی معتبر انتخاب کنید."
+    },
+    "statuses": {
+      "open": "باز",
+      "pending_member": "در انتظار پاسخ شما",
+      "resolved": "حل‌شده",
+      "closed": "بسته‌شده"
+    },
+    "priorities": {
+      "low": "کم",
+      "normal": "معمولی",
+      "high": "بالا",
+      "urgent": "فوری"
+    },
+    "categories": {
+      "general": "عمومی",
+      "billing": "مالی",
+      "tour": "تور و ثبت‌نام",
+      "technical": "فنی"
+    },
+    "banners": {
+      "open": "درخواست شما باز است و تیم در حال بررسی است.",
+      "pending_member": "تیم پاسخ داده؛ لطفاً پیام خود را ارسال کنید.",
+      "resolved": "این درخواست حل شده است. در صورت نیاز می‌توانید بازگشایی کنید.",
+      "closed": "این درخواست بسته شده و امکان ارسال پیام جدید وجود ندارد."
+    },
+    "linkTypes": {
+      "tour": "تور",
+      "registration": "ثبت‌نام",
+      "payment": "پرداخت",
+      "wallet": "کیف پول"
+    },
+    "errors": {
+      "TICKET_CLOSED": "این درخواست بسته شده است.",
+      "TICKET_MODULE_DISABLED": "ماژول پشتیبانی فعال نیست."
+    },
+    "disabled": {
+      "title": "پشتیبانی",
+      "moduleDisabled": "ماژول پشتیبانی برای این باشگاه فعال نیست.",
+      "workspaceDisabled": "پشتیبانی برای این فضای کاری در دسترس نیست.",
+      "entitlementDenied": "به ماژول پشتیبانی دسترسی ندارید."
+    },
+    "attachments": {
+      "label": "پیوست",
+      "upload": "بارگذاری پیوست",
+      "uploading": "در حال بارگذاری…",
+      "success": "پیوست بارگذاری شد.",
+      "unsupportedType": "نوع فایل پشتیبانی نمی‌شود.",
+      "tooLarge": "حجم فایل بیش از حد مجاز است.",
+      "intentFailed": "شروع بارگذاری ممکن نشد.",
+      "uploadFailed": "بارگذاری فایل ناموفق بود.",
+      "completeFailed": "تکمیل بارگذاری ممکن نشد.",
+      "createHint": "پس از ثبت درخواست می‌توانید پیوست را در صفحه گفتگو اضافه کنید."
     }
   },
   "detail": {
@@ -265,5 +426,15 @@
     "saving": "در حال ذخیره…",
     "saved": "ذخیره شد.",
     "error": "ذخیره نشد. دوباره تلاش کنید."
+  },
+  "notifications": {
+    "title": "اعلان‌ها",
+    "lede": "به‌روزرسانی‌های تیکت پشتیبانی شما.",
+    "bellAria": "{count, plural, =0 {اعلان‌ها} one {# اعلان خوانده‌نشده} other {# اعلان خوانده‌نشده}}",
+    "loading": "در حال بارگذاری اعلان‌ها…",
+    "loadError": "بارگذاری اعلان‌ها ناموفق بود.",
+    "retry": "تلاش دوباره",
+    "empty": "اعلانی ندارید.",
+    "markAllRead": "علامت‌گذاری همه به‌عنوان خوانده‌شده"
   }
 }

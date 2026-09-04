@@ -1,0 +1,231 @@
+---
+title: Feature Delivery — Blocker Recovery
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/stop-conditions.mdoc
+  - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
+---
+
+# Feature Delivery — Blocker Recovery (FDA-001 v1.2)
+
+**Purpose:** Define mandatory **intelligent blocker recovery** — the agent must not halt on the first failure. Classify blockers, investigate with evidence, form up to **three hypotheses**, apply the smallest scoped fix, and resume the requirement queue unless a **hard stop** applies.
+
+**Principle:** Recovery attempts are **evidence-backed**. Internet research never overrides security, tenant/RLS, migration rewrite, production access, or unresolved product/architecture hard stops.
+
+---
+
+## 1. Recovery vs hard stop
+
+| Outcome          | When                                                                                                                                                                                                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Recover**      | Classified blocker has a local fix path; investigation is evidenced; mandatory matrix rows can advance                                                                                                                       |
+| **Hard stop**    | Any condition in [stop-conditions](stop-conditions.mdoc) §1–§4, §7 — security/RLS ambiguity, migration rewrite, production mutation, unresolved product decision, architecture-reviewer `blocked`/`pivot` without acceptance |
+| **Queue resume** | After recovery — continue from last unfinished mandatory matrix item                                                                                                                                                         |
+
+**Never** mark a feature `COMPLETE` while any mandatory item is `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+
+---
+
+## 2. Blocker categories
+
+Every blocker receives exactly one primary category:
+
+| Category                          | ID prefix | Examples                                                                              |
+| --------------------------------- | --------- | ------------------------------------------------------------------------------------- |
+| Code or test failure              | `BR-CODE` | Failing spec, guard script, type error, lint, build break                             |
+| Test failure (subset)             | `BR-TEST` | Same playbook as `BR-CODE` — alias for test-only failures                             |
+| Dependency or library behavior    | `BR-DEP`  | Semver API change, Prisma/Playwright/Node behavior, transitive import                 |
+| Environment / browser / runtime   | `BR-ENV`  | Missing `DATABASE_URL`, port conflict, dev server down, Playwright timeout, axe flake |
+| Missing evidence                  | `BR-EVID` | Claim without ledger row, skipped gate without artifact, matrix row open              |
+| Architecture ambiguity            | `BR-ARCH` | Classifier `unknown`, multi-consumer shape unclear, design-freeze conflict            |
+| Security / tenant / RLS ambiguity | `BR-SEC`  | **Hard stop** — tenant scope, FORCE RLS plan, superuser RLS proof, cross-tenant leak  |
+| Missing product decision          | `BR-PROD` | **Hard stop** — scope expansion, contract shape, feature flag policy                  |
+
+`BR-SEC` and `BR-PROD` default to **hard stop** unless the user/architect has already recorded an explicit unlock in chat or Markdoc.
+
+---
+
+## 3. Recovery lifecycle (mandatory)
+
+### 3.0 Eleven-step loop (every recoverable blocker)
+
+1. **Classify** — assign category (§2).
+2. **Inspect** — exact error, stderr, and relevant source.
+3. **Adjacent implementations** — find working similar code in repo.
+4. **Scripts and environment** — `package.json` scripts, env files, service health.
+5. **Repository history and docs** — related Markdoc, ADRs, prior fixes.
+6. **Focused web research** — when cause unclear or external API behavior involved ([research-and-design-gate](research-and-design-gate.mdoc) §5); record in `research.json`.
+7. **Hypotheses** — form up to **three** evidence-based hypotheses (ordered).
+8. **Smallest fix** — apply narrowest in-scope change within `scopePaths`.
+9. **Narrowest rerun** — failing check only, then targeted regression.
+10. **Evidence ledger** — append command rows; update `blocker-investigation.json`.
+11. **Resume queue** — return to last unfinished requirement-queue item.
+
+After **three failed hypotheses**, or when category is `BR-SEC` / `BR-PROD` / architecture hard stop → emit STOP report with evidence and options.
+
+```mermaid
+flowchart TD
+  fail[Failure or blocked matrix row] --> classify[Classify blocker category]
+  classify --> hard{Hard stop category?}
+  hard -->|yes| stop[Emit STOP report]
+  hard -->|no| investigate[Investigate with evidence]
+  investigate --> hypothesis[Form hypothesis]
+  hypothesis --> fix[Smallest scoped fix or env remediation]
+  fix --> rerun[Rerun failing test + regression]
+  rerun --> pass{Resolved?}
+  pass -->|yes| artifact[Write blocker-investigation.json]
+  pass -->|no| retry{Attempts exhausted?}
+  retry -->|no| investigate
+  retry -->|yes| stop
+  artifact --> resume[Resume requirement queue]
+```
+
+### 3.1 Never stop on first failure
+
+1. Record the failure in the evidence ledger (`result=fail` or `blocked`).
+2. Classify per §2.
+3. If hard stop → [stop report](stop-conditions.mdoc) §9 — **do not** continue implementation on that path.
+4. If recoverable → execute **11-step loop** (§3.0) and category playbook (§4).
+5. After resolution → append `blocker-investigation.json`, update ledger and `requirement-queue.json`, **resume queue** from last unfinished mandatory item.
+
+### 3.2 Blocked sub-feature rule
+
+A blocked sub-feature **must not** stop unrelated executable mandatory work. Process the requirement queue; only the blocked row stays `BLOCKED` until recovered or hard-stopped.
+
+### 3.3 Stop only when
+
+- **Three hypotheses** exhausted with evidence, **or**
+- Category is hard stop (`BR-SEC`, `BR-PROD`, reviewer `blocked`/`pivot` without acceptance), **or**
+- Explicit human architecture/product decision required.
+
+---
+
+## 4. Category playbooks
+
+### 4.1 Code or test failure (`BR-CODE`)
+
+1. Capture exact command, exit code, and stderr/artifact.
+2. Inspect the **full call graph** and related consumers (codebase-memory graph, `trace_path`, grep).
+3. Search repository: implementation, tests, migrations, `package.json` scripts, related Markdoc.
+4. Form a **hypothesis** (one sentence).
+5. Implement the **smallest scoped fix** within `scopePaths`.
+6. Rerun the failing test **and** relevant regression tests (same package + direct consumers).
+7. Ledger every command.
+
+### 4.2 Dependency or library behavior (`BR-DEP`)
+
+1. Identify package name and **exact version** from lockfile / `package.json`.
+2. Search **official documentation** first (vendor docs, README, changelog).
+3. Use web research **only** for current external facts not in the repo.
+4. Record in `blocker-investigation.json` → `searches[]`: URL, version, finding, applied conclusion.
+5. **Never** rely on an unverified blog or search snippet as sole evidence.
+6. Apply smallest fix (pin, API adaptation, test expectation update with justification).
+7. Rerun failing + regression tests.
+
+### 4.3 Environment / browser / runtime (`BR-ENV`)
+
+1. Inspect: environment variables, ports, service health (`/health`), process logs, routes, browser console, network requests.
+2. Start **only permitted** local services per `AGENTS.md` / Cloud instructions — no production/staging mutation.
+3. Retry the **smallest reproducible flow** (single spec, single curl, single page).
+4. **Never** claim browser verification if the flow was not actually executed.
+5. Record screenshots/logs under `/opt/cursor/artifacts/` when UI proof is required.
+
+### 4.4 Missing evidence (`BR-EVID`)
+
+1. Identify which matrix row or report claim lacks a ledger row.
+2. Run the exact missing command; append ledger row with `exit_code` and artifact.
+3. If env blocks execution → row stays `UNVERIFIED` (not `COMPLETE`); continue other queue items.
+
+### 4.5 Architecture ambiguity (`BR-ARCH`)
+
+1. Scan **all repository consumers** and related phase/standard documents.
+2. Compare proposed design with existing ports, contracts, events, and schemas.
+3. Invoke **architecture-reviewer** for a fresh verdict.
+4. On `proceed` / `proceed_with_accepted_risk` → resume implementation.
+5. On `pivot` / `blocked` → hard stop per [SC-ARCH-03](stop-conditions.mdoc).
+
+### 4.6 Security / tenant / RLS (`BR-SEC`) — hard stop
+
+No internet research override. Emit STOP report; await architect direction.
+
+### 4.7 Missing product decision (`BR-PROD`) — hard stop
+
+No scope expansion without user gate. Emit STOP report with options.
+
+---
+
+## 5. blocker-investigation.json
+
+**Location:** `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (gitignored; one file per blocker; use array append or numbered files `blocker-<blockerId>.json`).
+
+**Required fields:**
+
+```json
+{
+  "blockerId": "BR-CODE-001",
+  "category": "code_or_test_failure",
+  "symptoms": "guard-no-raw-queries failed on ticketing-e1.operations.ts",
+  "localEvidence": [
+    "apps/api/scripts/guard-no-raw-queries.mjs forbids .findById(",
+    "ticketing-attachment.repository.ts method name triggered false positive"
+  ],
+  "codeAnalysis": "Repository helper named findById matched guard regex; rename to findAttachmentById",
+  "searches": [],
+  "hypotheses": ["Guard matches method name not Prisma call — rename repo method"],
+  "commandsRun": [
+    { "command": "pnpm --filter @apps/api run guard:tenant-isolation", "exitCode": 1 },
+    { "command": "pnpm --filter @apps/api run guard:tenant-isolation", "exitCode": 0 }
+  ],
+  "outcomes": "Guard PASS after rename; E1 postgres spec unchanged",
+  "decision": "recovered",
+  "resumedCheckpoint": "CP5",
+  "timestamp": "2026-09-04T13:00:00.000Z"
+}
+```
+
+| Field               | Type     | Required                  | Description                                                                                                                                                                                    |
+| ------------------- | -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `blockerId`         | string   | yes                       | Stable id e.g. `BR-CODE-001`                                                                                                                                                                   |
+| `category`          | enum     | yes                       | See §2 table (`code_or_test_failure`, `dependency_or_library`, `environment_browser_runtime`, `missing_evidence`, `architecture_ambiguity`, `security_tenant_rls`, `missing_product_decision`) |
+| `symptoms`          | string   | yes                       | What failed and where                                                                                                                                                                          |
+| `localEvidence`     | string[] | yes                       | Repo paths, log excerpts, guard output                                                                                                                                                         |
+| `codeAnalysis`      | string   | yes                       | Call graph / consumer findings                                                                                                                                                                 |
+| `searches`          | object[] | when `BR-DEP` or external | `{ "url", "version", "finding", "appliedConclusion" }`                                                                                                                                         |
+| `hypotheses`        | string[] | yes                       | Ordered attempts                                                                                                                                                                               |
+| `commandsRun`       | object[] | yes                       | `{ "command", "exitCode", "artifact"? }`                                                                                                                                                       |
+| `outcomes`          | string   | yes                       | Pass/fail after recovery                                                                                                                                                                       |
+| `decision`          | enum     | yes                       | `recovered` \| `hard_stop` \| `deferred`                                                                                                                                                       |
+| `resumedCheckpoint` | string   | yes                       | e.g. `CP5`, `matrix-row-TKT-CAP-14`                                                                                                                                                            |
+| `timestamp`         | ISO8601  | yes                       | UTC                                                                                                                                                                                            |
+
+Link ledger rows: `gate_id=blocker.<blockerId>`.
+
+---
+
+## 6. Requirement queue integration
+
+| Step         | Action                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Build matrix | All mandatory rows with status                                                                     |
+| On failure   | Classify → recover or hard stop                                                                    |
+| On recovery  | Set row to `PARTIAL` or re-run verification → `COMPLETE` only with evidence                        |
+| Resume       | Next non-`BLOCKED` mandatory row in plan order                                                     |
+| Final        | **Forbidden** `COMPLETE` while any row is `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, `UNVERIFIED` |
+
+---
+
+## 7. Related documents
+
+| Doc                                                     | Role                                             |
+| ------------------------------------------------------- | ------------------------------------------------ |
+| [stop-conditions](stop-conditions.mdoc)                 | Hard stops — no recovery override                |
+| [evidence-ledger-schema](evidence-ledger-schema.mdoc)   | Ledger + `blocker-investigation.json` storage    |
+| [architecture-classifier](architecture-classifier.mdoc) | `BR-ARCH` signals                                |
+| [research-and-design-gate](research-and-design-gate.mdoc) | Research policy, requirement queue, UI/UX gate       |
+| [tiered-testing](../tiered-testing.md)                  | Fast-track vs heavy gates during recovery reruns |
+
+---
+
+_Subdoc of FDA-001 v1.2. Blocker recovery is mandatory for all FDA sessions._

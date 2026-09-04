@@ -1,0 +1,257 @@
+---
+title: Feature Delivery Agent (FDA-001)
+standard_id: FDA-001
+version: 1.2.0
+status: draft
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/tiered-testing.md
+  - docs/dev/feature-delivery/architecture-classifier.mdoc
+  - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
+  - docs/dev/feature-delivery/stop-conditions.mdoc
+  - docs/dev/feature-delivery/blocker-recovery.mdoc
+  - docs/dev/feature-delivery/notification-case-study.mdoc
+  - docs/dev/feature-delivery/research-and-design-gate.mdoc
+mandatory_for:
+  - .cursor/agents
+  - .cursor/skills
+  - .cursor/rules
+code_sot:
+  - docs/dev/feature-delivery-agent.mdoc
+---
+
+# Feature Delivery Agent (FDA-001)
+
+**Purpose:** Define a reusable, repository-level **architecture-aware feature delivery orchestrator** for the app-tour **pnpm workspace** monorepo. The agent performs deep discovery, product/design/UI-UX planning, architecture classification, consumer analysis, bounded research, vertical-slice implementation, browser verification, evidence-backed blocker recovery, and scope-guarded commit/push on a **locked branch**.
+
+**Principle:** The agent is an orchestrator, not an autonomous architect. Static scripts may emit **signals**; **architecture decisions** require a read-only **architecture-reviewer** subagent (or equivalent human gate). The agent never silently changes branch, worktree, scope, architecture boundary, or product contract. It stops only for genuine human architecture/security/product decisions after evidenced recovery attempts.
+
+**Canonical Cursor paths:** `.cursor/rules/`, `.cursor/skills/`, `.cursor/agents/`, `.cursor/hooks.json`.
+
+---
+
+## 1. Scope
+
+### 1.1 In scope
+
+| Concern | Agent responsibility |
+| ------- | -------------------- |
+| Deep discovery | Repo instructions, pnpm graph, routes, BFFs, ports, outbox, Prisma/RLS, tests, manifests, docs — [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc) §1 |
+| Requirement inventory | Capability classification and status — never conflate stub/route with complete feature |
+| Product / design / UI-UX gate | Reviewable brief before code — [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc) §3, §6 |
+| Architecture classification | [architecture-classifier](feature-delivery/architecture-classifier.mdoc) |
+| Consumer scan | ≥2 consumers when platform candidate; re-run at CP3 and CP4 |
+| Internet research | Official sources when uncertainty warrants — [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc) §5 |
+| Planning | CP2 implementation plan with verification matrix |
+| Vertical slice | One end-to-end path before breadth |
+| Mid-flight architecture review | architecture-reviewer at CP0, CP1, CP3, CP4, CP5, CP7 |
+| Verification | Tiered tests/guards per [tiered-testing](tiered-testing.md) |
+| Blocker recovery | 11-step loop, 3 hypotheses max — [blocker-recovery](feature-delivery/blocker-recovery.mdoc) |
+| Queued execution | Independent work continues when sub-feature blocked |
+| Evidence report | Ledger-backed final report — [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) |
+| Commit / push | Same locked branch only; scope-guarded staging |
+
+### 1.2 Out of scope (this charter)
+
+- Implementing unified notification platform (see [notification-case-study](feature-delivery/notification-case-study.mdoc))
+- **NX** task graph orchestration (repo uses **pnpm workspace** only)
+- Overriding Cursor Cloud branch behavior — actual branch ≠ locked branch → **hard-stop** (§3)
+- Automatic revert of user changes
+- Staging/production deploy, secret injection, migration rewrite
+
+---
+
+## 2. Session contract
+
+### 2.1 Branch lock
+
+| Field | Semantics |
+| ----- | --------- |
+| `lockedBranch` | Session start branch — **immutable** |
+| `initialHead` | `git rev-parse HEAD` at start — evidence baseline |
+| `currentHead` | Updated after authorized commits |
+| `scopePaths` | Glob allowlist from CP0/CP2 plan |
+
+**Rules:**
+
+1. Stay on `lockedBranch` entire session.
+2. Branch mismatch at any checkpoint → hard-stop ([stop-conditions](feature-delivery/stop-conditions.mdoc) §1).
+3. Forbidden without unlock: `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, force-push.
+
+### 2.2 Working tree
+
+- Unexpected dirty tree at start → hard-stop until scope acknowledged.
+- Never auto-revert user WIP.
+
+### 2.3 Doc-first covenant
+
+Changes under `packages/platform-core`, `packages/workspace-sdk`, or `apps/api` require Markdoc under `docs/` first — [`.cursorrules`](../../.cursorrules).
+
+---
+
+## 3. Lifecycle
+
+```mermaid
+flowchart TD
+  start[SessionStart] --> cp0[CP0: Discovery + requirement inventory]
+  cp0 --> cp1a[CP1: Product + IA analysis]
+  cp1a --> cp1b[CP1: UI UX Pro Max advisory]
+  cp1b --> cp1c[CP1: Design-system review + ui-ux-decision.json]
+  cp1c --> cp2[CP2: Plan + consumer review]
+  cp2 --> cp3[CP3: Vertical slice]
+  cp3 --> cp4[CP4: Pre-DB shared contract]
+  cp4 --> cp5[CP5: UI browser integration]
+  cp5 --> bqc[BQC: Browser quality verification]
+  bqc --> cp6[CP6: Verification + blocker recovery]
+  cp6 --> cp7[CP7: Commit push final report]
+  cp6 -->|failure| recover[Blocker recovery 3 hypotheses]
+  recover -->|recovered| cp6
+  recover -->|exhausted| stop[HardStop]
+```
+
+### 3.1 Checkpoints
+
+| ID | When | Mandatory actions |
+| -- | ---- | ----------------- |
+| **CP0** | Before first file edit | Deep discovery; requirement inventory; classifier; consumer scan; architecture-reviewer when required |
+| **CP1** | Before implementation | Product/IA analysis; UI UX Pro Max advisory; design-system review; **ui-ux-decision.json** (24 sections); design brief; architecture-reviewer |
+| **CP2** | Before slice | Implementation plan; future-consumer review; user/plan gate |
+| **CP3** | First vertical slice | Smallest E2E path; reviewer on diff; re-run consumer analysis |
+| **CP4** | Before DB/shared contracts | Doc-first; RLS; dedupe; architecture-reviewer |
+| **CP5** | Before UI sign-off | Browser proof; RTL/LTR; tokens; accessibility; screenshots |
+| **CP6** | Verification | Fast-track tests; ledger; blocker recovery; queue updates |
+| **CP7** | Commit/push | Scope guard; final report with every queue item |
+
+**Legacy mapping (v1.1 → v1.2):** old CP1 (slice) → CP3; old CP2 (pre-DB) → CP4; old CP3 (UI) → CP5; old CP4–CP5 (commit/push) → CP7.
+
+### 3.2 User control and autonomy
+
+After **CP1 design + CP2 plan approval**, agent may execute CP3–CP7 without micro-prompts. Mandatory gates remain non-optional. Unresolved product intent, shared contracts, security/RLS, or scope expansion → hard-stop.
+
+---
+
+## 4. Architecture-reviewer
+
+Static scripts (Phase C) emit **signals** only.
+
+**Final decisions** require read-only **architecture-reviewer** with: requirement inventory, design brief, UI/UX decisions, consumer scan, research sources, actual diff, verification evidence.
+
+Returns structured JSON including `classification`, `confidence`, `consumers`, `researchSources`, `designFindings`, `missingEvidence`, `risks`, `verdict`, `stopId`, `requiredDecision`, `recommendedNextStep`.
+
+Keyword match alone is **insufficient** — [architecture-classifier](feature-delivery/architecture-classifier.mdoc) §4.
+
+**Regression fixture:** [notification-case-study](feature-delivery/notification-case-study.mdoc).
+
+---
+
+## 5. Verification policy
+
+```bash
+pnpm run pre-commit:fast && pnpm run guard:import-boundary
+pnpm run test:changed   # when behavior changed
+```
+
+Heavy gates require explicit user **YES**.
+
+**test-changed gaps:** feature-scoped blocker; run explicit package test; ledger both rows — [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) §6.
+
+Postgres/RLS: `DATABASE_URL` with `app_tour` role (NOSUPERUSER).
+
+---
+
+## 6. Blocker recovery
+
+Mandatory per [blocker-recovery](feature-delivery/blocker-recovery.mdoc):
+
+1. Never halt on first failure.
+2. 11-step loop with up to **3 hypotheses**.
+3. Blocked sub-features do not stop unrelated queue items.
+4. Hard stops not overridable by research.
+5. `COMPLETE` forbidden while mandatory rows open.
+
+---
+
+## 7. Evidence and final report
+
+Session artifacts per [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) and [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc).
+
+Final report minimum:
+
+1. Branch, heads, working tree
+2. **Requirement queue** — every item and status
+3. Classification and reviewer verdict(s)
+4. Files changed (scope allowlist)
+5. Capability status table
+6. Test/guard matrix; artifacts (screenshots, research URLs)
+7. Remaining / accepted risks
+8. Commit SHAs and push result
+
+**Forbidden claims:** COMPLETE with open rows; admin usability from read-only catalog; browser success from curl; production readiness from local tests only; architecture approval without reviewer evidence; test pass without ledger command.
+
+---
+
+## 8. Related standards
+
+| Standard | Link |
+| -------- | ---- |
+| Workspace boundaries | [AGENTS.md](../../AGENTS.md), [app-tour-architecture skill](../../.cursor/skills/app-tour-architecture/SKILL.md) |
+| API workspace agnosticism | [workspace-api-capabilities](../standards/workspace-api-capabilities.mdoc) |
+| Member session | [member-session-portal-authority](../standards/member-session-portal-authority.mdoc) |
+| Routing | [workspace-routing-standard](../standards/workspace-routing-standard.mdoc) |
+| Browser quality / E2E closure | [browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md) (BQC-001) |
+| UI/UX design intelligence (advisory) | [ui-ux-pro-max skill](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md) |
+| Notification design freeze | [SK2_NOTIFICATION_OUTBOX](../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) |
+
+---
+
+## 9. Phase rollout
+
+| Phase | Deliverable | Status |
+| ----- | ----------- | ------ |
+| **A** | Charter + subdocs | Done |
+| **B** | Cursor agents/skills/rules | Done |
+| **B.2** | v1.2 discovery, design, research, queue, recovery | **Current** |
+| **B.3** | Browser Quality & E2E Closure sub-agent (BQC-001) | **Current** |
+| **B.4** | UI UX Pro Max design-intelligence integration (advisory) | **Current** |
+| **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI | Planned |
+| **D** | `test-changed` path map fixes | Planned |
+
+---
+
+## 10. Specialized sub-agents
+
+### 10.1 Browser Quality & E2E Closure (BQC-001)
+
+When work is **browser-quality audit or E2E gap closure** (not greenfield feature delivery), use the specialized sub-agent instead of improvising Playwright fixes:
+
+| Resource | Path |
+| -------- | ---- |
+| Skill | [`.cursor/skills/browser-quality-closure/SKILL.md`](../../.cursor/skills/browser-quality-closure/SKILL.md) |
+| Read-only reviewer | [`.cursor/agents/browser-quality-reviewer.md`](../../.cursor/agents/browser-quality-reviewer.md) |
+
+**Inherits FDA-001:** branch lock, scope lock, evidence ledger, blocker recovery (3 hypotheses), tenant/RLS hard stops, Denali/Urban/starter isolation, no silent post-v1 downgrades, no fake `COMPLETE` claims.
+
+**Delivers:** browser coverage matrix, test-realness audit, bug reproduction record, traces/screenshots, capability status per journey, explicit unverified items.
+
+**Critical flows** require real browser → real route → real backend → persistence/permission proof — not API-only or mock-only tests.
+
+### 10.2 UI UX Pro Max design intelligence (advisory)
+
+For **every user-visible feature**, CP1 requires an evidence-based UI/UX decision brief before source implementation.
+
+| Resource | Path |
+| -------- | ---- |
+| Integration adapter | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md) |
+| Upstream audit | [`.cursor/skills/ui-ux-pro-max/UPSTREAM-AUDIT.md`](../../.cursor/skills/ui-ux-pro-max/UPSTREAM-AUDIT.md) |
+| Session artifact | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json` |
+
+**Workflow:** discovery → product/IA → UI UX Pro Max (when available) → repository design-system review → `ui-ux-decision.json` → implementation → BQC verification → screenshots/accessibility evidence.
+
+**Priority (highest first):** product requirements → repository tokens/primitives → Denali/Urban/starter rules → accessibility/RTL/LTR → UI UX Pro Max recommendations.
+
+**Never** claim UI UX Pro Max was used when skill or Python was unavailable (`uiUxProMaxUsed: false` + fallback checklist).
+
+---
+
+_FDA-001 v1.2.0 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery._

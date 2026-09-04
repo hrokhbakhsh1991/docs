@@ -207,5 +207,9 @@ export async function patchOperatorProfile(
     auth.userId,
     profilePatch
   );
-  return toProfileResponse(user, membership);
+  const response = await toProfileResponse(user, membership);
+  const { isMemberProfileComplete } = await import("../workspace-engagement/evaluate-profile-completion");
+  const { processProfileEngagementAward } = await import("../workspace-engagement/process-engagement-awards");
+  await processProfileEngagementAward(auth, isMemberProfileComplete(response)).catch(() => undefined);
+  return response;
 }

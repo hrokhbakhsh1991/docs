@@ -509,6 +509,7 @@
       "TOUR_TRANSPORT_FETCH_FAILED": "بارگذاری حمل‌ونقل ناموفق بود.",
       "TOUR_TRANSPORT_TOUR_HTTP_404": "تور برای roster حمل‌ونقل پیدا نشد.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "رزروهای حمل‌ونقل پیدا نشد.",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_503": "سرویس رزروهای حمل‌ونقل موقتاً در دسترس نیست. لطفاً دوباره تلاش کنید.",
       "TOUR_TRANSPORT_TOUR_HTTP_500": "بارگذاری تور حمل‌ونقل ناموفق بود (خطای سرور).",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "بارگذاری رزروهای حمل‌ونقل ناموفق بود (خطای سرور)."
     }

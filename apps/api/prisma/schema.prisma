@@ -64,6 +64,35 @@ model Tenant {
   financeReconFindings        FinanceReconFinding[]
   financeReconActions         FinanceReconAction[]
   outboxReplayRuns            OutboxReplayRun[]
+  tickets                     Ticket[]
+  ticketMessages              TicketMessage[]
+  ticketEvents                TicketEvent[]
+  ticketAttachments           TicketAttachment[]
+  ticketLinks                 TicketLink[]
+  ticketTags                  TicketTag[]
+  ticketTagAssignments        TicketTagAssignment[]
+  ticketQueues                TicketQueue[]
+  ticketTeams                 TicketTeam[]
+  ticketTeamMembers           TicketTeamMember[]
+  ticketNotifications         TicketNotification[]
+  ticketNotificationDeliveries TicketNotificationDelivery[]
+  memberNotifications         MemberNotification[]
+  memberNotificationDeliveries MemberNotificationDelivery[]
+  ticketSlaPolicies           TicketSlaPolicy[]
+  ticketSlaStates             TicketSlaState[]
+  ticketSlaEscalationActivations TicketSlaEscalationActivation[]
+  ticketTemplates              TicketTemplate[]
+  ticketTemplateRevisions      TicketTemplateRevision[]
+  ticketTemplateAutomationActivations TicketTemplateAutomationActivation[]
+  ticketNumberCounter            TicketNumberCounter?
+  ticketWorkspaceSettings        TicketWorkspaceSettings?
+  engagementProfiles             EngagementProfile[]
+  engagementPointEvents          EngagementPointEvent[]
+  memberEngagementBadges         MemberEngagementBadge[]
+  engagementBadgeDefinitions     EngagementBadgeDefinition[]
+  engagementLevelDefinitions     EngagementLevelDefinition[]
+  engagementAwardRuleDefinitions EngagementAwardRuleDefinition[]
+  engagementDefinitionAuditLogs  EngagementDefinitionAuditLog[]
 
   @@map("tenants")
 }
@@ -1068,4 +1097,650 @@ model DenaliExposureReminderActivation {
   @@unique([tenantId, tourId, reminderOffset], map: "uq_denali_exposure_reminder_activations_idempotency")
   @@index([tenantId, activatedAt(sort: Desc)], map: "idx_denali_exposure_reminder_activations_tenant_activated")
   @@map("denali_exposure_reminder_activations")
+}
+
+/// TKT-001 Phase B1 — support ticket aggregate root (tenant-scoped; RLS enforced).
+model Ticket {
+  id                     String             @id @default(uuid()) @db.Uuid
+  tenantId               String             @map("tenant_id") @db.Uuid
+  requesterUserId        String             @map("requester_user_id") @db.Uuid
+  assigneeUserId         String?            @map("assignee_user_id") @db.Uuid
+  assigneeTeamId         String?            @map("assignee_team_id") @db.Uuid
+  queueId                String?            @map("queue_id") @db.Uuid
+  categoryCode           String             @map("category_code") @db.VarChar(64)
+  priority               String
+  status                 String
+  subject                String             @db.VarChar(200)
+  ticketNumber           Int                @map("ticket_number")
+  creationIdempotencyKey String?            @map("creation_idempotency_key")
+  lastActivityAt         DateTime           @map("last_activity_at") @db.Timestamptz
+  resolvedAt             DateTime?          @map("resolved_at") @db.Timestamptz
+  closedAt               DateTime?          @map("closed_at") @db.Timestamptz
+  onHold                 Boolean            @default(false) @map("on_hold")
+  onHoldReason           String?            @map("on_hold_reason") @db.Text
+  rowVersion             Int                @default(1) @map("row_version")
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                 Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  queue                  TicketQueue?       @relation(fields: [tenantId, queueId], references: [tenantId, id], onDelete: SetNull)
+  assigneeTeam           TicketTeam?        @relation(fields: [tenantId, assigneeTeamId], references: [tenantId, id], onDelete: SetNull)
+  messages               TicketMessage[]
+  events                 TicketEvent[]
+  attachments            TicketAttachment[]
+  links                  TicketLink[]
+  tagAssignments         TicketTagAssignment[]
+  notifications          TicketNotification[]
+  slaState               TicketSlaState?
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, creationIdempotencyKey])
+  @@unique([tenantId, ticketNumber], map: "uq_tickets_tenant_number")
+  @@index([tenantId, status, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_status_last_activity")
+  @@index([tenantId, requesterUserId, createdAt(sort: Desc)], map: "idx_tickets_tenant_requester_created")
+  @@index([tenantId, assigneeUserId, status], map: "idx_tickets_tenant_assignee_status")
+  @@index([tenantId, assigneeTeamId, status], map: "idx_tickets_tenant_assignee_team_status")
+  @@index([tenantId, queueId, status], map: "idx_tickets_tenant_queue_status")
+  @@index([tenantId, priority, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_priority_last_activity")
+  @@index([tenantId, categoryCode, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_category_last_activity")
+  @@index([tenantId, createdAt(sort: Desc)], map: "idx_tickets_tenant_created")
+  @@map("tickets")
+}
+
+/// TKT-001 Phase B1 — ticket thread messages (public member-visible or internal operator notes).
+model TicketMessage {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  ticketId       String             @map("ticket_id") @db.Uuid
+  authorUserId   String             @map("author_user_id") @db.Uuid
+  visibility     String
+  body           String             @db.Text
+  idempotencyKey String?            @map("idempotency_key") @db.VarChar(128)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket         Ticket             @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  attachments    TicketAttachment[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, ticketId, idempotencyKey])
+  @@index([tenantId, ticketId, createdAt], map: "idx_ticket_messages_tenant_ticket_created")
+  @@map("ticket_messages")
+}
+
+/// TKT-001 Phase B1 — product timeline events (distinct from compliance AuditEvent).
+model TicketEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  ticketId    String   @map("ticket_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  eventType   String   @map("event_type")
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket      Ticket   @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([tenantId, ticketId, createdAt(sort: Desc)], map: "idx_ticket_events_tenant_ticket_created")
+  @@index([tenantId, createdAt(sort: Desc)], map: "idx_ticket_events_tenant_created")
+  @@map("ticket_events")
+}
+
+/// TKT-001 Phase E1 — attachment metadata + upload intent (storage via TenantObjectStoragePort).
+model TicketAttachment {
+  id                     String         @id @default(uuid()) @db.Uuid
+  tenantId               String         @map("tenant_id") @db.Uuid
+  ticketId               String         @map("ticket_id") @db.Uuid
+  messageId              String?        @map("message_id") @db.Uuid
+  uploadedByUserId       String         @map("uploaded_by_user_id") @db.Uuid
+  objectKey              String         @map("object_key")
+  originalFileName       String         @map("original_file_name")
+  contentType            String         @map("content_type")
+  sizeBytes              Int            @map("size_bytes")
+  scanStatus             String         @default("pending") @map("scan_status")
+  uploadedAt             DateTime?      @map("uploaded_at") @db.Timestamptz
+  idempotencyKey         String?        @map("idempotency_key")
+  uploadIntentExpiresAt  DateTime?      @map("upload_intent_expires_at") @db.Timestamptz
+  checksum               String?
+  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt              DateTime?      @map("deleted_at") @db.Timestamptz
+  tenant                 Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket                 Ticket         @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  message                TicketMessage? @relation(fields: [tenantId, messageId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, idempotencyKey], map: "uq_ticket_attachments_tenant_idempotency_key")
+  @@index([tenantId, ticketId, createdAt(sort: Desc)], map: "idx_ticket_attachments_tenant_ticket_created")
+  @@map("ticket_attachments")
+}
+
+/// TKT-001 Phase B1 — normalized business-entity links (tour, registration, payment, wallet).
+model TicketLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket     Ticket   @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, ticketId, entityType, entityId], map: "uq_ticket_links_tenant_ticket_entity")
+  @@index([tenantId, entityType, entityId], map: "idx_ticket_links_tenant_entity")
+  @@map("ticket_links")
+}
+
+/// TKT-001 Phase D1 — tenant-scoped operational tags.
+model TicketTag {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  code       String    @db.VarChar(64)
+  label      String
+  colorToken String?   @map("color_token")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion Int       @default(1) @map("row_version")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignments TicketTagAssignment[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, id])
+  @@map("ticket_tags")
+}
+
+/// TKT-001 Phase D1 — ticket ↔ tag composite relation.
+model TicketTagAssignment {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  tagCode   String   @map("tag_code") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket    Ticket   @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  tag       TicketTag @relation(fields: [tenantId, tagCode], references: [tenantId, code], onDelete: Cascade)
+
+  @@id([tenantId, ticketId, tagCode])
+  @@index([tenantId, tagCode], map: "idx_ticket_tag_assignments_tenant_tag")
+  @@map("ticket_tag_assignments")
+}
+
+/// TKT-001 Phase D1 — tenant-scoped operator queues (persisted filter views).
+model TicketQueue {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  code        String    @db.VarChar(64)
+  name        String
+  description String?
+  enabled     Boolean   @default(true)
+  sortOrder   Int       @default(0) @map("sort_order")
+  filterJson  Json      @default("{}") @map("filter_json")
+  teamId      String?   @map("team_id") @db.Uuid
+  isDefault   Boolean   @default(false) @map("is_default")
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion  Int       @default(1) @map("row_version")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team        TicketTeam? @relation(fields: [tenantId, teamId], references: [tenantId, id], onDelete: SetNull)
+  tickets     Ticket[]
+  slaPolicies TicketSlaPolicy[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, id])
+  @@index([tenantId, enabled, sortOrder], map: "idx_ticket_queues_tenant_enabled_sort")
+  @@map("ticket_queues")
+}
+
+/// TKT-001 Phase D1 — tenant-scoped operator teams.
+model TicketTeam {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  code        String    @db.VarChar(64)
+  name        String
+  description String?
+  isDefault   Boolean   @default(false) @map("is_default")
+  enabled     Boolean   @default(true)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion  Int       @default(1) @map("row_version")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members     TicketTeamMember[]
+  queues      TicketQueue[]
+  tickets     Ticket[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, id])
+  @@map("ticket_teams")
+}
+
+/// TKT-001 Phase D1 — team membership (ACTIVE UserTenant required at API layer).
+model TicketTeamMember {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  teamId    String   @map("team_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team      TicketTeam @relation(fields: [tenantId, teamId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, teamId, userId])
+  @@index([tenantId, userId], map: "idx_ticket_team_members_tenant_user")
+  @@map("ticket_team_members")
+}
+
+/// TKT-001 Phase H1 — durable ticket notification inbox (tenant + user scoped; RLS enforced).
+model TicketNotification {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  ticketId      String    @map("ticket_id") @db.Uuid
+  eventType     String    @map("event_type")
+  title         String
+  body          String    @db.Text
+  domainEventId String    @map("domain_event_id")
+  payload       Json      @default("{}")
+  readAt        DateTime? @map("read_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket        Ticket    @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  deliveries    TicketNotificationDelivery[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId, domainEventId], map: "uq_ticket_notifications_recipient_event")
+  @@index([tenantId, userId, createdAt(sort: Desc)], map: "idx_ticket_notifications_tenant_user_created")
+  @@index([tenantId, userId, readAt], map: "idx_ticket_notifications_tenant_user_read")
+  @@map("ticket_notifications")
+}
+
+/// TKT-001 Phase H1 — async email/SMS delivery with retry (provider-agnostic).
+model TicketNotificationDelivery {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  notificationId String             @map("notification_id") @db.Uuid
+  channel        String
+  provider       String             @default("noop")
+  status         String             @default("pending")
+  attemptCount   Int                @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime?          @map("next_attempt_at") @db.Timestamptz
+  lastError      Json?              @map("last_error")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  processedAt    DateTime?          @map("processed_at") @db.Timestamptz
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notification   TicketNotification @relation(fields: [tenantId, notificationId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, notificationId, channel], map: "uq_ticket_notification_deliveries_channel")
+  @@index([status, nextAttemptAt, createdAt], map: "idx_ticket_notification_deliveries_claim")
+  @@index([tenantId, status, createdAt], map: "idx_ticket_notification_deliveries_tenant_status")
+  @@map("ticket_notification_deliveries")
+}
+
+/// MNI-001 / SK2.D+ — domain-agnostic member notification inbox (RLS enforced).
+model MemberNotification {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  sourceModule String    @map("source_module")
+  eventType    String    @map("event_type")
+  entityType   String    @map("entity_type")
+  entityId     String?   @map("entity_id") @db.Uuid
+  title        String
+  body         String    @db.Text
+  titleKey     String?   @map("title_key")
+  bodyKey      String?   @map("body_key")
+  templateKey  String?   @map("template_key")
+  dedupeKey    String    @map("dedupe_key")
+  payload      Json      @default("{}")
+  readAt       DateTime? @map("read_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries   MemberNotificationDelivery[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId, dedupeKey], map: "uq_member_notifications_recipient_dedupe")
+  @@index([tenantId, userId, createdAt(sort: Desc)], map: "idx_member_notifications_tenant_user_created")
+  @@index([tenantId, userId, readAt], map: "idx_member_notifications_tenant_user_read")
+  @@index([tenantId, sourceModule, entityType, entityId], map: "idx_member_notifications_tenant_entity")
+  @@map("member_notifications")
+}
+
+/// MNI-001 — async email/SMS delivery retries for member notifications.
+model MemberNotificationDelivery {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  notificationId String             @map("notification_id") @db.Uuid
+  channel        String
+  provider       String             @default("noop")
+  status         String             @default("pending")
+  attemptCount   Int                @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime?          @map("next_attempt_at") @db.Timestamptz
+  lastError      Json?              @map("last_error")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  processedAt    DateTime?          @map("processed_at") @db.Timestamptz
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notification   MemberNotification @relation(fields: [tenantId, notificationId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, notificationId, channel], map: "uq_member_notification_deliveries_channel")
+  @@index([status, nextAttemptAt, createdAt], map: "idx_member_notification_deliveries_claim")
+  @@index([tenantId, status, createdAt], map: "idx_member_notification_deliveries_tenant_status")
+  @@map("member_notification_deliveries")
+}
+
+/// MEG-001 — member engagement profile (points cache + level).
+model EngagementProfile {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  workspaceId      String   @map("workspace_id")
+  userId           String   @map("user_id") @db.Uuid
+  totalPoints      Int      @default(0) @map("total_points")
+  currentLevelCode String   @default("base_camp") @map("current_level_code")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  badges           MemberEngagementBadge[]
+  pointEvents      EngagementPointEvent[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, userId])
+  @@index([tenantId, workspaceId, totalPoints(sort: Desc)], map: "idx_engagement_profiles_tenant_workspace_points")
+  @@map("engagement_profiles")
+}
+
+/// MEG-001 — immutable engagement point ledger.
+model EngagementPointEvent {
+  id               String            @id @default(uuid()) @db.Uuid
+  tenantId         String            @map("tenant_id") @db.Uuid
+  workspaceId      String            @map("workspace_id")
+  userId           String            @map("user_id") @db.Uuid
+  profileId        String            @map("profile_id") @db.Uuid
+  pointsDelta      Int               @map("points_delta")
+  sourceModule     String            @map("source_module")
+  sourceEventType  String            @map("source_event_type")
+  sourceEntityId   String?           @map("source_entity_id") @db.Uuid
+  dedupeKey        String            @map("dedupe_key")
+  reversesEventId  String?           @map("reverses_event_id") @db.Uuid
+  actorUserId      String?           @map("actor_user_id") @db.Uuid
+  actorRole        String?           @map("actor_role")
+  reason           String?
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile          EngagementProfile @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Cascade)
+  reversesEvent    EngagementPointEvent? @relation("EngagementPointEventReversal", fields: [tenantId, reversesEventId], references: [tenantId, id], onDelete: Restrict)
+  reversalOf       EngagementPointEvent[] @relation("EngagementPointEventReversal")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, dedupeKey], map: "uq_engagement_point_events_dedupe")
+  @@index([tenantId, userId, createdAt(sort: Desc)], map: "idx_engagement_point_events_tenant_user_created")
+  @@index([tenantId, workspaceId, createdAt(sort: Desc)], map: "idx_engagement_point_events_tenant_workspace_created")
+  @@map("engagement_point_events")
+}
+
+/// MEG-001 — earned member badges (idempotent per badge code).
+model MemberEngagementBadge {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  workspaceId String            @map("workspace_id")
+  userId      String            @map("user_id") @db.Uuid
+  profileId   String            @map("profile_id") @db.Uuid
+  badgeCode   String            @map("badge_code")
+  earnedAt    DateTime          @default(now()) @map("earned_at") @db.Timestamptz
+  dedupeKey   String            @map("dedupe_key")
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile     EngagementProfile @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId, badgeCode], map: "uq_member_engagement_badges_user_badge")
+  @@unique([tenantId, dedupeKey], map: "uq_member_engagement_badges_dedupe")
+  @@index([tenantId, workspaceId, earnedAt(sort: Desc)], map: "idx_member_engagement_badges_tenant_workspace_earned")
+  @@map("member_engagement_badges")
+}
+
+/// MEG-001 — operator-managed badge definitions (tenant + workspace scoped).
+model EngagementBadgeDefinition {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  workspaceId       String    @map("workspace_id")
+  code              String
+  titleI18n         Json      @map("title_i18n")
+  descriptionI18n   Json      @map("description_i18n")
+  iconKey           String    @map("icon_key")
+  status            String    @default("active")
+  triggerKind       String    @map("trigger_kind")
+  triggerEventType  String?   @map("trigger_event_type")
+  triggerMinPoints  Int?      @map("trigger_min_points")
+  rowVersion        Int       @default(1) @map("row_version")
+  archivedAt        DateTime? @map("archived_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, code], map: "uq_engagement_badge_definitions_code")
+  @@index([tenantId, workspaceId, status], map: "idx_engagement_badge_definitions_tenant_workspace_status")
+  @@map("engagement_badge_definitions")
+}
+
+/// MEG-001 — operator-managed level definitions.
+model EngagementLevelDefinition {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  workspaceId     String   @map("workspace_id")
+  code            String
+  titleI18n       Json     @map("title_i18n")
+  descriptionI18n Json     @map("description_i18n")
+  minPoints       Int      @map("min_points")
+  sortOrder       Int      @default(0) @map("sort_order")
+  status          String   @default("active")
+  rowVersion      Int      @default(1) @map("row_version")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, code], map: "uq_engagement_level_definitions_code")
+  @@index([tenantId, workspaceId, status, minPoints], map: "idx_engagement_level_definitions_tenant_workspace_points")
+  @@map("engagement_level_definitions")
+}
+
+/// MEG-001 — versioned award rule definitions.
+model EngagementAwardRuleDefinition {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  workspaceId   String    @map("workspace_id")
+  eventType     String    @map("event_type")
+  sourceModule  String    @map("source_module")
+  points        Int
+  badgeCode     String?   @map("badge_code")
+  status        String    @default("active")
+  effectiveFrom DateTime  @default(now()) @map("effective_from") @db.Timestamptz
+  effectiveTo   DateTime? @map("effective_to") @db.Timestamptz
+  dedupePolicy  String    @default("per_user") @map("dedupe_policy")
+  version       Int       @default(1)
+  rowVersion    Int       @default(1) @map("row_version")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, eventType, version], map: "uq_engagement_award_rule_definitions_version")
+  @@index([tenantId, workspaceId, status, effectiveFrom], map: "idx_engagement_award_rule_definitions_active")
+  @@map("engagement_award_rule_definitions")
+}
+
+/// MEG-001 — append-only audit log for definition mutations.
+model EngagementDefinitionAuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  workspaceId  String   @map("workspace_id")
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id") @db.Uuid
+  action       String
+  actorUserId  String   @map("actor_user_id") @db.Uuid
+  actorRole    String   @map("actor_role")
+  beforeJson   Json?    @map("before_json")
+  afterJson    Json?    @map("after_json")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, workspaceId, createdAt(sort: Desc)], map: "idx_engagement_definition_audit_logs_tenant_created")
+  @@map("engagement_definition_audit_logs")
+}
+
+/// TKT-001 Phase I1 — SLA policy definitions (tenant-scoped; RLS enforced).
+model TicketSlaPolicy {
+  id                      String    @id @default(uuid()) @db.Uuid
+  tenantId                String    @map("tenant_id") @db.Uuid
+  code                    String    @db.VarChar(64)
+  name                    String
+  workspaceType           String?   @map("workspace_type")
+  categoryCode            String?   @map("category_code") @db.VarChar(64)
+  priority                String?
+  queueId                 String?   @map("queue_id") @db.Uuid
+  firstResponseMinutes    Int       @map("first_response_minutes")
+  nextResponseMinutes     Int       @map("next_response_minutes")
+  resolutionMinutes       Int       @map("resolution_minutes")
+  businessHoursJson       Json      @default("{}") @map("business_hours_json")
+  escalationStepsJson     Json      @default("[]") @map("escalation_steps_json")
+  warningThresholdPercent Int       @default(80) @map("warning_threshold_percent")
+  enabled                 Boolean   @default(true)
+  archivedAt              DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion              Int       @default(1) @map("row_version")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  queue                   TicketQueue? @relation(fields: [tenantId, queueId], references: [tenantId, id], onDelete: SetNull)
+  states                  TicketSlaState[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, enabled], map: "idx_ticket_sla_policies_tenant_enabled")
+  @@map("ticket_sla_policies")
+}
+
+/// TKT-001 Phase I1 — per-ticket SLA clock state.
+model TicketSlaState {
+  tenantId                 String    @map("tenant_id") @db.Uuid
+  ticketId                 String    @map("ticket_id") @db.Uuid
+  policyId                 String    @map("policy_id") @db.Uuid
+  firstResponseDueAt       DateTime? @map("first_response_due_at") @db.Timestamptz
+  nextResponseDueAt        DateTime? @map("next_response_due_at") @db.Timestamptz
+  resolutionDueAt          DateTime? @map("resolution_due_at") @db.Timestamptz
+  firstRespondedAt         DateTime? @map("first_responded_at") @db.Timestamptz
+  lastMemberMessageAt      DateTime? @map("last_member_message_at") @db.Timestamptz
+  breachedAt               DateTime? @map("breached_at") @db.Timestamptz
+  escalationLevel          Int       @default(0) @map("escalation_level")
+  pausedAt                 DateTime? @map("paused_at") @db.Timestamptz
+  pausedMs                 Int       @default(0) @map("paused_ms")
+  firstResponseWarningAt   DateTime? @map("first_response_warning_at") @db.Timestamptz
+  nextResponseWarningAt    DateTime? @map("next_response_warning_at") @db.Timestamptz
+  resolutionWarningAt      DateTime? @map("resolution_warning_at") @db.Timestamptz
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket                   Ticket    @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  policy                   TicketSlaPolicy @relation(fields: [tenantId, policyId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([tenantId, ticketId])
+  @@index([tenantId, firstResponseDueAt], map: "idx_ticket_sla_states_first_due")
+  @@index([tenantId, nextResponseDueAt], map: "idx_ticket_sla_states_next_due")
+  @@index([tenantId, resolutionDueAt], map: "idx_ticket_sla_states_resolution_due")
+  @@map("ticket_sla_states")
+}
+
+/// TKT-001 Phase I1 — idempotent SLA escalation activations.
+model TicketSlaEscalationActivation {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  ticketId         String   @map("ticket_id") @db.Uuid
+  escalationLevel  Int      @map("escalation_level")
+  activatedAt      DateTime @default(now()) @map("activated_at") @db.Timestamptz
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, ticketId, escalationLevel], map: "uq_ticket_sla_escalation_activations")
+  @@map("ticket_sla_escalation_activations")
+}
+
+/// TKT-001 Phase J1 — ticketing message/notification templates (tenant-scoped; RLS enforced).
+model TicketTemplate {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  code            String    @db.VarChar(64)
+  title           String
+  body            String    @db.Text
+  channel         String    @db.VarChar(32)
+  locale          String    @db.VarChar(8)
+  enabled         Boolean   @default(true)
+  version         Int       @default(1)
+  workspaceType   String?   @map("workspace_type")
+  isSystemDefault Boolean   @default(false) @map("is_system_default")
+  archivedAt      DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion      Int       @default(1) @map("row_version")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  revisions       TicketTemplateRevision[]
+
+  @@unique([tenantId, code, channel, locale], map: "uq_ticket_templates_scope")
+  @@unique([tenantId, id])
+  @@index([tenantId, channel, locale, enabled], map: "idx_ticket_templates_tenant_channel")
+  @@map("ticket_templates")
+}
+
+/// TKT-001 Phase J1 — immutable template revision snapshots for rollback.
+model TicketTemplateRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  templateId      String   @map("template_id") @db.Uuid
+  version         Int
+  title           String
+  body            String   @db.Text
+  channel         String   @db.VarChar(32)
+  locale          String   @db.VarChar(8)
+  enabled         Boolean
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template        TicketTemplate @relation(fields: [tenantId, templateId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, templateId, version], map: "uq_ticket_template_revisions_version")
+  @@map("ticket_template_revisions")
+}
+
+/// TKT-001 Phase J1 — idempotent template automation activations per domain event.
+model TicketTemplateAutomationActivation {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  domainEventId String   @map("domain_event_id") @db.VarChar(128)
+  templateCode  String   @map("template_code") @db.VarChar(64)
+  locale        String   @db.VarChar(8)
+  channel       String   @db.VarChar(32)
+  ticketId      String?  @map("ticket_id") @db.Uuid
+  activatedAt   DateTime @default(now()) @map("activated_at") @db.Timestamptz
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, domainEventId, templateCode, locale, channel], map: "uq_ticket_template_automation_activations")
+  @@map("ticket_template_automation_activations")
+}
+
+/// TKT-001 Phase K1 — per-tenant monotonic ticket number allocator.
+model TicketNumberCounter {
+  tenantId   String @id @map("tenant_id") @db.Uuid
+  nextNumber Int    @default(1) @map("next_number")
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_number_counters")
+}
+
+/// TKT-001 Phase K1 — workspace ticketing settings overrides (manifest baseline + DB).
+model TicketWorkspaceSettings {
+  tenantId                 String   @id @map("tenant_id") @db.Uuid
+  moduleEnabledOverride    Boolean? @map("module_enabled_override")
+  allowedPriorities        Json?    @map("allowed_priorities")
+  maxAttachmentSizeBytes   Int?     @map("max_attachment_size_bytes")
+  notificationPreferences  Json     @default("{}") @map("notification_preferences")
+  slaDefaults              Json     @default("{}") @map("sla_defaults")
+  disabledCategoryCodes    Json     @default("[]") @map("disabled_category_codes")
+  rowVersion               Int      @default(1) @map("row_version")
+  updatedAt                DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  updatedByUserId          String?  @map("updated_by_user_id") @db.Uuid
+  tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_workspace_settings")
 }

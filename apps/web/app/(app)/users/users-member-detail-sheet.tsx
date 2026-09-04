@@ -42,6 +42,7 @@ import {
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import { resolveOperatorDetailSheetSide } from "@/i18n/resolve-operator-sheet-side";
 import { isAppLocale } from "@/i18n/routing";
+import { MemberEngagementPanel } from "@/engagement/member-engagement-panel";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
 import { UsersDirectoryAvatar } from "./users-directory-avatar";
@@ -560,6 +561,19 @@ export function UsersMemberDetailSheet({
                 {isOwner ? t("owner.rewardsProtected") : t("memberDetail.notManageable")}
               </p>
             )}
+          </DetailSection>
+
+          <DetailSection
+            title={t("memberDetail.sections.engagement")}
+            description={t("memberDetail.engagementDescription")}
+            testId={USERS_DIRECTORY_TEST_IDS.memberDetailEngagement}
+          >
+            <MemberEngagementPanel
+              userId={activeUser.userId}
+              active={open}
+              actorRole={session.role}
+              memberLabel={activeUser.displayName}
+            />
           </DetailSection>
 
           <DetailSection

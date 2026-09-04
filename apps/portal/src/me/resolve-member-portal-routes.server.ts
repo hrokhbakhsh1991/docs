@@ -13,6 +13,23 @@ export function resolveMemberPortalTripsDetailPath(pluginId: string, registratio
   return `${resolveMemberPortalTripsListPath(pluginId)}/${encodeURIComponent(registrationId)}`;
 }
 
+/** List route for the member ticketing module. */
+export function resolveMemberPortalTicketsListPath(pluginId: string): string {
+  return resolveMemberPortalModuleRoutePath(pluginId, "tickets");
+}
+
+export function resolveMemberPortalHomePath(pluginId: string): string {
+  return resolveMemberPortalModuleRoutePath(pluginId, "home");
+}
+
+export function resolveMemberPortalEngagementPath(pluginId: string): string {
+  return resolveMemberPortalModuleRoutePath(pluginId, "engagement");
+}
+
+export function resolveMemberPortalWalletPath(pluginId: string): string {
+  return resolveMemberPortalModuleRoutePath(pluginId, "wallet");
+}
+
 export function memberPortalIncludesHomeModule(pluginId: string): boolean {
   const contract = resolveMemberPortalContract(pluginId);
   if (contract.availability === "off") {
@@ -24,7 +41,7 @@ export function memberPortalIncludesHomeModule(pluginId: string): boolean {
 /** Back navigation target: home when entitled in contract, else default primary module. */
 export function resolveMemberPortalBackTargetPath(pluginId: string): string | null {
   if (memberPortalIncludesHomeModule(pluginId)) {
-    return resolveMemberPortalModuleRoutePath(pluginId, "home");
+    return resolveMemberPortalHomePath(pluginId);
   }
   return tryResolveMemberPortalDefaultRoutePath(pluginId);
 }

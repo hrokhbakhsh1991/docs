@@ -7,7 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 
 const OPERATOR_SMOKE_BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ?? "http://operator.admin.localhost:3000";
+  process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.operator.localhost:3000";
 
 function stagingLaunchOptions(): { args: string[] } | undefined {
   const vpsIp = process.env.VPS_IP?.trim();
@@ -15,6 +15,7 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
     return undefined;
   }
   const rules = [
+    `MAP admin.operator.localhost ${vpsIp}`,
     `MAP operator.admin.localhost ${vpsIp}`,
     `MAP operator.portal.localhost ${vpsIp}`,
     `MAP operator.localhost ${vpsIp}`,
@@ -31,6 +32,7 @@ export default defineConfig({
     "denali-finance-confidence.spec.ts",
     "denali-finance-ux2-browser-qa.spec.ts",
     "denali-workspace-finance-inbox.spec.ts",
+    "denali-settings-route-matrix.spec.ts",
     "denali-booking-confidence.spec.ts",
     "denali-edit-confidence.spec.ts",
     "denali-clone-confidence.spec.ts",
@@ -50,6 +52,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
+    ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
     ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
   },
   ...(useExternalServers

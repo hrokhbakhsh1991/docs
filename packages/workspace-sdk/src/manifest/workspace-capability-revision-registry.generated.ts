@@ -27,6 +27,7 @@ export const WORKSPACE_CAPABILITY_REVISION_REGISTRY: WorkspaceCapabilityRevision
     "workspaceFinance": 1,
     "workspaceItinerary": 1,
     "workspacePricing": 1,
+    "workspaceTicketing": 1,
     "workspaceTransport": 1,
     "workspaceWallet": 1,
   }),

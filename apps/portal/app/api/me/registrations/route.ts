@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 import type { MemberRegistrationItem } from "@/me/fetch-member-registrations.server";
 
 type BookingsMineResponse = {
@@ -9,7 +10,7 @@ type BookingsMineResponse = {
 };
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const host = req.headers.get("host") ?? "localhost:3003";
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
 
   if (headers.Authorization === undefined) {

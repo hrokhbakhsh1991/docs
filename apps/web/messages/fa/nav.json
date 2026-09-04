@@ -2,8 +2,10 @@
   "dashboard": "داشبورد",
   "tours": "تورها",
   "bookings": "رزروها",
+  "tickets": "پشتیبانی",
   "users": "کاربران",
   "settings": "تنظیمات",
   "finance": "امور مالی",
+  "engagement": "مشارکت",
   "wallet": "کیف پول"
 }

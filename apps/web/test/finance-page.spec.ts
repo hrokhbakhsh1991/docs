@@ -52,7 +52,9 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
       resolve(WEB_ROOT, "app/(app)/finance/finance-command-center.tsx"),
       "utf8"
     );
-    assert.match(shell, /useSearchParams/);
+    // Keep the shell on the app navigation abstraction so tenant/locale routing
+    // remains centralized instead of depending on Next's raw hook directly.
+    assert.match(shell, /useAppSearchParams/);
     assert.match(shell, /router\.replace/);
     assert.match(shell, /type="button"/);
     assert.doesNotMatch(shell, /href=\{`\/finance\?tab=/);

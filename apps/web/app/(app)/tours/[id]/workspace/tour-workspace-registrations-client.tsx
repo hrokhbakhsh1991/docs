@@ -91,6 +91,7 @@ export function TourWorkspaceRegistrationsClient({
       <BookingsPageClient
         session={session}
         lockedTourId={tourId}
+        lockedStatus="all"
         embedded
         opsActions={opsActions}
         onOpsMutationSuccess={reloadWorkspaceChrome}

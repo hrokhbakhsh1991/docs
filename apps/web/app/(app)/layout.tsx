@@ -9,6 +9,15 @@ import {
 } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import { ensureTicketsNavSupported } from "@/features/tickets/tickets-nav-enablement";
+import {
+  allowsOperatorTicketsTeamRole,
+  isOperatorTicketsTeamAccessPath,
+} from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import {
+  allowsOperatorEngagementTeamRole,
+  isOperatorEngagementTeamAccessPath,
+} from "@/engagement/resolve-operator-engagement-middleware-access";
 import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
@@ -61,9 +70,23 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   }
 
   if (!devSmokeHost) {
-    const gate = requireOperatorSessionWeb({ session, pathname, host });
-    if (!gate.allowed) {
-      redirect(gate.redirectTo);
+    const ticketsTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorTicketsTeamAccessPath(pathname) &&
+      allowsOperatorTicketsTeamRole(session.role, "GET");
+
+    const engagementTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorEngagementTeamAccessPath(pathname) &&
+      allowsOperatorEngagementTeamRole(session.role, "GET");
+
+    if (!ticketsTeamAccess && !engagementTeamAccess) {
+      const gate = requireOperatorSessionWeb({ session, pathname, host });
+      if (!gate.allowed) {
+        redirect(gate.redirectTo);
+      }
     }
   } else if (session === null) {
     const returnUrl = encodeURIComponent(pathname);
@@ -76,6 +99,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const tWorkspaces = await getTranslations("app.workspaces");
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
   await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme);
+  await ensureTicketsNavSupported(bootstrap.session.pluginId, tenantTheme);
   const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
   const workspaceNavLinks = await ensureOperatorShellNavLinks(bootstrap.session.pluginId);
   const navItems = resolveOperatorNav({

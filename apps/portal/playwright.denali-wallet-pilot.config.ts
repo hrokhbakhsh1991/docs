@@ -14,7 +14,10 @@ function chromiumHostResolverArgs(): string[] {
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["denali-wallet-pilot-member-certification.spec.ts"],
+  testMatch: [
+    "denali-wallet-pilot-member-certification.spec.ts",
+    "denali-wallet-engagement-dashboard.spec.ts",
+  ],
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,

@@ -1,0 +1,84 @@
+---
+description: Non-negotiable safety and architecture rules for Feature Delivery sessions
+alwaysApply: true
+---
+
+# Feature Delivery — session safety (FDA-001 v1.2)
+
+Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/skills/feature-delivery/SKILL.md`](../skills/feature-delivery/SKILL.md). Charter: [`docs/dev/feature-delivery-agent.mdoc`](../../docs/dev/feature-delivery-agent.mdoc). Design/research: [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
+
+## Git and session
+
+- **Never** change branch or create a worktree during a Feature Delivery session.
+- Lock the **actual** starting branch as `lockedBranch`; verify `git branch --show-current` at every checkpoint.
+- `initialHead` is baseline evidence only; `currentHead` may advance after authorized commits on `lockedBranch`.
+- **Never** modify or revert unrelated user changes. Wrong direction → STOP report + pivot memo, not auto-revert.
+- Forbidden: `merge`, `rebase`, `reset --hard`, `clean`, force-push (unless user explicitly unlocks outside FDA).
+
+## Discovery and design (CP0–CP1)
+
+- **No source implementation** before CP1 design brief is recorded per [research-and-design-gate.mdoc](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
+- CP0 **deep discovery** mandatory — repo instructions, pnpm graph, routes, BFFs, ports, outbox, Prisma/RLS, tests, manifests, docs. Use repository evidence only — never invent paths or commands.
+- **Requirement inventory** with capability status — stub/route/seed/read-only catalog ≠ complete feature.
+- Admin feature incomplete without authorized mutation path, permission checks, validation, audit, browser proof when applicable.
+- **pnpm workspace only** — never NX or `nx affected`.
+
+## Planning and scope
+
+- **Do not implement** before approved CP1 design + CP2 plan.
+- Stage and commit only files within `scopePaths` (+ allowed `docs/**` when doc-first applies).
+- Scope expansion beyond approved plan → hard-stop.
+
+## Architecture
+
+- **architecture-reviewer** mandatory for platform candidates and multi-consumer primitives — [`.cursor/agents/architecture-reviewer.md`](../agents/architecture-reviewer.md).
+- Keyword / classifier signals are **not** architecture decisions.
+- Preserve workspace-agnostic shared primitives (WAC-001).
+- Preserve **Denali / Urban / starter** divergence.
+- **No Big Bang refactor** in a feature session.
+- Notification/inbox: [`notification-case-study.mdoc`](../../docs/dev/feature-delivery/notification-case-study.mdoc) — module-specific multi-consumer → **SC-ARCH-02**.
+
+## Research and UI/UX
+
+- Internet research when official behavior, accessibility, security, UX placement, or unclear blockers warrant it — record in `research.json`; never override repo constraints or hard stops.
+- **Mandatory UI/UX gate (CP1):** for every **user-visible** feature, produce `ui-ux-decision.json` (24 sections) before source implementation — [research-and-design-gate §3.3](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
+- **UI UX Pro Max** is **advisory only** — use when skill + `python3` available per [FDA-INTEGRATION](../skills/ui-ux-pro-max/FDA-INTEGRATION.md); fallback checklist when unavailable; never claim Pro Max used without ledger row.
+- **Priority:** product requirements → repository tokens/primitives → Denali/Urban/starter → accessibility/RTL/LTR → Pro Max recommendations.
+- **UI/UX gate (CP5) + BQC:** inspect existing placement; real browser proof; RTL/LTR; all states; screenshots/traces; [Playwright best practices](https://playwright.dev/docs/best-practices).
+- curl/API/build **never** equals `ui-browser-verified`. Unavailable browser → `ui-unverified` or `ui-accepted-risk`, not PASS.
+
+## Verification and evidence
+
+- **No claim without ledger evidence** — [`evidence-ledger-schema.mdoc`](../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc).
+- **SKIP ≠ PASS.** Skipped checks → `UNVERIFIED`; never `COMPLETE`.
+- Fast-track per [`tiered-testing.md`](../../docs/dev/tiered-testing.md); heavy gates need explicit user **YES**.
+- Never hide failed tests or claim pass without ledger row.
+
+## Blocker recovery (mandatory)
+
+Per [`blocker-recovery.mdoc`](../../docs/dev/feature-delivery/blocker-recovery.mdoc):
+
+- **Never stop on first failure** — 11-step loop; up to **3 evidence-based hypotheses** before STOP.
+- Classify: code, test, dependency, environment/browser/runtime, architecture, security/product.
+- Recoverable: inspect source, adjacent implementations, scripts/env, repo docs, focused web research, smallest fix, narrowest rerun, ledger, resume queue.
+- **Hard stops unchanged:** security/tenant/RLS, migration rewrite, production/secrets, unresolved product decisions — research never overrides.
+- **Blocked sub-feature** must not stop unrelated queue items.
+- Stop only when recovery exhausted or explicit human decision required.
+
+## Full closure
+
+- Audit completion ≠ feature completion.
+- Process queue; blocked items must not stop unrelated work.
+- No `COMPLETE` while any mandatory row or queue item is `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED`.
+- Final report lists **every** queue item status.
+
+## Operations
+
+- **No production/staging mutation** without explicit unlock ([SC-OPS-01](stop-conditions)).
+- Doc-first on `packages/platform-core`, `packages/workspace-sdk`, `apps/api` — [`.cursorrules`](../../.cursorrules).
+
+## Hard stop
+
+If any condition in [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc) fires: **stop**, emit Feature Delivery STOP report with `stopId`, evidence, required decision. Do not continue on that path.
+
+**Recoverable failures** → blocker-recovery first unless `BR-SEC` or `BR-PROD`.

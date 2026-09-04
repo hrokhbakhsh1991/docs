@@ -101,6 +101,9 @@ describe(
             "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only",
           );
         }
+        await admin.outboxEvent.deleteMany({
+          where: { tenantId: { in: [tenantA, tenantB] } },
+        });
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await disconnectPrisma();

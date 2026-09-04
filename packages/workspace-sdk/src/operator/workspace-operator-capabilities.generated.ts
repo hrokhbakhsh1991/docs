@@ -23,4 +23,5 @@ export const WORKSPACE_OPERATOR_CAPABILITIES: Readonly<
   "harbor": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
   "profile-cert": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
   "urban": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
+  "wallet-ws1": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
 });

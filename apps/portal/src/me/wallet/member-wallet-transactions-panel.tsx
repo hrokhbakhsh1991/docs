@@ -26,13 +26,15 @@ export function MemberWalletTransactionsPanel({
   const [isPending, startTransition] = useTransition();
 
   const loadMore = useCallback(() => {
-    if (nextCursor === null || isPending) {
+    const cursor =
+      nextCursor ?? (items.length > 0 ? items[items.length - 1]!.id : null);
+    if (cursor === null || isPending) {
       return;
     }
     startTransition(async () => {
       setErrorCode(null);
       try {
-        const params = new URLSearchParams({ limit: "20", cursor: nextCursor });
+        const params = new URLSearchParams({ limit: "20", cursor });
         const res = await fetch(`/api/me/wallet/transactions?${params.toString()}`, {
           method: "GET",
           cache: "no-store",
@@ -49,7 +51,7 @@ export function MemberWalletTransactionsPanel({
         setErrorCode("BACKEND_UNREACHABLE");
       }
     });
-  }, [isPending, nextCursor]);
+  }, [isPending, items, nextCursor]);
 
   if (items.length === 0) {
     return (

@@ -1,5 +1,5 @@
 /**
- * WALLET-P3C — Denali must remain without Wallet surfaces.
+ * WALLET-P3C — Denali club exposes Wallet when tenant theme enables module.
  */
 import { expect, test } from "@playwright/test";
 
@@ -28,11 +28,11 @@ async function loginDenaliOwner(page: import("@playwright/test").Page): Promise<
   expect(loginRes.ok()).toBeTruthy();
 }
 
-test("WALLET-CERT-D01 Denali has no wallet nav and /wallet is 404", async ({ page }) => {
+test("WALLET-CERT-D01 Denali club has wallet nav and /wallet loads", async ({ page }) => {
   await loginDenaliOwner(page);
   await page.goto("/");
   await expect(page.locator("[data-operator-nav]")).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('[data-operator-nav-link][href="/wallet"]')).toHaveCount(0);
+  await expect(page.locator('[data-operator-nav-link][href="/wallet"]')).toBeVisible();
   const walletResponse = await page.goto("/wallet");
-  expect(walletResponse?.status()).toBe(404);
+  expect(walletResponse?.status()).toBe(200);
 });

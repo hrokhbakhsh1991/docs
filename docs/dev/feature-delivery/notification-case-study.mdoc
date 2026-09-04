@@ -1,0 +1,140 @@
+---
+title: Feature Delivery — Notification Case Study
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/architecture-classifier.mdoc
+  - docs/phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md
+---
+
+# Feature Delivery — Notification Case Study
+
+**Purpose:** Document the **architectural lesson** from ticketing notifications as a **regression fixture** for the architecture-reviewer. This case study does **not** authorize implementation of a unified notification platform.
+
+**Status:** Lesson learned — **historical warning only**. Do **not** interpret this doc as permission to accept ticket-only scope for full-closure features. When user authorizes shared platform path, implement per [member-notification-inbox.mdoc](../../standards/member-notification-inbox.mdoc) and [SK2_D_MEMBER_INBOX.md](../../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md).
+
+---
+
+## 1. Summary
+
+**DECISION (lesson):** A module-specific durable inbox (`TicketNotification` / `ticket_notifications`) is **too narrow** for platform reuse when notifications also serve booking, finance, and wallet domains.
+
+**FACT:** Ticketing Phase H1 implemented Postgres RLS inbox rows coupled to `ticketId` — `apps/api/prisma/schema.prisma` (`TicketNotification` model).
+
+**INFERENCE:** A future shared notification boundary should use domain-agnostic entity references, not ticket FK as the primary inbox key.
+
+---
+
+## 2. Why the initial direction was wrong
+
+The ticketing-specific notification path assumed **in-app notifications == ticket inbox**. That ignored existing and planned consumers:
+
+| Consumer domain | Evidence | Inbox / delivery today |
+| --------------- | -------- | ---------------------- |
+| **Ticketing** | `dispatch-ticket-notification-from-outbox.ts`, `ticket_notifications` table | Postgres RLS; `ticketId` FK; dedupe `(tenantId, userId, domainEventId)` |
+| **Booking / tour** | `dispatch-member-notification-from-outbox.ts` — `registration.approved`, `registration.waitlisted`, etc. | In-memory `member-notification-inbox.repository.ts` (DP-4) |
+| **Payment / debt** | Same dispatcher — `payment.hold.scheduled`, `payment.hold.expired` | In-memory DP-4 |
+| **Wallet** | Planned member events (wallet bounded context ADR) | **No unified inbox** — would duplicate ticketing or DP-4 patterns |
+
+**Second-order consequences if uncaught:**
+
+- Parallel schemas and dedupe keys (`domainEventId` vs `correlationId`)
+- Portal/Web cannot reuse one notification UI model
+- SK2 [NotificationDeliveryPort](../../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) covers **delivery** only — not durable inbox unification
+- Each new module adds another bespoke table or in-memory store
+
+---
+
+## 3. What the architecture-reviewer should have flagged
+
+At **CP0 / CP2**, given feature text mentioning "member notification bell" or "ticket inbox":
+
+1. **Platform candidate:** notifications (classifier §2)
+2. **Consumers ≥2:** ticketing + booking + finance (+ wallet planned)
+3. **Classifier proposal:** likely `module` — **reviewer must reject or accept risk**
+4. **Expected reviewer verdict:** `pivot` or `proceed with ACCEPTED_RISK` — not silent `proceed`
+
+### 3.1 Regression fixture (expected arch-review.json excerpt)
+
+```json
+{
+  "checkpoint": "CP2",
+  "classifierProposal": "module",
+  "platformCandidates": ["notifications"],
+  "consumers": ["ticketing", "booking", "finance", "wallet"],
+  "verdict": "pivot",
+  "finding": "ticket_notifications couples inbox to ticketId; booking uses separate in-memory inbox",
+  "recommendation": "Document module v1; plan shared boundary — do not implement in feature branch without SK2.D+ unlock"
+}
+```
+
+---
+
+## 4. Target shared boundary (design reference only)
+
+**Not implemented.** Fields the platform inbox should eventually support:
+
+| Field | Role |
+| ----- | ---- |
+| `sourceModule` | Originating bounded context (`ticketing`, `booking`, `finance`, `wallet`) |
+| `eventType` | Domain event name (`ticket.message.posted`, `registration.approved`, …) |
+| `entityType` | `ticket`, `registration`, `payment`, `wallet_event`, … |
+| `entityId` | UUID of primary entity (tenant-scoped) |
+| `recipientUserId` | Inbox owner |
+| `channel` | `in_app`, `email`, `sms` |
+| `templateKey` | Opaque template id for i18n / workspace copy |
+| `dedupeKey` | Stable idempotency (`tenantId` + recipient + correlation) |
+| `readAt` | Member/operator read timestamp |
+| `deliveryStatus` | Pending/delivered/failed for async channel rows |
+
+Alignment notes:
+
+- SK2 `NotificationCommand.correlationId` maps to **`dedupeKey`** concept
+- `TicketNotification.domainEventId` is one implementation of dedupe — not the cross-module contract
+- DP-4 in-memory inbox already uses `templateId`, `titleKey`, `bodyKey`, `correlationId` — partial overlap
+
+---
+
+## 5. Current code inventory (read-only facts)
+
+| Piece | Path | Role |
+| ----- | ---- | ---- |
+| SK2 delivery port | `apps/api/src/notifications/notification-delivery.port.ts` | Email/SMS/in_app **delivery** |
+| Registration adapter | `apps/api/src/notifications/dispatch-registration-approved-notification.ts` | First SK2.C consumer |
+| Member outbox dispatcher | `apps/api/src/notifications/dispatch-member-notification-from-outbox.ts` | Booking/payment/tour → in-memory inbox |
+| Ticketing outbox dispatcher | `apps/api/src/notifications/dispatch-ticket-notification-from-outbox.ts` | Ticket events → `ticket_notifications` |
+| Delivery retry worker | `apps/api/src/notifications/process-ticket-notification-deliveries.ts` | Ticketing channel deliveries |
+
+**FACT:** [SK2_NOTIFICATION_OUTBOX](../../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) states no `packages/notification-*` until a second real adapter ships — host composition only.
+
+**BLOCKED:** Unified Postgres inbox migration requires Architect `IMPL-SK2.D+` unlock — **see [SK2_D_MEMBER_INBOX.md](../../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md) when authorized**.
+
+---
+
+## 6. Agent behavior for this fixture
+
+When a feature request touches notifications, outbox→inbox, or "bell badge":
+
+1. Run classifier platform-candidate scan
+2. Invoke architecture-reviewer with this case study as mandatory reference
+3. If plan creates **new module-specific** notification table → **SC-ARCH-02** stop unless explicit accepted risk
+4. Do **not** implement unified notification as drive-by in unrelated features
+5. Record reviewer verdict in `arch-review.json` per [evidence-ledger-schema](evidence-ledger-schema.mdoc)
+
+---
+
+## 7. Related documents
+
+| Doc | Link |
+| --- | ---- |
+| SK2 design freeze | [SK2_NOTIFICATION_OUTBOX.md](../../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) |
+| SK2.C implementation | [SK2_C_IMPLEMENTATION.md](../../phase-saas-kernel/appendices/SK2_C_IMPLEMENTATION.md) |
+| Ticketing notifications (module) | [ticketing-system.mdoc](../../standards/ticketing-system.mdoc) §7.10, Phase H |
+| Ticketing gap remediation | [GAP-REMEDIATION-REPORT.md](../../phase-ticketing/GAP-REMEDIATION-REPORT.md) |
+| Classifier | [architecture-classifier.mdoc](architecture-classifier.mdoc) |
+| Stop conditions | [stop-conditions.mdoc](stop-conditions.mdoc) SC-ARCH-02 |
+
+---
+
+*Regression fixture for FDA-001 architecture-reviewer. Implementation explicitly deferred.*

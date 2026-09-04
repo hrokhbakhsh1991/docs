@@ -81,3 +81,8 @@ front_doors:
     notes: >-
       Release-candidate static bar. Does NOT run verify:full / ci:integrity /
       adversarial / live smoke. Those remain separate authorities.
+  - name: release:verify:pr
+    class: CANONICAL
+    implementation: node scripts/ops/run-gate-catalog.mjs --tier=L3 --only
+    side_effect: none (release evidence nodes only)
+    authority: PR release evidence after lower-tier PR gates

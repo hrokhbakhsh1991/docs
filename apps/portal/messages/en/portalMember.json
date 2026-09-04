@@ -14,7 +14,8 @@
     "primaryNav": "Primary navigation",
     "more": "More",
     "memberFallback": "Member",
-    "wallet": "Wallet"
+    "wallet": "Wallet",
+    "tickets": "Support"
   },
   "locale": {
     "fa": "FA",
@@ -160,6 +161,67 @@
       "trips": "Follow your registrations, payment state, and active trip details."
     }
   },
+  "dashboard": {
+    "engagementEyebrow": "Participation",
+    "engagementTitle": "Engagement & progress",
+    "engagementDisabled": "Engagement tracking is not enabled for this club yet.",
+    "pointsValue": "{points} engagement points",
+    "levelValue": "Level: {level}",
+    "nextLevelProgress": "{points} points to the next level",
+    "badgeEarned": "Earned",
+    "badgeProgress": "{percent}% toward this badge",
+    "nextTourTitle": "Next registered tour",
+    "noUpcomingTour": "No upcoming registered tour.",
+    "viewRegistrations": "View registrations",
+    "statusTitle": "Account status",
+    "profileComplete": "Profile complete",
+    "profileIncomplete": "Complete your profile for safer registrations",
+    "walletSeparate": "Wallet balance (separate): {balance}",
+    "walletTitle": "Wallet",
+    "walletEyebrow": "Monetary balance",
+    "walletViewDetails": "View wallet",
+    "walletLastTransaction": "Latest: {kind} {amount}",
+    "walletUnavailable": "Wallet balance is unavailable right now.",
+    "openTickets": "{count} open support tickets",
+    "levels": {
+      "base_camp": "Base camp",
+      "trail_member": "Trail member",
+      "summit_circle": "Summit circle"
+    },
+    "badges": {
+      "trailhead_ready": { "label": "Trailhead ready" },
+      "first_expedition": { "label": "First expedition" },
+      "summit_rookie": { "label": "Summit rookie" },
+      "ridge_partner": { "label": "Ridge partner" }
+    }
+  },
+  "engagement": {
+    "title": "Engagement",
+    "lede": "Your participation points, level progress, and earned badges.",
+    "pointsLabel": "Engagement points",
+    "levelLabel": "Current level",
+    "notMoney": "Participation points — separate from wallet balance.",
+    "viewDetails": "View engagement details",
+    "progressAria": "{percent}% progress to the next level",
+    "nextBadge": "Next badge: {badge} ({percent}% complete)",
+    "historyTitle": "Recent point activity",
+    "badgesTitle": "Badges",
+    "emptyHistory": "No point activity yet. Complete your profile or join a tour to start earning.",
+    "emptyBadges": "No badges earned yet.",
+    "loadFailed": "Could not load engagement details.",
+    "backToHome": "Back to home",
+    "eventTypes": {
+      "profile_completed": "Profile completed",
+      "registration_first_approved": "First tour registration approved",
+      "engagement_points_reversed": "Points adjustment",
+      "engagement_points_manual_adjustment": "Points adjustment"
+    },
+    "history": {
+      "correction": "Points correction",
+      "reversal": "Points reversal",
+      "reversalDetail": "Points for this activity were corrected."
+    }
+  },
   "hub": {
     "title": "More",
     "lede": "Less-frequent member tools and secondary account paths live here.",
@@ -170,7 +232,8 @@
     "empty": "No additional modules are available yet.",
     "linkDescriptions": {
       "default": "Open one of the supporting member tools from here when you need it.",
-      "wallet": "When available, your balance or member wallet tools will live here."
+      "wallet": "When available, your balance or member wallet tools will live here.",
+      "tickets": "Support requests and conversations with the club team."
     }
   },
   "unauthorized": {
@@ -203,6 +266,104 @@
       "operator_credit": "Credit",
       "operator_debit": "Debit",
       "reversal": "Reversal"
+    }
+  },
+  "tickets": {
+    "title": "Support",
+    "lede": "View your support requests and chat with the club team.",
+    "newTitle": "New support request",
+    "newLede": "Describe your issue so our team can help.",
+    "detailTitle": "Request {id}",
+    "newCta": "New support request",
+    "filterAria": "Status filter",
+    "filterAll": "All",
+    "loadError": "Could not load tickets.",
+    "retry": "Try again",
+    "emptyTitle": "No tickets yet",
+    "emptyBody": "Create a new support request to reach the team.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "messageCount": "{count} messages",
+    "backToList": "Back to list",
+    "viewerReadOnlyBanner": "Read-only access — you can view all club tickets but cannot reply or create requests.",
+    "timelineTitle": "Conversation",
+    "linksTitle": "Related links",
+    "composerLabel": "Send reply",
+    "submit": "Submit request",
+    "submitting": "Submitting…",
+    "sendReply": "Send message",
+    "createError": "Could not create ticket. Try again.",
+    "replyError": "Could not send message.",
+    "reopen": "Reopen ticket",
+    "reopening": "Reopening…",
+    "reopenError": "Could not reopen ticket.",
+    "replySuccess": "Your message was sent.",
+    "reopenSuccess": "Ticket reopened.",
+    "advancedSectionToggle": "Link to a tour or registration (optional)",
+    "advancedSectionHint": "Only use this if support asked you to reference a specific trip.",
+    "fields": {
+      "category": "Category",
+      "subject": "Subject",
+      "body": "Message",
+      "relatedTourId": "Tour ID (optional)",
+      "relatedRegistrationId": "Registration ID (optional)"
+    },
+    "validation": {
+      "subject": "Subject must be at least 3 characters.",
+      "body": "Message is required.",
+      "category": "Choose a valid category."
+    },
+    "statuses": {
+      "open": "Open",
+      "pending_member": "Awaiting your reply",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "categories": {
+      "general": "General",
+      "billing": "Billing",
+      "tour": "Tour & registration",
+      "technical": "Technical"
+    },
+    "banners": {
+      "open": "Your request is open and the team is reviewing it.",
+      "pending_member": "The team replied — please send your message.",
+      "resolved": "This request is resolved. You can reopen it if needed.",
+      "closed": "This request is closed. New messages cannot be sent."
+    },
+    "linkTypes": {
+      "tour": "Tour",
+      "registration": "Registration",
+      "payment": "Payment",
+      "wallet": "Wallet"
+    },
+    "errors": {
+      "TICKET_CLOSED": "This ticket is closed.",
+      "TICKET_MODULE_DISABLED": "Support module is not enabled."
+    },
+    "disabled": {
+      "title": "Support",
+      "moduleDisabled": "Support is not enabled for this club.",
+      "workspaceDisabled": "Support is not available for this workspace.",
+      "entitlementDenied": "You do not have access to support."
+    },
+    "attachments": {
+      "label": "Attachment",
+      "upload": "Upload attachment",
+      "uploading": "Uploading…",
+      "success": "Attachment uploaded.",
+      "unsupportedType": "File type is not supported.",
+      "tooLarge": "File is too large.",
+      "intentFailed": "Could not start upload.",
+      "uploadFailed": "Upload failed.",
+      "completeFailed": "Could not complete upload.",
+      "createHint": "After submitting, you can add attachments on the conversation page."
     }
   },
   "detail": {
@@ -274,5 +435,15 @@
     "saving": "Saving…",
     "saved": "Saved.",
     "error": "Could not save. Try again."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "lede": "Updates on your support tickets.",
+    "bellAria": "{count, plural, =0 {Notifications} one {# unread notification} other {# unread notifications}}",
+    "loading": "Loading notifications…",
+    "loadError": "Could not load notifications.",
+    "retry": "Try again",
+    "empty": "No notifications yet.",
+    "markAllRead": "Mark all as read"
   }
 }
