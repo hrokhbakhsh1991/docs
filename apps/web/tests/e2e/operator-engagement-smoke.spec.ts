@@ -88,4 +88,61 @@ test.describe("MEG-001 Denali operator engagement", () => {
     });
     await expect(page.locator("[data-operator-engagement-recent-points]")).toContainText("+50");
   });
+
+  test("SMK-MEG-OP-05 policy catalog and member search by phone", async ({ page }) => {
+    await loginDenaliOperatorOwner(page);
+    await page.goto("/engagement", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("operator-engagement-policy")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId("operator-engagement-policy")).toContainText(/base camp|اردوگاه پایه/i);
+
+    const searchResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/users") && response.ok(),
+    );
+    await page.getByTestId("operator-engagement-member-search-input").fill("09174070937");
+    await searchResponse;
+    await expect(page.getByTestId("operator-engagement-member-search-results")).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByTestId("operator-engagement-member-search-results").locator("button").first().click();
+    await expect(page.getByTestId("operator-engagement-member-lookup-result")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId("operator-engagement-member-history")).toBeVisible();
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/operator-engagement-member-search.png",
+      fullPage: true,
+    });
+
+    const pointsBefore = Number.parseInt(
+      await page.getByTestId("operator-engagement-member-points").innerText(),
+      10,
+    );
+
+    await page.getByTestId("operator-engagement-adjust-button").click();
+    await expect(page.getByTestId("operator-engagement-adjust-dialog")).toBeVisible();
+    await page.locator("#engagement-adjust-points").fill("5");
+    await page.locator("#engagement-adjust-reason").fill("SMK-MEG-OP-05 operator recognition");
+    await page.getByRole("button", { name: /confirm|تأیید/i }).click();
+
+    await expect(page.getByTestId("operator-engagement-member-points")).toContainText(
+      String(pointsBefore + 5),
+      { timeout: 60_000 },
+    );
+
+    await page.getByTestId("operator-engagement-reverse-button").first().click();
+    await expect(page.getByTestId("operator-engagement-reverse-dialog")).toBeVisible();
+    await page.locator("#engagement-reverse-reason").fill("SMK-MEG-OP-05 reversal smoke");
+    await page.getByRole("button", { name: /confirm|تأیید/i }).click();
+
+    await expect(page.getByTestId("operator-engagement-member-points")).toContainText(
+      String(pointsBefore),
+      { timeout: 60_000 },
+    );
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/operator-engagement-adjust-reverse.png",
+      fullPage: true,
+    });
+  });
 });

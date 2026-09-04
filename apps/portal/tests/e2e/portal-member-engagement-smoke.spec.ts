@@ -111,4 +111,59 @@ test.describe("MEG-001 portal member engagement", () => {
     });
     await expect(page.locator("[data-portal-member-engagement-history]")).toBeVisible();
   });
+
+  test("SMK-MEG-05 profile completion surfaces engagement notification", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+    const email = `smk-meg-05-${Date.now()}@denali-smoke.local`;
+
+    await authenticatePortalMemberForEngagement(page, {
+      phone,
+      fullName: "Engagement Notification Smoke",
+    });
+
+    await gotoMemberProfile(page);
+    await saveMemberProfileFields(page, {
+      email,
+      nationalId: DENALI_PROFILE_NATIONAL_ID,
+      fatherName: DENALI_PROFILE_FATHER_NAME,
+      birthDate: DENALI_PROFILE_BIRTH_DATE,
+      gender: "female",
+    });
+
+    await page.goto("/me/home", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-engagement-points]")).toContainText("50", {
+      timeout: 90_000,
+    });
+
+    await expect
+      .poll(
+        async () => {
+          const res = await page.request.get("/api/me/notifications");
+          if (!res.ok()) {
+            return false;
+          }
+          const body = (await res.json()) as {
+            items?: readonly { sourceModule?: string }[];
+          };
+          return (body.items ?? []).some((item) => item.sourceModule === "engagement");
+        },
+        { timeout: 90_000 },
+      )
+      .toBe(true);
+
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator("[data-portal-member-notifications][data-portal-member-notifications-state='ready']"),
+    ).toBeVisible({ timeout: 60_000 });
+    await expect(
+      page.locator(
+        "[data-portal-member-notification-item][data-portal-member-notification-source='engagement']",
+      ).first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/portal-engagement-notification-inbox.png",
+      fullPage: true,
+    });
+  });
 });
