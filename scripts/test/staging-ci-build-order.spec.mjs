@@ -6,6 +6,7 @@ const root = new URL("../..", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 const buildOrder = read("scripts/ci/build-api-workspace-deps.sh");
 const workflow = read(".github/workflows/deploy-staging.yml");
+const adapter = read("scripts/ci/staging-deployment-adapter.sh");
 
 test("staging dependency install cannot dirty the artifact build checkout", () => {
   assert.match(workflow, /pnpm install --frozen-lockfile --ignore-scripts/);
@@ -84,4 +85,10 @@ test("staging health verification uses the installed tooling layout", () => {
     workflow,
     /VPS_DEPLOY_PATH: \$\{\{ env\.STAGING_DEPLOY_ROOT \}\}\/tooling/,
   );
+});
+
+test("staging adapter receives VPS credentials and uses installed tooling", () => {
+  assert.match(workflow, /VPS_HOST: \$\{\{ secrets\.VPS_HOST \}\}/);
+  assert.match(workflow, /VPS_SSH_KEY: \$\{\{ secrets\.VPS_SSH_KEY \}\}/);
+  assert.match(adapter, /VPS_DEPLOY_PATH="\$STAGING_DEPLOY_ROOT\/tooling"/);
 });

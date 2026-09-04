@@ -200,6 +200,8 @@ jobs:
         run: bash scripts/p10-staging-remote-gate.sh
       - name: Run workspace staging adapter
         env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           STAGING_ADAPTER_PATH: ${{ vars.STAGING_ADAPTER_PATH }}
           STAGING_ARTIFACT_DIGEST: ${{ needs.build.outputs.digest }}
           STAGING_RELEASE_SHA: ${{ github.sha }}
