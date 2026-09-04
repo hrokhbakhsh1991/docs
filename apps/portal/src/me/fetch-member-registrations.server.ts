@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 
+import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
+
 export type MemberRegistrationItem = {
   readonly id: string;
   readonly tourId: string;
@@ -41,12 +43,15 @@ export async function fetchMemberRegistrations(host: string): Promise<MemberRegi
     return [];
   }
 
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const { origin, ingressHost } = resolvePortalSelfFetchOrigin(host);
   let res: Response;
   try {
-    res = await fetch(`${protocol}://${host}/api/me/registrations`, {
+    res = await fetch(`${origin}/api/me/registrations`, {
       method: "GET",
-      headers: { cookie: cookieHeader },
+      headers: {
+        cookie: cookieHeader,
+        "x-forwarded-host": ingressHost,
+      },
       cache: "no-store",
     });
   } catch {

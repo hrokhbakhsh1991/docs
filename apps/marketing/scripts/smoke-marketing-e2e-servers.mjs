@@ -276,6 +276,9 @@ const portalEnv = {
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   API_INTERNAL_URL: "http://127.0.0.1:3001",
+  // Production-like Portal SSR still needs an internal HTTP origin for its
+  // same-app profile BFF fetch; the public ingress host is HTTPS-only.
+  PORTAL_INTERNAL_URL: "http://127.0.0.1:3003",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
   TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
   PORTAL_DEV_PORT: "3003",
