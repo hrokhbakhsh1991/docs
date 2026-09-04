@@ -19,11 +19,17 @@ Public front doors are:
 | `pnpm run verify:pr` | L1 | path-aware PR checks |
 | `pnpm run verify:main` | L2 | build-once main checks |
 | `pnpm run release:verify` | L3 | release evidence gate |
+| `pnpm run release:verify:pr` | L3 | PR release evidence gate; runs L3 nodes without re-running the expensive L2 dependency closure |
 | `pnpm run smoke:staging` | L4 | read-only deployed-artifact health smoke |
 | `pnpm run smoke:production` | L5 | read-only post-deploy health smoke |
 
 Compatibility aliases remain available during the migration window. The L3
-workflow has the aggregate required job `Production readiness L3 release gate`;
+workflow has the aggregate required job `Production readiness L3 release gate`.
+Pull requests use `release:verify:pr` because the Phase 0–8 PR gates already
+cover the lower-tier closure; pushes to `main` keep the full dependency-aware
+`release:verify` profile. This preserves the full release proof on main while
+avoiding a serial re-run of the expensive L2 integration suite on every PR.
+The existing Phase 0/1 and Booking check names remain unchanged.
 the existing Phase 0/1 and Booking check names remain unchanged.
 
 L1 uses the resolver-backed `test:changed:gate` path and does not silently
