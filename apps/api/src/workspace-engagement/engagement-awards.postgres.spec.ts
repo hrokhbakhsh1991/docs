@@ -8,6 +8,7 @@ import { after, before, describe, it } from "node:test";
 import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
 import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
+import { listMemberNotifications } from "../notifications/member-notification.repository";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { integrationTenantId } from "../../test/test-helpers";
 import { createPrismaEngagementRepository } from "./infrastructure/prisma-engagement.repository";
@@ -55,7 +56,7 @@ describe(
       process.env.STORAGE_DRIVER = priorDriver;
       const admin = getPrismaAdmin();
       await admin.$executeRawUnsafe(
-        "TRUNCATE member_engagement_badges, engagement_point_events, engagement_profiles",
+        "TRUNCATE member_notification_deliveries, member_notifications, member_engagement_badges, engagement_point_events, engagement_profiles",
       );
       await admin.tenant.delete({ where: { id: tenantId } });
       await disconnectPrisma();
@@ -83,6 +84,19 @@ describe(
       );
       assert.equal(events.items.length, 1);
       assert.equal(events.items[0]?.sourceEventType, "profile.completed");
+
+      const notifications = await runWithTenantContext(tenantId, () =>
+        listMemberNotifications({ tenantId, userId, limit: 10 }),
+      );
+      assert.ok(
+        notifications.items.some(
+          (item) =>
+            item.sourceModule === "engagement" &&
+            item.eventType === "engagement.badge.earned" &&
+            item.entityType === "engagement_event",
+        ),
+        "profile.completed must persist engagement badge notification (insert failures must not pass silently)",
+      );
     });
 
     it("awards registration.first_approved from outbox idempotently", async () => {
