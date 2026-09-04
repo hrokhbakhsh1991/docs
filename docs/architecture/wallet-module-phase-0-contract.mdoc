@@ -427,7 +427,7 @@ Phase 1 adds **workspace-level** Wallet support for Denali without activating Wa
 | Layer                               | Denali Phase 1 state                                                                                                               | Gate code when blocked                                                                    |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Workspace support**               | `workspaceWallet.supported: true` in `packages/workspaces/denali/workspace.manifest.json`                                          | `WALLET_WORKSPACE_UNSUPPORTED` (unsupported workspaces only, e.g. `urban`)                |
-| **Tenant module enablement**        | **Not activated** — no Denali seed or dev tenant theme adds `"wallet"` to `enabledModules`; `defaultModuleEnabledWhenUnset: false` | `FORBIDDEN_WALLET_MODULE_DISABLED`                                                        |
+| **Tenant module enablement**        | **Activated for Denali club smoke (`…000003`) and pilot (`…000430`)** — `enabledModules: ["wallet"]` + `portalModuleGrants: ["wallet"]` in tenant theme; Urban/starter remain off | `FORBIDDEN_WALLET_MODULE_DISABLED` when theme omits wallet |
 | **Operator `walletNav` capability** | `capabilities.walletNav.supported: true` in `denali.plugin.ts`                                                                     | Nav/route still hidden until tenant module enablement passes (`ensureWalletNavSupported`) |
 
 Workspace support and tenant enablement are **independent**:
@@ -446,7 +446,7 @@ Workspace support and tenant enablement are **independent**:
 | `capabilities.gatewayTopUp`     | `false`                                        | Out of scope Phase 1                                                                |
 | `capabilities.withdrawals`      | `false`                                        | Out of scope Phase 1                                                                |
 | `capabilityRevision`            | `1`                                            | MAT-001 revision pin                                                                |
-| `ledgerPolicy`                  | `./wallet` → `DenaliWalletLedgerPolicyAdapter` | Manifest-bound placeholder; no finance-core import                                  |
+| `ledgerPolicy`                  | `./wallet` → `DenaliWalletLedgerPolicyAdapter` | **V1 manifest scaffold only** — codegen binding; **no runtime invocation**; Finance ledger remains separate bounded context (§9.3). Reclassified **EXPLICITLY_OUT_OF_SCOPE** for Wallet V1 runtime in requirement matrix W24. |
 | `opsManifest`                   | `./wallet` → `DEFAULT_WALLET_OPS_MANIFEST`     | Theme resolver stub; no runtime ops                                                 |
 | HTTP routes                     | `WALLET_HTTP_ROUTE_MANIFEST` group             | Handler package `@app-tour/wallet-http` (same as certification fixture)             |
 
