@@ -1,5 +1,5 @@
 /**
- * MNI-001 — wallet module outbox → shared member notification inbox (stub writers).
+ * MNI-001 — wallet module outbox → shared member notification inbox.
  */
 import type { WorkspaceOutboxPublishedRow } from "../workspace/workspace-outbox-row-context.ts";
 import { insertMemberNotificationRow } from "./member-notification.repository";
@@ -41,7 +41,7 @@ function resolveWalletRecipientUserId(payload: Readonly<Record<string, unknown>>
 
 function resolveWalletEntityId(
   payload: Readonly<Record<string, unknown>>,
-  aggregateId: string,
+  aggregateId: string
 ): string | null {
   const transactionId = payload.transactionId ?? payload.walletTransactionId;
   if (typeof transactionId === "string") {
@@ -51,7 +51,7 @@ function resolveWalletEntityId(
 }
 
 export async function dispatchWalletNotificationFromOutbox(
-  row: WorkspaceOutboxPublishedRow,
+  row: WorkspaceOutboxPublishedRow
 ): Promise<void> {
   const mapping = WALLET_NOTIFICATION_EVENT_MAP[row.eventType];
   if (mapping === undefined) {

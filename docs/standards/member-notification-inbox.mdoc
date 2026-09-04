@@ -25,15 +25,15 @@ code_sot:
 
 ## 1. Architecture unlock (explicit authorization)
 
-| Field | Value |
-| ----- | ----- |
-| **Unlock ID** | `IMPL-SK2.D+` |
-| **Authorized by** | Product owner / Architect (user chat authorization) |
-| **Date** | 2026-09-04 |
-| **Scope** | `ticketing-system-complete` full closure on branch `feature/ticketing-system` |
-| **Decision** | Implement unified Postgres `member_notifications` + `member_notification_deliveries`; migrate ticketing and DP-4 booking/finance writers; expose `/member/notifications` aggregate API and portal cross-domain bell |
-| **Supersedes for new writes** | `ticket_notifications` as final inbox design (historical rows retained; new writes target `member_notifications`) |
-| **SK2 reconciliation** | See [SK2_D_MEMBER_INBOX.md](../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md) |
+| Field                         | Value                                                                                                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Unlock ID**                 | `IMPL-SK2.D+`                                                                                                                                                                                                       |
+| **Authorized by**             | Product owner / Architect (user chat authorization)                                                                                                                                                                 |
+| **Date**                      | 2026-09-04                                                                                                                                                                                                          |
+| **Scope**                     | `ticketing-system-complete` full closure on branch `feature/ticketing-system`                                                                                                                                       |
+| **Decision**                  | Implement unified Postgres `member_notifications` + `member_notification_deliveries`; migrate ticketing and DP-4 booking/finance writers; expose `/member/notifications` aggregate API and portal cross-domain bell |
+| **Supersedes for new writes** | `ticket_notifications` as final inbox design (historical rows retained; new writes target `member_notifications`)                                                                                                   |
+| **SK2 reconciliation**        | See [SK2_D_MEMBER_INBOX.md](../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md)                                                                                                                                  |
 
 **This unlock is recorded in this document.** No prior `IMPL-SK2.D+` existed before this authorization.
 
@@ -52,24 +52,24 @@ code_sot:
 
 ### 3.1 `member_notifications`
 
-| Column | Type | Rule |
-| ------ | ---- | ---- |
-| `id` | UUID | PK |
-| `tenant_id` | UUID | RLS scope; from auth context |
-| `user_id` | UUID | Recipient member |
-| `source_module` | text | `ticketing` \| `booking` \| `finance` \| `wallet` |
-| `event_type` | text | Domain outbox event type |
-| `entity_type` | text | `ticket` \| `registration` \| `payment` \| `wallet_event` |
-| `entity_id` | UUID? | Primary entity reference (nullable when N/A) |
-| `title` | text | Rendered or fallback title |
-| `body` | text | Rendered or fallback body |
-| `title_key` | text? | i18n key when template-driven |
-| `body_key` | text? | i18n key when template-driven |
-| `template_key` | text? | Opaque template id |
-| `dedupe_key` | text | Stable idempotency key (typically `domainEventId`) |
-| `payload` | jsonb | Event context for UI deep links |
-| `read_at` | timestamptz? | Member read timestamp |
-| `created_at` | timestamptz | Insert time |
+| Column          | Type         | Rule                                                      |
+| --------------- | ------------ | --------------------------------------------------------- |
+| `id`            | UUID         | PK                                                        |
+| `tenant_id`     | UUID         | RLS scope; from auth context                              |
+| `user_id`       | UUID         | Recipient member                                          |
+| `source_module` | text         | `ticketing` \| `booking` \| `finance` \| `wallet`         |
+| `event_type`    | text         | Domain outbox event type                                  |
+| `entity_type`   | text         | `ticket` \| `registration` \| `payment` \| `wallet_event` |
+| `entity_id`     | UUID?        | Primary entity reference (nullable when N/A)              |
+| `title`         | text         | Rendered or fallback title                                |
+| `body`          | text         | Rendered or fallback body                                 |
+| `title_key`     | text?        | i18n key when template-driven                             |
+| `body_key`      | text?        | i18n key when template-driven                             |
+| `template_key`  | text?        | Opaque template id                                        |
+| `dedupe_key`    | text         | Stable idempotency key (typically `domainEventId`)        |
+| `payload`       | jsonb        | Event context for UI deep links                           |
+| `read_at`       | timestamptz? | Member read timestamp                                     |
+| `created_at`    | timestamptz  | Insert time                                               |
 
 **Unique:** `(tenant_id, user_id, dedupe_key)` — idempotent inbox insert per recipient.
 
@@ -83,12 +83,12 @@ Async email/SMS channel retries keyed to `member_notifications`. Same retry sema
 
 ## 4. HTTP API
 
-| Method | Path | Scope |
-| ------ | ---- | ----- |
-| GET | `/member/notifications` | Member aggregate inbox (all `source_module`) |
-| GET | `/member/notifications/unread-count` | Cross-domain unread badge |
-| PATCH | `/member/notifications/:id/read` | Mark one read |
-| POST | `/member/notifications/mark-all-read` | Mark all read for recipient |
+| Method | Path                                  | Scope                                        |
+| ------ | ------------------------------------- | -------------------------------------------- |
+| GET    | `/member/notifications`               | Member aggregate inbox (all `source_module`) |
+| GET    | `/member/notifications/unread-count`  | Cross-domain unread badge                    |
+| PATCH  | `/member/notifications/:id/read`      | Mark one read                                |
+| POST   | `/member/notifications/mark-all-read` | Mark all read for recipient                  |
 
 **Legacy aliases** (ticketing-filtered, deprecated): `/member/ticket-notifications/*` delegate to repository with `sourceModule=ticketing` filter until portal migration completes.
 
@@ -96,12 +96,12 @@ Async email/SMS channel retries keyed to `member_notifications`. Same retry sema
 
 ## 5. Writers (outbox dispatchers)
 
-| Module | Dispatcher | `source_module` | `entity_type` |
-| ------ | ---------- | --------------- | ------------- |
-| Ticketing | `dispatch-ticket-notification-from-outbox.ts` | `ticketing` | `ticket` |
-| Booking/tour | `dispatch-member-notification-from-outbox.ts` | `booking` | `registration` |
-| Payment/debt | same dispatcher (finance events) | `finance` | `payment` |
-| Wallet | `dispatch-wallet-notification-from-outbox.ts` | `wallet` | `wallet_event` |
+| Module       | Dispatcher                                                                                                                                                      | `source_module` | `entity_type`  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------------- |
+| Ticketing    | `dispatch-ticket-notification-from-outbox.ts`                                                                                                                   | `ticketing`     | `ticket`       |
+| Booking/tour | `dispatch-member-notification-from-outbox.ts`                                                                                                                   | `booking`       | `registration` |
+| Payment/debt | same dispatcher (finance events)                                                                                                                                | `finance`       | `payment`      |
+| Wallet       | `dispatch-wallet-notification-from-outbox.ts` + `PrismaWalletRepository.persistMutation` outbox enqueue (`wallet.transaction.posted`, `wallet.refund.credited`) | `wallet`        | `wallet_event` |
 
 All dispatchers call `insertMemberNotificationRow` in `member-notification.repository.ts`.
 
@@ -117,12 +117,12 @@ All dispatchers call `insertMemberNotificationRow` in `member-notification.repos
 
 ## 7. Testing requirements
 
-| Suite | Proves |
-| ----- | ------ |
-| `member-notifications.postgres.spec.ts` | RLS, dedupe, cross-module list, ticketing + booking writers |
-| `ticket-notifications.postgres.spec.ts` | Ticketing path regression via shared table |
-| Portal E2E | Bell + list after operator reply |
-| Axe specs | No serious/critical violations (must **run**, not skip) |
+| Suite                                   | Proves                                                                                                                                                                 |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `member-notifications.postgres.spec.ts` | RLS, dedupe, cross-module list; **relay** proofs for booking (`registration.approved`), finance (`payment.hold.scheduled`), wallet (`operatorCredit` → outbox → inbox) |
+| `ticket-notifications.postgres.spec.ts` | Ticketing path regression + relay dedupe via shared table                                                                                                              |
+| Portal E2E                              | Bell + list after operator reply                                                                                                                                       |
+| Axe specs                               | No serious/critical violations (scoped ticketing regions; executed 2026-09-04 adversarial pass)                                                                        |
 
 ---
 
@@ -134,4 +134,4 @@ All dispatchers call `insertMemberNotificationRow` in `member-notification.repos
 
 ---
 
-*MNI-001 — platform charter filed with explicit IMPL-SK2.D+ user authorization 2026-09-04.*
+_MNI-001 — platform charter filed with explicit IMPL-SK2.D+ user authorization 2026-09-04._

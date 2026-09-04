@@ -4,7 +4,10 @@ import type { TicketAttachment, TicketEvent } from "@app-tour/ticketing-core";
 import { withTenantRls } from "../../db/with-tenant-rls";
 import { appendTicketingAuditEvents } from "../ticketing-audit-writer";
 import { mapTicketRow, toIso } from "../ticketing-mappers";
-import type { Ticket as PrismaTicket, TicketAttachment as PrismaTicketAttachment } from "@prisma/client";
+import type {
+  Ticket as PrismaTicket,
+  TicketAttachment as PrismaTicketAttachment,
+} from "@prisma/client";
 
 export type CreateAttachmentIntentInput = {
   readonly id: string;
@@ -32,9 +35,7 @@ export function mapAttachmentRow(row: PrismaTicketAttachment): TicketAttachment 
     sizeBytes: row.sizeBytes,
     scanStatus: row.scanStatus as TicketAttachment["scanStatus"],
     uploadedAt: row.uploadedAt ? toIso(row.uploadedAt) : null,
-    uploadIntentExpiresAt: row.uploadIntentExpiresAt
-      ? toIso(row.uploadIntentExpiresAt)
-      : null,
+    uploadIntentExpiresAt: row.uploadIntentExpiresAt ? toIso(row.uploadIntentExpiresAt) : null,
     createdAt: toIso(row.createdAt),
     deletedAt: row.deletedAt ? toIso(row.deletedAt) : null,
   };
@@ -43,7 +44,7 @@ export function mapAttachmentRow(row: PrismaTicketAttachment): TicketAttachment 
 export class TicketingAttachmentRepository {
   async findByIdempotencyKey(
     tenantId: string,
-    idempotencyKey: string,
+    idempotencyKey: string
   ): Promise<TicketAttachment | null> {
     return withTenantRls(tenantId, async (tx) => {
       const row = await tx.ticketAttachment.findFirst({
@@ -53,10 +54,10 @@ export class TicketingAttachmentRepository {
     });
   }
 
-  async findById(
+  async findAttachmentById(
     tenantId: string,
     ticketId: string,
-    attachmentId: string,
+    attachmentId: string
   ): Promise<TicketAttachment | null> {
     return withTenantRls(tenantId, async (tx) => {
       const row = await tx.ticketAttachment.findFirst({
@@ -162,7 +163,7 @@ export class TicketingAttachmentRepository {
         tx,
         mapTicketRow(input.ticket),
         input.events,
-        input.actorUserId,
+        input.actorUserId
       );
       const row = await tx.ticketAttachment.findFirstOrThrow({
         where: { tenantId: input.tenantId, id: input.attachmentId },
@@ -171,11 +172,7 @@ export class TicketingAttachmentRepository {
     });
   }
 
-  async markScanRejected(
-    tenantId: string,
-    ticketId: string,
-    attachmentId: string,
-  ): Promise<void> {
+  async markScanRejected(tenantId: string, ticketId: string, attachmentId: string): Promise<void> {
     return withTenantRls(tenantId, async (tx) => {
       await tx.ticketAttachment.updateMany({
         where: {
@@ -194,7 +191,7 @@ export class TicketingAttachmentRepository {
     tenantId: string,
     ticketId: string,
     attachmentId: string,
-    sizeBytes: number,
+    sizeBytes: number
   ): Promise<void> {
     return withTenantRls(tenantId, async (tx) => {
       await tx.ticketAttachment.updateMany({
@@ -248,7 +245,7 @@ export class TicketingAttachmentRepository {
         tx,
         mapTicketRow(input.ticket),
         input.events,
-        input.actorUserId,
+        input.actorUserId
       );
     });
   }
@@ -256,7 +253,7 @@ export class TicketingAttachmentRepository {
   async findMessageById(
     tenantId: string,
     ticketId: string,
-    messageId: string,
+    messageId: string
   ): Promise<{ readonly id: string; readonly visibility: string } | null> {
     return withTenantRls(tenantId, async (tx) => {
       const row = await tx.ticketMessage.findFirst({

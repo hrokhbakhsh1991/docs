@@ -49,11 +49,11 @@ type E1Deps = {
   readonly loadReadableTicket: (
     auth: TenantAuthContext,
     ticketId: string,
-    options?: { readonly operator?: boolean },
+    options?: { readonly operator?: boolean }
   ) => Promise<TicketDetailRecord>;
   readonly loadTicketRow: (
     tenantId: string,
-    ticketId: string,
+    ticketId: string
   ) => Promise<import("@prisma/client").Ticket | null>;
 };
 
@@ -105,7 +105,7 @@ function mapE1Error(error: unknown): never {
 
 async function assertAttachmentsEnabled(
   capability: TicketingCapabilityPort,
-  tenantId: string,
+  tenantId: string
 ): Promise<{ readonly maxAttachmentSizeBytes: number }> {
   const gate = await capability.assertEnabled(tenantId);
   if (!gate.capabilities.attachments) {
@@ -121,7 +121,7 @@ async function validateEntityExists(
   entityRepository: TicketingEntityValidationRepository,
   tenantId: string,
   entityType: TicketLinkEntityType,
-  entityId: string,
+  entityId: string
 ): Promise<void> {
   let exists = false;
   switch (entityType) {
@@ -149,10 +149,7 @@ async function validateEntityExists(
   }
 }
 
-function loadActorContext(
-  auth: TenantAuthContext,
-  options?: { readonly operator?: boolean },
-) {
+function loadActorContext(auth: TenantAuthContext, options?: { readonly operator?: boolean }) {
   return buildTicketActorContext(auth, {
     loadTenantMembers: options?.operator === true || auth.role === "viewer",
   });
@@ -165,7 +162,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
       ticketId: string,
       body: TicketAttachmentIntentInput,
       idempotencyKey: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<TicketAttachmentIntentResponse> {
       const limits = await assertAttachmentsEnabled(deps.capability, auth.tenantId);
       if (body.sizeBytes > limits.maxAttachmentSizeBytes) {
@@ -177,7 +174,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
       }
       const existing = await deps.attachmentRepository.findByIdempotencyKey(
         auth.tenantId,
-        idempotencyKey,
+        idempotencyKey
       );
       if (existing !== null) {
         return {
@@ -191,7 +188,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
       const message = await deps.attachmentRepository.findMessageById(
         auth.tenantId,
         ticketId,
-        body.messageId,
+        body.messageId
       );
       if (message === null) {
         throwTicketingDomainError({
@@ -205,7 +202,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
         !canUploadAttachment(
           detail.ticket,
           actor,
-          message.visibility as import("@app-tour/ticketing-core").TicketMessageVisibility,
+          message.visibility as import("@app-tour/ticketing-core").TicketMessageVisibility
         )
       ) {
         throwTicketingDomainError({
@@ -246,14 +243,14 @@ export function createTicketingE1Operations(deps: E1Deps) {
       attachmentId: string,
       body: Buffer,
       contentType: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<void> {
       await assertAttachmentsEnabled(deps.capability, auth.tenantId);
       const detail = await deps.loadReadableTicket(auth, ticketId, options);
-      const attachment = await deps.attachmentRepository.findById(
+      const attachment = await deps.attachmentRepository.findAttachmentById(
         auth.tenantId,
         ticketId,
-        attachmentId,
+        attachmentId
       );
       if (attachment === null || attachment.scanStatus !== "pending") {
         throwTicketingDomainError({
@@ -267,14 +264,15 @@ export function createTicketingE1Operations(deps: E1Deps) {
           : await deps.attachmentRepository.findMessageById(
               auth.tenantId,
               ticketId,
-              attachment.messageId,
+              attachment.messageId
             );
       const actor = await loadActorContext(auth, options);
       if (
         !canUploadAttachment(
           detail.ticket,
           actor,
-          (message?.visibility ?? "public") as import("@app-tour/ticketing-core").TicketMessageVisibility,
+          (message?.visibility ??
+            "public") as import("@app-tour/ticketing-core").TicketMessageVisibility
         )
       ) {
         throwTicketingDomainError({
@@ -300,7 +298,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
           auth.tenantId,
           ticketId,
           attachmentId,
-          body.length,
+          body.length
         );
       } catch (error) {
         mapE1Error(error);
@@ -313,14 +311,14 @@ export function createTicketingE1Operations(deps: E1Deps) {
       messageId: string,
       attachmentId: string,
       idempotencyKey: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<TicketAttachmentCompleteResponse> {
       void idempotencyKey;
       await assertAttachmentsEnabled(deps.capability, auth.tenantId);
-      const existing = await deps.attachmentRepository.findById(
+      const existing = await deps.attachmentRepository.findAttachmentById(
         auth.tenantId,
         ticketId,
-        attachmentId,
+        attachmentId
       );
       if (existing !== null && existing.scanStatus === "clean") {
         const readUrl = await getTicketAttachmentSignedReadUrl({
@@ -340,10 +338,10 @@ export function createTicketingE1Operations(deps: E1Deps) {
         };
       }
       const detail = await deps.loadReadableTicket(auth, ticketId, options);
-      const attachment = await deps.attachmentRepository.findById(
+      const attachment = await deps.attachmentRepository.findAttachmentById(
         auth.tenantId,
         ticketId,
-        attachmentId,
+        attachmentId
       );
       if (attachment === null || attachment.messageId !== messageId) {
         throwTicketingDomainError({
@@ -354,14 +352,15 @@ export function createTicketingE1Operations(deps: E1Deps) {
       const message = await deps.attachmentRepository.findMessageById(
         auth.tenantId,
         ticketId,
-        messageId,
+        messageId
       );
       const actor = await loadActorContext(auth, options);
       if (
         !canUploadAttachment(
           detail.ticket,
           actor,
-          (message?.visibility ?? "public") as import("@app-tour/ticketing-core").TicketMessageVisibility,
+          (message?.visibility ??
+            "public") as import("@app-tour/ticketing-core").TicketMessageVisibility
         )
       ) {
         throwTicketingDomainError({
@@ -398,11 +397,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
         originalFileName: attachment.originalFileName,
       });
       if (scanResult === "rejected") {
-        await deps.attachmentRepository.markScanRejected(
-          auth.tenantId,
-          ticketId,
-          attachmentId,
-        );
+        await deps.attachmentRepository.markScanRejected(auth.tenantId, ticketId, attachmentId);
         try {
           await removeTicketAttachmentObject({
             tenantId: auth.tenantId,
@@ -460,13 +455,13 @@ export function createTicketingE1Operations(deps: E1Deps) {
       auth: TenantAuthContext,
       ticketId: string,
       attachmentId: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<TicketAttachmentDownloadResponse> {
       const detail = await deps.loadReadableTicket(auth, ticketId, options);
-      const attachment = await deps.attachmentRepository.findById(
+      const attachment = await deps.attachmentRepository.findAttachmentById(
         auth.tenantId,
         ticketId,
-        attachmentId,
+        attachmentId
       );
       if (attachment === null) {
         throwTicketingDomainError({
@@ -480,7 +475,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
           : await deps.attachmentRepository.findMessageById(
               auth.tenantId,
               ticketId,
-              attachment.messageId,
+              attachment.messageId
             );
       const actor = await loadActorContext(auth, options);
       if (
@@ -488,7 +483,9 @@ export function createTicketingE1Operations(deps: E1Deps) {
           detail.ticket,
           actor,
           attachment,
-          (message?.visibility ?? null) as import("@app-tour/ticketing-core").TicketMessageVisibility | null,
+          (message?.visibility ?? null) as
+            | import("@app-tour/ticketing-core").TicketMessageVisibility
+            | null
         )
       ) {
         throwTicketingDomainError({
@@ -507,9 +504,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
           tenantId: auth.tenantId,
           storageKey: attachment.objectKey,
         });
-        const expiresAt = new Date(
-          Date.now() + 300_000,
-        ).toISOString();
+        const expiresAt = new Date(Date.now() + 300_000).toISOString();
         return { readUrl, expiresAt };
       } catch (error) {
         mapE1Error(error);
@@ -520,13 +515,13 @@ export function createTicketingE1Operations(deps: E1Deps) {
       auth: TenantAuthContext,
       ticketId: string,
       attachmentId: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<void> {
       const detail = await deps.loadReadableTicket(auth, ticketId, options);
-      const attachment = await deps.attachmentRepository.findById(
+      const attachment = await deps.attachmentRepository.findAttachmentById(
         auth.tenantId,
         ticketId,
-        attachmentId,
+        attachmentId
       );
       if (attachment === null) {
         throwTicketingDomainError({
@@ -540,7 +535,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
           : await deps.attachmentRepository.findMessageById(
               auth.tenantId,
               ticketId,
-              attachment.messageId,
+              attachment.messageId
             );
       const actor = await loadActorContext(auth, options);
       if (
@@ -548,7 +543,9 @@ export function createTicketingE1Operations(deps: E1Deps) {
           detail.ticket,
           actor,
           attachment,
-          (message?.visibility ?? null) as import("@app-tour/ticketing-core").TicketMessageVisibility | null,
+          (message?.visibility ?? null) as
+            | import("@app-tour/ticketing-core").TicketMessageVisibility
+            | null
         )
       ) {
         throwTicketingDomainError({
@@ -590,7 +587,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
     async listTicketLinks(
       auth: TenantAuthContext,
       ticketId: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<TicketLinkListHttpResponse> {
       await deps.loadReadableTicket(auth, ticketId, options);
       const items = await deps.linkRepository.listByTicket(auth.tenantId, ticketId);
@@ -602,7 +599,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
             entityType: link.entityType,
             entityId: link.entityId,
             createdAt: link.createdAt,
-          }),
+          })
         ),
       };
     },
@@ -612,7 +609,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
       ticketId: string,
       body: TicketLinkCreateInput,
       idempotencyKey: string,
-      options?: { readonly operator?: boolean },
+      options?: { readonly operator?: boolean }
     ): Promise<TicketLinkHttp> {
       void idempotencyKey;
       const detail = await deps.loadReadableTicket(auth, ticketId, options);
@@ -627,7 +624,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
         deps.entityRepository,
         auth.tenantId,
         body.entityType,
-        body.entityId,
+        body.entityId
       );
       const ticketRow = await deps.loadTicketRow(auth.tenantId, ticketId);
       if (ticketRow === null) {
@@ -667,7 +664,7 @@ export function createTicketingE1Operations(deps: E1Deps) {
     async deleteTicketLink(
       auth: TenantAuthContext,
       ticketId: string,
-      linkId: string,
+      linkId: string
     ): Promise<void> {
       const detail = await deps.loadReadableTicket(auth, ticketId, { operator: true });
       const actor = await loadActorContext(auth, { operator: true });

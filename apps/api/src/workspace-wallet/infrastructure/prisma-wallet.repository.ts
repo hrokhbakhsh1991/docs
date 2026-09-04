@@ -29,6 +29,7 @@ import {
 } from "@app-tour/wallet-core";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
+import { enqueueOutboxEvent } from "../../outbox/enqueue-domain-event";
 import { appendRefundWalletCreditAudit, appendWalletMutationAudit } from "../wallet-audit-writer";
 import type {
   FindMemberWalletAccountQuery,
@@ -50,7 +51,7 @@ import {
 async function loadAccount(
   tx: Prisma.TransactionClient,
   tenantId: string,
-  accountId: string,
+  accountId: string
 ): Promise<WalletAccount | null> {
   const row = await tx.walletAccount.findFirst({
     where: { id: accountId, tenantId },
@@ -61,7 +62,7 @@ async function loadAccount(
 async function loadLedgerEntriesForAccount(
   tx: Prisma.TransactionClient,
   tenantId: string,
-  accountId: string,
+  accountId: string
 ): Promise<readonly WalletLedgerEntry[]> {
   const rows = await tx.walletLedgerEntry.findMany({
     where: { tenantId, accountId },
@@ -73,7 +74,7 @@ async function loadLedgerEntriesForAccount(
 async function loadMutationByIdempotencyKey(
   tx: Prisma.TransactionClient,
   tenantId: string,
-  creationIdempotencyKey: string,
+  creationIdempotencyKey: string
 ): Promise<{
   transaction: WalletTransaction;
   ledgerEntries: readonly WalletLedgerEntry[];
@@ -95,27 +96,18 @@ async function loadMutationByIdempotencyKey(
   };
 }
 
-function assertMemberScope(
-  account: WalletAccount,
-  scope: WalletMemberScope,
-): WalletResult<void> {
+function assertMemberScope(account: WalletAccount, scope: WalletMemberScope): WalletResult<void> {
   if (account.tenantId !== scope.tenantId) {
-    return walletErr(
-      "WALLET_OWNERSHIP_MISMATCH",
-      "account tenantId does not match member scope",
-    );
+    return walletErr("WALLET_OWNERSHIP_MISMATCH", "account tenantId does not match member scope");
   }
   if (account.workspaceId !== scope.workspaceId) {
     return walletErr(
       "WALLET_OWNERSHIP_MISMATCH",
-      "account workspaceId does not match member scope",
+      "account workspaceId does not match member scope"
     );
   }
   if (account.userId !== scope.userId) {
-    return walletErr(
-      "WALLET_OWNERSHIP_MISMATCH",
-      "account userId does not match member scope",
-    );
+    return walletErr("WALLET_OWNERSHIP_MISMATCH", "account userId does not match member scope");
   }
   return walletOk(undefined);
 }
@@ -124,6 +116,7 @@ async function persistMutation(
   tx: Prisma.TransactionClient,
   mutation: WalletMutationResult,
   commandFingerprint: string,
+  account: WalletAccount
 ): Promise<void> {
   const transaction = mutation.transaction;
   await tx.walletTransaction.create({
@@ -143,8 +136,7 @@ async function persistMutation(
       actorUserId: transaction.actor.actorUserId,
       actorRole: transaction.actor.actorRole,
       reversesTransactionId: transaction.reversesTransactionId,
-      postedAt:
-        transaction.postedAt !== null ? new Date(transaction.postedAt) : null,
+      postedAt: transaction.postedAt !== null ? new Date(transaction.postedAt) : null,
       createdAt: new Date(transaction.createdAt),
     },
   });
@@ -163,6 +155,29 @@ async function persistMutation(
       },
     });
   }
+
+  if (transaction.status === "posted") {
+    const isRefundCredit = transaction.reference?.type === "finance_refund";
+    const eventType = isRefundCredit ? "wallet.refund.credited" : "wallet.transaction.posted";
+    await enqueueOutboxEvent(tx, {
+      tenantId: transaction.tenantId,
+      aggregateType: "wallet_transaction",
+      aggregateId: transaction.id,
+      eventType,
+      domainEventId: `${eventType}:${transaction.tenantId}:${transaction.id}`,
+      payload: {
+        userId: account.userId,
+        transactionId: transaction.id,
+        walletTransactionId: transaction.id,
+        accountId: account.id,
+        kind: transaction.kind,
+        amountMinor: transaction.amountMinor,
+        currency: transaction.currency,
+        referenceType: transaction.reference?.type ?? null,
+        referenceId: transaction.reference?.id ?? null,
+      },
+    });
+  }
 }
 
 async function resolveExistingIdempotency<T>(
@@ -171,7 +186,7 @@ async function resolveExistingIdempotency<T>(
     resultSnapshot: T;
   } | null,
   fingerprint: string,
-  freshResult: T,
+  freshResult: T
 ): Promise<WalletResult<T>> {
   if (existing === null) {
     return walletOk(freshResult);
@@ -184,13 +199,13 @@ async function resolveExistingIdempotency<T>(
       resultSnapshot: existing.resultSnapshot,
     },
     fingerprint,
-    freshResult,
+    freshResult
   );
 }
 
 export class PrismaWalletRepository {
   async findMemberAccount(
-    query: FindMemberWalletAccountQuery,
+    query: FindMemberWalletAccountQuery
   ): Promise<WalletResult<WalletAccount | null>> {
     const tenantId = query.tenantId.trim();
     const workspaceId = query.workspaceId.trim();
@@ -214,7 +229,7 @@ export class PrismaWalletRepository {
   }
 
   async getOrCreateAccount(
-    input: GetOrCreateWalletAccountInput,
+    input: GetOrCreateWalletAccountInput
   ): Promise<WalletResult<WalletAccount>> {
     const tenantId = input.tenantId.trim();
     const workspaceId = input.workspaceId.trim();
@@ -277,18 +292,15 @@ export class PrismaWalletRepository {
     });
   }
 
-  async findAccountById(
-    tenantId: string,
-    accountId: string,
-  ): Promise<WalletAccount | null> {
+  async findAccountById(tenantId: string, accountId: string): Promise<WalletAccount | null> {
     return withTenantRls(tenantId.trim(), async (tx) =>
-      loadAccount(tx, tenantId.trim(), accountId.trim()),
+      loadAccount(tx, tenantId.trim(), accountId.trim())
     );
   }
 
   async getMemberBalance(
     scope: WalletMemberScope,
-    accountId: string,
+    accountId: string
   ): Promise<WalletResult<WalletBalance>> {
     const tenantId = scope.tenantId.trim();
     return withTenantRls(tenantId, async (tx) => {
@@ -306,7 +318,7 @@ export class PrismaWalletRepository {
   }
 
   async operatorCredit(
-    input: WalletOperatorCreditInput,
+    input: WalletOperatorCreditInput
   ): Promise<WalletResult<WalletMutationResult>> {
     const tenantId = input.tenantId.trim();
     const nowIso = new Date().toISOString();
@@ -330,7 +342,7 @@ export class PrismaWalletRepository {
       const existing = await loadMutationByIdempotencyKey(
         tx,
         tenantId,
-        command.creationIdempotencyKey,
+        command.creationIdempotencyKey
       );
       if (existing !== null) {
         const replay = await resolveExistingIdempotency(
@@ -345,7 +357,7 @@ export class PrismaWalletRepository {
           {
             transaction: existing.transaction,
             ledgerEntries: existing.ledgerEntries,
-          },
+          }
         );
         return replay;
       }
@@ -363,7 +375,7 @@ export class PrismaWalletRepository {
       }
 
       try {
-        await persistMutation(tx, mutation.value, fingerprint);
+        await persistMutation(tx, mutation.value, fingerprint, account);
         await appendWalletMutationAudit(tx, mutation.value, input.actor);
         if (input.refundCreditAudit !== undefined) {
           await appendRefundWalletCreditAudit(tx, {
@@ -384,7 +396,7 @@ export class PrismaWalletRepository {
           const raced = await loadMutationByIdempotencyKey(
             tx,
             tenantId,
-            command.creationIdempotencyKey,
+            command.creationIdempotencyKey
           );
           if (raced !== null) {
             return resolveExistingIdempotency(
@@ -399,7 +411,7 @@ export class PrismaWalletRepository {
               {
                 transaction: raced.transaction,
                 ledgerEntries: raced.ledgerEntries,
-              },
+              }
             );
           }
         }
@@ -409,7 +421,7 @@ export class PrismaWalletRepository {
   }
 
   async operatorDebit(
-    input: WalletOperatorDebitInput,
+    input: WalletOperatorDebitInput
   ): Promise<WalletResult<WalletMutationResult>> {
     const tenantId = input.tenantId.trim();
     const nowIso = new Date().toISOString();
@@ -433,7 +445,7 @@ export class PrismaWalletRepository {
       const existing = await loadMutationByIdempotencyKey(
         tx,
         tenantId,
-        command.creationIdempotencyKey,
+        command.creationIdempotencyKey
       );
       if (existing !== null) {
         return resolveExistingIdempotency(
@@ -448,7 +460,7 @@ export class PrismaWalletRepository {
           {
             transaction: existing.transaction,
             ledgerEntries: existing.ledgerEntries,
-          },
+          }
         );
       }
 
@@ -459,18 +471,14 @@ export class PrismaWalletRepository {
 
       await advisoryLockWalletAccount(tx, tenantId, account.id);
 
-      const currentEntries = await loadLedgerEntriesForAccount(
-        tx,
-        tenantId,
-        account.id,
-      );
+      const currentEntries = await loadLedgerEntriesForAccount(tx, tenantId, account.id);
       const mutation = createOperatorDebit(account, command, currentEntries);
       if (!mutation.ok) {
         return mutation;
       }
 
       try {
-        await persistMutation(tx, mutation.value, fingerprint);
+        await persistMutation(tx, mutation.value, fingerprint, account);
         await appendWalletMutationAudit(tx, mutation.value, input.actor);
         return mutation;
       } catch (error) {
@@ -483,7 +491,7 @@ export class PrismaWalletRepository {
           const raced = await loadMutationByIdempotencyKey(
             tx,
             tenantId,
-            command.creationIdempotencyKey,
+            command.creationIdempotencyKey
           );
           if (raced !== null) {
             return resolveExistingIdempotency(
@@ -498,7 +506,7 @@ export class PrismaWalletRepository {
               {
                 transaction: raced.transaction,
                 ledgerEntries: raced.ledgerEntries,
-              },
+              }
             );
           }
         }
@@ -508,7 +516,7 @@ export class PrismaWalletRepository {
   }
 
   async reverseTransaction(
-    input: WalletReversalInput,
+    input: WalletReversalInput
   ): Promise<WalletResult<WalletMutationResult>> {
     const tenantId = input.tenantId.trim();
     const nowIso = new Date().toISOString();
@@ -531,7 +539,7 @@ export class PrismaWalletRepository {
       const existing = await loadMutationByIdempotencyKey(
         tx,
         tenantId,
-        command.creationIdempotencyKey,
+        command.creationIdempotencyKey
       );
       if (existing !== null) {
         return resolveExistingIdempotency(
@@ -546,7 +554,7 @@ export class PrismaWalletRepository {
           {
             transaction: existing.transaction,
             ledgerEntries: existing.ledgerEntries,
-          },
+          }
         );
       }
 
@@ -584,14 +592,14 @@ export class PrismaWalletRepository {
         command,
         originalTransaction,
         originalEntries,
-        existingReversal === null ? null : mapWalletTransaction(existingReversal),
+        existingReversal === null ? null : mapWalletTransaction(existingReversal)
       );
       if (!mutation.ok) {
         return mutation;
       }
 
       try {
-        await persistMutation(tx, mutation.value, fingerprint);
+        await persistMutation(tx, mutation.value, fingerprint, account);
         await appendWalletMutationAudit(tx, mutation.value, input.actor);
         return mutation;
       } catch (error) {
@@ -604,7 +612,7 @@ export class PrismaWalletRepository {
           const raced = await loadMutationByIdempotencyKey(
             tx,
             tenantId,
-            command.creationIdempotencyKey,
+            command.creationIdempotencyKey
           );
           if (raced !== null) {
             return resolveExistingIdempotency(
@@ -619,7 +627,7 @@ export class PrismaWalletRepository {
               {
                 transaction: raced.transaction,
                 ledgerEntries: raced.ledgerEntries,
-              },
+              }
             );
           }
         }
@@ -631,7 +639,7 @@ export class PrismaWalletRepository {
   async listMemberTransactions(
     scope: WalletMemberScope,
     accountId: string,
-    query: WalletMemberTransactionsQuery,
+    query: WalletMemberTransactionsQuery
   ): Promise<
     WalletResult<{
       readonly page: WalletHistoryPage;
@@ -658,9 +666,7 @@ export class PrismaWalletRepository {
           tenantId,
           accountId: account.id,
           status: "posted",
-          ...(cursor !== undefined && cursor.length > 0
-            ? { id: { lt: cursor } }
-            : {}),
+          ...(cursor !== undefined && cursor.length > 0 ? { id: { lt: cursor } } : {}),
         },
         orderBy: { id: "desc" },
         take: limit + 1,
@@ -670,17 +676,14 @@ export class PrismaWalletRepository {
       const hasMore = rows.length > limit;
       const pageRows = hasMore ? rows.slice(0, limit) : rows;
       const transactions = pageRows.map(mapWalletTransaction);
-      const entries = pageRows.flatMap((row) =>
-        row.ledgerEntries.map(mapWalletLedgerEntry),
-      );
+      const entries = pageRows.flatMap((row) => row.ledgerEntries.map(mapWalletLedgerEntry));
 
       const history = buildMemberTransactionHistory(account, transactions, entries);
       if (!history.ok) {
         return history;
       }
 
-      const nextCursor =
-        hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.id : null;
+      const nextCursor = hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.id : null;
 
       return walletOk({
         page: history.value,
@@ -690,9 +693,7 @@ export class PrismaWalletRepository {
     });
   }
 
-  async lookupOperatorAccounts(
-    query: WalletOperatorAccountLookupQuery,
-  ): Promise<
+  async lookupOperatorAccounts(query: WalletOperatorAccountLookupQuery): Promise<
     WalletResult<
       readonly {
         readonly account: WalletAccount;
@@ -707,9 +708,7 @@ export class PrismaWalletRepository {
       const where: Prisma.WalletAccountWhereInput = {
         tenantId,
         userId,
-        ...(query.workspaceId !== undefined
-          ? { workspaceId: query.workspaceId.trim() }
-          : {}),
+        ...(query.workspaceId !== undefined ? { workspaceId: query.workspaceId.trim() } : {}),
         ...(query.currency !== undefined ? { currency: query.currency.trim() } : {}),
       };
 
@@ -738,7 +737,7 @@ export class PrismaWalletRepository {
 
   async findPostedTransactionByIdempotencyKey(
     tenantId: string,
-    creationIdempotencyKey: string,
+    creationIdempotencyKey: string
   ): Promise<WalletTransaction | null> {
     const trimmedTenant = tenantId.trim();
     const trimmedKey = creationIdempotencyKey.trim();
@@ -755,16 +754,14 @@ export class PrismaWalletRepository {
           },
         },
       });
-      return row === null || row.status !== "posted"
-        ? null
-        : mapWalletTransaction(row);
+      return row === null || row.status !== "posted" ? null : mapWalletTransaction(row);
     });
   }
 
   async findPostedTransactionByReference(
     tenantId: string,
     referenceType: string,
-    referenceId: string,
+    referenceId: string
   ): Promise<WalletTransaction | null> {
     const trimmedTenant = tenantId.trim();
     const trimmedType = referenceType.trim();
@@ -790,7 +787,7 @@ export class PrismaWalletRepository {
   async findPostedTransactionsByReferences(
     tenantId: string,
     referenceType: string,
-    referenceIds: readonly string[],
+    referenceIds: readonly string[]
   ): Promise<Map<string, WalletTransaction>> {
     const trimmedTenant = tenantId.trim();
     const trimmedType = referenceType.trim();
