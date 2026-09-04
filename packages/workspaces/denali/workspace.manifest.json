@@ -143,10 +143,12 @@
           "GET /engagement/me/summary": "handleEngagementMemberSummary",
           "GET /engagement/me/points": "handleEngagementMemberPoints",
           "GET /engagement/me/badges": "handleEngagementMemberBadges",
-          "GET /engagement/operator/overview": "handleEngagementOperatorOverview"
+          "GET /engagement/operator/overview": "handleEngagementOperatorOverview",
+          "GET /engagement/operator/policy": "handleEngagementOperatorPolicy"
         },
         "paramHandlers": {
           "GET /engagement/operator/members/:userId": "handleEngagementOperatorMemberLookup",
+          "POST /engagement/operator/members/:userId/adjust": "handleEngagementOperatorAdjust",
           "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse"
         },
         "handlerPackage": "@app-tour/engagement-http"

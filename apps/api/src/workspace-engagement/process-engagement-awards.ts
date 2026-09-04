@@ -18,7 +18,7 @@ function asRecord(payload: unknown): Readonly<Record<string, unknown>> {
   return {};
 }
 
-async function notifyBadgeEarned(input: {
+export async function notifyEngagementBadgeEarned(input: {
   readonly tenantId: string;
   readonly userId: string;
   readonly badgeCode: string;
@@ -89,7 +89,7 @@ export async function processEngagementAward(input: {
   }
 
   for (const badge of result.newBadges) {
-    await notifyBadgeEarned({
+    await notifyEngagementBadgeEarned({
       tenantId: badge.tenantId,
       userId: badge.userId,
       badgeCode: badge.badgeCode,

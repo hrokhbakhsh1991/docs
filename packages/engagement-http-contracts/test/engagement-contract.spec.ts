@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
   parseEngagementListLimit,
+  parseOperatorAdjustmentBody,
   parseOperatorReversalBody,
   parseOptionalListCursor,
 } from "../src/engagement-request.schemas";
@@ -30,5 +31,13 @@ describe("engagement-http-contracts", () => {
       reason: "duplicate award correction",
     });
     assert.equal(body.reason, "duplicate award correction");
+  });
+
+  it("parseOperatorAdjustmentBody validates shape", () => {
+    const body = parseOperatorAdjustmentBody({
+      pointsDelta: 25,
+      reason: "community volunteer recognition",
+    });
+    assert.equal(body.pointsDelta, 25);
   });
 });

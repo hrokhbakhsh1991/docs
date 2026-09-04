@@ -6,7 +6,9 @@ export {
   handleEngagementMemberPoints,
   handleEngagementMemberBadges,
   handleEngagementOperatorOverview,
+  handleEngagementOperatorPolicy,
   handleEngagementOperatorMemberLookup,
+  handleEngagementOperatorAdjust,
   handleEngagementOperatorReverse,
 } from "./engagement.routes";
 

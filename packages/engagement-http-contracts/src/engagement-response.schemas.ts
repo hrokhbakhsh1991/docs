@@ -66,3 +66,32 @@ export type EngagementReversalHttpResponse = {
   readonly totalPoints: number;
   readonly replay: boolean;
 };
+
+export type EngagementOperatorPolicyHttpResponse = {
+  readonly managementMode: "system_managed";
+  readonly editUnavailableReasonKey: string;
+  readonly levels: readonly {
+    readonly code: string;
+    readonly labelKey: string;
+    readonly minPoints: number;
+  }[];
+  readonly badges: readonly {
+    readonly code: string;
+    readonly labelKey: string;
+    readonly descriptionKey: string;
+    readonly triggerKind: "event" | "points_threshold";
+    readonly triggerEventType: string | null;
+    readonly triggerMinPoints: number | null;
+  }[];
+  readonly awardRules: readonly {
+    readonly eventType: string;
+    readonly points: number;
+    readonly sourceModule: string;
+  }[];
+};
+
+export type EngagementAdjustmentHttpResponse = {
+  readonly eventId: string;
+  readonly totalPoints: number;
+  readonly replay: boolean;
+};

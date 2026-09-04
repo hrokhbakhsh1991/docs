@@ -25,8 +25,10 @@ export type WorkspaceHttpHandlerKey =
   | "handleEngagementMemberBadges"
   | "handleEngagementMemberPoints"
   | "handleEngagementMemberSummary"
+  | "handleEngagementOperatorAdjust"
   | "handleEngagementOperatorMemberLookup"
   | "handleEngagementOperatorOverview"
+  | "handleEngagementOperatorPolicy"
   | "handleEngagementOperatorReverse"
   | "handleFinanceApproveRefund"
   | "handleFinanceCancelPendingManualPayment"
@@ -185,7 +187,8 @@ const DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /engagement/me/summary": "handleEngagementMemberSummary",
   "GET /engagement/me/points": "handleEngagementMemberPoints",
   "GET /engagement/me/badges": "handleEngagementMemberBadges",
-  "GET /engagement/operator/overview": "handleEngagementOperatorOverview"
+  "GET /engagement/operator/overview": "handleEngagementOperatorOverview",
+  "GET /engagement/operator/policy": "handleEngagementOperatorPolicy"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
@@ -259,6 +262,7 @@ const DENALI_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
 
 const DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /engagement/operator/members/:userId": "handleEngagementOperatorMemberLookup",
+  "POST /engagement/operator/members/:userId/adjust": "handleEngagementOperatorAdjust",
   "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 

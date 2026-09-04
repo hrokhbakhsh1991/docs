@@ -8,6 +8,8 @@ export const ENGAGEMENT_HTTP_ROUTE_MANIFEST: readonly {
   { method: "GET", path: "/engagement/me/points" },
   { method: "GET", path: "/engagement/me/badges" },
   { method: "GET", path: "/engagement/operator/overview" },
+  { method: "GET", path: "/engagement/operator/policy" },
   { method: "GET", path: "/engagement/operator/members/:userId" },
+  { method: "POST", path: "/engagement/operator/members/:userId/adjust" },
   { method: "POST", path: "/engagement/operator/members/:userId/reverse" },
 ] as const;

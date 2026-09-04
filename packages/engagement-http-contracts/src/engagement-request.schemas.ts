@@ -7,10 +7,25 @@ export const operatorReversalBodySchema = z.object({
   reason: z.string().trim().min(3).max(500),
 });
 
+export const operatorAdjustmentBodySchema = z.object({
+  pointsDelta: z
+    .number()
+    .int()
+    .refine((value) => value !== 0, { message: "pointsDelta must be non-zero" })
+    .refine((value) => Math.abs(value) <= 500, { message: "pointsDelta out of range" }),
+  reason: z.string().trim().min(3).max(500),
+  sourceEntityId: uuidSchema.optional(),
+});
+
 export type OperatorReversalBody = z.infer<typeof operatorReversalBodySchema>;
+export type OperatorAdjustmentBody = z.infer<typeof operatorAdjustmentBodySchema>;
 
 export function parseOperatorReversalBody(body: unknown): OperatorReversalBody {
   return operatorReversalBodySchema.parse(body);
+}
+
+export function parseOperatorAdjustmentBody(body: unknown): OperatorAdjustmentBody {
+  return operatorAdjustmentBodySchema.parse(body);
 }
 
 export function parseEngagementListLimit(value: string | null): number {

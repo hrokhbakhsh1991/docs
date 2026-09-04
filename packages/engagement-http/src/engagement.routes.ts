@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import {
   parseEngagementListLimit,
+  parseOperatorAdjustmentBody,
   parseOperatorReversalBody,
   parseOptionalListCursor,
 } from "@app-tour/engagement-http-contracts";
@@ -111,6 +112,29 @@ export async function handleEngagementOperatorOverview(
   }
 }
 
+export async function handleEngagementOperatorPolicy(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: EngagementRouteDeps,
+): Promise<void> {
+  const host = getEngagementHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const service = await host.resolveEngagementService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const policy = await service.getOperatorPolicy(auth);
+        host.sendJson(res, 200, policy);
+      },
+      { rateLimit: "read" },
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
 export async function handleEngagementOperatorMemberLookup(
   req: IncomingMessage,
   res: ServerResponse,
@@ -129,6 +153,51 @@ export async function handleEngagementOperatorMemberLookup(
         host.sendJson(res, 200, lookup);
       },
       { rateLimit: "read" },
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleEngagementOperatorAdjust(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: EngagementRouteDeps,
+  userId: string,
+): Promise<void> {
+  const host = getEngagementHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const idempotencyKey = host.readIdempotencyKey(req);
+    if (idempotencyKey === undefined) {
+      host.sendJson(res, 400, { code: host.idempotencyKeyRequiredCode });
+      return;
+    }
+    const { parsedBody, rawBody } = await host.readEngagementRequestBody(req);
+    const body = parseOperatorAdjustmentBody(parsedBody);
+    const requestHash = host.hashIdempotentRequest(req.method ?? "POST", req.url ?? "", rawBody);
+    const service = await host.resolveEngagementService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await host.runIdempotentHttpMutation(
+          auth.tenantId,
+          idempotencyKey,
+          requestHash,
+          async () =>
+            service.adjustMemberPoints(auth, userId, {
+              pointsDelta: body.pointsDelta,
+              reason: body.reason,
+              idempotencyKey,
+              ...(body.sourceEntityId !== undefined
+                ? { sourceEntityId: body.sourceEntityId }
+                : {}),
+            }),
+        );
+        host.sendJson(res, 200, result);
+      },
+      { rateLimit: "write" },
     );
   } catch (error) {
     host.handleHttpError(res, error);

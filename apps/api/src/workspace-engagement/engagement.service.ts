@@ -3,12 +3,15 @@ import type {
   EngagementMemberLookupHttpResponse,
   EngagementMemberSummaryHttpResponse,
   EngagementOperatorOverviewHttpResponse,
+  EngagementOperatorPolicyHttpResponse,
+  EngagementAdjustmentHttpResponse,
   EngagementReversalHttpResponse,
 } from "@app-tour/engagement-http-contracts";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import {
   DEFAULT_ENGAGEMENT_BADGES,
+  DEFAULT_ENGAGEMENT_AWARD_RULES,
   DEFAULT_ENGAGEMENT_LEVELS,
   resolveNextLevel,
   type EngagementBadgeDefinition,
@@ -18,6 +21,7 @@ import {
   createPrismaEngagementRepository,
   findBadgeDefinition,
 } from "./infrastructure/prisma-engagement.repository";
+import { notifyEngagementBadgeEarned } from "./process-engagement-awards";
 
 function requireOperator(auth: TenantAuthContext): void {
   if (auth.role !== "owner" && auth.role !== "admin") {
@@ -166,6 +170,33 @@ export function createEngagementService(): EngagementServicePort {
       } satisfies EngagementOperatorOverviewHttpResponse;
     },
 
+    async getOperatorPolicy(auth) {
+      requireOperator(auth);
+      return {
+        managementMode: "system_managed",
+        editUnavailableReasonKey: "engagement.policy.systemManagedReason",
+        levels: DEFAULT_ENGAGEMENT_LEVELS.map((level) => ({
+          code: level.code,
+          labelKey: level.labelKey,
+          minPoints: level.minPoints,
+        })),
+        badges: DEFAULT_ENGAGEMENT_BADGES.map((badge) => ({
+          code: badge.code,
+          labelKey: badge.labelKey,
+          descriptionKey: badge.descriptionKey,
+          triggerKind: badge.trigger.kind,
+          triggerEventType: badge.trigger.kind === "event" ? badge.trigger.eventType : null,
+          triggerMinPoints:
+            badge.trigger.kind === "points_threshold" ? badge.trigger.minPoints : null,
+        })),
+        awardRules: DEFAULT_ENGAGEMENT_AWARD_RULES.map((rule) => ({
+          eventType: rule.eventType,
+          points: rule.points,
+          sourceModule: rule.sourceModule,
+        })),
+      } satisfies EngagementOperatorPolicyHttpResponse;
+    },
+
     async getOperatorMemberLookup(auth, userId) {
       requireOperator(auth);
       const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
@@ -197,6 +228,50 @@ export function createEngagementService(): EngagementServicePort {
           })),
         }),
       } satisfies EngagementMemberLookupHttpResponse;
+    },
+
+    async adjustMemberPoints(auth, userId, input) {
+      requireOperator(auth);
+      const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
+      const profile = await repository.getOrCreateProfile(auth.tenantId, workspaceId, userId);
+      if (profile.totalPoints + input.pointsDelta < 0) {
+        throw new Error("ENGAGEMENT_ADJUSTMENT_INSUFFICIENT_POINTS");
+      }
+      const result = await repository.awardPoints({
+        tenantId: auth.tenantId,
+        workspaceId,
+        userId,
+        pointsDelta: input.pointsDelta,
+        sourceModule: "engagement",
+        sourceEventType: "engagement.points.manual_adjustment",
+        sourceEntityId: input.sourceEntityId ?? null,
+        dedupeKey: `engagement:manual:${input.idempotencyKey}`,
+        actorUserId: auth.userId,
+        actorRole: auth.role,
+        reason: input.reason,
+      });
+      if (!result.replay && result.event !== null) {
+        for (const badge of result.newBadges) {
+          await notifyEngagementBadgeEarned({
+            tenantId: badge.tenantId,
+            userId: badge.userId,
+            badgeCode: badge.badgeCode,
+            dedupeKey: `engagement:notification:badge:${badge.badgeCode}:${badge.userId}`,
+          });
+        }
+      }
+      if (result.event === null) {
+        return {
+          eventId: profile.id,
+          totalPoints: result.profile.totalPoints,
+          replay: true,
+        } satisfies EngagementAdjustmentHttpResponse;
+      }
+      return {
+        eventId: result.event.id,
+        totalPoints: result.profile.totalPoints,
+        replay: false,
+      } satisfies EngagementAdjustmentHttpResponse;
     },
 
     async reversePointEvent(auth, userId, input) {

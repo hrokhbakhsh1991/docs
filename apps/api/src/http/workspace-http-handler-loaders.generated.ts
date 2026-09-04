@@ -10,8 +10,10 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleEngagementMemberBadges"
   | "handleEngagementMemberPoints"
   | "handleEngagementMemberSummary"
+  | "handleEngagementOperatorAdjust"
   | "handleEngagementOperatorMemberLookup"
   | "handleEngagementOperatorOverview"
+  | "handleEngagementOperatorPolicy"
   | "handleEngagementOperatorReverse"
   | "handleFinanceApproveRefund"
   | "handleFinanceCancelPendingManualPayment"
@@ -94,8 +96,10 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleEngagementMemberBadges: "@app-tour/engagement-http",
   handleEngagementMemberPoints: "@app-tour/engagement-http",
   handleEngagementMemberSummary: "@app-tour/engagement-http",
+  handleEngagementOperatorAdjust: "@app-tour/engagement-http",
   handleEngagementOperatorMemberLookup: "@app-tour/engagement-http",
   handleEngagementOperatorOverview: "@app-tour/engagement-http",
+  handleEngagementOperatorPolicy: "@app-tour/engagement-http",
   handleEngagementOperatorReverse: "@app-tour/engagement-http",
   handleFinanceApproveRefund: "@app-tour/finance-http",
   handleFinanceCancelPendingManualPayment: "@app-tour/finance-http",
@@ -197,8 +201,10 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleEngagementMemberBadges: mod.handleEngagementMemberBadges,
         handleEngagementMemberPoints: mod.handleEngagementMemberPoints,
         handleEngagementMemberSummary: mod.handleEngagementMemberSummary,
+        handleEngagementOperatorAdjust: mod.handleEngagementOperatorAdjust,
         handleEngagementOperatorMemberLookup: mod.handleEngagementOperatorMemberLookup,
         handleEngagementOperatorOverview: mod.handleEngagementOperatorOverview,
+        handleEngagementOperatorPolicy: mod.handleEngagementOperatorPolicy,
         handleEngagementOperatorReverse: mod.handleEngagementOperatorReverse,
       };
     }

@@ -141,7 +141,9 @@ const HANDLER_DISPATCH_KIND = {
   handleEngagementMemberPoints: "engagement",
   handleEngagementMemberBadges: "engagement",
   handleEngagementOperatorOverview: "engagement",
+  handleEngagementOperatorPolicy: "engagement",
   handleEngagementOperatorMemberLookup: "engagement-param",
+  handleEngagementOperatorAdjust: "engagement-param",
   handleEngagementOperatorReverse: "engagement-param",
 } as const satisfies Record<WorkspaceHttpHandlerKey, HandlerDispatchKind>;
 

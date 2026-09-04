@@ -4,6 +4,8 @@ import type {
   EngagementMemberLookupHttpResponse,
   EngagementMemberSummaryHttpResponse,
   EngagementOperatorOverviewHttpResponse,
+  EngagementOperatorPolicyHttpResponse,
+  EngagementAdjustmentHttpResponse,
   EngagementPointHistoryHttpResponse,
   EngagementReversalHttpResponse,
 } from "@app-tour/engagement-http-contracts";
@@ -16,10 +18,21 @@ export type EngagementServicePort = {
   ): Promise<EngagementPointHistoryHttpResponse>;
   getMemberBadges(auth: TenantAuthContext): Promise<EngagementMemberSummaryHttpResponse["badges"]>;
   getOperatorOverview(auth: TenantAuthContext): Promise<EngagementOperatorOverviewHttpResponse>;
+  getOperatorPolicy(auth: TenantAuthContext): Promise<EngagementOperatorPolicyHttpResponse>;
   getOperatorMemberLookup(
     auth: TenantAuthContext,
     userId: string,
   ): Promise<EngagementMemberLookupHttpResponse>;
+  adjustMemberPoints(
+    auth: TenantAuthContext,
+    userId: string,
+    input: {
+      readonly pointsDelta: number;
+      readonly reason: string;
+      readonly idempotencyKey: string;
+      readonly sourceEntityId?: string;
+    },
+  ): Promise<EngagementAdjustmentHttpResponse>;
   reversePointEvent(
     auth: TenantAuthContext,
     userId: string,
