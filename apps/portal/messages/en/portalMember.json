@@ -190,6 +190,27 @@
       "ridge_partner": { "label": "Ridge partner" }
     }
   },
+  "engagement": {
+    "title": "Engagement",
+    "lede": "Your participation points, level progress, and earned badges.",
+    "pointsLabel": "Engagement points",
+    "levelLabel": "Current level",
+    "notMoney": "Participation points — separate from wallet balance.",
+    "viewDetails": "View engagement details",
+    "progressAria": "{percent}% progress to the next level",
+    "nextBadge": "Next badge: {badge} ({percent}% complete)",
+    "historyTitle": "Recent point activity",
+    "badgesTitle": "Badges",
+    "emptyHistory": "No point activity yet. Complete your profile or join a tour to start earning.",
+    "emptyBadges": "No badges earned yet.",
+    "loadFailed": "Could not load engagement details.",
+    "backToHome": "Back to home",
+    "eventTypes": {
+      "profile_completed": "Profile completed",
+      "registration_first_approved": "First tour registration approved",
+      "engagement_points_reversed": "Points adjustment"
+    }
+  },
   "hub": {
     "title": "More",
     "lede": "Less-frequent member tools and secondary account paths live here.",

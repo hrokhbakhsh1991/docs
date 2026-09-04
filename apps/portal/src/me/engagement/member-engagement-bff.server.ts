@@ -31,3 +31,26 @@ export async function fetchMemberEngagementSummary(host: string): Promise<Member
   const summary = (await response.json()) as EngagementMemberSummaryHttpResponse;
   return { ok: true, view: { ...summary, enabled: true } };
 }
+
+export type MemberEngagementPointHistoryResult =
+  | {
+      readonly ok: true;
+      readonly items: EngagementMemberSummaryHttpResponse["recentPointEvents"];
+    }
+  | { readonly ok: false; readonly code: string; readonly status: number };
+
+export async function fetchMemberEngagementPointHistory(
+  host: string,
+): Promise<MemberEngagementPointHistoryResult> {
+  const response = await fetchEngagementUpstream(host, "/engagement/me/points?limit=20");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { code?: string };
+    return {
+      ok: false,
+      code: payload.code ?? "ENGAGEMENT_HISTORY_FETCH_FAILED",
+      status: response.status,
+    };
+  }
+  const payload = (await response.json()) as { items?: EngagementMemberSummaryHttpResponse["recentPointEvents"] };
+  return { ok: true, items: payload.items ?? [] };
+}
