@@ -13,6 +13,7 @@ const VIEWPORTS = [
 ] as const;
 
 const PREFIX = process.env.MEG_UX_CAPTURE_PREFIX ?? "before";
+const ARTIFACT_DIR = process.env.MEG_UX_CAPTURE_DIR ?? "/opt/cursor/artifacts";
 
 test.describe("MEG-UX operator capture", () => {
   test("engagement overview surfaces", async ({ page }) => {
@@ -25,7 +26,7 @@ test.describe("MEG-UX operator capture", () => {
         timeout: 90_000,
       });
       await page.screenshot({
-        path: `/opt/cursor/artifacts/${PREFIX}-operator-engagement-${viewport.name}.png`,
+        path: `${ARTIFACT_DIR}/${PREFIX}-operator-engagement-${viewport.name}.png`,
         fullPage: true,
       });
     }

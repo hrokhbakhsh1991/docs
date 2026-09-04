@@ -12,6 +12,7 @@ export default defineConfig({
     "portal-member-engagement-smoke.spec.ts",
     "portal-engagement-a11y.spec.ts",
     "gamification-ux-capture.spec.ts",
+    "gamification-ux-capture-before-home.spec.ts",
   ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI ? 1 : 0,
