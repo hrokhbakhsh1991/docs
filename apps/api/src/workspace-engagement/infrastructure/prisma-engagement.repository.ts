@@ -1,11 +1,9 @@
 import type { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import {
-  DEFAULT_ENGAGEMENT_BADGES,
-  resolveLevelForPoints,
-  type EngagementBadgeDefinition,
-} from "../engagement-policy";
+import { resolveLevelForPoints } from "../engagement-policy";
+import type { EngagementBadgeDefinitionRow } from "../engagement-definition.types";
+import { createPrismaEngagementDefinitionsRepository } from "./prisma-engagement-definitions.repository";
 import type {
   AwardEngagementPointsResult,
   EngagementPointEventRow,
@@ -97,6 +95,7 @@ function mapBadge(row: {
 async function ensureBadgesForProfile(
   tx: Prisma.TransactionClient,
   profile: EngagementProfileRow,
+  activeBadges: readonly EngagementBadgeDefinitionRow[],
   triggerEventType?: string,
 ): Promise<MemberEngagementBadgeRow[]> {
   const earned = new Map(
@@ -108,14 +107,14 @@ async function ensureBadgesForProfile(
   );
   const created: MemberEngagementBadgeRow[] = [];
 
-  for (const badge of DEFAULT_ENGAGEMENT_BADGES) {
+  for (const badge of activeBadges) {
     if (earned.has(badge.code)) {
       continue;
     }
     const shouldAward =
-      badge.trigger.kind === "points_threshold"
-        ? profile.totalPoints >= badge.trigger.minPoints
-        : triggerEventType === badge.trigger.eventType;
+      badge.triggerKind === "points_threshold"
+        ? profile.totalPoints >= (badge.triggerMinPoints ?? 0)
+        : triggerEventType === badge.triggerEventType;
     if (!shouldAward) {
       continue;
     }
@@ -148,7 +147,8 @@ async function ensureBadgesForProfile(
   return created;
 }
 
-export function createPrismaEngagementRepository(): EngagementRepository {
+export function createPrismaEngagementRepository() {
+  const definitionsRepository = createPrismaEngagementDefinitionsRepository();
   return {
     async getOrCreateProfile(tenantId, workspaceId, userId) {
       return withTenantRls(tenantId, async (tx) => {
@@ -174,6 +174,17 @@ export function createPrismaEngagementRepository(): EngagementRepository {
     },
 
     async awardPoints(input) {
+      await definitionsRepository.ensureSeeded(input.tenantId, input.workspaceId);
+      const [activeBadges, activeLevels] = await Promise.all([
+        definitionsRepository.listActiveBadgesForAward(input.tenantId, input.workspaceId),
+        definitionsRepository.listActiveLevels(input.tenantId, input.workspaceId),
+      ]);
+      const levelDefs = activeLevels.map((level) => ({
+        code: level.code,
+        labelKey: `engagement.level.${level.code}`,
+        minPoints: level.minPoints,
+      }));
+
       return withTenantRls(input.tenantId, async (tx) => {
         const existingEvent = await tx.engagementPointEvent.findUnique({
           where: {
@@ -229,7 +240,7 @@ export function createPrismaEngagementRepository(): EngagementRepository {
         });
 
         const totalPoints = profile.totalPoints + input.pointsDelta;
-        const level = resolveLevelForPoints(totalPoints);
+        const level = resolveLevelForPoints(totalPoints, levelDefs);
         const updatedProfile = await tx.engagementProfile.update({
           where: { tenantId_id: { tenantId: input.tenantId, id: profile.id } },
           data: {
@@ -242,6 +253,7 @@ export function createPrismaEngagementRepository(): EngagementRepository {
         const newBadges = await ensureBadgesForProfile(
           tx,
           mappedProfile,
+          activeBadges,
           input.sourceEventType,
         );
 
@@ -322,9 +334,9 @@ export function createPrismaEngagementRepository(): EngagementRepository {
         return row === null ? null : mapEvent(row);
       });
     },
-  };
+  } satisfies EngagementRepository;
 }
 
-export function findBadgeDefinition(code: string): EngagementBadgeDefinition | undefined {
-  return DEFAULT_ENGAGEMENT_BADGES.find((badge) => badge.code === code);
+export function findBadgeDefinition(_code: string): undefined {
+  return undefined;
 }

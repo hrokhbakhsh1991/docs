@@ -89,6 +89,10 @@ model Tenant {
   engagementProfiles             EngagementProfile[]
   engagementPointEvents          EngagementPointEvent[]
   memberEngagementBadges         MemberEngagementBadge[]
+  engagementBadgeDefinitions     EngagementBadgeDefinition[]
+  engagementLevelDefinitions     EngagementLevelDefinition[]
+  engagementAwardRuleDefinitions EngagementAwardRuleDefinition[]
+  engagementDefinitionAuditLogs  EngagementDefinitionAuditLog[]
 
   @@map("tenants")
 }
@@ -1485,6 +1489,98 @@ model MemberEngagementBadge {
   @@unique([tenantId, dedupeKey], map: "uq_member_engagement_badges_dedupe")
   @@index([tenantId, workspaceId, earnedAt(sort: Desc)], map: "idx_member_engagement_badges_tenant_workspace_earned")
   @@map("member_engagement_badges")
+}
+
+/// MEG-001 — operator-managed badge definitions (tenant + workspace scoped).
+model EngagementBadgeDefinition {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  workspaceId       String    @map("workspace_id")
+  code              String
+  titleI18n         Json      @map("title_i18n")
+  descriptionI18n   Json      @map("description_i18n")
+  iconKey           String    @map("icon_key")
+  status            String    @default("active")
+  triggerKind       String    @map("trigger_kind")
+  triggerEventType  String?   @map("trigger_event_type")
+  triggerMinPoints  Int?      @map("trigger_min_points")
+  rowVersion        Int       @default(1) @map("row_version")
+  archivedAt        DateTime? @map("archived_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, code], map: "uq_engagement_badge_definitions_code")
+  @@index([tenantId, workspaceId, status], map: "idx_engagement_badge_definitions_tenant_workspace_status")
+  @@map("engagement_badge_definitions")
+}
+
+/// MEG-001 — operator-managed level definitions.
+model EngagementLevelDefinition {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  workspaceId     String   @map("workspace_id")
+  code            String
+  titleI18n       Json     @map("title_i18n")
+  descriptionI18n Json     @map("description_i18n")
+  minPoints       Int      @map("min_points")
+  sortOrder       Int      @default(0) @map("sort_order")
+  status          String   @default("active")
+  rowVersion      Int      @default(1) @map("row_version")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, code], map: "uq_engagement_level_definitions_code")
+  @@index([tenantId, workspaceId, status, minPoints], map: "idx_engagement_level_definitions_tenant_workspace_points")
+  @@map("engagement_level_definitions")
+}
+
+/// MEG-001 — versioned award rule definitions.
+model EngagementAwardRuleDefinition {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  workspaceId   String    @map("workspace_id")
+  eventType     String    @map("event_type")
+  sourceModule  String    @map("source_module")
+  points        Int
+  badgeCode     String?   @map("badge_code")
+  status        String    @default("active")
+  effectiveFrom DateTime  @default(now()) @map("effective_from") @db.Timestamptz
+  effectiveTo   DateTime? @map("effective_to") @db.Timestamptz
+  dedupePolicy  String    @default("per_user") @map("dedupe_policy")
+  version       Int       @default(1)
+  rowVersion    Int       @default(1) @map("row_version")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, eventType, version], map: "uq_engagement_award_rule_definitions_version")
+  @@index([tenantId, workspaceId, status, effectiveFrom], map: "idx_engagement_award_rule_definitions_active")
+  @@map("engagement_award_rule_definitions")
+}
+
+/// MEG-001 — append-only audit log for definition mutations.
+model EngagementDefinitionAuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  workspaceId  String   @map("workspace_id")
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id") @db.Uuid
+  action       String
+  actorUserId  String   @map("actor_user_id") @db.Uuid
+  actorRole    String   @map("actor_role")
+  beforeJson   Json?    @map("before_json")
+  afterJson    Json?    @map("after_json")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, workspaceId, createdAt(sort: Desc)], map: "idx_engagement_definition_audit_logs_tenant_created")
+  @@map("engagement_definition_audit_logs")
 }
 
 /// TKT-001 Phase I1 — SLA policy definitions (tenant-scoped; RLS enforced).

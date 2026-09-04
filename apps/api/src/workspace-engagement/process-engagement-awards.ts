@@ -3,9 +3,13 @@ import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contra
 
 import { insertMemberNotificationRow } from "../notifications/member-notification.repository";
 import type { WorkspaceOutboxPublishedRow } from "../workspace/workspace-outbox-row-context";
-import { DEFAULT_ENGAGEMENT_AWARD_RULES } from "./engagement-policy";
+import { buildAwardDedupeKey } from "./engagement-admin-catalog";
 import { assertEngagementWorkspaceGate } from "./engagement-module-enabled";
-import { createPrismaEngagementRepository, findBadgeDefinition } from "./infrastructure/prisma-engagement.repository";
+import {
+  createPrismaEngagementDefinitionsRepository,
+  findBadgeDefinitionFromRows,
+} from "./infrastructure/prisma-engagement-definitions.repository";
+import { createPrismaEngagementRepository } from "./infrastructure/prisma-engagement.repository";
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
@@ -23,11 +27,11 @@ export async function notifyEngagementBadgeEarned(input: {
   readonly userId: string;
   readonly badgeCode: string;
   readonly dedupeKey: string;
+  readonly titleKey: string;
+  readonly bodyKey: string;
+  readonly title: string;
+  readonly body: string;
 }): Promise<void> {
-  const badge = findBadgeDefinition(input.badgeCode);
-  if (badge === undefined) {
-    return;
-  }
   await insertMemberNotificationRow({
     tenantId: input.tenantId,
     userId: input.userId,
@@ -35,11 +39,11 @@ export async function notifyEngagementBadgeEarned(input: {
     eventType: "engagement.badge.earned",
     entityType: "engagement_event",
     entityId: null,
-    titleKey: badge.labelKey,
-    bodyKey: badge.descriptionKey,
+    titleKey: input.titleKey,
+    bodyKey: input.bodyKey,
     templateKey: `engagement.badge.${input.badgeCode}`,
-    title: badge.code,
-    body: badge.code,
+    title: input.title,
+    body: input.body,
     dedupeKey: input.dedupeKey,
     payload: { badgeCode: input.badgeCode },
   });
@@ -64,8 +68,17 @@ export async function processEngagementAward(input: {
     return;
   }
 
-  const rule = DEFAULT_ENGAGEMENT_AWARD_RULES.find((entry) => entry.eventType === input.eventType);
-  if (rule === undefined && input.pointsOverride === undefined) {
+  const definitionsRepository = createPrismaEngagementDefinitionsRepository();
+  await definitionsRepository.ensureSeeded(input.tenantId, input.workspaceId);
+  const rule =
+    input.pointsOverride === undefined
+      ? await definitionsRepository.resolveActiveAwardRule(
+          input.tenantId,
+          input.workspaceId,
+          input.eventType,
+        )
+      : null;
+  if (rule === null && input.pointsOverride === undefined) {
     return;
   }
 
@@ -75,10 +88,17 @@ export async function processEngagementAward(input: {
     workspaceId: input.workspaceId,
     userId: input.userId,
     pointsDelta: input.pointsOverride ?? rule!.points,
-    sourceModule: input.sourceModule,
+    sourceModule: input.sourceModule ?? rule!.sourceModule,
     sourceEventType: input.eventType,
     sourceEntityId: input.sourceEntityId ?? null,
-    dedupeKey: input.dedupeKey,
+    dedupeKey:
+      input.dedupeKey ??
+      buildAwardDedupeKey(
+        rule?.dedupePolicy ?? "per_user",
+        input.eventType,
+        input.userId,
+        input.sourceEntityId,
+      ),
     actorUserId: input.actorUserId ?? null,
     actorRole: input.actorRole ?? null,
     reason: input.reason ?? null,
@@ -88,12 +108,25 @@ export async function processEngagementAward(input: {
     return;
   }
 
+  const activeBadges = await definitionsRepository.listActiveBadgesForAward(
+    input.tenantId,
+    input.workspaceId,
+  );
+
   for (const badge of result.newBadges) {
+    const definition = findBadgeDefinitionFromRows(badge.badgeCode, activeBadges);
+    if (definition === undefined) {
+      continue;
+    }
     await notifyEngagementBadgeEarned({
       tenantId: badge.tenantId,
       userId: badge.userId,
       badgeCode: badge.badgeCode,
       dedupeKey: `engagement:notification:badge:${badge.badgeCode}:${badge.userId}`,
+      titleKey: `engagement.badge.${badge.badgeCode}.label`,
+      bodyKey: `engagement.badge.${badge.badgeCode}.description`,
+      title: definition.titleI18n.en,
+      body: definition.descriptionI18n.en,
     });
   }
 }
