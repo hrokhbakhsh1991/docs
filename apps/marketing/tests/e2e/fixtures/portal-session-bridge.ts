@@ -99,6 +99,12 @@ export async function authenticateMemberViaPortal(
     ]);
   }
 
+  // register-complete triggers a client refresh; wait for the settled intake
+  // state before handing the same page/context to the Marketing surface.
+  await expect(page.locator("[data-registration-resume='intake']")).toBeVisible({
+    timeout: 120_000,
+  });
+
   const storage = await page.request.storageState();
   if (storage.cookies.length > 0) {
     const cookieDomain = resolveSessionCookieDomainSuffix();
