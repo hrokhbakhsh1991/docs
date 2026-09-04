@@ -46,8 +46,7 @@ function waitForUrl(url: string, timeoutMs = 300_000): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   const base =
-    process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "") ??
-    "http://operator.admin.localhost:3000";
+    process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "") ?? "http://admin.operator.localhost:3000";
   // webServer.url gates on /auth/login; warm bookings/new for SMK-P9-07 compile.
   await waitForUrl(`${base}/bookings/new`);
 }

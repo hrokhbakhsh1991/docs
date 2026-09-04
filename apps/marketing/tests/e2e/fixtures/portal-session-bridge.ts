@@ -7,7 +7,12 @@ import {
 } from "./catalog-registration-otp";
 import { resolveSmokePublishedTourId } from "./smoke-published-tour";
 
-export const OPERATOR_SMOKE_MEMBER_PHONE = "+15550001003";
+let smokePhoneSequence = 0;
+
+export function resolveSmokeMemberPhone(): string {
+  smokePhoneSequence += 1;
+  return `+1555${String(Date.now() + smokePhoneSequence).slice(-7)}`;
+}
 
 export function resolveMarketingBaseUrl(): string {
   return process.env.SMOKE_MARKETING_BASE_URL?.trim() || "http://operator.localhost:3002";
@@ -44,26 +49,29 @@ export async function authenticateMemberViaPortal(
   page: Page,
   input: { readonly phone?: string; readonly tourId?: string } = {}
 ): Promise<void> {
-  const phone = input.phone ?? OPERATOR_SMOKE_MEMBER_PHONE;
+  const phone = input.phone ?? resolveSmokeMemberPhone();
   const tourId = input.tourId ?? resolveSmokeTourId();
   const portalBase = resolvePortalBaseUrl();
+  const portalOrigin = new URL(portalBase);
+  // Node's APIRequestContext does not honor Chromium's host-resolver-rules and
+  // resolves *.localhost to ::1, while the smoke portal listens on IPv4.
+  // Keep the public Host header for tenant routing, but connect to IPv4.
+  const portalInternalBase = `http://127.0.0.1:${portalOrigin.port || "3003"}`;
+  const portalHeaders = { host: portalOrigin.host };
 
-  const requestOtp = await page.request.post(`${portalBase}/api/public-auth/request-otp`, {
+  const requestOtp = await page.request.post(`${portalInternalBase}/api/public-auth/request-otp`, {
     data: { phone },
+    headers: portalHeaders,
   });
   expect(requestOtp.ok()).toBeTruthy();
   const requestBody = (await requestOtp.json()) as { challenge_id?: string };
   expect(requestBody.challenge_id).toBeTruthy();
 
-  const verifyOtp = await page.request.post(`${portalBase}/api/public-auth/verify-otp`, {
+  const verifyOtp = await page.request.post(`${portalInternalBase}/api/public-auth/verify-otp`, {
     data: { phone, otp: CATALOG_DEV_OTP, challenge_id: requestBody.challenge_id },
+    headers: portalHeaders,
   });
   expect(verifyOtp.ok()).toBeTruthy();
-
-  const storage = await page.request.storageState();
-  if (storage.cookies.length > 0) {
-    await page.context().addCookies(storage.cookies);
-  }
 
   await page.goto(`${portalBase}/catalog/${tourId}/register`, {
     waitUntil: "domcontentloaded",
@@ -75,6 +83,40 @@ export async function authenticateMemberViaPortal(
   if ((await registrationSurface.count()) === 0) {
     await requestRegistrationOtp(page, phone);
     await fillCatalogOtp(page, CATALOG_DEV_OTP);
+  }
+
+  const profileStep = page.locator("[data-public-registration-profile]");
+  if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await page.locator("#displayName").fill("Marketing Bridge Smoke");
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          res.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      page.locator('[data-action="profile-continue"]').click(),
+    ]);
+  }
+
+  // register-complete triggers a client refresh; wait for the settled intake
+  // state before handing the same page/context to the Marketing surface.
+  await expect(page.locator("[data-registration-resume='intake']")).toBeVisible({
+    timeout: 120_000,
+  });
+
+  const storage = await page.request.storageState();
+  if (storage.cookies.length > 0) {
+    const cookieDomain = resolveSessionCookieDomainSuffix();
+    await page
+      .context()
+      .addCookies(
+        storage.cookies.map((cookie) =>
+          cookie.domain === "127.0.0.1" || cookie.domain === "localhost"
+            ? { ...cookie, domain: cookieDomain }
+            : cookie
+        )
+      );
   }
 
   await expect(registrationSurface.first()).toBeVisible({ timeout: 120_000 });

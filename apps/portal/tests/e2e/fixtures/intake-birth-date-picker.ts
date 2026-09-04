@@ -7,6 +7,7 @@ type JalaliPickTarget = {
 };
 
 const JALALI_PICK_TARGETS: Record<string, JalaliPickTarget> = {
+  "1990-01-15": { yearLabel: "۱۳۶۸", monthLabel: "دی" },
   "1990-05-20": { yearLabel: "۱۳۶۹", monthLabel: "اردیبهشت" },
   "1992-03-20": { yearLabel: "۱۳۷۱", monthLabel: "اسفند" },
 };
@@ -34,7 +35,9 @@ async function navigateToJalaliMonth(
   }
   await popover.getByRole("button", { name: target.yearLabel, exact: true }).click({ force: true });
   await expect(calendar).toHaveAttribute("data-operator-wizard-calendar-view", "months");
-  await popover.getByRole("button", { name: target.monthLabel, exact: true }).click({ force: true });
+  await popover
+    .getByRole("button", { name: target.monthLabel, exact: true })
+    .click({ force: true });
   await expect(calendar).toHaveAttribute("data-operator-wizard-calendar-view", "days");
 }
 

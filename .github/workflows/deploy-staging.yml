@@ -40,7 +40,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build workspace dependency artifacts
         run: |
           set -euo pipefail
@@ -74,6 +74,23 @@ jobs:
         run: pnpm run lint
       - name: Build
         run: pnpm run build
+      - name: Prove clean artifact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_report="docs/phase-19/architecture-truth-drift-report.json"
+          changed="$(git diff --name-only)"
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [[ -n "$untracked" || ( -n "$changed" && "$changed" != "$generated_report" ) ]]; then
+            echo "Unexpected build changes before artifact packaging:" >&2
+            git diff --name-status >&2
+            [[ -z "$untracked" ]] || printf '?? %s\n' "$untracked" >&2
+            exit 1
+          fi
+          if [[ "$changed" == "$generated_report" ]]; then
+            git restore --worktree -- "$generated_report"
+          fi
+          test -z "$(git status --porcelain)"
       - name: Build staging artifact on runner
         run: bash scripts/vps-deploy/build-staging-artifact.sh
       - name: Verify release SHA and artifact digest
@@ -96,6 +113,7 @@ jobs:
           path: |
             dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}
             dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}.sha256
+            dist/staging-artifacts/${{ steps.manifest.outputs.artifact }}.manifest.json
           if-no-files-found: error
           retention-days: 14
 
@@ -115,7 +133,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: staging-${{ github.sha }}-${{ needs.build.outputs.digest }}
-          path: dist/staging-artifacts
+          path: dist/staging-artifacts/downloaded
       - name: Require staging secrets and paths
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -132,9 +150,27 @@ jobs:
       - name: Verify downloaded artifact
         run: |
           set -euo pipefail
-          artifact="dist/staging-artifacts/app-tour-staging-${GITHUB_SHA}.tar.zst"
-          sha256sum -c "${artifact}.sha256"
-          test "$(tar -I zstd -xOf "$artifact" "app-tour-staging-${GITHUB_SHA}/release-manifest.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).releaseSha))')" = "$GITHUB_SHA"
+          download_root="dist/staging-artifacts/downloaded"
+          mapfile -t artifacts < <(find "$download_root" -type f -name 'app-tour-staging-*.tar.zst' -print)
+          test "${#artifacts[@]}" -eq 1 || {
+            echo "Expected exactly one downloaded staging artifact" >&2
+            find "$download_root" -maxdepth 3 -type f -print >&2
+            exit 1
+          }
+          artifact="${artifacts[0]}"
+          digest_file="${artifact}.sha256"
+          test -f "$digest_file"
+          (
+            cd "$(dirname "$artifact")"
+            sha256sum -c "$(basename "$digest_file")"
+          )
+          release_sha="$(tar -I zstd -xOf "$artifact" "app-tour-staging-${GITHUB_SHA}/release-manifest.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).releaseSha))')"
+          test "$release_sha" = "$GITHUB_SHA"
+          case "$(basename "$artifact")" in
+            "app-tour-staging-${release_sha}.tar.zst") ;;
+            *) echo "Artifact filename release SHA mismatch" >&2; exit 1 ;;
+          esac
+          printf 'STAGING_ARTIFACT=%s\n' "$artifact" >> "$GITHUB_ENV"
       - name: Configure SSH without printing secrets
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -150,23 +186,23 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          ARTIFACT: dist/staging-artifacts/app-tour-staging-${{ github.sha }}.tar.zst
           DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
           ENV_DIR: ${{ env.STAGING_ENV_DIR }}
-        run: bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
+        run: ARTIFACT="$STAGING_ARTIFACT" bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
       - name: Staging health and RLS verification
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_DEPLOY_PATH: ${{ env.STAGING_DEPLOY_ROOT }}
+          VPS_DEPLOY_PATH: ${{ env.STAGING_DEPLOY_ROOT }}/tooling
           ENV_DIR: ${{ env.STAGING_ENV_DIR }}
           UNIT_PREFIX: app-tour-staging
         run: bash scripts/p10-staging-remote-gate.sh
       - name: Run workspace staging adapter
         env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           STAGING_ADAPTER_PATH: ${{ vars.STAGING_ADAPTER_PATH }}
-          STAGING_ARTIFACT: dist/staging-artifacts/app-tour-staging-${{ github.sha }}.tar.zst
           STAGING_ARTIFACT_DIGEST: ${{ needs.build.outputs.digest }}
           STAGING_RELEASE_SHA: ${{ github.sha }}
           STAGING_TENANT_SCOPE: pilot-only
