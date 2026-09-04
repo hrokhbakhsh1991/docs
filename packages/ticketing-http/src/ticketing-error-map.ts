@@ -106,7 +106,14 @@ export function resolveTicketingHttpError(error: unknown): {
   ) {
     return { status: 404, code: "TICKET_MODULE_DISABLED" };
   }
-  if (code === "IDEMPOTENCY_KEY_REQUIRED" || code.startsWith("ZOD_VALIDATION_FAILED")) {
+  // Shared workspace parsers attach `details` to structured validation errors.
+  // Those errors belong to the generic 400 contract; only ticketing's legacy
+  // token-only parser errors should use the ticketing 422 envelope.
+  const hasStructuredValidationDetails = "details" in error;
+  if (
+    code === "IDEMPOTENCY_KEY_REQUIRED" ||
+    (code.startsWith("ZOD_VALIDATION_FAILED") && !hasStructuredValidationDetails)
+  ) {
     return {
       status: code === "IDEMPOTENCY_KEY_REQUIRED" ? 422 : 422,
       code: code === "IDEMPOTENCY_KEY_REQUIRED" ? "IDEMPOTENCY_KEY_REQUIRED" : "ZOD_VALIDATION_FAILED",
