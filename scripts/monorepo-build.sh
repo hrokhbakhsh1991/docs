@@ -13,9 +13,12 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   export APP_TOUR_SKIP_API_WORKSPACE_DEPS=1
   pnpm --dir packages/iran-mobile run build
   pnpm --dir packages/catalog-registration-auth run build
+  pnpm --dir packages/ticketing-http-contracts run build
+  pnpm --dir packages/ticketing-core run build
   pnpm --dir packages/booking-http-contracts run build
   pnpm --dir packages/tour-core run build
   pnpm --dir packages/workspace-sdk run build
+  pnpm --dir packages/ticketing-http run build
   pnpm --dir packages/workspace-plugin-host run build
   pnpm --dir packages/platform-core run build
   pnpm --dir packages/finance-http-contracts run build
