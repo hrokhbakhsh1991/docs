@@ -444,7 +444,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
       </div>
 
       <div
-        role="listbox"
+        role="list"
         aria-label={t("inboxAria")}
         className="min-h-0 flex-1 overflow-y-auto"
         onKeyDown={(event) => {

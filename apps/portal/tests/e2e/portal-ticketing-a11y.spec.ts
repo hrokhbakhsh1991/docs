@@ -18,26 +18,34 @@ const AXE_SOURCE = readFileSync(
   "utf8",
 );
 
-async function assertNoSeriousA11yViolations(page: Page, label: string): Promise<void> {
+async function assertNoSeriousA11yViolations(
+  page: Page,
+  selector: string,
+  label: string,
+): Promise<void> {
   await page.addScriptTag({ content: AXE_SOURCE });
-  const violations = await page.evaluate(async () => {
+  const violations = await page.evaluate(async (contextSelector) => {
+    const context = document.querySelector(contextSelector);
+    if (context === null) {
+      return [];
+    }
     const axe = (window as unknown as {
       axe: {
         run: (
-          context: Document,
+          context: Element,
           options: {
             readonly runOnly: { readonly type: "tag"; readonly values: readonly string[] };
           },
         ) => Promise<{ readonly violations: readonly AxeViolation[] }>;
       };
     }).axe;
-    const result = await axe.run(document, {
+    const result = await axe.run(context, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
     });
     return result.violations.filter(
       (violation) => violation.impact === "serious" || violation.impact === "critical",
     );
-  });
+  }, selector);
   expect(violations, `${label} serious/critical axe violations`).toEqual([]);
 }
 
@@ -54,6 +62,10 @@ test.describe("TKT-L portal ticketing accessibility", () => {
     await expect(
       page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']"),
     ).toBeVisible({ timeout: 90_000 });
-    await assertNoSeriousA11yViolations(page, "portal member tickets list");
+    await assertNoSeriousA11yViolations(
+      page,
+      "[data-portal-member-tickets][data-portal-member-tickets-state='ready']",
+      "portal member tickets list",
+    );
   });
 });

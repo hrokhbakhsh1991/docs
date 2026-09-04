@@ -524,7 +524,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   min-height: var(--portal-pocket-touch, 2.75rem);
   padding: var(--space-1) var(--space-1);
   border-radius: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   text-decoration: none;
   background: transparent;
   box-shadow: none;

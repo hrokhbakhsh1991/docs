@@ -142,18 +142,20 @@ export function OperatorTicketsComposer({
       <div className="mb-2 flex flex-wrap gap-2" role="tablist" aria-label={t("composerModeAria")}>
         <Button
           type="button"
+          role="tab"
           size="sm"
           variant={mode === "public" ? "default" : "outline"}
-          aria-pressed={mode === "public"}
+          aria-selected={mode === "public"}
           onClick={() => setMode("public")}
         >
           {t("composerPublic")}
         </Button>
         <Button
           type="button"
+          role="tab"
           size="sm"
           variant={mode === "internal" ? "default" : "outline"}
-          aria-pressed={mode === "internal"}
+          aria-selected={mode === "internal"}
           onClick={() => setMode("internal")}
         >
           {t("composerInternal")}

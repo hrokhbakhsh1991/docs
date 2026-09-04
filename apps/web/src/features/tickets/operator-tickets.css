@@ -32,6 +32,21 @@
   outline-offset: -2px;
 }
 
+[data-operator-tickets-row] [data-operator-tickets-inbox-meta],
+[data-operator-tickets-detail-meta],
+[data-operator-tickets-event] {
+  color: var(--color-text-secondary, #5c6570);
+}
+
+.operator-tickets-detail-pane .text-muted-foreground {
+  color: #4f5852;
+}
+
+.operator-tickets-detail-pane [data-operator-status-badge] {
+  background-color: #047857;
+  font-size: 0.75rem;
+}
+
 [data-operator-tickets-message][data-visibility="internal"] {
   border-inline-start: 3px solid var(--muted-foreground);
   padding-inline-start: 0.75rem;

@@ -369,7 +369,7 @@ export function OperatorTicketsDetailPanel({
         {detail.events.length > 0 ? (
           <>
             <h3 className="mb-2 text-sm font-medium">{t("timelineEvents")}</h3>
-            <ul className="space-y-2 text-xs text-muted-foreground">
+            <ul className="space-y-2 text-xs" data-operator-tickets-detail-meta>
               {detail.events.map((event) => (
                 <li key={event.id} data-operator-tickets-event>
                   {event.eventType} · <time dateTime={event.createdAt}>{event.createdAtLabel}</time>

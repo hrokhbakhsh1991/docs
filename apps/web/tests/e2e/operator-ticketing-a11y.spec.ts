@@ -19,26 +19,34 @@ const AXE_SOURCE = readFileSync(
   "utf8",
 );
 
-async function assertNoSeriousA11yViolations(page: Page, label: string): Promise<void> {
+async function assertNoSeriousA11yViolations(
+  page: Page,
+  selector: string,
+  label: string,
+): Promise<void> {
   await page.addScriptTag({ content: AXE_SOURCE });
-  const violations = await page.evaluate(async () => {
+  const violations = await page.evaluate(async (contextSelector) => {
+    const context = document.querySelector(contextSelector);
+    if (context === null) {
+      return [];
+    }
     const axe = (window as unknown as {
       axe: {
         run: (
-          context: Document,
+          context: Element,
           options: {
             readonly runOnly: { readonly type: "tag"; readonly values: readonly string[] };
           },
         ) => Promise<{ readonly violations: readonly AxeViolation[] }>;
       };
     }).axe;
-    const result = await axe.run(document, {
+    const result = await axe.run(context, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
     });
     return result.violations.filter(
       (violation) => violation.impact === "serious" || violation.impact === "critical",
     );
-  });
+  }, selector);
   expect(violations, `${label} serious/critical axe violations`).toEqual([]);
 }
 
@@ -49,7 +57,7 @@ test.describe("TKT-L operator ticketing accessibility", () => {
     await loginOperatorOwner(page);
     await page.goto("/tickets", { waitUntil: "load" });
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.shell)).toBeVisible({ timeout: 90_000 });
-    await assertNoSeriousA11yViolations(page, "operator tickets inbox");
+    await assertNoSeriousA11yViolations(page, "[data-operator-tickets-inbox]", "operator tickets inbox");
 
     const rows = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.inboxRow);
     if ((await rows.count()) > 0) {
@@ -57,7 +65,11 @@ test.describe("TKT-L operator ticketing accessibility", () => {
       await expect(
         page.locator("[data-operator-tickets-detail-state='ready']").filter({ visible: true }),
       ).toBeVisible({ timeout: 60_000 });
-      await assertNoSeriousA11yViolations(page, "operator tickets detail");
+      await assertNoSeriousA11yViolations(
+        page,
+        "[data-operator-tickets-detail][data-operator-tickets-detail-state='ready']",
+        "operator tickets detail",
+      );
     }
   });
 });

@@ -27,8 +27,7 @@ export function OperatorTicketsInboxRow({
 
   return (
     <div
-      role="option"
-      aria-selected={selected}
+      role="listitem"
       data-operator-tickets-row
       data-ticket-id={item.id}
       data-operator-tickets-row-selected={selected ? "true" : "false"}
@@ -53,6 +52,7 @@ export function OperatorTicketsInboxRow({
       <button
         type="button"
         className="flex min-w-0 flex-1 flex-col gap-1 text-start"
+        aria-current={selected ? "true" : undefined}
         onClick={onSelect}
       >
       <div className="flex min-w-0 items-start justify-between gap-2">
@@ -61,7 +61,10 @@ export function OperatorTicketsInboxRow({
           <span aria-hidden="true">{item.statusIcon}</span> {t(item.statusLabelKey)}
         </OperatorStatusBadge>
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div
+        className="flex flex-wrap items-center gap-2 text-xs"
+        data-operator-tickets-inbox-meta
+      >
         <span>{item.requesterLabel}</span>
         <span aria-hidden="true">·</span>
         <span>{t(item.categoryLabelKey)}</span>
@@ -74,7 +77,10 @@ export function OperatorTicketsInboxRow({
           </>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div
+        className="flex flex-wrap items-center gap-2 text-xs"
+        data-operator-tickets-inbox-meta
+      >
         <time dateTime={item.lastActivityAt}>{item.lastActivityLabel}</time>
         {item.hasInternalNotes ? (
           <span data-operator-tickets-internal-indicator title={t("internalNoteIndicator")}>
