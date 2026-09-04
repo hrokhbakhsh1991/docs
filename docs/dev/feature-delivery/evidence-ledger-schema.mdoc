@@ -8,7 +8,7 @@ extends:
 
 # Feature Delivery — Evidence Ledger Schema
 
-**Purpose:** Define a **machine-readable evidence ledger** so every claim in a Feature Delivery final report maps to a command, exit code, and optional artifact.
+**Purpose:** Define a **machine-readable evidence ledger** so every claim in a Feature Delivery final report maps to a command, exit code, artifact, design record, research source, or capability status.
 
 **Principle:** `initialHead` is a session baseline; `currentHead` **may change** after authorized commits on the locked branch.
 
@@ -21,6 +21,10 @@ extends:
 | Session lock          | `.cache/feature-delivery/<sessionId>/SESSION.lock`                                               | **No** (gitignored) |
 | Ledger (TSV)          | `.cache/feature-delivery/<sessionId>/evidence.tsv`                                               | **No**              |
 | Architecture review   | `.cache/feature-delivery/<sessionId>/arch-review.json`                                           | **No**              |
+| Requirement inventory | `.cache/feature-delivery/<sessionId>/requirement-inventory.json`                                 | **No**              |
+| Design brief          | `.cache/feature-delivery/<sessionId>/design-brief.json`                                          | **No**              |
+| Research              | `.cache/feature-delivery/<sessionId>/research.json`                                              | **No**              |
+| Requirement queue     | `.cache/feature-delivery/<sessionId>/requirement-queue.json`                                     | **No**              |
 | Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (or `blocker-<blockerId>.json`) | **No**              |
 | Walkthrough artifacts | `/opt/cursor/artifacts/` (Cloud) or project artifacts dir                                        | **No**              |
 
@@ -40,7 +44,7 @@ Phase C may add `scripts/agents/feature-delivery-evidence-ledger.mjs` to append 
   "currentHead": "<initial-head-sha>",
   "startedAt": "2026-09-04T04:55:00.000Z",
   "scopePaths": ["apps/api/src/workspace-<module>/**", "docs/phase-<feature-slug>/**"],
-  "checkpointsCompleted": ["CP0", "CP1"]
+  "checkpointsCompleted": ["CP0", "CP1", "CP2"]
 }
 ```
 
@@ -68,7 +72,7 @@ session_id	feature_id	locked_branch	initial_head	current_head	checkpoint	gate_id
 | `locked_branch` | string  | Branch at time of row (must match lock)                       |
 | `initial_head`  | string  | Session baseline SHA (constant per session)                   |
 | `current_head`  | string  | `git rev-parse HEAD` when row recorded — **may advance**      |
-| `checkpoint`    | enum    | `CP0` … `CP5`, `bootstrap`, `report`                          |
+| `checkpoint`    | enum    | `CP0` … `CP7`, `bootstrap`, `report`                          |
 | `gate_id`       | string  | Stable id e.g. `guard.import-boundary`, `test.<package-name>` |
 | `command`       | string  | Exact shell command run                                       |
 | `exit_code`     | int     | `0` = pass; non-zero = fail/skip documented in `result`       |
@@ -92,19 +96,24 @@ After an authorized commit (`def67890`), `current_head` in `SESSION.lock` and su
 
 ## 4. arch-review.json
 
-Architecture-reviewer output (read-only phase):
+Architecture-reviewer output (read-only phase). Schema per [architecture-reviewer](../../.cursor/agents/architecture-reviewer.md) — includes `researchSources`, `designFindings`, `missingEvidence`, `stopId`, `requiredDecision`, `recommendedNextStep`.
 
 ```json
 {
   "sessionId": "<session-id>",
   "featureId": "<feature-slug>",
-  "checkpoint": "CP2",
+  "checkpoint": "CP3",
   "classifierProposal": "module",
   "verdict": "pivot",
   "consumers": ["<domain-a>", "<domain-b>", "<domain-c>"],
+  "researchSources": [],
+  "designFindings": [{ "severity": "warning", "summary": "Missing denied state for CAP-002" }],
+  "missingEvidence": ["browser proof for CAP-001"],
   "platformCandidates": ["notifications"],
   "finding": "Module-specific persistence duplicates shared primitive",
-  "recommendation": "Document module v1 risk or pivot to platform contract",
+  "stopId": "SC-ARCH-02",
+  "requiredDecision": "Accept module-local v1 or pivot to platform inbox",
+  "recommendedNextStep": "Update design brief §8 before CP4",
   "reviewer": "architecture-reviewer",
   "timestamp": "2026-09-04T04:56:00.000Z"
 }
@@ -112,21 +121,36 @@ Architecture-reviewer output (read-only phase):
 
 ---
 
-## 5. Required gates by feature touch
+## 5. Extended gate_id conventions (v1.2)
+
+| Prefix | Example | Binds to |
+| ------ | ------- | -------- |
+| `research.` | `research.RES-001` | `research.json` entry |
+| `design.` | `design.brief` | `design-brief.json` |
+| `browser.` | `browser.CAP-003` | Screenshot / recording artifact |
+| `capability.` | `capability.CAP-001` | Requirement inventory status |
+| `blocker.` | `blocker.BR-CODE-001` | `blocker-investigation.json` |
+| `arch-review` | `arch-review.CP1` | `arch-review.json` |
+
+---
+
+## 6. Required gates by feature touch
 
 | Touch surface       | Minimum `gate_id` rows before push                                                    |
 | ------------------- | ------------------------------------------------------------------------------------- |
 | Any code            | `bootstrap.branch`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
 | `apps/api` / Prisma | `guard.repository-rls`, `guard.api-workspace-isolation`, targeted postgres spec       |
 | Protected packages  | `guard.docs`, `doc.markdoc.validate`                                                  |
-| UI                  | app `build`, Playwright smoke, screenshot artifacts                                   |
-| Platform candidate  | `arch-review.json` with reviewer `verdict`                                            |
+| UI                  | app `build`, Playwright smoke, **browser** screenshots desktop+mobile, accessibility when available |
+| Platform candidate  | `arch-review.json` with reviewer `verdict` at CP1, CP3, CP4, CP7 |
+| Design gate         | `design.brief` row referencing `design-brief.json` |
+| Research            | `research.<id>` row per external source used |
 
-Skipped gates must be `result: skip` with reason in artifact or `gate_id` suffix (e.g. `minio.round-trip.skip-no-env`).
+Skipped gates must be `result: skip` with reason in artifact or `gate_id` suffix (e.g. `browser.CAP-003.skip-no-env`).
 
 ---
 
-## 6. test-changed coverage gap (feature-scoped)
+## 7. test-changed coverage gap (feature-scoped)
 
 **When it applies:** Only when the **current feature session** changes files under a package path that [`scripts/test-changed.sh`](../../../scripts/test-changed.sh) does not map (e.g. `packages/<package-name>/*` missing from `pkg_for_path`).
 
@@ -160,7 +184,7 @@ Link to ledger via `gate_id=blocker.<blockerId>`.
 
 ## 9. Final report binding
 
-Each report section must cite ledger rows:
+Each report section must cite ledger rows or session artifacts:
 
 | Report claim          | Required evidence                                                  |
 | --------------------- | ------------------------------------------------------------------ |
@@ -168,10 +192,18 @@ Each report section must cite ledger rows:
 | Tests passed          | Row per suite with `exit_code=0`                                   |
 | Tests skipped         | Row with `result=skip` — matrix stays **UNVERIFIED**, not COMPLETE |
 | RLS verified          | Postgres spec row + `guard.repository-rls`                         |
-| Architecture approved | `arch-review.json` `verdict: proceed`                              |
+| Architecture approved | `arch-review.json` `verdict: proceed`                            |
+| Design gate complete  | `design-brief.json` + `design.brief` ledger row                    |
+| Research used         | `research.json` + `research.<id>` rows                             |
+| Browser verified      | `browser.<capabilityId>` + artifact path — **not** curl alone    |
+| Capability complete   | `capability.<id>` with status `tested` or `browser-verified`       |
+| Admin mutation works  | Browser or API proof with permission + audit ledger rows           |
 | Blocker recovered     | `blocker-investigation.json` + `gate_id=blocker.<id>` rows         |
+| Queue complete        | `requirement-queue.json` — every item `completed` or documented risk |
 | Commits               | Rows with `gate_id=commit` and SHAs matching `git log`             |
+
+**Forbidden without evidence:** COMPLETE with open rows; admin usability from read-only catalog; browser success from API/curl; production readiness from local tests only.
 
 ---
 
-_Subdoc of FDA-001. Schema version 1.0.0._
+_Subdoc of FDA-001 v1.2. Schema version 1.2.0._

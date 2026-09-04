@@ -70,15 +70,18 @@ The following are **presumptive platform candidates**. Any feature touching them
 
 ## 3. Consumer investigation (required)
 
-Before implementation, the agent must investigate **future consumers**:
+Before implementation — and **again after CP3 vertical slice** and **before CP4 shared-contract work** — the agent must investigate **future consumers** per [research-and-design-gate](research-and-design-gate.mdoc) §4:
 
 ### 3.1 Sources (read-only)
 
 1. **Codebase graph** — `codebase-memory-mcp` (`search_graph`, `trace_path`, `search_code`) with project `app-tour-apps` / `app-tour-packages`
 2. **Standards and phase docs** — `docs/standards/`, `docs/phase-*`, ADRs under `docs/architecture/adr/`
 3. **Outbox event inventory** — `apps/api/src/outbox/`, workspace side-effects, domain `*.operations.ts`
-4. **Existing ports** — `apps/api/src/notifications/`, `packages/workspace-sdk/src/`
-5. **Parallel implementations** — multiple dispatchers or inbox stores for the same primitive (see [notification-case-study](notification-case-study.mdoc))
+4. **Existing ports and dispatchers** — `apps/api/src/notifications/`, `packages/workspace-sdk/src/`
+5. **Parallel implementations** — duplicate tables, contracts, dedupe keys, parallel UI models (see [notification-case-study](notification-case-study.mdoc))
+6. **Deep discovery inventory** — routes, BFFs, Prisma models, RLS policies, workspace manifests from CP0
+
+**Minimum:** search **≥2 plausible consumers** in code and docs for platform candidates (notifications, inbox, outbox, attachments, identity, permissions, wallet, engagement, routing, shared SDKs, reusable UI).
 
 ### 3.2 Consumer record (classifier output)
 
@@ -152,4 +155,10 @@ Classifier flags:
 
 ---
 
-*Subdoc of FDA-001. Static automation (Phase C) may implement signals; reviewer gate remains mandatory.*
+## 8. Deep discovery integration (CP0)
+
+Classifier runs **after** CP0 deep discovery per [research-and-design-gate](research-and-design-gate.mdoc) §1. Classifier must cite repository paths discovered during inventory — never invent package names or commands. Repo uses **pnpm workspace** scripts (`pnpm --filter`, `pnpm run test:changed`) — not NX.
+
+---
+
+*Subdoc of FDA-001 v1.2. Static automation (Phase C) may implement signals; reviewer gate remains mandatory.*

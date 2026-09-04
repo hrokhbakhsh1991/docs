@@ -1,19 +1,19 @@
 ---
 name: feature-delivery
 description: >
-  Reusable architecture-aware feature delivery workflow for the app-tour monorepo.
-  Use when implementing or completing a bounded feature on a locked branch: discovery,
-  architecture classification, consumer scan, plan gate, vertical slice, shared-boundary
-  gates, UI integration, verification with evidence ledger, and commit/push. Invoke at
-  session start for any non-trivial feature (API, database, workspace-sdk, Portal/Web,
-  notifications, identity, tenant routing). Do not use for docs-only typo fixes or
-  one-line changes outside FDA scope.
+  Reusable architecture-aware feature delivery workflow for the app-tour pnpm monorepo.
+  Use when implementing or completing a bounded feature on a locked branch: deep discovery,
+  product/design/UI-UX gates, architecture classification, consumer scan, research, vertical
+  slice, shared-boundary gates, browser verification, evidence ledger, bounded blocker recovery,
+  and commit/push. Invoke at session start for any non-trivial feature (API, database,
+  workspace-sdk, Portal/Web, notifications, identity, tenant routing). Do not use for
+  docs-only typo fixes or one-line changes outside FDA scope.
 disable-model-invocation: true
 ---
 
-# Feature Delivery (FDA-001)
+# Feature Delivery (FDA-001 v1.2)
 
-Orchestrate end-to-end feature work on a **locked branch** with mandatory architecture gates, evidence ledger, and stop conditions. This Skill is the **main workflow** (Custom Mode entry point). It is feature-agnostic — ticketing is a regression example only.
+Orchestrate end-to-end feature work on a **locked branch** with mandatory discovery, design, architecture gates, evidence ledger, queued execution, and stop conditions. Feature-agnostic — ticketing is a regression example only.
 
 **Canonical charter:** [`docs/dev/feature-delivery-agent.mdoc`](../../../docs/dev/feature-delivery-agent.mdoc)
 
@@ -21,6 +21,7 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory archit
 
 | Topic                           | Path                                                                                                                        |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Research, design, UI/UX, queue  | [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../../docs/dev/feature-delivery/research-and-design-gate.mdoc) |
 | Architecture classifier         | [`docs/dev/feature-delivery/architecture-classifier.mdoc`](../../../docs/dev/feature-delivery/architecture-classifier.mdoc) |
 | Evidence ledger                 | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc)   |
 | Stop conditions                 | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc)                 |
@@ -35,6 +36,8 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory archit
 
 **Safety rule:** [`.cursor/rules/feature-delivery.mdc`](../../rules/feature-delivery.mdc) is always on during FDA sessions.
 
+**Repo tooling:** pnpm workspace only — never NX or `nx affected`.
+
 ---
 
 ## Session lock (every checkpoint)
@@ -48,118 +51,125 @@ Record at CP0 and verify before every checkpoint:
 | `currentHead`  | May advance after authorized commits on `lockedBranch` — **not a branch violation** |
 | `scopePaths`   | Glob allowlist from approved plan — amend only with user/architect approval         |
 
-**Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, or force-push to fix branch mismatch.
+**Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, or force-push.
 
 Never compare `currentHead` to `initialHead` as an error when commits were authorized on the locked branch.
 
 ---
 
-## Lifecycle
+## Lifecycle (CP0–CP7)
 
-### CP0 — Bootstrap
+### CP0 — Repository and requirement discovery
 
 **Before any file edit.**
 
-1. Confirm repository root (`git rev-parse --show-toplevel`).
-2. Record `lockedBranch` and `initialHead`; refuse to switch branch.
-3. Inspect working-tree status (`git status --short`); detect undeclared existing changes outside declared scope → hard-stop until acknowledged ([SC-GIT-04](stop-conditions)).
-4. Derive `featureId` (stable slug) and `scopePaths` from the feature request + inventory.
-5. Classify the feature per [architecture-classifier](architecture-classifier) — output is **signals only**.
-6. Run **consumer investigation** (codebase-memory graph, standards, outbox, ports, parallel implementations).
-7. Invoke **architecture-reviewer** when: platform candidate, multi-consumer primitive, protected paths (`platform-core`, `workspace-sdk`, `apps/api`), or classifier `unknown`.
+1. Confirm repository root; record `lockedBranch` and `initialHead`.
+2. Inspect working-tree status; undeclared WIP outside scope → hard-stop until acknowledged ([SC-GIT-04](stop-conditions)).
+3. **Deep discovery** per [research-and-design-gate](research-and-design-gate) §1 — AGENTS.md, pnpm graph, routes, BFFs, ports, outbox, Prisma/RLS, adjacent modules, tests, manifests, docs, runtime when needed. Use repo evidence only.
+4. Build **requirement inventory** — classify capabilities; record actor, states, evidence requirements ([research-and-design-gate](research-and-design-gate) §2).
+5. Derive `featureId` and `scopePaths`.
+6. Classify per [architecture-classifier](architecture-classifier); run **consumer investigation** (≥2 consumers when platform candidate).
+7. Invoke **architecture-reviewer** when: platform candidate, multi-consumer primitive, protected paths, or classifier `unknown`.
 
-**CP0 output (required before CP1):**
+**Artifacts:** `requirement-inventory.json`, `requirement-queue.json` (initial).
 
-- Architecture classification (proposed + reviewer verdict)
-- Consumers and evidence
-- Scope allowlist (`scopePaths`)
-- Test plan (fast-track default; heavy gates need user YES)
-- Documentation requirement (doc-first covenant if protected paths)
-- Risks and unresolved decisions
+**CP0 output:** discovery evidence, requirement inventory, classification signals, consumers, scope allowlist, test plan, doc-first requirement, risks.
 
-### CP1 — Plan gate
+### CP1 — Product, architecture, and UI/UX design gate
 
-Produce a **reviewable implementation plan** including:
+**No source implementation until CP1 complete.**
 
-- Task IDs
-- Invariants and non-goals
-- Files and packages in scope
-- Dependencies and sequencing
-- Risks and rollback
-- Focused tests and regression tests
-- Evidence requirements (ledger rows per claim)
+Produce reviewable **design brief** per [research-and-design-gate](research-and-design-gate) §3:
 
-**Do not implement** until the plan is reviewed or explicitly approved in chat.
+- Problem, member/operator/system journeys, domain boundary, classification, consumers, data/RLS, API/BFF, UI placement, desktop/mobile, RTL/LTR, all UI states, verification matrix, risks/exclusions.
 
-### CP2 — First vertical slice
+Invoke **architecture-reviewer** with requirement inventory + design brief.
 
-1. Implement the **smallest end-to-end slice** (one happy path).
-2. Run focused validation on the slice.
-3. Invoke **architecture-reviewer** on the **actual diff** (not the plan alone).
-4. **Stop** if implementation is narrower or broader than the approved architecture ([SC-ARCH-03](stop-conditions), scope creep).
+**Artifact:** `design-brief.json`. Perform **internet research** when design uncertainty warrants it ([research-and-design-gate](research-and-design-gate) §5) → `research.json`.
 
-### CP3 — Shared boundary gate
+**Do not implement** until design brief is internally consistent and approved in chat (or explicit autonomy after CP1).
+
+### CP2 — Implementation plan and consumer review
+
+Produce implementation plan: task IDs, invariants, non-goals, files/packages, sequencing, risks/rollback, focused tests, evidence requirements.
+
+Re-run **future-consumer analysis** ([research-and-design-gate](research-and-design-gate) §4).
+
+**architecture-reviewer** on plan + consumer scan before CP3.
+
+### CP3 — First vertical slice
+
+1. Implement **smallest end-to-end slice** (one happy path).
+2. Run focused validation.
+3. **architecture-reviewer** on **actual diff**.
+4. Re-run consumer analysis on slice shape.
+5. **Stop** if narrower/broader than approved architecture ([SC-ARCH-03](stop-conditions)).
+
+### CP4 — Pre-DB / shared-contract review
 
 **Mandatory before** database, Prisma, `workspace-sdk`, HTTP contract, outbox, inbox, notification, identity, permission, tenant-routing, or `platform-core` changes:
 
-1. Re-run consumer scan on the proposed shape.
-2. Confirm workspace-agnostic boundary (WAC-001 — no `workspaceType` branches in `apps/api` hand-written code).
-3. Confirm tenant/auth/RLS posture (tenant-scoped queries, FORCE RLS plan, no superuser RLS proof).
-4. Confirm idempotency / dedupe / `rowVersion` rules for mutations.
-5. Require **architecture-reviewer** verdict `proceed` or `proceed_with_accepted_risk`.
-6. **Stop** on `pivot`, `blocked`, or unresolved shared-contract decision.
+1. Re-run consumer scan on proposed shape.
+2. WAC-001 workspace-agnostic boundary.
+3. Tenant/auth/RLS posture (FORCE RLS, no superuser proof).
+4. Idempotency / dedupe / `rowVersion`.
+5. **architecture-reviewer** verdict `proceed` or `proceed_with_accepted_risk`.
+6. Doc-first on protected paths.
 
-Doc-first: update Markdoc under `docs/` before protected code; state `Updating documentation for this change`.
+### CP5 — UI / browser integration review
 
-### CP4 — UI / application integration
+Per [research-and-design-gate](research-and-design-gate) §6:
 
-1. Preserve **Portal vs Web** ownership (PCMS-001 member session on portal).
-2. Preserve **Denali / Urban / starter** divergence — workspace-specific code under `packages/workspaces/<id>`.
-3. Verify i18n, responsive behavior, host/session authority, BFF boundaries, workspace manifest behavior.
-4. Run appropriate app tests; **screenshot or recording proof** when UI is touched (`/opt/cursor/artifacts/` on Cloud).
-5. Invoke **architecture-reviewer** when UI work touches shared notification/inbox models or cross-surface contracts.
+1. Portal vs Web ownership (PCMS-001).
+2. Denali / Urban / starter divergence.
+3. Existing UI placement before new routes/tabs.
+4. Design tokens, primitives, RTL/LTR, responsive, all states.
+5. **Browser proof** when user-visible — screenshots desktop/mobile; accessibility when available.
+6. Never mark UI complete from curl/API/build alone.
+7. **architecture-reviewer** when shared notification/inbox or cross-surface contracts touched.
 
-### CP5 — Verification
+### CP6 — Verification and blocker recovery
 
-1. Run **only** required tests for changed surfaces.
-2. When `test:changed` does not cover a touched package, run explicit package tests and ledger both rows ([SC-VERIFY-03](stop-conditions)).
-3. Run relevant guards and builds:
+1. Run required tests for changed surfaces only.
+2. `test:changed` gaps → explicit package tests + ledger ([SC-VERIFY-03](stop-conditions)).
+3. Fast-track default:
 
    ```bash
    pnpm run pre-commit:fast && pnpm run guard:import-boundary
    pnpm run test:changed   # when behavior changed
    ```
 
-4. Heavy gates (`test:full`, `ci:integrity`, `phase-N:gate`) require explicit user **YES** ([SC-VERIFY-04](stop-conditions)).
-5. Record **every** command, exit code, artifact, result, and verifier in the evidence ledger per [evidence-ledger-schema](evidence-ledger-schema).
-6. **Never claim a test passed without a ledger row.**
-7. **SKIP is never PASS.** Skipped Axe, Playwright, MinIO, Postgres, or build checks leave the matrix row `UNVERIFIED` or `MISSING` — not `COMPLETE`.
-8. Final report claims must **exactly match** ledger rows.
+4. Heavy gates need explicit user **YES** ([SC-VERIFY-04](stop-conditions)).
+5. Ledger every command, exit code, artifact ([evidence-ledger-schema](evidence-ledger-schema)).
+6. **SKIP ≠ PASS.** Unverified rows stay open.
+7. On failure → [blocker-recovery](blocker-recovery) — up to 3 hypotheses before STOP.
+8. **Queued execution:** blocked sub-feature must not stop unrelated queue items.
+9. Update capability status per inventory — never claim complete for stub/route-only/admin-read-only.
 
-Postgres/RLS specs: `DATABASE_URL` must use `app_tour` role (NOSUPERUSER).
+Postgres/RLS: `DATABASE_URL` with `app_tour` role (NOSUPERUSER).
 
-### CP6 — Commit and push
+### CP7 — Scope-guarded commit/push and final report
 
-1. Confirm only allowlisted files are staged ([SC-SCOPE-01](stop-conditions)).
-2. Confirm branch is still `lockedBranch`.
-3. Create **logical commits** — do not force-push.
-4. Push only `origin <lockedBranch>`.
-5. Update `currentHead` in session lock after each commit.
-6. Produce **final evidence report** (branch, heads, classification, files, test matrix, artifacts, risks, commit SHAs, push result).
+1. Scope guard — only `scopePaths` staged ([SC-SCOPE-01](stop-conditions)).
+2. Branch still `lockedBranch`.
+3. Logical commits; no force-push.
+4. `git push origin <lockedBranch>`.
+5. Update `currentHead` after commits.
+6. **Final report** — every queue item status; ledger-backed claims only.
 
-Invoke **architecture-reviewer** on the full diff before commit when platform candidates or multi-consumer primitives are in scope.
+**architecture-reviewer** on full diff before commit when platform candidates or multi-consumer primitives in scope.
 
 ---
 
 ## Mandatory architecture re-evaluation
 
-At **CP0**, **after the first vertical slice (CP2)**, **before every shared contract/database boundary (CP3)**, **before UI integration (CP4)**, and **before commit (CP6)**:
+At **CP0**, **CP1**, **after CP3 slice**, **before CP4 shared boundaries**, **CP5 UI**, and **CP7 commit**:
 
-1. Ask whether this concept is reusable by another module or workspace.
-2. Inspect future consumers (not only the requesting module).
-3. Detect domain-specific naming that may indicate accidental coupling (`ticket_*`, `wallet_*` in shared tables/APIs).
-4. Compare implementation with existing standards and design freezes (e.g. SK2 notification outbox).
-5. Invoke **architecture-reviewer** for platform candidates or multi-consumer concepts.
+1. Reusable by another module/workspace?
+2. Inspect future consumers (not only requesting module).
+3. Detect domain-specific naming in shared tables/APIs.
+4. Compare with standards and design freezes.
+5. Invoke **architecture-reviewer** for platform candidates.
 
 Keyword classification is **not** an architecture decision.
 
@@ -167,44 +177,27 @@ Keyword classification is **not** an architecture decision.
 
 ## Notification regression rule
 
-Use [`notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) as a **mandatory regression fixture**.
+[`notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) is a **mandatory regression fixture**.
 
-If a new notification / inbox / delivery design is **module-specific** while booking, finance, payment, or wallet are plausible consumers:
+Module-specific notification/inbox while booking, finance, payment, or wallet are plausible consumers:
 
-1. **Stop** — do not continue implementation.
-2. Emit **[SC-ARCH-02](stop-conditions)**.
-3. Produce a **pivot memo** (wrong direction, target boundary, docs to update, forward-fix steps).
-4. Do **not** silently create another bespoke notification platform.
+1. **Stop** — **[SC-ARCH-02](stop-conditions)**.
+2. Pivot memo.
+3. Do not silently create another bespoke notification platform.
 
 ---
 
 ## Stop behavior
 
-When any **hard-stop** fires ([stop-conditions](stop-conditions)):
+Hard-stop ([stop-conditions](stop-conditions)):
 
-- Do **not** continue implementation on the blocked path.
-- Do **not** auto-revert user changes.
-- Do **not** switch branch.
-- Do **not** hide failed tests.
-- Emit the standard **Feature Delivery STOP** report:
+- Do not continue on blocked path.
+- Do not auto-revert, switch branch, or hide failed tests.
+- Emit **Feature Delivery STOP** report with `stopId`, checkpoint, evidence, pivot options, architect decision.
 
-```markdown
-## Feature Delivery STOP
+**Recoverable failures** → [blocker-recovery](blocker-recovery) first (unless `BR-SEC` / `BR-PROD`).
 
-- **Stop ID:** SC-…
-- **Checkpoint:** CP…
-- **Branch:** <lockedBranch> (locked)
-- **initialHead:** …
-- **currentHead:** …
-- **Finding:** …
-- **Evidence:** …
-- **Pivot options:** …
-- **Architect decision needed:** …
-```
-
-Resume only after explicit user/architect direction addressing the stop ID; re-verify branch at bootstrap.
-
-**Recoverable failures** (not hard stops) → follow [blocker-recovery](blocker-recovery) — never halt on the first failure.
+Resume only after explicit direction addressing stop ID.
 
 ---
 
@@ -212,45 +205,30 @@ Resume only after explicit user/architect direction addressing the stop ID; re-v
 
 Per [blocker-recovery.mdoc](../../../docs/dev/feature-delivery/blocker-recovery.mdoc):
 
-1. **Never stop immediately** on the first failure — classify, investigate, recover, or exhaust attempts.
-2. **Classify** every blocker: code/test, dependency, environment/browser/runtime, missing evidence, architecture ambiguity, security/RLS (hard stop), product decision (hard stop).
-3. **Code/test:** inspect call graph + consumers; search repo code/tests/migrations/scripts/docs; hypothesize; smallest scoped fix; rerun failing + regression tests.
-4. **Dependency:** official docs first; web research only for current external facts; record URL/version/finding/conclusion in `blocker-investigation.json`; never trust unverified snippets alone.
-5. **Browser/runtime:** inspect env, ports, health, logs, console, network; start permitted services only; retry smallest flow; never claim browser proof without execution.
-6. **Architecture:** scan consumers + phase/standard docs; compare ports/contracts/events/schemas; fresh **architecture-reviewer** verdict.
-7. **Hard stops unchanged:** security, tenant/RLS ambiguity, production access, secrets, migration rewrite, unresolved product decisions — internet research **never** overrides.
-8. **Blocked sub-feature** must not stop unrelated executable mandatory work.
-9. **After recovery:** resume requirement queue from last unfinished item; write `blocker-investigation.json`.
-10. **Stop only when** recovery attempts are evidenced and exhausted, or explicit human architecture/product decision required.
-11. **Never** `COMPLETE` while any mandatory row is `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+1. **Never stop on first failure** — classify, investigate, recover, or exhaust.
+2. **11-step loop:** classify → inspect error/source → adjacent implementations → scripts/env → repo history/docs → web research when relevant → up to **3 hypotheses** → smallest fix → narrowest rerun → ledger → resume queue.
+3. Categories: code, test, dependency, environment, browser/runtime, architecture, security/product (hard stop).
+4. **Blocked sub-feature** must not stop unrelated queue items.
+5. After **3 failed hypotheses** or architecture/security/product issue → STOP with evidence and options.
+6. **Never** `COMPLETE` while mandatory rows `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
 
-**Artifact:** `.cache/feature-delivery/<sessionId>/blocker-investigation.json` — fields: `blockerId`, `category`, `symptoms`, `localEvidence`, `codeAnalysis`, `searches`, `hypotheses`, `commandsRun`, `outcomes`, `decision`, `resumedCheckpoint`.
+**Artifacts:** `blocker-investigation.json`, `research.json` (when external), `requirement-queue.json`.
 
 ---
 
 ## Autonomy
 
-After **CP1 plan approval**, the agent may execute CP2–CP6 without repeated micro-prompts, subject to mandatory gates.
+After **CP1 design + plan approval**, agent may execute CP2–CP7 without micro-prompts, subject to gates.
 
-**Always stop for:**
-
-- Unresolved architecture (`unknown`, reviewer `blocked` / `pivot` without acceptance)
-- Shared contract decisions (Prisma, `*-http-contracts`, workspace-sdk exports)
-- Product scope changes beyond approved plan
-- Migration rewrites ([SC-DATA-02](stop-conditions))
-- Security / RLS ambiguity
-- Branch mismatch
-- Scope creep
-- Missing verification evidence
-- Staging / production mutation without explicit unlock
+**Always stop for:** unresolved architecture, shared contracts, product scope change, migration rewrite, security/RLS ambiguity, branch mismatch, scope creep, missing evidence, staging/production without unlock.
 
 ---
 
 ## Invoking architecture-reviewer
 
-Use the Task tool with subagent instructions from [`.cursor/agents/architecture-reviewer.md`](../../agents/architecture-reviewer.md). Pass: `featureId`, checkpoint (`CP0` | `CP2` | `CP3` | `CP4`), classifier output, consumer list, changed files or plan, and relevant standards links.
+Task tool with [`.cursor/agents/architecture-reviewer.md`](../../agents/architecture-reviewer.md). Pass: `featureId`, checkpoint, requirement inventory, design brief, UI/UX decisions, consumer list, research sources, changed files/plan, standards links.
 
-Reviewer is **read-only** — it never edits files, commits, or changes git state.
+Reviewer is **read-only**.
 
 ---
 
@@ -258,14 +236,18 @@ Reviewer is **read-only** — it never edits files, commits, or changes git stat
 
 Per [evidence-ledger-schema](evidence-ledger-schema):
 
-- Session lock: `.cache/feature-delivery/<sessionId>/SESSION.lock`
-- Ledger TSV: `.cache/feature-delivery/<sessionId>/evidence.tsv`
-- Arch review JSON: `.cache/feature-delivery/<sessionId>/arch-review.json`
-- Blocker investigation: `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (or `blocker-<blockerId>.json`)
+| Artifact | Path |
+| -------- | ---- |
+| Session lock | `.cache/feature-delivery/<sessionId>/SESSION.lock` |
+| Ledger TSV | `.cache/feature-delivery/<sessionId>/evidence.tsv` |
+| Arch review | `.cache/feature-delivery/<sessionId>/arch-review.json` |
+| Requirement inventory | `.cache/feature-delivery/<sessionId>/requirement-inventory.json` |
+| Design brief | `.cache/feature-delivery/<sessionId>/design-brief.json` |
+| Research | `.cache/feature-delivery/<sessionId>/research.json` |
+| Requirement queue | `.cache/feature-delivery/<sessionId>/requirement-queue.json` |
+| Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` |
 
-Phase C may add CLI appenders; until then the agent maintains these files manually.
-
-**Rule:** No claim in the final report without a ledger row (command + exit code + artifact).
+**Rule:** No final-report claim without a ledger row.
 
 ---
 
@@ -273,39 +255,30 @@ Phase C may add CLI appenders; until then the agent maintains these files manual
 
 **Audit completion ≠ feature completion.**
 
-| Rule                | Behavior                                                                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mandatory rows      | Any matrix row `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED` blocks `COMPLETE` verdict                                                           |
-| SKIP                | Never counts as PASS or COMPLETE                                                                                                                    |
-| UNVERIFIED          | Required check could not run (missing env) — continue other work; row stays open                                                                    |
-| Blocked sub-feature | Must **not** stop unrelated executable mandatory items — see [blocker-recovery](blocker-recovery)                                                   |
-| First failure       | **Never** immediate stop — classify and run recovery lifecycle unless hard stop                                                                     |
-| Stop condition      | Only when recovery exhausted **or** explicit architectural/product decision required                                                                |
-| Work queue          | Build matrix → process every non-blocked item sequentially → targeted tests + ledger after each slice → re-open queue after every commit/checkpoint |
-| Final report        | Forbidden while any mandatory row is open                                                                                                           |
-
----
-
-## Notification policy (full closure)
-
-- Ticket-only notifications (`ticket_notifications` as final shared design) are **forbidden** when user mandates cross-domain inbox.
-- Shared platform capability required for ticketing, booking/tour, payment/debt, wallet.
-- [notification-case-study.mdoc](../../../docs/dev/feature-delivery/notification-case-study.mdoc) is a **historical warning**, not permission to accept ticket-only scope.
-- User authorization of shared path → doc-first [member-notification-inbox.mdoc](../../../docs/standards/member-notification-inbox.mdoc) + `IMPL-SK2.D+` unlock record.
+| Rule | Behavior |
+| ---- | -------- |
+| Mandatory rows | `MISSING` / `PARTIAL` / `BLOCKED` / `UNVERIFIED` blocks `COMPLETE` |
+| SKIP | Never PASS or COMPLETE |
+| Stub/route-only | Never complete capability |
+| Admin read-only catalog | Not admin-complete without mutation path |
+| Browser | curl/API/build ≠ browser-verified |
+| Queue | Process independent items when one blocked |
+| Final report | Lists every queue item; forbidden while rows open |
 
 ---
 
 ## Final report template
 
 1. Branch, `initialHead`, `currentHead`, working tree
-2. Classification and architecture-reviewer verdict(s)
-3. Files changed (within `scopePaths`)
-4. Test/guard matrix with pass/fail/skip
-5. Artifacts (screenshots, logs)
-6. Remaining / accepted risks
-7. Commit SHAs and push result
-8. `Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
+2. Requirement queue — every item and status
+3. Classification and architecture-reviewer verdict(s)
+4. Files changed (within `scopePaths`)
+5. Test/guard matrix; capability status table
+6. Artifacts (screenshots, research URLs, design brief ref)
+7. Remaining / accepted risks
+8. Commit SHAs and push result
+9. `Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
 
 ---
 
-_FDA-001 Phase B — Skill wiring. Blocker recovery mandatory. Hooks and guard scripts are Phase C._
+_FDA-001 v1.2 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery._
