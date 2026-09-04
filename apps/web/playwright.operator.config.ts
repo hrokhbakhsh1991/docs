@@ -51,6 +51,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
+    ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
     ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
   },
   ...(useExternalServers
