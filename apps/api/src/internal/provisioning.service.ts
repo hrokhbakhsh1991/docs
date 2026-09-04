@@ -114,7 +114,7 @@ export class ProvisioningService {
       workspaceType: "denali",
       theme: {
         ...clubTheme,
-        enabledModules: ["wallet"],
+        enabledModules: ["wallet", "finance"],
         portalModuleGrants: ["wallet"],
         commerce: {
           currency: "IRR",
@@ -168,7 +168,7 @@ export class ProvisioningService {
         primaryColor: "#059669",
         cssVariables: { "--color-primary": "#059669" },
         defaultLocale: "fa",
-        enabledModules: ["wallet"],
+        enabledModules: ["wallet", "finance"],
         portalModuleGrants: ["wallet"],
         commerce: {
           currency: "IRR",

@@ -36,9 +36,10 @@ async function enableTicketingModule(admin: PrismaClient): Promise<void> {
         ...new Set([
           ...theme.enabledModules.filter((v): v is string => typeof v === "string"),
           "ticketing",
+          "finance",
         ]),
       ]
-    : ["ticketing"];
+    : ["ticketing", "finance"];
   await admin.tenant.upsert({
     where: { id: OPERATOR_SMOKE.tenantId },
     create: {

@@ -40,7 +40,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
       cssVariables: { "--color-primary": "#059669" },
       displayName: DENALI_CLUB_PUBLIC_DISPLAY_NAME,
       defaultLocale: "fa",
-      enabledModules: ["wallet"],
+      enabledModules: ["wallet", "finance"],
       portalModuleGrants: ["wallet"],
       commerce: {
         currency: "IRR",
@@ -67,7 +67,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     theme: {
       primaryColor: "#059669",
       cssVariables: { "--color-primary": "#059669" },
-      enabledModules: ["ticketing"],
+      enabledModules: ["ticketing", "finance"],
     } as TenantThemeConfig,
   },
   {
@@ -94,7 +94,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
       primaryColor: "#059669",
       cssVariables: { "--color-primary": "#059669" },
       defaultLocale: "fa",
-      enabledModules: ["wallet"],
+      enabledModules: ["wallet", "finance"],
       portalModuleGrants: ["wallet"],
       commerce: {
         currency: "IRR",
