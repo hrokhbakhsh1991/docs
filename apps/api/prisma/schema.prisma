@@ -86,6 +86,9 @@ model Tenant {
   ticketTemplateAutomationActivations TicketTemplateAutomationActivation[]
   ticketNumberCounter            TicketNumberCounter?
   ticketWorkspaceSettings        TicketWorkspaceSettings?
+  engagementProfiles             EngagementProfile[]
+  engagementPointEvents          EngagementPointEvent[]
+  memberEngagementBadges         MemberEngagementBadge[]
 
   @@map("tenants")
 }
@@ -1413,6 +1416,75 @@ model MemberNotificationDelivery {
   @@index([status, nextAttemptAt, createdAt], map: "idx_member_notification_deliveries_claim")
   @@index([tenantId, status, createdAt], map: "idx_member_notification_deliveries_tenant_status")
   @@map("member_notification_deliveries")
+}
+
+/// MEG-001 — member engagement profile (points cache + level).
+model EngagementProfile {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  workspaceId      String   @map("workspace_id")
+  userId           String   @map("user_id") @db.Uuid
+  totalPoints      Int      @default(0) @map("total_points")
+  currentLevelCode String   @default("base_camp") @map("current_level_code")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  badges           MemberEngagementBadge[]
+  pointEvents      EngagementPointEvent[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, workspaceId, userId])
+  @@index([tenantId, workspaceId, totalPoints(sort: Desc)], map: "idx_engagement_profiles_tenant_workspace_points")
+  @@map("engagement_profiles")
+}
+
+/// MEG-001 — immutable engagement point ledger.
+model EngagementPointEvent {
+  id               String            @id @default(uuid()) @db.Uuid
+  tenantId         String            @map("tenant_id") @db.Uuid
+  workspaceId      String            @map("workspace_id")
+  userId           String            @map("user_id") @db.Uuid
+  profileId        String            @map("profile_id") @db.Uuid
+  pointsDelta      Int               @map("points_delta")
+  sourceModule     String            @map("source_module")
+  sourceEventType  String            @map("source_event_type")
+  sourceEntityId   String?           @map("source_entity_id") @db.Uuid
+  dedupeKey        String            @map("dedupe_key")
+  reversesEventId  String?           @map("reverses_event_id") @db.Uuid
+  actorUserId      String?           @map("actor_user_id") @db.Uuid
+  actorRole        String?           @map("actor_role")
+  reason           String?
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile          EngagementProfile @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Cascade)
+  reversesEvent    EngagementPointEvent? @relation("EngagementPointEventReversal", fields: [tenantId, reversesEventId], references: [tenantId, id], onDelete: Restrict)
+  reversalOf       EngagementPointEvent[] @relation("EngagementPointEventReversal")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, dedupeKey], map: "uq_engagement_point_events_dedupe")
+  @@index([tenantId, userId, createdAt(sort: Desc)], map: "idx_engagement_point_events_tenant_user_created")
+  @@index([tenantId, workspaceId, createdAt(sort: Desc)], map: "idx_engagement_point_events_tenant_workspace_created")
+  @@map("engagement_point_events")
+}
+
+/// MEG-001 — earned member badges (idempotent per badge code).
+model MemberEngagementBadge {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  workspaceId String            @map("workspace_id")
+  userId      String            @map("user_id") @db.Uuid
+  profileId   String            @map("profile_id") @db.Uuid
+  badgeCode   String            @map("badge_code")
+  earnedAt    DateTime          @default(now()) @map("earned_at") @db.Timestamptz
+  dedupeKey   String            @map("dedupe_key")
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile     EngagementProfile @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId, badgeCode], map: "uq_member_engagement_badges_user_badge")
+  @@unique([tenantId, dedupeKey], map: "uq_member_engagement_badges_dedupe")
+  @@index([tenantId, workspaceId, earnedAt(sort: Desc)], map: "idx_member_engagement_badges_tenant_workspace_earned")
+  @@map("member_engagement_badges")
 }
 
 /// TKT-001 Phase I1 — SLA policy definitions (tenant-scoped; RLS enforced).
