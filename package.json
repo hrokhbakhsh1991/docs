@@ -148,6 +148,7 @@
     "phase-6:guard": "node scripts/guards/phase-6-guard.mjs",
     "phase-6:defensive-guards": "bash scripts/phase-6-defensive-guards.sh",
     "phase-6:fast-track": "nvm use && pnpm run pre-commit:fast && pnpm run phase-6:defensive-guards",
+    "phase-6:pr-fast-closure": "pnpm --filter @app-tour/workspace-denali test && pnpm run phase-5:guard && pnpm run phase-6:guard",
     "phase-6:fast-closure": "pnpm build && pnpm test && pnpm --filter @app-tour/workspace-denali test && pnpm run phase-5:guard && pnpm run phase-6:guard",
     "phase-6:gate": "pnpm build && pnpm test && pnpm run phase-5:runtime-proof && pnpm run phase-5:guard && env PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:post-test && env PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:floors && pnpm run phase-6:guard",
     "phase-7:guard": "node scripts/guards/phase-7-guard.mjs",

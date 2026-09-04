@@ -17,6 +17,9 @@ test("public gate front doors have package, catalog, and documentation parity", 
   assert.match(workflow, /Production readiness L3 release gate/);
   assert.match(workflow, /run release:verify:pr/);
   assert.match(workflow, /run release:verify/);
+  const phase6 = readFileSync(".github/workflows/phase-6-gate.yml", "utf8");
+  assert.match(phase6, /run phase-6:pr-fast-closure/);
+  assert.match(phase6, /run phase-6:fast-closure/);
 });
 
 test("workflow keeps aggregate release check and shared setup", () => {

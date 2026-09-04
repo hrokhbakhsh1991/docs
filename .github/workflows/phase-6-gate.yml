@@ -143,7 +143,12 @@ jobs:
       - name: Prisma migrate deploy
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
-      - name: Phase 6 fast-closure
+      - name: Phase 6 fast-closure (PR)
+        if: github.event_name == 'pull_request'
+        run: pnpm run phase-6:pr-fast-closure
+
+      - name: Phase 6 fast-closure (full)
+        if: github.event_name != 'pull_request'
         run: pnpm run phase-6:fast-closure
 
       - name: Upload phase-6 gate reports

@@ -30,6 +30,11 @@ cover the lower-tier closure; pushes to `main` keep the full dependency-aware
 `release:verify` profile. This preserves the full release proof on main while
 avoiding a serial re-run of the expensive L2 integration suite on every PR.
 The existing Phase 0/1 and Booking check names remain unchanged.
+
+Phase 6 follows the same evidence rule: its PR fast-closure runs the Denali
+workspace tests plus Phase 5/6 guards, while the full build and repository
+suite remain in the main/full profile. The shared Phase 0/5 PR checks provide
+those lower-tier proofs for the same commit.
 the existing Phase 0/1 and Booking check names remain unchanged.
 
 L1 uses the resolver-backed `test:changed:gate` path and does not silently
