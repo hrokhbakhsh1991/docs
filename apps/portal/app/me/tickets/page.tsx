@@ -7,6 +7,7 @@ import { fetchMemberTicketsList } from "@/me/tickets/fetch-member-tickets.server
 import { MemberTicketsDisabled } from "@/me/tickets/member-tickets-disabled";
 import { MemberTicketsListPanel } from "@/me/tickets/member-tickets-list-panel";
 import { resolveMemberTicketsPortalReadOnly } from "@/me/tickets/member-tickets-portal-mode.server";
+import { resolveMemberPortalTicketsListPath } from "@/me/resolve-member-portal-routes.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -44,6 +45,7 @@ export default async function MeTicketsPage({
     statusFilter.length > 0 ? { status: statusFilter } : undefined,
   );
   const readOnly = await resolveMemberTicketsPortalReadOnly(bootstrap.tenantId);
+  const ticketsPath = resolveMemberPortalTicketsListPath(bootstrap.pluginId);
   const t = await getTranslations("portalMember.tickets");
 
   if (listResult.status === "missing_cookie" || listResult.status === "unauthenticated") {
@@ -73,7 +75,7 @@ export default async function MeTicketsPage({
             <h1>{t("title")}</h1>
             <p data-portal-member-tickets-lede>{t("lede")}</p>
             {readOnly ? null : (
-              <a href="/me/tickets/new" data-portal-member-tickets-new-cta>
+              <a href={`${ticketsPath}/new`} data-portal-member-tickets-new-cta>
                 {t("newCta")}
               </a>
             )}

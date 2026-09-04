@@ -313,7 +313,14 @@ describe(
       });
 
       const rows = await withTenantRls(tenantA, async (tx) =>
-        tx.ticketNotification.findMany({ where: { tenantId: tenantA, ticketId } }),
+        tx.memberNotification.findMany({
+          where: {
+            tenantId: tenantA,
+            sourceModule: "ticketing",
+            entityType: "ticket",
+            entityId: ticketId,
+          },
+        }),
       );
       assert.ok(rows.length >= 1);
       assert.match(rows[0]?.body ?? "", /Template notify|SLA breached/i);

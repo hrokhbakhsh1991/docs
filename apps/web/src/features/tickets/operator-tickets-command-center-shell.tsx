@@ -1,13 +1,14 @@
 "use client";
 
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
-import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
+import { OperatorConfirmDialog } from "@/admin/patterns/operator-confirm-dialog";
+import { useOperatorConfirmDialog } from "@/admin/patterns/use-operator-confirm-dialog";
 import { PageHeader } from "@/admin/patterns/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +85,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
   const [isMobile, setIsMobile] = useState(false);
   const [clientReady, setClientReady] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const bulkConfirm = useOperatorConfirmDialog();
   const skipInitialListLoadRef = useRef(
     initialPrefetch !== null && initialPrefetch !== undefined,
   );
@@ -326,6 +328,19 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
     }
   };
 
+  const requestBulkStatus = () => {
+    if (!canMutate || bulkSelectedIds.length === 0 || bulkPending) {
+      return;
+    }
+    if (bulkStatus === "resolved" || bulkStatus === "closed") {
+      bulkConfirm.requestConfirmation(() => {
+        void runBulkStatus();
+      });
+      return;
+    }
+    void runBulkStatus();
+  };
+
   const inboxPanel = (
     <div
       data-operator-tickets-inbox
@@ -344,7 +359,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
               <Checkbox
                 data-testid={OPERATOR_TICKETS_TEST_IDS.bulkSelectAll}
                 checked={list.items.length > 0 && bulkSelectedIds.length === list.items.length}
-                onChange={toggleBulkSelectAll}
+                onChange={() => toggleBulkSelectAll()}
               />
               <span>{t("bulkSelectAll")}</span>
             </label>
@@ -366,7 +381,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
               variant="outline"
               data-testid={OPERATOR_TICKETS_TEST_IDS.bulkApply}
               disabled={bulkPending || bulkSelectedIds.length === 0}
-              onClick={() => void runBulkStatus()}
+              onClick={() => requestBulkStatus()}
             >
               {bulkPending ? t("bulkApplying") : t("bulkApply", { count: bulkSelectedIds.length })}
             </Button>
@@ -555,6 +570,22 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
           <OperatorTicketsDetailPanel key="mobile-detail" {...detailPanelProps} />
         </SheetContent>
       </Sheet>
+
+      <OperatorConfirmDialog
+        open={bulkConfirm.open}
+        onOpenChange={bulkConfirm.handleOpenChange}
+        title={t("bulkConfirmTitle")}
+        description={t("bulkConfirmDescription", {
+          count: bulkSelectedIds.length,
+          status: t(`statuses.${bulkStatus}` as "statuses.open"),
+        })}
+        cancelLabel={t("bulkConfirmCancel")}
+        confirmLabel={t("bulkConfirmAction", { count: bulkSelectedIds.length })}
+        confirmPending={bulkPending}
+        confirmVariant="destructive"
+        onConfirm={bulkConfirm.handleConfirm}
+        testIdPrefix="operator-tickets-bulk"
+      />
     </div>
   );
 }

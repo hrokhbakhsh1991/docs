@@ -9,6 +9,12 @@ import {
   loginOperatorViewer,
 } from "../../test/fixtures/operator-owner-session";
 import { OPERATOR_TICKETS_TEST_IDS } from "../../src/features/tickets/operator-tickets-types";
+import {
+  applyInboxPriorityFilter,
+  applyInboxStatusFilter,
+  assertTicketDetailReadyForReply,
+  selectOpenTicketInInbox,
+} from "./operator-ticketing-e2e-helpers";
 
 async function openTicketsInbox(page: import("@playwright/test").Page): Promise<void> {
   await page.goto("/tickets", { waitUntil: "load" });
@@ -19,20 +25,11 @@ async function openTicketsInbox(page: import("@playwright/test").Page): Promise<
   });
 }
 
-async function openTicketDetail(page: import("@playwright/test").Page): Promise<void> {
-  const rows = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.inboxRow);
-  await expect(rows.first()).toBeVisible({ timeout: 60_000 });
-  const readyLocator = page
-    .locator("[data-operator-tickets-detail-state='ready']")
-    .filter({ visible: true });
-  if (await readyLocator.isVisible()) {
-    return;
-  }
-  const target = rows.first();
-  await target.click();
-  await expect(readyLocator).toBeVisible({
-    timeout: 60_000,
-  });
+async function confirmOperatorAction(
+  page: import("@playwright/test").Page,
+  testIdPrefix: "operator-tickets-resolve" | "operator-tickets-close",
+): Promise<void> {
+  await page.getByTestId(`${testIdPrefix}-confirm-confirm`).click();
 }
 
 test.describe("TKT-G1 operator ticketing inbox", () => {
@@ -41,13 +38,11 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     await openTicketsInbox(page);
 
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.inbox)).toBeVisible();
-    await page.getByTestId(OPERATOR_TICKETS_TEST_IDS.filterStatus).selectOption("open");
-    await page.getByTestId(OPERATOR_TICKETS_TEST_IDS.filterPriority).selectOption("normal");
-    await expect(page.locator("[data-operator-tickets-inbox][data-operator-tickets-state='ready']")).toBeVisible({
-      timeout: 60_000,
-    });
+    await applyInboxStatusFilter(page, "open");
+    await applyInboxPriorityFilter(page, "normal", { requireStatus: "open" });
 
-    await openTicketDetail(page);
+    const selectedTicket = await selectOpenTicketInInbox(page);
+    await assertTicketDetailReadyForReply(page, selectedTicket);
 
     const composer = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.composer);
     await composer.locator("textarea").click();
@@ -61,7 +56,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     ]);
     await expect(page.getByText("پاسخ عمومی اپراتور")).toBeVisible({ timeout: 60_000 });
 
-    await page.getByRole("button", { name: /یادداشت داخلی|Internal note/i }).click();
+    await composer.getByRole("tab", { name: /یادداشت داخلی|Internal note/i }).click();
     await composer.locator("textarea").click();
     await composer.locator("textarea").pressSequentially("یادداشت داخلی smoke", { delay: 8 });
     await Promise.all([
@@ -74,18 +69,21 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     ]);
     await expect(page.getByText("یادداشت داخلی smoke")).toBeVisible({ timeout: 60_000 });
 
-    await page.locator("[data-operator-tickets-actions] select").first().selectOption("high");
+    const detailPanel = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.detail).filter({ visible: true }).first();
+    await detailPanel.locator("[data-operator-tickets-actions] select").first().selectOption("high");
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.mutationNotice)).toBeVisible({
       timeout: 60_000,
     });
 
-    await page.getByRole("button", { name: /ارجاع به اپراتور|Assign operator/i }).click();
-    await page.getByRole("button", { name: /ارجاع به تیم|Assign team/i }).click();
-    await page.getByRole("button", { name: /تغییر صف|Change queue/i }).click();
-    await page.getByRole("button", { name: /افزودن برچسب|Add tag/i }).click();
-    await page.getByRole("button", { name: /حل‌شده|Resolve/i }).click();
-    await page.getByRole("button", { name: /بستن|Close/i }).click();
-    await page.getByRole("button", { name: /بازگشایی|Reopen/i }).click();
+    await detailPanel.getByRole("button", { name: /ارجاع به اپراتور|Assign operator/i }).click();
+    await detailPanel.getByRole("button", { name: /ارجاع به تیم|Assign team/i }).click();
+    await detailPanel.getByRole("button", { name: /تغییر صف|Change queue/i }).click();
+    await detailPanel.getByRole("button", { name: /افزودن برچسب|Add tag/i }).click();
+    await detailPanel.getByRole("button", { name: /حل‌شده|Resolve/i }).click();
+    await confirmOperatorAction(page, "operator-tickets-resolve");
+    await detailPanel.getByRole("button", { name: /بستن|Close/i }).click();
+    await confirmOperatorAction(page, "operator-tickets-close");
+    await detailPanel.getByRole("button", { name: /بازگشایی|Reopen/i }).click();
 
     await page.screenshot({
       path: "/opt/cursor/artifacts/screenshots/operator-tickets-desktop.png",
@@ -94,7 +92,8 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await openTicketsInbox(page);
-    await openTicketDetail(page);
+    await applyInboxStatusFilter(page, "open");
+    await selectOpenTicketInInbox(page, { ticketId: selectedTicket.ticketId });
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.mobileSheet)).toBeVisible({
       timeout: 60_000,
     });
@@ -106,7 +105,8 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await loginOperatorViewer(page);
     await openTicketsInbox(page);
-    await openTicketDetail(page);
+    await applyInboxStatusFilter(page, "open");
+    await selectOpenTicketInInbox(page, { ticketId: selectedTicket.ticketId });
     await expect(page.locator("[data-operator-tickets-readonly-banner]")).toBeVisible({
       timeout: 60_000,
     });
@@ -120,14 +120,9 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
   test("mutation conflict surfaces without full-page error", async ({ page }) => {
     await loginOperatorOwner(page);
     await openTicketsInbox(page);
-    await openTicketDetail(page);
+    await applyInboxStatusFilter(page, "open");
+    const { ticketId } = await selectOpenTicketInInbox(page);
 
-    const ticketId =
-      (await page
-        .getByTestId(OPERATOR_TICKETS_TEST_IDS.inboxRow)
-        .first()
-        .getAttribute("data-ticket-id")) ?? "";
-    expect(ticketId.length).toBeGreaterThan(0);
     const stalePatch = await page.request.patch(`/api/tickets/${ticketId}`, {
       headers: {
         "Content-Type": "application/json",

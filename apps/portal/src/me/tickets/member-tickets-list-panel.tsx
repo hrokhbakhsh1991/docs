@@ -88,7 +88,6 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
               disabled={isPending}
               onClick={() => onFilterChange(filter)}
             >
-              <span aria-hidden="true">{filter.length === 0 ? "◎" : "●"}</span>
               {label}
             </button>
           );

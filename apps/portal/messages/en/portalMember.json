@@ -297,6 +297,10 @@
     "reopen": "Reopen ticket",
     "reopening": "Reopening…",
     "reopenError": "Could not reopen ticket.",
+    "replySuccess": "Your message was sent.",
+    "reopenSuccess": "Ticket reopened.",
+    "advancedSectionToggle": "Link to a tour or registration (optional)",
+    "advancedSectionHint": "Only use this if support asked you to reference a specific trip.",
     "fields": {
       "category": "Category",
       "subject": "Subject",

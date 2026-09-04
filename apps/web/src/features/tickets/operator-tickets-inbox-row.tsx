@@ -62,7 +62,7 @@ export function OperatorTicketsInboxRow({
         </OperatorStatusBadge>
       </div>
       <div
-        className="flex flex-wrap items-center gap-2 text-xs"
+        className="flex flex-wrap items-center gap-2 text-xs text-foreground/80"
         data-operator-tickets-inbox-meta
       >
         <span>{item.requesterLabel}</span>
@@ -78,7 +78,7 @@ export function OperatorTicketsInboxRow({
         ) : null}
       </div>
       <div
-        className="flex flex-wrap items-center gap-2 text-xs"
+        className="flex flex-wrap items-center gap-2 text-xs text-foreground/80"
         data-operator-tickets-inbox-meta
       >
         <time dateTime={item.lastActivityAt}>{item.lastActivityLabel}</time>
@@ -88,8 +88,8 @@ export function OperatorTicketsInboxRow({
           </span>
         ) : null}
         {item.hasAttachments ? (
-          <span data-operator-tickets-attachment-indicator title={t("attachmentIndicator")}>
-            📎
+          <span data-operator-tickets-attachment-indicator aria-label={t("attachmentIndicator")}>
+            {t("attachmentShort")}
           </span>
         ) : null}
         {item.tagCodes.length > 0 ? (

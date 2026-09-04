@@ -10,10 +10,10 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (member_notifications_platform)", () => {
+  it("expected head matches tip migration folder (engagement_admin_definitions)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260905120000_member_engagement_meg_v1_rls"
+      "20260905140000_engagement_admin_definitions"
     );
   });
 

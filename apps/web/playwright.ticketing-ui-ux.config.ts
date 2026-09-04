@@ -5,14 +5,8 @@ const operatorSmokeBaseUrl =
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: [
-    "operator-ticketing-inbox.spec.ts",
-    "operator-ticketing-bulk-confirm.spec.ts",
-    "operator-ticket-templates-smoke.spec.ts",
-    "operator-ticketing-reports-settings-smoke.spec.ts",
-    "operator-ticketing-a11y.spec.ts",
-  ],
-  retries: process.env.CI ? 1 : 0,
+  testMatch: ["ticketing-ui-ux-screenshots.spec.ts"],
+  retries: 0,
   workers: 1,
   timeout: 240_000,
   use: {

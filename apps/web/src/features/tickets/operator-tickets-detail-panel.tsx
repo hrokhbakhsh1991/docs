@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 
+import { OperatorConfirmDialog } from "@/admin/patterns/operator-confirm-dialog";
+import { useOperatorConfirmDialog } from "@/admin/patterns/use-operator-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { OperatorStatusBadge } from "@/admin/patterns/operator-status-badge";
 import { createTicketsIdempotencyKey } from "@/features/tickets/operator-tickets-format";
@@ -55,6 +57,8 @@ export function OperatorTicketsDetailPanel({
   onRetry,
 }: Props) {
   const t = useTranslations("tickets");
+  const resolveConfirm = useOperatorConfirmDialog();
+  const closeConfirm = useOperatorConfirmDialog();
 
   if (detailState === "idle") {
     return (
@@ -249,7 +253,7 @@ export function OperatorTicketsDetailPanel({
     >
       <header className="space-y-2 border-b border-border p-4">
         <h2 className="text-lg font-semibold break-words">{detail.ticket.subject}</h2>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-foreground/80">
           <OperatorStatusBadge>
             <span aria-hidden="true">{detail.ticket.statusIcon}</span> {t(detail.ticket.statusLabelKey)}
           </OperatorStatusBadge>
@@ -272,10 +276,20 @@ export function OperatorTicketsDetailPanel({
                 ))}
               </select>
             </label>
-            <Button type="button" size="sm" variant="outline" onClick={() => void runStatus("resolved")}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => resolveConfirm.requestConfirmation(() => void runStatus("resolved"))}
+            >
               {t("actionResolve")}
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => void runStatus("closed")}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => closeConfirm.requestConfirmation(() => void runStatus("closed"))}
+            >
               {t("actionClose")}
             </Button>
             {(detail.ticket.status === "resolved" || detail.ticket.status === "closed") && (
@@ -346,7 +360,7 @@ export function OperatorTicketsDetailPanel({
         <ul className="mb-4 space-y-3">
           {publicMessages.map((message) => (
             <li key={message.id} data-operator-tickets-message data-visibility="public">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-foreground/75">
                 {message.authorLabel} · <time dateTime={message.createdAt}>{message.createdAtLabel}</time>
               </p>
               <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
@@ -358,7 +372,7 @@ export function OperatorTicketsDetailPanel({
         <ul className="mb-4 space-y-3">
           {internalMessages.map((message) => (
             <li key={message.id} data-operator-tickets-message data-visibility="internal">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-foreground/75">
                 {message.authorLabel} · <time dateTime={message.createdAt}>{message.createdAtLabel}</time>
               </p>
               <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
@@ -385,6 +399,28 @@ export function OperatorTicketsDetailPanel({
         canMutate={canMutate}
         onDetailUpdated={onDetailUpdated}
         onError={onError}
+      />
+
+      <OperatorConfirmDialog
+        open={resolveConfirm.open}
+        onOpenChange={resolveConfirm.handleOpenChange}
+        title={t("actionConfirmResolveTitle")}
+        description={t("actionConfirmResolveDescription")}
+        cancelLabel={t("actionConfirmCancel")}
+        confirmLabel={t("actionConfirmProceed")}
+        onConfirm={resolveConfirm.handleConfirm}
+        testIdPrefix="operator-tickets-resolve"
+      />
+      <OperatorConfirmDialog
+        open={closeConfirm.open}
+        onOpenChange={closeConfirm.handleOpenChange}
+        title={t("actionConfirmCloseTitle")}
+        description={t("actionConfirmCloseDescription")}
+        cancelLabel={t("actionConfirmCancel")}
+        confirmLabel={t("actionConfirmProceed")}
+        confirmVariant="destructive"
+        onConfirm={closeConfirm.handleConfirm}
+        testIdPrefix="operator-tickets-close"
       />
     </section>
   );

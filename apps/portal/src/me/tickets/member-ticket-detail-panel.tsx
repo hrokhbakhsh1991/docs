@@ -35,6 +35,7 @@ export function MemberTicketDetailPanel({
   const [detail, setDetail] = useState(initialDetail);
   const [replyBody, setReplyBody] = useState("");
   const [replyError, setReplyError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -70,6 +71,7 @@ export function MemberTicketDetailPanel({
     }
     setSubmitting(true);
     setReplyError(null);
+    setSuccessMessage(null);
     try {
       const res = await fetch(`/api/me/tickets/${detail.ticket.id}/messages`, {
         method: "POST",
@@ -93,6 +95,7 @@ export function MemberTicketDetailPanel({
         return;
       }
       setReplyBody("");
+      setSuccessMessage(t("replySuccess"));
       await refreshDetail();
       liveRef.current?.focus();
       router.refresh();
@@ -109,6 +112,7 @@ export function MemberTicketDetailPanel({
     }
     setReopening(true);
     setReplyError(null);
+    setSuccessMessage(null);
     try {
       const res = await fetch(`/api/me/tickets/${detail.ticket.id}/reopen`, {
         method: "POST",
@@ -129,6 +133,7 @@ export function MemberTicketDetailPanel({
       } else {
         await refreshDetail();
       }
+      setSuccessMessage(t("reopenSuccess"));
       router.refresh();
     } catch {
       setReplyError(t("reopenError"));
@@ -216,7 +221,7 @@ export function MemberTicketDetailPanel({
       </section>
 
       <div ref={liveRef} tabIndex={-1} aria-live="polite" data-portal-member-tickets-sr-only>
-        {replyError}
+        {replyError ?? successMessage}
       </div>
 
       {canReopen ? (
