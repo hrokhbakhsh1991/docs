@@ -68,8 +68,8 @@ export type EngagementReversalHttpResponse = {
 };
 
 export type EngagementOperatorPolicyHttpResponse = {
-  readonly managementMode: "system_managed";
-  readonly editUnavailableReasonKey: string;
+  readonly managementMode: "operator_managed" | "system_managed";
+  readonly editUnavailableReasonKey: string | null;
   readonly levels: readonly {
     readonly code: string;
     readonly labelKey: string;
@@ -94,4 +94,96 @@ export type EngagementAdjustmentHttpResponse = {
   readonly eventId: string;
   readonly totalPoints: number;
   readonly replay: boolean;
+};
+
+export type EngagementI18nHttpText = Readonly<{
+  readonly en: string;
+  readonly fa: string;
+}>;
+
+export type EngagementDefinitionStatusHttp = "active" | "inactive" | "archived";
+
+export type EngagementBadgeDefinitionHttpItem = {
+  readonly id: string;
+  readonly code: string;
+  readonly titleI18n: EngagementI18nHttpText;
+  readonly descriptionI18n: EngagementI18nHttpText;
+  readonly labelKey: string;
+  readonly descriptionKey: string;
+  readonly iconKey: string;
+  readonly status: EngagementDefinitionStatusHttp;
+  readonly triggerKind: "event" | "points_threshold";
+  readonly triggerEventType: string | null;
+  readonly triggerMinPoints: number | null;
+  readonly rowVersion: number;
+  readonly archivedAt: string | null;
+  readonly updatedAt: string;
+};
+
+export type EngagementLevelDefinitionHttpItem = {
+  readonly id: string;
+  readonly code: string;
+  readonly titleI18n: EngagementI18nHttpText;
+  readonly descriptionI18n: EngagementI18nHttpText;
+  readonly labelKey: string;
+  readonly minPoints: number;
+  readonly sortOrder: number;
+  readonly status: EngagementDefinitionStatusHttp;
+  readonly rowVersion: number;
+  readonly updatedAt: string;
+};
+
+export type EngagementAwardRuleDefinitionHttpItem = {
+  readonly id: string;
+  readonly eventType: string;
+  readonly sourceModule: string;
+  readonly points: number;
+  readonly badgeCode: string | null;
+  readonly status: EngagementDefinitionStatusHttp;
+  readonly effectiveFrom: string;
+  readonly effectiveTo: string | null;
+  readonly dedupePolicy: "per_user" | "per_entity";
+  readonly version: number;
+  readonly rowVersion: number;
+  readonly updatedAt: string;
+};
+
+export type EngagementDefinitionAuditHttpItem = {
+  readonly id: string;
+  readonly entityType: "badge" | "level" | "award_rule";
+  readonly entityId: string;
+  readonly action: string;
+  readonly actorUserId: string;
+  readonly actorRole: string;
+  readonly beforeJson: unknown;
+  readonly afterJson: unknown;
+  readonly createdAt: string;
+};
+
+export type EngagementOperatorCatalogHttpResponse = {
+  readonly icons: readonly {
+    readonly key: string;
+    readonly labelKey: string;
+  }[];
+  readonly supportedEvents: readonly {
+    readonly eventType: string;
+    readonly sourceModule: string;
+    readonly labelKey: string;
+  }[];
+};
+
+export type EngagementBadgeDefinitionListHttpResponse = {
+  readonly items: readonly EngagementBadgeDefinitionHttpItem[];
+};
+
+export type EngagementLevelDefinitionListHttpResponse = {
+  readonly items: readonly EngagementLevelDefinitionHttpItem[];
+};
+
+export type EngagementAwardRuleDefinitionListHttpResponse = {
+  readonly items: readonly EngagementAwardRuleDefinitionHttpItem[];
+};
+
+export type EngagementDefinitionAuditListHttpResponse = {
+  readonly items: readonly EngagementDefinitionAuditHttpItem[];
 };

@@ -144,12 +144,23 @@
           "GET /engagement/me/points": "handleEngagementMemberPoints",
           "GET /engagement/me/badges": "handleEngagementMemberBadges",
           "GET /engagement/operator/overview": "handleEngagementOperatorOverview",
-          "GET /engagement/operator/policy": "handleEngagementOperatorPolicy"
+          "GET /engagement/operator/policy": "handleEngagementOperatorPolicy",
+          "GET /engagement/operator/badges": "handleEngagementOperatorBadgesList",
+          "POST /engagement/operator/badges": "handleEngagementOperatorBadgesCreate",
+          "GET /engagement/operator/levels": "handleEngagementOperatorLevelsList",
+          "POST /engagement/operator/levels": "handleEngagementOperatorLevelsCreate",
+          "GET /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesList",
+          "POST /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesCreate",
+          "GET /engagement/operator/audit-log": "handleEngagementOperatorAuditLog",
+          "GET /engagement/operator/catalog": "handleEngagementOperatorCatalog"
         },
         "paramHandlers": {
           "GET /engagement/operator/members/:userId": "handleEngagementOperatorMemberLookup",
           "POST /engagement/operator/members/:userId/adjust": "handleEngagementOperatorAdjust",
-          "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse"
+          "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse",
+          "PATCH /engagement/operator/badges/:code": "handleEngagementOperatorBadgesUpdate",
+          "PATCH /engagement/operator/levels/:code": "handleEngagementOperatorLevelsUpdate",
+          "PATCH /engagement/operator/award-rules/:ruleId": "handleEngagementOperatorAwardRulesUpdate"
         },
         "handlerPackage": "@app-tour/engagement-http"
       }

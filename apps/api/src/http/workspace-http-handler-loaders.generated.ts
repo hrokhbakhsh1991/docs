@@ -11,6 +11,17 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleEngagementMemberPoints"
   | "handleEngagementMemberSummary"
   | "handleEngagementOperatorAdjust"
+  | "handleEngagementOperatorAuditLog"
+  | "handleEngagementOperatorAwardRulesCreate"
+  | "handleEngagementOperatorAwardRulesList"
+  | "handleEngagementOperatorAwardRulesUpdate"
+  | "handleEngagementOperatorBadgesCreate"
+  | "handleEngagementOperatorBadgesList"
+  | "handleEngagementOperatorBadgesUpdate"
+  | "handleEngagementOperatorCatalog"
+  | "handleEngagementOperatorLevelsCreate"
+  | "handleEngagementOperatorLevelsList"
+  | "handleEngagementOperatorLevelsUpdate"
   | "handleEngagementOperatorMemberLookup"
   | "handleEngagementOperatorOverview"
   | "handleEngagementOperatorPolicy"
@@ -97,6 +108,17 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleEngagementMemberPoints: "@app-tour/engagement-http",
   handleEngagementMemberSummary: "@app-tour/engagement-http",
   handleEngagementOperatorAdjust: "@app-tour/engagement-http",
+  handleEngagementOperatorAuditLog: "@app-tour/engagement-http",
+  handleEngagementOperatorAwardRulesCreate: "@app-tour/engagement-http",
+  handleEngagementOperatorAwardRulesList: "@app-tour/engagement-http",
+  handleEngagementOperatorAwardRulesUpdate: "@app-tour/engagement-http",
+  handleEngagementOperatorBadgesCreate: "@app-tour/engagement-http",
+  handleEngagementOperatorBadgesList: "@app-tour/engagement-http",
+  handleEngagementOperatorBadgesUpdate: "@app-tour/engagement-http",
+  handleEngagementOperatorCatalog: "@app-tour/engagement-http",
+  handleEngagementOperatorLevelsCreate: "@app-tour/engagement-http",
+  handleEngagementOperatorLevelsList: "@app-tour/engagement-http",
+  handleEngagementOperatorLevelsUpdate: "@app-tour/engagement-http",
   handleEngagementOperatorMemberLookup: "@app-tour/engagement-http",
   handleEngagementOperatorOverview: "@app-tour/engagement-http",
   handleEngagementOperatorPolicy: "@app-tour/engagement-http",
@@ -202,6 +224,17 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleEngagementMemberPoints: mod.handleEngagementMemberPoints,
         handleEngagementMemberSummary: mod.handleEngagementMemberSummary,
         handleEngagementOperatorAdjust: mod.handleEngagementOperatorAdjust,
+        handleEngagementOperatorAuditLog: mod.handleEngagementOperatorAuditLog,
+        handleEngagementOperatorAwardRulesCreate: mod.handleEngagementOperatorAwardRulesCreate,
+        handleEngagementOperatorAwardRulesList: mod.handleEngagementOperatorAwardRulesList,
+        handleEngagementOperatorAwardRulesUpdate: mod.handleEngagementOperatorAwardRulesUpdate,
+        handleEngagementOperatorBadgesCreate: mod.handleEngagementOperatorBadgesCreate,
+        handleEngagementOperatorBadgesList: mod.handleEngagementOperatorBadgesList,
+        handleEngagementOperatorBadgesUpdate: mod.handleEngagementOperatorBadgesUpdate,
+        handleEngagementOperatorCatalog: mod.handleEngagementOperatorCatalog,
+        handleEngagementOperatorLevelsCreate: mod.handleEngagementOperatorLevelsCreate,
+        handleEngagementOperatorLevelsList: mod.handleEngagementOperatorLevelsList,
+        handleEngagementOperatorLevelsUpdate: mod.handleEngagementOperatorLevelsUpdate,
         handleEngagementOperatorMemberLookup: mod.handleEngagementOperatorMemberLookup,
         handleEngagementOperatorOverview: mod.handleEngagementOperatorOverview,
         handleEngagementOperatorPolicy: mod.handleEngagementOperatorPolicy,

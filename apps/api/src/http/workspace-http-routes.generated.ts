@@ -26,6 +26,17 @@ export type WorkspaceHttpHandlerKey =
   | "handleEngagementMemberPoints"
   | "handleEngagementMemberSummary"
   | "handleEngagementOperatorAdjust"
+  | "handleEngagementOperatorAuditLog"
+  | "handleEngagementOperatorAwardRulesCreate"
+  | "handleEngagementOperatorAwardRulesList"
+  | "handleEngagementOperatorAwardRulesUpdate"
+  | "handleEngagementOperatorBadgesCreate"
+  | "handleEngagementOperatorBadgesList"
+  | "handleEngagementOperatorBadgesUpdate"
+  | "handleEngagementOperatorCatalog"
+  | "handleEngagementOperatorLevelsCreate"
+  | "handleEngagementOperatorLevelsList"
+  | "handleEngagementOperatorLevelsUpdate"
   | "handleEngagementOperatorMemberLookup"
   | "handleEngagementOperatorOverview"
   | "handleEngagementOperatorPolicy"
@@ -188,7 +199,15 @@ const DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /engagement/me/points": "handleEngagementMemberPoints",
   "GET /engagement/me/badges": "handleEngagementMemberBadges",
   "GET /engagement/operator/overview": "handleEngagementOperatorOverview",
-  "GET /engagement/operator/policy": "handleEngagementOperatorPolicy"
+  "GET /engagement/operator/policy": "handleEngagementOperatorPolicy",
+  "GET /engagement/operator/badges": "handleEngagementOperatorBadgesList",
+  "POST /engagement/operator/badges": "handleEngagementOperatorBadgesCreate",
+  "GET /engagement/operator/levels": "handleEngagementOperatorLevelsList",
+  "POST /engagement/operator/levels": "handleEngagementOperatorLevelsCreate",
+  "GET /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesList",
+  "POST /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesCreate",
+  "GET /engagement/operator/audit-log": "handleEngagementOperatorAuditLog",
+  "GET /engagement/operator/catalog": "handleEngagementOperatorCatalog"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
@@ -263,7 +282,10 @@ const DENALI_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
 const DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /engagement/operator/members/:userId": "handleEngagementOperatorMemberLookup",
   "POST /engagement/operator/members/:userId/adjust": "handleEngagementOperatorAdjust",
-  "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse"
+  "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse",
+  "PATCH /engagement/operator/badges/:code": "handleEngagementOperatorBadgesUpdate",
+  "PATCH /engagement/operator/levels/:code": "handleEngagementOperatorLevelsUpdate",
+  "PATCH /engagement/operator/award-rules/:ruleId": "handleEngagementOperatorAwardRulesUpdate"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {

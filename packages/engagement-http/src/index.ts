@@ -10,6 +10,17 @@ export {
   handleEngagementOperatorMemberLookup,
   handleEngagementOperatorAdjust,
   handleEngagementOperatorReverse,
+  handleEngagementOperatorBadgesList,
+  handleEngagementOperatorBadgesCreate,
+  handleEngagementOperatorBadgesUpdate,
+  handleEngagementOperatorLevelsList,
+  handleEngagementOperatorLevelsCreate,
+  handleEngagementOperatorLevelsUpdate,
+  handleEngagementOperatorAwardRulesList,
+  handleEngagementOperatorAwardRulesCreate,
+  handleEngagementOperatorAwardRulesUpdate,
+  handleEngagementOperatorAuditLog,
+  handleEngagementOperatorCatalog,
 } from "./engagement.routes";
 
 export type { EngagementRouteDeps, EngagementServicePort } from "./host-ports";

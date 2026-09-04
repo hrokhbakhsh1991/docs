@@ -1,13 +1,27 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import type {
+  CreateAwardRuleBody,
+  CreateBadgeBody,
+  CreateLevelBody,
+  EngagementAdjustmentHttpResponse,
+  EngagementAwardRuleDefinitionHttpItem,
+  EngagementAwardRuleDefinitionListHttpResponse,
+  EngagementBadgeDefinitionHttpItem,
+  EngagementBadgeDefinitionListHttpResponse,
+  EngagementDefinitionAuditListHttpResponse,
+  EngagementLevelDefinitionHttpItem,
+  EngagementLevelDefinitionListHttpResponse,
   EngagementMemberLookupHttpResponse,
   EngagementMemberSummaryHttpResponse,
+  EngagementOperatorCatalogHttpResponse,
   EngagementOperatorOverviewHttpResponse,
   EngagementOperatorPolicyHttpResponse,
-  EngagementAdjustmentHttpResponse,
   EngagementPointHistoryHttpResponse,
   EngagementReversalHttpResponse,
+  UpdateAwardRuleBody,
+  UpdateBadgeBody,
+  UpdateLevelBody,
 } from "@app-tour/engagement-http-contracts";
 
 export type EngagementServicePort = {
@@ -38,6 +52,43 @@ export type EngagementServicePort = {
     userId: string,
     input: { readonly originalEventId: string; readonly reason: string; readonly idempotencyKey: string },
   ): Promise<EngagementReversalHttpResponse>;
+  listOperatorBadges(auth: TenantAuthContext): Promise<EngagementBadgeDefinitionListHttpResponse>;
+  createOperatorBadge(
+    auth: TenantAuthContext,
+    input: CreateBadgeBody & { readonly idempotencyKey: string },
+  ): Promise<EngagementBadgeDefinitionHttpItem>;
+  updateOperatorBadge(
+    auth: TenantAuthContext,
+    code: string,
+    input: UpdateBadgeBody,
+  ): Promise<EngagementBadgeDefinitionHttpItem>;
+  listOperatorLevels(auth: TenantAuthContext): Promise<EngagementLevelDefinitionListHttpResponse>;
+  createOperatorLevel(
+    auth: TenantAuthContext,
+    input: CreateLevelBody & { readonly idempotencyKey: string },
+  ): Promise<EngagementLevelDefinitionHttpItem>;
+  updateOperatorLevel(
+    auth: TenantAuthContext,
+    code: string,
+    input: UpdateLevelBody,
+  ): Promise<EngagementLevelDefinitionHttpItem>;
+  listOperatorAwardRules(
+    auth: TenantAuthContext,
+  ): Promise<EngagementAwardRuleDefinitionListHttpResponse>;
+  createOperatorAwardRule(
+    auth: TenantAuthContext,
+    input: CreateAwardRuleBody & { readonly idempotencyKey: string },
+  ): Promise<EngagementAwardRuleDefinitionHttpItem>;
+  updateOperatorAwardRule(
+    auth: TenantAuthContext,
+    ruleId: string,
+    input: UpdateAwardRuleBody,
+  ): Promise<EngagementAwardRuleDefinitionHttpItem>;
+  listOperatorAuditLog(
+    auth: TenantAuthContext,
+    query: { readonly limit: number },
+  ): Promise<EngagementDefinitionAuditListHttpResponse>;
+  getOperatorCatalog(auth: TenantAuthContext): Promise<EngagementOperatorCatalogHttpResponse>;
 };
 
 export type EngagementRouteDeps = {
