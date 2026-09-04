@@ -19,6 +19,13 @@ async function openTicketsInbox(page: import("@playwright/test").Page): Promise<
   });
 }
 
+async function confirmOperatorAction(
+  page: import("@playwright/test").Page,
+  testIdPrefix: "operator-tickets-resolve" | "operator-tickets-close",
+): Promise<void> {
+  await page.getByTestId(`${testIdPrefix}-confirm-confirm`).click();
+}
+
 async function openTicketDetail(page: import("@playwright/test").Page): Promise<void> {
   const rows = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.inboxRow);
   await expect(rows.first()).toBeVisible({ timeout: 60_000 });
@@ -84,7 +91,9 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     await page.getByRole("button", { name: /تغییر صف|Change queue/i }).click();
     await page.getByRole("button", { name: /افزودن برچسب|Add tag/i }).click();
     await page.getByRole("button", { name: /حل‌شده|Resolve/i }).click();
+    await confirmOperatorAction(page, "operator-tickets-resolve");
     await page.getByRole("button", { name: /بستن|Close/i }).click();
+    await confirmOperatorAction(page, "operator-tickets-close");
     await page.getByRole("button", { name: /بازگشایی|Reopen/i }).click();
 
     await page.screenshot({
