@@ -38,6 +38,21 @@ Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/
 - Default fast-track per [`tiered-testing.md`](../../docs/dev/tiered-testing.md); heavy gates need explicit user **YES**.
 - Never hide failed tests or claim pass without a ledger row.
 
+## Blocker recovery (mandatory)
+
+Per [`blocker-recovery.mdoc`](../../docs/dev/feature-delivery/blocker-recovery.mdoc):
+
+- **Never stop on the first failure** — classify, investigate, recover, or exhaust evidenced attempts.
+- **Classify** blockers: code/test, dependency, environment/browser/runtime, missing evidence, architecture ambiguity, security/RLS, product decision.
+- **Recoverable:** inspect call graph, search repo + docs, hypothesize, smallest scoped fix, rerun failing + regression tests; write `blocker-investigation.json`.
+- **Dependency:** official docs first; web research only for current facts with URL/version/finding in artifact; no unverified blog snippets.
+- **Browser/runtime:** env, ports, health, logs, console, network; permitted services only; never claim UI proof without execution.
+- **Architecture ambiguity:** consumer scan + standards compare + fresh architecture-reviewer verdict.
+- **Hard stops unchanged:** security/tenant/RLS ambiguity, migration rewrite, production/secrets, unresolved product decisions — research never overrides.
+- **Blocked sub-feature** must not stop unrelated mandatory queue items.
+- **Resume** requirement queue from last unfinished item after recovery.
+- **Stop only when** recovery exhausted or explicit human decision required.
+
 ## Full closure
 
 - Audit completion is not feature completion.
@@ -52,4 +67,6 @@ Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/
 
 ## Hard stop
 
-If any condition in [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc) fires: **stop**, emit Feature Delivery STOP report, list evidence and the exact architect/user decision required. Do not continue implementation.
+If any condition in [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc) fires: **stop**, emit Feature Delivery STOP report, list evidence and the exact architect/user decision required. Do not continue implementation on that path.
+
+**Recoverable failures** are not immediate stops — run [blocker-recovery](blocker-recovery) first unless the category is `BR-SEC` or `BR-PROD` (default hard stop).

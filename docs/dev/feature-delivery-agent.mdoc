@@ -1,7 +1,7 @@
 ---
 title: Feature Delivery Agent (FDA-001)
 standard_id: FDA-001
-version: 1.0.0
+version: 1.1.0
 status: draft
 format: markdoc
 doc_role: agent_charter
@@ -10,6 +10,7 @@ extends:
   - docs/dev/feature-delivery/architecture-classifier.mdoc
   - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
   - docs/dev/feature-delivery/stop-conditions.mdoc
+  - docs/dev/feature-delivery/blocker-recovery.mdoc
   - docs/dev/feature-delivery/notification-case-study.mdoc
 mandatory_for:
   - .cursor/agents
@@ -33,18 +34,19 @@ code_sot:
 
 ### 1.1 In scope
 
-| Concern | Agent responsibility |
-| ------- | -------------------- |
-| Discovery | Read feature request, existing standards, and code inventory |
-| Architecture classification | Apply [architecture-classifier](feature-delivery/architecture-classifier.mdoc) |
-| Consumer scan | Identify current and plausible future consumers before implementation |
-| Planning | Produce a reviewable plan with checkpoints and verification matrix |
-| User review gate | Pause for explicit approval before non-trivial implementation |
-| Vertical slice | Deliver one end-to-end path before breadth |
-| Mid-flight architecture review | Re-run classifier + architecture-reviewer at checkpoints |
-| Verification | Run tiered tests/guards per [tiered-testing](tiered-testing.md) |
-| Evidence report | Emit ledger-backed final report per [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) |
-| Commit / push | Same locked branch only; scope-guarded staging |
+| Concern                        | Agent responsibility                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Discovery                      | Read feature request, existing standards, and code inventory                                                              |
+| Architecture classification    | Apply [architecture-classifier](feature-delivery/architecture-classifier.mdoc)                                            |
+| Consumer scan                  | Identify current and plausible future consumers before implementation                                                     |
+| Planning                       | Produce a reviewable plan with checkpoints and verification matrix                                                        |
+| User review gate               | Pause for explicit approval before non-trivial implementation                                                             |
+| Vertical slice                 | Deliver one end-to-end path before breadth                                                                                |
+| Mid-flight architecture review | Re-run classifier + architecture-reviewer at checkpoints                                                                  |
+| Verification                   | Run tiered tests/guards per [tiered-testing](tiered-testing.md)                                                           |
+| Evidence report                | Emit ledger-backed final report per [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc)                |
+| Blocker recovery               | Classify failures, investigate with evidence, resume queue per [blocker-recovery](feature-delivery/blocker-recovery.mdoc) |
+| Commit / push                  | Same locked branch only; scope-guarded staging                                                                            |
 
 ### 1.2 Out of scope (this charter)
 
@@ -62,12 +64,12 @@ code_sot:
 
 At session start the agent records:
 
-| Field | Semantics |
-| ----- | --------- |
-| `lockedBranch` | Branch name where the session started — **immutable for the session** |
-| `initialHead` | `git rev-parse HEAD` at session start — **evidence baseline only** |
-| `currentHead` | Updated after each authorized commit — **may change** |
-| `scopePaths` | Glob allowlist derived **per feature session** at CP0 from the approved plan — not a repo constant |
+| Field          | Semantics                                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------------- |
+| `lockedBranch` | Branch name where the session started — **immutable for the session**                              |
+| `initialHead`  | `git rev-parse HEAD` at session start — **evidence baseline only**                                 |
+| `currentHead`  | Updated after each authorized commit — **may change**                                              |
+| `scopePaths`   | Glob allowlist derived **per feature session** at CP0 from the approved plan — not a repo constant |
 
 **Rules:**
 
@@ -111,47 +113,52 @@ flowchart TD
   commit --> cp5[CP5: pre-push matrix]
   cp5 --> push[Push origin lockedBranch]
   push --> report[Evidence report]
+  verify -->|failure| recover[Blocker recovery]
+  recover -->|recovered| verify
+  recover -->|hard stop| stopRecover[HardStop: exhausted or decision required]
 ```
+
+Recoverable verification failures loop through [blocker-recovery](feature-delivery/blocker-recovery.mdoc) before hard stop.
 
 ### 3.1 Phase map
 
-| Phase | Activities | Gate |
-| ----- | ---------- | ---- |
-| **Discovery** | Read standards, phase docs, grep/graph consumers | Bootstrap complete |
-| **Architecture classification** | Module vs platform vs workspace plugin | Classifier output |
-| **Consumer scan** | codebase-memory graph + docs cross-ref | architecture-reviewer |
-| **Plan** | Checkpoints, scope paths, test matrix | User review gate |
-| **Vertical slice** | One happy path (API or UI) | CP1 |
-| **Mid-flight architecture review** | Re-classify actual diff | CP1, CP2, CP3 |
-| **Verification** | Fast-track default; heavy gates only with YES | Evidence ledger rows |
-| **Evidence report** | Every claim → command/artifact | Ledger complete |
-| **Commit** | Logical commits; scope allowlist only | CP4 |
-| **Push** | `git push origin <lockedBranch>` when matrix green | CP5 |
+| Phase                              | Activities                                         | Gate                                              |
+| ---------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| **Discovery**                      | Read standards, phase docs, grep/graph consumers   | Bootstrap complete                                |
+| **Architecture classification**    | Module vs platform vs workspace plugin             | Classifier output                                 |
+| **Consumer scan**                  | codebase-memory graph + docs cross-ref             | architecture-reviewer                             |
+| **Plan**                           | Checkpoints, scope paths, test matrix              | User review gate                                  |
+| **Vertical slice**                 | One happy path (API or UI)                         | CP1                                               |
+| **Mid-flight architecture review** | Re-classify actual diff                            | CP1, CP2, CP3                                     |
+| **Verification**                   | Fast-track default; heavy gates only with YES      | Evidence ledger rows; blocker recovery on failure |
+| **Evidence report**                | Every claim → command/artifact                     | Ledger complete                                   |
+| **Commit**                         | Logical commits; scope allowlist only              | CP4                                               |
+| **Push**                           | `git push origin <lockedBranch>` when matrix green | CP5                                               |
 
 ---
 
 ## 4. Checkpoints
 
-| ID | When | Mandatory actions |
-| -- | ---- | ----------------- |
-| **CP0** | Before first file edit | Bootstrap; classifier; consumer scan; architecture-reviewer; scope path allowlist |
-| **CP1** | After first vertical slice | Re-run classifier on diff; confirm no platform leakage |
+| ID      | When                                                                  | Mandatory actions                                                                              |
+| ------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **CP0** | Before first file edit                                                | Bootstrap; classifier; consumer scan; architecture-reviewer; scope path allowlist              |
+| **CP1** | After first vertical slice                                            | Re-run classifier on diff; confirm no platform leakage                                         |
 | **CP2** | Before Prisma migration, new `*-http-contracts`, workspace-sdk export | Doc-first; RLS review; dedupe/idempotency; architecture-reviewer for multi-consumer candidates |
-| **CP3** | Before Portal/Web routes, BFF, Playwright | WRS/PCMS guards; i18n; no raw upstream JSON in UI |
-| **CP4** | Before `git commit` | Scope guard; `git diff --check`; fast-track verification; ledger row per command |
-| **CP5** | Before `git push` | Feature test matrix green; branch/remote parity |
+| **CP3** | Before Portal/Web routes, BFF, Playwright                             | WRS/PCMS guards; i18n; no raw upstream JSON in UI                                              |
+| **CP4** | Before `git commit`                                                   | Scope guard; `git diff --check`; fast-track verification; ledger row per command               |
+| **CP5** | Before `git push`                                                     | Feature test matrix green; branch/remote parity                                                |
 
 **Pivot (wrong direction):** Checkpoint failure produces a **Pivot Memo** (what is wrong, target boundary, docs to update, forward-fix steps). No silent continuation. No automatic revert.
 
 ### 4.1 User control and autonomy
 
-| Principle | Behavior |
-| --------- | -------- |
-| **End-to-end execution** | After CP0 plan approval, the agent may implement, verify, commit, and push a complete feature **without repeated manual prompts** for each micro-step |
-| **Mandatory gates** | Architecture-reviewer, CP1–CP5, doc-first, and evidence ledger remain **non-optional** |
-| **Decision stops** | Unresolved product intent, shared-contract shape, migration strategy, security/RLS ambiguity, or scope expansion → **hard-stop** for user/architect review ([stop-conditions](feature-delivery/stop-conditions.mdoc)) |
-| **No auto-revert** | User WIP and prior commits are never reverted automatically — checkpoint pivot or forward-fix only |
-| **Evidence required** | Final report claims require ledger rows — no evidence, no claim ([evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) §7) |
+| Principle                | Behavior                                                                                                                                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **End-to-end execution** | After CP0 plan approval, the agent may implement, verify, commit, and push a complete feature **without repeated manual prompts** for each micro-step                                                                 |
+| **Mandatory gates**      | Architecture-reviewer, CP1–CP5, doc-first, and evidence ledger remain **non-optional**                                                                                                                                |
+| **Decision stops**       | Unresolved product intent, shared-contract shape, migration strategy, security/RLS ambiguity, or scope expansion → **hard-stop** for user/architect review ([stop-conditions](feature-delivery/stop-conditions.mdoc)) |
+| **No auto-revert**       | User WIP and prior commits are never reverted automatically — checkpoint pivot or forward-fix only                                                                                                                    |
+| **Evidence required**    | Final report claims require ledger rows — no evidence, no claim ([evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc) §7)                                                                           |
 
 **Supported feature classes (non-exhaustive):** ticketing, wallet, booking/tour, payment/debt, notifications, profile/auth, Portal/Web UI, API/database/RLS — classifier and reviewer apply uniformly.
 
@@ -191,7 +198,22 @@ Postgres/RLS specs: `DATABASE_URL` must use the `app_tour` role (NOSUPERUSER), n
 
 ---
 
-## 7. Evidence and final report
+## 7.1 Blocker recovery
+
+Mandatory intelligent recovery per [blocker-recovery](feature-delivery/blocker-recovery.mdoc):
+
+1. Never halt on the first failure.
+2. Classify blockers (code/test, dependency, environment, missing evidence, architecture, security/RLS, product).
+3. Investigate with local evidence; smallest scoped fix; rerun tests.
+4. External research: official docs first; record URL/version/finding in `blocker-investigation.json`.
+5. Blocked sub-features do not stop unrelated queue items.
+6. Resume from last unfinished mandatory matrix row after recovery.
+7. Hard stops (security/RLS, migration rewrite, production, unresolved product/architecture) are **not** overridable by research.
+8. `COMPLETE` forbidden while any mandatory row is `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+
+---
+
+## 8. Evidence and final report
 
 All verification commands append rows to the session ledger per [evidence-ledger-schema](feature-delivery/evidence-ledger-schema.mdoc).
 
@@ -209,29 +231,29 @@ Final report sections (minimum):
 
 ---
 
-## 8. Related standards
+## 9. Related standards
 
-| Standard | Link |
-| -------- | ---- |
-| Workspace boundaries | [AGENTS.md](../../AGENTS.md), [app-tour-architecture skill](../../.cursor/skills/app-tour-architecture/SKILL.md) |
-| API workspace agnosticism | [workspace-api-capabilities](../standards/workspace-api-capabilities.mdoc) |
-| Member session | [member-session-portal-authority](../standards/member-session-portal-authority.mdoc) |
-| Routing | [workspace-routing-standard](../standards/workspace-routing-standard.mdoc) |
-| Example module standard | e.g. [ticketing-system](../standards/ticketing-system.mdoc), [phase-ticketing](../phase-ticketing/) — use the standard matching `<feature-slug>` |
-| Notification design freeze | [SK2_NOTIFICATION_OUTBOX](../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) |
-| Gate catalog | [PROD-3-GATE-CATALOG.json](../platform/PROD-3-GATE-CATALOG.json) |
-
----
-
-## 9. Phase rollout
-
-| Phase | Deliverable | Status |
-| ----- | ----------- | ------ |
-| **A** | This charter + subdocs | **Current** |
-| **B** | `.cursor/agents`, `.cursor/skills`, `.cursor/rules`, optional `hooks.json` | Planned |
-| **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI | Planned |
-| **D** | `test-changed` path map fixes; AGENTS.md pointer | Planned |
+| Standard                   | Link                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Workspace boundaries       | [AGENTS.md](../../AGENTS.md), [app-tour-architecture skill](../../.cursor/skills/app-tour-architecture/SKILL.md)                                 |
+| API workspace agnosticism  | [workspace-api-capabilities](../standards/workspace-api-capabilities.mdoc)                                                                       |
+| Member session             | [member-session-portal-authority](../standards/member-session-portal-authority.mdoc)                                                             |
+| Routing                    | [workspace-routing-standard](../standards/workspace-routing-standard.mdoc)                                                                       |
+| Example module standard    | e.g. [ticketing-system](../standards/ticketing-system.mdoc), [phase-ticketing](../phase-ticketing/) — use the standard matching `<feature-slug>` |
+| Notification design freeze | [SK2_NOTIFICATION_OUTBOX](../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md)                                                            |
+| Gate catalog               | [PROD-3-GATE-CATALOG.json](../platform/PROD-3-GATE-CATALOG.json)                                                                                 |
 
 ---
 
-*FDA-001 v1.0.0 — documentation charter only. No runtime wiring in Phase A.*
+## 10. Phase rollout
+
+| Phase | Deliverable                                                                | Status      |
+| ----- | -------------------------------------------------------------------------- | ----------- |
+| **A** | This charter + subdocs                                                     | **Current** |
+| **B** | `.cursor/agents`, `.cursor/skills`, `.cursor/rules`, optional `hooks.json` | Planned     |
+| **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI                    | Planned     |
+| **D** | `test-changed` path map fixes; AGENTS.md pointer                           | Planned     |
+
+---
+
+_FDA-001 v1.1.0 — blocker recovery lifecycle. Documentation charter; runtime wiring Phase C._

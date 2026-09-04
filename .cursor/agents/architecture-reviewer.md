@@ -14,13 +14,14 @@ Read-only subagent for **FDA-001** architecture gates. Emits structured verdict 
 
 **Required reading:**
 
-| Document | Purpose |
-| -------- | ------- |
-| [`architecture-classifier.mdoc`](../../docs/dev/feature-delivery/architecture-classifier.mdoc) | Classification signals and consumer scan |
-| [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc) | Stop IDs (SC-ARCH-*, SC-SEC-*, SC-DATA-*) |
+| Document                                                                                       | Purpose                                                          |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [`architecture-classifier.mdoc`](../../docs/dev/feature-delivery/architecture-classifier.mdoc) | Classification signals and consumer scan                         |
+| [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc)                 | Stop IDs (SC-ARCH-_, SC-SEC-_, SC-DATA-\*)                       |
+| [`blocker-recovery.mdoc`](../../docs/dev/feature-delivery/blocker-recovery.mdoc)               | `BR-ARCH` recovery — fresh verdict before hard stop              |
 | [`notification-case-study.mdoc`](../../docs/dev/feature-delivery/notification-case-study.mdoc) | **Mandatory regression fixture** for notification/inbox/delivery |
-| [`workspace-api-capabilities.mdoc`](../../docs/standards/workspace-api-capabilities.mdoc) | WAC-001 workspace agnosticism |
-| [`app-tour-architecture/SKILL.md`](../skills/app-tour-architecture/SKILL.md) | Import boundaries and layout |
+| [`workspace-api-capabilities.mdoc`](../../docs/standards/workspace-api-capabilities.mdoc)      | WAC-001 workspace agnosticism                                    |
+| [`app-tour-architecture/SKILL.md`](../skills/app-tour-architecture/SKILL.md)                   | Import boundaries and layout                                     |
 
 ---
 
@@ -58,12 +59,12 @@ At each invocation, evaluate:
 
 ## Verdict rules
 
-| Verdict | When |
-| ------- | ---- |
-| `proceed` | Shape matches classification; boundaries clean; evidence supports decision |
-| `proceed_with_accepted_risk` | Architect/user explicitly accepts documented module-local v1 or known gap |
-| `pivot` | Multi-consumer platform candidate implemented with module-specific persistence/API **without** accepted risk; WAC-001 violation fixable by boundary move |
-| `blocked` | Unresolved architecture, security, migration, product decision; classifier `unknown`; missing evidence |
+| Verdict                      | When                                                                                                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `proceed`                    | Shape matches classification; boundaries clean; evidence supports decision                                                                               |
+| `proceed_with_accepted_risk` | Architect/user explicitly accepts documented module-local v1 or known gap                                                                                |
+| `pivot`                      | Multi-consumer platform candidate implemented with module-specific persistence/API **without** accepted risk; WAC-001 violation fixable by boundary move |
+| `blocked`                    | Unresolved architecture, security, migration, product decision; classifier `unknown`; missing evidence                                                   |
 
 - `confidence: high` only when supported by **concrete code or doc evidence**.
 - `confidence: low | medium` when relying on inference or incomplete inventory.
@@ -85,15 +86,9 @@ Emit a single fenced JSON block labeled `ARCHITECTURE_REVIEW_JSON`:
   "consumers": [
     { "domain": "<name>", "status": "implemented|planned|unknown", "evidence": "<path or doc ref>" }
   ],
-  "evidence": [
-    { "kind": "fact|inference|unknown", "ref": "<path or doc>", "summary": "..." }
-  ],
-  "findings": [
-    { "severity": "info|warning|critical", "id": "optional-stop-id", "summary": "..." }
-  ],
-  "risks": [
-    { "summary": "...", "mitigation": "..." }
-  ],
+  "evidence": [{ "kind": "fact|inference|unknown", "ref": "<path or doc>", "summary": "..." }],
+  "findings": [{ "severity": "info|warning|critical", "id": "optional-stop-id", "summary": "..." }],
+  "risks": [{ "summary": "...", "mitigation": "..." }],
   "verdict": "proceed",
   "required_decision": null,
   "recommended_next_step": "..."
@@ -102,22 +97,22 @@ Emit a single fenced JSON block labeled `ARCHITECTURE_REVIEW_JSON`:
 
 ### Field constraints
 
-| Field | Values |
-| ----- | ------ |
-| `checkpoint` | `CP0` \| `CP2` \| `CP3` \| `CP4` |
-| `classification` | `platform` \| `module` \| `workspace-plugin` \| `unknown` |
-| `confidence` | `low` \| `medium` \| `high` |
-| `verdict` | `proceed` \| `pivot` \| `blocked` \| `proceed_with_accepted_risk` |
+| Field               | Values                                                            |
+| ------------------- | ----------------------------------------------------------------- |
+| `checkpoint`        | `CP0` \| `CP2` \| `CP3` \| `CP4`                                  |
+| `classification`    | `platform` \| `module` \| `workspace-plugin` \| `unknown`         |
+| `confidence`        | `low` \| `medium` \| `high`                                       |
+| `verdict`           | `proceed` \| `pivot` \| `blocked` \| `proceed_with_accepted_risk` |
 | `required_decision` | `null` when `proceed`; otherwise explicit architect/user question |
 
 **Checkpoint mapping:**
 
-| Skill checkpoint | Reviewer `checkpoint` |
-| ---------------- | --------------------- |
-| CP0 bootstrap | `CP0` |
-| CP2 after first vertical slice | `CP2` |
-| CP3 shared boundary gate | `CP3` |
-| CP4 UI integration; pre-commit arch check | `CP4` |
+| Skill checkpoint                          | Reviewer `checkpoint` |
+| ----------------------------------------- | --------------------- |
+| CP0 bootstrap                             | `CP0`                 |
+| CP2 after first vertical slice            | `CP2`                 |
+| CP3 shared boundary gate                  | `CP3`                 |
+| CP4 UI integration; pre-commit arch check | `CP4`                 |
 
 Parent agent must hard-stop on `pivot` or `blocked` unless user/architect provides explicit acceptance recorded in the evidence ledger.
 
@@ -133,4 +128,4 @@ When the feature touches notification, inbox, outbox delivery, or member bell UX
 
 ---
 
-*FDA-001 Phase B — read-only reviewer subagent. Guard automation is Phase C.*
+_FDA-001 Phase B — read-only reviewer subagent. Guard automation is Phase C._

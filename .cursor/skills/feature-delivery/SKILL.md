@@ -19,14 +19,15 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory archit
 
 **Subdocs:**
 
-| Topic | Path |
-| ----- | ---- |
-| Architecture classifier | [`docs/dev/feature-delivery/architecture-classifier.mdoc`](../../../docs/dev/feature-delivery/architecture-classifier.mdoc) |
-| Evidence ledger | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc) |
-| Stop conditions | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc) |
+| Topic                           | Path                                                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Architecture classifier         | [`docs/dev/feature-delivery/architecture-classifier.mdoc`](../../../docs/dev/feature-delivery/architecture-classifier.mdoc) |
+| Evidence ledger                 | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc)   |
+| Stop conditions                 | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc)                 |
+| Blocker recovery                | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc)               |
 | Notification regression fixture | [`docs/dev/feature-delivery/notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) |
-| Tiered testing | [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md) |
-| Workspace API agnosticism | [`docs/standards/workspace-api-capabilities.mdoc`](../../../docs/standards/workspace-api-capabilities.mdoc) |
+| Tiered testing                  | [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md)                                                         |
+| Workspace API agnosticism       | [`docs/standards/workspace-api-capabilities.mdoc`](../../../docs/standards/workspace-api-capabilities.mdoc)                 |
 
 **Pair with:** [`app-tour-architecture`](../app-tour-architecture/SKILL.md) for boundaries and fast-track verification.
 
@@ -40,12 +41,12 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory archit
 
 Record at CP0 and verify before every checkpoint:
 
-| Field | Rule |
-| ----- | ---- |
-| `lockedBranch` | `git branch --show-current` at session start — **immutable** |
-| `initialHead` | `git rev-parse HEAD` at session start — **evidence baseline only** |
-| `currentHead` | May advance after authorized commits on `lockedBranch` — **not a branch violation** |
-| `scopePaths` | Glob allowlist from approved plan — amend only with user/architect approval |
+| Field          | Rule                                                                                |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `lockedBranch` | `git branch --show-current` at session start — **immutable**                        |
+| `initialHead`  | `git rev-parse HEAD` at session start — **evidence baseline only**                  |
+| `currentHead`  | May advance after authorized commits on `lockedBranch` — **not a branch violation** |
+| `scopePaths`   | Glob allowlist from approved plan — amend only with user/architect approval         |
 
 **Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, or force-push to fix branch mismatch.
 
@@ -179,9 +180,9 @@ If a new notification / inbox / delivery design is **module-specific** while boo
 
 ## Stop behavior
 
-When any hard-stop fires ([stop-conditions](stop-conditions)):
+When any **hard-stop** fires ([stop-conditions](stop-conditions)):
 
-- Do **not** continue implementation.
+- Do **not** continue implementation on the blocked path.
 - Do **not** auto-revert user changes.
 - Do **not** switch branch.
 - Do **not** hide failed tests.
@@ -202,6 +203,28 @@ When any hard-stop fires ([stop-conditions](stop-conditions)):
 ```
 
 Resume only after explicit user/architect direction addressing the stop ID; re-verify branch at bootstrap.
+
+**Recoverable failures** (not hard stops) → follow [blocker-recovery](blocker-recovery) — never halt on the first failure.
+
+---
+
+## Blocker recovery (mandatory)
+
+Per [blocker-recovery.mdoc](../../../docs/dev/feature-delivery/blocker-recovery.mdoc):
+
+1. **Never stop immediately** on the first failure — classify, investigate, recover, or exhaust attempts.
+2. **Classify** every blocker: code/test, dependency, environment/browser/runtime, missing evidence, architecture ambiguity, security/RLS (hard stop), product decision (hard stop).
+3. **Code/test:** inspect call graph + consumers; search repo code/tests/migrations/scripts/docs; hypothesize; smallest scoped fix; rerun failing + regression tests.
+4. **Dependency:** official docs first; web research only for current external facts; record URL/version/finding/conclusion in `blocker-investigation.json`; never trust unverified snippets alone.
+5. **Browser/runtime:** inspect env, ports, health, logs, console, network; start permitted services only; retry smallest flow; never claim browser proof without execution.
+6. **Architecture:** scan consumers + phase/standard docs; compare ports/contracts/events/schemas; fresh **architecture-reviewer** verdict.
+7. **Hard stops unchanged:** security, tenant/RLS ambiguity, production access, secrets, migration rewrite, unresolved product decisions — internet research **never** overrides.
+8. **Blocked sub-feature** must not stop unrelated executable mandatory work.
+9. **After recovery:** resume requirement queue from last unfinished item; write `blocker-investigation.json`.
+10. **Stop only when** recovery attempts are evidenced and exhausted, or explicit human architecture/product decision required.
+11. **Never** `COMPLETE` while any mandatory row is `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/blocker-investigation.json` — fields: `blockerId`, `category`, `symptoms`, `localEvidence`, `codeAnalysis`, `searches`, `hypotheses`, `commandsRun`, `outcomes`, `decision`, `resumedCheckpoint`.
 
 ---
 
@@ -238,6 +261,7 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 - Session lock: `.cache/feature-delivery/<sessionId>/SESSION.lock`
 - Ledger TSV: `.cache/feature-delivery/<sessionId>/evidence.tsv`
 - Arch review JSON: `.cache/feature-delivery/<sessionId>/arch-review.json`
+- Blocker investigation: `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (or `blocker-<blockerId>.json`)
 
 Phase C may add CLI appenders; until then the agent maintains these files manually.
 
@@ -249,15 +273,16 @@ Phase C may add CLI appenders; until then the agent maintains these files manual
 
 **Audit completion ≠ feature completion.**
 
-| Rule | Behavior |
-| ---- | -------- |
-| Mandatory rows | Any matrix row `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED` blocks `COMPLETE` verdict |
-| SKIP | Never counts as PASS or COMPLETE |
-| UNVERIFIED | Required check could not run (missing env) — continue other work; row stays open |
-| Blocked sub-feature | Must **not** stop unrelated executable mandatory items |
-| Stop condition | Only when no executable mandatory work remains **or** explicit architectural decision required |
-| Work queue | Build matrix → process every non-blocked item sequentially → targeted tests + ledger after each slice → re-open queue after every commit/checkpoint |
-| Final report | Forbidden while any mandatory row is open |
+| Rule                | Behavior                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mandatory rows      | Any matrix row `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED` blocks `COMPLETE` verdict                                                           |
+| SKIP                | Never counts as PASS or COMPLETE                                                                                                                    |
+| UNVERIFIED          | Required check could not run (missing env) — continue other work; row stays open                                                                    |
+| Blocked sub-feature | Must **not** stop unrelated executable mandatory items — see [blocker-recovery](blocker-recovery)                                                   |
+| First failure       | **Never** immediate stop — classify and run recovery lifecycle unless hard stop                                                                     |
+| Stop condition      | Only when recovery exhausted **or** explicit architectural/product decision required                                                                |
+| Work queue          | Build matrix → process every non-blocked item sequentially → targeted tests + ledger after each slice → re-open queue after every commit/checkpoint |
+| Final report        | Forbidden while any mandatory row is open                                                                                                           |
 
 ---
 
@@ -283,4 +308,4 @@ Phase C may add CLI appenders; until then the agent maintains these files manual
 
 ---
 
-*FDA-001 Phase B — Skill wiring. Hooks and guard scripts are Phase C.*
+_FDA-001 Phase B — Skill wiring. Blocker recovery mandatory. Hooks and guard scripts are Phase C._
