@@ -47,16 +47,24 @@ export async function authenticateMemberViaPortal(
   const phone = input.phone ?? OPERATOR_SMOKE_MEMBER_PHONE;
   const tourId = input.tourId ?? resolveSmokeTourId();
   const portalBase = resolvePortalBaseUrl();
+  const portalOrigin = new URL(portalBase);
+  // Node's APIRequestContext does not honor Chromium's host-resolver-rules and
+  // resolves *.localhost to ::1, while the smoke portal listens on IPv4.
+  // Keep the public Host header for tenant routing, but connect to IPv4.
+  const portalInternalBase = `http://127.0.0.1:${portalOrigin.port || "3003"}`;
+  const portalHeaders = { host: portalOrigin.host };
 
-  const requestOtp = await page.request.post(`${portalBase}/api/public-auth/request-otp`, {
+  const requestOtp = await page.request.post(`${portalInternalBase}/api/public-auth/request-otp`, {
     data: { phone },
+    headers: portalHeaders,
   });
   expect(requestOtp.ok()).toBeTruthy();
   const requestBody = (await requestOtp.json()) as { challenge_id?: string };
   expect(requestBody.challenge_id).toBeTruthy();
 
-  const verifyOtp = await page.request.post(`${portalBase}/api/public-auth/verify-otp`, {
+  const verifyOtp = await page.request.post(`${portalInternalBase}/api/public-auth/verify-otp`, {
     data: { phone, otp: CATALOG_DEV_OTP, challenge_id: requestBody.challenge_id },
+    headers: portalHeaders,
   });
   expect(verifyOtp.ok()).toBeTruthy();
 
