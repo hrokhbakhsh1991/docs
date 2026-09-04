@@ -3,9 +3,7 @@ import { getLocale } from "next-intl/server";
 
 import type { OperatorTicketDetailHttp } from "@app-tour/ticketing-http-contracts";
 
-import {
-  buildOperatorTicketDetailView,
-} from "@/features/tickets/operator-tickets-bff.server";
+import { buildOperatorTicketDetailView } from "@/features/tickets/operator-tickets-bff.server";
 import { readOperatorTicketsBffErrorCode } from "@/features/tickets/classify-operator-tickets-bff-error";
 import {
   jsonTicketsBffError,

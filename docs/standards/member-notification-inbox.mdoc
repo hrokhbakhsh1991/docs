@@ -57,9 +57,9 @@ code_sot:
 | `id`            | UUID         | PK                                                        |
 | `tenant_id`     | UUID         | RLS scope; from auth context                              |
 | `user_id`       | UUID         | Recipient member                                          |
-| `source_module` | text         | `ticketing` \| `booking` \| `finance` \| `wallet`         |
-| `event_type`    | text         | Domain outbox event type                                  |
-| `entity_type`   | text         | `ticket` \| `registration` \| `payment` \| `wallet_event` |
+| `source_module` | text         | `ticketing` \| `booking` \| `finance` \| `wallet` \| `engagement` |
+| `event_type`    | text         | Domain outbox event type                                          |
+| `entity_type`   | text         | `ticket` \| `registration` \| `payment` \| `wallet_event` \| `engagement_event` |
 | `entity_id`     | UUID?        | Primary entity reference (nullable when N/A)              |
 | `title`         | text         | Rendered or fallback title                                |
 | `body`          | text         | Rendered or fallback body                                 |
@@ -102,6 +102,7 @@ Async email/SMS channel retries keyed to `member_notifications`. Same retry sema
 | Booking/tour | `dispatch-member-notification-from-outbox.ts`                                                                                                                   | `booking`       | `registration` |
 | Payment/debt | same dispatcher (finance events)                                                                                                                                | `finance`       | `payment`      |
 | Wallet       | `dispatch-wallet-notification-from-outbox.ts` + `PrismaWalletRepository.persistMutation` outbox enqueue (`wallet.transaction.posted`, `wallet.refund.credited`) | `wallet`        | `wallet_event` |
+| Engagement   | `process-engagement-awards.ts` (`notifyBadgeEarned` → `insertMemberNotificationRow`)                                                                            | `engagement`    | `engagement_event` |
 
 All dispatchers call `insertMemberNotificationRow` in `member-notification.repository.ts`.
 

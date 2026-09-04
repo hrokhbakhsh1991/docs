@@ -24,8 +24,11 @@
     "test:smoke:visual:guest-club:update": "playwright test -c playwright.portal-visual-guest-club.config.ts --update-snapshots",
     "test:smoke:visual:matrix": "pnpm run test:smoke:visual && pnpm run test:smoke:visual:urban && pnpm run test:smoke:visual:guest-club",
     "test:smoke:install": "playwright install chromium",
+    "test:smoke:engagement": "playwright test -c playwright.portal-engagement.config.ts",
     "test:certify:wallet-ws1": "playwright test -c playwright.wallet-ws1-certification.config.ts",
     "test:certify:denali-wallet-pilot": "playwright test -c playwright.denali-wallet-pilot.config.ts",
+    "test:certify:denali-wallet-v1": "playwright test -c playwright.denali-wallet-v1.config.ts",
+    "test:certify:denali-wallet-a11y": "playwright test -c playwright.denali-wallet-a11y.config.ts",
     "start": "next start --port 3003"
   },
   "dependencies": {
@@ -40,6 +43,7 @@
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/ticketing-http-contracts": "workspace:*",
+    "@app-tour/engagement-http-contracts": "workspace:*",
     "@app-tour/wallet-http-contracts": "workspace:*",
     "@app-tour/workspace-alpine": "workspace:*",
     "@app-tour/workspace-harbor": "workspace:*",

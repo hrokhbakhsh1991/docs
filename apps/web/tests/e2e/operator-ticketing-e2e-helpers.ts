@@ -13,10 +13,11 @@ export const OPERATOR_TICKETING_BULK_SUBJECT_PREFIX = "TKT-BULK-";
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 
 function operatorTicketingDatabaseAdminUrl(): string {
-  return (
+  const raw =
     process.env.DATABASE_URL_ADMIN?.trim() ||
-    "postgresql://postgres:postgres@127.0.0.1:5434/app_tour_dev"
-  );
+    "postgresql://postgres:postgres@127.0.0.1:5434/app_tour_dev";
+  // psql rejects Prisma-style ?schema= query params on connection URIs.
+  return raw.split("?")[0] ?? raw;
 }
 
 export async function waitForInboxListReady(page: Page): Promise<void> {

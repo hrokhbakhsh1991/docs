@@ -161,6 +161,67 @@
       "trips": "Follow your registrations, payment state, and active trip details."
     }
   },
+  "dashboard": {
+    "engagementEyebrow": "Participation",
+    "engagementTitle": "Engagement & progress",
+    "engagementDisabled": "Engagement tracking is not enabled for this club yet.",
+    "pointsValue": "{points} engagement points",
+    "levelValue": "Level: {level}",
+    "nextLevelProgress": "{points} points to the next level",
+    "badgeEarned": "Earned",
+    "badgeProgress": "{percent}% toward this badge",
+    "nextTourTitle": "Next registered tour",
+    "noUpcomingTour": "No upcoming registered tour.",
+    "viewRegistrations": "View registrations",
+    "statusTitle": "Account status",
+    "profileComplete": "Profile complete",
+    "profileIncomplete": "Complete your profile for safer registrations",
+    "walletSeparate": "Wallet balance (separate): {balance}",
+    "walletTitle": "Wallet",
+    "walletEyebrow": "Monetary balance",
+    "walletViewDetails": "View wallet",
+    "walletLastTransaction": "Latest: {kind} {amount}",
+    "walletUnavailable": "Wallet balance is unavailable right now.",
+    "openTickets": "{count} open support tickets",
+    "levels": {
+      "base_camp": "Base camp",
+      "trail_member": "Trail member",
+      "summit_circle": "Summit circle"
+    },
+    "badges": {
+      "trailhead_ready": { "label": "Trailhead ready" },
+      "first_expedition": { "label": "First expedition" },
+      "summit_rookie": { "label": "Summit rookie" },
+      "ridge_partner": { "label": "Ridge partner" }
+    }
+  },
+  "engagement": {
+    "title": "Engagement",
+    "lede": "Your participation points, level progress, and earned badges.",
+    "pointsLabel": "Engagement points",
+    "levelLabel": "Current level",
+    "notMoney": "Participation points — separate from wallet balance.",
+    "viewDetails": "View engagement details",
+    "progressAria": "{percent}% progress to the next level",
+    "nextBadge": "Next badge: {badge} ({percent}% complete)",
+    "historyTitle": "Recent point activity",
+    "badgesTitle": "Badges",
+    "emptyHistory": "No point activity yet. Complete your profile or join a tour to start earning.",
+    "emptyBadges": "No badges earned yet.",
+    "loadFailed": "Could not load engagement details.",
+    "backToHome": "Back to home",
+    "eventTypes": {
+      "profile_completed": "Profile completed",
+      "registration_first_approved": "First tour registration approved",
+      "engagement_points_reversed": "Points adjustment",
+      "engagement_points_manual_adjustment": "Points adjustment"
+    },
+    "history": {
+      "correction": "Points correction",
+      "reversal": "Points reversal",
+      "reversalDetail": "Points for this activity were corrected."
+    }
+  },
   "hub": {
     "title": "More",
     "lede": "Less-frequent member tools and secondary account paths live here.",

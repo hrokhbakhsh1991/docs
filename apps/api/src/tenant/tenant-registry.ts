@@ -39,7 +39,16 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
       primaryColor: "#059669",
       cssVariables: { "--color-primary": "#059669" },
       displayName: DENALI_CLUB_PUBLIC_DISPLAY_NAME,
-    },
+      defaultLocale: "fa",
+      enabledModules: ["wallet"],
+      portalModuleGrants: ["wallet"],
+      commerce: {
+        currency: "IRR",
+        paymentMode: "offline_receipt",
+        gatewayProvider: null,
+        frozen: true,
+      },
+    } as TenantThemeConfig,
   },
   {
     id: "00000000-0000-4000-8000-000000000004",

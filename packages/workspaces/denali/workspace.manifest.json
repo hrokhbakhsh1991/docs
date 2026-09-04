@@ -19,6 +19,7 @@
       "workspaceFinance": { "revision": 1 },
       "workspaceWallet": { "revision": 1 },
       "workspaceTicketing": { "revision": 1 },
+      "workspaceEngagement": { "revision": 1 },
       "workspaceItinerary": { "revision": 1 },
       "workspacePricing": { "revision": 1 },
       "workspaceTransport": { "revision": 1 }
@@ -135,6 +136,33 @@
           "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
         },
         "handlerPackage": "@app-tour/wallet-http"
+      },
+      {
+        "manifestExport": "ENGAGEMENT_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /engagement/me/summary": "handleEngagementMemberSummary",
+          "GET /engagement/me/points": "handleEngagementMemberPoints",
+          "GET /engagement/me/badges": "handleEngagementMemberBadges",
+          "GET /engagement/operator/overview": "handleEngagementOperatorOverview",
+          "GET /engagement/operator/policy": "handleEngagementOperatorPolicy",
+          "GET /engagement/operator/badges": "handleEngagementOperatorBadgesList",
+          "POST /engagement/operator/badges": "handleEngagementOperatorBadgesCreate",
+          "GET /engagement/operator/levels": "handleEngagementOperatorLevelsList",
+          "POST /engagement/operator/levels": "handleEngagementOperatorLevelsCreate",
+          "GET /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesList",
+          "POST /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesCreate",
+          "GET /engagement/operator/audit-log": "handleEngagementOperatorAuditLog",
+          "GET /engagement/operator/catalog": "handleEngagementOperatorCatalog"
+        },
+        "paramHandlers": {
+          "GET /engagement/operator/members/:userId": "handleEngagementOperatorMemberLookup",
+          "POST /engagement/operator/members/:userId/adjust": "handleEngagementOperatorAdjust",
+          "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse",
+          "PATCH /engagement/operator/badges/:code": "handleEngagementOperatorBadgesUpdate",
+          "PATCH /engagement/operator/levels/:code": "handleEngagementOperatorLevelsUpdate",
+          "PATCH /engagement/operator/award-rules/:ruleId": "handleEngagementOperatorAwardRulesUpdate"
+        },
+        "handlerPackage": "@app-tour/engagement-http"
       }
     ]
   },
@@ -292,6 +320,15 @@
       }
     },
     "defaultTemplates": true
+  },
+  "workspaceEngagement": {
+    "supported": true,
+    "capabilityRevision": 1,
+    "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "memberDashboard": true,
+      "operatorOverview": true
+    }
   },
   "workspaceBooking": {
     "supported": true,

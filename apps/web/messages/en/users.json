@@ -172,7 +172,8 @@
       "access": "Access",
       "benefits": "Benefits",
       "activity": "Activity",
-      "danger": "Danger zone"
+      "danger": "Danger zone",
+      "engagement": "Engagement"
     },
     "fields": {
       "role": "Role",
@@ -181,6 +182,7 @@
       "badges": "Labels and badges"
     },
     "accessDescription": "Change this member's workspace access without leaving context.",
+    "engagementDescription": "Participation points, level, badges, and ledger history for this member — separate from wallet balance.",
     "currentRole": "Current role: {role}",
     "notManageable": "You cannot change this member from this surface.",
     "activityDescription": "Recent workspace changes and trip summary.",

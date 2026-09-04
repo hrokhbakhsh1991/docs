@@ -161,6 +161,67 @@
       "trips": "ثبت‌نام‌ها، وضعیت پرداخت و جزئیات سفرهای فعال خود را پیگیری کنید."
     }
   },
+  "dashboard": {
+    "engagementEyebrow": "مشارکت",
+    "engagementTitle": "مشارکت و پیشرفت",
+    "engagementDisabled": "ردیابی مشارکت برای این باشگاه هنوز فعال نیست.",
+    "pointsValue": "{points} امتیاز مشارکت",
+    "levelValue": "سطح: {level}",
+    "nextLevelProgress": "{points} امتیاز تا سطح بعدی",
+    "badgeEarned": "کسب‌شده",
+    "badgeProgress": "{percent}٪ تا این نشان",
+    "nextTourTitle": "تور ثبت‌نام‌شده بعدی",
+    "noUpcomingTour": "تور ثبت‌نام‌شده‌ای در پیش نیست.",
+    "viewRegistrations": "مشاهده ثبت‌نام‌ها",
+    "statusTitle": "وضعیت حساب",
+    "profileComplete": "پروفایل تکمیل است",
+    "profileIncomplete": "برای ثبت‌نام امن‌تر پروفایل را تکمیل کنید",
+    "walletSeparate": "موجودی کیف پول (جدا از امتیاز): {balance}",
+    "walletTitle": "کیف پول",
+    "walletEyebrow": "موجودی پولی",
+    "walletViewDetails": "مشاهده کیف پول",
+    "walletLastTransaction": "آخرین تراکنش: {kind} {amount}",
+    "walletUnavailable": "موجودی کیف پول در حال حاضر در دسترس نیست.",
+    "openTickets": "{count} تیکت پشتیبانی باز",
+    "levels": {
+      "base_camp": "اردوگاه پایه",
+      "trail_member": "عضو مسیر",
+      "summit_circle": "حلقه قله"
+    },
+    "badges": {
+      "trailhead_ready": { "label": "آماده مسیر" },
+      "first_expedition": { "label": "اولین برنامه" },
+      "summit_rookie": { "label": "تازه‌کار قله" },
+      "ridge_partner": { "label": "هم‌مسیر یال" }
+    }
+  },
+  "engagement": {
+    "title": "مشارکت",
+    "lede": "امتیاز مشارکت، پیشرفت سطح و نشان‌های کسب‌شده.",
+    "pointsLabel": "امتیاز مشارکت",
+    "levelLabel": "سطح فعلی",
+    "notMoney": "امتیاز مشارکت — جدا از موجودی کیف پول.",
+    "viewDetails": "مشاهده جزئیات مشارکت",
+    "progressAria": "{percent}٪ پیشرفت تا سطح بعدی",
+    "nextBadge": "نشان بعدی: {badge} ({percent}٪ تکمیل)",
+    "historyTitle": "فعالیت امتیاز اخیر",
+    "badgesTitle": "نشان‌ها",
+    "emptyHistory": "هنوز فعالیت امتیازی ندارید. پروفایل را تکمیل کنید یا در تور ثبت‌نام کنید.",
+    "emptyBadges": "هنوز نشانی کسب نکرده‌اید.",
+    "loadFailed": "بارگذاری جزئیات مشارکت ناموفق بود.",
+    "backToHome": "بازگشت به خانه",
+    "eventTypes": {
+      "profile_completed": "تکمیل پروفایل",
+      "registration_first_approved": "تأیید اولین ثبت‌نام تور",
+      "engagement_points_reversed": "تعدیل امتیاز",
+      "engagement_points_manual_adjustment": "تعدیل امتیاز"
+    },
+    "history": {
+      "correction": "اصلاح امتیاز",
+      "reversal": "برگشت امتیاز",
+      "reversalDetail": "امتیاز این رویداد اصلاح شد"
+    }
+  },
   "hub": {
     "title": "بیشتر",
     "lede": "ماژول‌های کم‌استفاده‌تر یا مسیرهای تکمیلی حساب شما اینجا جمع می‌شوند.",
