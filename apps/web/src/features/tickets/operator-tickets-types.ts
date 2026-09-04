@@ -73,6 +73,7 @@ export const DEFAULT_OPERATOR_TICKETS_QUERY: OperatorTicketsCommandCenterQuery =
 
 export type OperatorTicketListItemView = {
   readonly id: string;
+  readonly ticketCode: string;
   readonly subject: string;
   readonly requesterUserId: string;
   readonly requesterLabel: string;

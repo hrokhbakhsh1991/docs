@@ -594,7 +594,7 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 
 | Method | Path | Surface | Notes |
 | ------ | ---- | ------- | ----- |
-| GET | `/tickets` | read | search, filter, sort, cursor |
+| GET | `/tickets` | read | search (`q`: subject, requester, ticket code), filter, sort, cursor |
 | POST | `/tickets/bulk` | bulk | assign, status, priority, tags |
 | GET/PATCH | `/tickets/:id` | read/mutate | detail + rowVersion |
 | POST | `/tickets/:id/replies` | mutate | public |
@@ -606,7 +606,9 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | CRUD | `/ticket-tags/*` | settings | tags |
 | CRUD | `/ticket-templates/*` | settings | canned responses |
 | CRUD | `/ticket-sla-policies/*` | settings | SLA |
-| GET | `/ticket-reports/summary` | reports | volumes, SLA, backlog |
+| GET | `/ticket-reports/summary` | reports | volumes, SLA, backlog, performance breakdowns |
+| GET | `/ticket-reports/export` | reports | CSV/JSON export (admin/owner, bounded) |
+| GET/PATCH | `/ticket-settings` | settings | manifest + DB workspace ticketing config |
 
 ### 10.4 Error codes
 
@@ -1109,14 +1111,30 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 | | |
 |-|-|
-| **Scope** | dashboard aggregates, settings UI |
-| **Dependencies** | D, G, I |
-| **Database** | — (read aggregates) |
-| **API** | reports + settings |
+| **Scope** | tenant-scoped search (subject, requester, ticket code), stable pagination/sort, bounded aggregates, CSV/JSON export, workspace settings merge (manifest + DB), settings audit |
+| **Dependencies** | D, G, I, J |
+| **Database** | `tickets.ticket_number`, `ticket_number_counters`, `ticket_workspace_settings`; search indexes |
+| **API** | `GET /tickets` (enhanced `q` + `sort`); `GET /ticket-reports/summary`; `GET /ticket-reports/export`; `GET/PATCH /ticket-settings` |
 | **UI** | `/reports/ticketing`, `/settings/ticketing` |
-| **Tests** | report API + settings E2E |
-| **Acceptance** | owner configures category + SLA |
-| **Rollback** | hide settings |
+| **Tests** | `ticketing-core/test/search.spec.ts`; `ticket-search.postgres.spec.ts`; `ticket-reports.postgres.spec.ts`; `ticket-settings.postgres.spec.ts`; Playwright smoke |
+| **Acceptance** | owner configures categories/priorities/SLA defaults; reports tenant-isolated; export permission-gated |
+| **Rollback** | hide nav; settings DB overrides ignored when feature flag off |
+
+#### Phase K1 — Search, reports, settings (implementation)
+
+**Search (`q`):** matches `subject` (ILIKE, max 200 chars), `ticketNumber` / `TKT-######` code, `requesterUserId` when `q` is UUID, requester `User.mobile` partial match (tenant membership join, max 25 user ids). All queries include `tenantId` + existing filters; `take` capped at `MAX_TICKET_LIST_LIMIT`.
+
+**Sort:** `lastActivityAt` (default), `createdAt`, `priority`, `status` — stable tie-breaker `id DESC`. Cursor encodes sort field + value + id.
+
+**Indexes:** `(tenant_id, ticket_number)` unique; `(tenant_id, created_at DESC)`; existing status/activity indexes reused.
+
+**Reports:** `GET /ticket-reports/summary` returns ticket counts, status distribution, avg first-response seconds, avg resolution seconds, SLA breach count, breakdowns by category/queue/team. Optional `from`/`to` ISO window (default 90 days, max 365). Short-lived in-process cache keyed `tenantId:window` (60s TTL).
+
+**Export:** `GET /ticket-reports/export?format=csv|json` — admin/owner only; max 5000 rows; same tenant/window bounds.
+
+**Settings:** `GET /ticket-settings` merges `getWorkspaceTicketingCapabilities(workspaceType)` with `ticket_workspace_settings` overrides (`moduleEnabled`, `categories`, `allowedPriorities`, `maxAttachmentSizeBytes`, `slaDefaults`, `notificationPreferences`). `PATCH` admin/owner only; appends `operator_settings_audit_events` with `resourceType=ticketing_settings`.
+
+**Permissions:** viewer read-only on settings/reports/export denied for mutations; members have no operator settings/report routes.
 
 ### Phase L — Security, E2E, accessibility, release
 

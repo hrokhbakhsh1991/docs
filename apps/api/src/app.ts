@@ -44,6 +44,14 @@ import {
   handleListTicketTemplateRevisions,
   handlePreviewTicketTemplate,
 } from "./workspace-ticketing/ticket-template.routes";
+import {
+  handleExportTicketReport,
+  handleGetTicketReportSummary,
+} from "./workspace-ticketing/ticket-report.routes";
+import {
+  handleGetTicketSettings,
+  handlePatchTicketSettings,
+} from "./workspace-ticketing/ticket-settings.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
 import { resolveWorkspaceHttpHandler } from "./boot/lazy-workspace-finance-handlers";
@@ -739,6 +747,26 @@ async function dispatchRequest(
   const ticketTemplatePreviewMatch = url.pathname.match(/^\/ticket-templates\/([^/]+)\/preview$/);
   if (method === "POST" && ticketTemplatePreviewMatch) {
     await handlePreviewTicketTemplate(req, res, ticketTemplatePreviewMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-reports/summary") {
+    await handleGetTicketReportSummary(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-reports/export") {
+    await handleExportTicketReport(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-settings") {
+    await handleGetTicketSettings(req, res);
+    return;
+  }
+
+  if (method === "PATCH" && url.pathname === "/ticket-settings") {
+    await handlePatchTicketSettings(req, res);
     return;
   }
 

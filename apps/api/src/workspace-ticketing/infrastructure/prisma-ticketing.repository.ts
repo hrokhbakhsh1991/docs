@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 import type { Ticket, TicketEvent, TicketMessage } from "@app-tour/ticketing-core";
+import { formatTicketCode } from "@app-tour/ticketing-core";
 import { withTenantRls } from "../../db/with-tenant-rls";
 import { appendTicketingAuditEvents } from "../ticketing-audit-writer";
 import { enqueueTicketingOutboxEvents } from "./enqueue-ticketing-outbox-events";
@@ -13,6 +14,15 @@ import {
   mapMessageRow,
   mapTicketRow,
 } from "../ticketing-mappers";
+import {
+  buildOperatorTicketSearchWhere,
+  allocateTicketNumber,
+} from "../ticketing-k1.helpers";
+import {
+  decodeTicketListCursor,
+  encodeTicketListCursor,
+  ticketSortValue,
+} from "../ticketing-list-cursor";
 import type {
   AddMessagePersistInput,
   CreateTicketPersistInput,
@@ -61,6 +71,7 @@ function ticketWriteData(ticket: Ticket): Prisma.TicketUncheckedCreateInput {
     priority: ticket.priority,
     status: ticket.status,
     subject: ticket.subject,
+    ticketNumber: ticket.ticketNumber,
     lastActivityAt: new Date(ticket.lastActivityAt),
     resolvedAt: ticket.resolvedAt ? new Date(ticket.resolvedAt) : null,
     closedAt: ticket.closedAt ? new Date(ticket.closedAt) : null,
@@ -179,7 +190,8 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
 
   async findOperatorTickets(query: OperatorTicketListQuery): Promise<TicketListResult> {
     return withTenantRls(query.tenantId, async (tx) => {
-      const cursor = query.cursor ? decodeListCursor(query.cursor) : null;
+      const sort = query.sort ?? "lastActivityAt";
+      const decodedCursor = query.cursor ? decodeTicketListCursor(query.cursor) : null;
 
       let queueId: string | undefined;
       if (query.queueCode !== undefined) {
@@ -192,6 +204,54 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
         }
         queueId = queue.id;
       }
+
+      const searchWhere = await buildOperatorTicketSearchWhere(tx, query.tenantId, query.q);
+
+      const cursorWhere =
+        decodedCursor === null
+          ? undefined
+          : sort === "status"
+            ? {
+                OR: [
+                  { status: { gt: decodedCursor.sortValue } },
+                  { status: decodedCursor.sortValue, id: { lt: decodedCursor.id } },
+                ],
+              }
+            : sort === "priority"
+              ? {
+                  OR: [
+                    { priority: { lt: decodedCursor.sortValue } },
+                    { priority: decodedCursor.sortValue, id: { lt: decodedCursor.id } },
+                  ],
+                }
+              : sort === "createdAt"
+                ? {
+                    OR: [
+                      { createdAt: { lt: new Date(decodedCursor.sortValue) } },
+                      {
+                        createdAt: new Date(decodedCursor.sortValue),
+                        id: { lt: decodedCursor.id },
+                      },
+                    ],
+                  }
+                : {
+                    OR: [
+                      { lastActivityAt: { lt: new Date(decodedCursor.sortValue) } },
+                      {
+                        lastActivityAt: new Date(decodedCursor.sortValue),
+                        id: { lt: decodedCursor.id },
+                      },
+                    ],
+                  };
+
+      const orderBy =
+        sort === "createdAt"
+          ? [{ createdAt: "desc" as const }, { id: "desc" as const }]
+          : sort === "priority"
+            ? [{ priority: "desc" as const }, { id: "desc" as const }]
+            : sort === "status"
+              ? [{ status: "asc" as const }, { id: "desc" as const }]
+              : [{ lastActivityAt: "desc" as const }, { id: "desc" as const }];
 
       const rows = await tx.ticket.findMany({
         where: {
@@ -224,22 +284,10 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
           ...(query.unassigned === true
             ? { assigneeUserId: null, assigneeTeamId: null }
             : {}),
-          ...(query.q !== undefined
-            ? { subject: { contains: query.q, mode: "insensitive" } }
-            : {}),
-          ...(cursor !== null
-            ? {
-                OR: [
-                  { lastActivityAt: { lt: cursor.lastActivityAt } },
-                  {
-                    lastActivityAt: cursor.lastActivityAt,
-                    id: { lt: cursor.id },
-                  },
-                ],
-              }
-            : {}),
+          ...(searchWhere !== undefined ? searchWhere : {}),
+          ...(cursorWhere !== undefined ? cursorWhere : {}),
         },
-        orderBy: [{ lastActivityAt: "desc" }, { id: "desc" }],
+        orderBy,
         take: query.limit + 1,
         include: { links: { select: { entityType: true, entityId: true } } },
       });
@@ -251,7 +299,11 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
         hasMore,
         nextCursor:
           hasMore && last !== undefined
-            ? encodeListCursor(last.lastActivityAt, last.id)
+            ? encodeTicketListCursor({
+                sort,
+                sortValue: ticketSortValue(last, sort),
+                id: last.id,
+              })
             : null,
       };
     });
@@ -259,9 +311,15 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
 
   async createTicket(input: CreateTicketPersistInput): Promise<TicketDetailRecord> {
     return withTenantRls(input.ticket.tenantId, async (tx) => {
+      const ticketNumber = await allocateTicketNumber(tx, input.ticket.tenantId);
+      const ticketWithNumber = {
+        ...input.ticket,
+        ticketNumber,
+        ticketCode: formatTicketCode(ticketNumber),
+      };
       await tx.ticket.create({
         data: {
-          ...ticketWriteData(input.ticket),
+          ...ticketWriteData(ticketWithNumber),
           creationIdempotencyKey: input.creationIdempotencyKey,
         },
       });
@@ -294,7 +352,7 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
       }
       await writeEventsAndAudit(
         tx,
-        input.ticket,
+        ticketWithNumber,
         input.events,
         input.events[0]?.actorUserId ?? null,
       );

@@ -437,6 +437,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         ...(query.teamId !== undefined ? { teamId: query.teamId } : {}),
         ...(query.unassigned === true ? { unassigned: true } : {}),
         ...(query.q !== undefined ? { q: query.q } : {}),
+        ...(query.sort !== undefined ? { sort: query.sort } : {}),
       });
       return toOperatorListHttp(result);
     },

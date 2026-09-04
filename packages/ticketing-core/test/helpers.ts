@@ -27,8 +27,12 @@ export function ticket(overrides: Partial<Ticket> = {}): Ticket {
   return {
     id: TICKET_ID,
     tenantId: TENANT_A,
+    ticketNumber: 1,
+    ticketCode: "TKT-000001",
     requesterUserId: MEMBER_A,
     assigneeUserId: null,
+    assigneeTeamId: null,
+    queueId: null,
     categoryCode: "billing",
     subject: "Need help",
     priority: "normal",

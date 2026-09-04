@@ -7,6 +7,7 @@ import { after, before, describe, it } from "node:test";
 
 import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
+import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 
 const hasDatabase =
@@ -138,6 +139,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Payment question",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: now,
             creationIdempotencyKey: `create-${randomUUID()}`,
           },
@@ -191,6 +193,7 @@ describe(
             actorUserId: operatorA,
             eventType: "ticket.created",
             payload: { subject: "Payment question" },
+            ticketNumber: nextPostgresTestTicketNumber(),
           },
         });
         assert.equal(event.eventType, "ticket.created");
@@ -312,6 +315,7 @@ describe(
             priority: "low",
             status: "open",
             subject: "First create",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
             creationIdempotencyKey: idem,
           },
@@ -330,6 +334,7 @@ describe(
               priority: "low",
               status: "open",
               subject: "Duplicate create",
+            ticketNumber: nextPostgresTestTicketNumber(),
               lastActivityAt: new Date(),
               creationIdempotencyKey: idem,
             },
@@ -349,6 +354,7 @@ describe(
             priority: "low",
             status: "open",
             subject: "Other tenant same idem key",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
             creationIdempotencyKey: idem,
           },
@@ -405,6 +411,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Tenant B ticket",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -462,6 +469,7 @@ describe(
             await tx.ticket.updateMany({
               where: { id: ticketAId },
               data: { subject: "Hijacked" },
+            ticketNumber: nextPostgresTestTicketNumber(),
             })
           ).count,
           0,
@@ -493,6 +501,7 @@ describe(
                 priority: "normal",
                 status: "open",
                 subject: "Cross tenant ticket",
+            ticketNumber: nextPostgresTestTicketNumber(),
                 lastActivityAt: new Date(),
               },
             });
@@ -602,6 +611,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Cascade proof",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -698,6 +708,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Restrict proof",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });

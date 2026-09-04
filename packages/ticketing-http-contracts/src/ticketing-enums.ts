@@ -19,7 +19,7 @@ export const TICKET_MESSAGE_VISIBILITIES = ["public", "internal"] as const;
 
 export type TicketMessageVisibility = (typeof TICKET_MESSAGE_VISIBILITIES)[number];
 
-export const TICKET_LIST_SORTS = ["lastActivityAt"] as const;
+export const TICKET_LIST_SORTS = ["lastActivityAt", "createdAt", "priority", "status"] as const;
 
 export type TicketListSort = (typeof TICKET_LIST_SORTS)[number];
 

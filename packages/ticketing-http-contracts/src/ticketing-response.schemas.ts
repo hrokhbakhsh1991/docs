@@ -5,6 +5,7 @@ import type { TicketMessageVisibility, TicketPriority, TicketStatus } from "./ti
 
 export type TicketSummaryHttp = {
   readonly id: string;
+  readonly ticketCode: string;
   readonly subject: string;
   readonly categoryCode: string;
   readonly priority: TicketPriority;

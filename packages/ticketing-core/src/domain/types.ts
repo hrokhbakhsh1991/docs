@@ -57,6 +57,8 @@ export const TICKET_CATEGORY_CODE_MAX_LENGTH = 64;
 export type Ticket = {
   readonly id: string;
   readonly tenantId: string;
+  readonly ticketNumber: number;
+  readonly ticketCode: string;
   readonly requesterUserId: string;
   readonly assigneeUserId: string | null;
   readonly assigneeTeamId: string | null;

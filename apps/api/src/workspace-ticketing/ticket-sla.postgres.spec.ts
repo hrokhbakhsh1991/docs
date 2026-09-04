@@ -11,6 +11,7 @@ import { resetLazyTicketingServiceForTests } from "../boot/lazy-ticketing-servic
 import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
+import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import { processTicketSlaOnce } from "./process-ticket-sla-once";
 import {
@@ -210,6 +211,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "SLA pause",
+            ticketNumber: nextPostgresTestTicketNumber(),
             onHold: false,
             lastActivityAt: new Date(createdAt),
             createdAt: new Date(createdAt),
@@ -292,6 +294,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "SLA worker",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: createdAt,
             createdAt,
           },
@@ -332,6 +335,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "SLA notify",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -346,6 +350,7 @@ describe(
         payload: {
           ticketId,
           subject: "SLA notify",
+            ticketNumber: nextPostgresTestTicketNumber(),
           requesterUserId: memberA,
           assigneeUserId: adminA,
           assigneeTeamId: null,
@@ -375,6 +380,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Tenant B",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -419,6 +425,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Operator SLA detail",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });

@@ -119,6 +119,7 @@ export function mapOperatorTicketSummaryToListItem(
   const resolveUserLabel = options?.resolveUserLabel ?? defaultUserLabel;
   return {
     id: item.id,
+    ticketCode: item.ticketCode,
     subject: item.subject,
     requesterUserId: item.requesterUserId,
     requesterLabel: resolveUserLabel(item.requesterUserId),

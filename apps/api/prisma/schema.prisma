@@ -82,6 +82,8 @@ model Tenant {
   ticketTemplates              TicketTemplate[]
   ticketTemplateRevisions      TicketTemplateRevision[]
   ticketTemplateAutomationActivations TicketTemplateAutomationActivation[]
+  ticketNumberCounter            TicketNumberCounter?
+  ticketWorkspaceSettings        TicketWorkspaceSettings?
 
   @@map("tenants")
 }
@@ -1100,6 +1102,7 @@ model Ticket {
   priority               String
   status                 String
   subject                String             @db.VarChar(200)
+  ticketNumber           Int                @map("ticket_number")
   creationIdempotencyKey String?            @map("creation_idempotency_key")
   lastActivityAt         DateTime           @map("last_activity_at") @db.Timestamptz
   resolvedAt             DateTime?          @map("resolved_at") @db.Timestamptz
@@ -1122,6 +1125,7 @@ model Ticket {
 
   @@unique([tenantId, id])
   @@unique([tenantId, creationIdempotencyKey])
+  @@unique([tenantId, ticketNumber], map: "uq_tickets_tenant_number")
   @@index([tenantId, status, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_status_last_activity")
   @@index([tenantId, requesterUserId, createdAt(sort: Desc)], map: "idx_tickets_tenant_requester_created")
   @@index([tenantId, assigneeUserId, status], map: "idx_tickets_tenant_assignee_status")
@@ -1129,6 +1133,7 @@ model Ticket {
   @@index([tenantId, queueId, status], map: "idx_tickets_tenant_queue_status")
   @@index([tenantId, priority, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_priority_last_activity")
   @@index([tenantId, categoryCode, lastActivityAt(sort: Desc)], map: "idx_tickets_tenant_category_last_activity")
+  @@index([tenantId, createdAt(sort: Desc)], map: "idx_tickets_tenant_created")
   @@map("tickets")
 }
 
@@ -1491,4 +1496,30 @@ model TicketTemplateAutomationActivation {
 
   @@unique([tenantId, domainEventId, templateCode, locale, channel], map: "uq_ticket_template_automation_activations")
   @@map("ticket_template_automation_activations")
+}
+
+/// TKT-001 Phase K1 — per-tenant monotonic ticket number allocator.
+model TicketNumberCounter {
+  tenantId   String @id @map("tenant_id") @db.Uuid
+  nextNumber Int    @default(1) @map("next_number")
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_number_counters")
+}
+
+/// TKT-001 Phase K1 — workspace ticketing settings overrides (manifest baseline + DB).
+model TicketWorkspaceSettings {
+  tenantId                 String   @id @map("tenant_id") @db.Uuid
+  moduleEnabledOverride    Boolean? @map("module_enabled_override")
+  allowedPriorities        Json?    @map("allowed_priorities")
+  maxAttachmentSizeBytes   Int?     @map("max_attachment_size_bytes")
+  notificationPreferences  Json     @default("{}") @map("notification_preferences")
+  slaDefaults              Json     @default("{}") @map("sla_defaults")
+  disabledCategoryCodes    Json     @default("[]") @map("disabled_category_codes")
+  rowVersion               Int      @default(1) @map("row_version")
+  updatedAt                DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  updatedByUserId          String?  @map("updated_by_user_id") @db.Uuid
+  tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_workspace_settings")
 }

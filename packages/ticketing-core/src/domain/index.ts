@@ -153,6 +153,7 @@ export type {
   TicketTemplateVariableContext,
   TicketTemplateVariableName,
 } from "./template";
+export { formatTicketCode, parseTicketCodeQuery, TICKET_CODE_PREFIX } from "./search";
 export type {
   BusinessHoursConfig,
   BusinessHoursWindow,

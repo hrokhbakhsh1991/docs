@@ -17,6 +17,7 @@ import type { Ticket, TicketEvent, TicketMessage, TicketAttachment, TicketLink }
 export function toTicketSummaryHttp(ticket: Ticket): TicketSummaryHttp {
   return {
     id: ticket.id,
+    ticketCode: ticket.ticketCode,
     subject: ticket.subject,
     categoryCode: ticket.categoryCode,
     priority: ticket.priority,

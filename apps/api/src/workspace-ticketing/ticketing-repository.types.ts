@@ -58,6 +58,7 @@ export type OperatorTicketListQuery = {
   readonly teamId?: string;
   readonly unassigned?: boolean;
   readonly q?: string;
+  readonly sort?: import("@app-tour/ticketing-http-contracts").TicketListSort;
   readonly cursor?: string;
   readonly limit: number;
 };

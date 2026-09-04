@@ -13,6 +13,7 @@ import { resetLazyTicketingServiceForTests } from "../boot/lazy-ticketing-servic
 import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
+import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import { applyTicketTemplateAutomation } from "./ticket-template-automation";
 import {
@@ -281,6 +282,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Template notify",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -295,6 +297,7 @@ describe(
         payload: {
           ticketId,
           subject: "Template notify",
+            ticketNumber: nextPostgresTestTicketNumber(),
           requesterUserId: randomUUID(),
           assigneeUserId: adminA,
           assigneeTeamId: null,

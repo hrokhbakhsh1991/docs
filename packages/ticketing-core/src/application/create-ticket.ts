@@ -42,6 +42,8 @@ export function createTicket(command: CreateTicketCommand): TicketingResult<Tick
   const ticket: Ticket = {
     id: command.ticketId,
     tenantId: command.tenantId,
+    ticketNumber: 0,
+    ticketCode: "",
     requesterUserId: command.requesterUserId,
     assigneeUserId: null,
     assigneeTeamId: null,

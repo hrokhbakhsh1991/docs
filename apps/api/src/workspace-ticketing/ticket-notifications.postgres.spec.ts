@@ -10,6 +10,7 @@ import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { processOutboxRelayOnce } from "../outbox/outbox-relay";
+import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import {
   countUnreadTicketNotifications,
@@ -106,6 +107,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Need help",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -120,6 +122,7 @@ describe(
         payload: {
           ticketId,
           subject: "Need help",
+            ticketNumber: nextPostgresTestTicketNumber(),
           requesterUserId: requesterA,
           assigneeUserId: null,
           assigneeTeamId: null,
@@ -143,6 +146,7 @@ describe(
         payload: {
           ticketId,
           subject: "Need help",
+            ticketNumber: nextPostgresTestTicketNumber(),
           requesterUserId: requesterA,
           assigneeUserId: null,
           assigneeTeamId: null,
@@ -198,6 +202,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Read state",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -253,6 +258,7 @@ describe(
               priority: "normal",
               status: "open",
               subject: "TX test",
+            ticketNumber: nextPostgresTestTicketNumber(),
               lastActivityAt: new Date(),
             },
           });
@@ -263,6 +269,7 @@ describe(
             eventType: "ticket.created",
             domainEventId,
             payload: { ticketId, requesterUserId: requesterA, subject: "TX test" },
+            ticketNumber: nextPostgresTestTicketNumber(),
           });
           throw new Error("ROLLBACK_PROBE");
         }),
@@ -301,6 +308,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Delivery",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -354,6 +362,7 @@ describe(
             priority: "normal",
             status: "open",
             subject: "Relay",
+            ticketNumber: nextPostgresTestTicketNumber(),
             lastActivityAt: new Date(),
           },
         });
@@ -366,6 +375,7 @@ describe(
           payload: {
             ticketId,
             subject: "Relay",
+            ticketNumber: nextPostgresTestTicketNumber(),
             requesterUserId: requesterA,
             assigneeUserId: operatorA,
             assigneeTeamId: null,

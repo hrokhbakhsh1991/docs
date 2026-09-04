@@ -1,4 +1,5 @@
 import type { Ticket, TicketEvent, TicketMessage } from "@app-tour/ticketing-core";
+import { formatTicketCode } from "@app-tour/ticketing-core";
 import { randomUUID } from "node:crypto";
 import type {
   TicketEvent as PrismaTicketEvent,
@@ -28,6 +29,8 @@ export function mapTicketRow(
   return {
     id: row.id,
     tenantId: row.tenantId,
+    ticketNumber: row.ticketNumber,
+    ticketCode: formatTicketCode(row.ticketNumber),
     requesterUserId: row.requesterUserId,
     assigneeUserId: row.assigneeUserId,
     assigneeTeamId: row.assigneeTeamId ?? null,
