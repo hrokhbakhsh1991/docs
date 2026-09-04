@@ -7,7 +7,7 @@ description: FDA-001 placement analysis, defect matrix, and acceptance criteria 
 
 **Feature:** `ticketing-ui-ux-denali`  
 **Branch:** `cursor/ticketing-ui-ux`  
-**Base:** `feature/ticketing-system` @ `0a66d38b+`  
+**Base:** `feature/ticketing-system` @ `b29244f2` (merge-base)  
 **Date:** 2026-09-04
 
 ## Current strengths
@@ -35,22 +35,35 @@ description: FDA-001 placement analysis, defect matrix, and acceptance criteria 
 | 10 | Bulk toolbar: **always visible when mutating**, confirm on destructive bulk status | Discoverable without cluttering rows; confirm before resolve/close. |
 | 11 | Notifications: **bell only** for unread; tickets nav does not duplicate bell | MNI-001 single inbox authority. |
 
-## Defects (before remediation)
+## Defect remediation matrix
 
-| ID | Sev | Surface | Issue |
-|----|-----|---------|-------|
-| UX-01 | P1 | Portal list | Filter chips lack active/hover styling; unicode ◎/● markers confuse |
-| UX-02 | P1 | Portal list/detail | Status badges lack semantic color hierarchy |
-| UX-03 | P1 | Portal detail | Status banner unstyled — weak state communication |
-| UX-04 | P1 | Portal create | Raw form controls; technical tour/registration UUID fields exposed |
-| UX-05 | P1 | Portal detail | Success actions not announced (`aria-live` only shows errors) |
-| UX-06 | P1 | Operator detail | Internal notes visually weak (3px border only) |
-| UX-07 | P1 | Operator inbox | Emoji 📎 attachment indicator — poor a11y |
-| UX-08 | P1 | Operator bulk | No confirm before bulk resolve/close |
-| UX-09 | P2 | Operator detail | Resolve/close lack explicit confirm |
-| UX-10 | P2 | Operator CSS | Hardcoded hex colors instead of tokens |
-| UX-11 | P2 | Portal | Empty state / form field spacing inconsistent with Denali member pages |
-| UX-12 | P3 | Operator inbox | Row meta dense on 360px — acceptable after wrap rules |
+| ID | Sev | Surface | Observed defect | Remediation | Verification |
+|----|-----|---------|-----------------|-------------|--------------|
+| UX-01 | P1 | Portal list | Filter chips lacked active/hover styling; unicode ◎/● markers confused | Removed unicode markers; `aria-pressed` + Denali chip tokens | Portal screenshot + Axe smoke |
+| UX-02 | P1 | Portal list/detail | Status badges lacked semantic color hierarchy | Token-based badge colors with icon + label | Portal screenshot + Axe smoke |
+| UX-03 | P1 | Portal detail | Status banner unstyled — weak state communication | Semantic status banners per state | Portal screenshot + Axe smoke |
+| UX-04 | P1 | Portal create | Raw form controls; tour/registration UUID fields exposed | Advanced `<details>` disclosure; Denali form field spacing | Portal screenshot + smoke |
+| UX-05 | P1 | Portal detail | Success actions not announced (`aria-live` only showed errors) | `replySuccess` / `reopenSuccess` in `aria-live="polite"` | Portal smoke + Axe |
+| UX-06 | P1 | Operator detail | Internal notes visually weak (3px border only) | Warning-tinted panel + border on internal messages/composer | Operator detail screenshot + smoke |
+| UX-07 | P1 | Operator inbox | Emoji 📎 attachment indicator — poor a11y | Text label + `aria-label` | Operator inbox screenshot + smoke |
+| UX-08 | P1 | Operator bulk | No confirm before bulk resolve/close | `OperatorConfirmDialog` for bulk `resolved`/`closed` | `operator-ticketing-bulk-confirm.spec.ts` |
+| UX-09 | P2 | Operator detail | Resolve/close lacked explicit confirm | Per-action `OperatorConfirmDialog` | Operator inbox smoke |
+| UX-10 | P2 | Operator CSS | Hardcoded hex colors instead of tokens | `var(--*)` + `color-mix` contrast fixes | Operator Axe smoke |
+| UX-11 | P2 | Portal | Empty state / form field spacing inconsistent | Denali `member-pages.css` ticketing block | Portal screenshots |
+| UX-12 | P3 | Operator inbox | Row meta dense on 360px | Existing wrap rules retained; contrast tweak only | Operator screenshot @ 360×800 |
+
+## Evidence capture (before/after)
+
+`TICKETING_UI_UX_PHASE` alone only selects the output folder — it does **not** change the running code. Use the deterministic capture script:
+
+```bash
+node scripts/capture-ticketing-ui-ux-evidence.mjs
+```
+
+- **Before:** temporarily checks out merge-base UI files on the locked branch, then captures (see script)
+- **After:** current `HEAD` on `cursor/ticketing-ui-ux`
+- **Output:** `/opt/cursor/artifacts/screenshots/ticketing-ui-ux/{before,after}/`
+- **Manifest:** `hash-manifest.json` with SHA-256 per file; script exits non-zero if any pair is byte-identical
 
 ## Rejected alternatives
 
@@ -61,7 +74,7 @@ description: FDA-001 placement analysis, defect matrix, and acceptance criteria 
 
 ## Acceptance criteria
 
-1. BEFORE/AFTER screenshots at 1440×900, 1280×800, 768×1024, 390×844, 360×800 for portal list, new form, nav; operator inbox + detail.
+1. BEFORE/AFTER screenshots at 1440×900, 1280×800, 768×1024, 390×844, 360×800 for portal list, new form, nav; operator inbox + detail. Capture via `node scripts/capture-ticketing-ui-ux-evidence.mjs` (worktree before @ `b29244f2`, after @ HEAD).
 2. Filter chips show clear active state without unicode-only markers.
 3. Status badges and banners use semantic tokens with icon + text.
 4. Create form hides tour/registration IDs behind optional advanced disclosure.

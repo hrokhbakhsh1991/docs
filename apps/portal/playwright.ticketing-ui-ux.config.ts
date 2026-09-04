@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const portalSmokeBaseUrl =
   process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.portal.localhost:3003";
+const portalHealthUrl = process.env.SMOKE_PORTAL_HEALTH_URL ?? "http://127.0.0.1:3003/health";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -18,7 +19,7 @@ export default defineConfig({
   },
   webServer: {
     command: "node scripts/smoke-portal-ticketing-e2e-servers.mjs",
-    url: `${portalSmokeBaseUrl}/health`,
+    url: portalHealthUrl,
     reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
     timeout: 720_000,
     stdout: "pipe",

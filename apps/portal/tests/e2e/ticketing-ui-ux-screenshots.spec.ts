@@ -1,5 +1,6 @@
 /**
  * FDA-001 — Ticketing UI/UX evidence screenshots (before/after via TICKETING_UI_UX_PHASE env).
+ * Deterministic before/after: `node scripts/capture-ticketing-ui-ux-evidence.mjs`
  */
 import { expect, test } from "@playwright/test";
 
