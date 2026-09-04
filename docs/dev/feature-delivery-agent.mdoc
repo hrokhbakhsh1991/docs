@@ -196,6 +196,7 @@ Final report minimum:
 | API workspace agnosticism | [workspace-api-capabilities](../standards/workspace-api-capabilities.mdoc) |
 | Member session | [member-session-portal-authority](../standards/member-session-portal-authority.mdoc) |
 | Routing | [workspace-routing-standard](../standards/workspace-routing-standard.mdoc) |
+| Browser quality / E2E closure | [browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md) (BQC-001) |
 | Notification design freeze | [SK2_NOTIFICATION_OUTBOX](../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) |
 
 ---
@@ -207,8 +208,28 @@ Final report minimum:
 | **A** | Charter + subdocs | Done |
 | **B** | Cursor agents/skills/rules | Done |
 | **B.2** | v1.2 discovery, design, research, queue, recovery | **Current** |
+| **B.3** | Browser Quality & E2E Closure sub-agent (BQC-001) | **Current** |
 | **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI | Planned |
 | **D** | `test-changed` path map fixes | Planned |
+
+---
+
+## 10. Specialized sub-agents
+
+### 10.1 Browser Quality & E2E Closure (BQC-001)
+
+When work is **browser-quality audit or E2E gap closure** (not greenfield feature delivery), use the specialized sub-agent instead of improvising Playwright fixes:
+
+| Resource | Path |
+| -------- | ---- |
+| Skill | [`.cursor/skills/browser-quality-closure/SKILL.md`](../../.cursor/skills/browser-quality-closure/SKILL.md) |
+| Read-only reviewer | [`.cursor/agents/browser-quality-reviewer.md`](../../.cursor/agents/browser-quality-reviewer.md) |
+
+**Inherits FDA-001:** branch lock, scope lock, evidence ledger, blocker recovery (3 hypotheses), tenant/RLS hard stops, Denali/Urban/starter isolation, no silent post-v1 downgrades, no fake `COMPLETE` claims.
+
+**Delivers:** browser coverage matrix, test-realness audit, bug reproduction record, traces/screenshots, capability status per journey, explicit unverified items.
+
+**Critical flows** require real browser → real route → real backend → persistence/permission proof — not API-only or mock-only tests.
 
 ---
 
