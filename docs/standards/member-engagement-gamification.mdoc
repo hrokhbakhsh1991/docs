@@ -127,8 +127,10 @@ Levels (Denali V1):
 | GET | `/engagement/me/points` | Point event history |
 | GET | `/engagement/me/badges` | Earned badges + progress |
 | GET | `/engagement/operator/overview` | Recent awards + badge activity |
+| GET | `/engagement/operator/policy` | Read-only V1 levels, badges, and award rules (system-managed) |
 | GET | `/engagement/operator/members/:userId` | Member engagement lookup |
-| POST | `/engagement/operator/members/:userId/reverse` | Operator correction (idempotent) |
+| POST | `/engagement/operator/members/:userId/adjust` | Manual point award or deduction (idempotent, reason required) |
+| POST | `/engagement/operator/members/:userId/reverse` | Compensating reversal of a specific positive event (idempotent) |
 
 ---
 
@@ -148,7 +150,8 @@ Badge-earned events enqueue `member_notifications` with:
 | Suite | Proves |
 | ----- | ------ |
 | `engagement-persistence.postgres.spec.ts` | RLS, dedupe, cross-tenant denial |
-| `engagement-awards.postgres.spec.ts` | Profile + registration award idempotency |
+| `engagement-awards.postgres.spec.ts` | Profile + registration award idempotency + outbox dispatch |
+| Operator E2E | Member search (name/phone), policy catalog, adjust/reverse workflows |
 | `engagement-http-boundary.spec.ts` | Contract parsing |
 | Portal E2E | Dashboard renders points/badges separate from wallet |
 | Web E2E | Operator overview + permissions |
