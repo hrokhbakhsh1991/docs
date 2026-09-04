@@ -171,6 +171,25 @@ export class TicketingAttachmentRepository {
     });
   }
 
+  async markScanRejected(
+    tenantId: string,
+    ticketId: string,
+    attachmentId: string,
+  ): Promise<void> {
+    return withTenantRls(tenantId, async (tx) => {
+      await tx.ticketAttachment.updateMany({
+        where: {
+          tenantId,
+          ticketId,
+          id: attachmentId,
+          deletedAt: null,
+          scanStatus: "pending",
+        },
+        data: { scanStatus: "rejected" },
+      });
+    });
+  }
+
   async recordUploadedSize(
     tenantId: string,
     ticketId: string,

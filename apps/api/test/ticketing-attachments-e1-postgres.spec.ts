@@ -10,11 +10,13 @@ import { PrismaClient } from "@prisma/client";
 
 import { createRequestListener } from "../src/app";
 import { resetLazyTicketingServiceForTests } from "../src/boot/lazy-ticketing-service";
-import { disconnectPrisma } from "../src/db/prisma";
+import { disconnectPrisma, getPrisma } from "../src/db/prisma";
 import { assertTenantOwnsObjectKey } from "../src/storage/assert-tenant-object-key-scope";
 import { setTenantObjectStorageForTests } from "../src/storage/create-tenant-object-storage";
 import type { TenantObjectStoragePort } from "../src/storage/tenant-object-storage.port";
 import { withTenantRls } from "../src/db/with-tenant-rls";
+import { assertPostgresAppRoleForRlsTests } from "../src/workspace-ticketing/ticketing-postgres-test-helpers";
+import { setTicketAttachmentScannerForTests } from "../src/workspace-ticketing/ticket-attachment-scan";
 
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
@@ -225,6 +227,7 @@ describe(
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
       process.env.OUTBOX_RELAY_ENABLED = "false";
+      await assertPostgresAppRoleForRlsTests(getPrisma());
       resetLazyTicketingServiceForTests();
       memoryStorage = createMemoryObjectStorage();
       setTenantObjectStorageForTests(memoryStorage);
@@ -319,6 +322,7 @@ describe(
 
     after(async () => {
       setTenantObjectStorageForTests(null);
+      setTicketAttachmentScannerForTests(null);
       await admin.$disconnect();
       await disconnectPrisma();
     });
@@ -384,6 +388,56 @@ describe(
         where: { tenantId: tenantDenali, ticketId, eventType: "attachment.completed" },
       });
       assert.equal(events.length, 1);
+    });
+
+    it("rejects complete when attachment scan hook returns rejected", async () => {
+      setTicketAttachmentScannerForTests({
+        async scan() {
+          return "rejected";
+        },
+      });
+
+      const intentKey = `scan-reject-${randomUUID()}`;
+      const intent = await requestJson(listener, {
+        method: "POST",
+        path: `/member/tickets/${ticketId}/attachments/intents`,
+        tenantId: tenantDenali,
+        userId: memberDenali,
+        idempotencyKey: intentKey,
+        body: {
+          messageId: publicMessageId,
+          originalFileName: "reject.pdf",
+          contentType: "application/pdf",
+          sizeBytes: 12,
+        },
+      });
+      assert.equal(intent.status, 201);
+      const attachmentId = String(intent.body.attachmentId);
+
+      const upload = await requestBinary(listener, {
+        method: "PUT",
+        path: `/member/tickets/${ticketId}/attachments/${attachmentId}/upload`,
+        tenantId: tenantDenali,
+        userId: memberDenali,
+        body: Buffer.from("%PDF-1.4-reject"),
+      });
+      assert.equal(upload.status, 204);
+
+      const complete = await requestJson(listener, {
+        method: "POST",
+        path: `/member/tickets/${ticketId}/messages/${publicMessageId}/attachments/${attachmentId}/complete`,
+        tenantId: tenantDenali,
+        userId: memberDenali,
+        idempotencyKey: `complete-reject-${randomUUID()}`,
+      });
+      assert.equal(complete.status, 400);
+      assert.equal(complete.body.code, "TICKET_ATTACHMENT_SCAN_REJECTED");
+
+      const row = await admin.ticketAttachment.findFirst({ where: { id: attachmentId } });
+      assert.equal(row?.scanStatus, "rejected");
+      assert.equal(memoryStorage.objects.has(row!.objectKey), false);
+
+      setTicketAttachmentScannerForTests(null);
     });
 
     it("rejects unsupported content type and oversize intent", async () => {

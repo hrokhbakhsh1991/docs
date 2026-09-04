@@ -36,6 +36,7 @@ import {
   TICKET_ATTACHMENT_INTENT_TTL_MS,
   ticketAttachmentObjectExists,
 } from "./ticket-attachment-storage";
+import { getTicketAttachmentScanner } from "./ticket-attachment-scan";
 import { buildTicketActorContext } from "./ticketing-actor-context";
 import type { TicketDetailRecord } from "./ticketing-repository.types";
 
@@ -389,6 +390,33 @@ export function createTicketingE1Operations(deps: E1Deps) {
           message: "attachment size unknown",
         });
       }
+      const scanResult = await getTicketAttachmentScanner().scan({
+        tenantId: auth.tenantId,
+        storageKey: attachment.objectKey,
+        contentType: attachment.contentType,
+        sizeBytes,
+        originalFileName: attachment.originalFileName,
+      });
+      if (scanResult === "rejected") {
+        await deps.attachmentRepository.markScanRejected(
+          auth.tenantId,
+          ticketId,
+          attachmentId,
+        );
+        try {
+          await removeTicketAttachmentObject({
+            tenantId: auth.tenantId,
+            storageKey: attachment.objectKey,
+          });
+        } catch {
+          // best-effort cleanup after scan rejection
+        }
+        throwTicketingDomainError({
+          code: "TICKET_ATTACHMENT_SCAN_REJECTED",
+          message: "attachment scan rejected",
+        });
+      }
+
       const event = buildTicketEvent({
         id: randomUUID(),
         tenantId: auth.tenantId,
