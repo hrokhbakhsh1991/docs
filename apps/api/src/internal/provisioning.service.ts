@@ -104,11 +104,26 @@ export class ProvisioningService {
     const clubSeed = canResolveDevTenantRegistryFallback()
       ? findTenantBySubdomain(DENALI_SMOKE_SUBDOMAIN)
       : null;
+    const clubTheme =
+      clubSeed?.theme !== undefined && clubSeed.theme !== null
+        ? { ...(clubSeed.theme as Record<string, unknown>) }
+        : {};
     return this.upsertSeedTenant({
       subdomain: DENALI_SMOKE_SUBDOMAIN,
       tenantId: DENALI_SMOKE_TENANT_ID,
       workspaceType: "denali",
-      ...(clubSeed?.theme !== undefined ? { theme: clubSeed.theme } : {}),
+      theme: {
+        ...clubTheme,
+        enabledModules: ["wallet"],
+        portalModuleGrants: ["wallet"],
+        commerce: {
+          currency: "IRR",
+          paymentMode: "offline_receipt",
+          gatewayProvider: null,
+          frozen: true,
+        },
+        defaultLocale: "fa",
+      },
     });
   }
 

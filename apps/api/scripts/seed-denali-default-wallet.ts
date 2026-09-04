@@ -1,29 +1,25 @@
 /**
- * Phase 2 — idempotent Postgres seed for Denali Wallet pilot tenant.
- *
- * @see docs/architecture/wallet-module-phase-0-contract.mdoc §10
+ * WALLET-V1 — idempotent Postgres seed for Denali default club wallet (tenant …000003).
  */
 import { fileURLToPath } from "node:url";
 
-import {
-  DENALI_WALLET_PILOT_SUBDOMAIN,
-  DENALI_WALLET_PILOT_TENANT_ID,
-} from "@app-tour/workspace-denali";
+import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 
-import { DENALI_WALLET_PILOT } from "../test/fixtures/denali-wallet-pilot-tenant";
+import { DENALI_DEFAULT_WALLET } from "../test/fixtures/denali-default-wallet-tenant";
 import { getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { ProvisioningService } from "../src/internal/provisioning.service";
 import { logger } from "../src/observability/logger";
 import { runWithTenantContext } from "../src/tenant/tenant-request-context";
 import { PrismaWalletRepository } from "../src/workspace-wallet/infrastructure/prisma-wallet.repository";
+import { seedDenaliOperatorIdentity } from "./seed-denali-operator-identity";
+import { seedDenaliDefaultWalletEngagement } from "./seed-denali-default-wallet-engagement";
 import { ensureAppTourCanReadMigrationHead } from "./seed-wallet-ws1-certification";
-import { seedDenaliWalletPilotEngagement } from "./seed-denali-wallet-pilot-engagement";
 
 function memberScope(userId: string) {
   return {
-    tenantId: DENALI_WALLET_PILOT.tenantId,
-    workspaceId: DENALI_WALLET_PILOT.workspaceId,
+    tenantId: DENALI_DEFAULT_WALLET.tenantId,
+    workspaceId: DENALI_DEFAULT_WALLET.workspaceId,
     userId,
   };
 }
@@ -51,175 +47,178 @@ async function upsertMembership(input: {
       ? { portalModuleGrants: [...input.portalModuleGrants] }
       : {};
 
-  await withTenantRls(DENALI_WALLET_PILOT.tenantId, (tx) =>
+  await withTenantRls(DENALI_DEFAULT_WALLET.tenantId, (tx) =>
     tx.userTenant.upsert({
       where: {
         userId_tenantId: {
           userId: input.userId,
-          tenantId: DENALI_WALLET_PILOT.tenantId,
+          tenantId: DENALI_DEFAULT_WALLET.tenantId,
         },
       },
       create: {
         userId: input.userId,
-        tenantId: DENALI_WALLET_PILOT.tenantId,
+        tenantId: DENALI_DEFAULT_WALLET.tenantId,
         role: input.role,
         status: "ACTIVE",
         sessionVersion: 1,
-        workspaceId: DENALI_WALLET_PILOT.workspaceId,
+        workspaceId: DENALI_DEFAULT_WALLET.workspaceId,
         membershipMetadata,
       },
       update: {
         role: input.role,
         status: "ACTIVE",
-        workspaceId: DENALI_WALLET_PILOT.workspaceId,
+        workspaceId: DENALI_DEFAULT_WALLET.workspaceId,
         membershipMetadata,
       },
-    })
+    }),
   );
 }
 
 async function seedWalletLedgerHistory(): Promise<void> {
   const repo = new PrismaWalletRepository();
-  const operatorId = DENALI_WALLET_PILOT.ownerUserId;
-  const entitledMemberId = DENALI_WALLET_PILOT.entitledMemberUserId;
+  const operatorId = DENALI_DEFAULT_WALLET.ownerUserId;
+  const entitledMemberId = DENALI_DEFAULT_WALLET.entitledMemberUserId;
   const scope = memberScope(entitledMemberId);
 
   const existing = await runWithTenantContext(
-    DENALI_WALLET_PILOT.tenantId,
+    DENALI_DEFAULT_WALLET.tenantId,
     () => repo.findMemberAccount(scope),
-    { actorId: operatorId }
+    { actorId: operatorId },
   );
   if (existing.ok && existing.value !== null) {
     logger.info(
-      { event: "db.seed.denali_wallet_pilot.skip_wallet", accountId: existing.value.id },
-      "denali wallet pilot ledger already seeded"
+      { event: "db.seed.denali_default_wallet.skip_wallet", accountId: existing.value.id },
+      "denali default wallet ledger already seeded",
     );
     return;
   }
 
   const account = await runWithTenantContext(
-    DENALI_WALLET_PILOT.tenantId,
+    DENALI_DEFAULT_WALLET.tenantId,
     () =>
       repo.getOrCreateAccount({
         ...scope,
-        currency: DENALI_WALLET_PILOT.currency,
-        accountId: DENALI_WALLET_PILOT.accountId,
+        currency: DENALI_DEFAULT_WALLET.currency,
+        accountId: DENALI_DEFAULT_WALLET.accountId,
       }),
-    { actorId: operatorId }
+    { actorId: operatorId },
   );
   if (!account.ok) {
-    throw new Error(`DENALI_WALLET_PILOT_SEED_ACCOUNT_FAILED:${account.error.code}`);
+    throw new Error(`DENALI_DEFAULT_WALLET_SEED_ACCOUNT_FAILED:${account.error.code}`);
   }
 
   await runWithTenantContext(
-    DENALI_WALLET_PILOT.tenantId,
+    DENALI_DEFAULT_WALLET.tenantId,
     () =>
       repo.operatorCredit({
         ...scope,
         accountId: account.value.id,
         amountMinor: "50000",
-        currency: DENALI_WALLET_PILOT.currency,
-        creationIdempotencyKey: "denali-wallet-pilot-seed-credit-initial",
-        reference: "pilot-seed-initial",
+        currency: DENALI_DEFAULT_WALLET.currency,
+        creationIdempotencyKey: "denali-default-wallet-seed-credit-initial",
+        reference: "default-seed-initial",
         actor: actor(operatorId),
       }),
-    { actorId: operatorId }
+    { actorId: operatorId },
   );
 
   await runWithTenantContext(
-    DENALI_WALLET_PILOT.tenantId,
+    DENALI_DEFAULT_WALLET.tenantId,
     () =>
       repo.operatorDebit({
         ...scope,
         accountId: account.value.id,
         amountMinor: "10000",
-        currency: DENALI_WALLET_PILOT.currency,
-        creationIdempotencyKey: "denali-wallet-pilot-seed-debit-initial",
-        reference: "pilot-seed-debit",
+        currency: DENALI_DEFAULT_WALLET.currency,
+        creationIdempotencyKey: "denali-default-wallet-seed-debit-initial",
+        reference: "default-seed-debit",
         actor: actor(operatorId),
       }),
-    { actorId: operatorId }
+    { actorId: operatorId },
   );
 
   const balance = await runWithTenantContext(
-    DENALI_WALLET_PILOT.tenantId,
+    DENALI_DEFAULT_WALLET.tenantId,
     () => repo.getMemberBalance(scope, account.value.id),
-    { actorId: entitledMemberId }
+    { actorId: entitledMemberId },
   );
   if (!balance.ok) {
-    throw new Error(`DENALI_WALLET_PILOT_SEED_BALANCE_FAILED:${balance.error.code}`);
+    throw new Error(`DENALI_DEFAULT_WALLET_SEED_BALANCE_FAILED:${balance.error.code}`);
   }
 
   logger.info(
     {
-      event: "db.seed.denali_wallet_pilot.wallet",
+      event: "db.seed.denali_default_wallet.wallet",
       accountId: account.value.id,
       balanceMinor: balance.value.balanceMinor,
       currency: balance.value.currency,
     },
-    "denali wallet pilot wallet seeded"
+    "denali default club wallet seeded",
   );
 }
 
-export async function seedDenaliWalletPilot(): Promise<void> {
+export async function seedDenaliDefaultWallet(): Promise<void> {
   const service = new ProvisioningService();
-  await service.seedDenaliWalletPilotTenant();
+  await service.seedDenaliSmokeTenant();
+  await seedDenaliOperatorIdentity();
 
-  await upsertUser(DENALI_WALLET_PILOT.ownerUserId, DENALI_WALLET_PILOT.ownerMobile);
   await upsertUser(
-    DENALI_WALLET_PILOT.entitledMemberUserId,
-    DENALI_WALLET_PILOT.entitledMemberMobile
+    DENALI_DEFAULT_WALLET.entitledMemberUserId,
+    DENALI_DEFAULT_WALLET.entitledMemberMobile,
   );
-  await upsertUser(DENALI_WALLET_PILOT.deniedMemberUserId, DENALI_WALLET_PILOT.deniedMemberMobile);
+  await upsertUser(
+    DENALI_DEFAULT_WALLET.deniedMemberUserId,
+    DENALI_DEFAULT_WALLET.deniedMemberMobile,
+  );
 
   await upsertMembership({
-    userId: DENALI_WALLET_PILOT.ownerUserId,
+    userId: DENALI_DEFAULT_WALLET.ownerUserId,
     role: "owner",
   });
   await upsertMembership({
-    userId: DENALI_WALLET_PILOT.entitledMemberUserId,
+    userId: DENALI_DEFAULT_WALLET.entitledMemberUserId,
     role: "member",
     portalModuleGrants: ["wallet"],
   });
   await upsertMembership({
-    userId: DENALI_WALLET_PILOT.deniedMemberUserId,
+    userId: DENALI_DEFAULT_WALLET.deniedMemberUserId,
     role: "member",
   });
 
   await seedWalletLedgerHistory();
-  await seedDenaliWalletPilotEngagement();
+  await seedDenaliDefaultWalletEngagement();
 
   logger.info(
     {
-      event: "db.seed.denali_wallet_pilot.complete",
-      tenantId: DENALI_WALLET_PILOT_TENANT_ID,
-      subdomain: DENALI_WALLET_PILOT_SUBDOMAIN,
+      event: "db.seed.denali_default_wallet.complete",
+      tenantId: DENALI_SMOKE_TENANT_ID,
+      subdomain: DENALI_DEFAULT_WALLET.subdomain,
     },
-    "denali wallet pilot seed complete"
+    "denali default wallet seed complete",
   );
 }
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL?.trim() || !process.env.DATABASE_URL_ADMIN?.trim()) {
-    throw new Error("DENALI_WALLET_PILOT_REQUIRES_DATABASE_URL");
+    throw new Error("DENALI_DEFAULT_WALLET_REQUIRES_DATABASE_URL");
   }
   process.env.STORAGE_DRIVER = "prisma";
   await ensureAppTourCanReadMigrationHead();
-  await seedDenaliWalletPilot();
+  await seedDenaliDefaultWallet();
 }
 
-const isDirectPilotSeedExecution =
-  process.argv[1]?.endsWith("seed-denali-wallet-pilot.cjs") === true ||
+const isDirectSeedExecution =
+  process.argv[1]?.endsWith("seed-denali-default-wallet.cjs") === true ||
   (typeof import.meta.url === "string" && process.argv[1] === fileURLToPath(import.meta.url));
 
-if (isDirectPilotSeedExecution) {
+if (isDirectSeedExecution) {
   main().catch((error: unknown) => {
     logger.error(
       {
-        event: "db.seed.denali_wallet_pilot.failed",
+        event: "db.seed.denali_default_wallet.failed",
         err: error instanceof Error ? error.message : String(error),
       },
-      "denali wallet pilot seed failed"
+      "denali default wallet seed failed",
     );
     process.exit(1);
   });

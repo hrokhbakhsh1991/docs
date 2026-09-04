@@ -151,6 +151,8 @@
     "db:seed": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/db-seed.ts",
     "seed:wallet-ws1-certification": "NODE_ENV=development node --import tsx scripts/seed-wallet-ws1-certification.ts",
     "seed:denali-wallet-pilot": "NODE_ENV=development node --import tsx scripts/seed-denali-wallet-pilot.ts",
+    "seed:denali-default-wallet": "NODE_ENV=development node --import tsx scripts/seed-denali-default-wallet.ts",
+    "seed:denali-wallet-v1": "NODE_ENV=development node --import tsx scripts/seed-denali-wallet-v1.ts",
     "test:wallet-postgres-certification": "NODE_ENV=test STORAGE_DRIVER=prisma TENANT_MAX_CONCURRENT_DB_OPS=32 PRISMA_TRANSACTION_TIMEOUT_MS=60000 PRISMA_TRANSACTION_MAX_WAIT_MS=30000 node --import tsx --env-file=.env --env-file=.env.local --test --test-force-exit --test-concurrency=1 src/workspace-wallet/wallet-persistence.postgres.spec.ts src/workspace-wallet/wallet-ws1-certification.postgres.spec.ts src/workspace-wallet/denali-wallet-pilot.postgres.spec.ts src/workspace-wallet/denali-refund-wallet-credit.postgres.spec.ts",
     "seed:wrs-denali-club-domains": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/seed-wrs-denali-club-domains.ts",
     "export:workspace-definition": "node --import tsx scripts/export-workspace-definition.ts",

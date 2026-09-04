@@ -29,6 +29,7 @@ function ensureDevHosts() {
     "denali-wallet-pilot.localhost",
     "admin.denali-wallet-pilot.localhost",
     "portal.denali-wallet-pilot.localhost",
+    "portal.denali.localhost",
     "denali.admin.localhost",
     "admin.denali.localhost",
   ];
@@ -91,7 +92,7 @@ function runSeed() {
       "smoke-denali-wallet-pilot-servers: DATABASE_URL + DATABASE_URL_ADMIN required"
     );
   }
-  const seed = spawnSync("node", ["--import", "tsx", "scripts/seed-denali-wallet-pilot.ts"], {
+  const seed = spawnSync("node", ["--import", "tsx", "scripts/seed-denali-wallet-v1.ts"], {
     cwd: apiDir,
     env: {
       ...process.env,
