@@ -174,6 +174,25 @@ Member-specific mutations are **not** duplicated under Engagement tabs. Engageme
 
 See: `docs/phase-engagement/GAMIFICATION_ADMIN_IA_REVIEW.md`.
 
+### 5.5 Member vs operator point projection (FDA-001)
+
+| Audience | `totalPoints` | History rows | Audit fields |
+| -------- | ------------- | ------------ | ------------ |
+| **Member** (`/engagement/me/*`) | Display floor `max(0, ledger sum)` — never negative in UI | Neutral labels only; no signed negative deltas; expandable detail for corrections/reversals | **No** `actor_user_id`, operator reason text, or internal entity ids |
+| **Operator** (`/engagement/operator/members/:userId`) | Exact signed ledger sum | Signed `points_delta`, mandatory `reason`, `actor_role`, timestamp | Full mutation audit for support |
+
+**Member history kinds** (projected in `packages/engagement-http-contracts`):
+
+| Internal `source_event_type` | Member `kind` | FA label | EN label |
+| -------------------------- | ------------- | -------- | -------- |
+| `engagement.points.manual_adjustment` (negative delta) | `correction` | اصلاح امتیاز | Points correction |
+| `engagement.points.reversed` | `reversal` | برگشت امتیاز | Points reversal |
+| Positive awards (`profile.completed`, etc.) | `award` | Domain copy | Domain copy |
+
+Reversal expandable detail: **امتیاز این رویداد اصلاح شد** / *Points for this activity were corrected.*
+
+**Presentation rules:** no destructive/red styling for corrections; Wallet and Engagement remain separate surfaces.
+
 ---
 
 ## 6. Notifications (MNI-001)

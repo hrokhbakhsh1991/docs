@@ -13,14 +13,25 @@ export type {
   EngagementLevelDefinitionListHttpResponse,
   EngagementLevelHttpItem,
   EngagementMemberLookupHttpResponse,
+  EngagementMemberPointEventHttpItem,
+  EngagementMemberPointEventViewKind,
   EngagementMemberSummaryHttpResponse,
   EngagementOperatorCatalogHttpResponse,
+  EngagementOperatorMemberSummaryHttpResponse,
   EngagementOperatorOverviewHttpResponse,
   EngagementOperatorPolicyHttpResponse,
   EngagementPointEventHttpItem,
   EngagementPointHistoryHttpResponse,
   EngagementReversalHttpResponse,
 } from "./engagement-response.schemas";
+
+export {
+  MEMBER_ENGAGEMENT_HISTORY_LABEL_KEYS,
+  projectMemberDisplayPoints,
+  projectMemberPointEvent,
+  projectMemberPointEvents,
+  toOperatorPointEventHttpItem,
+} from "./member-engagement-projection";
 
 export {
   createAwardRuleBodySchema,

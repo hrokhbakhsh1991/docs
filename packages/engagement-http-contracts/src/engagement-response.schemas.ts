@@ -21,7 +21,19 @@ export type EngagementPointEventHttpItem = {
   readonly sourceEventType: string;
   readonly sourceEntityId: string | null;
   readonly reason: string | null;
+  readonly actorRole: string | null;
   readonly createdAt: string;
+};
+
+export type EngagementMemberPointEventViewKind = "award" | "correction" | "reversal";
+
+export type EngagementMemberPointEventHttpItem = {
+  readonly id: string;
+  readonly kind: EngagementMemberPointEventViewKind;
+  readonly labelKey: string;
+  readonly detailLabelKey: string | null;
+  readonly createdAt: string;
+  readonly pointsAwarded: number | null;
 };
 
 export type EngagementMemberSummaryHttpResponse = {
@@ -33,11 +45,19 @@ export type EngagementMemberSummaryHttpResponse = {
   readonly pointsToNextLevel: number | null;
   readonly earnedBadgeCount: number;
   readonly badges: readonly EngagementBadgeHttpItem[];
+  readonly recentPointEvents: readonly EngagementMemberPointEventHttpItem[];
+};
+
+export type EngagementOperatorMemberSummaryHttpResponse = Omit<
+  EngagementMemberSummaryHttpResponse,
+  "recentPointEvents"
+> & {
+  readonly totalPoints: number;
   readonly recentPointEvents: readonly EngagementPointEventHttpItem[];
 };
 
 export type EngagementPointHistoryHttpResponse = {
-  readonly items: readonly EngagementPointEventHttpItem[];
+  readonly items: readonly EngagementMemberPointEventHttpItem[];
   readonly hasMore: boolean;
   readonly nextCursor: string | null;
 };
@@ -58,7 +78,7 @@ export type EngagementOperatorOverviewHttpResponse = {
 
 export type EngagementMemberLookupHttpResponse = {
   readonly userId: string;
-  readonly summary: EngagementMemberSummaryHttpResponse;
+  readonly summary: EngagementOperatorMemberSummaryHttpResponse;
 };
 
 export type EngagementReversalHttpResponse = {

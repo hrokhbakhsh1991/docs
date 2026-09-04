@@ -2,10 +2,17 @@ import type { EngagementServicePort } from "@app-tour/engagement-http";
 import type {
   EngagementMemberLookupHttpResponse,
   EngagementMemberSummaryHttpResponse,
+  EngagementOperatorMemberSummaryHttpResponse,
   EngagementOperatorOverviewHttpResponse,
   EngagementOperatorPolicyHttpResponse,
   EngagementAdjustmentHttpResponse,
+  EngagementPointEventHttpItem,
   EngagementReversalHttpResponse,
+} from "@app-tour/engagement-http-contracts";
+import {
+  projectMemberDisplayPoints,
+  projectMemberPointEvents,
+  toOperatorPointEventHttpItem,
 } from "@app-tour/engagement-http-contracts";
 
 import { resolveNextLevel } from "./engagement-policy";
@@ -25,11 +32,33 @@ async function resolveEngagementWorkspaceId(tenantId: string): Promise<string> {
   return gate.workspaceType;
 }
 
-function buildSummary(input: {
+function mapRepositoryPointEvent(event: {
+  readonly id: string;
+  readonly pointsDelta: number;
+  readonly sourceModule: string;
+  readonly sourceEventType: string;
+  readonly sourceEntityId: string | null;
+  readonly reason: string | null;
+  readonly actorRole: string | null;
+  readonly createdAt: Date;
+}): EngagementPointEventHttpItem {
+  return toOperatorPointEventHttpItem({
+    id: event.id,
+    pointsDelta: event.pointsDelta,
+    sourceModule: event.sourceModule,
+    sourceEventType: event.sourceEventType,
+    sourceEntityId: event.sourceEntityId,
+    reason: event.reason,
+    actorRole: event.actorRole,
+    createdAt: event.createdAt.toISOString(),
+  });
+}
+
+function buildMemberSummary(input: {
   readonly totalPoints: number;
   readonly currentLevelCode: string;
   readonly earnedBadges: ReadonlyMap<string, string>;
-  readonly recentEvents: EngagementMemberSummaryHttpResponse["recentPointEvents"];
+  readonly recentEvents: readonly EngagementPointEventHttpItem[];
   readonly adminOps: ReturnType<typeof createEngagementAdminOperations>;
   readonly activeBadges: Awaited<
     ReturnType<
@@ -42,6 +71,52 @@ function buildSummary(input: {
     >
   >;
 }): EngagementMemberSummaryHttpResponse {
+  const displayPoints = projectMemberDisplayPoints(input.totalPoints);
+  const levelDefs = input.activeLevels.map((level) => ({
+    code: level.code,
+    labelKey: levelLabelKey(level.code),
+    minPoints: level.minPoints,
+  }));
+  const currentLevel =
+    levelDefs.find((level) => level.code === input.currentLevelCode) ?? levelDefs[0]!;
+  const nextLevel = resolveNextLevel(displayPoints, levelDefs);
+  return {
+    totalPoints: displayPoints,
+    currentLevelCode: currentLevel.code,
+    currentLevelLabelKey: currentLevel.labelKey,
+    nextLevelCode: nextLevel?.code ?? null,
+    nextLevelLabelKey: nextLevel?.labelKey ?? null,
+    pointsToNextLevel:
+      nextLevel !== null ? Math.max(0, nextLevel.minPoints - displayPoints) : null,
+    earnedBadgeCount: input.earnedBadges.size,
+    badges: input.activeBadges.map((badge) =>
+      input.adminOps.mapBadgeProgress(
+        badge,
+        input.earnedBadges.get(badge.code) ?? null,
+        displayPoints,
+      ),
+    ),
+    recentPointEvents: projectMemberPointEvents(input.recentEvents),
+  };
+}
+
+function buildOperatorMemberSummary(input: {
+  readonly totalPoints: number;
+  readonly currentLevelCode: string;
+  readonly earnedBadges: ReadonlyMap<string, string>;
+  readonly recentEvents: readonly EngagementPointEventHttpItem[];
+  readonly adminOps: ReturnType<typeof createEngagementAdminOperations>;
+  readonly activeBadges: Awaited<
+    ReturnType<
+      ReturnType<typeof createEngagementAdminOperations>["definitionsRepository"]["listActiveBadgesForAward"]
+    >
+  >;
+  readonly activeLevels: Awaited<
+    ReturnType<
+      ReturnType<typeof createEngagementAdminOperations>["definitionsRepository"]["listActiveLevels"]
+    >
+  >;
+}): EngagementOperatorMemberSummaryHttpResponse {
   const levelDefs = input.activeLevels.map((level) => ({
     code: level.code,
     labelKey: levelLabelKey(level.code),
@@ -99,19 +174,12 @@ export function createEngagementService(): EngagementServicePort {
       const earnedMap = new Map(
         badges.map((badge) => [badge.badgeCode, badge.earnedAt.toISOString()] as const),
       );
-      return buildSummary({
+      const recentEvents = events.items.map((event) => mapRepositoryPointEvent(event));
+      return buildMemberSummary({
         totalPoints: profile.totalPoints,
         currentLevelCode: profile.currentLevelCode,
         earnedBadges: earnedMap,
-        recentEvents: events.items.map((event) => ({
-          id: event.id,
-          pointsDelta: event.pointsDelta,
-          sourceModule: event.sourceModule,
-          sourceEventType: event.sourceEventType,
-          sourceEntityId: event.sourceEntityId,
-          reason: event.reason,
-          createdAt: event.createdAt.toISOString(),
-        })),
+        recentEvents,
         adminOps,
         activeBadges,
         activeLevels,
@@ -128,15 +196,7 @@ export function createEngagementService(): EngagementServicePort {
         ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
       });
       return {
-        items: page.items.map((event) => ({
-          id: event.id,
-          pointsDelta: event.pointsDelta,
-          sourceModule: event.sourceModule,
-          sourceEventType: event.sourceEventType,
-          sourceEntityId: event.sourceEntityId,
-          reason: event.reason,
-          createdAt: event.createdAt.toISOString(),
-        })),
+        items: projectMemberPointEvents(page.items.map((event) => mapRepositoryPointEvent(event))),
         hasMore: page.hasMore,
         nextCursor: page.nextCursor,
       };
@@ -157,14 +217,8 @@ export function createEngagementService(): EngagementServicePort {
       ]);
       return {
         recentPointEvents: events.map((event) => ({
-          id: event.id,
+          ...mapRepositoryPointEvent(event),
           userId: event.userId,
-          pointsDelta: event.pointsDelta,
-          sourceModule: event.sourceModule,
-          sourceEventType: event.sourceEventType,
-          sourceEntityId: event.sourceEntityId,
-          reason: event.reason,
-          createdAt: event.createdAt.toISOString(),
           displayHint: event.actorUserId ? `actor:${event.actorRole}` : null,
         })),
         recentBadges: badges.map((badge) => {
@@ -228,21 +282,14 @@ export function createEngagementService(): EngagementServicePort {
       const earnedMap = new Map(
         badges.map((badge) => [badge.badgeCode, badge.earnedAt.toISOString()] as const),
       );
+      const recentEvents = events.items.map((event) => mapRepositoryPointEvent(event));
       return {
         userId,
-        summary: buildSummary({
+        summary: buildOperatorMemberSummary({
           totalPoints: profile.totalPoints,
           currentLevelCode: profile.currentLevelCode,
           earnedBadges: earnedMap,
-          recentEvents: events.items.map((event) => ({
-            id: event.id,
-            pointsDelta: event.pointsDelta,
-            sourceModule: event.sourceModule,
-            sourceEventType: event.sourceEventType,
-            sourceEntityId: event.sourceEntityId,
-            reason: event.reason,
-            createdAt: event.createdAt.toISOString(),
-          })),
+          recentEvents,
           adminOps,
           activeBadges,
           activeLevels,
