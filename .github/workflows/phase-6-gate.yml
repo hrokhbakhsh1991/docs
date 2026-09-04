@@ -83,7 +83,9 @@ jobs:
   fast-closure:
     name: Phase 6 fast-closure (Postgres)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Full build + monorepo test + Denali regression needs headroom on GHA runners.
+    # The previous 45-minute limit cancelled a healthy run at the timeout boundary.
+    timeout-minutes: 60
 
     services:
       postgres:

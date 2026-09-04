@@ -48,5 +48,5 @@ fi
 
 : "${VPS_HOST:?staging VPS_HOST required}"
 : "${VPS_SSH_KEY:?staging VPS_SSH_KEY required}"
-VPS_DEPLOY_PATH="$STAGING_DEPLOY_ROOT" ENV_DIR="$STAGING_ENV_DIR" UNIT_PREFIX=app-tour-staging \
+VPS_DEPLOY_PATH="$STAGING_DEPLOY_ROOT/tooling" ENV_DIR="$STAGING_ENV_DIR" UNIT_PREFIX=app-tour-staging \
   bash "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/p10-staging-remote-gate.sh"

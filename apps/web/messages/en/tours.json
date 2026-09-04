@@ -509,6 +509,7 @@
       "TOUR_TRANSPORT_FETCH_FAILED": "Failed to load transport roster.",
       "TOUR_TRANSPORT_TOUR_HTTP_404": "Tour not found for transport roster.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "Transport bookings not found.",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_503": "The transport bookings service is temporarily unavailable. Please try again.",
       "TOUR_TRANSPORT_TOUR_HTTP_500": "Failed to load transport tour (server error).",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "Failed to load transport bookings (server error)."
     }

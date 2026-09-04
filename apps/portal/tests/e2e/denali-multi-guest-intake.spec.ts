@@ -7,6 +7,7 @@ import {
   CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
   fillCatalogOtp,
+  gotoPortalRegistration,
   requestRegistrationOtp,
 } from "./fixtures/catalog-registration-otp";
 
@@ -17,11 +18,7 @@ const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
 test.describe.configure({ mode: "serial" });
 
 test("Denali other: add 2 guests, remove to 1, submit, show other badge", async ({ page }) => {
-  await page.goto(`/catalog/${DENALI_TOUR_ID}/register`, { waitUntil: "domcontentloaded" });
-
-  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-    timeout: 120_000,
-  });
+  await gotoPortalRegistration(page, DENALI_TOUR_ID);
 
   await requestRegistrationOtp(page, DEV_PHONE);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
@@ -47,4 +44,3 @@ test("Denali other: add 2 guests, remove to 1, submit, show other badge", async 
     timeout: 60_000,
   });
 });
-

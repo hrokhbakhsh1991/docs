@@ -6,6 +6,20 @@ const root = new URL("../..", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 const buildOrder = read("scripts/ci/build-api-workspace-deps.sh");
 const workflow = read(".github/workflows/deploy-staging.yml");
+const adapter = read("scripts/ci/staging-deployment-adapter.sh");
+
+test("staging dependency install cannot dirty the artifact build checkout", () => {
+  assert.match(workflow, /pnpm install --frozen-lockfile --ignore-scripts/);
+});
+
+test("staging proves and normalizes only the known timestamped build report", () => {
+  assert.match(workflow, /name: Prove clean artifact checkout/);
+  assert.match(workflow, /docs\/phase-19\/architecture-truth-drift-report\.json/);
+  assert.match(workflow, /git diff --name-only/);
+  assert.match(workflow, /git ls-files --others --exclude-standard/);
+  assert.match(workflow, /git restore --worktree --/);
+  assert.match(workflow, /test -z "\$\(git status --porcelain\)"/);
+});
 
 test("build order materializes workspace-sdk runtime dependencies", () => {
   const packages = [
@@ -40,4 +54,41 @@ test("staging bounds each focused stage independently", () => {
   assert.match(workflow, /timeout[^\n]+5m pnpm run test:wallet-staging-deploy-guards/);
   assert.match(workflow, /timeout[^\n]+10m bash -c 'cd packages\/workspace-sdk/);
   assert.match(workflow, /timeout[^\n]+5m node --test scripts\/test\/deployment-branch-contract\.spec\.mjs/);
+});
+
+test("staging verifies the downloaded artifact from its actual download layout", () => {
+  assert.match(workflow, /path: dist\/staging-artifacts\/downloaded/);
+  assert.match(workflow, /find "\$download_root" -type f -name 'app-tour-staging-\*\.tar\.zst'/);
+  assert.match(workflow, /cd "\$\(dirname "\$artifact"\)"/);
+  assert.match(workflow, /sha256sum -c "\$\(basename "\$digest_file"\)"/);
+  assert.match(workflow, /release_sha=.*release-manifest\.json/);
+  assert.match(workflow, /STAGING_ARTIFACT=%s/);
+  assert.doesNotMatch(workflow, /sha256sum -c "\$\{artifact\}\.sha256"/);
+});
+
+test("staging passes the verified artifact through the transfer script contract", () => {
+  assert.match(
+    workflow,
+    /ARTIFACT="\$STAGING_ARTIFACT" bash scripts\/vps-deploy\/deploy-staging-artifact-remote\.sh/,
+  );
+});
+
+test("staging uploads the transfer manifest beside the artifact and checksum", () => {
+  assert.match(
+    workflow,
+    /dist\/staging-artifacts\/\$\{\{ steps\.manifest\.outputs\.artifact \}\}\.manifest\.json/,
+  );
+});
+
+test("staging health verification uses the installed tooling layout", () => {
+  assert.match(
+    workflow,
+    /VPS_DEPLOY_PATH: \$\{\{ env\.STAGING_DEPLOY_ROOT \}\}\/tooling/,
+  );
+});
+
+test("staging adapter receives VPS credentials and uses installed tooling", () => {
+  assert.match(workflow, /VPS_HOST: \$\{\{ secrets\.VPS_HOST \}\}/);
+  assert.match(workflow, /VPS_SSH_KEY: \$\{\{ secrets\.VPS_SSH_KEY \}\}/);
+  assert.match(adapter, /VPS_DEPLOY_PATH="\$STAGING_DEPLOY_ROOT\/tooling"/);
 });
