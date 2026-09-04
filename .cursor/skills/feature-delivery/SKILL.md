@@ -132,6 +132,8 @@ Doc-first: update Markdoc under `docs/` before protected code; state `Updating d
 4. Heavy gates (`test:full`, `ci:integrity`, `phase-N:gate`) require explicit user **YES** ([SC-VERIFY-04](stop-conditions)).
 5. Record **every** command, exit code, artifact, result, and verifier in the evidence ledger per [evidence-ledger-schema](evidence-ledger-schema).
 6. **Never claim a test passed without a ledger row.**
+7. **SKIP is never PASS.** Skipped Axe, Playwright, MinIO, Postgres, or build checks leave the matrix row `UNVERIFIED` or `MISSING` — not `COMPLETE`.
+8. Final report claims must **exactly match** ledger rows.
 
 Postgres/RLS specs: `DATABASE_URL` must use `app_tour` role (NOSUPERUSER).
 
@@ -240,6 +242,31 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 Phase C may add CLI appenders; until then the agent maintains these files manually.
 
 **Rule:** No claim in the final report without a ledger row (command + exit code + artifact).
+
+---
+
+## Full closure (mandatory work queue)
+
+**Audit completion ≠ feature completion.**
+
+| Rule | Behavior |
+| ---- | -------- |
+| Mandatory rows | Any matrix row `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED` blocks `COMPLETE` verdict |
+| SKIP | Never counts as PASS or COMPLETE |
+| UNVERIFIED | Required check could not run (missing env) — continue other work; row stays open |
+| Blocked sub-feature | Must **not** stop unrelated executable mandatory items |
+| Stop condition | Only when no executable mandatory work remains **or** explicit architectural decision required |
+| Work queue | Build matrix → process every non-blocked item sequentially → targeted tests + ledger after each slice → re-open queue after every commit/checkpoint |
+| Final report | Forbidden while any mandatory row is open |
+
+---
+
+## Notification policy (full closure)
+
+- Ticket-only notifications (`ticket_notifications` as final shared design) are **forbidden** when user mandates cross-domain inbox.
+- Shared platform capability required for ticketing, booking/tour, payment/debt, wallet.
+- [notification-case-study.mdoc](../../../docs/dev/feature-delivery/notification-case-study.mdoc) is a **historical warning**, not permission to accept ticket-only scope.
+- User authorization of shared path → doc-first [member-notification-inbox.mdoc](../../../docs/standards/member-notification-inbox.mdoc) + `IMPL-SK2.D+` unlock record.
 
 ---
 

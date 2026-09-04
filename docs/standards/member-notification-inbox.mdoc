@@ -1,0 +1,137 @@
+---
+title: Member Notification Inbox — Platform Charter
+standard_id: MNI-001
+version: 1.0.0
+status: approved
+format: markdoc
+doc_role: platform_standard
+extends:
+  - docs/phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md
+  - docs/phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md
+  - docs/standards/workspace-api-capabilities.mdoc
+mandatory_for:
+  - apps/api/src/notifications
+  - apps/portal/src/me/notifications
+code_sot:
+  - apps/api/prisma/schema.prisma
+  - apps/api/src/notifications/member-notification.repository.ts
+---
+
+# Member Notification Inbox — Platform Charter (MNI-001)
+
+**Purpose:** Define the **shared, domain-agnostic** durable in-app notification inbox for all member-facing surfaces. Ticketing, booking/tour, payment/debt, and wallet **must** write to this boundary — not to module-specific inbox tables as the final contract.
+
+---
+
+## 1. Architecture unlock (explicit authorization)
+
+| Field | Value |
+| ----- | ----- |
+| **Unlock ID** | `IMPL-SK2.D+` |
+| **Authorized by** | Product owner / Architect (user chat authorization) |
+| **Date** | 2026-09-04 |
+| **Scope** | `ticketing-system-complete` full closure on branch `feature/ticketing-system` |
+| **Decision** | Implement unified Postgres `member_notifications` + `member_notification_deliveries`; migrate ticketing and DP-4 booking/finance writers; expose `/member/notifications` aggregate API and portal cross-domain bell |
+| **Supersedes for new writes** | `ticket_notifications` as final inbox design (historical rows retained; new writes target `member_notifications`) |
+| **SK2 reconciliation** | See [SK2_D_MEMBER_INBOX.md](../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md) |
+
+**This unlock is recorded in this document.** No prior `IMPL-SK2.D+` existed before this authorization.
+
+---
+
+## 2. Non-goals
+
+- Marketing campaign / bulk email product
+- Operator session authority (PCMS-001 unchanged)
+- Replacing outbox as transport SoT (SK2)
+- Hollow `packages/notification-kernel` package
+
+---
+
+## 3. Data model
+
+### 3.1 `member_notifications`
+
+| Column | Type | Rule |
+| ------ | ---- | ---- |
+| `id` | UUID | PK |
+| `tenant_id` | UUID | RLS scope; from auth context |
+| `user_id` | UUID | Recipient member |
+| `source_module` | text | `ticketing` \| `booking` \| `finance` \| `wallet` |
+| `event_type` | text | Domain outbox event type |
+| `entity_type` | text | `ticket` \| `registration` \| `payment` \| `wallet_event` |
+| `entity_id` | UUID? | Primary entity reference (nullable when N/A) |
+| `title` | text | Rendered or fallback title |
+| `body` | text | Rendered or fallback body |
+| `title_key` | text? | i18n key when template-driven |
+| `body_key` | text? | i18n key when template-driven |
+| `template_key` | text? | Opaque template id |
+| `dedupe_key` | text | Stable idempotency key (typically `domainEventId`) |
+| `payload` | jsonb | Event context for UI deep links |
+| `read_at` | timestamptz? | Member read timestamp |
+| `created_at` | timestamptz | Insert time |
+
+**Unique:** `(tenant_id, user_id, dedupe_key)` — idempotent inbox insert per recipient.
+
+**RLS:** `FORCE ROW LEVEL SECURITY`; policy `tenant_id = current_setting('app.current_tenant_id')::uuid`.
+
+### 3.2 `member_notification_deliveries`
+
+Async email/SMS channel retries keyed to `member_notifications`. Same retry semantics as legacy `ticket_notification_deliveries`.
+
+---
+
+## 4. HTTP API
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
+| GET | `/member/notifications` | Member aggregate inbox (all `source_module`) |
+| GET | `/member/notifications/unread-count` | Cross-domain unread badge |
+| PATCH | `/member/notifications/:id/read` | Mark one read |
+| POST | `/member/notifications/mark-all-read` | Mark all read for recipient |
+
+**Legacy aliases** (ticketing-filtered, deprecated): `/member/ticket-notifications/*` delegate to repository with `sourceModule=ticketing` filter until portal migration completes.
+
+---
+
+## 5. Writers (outbox dispatchers)
+
+| Module | Dispatcher | `source_module` | `entity_type` |
+| ------ | ---------- | --------------- | ------------- |
+| Ticketing | `dispatch-ticket-notification-from-outbox.ts` | `ticketing` | `ticket` |
+| Booking/tour | `dispatch-member-notification-from-outbox.ts` | `booking` | `registration` |
+| Payment/debt | same dispatcher (finance events) | `finance` | `payment` |
+| Wallet | `dispatch-wallet-notification-from-outbox.ts` | `wallet` | `wallet_event` |
+
+All dispatchers call `insertMemberNotificationRow` in `member-notification.repository.ts`.
+
+---
+
+## 6. Portal integration
+
+- Bell badge: `GET /member/notifications/unread-count` (cross-domain)
+- List page: `/me/notifications` → BFF `/api/me/notifications`
+- Deep links: `payload` + `entity_type` + `entity_id` drive navigation (ticket → `/me/tickets/:id`, etc.)
+
+---
+
+## 7. Testing requirements
+
+| Suite | Proves |
+| ----- | ------ |
+| `member-notifications.postgres.spec.ts` | RLS, dedupe, cross-module list, ticketing + booking writers |
+| `ticket-notifications.postgres.spec.ts` | Ticketing path regression via shared table |
+| Portal E2E | Bell + list after operator reply |
+| Axe specs | No serious/critical violations (must **run**, not skip) |
+
+---
+
+## 8. Migration from `ticket_notifications`
+
+1. New writes → `member_notifications` only.
+2. Historical `ticket_notifications` rows remain readable via legacy routes during transition.
+3. No destructive drop of `ticket_notifications` in this tranche.
+
+---
+
+*MNI-001 — platform charter filed with explicit IMPL-SK2.D+ user authorization 2026-09-04.*

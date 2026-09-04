@@ -34,8 +34,16 @@ Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/
 ## Verification and evidence
 
 - **No claim without ledger evidence** — command, exit code, artifact per [`evidence-ledger-schema.mdoc`](../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc).
+- **SKIP ≠ PASS.** Skipped checks → matrix `UNVERIFIED`; never `COMPLETE`.
 - Default fast-track per [`tiered-testing.md`](../../docs/dev/tiered-testing.md); heavy gates need explicit user **YES**.
 - Never hide failed tests or claim pass without a ledger row.
+
+## Full closure
+
+- Audit completion is not feature completion.
+- Process mandatory matrix rows sequentially; blocked items must not stop unrelated work.
+- Do not emit `COMPLETE` while any mandatory row is `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED`.
+- Ticket-only notification inbox forbidden when shared platform mandated — see [`member-notification-inbox.mdoc`](../../docs/standards/member-notification-inbox.mdoc).
 
 ## Operations
 

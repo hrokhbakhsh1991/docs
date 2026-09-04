@@ -152,6 +152,7 @@ Each report section must cite ledger rows:
 | ------------ | ----------------- |
 | Branch unchanged | `bootstrap.branch` + pre-push `git branch --show-current` |
 | Tests passed | Row per suite with `exit_code=0` |
+| Tests skipped | Row with `result=skip` — matrix stays **UNVERIFIED**, not COMPLETE |
 | RLS verified | Postgres spec row + `guard.repository-rls` |
 | Architecture approved | `arch-review.json` `verdict: proceed` |
 | Commits | Rows with `gate_id=commit` and SHAs matching `git log` |

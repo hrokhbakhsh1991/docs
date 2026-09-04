@@ -12,7 +12,7 @@ extends:
 
 **Purpose:** Document the **architectural lesson** from ticketing notifications as a **regression fixture** for the architecture-reviewer. This case study does **not** authorize implementation of a unified notification platform.
 
-**Status:** Lesson learned — **no implementation** in FDA Phase A/B/C.
+**Status:** Lesson learned — **historical warning only**. Do **not** interpret this doc as permission to accept ticket-only scope for full-closure features. When user authorizes shared platform path, implement per [member-notification-inbox.mdoc](../../standards/member-notification-inbox.mdoc) and [SK2_D_MEMBER_INBOX.md](../../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md).
 
 ---
 
@@ -108,7 +108,7 @@ Alignment notes:
 
 **FACT:** [SK2_NOTIFICATION_OUTBOX](../../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) states no `packages/notification-*` until a second real adapter ships — host composition only.
 
-**BLOCKED:** Unified Postgres inbox migration requires Architect `IMPL-SK2.D+` (or successor) unlock — **out of FDA scope**.
+**BLOCKED:** Unified Postgres inbox migration requires Architect `IMPL-SK2.D+` unlock — **see [SK2_D_MEMBER_INBOX.md](../../phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md) when authorized**.
 
 ---
 
