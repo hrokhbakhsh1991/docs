@@ -178,6 +178,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "getWorkspaceRegistrationFlowPlugin",
   "getWorkspaceRuleCell",
   "getWorkspaceThemePresets",
+  "getWorkspaceEngagementCapabilities",
   "getWorkspaceTransportCapabilities",
   "getWorkspaceWalletCapabilities",
   "isMemberPortalEnabled",
