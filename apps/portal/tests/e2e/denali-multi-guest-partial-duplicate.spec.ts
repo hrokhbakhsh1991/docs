@@ -35,6 +35,12 @@ test("Denali other: 10 guests → expect partial failure UI", async ({ page }) =
     phone: DEV_PHONE,
     guestCount: 10,
     expectSuccess: false,
+    // Keep the identity key duplicated so the first POST succeeds and the
+    // following sequential POSTs exercise the API duplicate/partial path.
+    guestOverrides: (index) => ({
+      fullName: `Denali Dup Guest ${index + 1}`,
+      phone: `+1555${String(4104264 + index)}`,
+    }),
   });
 
   await expect(page.locator("[data-denali-submit-results]")).toBeVisible({

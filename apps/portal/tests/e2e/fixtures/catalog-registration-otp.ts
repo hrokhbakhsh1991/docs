@@ -154,6 +154,14 @@ export async function completeCatalogRegistrationIntake(
      * Defaults to `1`.
      */
     readonly guestCount?: number;
+    /** Optional per-card overrides for duplicate/partial-result probes. */
+    readonly guestOverrides?: (index: number) => {
+      readonly fullName?: string;
+      readonly phone?: string;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    };
     /**
      * Optional UX test hook for `registrantTarget="other"`.
      * If set, we will add up to `guestCount` then remove down to this number before filling fields.
@@ -280,13 +288,28 @@ export async function completeCatalogRegistrationIntake(
     const remainingCount = await guestCards.count();
     for (let i = 0; i < remainingCount; i++) {
       const card = guestCards.nth(i);
-      await fillIntakeFieldInRootIfVisible(card, "fullName", input.fullName);
-      if (input.phone) {
-        await fillIntakeFieldInRootIfVisible(card, "phone", input.phone);
+      const guestOverride = input.guestOverrides?.(i) ?? {};
+      const guestFullName = guestOverride.fullName ?? input.fullName;
+      const guestPhone = guestOverride.phone ?? input.phone;
+      await fillIntakeFieldInRootIfVisible(card, "fullName", guestFullName);
+      if (guestPhone) {
+        await fillIntakeFieldInRootIfVisible(card, "phone", guestPhone);
       }
-      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "0012345679");
-      await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");
-      await fillIntakeFieldInRootIfVisible(card, "birthDate", input.birthDate ?? "1990-01-15");
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "nationalId",
+        guestOverride.nationalId ?? input.nationalId ?? "0012345679"
+      );
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "fatherName",
+        guestOverride.fatherName ?? input.fatherName ?? "Smoke Father"
+      );
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "birthDate",
+        guestOverride.birthDate ?? input.birthDate ?? "1990-01-15"
+      );
       await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
 
       await selectNoPersonalCarAndPayDong(card);
