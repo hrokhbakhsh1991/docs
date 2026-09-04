@@ -4,6 +4,8 @@
 import { seedDenaliDefaultWallet } from "./seed-denali-default-wallet";
 import { seedDenaliWalletPilot } from "./seed-denali-wallet-pilot";
 import { ensureAppTourCanReadMigrationHead } from "./seed-wallet-ws1-certification";
+import { ProvisioningService } from "../src/internal/provisioning.service";
+import { seedOperatorSmokeIdentity } from "./seed-operator-smoke-identity-staging";
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL?.trim() || !process.env.DATABASE_URL_ADMIN?.trim()) {
@@ -13,7 +15,10 @@ async function main(): Promise<void> {
   await ensureAppTourCanReadMigrationHead();
   await seedDenaliDefaultWallet();
   await seedDenaliWalletPilot();
-  console.log("seed-denali-wallet-v1: default + pilot complete");
+  const provisioning = new ProvisioningService();
+  await provisioning.seedOperatorSmokeTenant();
+  await seedOperatorSmokeIdentity();
+  console.log("seed-denali-wallet-v1: default + pilot + operator-smoke complete");
 }
 
 main().catch((error: unknown) => {

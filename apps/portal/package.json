@@ -28,6 +28,7 @@
     "test:certify:wallet-ws1": "playwright test -c playwright.wallet-ws1-certification.config.ts",
     "test:certify:denali-wallet-pilot": "playwright test -c playwright.denali-wallet-pilot.config.ts",
     "test:certify:denali-wallet-v1": "playwright test -c playwright.denali-wallet-v1.config.ts",
+    "test:certify:denali-wallet-a11y": "playwright test -c playwright.denali-wallet-a11y.config.ts",
     "start": "next start --port 3003"
   },
   "dependencies": {

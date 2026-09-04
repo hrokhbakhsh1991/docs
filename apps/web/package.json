@@ -33,6 +33,7 @@
     "test:e2e:urban:install": "playwright install chromium",
     "test:certify:wallet-ws1": "playwright test -c playwright.wallet-ws1-certification.config.ts",
     "test:certify:denali-wallet-pilot": "playwright test -c playwright.denali-wallet-pilot.config.ts",
+    "test:certify:denali-wallet-a11y": "playwright test -c playwright.denali-wallet-a11y.config.ts",
     "test:e2e:platform": "playwright test -c playwright.platform.config.ts",
     "test:e2e:platform:install": "playwright install chromium",
     "test:e2e:host-probe": "playwright test -c playwright.host-probe.config.ts",

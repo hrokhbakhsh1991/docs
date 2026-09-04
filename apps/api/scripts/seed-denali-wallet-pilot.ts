@@ -25,6 +25,7 @@ function memberScope(userId: string) {
     tenantId: DENALI_WALLET_PILOT.tenantId,
     workspaceId: DENALI_WALLET_PILOT.workspaceId,
     userId,
+    currency: DENALI_WALLET_PILOT.currency,
   };
 }
 
@@ -161,6 +162,93 @@ async function seedWalletLedgerHistory(): Promise<void> {
   );
 }
 
+async function ensureWalletPilotA11yPaginationHistory(): Promise<void> {
+  const repo = new PrismaWalletRepository();
+  const entitledMemberId = DENALI_WALLET_PILOT.entitledMemberUserId;
+  const operatorId = DENALI_WALLET_PILOT.ownerUserId;
+  const scope = memberScope(entitledMemberId);
+
+  const account = await runWithTenantContext(
+    DENALI_WALLET_PILOT.tenantId,
+    () => repo.findMemberAccount(scope),
+    { actorId: operatorId },
+  );
+  if (!account.ok || account.value === null) {
+    return;
+  }
+
+  const accountId = account.value.id;
+
+  const history = await runWithTenantContext(
+    DENALI_WALLET_PILOT.tenantId,
+    () => repo.listMemberTransactions(scope, accountId, { limit: 25 }),
+    { actorId: entitledMemberId },
+  );
+  if (!history.ok) {
+    return;
+  }
+
+  const targetCount = 21;
+  for (let index = history.value.page.items.length; index < targetCount; index += 1) {
+    const credit = await runWithTenantContext(
+      DENALI_WALLET_PILOT.tenantId,
+      () =>
+        repo.operatorCredit({
+          ...scope,
+          accountId,
+          amountMinor: "100",
+          currency: DENALI_WALLET_PILOT.currency,
+          creationIdempotencyKey: `denali-wallet-pilot-a11y-page-${index}`,
+          reference: `pilot-a11y-page-${index}`,
+          actor: actor(operatorId),
+        }),
+      { actorId: operatorId },
+    );
+    if (!credit.ok) {
+      throw new Error(`DENALI_WALLET_PILOT_A11Y_PAGE_CREDIT_FAILED:${credit.error.code}`);
+    }
+  }
+}
+
+async function seedZeroBalanceWalletAccount(): Promise<void> {
+  const repo = new PrismaWalletRepository();
+  const operatorId = DENALI_WALLET_PILOT.ownerUserId;
+  const memberId = DENALI_WALLET_PILOT.zeroBalanceMemberUserId;
+  const scope = memberScope(memberId);
+
+  const account = await runWithTenantContext(
+    DENALI_WALLET_PILOT.tenantId,
+    () =>
+      repo.getOrCreateAccount({
+        ...scope,
+        currency: DENALI_WALLET_PILOT.currency,
+        accountId: DENALI_WALLET_PILOT.zeroBalanceAccountId,
+      }),
+    { actorId: operatorId },
+  );
+  if (!account.ok) {
+    throw new Error(`DENALI_WALLET_PILOT_ZERO_BALANCE_ACCOUNT_FAILED:${account.error.code}`);
+  }
+
+  const balance = await runWithTenantContext(
+    DENALI_WALLET_PILOT.tenantId,
+    () => repo.getMemberBalance(scope, account.value.id),
+    { actorId: memberId },
+  );
+  if (!balance.ok) {
+    throw new Error(`DENALI_WALLET_PILOT_ZERO_BALANCE_READ_FAILED:${balance.error.code}`);
+  }
+
+  logger.info(
+    {
+      event: "db.seed.denali_wallet_pilot.zero_balance",
+      accountId: account.value.id,
+      balanceMinor: balance.value.balanceMinor,
+    },
+    "denali wallet pilot zero-balance member seeded",
+  );
+}
+
 export async function seedDenaliWalletPilot(): Promise<void> {
   const service = new ProvisioningService();
   await service.seedDenaliWalletPilotTenant();
@@ -171,6 +259,10 @@ export async function seedDenaliWalletPilot(): Promise<void> {
     DENALI_WALLET_PILOT.entitledMemberMobile
   );
   await upsertUser(DENALI_WALLET_PILOT.deniedMemberUserId, DENALI_WALLET_PILOT.deniedMemberMobile);
+  await upsertUser(
+    DENALI_WALLET_PILOT.zeroBalanceMemberUserId,
+    DENALI_WALLET_PILOT.zeroBalanceMemberMobile,
+  );
 
   await upsertMembership({
     userId: DENALI_WALLET_PILOT.ownerUserId,
@@ -185,8 +277,15 @@ export async function seedDenaliWalletPilot(): Promise<void> {
     userId: DENALI_WALLET_PILOT.deniedMemberUserId,
     role: "member",
   });
+  await upsertMembership({
+    userId: DENALI_WALLET_PILOT.zeroBalanceMemberUserId,
+    role: "member",
+    portalModuleGrants: ["wallet"],
+  });
 
   await seedWalletLedgerHistory();
+  await ensureWalletPilotA11yPaginationHistory();
+  await seedZeroBalanceWalletAccount();
   await seedDenaliWalletPilotEngagement();
 
   logger.info(

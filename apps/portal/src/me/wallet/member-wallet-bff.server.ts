@@ -82,9 +82,12 @@ export function buildMemberWalletHistoryView(
   presentation: MemberWalletPresentationPolicy,
 ): MemberWalletHistoryView {
   const items = page.items.map((item) => mapTransactionItem(item, locale, presentation));
+  const resolvedNextCursor =
+    page.nextCursor ??
+    (page.hasMore && page.items.length > 0 ? page.items[page.items.length - 1]!.id : null);
   return {
     items,
-    nextCursor: page.nextCursor,
+    nextCursor: resolvedNextCursor,
     hasMore: page.hasMore,
   };
 }

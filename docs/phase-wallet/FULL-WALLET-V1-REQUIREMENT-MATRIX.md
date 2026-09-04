@@ -55,6 +55,7 @@ Authority: `docs/architecture/wallet-module-phase-0-contract.mdoc`, `docs/archit
 | W23 | Dashboard integration E2E | **COMPLETE** | `WALLET-DEFAULT-MEG-*` + `WALLET-MEG-*`; desktop + mobile screenshots |
 | W24 | Denali ledger policy adapter | **EXPLICITLY_OUT_OF_SCOPE** | WALLET-P0-001 §9.2 manifest scaffold only; no V1 runtime port |
 | W25 | Staging deploy runbook | **COMPLETE** | `docs/phase-23/runbooks/denali-wallet-v1-staging-deploy.md` |
+| W26 | Dedicated Wallet Axe a11y (Denali pilot stack) | **COMPLETE** | `test:certify:denali-wallet-a11y` — portal 9/9 (`WALLET-A11Y-M01..M09`) + operator 6/6 (`WALLET-A11Y-O01..O06`); axe serious/critical, keyboard/focus, forms, currency semantics, RTL/mobile, permission-denied |
 
 ---
 
@@ -74,6 +75,8 @@ denali.workspace.manifest.json workspaceWallet.supported=true
 
 - `pnpm --filter @apps/api run seed:denali-wallet-v1`
 - `pnpm --filter @apps/portal run test:certify:denali-wallet-v1` — 10 passed
+- `pnpm --filter @apps/portal run test:certify:denali-wallet-a11y` — 9 passed (`WALLET-A11Y-M01..M09`)
+- `pnpm --filter @apps/web run test:certify:denali-wallet-a11y` — 6 passed (`WALLET-A11Y-O01..O06`)
 - `pnpm --filter @apps/web run test:certify:denali-wallet-pilot` — 4 passed
 - `pnpm --filter @apps/web exec playwright test -c playwright.wallet-ws1-certification.config.ts` — includes `WALLET-CERT-D01`
 - `pnpm --filter @apps/api run test:wallet-postgres-certification` — 30 passed
@@ -108,6 +111,9 @@ denali.workspace.manifest.json workspaceWallet.supported=true
 | `@apps/api` build | PASS |
 | `@apps/portal` build | PASS |
 | `@apps/web` build | PASS |
+| `test:certify:denali-wallet-a11y` (portal) | PASS — 9/9 |
+| `test:certify:denali-wallet-a11y` (web) | PASS — 6/6 |
+| `test:certify:denali-wallet-v1` (regression) | PASS — 10/10 |
 | `doc:markdoc:validate` | PASS (309 files) |
 | `pre-commit:fast` | PASS |
 

@@ -533,7 +533,7 @@ body[data-app-surface="portal"] [data-portal-member-wallet-transaction-label] {
 
 body[data-app-surface="portal"] [data-portal-member-wallet-transaction-date] {
   font-size: 0.8125rem;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary, #4a5244);
 }
 
 body[data-app-surface="portal"] [data-portal-member-wallet-transaction-amount] {

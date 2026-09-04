@@ -32,6 +32,7 @@ function ensureDevHosts() {
     "portal.denali.localhost",
     "denali.admin.localhost",
     "admin.denali.localhost",
+    "admin.operator.localhost",
   ];
   for (const host of hosts) {
     try {

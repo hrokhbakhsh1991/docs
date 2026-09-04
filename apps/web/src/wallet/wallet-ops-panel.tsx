@@ -1,5 +1,7 @@
 "use client";
 
+import "./wallet-ops-panel.a11y.css";
+
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 
