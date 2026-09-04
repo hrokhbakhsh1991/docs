@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -339,11 +340,10 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
             className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 bg-muted/30 p-2"
           >
             <label className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
+              <Checkbox
                 data-testid={OPERATOR_TICKETS_TEST_IDS.bulkSelectAll}
                 checked={list.items.length > 0 && bulkSelectedIds.length === list.items.length}
-                onChange={toggleBulkSelectAll}
+                onChange={() => toggleBulkSelectAll()}
               />
               <span>{t("bulkSelectAll")}</span>
             </label>

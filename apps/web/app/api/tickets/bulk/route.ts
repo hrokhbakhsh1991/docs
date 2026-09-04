@@ -5,7 +5,6 @@ import type { OperatorTicketDetailHttp } from "@app-tour/ticketing-http-contract
 
 import {
   buildOperatorTicketDetailView,
-  type OperatorTicketMutationBffPayload,
 } from "@/features/tickets/operator-tickets-bff.server";
 import { readOperatorTicketsBffErrorCode } from "@/features/tickets/classify-operator-tickets-bff-error";
 import {

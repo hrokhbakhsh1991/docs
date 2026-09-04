@@ -61,7 +61,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     ]);
     await expect(page.getByText("پاسخ عمومی اپراتور")).toBeVisible({ timeout: 60_000 });
 
-    await page.getByRole("button", { name: /یادداشت داخلی|Internal note/i }).click();
+    await composer.getByRole("tab", { name: /یادداشت داخلی|Internal note/i }).click();
     await composer.locator("textarea").click();
     await composer.locator("textarea").pressSequentially("یادداشت داخلی smoke", { delay: 8 });
     await Promise.all([
