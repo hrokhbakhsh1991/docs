@@ -1,0 +1,72 @@
+---
+description: Non-negotiable safety and architecture rules for Feature Delivery sessions
+alwaysApply: true
+---
+
+# Feature Delivery — session safety (FDA-001)
+
+Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/skills/feature-delivery/SKILL.md`](../skills/feature-delivery/SKILL.md). Charter: [`docs/dev/feature-delivery-agent.mdoc`](../../docs/dev/feature-delivery-agent.mdoc).
+
+## Git and session
+
+- **Never** change branch or create a worktree during a Feature Delivery session.
+- Lock the **actual** starting branch as `lockedBranch`; verify `git branch --show-current` at every checkpoint.
+- Do **not** claim repository or Cloud Agent default branch rules override an explicit session branch lock.
+- `initialHead` is baseline evidence only; `currentHead` may advance after authorized commits on `lockedBranch`.
+- **Never** modify or revert unrelated user changes. Wrong direction → STOP report + pivot memo, not auto-revert.
+- Forbidden: `merge`, `rebase`, `reset --hard`, `clean`, force-push (unless user explicitly unlocks outside FDA).
+
+## Planning and scope
+
+- **Do not implement** before the approved plan (CP1 gate).
+- Stage and commit only files within `scopePaths` (+ allowed `docs/**` when doc-first applies).
+- Feature scope expansion beyond the approved plan requires user gate — hard-stop.
+
+## Architecture
+
+- **architecture-reviewer** is mandatory for platform candidates and multi-consumer primitives — see [`.cursor/agents/architecture-reviewer.md`](../agents/architecture-reviewer.md).
+- Keyword / classifier signals are **not** architecture decisions — see [`architecture-classifier.mdoc`](../../docs/dev/feature-delivery/architecture-classifier.mdoc).
+- Preserve **workspace-agnostic** shared primitives (`platform-core`, `workspace-sdk`, shared API host patterns per WAC-001).
+- Preserve **Denali / Urban / starter** divergence — no accidental cross-workspace leakage.
+- **No Big Bang refactor** in a feature session.
+- Notification/inbox/delivery work: apply [`notification-case-study.mdoc`](../../docs/dev/feature-delivery/notification-case-study.mdoc) — module-specific multi-consumer designs → **SC-ARCH-02** stop.
+
+## Verification and evidence
+
+- **No claim without ledger evidence** — command, exit code, artifact per [`evidence-ledger-schema.mdoc`](../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc).
+- **SKIP ≠ PASS.** Skipped checks → matrix `UNVERIFIED`; never `COMPLETE`.
+- Default fast-track per [`tiered-testing.md`](../../docs/dev/tiered-testing.md); heavy gates need explicit user **YES**.
+- Never hide failed tests or claim pass without a ledger row.
+
+## Blocker recovery (mandatory)
+
+Per [`blocker-recovery.mdoc`](../../docs/dev/feature-delivery/blocker-recovery.mdoc):
+
+- **Never stop on the first failure** — classify, investigate, recover, or exhaust evidenced attempts.
+- **Classify** blockers: code/test, dependency, environment/browser/runtime, missing evidence, architecture ambiguity, security/RLS, product decision.
+- **Recoverable:** inspect call graph, search repo + docs, hypothesize, smallest scoped fix, rerun failing + regression tests; write `blocker-investigation.json`.
+- **Dependency:** official docs first; web research only for current facts with URL/version/finding in artifact; no unverified blog snippets.
+- **Browser/runtime:** env, ports, health, logs, console, network; permitted services only; never claim UI proof without execution.
+- **Architecture ambiguity:** consumer scan + standards compare + fresh architecture-reviewer verdict.
+- **Hard stops unchanged:** security/tenant/RLS ambiguity, migration rewrite, production/secrets, unresolved product decisions — research never overrides.
+- **Blocked sub-feature** must not stop unrelated mandatory queue items.
+- **Resume** requirement queue from last unfinished item after recovery.
+- **Stop only when** recovery exhausted or explicit human decision required.
+
+## Full closure
+
+- Audit completion is not feature completion.
+- Process mandatory matrix rows sequentially; blocked items must not stop unrelated work.
+- Do not emit `COMPLETE` while any mandatory row is `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED`.
+- Ticket-only notification inbox forbidden when shared platform mandated — see [`member-notification-inbox.mdoc`](../../docs/standards/member-notification-inbox.mdoc).
+
+## Operations
+
+- **No production/staging mutation** without explicit unlock ([SC-OPS-01](stop-conditions)).
+- Doc-first on `packages/platform-core`, `packages/workspace-sdk`, `apps/api` — see [`.cursorrules`](../../.cursorrules).
+
+## Hard stop
+
+If any condition in [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc) fires: **stop**, emit Feature Delivery STOP report, list evidence and the exact architect/user decision required. Do not continue implementation on that path.
+
+**Recoverable failures** are not immediate stops — run [blocker-recovery](blocker-recovery) first unless the category is `BR-SEC` or `BR-PROD` (default hard stop).

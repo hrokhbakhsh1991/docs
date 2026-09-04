@@ -1,0 +1,38 @@
+{
+  "name": "@app-tour/ticketing-http-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ticketing-owned HTTP request/response schemas — portable contract package (TKT-001 Phase 1)",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

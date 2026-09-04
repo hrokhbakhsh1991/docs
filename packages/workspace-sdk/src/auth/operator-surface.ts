@@ -12,6 +12,8 @@ export type OperatorSurface =
   | "operator.users.mutate"
   | "operator.bookings.read"
   | "operator.bookings.approve"
+  | "operator.tickets.read"
+  | "operator.tickets.mutate"
   | "operator.settings.read"
   | "operator.settings.mutate"
   | "operator.finance.read";
@@ -32,6 +34,7 @@ const OWNER_ONLY_OPERATOR_SURFACES = new Set<string>([
 const ADMIN_ONLY_OPERATOR_SURFACES = new Set<string>([
   "operator.tours.mutate",
   "operator.bookings.approve",
+  "operator.tickets.mutate",
   "operator.settings.read",
   "operator.settings.mutate",
   "operator.finance.read",
@@ -85,6 +88,10 @@ export function evaluateOperatorSurfaceGrant(
 
   if (ADMIN_ONLY_OPERATOR_SURFACES.has(surface)) {
     return isAdminOrOwner(context);
+  }
+
+  if (surface === "operator.tickets.read") {
+    return context.role === "viewer" || isAdminOrOwner(context);
   }
 
   if (MEMBER_READ_OPERATOR_SURFACES.has(surface)) {

@@ -106,6 +106,14 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
           labelKey: "wallet",
         }),
       }),
+      Object.freeze({
+        id: "tickets",
+        routePath: "/me/tickets",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "tickets",
+        }),
+      }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "finance-ws2": Object.freeze({ availability: "off" as const }),

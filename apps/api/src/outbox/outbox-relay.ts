@@ -372,6 +372,18 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
     await import("../notifications/dispatch-member-notification-from-outbox");
   await dispatchMemberNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
 
+  const { dispatchTicketNotificationFromOutbox } =
+    await import("../notifications/dispatch-ticket-notification-from-outbox");
+  await dispatchTicketNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
+
+  const { dispatchWalletNotificationFromOutbox } =
+    await import("../notifications/dispatch-wallet-notification-from-outbox");
+  await dispatchWalletNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
+
+  const { processTicketNotificationDeliveriesForTenantOnce } =
+    await import("../notifications/process-ticket-notification-deliveries");
+  await processTicketNotificationDeliveriesForTenantOnce(row.tenantId).catch(() => undefined);
+
   await markOutboxDoneWithRetry(row);
 }
 

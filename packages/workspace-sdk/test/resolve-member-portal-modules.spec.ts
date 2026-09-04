@@ -25,10 +25,10 @@ describe("resolve-member-portal-modules.spec.ts — workspace-sdk", () => {
     assert.equal(tryResolveMemberPortalDefaultRoutePath("starter"), null);
   });
 
-  it("SDK-PS2-05 resolveMemberPortalModules returns Denali home + trips + profile + hidden wallet", () => {
+  it("SDK-PS2-05 resolveMemberPortalModules returns Denali home + trips + profile + hidden wallet + tickets", () => {
     const surface = resolveMemberPortalModules("denali");
     assert.equal(surface.defaultPrimaryModuleId, "trips");
-    assert.equal(surface.modules.length, 4);
+    assert.equal(surface.modules.length, 5);
     const home = surface.modules.find((module) => module.id === "home");
     assert.ok(home);
     assert.equal(home.routePath, "/me/home");
@@ -75,6 +75,7 @@ describe("resolve-member-portal-modules.spec.ts — workspace-sdk", () => {
       "member.module.trips",
       "member.module.profile",
       "member.module.wallet",
+      "member.module.tickets",
     ]);
   });
 

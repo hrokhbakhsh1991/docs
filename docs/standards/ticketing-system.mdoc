@@ -1,0 +1,1177 @@
+---
+title: Ticketing System (TKT-001)
+standard_id: TKT-001
+version: 1.0.0
+status: draft
+extends:
+  - docs/standards/member-session-portal-authority.mdoc
+  - docs/standards/workspace-routing-standard.mdoc
+  - docs/standards/workspace-api-capabilities.mdoc
+code_sot:
+  - docs/standards/ticketing-system.mdoc
+mandatory_for:
+  - apps/api
+  - apps/portal
+  - apps/web
+  - packages/workspace-sdk
+planned_packages:
+  - packages/ticketing-http-contracts
+  - packages/ticketing-core
+  - packages/ticketing-http
+---
+
+# Ticketing System (TKT-001)
+
+**Phase:** Full Production V1 design (documentation only; implementation tracked in §22 roadmap).
+
+**Purpose:** Define the canonical **production-ready** contract for multi-tenant member support ticketing across Tour Ops clubs — domain model, lifecycle, authorization, API, UX, notifications, SLA, reporting, testing, and phased rollout.
+
+**Principle:** Ticketing is a **platform capability** with **workspace-configurable** categories, queues, SLA, and enablement. Every read and write is **tenant-bound**, **backend-enforced**, and **fail-closed**. PostgreSQL + RLS is the only persistence path; memory storage is forbidden for ticketing data.
+
+---
+
+## 1. Purpose
+
+**DECISION:** Clubs need a first-party support channel for members to ask questions, report registration/payment/profile issues, and track operator responses — without WhatsApp or external helpdesk tools in Full V1.
+
+**FACT:** The platform already provides:
+
+- Multi-tenant identity (`User`, `UserTenant`) — `apps/api/prisma/schema.prisma:537-564`
+- JWT member sessions on Portal (PCMS-001) — `docs/standards/member-session-portal-authority.mdoc`
+- Operator sessions on Web (`atour_op_session`) — same standard §1
+- RLS via `withTenantRls` — `apps/api/src/db/with-tenant-rls.ts:16-39`
+- CASL operator surfaces — `packages/workspace-sdk/src/auth/operator-surface.ts:6-17`
+- Booking command-center inbox UX — `apps/web/src/features/bookings/bookings-command-center-shell.tsx`
+- Portal `/me/*` BFF pattern — `apps/portal/app/api/me/wallet/route.ts:29-53`
+- Wallet bounded context — `docs/architecture/adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc`
+
+**INFERENCE:** Ticketing reuses these primitives; it does not introduce a parallel auth or storage model.
+
+---
+
+## 2. Full Production V1 scope
+
+### 2.1 Capability inventory
+
+Legend: **V1** = Full Production V1 · **EXT** = Extension (post-V1)
+
+| # | Capability | Tier | Actors | Permission summary | Tenant boundary |
+| - | ---------- | ---- | ------ | ------------------ | --------------- |
+| 1 | Create and manage tickets | **V1** | member, admin, owner | member own; operator tenant-wide | `tenantId` + RLS |
+| 2 | Multi-message member ↔ operator conversation | **V1** | member, admin, owner | public messages; member own ticket | same tenant |
+| 3 | Public reply and internal note | **V1** | member (public), admin/owner (both) | **viewer mutations = denied** | message `visibility` |
+| 4 | Status lifecycle (§9) | **V1** | per matrix | core-enforced transitions | ticket `tenantId` |
+| 5 | Priority triage | **V1** | admin, owner | member cannot set | ticket row |
+| 6 | Workspace-configurable categories | **V1** | admin, owner configure; all read | manifest + `TicketCategory` | workspace + tenant |
+| 7 | Tags and labeling | **V1** | admin, owner | filter/search | tenant-scoped tags |
+| 8 | Queues and filtered views | **V1** | admin, owner, operator | saved filters + default queues | tenant |
+| 9 | Assignment to operator or team | **V1** | admin, owner | `UserTenant` / team membership | assignee ∈ tenant |
+| 10 | Viewer tenant-wide read-only | **V1** | viewer | **viewer = tenant-wide read-only**; **viewer requires tenant membership** | same tenant only |
+| 11 | Secure attachments | **V1** | member upload on own ticket; operator read/write | signed URL + virus scan hook | storage key per tenant |
+| 12 | Links to Tour, Registration, Payment, Wallet | **V1** | member create; operator read | FK validation under RLS | same tenant |
+| 13 | Audit trail and activity timeline | **V1** | all read per role | `TicketEvent` + `AuditEvent` | tenant |
+| 14 | Persistent in-app notifications (Portal) | **V1** | member, viewer (read) | Postgres outbox → inbox | tenant + user |
+| 15 | Email and SMS abstraction | **V1** | system | provider port; no direct vendor in core | tenant config |
+| 16 | SLA policy, business hours, escalation | **V1** | admin, owner configure | `TicketSlaState` persisted | tenant |
+| 17 | Canned responses / reply templates | **V1** | admin, owner | `TicketTemplate` per workspace | tenant |
+| 18 | Search, filter, sort, pagination | **V1** | operator; member own list | cursor pagination | tenant |
+| 19 | Bulk actions (operator inbox) | **V1** | admin, owner | assign, status, priority batch | tenant |
+| 20 | Reporting and management dashboard | **V1** | admin, owner | aggregate queries | tenant |
+| 21 | Workspace ticketing settings UI | **V1** | owner, admin | categories, SLA, queues, templates | workspace manifest + DB |
+| 22 | RTL, responsive, accessibility | **V1** | all surfaces | WCAG 2.2 AA target | — |
+| 23 | Idempotency, concurrency, optimistic locking | **V1** | all mutators | `Idempotency-Key` + `rowVersion` | — |
+| 24 | Observability, error tracking, retention | **V1** | platform | structured logs, metrics, retention jobs | tenant policy |
+
+### 2.2 Per-capability delivery matrix (summary)
+
+Each **V1** capability requires: domain rules (`ticketing-core`), persistence (Prisma + RLS), HTTP contracts, API routes, UI surface, events/notifications where applicable, automated tests, feature-flag rollout, and documented rollback (disable manifest flag → `TICKET_MODULE_DISABLED`).
+
+Detailed phase mapping: §22.
+
+### 2.3 Surfaces and actors
+
+| Surface | App | Actors |
+| ------- | --- | ------ |
+| Member Portal | `apps/portal` | `member`, `viewer` |
+| Operator Web | `apps/web` | `admin`, `owner` |
+| Workspace settings | `apps/web` | `admin`, `owner` |
+| Reports | `apps/web` | `admin`, `owner` |
+
+**DECISION:** `viewer = tenant-wide read-only` · `member = own-ticket access` · **viewer requires tenant membership** · **viewer mutations = denied**.
+
+---
+
+## 3. Extensions (post Full V1)
+
+Only these remain outside Full Production V1. Each has a product/technical rationale — not deferred for convenience alone.
+
+| Extension | Rationale |
+| --------- | --------- |
+| WhatsApp / omnichannel (Telegram, etc.) | Requires channel adapters, webhook ingress, identity linking, and compliance review per region; out of band with PCMS portal authority |
+| AI auto-reply / triage | Needs model governance, PII redaction pipeline, and human-in-the-loop; separate from core ticket integrity |
+| Standalone knowledge base / public forum | Different content lifecycle and SEO surface; links from tickets sufficient in V1 |
+| Public ticketing marketplace | No product evidence; cross-tenant leakage risk |
+| Cross-tenant platform administration inbox | Violates tenant isolation charter; platform admin remains audit-only |
+| Ticket watchers / CC participants (`TicketParticipant`) | Useful but not required for club support V1; assignee + requester sufficient |
+| Auto-close timer (Zendesk 4-day solved→closed) | Policy variant; V1 uses manual close + SLA breach escalation |
+| Custom per-tenant status buckets (Zendesk custom statuses API) | Fixed enum + labels keeps core transitions testable; workspace labels on categories instead |
+
+---
+
+## 4. Personas
+
+| Persona | Role | App | Full V1 capabilities |
+| ------- | ---- | --- | -------------------- |
+| Club member | `member` | Portal | Create, list own, read own, public reply, attachments on own ticket, reopen `resolved`, link tour/registration — **member = own-ticket access** |
+| Club viewer | `viewer` | Portal | List tenant tickets, read any member ticket (public + internal read-only), notifications read — **viewer = tenant-wide read-only**; **viewer mutations = denied** |
+| Club operator | `admin` | Web | Full inbox, queues, assign (user/team), reply, internal note, templates, reports read, **bulk actions** (`POST /tickets/bulk`) |
+| Workspace owner | `owner` | Web | Same as admin + workspace settings, SLA policies, archive/delete |
+| Platform admin | — | — | **Extension** — no cross-tenant ticket access |
+
+---
+
+## 5. Architecture placement
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ apps/portal                          apps/web                            │
+│  /me/tickets/*                       /tickets/*  /settings/ticketing/*   │
+│  BFF /api/me/tickets/*  ──────────►  operatorApiFetch → API              │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ apps/api                                                                 │
+│  resolveTenantContextFromRequest · requireOperatorSession                │
+│  ticketing.service → withTenantRls · outbox → notifications/email/sms    │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │
+         ┌─────────────────────┼─────────────────────┐
+         ▼                     ▼                     ▼
+packages/ticketing-    packages/ticketing-    packages/ticketing-
+http-contracts          core                    http
+         │                     │                     │
+         └─────────────────────┴─────────────────────┘
+                               │
+                               ▼
+              workspace.manifest.json → workspaceTicketing { supported, defaults }
+              + TicketCategory, TicketQueue, TicketSlaPolicy (tenant DB)
+```
+
+| Package | Responsibility |
+| ------- | -------------- |
+| `@app-tour/ticketing-http-contracts` | Zod schemas, wire types, error codes |
+| `@app-tour/ticketing-core` | Pure domain: transitions, permissions, SLA rules, validation |
+| `@app-tour/ticketing-http` | HTTP handlers; host ports pattern |
+| `apps/api/src/workspace-ticketing/` | Prisma repositories, service wiring, outbox consumers |
+
+**Operator surfaces:**
+
+```text
+operator.tickets.read
+operator.tickets.mutate
+operator.tickets.assign
+operator.tickets.bulk
+operator.tickets.settings
+operator.tickets.reports
+```
+
+---
+
+## 6. Tenant isolation and privacy
+
+### Rules (MUST)
+
+1. Every query includes `tenantId` from authenticated context — never from unvalidated body alone.
+2. Every persistence call uses `withTenantRls(tenantId, …)`.
+3. Never fetch by `ticketId` alone; always composite `(tenantId, id)`.
+4. **member = own-ticket access** — `requesterUserId = auth.userId` on member routes.
+5. **viewer = tenant-wide read-only** — no `requesterUserId` filter on list/read; **viewer requires tenant membership**.
+6. **viewer mutations = denied** → `TICKET_VIEWER_READ_ONLY`.
+7. `assigneeUserId` / team members must belong to same `tenantId`.
+8. Related Tour, Registration, Payment, Wallet entities validated under RLS before link persist.
+9. Memory driver MUST NOT implement ticketing repositories.
+
+### Privacy
+
+- Member never sees other members' tickets or internal notes.
+- Viewer sees tenant tickets read-only including internal notes (audit/compliance role).
+- Attachments: member sees own ticket files; operators see tenant ticket files; signed URLs short-lived.
+- Retention: configurable per workspace (`workspaceTicketing.retentionDays`); default 7 years audit, 2 years attachments (configurable).
+
+### IDOR mitigations
+
+| Risk | Mitigation | Severity |
+| ---- | ---------- | -------- |
+| Cross-tenant read | RLS + auth.tenantId | P0 |
+| Member reads another ticket | `requesterUserId` filter | P0 |
+| Viewer without membership | `UserTenant` ACTIVE check | P0 |
+| Viewer mutation | **viewer mutations = denied** | P0 |
+| Internal note to member API | `visibility = public` filter | P0 |
+| Attachment URL guessing | signed URL + tenant-scoped storage key | P0 |
+| Cross-tenant assignee | team/user membership check | P1 |
+
+---
+
+## 7. Domain model (Full Production V1)
+
+### 7.1 Model summary
+
+| Model | Tier | tenantId | workspace scope | Notes |
+| ----- | ---- | -------- | --------------- | ----- |
+| `Ticket` | V1 | yes | via tenant registry | Core aggregate root |
+| `TicketMessage` | V1 | yes | — | public \| internal |
+| `TicketEvent` | V1 | yes | — | product timeline |
+| `TicketAttachment` | V1 | yes | — | MinIO / receipt-proof pattern |
+| `TicketCategory` | V1 | yes | `workspaceType` | DB + manifest sync |
+| `TicketTag` | V1 | yes | optional workspace | many-to-many via `TicketTagAssignment` |
+| `TicketQueue` | V1 | yes | per workspace | saved filter definition |
+| `TicketTeam` | V1 | yes | — | operator group |
+| `TicketTeamMember` | V1 | yes | — | join table |
+| `TicketSlaPolicy` | V1 | yes | per workspace | targets + business hours |
+| `TicketSlaState` | V1 | yes | — | per-ticket SLA clock |
+| `TicketNotification` | V1 | yes | — | durable inbox row |
+| `TicketTemplate` | V1 | yes | per workspace | canned responses |
+| `TicketParticipant` | EXT | yes | — | watchers/CC |
+| `AuditEvent` | V1 | yes | platform | existing compliance store |
+
+### 7.2 Ticket
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `id` | UUID | yes | PK |
+| `tenantId` | UUID | yes | RLS key |
+| `requesterUserId` | UUID | yes | FK → users |
+| `assigneeUserId` | UUID | null | individual assignee |
+| `assigneeTeamId` | UUID | null | team assignee (xor with user) |
+| `queueId` | UUID | null | current queue placement |
+| `categoryCode` | string(64) | yes | FK → TicketCategory.code |
+| `priority` | enum | yes | low \| normal \| high \| urgent |
+| `status` | enum | yes | §9 |
+| `subject` | string(200) | yes | |
+| `creationIdempotencyKey` | string | null | unique per tenant; create-ticket retry safety (Phase B1) |
+| `lastActivityAt` | timestamptz | yes | |
+| `resolvedAt` | timestamptz | null | |
+| `closedAt` | timestamptz | null | |
+| `archivedAt` | timestamptz | null | owner archive |
+| `rowVersion` | int | yes | optimistic lock |
+| `createdAt` / `updatedAt` | timestamptz | yes | |
+
+**Indexes:** `(tenantId, status, lastActivityAt DESC)`, `(tenantId, requesterUserId, createdAt DESC)`, `(tenantId, assigneeUserId, status)`, `(tenantId, assigneeTeamId, status)`, `(tenantId, queueId, status)`, GIN full-text on `subject` (V1 search).
+
+**RLS:** `tenant_id = current_setting('app.current_tenant_id')::uuid`
+
+**Cascade:** messages/attachments/events cascade delete on ticket hard-delete (owner-only); archive is soft (`archivedAt`).
+
+### 7.3 TicketMessage
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `id`, `tenantId`, `ticketId` | UUID | composite FK |
+| `authorUserId` | UUID | from JWT |
+| `visibility` | enum | public \| internal |
+| `body` | text | max 10_000 |
+| `templateId` | UUID | null — if created from canned response |
+| `idempotencyKey` | string(128) | null, unique per ticket |
+| `createdAt` | timestamptz | |
+
+### 7.4 TicketAttachment
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `id`, `tenantId`, `ticketId`, `messageId` | UUID | optional message link |
+| `objectKey` | string | `tickets/{tenantId}/{ticketId}/{uuid}/{safeName}` — DB CHECK enforces tenant prefix (Phase B1) |
+| `originalFileName` | string | display name |
+| `contentType` | string | jpeg, png, webp, pdf |
+| `sizeBytes` | int | max 8 MiB (DB CHECK) |
+| `uploadedByUserId` | UUID | |
+| `checksum` | string | null — optional integrity hash |
+| `deletedAt` | timestamptz | null — soft-delete metadata (Phase B1) |
+| `scanStatus` | enum | pending \| clean \| rejected — Phase E adapter |
+| `createdAt` | timestamptz | |
+
+**Security:** pre-signed upload URL; download via short-lived signed GET; member only own ticket.
+
+### 7.5 TicketCategory
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `tenantId`, `workspaceType` | | composite scope |
+| `code` | string(64) | stable slug PK with tenantId |
+| `labelKey` | string | i18n key |
+| `enabled` | boolean | |
+| `sortOrder` | int | |
+| `defaultPriority` | enum | optional |
+
+Manifest `workspaceTicketing.categories[]` seeds defaults; DB is runtime SoT after enablement.
+
+### 7.6 TicketTag / TicketTagAssignment
+
+`TicketTag`: `(tenantId, code)` unique, `label`, `colorToken`.
+
+`TicketTagAssignment`: `(tenantId, ticketId, tagCode)` — index for filter.
+
+### 7.7 TicketQueue
+
+Saved filter: `{ name, filterJson, sort, isDefault, teamId? }` where `filterJson` holds status/priority/category/tag/assignee/unassigned/q.
+
+Queues are **persisted views**, not separate ticket stores (JSM queue pattern — §21).
+
+### 7.8 TicketTeam / TicketTeamMember
+
+Team: `(tenantId, id, name, isDefault)`.
+
+Members: `(tenantId, teamId, userId)` — all users must be ACTIVE `UserTenant`.
+
+Assignment: ticket `assigneeTeamId` OR `assigneeUserId` (mutually exclusive).
+
+### 7.9 TicketSlaPolicy / TicketSlaState
+
+**Policy (`TicketSlaPolicy`)** — tenant-scoped, matchable by `workspaceType`, `categoryCode`, `priority`, `queueId` (most specific wins).
+
+| Field | Notes |
+| ----- | ----- |
+| `code`, `name` | operator settings identity |
+| `firstResponseMinutes` | clock from ticket create until first operator public reply |
+| `nextResponseMinutes` | clock from each member public message until next operator public reply |
+| `resolutionMinutes` | clock from create until `resolved`/`closed` |
+| `businessHoursJson` | `{ timezone, weekly: { mon..sun: [{start,end}] } }` — default TZ `Asia/Tehran` |
+| `escalationSteps` | `[{ level, afterMinutes, action: notify_team \| bump_priority, teamId?, priority? }]` |
+| `warningThresholdPercent` | default `80` — warning notification before breach |
+| `enabled` | soft-disable without delete |
+
+**State (`TicketSlaState`)** — one row per ticket (`tenantId`, `ticketId`).
+
+| Field | Notes |
+| ----- | ----- |
+| `policyId` | resolved policy at last recalculation |
+| `firstResponseDueAt`, `nextResponseDueAt`, `resolutionDueAt` | persisted deadlines (idempotent recompute) |
+| `firstRespondedAt` | stops first-response clock |
+| `lastMemberMessageAt` | anchor for next-response clock |
+| `breachedAt` | first breach timestamp (any clock) |
+| `escalationLevel` | `0` = none; increments per `escalationSteps` |
+| `pausedAt`, `pausedMs` | on-hold pause — **not** a status literal |
+| `*WarningEmittedAt` | idempotent warning markers per clock |
+
+**On-hold:** `Ticket.onHold` boolean + `onHoldReason` — pauses SLA via `TicketSlaState.pausedAt`; member public reply returns `409 TICKET_ON_HOLD`.
+
+**Worker:** `processTicketSlaOnce` polls due states, emits `ticket.sla.warning` / `ticket.sla.breached` / `ticket.sla.escalated` via outbox. `TicketSlaEscalationActivation` unique `(tenantId, ticketId, escalationLevel)` prevents duplicate escalation on restart.
+
+**Visibility:** operators/admins/owners see SLA in ticket detail; members and viewers see public status only (no internal SLA clocks).
+
+### 7.10 TicketNotification
+
+| Field | Notes |
+| ----- | ----- |
+| `id` | UUID primary key |
+| `tenantId` | tenant scope (RLS) |
+| `userId` | recipient user |
+| `ticketId` | deep link target |
+| `eventType` | notification kind (see §7.10.1) |
+| `title` | English fallback copy |
+| `body` | English fallback copy |
+| `readAt` | null = unread |
+| `domainEventId` | idempotent key — same ticket domain event + recipient cannot duplicate |
+| `payload` | JSON: `titleKey`, `bodyKey`, `titleFa`, `bodyFa`, `subject`, `ticketStatus`, interpolation vars |
+| `createdAt` | enqueue time |
+
+**DECISION:** Postgres-backed durable inbox (replaces in-memory member notification path for ticketing events).
+
+#### 7.10.1 Notification event types (Phase H)
+
+| `eventType` | Source domain event | Primary recipients |
+| ----------- | ------------------- | ------------------ |
+| `ticket.created` | `ticket.created` | requester; assignee or team/queue operators |
+| `ticket.message.posted` | `ticket.message.created` (public) | member author → assignee/team; operator author → requester |
+| `ticket.status.changed` | `ticket.status.changed` | requester + assignee/team (exclude actor) |
+| `ticket.assigned` | `ticket.assigned`, `ticket.team.assigned` | new assignee user or all team members |
+| `ticket.priority.changed` | `ticket.priority.changed` | requester + assignee/team |
+| `ticket.resolved` | `ticket.status.changed` where `to=resolved` | requester |
+| `ticket.reopened` | `ticket.reopened` | requester + assignee/team |
+
+Internal notes (`ticket.internal_note.created`) do **not** emit member-visible notifications.
+
+#### 7.10.2 Delivery pipeline
+
+```text
+Ticket mutation TX
+  ├─ Ticket + TicketEvent writes
+  ├─ AuditEvent append
+  └─ OutboxEvent enqueue (same TX; dedupe tenant+domainEventId)
+
+Outbox relay
+  └─ dispatchTicketNotificationFromOutbox
+       ├─ resolve recipients (tenant-scoped)
+       ├─ INSERT ticket_notifications (dedupe tenant+userId+domainEventId)
+       └─ enqueue TicketNotificationDelivery rows (email/sms) when channel enabled
+
+Channel worker
+  └─ NotificationDeliveryPort adapter (swappable; no vendor SDK in core)
+```
+
+`TicketNotificationDelivery`: `channel` (`email`|`sms`), `status` (`pending`|`delivered`|`failed`), `attemptCount`, `nextAttemptAt`, `lastError` — mirrors integration delivery retry semantics.
+
+#### 7.10.3 Read API authorization
+
+| Actor | List scope | Mutations |
+| ----- | ---------- | --------- |
+| `member` | `tenantId` + `userId = self` | mark read, mark all read |
+| `viewer` | `tenantId` (all rows) | **denied** (read-only) |
+| `operator` (`admin`/`owner`) | `userId = self` (notifications materialized per operator at dispatch) | mark read, mark all read |
+
+Cross-tenant reads return `404` / empty — never leak foreign tenant ids.
+
+HTTP cache: `Cache-Control: private, no-store` on all notification responses.
+
+### 7.11 TicketTemplate
+
+Tenant-scoped canned responses and notification copy. **No arbitrary code execution** — `{{variable}}` interpolation uses an allowlist only; HTML/script stripped on save and render.
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `code` | string | unique per `(tenantId, channel, locale)` |
+| `title` | string | operator label / notification title |
+| `body` | text | template body |
+| `channel` | enum | `public_reply` \| `internal_note` \| `email` \| `sms` \| `sla_warning` \| `sla_breach` |
+| `locale` | `en` \| `fa` | |
+| `enabled` | boolean | |
+| `version` | int | monotonic; revision history in `TicketTemplateRevision` |
+| `workspaceType` | string? | null = all workspaces |
+| `isSystemDefault` | boolean | seeded from workspace manifest; rollback restores prior revision |
+
+**Variable allowlist:** `ticketId`, `ticketSubject`, `categoryCode`, `priority`, `status`, `requesterUserId`, `assigneeUserId`, `clock`, `escalationLevel`, `eventType`. Unknown tokens replaced with empty string.
+
+**Visibility:** operators/admins/owners CRUD via `/ticket-templates/*`; viewer read-only. Members have **no** template API — internal/SLA channels never exposed to portal.
+
+**Automation (Phase J1):** event-driven, idempotent via `TicketTemplateAutomationActivation (tenantId, domainEventId, templateCode, locale)`. Maps SLA/notification outbox events to `email` / `sms` / `sla_*` templates. No bulk send; noop provider for external delivery in this phase.
+
+**Denali defaults:** `packages/workspaces/denali/workspace.manifest.json` → `workspaceTicketing.defaultTemplates` (seeded idempotently per tenant).
+
+### 7.12 Linked business entities (`TicketLink`)
+
+**DECISION (Phase B1):** Normalized `TicketLink` table — not nullable `related*` columns on `Ticket`.
+
+| Rationale | Detail |
+| --------- | ------ |
+| Multiple links | One ticket may reference tour + registration + payment concurrently |
+| Extensibility | New `entityType` values without `Ticket` schema migration |
+| Duplicate safety | `(tenantId, ticketId, entityType, entityId)` unique per tenant |
+| Tenant scope | `entityId` validated in API phase via module ports; composite FK to `Ticket(tenantId, id)` |
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `tenantId`, `ticketId` | UUID | composite FK → `Ticket` |
+| `entityType` | enum | `tour` \| `registration` \| `payment` \| `wallet` |
+| `entityId` | UUID | same-tenant entity reference |
+| `metadata` | JSON | null — optional link context |
+| `createdAt` | timestamptz | |
+
+| Entity | Validation (API phase) |
+| ------ | ---------------------- |
+| Tour | `tour.tenantId = ticket.tenantId` |
+| Registration | `registration.tenantId` match |
+| Payment | finance module port |
+| Wallet | wallet ownership port |
+
+UI shows deep links; no cross-module writes from ticketing.
+
+**Deferred on `Ticket` (later phases):** `assigneeTeamId`, `queueId`, `slaPolicyId`, `onHold`, `archivedAt` — not in Phase B1 core persistence.
+
+### 7.13 TicketEvent vs AuditEvent
+
+`TicketEvent` — product timeline (operator + sanitized member subset).
+
+`AuditEvent` — compliance (`ticket.*` actions). Both tenant-scoped.
+
+---
+
+## 8. Status lifecycle and workflow
+
+### 8.1 Status enum (Full V1)
+
+| Status | Meaning | Label (fa) |
+| ------ | ------- | ---------- |
+| `open` | Active work | «باز» |
+| `pending_member` | Waiting on member | «در انتظار پاسخ شما» |
+| `resolved` | Soft close; member may reopen | «حل‌شده» |
+| `closed` | Hard close for member | «بسته» |
+
+### 8.2 Additional workflow concepts (not statuses)
+
+| Concept | Tier | Representation | Rationale |
+| ------- | ---- | -------------- | --------- |
+| `reopened` | V1 | `TicketEvent` type `ticket.reopened` + transition to `open` | Avoids extra status; audit-friendly |
+| `on_hold` | V1 | `Ticket.onHold` boolean + `onHoldReason` | Operator pause without inventing `on_hold` status; SLA clocks pause via `TicketSlaState.pausedAt` |
+| `escalated` | V1 | `TicketSlaState.escalationLevel > 0` + event | Escalation is SLA-driven, not a status bucket |
+| `awaiting_assignment` | V1 | Queue filter `assigneeUserId IS NULL AND assigneeTeamId IS NULL` | Unassigned is a queue view, not status |
+| `new` | EXT | — | Redundant with `open` on create |
+| `awaiting_operator` | EXT | — | Replaced by `open` + queue semantics |
+
+**DECISION:** No new status literals beyond the four core values. Workflow richness comes from `onHold`, SLA state, queues, and events.
+
+### 8.3 Transition matrix
+
+| From \ To | open | pending_member | resolved | closed |
+| --------- | ---- | -------------- | -------- | ------ |
+| **open** | — | operator | operator | operator |
+| **pending_member** | member, operator | — | operator | operator |
+| **resolved** | member, operator | operator | — | operator |
+| **closed** | operator, owner | — | — | — |
+
+`onHold` blocks public member reply (409 `TICKET_ON_HOLD`) but operator may still update.
+
+### 8.4 Concurrency and idempotency
+
+| Scenario | Handling |
+| -------- | -------- |
+| Duplicate create/message | `Idempotency-Key` → `HttpIdempotencyRecord` |
+| Concurrent PATCH | `rowVersion` → 409 `TICKET_VERSION_CONFLICT` |
+| Bulk assign | per-ticket rowVersion or batch transaction with partial failure report |
+| Message ordering | `createdAt ASC`, tie-break `id` |
+
+---
+
+## 9. Permission matrix
+
+Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
+
+| Operation | member | viewer | admin | owner |
+| --------- | ------ | ------ | ----- | ----- |
+| Create ticket | ✅ | ❌ | ✅ | ✅ |
+| List own tickets | ✅ 🔒 | — | — | — |
+| List tenant tickets | ❌ | ✅ 👁 | ✅ | ✅ |
+| Read ticket | ✅ 🔒 | ✅ 👁 | ✅ | ✅ |
+| Read internal notes | ❌ | ✅ 👁 | ✅ | ✅ |
+| Public reply | ✅ 🔒 | ❌ | ✅ | ✅ |
+| Internal note | ❌ | ❌ | ✅ | ✅ |
+| Change status / priority | ❌ | ❌ | ✅ | ✅ |
+| Assign user/team | ❌ | ❌ | ✅ | ✅ |
+| Bulk actions | ❌ | ❌ | ✅ | ✅ |
+| Attachments (upload) | ✅ 🔒 | ❌ | ✅ | ✅ |
+| Attachments (download) | ✅ 🔒 | ✅ 👁 | ✅ | ✅ |
+| Templates (use) | ❌ | ❌ | ✅ | ✅ |
+| Templates (manage) | ❌ | ❌ | ✅ | ✅ |
+| Queue views | ❌ | ❌ | ✅ | ✅ |
+| Reports | ❌ | ❌ | ✅ | ✅ |
+| Workspace settings | ❌ | ❌ | ✅ | ✅ |
+| Archive/delete | ❌ | ❌ | ❌ | ✅ |
+
+---
+
+## 10. API contract (Full V1)
+
+### 10.1 Conventions
+
+- Member upstream: `/member/tickets/*`
+- Operator upstream: `/tickets/*`, `/ticket-queues/*`, `/ticket-teams/*`, `/ticket-categories/*`, `/ticket-tags/*`, `/ticket-templates/*`, `/ticket-sla-policies/*`, `/ticket-reports/*`
+- Portal BFF: `/api/me/tickets/*`, `/api/me/ticket-notifications/*`
+- Auth: JWT (member/viewer) or `requireOperatorSession` + operator surfaces
+- Pagination: cursor + `limit` (default 20, max 50 list / 100 search)
+- Mutations: `Idempotency-Key` header required
+- Updates: `rowVersion` required on PATCH
+- Errors: §10.4
+
+### 10.2 Member API
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| GET | `/member/tickets` | member \| viewer | member: own; viewer: tenant |
+| POST | `/member/tickets` | member | create + first message |
+| GET | `/member/tickets/:id` | member \| viewer | messages per visibility rules |
+| POST | `/member/tickets/:id/messages` | member | public reply |
+| POST | `/member/tickets/:id/reopen` | member | from `resolved` |
+| POST | `/member/tickets/:id/attachments` | member | pre-signed upload flow |
+| GET | `/member/ticket-notifications` | member \| viewer | durable inbox; cursor + `limit` |
+| GET | `/member/ticket-notifications/unread-count` | member \| viewer | `{ count }` |
+| PATCH | `/member/ticket-notifications/:id/read` | member | mark read |
+| POST | `/member/ticket-notifications/mark-all-read` | member | mark all for self |
+| GET | `/ticket-notifications` | operator read | operator inbox |
+| GET | `/ticket-notifications/unread-count` | operator read | badge count |
+| PATCH | `/ticket-notifications/:id/read` | operator | mark read |
+| POST | `/ticket-notifications/mark-all-read` | operator | mark all for self |
+
+### 10.3 Operator API
+
+| Method | Path | Surface | Notes |
+| ------ | ---- | ------- | ----- |
+| GET | `/tickets` | read | search (`q`: subject, requester, ticket code), filter, sort, cursor |
+| POST | `/tickets/bulk` | bulk | assign, status, priority, tags — partial per-ticket failure semantics |
+| GET/PATCH | `/tickets/:id` | read/mutate | detail + rowVersion |
+| POST | `/tickets/:id/replies` | mutate | public |
+| POST | `/tickets/:id/internal-notes` | mutate | internal |
+| POST | `/tickets/:id/attachments` | mutate | operator upload |
+| CRUD | `/ticket-queues/*` | settings | queue definitions |
+| CRUD | `/ticket-teams/*` | settings | teams |
+| CRUD | `/ticket-categories/*` | settings | categories |
+| CRUD | `/ticket-tags/*` | settings | tags |
+| CRUD | `/ticket-templates/*` | settings | canned responses |
+| CRUD | `/ticket-sla-policies/*` | settings | SLA |
+| GET | `/ticket-reports/summary` | reports | volumes, SLA, backlog, performance breakdowns |
+| GET | `/ticket-reports/export` | reports | CSV/JSON export (admin/owner, bounded) |
+| GET/PATCH | `/ticket-settings` | settings | manifest + DB workspace ticketing config |
+
+### 10.4 Error codes
+
+| Code | HTTP | When |
+| ---- | ---- | ---- |
+| `TICKET_NOT_FOUND` | 404 | Missing or wrong tenant |
+| `TICKET_CLOSED` | 409 | Reply on closed |
+| `TICKET_ON_HOLD` | 409 | Member reply while on hold |
+| `TICKET_VIEWER_READ_ONLY` | 403 | **viewer mutations = denied** |
+| `TICKET_VERSION_CONFLICT` | 409 | rowVersion mismatch |
+| `TICKET_INVALID_TRANSITION` | 409 | Status matrix |
+| `TICKET_ASSIGNEE_INVALID` | 400 | User/team not in tenant |
+| `TICKET_CATEGORY_INVALID` | 400 | Unknown/disabled category |
+| `TICKET_SLA_BREACH` | — | event only, not client error |
+| `TICKET_ATTACHMENT_REJECTED` | 400 | scan failed |
+| `TICKET_MODULE_DISABLED` | 404 | manifest flag off |
+| `TICKET_STORAGE_UNAVAILABLE` | 503 | memory driver |
+
+---
+
+## 11. UI specification (Full V1)
+
+### 11.1 Member Portal
+
+| Route | Desktop | Mobile | RTL/a11y |
+| ----- | ------- | ------ | -------- |
+| `/me/tickets` | card list + filters | FAB create | chips with icon+text; focus order |
+| `/me/tickets/new` | 640px form | sticky submit | `aria-invalid`, error summary |
+| `/me/tickets/[id]` | timeline + composer | fixed composer | viewer: no composer, read-only banner |
+| `/me/notifications` | ticket notification inbox | same | mark read, deep link |
+
+### 11.2 Operator Web
+
+| Route | Desktop | Mobile |
+| ----- | ------- | ------ |
+| `/tickets` | split-pane inbox + bulk toolbar | list → sheet detail |
+| `/tickets/[id]` | timeline, sidebar links, SLA badge | full-page detail |
+| `/tickets/queues` | queue manager | simplified list |
+| `/settings/ticketing` | categories, tags, teams, SLA, templates tabs | accordion sections |
+| `/reports/ticketing` | charts + export CSV | scrollable cards |
+
+**WCAG 2.2 AA:** focus visible, status not color-only, keyboard bulk selection, screen reader labels on queues/filters.
+
+---
+
+## 12. Notifications and channels
+
+| Channel | Tier | Trigger examples |
+| ------- | ---- | ---------------- |
+| In-app (Portal) | V1 | new reply, status change, SLA warning |
+| Email | V1 | optional per workspace; template port |
+| SMS | V1 | optional; high/urgent SLA breach only |
+
+**Architecture:** ticketing emits domain events → outbox → `TicketNotification` writer + `EmailSmsPort` adapter. No vendor SDK in `ticketing-core`.
+
+---
+
+## 13. Observability and retention
+
+| Concern | Full V1 approach |
+| ------- | ---------------- |
+| Structured logs | `tenantId`, `ticketId`, `actorUserId`, `traceId` |
+| Metrics | `ticket_created_total`, `sla_breach_total`, `first_response_seconds` histogram |
+| Error tracking | existing API error pipeline + `code` dimension |
+| Retention | workspace policy in `ticket_workspace_settings.slaDefaults` (`retentionDays`, `attachmentRetentionDays`); scheduled purge worker (`TICKETING_RETENTION_WORKER_ENABLED=1`) — closed tickets purged after `retentionDays` (default ~7y); soft-deleted attachments after `attachmentRetentionDays` (default 2y) |
+| Rollback observability | feature flag off → metric `ticketing_disabled_total` |
+
+---
+
+## 14. Testing requirements
+
+| Area | Tests |
+| ---- | ----- |
+| Contracts | `ticketing-http-contracts/test/*` |
+| Core domain | lifecycle, permissions, SLA rules, onHold |
+| Persistence | RLS, cross-tenant deny, FK links |
+| API | per-endpoint HTTP specs, idempotency, rowVersion |
+| Attachments | upload auth, scan reject |
+| Notifications | outbox → inbox integration |
+| Bulk | partial failure semantics |
+| Portal E2E | member create → operator reply → member notification |
+| Operator E2E | queue, assign team, SLA breach |
+| a11y | axe on portal + web ticket routes |
+| Fast-track | `pre-commit:fast`, `guard:import-boundary` |
+
+---
+
+## 15. Rollout and rollback (global)
+
+1. Deploy schema + RLS with `workspaceTicketing.supported: false`.
+2. Enable per workspace in manifest.
+3. Portal/operator nav gated by entitlement + operator surfaces.
+4. Sub-features (email, SMS) gated by workspace settings flags.
+
+**Rollback:** manifest `supported: false` → API `TICKET_MODULE_DISABLED`; UI hides; data retained. No destructive schema rollback in production.
+
+---
+
+## 16. Risks
+
+| ID | Risk | Mitigation |
+| -- | ---- | ---------- |
+| R1 | Memory driver hides RLS bugs | Forbid ticketing on memory |
+| R2 | Viewer vs member confusion | Banners + permission tests |
+| R3 | SLA clock timezone errors | business hours JSON + explicit TZ per tenant |
+| R4 | Inbox perf at scale | indexes, cursor pagination, search GIN |
+| R5 | Attachment malware | scan hook + content-type allowlist |
+| R6 | Notification duplication | idempotent outbox consumers |
+| R7 | Bulk partial failure UX | per-item error array in response |
+
+---
+
+## 17. Open decisions
+
+| ID | Decision | Status |
+| -- | -------- | ------ |
+| D1 | Manifest key `workspaceTicketing` | **DECISION** |
+| D2 | Viewer scope | **DECISION:** tenant-wide read-only |
+| D3 | Status literals | **DECISION:** four core + onHold flag |
+| D4 | Queue as saved filter | **DECISION:** yes (JSM-aligned) |
+| D5 | Platform admin inbox | **Extension** |
+| D6 | Urban default enablement | Product per club |
+
+---
+
+## 18. Research references
+
+| Source | URL | Used for |
+| ------ | --- | -------- |
+| Zendesk lifecycle | https://support.zendesk.com/hc/en-us/articles/8263915942938 | pending/resolved/closed |
+| Zendesk custom statuses | https://developer.zendesk.com/api-reference/ticketing/tickets/custom_ticket_statuses/ | why fixed enum in V1 |
+| JSM queues | https://confluence.atlassian.com/servicemanagementserver111/setting-up-queues-for-your-team-1652922384.html | persisted queue views |
+| JSM SLA | https://support.atlassian.com/jira-service-management-cloud/docs/what-are-slas/ | SLA policy/state model |
+| Intercom close/reopen | https://www.intercom.com/help/en/articles/8363763-close-a-conversation | resolved vs closed |
+| WCAG 2.2 | https://www.w3.org/WAI/WCAG22/ | a11y |
+| NN/g heuristics | https://www.nngroup.com/articles/ten-usability-heuristics/ | status visibility |
+
+---
+
+## 19. Category and priority (summary)
+
+**Category:** manifest `workspaceTicketing.categories[]` is the validation source in Phase D1; `categoryCode` on tickets must match a declared code for the tenant workspace type. Runtime DB `TicketCategory` sync is deferred until settings UI (Phase K).
+
+**Priority:** member cannot set; operator triages. Values: `low`, `normal`, `high`, `urgent`.
+
+### 19.1 `workspaceTicketing` manifest contract (Phase D1)
+
+Top-level manifest block — codegen emits `WORKSPACE_TICKETING_CAPABILITIES` and `WORKSPACE_TICKETING_BINDINGS`.
+
+| Field | Required when `supported: true` | Notes |
+| ----- | ------------------------------- | ----- |
+| `supported` | yes | `false` or absent → ticketing API returns `TICKET_MODULE_DISABLED` |
+| `defaultModuleEnabledWhenUnset` | no | default `false` (fail-closed); theme `enabledModules` must include `ticketing` when unset |
+| `capabilities.memberCreate` | yes | member POST `/member/tickets` |
+| `capabilities.operatorInbox` | yes | operator `/tickets/*` |
+| `capabilities.tags` | yes | tag CRUD + assignment |
+| `capabilities.queues` | yes | queue CRUD + ticket queue mutation |
+| `capabilities.teams` | yes | team CRUD + team assignment policy |
+| `capabilities.attachments` | no | Phase E; default `false` |
+| `categories[]` | yes | `{ code, labelKey, description?, icon?, sortOrder?, defaultPriority? }` |
+| `defaultCategoryCode` | yes | must match a `categories[].code` |
+| `allowedPriorities` | yes | subset of `low \| normal \| high \| urgent` |
+| `maxAttachmentSizeBytes` | no | default 10_485_760 (10 MiB) for Phase E |
+| `queueDefaults` | no | seed hints for operator onboarding (not persisted) |
+
+**Workspace enablement (D1):**
+
+| Workspace | `supported` | `defaultModuleEnabledWhenUnset` | Notes |
+| --------- | ----------- | ------------------------------- | ----- |
+| denali | `true` | `false` | categories seeded in manifest |
+| urban | absent | — | unsupported until product decision (D6) |
+| starter | absent | — | unsupported scaffold |
+| wallet-ws1 / booking-ws2 | absent | — | cert fixtures only |
+
+Theme gate: `enabledModules` contains `ticketing` → enabled; non-empty list without `ticketing` → disabled; empty/unset → `defaultModuleEnabledWhenUnset`.
+
+### 19.2 Phase D1 persistence (operational backend)
+
+Additive migration `ticket_operational_d1` — does not rewrite B1.
+
+| Table | Tenant scope | Archive behavior |
+| ----- | ------------ | ---------------- |
+| `ticket_tags` | `(tenantId, code)` unique | `archivedAt` set; assignments remain readable |
+| `ticket_tag_assignments` | `(tenantId, ticketId, tagCode)` PK | cascade on ticket delete |
+| `ticket_queues` | `(tenantId, code)` unique | archive sets `archivedAt`; tickets `queueId` cleared (no orphan) |
+| `ticket_teams` | `(tenantId, code)` unique | archive sets `archivedAt`; `assigneeTeamId` cleared on tickets |
+| `ticket_team_members` | `(tenantId, teamId, userId)` PK | user must be ACTIVE `UserTenant` |
+
+`Ticket` extensions: `queueId`, `assigneeTeamId` (mutually exclusive with `assigneeUserId`).
+
+RLS: `ENABLE` + `FORCE` on all new tables; `USING` / `WITH CHECK` on `tenant_id = current_setting('app.current_tenant_id')::uuid`.
+
+### 19.3 Phase D1 operator API (no UI)
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| GET | `/ticket-categories` | operator | manifest categories for tenant workspace |
+| GET/POST | `/ticket-tags` | admin/owner | list/create |
+| PATCH | `/ticket-tags/:code` | admin/owner | update/archive |
+| GET/POST | `/ticket-queues` | admin/owner | list/create |
+| PATCH | `/ticket-queues/:code` | admin/owner | update/archive (clears ticket `queueId`) |
+| GET/POST | `/ticket-teams` | admin/owner | list/create |
+| PATCH | `/ticket-teams/:code` | admin/owner | update/archive |
+| POST | `/tickets/:id/assign` | admin/owner | user or team assignment |
+| POST | `/tickets/:id/queue` | admin/owner | change queue |
+| GET | `/tickets` | operator | filters: `tagCode`, `queueCode`, `teamId`, `assigneeTeamId` (existing filters retained) |
+
+Mutations: `Idempotency-Key` + `rowVersion` on ticket-scoped writes. Events: `ticket.assigned`, `ticket.queue.changed`, `ticket.tag.added`, `ticket.tag.removed`, `ticket.category.changed` (when PATCH changes category). Audit: `ticket.*` actions via existing audit writer.
+
+### 19.4 Phase E1 — attachments and business-entity links
+
+Additive migration `20260903150000_ticketing_attachments_e1` — does not rewrite B1/D1 migrations.
+
+**Upload flow (3-step, receipt-style server upload — client never supplies `objectKey`):**
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+  participant Storage as TenantObjectStoragePort
+
+  Client->>API: POST …/attachments/intents { messageId, originalFileName, contentType, sizeBytes }
+  API->>DB: INSERT scanStatus=pending, sizeBytes=0, objectKey server-generated
+  API-->>Client: { attachmentId, expiresAt } (TTL 15 min)
+
+  Client->>API: PUT …/attachments/:attachmentId/upload (binary body)
+  API->>Storage: put(tickets/{tenantId}/{ticketId}/{messageId}/{attachmentId})
+
+  Client->>API: POST …/messages/:messageId/attachments/:attachmentId/complete
+  API->>Storage: head/exists check
+  API->>API: TicketAttachmentScanPort (V1: MIME allowlist; plug-in malware engine post-v1)
+  API->>DB: sizeBytes, scanStatus=clean|rejected, uploadedAt
+  API-->>Client: attachment metadata + signed read URL optional
+```
+
+| Step | Operator path | Member path | Notes |
+| ---- | ------------- | ----------- | ----- |
+| 1 Intent | `POST /tickets/:ticketId/attachments/intents` | `POST /member/tickets/:ticketId/attachments/intents` | Zod body; validates message ∈ ticket, MIME ∈ {jpeg,png,webp,pdf}, `sizeBytes` ≤ manifest `maxAttachmentSizeBytes`; `Idempotency-Key` dedupes row |
+| 2 Upload | `PUT /tickets/:ticketId/attachments/:attachmentId/upload` | `PUT /member/tickets/:ticketId/attachments/:attachmentId/upload` | Raw body; max bytes enforced; `getTenantObjectStorage().put()` |
+| 3 Complete | `POST /tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | `POST /member/tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | Verifies object exists; runs `getTicketAttachmentScanner()` (`ticket-attachment-scan.ts`); on reject → `scanStatus=rejected`, storage object removed, `TICKET_ATTACHMENT_SCAN_REJECTED`; on clean → `uploadedAt` + `attachment.completed` audit |
+
+**Scan port (V1):** `TicketAttachmentScanPort` in `apps/api/src/workspace-ticketing/ticket-attachment-scan.ts`. Default `createAllowlistTicketAttachmentScanner()` re-validates MIME allowlist at complete time. Tests inject rejecting scanner via `setTicketAttachmentScannerForTests`. Production can swap the port for an external malware engine without changing the complete route.
+
+**Storage certification:** `apps/api/test/ticketing-attachments-minio.spec.ts` — MinIO round-trip when `MINIO_*` set (same bucket stack as tenant branding). E2E Playwright uses in-memory adapter (`TICKETING_E2E_MEMORY_STORAGE=1`) for CI velocity; production uses `MinioTenantObjectStorageAdapter`.
+
+**Object key (server-only):** `tickets/{tenantId}/{ticketId}/{messageId}/{attachmentId}` — DB `CHECK` enforces `tickets/{tenantId}/%/%/%` (three path segments after tenant). SK4 ACL: `assertTenantOwnsObjectKey` accepts `tickets/${tenantId}/` prefix (same family as `receipts/`).
+
+**Download:** `GET /tickets/:ticketId/attachments/:attachmentId` (and member mirror) → short-lived signed read URL; **clean** attachments only for member; operator/viewer per visibility matrix below.
+
+**Delete (`onDelete` policy):** `DELETE /tickets/:ticketId/attachments/:attachmentId` — soft-delete `deletedAt`, remove storage object via `TenantObjectStoragePort.remove()`. Authorized: admin/owner, or member uploader on own ticket **public** message attachment.
+
+| Actor | Read attachments | Upload | Delete |
+| ----- | ---------------- | ------ | ------ |
+| member (own ticket) | clean on **public** messages only | public message on own ticket | own upload on public message |
+| viewer | clean on all messages (incl. internal) | ❌ | ❌ |
+| admin/owner | all non-rejected/failed in operator projection | ✅ | ✅ |
+
+Rejected/failed scan statuses are hidden from normal member/operator projections; admin diagnostics may surface separately in later phases.
+
+**Links API:**
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| GET | `/tickets/:ticketId/links` | operator/viewer; member own ticket | list normalized `TicketLink` rows |
+| POST | `/tickets/:ticketId/links` | admin/owner; member restricted | member: `tour` + `registration` only (create-ticket path already exists); admin: all entity types |
+| DELETE | `/tickets/:ticketId/links/:linkId` | admin/owner only | emits `ticket.link.deleted` |
+
+Entity validation (tenant-bound, fail-closed): `existsTourInTenant`, `existsRegistrationInTenant`, `existsPaymentInTenant`, `existsWalletInTenant` (payment/wallet stubs query `payments` / `wallet_accounts` under RLS).
+
+Events: `attachment.completed`, `attachment.deleted`, `ticket.link.created`, `ticket.link.deleted`. Duplicate link → `TICKET_LINK_DUPLICATE` (409).
+
+**Schema additions (`ticket_attachments`):** `scan_status` (`pending` \| `clean` \| `rejected` \| `failed`), `uploaded_at`, `idempotency_key`, `upload_intent_expires_at`; `size_bytes` CHECK allows `0` when `pending`; unique `(tenant_id, idempotency_key)` where not null.
+
+**Capability gate:** `workspaceTicketing.capabilities.attachments` must be `true` (manifest/codegen); size/MIME limits from `maxAttachmentSizeBytes` + allowed types list in service layer.
+
+---
+
+## 20. Readiness
+
+**Verdict:** Full Production V1 design complete. Implementation follows §22 phased roadmap.
+
+**Recommended verdict:** `READY_FOR_PHASED_IMPLEMENTATION`
+
+---
+
+## 21. Full V1 capability detail (rollout attributes)
+
+| Capability | Domain | API | UI | Event/notification | Tests | Rollout | Rollback |
+| ---------- | ------ | --- | -- | ------------------ | ----- | ------- | -------- |
+| Ticket CRUD | `createTicket` | member/operator routes | portal + inbox | `ticket.created` | core + API | Phase C/F/G | flag off |
+| Messaging | `addPublicMessage`, `addInternalNote` | message routes | composers | `ticket.message.created` | core + E2E | Phase C | flag off |
+| Lifecycle | transition matrix | PATCH status | status dropdown | `ticket.status.changed` | lifecycle.spec | Phase C | flag off |
+| Categories | `TicketCategory` | CRUD settings | settings tab | — | API + validation | Phase D | disable category |
+| Tags | tag assignment | tag routes | filter chips | — | API | Phase D | — |
+| Queues | `TicketQueue` | queue routes | inbox sidebar | — | API | Phase D/G | — |
+| Teams/assign | assign user/team | assign + bulk | dropdowns | `ticket.assigned` | permissions | Phase D | — |
+| Viewer | permissions | member routes | read-only UI | — | permissions.spec | Phase F | — |
+| Attachments | `TicketAttachment` | upload/download | attach button | — | storage spec | Phase E | disable upload |
+| Business links | FK validation | create/detail | sidebar cards | — | integration | Phase E | — |
+| Audit | `TicketEvent` | detail | timeline | audit pipeline | API | Phase C | — |
+| Notifications | `TicketNotification` | inbox routes | bell + list | outbox | integration | Phase H | disable channel |
+| Email/SMS | port adapter | webhook config | settings | outbox | contract tests | Phase H | disable provider |
+| SLA | policy + state | SLA routes | badges + reports | breach events | SLA spec | Phase I | disable SLA |
+| Templates | `TicketTemplate` | template routes | composer picker | — | API | Phase J | — |
+| Search/filter | query parsers | GET list params | inbox filters | — | API | Phase G | — |
+| Bulk | batch commands | POST bulk | toolbar | per-ticket events | API | Phase G | — |
+| Reports | aggregates | report routes | dashboard | — | API | Phase K | hide nav |
+| Settings | manifest + DB | settings routes | settings UI | — | E2E | Phase K | — |
+| a11y/RTL | — | — | all surfaces | — | axe + manual | Phase L | — |
+
+---
+
+## 22. Implementation roadmap (Phase A–L)
+
+### Phase A — Contracts and domain
+
+| | |
+|-|-|
+| **Scope** | `ticketing-http-contracts`, `ticketing-core` (lifecycle, permissions, SLA rules, validation) |
+| **Dependencies** | TKT-001 doc, PCMS, WRS |
+| **Database** | none |
+| **API** | none |
+| **UI** | none |
+| **Tests** | unit: transitions, permissions, SLA, onHold |
+| **Acceptance** | all matrix cases green; import boundary clean |
+| **Rollback** | remove packages |
+
+### Phase B — Database, RLS, persistence
+
+| | |
+|-|-|
+| **Scope** | Prisma models §7, RLS SQL, repositories |
+| **Dependencies** | Phase A |
+| **Database** | all V1 tables |
+| **API** | none |
+| **UI** | none |
+| **Tests** | `ticketing-persistence.postgres.spec.ts`, cross-tenant deny |
+| **Acceptance** | RLS ENABLE+FORCE; memory driver rejected |
+| **Rollback** | flag off; tables empty |
+
+#### Phase B1 — core persistence (shipped)
+
+Migration `20260903120000_ticketing_core_persistence_rls` creates tenant-bound tables:
+
+| Table | Idempotency | Cascade on ticket hard-delete |
+| ----- | ----------- | ----------------------------- |
+| `tickets` | `(tenantId, creationIdempotencyKey)` unique | — |
+| `ticket_messages` | `(tenantId, ticketId, idempotencyKey)` unique | CASCADE |
+| `ticket_events` | — (append-only timeline) | CASCADE |
+| `ticket_attachments` | — (metadata only; upload Phase E) | CASCADE |
+| `ticket_links` | `(tenantId, ticketId, entityType, entityId)` unique | CASCADE |
+
+All tables: `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` + `app.current_tenant_id` isolation policy (wallet/finance standard). Child rows use composite FK `(tenantId, ticketId)` → `tickets(tenantId, id)`.
+
+`TicketEvent` holds product timeline payloads; `AuditEvent` remains the compliance store (`ticket.*` actions) — no duplication.
+
+PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_events` teardown disables trigger in test harness only; attachment→message FK uses `ON DELETE RESTRICT`.
+
+### Phase C — Ticket lifecycle and messaging
+
+| | |
+|-|-|
+| **Scope** | `TicketingService`, create/reply/status/assign core flows |
+| **Dependencies** | A, B |
+| **Database** | Ticket, Message, Event |
+| **API** | core member/operator message + status routes |
+| **UI** | none |
+| **Tests** | integration: create → reply → resolve → reopen |
+| **Acceptance** | service flows green |
+| **Rollback** | disable routes |
+
+### Phase D — Categories, tags, queues, teams, assignment
+
+| | |
+|-|-|
+| **Scope** | taxonomy + routing models |
+| **Dependencies** | C |
+| **Database** | Category, Tag, Queue, Team |
+| **API** | settings CRUD + list filters |
+| **UI** | none |
+| **Tests** | assign team, queue filter, category validation |
+| **Acceptance** | operator can route ticket to team queue |
+| **Rollback** | disable settings routes |
+
+### Phase E — Attachments and linked entities
+
+| | |
+|-|-|
+| **Scope** | attachment storage, tour/registration/payment/wallet links |
+| **Dependencies** | C |
+| **Database** | TicketAttachment + link columns |
+| **API** | upload/download + link validation |
+| **UI** | none |
+| **Tests** | signed URL, scan reject, FK deny cross-tenant |
+| **Acceptance** | member attaches file; operator sees link card |
+| **Rollback** | disable upload |
+
+### Phase F — Member Portal
+
+| | |
+|-|-|
+| **Scope** | `/me/tickets/*`, BFF, viewer read-only (notifications deferred to Phase H) |
+| **Dependencies** | C, E |
+| **Database** | — |
+| **API** | Portal BFF only; list projection adds `publicMessageCount` |
+| **UI** | portal list, create, detail |
+| **Tests** | portal unit + smoke E2E |
+| **Acceptance** | member E2E create → view → reply → reopen |
+| **Rollback** | hide nav; manifest `supported: false` |
+
+#### F1 — Portal routes and BFF
+
+| Surface | Route | Upstream |
+| ------- | ----- | -------- |
+| List | `/me/tickets` | `GET /member/tickets` |
+| Create | `/me/tickets/new` | `POST /member/tickets` |
+| Detail | `/me/tickets/[ticketId]` | `GET /member/tickets/:id` |
+| BFF list/create | `/api/me/tickets` | member tickets |
+| BFF detail | `/api/me/tickets/[ticketId]` | member get |
+| BFF reply | `/api/me/tickets/[ticketId]/messages` | `POST …/messages` |
+| BFF reopen | `/api/me/tickets/[ticketId]/reopen` | `POST …/reopen` |
+| BFF categories | `/api/me/tickets/categories` | workspace manifest (`getWorkspaceTicketingCapabilities`) + theme gate |
+| BFF attachments | `/api/me/tickets/[ticketId]/attachments/*` | E1 member mirror |
+| BFF links | `/api/me/tickets/[ticketId]/links` | member links |
+
+**Auth:** `buildMemberApiHeaders` — cookie → `Authorization: Bearer`; tenant from host bootstrap only.
+
+**Gating:** Denali `memberPortal.modules` adds `tickets` (primary nav). Urban/starter omit module. API `enabledModules` must include `ticketing`; otherwise `TICKET_MODULE_DISABLED`. No hardcoded plugin checks in portal.
+
+**Member visibility:** public messages and `scanStatus=clean` attachments only; internal notes/attachments never in member projections or BFF.
+
+**Viewer visibility (Portal + `/member/tickets/*`):** tenant-wide list/read on member routes; `toViewerTicketDetailHttp` includes internal notes with `visibility` (compliance read-only); portal hides create/reply/reopen/attachment upload when `session.role === "viewer"`.
+
+### Phase G — Operator inbox
+
+| | |
+|-|-|
+| **Scope** | split-pane inbox at `/tickets`, search, filters (status/priority/category/queue/team/assignee/unassigned/tag), detail + composer (public reply / internal note), operational mutations |
+| **Dependencies** | C, D, E |
+| **Database** | PostgreSQL (E2E); memory insufficient for acceptance |
+| **API** | existing operator routes — BFF projection only in `apps/web` |
+| **UI** | `apps/web` command center (Booking pattern), RTL, responsive Sheet on mobile |
+| **Auth** | `operator.tickets.read` (admin/owner/viewer); `operator.tickets.mutate` (admin/owner tenant-scoped); member → 404 on `/tickets` |
+| **BFF** | `/api/tickets/*` — stable view models (`OperatorTicketDetailView`), no raw upstream JSON to client |
+| **Tests** | `apps/web/test/operator-tickets*.spec.ts` + `operator-ticketing-inbox.spec.ts` (Postgres) |
+| **Acceptance** | operator triage E2E (reply, note, assign, queue, tags, resolve/reopen, viewer read-only, member denied) |
+| **Rollback** | hide operator nav via `capabilities.operatorInbox` + `enabledModules` |
+
+**Web routes**
+
+| Surface | BFF | Upstream |
+| --- | --- | --- |
+| Inbox list | `GET /api/tickets` | `GET /tickets` |
+| Detail | `GET /api/tickets/[id]` | `GET /tickets/:id` |
+| Patch | `PATCH /api/tickets/[id]` | `PATCH /tickets/:id` |
+| Reply | `POST /api/tickets/[id]/replies` | `POST /tickets/:id/replies` |
+| Internal note | `POST /api/tickets/[id]/internal-notes` | `POST /tickets/:id/internal-notes` |
+| Reopen | `POST /api/tickets/[id]/reopen` | `POST /tickets/:id/reopen` |
+| Assign | `POST /api/tickets/[id]/assign` | `POST /tickets/:id/assign` |
+| Queue | `POST /api/tickets/[id]/queue` | `POST /tickets/:id/queue` |
+| Tags | `POST/DELETE /api/tickets/[id]/tags` | operational routes |
+| Meta | `GET /api/tickets/meta` | categories + queues/teams/tags (admin) |
+
+**Projection rules:** list/detail map HTTP contracts → labeled view rows (Jalali `lastActivityLabel`, status icon+key). Mutations return `{ ok, detail }` with refreshed `rowVersion`. `TICKET_VERSION_CONFLICT` → controlled refresh message. Idempotency-Key required on writes.
+
+### Phase H — Notifications (in-app, email, SMS)
+
+| | |
+|-|-|
+| **Scope** | `TicketNotification`, `TicketNotificationDelivery`, outbox enqueue in ticketing TX, relay consumer, `NotificationDeliveryPort` email/SMS adapter |
+| **Dependencies** | C, F, G |
+| **Database** | `ticket_notifications`, `ticket_notification_deliveries` + RLS |
+| **API** | `/member/ticket-notifications/*`, `/ticket-notifications/*`; Portal BFF `/api/me/ticket-notifications/*` |
+| **UI** | portal header bell + unread badge; `/me/notifications` inbox (fa/en, RTL) |
+| **Tests** | `ticket-notifications.postgres.spec.ts` (RLS, dedupe, outbox TX, permissions, retry); portal Playwright notification flow |
+| **Acceptance** | operator reply → member durable notification + badge; duplicate outbox replay does not duplicate inbox row |
+| **Rollback** | disable channel flags; notifications remain queryable |
+
+### Phase I — SLA and escalation
+
+| | |
+|-|-|
+| **Scope** | `TicketSlaPolicy`, `TicketSlaState`, `TicketSlaEscalationActivation`, `Ticket.onHold`, business-hours engine in `ticketing-core`, SLA worker, policy CRUD API |
+| **Dependencies** | C, D, H |
+| **Database** | `ticket_sla_policies`, `ticket_sla_states`, `ticket_sla_escalation_activations`; `tickets.on_hold` columns |
+| **API** | `GET/POST/PATCH /ticket-sla-policies/*`; operator ticket detail includes `sla`; member detail excludes SLA |
+| **UI** | operator SLA badge fields in API (web UI deferred to Phase K settings) |
+| **Tests** | `ticketing-core/test/sla.spec.ts`; `ticket-sla.postgres.spec.ts` (deadlines, pause, breach, escalation idempotency, RLS) |
+| **Acceptance** | breach emits durable notification; restart does not duplicate escalation |
+| **Rollback** | `TICKETING_SLA_WORKER_ENABLED=false`; policies remain readable |
+
+**SLA worker runbook (production):** set `TICKETING_SLA_WORKER_ENABLED=1` on API workers. `processTicketSlaOnce` is scheduled from `main.ts` when enabled. Without the flag, SLA state is still written on ticket mutations but background breach/warning escalation does not run.
+
+### Phase J — Templates and automation
+
+| | |
+|-|-|
+| **Scope** | `TicketTemplate`, `TicketTemplateRevision`, `TicketTemplateAutomationActivation`; safe interpolation in `ticketing-core`; template CRUD API; event-driven automation hook on notification outbox |
+| **Dependencies** | H (notifications), I (SLA events) |
+| **Database** | `ticket_templates`, `ticket_template_revisions`, `ticket_template_automation_activations` |
+| **API** | `GET/POST/PATCH /ticket-templates/*`; `POST /ticket-templates/:code/rollback` |
+| **UI** | composer picker deferred to Phase K |
+| **Tests** | `ticketing-core/test/template.spec.ts`; `ticket-templates.postgres.spec.ts` (CRUD, RLS, locale, XSS, versioning, rollback, automation idempotency, permissions) |
+| **Acceptance** | operator lists templates; automation applies email/SMS/SLA copy once per domain event |
+| **Rollback** | disable templates; revision rollback restores prior body |
+
+### Phase K — Reports and workspace settings
+
+| | |
+|-|-|
+| **Scope** | tenant-scoped search (subject, requester, ticket code), stable pagination/sort, bounded aggregates, CSV/JSON export, workspace settings merge (manifest + DB), settings audit |
+| **Dependencies** | D, G, I, J |
+| **Database** | `tickets.ticket_number`, `ticket_number_counters`, `ticket_workspace_settings`; search indexes |
+| **API** | `GET /tickets` (enhanced `q` + `sort`); `GET /ticket-reports/summary`; `GET /ticket-reports/export`; `GET/PATCH /ticket-settings` |
+| **UI** | `/reports/ticketing`, `/settings/ticketing` |
+| **Tests** | `ticketing-core/test/search.spec.ts`; `ticket-search.postgres.spec.ts`; `ticket-reports.postgres.spec.ts`; `ticket-settings.postgres.spec.ts`; Playwright smoke |
+| **Acceptance** | owner configures categories/priorities/SLA defaults; reports tenant-isolated; export permission-gated |
+| **Rollback** | hide nav; settings DB overrides ignored when feature flag off |
+
+#### Phase K1 — Search, reports, settings (implementation)
+
+**Search (`q`):** matches `subject` (ILIKE, max 200 chars), `ticketNumber` / `TKT-######` code, `requesterUserId` when `q` is UUID, requester `User.mobile` partial match (tenant membership join, max 25 user ids). All queries include `tenantId` + existing filters; `take` capped at `MAX_TICKET_LIST_LIMIT`.
+
+**Sort:** `lastActivityAt` (default), `createdAt`, `priority`, `status` — stable tie-breaker `id DESC`. Cursor encodes sort field + value + id.
+
+**Indexes:** `(tenant_id, ticket_number)` unique; `(tenant_id, created_at DESC)`; existing status/activity indexes reused.
+
+**Reports:** `GET /ticket-reports/summary` returns ticket counts, status distribution, avg first-response seconds, avg resolution seconds, SLA breach count, breakdowns by category/queue/team. Optional `from`/`to` ISO window (default 90 days, max 365). Short-lived in-process cache keyed `tenantId:window` (60s TTL).
+
+**Export:** `GET /ticket-reports/export?format=csv|json` — admin/owner only; max 5000 rows; same tenant/window bounds.
+
+**Settings:** `GET /ticket-settings` merges `getWorkspaceTicketingCapabilities(workspaceType)` with `ticket_workspace_settings` overrides (`moduleEnabled`, `categories`, `allowedPriorities`, `maxAttachmentSizeBytes`, `slaDefaults`, `notificationPreferences`). `PATCH` admin/owner only; appends `operator_settings_audit_events` with `resourceType=ticketing_settings`.
+
+**Permissions:** viewer read-only on settings/reports/export denied for mutations; members have no operator settings/report routes.
+
+### Phase L — Security, E2E, accessibility, release
+
+| | |
+|-|-|
+| **Scope** | full regression, a11y audit, perf smoke, release checklist |
+| **Dependencies** | all prior |
+| **Database** | retention jobs |
+| **API** | rate limits review |
+| **UI** | axe + RTL visual regression |
+| **Tests** | full E2E suite, load smoke |
+| **Acceptance** | phase-l gate green; production enablement runbook |
+| **Rollback** | global manifest disable |
+
+#### Phase L1 — Production certification v1
+
+**Artifacts:** `docs/phase-ticketing/L1-RELEASE-CHECKLIST.md`, `docs/phase-ticketing/L1-ROLLBACK-PLAN.md`, `docs/phase-ticketing/L1-CERTIFICATION-REPORT.md`.
+
+**Certified v1 capabilities:** member portal create/reply/attachment/reopen; operator inbox/reply/internal note/assign/queue/tag/resolve/close; viewer tenant-wide read-only; templates + safe automation (J1); search/reports/settings (K1); SLA (I1); tenant isolation + RLS on all ticketing tables; attachment storage via platform storage driver.
+
+**Post-v1 (not in full V1 gate):** email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics.
+
+**Full V1 closure (Phase L):** bulk actions (`POST /tickets/bulk`), retention purge worker, orphan attachment cleanup worker, `@axe-core/playwright` on portal + operator ticket routes.
+
+**Gap remediation (L1 audit):** see `docs/phase-ticketing/GAP-REMEDIATION-REPORT.md` — scan port wired, MinIO spec added, Postgres app-role guard in ticketing specs, docs aligned to implemented surface.
+
+**Gate:** all ticketing unit/postgres/playwright specs green; `guard:repository-rls` + `guard:api-workspace-isolation` pass; fresh + incremental migrations verified; no staging/production deploy during cert.
+
+---
+
+*Document version 1.0.0 — Full Production V1 design. Documentation only.*

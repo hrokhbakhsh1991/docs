@@ -19,8 +19,22 @@ export const OPERATOR_ADMIN_DISPLAY_NAME = "Smoke Admin";
 export const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
 export const OPERATOR_DEV_OTP = process.env.OPERATOR_DEV_OTP?.trim() || "1234";
 export const OPERATOR_INVITEE_MOBILE = "+15550008803";
+export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
+export const OPERATOR_ANONYMOUS_OTP_USER_ID = "00000000-0000-4000-8000-000000000099";
+export const OPERATOR_SMOKE_COOKIE_DOMAIN = "admin.operator.localhost";
 
 const OPERATOR_SESSION_TOKEN_CACHE = new Map<string, string>();
+
+function resolveOperatorCookieUrl(page: Page): string {
+  const context = page.context() as {
+    readonly _options?: { readonly baseURL?: string };
+  };
+  const baseURL = context._options?.baseURL?.trim();
+  if (typeof baseURL === "string" && baseURL.length > 0) {
+    return baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
+  }
+  return `http://${OPERATOR_SMOKE_COOKIE_DOMAIN}:3000`;
+}
 
 function readRequestCookieDomain(page: Page): string {
   const context = page.context() as {
@@ -50,8 +64,7 @@ async function persistOperatorSessionCookie(
     {
       name: SESSION_TOKEN_COOKIE,
       value: loginBody.session_token!,
-      domain: readRequestCookieDomain(page),
-      path: "/",
+      url: resolveOperatorCookieUrl(page),
       httpOnly: true,
       sameSite: "Lax",
     },
@@ -60,6 +73,46 @@ async function persistOperatorSessionCookie(
 
 function cacheKeyForOperatorSession(page: Page, phone: string): string {
   return `${readRequestCookieDomain(page)}::${phone.trim()}`;
+}
+
+async function loginOperatorTeamSessionViaBff(
+  page: Page,
+  phone: string,
+  forceFresh = false,
+): Promise<void> {
+  await page.context().clearCookies();
+
+  const cacheKey = cacheKeyForOperatorSession(page, phone);
+  const cachedToken = forceFresh ? undefined : OPERATOR_SESSION_TOKEN_CACHE.get(cacheKey);
+  if (cachedToken !== undefined) {
+    await persistOperatorSessionCookie(page, { session_token: cachedToken });
+    return;
+  }
+
+  const otpRes = await page.request.post("/api/auth/request-otp", {
+    data: { phone },
+  });
+  const otpText = await otpRes.text();
+  expect(otpRes.ok(), `request-otp failed (${otpRes.status()}): ${otpText}`).toBeTruthy();
+  const otpBody = JSON.parse(otpText) as { challenge_id?: string };
+  expect(typeof otpBody.challenge_id).toBe("string");
+
+  const loginRes = await page.request.post("/api/auth/login-team-web-session", {
+    data: {
+      phone,
+      otp: OPERATOR_DEV_OTP,
+      challenge_id: otpBody.challenge_id,
+    },
+  });
+  const loginText = await loginRes.text();
+  expect(
+    loginRes.ok(),
+    `login-team-web-session failed (${loginRes.status()}): ${loginText}`,
+  ).toBeTruthy();
+  const loginBody = JSON.parse(loginText) as { session_token?: string };
+  expect(typeof loginBody.session_token).toBe("string");
+  await persistOperatorSessionCookie(page, loginBody);
+  OPERATOR_SESSION_TOKEN_CACHE.set(cacheKey, loginBody.session_token!);
 }
 
 async function loginOperatorSessionViaBff(
@@ -144,6 +197,33 @@ export async function loginOperatorWithPhone(
 
 export async function loginOperatorOwner(page: Page): Promise<void> {
   await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE);
+}
+
+export async function loginOperatorAdmin(page: Page): Promise<void> {
+  await loginOperatorWithPhone(page, OPERATOR_ADMIN_MOBILE);
+}
+
+export async function loginOperatorViewer(page: Page): Promise<void> {
+  await loginOperatorTeamSessionViaBff(page, "+15550001004", true);
+  await page.goto("/tickets", { waitUntil: "load" });
+}
+
+export async function loginOperatorMember(page: Page): Promise<void> {
+  await page.context().clearCookies();
+  const otpRes = await page.request.post("/api/auth/request-otp", {
+    data: { phone: OPERATOR_MEMBER_MOBILE },
+  });
+  const otpText = await otpRes.text();
+  expect(otpRes.ok(), `request-otp failed (${otpRes.status()}): ${otpText}`).toBeTruthy();
+  const otpBody = JSON.parse(otpText) as { challenge_id?: string };
+  const loginRes = await page.request.post("/api/auth/login-team-web-session", {
+    data: {
+      phone: OPERATOR_MEMBER_MOBILE,
+      otp: OPERATOR_DEV_OTP,
+      challenge_id: otpBody.challenge_id,
+    },
+  });
+  expect(loginRes.status()).toBe(403);
 }
 
 /** Resolve workspace id from BFF session (draft API namespace). */

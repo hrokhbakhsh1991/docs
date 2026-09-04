@@ -90,6 +90,14 @@ export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
           labelKey: "wallet",
         }),
       }),
+      Object.freeze({
+        id: "tickets",
+        routePath: "/me/tickets",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "tickets",
+        }),
+      }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "guest-club": Object.freeze({

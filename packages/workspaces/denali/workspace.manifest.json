@@ -18,6 +18,7 @@
       "workspaceEquipment": { "revision": 1 },
       "workspaceFinance": { "revision": 1 },
       "workspaceWallet": { "revision": 1 },
+      "workspaceTicketing": { "revision": 1 },
       "workspaceItinerary": { "revision": 1 },
       "workspacePricing": { "revision": 1 },
       "workspaceTransport": { "revision": 1 }
@@ -240,6 +241,57 @@
       "defaultExport": "DEFAULT_WALLET_OPS_MANIFEST",
       "resolveFromThemeExport": "resolveWalletOpsManifestFromTheme"
     }
+  },
+  "workspaceTicketing": {
+    "supported": true,
+    "capabilityRevision": 1,
+    "defaultModuleEnabledWhenUnset": false,
+    "capabilities": {
+      "memberCreate": true,
+      "operatorInbox": true,
+      "tags": true,
+      "queues": true,
+      "teams": true,
+      "attachments": true
+    },
+    "defaultCategoryCode": "general",
+    "allowedPriorities": ["low", "normal", "high", "urgent"],
+    "maxAttachmentSizeBytes": 10485760,
+    "categories": [
+      {
+        "code": "general",
+        "labelKey": "ticketing.category.general",
+        "description": "General support requests",
+        "sortOrder": 0,
+        "defaultPriority": "normal"
+      },
+      {
+        "code": "billing",
+        "labelKey": "ticketing.category.billing",
+        "description": "Payments, invoices, and refunds",
+        "sortOrder": 10
+      },
+      {
+        "code": "tour",
+        "labelKey": "ticketing.category.tour",
+        "description": "Tour and registration questions",
+        "sortOrder": 20
+      },
+      {
+        "code": "technical",
+        "labelKey": "ticketing.category.technical",
+        "description": "Technical issues and account access",
+        "sortOrder": 30
+      }
+    ],
+    "queueDefaults": {
+      "unassigned": {
+        "code": "unassigned",
+        "nameKey": "ticketing.queue.unassigned",
+        "sortOrder": 0
+      }
+    },
+    "defaultTemplates": true
   },
   "workspaceBooking": {
     "supported": true,
@@ -688,7 +740,14 @@
   "memberPortal": {
     "manifestVersion": 2,
     "availability": "full",
-    "preset": "guest-full-v1"
+    "preset": "guest-full-v1",
+    "modules": [
+      {
+        "id": "tickets",
+        "routePath": "/me/tickets",
+        "nav": { "tier": "primary", "labelKey": "tickets" }
+      }
+    ]
   },
   "operatorCapabilities": {
     "usersDirectory": true,

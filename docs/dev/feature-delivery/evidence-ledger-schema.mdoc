@@ -1,0 +1,177 @@
+---
+title: Feature Delivery — Evidence Ledger Schema
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+---
+
+# Feature Delivery — Evidence Ledger Schema
+
+**Purpose:** Define a **machine-readable evidence ledger** so every claim in a Feature Delivery final report maps to a command, exit code, and optional artifact.
+
+**Principle:** `initialHead` is a session baseline; `currentHead` **may change** after authorized commits on the locked branch.
+
+---
+
+## 1. Storage
+
+| Item                  | Location                                                                                         | Committed           |
+| --------------------- | ------------------------------------------------------------------------------------------------ | ------------------- |
+| Session lock          | `.cache/feature-delivery/<sessionId>/SESSION.lock`                                               | **No** (gitignored) |
+| Ledger (TSV)          | `.cache/feature-delivery/<sessionId>/evidence.tsv`                                               | **No**              |
+| Architecture review   | `.cache/feature-delivery/<sessionId>/arch-review.json`                                           | **No**              |
+| Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (or `blocker-<blockerId>.json`) | **No**              |
+| Walkthrough artifacts | `/opt/cursor/artifacts/` (Cloud) or project artifacts dir                                        | **No**              |
+
+Phase C may add `scripts/agents/feature-delivery-evidence-ledger.mjs` to append rows. Phase A defines schema only.
+
+---
+
+## 2. SESSION.lock (JSON)
+
+```json
+{
+  "sessionId": "<session-id>",
+  "featureId": "<feature-slug>",
+  "repoRoot": "/workspace",
+  "lockedBranch": "<locked-branch>",
+  "initialHead": "<initial-head-sha>",
+  "currentHead": "<initial-head-sha>",
+  "startedAt": "2026-09-04T04:55:00.000Z",
+  "scopePaths": ["apps/api/src/workspace-<module>/**", "docs/phase-<feature-slug>/**"],
+  "checkpointsCompleted": ["CP0", "CP1"]
+}
+```
+
+| Field          | Semantics                                                                       |
+| -------------- | ------------------------------------------------------------------------------- |
+| `lockedBranch` | Immutable for session — hard-stop if `git branch --show-current` differs        |
+| `initialHead`  | Recorded at bootstrap — evidence baseline only                                  |
+| `currentHead`  | Updated after each authorized commit — **allowed to change**                    |
+| `scopePaths`   | Glob allowlist for staged files at CP4 — **derived per feature session** at CP0 |
+
+---
+
+## 3. evidence.tsv columns
+
+Tab-separated header (required):
+
+```
+session_id	feature_id	locked_branch	initial_head	current_head	checkpoint	gate_id	command	exit_code	artifact	result	verifier	timestamp
+```
+
+| Column          | Type    | Description                                                   |
+| --------------- | ------- | ------------------------------------------------------------- |
+| `session_id`    | string  | Matches `SESSION.lock.sessionId`                              |
+| `feature_id`    | string  | Stable feature slug                                           |
+| `locked_branch` | string  | Branch at time of row (must match lock)                       |
+| `initial_head`  | string  | Session baseline SHA (constant per session)                   |
+| `current_head`  | string  | `git rev-parse HEAD` when row recorded — **may advance**      |
+| `checkpoint`    | enum    | `CP0` … `CP5`, `bootstrap`, `report`                          |
+| `gate_id`       | string  | Stable id e.g. `guard.import-boundary`, `test.<package-name>` |
+| `command`       | string  | Exact shell command run                                       |
+| `exit_code`     | int     | `0` = pass; non-zero = fail/skip documented in `result`       |
+| `artifact`      | string  | Path to log, screenshot, json report; empty if stdout-only    |
+| `result`        | enum    | `pass` \| `fail` \| `skip` \| `blocked`                       |
+| `verifier`      | string  | `agent` \| `architecture-reviewer` \| `script` \| `user`      |
+| `timestamp`     | ISO8601 | UTC                                                           |
+
+### 3.1 Example rows
+
+```tsv
+session_id	feature_id	locked_branch	initial_head	current_head	checkpoint	gate_id	command	exit_code	artifact	result	verifier	timestamp
+fda-001	<feature-slug>	<locked-branch>	abc12345	abc12345	CP0	bootstrap.git-status	git status --short --branch	0		pass	agent	2026-09-04T04:55:01Z
+fda-001	<feature-slug>	<locked-branch>	abc12345	abc12345	CP4	guard.import-boundary	pnpm run guard:import-boundary	0		pass	script	2026-09-04T05:10:00Z
+fda-001	<feature-slug>	<locked-branch>	abc12345	def67890	CP4	commit	fix(<scope>): <summary>	0		pass	agent	2026-09-04T05:12:00Z
+```
+
+After an authorized commit (`def67890`), `current_head` in `SESSION.lock` and subsequent rows reflects the new SHA while `initial_head` stays `abc12345`. **HEAD advancement on `lockedBranch` is expected** — not a branch-lock violation.
+
+---
+
+## 4. arch-review.json
+
+Architecture-reviewer output (read-only phase):
+
+```json
+{
+  "sessionId": "<session-id>",
+  "featureId": "<feature-slug>",
+  "checkpoint": "CP2",
+  "classifierProposal": "module",
+  "verdict": "pivot",
+  "consumers": ["<domain-a>", "<domain-b>", "<domain-c>"],
+  "platformCandidates": ["notifications"],
+  "finding": "Module-specific persistence duplicates shared primitive",
+  "recommendation": "Document module v1 risk or pivot to platform contract",
+  "reviewer": "architecture-reviewer",
+  "timestamp": "2026-09-04T04:56:00.000Z"
+}
+```
+
+---
+
+## 5. Required gates by feature touch
+
+| Touch surface       | Minimum `gate_id` rows before push                                                    |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| Any code            | `bootstrap.branch`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
+| `apps/api` / Prisma | `guard.repository-rls`, `guard.api-workspace-isolation`, targeted postgres spec       |
+| Protected packages  | `guard.docs`, `doc.markdoc.validate`                                                  |
+| UI                  | app `build`, Playwright smoke, screenshot artifacts                                   |
+| Platform candidate  | `arch-review.json` with reviewer `verdict`                                            |
+
+Skipped gates must be `result: skip` with reason in artifact or `gate_id` suffix (e.g. `minio.round-trip.skip-no-env`).
+
+---
+
+## 6. test-changed coverage gap (feature-scoped)
+
+**When it applies:** Only when the **current feature session** changes files under a package path that [`scripts/test-changed.sh`](../../../scripts/test-changed.sh) does not map (e.g. `packages/<package-name>/*` missing from `pkg_for_path`).
+
+**When it does not apply:** Unrelated features or packages not touched in the session — no global blocker.
+
+If a gap affects the current feature, the agent must:
+
+1. Add ledger row `gate_id=test-changed.coverage-gap` with `result=blocked` (feature-scoped)
+2. Run explicit `<targeted-test-command>` — e.g. `pnpm --filter @app-tour/<package-name> test` — and record a separate row with `result=pass` or `fail`
+3. Note the gap in the final report until Phase D fixes the path map
+
+**Unverified claims are forbidden** — e.g. "`<package-name>` 75/75" without a ledger row for the exact command.
+
+---
+
+## 8. blocker-investigation.json
+
+Per [blocker-recovery](blocker-recovery.mdoc) §5. One artifact per recovered or exhausted blocker.
+
+**Required fields:** `blockerId`, `category`, `symptoms`, `localEvidence`, `codeAnalysis`, `searches`, `hypotheses`, `commandsRun`, `outcomes`, `decision`, `resumedCheckpoint`, `timestamp`.
+
+Link to ledger via `gate_id=blocker.<blockerId>`.
+
+| `decision`  | Meaning                                                      |
+| ----------- | ------------------------------------------------------------ |
+| `recovered` | Fix or env remediation applied; queue resumed                |
+| `hard_stop` | Escalated to STOP report — no further recovery               |
+| `deferred`  | Row stays `UNVERIFIED`/`BLOCKED`; other queue items continue |
+
+---
+
+## 9. Final report binding
+
+Each report section must cite ledger rows:
+
+| Report claim          | Required evidence                                                  |
+| --------------------- | ------------------------------------------------------------------ |
+| Branch unchanged      | `bootstrap.branch` + pre-push `git branch --show-current`          |
+| Tests passed          | Row per suite with `exit_code=0`                                   |
+| Tests skipped         | Row with `result=skip` — matrix stays **UNVERIFIED**, not COMPLETE |
+| RLS verified          | Postgres spec row + `guard.repository-rls`                         |
+| Architecture approved | `arch-review.json` `verdict: proceed`                              |
+| Blocker recovered     | `blocker-investigation.json` + `gate_id=blocker.<id>` rows         |
+| Commits               | Rows with `gate_id=commit` and SHAs matching `git log`             |
+
+---
+
+_Subdoc of FDA-001. Schema version 1.0.0._

@@ -1,6 +1,7 @@
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { isOwnerRole } from "@/admin/require-operator-session";
 import { shouldShowFinanceNav } from "@/finance/finance-nav-enablement";
+import { shouldShowTicketsNav } from "@/features/tickets/tickets-nav-enablement";
 import { shouldShowWalletNav } from "@/wallet/wallet-nav-enablement";
 import { shouldShowUsersNav } from "@/features/users/users-nav-access";
 import type { OperatorShellNavLink } from "@/shell/operator-shell-nav-registry";
@@ -23,6 +24,10 @@ export function resolveOperatorNav(input: ResolveOperatorNavInput): readonly Ope
     { pathKey: "tours", href: "/tours" },
     { pathKey: "bookings", href: "/bookings" },
   ];
+
+  if (shouldShowTicketsNav(input.pluginId) && input.session.role !== "member") {
+    items.push({ pathKey: "tickets", href: "/tickets" });
+  }
 
   if (canAccessOwnerPanelNav(input.session.role)) {
     if (shouldShowUsersNav(input.pluginId)) {
