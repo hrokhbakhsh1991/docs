@@ -51,6 +51,11 @@
       "resolveFromThemeExport": "resolveWalletOpsManifestFromTheme"
     }
   },
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
+  },
   "httpRoutes": {
     "handlerPackage": "@app-tour/wallet-http",
     "loadHandlersFromPackage": true,
