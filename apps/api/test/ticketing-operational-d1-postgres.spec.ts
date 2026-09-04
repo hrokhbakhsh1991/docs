@@ -206,6 +206,7 @@ describe(
       await admin.ticketQueue.deleteMany({ where: { tenantId } });
       await admin.ticketTeam.deleteMany({ where: { tenantId } });
       await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
+      await admin.outboxEvent.deleteMany({ where: { tenantId } });
     }
 
     beforeEach(async () => {

@@ -1149,6 +1149,16 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 | **Acceptance** | phase-l gate green; production enablement runbook |
 | **Rollback** | global manifest disable |
 
+#### Phase L1 — Production certification v1
+
+**Artifacts:** `docs/phase-ticketing/L1-RELEASE-CHECKLIST.md`, `docs/phase-ticketing/L1-ROLLBACK-PLAN.md`, `docs/phase-ticketing/L1-CERTIFICATION-REPORT.md`.
+
+**Certified v1 capabilities:** member portal create/reply/attachment/reopen; operator inbox/reply/internal note/assign/queue/tag/resolve/close; viewer tenant-wide read-only; templates + safe automation (J1); search/reports/settings (K1); SLA (I1); tenant isolation + RLS on all ticketing tables; attachment storage via platform storage driver.
+
+**Post-v1 (not in L1 gate):** bulk actions, email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics.
+
+**Gate:** all ticketing unit/postgres/playwright specs green; `guard:repository-rls` + `guard:api-workspace-isolation` pass; fresh + incremental migrations verified; no staging/production deploy during cert.
+
 ---
 
 *Document version 1.0.0 — Full Production V1 design. Documentation only.*

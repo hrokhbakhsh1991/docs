@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { TicketEvent, TicketLink, TicketLinkEntityType } from "@app-tour/ticketing-core";
 import { withTenantRls } from "../../db/with-tenant-rls";
 import { appendTicketingAuditEvents } from "../ticketing-audit-writer";
-import { toIso } from "../ticketing-mappers";
+import { mapTicketRow, toIso } from "../ticketing-mappers";
 import type { Ticket as PrismaTicket, TicketLink as PrismaTicketLink } from "@prisma/client";
 
 export function mapLinkRow(row: PrismaTicketLink): TicketLink {
@@ -64,26 +64,7 @@ export class TicketingLinkRepository {
         }
         await appendTicketingAuditEvents(
           tx,
-          {
-            id: input.ticket.id,
-            tenantId: input.ticket.tenantId,
-            requesterUserId: input.ticket.requesterUserId,
-            assigneeUserId: input.ticket.assigneeUserId,
-            assigneeTeamId: input.ticket.assigneeTeamId,
-            queueId: input.ticket.queueId,
-            categoryCode: input.ticket.categoryCode,
-            subject: input.ticket.subject,
-            priority: input.ticket.priority as import("@app-tour/ticketing-core").Ticket["priority"],
-            status: input.ticket.status as import("@app-tour/ticketing-core").Ticket["status"],
-            relatedTourId: null,
-            relatedRegistrationId: null,
-            rowVersion: input.ticket.rowVersion,
-            lastActivityAt: input.ticket.lastActivityAt.toISOString(),
-            resolvedAt: input.ticket.resolvedAt?.toISOString() ?? null,
-            closedAt: input.ticket.closedAt?.toISOString() ?? null,
-            createdAt: input.ticket.createdAt.toISOString(),
-            updatedAt: input.ticket.updatedAt.toISOString(),
-          },
+          mapTicketRow(input.ticket),
           input.events,
           input.actorUserId,
         );
@@ -131,26 +112,7 @@ export class TicketingLinkRepository {
       }
       await appendTicketingAuditEvents(
         tx,
-        {
-          id: input.ticket.id,
-          tenantId: input.ticket.tenantId,
-          requesterUserId: input.ticket.requesterUserId,
-          assigneeUserId: input.ticket.assigneeUserId,
-          assigneeTeamId: input.ticket.assigneeTeamId,
-          queueId: input.ticket.queueId,
-          categoryCode: input.ticket.categoryCode,
-          subject: input.ticket.subject,
-          priority: input.ticket.priority as import("@app-tour/ticketing-core").Ticket["priority"],
-          status: input.ticket.status as import("@app-tour/ticketing-core").Ticket["status"],
-          relatedTourId: null,
-          relatedRegistrationId: null,
-          rowVersion: input.ticket.rowVersion,
-          lastActivityAt: input.ticket.lastActivityAt.toISOString(),
-          resolvedAt: input.ticket.resolvedAt?.toISOString() ?? null,
-          closedAt: input.ticket.closedAt?.toISOString() ?? null,
-          createdAt: input.ticket.createdAt.toISOString(),
-          updatedAt: input.ticket.updatedAt.toISOString(),
-        },
+        mapTicketRow(input.ticket),
         input.events,
         input.actorUserId,
       );

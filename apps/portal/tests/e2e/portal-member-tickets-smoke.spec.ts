@@ -65,6 +65,20 @@ test("TKT-F1-SMOKE member ticketing create view reply reopen", async ({ page }) 
   ]);
   await expect(page.getByText("پاسخ تست عضو")).toBeVisible({ timeout: 60_000 });
 
+  const pngBuffer = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await page.locator('[data-portal-member-ticket-attachment-field] input[type="file"]').setInputFiles({
+    name: "smoke-attachment.png",
+    mimeType: "image/png",
+    buffer: pngBuffer,
+  });
+  await page.locator("[data-portal-member-ticket-attachment-field] button").click();
+  await expect(page.locator("[data-portal-member-ticket-attachment-success]")).toBeVisible({
+    timeout: 60_000,
+  });
+
   const ticketId = page.url().split("/").pop() ?? "";
   const rowVersion = await readMemberTicketRowVersion(page.request, ticketId);
   await resolveTicketForSmoke(page.request, ticketId, rowVersion);

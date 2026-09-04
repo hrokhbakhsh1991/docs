@@ -9,6 +9,8 @@ import {
 
 import { getPrismaAdmin } from "../db/prisma";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
+import type { Prisma } from "@prisma/client";
+
 import { withTenantRls } from "../db/with-tenant-rls";
 import { logger } from "../observability/logger";
 import {
@@ -47,7 +49,7 @@ async function enqueueSlaOutboxEvent(
       aggregateId: ticketId,
       eventType,
       domainEventId,
-      payload,
+      payload: payload as Prisma.InputJsonValue,
     }),
   );
 }

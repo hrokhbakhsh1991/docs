@@ -92,7 +92,7 @@ export function MemberTicketAttachmentField({
       }
 
       const uploadRes = await fetch(
-        `/api/me/tickets/${ticketId}/attachments/${attachmentId}/upload`,
+        `/api/me/tickets/${ticketId}/attachments/${attachmentId}`,
         {
           method: "PUT",
           headers: { "Content-Type": file.type },

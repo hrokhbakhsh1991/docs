@@ -200,6 +200,7 @@ describe(
         await admin.ticketEvent.deleteMany({ where: { tenantId } });
         await admin.ticket.deleteMany({ where: { tenantId } });
         await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
+        await admin.outboxEvent.deleteMany({ where: { tenantId } });
       }
     });
 
@@ -211,6 +212,7 @@ describe(
           await admin.ticketEvent.deleteMany({ where: { tenantId } });
           await admin.ticket.deleteMany({ where: { tenantId } });
           await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
+          await admin.outboxEvent.deleteMany({ where: { tenantId } });
         }
         await admin.$executeRawUnsafe(
           "ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only",

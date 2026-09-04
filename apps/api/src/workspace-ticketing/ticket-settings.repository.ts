@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { getWorkspaceTicketingCapabilities } from "@app-tour/workspace-sdk/ticketing";
 
 import { withTenantRls } from "../db/with-tenant-rls";
@@ -110,9 +111,11 @@ export async function updateTicketWorkspaceSettings(
           ? { maxAttachmentSizeBytes: input.maxAttachmentSizeBytes }
           : {}),
         ...(input.notificationPreferences !== undefined
-          ? { notificationPreferences: input.notificationPreferences }
+          ? { notificationPreferences: input.notificationPreferences as Prisma.InputJsonValue }
           : {}),
-        ...(input.slaDefaults !== undefined ? { slaDefaults: input.slaDefaults } : {}),
+        ...(input.slaDefaults !== undefined
+          ? { slaDefaults: input.slaDefaults as Prisma.InputJsonValue }
+          : {}),
         ...(input.disabledCategoryCodes !== undefined
           ? { disabledCategoryCodes: [...input.disabledCategoryCodes] }
           : {}),
@@ -128,9 +131,11 @@ export async function updateTicketWorkspaceSettings(
           ? { maxAttachmentSizeBytes: input.maxAttachmentSizeBytes }
           : {}),
         ...(input.notificationPreferences !== undefined
-          ? { notificationPreferences: input.notificationPreferences }
+          ? { notificationPreferences: input.notificationPreferences as Prisma.InputJsonValue }
           : {}),
-        ...(input.slaDefaults !== undefined ? { slaDefaults: input.slaDefaults } : {}),
+        ...(input.slaDefaults !== undefined
+          ? { slaDefaults: input.slaDefaults as Prisma.InputJsonValue }
+          : {}),
         ...(input.disabledCategoryCodes !== undefined
           ? { disabledCategoryCodes: [...input.disabledCategoryCodes] }
           : {}),

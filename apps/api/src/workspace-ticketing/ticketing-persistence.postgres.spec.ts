@@ -193,7 +193,6 @@ describe(
             actorUserId: operatorA,
             eventType: "ticket.created",
             payload: { subject: "Payment question" },
-            ticketNumber: nextPostgresTestTicketNumber(),
           },
         });
         assert.equal(event.eventType, "ticket.created");
@@ -469,7 +468,6 @@ describe(
             await tx.ticket.updateMany({
               where: { id: ticketAId },
               data: { subject: "Hijacked" },
-            ticketNumber: nextPostgresTestTicketNumber(),
             })
           ).count,
           0,

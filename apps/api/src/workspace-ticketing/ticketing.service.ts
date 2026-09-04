@@ -12,7 +12,6 @@ import {
   changeTicketStatus,
   createTicket,
   reopenTicket,
-  bumpTicketActivity,
   withIncrementedRowVersion,
   type TicketingResult,
 } from "@app-tour/ticketing-core";

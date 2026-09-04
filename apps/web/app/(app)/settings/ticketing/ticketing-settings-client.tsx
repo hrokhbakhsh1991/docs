@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { PageHeader } from "@/admin/patterns/page-header";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { canMutateTickets } from "@/features/tickets/operator-tickets-types";
 
 type SettingsView = {
@@ -58,8 +59,7 @@ export function TicketingSettingsClient({ session }: Props) {
       {settings === null ? <p className="text-sm text-muted-foreground">Loading…</p> : (
         <div className="space-y-4 rounded-lg border p-4">
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={settings.enabled}
               disabled={!canMutate}
               onChange={(event) =>

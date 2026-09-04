@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import type { Prisma } from "@prisma/client";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { handleHttpError } from "../middleware/error-interceptor";
@@ -105,8 +106,8 @@ export async function handleCreateTicketSlaPolicy(
       firstResponseMinutes: body.firstResponseMinutes,
       nextResponseMinutes: body.nextResponseMinutes,
       resolutionMinutes: body.resolutionMinutes,
-      businessHoursJson: body.businessHours ?? {},
-      escalationStepsJson: body.escalationSteps ?? [],
+      businessHoursJson: (body.businessHours ?? {}) as Prisma.InputJsonValue,
+      escalationStepsJson: (body.escalationSteps ?? []) as Prisma.InputJsonValue,
       warningThresholdPercent: body.warningThresholdPercent,
       enabled: body.enabled,
     });
@@ -150,8 +151,8 @@ export async function handlePatchTicketSlaPolicy(
       firstResponseMinutes: body.firstResponseMinutes,
       nextResponseMinutes: body.nextResponseMinutes,
       resolutionMinutes: body.resolutionMinutes,
-      businessHoursJson: body.businessHours,
-      escalationStepsJson: body.escalationSteps,
+      businessHoursJson: body.businessHours as Prisma.InputJsonValue | undefined,
+      escalationStepsJson: body.escalationSteps as Prisma.InputJsonValue | undefined,
       warningThresholdPercent: body.warningThresholdPercent,
       enabled: body.enabled,
       rowVersion,

@@ -84,6 +84,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     await page.getByRole("button", { name: /تغییر صف|Change queue/i }).click();
     await page.getByRole("button", { name: /افزودن برچسب|Add tag/i }).click();
     await page.getByRole("button", { name: /حل‌شده|Resolve/i }).click();
+    await page.getByRole("button", { name: /بستن|Close/i }).click();
     await page.getByRole("button", { name: /بازگشایی|Reopen/i }).click();
 
     await page.screenshot({

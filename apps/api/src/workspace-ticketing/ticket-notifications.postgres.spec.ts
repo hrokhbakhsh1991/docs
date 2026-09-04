@@ -9,7 +9,7 @@ import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
-import { processOutboxRelayOnce } from "../outbox/outbox-relay";
+import { processOutboxRelayForTenantOnce } from "../outbox/outbox-relay";
 import { nextPostgresTestTicketNumber } from "./ticketing-postgres-test-helpers";
 import { integrationTenantId } from "../../test/test-helpers";
 import {
@@ -386,8 +386,8 @@ describe(
         });
       });
 
-      await processOutboxRelayOnce(20);
-      await processOutboxRelayOnce(20);
+      await processOutboxRelayForTenantOnce(tenantA, 20);
+      await processOutboxRelayForTenantOnce(tenantA, 20);
 
       const memberList = await listTicketNotifications({
         tenantId: tenantA,

@@ -59,7 +59,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
       primaryColor: "#059669",
       cssVariables: { "--color-primary": "#059669" },
       enabledModules: ["ticketing"],
-    },
+    } as TenantThemeConfig,
   },
   {
     id: "00000000-0000-4000-8000-000000000015",

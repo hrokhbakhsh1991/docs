@@ -102,9 +102,12 @@ const portalEnv = {
   PORTAL_DEV_PORT: "3003",
 };
 
-const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+const api = spawn("node", ["--import", "tsx", "--import", "./scripts/e2e-memory-object-storage.ts", "src/main.ts"], {
   cwd: apiDir,
-  env: apiEnv,
+  env: {
+    ...apiEnv,
+    TICKETING_E2E_MEMORY_STORAGE: "1",
+  },
   stdio: "inherit",
 });
 
