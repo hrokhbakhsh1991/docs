@@ -5,11 +5,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildEngagementAdjustPath,
   buildEngagementMemberLookupPath,
+  buildEngagementMemberSearchPath,
+  buildEngagementPolicyPath,
+  buildEngagementReversePath,
+  createEngagementIdempotencyKey,
   engagementEventTypeLabelKey,
   formatEngagementTimestamp,
   resolveLevelProgressPercent,
+  validateEngagementAdjustmentForm,
   validateEngagementMemberUserId,
+  validateEngagementReversalForm,
+  canReverseEngagementPointEvent,
 } from "../src/engagement/engagement-ops-logic";
 
 describe("engagement-ops-logic", () => {
@@ -36,6 +44,51 @@ describe("engagement-ops-logic", () => {
     assert.equal(
       buildEngagementMemberLookupPath("00000000-0000-4000-8000-000000000001"),
       "/api/engagement/members/00000000-0000-4000-8000-000000000001",
+    );
+  });
+
+  it("builds policy and mutation paths", () => {
+    assert.equal(buildEngagementPolicyPath(), "/api/engagement/policy");
+    assert.equal(
+      buildEngagementAdjustPath("00000000-0000-4000-8000-000000000001"),
+      "/api/engagement/members/00000000-0000-4000-8000-000000000001/adjust",
+    );
+    assert.equal(
+      buildEngagementReversePath("00000000-0000-4000-8000-000000000001"),
+      "/api/engagement/members/00000000-0000-4000-8000-000000000001/reverse",
+    );
+    assert.match(buildEngagementMemberSearchPath("ali"), /search=ali/);
+  });
+
+  it("validates adjustment and reversal forms", () => {
+    assert.equal(validateEngagementAdjustmentForm({ pointsDelta: "", reason: "ok" }).ok, false);
+    assert.equal(
+      validateEngagementAdjustmentForm({ pointsDelta: "10", reason: "manual bonus" }).ok,
+      true,
+    );
+    assert.equal(validateEngagementReversalForm({ reason: "x" }).ok, false);
+    assert.equal(validateEngagementReversalForm({ reason: "duplicate award" }).ok, true);
+  });
+
+  it("detects reversible events", () => {
+    assert.equal(
+      canReverseEngagementPointEvent({ pointsDelta: 50, sourceEventType: "profile.completed" }),
+      true,
+    );
+    assert.equal(
+      canReverseEngagementPointEvent({
+        pointsDelta: -50,
+        sourceEventType: "engagement.points.reversed",
+      }),
+      false,
+    );
+  });
+
+  it("creates idempotency keys", () => {
+    assert.match(createEngagementIdempotencyKey("adjust"), /^adjust-/);
+    assert.notEqual(
+      createEngagementIdempotencyKey("adjust"),
+      createEngagementIdempotencyKey("adjust"),
     );
   });
 });
