@@ -444,6 +444,28 @@
     "loadError": "Could not load notifications.",
     "retry": "Try again",
     "empty": "No notifications yet.",
-    "markAllRead": "Mark all as read"
+    "markAllRead": "Mark all as read",
+    "events": {
+      "wallet": {
+        "transaction": {
+          "posted": {
+            "title": "Wallet credit received",
+            "body": "A credit was posted to your wallet."
+          }
+        },
+        "balance": {
+          "updated": {
+            "title": "Wallet balance updated",
+            "body": "Your wallet balance changed."
+          }
+        },
+        "refund": {
+          "credited": {
+            "title": "Refund credited to wallet",
+            "body": "A refund was added to your wallet balance."
+          }
+        }
+      }
+    }
   }
 }
