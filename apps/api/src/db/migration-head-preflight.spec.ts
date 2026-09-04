@@ -10,10 +10,10 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (member_notifications_platform)", () => {
+  it("expected head matches tip migration folder (ticketing_k1_search_reports_settings)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260904180000_member_notifications_platform"
+      "20260904180000_ticketing_k1_search_reports_settings"
     );
   });
 
