@@ -1,0 +1,142 @@
+---
+title: Feature Delivery — Stop Conditions
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/architecture-classifier.mdoc
+---
+
+# Feature Delivery — Stop Conditions
+
+**Purpose:** Catalog **hard-stop** conditions where the Feature Delivery Agent must halt implementation, emit a stop report, and request Architect or user decision before continuing.
+
+**Principle:** Stop means stop — no silent workarounds, no automatic reverts, no branch switches.
+
+---
+
+## 1. Git and session integrity
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-GIT-01** | `git branch --show-current` ≠ `lockedBranch` | **Hard-stop** immediately. Do not checkout to fix. Report actual branch. |
+| **SC-GIT-02** | Worktree added or `git worktree list` shows unexpected entry | **Hard-stop** |
+| **SC-GIT-03** | User/session started on wrong branch vs task contract | **Hard-stop** — report actual branch; do not switch |
+| **SC-GIT-04** | Dirty tree at bootstrap with undeclared paths outside scope | **Hard-stop** until scope acknowledged |
+| **SC-GIT-05** | Attempt to `merge`, `rebase`, `reset --hard`, `clean`, force-push | **Forbidden** — hard-stop if instructed |
+
+**Note:** `currentHead` advancing after authorized commits on `lockedBranch` is **expected**, not a stop condition.
+
+---
+
+## 2. Architecture and classification
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-ARCH-01** | Classifier returns `unknown / blocked` | **Hard-stop** — list missing evidence |
+| **SC-ARCH-02** | Multi-consumer **platform candidate** (notifications, inbox, attachments, identity, permissions, tenant routing, workspace SDK) planned as **module-specific** persistence/API without Architect acceptance | **Hard-stop** at CP2 — pivot memo |
+| **SC-ARCH-03** | architecture-reviewer returns `pivot` or `blocked` | **Hard-stop** — forward-fix plan only |
+| **SC-ARCH-04** | New `workspaceType` branch in `apps/api` hand-written code | **Hard-stop** — WAC-001 violation |
+| **SC-ARCH-05** | `platform-core` or `workspace-sdk` import from `packages/workspaces/*` or `legacy/` | **Hard-stop** |
+| **SC-ARCH-06** | Design freeze doc says `DESIGN_CLOSED` / `Absent` without `IMPL-*` unlock | **Hard-stop** (e.g. SK2 hollow package rule) |
+
+---
+
+## 3. Tenant, auth, and RLS
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-SEC-01** | Query/mutation by entity id without `tenantId` from auth context | **Hard-stop** |
+| **SC-SEC-02** | RLS posture unverified for new tables (no FORCE RLS plan) | **Hard-stop** at CP2 |
+| **SC-SEC-03** | Postgres tests run as superuser `DATABASE_URL` | **Hard-stop** — invalid RLS proof |
+| **SC-SEC-04** | Cross-tenant read/write ambiguity in API contract | **Hard-stop** |
+| **SC-SEC-05** | Internal content exposed in member projection | **Hard-stop** |
+
+---
+
+## 4. Contracts and data
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-DATA-01** | Shared contract change (Prisma, `*-http-contracts`, workspace-sdk export) without Markdoc design update | **Hard-stop** at CP2 |
+| **SC-DATA-02** | Request to rewrite existing shipped migration | **Hard-stop** |
+| **SC-DATA-03** | Idempotency / `rowVersion` / dedupe key undefined for mutation API | **Hard-stop** at CP2 |
+| **SC-DATA-04** | Undocumented breaking API or BFF response shape change | **Hard-stop** |
+
+---
+
+## 5. Scope and commits
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-SCOPE-01** | Staged file outside `SESSION.lock.scopePaths` (+ allowed `docs/**` when doc-first) | **Hard-stop** at CP4 |
+| **SC-SCOPE-02** | Unrelated drive-by edits in working tree | **Hard-stop** — do not commit; user resolves |
+| **SC-SCOPE-03** | Feature task expands beyond approved plan without user gate | **Hard-stop** |
+
+---
+
+## 6. Verification and claims
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-VERIFY-01** | Claim in report without ledger row | **Hard-stop** before final report |
+| **SC-VERIFY-02** | Required test suite skipped without documented reason | **Hard-stop** before `READY` verdict |
+| **SC-VERIFY-03** | `test-changed` coverage gap for a **changed package in the current feature** hides required tests | **Hard-stop for that feature** — run explicit `<targeted-test-command>` or report `blocked`; does not block unrelated features |
+| **SC-VERIFY-04** | Heavy gate (`test:full`, `ci:integrity`, `phase-N:gate`) needed but user has not said YES | **Hard-stop** — propose fast-track |
+| **SC-VERIFY-05** | Build/lint/typecheck red on touched packages | **Hard-stop** before commit/push |
+
+---
+
+## 7. Environment and operations
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-OPS-01** | Staging or production deploy/config mutation requested | **Hard-stop** unless explicit unlock |
+| **SC-OPS-02** | Secret or credential injection into repository | **Hard-stop** |
+| **SC-OPS-03** | Infra change outside dev/local test harness | **Hard-stop** |
+
+---
+
+## 8. Conflicting instructions
+
+| ID | Condition | Agent action |
+| -- | --------- | ------------ |
+| **SC-CONF-01** | User branch lock contradicts agent platform default (e.g. create `cursor/*` branch) | **Hard-stop** — report conflict; **locked branch wins** for session; do not claim repo rules override Cloud |
+| **SC-CONF-02** | Doc-first covenant vs "code only" request on protected paths | **Hard-stop** — doc proposal first |
+| **SC-CONF-03** | Phase 9 hook suspension vs "hooks guarantee green" assumption | **Stop claiming hooks ran** — run `pre-commit:fast` manually and ledger it |
+
+---
+
+## 9. Stop report template
+
+When any hard-stop fires, emit:
+
+```markdown
+## Feature Delivery STOP
+
+- **Stop ID:** SC-ARCH-02
+- **Checkpoint:** CP2
+- **Branch:** <locked-branch> (locked)
+- **initialHead:** …
+- **currentHead:** …
+- **Finding:** …
+- **Evidence:** …
+- **Pivot options:** (forward-fix steps — no auto-revert)
+- **Architect decision needed:** …
+```
+
+---
+
+## 10. Resume conditions
+
+Agent may resume only after:
+
+1. User or Architect provides explicit direction addressing the stop ID, **or**
+2. Classifier/reviewer verdict updated to `proceed` with evidence recorded in ledger, **or**
+3. Scope/branch contract explicitly amended in chat
+
+Resume must re-run bootstrap checkpoint for branch verification.
+
+---
+
+*Subdoc of FDA-001. Stop IDs are stable for automation in Phase C.*

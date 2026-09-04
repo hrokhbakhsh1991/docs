@@ -1,0 +1,155 @@
+---
+title: Feature Delivery — Architecture Classifier
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/standards/workspace-api-capabilities.mdoc
+---
+
+# Feature Delivery — Architecture Classifier
+
+**Purpose:** Provide a deterministic **first-pass** classification for feature work before implementation. Output feeds the read-only **architecture-reviewer**; it is not a substitute for reviewer judgment.
+
+**Principle:** Preserve Denali/Urban divergence. No Big Bang refactors. Shared platform primitives stay workspace-agnostic.
+
+---
+
+## 1. Classifications
+
+| Class | Definition | Typical location | Doc-first |
+| ----- | ---------- | ---------------- | --------- |
+| **platform capability** | Cross-workspace primitive used by ≥1 domain or expected to serve multiple modules | `packages/platform-core`, `packages/workspace-sdk`, `apps/api` host (dispatch), shared `packages/*-core`, `apps/api/src/notifications` | **Yes** — Markdoc under `docs/` before protected code |
+| **module capability** | Feature scoped to one bounded context with stable tenant API; not reused by other domains | `packages/<module>-core`, `packages/<module>-http*`, `apps/api/src/workspace-<module>` | Module standard doc (e.g. `docs/standards/<module>.mdoc`) |
+| **workspace plugin** | Denali/Urban/starter-specific UX, copy, manifest, or adapter | `packages/workspaces/<id>`, manifest codegen | Workspace encapsulation docs |
+| **unknown / blocked** | Insufficient evidence, conflicting standards, or unresolved product decision | — | **Stop** — Architect decision required |
+
+### 1.1 Decision tree
+
+```
+Feature request
+  ├─ Touches platform-core | workspace-sdk | apps/api host routing | shared outbox/notifications?
+  │    └─ → platform capability (pending reviewer)
+  ├─ New bounded context with own core/contracts/http (e.g. wallet, booking, profile)?
+  │    └─ → module capability (pending reviewer)
+  ├─ Denali-only or Urban-only UX/manifest without core branching?
+  │    └─ → workspace plugin (pending reviewer)
+  └─ Cannot determine from request + inventory
+       └─ → unknown / blocked → HARD STOP
+```
+
+### 1.2 Platform vs module heuristic
+
+| Signal | Lean |
+| ------ | ---- |
+| Concept appears in ≥2 domain docs or outbox event families | **platform** |
+| Table/API name prefixed with one domain (`ticket_*`, `wallet_*`) and no cross-domain FK | **module** |
+| Requires `workspaceType === "denali"` in `apps/api` | **violation** — use WAC-001 dispatch |
+| New port in `workspace-sdk` consumed by multiple workspaces | **platform** |
+| Copy/templates only in one workspace manifest | **workspace plugin** |
+
+---
+
+## 2. Platform candidate domains
+
+The following are **presumptive platform candidates**. Any feature touching them triggers **consumer scan + architecture-reviewer** even when the request names a single module:
+
+| Domain | Scan terms (signals only) | Canonical references |
+| ------ | ------------------------- | -------------------- |
+| **Notifications** | `notification`, `inbox`, `outbox`, `delivery`, `templateId`, `readAt` | [SK2_NOTIFICATION_OUTBOX](../../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) |
+| **Outbox / events** | `outbox`, `domainEvent`, `enqueue`, `relay` | `apps/api/src/outbox/` |
+| **Attachments / object storage** | `attachment`, `objectKey`, `TenantObjectStoragePort`, `storageKey` | SK4 object-storage standard; module attachment flows |
+| **Identity / sessions** | `tenantId`, `userId`, `membership`, `session`, `PCMS` | [member-session-portal-authority](../../standards/member-session-portal-authority.mdoc) |
+| **Permissions / authorization** | `CASL`, `can()`, `role`, `viewer`, `operator` | `packages/workspace-sdk/src/auth/` |
+| **Tenant routing** | `Host`, `tenant_domains`, `subdomain`, `apex` | [workspace-routing-standard](../../standards/workspace-routing-standard.mdoc) |
+| **Workspace SDK / manifest** | `workspace.manifest.json`, `enabledModules`, codegen bindings | [workspace-api-capabilities](../../standards/workspace-api-capabilities.mdoc) |
+
+**FACT:** Keyword match is a **signal**, not a final classification.
+
+---
+
+## 3. Consumer investigation (required)
+
+Before implementation, the agent must investigate **future consumers**:
+
+### 3.1 Sources (read-only)
+
+1. **Codebase graph** — `codebase-memory-mcp` (`search_graph`, `trace_path`, `search_code`) with project `app-tour-apps` / `app-tour-packages`
+2. **Standards and phase docs** — `docs/standards/`, `docs/phase-*`, ADRs under `docs/architecture/adr/`
+3. **Outbox event inventory** — `apps/api/src/outbox/`, workspace side-effects, domain `*.operations.ts`
+4. **Existing ports** — `apps/api/src/notifications/`, `packages/workspace-sdk/src/`
+5. **Parallel implementations** — multiple dispatchers or inbox stores for the same primitive (see [notification-case-study](notification-case-study.mdoc))
+
+### 3.2 Consumer record (classifier output)
+
+```json
+{
+  "featureId": "<feature-slug>",
+  "classification": "platform | module | workspace-plugin | unknown",
+  "confidence": "low | medium",
+  "consumers": [
+    { "domain": "<domain-name>", "evidence": "path or doc ref" }
+  ],
+  "platformCandidates": ["notifications"],
+  "reviewerRequired": true,
+  "signals": ["keyword: inbox", "import: <dispatcher-path>"]
+}
+```
+
+`confidence: high` is reserved for the **architecture-reviewer** verdict, not the classifier alone.
+
+---
+
+## 4. Architecture-reviewer gate
+
+| Classifier output | Reviewer must answer |
+| ----------------- | -------------------- |
+| `platform` | Is a shared contract required now? Which doc owns the design freeze? |
+| `module` with platform candidate signals | Is module-specific schema justified? List consumers that would duplicate work. |
+| `workspace-plugin` | Does change leak into `apps/api` host or core? |
+| `unknown` | What evidence is missing? **blocked** until resolved |
+
+**Multi-consumer rule:** If classifier finds ≥2 plausible consumers for the same user-visible primitive (inbox, delivery, attachment storage, permission check), and the plan proposes a **module-specific** persistence or API shape → reviewer returns **`pivot`** unless Architect explicitly accepts module-local v1 with documented post-v1 unification.
+
+Regression fixture: [notification-case-study](notification-case-study.mdoc).
+
+---
+
+## 5. WAC-001 and workspace agnosticism
+
+Platform handlers in `apps/api` must not branch on `workspaceType` or import `@app-tour/workspace-denali/*` directly when a codegen binding exists — see [workspace-api-capabilities](../../standards/workspace-api-capabilities.mdoc).
+
+Classifier flags:
+
+- New `if (workspaceType === …)` in `apps/api`
+- Direct workspace package import in hand-written API modules (non-generated)
+- Denali-only behavior without manifest + codegen dispatch
+
+---
+
+## 6. Denali / Urban preservation
+
+| Rule | Enforcement |
+| ---- | ----------- |
+| Urban/starter must not gain Denali-only modules accidentally | Manifest `enabledModules`; module gate tests |
+| No Denali names in `platform-core` | `guard:architecture`, migration map |
+| Workspace-specific code stays under `packages/workspaces/<id>` | Import boundary guards |
+
+---
+
+## 7. Classifier output template (for plans)
+
+```markdown
+## Architecture classification
+
+- **Proposed class:** module capability
+- **Platform candidates touched:** notifications, outbox
+- **Consumers found:** <domain-a> (implemented), <domain-b> (planned), <domain-c> (outbox events)
+- **Confidence:** medium (reviewer required)
+- **Risk:** module-specific persistence may duplicate platform concern
+- **Reviewer verdict:** _(pending)_
+```
+
+---
+
+*Subdoc of FDA-001. Static automation (Phase C) may implement signals; reviewer gate remains mandatory.*
