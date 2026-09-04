@@ -6,6 +6,7 @@ export type TicketNotificationEventType =
   | "ticket.priority.changed"
   | "ticket.resolved"
   | "ticket.reopened"
+  | "ticket.closed"
   | "ticket.internal_note.created"
   | "ticket.sla.warning"
   | "ticket.sla.breached"
@@ -102,6 +103,15 @@ export function buildTicketNotificationCopy(input: {
         `«${subject}» دوباره باز شد.`,
         "Ticket reopened",
         `"${subject}" was reopened.`,
+      );
+    case "ticket.closed":
+      return copy(
+        "notification.ticket.closed.title",
+        "notification.ticket.closed.body",
+        "تیکت بسته شد",
+        `«${subject}» بسته شد.`,
+        "Ticket closed",
+        `"${subject}" was closed.`,
       );
     case "ticket.sla.warning": {
       const clock = String(input.payload?.clock ?? "sla");

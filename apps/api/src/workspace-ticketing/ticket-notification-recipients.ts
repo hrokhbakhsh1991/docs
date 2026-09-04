@@ -104,6 +104,7 @@ export async function resolveTicketNotificationRecipientUserIds(
       break;
     }
     case "ticket.resolved":
+    case "ticket.closed":
       excludeActor(input.ticket.requesterUserId);
       break;
     case "ticket.reopened":

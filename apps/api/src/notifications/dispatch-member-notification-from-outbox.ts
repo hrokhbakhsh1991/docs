@@ -80,14 +80,25 @@ const MEMBER_NOTIFICATION_EVENT_MAP: Readonly<
     titleKey: "notification.attendance.marked.title",
     bodyKey: "notification.attendance.marked.body",
   },
-  "tour.schedule.changed": {
-    sourceModule: "booking",
-    entityType: "registration",
-    templateId: "tour.schedule.changed",
-    titleKey: "notification.tour.changed.title",
-    bodyKey: "notification.tour.changed.body",
-  },
 });
+
+/** Manual receipt capture and prepayment ledger rows notify members; generic journals do not. */
+const PAYMENT_CAPTURE_DOMAIN_EVENT_ID =
+  /^payment:([0-9a-f-]{36}):ledger-capture-anchor$/i;
+const PREPAYMENT_LEDGER_DOMAIN_EVENT_ID = /^prepayment:[^:]+:[a-f0-9]{40}:ledger$/i;
+
+function shouldEmitPaymentConfirmedNotification(
+  canonicalEventType: string,
+  domainEventId: string,
+): boolean {
+  if (canonicalEventType !== "payment.confirmed") {
+    return true;
+  }
+  const id = domainEventId.trim();
+  return (
+    PAYMENT_CAPTURE_DOMAIN_EVENT_ID.test(id) || PREPAYMENT_LEDGER_DOMAIN_EVENT_ID.test(id)
+  );
+}
 
 function asRecord(payload: unknown): Readonly<Record<string, unknown>> {
   if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
@@ -158,6 +169,9 @@ export async function dispatchMemberNotificationFromOutbox(
   const canonicalEventType = normalizeDomainEventType(row.eventType);
   const mapping = MEMBER_NOTIFICATION_EVENT_MAP[canonicalEventType];
   if (mapping === undefined) {
+    return;
+  }
+  if (!shouldEmitPaymentConfirmedNotification(canonicalEventType, row.domainEventId)) {
     return;
   }
 

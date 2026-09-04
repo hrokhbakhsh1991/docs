@@ -11,6 +11,7 @@ import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { processOutboxRelayForTenantOnce } from "../outbox/outbox-relay";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { dispatchMemberNotificationFromOutbox } from "../notifications/dispatch-member-notification-from-outbox";
+import { dispatchTourScheduleNotificationFromOutbox } from "../notifications/dispatch-tour-schedule-notification-from-outbox";
 import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-ticket-notification-from-outbox";
 import {
   countUnreadMemberNotifications,
@@ -84,6 +85,7 @@ describe(
         await admin.memberNotificationDelivery.deleteMany({ where: { tenantId: tenantA } });
         await admin.memberNotification.deleteMany({ where: { tenantId: tenantA } });
         await admin.outboxEvent.deleteMany({ where: { tenantId: tenantA } });
+        await admin.operatorRegistration.deleteMany({ where: { tenantId: tenantA } });
         await admin.$executeRawUnsafe(
           "TRUNCATE wallet_ledger_entries, wallet_transactions, wallet_accounts"
         );
@@ -383,11 +385,56 @@ describe(
       assert.ok(match, "ledger capture must normalize to payment.confirmed inbox row");
     });
 
+    it("relay: generic finance.ledger journal does not emit payment.confirmed", async () => {
+      const domainEventId = `finance.ledger:${randomUUID()}:adjustment`;
+
+      await withTenantRls(tenantA, async (tx) => {
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "FinanceLedger",
+          aggregateId: randomUUID(),
+          eventType: "finance.ledger.double_entry_applied",
+          domainEventId,
+          payload: {
+            registrationId: randomUUID(),
+            guestUserId: memberUser,
+            journalId: randomUUID(),
+          },
+        });
+      });
+
+      await processOutboxRelayForTenantOnce(tenantA, 20);
+
+      const list = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "finance",
+        limit: 20,
+      });
+      const match = list.items.find((item) => item.dedupeKey === domainEventId);
+      assert.equal(match, undefined, "non-capture ledger must not create payment.confirmed row");
+    });
+
     it("relay: tour.schedule.changed via tour.mutation.notification_required alias", async () => {
       const tourId = randomUUID();
+      const registrationId = randomUUID();
       const domainEventId = `tour.schedule.changed:${tourId}:${Date.now()}`;
 
       await withTenantRls(tenantA, async (tx) => {
+        await tx.operatorRegistration.create({
+          data: {
+            id: registrationId,
+            tenantId: tenantA,
+            tourId,
+            tourTitle: "Alpine Trek",
+            guestLabel: "Member Guest",
+            partySize: 1,
+            status: "approved",
+            departureAt: new Date("2026-10-01T08:00:00.000Z"),
+            submittedByUserId: memberUser,
+            approvedAt: new Date(),
+          },
+        });
         await enqueueOutboxEvent(tx, {
           tenantId: tenantA,
           aggregateType: "tour",
@@ -395,9 +442,7 @@ describe(
           eventType: "tour.mutation.notification_required",
           domainEventId,
           payload: {
-            guestUserId: memberUser,
             tourId,
-            registrationId: randomUUID(),
           },
         });
       });
@@ -412,9 +457,11 @@ describe(
         limit: 20,
       });
       const match = list.items.find(
-        (item) => item.eventType === "tour.schedule.changed" && item.dedupeKey === domainEventId,
+        (item) =>
+          item.eventType === "tour.schedule.changed" &&
+          item.dedupeKey === `${domainEventId}:${memberUser}`,
       );
-      assert.ok(match, "tour mutation alias must normalize to tour.schedule.changed");
+      assert.ok(match, "tour mutation alias must fan out via tour schedule dispatcher");
     });
 
     it("relay: attendance.marked via attendance.verified alias", async () => {
@@ -618,20 +665,39 @@ describe(
     });
 
     it("alias normalization does not duplicate inbox rows for same domainEventId", async () => {
+      const tourId = randomUUID();
+      const registrationId = randomUUID();
       const domainEventId = `alias-dedupe:${randomUUID()}`;
       const row = {
         tenantId: tenantA,
         aggregateType: "tour",
-        aggregateId: randomUUID(),
+        aggregateId: tourId,
         eventType: "tour.mutation.notification_required",
         domainEventId,
-        payload: { guestUserId: memberUser, registrationId: randomUUID() },
+        payload: { tourId },
         createdAt: new Date(),
         correlationId: randomUUID(),
       };
 
-      await dispatchMemberNotificationFromOutbox(row);
-      await dispatchMemberNotificationFromOutbox(row);
+      await withTenantRls(tenantA, async (tx) => {
+        await tx.operatorRegistration.create({
+          data: {
+            id: registrationId,
+            tenantId: tenantA,
+            tourId,
+            tourTitle: "Dedupe Trek",
+            guestLabel: "Member Guest",
+            partySize: 1,
+            status: "approved",
+            departureAt: new Date("2026-10-02T08:00:00.000Z"),
+            submittedByUserId: memberUser,
+            approvedAt: new Date(),
+          },
+        });
+      });
+
+      await dispatchTourScheduleNotificationFromOutbox(row);
+      await dispatchTourScheduleNotificationFromOutbox(row);
 
       const list = await listMemberNotifications({
         tenantId: tenantA,
@@ -640,7 +706,9 @@ describe(
         limit: 50,
       });
       const matches = list.items.filter(
-        (item) => item.dedupeKey === domainEventId && item.eventType === "tour.schedule.changed",
+        (item) =>
+          item.dedupeKey === `${domainEventId}:${memberUser}` &&
+          item.eventType === "tour.schedule.changed",
       );
       assert.equal(matches.length, 1);
     });

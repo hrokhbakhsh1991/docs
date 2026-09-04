@@ -73,7 +73,7 @@ export const SHARED_DOMAIN_EVENT_INVENTORY: readonly SharedDomainEventInventoryE
       description: "Tour schedule or logistics mutation requiring member notice",
       compatibilityAliases: Object.freeze(["tour.mutation.notification_required"]),
       producerNote: "emit-tour-mutation-side-effects",
-      notificationConsumer: "dispatch-member-notification-from-outbox",
+      notificationConsumer: "dispatch-tour-schedule-notification-from-outbox",
     },
   ]);
 

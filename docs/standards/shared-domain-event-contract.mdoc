@@ -70,12 +70,12 @@ Unique constraint `(tenant_id, domain_event_id)` enforces idempotency at transpo
 | Canonical `eventType` | Aggregate | Producer (real) | Notification consumer | Compatibility aliases |
 | --------------------- | --------- | ----------------- | --------------------- | --------------------- |
 | `registration.approved` | `registration` | Booking approve → outbox (`BOOKING_APPROVE_OUTBOX_EVENT_TYPE`) | `dispatch-member-notification-from-outbox` | `RegistrationApproved` (legacy docs only) |
-| `payment.confirmed` | `payment` | Finance receipt approve → `finance.ledger.double_entry_applied` (payment capture path) | same dispatcher (maps ledger capture → member inbox) | — |
+| `payment.confirmed` | `payment` | Finance receipt capture (`payment:{uuid}:ledger-capture-anchor`) or prepayment ledger (`prepayment:{registrationId}:{hash}:ledger`) | same dispatcher (generic adjustment journals are ignored) | — |
 | `attendance.marked` | `registration` | **Planned** DP-7 attendance; no durable producer yet | dispatcher registered; no-op until producer ships | `attendance.verified` (engagement probe) |
 
 **Handoff — `ATTENDANCE_PRODUCER_NOT_IMPLEMENTED`:** No booking/tour attendance mutation emits `attendance.marked` or `attendance.verified` outbox rows today (DP-7 deferred per `docs/dev/production-closure-ledger.md`). Shared consumer + SDE-001 alias mapping are ready; Tour Operations must wire the real day-of attendance command before inbox notifications can be end-to-end proven for this event.
 | `ticket.created` | `ticket` | Ticketing `createTicket` → outbox | `dispatch-ticket-notification-from-outbox` | — |
-| `tour.schedule.changed` | `tour` | Tour mutation safety → `tour.mutation.notification_required` | `dispatch-member-notification-from-outbox` | `tour.mutation.notification_required` |
+| `tour.schedule.changed` | `tour` | Tour mutation safety → `tour.mutation.notification_required` | `dispatch-tour-schedule-notification-from-outbox` (fans out to approved registrations) | `tour.mutation.notification_required` |
 
 ### Compatibility resolution
 
