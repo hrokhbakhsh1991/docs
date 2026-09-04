@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 import { buildMemberHomePayload } from "@/me/member-home-bff.server";
 import { fetchMemberEngagementSummary } from "@/me/engagement/member-engagement-bff.server";
+import { resolveMemberDashboardWalletSummary } from "@/me/wallet/member-dashboard-wallet-summary.server";
 import { fetchMemberProfileFromSession } from "@/me/fetch-member-profile-from-session.server";
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
@@ -56,10 +57,14 @@ export default async function MeHomePage() {
     (module) => module.entitled && module.id !== "home",
   );
 
-  const [engagementResult, registrations, profile] = await Promise.all([
+  const [engagementResult, registrations, profile, walletSummary] = await Promise.all([
     fetchMemberEngagementSummary(host),
     fetchMemberRegistrations(host),
     fetchMemberProfileFromSession(host, bootstrap.tenantId),
+    resolveMemberDashboardWalletSummary({
+      host,
+      grantedEntitlementKeys: entitlements?.payload.granted ?? [],
+    }),
   ]);
 
   const engagementView =
@@ -87,7 +92,7 @@ export default async function MeHomePage() {
 
         <MemberDashboardEngagementPanel
           engagement={engagementView}
-          walletBalanceLabel={null}
+          wallet={walletSummary}
           openTicketsCount={null}
           nextTourTitle={nextTour.title}
           nextTourDepartureAt={nextTour.departureAt}

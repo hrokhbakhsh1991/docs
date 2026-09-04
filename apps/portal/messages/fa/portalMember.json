@@ -177,6 +177,11 @@
     "profileComplete": "پروفایل تکمیل است",
     "profileIncomplete": "برای ثبت‌نام امن‌تر پروفایل را تکمیل کنید",
     "walletSeparate": "موجودی کیف پول (جدا از امتیاز): {balance}",
+    "walletTitle": "کیف پول",
+    "walletEyebrow": "موجودی پولی",
+    "walletViewDetails": "مشاهده کیف پول",
+    "walletLastTransaction": "آخرین تراکنش: {kind} {amount}",
+    "walletUnavailable": "موجودی کیف پول در حال حاضر در دسترس نیست.",
     "openTickets": "{count} تیکت پشتیبانی باز",
     "levels": {
       "base_camp": "اردوگاه پایه",

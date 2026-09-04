@@ -6,14 +6,19 @@ import { useTranslations } from "next-intl";
 import type { MemberEngagementSummaryView } from "@/me/engagement/member-engagement-bff.server";
 import { resolveMemberLevelProgressPercent } from "@/me/engagement/member-engagement-display";
 
-export type MemberDashboardEngagementProps = {
-  readonly engagement: MemberEngagementSummaryView | { readonly enabled: false };
-  readonly walletBalanceLabel: string | null;
-  readonly openTicketsCount: number | null;
-  readonly nextTourTitle: string | null;
-  readonly nextTourDepartureAt: string | null;
-  readonly profileComplete: boolean;
-};
+import type { MemberDashboardEngagementProps } from "./member-dashboard-types";
+
+export type { MemberDashboardEngagementProps };
+
+function formatWalletTransactionKind(
+  tWallet: ReturnType<typeof useTranslations<"portalMember.wallet">>,
+  kind: string | null,
+): string {
+  if (kind === "operator_credit" || kind === "operator_debit" || kind === "reversal") {
+    return tWallet(`transactionKinds.${kind}`);
+  }
+  return "";
+}
 
 function MemberEngagementSummaryCard({
   engagement,
@@ -98,13 +103,14 @@ function MemberEngagementSummaryCard({
 
 export function MemberDashboardEngagementPanel({
   engagement,
-  walletBalanceLabel,
+  wallet,
   openTicketsCount,
   nextTourTitle,
   nextTourDepartureAt,
   profileComplete,
 }: MemberDashboardEngagementProps) {
   const t = useTranslations("portalMember.dashboard");
+  const tWallet = useTranslations("portalMember.wallet");
 
   return (
     <div data-portal-member-dashboard-grid>
@@ -144,6 +150,45 @@ export function MemberDashboardEngagementPanel({
       </section>
 
       <section
+        data-portal-member-dashboard-wallet
+        aria-labelledby="portal-dashboard-wallet-title"
+        data-portal-member-wallet-state={wallet.state}
+      >
+        <div data-portal-member-section-heading>
+          <p data-portal-member-home-section-eyebrow>{t("walletEyebrow")}</p>
+          <h2 id="portal-dashboard-wallet-title">{t("walletTitle")}</h2>
+        </div>
+        {wallet.state === "ready" ? (
+          <div data-portal-member-wallet-summary>
+            <p data-portal-member-wallet-balance-label>{tWallet("availableBalance")}</p>
+            <p data-portal-member-wallet-dashboard-balance dir="ltr">
+              {wallet.balanceLabel}
+            </p>
+            <p data-portal-member-wallet-currency-hint>
+              {tWallet("currencyLabel", { currency: wallet.currency })}
+            </p>
+            {wallet.lastTransactionLabel !== null ? (
+              <p data-portal-member-wallet-last-transaction>
+                {t("walletLastTransaction", {
+                  amount: wallet.lastTransactionLabel,
+                  kind: formatWalletTransactionKind(tWallet, wallet.lastTransactionKind),
+                })}
+              </p>
+            ) : (
+              <p data-portal-member-wallet-empty-history>{tWallet("emptyHistory")}</p>
+            )}
+            <Link href="/me/wallet" data-portal-member-wallet-cta>
+              {t("walletViewDetails")}
+            </Link>
+          </div>
+        ) : wallet.state === "error" ? (
+          <p role="alert" data-portal-member-wallet-dashboard-error>
+            {t("walletUnavailable")}
+          </p>
+        ) : null}
+      </section>
+
+      <section
         data-portal-member-dashboard-status
         aria-labelledby="portal-dashboard-status-title"
       >
@@ -152,11 +197,6 @@ export function MemberDashboardEngagementPanel({
           <li data-portal-member-profile-status data-complete={profileComplete ? "true" : "false"}>
             {profileComplete ? t("profileComplete") : t("profileIncomplete")}
           </li>
-          {walletBalanceLabel !== null ? (
-            <li data-portal-member-wallet-status>
-              {t("walletSeparate", { balance: walletBalanceLabel })}
-            </li>
-          ) : null}
           {openTicketsCount !== null ? (
             <li data-portal-member-tickets-status>
               {t("openTickets", { count: openTicketsCount })}

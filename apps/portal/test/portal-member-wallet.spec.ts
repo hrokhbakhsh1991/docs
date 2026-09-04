@@ -45,12 +45,14 @@ describe("portal-member-wallet — WALLET-P3A", () => {
 
   it("MEM-WALLET-04 wallet BFF route never accepts browser authority fields", () => {
     const route = readPortal("app/api/me/wallet/route.ts");
-    assert.match(route, /buildMemberApiHeaders/);
-    assert.match(route, /\/wallet\/me\/balance/);
-    assert.match(route, /\/wallet\/me\/transactions/);
-    assert.doesNotMatch(route, /searchParams\.get\(["']userId["']\)/);
-    assert.doesNotMatch(route, /searchParams\.get\(["']tenantId["']\)/);
-    assert.doesNotMatch(route, /searchParams\.get\(["']workspaceId["']\)/);
+    const resolver = readPortal("src/me/wallet/resolve-member-wallet-bff.server.ts");
+    assert.match(resolver, /buildMemberApiHeaders/);
+    assert.match(resolver, /\/wallet\/me\/balance/);
+    assert.match(resolver, /\/wallet\/me\/transactions/);
+    assert.match(route, /resolveMemberWalletFetchResult/);
+    assert.doesNotMatch(resolver, /searchParams\.get\(["']userId["']\)/);
+    assert.doesNotMatch(resolver, /searchParams\.get\(["']tenantId["']\)/);
+    assert.doesNotMatch(resolver, /searchParams\.get\(["']workspaceId["']\)/);
   });
 
   it("MEM-WALLET-05 upstream fetch uses session headers only", () => {

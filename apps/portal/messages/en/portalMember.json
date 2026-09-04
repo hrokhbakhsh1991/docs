@@ -177,6 +177,11 @@
     "profileComplete": "Profile complete",
     "profileIncomplete": "Complete your profile for safer registrations",
     "walletSeparate": "Wallet balance (separate): {balance}",
+    "walletTitle": "Wallet",
+    "walletEyebrow": "Monetary balance",
+    "walletViewDetails": "View wallet",
+    "walletLastTransaction": "Latest: {kind} {amount}",
+    "walletUnavailable": "Wallet balance is unavailable right now.",
     "openTickets": "{count} open support tickets",
     "levels": {
       "base_camp": "Base camp",
