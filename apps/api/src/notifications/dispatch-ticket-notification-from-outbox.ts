@@ -10,6 +10,7 @@ import {
   type TicketNotificationEventType,
 } from "../workspace-ticketing/ticket-notification-copy";
 import { resolveTicketNotificationRecipientUserIds } from "../workspace-ticketing/ticket-notification-recipients";
+import { applyTicketTemplateAutomation } from "../workspace-ticketing/ticket-template-automation";
 
 const TICKET_NOTIFICATION_OUTBOX_TYPES = new Set<string>([
   "ticket.created",
@@ -120,11 +121,40 @@ export async function dispatchTicketNotificationFromOutbox(
   const ticketId = String(payload.ticketId ?? row.aggregateId);
   const subject = String(payload.subject ?? "Ticket");
   const eventPayload = asRecord(payload.eventPayload);
-  const copy = buildTicketNotificationCopy({
+  let copy = buildTicketNotificationCopy({
     eventType: row.eventType as TicketNotificationEventType,
     subject,
     payload: eventPayload,
   });
+
+  const templated = await applyTicketTemplateAutomation({
+    tenantId: row.tenantId,
+    domainEventId: row.domainEventId,
+    eventType: row.eventType,
+    ticketId,
+    locale: "en",
+    context: {
+      ticketId,
+      ticketSubject: subject,
+      categoryCode: String(payload.categoryCode ?? eventPayload.categoryCode ?? ""),
+      priority: String(payload.priority ?? eventPayload.priority ?? ""),
+      status: String(payload.status ?? eventPayload.status ?? ""),
+      requesterUserId: String(payload.requesterUserId ?? ""),
+      assigneeUserId:
+        typeof payload.assigneeUserId === "string" ? payload.assigneeUserId : null,
+      clock: String(eventPayload.clock ?? payload.clock ?? ""),
+      escalationLevel: String(eventPayload.escalationLevel ?? payload.escalationLevel ?? ""),
+      eventType: row.eventType,
+    },
+  });
+  if (templated.body !== null) {
+    copy = {
+      ...copy,
+      title: templated.title ?? copy.title,
+      body: templated.body,
+      bodyFa: templated.body,
+    };
+  }
 
   await withTenantRls(row.tenantId, async (tx) => {
     const recipientUserIds = await resolveTicketNotificationRecipientUserIds(tx, row.tenantId, {

@@ -79,6 +79,9 @@ model Tenant {
   ticketSlaPolicies           TicketSlaPolicy[]
   ticketSlaStates             TicketSlaState[]
   ticketSlaEscalationActivations TicketSlaEscalationActivation[]
+  ticketTemplates              TicketTemplate[]
+  ticketTemplateRevisions      TicketTemplateRevision[]
+  ticketTemplateAutomationActivations TicketTemplateAutomationActivation[]
 
   @@map("tenants")
 }
@@ -1426,4 +1429,66 @@ model TicketSlaEscalationActivation {
 
   @@unique([tenantId, ticketId, escalationLevel], map: "uq_ticket_sla_escalation_activations")
   @@map("ticket_sla_escalation_activations")
+}
+
+/// TKT-001 Phase J1 — ticketing message/notification templates (tenant-scoped; RLS enforced).
+model TicketTemplate {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  code            String    @db.VarChar(64)
+  title           String
+  body            String    @db.Text
+  channel         String    @db.VarChar(32)
+  locale          String    @db.VarChar(8)
+  enabled         Boolean   @default(true)
+  version         Int       @default(1)
+  workspaceType   String?   @map("workspace_type")
+  isSystemDefault Boolean   @default(false) @map("is_system_default")
+  archivedAt      DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion      Int       @default(1) @map("row_version")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  revisions       TicketTemplateRevision[]
+
+  @@unique([tenantId, code, channel, locale], map: "uq_ticket_templates_scope")
+  @@unique([tenantId, id])
+  @@index([tenantId, channel, locale, enabled], map: "idx_ticket_templates_tenant_channel")
+  @@map("ticket_templates")
+}
+
+/// TKT-001 Phase J1 — immutable template revision snapshots for rollback.
+model TicketTemplateRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  templateId      String   @map("template_id") @db.Uuid
+  version         Int
+  title           String
+  body            String   @db.Text
+  channel         String   @db.VarChar(32)
+  locale          String   @db.VarChar(8)
+  enabled         Boolean
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template        TicketTemplate @relation(fields: [tenantId, templateId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, templateId, version], map: "uq_ticket_template_revisions_version")
+  @@map("ticket_template_revisions")
+}
+
+/// TKT-001 Phase J1 — idempotent template automation activations per domain event.
+model TicketTemplateAutomationActivation {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  domainEventId String   @map("domain_event_id") @db.VarChar(128)
+  templateCode  String   @map("template_code") @db.VarChar(64)
+  locale        String   @db.VarChar(8)
+  channel       String   @db.VarChar(32)
+  ticketId      String?  @map("ticket_id") @db.Uuid
+  activatedAt   DateTime @default(now()) @map("activated_at") @db.Timestamptz
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, domainEventId, templateCode, locale, channel], map: "uq_ticket_template_automation_activations")
+  @@map("ticket_template_automation_activations")
 }

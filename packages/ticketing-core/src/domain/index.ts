@@ -132,6 +132,27 @@ export {
   resolveSlaPolicyMatch,
   warningThresholdInstant,
 } from "./sla";
+
+export {
+  TICKET_TEMPLATE_CHANNELS,
+  TICKET_TEMPLATE_LOCALES,
+  TICKET_TEMPLATE_VARIABLE_ALLOWLIST,
+  OPERATOR_ONLY_TEMPLATE_CHANNELS,
+  buildTicketTemplateVariableMap,
+  escapeHtmlText,
+  findDisallowedTemplateTokens,
+  interpolateTicketTemplate,
+  isAllowedTicketTemplateVariable,
+  mapEventTypeToTemplateChannels,
+  sanitizeTicketTemplateBody,
+  stripDangerousMarkup,
+} from "./template";
+export type {
+  TicketTemplateChannel,
+  TicketTemplateLocale,
+  TicketTemplateVariableContext,
+  TicketTemplateVariableName,
+} from "./template";
 export type {
   BusinessHoursConfig,
   BusinessHoursWindow,

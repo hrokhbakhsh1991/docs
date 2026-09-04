@@ -35,6 +35,15 @@ import {
   handleGetTicketSlaPolicy,
   handlePatchTicketSlaPolicy,
 } from "./workspace-ticketing/ticket-sla.routes";
+import {
+  handleListTicketTemplates,
+  handleGetTicketTemplate,
+  handleCreateTicketTemplate,
+  handlePatchTicketTemplate,
+  handleRollbackTicketTemplate,
+  handleListTicketTemplateRevisions,
+  handlePreviewTicketTemplate,
+} from "./workspace-ticketing/ticket-template.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
 import { resolveWorkspaceHttpHandler } from "./boot/lazy-workspace-finance-handlers";
@@ -693,6 +702,43 @@ async function dispatchRequest(
   }
   if (method === "PATCH" && ticketSlaPolicyMatch) {
     await handlePatchTicketSlaPolicy(req, res, ticketSlaPolicyMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-templates") {
+    await handleListTicketTemplates(req, res);
+    return;
+  }
+
+  const ticketTemplateMatch = url.pathname.match(/^\/ticket-templates\/([^/]+)$/);
+  if (method === "GET" && ticketTemplateMatch) {
+    await handleGetTicketTemplate(req, res, ticketTemplateMatch[1]!);
+    return;
+  }
+  if (method === "POST" && ticketTemplateMatch) {
+    await handleCreateTicketTemplate(req, res, ticketTemplateMatch[1]!);
+    return;
+  }
+  if (method === "PATCH" && ticketTemplateMatch) {
+    await handlePatchTicketTemplate(req, res, ticketTemplateMatch[1]!);
+    return;
+  }
+
+  const ticketTemplateRollbackMatch = url.pathname.match(/^\/ticket-templates\/([^/]+)\/rollback$/);
+  if (method === "POST" && ticketTemplateRollbackMatch) {
+    await handleRollbackTicketTemplate(req, res, ticketTemplateRollbackMatch[1]!);
+    return;
+  }
+
+  const ticketTemplateRevisionsMatch = url.pathname.match(/^\/ticket-templates\/([^/]+)\/revisions$/);
+  if (method === "GET" && ticketTemplateRevisionsMatch) {
+    await handleListTicketTemplateRevisions(req, res, ticketTemplateRevisionsMatch[1]!);
+    return;
+  }
+
+  const ticketTemplatePreviewMatch = url.pathname.match(/^\/ticket-templates\/([^/]+)\/preview$/);
+  if (method === "POST" && ticketTemplatePreviewMatch) {
+    await handlePreviewTicketTemplate(req, res, ticketTemplatePreviewMatch[1]!);
     return;
   }
 

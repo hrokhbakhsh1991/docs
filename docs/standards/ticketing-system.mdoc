@@ -425,7 +425,27 @@ HTTP cache: `Cache-Control: private, no-store` on all notification responses.
 
 ### 7.11 TicketTemplate
 
-`code`, `name`, `body`, `categoryCode?`, `visibility` (public reply vs internal), `enabled`, `workspaceType`.
+Tenant-scoped canned responses and notification copy. **No arbitrary code execution** — `{{variable}}` interpolation uses an allowlist only; HTML/script stripped on save and render.
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `code` | string | unique per `(tenantId, channel, locale)` |
+| `title` | string | operator label / notification title |
+| `body` | text | template body |
+| `channel` | enum | `public_reply` \| `internal_note` \| `email` \| `sms` \| `sla_warning` \| `sla_breach` |
+| `locale` | `en` \| `fa` | |
+| `enabled` | boolean | |
+| `version` | int | monotonic; revision history in `TicketTemplateRevision` |
+| `workspaceType` | string? | null = all workspaces |
+| `isSystemDefault` | boolean | seeded from workspace manifest; rollback restores prior revision |
+
+**Variable allowlist:** `ticketId`, `ticketSubject`, `categoryCode`, `priority`, `status`, `requesterUserId`, `assigneeUserId`, `clock`, `escalationLevel`, `eventType`. Unknown tokens replaced with empty string.
+
+**Visibility:** operators/admins/owners CRUD via `/ticket-templates/*`; viewer read-only. Members have **no** template API — internal/SLA channels never exposed to portal.
+
+**Automation (Phase J1):** event-driven, idempotent via `TicketTemplateAutomationActivation (tenantId, domainEventId, templateCode, locale)`. Maps SLA/notification outbox events to `email` / `sms` / `sla_*` templates. No bulk send; noop provider for external delivery in this phase.
+
+**Denali defaults:** `packages/workspaces/denali/workspace.manifest.json` → `workspaceTicketing.defaultTemplates` (seeded idempotently per tenant).
 
 ### 7.12 Linked business entities (`TicketLink`)
 
@@ -1076,14 +1096,14 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 | | |
 |-|-|
-| **Scope** | canned responses, composer integration |
-| **Dependencies** | G |
-| **Database** | TicketTemplate |
-| **API** | template CRUD |
-| **UI** | template picker in composer |
-| **Tests** | API |
-| **Acceptance** | operator inserts template |
-| **Rollback** | hide picker |
+| **Scope** | `TicketTemplate`, `TicketTemplateRevision`, `TicketTemplateAutomationActivation`; safe interpolation in `ticketing-core`; template CRUD API; event-driven automation hook on notification outbox |
+| **Dependencies** | H (notifications), I (SLA events) |
+| **Database** | `ticket_templates`, `ticket_template_revisions`, `ticket_template_automation_activations` |
+| **API** | `GET/POST/PATCH /ticket-templates/*`; `POST /ticket-templates/:code/rollback` |
+| **UI** | composer picker deferred to Phase K |
+| **Tests** | `ticketing-core/test/template.spec.ts`; `ticket-templates.postgres.spec.ts` (CRUD, RLS, locale, XSS, versioning, rollback, automation idempotency, permissions) |
+| **Acceptance** | operator lists templates; automation applies email/SMS/SLA copy once per domain event |
+| **Rollback** | disable templates; revision rollback restores prior body |
 
 ### Phase K — Reports and workspace settings
 

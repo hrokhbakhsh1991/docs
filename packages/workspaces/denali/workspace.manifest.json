@@ -290,7 +290,8 @@
         "nameKey": "ticketing.queue.unassigned",
         "sortOrder": 0
       }
-    }
+    },
+    "defaultTemplates": true
   },
   "workspaceBooking": {
     "supported": true,
