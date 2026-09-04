@@ -366,7 +366,14 @@ describe(
       });
 
       const rows = await withTenantRls(tenantA, async (tx) =>
-        tx.ticketNotification.findMany({ where: { tenantId: tenantA, ticketId } }),
+        tx.memberNotification.findMany({
+          where: {
+            tenantId: tenantA,
+            entityType: "ticket",
+            entityId: ticketId,
+            eventType: "ticket.sla.breached",
+          },
+        }),
       );
       assert.ok(rows.length >= 1);
       assert.equal(rows[0]?.eventType, "ticket.sla.breached");
