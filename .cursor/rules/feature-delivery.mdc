@@ -41,8 +41,11 @@ Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/
 ## Research and UI/UX
 
 - Internet research when official behavior, accessibility, security, UX placement, or unclear blockers warrant it — record in `research.json`; never override repo constraints or hard stops.
-- **UI/UX gate (CP5):** inspect existing placement; browser proof for user-visible features; RTL/LTR; all states; screenshots when applicable.
-- curl/API/build **never** equals browser-verified. Unavailable browser → `UNVERIFIED` or `ACCEPTED_RISK`, not PASS.
+- **Mandatory UI/UX gate (CP1):** for every **user-visible** feature, produce `ui-ux-decision.json` (24 sections) before source implementation — [research-and-design-gate §3.3](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
+- **UI UX Pro Max** is **advisory only** — use when skill + `python3` available per [FDA-INTEGRATION](../skills/ui-ux-pro-max/FDA-INTEGRATION.md); fallback checklist when unavailable; never claim Pro Max used without ledger row.
+- **Priority:** product requirements → repository tokens/primitives → Denali/Urban/starter → accessibility/RTL/LTR → Pro Max recommendations.
+- **UI/UX gate (CP5) + BQC:** inspect existing placement; real browser proof; RTL/LTR; all states; screenshots/traces; [Playwright best practices](https://playwright.dev/docs/best-practices).
+- curl/API/build **never** equals `ui-browser-verified`. Unavailable browser → `ui-unverified` or `ui-accepted-risk`, not PASS.
 
 ## Verification and evidence
 
