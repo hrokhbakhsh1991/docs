@@ -72,6 +72,7 @@ export function MemberTicketsNewForm({ categories }: Props) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [state, setState] = useState<FormState>(() => ({
@@ -82,6 +83,10 @@ export function MemberTicketsNewForm({ categories }: Props) {
     relatedRegistrationId: "",
     ...readDraft(),
   }));
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -121,7 +126,7 @@ export function MemberTicketsNewForm({ categories }: Props) {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submitting) {
+    if (!clientReady || submitting) {
       return;
     }
     setFormError(null);
@@ -187,6 +192,7 @@ export function MemberTicketsNewForm({ categories }: Props) {
   return (
     <form
       data-portal-member-tickets-new-form
+      data-client-ready={clientReady ? "true" : undefined}
       onSubmit={onSubmit}
       noValidate
       aria-describedby={formError !== null ? `${formId}-error` : undefined}
@@ -308,7 +314,7 @@ export function MemberTicketsNewForm({ categories }: Props) {
       ) : null}
 
       <div data-portal-member-tickets-form-actions>
-        <button type="submit" disabled={submitting} aria-busy={submitting}>
+        <button type="submit" disabled={!clientReady || submitting} aria-busy={submitting}>
           {submitting ? t("submitting") : t("submit")}
         </button>
       </div>

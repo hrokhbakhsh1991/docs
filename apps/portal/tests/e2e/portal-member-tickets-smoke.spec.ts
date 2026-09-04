@@ -30,6 +30,10 @@ test("TKT-F1-SMOKE member ticketing create view reply reopen", async ({ page }) 
 
   await page.locator("[data-portal-member-tickets-new-cta]").click();
   await expect(page.locator("[data-portal-member-tickets-new-form]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-portal-member-tickets-new-form]")).toHaveAttribute(
+    "data-client-ready",
+    "true",
+  );
 
   await page.locator('select[name="categoryCode"]').selectOption("general");
   await page.locator('input[name="subject"]').click();
