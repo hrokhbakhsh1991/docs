@@ -27,6 +27,7 @@
     "test:smoke:engagement": "playwright test -c playwright.portal-engagement.config.ts",
     "test:certify:wallet-ws1": "playwright test -c playwright.wallet-ws1-certification.config.ts",
     "test:certify:denali-wallet-pilot": "playwright test -c playwright.denali-wallet-pilot.config.ts",
+    "test:certify:denali-wallet-v1": "playwright test -c playwright.denali-wallet-v1.config.ts",
     "start": "next start --port 3003"
   },
   "dependencies": {
