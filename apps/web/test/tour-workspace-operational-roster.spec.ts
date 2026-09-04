@@ -27,6 +27,21 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.doesNotMatch(client, /fetch\(`\/api\/bookings\?/);
   });
 
+  it("registrations tab shows the whole tour roster, including approved bookings", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /lockedStatus="all"/);
+  });
+
+  it("localizes temporary transport roster outages", () => {
+    for (const locale of ["fa", "en"]) {
+      const messages = readFileSync(join(webRoot, `messages/${locale}/tours.json`), "utf8");
+      assert.match(messages, /TOUR_TRANSPORT_BOOKINGS_HTTP_503/);
+    }
+  });
+
   it("BFF proxies tour operational roster route", () => {
     const route = readFileSync(
       join(webRoot, "app/api/tours/[id]/operational-roster/route.ts"),
