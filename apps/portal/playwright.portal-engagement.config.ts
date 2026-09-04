@@ -8,7 +8,11 @@ const portalSmokeBaseUrl =
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["portal-member-engagement-smoke.spec.ts", "portal-engagement-a11y.spec.ts"],
+  testMatch: [
+    "portal-member-engagement-smoke.spec.ts",
+    "portal-engagement-a11y.spec.ts",
+    "gamification-ux-capture.spec.ts",
+  ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI ? 1 : 0,
   workers: 1,

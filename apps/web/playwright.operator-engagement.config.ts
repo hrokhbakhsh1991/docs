@@ -8,7 +8,11 @@ const denaliOperatorBaseUrl =
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["operator-engagement-smoke.spec.ts", "operator-engagement-a11y.spec.ts"],
+  testMatch: [
+    "operator-engagement-smoke.spec.ts",
+    "operator-engagement-a11y.spec.ts",
+    "gamification-ux-capture.spec.ts",
+  ],
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   timeout: 240_000,

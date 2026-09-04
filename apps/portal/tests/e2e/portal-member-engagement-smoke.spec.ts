@@ -31,7 +31,9 @@ test.describe("MEG-001 portal member engagement", () => {
     });
     await expect(page.locator("[data-portal-member-engagement-points]")).toBeVisible();
     await expect(page.locator("[data-portal-member-engagement-level]")).toBeVisible();
-    await expect(page.locator("[data-portal-member-engagement-badges]")).toBeVisible();
+    await expect(page.locator("[data-portal-member-engagement-badges-region]")).toBeVisible();
+    await expect(page.locator("[data-portal-member-engagement-not-money]")).toBeVisible();
+    await expect(page.locator("[data-portal-member-dashboard-next-tour]")).toBeVisible();
 
     const pointsText = await page.locator("[data-portal-member-engagement-points]").innerText();
     expect(pointsText).not.toMatch(/ریال|تومان|\$/i);
@@ -89,5 +91,24 @@ test.describe("MEG-001 portal member engagement", () => {
     });
     const dir = await page.locator("html").getAttribute("dir");
     expect(dir === "rtl" || dir === "ltr").toBeTruthy();
+  });
+
+  test("SMK-MEG-04 navigates to engagement detail page", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+    await authenticatePortalMemberForEngagement(page, {
+      phone,
+      fullName: "Engagement Detail Smoke",
+    });
+
+    await page.goto("/me/home", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-engagement-cta]")).toBeVisible({
+      timeout: 90_000,
+    });
+    await page.locator("[data-portal-member-engagement-cta]").click();
+    await expect(page.locator("[data-portal-member-engagement-page]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-engagement-history]")).toBeVisible();
   });
 });

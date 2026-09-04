@@ -34,14 +34,15 @@ test.describe("MEG-001 Denali operator engagement", () => {
     await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible();
     await expect(page.locator("[data-operator-engagement-recent-badges]")).toBeVisible();
 
-    const lede = await page.locator("[data-operator-engagement-page] p").first().innerText();
+    const lede = await page.locator("[data-operator-page-header-description]").innerText();
     expect(lede).toMatch(/wallet|کیف پول/i);
     expect(lede).not.toMatch(/ریال|تومان|\$/);
 
     const pointsSection = await page
       .locator("[data-operator-engagement-recent-points]")
       .innerText();
-    expect(pointsSection).toContain("profile.completed");
+    expect(pointsSection).toMatch(/profile|پروفایل/i);
+    expect(pointsSection).not.toMatch(/profile\.completed/);
     expect(pointsSection).not.toMatch(/ریال|تومان|\$/);
 
     const walletNav = page.getByRole("link", { name: /wallet|کیف پول/i });

@@ -1,0 +1,105 @@
+---
+title: UI/UX Review — Denali Gamification (MEG-001)
+format: markdoc
+doc_role: feature_delivery_evidence
+feature_id: gamification-denali-ux
+branch: cursor/gamification-5bda
+---
+
+# UI/UX Review — Denali Gamification
+
+Evidence-based review of member portal and operator web engagement surfaces. Informs remediation on branch `cursor/gamification-5bda`.
+
+---
+
+## 1. Research sources and applied decisions
+
+| Source | Principle | Applies | Decision |
+| ------ | --------- | ------- | -------- |
+| [WCAG 2.2 SC 2.5.8 Target Size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | 24×24 CSS px minimum touch targets | Member CTAs, operator form controls | CTAs `min-height: 2.75rem`; shadcn Button/Input on operator lookup |
+| [WCAG 2.2 — progressbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/progressbar/) | `role="progressbar"` + `aria-valuenow` | Level progress on dashboard | Semantic progressbar with `aria-label` via i18n |
+| [MDN prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) | Respect reduced motion | Progress fill, operator skin | `transition: none` under `prefers-reduced-motion: reduce` |
+| [Material Design 3 — Cards](https://m3.material.io/components/cards/overview) | Group related content; avoid nesting noise | Dashboard sections, operator overview | Three member sections (next tour → engagement → status); operator uses Card per list |
+| [Material Design 3 — Progress indicators](https://m3.material.io/components/progress-indicators/overview) | Determinate bar for known remainder | Points to next level | Determinate bar + numeric “points to next level” copy |
+| [Self-Determination Theory (Ryan & Deci)](https://selfdeterminationtheory.org/theory/) | Autonomy, competence, relatedness | All gamification | No streaks, leaderboards, or artificial urgency; optional detail page |
+| Strava / fitness apps (pattern only) | Operational info above gamification on home | Member dashboard | **Rejected** copying visuals; **accepted** hierarchy: next tour first |
+
+Repository Denali tokens (`member-pages.css`, `engagement-skin.css`) remain primary visual authority.
+
+---
+
+## 2. Product hierarchy decisions
+
+| # | Question | Decision | Rationale |
+| - | -------- | -------- | --------- |
+| 1 | Where does engagement appear on member dashboard? | **Second block** after next tour | Registration/trip is operational priority (hypothesis confirmed in browser) |
+| 2 | Above or below next-tour card? | **Below** | Payment/registration urgency outweighs points |
+| 3 | Dashboard vs dedicated page? | Dashboard: level, points, progress, ≤3 earned badges, next-badge hint, CTA. Detail: full history + all badges | Reduces noise; supports deep dive without cluttering home |
+| 4 | Points vs wallet? | Separate metric blocks + persistent `notMoney` disclaimer; status row labels wallet explicitly | Prevents financial confusion (MEG-001 non-goal) |
+| 5 | Which badges on dashboard? | Up to 3 earned + next unearned hint | Enough recognition without flat four-badge list |
+| 6 | Primary CTA? | “View engagement details” → `/me/engagement` | Clear path to history |
+| 7 | Operator placement? | Secondary nav module `/engagement`; not dashboard hero | Operational audit tool, not decoration |
+| 8 | Operator information need? | Recent awards, localized event labels, member UUID lookup, formatted timestamps | Supports support decisions; raw `sourceEventType` rejected |
+
+**Rejected alternatives**
+
+- Engagement first on dashboard (too prominent vs trips)
+- Showing all four badges on home (visual noise)
+- Raw API event types in operator UI (English leakage in FA)
+- Public leaderboard or celebration animations (MEG-001 non-goals)
+
+---
+
+## 3. Current strengths (post-remediation)
+
+- Next tour → engagement → account status order matches task priority
+- Participation points use alpine accent; wallet copy separated semantically
+- Progress bar accessible; reduced-motion safe
+- Dedicated `/me/engagement` for history and full badge grid
+- Operator overview uses PageHeader, Cards, localized labels, member lookup
+- Denali workspace skins only (no second design system)
+
+---
+
+## 4. Defects (before remediation)
+
+| ID | Rank | Finding | Evidence |
+| -- | ---- | ------- | -------- |
+| D-01 | P0 | Engagement section listed **before** next tour | Portal home DOM order pre-change |
+| D-02 | P0 | No visual separation points vs wallet | Single prose line; no `notMoney` styling |
+| D-03 | P0 | Operator showed raw `profile.completed` | Operator smoke expected technical event type |
+| D-04 | P1 | No `/me/engagement` detail route | Missing page file |
+| D-05 | P1 | No Denali CSS for engagement widgets | Unstyled data attributes on portal |
+| D-06 | P1 | Operator page unstyled plain lists | No PageHeader/Cards |
+| D-07 | P1 | No progress bar / level progress on dashboard | Flat points text only |
+| D-08 | P2 | All badges listed on dashboard | Four-item list regardless of earned state |
+| D-09 | P2 | ISO timestamps in UI | Raw `createdAt` strings |
+| D-10 | P2 | No operator member lookup UI | API existed; no web surface |
+| D-11 | P3 | No empty-state copy for operator lists | Loading only |
+
+---
+
+## 5. Acceptance criteria (closure)
+
+- [x] Member dashboard: next tour first, engagement second, status third
+- [x] Points visually distinct from wallet; `notMoney` visible on dashboard and detail
+- [x] Progress bar with ARIA on dashboard when next level exists
+- [x] `/me/engagement` with history, badges, localized event labels, formatted dates
+- [x] Denali portal CSS for dashboard grid, metrics, progress, badges, CTAs
+- [x] Operator: PageHeader, Cards, localized events/badges, empty states, member lookup
+- [x] Denali `engagement-skin.css` imported in admin bundle
+- [x] BEFORE/AFTER screenshots at 1440×900, 1280×800, 390×844, 360×800 (member + operator)
+- [x] Playwright smoke + Axe updated and passing
+- [x] Lint/build on touched apps
+
+---
+
+## 6. Remaining risks
+
+- Portal smoke uses `operator.portal.localhost` host (workspace fixture); Denali-specific portal host may differ in production apex routing — monitor WRS host binding.
+- Wallet balance on dashboard still `null` in BFF wiring (pre-existing); status row hidden until wallet module connected.
+- Member lookup requires operator to know UUID (acceptable V1; future: search by phone).
+
+---
+
+_Verdict target: `GAMIFICATION_UI_UX_COMPLETE` when browser evidence ledger rows are green._
