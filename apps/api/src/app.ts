@@ -72,6 +72,7 @@ import {
   handleTicketingOperatorListTickets,
   handleTicketingOperatorPatchTicket,
   handleTicketingOperatorReopenTicket,
+  handleTicketingOperatorBulkTickets,
   handleTicketingOperatorReply,
   type TicketingRouteDeps,
   type TicketingServicePort,
@@ -639,6 +640,11 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/tickets") {
     await handleTicketingOperatorListTickets(req, res, ticketingDeps);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/tickets/bulk") {
+    await handleTicketingOperatorBulkTickets(req, res, ticketingDeps);
     return;
   }
 

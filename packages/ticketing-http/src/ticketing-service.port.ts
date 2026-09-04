@@ -5,6 +5,7 @@ import type {
   OperatorMessageHttpResponse,
   OperatorTicketDetailHttp,
   OperatorTicketMutationHttpResponse,
+  OperatorTicketBulkHttpResponse,
   PaginatedMemberTicketListHttp,
   PaginatedOperatorTicketListHttp,
   TicketAttachmentCompleteResponse,
@@ -24,6 +25,7 @@ import type {
   OperatorReplyInput,
   OperatorTicketListQuery,
   OperatorTicketPatchInput,
+  OperatorTicketBulkInput,
   TicketAssignInput,
   TicketQueueChangeInput,
   TicketQueueCreateInput,
@@ -101,6 +103,11 @@ export type TicketingServicePort = {
     body: MemberReopenTicketInput,
     idempotencyKey: string,
   ) => Promise<OperatorTicketMutationHttpResponse>;
+  readonly bulkOperatorTickets: (
+    auth: TenantAuthContext,
+    body: OperatorTicketBulkInput,
+    idempotencyKey: string,
+  ) => Promise<OperatorTicketBulkHttpResponse>;
   readonly listTicketCategories: (auth: TenantAuthContext) => Promise<readonly TicketCategoryHttp[]>;
   readonly listTags: (auth: TenantAuthContext) => Promise<readonly TicketTagHttp[]>;
   readonly createTag: (

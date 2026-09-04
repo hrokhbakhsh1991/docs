@@ -49,6 +49,7 @@ export {
   ticketPriorityUpdateInputSchema,
   ticketAssignmentInputSchema,
   operatorTicketPatchInputSchema,
+  operatorTicketBulkInputSchema,
   parseMemberCreateTicketInput,
   parseMemberAddMessageInput,
   parseMemberReopenTicketInput,
@@ -58,6 +59,7 @@ export {
   parseTicketPriorityUpdateInput,
   parseTicketAssignmentInput,
   parseOperatorTicketPatchInput,
+  parseOperatorTicketBulkInput,
   type MemberCreateTicketInput,
   type MemberAddMessageInput,
   type MemberReopenTicketInput,
@@ -67,6 +69,7 @@ export {
   type TicketPriorityUpdateInput,
   type TicketAssignmentInput,
   type OperatorTicketPatchInput,
+  type OperatorTicketBulkInput,
 } from "./ticketing-request.schemas";
 
 export {
@@ -123,6 +126,8 @@ export type {
   MemberAddMessageHttpResponse,
   OperatorTicketMutationHttpResponse,
   OperatorMessageHttpResponse,
+  OperatorTicketBulkItemResultHttp,
+  OperatorTicketBulkHttpResponse,
 } from "./ticketing-response.schemas";
 
 export {

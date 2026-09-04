@@ -124,7 +124,7 @@ Only these remain outside Full Production V1. Each has a product/technical ratio
 | ------- | ---- | --- | -------------------- |
 | Club member | `member` | Portal | Create, list own, read own, public reply, attachments on own ticket, reopen `resolved`, link tour/registration — **member = own-ticket access** |
 | Club viewer | `viewer` | Portal | List tenant tickets, read any member ticket (public + internal read-only), notifications read — **viewer = tenant-wide read-only**; **viewer mutations = denied** |
-| Club operator | `admin` | Web | Full inbox, queues, assign (user/team), reply, internal note, templates, reports read — **bulk actions post-v1** |
+| Club operator | `admin` | Web | Full inbox, queues, assign (user/team), reply, internal note, templates, reports read, **bulk actions** (`POST /tickets/bulk`) |
 | Workspace owner | `owner` | Web | Same as admin + workspace settings, SLA policies, archive/delete |
 | Platform admin | — | — | **Extension** — no cross-tenant ticket access |
 
@@ -595,7 +595,7 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | Method | Path | Surface | Notes |
 | ------ | ---- | ------- | ----- |
 | GET | `/tickets` | read | search (`q`: subject, requester, ticket code), filter, sort, cursor |
-| POST | `/tickets/bulk` | bulk | **post-v1** — assign, status, priority, tags (not implemented in L1) |
+| POST | `/tickets/bulk` | bulk | assign, status, priority, tags — partial per-ticket failure semantics |
 | GET/PATCH | `/tickets/:id` | read/mutate | detail + rowVersion |
 | POST | `/tickets/:id/replies` | mutate | public |
 | POST | `/tickets/:id/internal-notes` | mutate | internal |
@@ -673,7 +673,7 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | Structured logs | `tenantId`, `ticketId`, `actorUserId`, `traceId` |
 | Metrics | `ticket_created_total`, `sla_breach_total`, `first_response_seconds` histogram |
 | Error tracking | existing API error pipeline + `code` dimension |
-| Retention | workspace policy fields in settings (`retentionDays`); **scheduled purge jobs post-v1** — audit rows retained longer by default |
+| Retention | workspace policy in `ticket_workspace_settings.slaDefaults` (`retentionDays`, `attachmentRetentionDays`); scheduled purge worker (`TICKETING_RETENTION_WORKER_ENABLED=1`) — closed tickets purged after `retentionDays` (default ~7y); soft-deleted attachments after `attachmentRetentionDays` (default 2y) |
 | Rollback observability | feature flag off → metric `ticketing_disabled_total` |
 
 ---
@@ -1164,7 +1164,9 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 **Certified v1 capabilities:** member portal create/reply/attachment/reopen; operator inbox/reply/internal note/assign/queue/tag/resolve/close; viewer tenant-wide read-only; templates + safe automation (J1); search/reports/settings (K1); SLA (I1); tenant isolation + RLS on all ticketing tables; attachment storage via platform storage driver.
 
-**Post-v1 (not in L1 gate):** bulk actions (`POST /tickets/bulk`), scheduled retention purge jobs, orphan attachment object cleanup, email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics, `@axe-core/playwright` automated a11y audit.
+**Post-v1 (not in full V1 gate):** email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics.
+
+**Full V1 closure (Phase L):** bulk actions (`POST /tickets/bulk`), retention purge worker, orphan attachment cleanup worker, `@axe-core/playwright` on portal + operator ticket routes.
 
 **Gap remediation (L1 audit):** see `docs/phase-ticketing/GAP-REMEDIATION-REPORT.md` — scan port wired, MinIO spec added, Postgres app-role guard in ticketing specs, docs aligned to implemented surface.
 

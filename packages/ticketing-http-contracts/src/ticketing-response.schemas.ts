@@ -103,3 +103,16 @@ export type OperatorTicketMutationHttpResponse = {
 export type OperatorMessageHttpResponse = {
   readonly message: OperatorTicketMessageHttp;
 };
+
+export type OperatorTicketBulkItemResultHttp = {
+  readonly ticketId: string;
+  readonly ok: boolean;
+  readonly code?: string;
+  readonly ticket?: OperatorTicketDetailHttp;
+};
+
+export type OperatorTicketBulkHttpResponse = {
+  readonly results: readonly OperatorTicketBulkItemResultHttp[];
+  readonly succeeded: number;
+  readonly failed: number;
+};

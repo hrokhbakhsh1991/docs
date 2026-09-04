@@ -29,6 +29,8 @@ async function warmPostListen(): Promise<WarmPostListenHandles> {
     { startPaymentHoldExpiryScheduler },
     { startFinanceReconIfEnabled },
     { startTicketSlaWorkerIfEnabled },
+    { startTicketRetentionWorkerIfEnabled },
+    { startTicketOrphanAttachmentWorkerIfEnabled },
   ] = await Promise.all([
     import("./outbox/start-outbox-relay"),
     import("./outbox/start-projection-auto-reconcile"),
@@ -41,6 +43,8 @@ async function warmPostListen(): Promise<WarmPostListenHandles> {
     import("./finance/start-payment-hold-expiry-scheduler"),
     import("./workspace-finance/recon/start-finance-recon"),
     import("./workspace-ticketing/process-ticket-sla-once"),
+    import("./workspace-ticketing/process-ticket-retention-once"),
+    import("./workspace-ticketing/process-ticket-orphan-attachments-once"),
   ]);
   bootstrapIntegrationProviders();
   startOutboxRelayIfEnabled();
@@ -48,6 +52,8 @@ async function warmPostListen(): Promise<WarmPostListenHandles> {
   startIntegrationDeliveryWorkerIfEnabled();
   startFinanceReconIfEnabled();
   startTicketSlaWorkerIfEnabled();
+  startTicketRetentionWorkerIfEnabled();
+  startTicketOrphanAttachmentWorkerIfEnabled();
   const denaliReminderScheduler = startDenaliExposureReminderSchedulerIfEnabled();
   startPaymentHoldExpiryScheduler();
   await bootstrapWorkspaceWizardTemplatesIfNeeded();

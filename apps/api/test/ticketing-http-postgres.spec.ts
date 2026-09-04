@@ -705,6 +705,38 @@ describe(
       assert.equal(count, 2);
     });
 
+    // ─── Bulk operator actions ───────────────────────────────────────────
+
+    it("bulk status update applies to multiple tickets with partial failure", async () => {
+      const first = await createTicket({ subject: "Bulk one" });
+      const second = await createTicket({ subject: "Bulk two" });
+      const missingId = randomUUID();
+      const response = await requestJson(listener, {
+        method: "POST",
+        path: "/tickets/bulk",
+        tenantId: tenantA,
+        userId: adminA,
+        role: "admin",
+        idempotencyKey: `bulk-${randomUUID()}`,
+        body: {
+          ticketIds: [first.ticketId, second.ticketId, missingId],
+          status: "resolved",
+        },
+      });
+      assert.equal(response.status, 200, JSON.stringify(response.body));
+      const results = response.body.results as Array<Record<string, unknown>>;
+      assert.equal(response.body.succeeded, 2);
+      assert.equal(response.body.failed, 1);
+      assert.equal(results.length, 3);
+      assert.equal(results.filter((entry) => entry.ok === true).length, 2);
+      assert.equal(results.find((entry) => entry.ticketId === missingId)?.ok, false);
+
+      const firstRow = await admin.ticket.findUnique({
+        where: { tenantId_id: { tenantId: tenantA, id: first.ticketId } },
+      });
+      assert.equal(firstRow?.status, "resolved");
+    });
+
     // ─── Concurrency ──────────────────────────────────────────────────────
 
     it("stale rowVersion returns 409", async () => {

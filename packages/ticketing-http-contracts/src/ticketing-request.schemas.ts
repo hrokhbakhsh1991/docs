@@ -114,6 +114,42 @@ export const operatorTicketPatchInputSchema = z
 
 export type OperatorTicketPatchInput = z.infer<typeof operatorTicketPatchInputSchema>;
 
+const operationalCodeSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(64)
+  .regex(/^[a-z][a-z0-9_-]*$/);
+
+/** Operator POST /tickets/bulk — batch status, priority, assign, tags with per-ticket partial failure. */
+export const operatorTicketBulkInputSchema = z
+  .object({
+    ticketIds: z.array(uuidSchema).min(1).max(100),
+    status: ticketStatusSchema.optional(),
+    priority: ticketPrioritySchema.optional(),
+    assigneeUserId: uuidSchema.nullable().optional(),
+    assigneeTeamCode: operationalCodeSchema.nullable().optional(),
+    addTagCodes: z.array(operationalCodeSchema).max(20).optional(),
+    removeTagCodes: z.array(operationalCodeSchema).max(20).optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.status !== undefined ||
+      value.priority !== undefined ||
+      value.assigneeUserId !== undefined ||
+      value.assigneeTeamCode !== undefined ||
+      (value.addTagCodes !== undefined && value.addTagCodes.length > 0) ||
+      (value.removeTagCodes !== undefined && value.removeTagCodes.length > 0),
+    { message: "at least one bulk mutation field is required" },
+  )
+  .refine(
+    (value) => !(value.assigneeUserId !== undefined && value.assigneeTeamCode !== undefined),
+    { message: "assigneeUserId and assigneeTeamCode are mutually exclusive" },
+  );
+
+export type OperatorTicketBulkInput = z.infer<typeof operatorTicketBulkInputSchema>;
+
 export function parseMemberCreateTicketInput(raw: unknown): MemberCreateTicketInput {
   return parseWithZod(memberCreateTicketInputSchema, raw, "memberCreateTicket");
 }
@@ -148,4 +184,8 @@ export function parseTicketAssignmentInput(raw: unknown): TicketAssignmentInput 
 
 export function parseOperatorTicketPatchInput(raw: unknown): OperatorTicketPatchInput {
   return parseWithZod(operatorTicketPatchInputSchema, raw, "operatorTicketPatch");
+}
+
+export function parseOperatorTicketBulkInput(raw: unknown): OperatorTicketBulkInput {
+  return parseWithZod(operatorTicketBulkInputSchema, raw, "operatorTicketBulk");
 }

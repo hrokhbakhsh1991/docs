@@ -32,6 +32,7 @@ export {
   handleTicketingOperatorInternalNote,
   handleTicketingOperatorPatchTicket,
   handleTicketingOperatorReopenTicket,
+  handleTicketingOperatorBulkTickets,
 } from "./ticketing.routes";
 export {
   handleTicketingMemberCreateAttachmentIntent,

@@ -3,6 +3,7 @@ export const TICKETING_HTTP_ROUTE_MANIFEST = {
     { method: "GET", path: "/member/tickets", handler: "handleTicketingMemberListTickets" },
     { method: "POST", path: "/member/tickets", handler: "handleTicketingMemberCreateTicket" },
     { method: "GET", path: "/tickets", handler: "handleTicketingOperatorListTickets" },
+    { method: "POST", path: "/tickets/bulk", handler: "handleTicketingOperatorBulkTickets" },
   ],
   param: [
     { method: "GET", path: "/member/tickets/:ticketId", handler: "handleTicketingMemberGetTicket" },

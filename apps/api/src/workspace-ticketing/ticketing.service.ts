@@ -35,6 +35,7 @@ import type {
   OperatorReplyInput,
   OperatorTicketListQuery,
   OperatorTicketPatchInput,
+  OperatorTicketBulkInput,
   TicketAssignInput,
   TicketQueueChangeInput,
   TicketQueueCreateInput,
@@ -1085,6 +1086,218 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
       }
       detail = await persistMutation({ ticket: updatedTicket, events: [event] });
       return { ticket: await toOperatorDetailHttp(detail) };
+    },
+
+    async bulkOperatorTickets(auth, body: OperatorTicketBulkInput, idempotencyKey) {
+      void idempotencyKey;
+      assertOperatorEndpointRole(auth);
+      const needsAdmin =
+        body.assigneeUserId !== undefined ||
+        body.assigneeTeamCode !== undefined ||
+        (body.addTagCodes !== undefined && body.addTagCodes.length > 0) ||
+        (body.removeTagCodes !== undefined && body.removeTagCodes.length > 0);
+      if (needsAdmin) {
+        assertAdminRole(auth);
+      }
+
+      const results: Array<{
+        readonly ticketId: string;
+        readonly ok: boolean;
+        readonly code?: string;
+        readonly ticket?: Awaited<ReturnType<typeof toOperatorDetailHttp>>;
+      }> = [];
+
+      for (const ticketId of body.ticketIds) {
+        try {
+          let detail = await loadReadableTicket(auth, ticketId, { operator: true });
+          let actor = await buildTicketActorContext(auth, { loadTenantMembers: true });
+          let ticket = detail.ticket;
+          let expectedRowVersion = ticket.rowVersion;
+          const now = nowIso();
+
+          if (body.status !== undefined) {
+            const outcome = unwrap(
+              changeTicketStatus({
+                eventId: randomUUID(),
+                ticket,
+                status: body.status,
+                actor,
+                expectedRowVersion,
+                nowIso: now,
+              }),
+            );
+            detail = await persistMutation({ ticket: outcome.ticket, events: outcome.events });
+            ticket = detail.ticket;
+            expectedRowVersion = ticket.rowVersion;
+          }
+
+          if (body.priority !== undefined) {
+            actor = await buildTicketActorContext(auth, { loadTenantMembers: true });
+            const outcome = unwrap(
+              changeTicketPriority({
+                eventId: randomUUID(),
+                ticket,
+                priority: body.priority,
+                actor,
+                expectedRowVersion,
+                nowIso: nowIso(),
+              }),
+            );
+            detail = await persistMutation({ ticket: outcome.ticket, events: outcome.events });
+            ticket = detail.ticket;
+            expectedRowVersion = ticket.rowVersion;
+          }
+
+          if (body.assigneeUserId !== undefined) {
+            actor = await buildTicketActorContext(auth, { loadTenantMembers: true });
+            const outcome = unwrap(
+              assignTicket({
+                eventId: randomUUID(),
+                ticket,
+                assigneeUserId: body.assigneeUserId,
+                actor,
+                expectedRowVersion,
+                nowIso: nowIso(),
+              }),
+            );
+            detail = await persistMutation({
+              ticket: { ...outcome.ticket, assigneeTeamId: null },
+              events: outcome.events,
+            });
+            ticket = detail.ticket;
+            expectedRowVersion = ticket.rowVersion;
+          } else if (body.assigneeTeamCode !== undefined) {
+            const teamCode = body.assigneeTeamCode;
+            if (teamCode === null) {
+              if (ticket.rowVersion !== expectedRowVersion) {
+                throwTicketingDomainError({
+                  code: "ROW_VERSION_CONFLICT",
+                  message: "stale row version",
+                });
+              }
+              const event = buildTicketEvent({
+                id: randomUUID(),
+                tenantId: ticket.tenantId,
+                ticketId: ticket.id,
+                eventType: "ticket.team.assigned",
+                actorUserId: auth.userId,
+                payload: { from: ticket.assigneeTeamId, to: null },
+                createdAt: nowIso(),
+              });
+              const updatedTicket = withIncrementedRowVersion(
+                bumpTicketActivity(
+                  { ...ticket, assigneeUserId: null, assigneeTeamId: null },
+                  nowIso(),
+                ),
+                nowIso(),
+              );
+              detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+            } else {
+              const team = await operationalRepository.findTeamByCode(auth.tenantId, teamCode);
+              if (team === null) {
+                throwTicketingDomainError({
+                  code: "TEAM_NOT_FOUND",
+                  message: "team not found",
+                  field: "assigneeTeamCode",
+                });
+              }
+              if (ticket.rowVersion !== expectedRowVersion) {
+                throwTicketingDomainError({
+                  code: "ROW_VERSION_CONFLICT",
+                  message: "stale row version",
+                });
+              }
+              const event = buildTicketEvent({
+                id: randomUUID(),
+                tenantId: ticket.tenantId,
+                ticketId: ticket.id,
+                eventType: "ticket.team.assigned",
+                actorUserId: auth.userId,
+                payload: { from: ticket.assigneeTeamId, to: team.id, teamCode: team.code },
+                createdAt: nowIso(),
+              });
+              const updatedTicket = withIncrementedRowVersion(
+                bumpTicketActivity(
+                  {
+                    ...ticket,
+                    assigneeUserId: null,
+                    assigneeTeamId: team.id,
+                  },
+                  nowIso(),
+                ),
+                nowIso(),
+              );
+              detail = await persistMutation({ ticket: updatedTicket, events: [event] });
+            }
+            ticket = detail.ticket;
+            expectedRowVersion = ticket.rowVersion;
+          }
+
+          for (const tagCode of body.addTagCodes ?? []) {
+            const tag = await operationalRepository.findTagByCode(auth.tenantId, tagCode);
+            if (tag === null) {
+              throwTicketingDomainError({
+                code: "TAG_NOT_FOUND",
+                message: "tag not found",
+                field: "tagCode",
+              });
+            }
+            await operationalRepository.addTicketTag(auth.tenantId, ticketId, tagCode);
+            const tagEvent = buildTicketEvent({
+              id: randomUUID(),
+              tenantId: ticket.tenantId,
+              ticketId: ticket.id,
+              eventType: "ticket.tag.added",
+              actorUserId: auth.userId,
+              payload: { tagCode },
+              createdAt: nowIso(),
+            });
+            const updatedTicket = withIncrementedRowVersion(
+              bumpTicketActivity(ticket, nowIso()),
+              nowIso(),
+            );
+            detail = await persistMutation({ ticket: updatedTicket, events: [tagEvent] });
+            ticket = detail.ticket;
+            expectedRowVersion = ticket.rowVersion;
+          }
+
+          for (const tagCode of body.removeTagCodes ?? []) {
+            await operationalRepository.removeTicketTag(auth.tenantId, ticketId, tagCode);
+            const tagEvent = buildTicketEvent({
+              id: randomUUID(),
+              tenantId: ticket.tenantId,
+              ticketId: ticket.id,
+              eventType: "ticket.tag.removed",
+              actorUserId: auth.userId,
+              payload: { tagCode },
+              createdAt: nowIso(),
+            });
+            const updatedTicket = withIncrementedRowVersion(
+              bumpTicketActivity(ticket, nowIso()),
+              nowIso(),
+            );
+            detail = await persistMutation({ ticket: updatedTicket, events: [tagEvent] });
+            ticket = detail.ticket;
+            expectedRowVersion = ticket.rowVersion;
+          }
+
+          await syncSla(detail.ticket);
+          results.push({ ticketId, ok: true, ticket: await toOperatorDetailHttp(detail) });
+        } catch (error) {
+          const code =
+            error instanceof Error && error.message.length > 0
+              ? error.message
+              : "TICKET_BULK_ITEM_FAILED";
+          results.push({ ticketId, ok: false, code });
+        }
+      }
+
+      const succeeded = results.filter((entry) => entry.ok).length;
+      return {
+        results,
+        succeeded,
+        failed: results.length - succeeded,
+      };
     },
 
     ...e1,

@@ -12,6 +12,7 @@ import {
   parseOperatorReplyInput,
   parseOperatorTicketListQuery,
   parseOperatorTicketPatchInput,
+  parseOperatorTicketBulkInput,
   assertTicketingIdempotencyKeyPresent,
   type MemberAddMessageInput,
   type MemberCreateTicketInput,
@@ -19,6 +20,7 @@ import {
   type OperatorInternalNoteInput,
   type OperatorReplyInput,
   type OperatorTicketPatchInput,
+  type OperatorTicketBulkInput,
 } from "@app-tour/ticketing-http-contracts";
 
 import { getTicketingHttpHost } from "./host-runtime";
@@ -361,5 +363,23 @@ export async function handleTicketingOperatorReopenTicket(
         string,
         unknown
       >,
+  );
+}
+
+export async function handleTicketingOperatorBulkTickets(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: TicketingRouteDeps,
+): Promise<void> {
+  const path = "/tickets/bulk";
+  await operatorWrite(
+    req,
+    res,
+    deps,
+    path,
+    200,
+    parseOperatorTicketBulkInput,
+    async (service, auth, body: OperatorTicketBulkInput, idempotencyKey) =>
+      (await service.bulkOperatorTickets(auth, body, idempotencyKey)) as Record<string, unknown>,
   );
 }
