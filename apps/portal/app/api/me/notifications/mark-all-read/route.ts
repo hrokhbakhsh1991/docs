@@ -4,24 +4,15 @@ import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
-export async function GET(req: Request): Promise<NextResponse> {
+export async function POST(req: Request): Promise<NextResponse> {
   const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
   if (headers.Authorization === undefined) {
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
   }
 
-  const upstream = new URL(`${resolveTourOpsApiBaseUrl()}/member/notifications`);
-  const incoming = new URL(req.url);
-  for (const key of ["limit", "cursor", "unreadOnly"]) {
-    const value = incoming.searchParams.get(key);
-    if (value !== null) {
-      upstream.searchParams.set(key, value);
-    }
-  }
-
-  const res = await fetch(upstream, {
-    method: "GET",
+  const res = await fetch(`${resolveTourOpsApiBaseUrl()}/member/notifications/mark-all-read`, {
+    method: "POST",
     headers,
     cache: "no-store",
   });

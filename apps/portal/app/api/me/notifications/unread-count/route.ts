@@ -11,16 +11,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
   }
 
-  const upstream = new URL(`${resolveTourOpsApiBaseUrl()}/member/notifications`);
-  const incoming = new URL(req.url);
-  for (const key of ["limit", "cursor", "unreadOnly"]) {
-    const value = incoming.searchParams.get(key);
-    if (value !== null) {
-      upstream.searchParams.set(key, value);
-    }
-  }
-
-  const res = await fetch(upstream, {
+  const res = await fetch(`${resolveTourOpsApiBaseUrl()}/member/notifications/unread-count`, {
     method: "GET",
     headers,
     cache: "no-store",

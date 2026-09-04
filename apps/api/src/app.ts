@@ -11,7 +11,6 @@ import {
   handleGetBookingReceiptStatus,
   handleGetBookingsSummary,
   handleGetMemberCancellation,
-  handleGetMemberNotifications,
   handleGetRefundEligibility,
   handleListBookings,
   handlePostBookingReceipt,
@@ -19,6 +18,12 @@ import {
   handleRejectBooking,
   handleWaitlistBooking,
 } from "./bookings/bookings.routes";
+import {
+  handleMemberListNotifications,
+  handleMemberMarkAllNotificationsRead,
+  handleMemberMarkNotificationRead,
+  handleMemberUnreadNotificationCount,
+} from "./notifications/member-notification.routes";
 import {
   handleMemberListTicketNotifications,
   handleMemberMarkAllTicketNotificationsRead,
@@ -569,7 +574,25 @@ async function dispatchRequest(
   }
 
   if (method === "GET" && url.pathname === "/member/notifications") {
-    await handleGetMemberNotifications(req, res);
+    await handleMemberListNotifications(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/member/notifications/unread-count") {
+    await handleMemberUnreadNotificationCount(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/member/notifications/mark-all-read") {
+    await handleMemberMarkAllNotificationsRead(req, res);
+    return;
+  }
+
+  const memberNotificationReadMatch = url.pathname.match(
+    /^\/member\/notifications\/([^/]+)\/read$/,
+  );
+  if (method === "PATCH" && memberNotificationReadMatch) {
+    await handleMemberMarkNotificationRead(req, res, memberNotificationReadMatch[1]!);
     return;
   }
 

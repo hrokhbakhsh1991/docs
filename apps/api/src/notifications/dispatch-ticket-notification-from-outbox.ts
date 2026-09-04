@@ -1,16 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import type { Prisma } from "@prisma/client";
-
 import type { WorkspaceOutboxPublishedRow } from "../workspace/workspace-outbox-row-context.ts";
 import { withTenantRls } from "../db/with-tenant-rls";
-import { isPrismaUniqueConstraintError } from "../db/prisma-error-instance";
 import {
   buildTicketNotificationCopy,
   type TicketNotificationEventType,
 } from "../workspace-ticketing/ticket-notification-copy";
 import { resolveTicketNotificationRecipientUserIds } from "../workspace-ticketing/ticket-notification-recipients";
 import { applyTicketTemplateAutomation } from "../workspace-ticketing/ticket-template-automation";
+import { insertMemberNotificationRow } from "./member-notification.repository";
 
 const TICKET_NOTIFICATION_OUTBOX_TYPES = new Set<string>([
   "ticket.created",
@@ -31,83 +29,6 @@ function asRecord(payload: unknown): Readonly<Record<string, unknown>> {
     return payload as Readonly<Record<string, unknown>>;
   }
   return {};
-}
-
-function mergePayload(
-  eventPayload: Readonly<Record<string, unknown>>,
-  copy: ReturnType<typeof buildTicketNotificationCopy>,
-  subject: string,
-): Prisma.InputJsonValue {
-  return {
-    ...eventPayload,
-    titleKey: copy.titleKey,
-    bodyKey: copy.bodyKey,
-    titleFa: copy.titleFa,
-    bodyFa: copy.bodyFa,
-    subject,
-  };
-}
-
-async function insertNotificationRow(
-  tx: Prisma.TransactionClient,
-  input: {
-    readonly tenantId: string;
-    readonly userId: string;
-    readonly ticketId: string;
-    readonly eventType: TicketNotificationEventType;
-    readonly domainEventId: string;
-    readonly copy: ReturnType<typeof buildTicketNotificationCopy>;
-    readonly payload: Prisma.InputJsonValue;
-  },
-): Promise<string | null> {
-  try {
-    const row = await tx.ticketNotification.create({
-      data: {
-        tenantId: input.tenantId,
-        userId: input.userId,
-        ticketId: input.ticketId,
-        eventType: input.eventType,
-        title: input.copy.title,
-        body: input.copy.body,
-        domainEventId: input.domainEventId,
-        payload: input.payload,
-      },
-      select: { id: true },
-    });
-    return row.id;
-  } catch (error: unknown) {
-    if (isPrismaUniqueConstraintError(error)) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-async function enqueueChannelDeliveries(
-  tx: Prisma.TransactionClient,
-  tenantId: string,
-  notificationId: string,
-  domainEventId: string,
-): Promise<void> {
-  for (const channel of ["email", "sms"] as const) {
-    try {
-      await tx.ticketNotificationDelivery.create({
-        data: {
-          tenantId,
-          notificationId,
-          channel,
-          provider: "noop",
-          status: "pending",
-          nextAttemptAt: new Date(),
-        },
-      });
-    } catch (error: unknown) {
-      if (!isPrismaUniqueConstraintError(error)) {
-        throw error;
-      }
-    }
-  }
-  void domainEventId;
 }
 
 export async function dispatchTicketNotificationFromOutbox(
@@ -156,6 +77,16 @@ export async function dispatchTicketNotificationFromOutbox(
     };
   }
 
+  const mergedPayload = {
+    ...eventPayload,
+    titleKey: copy.titleKey,
+    bodyKey: copy.bodyKey,
+    titleFa: copy.titleFa,
+    bodyFa: copy.bodyFa,
+    subject,
+    ticketId,
+  };
+
   await withTenantRls(row.tenantId, async (tx) => {
     const recipientUserIds = await resolveTicketNotificationRecipientUserIds(tx, row.tenantId, {
       eventType: row.eventType,
@@ -185,18 +116,22 @@ export async function dispatchTicketNotificationFromOutbox(
     });
 
     for (const userId of recipientUserIds) {
-      const notificationId = await insertNotificationRow(tx, {
+      await insertMemberNotificationRow({
         tenantId: row.tenantId,
         userId,
-        ticketId,
-        eventType: row.eventType as TicketNotificationEventType,
-        domainEventId: row.domainEventId,
-        copy,
-        payload: mergePayload(eventPayload, copy, subject),
+        sourceModule: "ticketing",
+        eventType: row.eventType,
+        entityType: "ticket",
+        entityId: ticketId,
+        title: copy.title,
+        body: copy.body,
+        titleKey: copy.titleKey,
+        bodyKey: copy.bodyKey,
+        templateKey: `ticketing.${row.eventType}`,
+        dedupeKey: row.domainEventId,
+        payload: mergedPayload,
+        enqueueEmailSms: true,
       });
-      if (notificationId !== null) {
-        await enqueueChannelDeliveries(tx, row.tenantId, notificationId, row.domainEventId);
-      }
     }
   });
 }

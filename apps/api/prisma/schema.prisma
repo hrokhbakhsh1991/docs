@@ -76,6 +76,8 @@ model Tenant {
   ticketTeamMembers           TicketTeamMember[]
   ticketNotifications         TicketNotification[]
   ticketNotificationDeliveries TicketNotificationDelivery[]
+  memberNotifications         MemberNotification[]
+  memberNotificationDeliveries MemberNotificationDelivery[]
   ticketSlaPolicies           TicketSlaPolicy[]
   ticketSlaStates             TicketSlaState[]
   ticketSlaEscalationActivations TicketSlaEscalationActivation[]
@@ -1360,6 +1362,57 @@ model TicketNotificationDelivery {
   @@index([status, nextAttemptAt, createdAt], map: "idx_ticket_notification_deliveries_claim")
   @@index([tenantId, status, createdAt], map: "idx_ticket_notification_deliveries_tenant_status")
   @@map("ticket_notification_deliveries")
+}
+
+/// MNI-001 / SK2.D+ — domain-agnostic member notification inbox (RLS enforced).
+model MemberNotification {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  sourceModule String    @map("source_module")
+  eventType    String    @map("event_type")
+  entityType   String    @map("entity_type")
+  entityId     String?   @map("entity_id") @db.Uuid
+  title        String
+  body         String    @db.Text
+  titleKey     String?   @map("title_key")
+  bodyKey      String?   @map("body_key")
+  templateKey  String?   @map("template_key")
+  dedupeKey    String    @map("dedupe_key")
+  payload      Json      @default("{}")
+  readAt       DateTime? @map("read_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries   MemberNotificationDelivery[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId, dedupeKey], map: "uq_member_notifications_recipient_dedupe")
+  @@index([tenantId, userId, createdAt(sort: Desc)], map: "idx_member_notifications_tenant_user_created")
+  @@index([tenantId, userId, readAt], map: "idx_member_notifications_tenant_user_read")
+  @@index([tenantId, sourceModule, entityType, entityId], map: "idx_member_notifications_tenant_entity")
+  @@map("member_notifications")
+}
+
+/// MNI-001 — async email/SMS delivery retries for member notifications.
+model MemberNotificationDelivery {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  notificationId String             @map("notification_id") @db.Uuid
+  channel        String
+  provider       String             @default("noop")
+  status         String             @default("pending")
+  attemptCount   Int                @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime?          @map("next_attempt_at") @db.Timestamptz
+  lastError      Json?              @map("last_error")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  processedAt    DateTime?          @map("processed_at") @db.Timestamptz
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notification   MemberNotification @relation(fields: [tenantId, notificationId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, notificationId, channel], map: "uq_member_notification_deliveries_channel")
+  @@index([status, nextAttemptAt, createdAt], map: "idx_member_notification_deliveries_claim")
+  @@index([tenantId, status, createdAt], map: "idx_member_notification_deliveries_tenant_status")
+  @@map("member_notification_deliveries")
 }
 
 /// TKT-001 Phase I1 — SLA policy definitions (tenant-scoped; RLS enforced).

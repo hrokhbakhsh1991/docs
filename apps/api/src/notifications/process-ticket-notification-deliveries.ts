@@ -1,14 +1,14 @@
 import { getNotificationDeliveryPort } from "../notifications/create-notification-delivery";
 import {
-  claimPendingTicketNotificationDeliveries,
-  markTicketNotificationDeliveryResult,
-} from "../workspace-ticketing/ticket-notification.repository";
+  claimPendingMemberNotificationDeliveries,
+  markMemberNotificationDeliveryResult,
+} from "./member-notification.repository";
 
 export async function processTicketNotificationDeliveriesForTenantOnce(
   tenantId: string,
   batchSize = 10,
 ): Promise<{ readonly processed: number; readonly failed: number }> {
-  const deliveries = await claimPendingTicketNotificationDeliveries(tenantId, batchSize);
+  const deliveries = await claimPendingMemberNotificationDeliveries(tenantId, batchSize);
   const port = getNotificationDeliveryPort();
   let processed = 0;
   let failed = 0;
@@ -17,23 +17,25 @@ export async function processTicketNotificationDeliveriesForTenantOnce(
     const result = await port.deliver({
       tenantId,
       channel: delivery.channel === "sms" ? "sms" : "email",
-      templateId: `ticketing.${delivery.eventType}`,
+      templateId: `${delivery.sourceModule}.${delivery.eventType}`,
       recipient: { userId: delivery.userId },
       payload: {
-        ticketId: delivery.ticketId,
+        entityType: delivery.entityType,
+        entityId: delivery.entityId,
         title: delivery.title,
         body: delivery.body,
         eventType: delivery.eventType,
+        sourceModule: delivery.sourceModule,
       },
-      correlationId: delivery.domainEventId,
+      correlationId: delivery.dedupeKey,
     });
 
     if (result.ok) {
       processed += 1;
-      await markTicketNotificationDeliveryResult(tenantId, delivery.id, { ok: true });
+      await markMemberNotificationDeliveryResult(tenantId, delivery.id, { ok: true });
     } else {
       failed += 1;
-      await markTicketNotificationDeliveryResult(tenantId, delivery.id, {
+      await markMemberNotificationDeliveryResult(tenantId, delivery.id, {
         ok: false,
         retryable: result.retryable,
         error: result.retryable ? "DELIVERY_RETRYABLE" : "DELIVERY_FAILED",

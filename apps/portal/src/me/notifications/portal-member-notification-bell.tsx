@@ -10,7 +10,7 @@ export function PortalMemberNotificationBell() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/me/ticket-notifications/unread-count", { cache: "no-store" });
+      const res = await fetch("/api/me/notifications/unread-count", { cache: "no-store" });
       if (!res.ok) return;
       const body = (await res.json()) as { count?: number };
       setCount(typeof body.count === "number" ? body.count : 0);

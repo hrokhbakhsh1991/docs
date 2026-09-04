@@ -69,6 +69,12 @@ describe(
       process.env.STORAGE_DRIVER = priorDriver;
       const admin = getPrismaAdmin();
       try {
+        await admin.memberNotificationDelivery.deleteMany({
+          where: { tenantId: { in: [tenantA, tenantB] } },
+        });
+        await admin.memberNotification.deleteMany({
+          where: { tenantId: { in: [tenantA, tenantB] } },
+        });
         await admin.ticketNotificationDelivery.deleteMany({
           where: { tenantId: { in: [tenantA, tenantB] } },
         });
@@ -210,16 +216,18 @@ describe(
             lastActivityAt: new Date(),
           },
         });
-        await tx.ticketNotification.create({
+        await tx.memberNotification.create({
           data: {
             id: notificationId,
             tenantId: tenantA,
             userId: memberUser,
-            ticketId,
+            sourceModule: "ticketing",
             eventType: "ticket.message.posted",
+            entityType: "ticket",
+            entityId: ticketId,
             title: "New reply",
             body: "Operator replied",
-            domainEventId,
+            dedupeKey: domainEventId,
             payload: {},
           },
         });
@@ -316,20 +324,22 @@ describe(
             lastActivityAt: new Date(),
           },
         });
-        await tx.ticketNotification.create({
+        await tx.memberNotification.create({
           data: {
             id: notificationId,
             tenantId: tenantA,
             userId: requesterA,
-            ticketId,
+            sourceModule: "ticketing",
             eventType: "ticket.resolved",
+            entityType: "ticket",
+            entityId: ticketId,
             title: "Resolved",
             body: "Done",
-            domainEventId: randomUUID(),
+            dedupeKey: randomUUID(),
             payload: {},
           },
         });
-        await tx.ticketNotificationDelivery.create({
+        await tx.memberNotificationDelivery.create({
           data: {
             id: deliveryId,
             tenantId: tenantA,
@@ -345,7 +355,7 @@ describe(
       });
 
       const admin = getPrismaAdmin();
-      const delivery = await admin.ticketNotificationDelivery.findUnique({
+      const delivery = await admin.memberNotificationDelivery.findUnique({
         where: { id: deliveryId },
       });
       assert.equal(delivery?.status, "failed");

@@ -5,7 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 
 type NotificationItem = {
   readonly id: string;
-  readonly ticketId: string;
+  readonly sourceModule: string;
+  readonly entityType: string;
+  readonly entityId: string | null;
+  readonly ticketId?: string;
   readonly eventType: string;
   readonly title: string;
   readonly body: string;
@@ -30,7 +33,26 @@ function resolveLocalizedCopy(item: NotificationItem, locale: string): { title: 
   return { title: item.title, body: item.body };
 }
 
-export function MemberTicketNotificationsPanel() {
+function resolveNotificationHref(item: NotificationItem): string {
+  if (item.entityType === "ticket") {
+    const ticketId = item.entityId ?? item.ticketId;
+    if (typeof ticketId === "string" && ticketId.length > 0) {
+      return `/me/tickets/${ticketId}`;
+    }
+  }
+  if (item.entityType === "registration") {
+    return "/me/bookings";
+  }
+  if (item.entityType === "payment") {
+    return "/me/bookings";
+  }
+  if (item.entityType === "wallet_event") {
+    return "/me/wallet";
+  }
+  return "/me/notifications";
+}
+
+export function MemberNotificationsPanel() {
   const t = useTranslations("portalMember.notifications");
   const locale = useLocale();
   const [items, setItems] = useState<readonly NotificationItem[]>([]);
@@ -41,7 +63,7 @@ export function MemberTicketNotificationsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/me/ticket-notifications?limit=20", { cache: "no-store" });
+      const res = await fetch("/api/me/notifications?limit=20", { cache: "no-store" });
       if (!res.ok) {
         setError(t("loadError"));
         setItems([]);
@@ -62,7 +84,7 @@ export function MemberTicketNotificationsPanel() {
   }, [load]);
 
   const markRead = async (notificationId: string): Promise<void> => {
-    await fetch(`/api/me/ticket-notifications/${notificationId}/read`, {
+    await fetch(`/api/me/notifications/${notificationId}/read`, {
       method: "PATCH",
       cache: "no-store",
     });
@@ -76,7 +98,7 @@ export function MemberTicketNotificationsPanel() {
   };
 
   const markAllRead = async (): Promise<void> => {
-    await fetch("/api/me/ticket-notifications/mark-all-read", {
+    await fetch("/api/me/notifications/mark-all-read", {
       method: "POST",
       cache: "no-store",
     });
@@ -131,9 +153,10 @@ export function MemberTicketNotificationsPanel() {
                 key={item.id}
                 data-portal-member-notification-item={item.id}
                 data-portal-member-notification-unread={unread ? "true" : "false"}
+                data-portal-member-notification-source={item.sourceModule}
               >
                 <a
-                  href={`/me/tickets/${item.ticketId}`}
+                  href={resolveNotificationHref(item)}
                   onClick={() => {
                     if (unread) void markRead(item.id);
                   }}
@@ -149,3 +172,6 @@ export function MemberTicketNotificationsPanel() {
     </div>
   );
 }
+
+/** @deprecated Use MemberNotificationsPanel — cross-domain aggregate inbox. */
+export { MemberNotificationsPanel as MemberTicketNotificationsPanel };
