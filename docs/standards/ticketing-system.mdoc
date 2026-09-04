@@ -327,11 +327,37 @@ Assignment: ticket `assigneeTeamId` OR `assigneeUserId` (mutually exclusive).
 
 ### 7.9 TicketSlaPolicy / TicketSlaState
 
-**Policy:** `firstResponseMinutes`, `resolutionMinutes`, `businessHoursJson`, `escalationSteps[]` (notify team, bump priority).
+**Policy (`TicketSlaPolicy`)** — tenant-scoped, matchable by `workspaceType`, `categoryCode`, `priority`, `queueId` (most specific wins).
 
-**State (per ticket):** `firstResponseDueAt`, `resolutionDueAt`, `firstRespondedAt`, `breachedAt`, `escalationLevel`, `pausedAt` (when `onHold`).
+| Field | Notes |
+| ----- | ----- |
+| `code`, `name` | operator settings identity |
+| `firstResponseMinutes` | clock from ticket create until first operator public reply |
+| `nextResponseMinutes` | clock from each member public message until next operator public reply |
+| `resolutionMinutes` | clock from create until `resolved`/`closed` |
+| `businessHoursJson` | `{ timezone, weekly: { mon..sun: [{start,end}] } }` — default TZ `Asia/Tehran` |
+| `escalationSteps` | `[{ level, afterMinutes, action: notify_team \| bump_priority, teamId?, priority? }]` |
+| `warningThresholdPercent` | default `80` — warning notification before breach |
+| `enabled` | soft-disable without delete |
 
-SLA clocks are **persisted**, not UI-only. Breach emits `TicketEvent` + `TicketNotification` + optional email/SMS.
+**State (`TicketSlaState`)** — one row per ticket (`tenantId`, `ticketId`).
+
+| Field | Notes |
+| ----- | ----- |
+| `policyId` | resolved policy at last recalculation |
+| `firstResponseDueAt`, `nextResponseDueAt`, `resolutionDueAt` | persisted deadlines (idempotent recompute) |
+| `firstRespondedAt` | stops first-response clock |
+| `lastMemberMessageAt` | anchor for next-response clock |
+| `breachedAt` | first breach timestamp (any clock) |
+| `escalationLevel` | `0` = none; increments per `escalationSteps` |
+| `pausedAt`, `pausedMs` | on-hold pause — **not** a status literal |
+| `*WarningEmittedAt` | idempotent warning markers per clock |
+
+**On-hold:** `Ticket.onHold` boolean + `onHoldReason` — pauses SLA via `TicketSlaState.pausedAt`; member public reply returns `409 TICKET_ON_HOLD`.
+
+**Worker:** `processTicketSlaOnce` polls due states, emits `ticket.sla.warning` / `ticket.sla.breached` / `ticket.sla.escalated` via outbox. `TicketSlaEscalationActivation` unique `(tenantId, ticketId, escalationLevel)` prevents duplicate escalation on restart.
+
+**Visibility:** operators/admins/owners see SLA in ticket detail; members and viewers see public status only (no internal SLA clocks).
 
 ### 7.10 TicketNotification
 
@@ -1037,14 +1063,14 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 | | |
 |-|-|
-| **Scope** | policy, state, business hours, breach escalation |
+| **Scope** | `TicketSlaPolicy`, `TicketSlaState`, `TicketSlaEscalationActivation`, `Ticket.onHold`, business-hours engine in `ticketing-core`, SLA worker, policy CRUD API |
 | **Dependencies** | C, D, H |
-| **Database** | SlaPolicy, SlaState |
-| **API** | SLA routes + worker |
-| **UI** | SLA badges, escalation banner |
-| **Tests** | SLA unit + timer integration |
-| **Acceptance** | breach emits notification |
-| **Rollback** | disable SLA worker |
+| **Database** | `ticket_sla_policies`, `ticket_sla_states`, `ticket_sla_escalation_activations`; `tickets.on_hold` columns |
+| **API** | `GET/POST/PATCH /ticket-sla-policies/*`; operator ticket detail includes `sla`; member detail excludes SLA |
+| **UI** | operator SLA badge fields in API (web UI deferred to Phase K settings) |
+| **Tests** | `ticketing-core/test/sla.spec.ts`; `ticket-sla.postgres.spec.ts` (deadlines, pause, breach, escalation idempotency, RLS) |
+| **Acceptance** | breach emits durable notification; restart does not duplicate escalation |
+| **Rollback** | `TICKETING_SLA_WORKER_ENABLED=false`; policies remain readable |
 
 ### Phase J — Templates and automation
 

@@ -85,6 +85,7 @@ export function canReplyToTicket(ticket: Ticket, ctx: TicketActorContext): boole
   if (isReadOnlyActor(ctx)) return false;
   if (!canReadTicket(ticket, ctx)) return false;
   if (ticket.status === "closed") return false;
+  if (ctx.role === "member" && ticket.onHold === true) return false;
   if (ctx.role === "member") {
     return assertMemberOwnsTicket(ticket, ctx.userId).ok;
   }
@@ -252,6 +253,8 @@ export function assertTicketPermission(
       if (ticket === undefined) return deny("TICKET_NOT_FOUND", "ticket is required");
       return canReplyToTicket(ticket, ctx)
         ? ticketingOk(undefined)
+        : ticket.onHold === true && ctx.role === "member"
+          ? deny("TICKET_ON_HOLD", "ticket is on hold")
         : ticket.status === "closed"
           ? deny("TICKET_CLOSED", "ticket is closed")
           : deny("TICKET_ACCESS_DENIED", "reply denied");

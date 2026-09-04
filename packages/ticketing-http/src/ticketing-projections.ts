@@ -131,6 +131,7 @@ export function toOperatorTicketDetailHttp(input: {
   readonly events: readonly TicketEvent[];
   readonly attachments?: readonly TicketAttachment[];
   readonly links?: readonly TicketLink[];
+  readonly sla?: Readonly<Record<string, unknown>>;
 }): OperatorTicketDetailHttp {
   const visibleAttachments = filterAttachmentsForOperator(input.attachments ?? []);
   return {
@@ -141,6 +142,7 @@ export function toOperatorTicketDetailHttp(input: {
     events: input.events.map(toTicketEventHttp),
     ...(input.links !== undefined ? { links: input.links.map(toTicketLinkHttp) } : {}),
     rowVersion: input.ticket.rowVersion,
+    ...(input.sla !== undefined ? { sla: input.sla } : {}),
   };
 }
 

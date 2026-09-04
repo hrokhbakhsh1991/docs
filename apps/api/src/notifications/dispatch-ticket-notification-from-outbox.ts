@@ -20,6 +20,9 @@ const TICKET_NOTIFICATION_OUTBOX_TYPES = new Set<string>([
   "ticket.priority.changed",
   "ticket.resolved",
   "ticket.reopened",
+  "ticket.sla.warning",
+  "ticket.sla.breached",
+  "ticket.sla.escalated",
 ]);
 
 function asRecord(payload: unknown): Readonly<Record<string, unknown>> {

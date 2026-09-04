@@ -116,6 +116,18 @@ export async function resolveTicketNotificationRecipientUserIds(
       await teamMemberIds(input.ticket.assigneeTeamId);
       break;
     }
+    case "ticket.sla.warning":
+    case "ticket.sla.breached":
+    case "ticket.sla.escalated": {
+      if (input.ticket.assigneeUserId !== null) {
+        excludeActor(input.ticket.assigneeUserId);
+      }
+      await teamMemberIds(input.ticket.assigneeTeamId);
+      if (input.ticket.assigneeTeamId === null) {
+        await teamMemberIds(await queueTeamId(input.ticket.queueId));
+      }
+      break;
+    }
     default:
       break;
   }

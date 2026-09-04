@@ -76,6 +76,9 @@ model Tenant {
   ticketTeamMembers           TicketTeamMember[]
   ticketNotifications         TicketNotification[]
   ticketNotificationDeliveries TicketNotificationDelivery[]
+  ticketSlaPolicies           TicketSlaPolicy[]
+  ticketSlaStates             TicketSlaState[]
+  ticketSlaEscalationActivations TicketSlaEscalationActivation[]
 
   @@map("tenants")
 }
@@ -1098,6 +1101,8 @@ model Ticket {
   lastActivityAt         DateTime           @map("last_activity_at") @db.Timestamptz
   resolvedAt             DateTime?          @map("resolved_at") @db.Timestamptz
   closedAt               DateTime?          @map("closed_at") @db.Timestamptz
+  onHold                 Boolean            @default(false) @map("on_hold")
+  onHoldReason           String?            @map("on_hold_reason") @db.Text
   rowVersion             Int                @default(1) @map("row_version")
   createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -1110,6 +1115,7 @@ model Ticket {
   links                  TicketLink[]
   tagAssignments         TicketTagAssignment[]
   notifications          TicketNotification[]
+  slaState               TicketSlaState?
 
   @@unique([tenantId, id])
   @@unique([tenantId, creationIdempotencyKey])
@@ -1257,6 +1263,7 @@ model TicketQueue {
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   team        TicketTeam? @relation(fields: [tenantId, teamId], references: [tenantId, id], onDelete: SetNull)
   tickets     Ticket[]
+  slaPolicies TicketSlaPolicy[]
 
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -1345,4 +1352,78 @@ model TicketNotificationDelivery {
   @@index([status, nextAttemptAt, createdAt], map: "idx_ticket_notification_deliveries_claim")
   @@index([tenantId, status, createdAt], map: "idx_ticket_notification_deliveries_tenant_status")
   @@map("ticket_notification_deliveries")
+}
+
+/// TKT-001 Phase I1 — SLA policy definitions (tenant-scoped; RLS enforced).
+model TicketSlaPolicy {
+  id                      String    @id @default(uuid()) @db.Uuid
+  tenantId                String    @map("tenant_id") @db.Uuid
+  code                    String    @db.VarChar(64)
+  name                    String
+  workspaceType           String?   @map("workspace_type")
+  categoryCode            String?   @map("category_code") @db.VarChar(64)
+  priority                String?
+  queueId                 String?   @map("queue_id") @db.Uuid
+  firstResponseMinutes    Int       @map("first_response_minutes")
+  nextResponseMinutes     Int       @map("next_response_minutes")
+  resolutionMinutes       Int       @map("resolution_minutes")
+  businessHoursJson       Json      @default("{}") @map("business_hours_json")
+  escalationStepsJson     Json      @default("[]") @map("escalation_steps_json")
+  warningThresholdPercent Int       @default(80) @map("warning_threshold_percent")
+  enabled                 Boolean   @default(true)
+  archivedAt              DateTime? @map("archived_at") @db.Timestamptz
+  rowVersion              Int       @default(1) @map("row_version")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  queue                   TicketQueue? @relation(fields: [tenantId, queueId], references: [tenantId, id], onDelete: SetNull)
+  states                  TicketSlaState[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, enabled], map: "idx_ticket_sla_policies_tenant_enabled")
+  @@map("ticket_sla_policies")
+}
+
+/// TKT-001 Phase I1 — per-ticket SLA clock state.
+model TicketSlaState {
+  tenantId                 String    @map("tenant_id") @db.Uuid
+  ticketId                 String    @map("ticket_id") @db.Uuid
+  policyId                 String    @map("policy_id") @db.Uuid
+  firstResponseDueAt       DateTime? @map("first_response_due_at") @db.Timestamptz
+  nextResponseDueAt        DateTime? @map("next_response_due_at") @db.Timestamptz
+  resolutionDueAt          DateTime? @map("resolution_due_at") @db.Timestamptz
+  firstRespondedAt         DateTime? @map("first_responded_at") @db.Timestamptz
+  lastMemberMessageAt      DateTime? @map("last_member_message_at") @db.Timestamptz
+  breachedAt               DateTime? @map("breached_at") @db.Timestamptz
+  escalationLevel          Int       @default(0) @map("escalation_level")
+  pausedAt                 DateTime? @map("paused_at") @db.Timestamptz
+  pausedMs                 Int       @default(0) @map("paused_ms")
+  firstResponseWarningAt   DateTime? @map("first_response_warning_at") @db.Timestamptz
+  nextResponseWarningAt    DateTime? @map("next_response_warning_at") @db.Timestamptz
+  resolutionWarningAt      DateTime? @map("resolution_warning_at") @db.Timestamptz
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket                   Ticket    @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  policy                   TicketSlaPolicy @relation(fields: [tenantId, policyId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([tenantId, ticketId])
+  @@index([tenantId, firstResponseDueAt], map: "idx_ticket_sla_states_first_due")
+  @@index([tenantId, nextResponseDueAt], map: "idx_ticket_sla_states_next_due")
+  @@index([tenantId, resolutionDueAt], map: "idx_ticket_sla_states_resolution_due")
+  @@map("ticket_sla_states")
+}
+
+/// TKT-001 Phase I1 — idempotent SLA escalation activations.
+model TicketSlaEscalationActivation {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  ticketId         String   @map("ticket_id") @db.Uuid
+  escalationLevel  Int      @map("escalation_level")
+  activatedAt      DateTime @default(now()) @map("activated_at") @db.Timestamptz
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, ticketId, escalationLevel], map: "uq_ticket_sla_escalation_activations")
+  @@map("ticket_sla_escalation_activations")
 }

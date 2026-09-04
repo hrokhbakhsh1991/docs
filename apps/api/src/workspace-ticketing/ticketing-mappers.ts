@@ -42,6 +42,11 @@ export function mapTicketRow(
     lastActivityAt: toIso(row.lastActivityAt),
     resolvedAt: row.resolvedAt ? toIso(row.resolvedAt) : null,
     closedAt: row.closedAt ? toIso(row.closedAt) : null,
+    onHold: "onHold" in row ? Boolean((row as { onHold?: boolean }).onHold) : false,
+    onHoldReason:
+      "onHoldReason" in row && typeof (row as { onHoldReason?: string | null }).onHoldReason === "string"
+        ? (row as { onHoldReason?: string | null }).onHoldReason ?? null
+        : null,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };

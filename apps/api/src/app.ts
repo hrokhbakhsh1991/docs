@@ -29,6 +29,12 @@ import {
   handleOperatorMarkTicketNotificationRead,
   handleOperatorUnreadTicketNotificationCount,
 } from "./workspace-ticketing/ticket-notification.routes";
+import {
+  handleListTicketSlaPolicies,
+  handleCreateTicketSlaPolicy,
+  handleGetTicketSlaPolicy,
+  handlePatchTicketSlaPolicy,
+} from "./workspace-ticketing/ticket-sla.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
 import { resolveWorkspaceHttpHandler } from "./boot/lazy-workspace-finance-handlers";
@@ -668,6 +674,25 @@ async function dispatchRequest(
   );
   if (method === "PATCH" && operatorTicketNotificationReadMatch) {
     await handleOperatorMarkTicketNotificationRead(req, res, operatorTicketNotificationReadMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-sla-policies") {
+    await handleListTicketSlaPolicies(req, res);
+    return;
+  }
+
+  const ticketSlaPolicyMatch = url.pathname.match(/^\/ticket-sla-policies\/([^/]+)$/);
+  if (method === "GET" && ticketSlaPolicyMatch) {
+    await handleGetTicketSlaPolicy(req, res, ticketSlaPolicyMatch[1]!);
+    return;
+  }
+  if (method === "POST" && ticketSlaPolicyMatch) {
+    await handleCreateTicketSlaPolicy(req, res, ticketSlaPolicyMatch[1]!);
+    return;
+  }
+  if (method === "PATCH" && ticketSlaPolicyMatch) {
+    await handlePatchTicketSlaPolicy(req, res, ticketSlaPolicyMatch[1]!);
     return;
   }
 

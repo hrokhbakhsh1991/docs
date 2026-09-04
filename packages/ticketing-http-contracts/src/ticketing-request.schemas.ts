@@ -98,6 +98,8 @@ export const operatorTicketPatchInputSchema = z
     status: ticketStatusSchema.optional(),
     priority: ticketPrioritySchema.optional(),
     assigneeUserId: uuidSchema.nullable().optional(),
+    onHold: z.boolean().optional(),
+    onHoldReason: z.string().max(500).nullable().optional(),
     rowVersion: rowVersionSchema,
   })
   .strict()
@@ -105,8 +107,9 @@ export const operatorTicketPatchInputSchema = z
     (value) =>
       value.status !== undefined ||
       value.priority !== undefined ||
-      value.assigneeUserId !== undefined,
-    { message: "at least one of status, priority, assigneeUserId is required" },
+      value.assigneeUserId !== undefined ||
+      value.onHold !== undefined,
+    { message: "at least one of status, priority, assigneeUserId, onHold is required" },
   );
 
 export type OperatorTicketPatchInput = z.infer<typeof operatorTicketPatchInputSchema>;

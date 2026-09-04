@@ -12,6 +12,7 @@ import {
   changeTicketStatus,
   createTicket,
   reopenTicket,
+  bumpTicketActivity,
   withIncrementedRowVersion,
   type TicketingResult,
 } from "@app-tour/ticketing-core";
@@ -64,6 +65,8 @@ import type {
   TicketingLinkRepository,
 } from "./infrastructure/ticketing-link.repository";
 import { createTicketingE1Operations } from "./ticketing-e1.operations";
+import { loadOperatorTicketSlaHttp, syncTicketSlaAfterChange } from "./ticketing-sla-sync";
+import { getTicketSlaState, toTicketSlaStateHttp } from "./ticket-sla.repository";
 import type {
   PersistTicketMutationInput,
   TicketDetailRecord,
@@ -253,6 +256,25 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
     return { ...detail, attachments, links };
   }
 
+  async function syncSla(
+    ticket: TicketDetailRecord["ticket"],
+    options?: {
+      readonly isMemberPublicMessage?: boolean;
+      readonly isOperatorPublicReply?: boolean;
+    },
+  ): Promise<void> {
+    await syncTicketSlaAfterChange(ticket.tenantId, ticket, options);
+  }
+
+  async function toOperatorDetailHttp(detail: TicketDetailRecord) {
+    const sla =
+      (await loadOperatorTicketSlaHttp(detail.ticket.tenantId, detail.ticket.id)) ??
+      (await getTicketSlaState(detail.ticket.tenantId, detail.ticket.id).then((state) =>
+        state === null ? undefined : toTicketSlaStateHttp(state),
+      ));
+    return toOperatorTicketDetailHttp({ ...detail, ...(sla !== undefined ? { sla } : {}) });
+  }
+
   const e1 = createTicketingE1Operations({
     repository,
     attachmentRepository,
@@ -321,6 +343,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         messageIdempotencyKey: `${idempotencyKey}:initial-message`,
         ...(links.length > 0 ? { links } : {}),
       });
+      await syncSla(detail.ticket, { isMemberPublicMessage: true });
       return { ticket: toMemberTicketDetailHttp(detail) };
     },
 
@@ -361,6 +384,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
       if (message === undefined || outcome.message === undefined) {
         throw new Error("TICKET_MESSAGE_PERSISTENCE_FAILED");
       }
+      await syncSla(persisted.ticket, { isMemberPublicMessage: true });
       return { message: toMemberMessageHttp(message) };
     },
 
@@ -386,6 +410,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         message: outcome.message,
         events: outcome.events,
       });
+      await syncSla(persisted.ticket);
       return toMemberTicketDetailHttp(persisted);
     },
 
@@ -421,7 +446,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
       const detail = await enrichDetail(
         await loadReadableTicket(auth, ticketId, { operator: true }),
       );
-      return toOperatorTicketDetailHttp(detail);
+      await syncSla(detail.ticket);
+      return toOperatorDetailHttp(detail);
     },
 
     async operatorReply(auth, ticketId, body: OperatorReplyInput, idempotencyKey) {
@@ -457,6 +483,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
       if (message === undefined) {
         throw new Error("TICKET_MESSAGE_PERSISTENCE_FAILED");
       }
+      await syncSla(persisted.ticket, { isOperatorPublicReply: true });
       return { message: toOperatorMessageHttp(message) };
     },
 
@@ -554,9 +581,33 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
           }),
         );
         detail = await persistMutation({ ticket: outcome.ticket, events: outcome.events });
+        ticket = detail.ticket;
+        expectedRowVersion = ticket.rowVersion;
       }
 
-      return { ticket: toOperatorTicketDetailHttp(detail) };
+      if (body.onHold !== undefined || body.onHoldReason !== undefined) {
+        const at = nowIso();
+        const nextTicket = bumpTicketActivity(
+          withIncrementedRowVersion(
+            {
+              ...ticket,
+              onHold: body.onHold ?? ticket.onHold === true,
+              onHoldReason:
+                body.onHoldReason !== undefined
+                  ? body.onHoldReason
+                  : (ticket.onHoldReason ?? null),
+            },
+            at,
+          ),
+          at,
+        );
+        detail = await persistMutation({ ticket: nextTicket, events: [] });
+        ticket = detail.ticket;
+        expectedRowVersion = ticket.rowVersion;
+      }
+
+      await syncSla(ticket);
+      return { ticket: await toOperatorDetailHttp(detail) };
     },
 
     async reopenOperatorTicket(auth, ticketId, body: MemberReopenTicketInput, idempotencyKey) {
@@ -582,7 +633,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         message: outcome.message,
         events: outcome.events,
       });
-      return { ticket: toOperatorTicketDetailHttp(persisted) };
+      await syncSla(persisted.ticket);
+      return { ticket: await toOperatorDetailHttp(persisted) };
     },
 
     async listTicketCategories(auth) {
@@ -832,7 +884,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
           ticket: { ...outcome.ticket, assigneeTeamId: null },
           events: outcome.events,
         });
-        return { ticket: toOperatorTicketDetailHttp(detail) };
+        await syncSla(detail.ticket);
+        return { ticket: await toOperatorDetailHttp(detail) };
       }
 
       const teamCode = body.assigneeTeamCode;
@@ -864,7 +917,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
           now,
         );
         detail = await persistMutation({ ticket: updatedTicket, events: [event] });
-        return { ticket: toOperatorTicketDetailHttp(detail) };
+        await syncSla(detail.ticket);
+        return { ticket: await toOperatorDetailHttp(detail) };
       }
 
       const team = await operationalRepository.findTeamByCode(auth.tenantId, teamCode!);
@@ -902,7 +956,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         now,
       );
       detail = await persistMutation({ ticket: updatedTicket, events: [event] });
-      return { ticket: toOperatorTicketDetailHttp(detail) };
+      await syncSla(detail.ticket);
+      return { ticket: await toOperatorDetailHttp(detail) };
     },
 
     async changeTicketQueue(auth, ticketId, body: TicketQueueChangeInput, idempotencyKey) {
@@ -950,7 +1005,8 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         });
       }
       detail = await persistMutation({ ticket: updatedTicket, events: [event] });
-      return { ticket: toOperatorTicketDetailHttp(detail) };
+      await syncSla(detail.ticket);
+      return { ticket: await toOperatorDetailHttp(detail) };
     },
 
     async addTicketTag(auth, ticketId, body: TicketTagMutationInput, idempotencyKey) {
@@ -991,7 +1047,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         });
       }
       detail = await persistMutation({ ticket: updatedTicket, events: [event] });
-      return { ticket: toOperatorTicketDetailHttp(detail) };
+      return { ticket: await toOperatorDetailHttp(detail) };
     },
 
     async removeTicketTag(auth, ticketId, tagCode, rowVersion, idempotencyKey) {
@@ -1024,7 +1080,7 @@ export function createTicketingService(deps: TicketingServiceDeps): TicketingSer
         });
       }
       detail = await persistMutation({ ticket: updatedTicket, events: [event] });
-      return { ticket: toOperatorTicketDetailHttp(detail) };
+      return { ticket: await toOperatorDetailHttp(detail) };
     },
 
     ...e1,

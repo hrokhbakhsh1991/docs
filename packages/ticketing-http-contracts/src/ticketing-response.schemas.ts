@@ -63,6 +63,7 @@ export type OperatorTicketDetailHttp = {
   readonly events: readonly TicketEventHttp[];
   readonly links?: readonly import("./ticketing-link.schemas").TicketLinkHttp[];
   readonly rowVersion: number;
+  readonly sla?: Readonly<Record<string, unknown>>;
 };
 
 export type PaginatedMemberTicketListHttp = {

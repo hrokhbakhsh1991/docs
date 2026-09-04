@@ -6,7 +6,10 @@ export type TicketNotificationEventType =
   | "ticket.priority.changed"
   | "ticket.resolved"
   | "ticket.reopened"
-  | "ticket.internal_note.created";
+  | "ticket.internal_note.created"
+  | "ticket.sla.warning"
+  | "ticket.sla.breached"
+  | "ticket.sla.escalated";
 
 export type TicketNotificationCopy = {
   readonly title: string;
@@ -100,6 +103,39 @@ export function buildTicketNotificationCopy(input: {
         "Ticket reopened",
         `"${subject}" was reopened.`,
       );
+    case "ticket.sla.warning": {
+      const clock = String(input.payload?.clock ?? "sla");
+      return copy(
+        "notification.ticket.sla.warning.title",
+        "notification.ticket.sla.warning.body",
+        "هشدار SLA",
+        `مهلت ${clock} برای «${subject}» نزدیک است.`,
+        "SLA warning",
+        `${clock} SLA deadline is approaching for "${subject}".`,
+      );
+    }
+    case "ticket.sla.breached": {
+      const clock = String(input.payload?.clock ?? "sla");
+      return copy(
+        "notification.ticket.sla.breached.title",
+        "notification.ticket.sla.breached.body",
+        "نقض SLA",
+        `مهلت ${clock} برای «${subject}» گذشته است.`,
+        "SLA breached",
+        `${clock} SLA deadline was missed for "${subject}".`,
+      );
+    }
+    case "ticket.sla.escalated": {
+      const level = String(input.payload?.escalationLevel ?? "");
+      return copy(
+        "notification.ticket.sla.escalated.title",
+        "notification.ticket.sla.escalated.body",
+        "تشدید SLA",
+        `تیکت «${subject}» به سطح ${level} تشدید شد.`,
+        "SLA escalated",
+        `Ticket "${subject}" escalated to level ${level}.`,
+      );
+    }
     default:
       return copy(
         "notification.ticket.generic.title",

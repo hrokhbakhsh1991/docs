@@ -119,3 +119,25 @@ export {
   filterAttachmentsForOperator,
   isPublicMessage,
 } from "./visibility";
+
+export {
+  DEFAULT_BUSINESS_HOURS,
+  DEFAULT_TICKETING_SLA_TIMEZONE,
+  addBusinessMinutes,
+  computeSlaWarningAt,
+  isSlaDue,
+  isSlaWarningDue,
+  normalizeBusinessHoursConfig,
+  recalculateTicketSlaState,
+  resolveSlaPolicyMatch,
+  warningThresholdInstant,
+} from "./sla";
+export type {
+  BusinessHoursConfig,
+  BusinessHoursWindow,
+  RecalculateTicketSlaInput,
+  SlaEscalationStep,
+  SlaPolicyShape,
+  TicketSlaClockSnapshot,
+  WeekdayKey,
+} from "./sla";

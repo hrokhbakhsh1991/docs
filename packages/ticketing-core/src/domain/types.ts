@@ -71,6 +71,8 @@ export type Ticket = {
   readonly lastActivityAt: string;
   readonly resolvedAt: string | null;
   readonly closedAt: string | null;
+  readonly onHold?: boolean;
+  readonly onHoldReason?: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
   /** Extensibility — not persisted in MVP. */
