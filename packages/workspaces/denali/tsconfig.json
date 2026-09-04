@@ -10,6 +10,13 @@
       "@repo/types": ["./src/types/legacy/repo-types.ts"],
       "@repo/types/denali": ["./src/types/legacy/repo-types-denali.ts"],
       "@repo/shared-contracts": ["./src/types/legacy/shared-contracts.ts"],
+      "@app-tour/localized-calendar": ["../../localized-calendar/dist/index"],
+      "@app-tour/localized-calendar/localized-date-picker": [
+        "../../localized-calendar/dist/localized-date-picker"
+      ],
+      "@app-tour/localized-calendar/solar-hijri-calendar": [
+        "../../localized-calendar/dist/solar-hijri-calendar"
+      ],
       "@app-tour/ui-primitives/button": ["../../ui-primitives/dist/Button/Button"],
       "@app-tour/ui-primitives/checkbox": ["../../ui-primitives/dist/Checkbox/Checkbox"],
       "@app-tour/ui-primitives/input": ["../../ui-primitives/dist/Input/Input"],
