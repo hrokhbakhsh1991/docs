@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { FinanceService } from "../workspace-finance/finance.service";
+import type { EngagementService } from "../workspace-engagement/engagement.service";
 import type { WalletService } from "../workspace-wallet/wallet.service";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { getIdentityRepository } from "../identity/create-identity-repository";
@@ -27,6 +28,7 @@ export type WorkspaceRouteRegistrarDeps = {
   readonly tourStore?: TourStorageRepository;
   readonly financeService?: FinanceService;
   readonly walletService?: WalletService;
+  readonly engagementService?: EngagementService;
 };
 
 type WorkspaceProductRouteDeps = {
@@ -59,7 +61,9 @@ type HandlerDispatchKind =
   | "finance"
   | "finance-param"
   | "wallet"
-  | "wallet-param";
+  | "wallet-param"
+  | "engagement"
+  | "engagement-param";
 
 const HANDLER_DISPATCH_KIND = {
   handleFinanceCreateManualPayment: "finance",
@@ -133,6 +137,12 @@ const HANDLER_DISPATCH_KIND = {
   handleWalletOperatorCredit: "wallet-param",
   handleWalletOperatorDebit: "wallet-param",
   handleWalletOperatorReversal: "wallet-param",
+  handleEngagementMemberSummary: "engagement",
+  handleEngagementMemberPoints: "engagement",
+  handleEngagementMemberBadges: "engagement",
+  handleEngagementOperatorOverview: "engagement",
+  handleEngagementOperatorMemberLookup: "engagement-param",
+  handleEngagementOperatorReverse: "engagement-param",
 } as const satisfies Record<WorkspaceHttpHandlerKey, HandlerDispatchKind>;
 
 function workspaceProductDeps(deps: WorkspaceRouteRegistrarDeps): WorkspaceProductRouteDeps {
@@ -187,6 +197,15 @@ function walletRouteDeps(deps: WorkspaceRouteRegistrarDeps): { walletService?: W
   return {};
 }
 
+function engagementRouteDeps(
+  deps: WorkspaceRouteRegistrarDeps,
+): { engagementService?: EngagementService } {
+  if (deps.engagementService !== undefined) {
+    return { engagementService: deps.engagementService };
+  }
+  return {};
+}
+
 async function dispatchWorkspaceHandler(
   handlerKey: WorkspaceHttpHandlerKey,
   req: IncomingMessage,
@@ -218,6 +237,12 @@ async function dispatchWorkspaceHandler(
       return;
     case "wallet-param":
       await handler(req, res, walletRouteDeps(deps), pathParam!);
+      return;
+    case "engagement":
+      await handler(req, res, engagementRouteDeps(deps));
+      return;
+    case "engagement-param":
+      await handler(req, res, engagementRouteDeps(deps), pathParam!);
       return;
     default: {
       const _exhaustive: never = kind;

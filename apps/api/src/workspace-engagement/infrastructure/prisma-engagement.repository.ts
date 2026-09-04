@@ -1,11 +1,11 @@
 import type { Prisma } from "@prisma/client";
 
-import { getPrismaClient } from "../db/prisma-client";
+import { withTenantRls } from "../../db/with-tenant-rls";
 import {
   DEFAULT_ENGAGEMENT_BADGES,
   resolveLevelForPoints,
   type EngagementBadgeDefinition,
-} from "./engagement-policy";
+} from "../engagement-policy";
 import type {
   AwardEngagementPointsInput,
   AwardEngagementPointsResult,
@@ -13,7 +13,7 @@ import type {
   EngagementProfileRow,
   EngagementRepository,
   MemberEngagementBadgeRow,
-} from "./engagement-repository.types";
+} from "../engagement-repository.types";
 
 function mapProfile(row: {
   id: string;
@@ -150,32 +150,32 @@ async function ensureBadgesForProfile(
 }
 
 export function createPrismaEngagementRepository(): EngagementRepository {
-  const prisma = getPrismaClient();
-
   return {
     async getOrCreateProfile(tenantId, workspaceId, userId) {
-      const existing = await prisma.engagementProfile.findUnique({
-        where: {
-          tenantId_workspaceId_userId: { tenantId, workspaceId, userId },
-        },
+      return withTenantRls(tenantId, async (tx) => {
+        const existing = await tx.engagementProfile.findUnique({
+          where: {
+            tenantId_workspaceId_userId: { tenantId, workspaceId, userId },
+          },
+        });
+        if (existing !== null) {
+          return mapProfile(existing);
+        }
+        const created = await tx.engagementProfile.create({
+          data: {
+            tenantId,
+            workspaceId,
+            userId,
+            totalPoints: 0,
+            currentLevelCode: "base_camp",
+          },
+        });
+        return mapProfile(created);
       });
-      if (existing !== null) {
-        return mapProfile(existing);
-      }
-      const created = await prisma.engagementProfile.create({
-        data: {
-          tenantId,
-          workspaceId,
-          userId,
-          totalPoints: 0,
-          currentLevelCode: "base_camp",
-        },
-      });
-      return mapProfile(created);
     },
 
     async awardPoints(input) {
-      return prisma.$transaction(async (tx) => {
+      return withTenantRls(input.tenantId, async (tx) => {
         const existingEvent = await tx.engagementPointEvent.findUnique({
           where: {
             tenantId_dedupeKey: {
@@ -256,62 +256,72 @@ export function createPrismaEngagementRepository(): EngagementRepository {
     },
 
     async listPointEventsForUser({ tenantId, userId, workspaceId, limit, cursor }) {
-      const rows = await prisma.engagementPointEvent.findMany({
-        where: {
-          tenantId,
-          userId,
-          ...(workspaceId !== undefined ? { workspaceId } : {}),
-          ...(cursor !== undefined
-            ? { createdAt: { lt: new Date(cursor) } }
-            : {}),
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit + 1,
+      return withTenantRls(tenantId, async (tx) => {
+        const rows = await tx.engagementPointEvent.findMany({
+          where: {
+            tenantId,
+            userId,
+            ...(workspaceId !== undefined ? { workspaceId } : {}),
+            ...(cursor !== undefined
+              ? { createdAt: { lt: new Date(cursor) } }
+              : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit + 1,
+        });
+        const hasMore = rows.length > limit;
+        const items = rows.slice(0, limit).map(mapEvent);
+        const nextCursor =
+          hasMore && items.length > 0
+            ? items[items.length - 1]!.createdAt.toISOString()
+            : null;
+        return { items, hasMore, nextCursor };
       });
-      const hasMore = rows.length > limit;
-      const items = rows.slice(0, limit).map(mapEvent);
-      const nextCursor =
-        hasMore && items.length > 0
-          ? items[items.length - 1]!.createdAt.toISOString()
-          : null;
-      return { items, hasMore, nextCursor };
     },
 
     async listBadgesForUser(tenantId, userId, workspaceId) {
-      const rows = await prisma.memberEngagementBadge.findMany({
-        where: {
-          tenantId,
-          userId,
-          ...(workspaceId !== undefined ? { workspaceId } : {}),
-        },
-        orderBy: { earnedAt: "desc" },
+      return withTenantRls(tenantId, async (tx) => {
+        const rows = await tx.memberEngagementBadge.findMany({
+          where: {
+            tenantId,
+            userId,
+            ...(workspaceId !== undefined ? { workspaceId } : {}),
+          },
+          orderBy: { earnedAt: "desc" },
+        });
+        return rows.map(mapBadge);
       });
-      return rows.map(mapBadge);
     },
 
     async listRecentPointEventsForWorkspace(tenantId, workspaceId, limit) {
-      const rows = await prisma.engagementPointEvent.findMany({
-        where: { tenantId, workspaceId },
-        orderBy: { createdAt: "desc" },
-        take: limit,
+      return withTenantRls(tenantId, async (tx) => {
+        const rows = await tx.engagementPointEvent.findMany({
+          where: { tenantId, workspaceId },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        });
+        return rows.map(mapEvent);
       });
-      return rows.map(mapEvent);
     },
 
     async listRecentBadgesForWorkspace(tenantId, workspaceId, limit) {
-      const rows = await prisma.memberEngagementBadge.findMany({
-        where: { tenantId, workspaceId },
-        orderBy: { earnedAt: "desc" },
-        take: limit,
+      return withTenantRls(tenantId, async (tx) => {
+        const rows = await tx.memberEngagementBadge.findMany({
+          where: { tenantId, workspaceId },
+          orderBy: { earnedAt: "desc" },
+          take: limit,
+        });
+        return rows.map(mapBadge);
       });
-      return rows.map(mapBadge);
     },
 
     async findPointEventById(tenantId, eventId) {
-      const row = await prisma.engagementPointEvent.findUnique({
-        where: { tenantId_id: { tenantId, id: eventId } },
+      return withTenantRls(tenantId, async (tx) => {
+        const row = await tx.engagementPointEvent.findUnique({
+          where: { tenantId_id: { tenantId, id: eventId } },
+        });
+        return row === null ? null : mapEvent(row);
       });
-      return row === null ? null : mapEvent(row);
     },
   };
 }

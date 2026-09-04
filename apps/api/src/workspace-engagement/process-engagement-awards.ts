@@ -105,13 +105,15 @@ export async function processProfileEngagementAward(
   if (!profileComplete) {
     return;
   }
-  const workspaceId = auth.workspaceId?.trim();
-  if (workspaceId === undefined || workspaceId.length === 0) {
+  let gate;
+  try {
+    gate = await assertEngagementWorkspaceGate(auth.tenantId);
+  } catch {
     return;
   }
   await processEngagementAward({
     tenantId: auth.tenantId,
-    workspaceId,
+    workspaceId: gate.workspaceType,
     userId: auth.userId,
     eventType: "profile.completed",
     sourceModule: "identity",

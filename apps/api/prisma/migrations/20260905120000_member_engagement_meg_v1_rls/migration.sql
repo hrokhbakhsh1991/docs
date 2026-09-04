@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS engagement_profiles (
   current_level_code TEXT NOT NULL DEFAULT 'base_camp',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT engagement_profiles_tenant_id_id_key UNIQUE (tenant_id, id),
   CONSTRAINT engagement_profiles_tenant_workspace_user_key
     UNIQUE (tenant_id, workspace_id, user_id)
 );
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS engagement_point_events (
   actor_role TEXT,
   reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT engagement_point_events_tenant_id_fkey
+  CONSTRAINT engagement_point_events_tenant_profile_fkey
     FOREIGN KEY (tenant_id, profile_id) REFERENCES engagement_profiles(tenant_id, id) ON DELETE CASCADE,
   CONSTRAINT engagement_point_events_tenant_dedupe_key UNIQUE (tenant_id, dedupe_key),
   CONSTRAINT engagement_point_events_tenant_id_id_key UNIQUE (tenant_id, id),
@@ -59,7 +60,7 @@ CREATE TABLE IF NOT EXISTS member_engagement_badges (
   badge_code TEXT NOT NULL,
   earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   dedupe_key TEXT NOT NULL,
-  CONSTRAINT member_engagement_badges_tenant_id_fkey
+  CONSTRAINT member_engagement_badges_tenant_profile_fkey
     FOREIGN KEY (tenant_id, profile_id) REFERENCES engagement_profiles(tenant_id, id) ON DELETE CASCADE,
   CONSTRAINT member_engagement_badges_tenant_id_id_key UNIQUE (tenant_id, id),
   CONSTRAINT uq_member_engagement_badges_user_badge UNIQUE (tenant_id, user_id, badge_code),

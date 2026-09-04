@@ -20,18 +20,15 @@ import {
   findBadgeDefinition,
 } from "./infrastructure/prisma-engagement.repository";
 
-function requireWorkspaceId(auth: TenantAuthContext): string {
-  const workspaceId = auth.workspaceId?.trim();
-  if (workspaceId === undefined || workspaceId.length === 0) {
-    throw new Error("ENGAGEMENT_OWNERSHIP_MISMATCH");
-  }
-  return workspaceId;
-}
-
 function requireOperator(auth: TenantAuthContext): void {
-  if (auth.role !== "OWNER" && auth.role !== "OPERATOR" && auth.role !== "ADMIN") {
+  if (auth.role !== "owner" && auth.role !== "operator" && auth.role !== "admin") {
     throw new Error("FORBIDDEN_ENGAGEMENT_OPERATOR");
   }
+}
+
+async function resolveEngagementWorkspaceId(tenantId: string): Promise<string> {
+  const gate = await assertEngagementWorkspaceGate(tenantId);
+  return gate.workspaceType;
 }
 
 function mapBadgeProgress(
@@ -84,8 +81,7 @@ export function createEngagementService(): EngagementServicePort {
 
   return {
     async getMemberSummary(auth) {
-      await assertEngagementWorkspaceGate(auth.tenantId);
-      const workspaceId = requireWorkspaceId(auth);
+      const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
       const profile = await repository.getOrCreateProfile(auth.tenantId, workspaceId, auth.userId);
       const badges = await repository.listBadgesForUser(auth.tenantId, auth.userId, workspaceId);
       const events = await repository.listPointEventsForUser({
@@ -114,8 +110,7 @@ export function createEngagementService(): EngagementServicePort {
     },
 
     async getMemberPointHistory(auth, query) {
-      await assertEngagementWorkspaceGate(auth.tenantId);
-      const workspaceId = requireWorkspaceId(auth);
+      const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
       const page = await repository.listPointEventsForUser({
         tenantId: auth.tenantId,
         userId: auth.userId,
@@ -144,9 +139,8 @@ export function createEngagementService(): EngagementServicePort {
     },
 
     async getOperatorOverview(auth) {
-      await assertEngagementWorkspaceGate(auth.tenantId);
       requireOperator(auth);
-      const workspaceId = requireWorkspaceId(auth);
+      const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
       const [events, badges] = await Promise.all([
         repository.listRecentPointEventsForWorkspace(auth.tenantId, workspaceId, 20),
         repository.listRecentBadgesForWorkspace(auth.tenantId, workspaceId, 20),
@@ -174,9 +168,8 @@ export function createEngagementService(): EngagementServicePort {
     },
 
     async getOperatorMemberLookup(auth, userId) {
-      await assertEngagementWorkspaceGate(auth.tenantId);
       requireOperator(auth);
-      const workspaceId = requireWorkspaceId(auth);
+      const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
       const profile = await repository.getOrCreateProfile(auth.tenantId, workspaceId, userId);
       const badges = await repository.listBadgesForUser(auth.tenantId, userId, workspaceId);
       const events = await repository.listPointEventsForUser({
@@ -208,9 +201,8 @@ export function createEngagementService(): EngagementServicePort {
     },
 
     async reversePointEvent(auth, userId, input) {
-      await assertEngagementWorkspaceGate(auth.tenantId);
       requireOperator(auth);
-      const workspaceId = requireWorkspaceId(auth);
+      const workspaceId = await resolveEngagementWorkspaceId(auth.tenantId);
       const original = await repository.findPointEventById(auth.tenantId, input.originalEventId);
       if (original === null || original.userId !== userId) {
         throw new Error("ENGAGEMENT_EVENT_NOT_FOUND");
