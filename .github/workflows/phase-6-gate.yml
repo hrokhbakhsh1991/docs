@@ -137,13 +137,26 @@ jobs:
       - name: Install CI OS packages
         run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
 
+      - name: Generate workspace registry sources for PR closure
+        if: github.event_name == 'pull_request'
+        run: pnpm run generate:workspace-registry
+
+      - name: Build workspace dist surfaces for PR closure
+        if: github.event_name == 'pull_request'
+        run: bash scripts/ci/build-api-workspace-deps.sh
+
       - name: Bootstrap app_tour role
         run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
 
       - name: Prisma migrate deploy
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
-      - name: Phase 6 fast-closure
+      - name: Phase 6 fast-closure (PR)
+        if: github.event_name == 'pull_request'
+        run: pnpm run phase-6:pr-fast-closure
+
+      - name: Phase 6 fast-closure (full)
+        if: github.event_name != 'pull_request'
         run: pnpm run phase-6:fast-closure
 
       - name: Upload phase-6 gate reports
