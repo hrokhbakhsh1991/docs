@@ -3,6 +3,7 @@ import { isOwnerRole } from "@/admin/require-operator-session";
 import { shouldShowFinanceNav } from "@/finance/finance-nav-enablement";
 import { shouldShowTicketsNav } from "@/features/tickets/tickets-nav-enablement";
 import { shouldShowWalletNav } from "@/wallet/wallet-nav-enablement";
+import { shouldShowEngagementNav } from "@/engagement/engagement-nav-enablement";
 import { shouldShowUsersNav } from "@/features/users/users-nav-access";
 import type { OperatorShellNavLink } from "@/shell/operator-shell-nav-registry";
 
@@ -42,6 +43,10 @@ export function resolveOperatorNav(input: ResolveOperatorNavInput): readonly Ope
 
   if (shouldShowWalletNav(input.pluginId) && canAccessOwnerPanelNav(input.session.role)) {
     items.push({ pathKey: "wallet", href: "/wallet" });
+  }
+
+  if (shouldShowEngagementNav(input.pluginId) && canAccessOwnerPanelNav(input.session.role)) {
+    items.push({ pathKey: "engagement", href: "/engagement" });
   }
 
   if (canAccessOwnerPanelNav(input.session.role)) {

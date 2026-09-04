@@ -52,6 +52,12 @@ importers:
       '@app-tour/booking-http-contracts':
         specifier: workspace:*
         version: link:../../packages/booking-http-contracts
+      '@app-tour/engagement-http':
+        specifier: workspace:*
+        version: link:../../packages/engagement-http
+      '@app-tour/engagement-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/engagement-http-contracts
       '@app-tour/finance-core':
         specifier: workspace:*
         version: link:../../packages/finance-core
@@ -318,6 +324,9 @@ importers:
       '@app-tour/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@app-tour/engagement-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/engagement-http-contracts
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
@@ -727,6 +736,44 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.7
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/engagement-http:
+    dependencies:
+      '@app-tour/engagement-http-contracts':
+        specifier: workspace:*
+        version: link:../engagement-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/engagement-http-contracts:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4

@@ -161,6 +161,35 @@
       "trips": "ثبت‌نام‌ها، وضعیت پرداخت و جزئیات سفرهای فعال خود را پیگیری کنید."
     }
   },
+  "dashboard": {
+    "engagementEyebrow": "مشارکت",
+    "engagementTitle": "مشارکت و پیشرفت",
+    "engagementDisabled": "ردیابی مشارکت برای این باشگاه هنوز فعال نیست.",
+    "pointsValue": "{points} امتیاز مشارکت",
+    "levelValue": "سطح: {level}",
+    "nextLevelProgress": "{points} امتیاز تا سطح بعدی",
+    "badgeEarned": "کسب‌شده",
+    "badgeProgress": "{percent}٪ تا این نشان",
+    "nextTourTitle": "تور ثبت‌نام‌شده بعدی",
+    "noUpcomingTour": "تور ثبت‌نام‌شده‌ای در پیش نیست.",
+    "viewRegistrations": "مشاهده ثبت‌نام‌ها",
+    "statusTitle": "وضعیت حساب",
+    "profileComplete": "پروفایل تکمیل است",
+    "profileIncomplete": "برای ثبت‌نام امن‌تر پروفایل را تکمیل کنید",
+    "walletSeparate": "موجودی کیف پول (جدا از امتیاز): {balance}",
+    "openTickets": "{count} تیکت پشتیبانی باز",
+    "levels": {
+      "base_camp": "اردوگاه پایه",
+      "trail_member": "عضو مسیر",
+      "summit_circle": "حلقه قله"
+    },
+    "badges": {
+      "trailhead_ready": { "label": "آماده مسیر" },
+      "first_expedition": { "label": "اولین برنامه" },
+      "summit_rookie": { "label": "تازه‌کار قله" },
+      "ridge_partner": { "label": "هم‌مسیر یال" }
+    }
+  },
   "hub": {
     "title": "بیشتر",
     "lede": "ماژول‌های کم‌استفاده‌تر یا مسیرهای تکمیلی حساب شما اینجا جمع می‌شوند.",

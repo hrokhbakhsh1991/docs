@@ -7,6 +7,12 @@
 import type { WorkspaceHttpHandlerFn, WorkspaceRouteHandlers } from "./workspace-route-registrar";
 
 export type WorkspaceHttpPackageHandlerKey =
+  | "handleEngagementMemberBadges"
+  | "handleEngagementMemberPoints"
+  | "handleEngagementMemberSummary"
+  | "handleEngagementOperatorMemberLookup"
+  | "handleEngagementOperatorOverview"
+  | "handleEngagementOperatorReverse"
   | "handleFinanceApproveRefund"
   | "handleFinanceCancelPendingManualPayment"
   | "handleFinanceCancelRefund"
@@ -85,6 +91,12 @@ export type WorkspaceHttpPackageHandlers = Pick<
 >;
 
 const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
+  handleEngagementMemberBadges: "@app-tour/engagement-http",
+  handleEngagementMemberPoints: "@app-tour/engagement-http",
+  handleEngagementMemberSummary: "@app-tour/engagement-http",
+  handleEngagementOperatorMemberLookup: "@app-tour/engagement-http",
+  handleEngagementOperatorOverview: "@app-tour/engagement-http",
+  handleEngagementOperatorReverse: "@app-tour/engagement-http",
   handleFinanceApproveRefund: "@app-tour/finance-http",
   handleFinanceCancelPendingManualPayment: "@app-tour/finance-http",
   handleFinanceCancelRefund: "@app-tour/finance-http",
@@ -159,6 +171,7 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
 }) as Readonly<Record<WorkspaceHttpPackageHandlerKey, string>>;
 
 const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
+  "@app-tour/engagement-http",
   "@app-tour/finance-http",
   "@app-tour/wallet-http",
   "@app-tour/workspace-cert-club/http",
@@ -178,6 +191,17 @@ export async function loadWorkspaceHttpHandlersForPackage(
   pkg: string
 ): Promise<Partial<WorkspaceRouteHandlers>> {
   switch (pkg) {
+    case "@app-tour/engagement-http": {
+      const mod = await import("@app-tour/engagement-http");
+      return {
+        handleEngagementMemberBadges: mod.handleEngagementMemberBadges,
+        handleEngagementMemberPoints: mod.handleEngagementMemberPoints,
+        handleEngagementMemberSummary: mod.handleEngagementMemberSummary,
+        handleEngagementOperatorMemberLookup: mod.handleEngagementOperatorMemberLookup,
+        handleEngagementOperatorOverview: mod.handleEngagementOperatorOverview,
+        handleEngagementOperatorReverse: mod.handleEngagementOperatorReverse,
+      };
+    }
     case "@app-tour/finance-http": {
       const mod = await import("@app-tour/finance-http");
       return {

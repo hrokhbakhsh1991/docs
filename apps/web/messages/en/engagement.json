@@ -1,0 +1,10 @@
+{
+  "ops": {
+    "title": "Member engagement",
+    "lede": "Recent participation points and earned badges — separate from wallet balance.",
+    "recentPoints": "Recent point awards",
+    "recentBadges": "Recently earned badges",
+    "loading": "Loading engagement overview…",
+    "loadFailed": "Could not load engagement overview."
+  }
+}

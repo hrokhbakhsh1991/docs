@@ -40,6 +40,7 @@
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/ticketing-http-contracts": "workspace:*",
+    "@app-tour/engagement-http-contracts": "workspace:*",
     "@app-tour/wallet-http-contracts": "workspace:*",
     "@app-tour/workspace-alpine": "workspace:*",
     "@app-tour/workspace-harbor": "workspace:*",
