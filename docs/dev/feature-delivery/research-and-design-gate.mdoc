@@ -127,8 +127,61 @@ Store as `.cache/feature-delivery/<sessionId>/design-brief.json` and summarize i
 
 - All capability records have class, actor, and states defined.
 - UI placement justified against existing IA (no new tab/route without inspection).
+- **`ui-ux-decision.json` recorded** for every user-visible feature (§3.3).
 - Verification matrix lists every capability with expected evidence type.
 - architecture-reviewer invoked at CP1 when platform candidate or protected paths.
+
+### 3.3 Mandatory UI/UX decision brief (CP1)
+
+**Before source implementation** for any **user-visible** feature, produce `.cache/feature-delivery/<sessionId>/ui-ux-decision.json`.
+
+**Workflow:**
+
+1. Product and information-architecture analysis (existing surfaces, actors, journeys).
+2. **UI UX Pro Max** advisory search when skill + `python3` available — [FDA-INTEGRATION](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md).
+3. **Repository design-system review** — tokens, primitives, Denali/Urban/starter patterns.
+4. Record decisions with explicit **kind** tags: `design-recommendation` \| `repository-convention` \| `product-requirement` \| `fact` \| `inference` \| `unresolved-decision`.
+
+**Required brief sections (24):**
+
+| # | Section |
+| - | ------- |
+| 1 | User problem |
+| 2 | Target actor |
+| 3 | Primary user task |
+| 4 | Existing surface analysis |
+| 5 | Recommended placement |
+| 6 | Information hierarchy |
+| 7 | Navigation decision |
+| 8 | Desktop layout |
+| 9 | Mobile layout |
+| 10 | Persian RTL behavior |
+| 11 | English LTR behavior |
+| 12 | Typography |
+| 13 | Color and semantic tokens |
+| 14 | Component choices |
+| 15 | Interaction states |
+| 16 | Loading state |
+| 17 | Empty state |
+| 18 | Validation/error state |
+| 19 | Permission-denied state |
+| 20 | Long-content behavior |
+| 21 | Accessibility and keyboard behavior |
+| 22 | Before/after comparison (when modifying existing UI) |
+| 23 | Rejected alternatives and reasons |
+| 24 | Browser verification plan (BQC) |
+
+**UI UX Pro Max is advisory.** Compare recommendations against Denali theme, design tokens, primitives, typography/localization, IA, product domain, and RTL/LTR requirements. Never apply glassmorphism, gradients, animations, fonts, colors, icons, or new tabs solely because the skill suggested them.
+
+**Information architecture:** Before a new page/tab, inspect dashboard, member account, operator workspace, tours/registrations, notification bell, profile/detail. New tab requires documented justification in §5 and §7.
+
+**Admin completeness:** read-only catalog, static card, placeholder, seed, mock, API-only, or non-mutating button ≠ complete admin capability.
+
+**Member completeness:** requires understandable copy, visible state, useful next action, loading/empty/error, permission behavior, mobile + RTL verification plan.
+
+Link ledger: `gate_id=uiux.decision` and `gate_id=uiux.promax.<slug>` when search commands run.
+
+Schema: [evidence-ledger-schema](evidence-ledger-schema.mdoc) §10.
 
 ---
 
@@ -194,24 +247,30 @@ Link ledger rows: `gate_id=research.<id>`.
 
 ---
 
-## 6. UI/UX review gate (CP5)
+## 6. UI/UX review gate (CP5) and browser quality (BQC)
 
 For any **visible** feature:
 
 | Check | Requirement |
 | ----- | ----------- |
+| CP1 artifact | `ui-ux-decision.json` complete — §3.3 |
 | Placement | Inspect existing UI before new tab/route — dashboard, profile, account, operator workspace, existing tabs |
 | IA | Compare member vs operator information architecture |
 | Tokens | Use design tokens and repository primitives — no raw controls where primitives exist |
 | i18n | RTL (Persian) and LTR (English); long labels; responsive layout |
-| States | Loading, empty, error, permission-denied, long content |
-| Browser | Real interaction when available — desktop and mobile screenshots for important changes |
+| States | Loading, empty, error, permission-denied, long content — per CP1 brief |
+| Browser | **BQC** — real interaction; canonical smoke scripts; [Playwright best practices](https://playwright.dev/docs/best-practices) |
+| Traces | Enable on important failures — [trace viewer](https://playwright.dev/docs/trace-viewer) |
 | Accessibility | Run axe or equivalent when available |
 | Evidence | Never mark UI complete from API/curl/build alone |
 
-If browser verification cannot run → capability status `unverified` or `accepted-risk`. **Never** silently convert to PASS.
+**UI evidence status (distinct):** `ui-designed` \| `ui-implemented` \| `ui-tested` \| `ui-browser-verified` \| `ui-accessibility-verified` \| `ui-production-verified` \| `ui-accepted-risk` \| `ui-unverified` — never conflate.
+
+If browser verification cannot run → `ui-unverified` or `ui-accepted-risk`. **Never** silently convert to PASS.
 
 Artifacts: `/opt/cursor/artifacts/` (Cloud) with ledger rows `gate_id=browser.<capabilityId>`.
+
+**BQC agent:** [browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md).
 
 ---
 
@@ -265,9 +324,10 @@ When one sub-feature is blocked, **continue independent work**, then return to b
 | [feature-delivery-agent](../feature-delivery-agent.mdoc) | Charter and CP0–CP7 lifecycle |
 | [architecture-classifier](architecture-classifier.mdoc) | Classification and consumer scan |
 | [blocker-recovery](blocker-recovery.mdoc) | 11-step recovery loop |
-| [evidence-ledger-schema](evidence-ledger-schema.mdoc) | Ledger rows for design, research, browser |
+| [evidence-ledger-schema](evidence-ledger-schema.mdoc) | Ledger rows for design, research, browser, ui-ux |
 | [stop-conditions](stop-conditions.mdoc) | Hard stops — unchanged |
 | [notification-case-study](notification-case-study.mdoc) | Regression fixture |
+| [ui-ux-pro-max FDA integration](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md) | Advisory design intelligence |
 
 ---
 

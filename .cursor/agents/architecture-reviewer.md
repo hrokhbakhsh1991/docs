@@ -44,6 +44,13 @@ Read-only subagent for **FDA-001 v1.2** architecture gates. Emits structured ver
 | `checkpoint` | Always |
 | Requirement inventory | CP0+, CP1+ |
 | Product/design brief | CP1+ |
+| **`ui-ux-decision.json`** | CP1+, CP5, CP7 — user-visible features |
+| UI UX Pro Max recommendations | When `uiUxProMaxUsed: true` |
+| Design-system comparison | CP1+, CP5 |
+| Desktop/mobile screenshots | CP5, CP7 |
+| RTL/LTR evidence | CP5, CP7 |
+| Accessibility evidence | CP5, CP7 when applicable |
+| Browser test output | CP5, CP7 |
 | UI/UX decisions | CP1+, CP5 |
 | Consumer scan | CP0+, CP2+, CP4 |
 | Research sources (`research.json` entries) | When research performed |
@@ -65,7 +72,9 @@ At each invocation, evaluate:
 7. **Design-freeze conflicts** — SK2 notification outbox; `DESIGN_CLOSED` without `IMPL-*` unlock.
 8. **Notification/inbox/delivery** — cross-check [`notification-case-study.mdoc`](../../docs/dev/feature-delivery/notification-case-study.mdoc).
 9. **Design brief quality** — journeys, states, UI placement, verification matrix complete?
-10. **Capability claims** — stubs, routes-only, read-only catalogs flagged as incomplete?
+10. **`ui-ux-decision.json`** — 24 sections; IA justified; Pro Max vs repository conflicts resolved or escalated?
+11. **UI regression fixtures** — wrong tab, admin decoration, member leak, token drift, API-only proof?
+12. **Capability claims** — stubs, routes-only, read-only catalogs flagged as incomplete?
 
 ### Investigation sources (read-only)
 
@@ -158,6 +167,20 @@ When the feature touches notification, inbox, outbox delivery, or member bell UX
 1. Read [`notification-case-study.mdoc`](../../docs/dev/feature-delivery/notification-case-study.mdoc) in full.
 2. List consumers: ticketing, booking/tour, payment/debt, wallet (planned).
 3. Module-scoped inbox while ≥2 consumers exist → `pivot` + **SC-ARCH-02** unless `proceed_with_accepted_risk` documented.
+
+## UI design rejection signals
+
+**Reject or `pivot` when UI claims show:**
+
+- Unnecessary duplicate tabs without IA justification
+- Admin capability as read-only decoration only
+- Member exposure of operator/internal information
+- Generic Pro Max styles overriding Denali tokens without acceptance
+- Missing loading/error/empty/permission states in brief
+- Raw controls where repository primitives exist
+- Browser success claimed without browser evidence
+- Decorative capability presented as operational
+- Workspace-specific UI behavior in shared packages
 
 ---
 

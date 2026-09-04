@@ -95,12 +95,15 @@ Changes under `packages/platform-core`, `packages/workspace-sdk`, or `apps/api` 
 ```mermaid
 flowchart TD
   start[SessionStart] --> cp0[CP0: Discovery + requirement inventory]
-  cp0 --> cp1[CP1: Product design UI-UX gate]
-  cp1 --> cp2[CP2: Plan + consumer review]
+  cp0 --> cp1a[CP1: Product + IA analysis]
+  cp1a --> cp1b[CP1: UI UX Pro Max advisory]
+  cp1b --> cp1c[CP1: Design-system review + ui-ux-decision.json]
+  cp1c --> cp2[CP2: Plan + consumer review]
   cp2 --> cp3[CP3: Vertical slice]
   cp3 --> cp4[CP4: Pre-DB shared contract]
   cp4 --> cp5[CP5: UI browser integration]
-  cp5 --> cp6[CP6: Verification + blocker recovery]
+  cp5 --> bqc[BQC: Browser quality verification]
+  bqc --> cp6[CP6: Verification + blocker recovery]
   cp6 --> cp7[CP7: Commit push final report]
   cp6 -->|failure| recover[Blocker recovery 3 hypotheses]
   recover -->|recovered| cp6
@@ -112,7 +115,7 @@ flowchart TD
 | ID | When | Mandatory actions |
 | -- | ---- | ----------------- |
 | **CP0** | Before first file edit | Deep discovery; requirement inventory; classifier; consumer scan; architecture-reviewer when required |
-| **CP1** | Before implementation | Design brief (15 sections); UI placement; states matrix; research if needed; architecture-reviewer |
+| **CP1** | Before implementation | Product/IA analysis; UI UX Pro Max advisory; design-system review; **ui-ux-decision.json** (24 sections); design brief; architecture-reviewer |
 | **CP2** | Before slice | Implementation plan; future-consumer review; user/plan gate |
 | **CP3** | First vertical slice | Smallest E2E path; reviewer on diff; re-run consumer analysis |
 | **CP4** | Before DB/shared contracts | Doc-first; RLS; dedupe; architecture-reviewer |
@@ -197,6 +200,7 @@ Final report minimum:
 | Member session | [member-session-portal-authority](../standards/member-session-portal-authority.mdoc) |
 | Routing | [workspace-routing-standard](../standards/workspace-routing-standard.mdoc) |
 | Browser quality / E2E closure | [browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md) (BQC-001) |
+| UI/UX design intelligence (advisory) | [ui-ux-pro-max skill](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md) |
 | Notification design freeze | [SK2_NOTIFICATION_OUTBOX](../phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md) |
 
 ---
@@ -209,6 +213,7 @@ Final report minimum:
 | **B** | Cursor agents/skills/rules | Done |
 | **B.2** | v1.2 discovery, design, research, queue, recovery | **Current** |
 | **B.3** | Browser Quality & E2E Closure sub-agent (BQC-001) | **Current** |
+| **B.4** | UI UX Pro Max design-intelligence integration (advisory) | **Current** |
 | **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI | Planned |
 | **D** | `test-changed` path map fixes | Planned |
 
@@ -230,6 +235,22 @@ When work is **browser-quality audit or E2E gap closure** (not greenfield featur
 **Delivers:** browser coverage matrix, test-realness audit, bug reproduction record, traces/screenshots, capability status per journey, explicit unverified items.
 
 **Critical flows** require real browser → real route → real backend → persistence/permission proof — not API-only or mock-only tests.
+
+### 10.2 UI UX Pro Max design intelligence (advisory)
+
+For **every user-visible feature**, CP1 requires an evidence-based UI/UX decision brief before source implementation.
+
+| Resource | Path |
+| -------- | ---- |
+| Integration adapter | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md) |
+| Upstream audit | [`.cursor/skills/ui-ux-pro-max/UPSTREAM-AUDIT.md`](../../.cursor/skills/ui-ux-pro-max/UPSTREAM-AUDIT.md) |
+| Session artifact | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json` |
+
+**Workflow:** discovery → product/IA → UI UX Pro Max (when available) → repository design-system review → `ui-ux-decision.json` → implementation → BQC verification → screenshots/accessibility evidence.
+
+**Priority (highest first):** product requirements → repository tokens/primitives → Denali/Urban/starter rules → accessibility/RTL/LTR → UI UX Pro Max recommendations.
+
+**Never** claim UI UX Pro Max was used when skill or Python was unavailable (`uiUxProMaxUsed: false` + fallback checklist).
 
 ---
 

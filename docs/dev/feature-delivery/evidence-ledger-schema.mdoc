@@ -26,6 +26,7 @@ extends:
 | Research              | `.cache/feature-delivery/<sessionId>/research.json`                                              | **No**              |
 | Requirement queue     | `.cache/feature-delivery/<sessionId>/requirement-queue.json`                                     | **No**              |
 | Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (or `blocker-<blockerId>.json`) | **No**              |
+| UI/UX decision brief    | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json`                                        | **No**              |
 | Walkthrough artifacts | `/opt/cursor/artifacts/` (Cloud) or project artifacts dir                                        | **No**              |
 
 Phase C may add `scripts/agents/feature-delivery-evidence-ledger.mjs` to append rows. Phase A defines schema only.
@@ -128,6 +129,8 @@ Architecture-reviewer output (read-only phase). Schema per [architecture-reviewe
 | `research.` | `research.RES-001` | `research.json` entry |
 | `design.` | `design.brief` | `design-brief.json` |
 | `browser.` | `browser.CAP-003` | Screenshot / recording artifact |
+| `uiux.` | `uiux.decision` | `ui-ux-decision.json` |
+| `uiux.promax.` | `uiux.promax.member-wallet` | UI UX Pro Max search stdout |
 | `capability.` | `capability.CAP-001` | Requirement inventory status |
 | `blocker.` | `blocker.BR-CODE-001` | `blocker-investigation.json` |
 | `arch-review` | `arch-review.CP1` | `arch-review.json` |
@@ -141,9 +144,9 @@ Architecture-reviewer output (read-only phase). Schema per [architecture-reviewe
 | Any code            | `bootstrap.branch`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
 | `apps/api` / Prisma | `guard.repository-rls`, `guard.api-workspace-isolation`, targeted postgres spec       |
 | Protected packages  | `guard.docs`, `doc.markdoc.validate`                                                  |
-| UI                  | app `build`, Playwright smoke, **browser** screenshots desktop+mobile, accessibility when available |
+| UI                  | app `build`, Playwright smoke, **browser** screenshots desktop+mobile, accessibility when available, `ui-ux-decision.json` for visible features |
 | Platform candidate  | `arch-review.json` with reviewer `verdict` at CP1, CP3, CP4, CP7 |
-| Design gate         | `design.brief` row referencing `design-brief.json` |
+| Design gate         | `design-brief.json` + `design.brief`; `ui-ux-decision.json` + `uiux.decision` for visible UI |
 | Research            | `research.<id>` row per external source used |
 
 Skipped gates must be `result: skip` with reason in artifact or `gate_id` suffix (e.g. `browser.CAP-003.skip-no-env`).
@@ -196,14 +199,72 @@ Each report section must cite ledger rows or session artifacts:
 | Design gate complete  | `design-brief.json` + `design.brief` ledger row                    |
 | Research used         | `research.json` + `research.<id>` rows                             |
 | Browser verified      | `browser.<capabilityId>` + artifact path — **not** curl alone    |
+| UI browser verified   | `browser.<capabilityId>` + BQC realness class `real-e2e` or documented `partial` |
+| UI accessibility      | `browser.a11y.<capabilityId>` or axe log artifact                |
+| UI UX Pro Max used    | `uiux.promax.<slug>` — only when search command ran              |
+| UI decision gate      | `uiux.decision` + `ui-ux-decision.json`                          |
 | Capability complete   | `capability.<id>` with status `tested` or `browser-verified`       |
 | Admin mutation works  | Browser or API proof with permission + audit ledger rows           |
 | Blocker recovered     | `blocker-investigation.json` + `gate_id=blocker.<id>` rows         |
 | Queue complete        | `requirement-queue.json` — every item `completed` or documented risk |
 | Commits               | Rows with `gate_id=commit` and SHAs matching `git log`             |
 
-**Forbidden without evidence:** COMPLETE with open rows; admin usability from read-only catalog; browser success from API/curl; production readiness from local tests only.
+**Forbidden without evidence:** COMPLETE with open rows; admin usability from read-only catalog; browser success from API/curl; production readiness from local tests only; UI UX Pro Max cited without `uiux.promax.*` ledger row.
 
 ---
 
-_Subdoc of FDA-001 v1.2. Schema version 1.2.0._
+## 10. ui-ux-decision.json
+
+**Location:** `.cache/feature-delivery/<sessionId>/ui-ux-decision.json`
+
+**Required for:** every user-visible feature at CP1 before source implementation.
+
+```json
+{
+  "featureId": "<feature-slug>",
+  "surface": "portal|web|marketing",
+  "actor": "member|operator-owner|operator-viewer|guest|platform-admin",
+  "placement": { "kind": "repository-convention", "summary": "...", "justification": "..." },
+  "informationArchitecture": { "existingSurfaces": [], "newTabJustification": null },
+  "designSystemSource": ["design-system/tokens", "docs/phase-2-design-system.md"],
+  "uiUxProMaxUsed": true,
+  "uiUxProMaxRecommendations": [
+    { "query": "tour operator dashboard", "command": "python3 .cursor/skills/ui-ux-pro-max/scripts/search.py ...", "kind": "design-recommendation", "summary": "..." }
+  ],
+  "repositoryConstraints": [
+    { "kind": "repository-convention", "ref": "docs/dev/semantic-color-contract.mdoc", "summary": "Use semantic tokens only" }
+  ],
+  "selectedDecisions": [
+    { "section": "placement", "kind": "product-requirement", "decision": "..." }
+  ],
+  "rejectedAlternatives": [
+    { "alternative": "New top-level tab", "reason": "Fits existing registrations area", "kind": "inference" }
+  ],
+  "responsiveRules": { "desktop": "...", "mobile": "..." },
+  "rtlLtrRules": { "fa": "...", "en": "..." },
+  "accessibilityRules": { "keyboard": "...", "aria": "..." },
+  "requiredBrowserEvidence": ["desktop screenshot", "mobile RTL", "BQC spec path"],
+  "conflicts": [],
+  "unresolvedDecisions": [],
+  "reviewerVerdict": "pending|approve|approve_with_gaps|reject"
+}
+```
+
+### 10.1 UI evidence status (final report)
+
+| Status | Meaning |
+| ------ | ------- |
+| `ui-designed` | `ui-ux-decision.json` + design brief complete |
+| `ui-implemented` | Source merged within scope |
+| `ui-tested` | Unit/contract tests pass with ledger rows |
+| `ui-browser-verified` | BQC real browser proof with artifacts |
+| `ui-accessibility-verified` | axe or equivalent with artifact |
+| `ui-production-verified` | Staging/production proof with explicit unlock |
+| `ui-accepted-risk` | Documented gap with architect acceptance |
+| `ui-unverified` | Missing browser, a11y, or environment evidence |
+
+Never claim `ui-browser-verified` from build, API 200, or screenshot without interaction.
+
+---
+
+_Subdoc of FDA-001 v1.2. Schema version 1.3.0._

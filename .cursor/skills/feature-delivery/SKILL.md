@@ -27,6 +27,8 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 | Stop conditions                 | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc)                 |
 | Blocker recovery                | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc)               |
 | Notification regression fixture | [`docs/dev/feature-delivery/notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) |
+| UI UX Pro Max (advisory)        | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../ui-ux-pro-max/FDA-INTEGRATION.md)                               |
+| Browser quality closure         | [`.cursor/skills/browser-quality-closure/SKILL.md`](../browser-quality-closure/SKILL.md)                                    |
 | Tiered testing                  | [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md)                                                         |
 | Workspace API agnosticism       | [`docs/standards/workspace-api-capabilities.mdoc`](../../../docs/standards/workspace-api-capabilities.mdoc)                 |
 
@@ -79,15 +81,18 @@ Never compare `currentHead` to `initialHead` as an error when commits were autho
 
 **No source implementation until CP1 complete.**
 
-Produce reviewable **design brief** per [research-and-design-gate](research-and-design-gate) §3:
+1. **Product / IA analysis** — actors, journeys, existing surfaces (dashboard, account, operator workspace, tours/registrations, notification bell, profile/detail).
+2. **UI UX Pro Max advisory** (when available) — per [FDA-INTEGRATION](../ui-ux-pro-max/FDA-INTEGRATION.md); record search commands in ledger (`uiux.promax.*`). Set `uiUxProMaxUsed: false` when skill/Python unavailable — use fallback checklist.
+3. **Repository design-system review** — tokens, primitives, Denali/Urban/starter patterns (`design-system/`, phase-2 docs, semantic-color contract).
+4. Produce **`ui-ux-decision.json`** — 24 sections per [research-and-design-gate](research-and-design-gate) §3.3; tag each decision: `design-recommendation` \| `repository-convention` \| `product-requirement` \| `fact` \| `inference` \| `unresolved-decision`.
+5. Produce **design brief** per [research-and-design-gate](research-and-design-gate) §3.1 → `design-brief.json`.
+6. Invoke **architecture-reviewer** with requirement inventory + design brief + `ui-ux-decision.json`.
 
-- Problem, member/operator/system journeys, domain boundary, classification, consumers, data/RLS, API/BFF, UI placement, desktop/mobile, RTL/LTR, all UI states, verification matrix, risks/exclusions.
+Perform **internet research** when design uncertainty warrants it ([research-and-design-gate](research-and-design-gate) §5) → `research.json`.
 
-Invoke **architecture-reviewer** with requirement inventory + design brief.
+**Do not implement** until `ui-ux-decision.json`, design brief, and reviewer verdict (when required) are recorded.
 
-**Artifact:** `design-brief.json`. Perform **internet research** when design uncertainty warrants it ([research-and-design-gate](research-and-design-gate) §5) → `research.json`.
-
-**Do not implement** until design brief is internally consistent and approved in chat (or explicit autonomy after CP1).
+**Priority:** product requirements → repository tokens → workspace rules → accessibility/RTL/LTR → UI UX Pro Max recommendations.
 
 ### CP2 — Implementation plan and consumer review
 
@@ -120,13 +125,16 @@ Re-run **future-consumer analysis** ([research-and-design-gate](research-and-des
 
 Per [research-and-design-gate](research-and-design-gate) §6:
 
-1. Portal vs Web ownership (PCMS-001).
-2. Denali / Urban / starter divergence.
-3. Existing UI placement before new routes/tabs.
-4. Design tokens, primitives, RTL/LTR, responsive, all states.
-5. **Browser proof** when user-visible — screenshots desktop/mobile; accessibility when available.
-6. Never mark UI complete from curl/API/build alone.
-7. **architecture-reviewer** when shared notification/inbox or cross-surface contracts touched.
+1. Confirm `ui-ux-decision.json` from CP1 still matches implementation.
+2. Portal vs Web ownership (PCMS-001).
+3. Denali / Urban / starter divergence.
+4. Existing UI placement before new routes/tabs.
+5. Design tokens, primitives, RTL/LTR, responsive, all states from CP1 brief.
+6. **BQC browser proof** — real interaction; canonical smoke scripts; traces on failure ([Playwright best practices](https://playwright.dev/docs/best-practices)).
+7. Screenshots desktop/mobile; accessibility when available.
+8. Never mark UI `ui-browser-verified` from curl/API/build alone.
+9. **architecture-reviewer** when shared notification/inbox or cross-surface contracts touched.
+10. **browser-quality-reviewer** when material browser claims are made.
 
 ### CP6 — Verification and blocker recovery
 
@@ -243,6 +251,7 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 | Arch review | `.cache/feature-delivery/<sessionId>/arch-review.json` |
 | Requirement inventory | `.cache/feature-delivery/<sessionId>/requirement-inventory.json` |
 | Design brief | `.cache/feature-delivery/<sessionId>/design-brief.json` |
+| UI/UX decision | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json` |
 | Research | `.cache/feature-delivery/<sessionId>/research.json` |
 | Requirement queue | `.cache/feature-delivery/<sessionId>/requirement-queue.json` |
 | Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` |
@@ -273,7 +282,7 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 2. Requirement queue — every item and status
 3. Classification and architecture-reviewer verdict(s)
 4. Files changed (within `scopePaths`)
-5. Test/guard matrix; capability status table
+5. Test/guard matrix; capability status table; **UI evidence status** (`ui-designed` … `ui-unverified`)
 6. Artifacts (screenshots, research URLs, design brief ref)
 7. Remaining / accepted risks
 8. Commit SHAs and push result

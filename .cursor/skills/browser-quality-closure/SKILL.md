@@ -29,6 +29,7 @@ Specialized **FDA sub-agent** for auditing and repairing **real browser quality 
 | Stop conditions | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc) |
 | Tiered testing | [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md) |
 | Walkthrough artifacts | [`walkthrough-artifacts` skill]($HOME/.cursor/skills-cursor/walkthrough-artifacts/SKILL.md) |
+| UI/UX decision brief | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../ui-ux-pro-max/FDA-INTEGRATION.md) |
 
 **Safety rule:** [`.cursor/rules/feature-delivery.mdc`](../../rules/feature-delivery.mdc) applies to all BQC sessions.
 
@@ -68,7 +69,38 @@ Record at BQC-0: `lockedBranch`, `initialHead`, `scopePaths`, `sessionId`.
 
 ---
 
-## BQC-0 — Discovery (mandatory before edits)
+## BQC and FDA UI/UX integration
+
+BQC runs **after** CP1 `ui-ux-decision.json` and implementation. Verify **actual user-visible behavior** against the CP1 browser verification plan (§24).
+
+| CP1 artifact | BQC use |
+| ------------ | ------- |
+| `ui-ux-decision.json` | Required browser evidence list, RTL/LTR rules, placement |
+| `requiredBrowserEvidence` | Maps to coverage matrix rows and ledger `browser.*` gates |
+
+**Playwright principles** ([best practices](https://playwright.dev/docs/best-practices), [trace viewer](https://playwright.dev/docs/trace-viewer)):
+
+- Real browser interaction on real application routes
+- Canonical repository `webServer` / smoke scripts — never bypass `predev` guards
+- User-facing locators (`getByRole`, `getByLabel`, stable `data-testid`)
+- Web-first assertions (`expect(locator).toBeVisible()`)
+- Isolated tests with idempotent unique data
+- Screenshots for important UI changes; traces for important failures
+- Accessibility checks where configs exist
+
+**Do not accept as browser proof:**
+
+- curl-only checks
+- DOM-only / static file tests for critical journeys
+- Screenshots without interaction
+- Mocked critical API responses (`page.route` on paths under test)
+- Direct final-state DB writes as sole proof
+- Skipped assertions
+- Route-exists-only tests
+
+Update capability UI status: `ui-browser-verified` only after real-e2e pass with artifacts.
+
+---
 
 ### 1. Repository instructions
 

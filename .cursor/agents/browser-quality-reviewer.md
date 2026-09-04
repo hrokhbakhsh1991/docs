@@ -45,7 +45,14 @@ Read-only subagent for **BQC-001** (Browser Quality & E2E Closure). Audits Playw
 | `checkpoint` | `BQC-1` or `BQC-7` |
 | Browser coverage matrix | Always |
 | Test realness audit | Always |
+| **`ui-ux-decision.json`** | When reviewing UI-visible features |
+| UI UX Pro Max recommendations | When `uiUxProMaxUsed: true` |
+| Design-system comparison notes | Material UI claims |
+| Desktop/mobile screenshots | CP5/BQC-7 |
+| RTL/LTR evidence | Denali/Urban surfaces |
+| Accessibility evidence | When a11y configs exist |
 | Failing spec output / trace paths | When reviewing fixes |
+| Browser test output | BQC-7 |
 | Changed files list | BQC-7 |
 | Ledger excerpt or `evidence.tsv` | BQC-7 |
 
@@ -93,7 +100,44 @@ Flag **false proof**: curl-only, mock-only, route-exists-only, skipped important
 - Memory smokes documented (`OPERATOR_SMOKE_USE_DATABASE=0`)
 - Seeds stale after `enabledModules` / tenant theme changes → flag rerun requirement
 
-### 5. FDA alignment
+### 6. UI/UX and design alignment
+
+When `ui-ux-decision.json` provided:
+
+- CP1 placement matches implemented routes/nav
+- All CP1 states have browser or documented gap
+- Pro Max recommendations not applied blindly (token/primitive compliance)
+- `uiUxProMaxUsed` matches ledger evidence
+
+**Reject designs / tests that:**
+
+- Create unnecessary duplicate tabs
+- Expose admin-only information to members
+- Use generic visual styles against Denali design system
+- Hide loading/error/empty/permission states
+- Use raw controls when repository primitives exist
+- Claim browser success without browser evidence
+- Make decorative capability look operational
+- Introduce workspace-specific behavior into shared code
+
+### 7. UI regression fixtures
+
+Flag when detected:
+
+| Fixture | Signal |
+| ------- | ------ |
+| Wrong tab | New nav duplicates existing IA |
+| Admin decoration | Read-only catalog as admin feature |
+| Member leak | Operator/internal fields in member UI |
+| Negative exposure | Negative values in member projections |
+| Wallet/engagement conflation | Visual merge of unrelated domains |
+| Mobile RTL gap | Desktop pass, mobile Persian fail |
+| API-only proof | API green, browser red |
+| Screenshot theater | Image without interaction |
+| Token drift | Arbitrary styles vs Denali tokens |
+| Environment lie | Local/staging reported as production |
+
+### 8. FDA alignment
 
 - Branch lock respected in parent session?
 - Scope changes limited to test/fixture/seed/docs?
