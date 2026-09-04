@@ -15,6 +15,8 @@ import { dispatchTicketNotificationFromOutbox } from "../notifications/dispatch-
 import {
   countUnreadMemberNotifications,
   listMemberNotifications,
+  markAllMemberNotificationsRead,
+  markMemberNotificationRead,
 } from "../notifications/member-notification.repository";
 import { PrismaWalletRepository } from "../workspace-wallet/infrastructure/prisma-wallet.repository";
 import { integrationTenantId } from "../../test/test-helpers";
@@ -46,6 +48,7 @@ describe(
   { skip: postgresSkip, concurrency: false },
   () => {
     const tenantA = integrationTenantId();
+    const tenantB = integrationTenantId();
     const workspaceId = "mni-ws";
     const memberUser = randomUUID();
     const operatorId = randomUUID();
@@ -56,13 +59,21 @@ describe(
       process.env.STORAGE_DRIVER = "prisma";
       await assertPostgresAppRoleForRlsTests(getPrisma());
       const admin = getPrismaAdmin();
-      await admin.tenant.create({
-        data: {
-          id: tenantA,
-          subdomain: `mni-${tenantA.slice(0, 8)}`,
-          workspaceType: "denali",
-          theme: { enabledModules: ["ticketing", "wallet"] },
-        },
+      await admin.tenant.createMany({
+        data: [
+          {
+            id: tenantA,
+            subdomain: `mni-${tenantA.slice(0, 8)}`,
+            workspaceType: "denali",
+            theme: { enabledModules: ["ticketing", "wallet", "engagement"] },
+          },
+          {
+            id: tenantB,
+            subdomain: `mni-b-${tenantB.slice(0, 8)}`,
+            workspaceType: "denali",
+            theme: { enabledModules: ["ticketing", "wallet"] },
+          },
+        ],
       });
     });
 
@@ -78,16 +89,28 @@ describe(
         );
         await admin.ticket.deleteMany({ where: { tenantId: tenantA } });
         await admin.$executeRawUnsafe(
-          "ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only"
+          "ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only",
         );
         try {
           await admin.auditEvent.deleteMany({ where: { tenantId: tenantA } });
         } finally {
           await admin.$executeRawUnsafe(
-            "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only"
+            "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only",
           );
         }
-        await admin.tenant.deleteMany({ where: { id: tenantA } });
+        await admin.$executeRawUnsafe(
+          "ALTER TABLE engagement_point_events DISABLE TRIGGER engagement_point_events_append_only",
+        );
+        try {
+          await admin.engagementPointEvent.deleteMany({ where: { tenantId: tenantA } });
+          await admin.memberEngagementBadge.deleteMany({ where: { tenantId: tenantA } });
+          await admin.engagementProfile.deleteMany({ where: { tenantId: tenantA } });
+        } finally {
+          await admin.$executeRawUnsafe(
+            "ALTER TABLE engagement_point_events ENABLE TRIGGER engagement_point_events_append_only",
+          );
+        }
+        await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await disconnectPrisma();
       }
@@ -467,6 +490,201 @@ describe(
         where: { tenantId: tenantA, notificationId: row!.id, channel: "sms" },
       });
       assert.equal(delivery?.status, "failed");
+    });
+
+    it("enforces FORCE RLS on member_notifications", async () => {
+      const admin = getPrismaAdmin();
+      const [{ relforcerowsecurity }] = await admin.$queryRaw<
+        { relforcerowsecurity: boolean }[]
+      >`
+        SELECT relforcerowsecurity
+        FROM pg_class
+        WHERE relname = 'member_notifications'
+      `;
+      assert.equal(relforcerowsecurity, true, "member_notifications must FORCE ROW LEVEL SECURITY");
+    });
+
+    it("enforces cross-tenant deny on member notification list", async () => {
+      await dispatchMemberNotificationFromOutbox({
+        tenantId: tenantA,
+        aggregateType: "registration",
+        aggregateId: randomUUID(),
+        eventType: "registration.approved",
+        domainEventId: `rls:${randomUUID()}`,
+        payload: { guestUserId: memberUser, bookingId: randomUUID() },
+        createdAt: new Date(),
+        correlationId: randomUUID(),
+      });
+
+      const crossTenant = await listMemberNotifications({
+        tenantId: tenantB,
+        userId: memberUser,
+        limit: 20,
+      });
+      assert.equal(crossTenant.items.length, 0);
+    });
+
+    it("marks read and persists readAt after reload", async () => {
+      const domainEventId = `read:${randomUUID()}`;
+      await dispatchMemberNotificationFromOutbox({
+        tenantId: tenantA,
+        aggregateType: "registration",
+        aggregateId: randomUUID(),
+        eventType: "registration.approved",
+        domainEventId,
+        payload: { guestUserId: memberUser, bookingId: randomUUID() },
+        createdAt: new Date(),
+        correlationId: randomUUID(),
+      });
+
+      const before = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        limit: 20,
+      });
+      const row = before.items.find((item) => item.dedupeKey === domainEventId);
+      assert.ok(row);
+      assert.equal(row!.readAt, null);
+
+      const marked = await markMemberNotificationRead({
+        tenantId: tenantA,
+        notificationId: row!.id,
+        userId: memberUser,
+      });
+      assert.ok(marked?.readAt);
+
+      const after = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        limit: 20,
+      });
+      const persisted = after.items.find((item) => item.id === row!.id);
+      assert.ok(persisted?.readAt);
+    });
+
+    it("relay ticket.created creates exactly one member notification per domainEventId", async () => {
+      const ticketId = randomUUID();
+      const domainEventId = randomUUID();
+
+      await withTenantRls(tenantA, async (tx) => {
+        await tx.ticket.create({
+          data: {
+            id: ticketId,
+            tenantId: tenantA,
+            requesterUserId: memberUser,
+            categoryCode: "general",
+            priority: "normal",
+            status: "open",
+            subject: "Dedupe ticket",
+            ticketNumber: nextPostgresTestTicketNumber(),
+            lastActivityAt: new Date(),
+          },
+        });
+      });
+
+      await withTenantRls(tenantA, async (tx) => {
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "ticket",
+          aggregateId: ticketId,
+          eventType: "ticket.created",
+          domainEventId,
+          payload: {
+            ticketId,
+            subject: "Dedupe ticket",
+            requesterUserId: memberUser,
+            assigneeUserId: null,
+            assigneeTeamId: null,
+            queueId: null,
+            actorUserId: memberUser,
+            eventPayload: {},
+          },
+        });
+      });
+
+      const relay1 = await processOutboxRelayForTenantOnce(tenantA, 20);
+      assert.ok(relay1.published >= 1);
+      const relay2 = await processOutboxRelayForTenantOnce(tenantA, 20);
+      assert.equal(relay2.published, 0, "duplicate outbox row must not republish");
+
+      const list = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "ticketing",
+        limit: 20,
+      });
+      const matches = list.items.filter((item) => item.dedupeKey === domainEventId);
+      assert.equal(matches.length, 1, "ticket.created relay must not duplicate inbox rows");
+    });
+
+    it("alias normalization does not duplicate inbox rows for same domainEventId", async () => {
+      const domainEventId = `alias-dedupe:${randomUUID()}`;
+      const row = {
+        tenantId: tenantA,
+        aggregateType: "tour",
+        aggregateId: randomUUID(),
+        eventType: "tour.mutation.notification_required",
+        domainEventId,
+        payload: { guestUserId: memberUser, registrationId: randomUUID() },
+        createdAt: new Date(),
+        correlationId: randomUUID(),
+      };
+
+      await dispatchMemberNotificationFromOutbox(row);
+      await dispatchMemberNotificationFromOutbox(row);
+
+      const list = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "booking",
+        limit: 50,
+      });
+      const matches = list.items.filter(
+        (item) => item.dedupeKey === domainEventId && item.eventType === "tour.schedule.changed",
+      );
+      assert.equal(matches.length, 1);
+    });
+
+    it("registration.approved relay creates engagement badge without duplicating booking row", async () => {
+      const bookingId = randomUUID();
+      const domainEventId = `engagement:${bookingId}:${Date.now()}`;
+
+      await withTenantRls(tenantA, async (tx) => {
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "registration",
+          aggregateId: bookingId,
+          eventType: "registration.approved",
+          domainEventId,
+          payload: {
+            guestUserId: memberUser,
+            bookingId,
+            registrationId: bookingId,
+          },
+        });
+      });
+
+      await processOutboxRelayForTenantOnce(tenantA, 20);
+
+      const bookingRows = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "booking",
+        limit: 20,
+      });
+      const bookingMatches = bookingRows.items.filter((item) => item.dedupeKey === domainEventId);
+      assert.equal(bookingMatches.length, 1);
+
+      const engagementRows = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "engagement",
+        limit: 20,
+      });
+      assert.ok(
+        engagementRows.items.some((item) => item.eventType === "engagement.badge.earned"),
+        "engagement badge is separate dedupe key, not duplicate booking row",
+      );
     });
   }
 );

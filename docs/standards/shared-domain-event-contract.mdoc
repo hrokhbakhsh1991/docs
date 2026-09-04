@@ -72,6 +72,8 @@ Unique constraint `(tenant_id, domain_event_id)` enforces idempotency at transpo
 | `registration.approved` | `registration` | Booking approve → outbox (`BOOKING_APPROVE_OUTBOX_EVENT_TYPE`) | `dispatch-member-notification-from-outbox` | `RegistrationApproved` (legacy docs only) |
 | `payment.confirmed` | `payment` | Finance receipt approve → `finance.ledger.double_entry_applied` (payment capture path) | same dispatcher (maps ledger capture → member inbox) | — |
 | `attendance.marked` | `registration` | **Planned** DP-7 attendance; no durable producer yet | dispatcher registered; no-op until producer ships | `attendance.verified` (engagement probe) |
+
+**Handoff — `ATTENDANCE_PRODUCER_NOT_IMPLEMENTED`:** No booking/tour attendance mutation emits `attendance.marked` or `attendance.verified` outbox rows today (DP-7 deferred per `docs/dev/production-closure-ledger.md`). Shared consumer + SDE-001 alias mapping are ready; Tour Operations must wire the real day-of attendance command before inbox notifications can be end-to-end proven for this event.
 | `ticket.created` | `ticket` | Ticketing `createTicket` → outbox | `dispatch-ticket-notification-from-outbox` | — |
 | `tour.schedule.changed` | `tour` | Tour mutation safety → `tour.mutation.notification_required` | `dispatch-member-notification-from-outbox` | `tour.mutation.notification_required` |
 
@@ -89,15 +91,38 @@ Typed helpers live in `@app-tour/platform-events`:
 
 Notification dispatchers consume **canonical** `eventType` after normalization. Inbox `member_notifications.event_type` stores the canonical name. `dedupeKey` = envelope `idempotencyKey` (typically `eventId` / `domain_event_id`).
 
-Delivery channel state (`member_notification_deliveries.status`):
+### 4.1 Status semantics (canonical mapping)
 
-| DB value | Semantic |
-| -------- | -------- |
-| `pending` | queued |
-| `delivered` | sent |
-| `failed` | failed (non-retryable or exhausted) |
+Three **independent** state axes — never conflate delivery channel state with inbox read state.
 
-Inbox read state: `read_at IS NULL` → unread; `read_at` set → read.
+#### A. Async channel delivery (`member_notification_deliveries.status`)
+
+| DB column value | Canonical semantic | API / ops label | Meaning |
+| --------------- | ------------------ | --------------- | ------- |
+| `pending` | **queued** | `queued` | Row claimed by worker; awaiting adapter attempt or retry schedule |
+| `delivered` | **sent** | `sent` | Adapter returned `{ ok: true }` for this channel |
+| `failed` | **failed** | `failed` | Non-retryable failure or retry budget exhausted |
+
+Retry scheduling uses `next_attempt_at` + `attempt_count`; a row may remain `pending` across retries — still **queued**, not sent.
+
+#### B. Inbox read state (`member_notifications.read_at`)
+
+| DB condition | Canonical semantic | API field | Meaning |
+| ------------ | ------------------ | --------- | ------- |
+| `read_at IS NULL` | **unread** | `readAt: null` | Member has not opened/marked this inbox row |
+| `read_at IS NOT NULL` | **read** | `readAt: "<ISO8601>"` | Member marked read (PATCH `/member/notifications/:id/read` or mark-all) |
+
+A notification may be **sent** on SMS/email channel but remain **unread** in the in-app inbox.
+
+#### C. HTTP aggregate list shape
+
+`GET /member/notifications` returns each item with:
+
+- `readAt` — inbox read axis only
+- `eventType` — canonical SDE-001 name
+- Delivery rows are **not** exposed on the member list API; ops inspect `member_notification_deliveries` directly.
+
+**Forbidden ambiguity:** Do not label `pending` as `sent`, or `readAt` as delivery status, in product copy or agent reports.
 
 ---
 
