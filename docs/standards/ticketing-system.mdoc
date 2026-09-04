@@ -124,7 +124,7 @@ Only these remain outside Full Production V1. Each has a product/technical ratio
 | ------- | ---- | --- | -------------------- |
 | Club member | `member` | Portal | Create, list own, read own, public reply, attachments on own ticket, reopen `resolved`, link tour/registration — **member = own-ticket access** |
 | Club viewer | `viewer` | Portal | List tenant tickets, read any member ticket (public + internal read-only), notifications read — **viewer = tenant-wide read-only**; **viewer mutations = denied** |
-| Club operator | `admin` | Web | Full inbox, queues, assign (user/team), reply, internal note, bulk actions, templates, reports read |
+| Club operator | `admin` | Web | Full inbox, queues, assign (user/team), reply, internal note, templates, reports read — **bulk actions post-v1** |
 | Workspace owner | `owner` | Web | Same as admin + workspace settings, SLA policies, archive/delete |
 | Platform admin | — | — | **Extension** — no cross-tenant ticket access |
 
@@ -595,7 +595,7 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | Method | Path | Surface | Notes |
 | ------ | ---- | ------- | ----- |
 | GET | `/tickets` | read | search (`q`: subject, requester, ticket code), filter, sort, cursor |
-| POST | `/tickets/bulk` | bulk | assign, status, priority, tags |
+| POST | `/tickets/bulk` | bulk | **post-v1** — assign, status, priority, tags (not implemented in L1) |
 | GET/PATCH | `/tickets/:id` | read/mutate | detail + rowVersion |
 | POST | `/tickets/:id/replies` | mutate | public |
 | POST | `/tickets/:id/internal-notes` | mutate | internal |
@@ -673,7 +673,7 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | Structured logs | `tenantId`, `ticketId`, `actorUserId`, `traceId` |
 | Metrics | `ticket_created_total`, `sla_breach_total`, `first_response_seconds` histogram |
 | Error tracking | existing API error pipeline + `code` dimension |
-| Retention | workspace policy: messages/attachments/events; audit longer |
+| Retention | workspace policy fields in settings (`retentionDays`); **scheduled purge jobs post-v1** — audit rows retained longer by default |
 | Rollback observability | feature flag off → metric `ticketing_disabled_total` |
 
 ---
@@ -840,7 +840,8 @@ sequenceDiagram
 
   Client->>API: POST …/messages/:messageId/attachments/:attachmentId/complete
   API->>Storage: head/exists check
-  API->>DB: sizeBytes, scanStatus=clean, uploadedAt
+  API->>API: TicketAttachmentScanPort (V1: MIME allowlist; plug-in malware engine post-v1)
+  API->>DB: sizeBytes, scanStatus=clean|rejected, uploadedAt
   API-->>Client: attachment metadata + signed read URL optional
 ```
 
@@ -848,7 +849,11 @@ sequenceDiagram
 | ---- | ------------- | ----------- | ----- |
 | 1 Intent | `POST /tickets/:ticketId/attachments/intents` | `POST /member/tickets/:ticketId/attachments/intents` | Zod body; validates message ∈ ticket, MIME ∈ {jpeg,png,webp,pdf}, `sizeBytes` ≤ manifest `maxAttachmentSizeBytes`; `Idempotency-Key` dedupes row |
 | 2 Upload | `PUT /tickets/:ticketId/attachments/:attachmentId/upload` | `PUT /member/tickets/:ticketId/attachments/:attachmentId/upload` | Raw body; max bytes enforced; `getTenantObjectStorage().put()` |
-| 3 Complete | `POST /tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | `POST /member/tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | Verifies object exists; sets `scanStatus=clean`, `uploadedAt`; emits `attachment.completed` + audit |
+| 3 Complete | `POST /tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | `POST /member/tickets/:ticketId/messages/:messageId/attachments/:attachmentId/complete` | Verifies object exists; runs `getTicketAttachmentScanner()` (`ticket-attachment-scan.ts`); on reject → `scanStatus=rejected`, storage object removed, `TICKET_ATTACHMENT_SCAN_REJECTED`; on clean → `uploadedAt` + `attachment.completed` audit |
+
+**Scan port (V1):** `TicketAttachmentScanPort` in `apps/api/src/workspace-ticketing/ticket-attachment-scan.ts`. Default `createAllowlistTicketAttachmentScanner()` re-validates MIME allowlist at complete time. Tests inject rejecting scanner via `setTicketAttachmentScannerForTests`. Production can swap the port for an external malware engine without changing the complete route.
+
+**Storage certification:** `apps/api/test/ticketing-attachments-minio.spec.ts` — MinIO round-trip when `MINIO_*` set (same bucket stack as tenant branding). E2E Playwright uses in-memory adapter (`TICKETING_E2E_MEMORY_STORAGE=1`) for CI velocity; production uses `MinioTenantObjectStorageAdapter`.
 
 **Object key (server-only):** `tickets/{tenantId}/{ticketId}/{messageId}/{attachmentId}` — DB `CHECK` enforces `tickets/{tenantId}/%/%/%` (three path segments after tenant). SK4 ACL: `assertTenantOwnsObjectKey` accepts `tickets/${tenantId}/` prefix (same family as `receipts/`).
 
@@ -1094,6 +1099,8 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 | **Acceptance** | breach emits durable notification; restart does not duplicate escalation |
 | **Rollback** | `TICKETING_SLA_WORKER_ENABLED=false`; policies remain readable |
 
+**SLA worker runbook (production):** set `TICKETING_SLA_WORKER_ENABLED=1` on API workers. `processTicketSlaOnce` is scheduled from `main.ts` when enabled. Without the flag, SLA state is still written on ticket mutations but background breach/warning escalation does not run.
+
 ### Phase J — Templates and automation
 
 | | |
@@ -1155,7 +1162,9 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 **Certified v1 capabilities:** member portal create/reply/attachment/reopen; operator inbox/reply/internal note/assign/queue/tag/resolve/close; viewer tenant-wide read-only; templates + safe automation (J1); search/reports/settings (K1); SLA (I1); tenant isolation + RLS on all ticketing tables; attachment storage via platform storage driver.
 
-**Post-v1 (not in L1 gate):** bulk actions, email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics.
+**Post-v1 (not in L1 gate):** bulk actions (`POST /tickets/bulk`), scheduled retention purge jobs, orphan attachment object cleanup, email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics, `@axe-core/playwright` automated a11y audit.
+
+**Gap remediation (L1 audit):** see `docs/phase-ticketing/GAP-REMEDIATION-REPORT.md` — scan port wired, MinIO spec added, Postgres app-role guard in ticketing specs, docs aligned to implemented surface.
 
 **Gate:** all ticketing unit/postgres/playwright specs green; `guard:repository-rls` + `guard:api-workspace-isolation` pass; fresh + incremental migrations verified; no staging/production deploy during cert.
 

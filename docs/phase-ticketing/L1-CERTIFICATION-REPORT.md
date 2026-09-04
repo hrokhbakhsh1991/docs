@@ -4,7 +4,7 @@
 **Branch:** `feature/ticketing-system`  
 **Base:** K1 (`f01b4fa0` — search, reports, settings)  
 **Certification commit:** `8327568f3b5039c7a8d179fcab3dcb4c514574da`  
-**Verdict:** **PRODUCTION-READY (v1)** — all L1 gates green in Cloud Agent environment
+**Verdict:** **READY_WITH_ACCEPTED_RISKS** — L1 gates green; gap audit items remediated or documented (see [`GAP-REMEDIATION-REPORT.md`](./GAP-REMEDIATION-REPORT.md))
 
 ---
 
@@ -24,9 +24,12 @@
 
 ## Known limitations (post-v1)
 
-- Bulk ticket actions, email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics
-- Production object storage requires MinIO/S3; E2E uses in-memory adapter (`TICKETING_E2E_MEMORY_STORAGE=1`)
+- Bulk ticket actions (`POST /tickets/bulk`), scheduled retention purge jobs, orphan attachment cleanup
+- Email channel ingest, CSAT, advanced workflow designer, cross-tenant analytics
+- Production object storage requires MinIO/S3; E2E uses in-memory adapter (`TICKETING_E2E_MEMORY_STORAGE=1`) — see `ticketing-attachments-minio.spec.ts` for MinIO proof
+- V1 attachment scan uses MIME allowlist port (`ticket-attachment-scan.ts`); external malware engine is plug-in post-v1
 - No `@axe-core/playwright` in repo; RTL/a11y covered via FA copy + responsive viewport specs
+- SLA background worker requires `TICKETING_SLA_WORKER_ENABLED=1` in production
 
 ---
 
