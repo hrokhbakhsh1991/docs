@@ -6,10 +6,7 @@ import {
   fetchMemberEngagementPointHistory,
   fetchMemberEngagementSummary,
 } from "@/me/engagement/member-engagement-bff.server";
-import {
-  engagementEventTypeMessageKey,
-  formatMemberEngagementTimestamp,
-} from "@/me/engagement/member-engagement-display";
+import { MemberEngagementHistoryList } from "@/me/engagement/member-engagement-history-list";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -81,24 +78,7 @@ export default async function MemberEngagementPage() {
               {historyResult.items.length === 0 ? (
                 <p data-portal-member-engagement-empty-history>{t("emptyHistory")}</p>
               ) : (
-                <ul data-portal-member-engagement-history-list>
-                  {historyResult.items.map((event) => (
-                    <li key={event.id} data-portal-member-engagement-history-item>
-                      <span data-portal-member-engagement-history-delta>
-                        {event.pointsDelta > 0 ? "+" : ""}
-                        {event.pointsDelta}
-                      </span>
-                      <span data-portal-member-engagement-history-label>
-                        {t.has(engagementEventTypeMessageKey(event.sourceEventType))
-                          ? t(engagementEventTypeMessageKey(event.sourceEventType))
-                          : event.sourceEventType}
-                      </span>
-                      <time dateTime={event.createdAt}>
-                        {formatMemberEngagementTimestamp(event.createdAt, locale)}
-                      </time>
-                    </li>
-                  ))}
-                </ul>
+                <MemberEngagementHistoryList items={historyResult.items} locale={locale} />
               )}
             </section>
 

@@ -32,6 +32,7 @@
     "memberLookupBadges": "Earned badges",
     "memberLookupNoHistory": "No point history for this member.",
     "memberHistoryTitle": "Point history",
+    "memberHistoryActor": "Actor: {role}",
     "adjustAction": "Adjust points",
     "reverseAction": "Reverse",
     "adjustDialogTitle": "Adjust participation points",

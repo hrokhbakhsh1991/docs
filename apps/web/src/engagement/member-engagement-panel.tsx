@@ -330,6 +330,11 @@ export function MemberEngagementPanel({
                     {event.reason ? (
                       <p className="text-xs text-muted-foreground">{event.reason}</p>
                     ) : null}
+                    {event.actorRole ? (
+                      <p className="text-xs text-muted-foreground">
+                        {t("memberHistoryActor", { role: event.actorRole })}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-2">
                     <time className="text-xs text-muted-foreground" dateTime={event.createdAt}>

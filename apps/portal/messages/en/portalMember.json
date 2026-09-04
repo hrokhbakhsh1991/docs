@@ -213,7 +213,13 @@
     "eventTypes": {
       "profile_completed": "Profile completed",
       "registration_first_approved": "First tour registration approved",
-      "engagement_points_reversed": "Points adjustment"
+      "engagement_points_reversed": "Points adjustment",
+      "engagement_points_manual_adjustment": "Points adjustment"
+    },
+    "history": {
+      "correction": "Points correction",
+      "reversal": "Points reversal",
+      "reversalDetail": "Points for this activity were corrected."
     }
   },
   "hub": {

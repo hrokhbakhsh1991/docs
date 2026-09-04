@@ -32,6 +32,7 @@
     "memberLookupBadges": "نشان‌های کسب‌شده",
     "memberLookupNoHistory": "سابقه امتیازی برای این عضو وجود ندارد.",
     "memberHistoryTitle": "سابقه امتیاز",
+    "memberHistoryActor": "انجام‌دهنده: {role}",
     "adjustAction": "تعدیل امتیاز",
     "reverseAction": "برگشت",
     "adjustDialogTitle": "تعدیل امتیاز مشارکت",

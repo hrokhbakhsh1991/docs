@@ -78,6 +78,7 @@ export type PointEventRow = {
   readonly pointsDelta: number;
   readonly sourceEventType: string;
   readonly reason: string | null;
+  readonly actorRole: string | null;
   readonly createdAt: string;
 };
 

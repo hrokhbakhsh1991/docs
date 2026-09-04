@@ -213,7 +213,13 @@
     "eventTypes": {
       "profile_completed": "تکمیل پروفایل",
       "registration_first_approved": "تأیید اولین ثبت‌نام تور",
-      "engagement_points_reversed": "تعدیل امتیاز"
+      "engagement_points_reversed": "تعدیل امتیاز",
+      "engagement_points_manual_adjustment": "تعدیل امتیاز"
+    },
+    "history": {
+      "correction": "اصلاح امتیاز",
+      "reversal": "برگشت امتیاز",
+      "reversalDetail": "امتیاز این رویداد اصلاح شد"
     }
   },
   "hub": {
