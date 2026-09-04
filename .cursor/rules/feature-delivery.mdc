@@ -1,0 +1,47 @@
+---
+description: Non-negotiable safety and architecture rules for Feature Delivery sessions
+alwaysApply: true
+---
+
+# Feature Delivery — session safety (FDA-001)
+
+Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/skills/feature-delivery/SKILL.md`](../skills/feature-delivery/SKILL.md). Charter: [`docs/dev/feature-delivery-agent.mdoc`](../../docs/dev/feature-delivery-agent.mdoc).
+
+## Git and session
+
+- **Never** change branch or create a worktree during a Feature Delivery session.
+- Lock the **actual** starting branch as `lockedBranch`; verify `git branch --show-current` at every checkpoint.
+- Do **not** claim repository or Cloud Agent default branch rules override an explicit session branch lock.
+- `initialHead` is baseline evidence only; `currentHead` may advance after authorized commits on `lockedBranch`.
+- **Never** modify or revert unrelated user changes. Wrong direction → STOP report + pivot memo, not auto-revert.
+- Forbidden: `merge`, `rebase`, `reset --hard`, `clean`, force-push (unless user explicitly unlocks outside FDA).
+
+## Planning and scope
+
+- **Do not implement** before the approved plan (CP1 gate).
+- Stage and commit only files within `scopePaths` (+ allowed `docs/**` when doc-first applies).
+- Feature scope expansion beyond the approved plan requires user gate — hard-stop.
+
+## Architecture
+
+- **architecture-reviewer** is mandatory for platform candidates and multi-consumer primitives — see [`.cursor/agents/architecture-reviewer.md`](../agents/architecture-reviewer.md).
+- Keyword / classifier signals are **not** architecture decisions — see [`architecture-classifier.mdoc`](../../docs/dev/feature-delivery/architecture-classifier.mdoc).
+- Preserve **workspace-agnostic** shared primitives (`platform-core`, `workspace-sdk`, shared API host patterns per WAC-001).
+- Preserve **Denali / Urban / starter** divergence — no accidental cross-workspace leakage.
+- **No Big Bang refactor** in a feature session.
+- Notification/inbox/delivery work: apply [`notification-case-study.mdoc`](../../docs/dev/feature-delivery/notification-case-study.mdoc) — module-specific multi-consumer designs → **SC-ARCH-02** stop.
+
+## Verification and evidence
+
+- **No claim without ledger evidence** — command, exit code, artifact per [`evidence-ledger-schema.mdoc`](../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc).
+- Default fast-track per [`tiered-testing.md`](../../docs/dev/tiered-testing.md); heavy gates need explicit user **YES**.
+- Never hide failed tests or claim pass without a ledger row.
+
+## Operations
+
+- **No production/staging mutation** without explicit unlock ([SC-OPS-01](stop-conditions)).
+- Doc-first on `packages/platform-core`, `packages/workspace-sdk`, `apps/api` — see [`.cursorrules`](../../.cursorrules).
+
+## Hard stop
+
+If any condition in [`stop-conditions.mdoc`](../../docs/dev/feature-delivery/stop-conditions.mdoc) fires: **stop**, emit Feature Delivery STOP report, list evidence and the exact architect/user decision required. Do not continue implementation.
