@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 
 import { OperatorStatusBadge } from "@/admin/patterns/operator-status-badge";
@@ -37,8 +38,7 @@ export function OperatorTicketsInboxRow({
       }`}
     >
       {bulkMode ? (
-        <input
-          type="checkbox"
+        <Checkbox
           className="mt-1 shrink-0"
           aria-label={t("bulkSelectTicket", { subject: item.subject })}
           checked={bulkSelected}
