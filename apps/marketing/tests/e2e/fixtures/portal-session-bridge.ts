@@ -7,7 +7,12 @@ import {
 } from "./catalog-registration-otp";
 import { resolveSmokePublishedTourId } from "./smoke-published-tour";
 
-export const OPERATOR_SMOKE_MEMBER_PHONE = "+15550001003";
+let smokePhoneSequence = 0;
+
+export function resolveSmokeMemberPhone(): string {
+  smokePhoneSequence += 1;
+  return `+1555${String(Date.now() + smokePhoneSequence).slice(-7)}`;
+}
 
 export function resolveMarketingBaseUrl(): string {
   return process.env.SMOKE_MARKETING_BASE_URL?.trim() || "http://operator.localhost:3002";
@@ -44,7 +49,7 @@ export async function authenticateMemberViaPortal(
   page: Page,
   input: { readonly phone?: string; readonly tourId?: string } = {}
 ): Promise<void> {
-  const phone = input.phone ?? OPERATOR_SMOKE_MEMBER_PHONE;
+  const phone = input.phone ?? resolveSmokeMemberPhone();
   const tourId = input.tourId ?? resolveSmokeTourId();
   const portalBase = resolvePortalBaseUrl();
   const portalOrigin = new URL(portalBase);
@@ -68,11 +73,6 @@ export async function authenticateMemberViaPortal(
   });
   expect(verifyOtp.ok()).toBeTruthy();
 
-  const storage = await page.request.storageState();
-  if (storage.cookies.length > 0) {
-    await page.context().addCookies(storage.cookies);
-  }
-
   await page.goto(`${portalBase}/catalog/${tourId}/register`, {
     waitUntil: "domcontentloaded",
   });
@@ -83,6 +83,34 @@ export async function authenticateMemberViaPortal(
   if ((await registrationSurface.count()) === 0) {
     await requestRegistrationOtp(page, phone);
     await fillCatalogOtp(page, CATALOG_DEV_OTP);
+  }
+
+  const profileStep = page.locator("[data-public-registration-profile]");
+  if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await page.locator("#displayName").fill("Marketing Bridge Smoke");
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          res.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      page.locator('[data-action="profile-continue"]').click(),
+    ]);
+  }
+
+  const storage = await page.request.storageState();
+  if (storage.cookies.length > 0) {
+    const cookieDomain = resolveSessionCookieDomainSuffix();
+    await page
+      .context()
+      .addCookies(
+        storage.cookies.map((cookie) =>
+          cookie.domain === "127.0.0.1" || cookie.domain === "localhost"
+            ? { ...cookie, domain: cookieDomain }
+            : cookie
+        )
+      );
   }
 
   await expect(registrationSurface.first()).toBeVisible({ timeout: 120_000 });

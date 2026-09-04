@@ -14,6 +14,7 @@ import { cleanNextDevCache } from "./smoke-next-dev-cache.mjs";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const marketingDir = path.join(repoRoot, "apps/marketing");
 const portalDir = path.join(repoRoot, "apps/portal");
+const useProductionServers = process.env.PW_USE_PROD_SERVERS === "1";
 
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
@@ -270,7 +271,7 @@ const portalEnv = {
   // validateSessionTokenAsync → invalid_signature → clears atour_mb_session
   // and P3-E2E-D01 /me after register-complete fails (DG-4.7.2).
   ...jwtEnv,
-  NODE_ENV: "development",
+  NODE_ENV: useProductionServers ? "production" : "development",
   NEXT_FONT_OFFLINE: "1",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -283,7 +284,7 @@ const portalEnv = {
 const marketingEnv = {
   ...process.env,
   ...jwtEnv,
-  NODE_ENV: "development",
+  NODE_ENV: useProductionServers ? "production" : "development",
   NEXT_FONT_OFFLINE: "1",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -334,20 +335,45 @@ try {
   });
   await waitForUrl("http://127.0.0.1:3001/health");
 
-  cleanNextDevCache(portalDir);
-  portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
-    cwd: portalDir,
-    env: portalEnv,
-    stdio: "inherit",
-  });
+  if (useProductionServers) {
+    execSync("pnpm --filter @apps/portal run build", {
+      cwd: repoRoot,
+      env: portalEnv,
+      stdio: "inherit",
+    });
+    execSync("pnpm --filter @apps/marketing run build", {
+      cwd: repoRoot,
+      env: marketingEnv,
+      stdio: "inherit",
+    });
+  }
+
+  if (!useProductionServers) {
+    cleanNextDevCache(portalDir);
+  }
+  portal = spawn(
+    "pnpm",
+    ["exec", "next", useProductionServers ? "start" : "dev", "--port", "3003"],
+    {
+      cwd: portalDir,
+      env: portalEnv,
+      stdio: "inherit",
+    }
+  );
   await waitForUrl("http://127.0.0.1:3003/health");
 
-  cleanNextDevCache(marketingDir);
-  marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
-    cwd: marketingDir,
-    env: marketingEnv,
-    stdio: "inherit",
-  });
+  if (!useProductionServers) {
+    cleanNextDevCache(marketingDir);
+  }
+  marketing = spawn(
+    "pnpm",
+    ["exec", "next", useProductionServers ? "start" : "dev", "--port", "3002"],
+    {
+      cwd: marketingDir,
+      env: marketingEnv,
+      stdio: "inherit",
+    }
+  );
   await waitForUrl("http://127.0.0.1:3002/health");
 
   // Warm portal BFF before SMK-MKT-03 (first compile can exceed 60s and Fast
