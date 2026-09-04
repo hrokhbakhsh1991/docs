@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { Ticket, TicketEvent, TicketMessage } from "@app-tour/ticketing-core";
 import { withTenantRls } from "../../db/with-tenant-rls";
 import { appendTicketingAuditEvents } from "../ticketing-audit-writer";
+import { enqueueTicketingOutboxEvents } from "./enqueue-ticketing-outbox-events";
 import {
   coerceTicketEventId,
   decodeListCursor,
@@ -89,6 +90,7 @@ async function writeEventsAndAudit(
     });
   }
   await appendTicketingAuditEvents(tx, ticket, events, actorUserId);
+  await enqueueTicketingOutboxEvents(tx, ticket, events);
 }
 
 export class PrismaTicketingRepository implements TicketingRepositoryPort {

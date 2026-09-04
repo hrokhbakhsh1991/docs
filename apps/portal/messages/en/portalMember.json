@@ -369,5 +369,15 @@
     "saving": "Saving…",
     "saved": "Saved.",
     "error": "Could not save. Try again."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "lede": "Updates on your support tickets.",
+    "bellAria": "{count, plural, =0 {Notifications} one {# unread notification} other {# unread notifications}}",
+    "loading": "Loading notifications…",
+    "loadError": "Could not load notifications.",
+    "retry": "Try again",
+    "empty": "No notifications yet.",
+    "markAllRead": "Mark all as read"
   }
 }

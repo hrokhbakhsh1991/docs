@@ -337,12 +337,65 @@ SLA clocks are **persisted**, not UI-only. Breach emits `TicketEvent` + `TicketN
 
 | Field | Notes |
 | ----- | ----- |
-| `userId`, `tenantId` | recipient |
-| `ticketId`, `eventType` | deep link |
+| `id` | UUID primary key |
+| `tenantId` | tenant scope (RLS) |
+| `userId` | recipient user |
+| `ticketId` | deep link target |
+| `eventType` | notification kind (see §7.10.1) |
+| `title` | English fallback copy |
+| `body` | English fallback copy |
 | `readAt` | null = unread |
-| `payload` | JSON summary |
+| `domainEventId` | idempotent key — same ticket domain event + recipient cannot duplicate |
+| `payload` | JSON: `titleKey`, `bodyKey`, `titleFa`, `bodyFa`, `subject`, `ticketStatus`, interpolation vars |
+| `createdAt` | enqueue time |
 
 **DECISION:** Postgres-backed durable inbox (replaces in-memory member notification path for ticketing events).
+
+#### 7.10.1 Notification event types (Phase H)
+
+| `eventType` | Source domain event | Primary recipients |
+| ----------- | ------------------- | ------------------ |
+| `ticket.created` | `ticket.created` | requester; assignee or team/queue operators |
+| `ticket.message.posted` | `ticket.message.created` (public) | member author → assignee/team; operator author → requester |
+| `ticket.status.changed` | `ticket.status.changed` | requester + assignee/team (exclude actor) |
+| `ticket.assigned` | `ticket.assigned`, `ticket.team.assigned` | new assignee user or all team members |
+| `ticket.priority.changed` | `ticket.priority.changed` | requester + assignee/team |
+| `ticket.resolved` | `ticket.status.changed` where `to=resolved` | requester |
+| `ticket.reopened` | `ticket.reopened` | requester + assignee/team |
+
+Internal notes (`ticket.internal_note.created`) do **not** emit member-visible notifications.
+
+#### 7.10.2 Delivery pipeline
+
+```text
+Ticket mutation TX
+  ├─ Ticket + TicketEvent writes
+  ├─ AuditEvent append
+  └─ OutboxEvent enqueue (same TX; dedupe tenant+domainEventId)
+
+Outbox relay
+  └─ dispatchTicketNotificationFromOutbox
+       ├─ resolve recipients (tenant-scoped)
+       ├─ INSERT ticket_notifications (dedupe tenant+userId+domainEventId)
+       └─ enqueue TicketNotificationDelivery rows (email/sms) when channel enabled
+
+Channel worker
+  └─ NotificationDeliveryPort adapter (swappable; no vendor SDK in core)
+```
+
+`TicketNotificationDelivery`: `channel` (`email`|`sms`), `status` (`pending`|`delivered`|`failed`), `attemptCount`, `nextAttemptAt`, `lastError` — mirrors integration delivery retry semantics.
+
+#### 7.10.3 Read API authorization
+
+| Actor | List scope | Mutations |
+| ----- | ---------- | --------- |
+| `member` | `tenantId` + `userId = self` | mark read, mark all read |
+| `viewer` | `tenantId` (all rows) | **denied** (read-only) |
+| `operator` (`admin`/`owner`) | `userId = self` (notifications materialized per operator at dispatch) | mark read, mark all read |
+
+Cross-tenant reads return `404` / empty — never leak foreign tenant ids.
+
+HTTP cache: `Cache-Control: private, no-store` on all notification responses.
 
 ### 7.11 TicketTemplate
 
@@ -482,8 +535,14 @@ Legend: ✅ · ❌ · 🔒 own · 👁 tenant read-only
 | POST | `/member/tickets/:id/messages` | member | public reply |
 | POST | `/member/tickets/:id/reopen` | member | from `resolved` |
 | POST | `/member/tickets/:id/attachments` | member | pre-signed upload flow |
-| GET | `/member/ticket-notifications` | member \| viewer | durable inbox |
-| PATCH | `/member/ticket-notifications/:id/read` | member \| viewer | mark read |
+| GET | `/member/ticket-notifications` | member \| viewer | durable inbox; cursor + `limit` |
+| GET | `/member/ticket-notifications/unread-count` | member \| viewer | `{ count }` |
+| PATCH | `/member/ticket-notifications/:id/read` | member | mark read |
+| POST | `/member/ticket-notifications/mark-all-read` | member | mark all for self |
+| GET | `/ticket-notifications` | operator read | operator inbox |
+| GET | `/ticket-notifications/unread-count` | operator read | badge count |
+| PATCH | `/ticket-notifications/:id/read` | operator | mark read |
+| POST | `/ticket-notifications/mark-all-read` | operator | mark all for self |
 
 ### 10.3 Operator API
 
@@ -965,14 +1024,14 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 | | |
 |-|-|
-| **Scope** | `TicketNotification`, outbox consumers, provider port |
-| **Dependencies** | C, F |
-| **Database** | TicketNotification |
-| **API** | notification routes + provider config |
-| **UI** | portal bell; settings channel toggles |
-| **Tests** | outbox integration |
-| **Acceptance** | member receives reply notification |
-| **Rollback** | disable channel flags |
+| **Scope** | `TicketNotification`, `TicketNotificationDelivery`, outbox enqueue in ticketing TX, relay consumer, `NotificationDeliveryPort` email/SMS adapter |
+| **Dependencies** | C, F, G |
+| **Database** | `ticket_notifications`, `ticket_notification_deliveries` + RLS |
+| **API** | `/member/ticket-notifications/*`, `/ticket-notifications/*`; Portal BFF `/api/me/ticket-notifications/*` |
+| **UI** | portal header bell + unread badge; `/me/notifications` inbox (fa/en, RTL) |
+| **Tests** | `ticket-notifications.postgres.spec.ts` (RLS, dedupe, outbox TX, permissions, retry); portal Playwright notification flow |
+| **Acceptance** | operator reply → member durable notification + badge; duplicate outbox replay does not duplicate inbox row |
+| **Rollback** | disable channel flags; notifications remain queryable |
 
 ### Phase I — SLA and escalation
 

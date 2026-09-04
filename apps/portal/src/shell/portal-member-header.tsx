@@ -1,6 +1,7 @@
 import { Mountain, User } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { PortalMemberNotificationBell } from "@/me/notifications/portal-member-notification-bell";
 import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
 
 export type PortalMemberHeaderChrome = {
@@ -63,6 +64,7 @@ export async function PortalMemberHeader({
 
         <div data-marketing-header-end data-slot="shell-header-end">
           <div data-marketing-header-toolbar data-slot="shell-toolbar">
+            <PortalMemberNotificationBell />
             <a
               href={member.profileHref}
               data-marketing-portal-member

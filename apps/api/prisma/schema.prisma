@@ -74,6 +74,8 @@ model Tenant {
   ticketQueues                TicketQueue[]
   ticketTeams                 TicketTeam[]
   ticketTeamMembers           TicketTeamMember[]
+  ticketNotifications         TicketNotification[]
+  ticketNotificationDeliveries TicketNotificationDelivery[]
 
   @@map("tenants")
 }
@@ -1107,6 +1109,7 @@ model Ticket {
   attachments            TicketAttachment[]
   links                  TicketLink[]
   tagAssignments         TicketTagAssignment[]
+  notifications          TicketNotification[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, creationIdempotencyKey])
@@ -1296,4 +1299,50 @@ model TicketTeamMember {
   @@id([tenantId, teamId, userId])
   @@index([tenantId, userId], map: "idx_ticket_team_members_tenant_user")
   @@map("ticket_team_members")
+}
+
+/// TKT-001 Phase H1 — durable ticket notification inbox (tenant + user scoped; RLS enforced).
+model TicketNotification {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  ticketId      String    @map("ticket_id") @db.Uuid
+  eventType     String    @map("event_type")
+  title         String
+  body          String    @db.Text
+  domainEventId String    @map("domain_event_id")
+  payload       Json      @default("{}")
+  readAt        DateTime? @map("read_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket        Ticket    @relation(fields: [tenantId, ticketId], references: [tenantId, id], onDelete: Cascade)
+  deliveries    TicketNotificationDelivery[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId, domainEventId], map: "uq_ticket_notifications_recipient_event")
+  @@index([tenantId, userId, createdAt(sort: Desc)], map: "idx_ticket_notifications_tenant_user_created")
+  @@index([tenantId, userId, readAt], map: "idx_ticket_notifications_tenant_user_read")
+  @@map("ticket_notifications")
+}
+
+/// TKT-001 Phase H1 — async email/SMS delivery with retry (provider-agnostic).
+model TicketNotificationDelivery {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  notificationId String             @map("notification_id") @db.Uuid
+  channel        String
+  provider       String             @default("noop")
+  status         String             @default("pending")
+  attemptCount   Int                @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime?          @map("next_attempt_at") @db.Timestamptz
+  lastError      Json?              @map("last_error")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  processedAt    DateTime?          @map("processed_at") @db.Timestamptz
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notification   TicketNotification @relation(fields: [tenantId, notificationId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, notificationId, channel], map: "uq_ticket_notification_deliveries_channel")
+  @@index([status, nextAttemptAt, createdAt], map: "idx_ticket_notification_deliveries_claim")
+  @@index([tenantId, status, createdAt], map: "idx_ticket_notification_deliveries_tenant_status")
+  @@map("ticket_notification_deliveries")
 }

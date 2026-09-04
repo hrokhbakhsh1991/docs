@@ -19,6 +19,16 @@ import {
   handleRejectBooking,
   handleWaitlistBooking,
 } from "./bookings/bookings.routes";
+import {
+  handleMemberListTicketNotifications,
+  handleMemberMarkAllTicketNotificationsRead,
+  handleMemberMarkTicketNotificationRead,
+  handleMemberUnreadTicketNotificationCount,
+  handleOperatorListTicketNotifications,
+  handleOperatorMarkAllTicketNotificationsRead,
+  handleOperatorMarkTicketNotificationRead,
+  handleOperatorUnreadTicketNotificationCount,
+} from "./workspace-ticketing/ticket-notification.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
 import { resolveWorkspaceHttpHandler } from "./boot/lazy-workspace-finance-handlers";
@@ -581,6 +591,29 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "GET" && url.pathname === "/member/ticket-notifications") {
+    await handleMemberListTicketNotifications(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/member/ticket-notifications/unread-count") {
+    await handleMemberUnreadTicketNotificationCount(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/member/ticket-notifications/mark-all-read") {
+    await handleMemberMarkAllTicketNotificationsRead(req, res);
+    return;
+  }
+
+  const memberTicketNotificationReadMatch = url.pathname.match(
+    /^\/member\/ticket-notifications\/([^/]+)\/read$/,
+  );
+  if (method === "PATCH" && memberTicketNotificationReadMatch) {
+    await handleMemberMarkTicketNotificationRead(req, res, memberTicketNotificationReadMatch[1]!);
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/tickets") {
     await handleTicketingOperatorListTickets(req, res, ticketingDeps);
     return;
@@ -612,6 +645,29 @@ async function dispatchRequest(
   const operatorTicketReopenMatch = url.pathname.match(/^\/tickets\/([^/]+)\/reopen$/);
   if (method === "POST" && operatorTicketReopenMatch) {
     await handleTicketingOperatorReopenTicket(req, res, ticketingDeps, operatorTicketReopenMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-notifications") {
+    await handleOperatorListTicketNotifications(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/ticket-notifications/unread-count") {
+    await handleOperatorUnreadTicketNotificationCount(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/ticket-notifications/mark-all-read") {
+    await handleOperatorMarkAllTicketNotificationsRead(req, res);
+    return;
+  }
+
+  const operatorTicketNotificationReadMatch = url.pathname.match(
+    /^\/ticket-notifications\/([^/]+)\/read$/,
+  );
+  if (method === "PATCH" && operatorTicketNotificationReadMatch) {
+    await handleOperatorMarkTicketNotificationRead(req, res, operatorTicketNotificationReadMatch[1]!);
     return;
   }
 
