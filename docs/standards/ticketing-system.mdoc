@@ -933,14 +933,33 @@ PostgreSQL proof (`ticketing-persistence.postgres.spec.ts`): append-only `audit_
 
 | | |
 |-|-|
-| **Scope** | split-pane, search, filters, queues, bulk actions |
-| **Dependencies** | C, D |
-| **Database** | — |
-| **API** | bulk + search |
-| **UI** | web inbox + detail |
-| **Tests** | web unit + playwright |
-| **Acceptance** | operator triage E2E |
-| **Rollback** | hide operator nav |
+| **Scope** | split-pane inbox at `/tickets`, search, filters (status/priority/category/queue/team/assignee/unassigned/tag), detail + composer (public reply / internal note), operational mutations |
+| **Dependencies** | C, D, E |
+| **Database** | PostgreSQL (E2E); memory insufficient for acceptance |
+| **API** | existing operator routes — BFF projection only in `apps/web` |
+| **UI** | `apps/web` command center (Booking pattern), RTL, responsive Sheet on mobile |
+| **Auth** | `operator.tickets.read` (admin/owner/viewer); `operator.tickets.mutate` (admin/owner tenant-scoped); member → 404 on `/tickets` |
+| **BFF** | `/api/tickets/*` — stable view models (`OperatorTicketDetailView`), no raw upstream JSON to client |
+| **Tests** | `apps/web/test/operator-tickets*.spec.ts` + `operator-ticketing-inbox.spec.ts` (Postgres) |
+| **Acceptance** | operator triage E2E (reply, note, assign, queue, tags, resolve/reopen, viewer read-only, member denied) |
+| **Rollback** | hide operator nav via `capabilities.operatorInbox` + `enabledModules` |
+
+**Web routes**
+
+| Surface | BFF | Upstream |
+| --- | --- | --- |
+| Inbox list | `GET /api/tickets` | `GET /tickets` |
+| Detail | `GET /api/tickets/[id]` | `GET /tickets/:id` |
+| Patch | `PATCH /api/tickets/[id]` | `PATCH /tickets/:id` |
+| Reply | `POST /api/tickets/[id]/replies` | `POST /tickets/:id/replies` |
+| Internal note | `POST /api/tickets/[id]/internal-notes` | `POST /tickets/:id/internal-notes` |
+| Reopen | `POST /api/tickets/[id]/reopen` | `POST /tickets/:id/reopen` |
+| Assign | `POST /api/tickets/[id]/assign` | `POST /tickets/:id/assign` |
+| Queue | `POST /api/tickets/[id]/queue` | `POST /tickets/:id/queue` |
+| Tags | `POST/DELETE /api/tickets/[id]/tags` | operational routes |
+| Meta | `GET /api/tickets/meta` | categories + queues/teams/tags (admin) |
+
+**Projection rules:** list/detail map HTTP contracts → labeled view rows (Jalali `lastActivityLabel`, status icon+key). Mutations return `{ ok, detail }` with refreshed `rowVersion`. `TICKET_VERSION_CONFLICT` → controlled refresh message. Idempotency-Key required on writes.
 
 ### Phase H — Notifications (in-app, email, SMS)
 

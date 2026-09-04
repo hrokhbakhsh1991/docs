@@ -56,6 +56,7 @@
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
+    "@app-tour/ticketing-http-contracts": "workspace:*",
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/wallet-http-contracts": "workspace:*",

@@ -1,0 +1,38 @@
+.operator-tickets-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.operator-tickets-grid {
+  display: grid;
+  gap: 1rem;
+  min-height: 0;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .operator-tickets-grid {
+    grid-template-columns: 3fr 2fr;
+    min-height: calc(100dvh - 12rem);
+  }
+}
+
+.operator-tickets-inbox-pane,
+.operator-tickets-detail-pane {
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  overflow: hidden;
+}
+
+[data-operator-tickets-row]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+[data-operator-tickets-message][data-visibility="internal"] {
+  border-inline-start: 3px solid var(--muted-foreground);
+  padding-inline-start: 0.75rem;
+}
