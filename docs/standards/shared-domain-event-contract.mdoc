@@ -1,0 +1,119 @@
+---
+title: Shared Domain Event Contract
+standard_id: SDE-001
+version: 1.0.0
+status: approved
+format: markdoc
+doc_role: platform_standard
+extends:
+  - docs/phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md
+  - docs/standards/member-notification-inbox.mdoc
+mandatory_for:
+  - packages/platform-events
+  - apps/api/src/outbox
+  - apps/api/src/notifications
+code_sot:
+  - packages/platform-events/src/shared-domain-event-contract.ts
+  - apps/api/prisma/schema.prisma
+---
+
+# Shared Domain Event Contract (SDE-001)
+
+**Purpose:** One versioned, tenant-scoped domain event envelope for outbox transport, in-process bus fan-out, notification dispatch, and integration adapters. Producers MUST NOT invent parallel naming schemes.
+
+---
+
+## 1. Canonical envelope
+
+| Field | Type | Rule |
+| ----- | ---- | ---- |
+| `eventId` | UUID string | Stable event identity; outbox column `domain_event_id` |
+| `eventType` | string | Canonical dot-notation business name (see §3) |
+| `schemaVersion` | positive int | Envelope schema version; current `1` |
+| `tenantId` | UUID | Required; RLS scope |
+| `workspaceId` | string? | Workspace plugin id when applicable |
+| `occurredAt` | ISO-8601 | Event time; outbox `created_at` |
+| `actorUserId` | UUID? | Operator/member actor when known |
+| `correlationId` | string? | Cross-service trace; may differ from dedupe key |
+| `aggregateType` | string | e.g. `registration`, `ticket`, `payment`, `tour` |
+| `aggregateId` | UUID string | Primary aggregate id |
+| `payload` | object | Domain-specific JSON; MUST NOT embed tenant secrets |
+| `idempotencyKey` | string | Dedupe key; default = `eventId` when unset |
+
+**Outbox mapping (`outbox_events`):**
+
+| Envelope field | Outbox column |
+| -------------- | ------------- |
+| `eventId` | `domain_event_id` |
+| `eventType` | `event_type` |
+| `occurredAt` | `created_at` |
+| `correlationId` | `correlation_id` |
+| `aggregateType` | `aggregate_type` |
+| `aggregateId` | `aggregate_id` |
+| `payload` | `payload` (+ optional `schemaVersion`, `workspaceId`, `actorUserId`) |
+
+Unique constraint `(tenant_id, domain_event_id)` enforces idempotency at transport layer.
+
+---
+
+## 2. Naming rules
+
+1. **Canonical form:** lowercase dot-notation (`registration.approved`, `ticket.created`).
+2. **Legacy PascalCase** (e.g. `TourCreated`, `RegistrationApproved`) is **deprecated for new writes**; consumers resolve via compatibility map (§3).
+3. **Never** silently accept multiple ambiguous names for the same business fact — map explicitly in `SHARED_DOMAIN_EVENT_COMPATIBILITY`.
+4. In-process bus (`@app-tour/platform-events`) uses field `type`; outbox uses `eventType`. `normalizeDomainEventType()` returns canonical `eventType`.
+
+---
+
+## 3. Initial business event inventory
+
+| Canonical `eventType` | Aggregate | Producer (real) | Notification consumer | Compatibility aliases |
+| --------------------- | --------- | ----------------- | --------------------- | --------------------- |
+| `registration.approved` | `registration` | Booking approve → outbox (`BOOKING_APPROVE_OUTBOX_EVENT_TYPE`) | `dispatch-member-notification-from-outbox` | `RegistrationApproved` (legacy docs only) |
+| `payment.confirmed` | `payment` | Finance receipt approve → `finance.ledger.double_entry_applied` (payment capture path) | same dispatcher (maps ledger capture → member inbox) | — |
+| `attendance.marked` | `registration` | **Planned** DP-7 attendance; no durable producer yet | dispatcher registered; no-op until producer ships | `attendance.verified` (engagement probe) |
+| `ticket.created` | `ticket` | Ticketing `createTicket` → outbox | `dispatch-ticket-notification-from-outbox` | — |
+| `tour.schedule.changed` | `tour` | Tour mutation safety → `tour.mutation.notification_required` | `dispatch-member-notification-from-outbox` | `tour.mutation.notification_required` |
+
+### Compatibility resolution
+
+Typed helpers live in `@app-tour/platform-events`:
+
+- `normalizeDomainEventType(raw)` — returns canonical `eventType` or input when unmapped.
+- `toSharedDomainEventEnvelope(outboxRow)` — builds envelope from relay row + payload hints.
+- `SHARED_DOMAIN_EVENT_INVENTORY` — machine-readable inventory for guards and FDA evidence.
+
+---
+
+## 4. Notification boundary
+
+Notification dispatchers consume **canonical** `eventType` after normalization. Inbox `member_notifications.event_type` stores the canonical name. `dedupeKey` = envelope `idempotencyKey` (typically `eventId` / `domain_event_id`).
+
+Delivery channel state (`member_notification_deliveries.status`):
+
+| DB value | Semantic |
+| -------- | -------- |
+| `pending` | queued |
+| `delivered` | sent |
+| `failed` | failed (non-retryable or exhausted) |
+
+Inbox read state: `read_at IS NULL` → unread; `read_at` set → read.
+
+---
+
+## 5. Versioning
+
+Increment `schemaVersion` only when envelope fields change. Producers SHOULD embed `schemaVersion: 1` in outbox payload for forward-compatible consumers. Consumers MUST default missing `schemaVersion` to `1`.
+
+---
+
+## 6. Testing
+
+| Suite | Proves |
+| ----- | ------ |
+| `packages/platform-events/test/shared-domain-event-contract.spec.ts` | Inventory, normalization, envelope mapping |
+| `apps/api/src/notifications/member-notifications.postgres.spec.ts` | Outbox → relay → inbox for inventory events |
+
+---
+
+_SDE-001 — shared contract for notification & integration feature branch `feature/shared-notification-integration`._
