@@ -8,9 +8,9 @@ extends:
   - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
 ---
 
-# Feature Delivery — Blocker Recovery (FDA-001)
+# Feature Delivery — Blocker Recovery (FDA-001 v1.2)
 
-**Purpose:** Define mandatory **intelligent blocker recovery** — the agent must not halt on the first failure. Classify blockers, investigate with evidence, apply the smallest scoped fix, and resume the requirement queue unless a **hard stop** applies.
+**Purpose:** Define mandatory **intelligent blocker recovery** — the agent must not halt on the first failure. Classify blockers, investigate with evidence, form up to **three hypotheses**, apply the smallest scoped fix, and resume the requirement queue unless a **hard stop** applies.
 
 **Principle:** Recovery attempts are **evidence-backed**. Internet research never overrides security, tenant/RLS, migration rewrite, production access, or unresolved product/architecture hard stops.
 
@@ -35,6 +35,7 @@ Every blocker receives exactly one primary category:
 | Category                          | ID prefix | Examples                                                                              |
 | --------------------------------- | --------- | ------------------------------------------------------------------------------------- |
 | Code or test failure              | `BR-CODE` | Failing spec, guard script, type error, lint, build break                             |
+| Test failure (subset)             | `BR-TEST` | Same playbook as `BR-CODE` — alias for test-only failures                             |
 | Dependency or library behavior    | `BR-DEP`  | Semver API change, Prisma/Playwright/Node behavior, transitive import                 |
 | Environment / browser / runtime   | `BR-ENV`  | Missing `DATABASE_URL`, port conflict, dev server down, Playwright timeout, axe flake |
 | Missing evidence                  | `BR-EVID` | Claim without ledger row, skipped gate without artifact, matrix row open              |
@@ -47,6 +48,22 @@ Every blocker receives exactly one primary category:
 ---
 
 ## 3. Recovery lifecycle (mandatory)
+
+### 3.0 Eleven-step loop (every recoverable blocker)
+
+1. **Classify** — assign category (§2).
+2. **Inspect** — exact error, stderr, and relevant source.
+3. **Adjacent implementations** — find working similar code in repo.
+4. **Scripts and environment** — `package.json` scripts, env files, service health.
+5. **Repository history and docs** — related Markdoc, ADRs, prior fixes.
+6. **Focused web research** — when cause unclear or external API behavior involved ([research-and-design-gate](research-and-design-gate.mdoc) §5); record in `research.json`.
+7. **Hypotheses** — form up to **three** evidence-based hypotheses (ordered).
+8. **Smallest fix** — apply narrowest in-scope change within `scopePaths`.
+9. **Narrowest rerun** — failing check only, then targeted regression.
+10. **Evidence ledger** — append command rows; update `blocker-investigation.json`.
+11. **Resume queue** — return to last unfinished requirement-queue item.
+
+After **three failed hypotheses**, or when category is `BR-SEC` / `BR-PROD` / architecture hard stop → emit STOP report with evidence and options.
 
 ```mermaid
 flowchart TD
@@ -70,8 +87,8 @@ flowchart TD
 1. Record the failure in the evidence ledger (`result=fail` or `blocked`).
 2. Classify per §2.
 3. If hard stop → [stop report](stop-conditions.mdoc) §9 — **do not** continue implementation on that path.
-4. If recoverable → execute category playbook (§4).
-5. After resolution → append `blocker-investigation.json`, update ledger, **resume queue** from last unfinished mandatory item.
+4. If recoverable → execute **11-step loop** (§3.0) and category playbook (§4).
+5. After resolution → append `blocker-investigation.json`, update ledger and `requirement-queue.json`, **resume queue** from last unfinished mandatory item.
 
 ### 3.2 Blocked sub-feature rule
 
@@ -79,8 +96,9 @@ A blocked sub-feature **must not** stop unrelated executable mandatory work. Pro
 
 ### 3.3 Stop only when
 
-- All recovery attempts are **evidenced and exhausted**, **or**
-- An explicit human architecture/product decision is required (hard stop).
+- **Three hypotheses** exhausted with evidence, **or**
+- Category is hard stop (`BR-SEC`, `BR-PROD`, reviewer `blocked`/`pivot` without acceptance), **or**
+- Explicit human architecture/product decision required.
 
 ---
 
@@ -205,8 +223,9 @@ Link ledger rows: `gate_id=blocker.<blockerId>`.
 | [stop-conditions](stop-conditions.mdoc)                 | Hard stops — no recovery override                |
 | [evidence-ledger-schema](evidence-ledger-schema.mdoc)   | Ledger + `blocker-investigation.json` storage    |
 | [architecture-classifier](architecture-classifier.mdoc) | `BR-ARCH` signals                                |
+| [research-and-design-gate](research-and-design-gate.mdoc) | Research policy, requirement queue, UI/UX gate       |
 | [tiered-testing](../tiered-testing.md)                  | Fast-track vs heavy gates during recovery reruns |
 
 ---
 
-_Subdoc of FDA-001. Blocker recovery is mandatory for all FDA sessions._
+_Subdoc of FDA-001 v1.2. Blocker recovery is mandatory for all FDA sessions._
