@@ -3,7 +3,7 @@
  * Starts API + Portal for portal registration smoke (SMK-PTL-01).
  * @see docs/phase-11/subphases/11.18-portal-e2e-smoke.md
  */
-import { spawn } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,6 +45,27 @@ function waitForUrl(url, timeoutMs = 600_000) {
   });
 }
 
+function freePort(port) {
+  try {
+    execSync(`fuser -k ${port}/tcp`, { stdio: "ignore" });
+  } catch {
+    // The port is already free, or fuser is unavailable.
+  }
+}
+
+async function waitForPortFree(port, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      execSync(`lsof -ti tcp:${port}`, { stdio: "ignore" });
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    } catch {
+      return;
+    }
+  }
+  throw new Error(`smoke-portal-e2e-servers: port ${port} still in use`);
+}
+
 const jwtEnv = await resolveSmokeApiJwtEnv();
 
 const apiEnv = {
@@ -66,9 +87,7 @@ const portalSmokeHost =
 const isCustomApexSmoke = portalSmokeHost.includes("denali.club");
 const marketingPublicBaseUrl =
   process.env.MARKETING_PUBLIC_BASE_URL?.trim() ||
-  (isCustomApexSmoke
-    ? "http://denali.club:3002"
-    : `${portalSmokeHost.replace(/\/$/, "")}/health`);
+  (isCustomApexSmoke ? "http://denali.club:3002" : `${portalSmokeHost.replace(/\/$/, "")}/health`);
 
 const portalEnv = {
   ...process.env,
@@ -83,6 +102,11 @@ const portalEnv = {
   PORTAL_DEV_PORT: "3003",
   MARKETING_PUBLIC_BASE_URL: marketingPublicBaseUrl,
 };
+
+freePort(3001);
+freePort(3003);
+await waitForPortFree(3001);
+await waitForPortFree(3003);
 
 const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
   cwd: path.join(repoRoot, "apps/api"),
