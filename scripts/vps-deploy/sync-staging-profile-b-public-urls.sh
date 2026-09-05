@@ -71,7 +71,13 @@ set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127
 set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_LABEL denali
 
 set_env_kv "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL "$PORTAL_URL"
+set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL denali
+set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
+set_env_kv "${ENV_DIR}/marketing.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL "$MARKETING_URL"
+set_env_kv "${ENV_DIR}/portal.env" PUBLIC_TENANT_FALLBACK_LABEL denali
+set_env_kv "${ENV_DIR}/portal.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
+set_env_kv "${ENV_DIR}/portal.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 
 chown root:app-tour "${ENV_DIR}"/*.env 2>/dev/null || true
 chmod 640 "${ENV_DIR}"/*.env 2>/dev/null || true
