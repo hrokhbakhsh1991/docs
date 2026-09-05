@@ -16,7 +16,8 @@ import {
   markAllMemberNotificationsRead,
   markMemberNotificationRead,
 } from "./member-notification.repository";
-import { integrationTenantId } from "../../test/test-helpers";
+import { installPostgresNotificationTestIsolation } from "../../test/postgres-notification-test-isolation";
+import { integrationTenantId, preparePostgresOutboxIsolation } from "../../test/test-helpers";
 import { assertPostgresAppRoleForRlsTests } from "../workspace-ticketing/ticketing-postgres-test-helpers";
 
 const hasDatabase =
@@ -41,8 +42,11 @@ describe(
     const memberB = randomUUID();
     const priorDriver = process.env.STORAGE_DRIVER;
 
+    installPostgresNotificationTestIsolation();
+
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      await preparePostgresOutboxIsolation();
       await assertPostgresAppRoleForRlsTests(getPrisma());
       const admin = getPrismaAdmin();
       await admin.tenant.createMany({

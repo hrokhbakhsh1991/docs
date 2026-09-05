@@ -35,13 +35,14 @@ import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { PrismaTourRepository } from "../storage/prisma-tour.repository";
 import { createPrismaEngagementDefinitionsRepository } from "../workspace-engagement/infrastructure/prisma-engagement-definitions.repository";
 import { assertPostgresAppRoleForRlsTests } from "../workspace-ticketing/ticketing-postgres-test-helpers";
-import { integrationTenantId, createTestToursService, quiesceStaleOutboxProcessing } from "../../test/test-helpers";
-import {
-  buildOperatorSmokePublishedTourCanonical,
-  OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
-} from "../fixtures/operator-smoke-published-tour.fixture";
+import { installPostgresNotificationTestIsolation } from "../../test/postgres-notification-test-isolation";
+import { integrationTenantId, createTestToursService, preparePostgresOutboxIsolation } from "../../test/test-helpers";
+import { buildOperatorSmokePublishedTourCanonical } from "../fixtures/operator-smoke-published-tour.fixture";
 import { getSettingsResourcesRepository } from "../settings/create-settings-resources-repository";
-import { seedOperatorSmokeCatalog } from "../settings/seed-operator-smoke-catalog";
+import {
+  resolveCatalogIdsForTenant,
+  seedOperatorSmokeCatalog,
+} from "../settings/seed-operator-smoke-catalog";
 import { ensureDefaultTicketTemplatesForTenant } from "../workspace-ticketing/ticket-template.repository";
 
 const hasDatabase =
@@ -139,9 +140,8 @@ describe(
     const tenantA = integrationTenantId();
     const tenantB = integrationTenantId();
     const tourId = randomUUID();
-    const tourCanonical = buildOperatorSmokePublishedTourCanonical(
-      OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
-    );
+    let tourCatalogRefs: { destinationId: string; themeId: string; peakHeight: number };
+    let tourCanonical: ReturnType<typeof buildOperatorSmokePublishedTourCanonical>;
     const memberUser = randomUUID();
     const memberB = randomUUID();
     const operatorId = randomUUID();
@@ -159,8 +159,11 @@ describe(
     let admin: PrismaClient;
     const priorDriver = process.env.STORAGE_DRIVER;
 
+    installPostgresNotificationTestIsolation();
+
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      await preparePostgresOutboxIsolation();
       process.env.OUTBOX_RELAY_ENABLED = "false";
       process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
       process.env.PAYMENT_HOLD_ENABLED = "true";
@@ -196,6 +199,13 @@ describe(
       });
 
       await seedOperatorSmokeCatalog(getSettingsResourcesRepository(), { tenantId: tenantA });
+      const catalogIds = resolveCatalogIdsForTenant(tenantA);
+      tourCatalogRefs = {
+        destinationId: catalogIds.destination,
+        themeId: catalogIds.theme,
+        peakHeight: 3_962,
+      };
+      tourCanonical = buildOperatorSmokePublishedTourCanonical(tourCatalogRefs);
 
       await admin.tour.create({
         data: {
@@ -263,10 +273,6 @@ describe(
         await admin.$disconnect();
         await disconnectPrisma();
       }
-    });
-
-    beforeEach(async () => {
-      await quiesceStaleOutboxProcessing(0);
     });
 
     async function relayUntilOutboxDone(outboxId: string): Promise<void> {

@@ -20,7 +20,8 @@ import {
   markMemberNotificationRead,
 } from "../notifications/member-notification.repository";
 import { PrismaWalletRepository } from "../workspace-wallet/infrastructure/prisma-wallet.repository";
-import { integrationTenantId } from "../../test/test-helpers";
+import { installPostgresNotificationTestIsolation } from "../../test/postgres-notification-test-isolation";
+import { integrationTenantId, preparePostgresOutboxIsolation, quiesceStaleOutboxProcessing } from "../../test/test-helpers";
 import {
   assertPostgresAppRoleForRlsTests,
   nextPostgresTestTicketNumber,
@@ -56,8 +57,11 @@ describe(
     const walletRepo = new PrismaWalletRepository();
     const priorDriver = process.env.STORAGE_DRIVER;
 
+    installPostgresNotificationTestIsolation();
+
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      await preparePostgresOutboxIsolation();
       await assertPostgresAppRoleForRlsTests(getPrisma());
       const admin = getPrismaAdmin();
       await admin.tenant.createMany({
@@ -612,6 +616,12 @@ describe(
     it("relay ticket.created creates exactly one member notification per domainEventId", async () => {
       const ticketId = randomUUID();
       const domainEventId = randomUUID();
+      const admin = getPrismaAdmin();
+
+      await admin.outboxEvent.deleteMany({
+        where: { tenantId: tenantA, status: { in: ["pending", "processing"] } },
+      });
+      await quiesceStaleOutboxProcessing(0);
 
       await withTenantRls(tenantA, async (tx) => {
         await tx.ticket.create({
@@ -651,8 +661,28 @@ describe(
 
       const relay1 = await processOutboxRelayForTenantOnce(tenantA, 20);
       assert.ok(relay1.published >= 1);
+
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const outboxRow = await admin.outboxEvent.findFirst({
+          where: { tenantId: tenantA, domainEventId },
+        });
+        if (outboxRow?.status === "done") {
+          break;
+        }
+        await processOutboxRelayForTenantOnce(tenantA, 20);
+      }
+
+      const outboxRow = await admin.outboxEvent.findFirst({
+        where: { tenantId: tenantA, domainEventId },
+      });
+      assert.equal(outboxRow?.status, "done", "ticket.created outbox must be marked done after relay");
+
       const relay2 = await processOutboxRelayForTenantOnce(tenantA, 20);
       assert.equal(relay2.published, 0, "duplicate outbox row must not republish");
+      const pendingCount = await admin.outboxEvent.count({
+        where: { tenantId: tenantA, status: "pending" },
+      });
+      assert.equal(pendingCount, 0, "no pending outbox rows after ticket.created relay");
 
       const list = await listMemberNotifications({
         tenantId: tenantA,
