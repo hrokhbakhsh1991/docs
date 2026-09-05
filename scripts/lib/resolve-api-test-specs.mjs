@@ -23,6 +23,30 @@ const PREFIX_SPECS = [
   { prefix: "apps/api/src/tours/", patterns: ["test/tours-*.spec.ts"] },
   { prefix: "apps/api/src/finance/", patterns: ["test/finance-*.spec.ts"] },
   {
+    prefix: "apps/api/src/workspace-ticketing/",
+    patterns: ["test/ticketing-*.spec.ts", "test/*ticketing*.spec.ts"],
+  },
+  {
+    prefix: "apps/api/src/workspace-engagement/",
+    patterns: ["test/*engagement*.spec.ts", "test/member-notifications*.spec.ts"],
+  },
+  {
+    prefix: "apps/api/src/workspace-wallet/",
+    patterns: ["test/*wallet*.spec.ts", "test/denali-wallet*.spec.ts"],
+  },
+  {
+    prefix: "apps/api/src/notifications/",
+    patterns: ["test/member-notifications*.spec.ts"],
+  },
+  {
+    prefix: "apps/api/src/http/",
+    patterns: [
+      "test/ticketing-*.spec.ts",
+      "test/*wallet*.spec.ts",
+      "test/package-boundary.spec.ts",
+    ],
+  },
+  {
     prefix: "apps/api/src/exposure/",
     patterns: ["test/field-exposure-*.spec.ts", "test/4-integration/field-exposure-*.spec.ts"],
   },

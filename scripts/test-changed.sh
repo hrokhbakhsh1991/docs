@@ -81,6 +81,18 @@ pkg_for_path() {
     packages/workspaces/denali/*) echo "@app-tour/workspace-denali" ;;
     packages/workspaces/urban/*) echo "@app-tour/workspace-urban" ;;
     packages/workspaces/guest-club/*) echo "@app-tour/workspace-guest-club" ;;
+    packages/finance-core/*) echo "@app-tour/finance-core" ;;
+    packages/finance-http/*) echo "@app-tour/finance-http" ;;
+    packages/finance-http-contracts/*) echo "@app-tour/finance-http-contracts" ;;
+    packages/ticketing-core/*) echo "@app-tour/ticketing-core" ;;
+    packages/ticketing-http/*) echo "@app-tour/ticketing-http" ;;
+    packages/ticketing-http-contracts/*) echo "@app-tour/ticketing-http-contracts" ;;
+    packages/engagement-http/*) echo "@app-tour/engagement-http" ;;
+    packages/engagement-http-contracts/*) echo "@app-tour/engagement-http-contracts" ;;
+    packages/wallet-core/*) echo "@app-tour/wallet-core" ;;
+    packages/wallet-http/*) echo "@app-tour/wallet-http" ;;
+    packages/wallet-http-contracts/*) echo "@app-tour/wallet-http-contracts" ;;
+    packages/workspaces/*) echo "@apps/api" ;;
     apps/api/*) echo "@apps/api" ;;
     apps/web/*) echo "@apps/web" ;;
     apps/portal/*) echo "@apps/portal" ;;
@@ -128,6 +140,18 @@ expand_pkg() {
       ;;
     @app-tour/workspace-denali)
       echo "@app-tour/workspace-denali @apps/web"
+      ;;
+    @app-tour/finance-core|@app-tour/finance-http|@app-tour/finance-http-contracts)
+      echo "$1 @apps/api"
+      ;;
+    @app-tour/ticketing-core|@app-tour/ticketing-http|@app-tour/ticketing-http-contracts)
+      echo "$1 @apps/api"
+      ;;
+    @app-tour/engagement-http|@app-tour/engagement-http-contracts)
+      echo "$1 @apps/api"
+      ;;
+    @app-tour/wallet-core|@app-tour/wallet-http|@app-tour/wallet-http-contracts)
+      echo "$1 @apps/api"
       ;;
     @apps/api) echo "@apps/api" ;;
     @apps/web) echo "@apps/web" ;;
@@ -239,6 +263,17 @@ hash_pkg() {
     @app-tour/workspace-denali) prefix="packages/workspaces/denali" ;;
     @app-tour/workspace-urban) prefix="packages/workspaces/urban" ;;
     @app-tour/workspace-guest-club) prefix="packages/workspaces/guest-club" ;;
+    @app-tour/finance-core) prefix="packages/finance-core" ;;
+    @app-tour/finance-http) prefix="packages/finance-http" ;;
+    @app-tour/finance-http-contracts) prefix="packages/finance-http-contracts" ;;
+    @app-tour/ticketing-core) prefix="packages/ticketing-core" ;;
+    @app-tour/ticketing-http) prefix="packages/ticketing-http" ;;
+    @app-tour/ticketing-http-contracts) prefix="packages/ticketing-http-contracts" ;;
+    @app-tour/engagement-http) prefix="packages/engagement-http" ;;
+    @app-tour/engagement-http-contracts) prefix="packages/engagement-http-contracts" ;;
+    @app-tour/wallet-core) prefix="packages/wallet-core" ;;
+    @app-tour/wallet-http) prefix="packages/wallet-http" ;;
+    @app-tour/wallet-http-contracts) prefix="packages/wallet-http-contracts" ;;
     @apps/api) prefix="apps/api" ;;
     @apps/web) prefix="apps/web" ;;
     @apps/portal) prefix="apps/portal" ;;
@@ -307,6 +342,17 @@ pkg_dir() {
     @app-tour/workspace-denali) echo "packages/workspaces/denali" ;;
     @app-tour/workspace-urban) echo "packages/workspaces/urban" ;;
     @app-tour/workspace-guest-club) echo "packages/workspaces/guest-club" ;;
+    @app-tour/finance-core) echo "packages/finance-core" ;;
+    @app-tour/finance-http) echo "packages/finance-http" ;;
+    @app-tour/finance-http-contracts) echo "packages/finance-http-contracts" ;;
+    @app-tour/ticketing-core) echo "packages/ticketing-core" ;;
+    @app-tour/ticketing-http) echo "packages/ticketing-http" ;;
+    @app-tour/ticketing-http-contracts) echo "packages/ticketing-http-contracts" ;;
+    @app-tour/engagement-http) echo "packages/engagement-http" ;;
+    @app-tour/engagement-http-contracts) echo "packages/engagement-http-contracts" ;;
+    @app-tour/wallet-core) echo "packages/wallet-core" ;;
+    @app-tour/wallet-http) echo "packages/wallet-http" ;;
+    @app-tour/wallet-http-contracts) echo "packages/wallet-http-contracts" ;;
     @apps/api) echo "apps/api" ;;
     @apps/web) echo "apps/web" ;;
     @apps/portal) echo "apps/portal" ;;

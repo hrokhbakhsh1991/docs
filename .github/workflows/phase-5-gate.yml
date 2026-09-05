@@ -38,7 +38,7 @@ jobs:
   gate:
     name: Phase 5 gate (Postgres required)
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 60 || 150 }}
 
     services:
       postgres:
@@ -92,7 +92,12 @@ jobs:
       - name: Prisma migrate deploy (DEC-124)
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
-      - name: Phase 5 closure gate
+      - name: Phase 5 closure gate (PR fast — test:changed + runtime-proof)
+        if: github.event_name == 'pull_request'
+        run: pnpm run phase-5:gate:pr
+
+      - name: Phase 5 closure gate (trunk — full pnpm test)
+        if: github.event_name != 'pull_request'
         run: pnpm run phase-5:gate
 
       - name: Upload phase-5 gate reports

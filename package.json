@@ -145,6 +145,7 @@
     "phase-5:guard": "node scripts/guards/phase-5-guard.mjs",
     "phase-5:runtime-proof": "node scripts/guards/phase-5-runtime-proof.mjs",
     "phase-5:gate": "pnpm run db:test-reset && env P5_PERF_GATE_MS=850 MIN_THROUGHPUT=100 BASELINE_RATIO_MAX=1.25 PHASE_5_GATE_REPORT=2026-06-05 pnpm build && env P5_PERF_GATE_MS=850 MIN_THROUGHPUT=100 BASELINE_RATIO_MAX=1.25 pnpm test && env P5_PERF_GATE_MS=850 pnpm run phase-4:guard && env PHASE_5_GATE_REPORT=2026-06-05 pnpm run phase-5:guard",
+    "phase-5:gate:pr": "env P5_PERF_GATE_MS=850 MIN_THROUGHPUT=100 BASELINE_RATIO_MAX=1.25 PHASE_5_GATE_REPORT=2026-06-05 pnpm build && env P5_PERF_GATE_MS=850 MIN_THROUGHPUT=100 BASELINE_RATIO_MAX=1.25 pnpm run test:changed && env P5_PERF_GATE_MS=850 MIN_THROUGHPUT=100 BASELINE_RATIO_MAX=1.25 pnpm run phase-5:runtime-proof && env PHASE_5_GATE_REPORT=2026-06-05 pnpm run phase-5:guard",
     "phase-6:guard": "node scripts/guards/phase-6-guard.mjs",
     "phase-6:defensive-guards": "bash scripts/phase-6-defensive-guards.sh",
     "phase-6:fast-track": "nvm use && pnpm run pre-commit:fast && pnpm run phase-6:defensive-guards",
