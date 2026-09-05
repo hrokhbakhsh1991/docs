@@ -24,8 +24,13 @@ extends:
 | **SC-GIT-03** | User/session started on wrong branch vs task contract             | **Hard-stop** — report actual branch; do not switch                      |
 | **SC-GIT-04** | Dirty tree at bootstrap with undeclared paths outside scope       | **Hard-stop** until scope acknowledged                                   |
 | **SC-GIT-05** | Attempt to `merge`, `rebase`, `reset --hard`, `clean`, force-push | **Forbidden** — hard-stop if instructed                                  |
+| **SC-GIT-06** | `checkout`, `switch`, `restore`, or `stash` without explicit user authorization for that exact operation | **Hard-stop** — report branch + WIP; do not proceed |
+| **SC-GIT-07** | Feature branch creation without user contract (exact name, source branch/SHA, creation intent) | **Hard-stop** — emit CURRENT/TARGET block; await approval |
+| **SC-GIT-08** | Post-create branch verification failed (HEAD ≠ source SHA, WIP lost, unrelated files staged) | **Hard-stop** — do not continue on uncertain branch |
 
 **Note:** `currentHead` advancing after authorized commits on `lockedBranch` is **expected**, not a stop condition.
+
+**Branch protocol:** [branch-and-data-preservation](branch-and-data-preservation.mdoc) §2–§4.
 
 ---
 
@@ -62,6 +67,7 @@ extends:
 | **SC-DATA-02** | Request to rewrite existing shipped migration                                                           | **Hard-stop**        |
 | **SC-DATA-03** | Idempotency / `rowVersion` / dedupe key undefined for mutation API                                      | **Hard-stop** at CP2 |
 | **SC-DATA-04** | Undocumented breaking API or BFF response shape change                                                  | **Hard-stop**        |
+| **SC-DATA-05** | Agent treats commits as lost/deleted without read-only inspection (`git log --all`, `branch --contains`, `reflog`, `fsck`) | **Hard-stop** — committed data may exist off-branch |
 
 ---
 
@@ -87,7 +93,15 @@ extends:
 
 ---
 
-## 7. Environment and operations
+## 7. Workspace and parallel agents
+
+| ID                 | Condition                                                                 | Agent action                                                                 |
+| ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **SC-WORKSPACE-01** | Parallel Cursor chats on same local workspace; another agent may change branch | **Hard-stop** — `SHARED_WORKSPACE_BRANCH_RISK`; require isolated clone |
+
+---
+
+## 8. Environment and operations
 
 | ID            | Condition                                              | Agent action                         |
 | ------------- | ------------------------------------------------------ | ------------------------------------ |
@@ -97,7 +111,7 @@ extends:
 
 ---
 
-## 8. Conflicting instructions
+## 9. Conflicting instructions
 
 | ID             | Condition                                                                           | Agent action                                                                                                |
 | -------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -107,7 +121,7 @@ extends:
 
 ---
 
-## 9. Stop report template
+## 10. Stop report template
 
 When any hard-stop fires, emit:
 
@@ -129,7 +143,7 @@ When any hard-stop fires, emit:
 
 ## 11. Recoverable vs hard stop
 
-Not every failure is an immediate [§9 stop report](stop-conditions.mdoc). **Recoverable** blockers follow [blocker-recovery](blocker-recovery.mdoc):
+Not every failure is an immediate [§10 stop report](stop-conditions.mdoc). **Recoverable** blockers follow [blocker-recovery](blocker-recovery.mdoc):
 
 | Signal                                      | Action                                                            |
 | ------------------------------------------- | ----------------------------------------------------------------- |
@@ -148,7 +162,7 @@ Agent may resume only after:
 2. Classifier/reviewer verdict updated to `proceed` with evidence recorded in ledger, **or**
 3. Scope/branch contract explicitly amended in chat
 
-Resume must re-run bootstrap checkpoint for branch verification.
+Resume must re-run bootstrap checkpoint for branch verification — write `branch-checkpoint.json` per [branch-and-data-preservation](branch-and-data-preservation.mdoc) §1.
 
 After **recoverable** blocker resolution, resume the requirement queue per [blocker-recovery](blocker-recovery.mdoc) §6 without a full session restart unless branch lock was violated.
 

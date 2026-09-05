@@ -3,7 +3,7 @@ title: Feature Delivery — Staged Design Workflow
 format: markdoc
 doc_role: agent_charter
 standard_id: FDA-001
-version: 1.4.0
+version: 1.5.0
 extends:
   - docs/dev/feature-delivery-agent.mdoc
   - docs/dev/feature-delivery/research-and-design-gate.mdoc
@@ -41,6 +41,8 @@ Allowed before D-gates complete:
 
 **When:** Session start, before D1.
 
+**Write branch checkpoint first** — `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` per [branch-and-data-preservation](branch-and-data-preservation.mdoc) §1. Set `lockedSessionBranch` = current branch; list unrelated WIP.
+
 **Record:**
 
 | Field | Source |
@@ -57,9 +59,9 @@ Allowed before D-gates complete:
 | Browser | Playwright configs; smoke scripts for target app |
 | Test infrastructure | Existing unit/integration/e2e specs for scope |
 
-**Artifact:** `.cache/feature-delivery/<sessionId>/baseline.json`
+**Artifact:** `.cache/feature-delivery/<sessionId>/baseline.json` and `branch-checkpoint.json`
 
-**Ledger:** `gate_id=bootstrap.baseline`, checkpoint `D0`
+**Ledger:** `gate_id=bootstrap.baseline`, `gate_id=bootstrap.branch-checkpoint`, checkpoint `D0`
 
 ---
 
@@ -260,6 +262,7 @@ After mandatory D-stages for tier:
 
 | Artifact | Stage | Required when |
 | -------- | ----- | ------------- |
+| `branch-checkpoint.json` | D0 | Always — branch lock + WIP preservation |
 | `baseline.json` | D0 | Always |
 | `requirements-matrix.json` | D1 | Always |
 | `consumer-and-boundary-map.json` | D2 | Tier B/C; recommended A |
@@ -271,4 +274,4 @@ After mandatory D-stages for tier:
 
 ---
 
-_Staged design workflow — FDA-001 v1.4.0._
+_Staged design workflow — FDA-001 v1.5.0._

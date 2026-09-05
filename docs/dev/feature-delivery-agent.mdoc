@@ -1,7 +1,7 @@
 ---
 title: Feature Delivery Agent (FDA-001)
 standard_id: FDA-001
-version: 1.4.0
+version: 1.5.0
 status: draft
 format: markdoc
 doc_role: agent_charter
@@ -17,6 +17,7 @@ extends:
   - docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc
   - docs/dev/feature-delivery/staged-design-workflow.mdoc
   - docs/dev/feature-delivery/adversarial-bug-hunt.mdoc
+  - docs/dev/feature-delivery/branch-and-data-preservation.mdoc
 mandatory_for:
   - .cursor/agents
   - .cursor/skills
@@ -70,23 +71,30 @@ code_sot:
 
 ### 2.1 Branch lock
 
+**Canonical protocol:** [branch-and-data-preservation](feature-delivery/branch-and-data-preservation.mdoc) — checkpoint artifact, forbidden git ops, pre-commit/pre-push markers, committed-data read-only recovery.
+
 | Field | Semantics |
 | ----- | --------- |
 | `lockedBranch` | Session start branch — **immutable** |
 | `initialHead` | `git rev-parse HEAD` at start — evidence baseline |
 | `currentHead` | Updated after authorized commits |
 | `scopePaths` | Glob allowlist from CP0/CP2 plan |
+| `branch-checkpoint.json` | Written at D0; `lockedSessionBranch` must match `git branch --show-current` entire session |
 
 **Rules:**
 
 1. Stay on `lockedBranch` entire session.
-2. Branch mismatch at any checkpoint → hard-stop ([stop-conditions](feature-delivery/stop-conditions.mdoc) §1).
-3. Forbidden without unlock: `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, force-push.
+2. Branch mismatch at any checkpoint → hard-stop ([stop-conditions](feature-delivery/stop-conditions.mdoc) §1, [SC-GIT-01](feature-delivery/stop-conditions.mdoc)).
+3. Forbidden without unlock: `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `restore`, `stash`, `worktree`, force-push ([SC-GIT-05](feature-delivery/stop-conditions.mdoc)–[SC-GIT-06](feature-delivery/stop-conditions.mdoc)).
+4. Before every commit/push: emit `BRANCH_CHECKPOINT_PRE_COMMIT` / `BRANCH_CHECKPOINT_PRE_PUSH` per branch-and-data-preservation §7.
+5. Feature branch creation only with explicit user contract ([SC-GIT-07](feature-delivery/stop-conditions.mdoc)).
+6. Parallel agents on same workspace → [SC-WORKSPACE-01](feature-delivery/stop-conditions.mdoc) / `SHARED_WORKSPACE_BRANCH_RISK`.
 
 ### 2.2 Working tree
 
-- Unexpected dirty tree at start → hard-stop until scope acknowledged.
-- Never auto-revert user WIP.
+- Unexpected dirty tree at start → hard-stop until scope acknowledged ([SC-GIT-04](feature-delivery/stop-conditions.mdoc)).
+- Never auto-revert, auto-stash, auto-restore, auto-clean, or auto-reset user WIP — [branch-and-data-preservation](feature-delivery/branch-and-data-preservation.mdoc) §5.
+- Committed data off-branch is not lost — inspect read-only before claiming deletion ([SC-DATA-05](feature-delivery/stop-conditions.mdoc)).
 
 ### 2.3 Doc-first covenant
 
@@ -120,6 +128,7 @@ flowchart TD
 | Phase | Doc |
 | ----- | --- |
 | D0–D7 staged design | [staged-design-workflow](feature-delivery/staged-design-workflow.mdoc) |
+| Branch + data safety | [branch-and-data-preservation](feature-delivery/branch-and-data-preservation.mdoc) |
 | B1–B8 adversarial hunt | [adversarial-bug-hunt](feature-delivery/adversarial-bug-hunt.mdoc) |
 | UI/UX gate detail | [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc) |
 | Verdict gating | [completion-rules](feature-delivery/completion-rules.mdoc) |
@@ -236,7 +245,7 @@ Session artifacts per [evidence-ledger-schema](feature-delivery/evidence-ledger-
 
 Final report minimum:
 
-1. Branch, heads, working tree
+1. Branch, heads, working tree, preserved WIP, remote parity — [branch-and-data-preservation](feature-delivery/branch-and-data-preservation.mdoc) §11
 2. **Design stages completed** (D0–D7 per tier)
 3. **Bug-hunt passes completed** (B1–B8 per tier)
 4. **Requirement queue** — every item and status
@@ -316,4 +325,4 @@ For **every user-visible feature**, CP1 requires an evidence-based UI/UX decisio
 
 ---
 
-_FDA-001 v1.4.0 — staged design D0–D7, adversarial bug-hunt B1–B8, tiered workflow depth, completion gating._
+_FDA-001 v1.5.0 — branch checkpoint + data preservation, staged design D0–D7, adversarial bug-hunt B1–B8, tiered workflow depth, completion gating._

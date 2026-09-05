@@ -19,6 +19,7 @@ extends:
 | Item | Location |
 | ---- | -------- |
 | Session lock | `.cache/feature-delivery/<sessionId>/SESSION.lock` |
+| Branch checkpoint | `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` |
 | Baseline | `.cache/feature-delivery/<sessionId>/baseline.json` |
 | Requirements matrix | `.cache/feature-delivery/<sessionId>/requirements-matrix.json` |
 | Consumer map | `.cache/feature-delivery/<sessionId>/consumer-and-boundary-map.json` |
@@ -62,6 +63,15 @@ Phase C may add `scripts/agents/feature-delivery-evidence-ledger.mjs` to append 
 | `initialHead`  | Recorded at bootstrap — evidence baseline only                                  |
 | `currentHead`  | Updated after each authorized commit — **allowed to change**                    |
 | `scopePaths`   | Glob allowlist for staged files at CP4 — **derived per feature session** at CP0 |
+| `authorizedBranchTransitions` | Append-only array — user-authorized branch changes only — see [branch-and-data-preservation](branch-and-data-preservation.mdoc) §4 |
+
+### 2.1 branch-checkpoint.json (JSON)
+
+Written at session start (D0) and updated after authorized branch transitions. Schema per [branch-and-data-preservation](branch-and-data-preservation.mdoc) §1.
+
+**Required fields:** `sessionId`, `recordedAt`, `current.branch`, `current.headSha`, `current.upstreamBranch`, `current.ahead`, `current.behind`, `workingTree.*`, `lockedSessionBranch`, `authorizedBranchTransitions`.
+
+**Ledger:** `gate_id=bootstrap.branch-checkpoint`, checkpoint `D0` or `bootstrap`.
 
 ---
 
@@ -146,6 +156,9 @@ Architecture-reviewer output (read-only phase). Schema per [architecture-reviewe
 | `uiux.promax.` | `uiux.promax.member-wallet` | UI UX Pro Max search stdout |
 | `capability.` | `capability.CAP-001` | Requirement inventory status |
 | `blocker.` | `blocker.BR-CODE-001` | `blocker-investigation.json` |
+| `checkpoint.` | `checkpoint.pre-commit` | Pre-commit branch verification — [branch-and-data-preservation](branch-and-data-preservation.mdoc) §7 |
+| `checkpoint.` | `checkpoint.pre-push` | Pre-push branch verification |
+| `bootstrap.` | `bootstrap.branch-checkpoint` | `branch-checkpoint.json` at D0 |
 | `arch-review` | `arch-review.CP1` | `arch-review.json` |
 
 ---
@@ -154,7 +167,7 @@ Architecture-reviewer output (read-only phase). Schema per [architecture-reviewe
 
 | Touch surface       | Minimum `gate_id` rows before push                                                    |
 | ------------------- | ------------------------------------------------------------------------------------- |
-| Any code            | `bootstrap.branch`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
+| Any code            | `bootstrap.branch`, `bootstrap.branch-checkpoint`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
 | `apps/api` / Prisma | `guard.repository-rls`, `guard.api-workspace-isolation`, targeted postgres spec       |
 | Protected packages  | `guard.docs`, `doc.markdoc.validate`                                                  |
 | UI                  | app `build`, Playwright smoke, **browser** screenshots desktop+mobile, accessibility when available, `ui-ux-decision.json` for visible features |
@@ -204,7 +217,7 @@ Each report section must cite ledger rows or session artifacts:
 
 | Report claim          | Required evidence                                                  |
 | --------------------- | ------------------------------------------------------------------ |
-| Branch unchanged      | `bootstrap.branch` + pre-push `git branch --show-current`          |
+| Branch unchanged      | `bootstrap.branch-checkpoint` + `checkpoint.pre-commit` + `checkpoint.pre-push` + pre-push `git branch --show-current` |
 | Tests passed          | Row per suite with `exit_code=0`                                   |
 | Tests skipped         | Row with `result=skip` — matrix stays **UNVERIFIED**, not COMPLETE |
 | RLS verified          | Postgres spec row + `guard.repository-rls`                         |
@@ -223,6 +236,10 @@ Each report section must cite ledger rows or session artifacts:
 | Adversarial passes | `bug-hunt-matrix.json` + `bug-hunt.B*` ledger rows |
 | Verdict | `evaluate-fda-verdict.regression.mjs` pass + `FEATURE_*` aligned to matrix |
 | Commits               | Rows with `gate_id=commit` and SHAs matching `git log`             |
+| Preserved WIP         | Bootstrap `branch-checkpoint.json` unrelated paths still dirty at report time |
+| Remote parity         | `checkpoint.pre-push` ahead/behind vs upstream |
+
+**Branch safety:** Final report must satisfy [branch-and-data-preservation](branch-and-data-preservation.mdoc) §11.
 
 **Forbidden without evidence:** COMPLETE with open rows; admin usability from read-only catalog; browser success from API/curl; production readiness from local tests only; UI UX Pro Max cited without `uiux.promax.*` ledger row.
 
@@ -282,4 +299,4 @@ Never claim `ui-browser-verified` from build, API 200, or screenshot without int
 
 ---
 
-_Subdoc of FDA-001 v1.4.0. Schema version 1.4.0._
+_Subdoc of FDA-001 v1.5.0. Schema version 1.5.0._

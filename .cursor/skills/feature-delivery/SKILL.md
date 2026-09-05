@@ -11,7 +11,7 @@ description: >
 disable-model-invocation: true
 ---
 
-# Feature Delivery (FDA-001 v1.4)
+# Feature Delivery (FDA-001 v1.5)
 
 Orchestrate end-to-end feature work on a **locked branch** with mandatory discovery, design, architecture gates, evidence ledger, queued execution, and stop conditions. Feature-agnostic — ticketing is a regression example only.
 
@@ -30,6 +30,7 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 | Blocker recovery                | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc)               |
 | Completion rules (verdict gating) | [`docs/dev/feature-delivery/completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc)               |
 | Completion regression fixture   | [`docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc`](../../../docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc) |
+| Branch + data preservation      | [`docs/dev/feature-delivery/branch-and-data-preservation.mdoc`](../../../docs/dev/feature-delivery/branch-and-data-preservation.mdoc) |
 | Notification regression fixture | [`docs/dev/feature-delivery/notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) |
 | UI UX Pro Max (advisory)        | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../ui-ux-pro-max/FDA-INTEGRATION.md)                               |
 | Browser quality closure         | [`.cursor/skills/browser-quality-closure/SKILL.md`](../browser-quality-closure/SKILL.md)                                    |
@@ -46,9 +47,14 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 
 ---
 
-## Session lock (every checkpoint)
+## Session lock and branch protocol (every checkpoint)
 
-Record at **D0** and verify before every checkpoint:
+**Canonical:** [branch-and-data-preservation.mdoc](../../../docs/dev/feature-delivery/branch-and-data-preservation.mdoc)
+
+At **D0** (before any git mutation):
+
+1. Write `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` — branch, HEAD, upstream, ahead/behind, staged/unstaged/untracked, unrelated WIP, `authorizedBranchTransitions: []`.
+2. Write or update `SESSION.lock` with matching `lockedBranch` and `initialHead`.
 
 | Field          | Rule                                                                                |
 | -------------- | ----------------------------------------------------------------------------------- |
@@ -57,9 +63,21 @@ Record at **D0** and verify before every checkpoint:
 | `currentHead`  | May advance after authorized commits on `lockedBranch` — **not a branch violation** |
 | `scopePaths`   | Glob allowlist from approved plan — amend only with user/architect approval         |
 
-**Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, or force-push.
+**Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `restore`, `stash`, `worktree`, or force-push unless current task explicitly authorizes that exact operation ([SC-GIT-05](stop-conditions)–[SC-GIT-06](stop-conditions)).
+
+**Before every commit** — emit `BRANCH_CHECKPOINT_PRE_COMMIT` (branch, head, staged, unrelated WIP, upstream).
+
+**Before every push** — emit `BRANCH_CHECKPOINT_PRE_PUSH` (branch, head, remote, ahead/behind, unrelated WIP).
+
+**Feature branch creation** — only with user contract: exact name, source branch/SHA, creation intent ([SC-GIT-07](stop-conditions)). Post-create verification mandatory ([SC-GIT-08](stop-conditions)).
+
+**Parallel agents** — same local workspace + branch risk → `SHARED_WORKSPACE_BRANCH_RISK` ([SC-WORKSPACE-01](stop-conditions)).
+
+**Committed data safety** — inspect read-only (`git log --all`, `branch --contains`, `reflog`, `fsck`) before claiming commits lost ([SC-DATA-05](stop-conditions)).
 
 Never compare `currentHead` to `initialHead` as an error when commits were authorized on the locked branch.
+
+Never auto-stash, restore, clean, or reset WIP — stop and report.
 
 ---
 
@@ -202,6 +220,7 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 | Artifact | Path |
 | -------- | ---- |
 | Session lock | `.cache/feature-delivery/<sessionId>/SESSION.lock` |
+| Branch checkpoint | `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` |
 | Ledger TSV | `.cache/feature-delivery/<sessionId>/evidence.tsv` |
 | Arch review | `.cache/feature-delivery/<sessionId>/arch-review.json` |
 | Baseline | `.cache/feature-delivery/<sessionId>/baseline.json` |
@@ -239,8 +258,8 @@ Verdicts: `FEATURE_COMPLETE` \| `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` 
 
 ## Final report template
 
-1. Branch, `initialHead`, `currentHead`, working tree, `workflowTier`
-2. Design stages completed (D0–D7)
+1. Branch, `initialHead`, `currentHead`, working tree, preserved WIP, remote parity — [branch-and-data-preservation](branch-and-data-preservation) §11
+2. `workflowTier`; design stages completed (D0–D7)
 3. Bug-hunt passes completed (B1–B8)
 4. Requirement queue — every item and status
 5. Bugs found/reproduced/root causes/fixes/regression tests
@@ -249,9 +268,9 @@ Verdicts: `FEATURE_COMPLETE` \| `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` 
 8. Test/guard matrix; UI/UX findings; browser evidence
 9. Skipped/unverified items; accepted risks with explicit approval
 10. Verdict: `FEATURE_*` (evaluator-backed)
-11. Commit SHAs and push result
+11. Commit SHAs and push result; authorized branch transitions
 12. `Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
 
 ---
 
-_FDA-001 v1.4 — staged design D0–D7, adversarial B1–B8, tiered depth, completion gating._
+_FDA-001 v1.5 — branch checkpoint + data preservation, staged design D0–D7, adversarial B1–B8, tiered depth, completion gating._

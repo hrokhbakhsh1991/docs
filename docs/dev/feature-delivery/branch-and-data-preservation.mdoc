@@ -1,0 +1,258 @@
+---
+title: Feature Delivery — Branch and Data Preservation
+format: markdoc
+doc_role: agent_charter
+standard_id: FDA-001
+version: 1.5.0
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/stop-conditions.mdoc
+  - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
+mandatory_for:
+  - .cursor/skills/feature-delivery
+  - .cursor/rules/feature-delivery.mdc
+---
+
+# Feature Delivery — Branch and Data Preservation
+
+**Purpose:** Mandatory branch protocol and committed-data safety so FDA agents **stop with a clear report** rather than continue on an uncertain branch or destroy unrelated WIP.
+
+**Principle:** Prefer **hard-stop + human decision** over automatic branch repair, stash, reset, or checkout.
+
+**Scope:** All Feature Delivery sessions (`FDA-001`). Cloud agents, local agents, and parallel chats.
+
+---
+
+## 1. Session start — branch checkpoint (mandatory)
+
+At **session start** (before D0 or any git mutation), record read-only git state and write:
+
+`.cache/feature-delivery/<sessionId>/branch-checkpoint.json`
+
+### 1.1 Required fields
+
+| Field | Source command |
+| ----- | -------------- |
+| `current.branch` | `git branch --show-current` |
+| `current.headSha` | `git rev-parse HEAD` |
+| `current.upstreamBranch` | `git rev-parse --abbrev-ref '@{u}'` or `null` |
+| `current.ahead` / `current.behind` | `git rev-list --left-right --count '@{u}...HEAD'` |
+| `workingTree.statusPorcelain` | `git status --porcelain=v1` |
+| `workingTree.stagedFiles` | `git diff --cached --name-only` |
+| `workingTree.unstagedFiles` | `git diff --name-only` |
+| `workingTree.untrackedFiles` | `git ls-files --others --exclude-standard` |
+| `workingTree.unrelatedWipFiles` | Paths dirty at start **outside** approved `scopePaths` |
+| `lockedSessionBranch` | Same as `current.branch` at bootstrap — must match `SESSION.lock.lockedBranch` |
+| `authorizedBranchTransitions` | Empty array at start; append only after **explicit** user authorization |
+
+Also write or update `SESSION.lock` per [evidence-ledger-schema](evidence-ledger-schema.mdoc) §2.
+
+**Ledger:** `gate_id=bootstrap.branch-checkpoint`, checkpoint `D0`
+
+---
+
+## 2. Forbidden git operations (session default)
+
+After session start, the agent **must never** run unless the **current user task** explicitly authorizes that **exact** operation:
+
+| Operation | Risk |
+| --------- | ---- |
+| `git checkout` | Branch switch; WIP context loss |
+| `git switch` | Branch switch |
+| `git merge` | History rewrite on wrong branch |
+| `git rebase` | History rewrite; WIP conflict |
+| `git reset` | Committed/uncommitted data loss |
+| `git clean` | Untracked file deletion |
+| `git restore` | Working tree overwrite |
+| `git stash` | Hidden WIP; user may lose track |
+
+**Stop ID:** [SC-GIT-06](stop-conditions.mdoc) if attempted without authorization.
+
+---
+
+## 3. Branch-changing operation gate
+
+If any branch-changing operation is **required**, the agent must **stop before executing** and report:
+
+1. **Current:** branch + HEAD SHA + dirty/untracked file list
+2. **Target:** branch name + source SHA (for new branch)
+3. **Preservation risk:** which WIP files could be lost, overwritten, or staged incorrectly
+4. **Explicit approval request:** quote the exact git command awaiting authorization
+
+Do **not** proceed on inference or Cloud default branch behavior.
+
+---
+
+## 4. Feature branch creation (explicit contract only)
+
+Creating a feature branch is allowed **only** when the user provides in the **current task**:
+
+- Exact new branch name
+- Exact source branch **or** source SHA
+- Confirmation that branch creation is intended
+
+### 4.1 Pre-create verification (emit in chat)
+
+```text
+CURRENT:
+branch <X> @ SHA <A>
+
+TARGET:
+branch <Y> from SHA <A>
+```
+
+### 4.2 Post-create verification (mandatory)
+
+Immediately after `git checkout -b <Y>` (or equivalent):
+
+| Check | Pass criterion |
+| ----- | -------------- |
+| Current branch | `git branch --show-current` === `<Y>` |
+| HEAD | `git rev-parse HEAD` === source SHA `<A>` (unless authorized commits already on `<Y>`) |
+| Pre-existing WIP | Every path in bootstrap `branch-checkpoint.json` still present with same modification state |
+| No overwrite | No unrelated files newly staged or deleted |
+| Checkpoint update | Append to `authorizedBranchTransitions` with `{ from, to, sourceSha, authorizedBy: "user", at }` |
+
+**Stop ID:** [SC-GIT-07](stop-conditions.mdoc) if creation without contract; [SC-GIT-08](stop-conditions.mdoc) if post-create verification fails.
+
+---
+
+## 5. WIP preservation
+
+| Rule | Behavior |
+| ---- | -------- |
+| Never auto-stash | Dirty tree blocks safe op → **stop and report** |
+| Never auto-restore / clean / reset | Same |
+| Never stage unrelated WIP | [SC-SCOPE-02](stop-conditions.mdoc) |
+| Scope expansion | User/architect acknowledgment required |
+
+If a dirty tree prevents a safe operation, emit stop report — **do not solve automatically**.
+
+---
+
+## 6. Parallel agents and shared workspace
+
+Parallel Cursor chats **must not** operate on the same local workspace if another agent may change branches.
+
+| Situation | Action |
+| --------- | ------ |
+| User confirms isolated clone / separate workspace | Proceed with branch lock |
+| Shared workspace + branch risk | **Hard-stop** — `SHARED_WORKSPACE_BRANCH_RISK` ([SC-WORKSPACE-01](stop-conditions.mdoc)) |
+
+---
+
+## 7. Pre-commit and pre-push checkpoints
+
+Before **every** commit and push, verify read-only:
+
+- `git branch --show-current` === `lockedSessionBranch`
+- `git rev-parse HEAD`
+- Intended changed files vs `git diff --cached --name-only`
+- Unrelated WIP still unstaged (unless explicitly in scope)
+- Upstream branch name
+
+### 7.1 Required chat markers
+
+**Before commit** — emit block:
+
+```text
+BRANCH_CHECKPOINT_PRE_COMMIT
+branch: <name>
+head: <sha>
+staged: [<paths>]
+unrelated_wip: [<paths>]
+upstream: <upstream-or-none>
+```
+
+**Before push** — emit block:
+
+```text
+BRANCH_CHECKPOINT_PRE_PUSH
+branch: <name>
+head: <sha>
+remote: origin/<branch>
+ahead: <n> behind: <m>
+unrelated_wip: [<paths>]
+```
+
+Append ledger rows: `gate_id=checkpoint.pre-commit` / `checkpoint.pre-push`.
+
+---
+
+## 8. Post-commit and post-push verification
+
+After commit or push, verify:
+
+| Item | Expected |
+| ---- | -------- |
+| Branch | Unchanged from `lockedSessionBranch` |
+| HEAD | Expected new SHA (commit) or unchanged (push-only) |
+| Remote parity | `git rev-parse HEAD` vs `git rev-parse '@{u}'` after push |
+| Working tree | Unrelated WIP paths still listed in bootstrap checkpoint |
+| `SESSION.lock.currentHead` | Updated after authorized commit |
+
+**Stop ID:** [SC-GIT-01](stop-conditions.mdoc) if branch changed unintentionally.
+
+---
+
+## 9. Branch mismatch hard-stop
+
+If `git branch --show-current` ≠ `SESSION.lock.lockedBranch`:
+
+1. **Hard-stop immediately** ([SC-GIT-01](stop-conditions.mdoc))
+2. **Do not** checkout back to fix
+3. **Do not** attempt automatic repair
+4. Report: actual branch, expected branch, actual HEAD, expected HEAD(s), bootstrap WIP list
+
+---
+
+## 10. Committed data safety (read-only recovery)
+
+Committed data is **not** lost merely because it is not visible on the current branch.
+
+When branch mismatch or “missing commit” is suspected, inspect **read-only**:
+
+```bash
+git log --all --oneline -20
+git branch --all --contains <commit-sha>
+git reflog -20
+git fsck --no-reflogs --unreachable
+```
+
+| Forbidden without explicit user authorization | Reason |
+| --------------------------------------------- | ------ |
+| `git reset --hard` | Destructive |
+| `git clean -fd` | Deletes untracked work |
+| `git push --force` | Remote history loss |
+| `git branch -D` | Ref deletion |
+| Automatic cherry-pick / merge to “recover” | Branch change |
+
+**Stop ID:** [SC-DATA-05](stop-conditions.mdoc) if agent treats unreachable commits as deleted without read-only inspection.
+
+---
+
+## 11. Final report requirements
+
+Every FDA final report **must** include:
+
+| Section | Content |
+| ------- | ------- |
+| Branch before | Bootstrap `lockedSessionBranch` |
+| Branch after | `git branch --show-current` at report time |
+| Initial HEAD | `SESSION.lock.initialHead` |
+| Current HEAD | `git rev-parse HEAD` |
+| Authorized transitions | Full `authorizedBranchTransitions` array |
+| New branch sources | Source SHA for every created branch |
+| Staged files | Paths in scope commits only |
+| Preserved WIP | Bootstrap unrelated paths still dirty/untracked |
+| Remote parity | ahead/behind vs upstream |
+
+---
+
+## 12. Final rule
+
+**Prefer stopping with a clear branch-safety report over continuing on an uncertain branch.**
+
+---
+
+_Subdoc of FDA-001 v1.5.0 — branch checkpoint artifact, pre-commit/pre-push markers, committed-data read-only recovery._
