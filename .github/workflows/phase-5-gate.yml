@@ -14,6 +14,14 @@ on:
       - "packages/finance-http/**"
       - "packages/finance-http-contracts/**"
       - "packages/booking-http-contracts/**"
+      - "packages/ticketing-core/**"
+      - "packages/ticketing-http/**"
+      - "packages/ticketing-http-contracts/**"
+      - "packages/engagement-http/**"
+      - "packages/engagement-http-contracts/**"
+      - "packages/wallet-http/**"
+      - "packages/wallet-http-contracts/**"
+      - "apps/web/**"
       - "packages/workspaces/**"
       - "packages/workspace-sdk/**"
       - "scripts/guards/**"
@@ -30,7 +38,7 @@ jobs:
   gate:
     name: Phase 5 gate (Postgres required)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
 
     services:
       postgres:
