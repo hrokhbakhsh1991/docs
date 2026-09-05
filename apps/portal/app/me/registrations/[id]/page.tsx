@@ -45,14 +45,24 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   }
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
-  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
-    localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
-    localizeMemberPaymentStatus(row.paymentStatus),
-    formatMemberRegistrationDeparture(row.departureAt),
-    fetchMemberReceiptPanel(host, row.id),
-  ]);
-
   const lifecycleStatus = parseRegistrationLifecycleStatus(row.status) ?? "pending";
+  const executionSummary =
+    lifecycleStatus === "approved" &&
+    typeof row.tourId === "string" &&
+    row.tourId.trim().length > 0
+      ? await fetchMemberTourExecutionSummary(host, row.tourId)
+      : null;
+  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel, executionMeetingTimeLabel] =
+    await Promise.all([
+      localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
+      localizeMemberPaymentStatus(row.paymentStatus),
+      formatMemberRegistrationDeparture(row.departureAt),
+      fetchMemberReceiptPanel(host, row.id),
+      executionSummary?.scheduledMeetingAt
+        ? formatMemberRegistrationDeparture(executionSummary.scheduledMeetingAt)
+        : Promise.resolve(null),
+    ]);
+
   bindWorkspacePluginRegisterInvokers();
   await registerWorkspaceIntakeSafe(bootstrap.pluginId);
   const intakeFeatures = resolveIntakeSchema(bootstrap.pluginId).features;
@@ -73,12 +83,6 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   const tourHref =
     typeof row.tourId === "string" && row.tourId.trim().length > 0
       ? resolveMarketingTourDetailUrl(host, row.tourId)
-      : null;
-  const executionSummary =
-    lifecycleStatus === "approved" &&
-    typeof row.tourId === "string" &&
-    row.tourId.trim().length > 0
-      ? await fetchMemberTourExecutionSummary(host, row.tourId)
       : null;
   const registrantTarget = row.registrantTarget === "other" ? "other" : "self";
   const transportKind =
@@ -184,12 +188,19 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             data-ito-execution-state={executionSummary.state}
           >
             <h2>{t("executionTitle")}</h2>
-            <p data-ito-member-execution-state>{executionSummary.state}</p>
-            {executionSummary.scheduledMeetingAt ? (
-              <p data-ito-member-meeting-time>{executionSummary.scheduledMeetingAt}</p>
+            <p data-ito-member-execution-state>
+              {t("executionStateLabel")}:{" "}
+              {t(`executionStates.${executionSummary.state}` as "executionStates.draft")}
+            </p>
+            {executionMeetingTimeLabel ? (
+              <p data-ito-member-meeting-time>
+                {t("executionMeetingTimeLabel")}: {executionMeetingTimeLabel}
+              </p>
             ) : null}
             {executionSummary.meetingLocation ? (
-              <p data-ito-member-meeting-location>{executionSummary.meetingLocation}</p>
+              <p data-ito-member-meeting-location>
+                {t("executionMeetingLocationLabel")}: {executionSummary.meetingLocation}
+              </p>
             ) : null}
           </section>
         ) : null}

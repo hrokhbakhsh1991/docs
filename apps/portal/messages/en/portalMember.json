@@ -378,7 +378,19 @@
     "transportLineOccupants": "{kind} · {occupants} seats",
     "forOtherBadge": "For someone else",
     "guestLine": "Guest: {guestLabel}",
-    "executionTitle": "Tour day operations"
+    "executionTitle": "Tour day operations",
+    "executionStateLabel": "Status",
+    "executionMeetingTimeLabel": "Meeting time",
+    "executionMeetingLocationLabel": "Meeting point",
+    "executionStates": {
+      "draft": "Preparing",
+      "manifest_locked": "Roster confirmed",
+      "pre_tour": "Pre-tour briefing",
+      "in_progress": "Tour in progress",
+      "post_tour": "Wrapping up",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
   },
   "receipt": {
     "uploadEyebrow": "Pay by receipt",

@@ -27,39 +27,41 @@ test.describe("operator-tour-execution.spec.ts — ITO-001 operations tab", () =
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE);
   });
 
-  test("ITO-B01 EN desktop — operations tab loads manifest desk", async ({ page }) => {
+  test("ITO-B01 EN desktop — manifest-first desk without optional panels", async ({ page }) => {
     await openOperationsTab(page);
     await expect(page.getByTestId("ito-execution-state")).toBeVisible();
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.tabOperations)).toBeVisible();
-    await expect(page.getByTestId("ito-checklist-list")).toBeVisible();
+    await expect(page.getByTestId("ito-manifest-table").or(page.getByTestId("ito-manifest-list")).or(page.getByTestId("ito-manifest-empty"))).toBeVisible();
+    await expect(page.getByTestId("ito-checklist-panel")).toHaveCount(0);
+    await expect(page.getByTestId("ito-groups-panel")).toHaveCount(0);
+    await expect(page.getByTestId("ito-events-panel")).toHaveCount(0);
   });
 
   test("ITO-B02 lock manifest from draft when approved rows exist", async ({ page }) => {
     await openOperationsTab(page);
     const lockButton = page.getByTestId("ito-lock-manifest");
-    if (await lockButton.isEnabled()) {
+    if ((await lockButton.count()) > 0 && (await lockButton.isEnabled())) {
       await lockButton.click();
-      await expect(page.getByTestId("ito-execution-state")).toHaveText(
-        /manifest_locked|pre_tour|in_progress/,
-      );
+      await expect(page.getByTestId("ito-execution-state")).not.toHaveText(/draft/i);
     }
-    await expect(page.getByTestId("ito-checklist-list")).toBeVisible();
+    await expect(
+      page.getByTestId("ito-manifest-table").or(page.getByTestId("ito-manifest-list")).or(page.getByTestId("ito-manifest-empty")),
+    ).toBeVisible();
   });
 
-  test("ITO-B03 checklist toggle and operational event", async ({ page }) => {
+  test("ITO-B03 attendance actions on manifest row", async ({ page }) => {
     await openOperationsTab(page);
-    const toggle = page.getByTestId("ito-checklist-toggle").first();
-    if (await toggle.isVisible()) {
-      await toggle.click();
+    const presentButton = page.getByTestId("ito-mark-present").first();
+    if (await presentButton.isVisible()) {
+      await presentButton.click();
+      await expect(page.getByTestId("ito-action-notice").or(page.getByTestId("ito-attendance-status"))).toBeVisible();
+    } else {
+      await expect(page.getByTestId("ito-manifest-empty")).toBeVisible();
     }
-    const eventInput = page.getByTestId("ito-event-description");
-    await eventInput.fill(`ITO smoke event ${Date.now()}`);
-    await page.getByTestId("ito-log-event").click();
-    await expect(page.getByTestId("ito-event-row").first()).toBeVisible();
   });
 
   test("ITO-B04 FA mobile viewport — operations panel renders", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 360, height: 800 });
     await page.context().addCookies([
       {
         name: "NEXT_LOCALE",
@@ -71,5 +73,6 @@ test.describe("operator-tour-execution.spec.ts — ITO-001 operations tab", () =
     await openOperationsTab(page);
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.operationsPanel)).toBeVisible();
     await expect(page.getByTestId("ito-execution-state")).toBeVisible();
+    await expect(page.getByTestId("ito-manifest-list").or(page.getByTestId("ito-manifest-empty"))).toBeVisible();
   });
 });

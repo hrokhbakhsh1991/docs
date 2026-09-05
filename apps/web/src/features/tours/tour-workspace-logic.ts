@@ -102,8 +102,8 @@ export function resolveWorkspaceSubnavTab(
   return "registrations";
 }
 
-const TOUR_WORKSPACE_CORE_SUBNAV_TABS: ReadonlyArray<{
-  tab: Exclude<TourWorkspaceSubnavTab, "finance">;
+const TOUR_WORKSPACE_BASE_SUBNAV_TABS: ReadonlyArray<{
+  tab: Exclude<TourWorkspaceSubnavTab, "finance" | "operations">;
   testId: string;
 }> = [
   {
@@ -118,26 +118,29 @@ const TOUR_WORKSPACE_CORE_SUBNAV_TABS: ReadonlyArray<{
     tab: "transport",
     testId: TOUR_WORKSPACE_TEST_IDS.tabTransport,
   },
-  {
-    tab: "operations",
-    testId: TOUR_WORKSPACE_TEST_IDS.tabOperations,
-  },
 ];
 
-/** Core tabs always; finance appended when capability allows (TW-C-05). */
+/** Core tabs; operations/finance appended when workspace capability allows. */
 export function listTourWorkspaceSubnavTabs(options?: {
   readonly includeFinance?: boolean;
+  readonly includeOperations?: boolean;
 }): ReadonlyArray<{ tab: TourWorkspaceSubnavTab; testId: string }> {
-  if (options?.includeFinance === true) {
-    return [
-      ...TOUR_WORKSPACE_CORE_SUBNAV_TABS,
-      {
-        tab: "finance",
-        testId: TOUR_WORKSPACE_TEST_IDS.tabFinance,
-      },
-    ];
+  const tabs: Array<{ tab: TourWorkspaceSubnavTab; testId: string }> = [
+    ...TOUR_WORKSPACE_BASE_SUBNAV_TABS,
+  ];
+  if (options?.includeOperations === true) {
+    tabs.push({
+      tab: "operations",
+      testId: TOUR_WORKSPACE_TEST_IDS.tabOperations,
+    });
   }
-  return TOUR_WORKSPACE_CORE_SUBNAV_TABS;
+  if (options?.includeFinance === true) {
+    tabs.push({
+      tab: "finance",
+      testId: TOUR_WORKSPACE_TEST_IDS.tabFinance,
+    });
+  }
+  return tabs;
 }
 
 /** @deprecated Prefer listTourWorkspaceSubnavTabs — kept for existing imports. */

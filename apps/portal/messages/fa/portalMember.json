@@ -378,7 +378,19 @@
     "transportLineOccupants": "{kind} · {occupants} صندلی",
     "forOtherBadge": "برای دیگری",
     "guestLine": "مسافر: {guestLabel}",
-    "executionTitle": "وضعیت اجرای تور"
+    "executionTitle": "وضعیت اجرای تور",
+    "executionStateLabel": "وضعیت",
+    "executionMeetingTimeLabel": "زمان جمع",
+    "executionMeetingLocationLabel": "محل جمع",
+    "executionStates": {
+      "draft": "در حال آماده‌سازی",
+      "manifest_locked": "لیست نهایی تأیید شد",
+      "pre_tour": "پیش از حرکت",
+      "in_progress": "تور در حال اجرا",
+      "post_tour": "پایان تور",
+      "completed": "پایان‌یافته",
+      "cancelled": "لغوشده"
+    }
   },
   "receipt": {
     "uploadEyebrow": "پرداخت با فیش",

@@ -46,6 +46,8 @@ import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 
 import { TourStatusBadge } from "../../tour-status-badge";
 
+import type { InTourOpsPanels } from "@/features/tours/in-tour-ops-enablement";
+
 import { TourWorkspaceTabPanels } from "./tour-workspace-tab-panels";
 
 type TourWorkspaceLayoutClientProps = {
@@ -54,6 +56,9 @@ type TourWorkspaceLayoutClientProps = {
   readonly opsActions: BookingsOpsActionChrome;
   /** TW-C-05 — resolved on RSC layout via ensureFinanceNavSupported (not client plugin load). */
   readonly includeFinance: boolean;
+  /** ITO-001 — operations tab when workspace exposes inTourOps capability. */
+  readonly includeOperations: boolean;
+  readonly inTourOpsPanels: InTourOpsPanels;
 };
 
 function TourWorkspaceLayoutInner({
@@ -61,6 +66,8 @@ function TourWorkspaceLayoutInner({
   tourId,
   opsActions,
   includeFinance,
+  includeOperations,
+  inTourOpsPanels,
 }: TourWorkspaceLayoutClientProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.workspace");
@@ -151,18 +158,27 @@ function TourWorkspaceLayoutInner({
   }, [tourId, reloadNonce]);
 
   const subnavTabs = useMemo(
-    () => listTourWorkspaceSubnavTabs({ includeFinance }),
-    [includeFinance]
+    () => listTourWorkspaceSubnavTabs({ includeFinance, includeOperations }),
+    [includeFinance, includeOperations],
   );
 
   const financeEnabled = includeFinance;
-  const visibleActiveTab = activeTab === "finance" && !financeEnabled ? "registrations" : activeTab;
+  const operationsEnabled = includeOperations;
+  const visibleActiveTab =
+    activeTab === "finance" && !financeEnabled
+      ? "registrations"
+      : activeTab === "operations" && !operationsEnabled
+        ? "registrations"
+        : activeTab;
 
   useEffect(() => {
     if (activeTab === "finance" && !financeEnabled && navigateWorkspaceTab !== null) {
       navigateWorkspaceTab("registrations");
     }
-  }, [activeTab, financeEnabled, navigateWorkspaceTab]);
+    if (activeTab === "operations" && !operationsEnabled && navigateWorkspaceTab !== null) {
+      navigateWorkspaceTab("registrations");
+    }
+  }, [activeTab, financeEnabled, operationsEnabled, navigateWorkspaceTab]);
 
   const tabBadgeCounts = useMemo(() => {
     const map: Partial<Record<(typeof subnavTabs)[number]["tab"], number>> = {};
@@ -355,6 +371,7 @@ function TourWorkspaceLayoutInner({
         tourId={tourId}
         opsActions={opsActions}
         includeFinance={financeEnabled}
+        inTourOpsPanels={inTourOpsPanels}
         detail={detail}
       />
     </div>
