@@ -40,6 +40,7 @@ export default defineConfig({
     "p6-operator-receipt-approve-smoke.spec.ts",
     "p6-vertical-slice-browser-chain.spec.ts",
     "denali-workspace-approve-feedback.spec.ts",
+    "tour-creation-publication.spec.ts",
     "scenario4-workspace-finance-actions.spec.ts",
     "scenario5-workspace-finance-submit-receipt.spec.ts",
     "scenario6-workspace-finance-under-review-gating.spec.ts",

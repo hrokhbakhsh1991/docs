@@ -19,9 +19,10 @@ import { requestServerTourClone } from "@/tours/clone-tour-client";
 
 type TourDuplicateActionsProps = {
   readonly tourId: string;
+  readonly iconOnly?: boolean;
 };
 
-export function TourDuplicateActions({ tourId }: TourDuplicateActionsProps) {
+export function TourDuplicateActions({ tourId, iconOnly = false }: TourDuplicateActionsProps) {
   const router = useRouter();
   const t = useTranslations("tours.card");
   const [cloning, setCloning] = useState(false);
@@ -49,12 +50,12 @@ export function TourDuplicateActions({ tourId }: TourDuplicateActionsProps) {
             type="button"
             variant="outline"
             size="sm"
-            className="gap-1"
+            className={iconOnly ? "h-8 w-8 shrink-0 px-0" : "gap-1"}
             aria-label={t("moreActions")}
             data-testid={TOURS_LIST_TEST_IDS.secondaryActions}
           >
             <MoreHorizontal className="h-4 w-4" aria-hidden />
-            <span>{t("moreActions")}</span>
+            {iconOnly ? null : <span>{t("moreActions")}</span>}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

@@ -43,6 +43,10 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "endAt"),
     },
     {
+      fieldId: "denali.approximate-return-time",
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "approximateReturnTime"),
+    },
+    {
       fieldId: "denali.pricing-participants",
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "priceAmount"),
     },

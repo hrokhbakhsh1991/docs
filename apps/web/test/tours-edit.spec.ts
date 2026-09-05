@@ -79,8 +79,9 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.equal(basics.title, "New title");
   });
 
-  it("WEB-9.3-E04 member cannot mutate tours (CP-9.3-E04)", () => {
+  it("WEB-9.3-E04 member and viewer cannot mutate tours (CP-9.3-E04)", () => {
     assert.equal(canMutateTour("member"), false);
+    assert.equal(canMutateTour("viewer"), false);
     assert.equal(canMutateTour("admin"), true);
     assert.equal(canMutateTour("owner"), true);
   });

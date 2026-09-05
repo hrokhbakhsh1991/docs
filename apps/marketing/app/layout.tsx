@@ -115,12 +115,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
-  const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host);
-  const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host);
+  const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host, undefined, bootstrap.pluginId);
+  const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host, undefined, bootstrap.pluginId);
   const portalPublicBaseUrl = resolvePortalPublicBaseUrl(host);
   const memberLoginTourId = resolveMemberLoginCatalogTourId(bootstrap.pluginId);
   const marketingHomeHref = resolveMarketingLocalePath("/", locale);
-  const memberHeader = await resolveMarketingMemberHeader(host, bootstrap.tenantId);
+  const memberHeader = await resolveMarketingMemberHeader(
+    host,
+    bootstrap.tenantId,
+    bootstrap.pluginId
+  );
   const primaryNavLinks = resolveMarketingShellNavLinks(host, bootstrap.pluginId, locale);
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
 
