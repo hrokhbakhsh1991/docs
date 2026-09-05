@@ -89,6 +89,7 @@ const apiEnv = {
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
   AUTH_ALLOW_DEV_BEARER: "true",
+  PAYMENT_HOLD_ENABLED: "true",
 };
 
 const portalEnv = {
