@@ -1,0 +1,199 @@
+---
+title: In-Tour Operations (ITO-001)
+description: Day-of tour execution — manifest, groups, checklists, operational events, controlled changes with shared notifications.
+standard_id: ITO-001
+version: 1.0.0
+status: approved
+format: markdoc
+doc_role: platform_standard
+extends:
+  - docs/standards/booking-attendance-marking.mdoc
+  - docs/standards/shared-domain-event-contract.mdoc
+  - docs/standards/member-notification-inbox.mdoc
+mandatory_for:
+  - apps/api/src/tour-execution
+  - apps/web/src/features/tours/tour-workspace-operations
+  - apps/portal/src/me/registrations
+code_sot:
+  - apps/api/prisma/schema.prisma
+  - apps/api/src/tour-execution
+---
+
+# In-Tour Operations (ITO-001)
+
+**Purpose:** Operator day-of execution desk inside tour workspace — real manifest, payment/insurance projection, attendance integration, groups, checklists, operational incidents, and member-visible schedule/location changes via shared notification outbox.
+
+---
+
+## 1. Scope
+
+| In scope | Out of scope |
+| -------- | ------------ |
+| Execution state machine per tour | Post-tour finance settlement |
+| Manifest snapshot from approved registrations | Transport route optimization |
+| Group + group-leader assignment | New notification platform |
+| Pre / during / post checklists | Emergency SOS / safety dispatch (product gate) |
+| Operational event log | Rewriting attendance producer |
+| Controlled schedule/location/leader changes + SDE fan-out | Big-bang refactor of bookings Command Center |
+
+---
+
+## 2. Actors and permissions
+
+| Actor | Read execution | Lock manifest | Transition state | Groups/checklists | Operational events | Schedule/location/leader change | Mark attendance |
+| ----- | -------------- | ------------- | ---------------- | ----------------- | ------------------ | ------------------------------- | --------------- |
+| owner / admin | yes | yes | yes | yes | yes | yes | yes (all) |
+| tour leader (assigned `tourLeaderUserId`) | yes | no | yes (pre→completed) | yes | yes | yes | yes (all) |
+| group leader (assigned on group) | yes | no | no | group-scoped checklist | report only | no | group members only |
+| viewer | yes | no | no | no | no | no | no |
+| member (portal) | own row + tour summary | no | no | no | no | no | no |
+
+Authorization uses existing operator session roles plus contextual assignment on execution/group rows.
+
+---
+
+## 3. Execution state machine
+
+```mermaid
+stateDiagram-v2
+  [*] --> draft
+  draft --> manifest_locked: lockManifest
+  manifest_locked --> pre_tour: openPreTour
+  pre_tour --> in_progress: startTour
+  in_progress --> post_tour: endTourMovement
+  post_tour --> completed: completeTour
+  draft --> cancelled: cancel
+  manifest_locked --> cancelled: cancel
+  pre_tour --> cancelled: cancel
+  in_progress --> cancelled: cancel
+  post_tour --> cancelled: cancel
+  completed --> [*]
+  cancelled --> [*]
+```
+
+| State | Meaning |
+| ----- | ------- |
+| `draft` | Execution record exists; manifest editable from live approved registrations |
+| `manifest_locked` | Snapshot frozen; roster counts stable for day-of |
+| `pre_tour` | Pre-tour checklist active |
+| `in_progress` | Tour running — attendance + operational events |
+| `post_tour` | Post-tour checklist |
+| `completed` | Terminal success |
+| `cancelled` | Terminal cancel |
+
+Optimistic concurrency: `rowVersion` on `tour_executions`; stale PATCH → `409 TOUR_EXECUTION_VERSION_CONFLICT`.
+
+---
+
+## 4. Persistence
+
+### 4.1 Tables (tenant-scoped, FORCE RLS)
+
+| Table | Purpose |
+| ----- | ------- |
+| `tour_executions` | One row per tour per execution cycle (unique `tenant_id,tour_id` while non-terminal) |
+| `tour_execution_manifest_rows` | Frozen participant projection |
+| `tour_execution_groups` | Named groups + optional `leader_user_id` |
+| `tour_execution_checklist_items` | Phase `pre` \| `during` \| `post` |
+| `tour_execution_operational_events` | Incidents / notes |
+| `tour_execution_change_logs` | Append-only audit for schedule/location/leader corrections |
+
+Manifest row projection:
+
+| Field | Source |
+| ----- | ------ |
+| `registration_status` | `operator_registrations.status` at lock |
+| `payment_status` | `operator_registrations.payment_status` |
+| `insurance_status` | Derived from `registration_intake` (`insuranceStatus`, `insuranceProvided`, `insuranceConfirmed`) |
+| `attendance_status` | Live join to `operator_registrations.attendance_status` after lock |
+| `group_id` | Assignment |
+
+Attendance corrections continue via `POST /bookings/:id/attendance` (DP-7); manifest displays live attendance columns.
+
+---
+
+## 5. HTTP API (operator)
+
+Base: `/tours/:tourId/execution`
+
+| Method | Path | Action |
+| ------ | ---- | ------ |
+| GET | `/tours/:tourId/execution` | Get or bootstrap draft execution + manifest preview |
+| POST | `/tours/:tourId/execution/manifest/lock` | Lock manifest from approved registrations |
+| PATCH | `/tours/:tourId/execution/state` | Transition state (`expectedVersion`) |
+| PUT | `/tours/:tourId/execution/groups` | Replace group set |
+| PATCH | `/tours/:tourId/execution/manifest/:registrationId/group` | Assign manifest row to group |
+| PUT | `/tours/:tourId/execution/checklist` | Upsert checklist items |
+| PATCH | `/tours/:tourId/execution/checklist/:itemId` | Toggle complete |
+| POST | `/tours/:tourId/execution/operational-events` | Log operational event |
+| PATCH | `/tours/:tourId/execution/schedule` | Change meeting time (outbox) |
+| PATCH | `/tours/:tourId/execution/location` | Change meeting location (outbox) |
+| PATCH | `/tours/:tourId/execution/tour-leader` | Assign tour leader |
+
+Member read: `GET /member/tours/:tourId/execution-summary` — approved registration required.
+
+---
+
+## 6. Outbox events (SDE-001)
+
+| Canonical `eventType` | When | Notification template |
+| --------------------- | ---- | --------------------- |
+| `tour.execution.started` | `in_progress` transition | `tour.execution.started` |
+| `tour.execution.completed` | `completed` transition | `tour.execution.completed` |
+| `tour.execution.change.notified` | schedule / location / tour-leader PATCH | `tour.execution.change.notified` |
+
+Payload includes `tourId`, `executionId`, `changeKind`, `previousValue`, `newValue`, `actorUserId`.
+
+Dispatcher: `dispatchTourExecutionNotificationFromOutbox` — fans out to approved registration members (same pattern as `tour.schedule.changed`).
+
+---
+
+## 7. Operator UI
+
+Tour workspace tab **`operations`** (`?tab=operations`):
+
+- State banner + transition actions (permission-gated)
+- Manifest table: guest, party, approval, payment, insurance, attendance, group
+- Groups panel + leader pickers
+- Checklist accordion (pre / during / post)
+- Operational events timeline
+- Change forms: meeting time, location, tour leader
+
+States: loading, empty (no approved registrations), error, forbidden (viewer).
+
+Locales: EN + FA RTL; mobile stacked layout.
+
+---
+
+## 8. Member Home / portal
+
+Registration detail + home quick status chip:
+
+- Execution state label
+- Meeting time/location when manifest locked+
+- Unread `tour.execution.change.notified` links to inbox
+
+---
+
+## 9. Tests
+
+| Layer | Suite |
+| ----- | ----- |
+| Postgres | `tour-execution.postgres.spec.ts` — ITO-P01..P20 |
+| Portal browser | `in-tour-operations-member-browser.spec.ts` — ITO-BRW-01 |
+| Operator browser | `operator-tour-execution.spec.ts` — ITO-B01..B04 |
+
+---
+
+## 10. Idempotency
+
+- Manifest lock: second call → `200` same snapshot (no duplicate rows)
+- State transition: same target state → idempotent `200`
+- Change PATCH with same body + idempotency key → no duplicate outbox
+- Checklist toggle: repeating complete → idempotent
+
+---
+
+## 11. Tenant isolation
+
+All tables FORCE RLS with `tenant_id = current_setting('app.tenant_id')`. Cross-tenant tour id → `404 TOUR_EXECUTION_NOT_FOUND`.
