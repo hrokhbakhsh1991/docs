@@ -157,6 +157,28 @@ describe("SK2.C notification delivery", () => {
     assert.equal(adapter.deliveredCountForTests(), 0);
   });
 
+  it("SEC-042 parse defaults skip legacy deliver unless tenant opts in", async () => {
+    const adapter = new InAppStructuredNotificationAdapter();
+    setNotificationDeliveryPortForTests(adapter);
+    const { parseFeatureFlagsFromTheme } = await import("../tenant/resolve-tenant-feature-flags");
+
+    const defaultGated = await dispatchRegistrationApprovedNotification(
+      {
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        domainEventId: "registration.approved:b3:2026-09-05T00:00:00.000Z",
+        eventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
+        aggregateType: "registration",
+        aggregateId: "b3",
+        payload: { bookingId: "b3", guestEmail: "guest@example.com" },
+      },
+      {
+        resolveFlags: async () => parseFeatureFlagsFromTheme(null),
+      },
+    );
+    assert.equal(defaultGated, null);
+    assert.equal(adapter.deliveredCountForTests(), 0);
+  });
+
   it("default composition exposes in_app adapter", () => {
     const port = getNotificationDeliveryPort();
     assert.ok(port);
