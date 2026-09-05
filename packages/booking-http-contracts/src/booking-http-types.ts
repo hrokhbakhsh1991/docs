@@ -1,4 +1,9 @@
-import type { BookingPaymentStatus, BookingStatus, BookingsListView } from "./booking-status";
+import type {
+  BookingAttendanceStatus,
+  BookingPaymentStatus,
+  BookingStatus,
+  BookingsListView,
+} from "./booking-status";
 
 /** Tour chip on bookings summary (operator HTTP). */
 export type BookingTourChip = {
@@ -114,6 +119,21 @@ export type BookingListItem = {
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
   readonly memberAvatarUrl?: string | null;
+  /** DP-7 — present/absent when operator marked day-of attendance. */
+  readonly attendanceStatus?: BookingAttendanceStatus;
+  readonly attendanceMarkedAt?: string;
+};
+
+export type MarkAttendanceRequest = {
+  readonly attendanceStatus: BookingAttendanceStatus;
+};
+
+export type MarkAttendanceResponse = {
+  readonly id: string;
+  readonly status: BookingStatus;
+  readonly attendanceStatus: BookingAttendanceStatus;
+  readonly attendanceMarkedAt: string;
+  readonly idempotentReplay: boolean;
 };
 
 export type BookingsListResponse = {

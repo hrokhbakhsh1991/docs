@@ -17,6 +17,7 @@ import {
   handlePostMemberCancellation,
   handleRejectBooking,
   handleWaitlistBooking,
+  handleMarkBookingAttendance,
 } from "./bookings/bookings.routes";
 import {
   handleMemberListNotifications,
@@ -537,6 +538,12 @@ async function dispatchRequest(
   const bookingWaitlistMatch = url.pathname.match(/^\/bookings\/([^/]+)\/waitlist$/);
   if (method === "POST" && bookingWaitlistMatch) {
     await handleWaitlistBooking(req, res, bookingWaitlistMatch[1]!);
+    return;
+  }
+
+  const bookingAttendanceMatch = url.pathname.match(/^\/bookings\/([^/]+)\/attendance$/);
+  if (method === "POST" && bookingAttendanceMatch) {
+    await handleMarkBookingAttendance(req, res, bookingAttendanceMatch[1]!);
     return;
   }
 

@@ -9,7 +9,9 @@ import type {
   BookingsListSort,
   BookingsSummaryQuery,
   CreateBookingRequest,
+  MarkAttendanceRequest,
 } from "./booking-http-types";
+import { BOOKING_ATTENDANCE_STATUSES } from "./booking-status";
 
 export function readBookingStringField(body: unknown, key: string): string {
   if (typeof body !== "object" || body === null) return "";
@@ -175,6 +177,21 @@ export function parseBulkApproveBookingsBody(body: unknown): string[] {
 export function parseRejectBookingBody(body: unknown): { readonly reason?: string } {
   const reason = readBookingStringField(body, "reason");
   return reason.length > 0 ? { reason } : {};
+}
+
+export function parseMarkAttendanceBody(body: unknown): MarkAttendanceRequest | null {
+  if (typeof body !== "object" || body === null) {
+    return null;
+  }
+  const raw = (body as Record<string, unknown>).attendanceStatus;
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const attendanceStatus = BOOKING_ATTENDANCE_STATUSES.find((value) => value === raw.trim());
+  if (attendanceStatus === undefined) {
+    return null;
+  }
+  return { attendanceStatus };
 }
 
 export function parseBookingMemberReceiptJsonBody(

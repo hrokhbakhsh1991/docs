@@ -40,6 +40,8 @@ import {
 import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
+  BookingAttendanceConflictError,
+  BookingAttendanceInvalidStatusError,
   BookingNotFoundError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
@@ -948,6 +950,56 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       createdAt: waitlistedAt,
     });
     return cloneBooking(updated);
+  }
+
+  async markAttendanceWithOutbox(input: {
+    bookingId: string;
+    tenantId: string;
+    actorUserId: string;
+    attendanceStatus: "present" | "absent";
+    outboxEvent: string;
+  }): Promise<{ readonly record: BookingRecord; readonly idempotentReplay: boolean }> {
+    const current = bookingsStore.get(input.bookingId);
+    if (current === undefined || current.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (current.attendanceStatus === "present" || current.attendanceStatus === "absent") {
+      if (current.attendanceStatus === input.attendanceStatus) {
+        return { record: cloneBooking(current), idempotentReplay: true };
+      }
+      throw new BookingAttendanceConflictError(current.attendanceStatus, input.attendanceStatus);
+    }
+    if (current.status !== "approved") {
+      throw new BookingAttendanceInvalidStatusError(current.status);
+    }
+    const markedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...current,
+      attendanceStatus: input.attendanceStatus,
+      attendanceMarkedAt: markedAt,
+      attendanceMarkedByUserId: input.actorUserId,
+    };
+    bookingsStore.set(updated.id, updated);
+    outboxStore.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      aggregateType: "registration",
+      aggregateId: updated.id,
+      eventType: input.outboxEvent,
+      payload: {
+        bookingId: updated.id,
+        registrationId: updated.id,
+        tourId: updated.tourId,
+        submittedByUserId: updated.submittedByUserId,
+        guestUserId: updated.submittedByUserId,
+        attendanceStatus: input.attendanceStatus,
+        markedAt,
+        actorUserId: input.actorUserId,
+      },
+      domainEventId: `attendance.marked:${updated.id}:${markedAt}`,
+      createdAt: markedAt,
+    });
+    return { record: cloneBooking(updated), idempotentReplay: false };
   }
 
   async cancelBooking(input: {

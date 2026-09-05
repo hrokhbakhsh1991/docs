@@ -7,6 +7,7 @@ import {
   parseBookingsSummaryQuery,
   parseBulkApproveBookingsBody,
   parseCreateBookingBody,
+  parseMarkAttendanceBody,
   parseRejectBookingBody,
 } from "@app-tour/booking-http-contracts";
 
@@ -30,6 +31,7 @@ import {
   getBooking,
   getBookingsSummary,
   listBookings,
+  markBookingAttendance,
   rejectBooking,
   waitlistBooking,
 } from "./create-bookings-service";
@@ -224,6 +226,34 @@ export async function handleWaitlistBooking(
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleMarkBookingAttendance(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string,
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = await readIdentityRequestBody(req);
+    const parsed = parseMarkAttendanceBody(body);
+    if (parsed === null) {
+      sendHttpError(res, 400, { error: "invalid_body", code: "BOOKING_ATTENDANCE_INVALID" });
+      return;
+    }
+
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await markBookingAttendance(auth, bookingId, parsed);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" },
     );
   } catch (error) {
     handleHttpError(res, error);

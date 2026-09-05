@@ -1,0 +1,63 @@
+---
+title: Booking attendance marking (DP-7 minimum producer)
+description: Operator day-of attendance command — durable outbox, SDE-001 attendance.marked, member notification fan-out.
+---
+
+# Booking attendance marking
+
+## Scope
+
+Minimum **DP-7** slice: operator marks **approved** registrations as **present** or **absent** on tour day. Registration lifecycle status stays `approved`; attendance is a separate projection on `operator_registrations`.
+
+Not in scope: post-tour settlement, driver pay, carried-passenger accounting.
+
+## Command
+
+| Field | Value |
+| ----- | ----- |
+| HTTP | `POST /bookings/:id/attendance` |
+| Auth | Operator session — `admin` or `owner` (`assertOpsAccess`) |
+| Body | `{ "attendanceStatus": "present" \| "absent" }` |
+| Idempotency | Same status on same booking → `200` with existing row; no duplicate outbox |
+| Conflict | Different status after mark → `409 BOOKING_ATTENDANCE_CONFLICT` |
+| Gate | Registration `status` must be `approved` else `409 BOOKING_ATTENDANCE_INVALID_STATUS` |
+
+## Persistence
+
+Columns on `operator_registrations`:
+
+- `attendance_status` — `present` \| `absent`
+- `attendance_marked_at` — timestamptz
+- `attendance_marked_by_user_id` — operator actor
+
+## Outbox (SDE-001)
+
+| Field | Value |
+| ----- | ----- |
+| aggregateType | `registration` |
+| aggregateId | booking id |
+| eventType | `attendance.marked` (canonical) |
+| domainEventId | `attendance.marked:{bookingId}:{markedAt ISO}` |
+| payload | `bookingId`, `registrationId`, `tourId`, `submittedByUserId`, `guestUserId`, `attendanceStatus`, `markedAt`, `actorUserId` |
+
+Relay invokes `dispatchMemberNotificationFromOutbox` → `member_notifications` inbox row with template `booking.attendance.marked`.
+
+Engagement may consume normalized `attendance.marked` (alias `attendance.verified` at ingress only).
+
+## Audit
+
+Append-only `audit_events` row in same TX:
+
+- action: `BOOKING_ATTENDANCE_MARKED`
+- entityType: `registration`
+- entityId: booking id
+- metadata allowlist: `attendanceStatus`, `markedAt`
+
+## Tenant isolation
+
+All reads/writes under `withTenantRls(tenantId)`. Cross-tenant booking id → `404 BOOKING_NOT_FOUND`.
+
+## Tests
+
+- Postgres: command → outbox durable → relay → inbox (real Prisma)
+- Playwright: operator UI present/absent on approved roster; FA RTL viewport; axe on action chrome

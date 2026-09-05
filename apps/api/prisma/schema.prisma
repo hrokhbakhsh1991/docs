@@ -661,6 +661,10 @@ model OperatorRegistration {
   rejectReason      String?   @map("reject_reason")
   /// DP1 — terminal cancel provenance (`payment_deadline`, `operator`, …).
   cancelSource      String?   @map("cancel_source")
+  /// DP-7 — day-of attendance mark (registration status stays approved).
+  attendanceStatus       String?   @map("attendance_status")
+  attendanceMarkedAt     DateTime? @map("attendance_marked_at")
+  attendanceMarkedByUserId String? @map("attendance_marked_by_user_id") @db.Uuid
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

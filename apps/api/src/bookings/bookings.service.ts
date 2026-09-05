@@ -26,9 +26,12 @@ import type {
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
+  MarkAttendanceRequest,
+  MarkAttendanceResponse,
   WorkspaceBookingEventReactionPort,
 } from "@app-tour/booking-http-contracts";
 import {
+  BOOKING_ATTENDANCE_OUTBOX_EVENT_TYPE,
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
   BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
@@ -128,6 +131,16 @@ function toListItem(
       ? { paymentDueAt: record.paymentDueAt }
       : {}),
     ...(record.cancelSource !== undefined ? { cancelSource: record.cancelSource } : {}),
+    ...(record.attendanceStatus === "present" || record.attendanceStatus === "absent"
+      ? {
+          attendanceStatus: record.attendanceStatus,
+          ...(record.attendanceMarkedAt !== null &&
+          record.attendanceMarkedAt !== undefined &&
+          record.attendanceMarkedAt.length > 0
+            ? { attendanceMarkedAt: record.attendanceMarkedAt }
+            : {}),
+        }
+      : {}),
     ...(capacitySnapshot !== undefined ? { capacitySnapshot } : {}),
   };
 }
@@ -787,6 +800,36 @@ export class BookingsService {
       outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
     });
     return { id: updated.id, status: updated.status };
+  }
+
+  async markBookingAttendance(
+    auth: BookingActorContext,
+    bookingId: string,
+    body: MarkAttendanceRequest,
+  ): Promise<MarkAttendanceResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const result = await this.repository.markAttendanceWithOutbox({
+      bookingId,
+      tenantId: auth.tenantId,
+      actorUserId: auth.userId,
+      attendanceStatus: body.attendanceStatus,
+      outboxEvent: BOOKING_ATTENDANCE_OUTBOX_EVENT_TYPE,
+    });
+    const markedAt = result.record.attendanceMarkedAt;
+    if (
+      result.record.attendanceStatus !== "present" &&
+      result.record.attendanceStatus !== "absent"
+    ) {
+      throw new Error("BOOKING_ATTENDANCE_PERSISTENCE_FAILED");
+    }
+    return {
+      id: result.record.id,
+      status: result.record.status,
+      attendanceStatus: result.record.attendanceStatus,
+      attendanceMarkedAt: markedAt ?? new Date().toISOString(),
+      idempotentReplay: result.idempotentReplay,
+    };
   }
 
   async cancelBooking(

@@ -27,10 +27,13 @@ import {
 } from "./bookings-member-summary-projection";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
+  BookingAttendanceConflictError,
+  BookingAttendanceInvalidStatusError,
   BookingNotFoundError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
+import { AUDIT_ACTION_BOOKING_ATTENDANCE_MARKED, appendAuditEvent } from "../audit/audit-logger";
 import { enrichBookingListRecordsWithIntakeScalars } from "./booking-list-intake-scalars";
 import { readRegistrantTargetFromIntake } from "./read-registrant-target";
 import {
@@ -138,6 +141,9 @@ function toBookingRecord(row: {
   approvedAt: Date | null;
   registrationIntake?: Prisma.JsonValue | null;
   rejectReason?: string | null;
+  attendanceStatus?: string | null;
+  attendanceMarkedAt?: Date | null;
+  attendanceMarkedByUserId?: string | null;
 }): BookingRecord {
   const registrationIntake =
     row.registrationIntake !== null &&
@@ -168,6 +174,15 @@ function toBookingRecord(row: {
     ...(row.rejectReason !== null && row.rejectReason !== undefined && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
+    ...(row.attendanceStatus === "present" || row.attendanceStatus === "absent"
+      ? { attendanceStatus: row.attendanceStatus }
+      : { attendanceStatus: null }),
+    ...(row.attendanceMarkedAt !== null && row.attendanceMarkedAt !== undefined
+      ? { attendanceMarkedAt: row.attendanceMarkedAt.toISOString() }
+      : { attendanceMarkedAt: null }),
+    ...(row.attendanceMarkedByUserId !== null && row.attendanceMarkedByUserId !== undefined
+      ? { attendanceMarkedByUserId: row.attendanceMarkedByUserId }
+      : { attendanceMarkedByUserId: null }),
   };
 }
 
@@ -1256,6 +1271,105 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         createdAt: waitlistedAt,
       });
       return toBookingRecord(updated);
+    });
+  }
+
+  async markAttendanceWithOutbox(input: {
+    bookingId: string;
+    tenantId: string;
+    actorUserId: string;
+    attendanceStatus: "present" | "absent";
+    outboxEvent: string;
+  }): Promise<{ readonly record: BookingRecord; readonly idempotentReplay: boolean }> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      const preliminary = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (preliminary === null) {
+        throw new BookingNotFoundError();
+      }
+
+      if (preliminary.attendanceStatus === "present" || preliminary.attendanceStatus === "absent") {
+        if (preliminary.attendanceStatus === input.attendanceStatus) {
+          return {
+            record: toBookingRecord(preliminary),
+            idempotentReplay: true,
+          };
+        }
+        throw new BookingAttendanceConflictError(
+          preliminary.attendanceStatus,
+          input.attendanceStatus,
+        );
+      }
+
+      if (preliminary.status !== "approved") {
+        throw new BookingAttendanceInvalidStatusError(preliminary.status as BookingStatus);
+      }
+
+      await acquireTourCapacityLock(tx, input.tenantId, preliminary.tourId);
+      const markedAt = new Date();
+      const transitioned = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          status: "approved",
+          attendanceStatus: null,
+        },
+        data: {
+          attendanceStatus: input.attendanceStatus,
+          attendanceMarkedAt: markedAt,
+          attendanceMarkedByUserId: input.actorUserId,
+        },
+      });
+      if (transitioned.count !== 1) {
+        const again = await tx.operatorRegistration.findFirst({
+          where: { id: input.bookingId, tenantId: input.tenantId },
+        });
+        if (again === null) {
+          throw new BookingNotFoundError();
+        }
+        if (again.attendanceStatus === input.attendanceStatus) {
+          return { record: toBookingRecord(again), idempotentReplay: true };
+        }
+        if (again.attendanceStatus === "present" || again.attendanceStatus === "absent") {
+          throw new BookingAttendanceConflictError(again.attendanceStatus, input.attendanceStatus);
+        }
+        throw new BookingAttendanceInvalidStatusError(again.status as BookingStatus);
+      }
+
+      const updated = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      const markedAtIso = markedAt.toISOString();
+      await appendAuditEvent(tx, {
+        action: AUDIT_ACTION_BOOKING_ATTENDANCE_MARKED,
+        entityType: "registration",
+        entityId: updated.id,
+        createdAt: markedAt,
+        metadata: {
+          attendanceStatus: input.attendanceStatus,
+          markedAt: markedAtIso,
+        },
+      });
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: updated.id,
+        eventType: input.outboxEvent,
+        domainEventId: `attendance.marked:${updated.id}:${markedAtIso}`,
+        createdAt: markedAt,
+        payload: {
+          bookingId: updated.id,
+          registrationId: updated.id,
+          tourId: updated.tourId,
+          submittedByUserId: updated.submittedByUserId,
+          guestUserId: updated.submittedByUserId,
+          attendanceStatus: input.attendanceStatus,
+          markedAt: markedAtIso,
+          actorUserId: input.actorUserId,
+        },
+      });
+      return { record: toBookingRecord(updated), idempotentReplay: false };
     });
   }
 
