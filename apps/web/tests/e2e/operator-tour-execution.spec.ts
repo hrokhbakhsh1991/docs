@@ -35,6 +35,10 @@ test.describe("operator-tour-execution.spec.ts — ITO-001 operations tab", () =
     await expect(page.getByTestId("ito-checklist-panel")).toHaveCount(0);
     await expect(page.getByTestId("ito-groups-panel")).toHaveCount(0);
     await expect(page.getByTestId("ito-events-panel")).toHaveCount(0);
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/ito-operator-operations-desktop-en.png",
+      fullPage: true,
+    });
   });
 
   test("ITO-B02 lock manifest from draft when approved rows exist", async ({ page }) => {
@@ -74,5 +78,51 @@ test.describe("operator-tour-execution.spec.ts — ITO-001 operations tab", () =
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.operationsPanel)).toBeVisible();
     await expect(page.getByTestId("ito-execution-state")).toBeVisible();
     await expect(page.getByTestId("ito-manifest-list").or(page.getByTestId("ito-manifest-empty"))).toBeVisible();
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/ito-operator-operations-mobile-fa-rtl.png",
+      fullPage: true,
+    });
+  });
+
+  test("ITO-B05 leader picker assigns eligible tenant user", async ({ page }) => {
+    await openOperationsTab(page);
+    const picker = page.getByTestId("ito-tour-leader-picker").locator("select");
+    await expect(picker).toBeVisible({ timeout: 120_000 });
+    const options = picker.locator("option");
+    const optionCount = await options.count();
+    if (optionCount <= 1) {
+      test.skip(true, "no eligible leader candidates in smoke tenant");
+    }
+    const nextValue = await options.nth(1).getAttribute("value");
+    expect(nextValue).toBeTruthy();
+    await picker.selectOption(nextValue!);
+    await expect(page.getByTestId("ito-action-notice").or(page.getByTestId("ito-tour-leader"))).toBeVisible({
+      timeout: 30_000,
+    });
+  });
+
+  test("ITO-B06 locked manifest XLSX export downloads parseable sheet", async ({ page }) => {
+    await openOperationsTab(page);
+    const lockButton = page.getByTestId("ito-lock-manifest");
+    if ((await lockButton.count()) > 0 && (await lockButton.isEnabled())) {
+      await lockButton.click();
+      await expect(page.getByTestId("ito-execution-state")).not.toHaveText(/draft/i);
+    }
+    const exportButton = page.getByTestId("ito-export-manifest");
+    await expect(exportButton).toBeEnabled({ timeout: 60_000 });
+    await exportButton.click();
+    await expect(page.getByTestId("ito-action-notice").or(page.getByTestId("ito-inline-error"))).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("ito-inline-error")).toHaveCount(0);
+
+    const exportResponse = await page.request.get(
+      `/api/tours/${encodeURIComponent(TOUR_ID)}/execution/manifest-export`,
+    );
+    expect(exportResponse.ok(), await exportResponse.text()).toBeTruthy();
+    const buffer = await exportResponse.body();
+    expect(buffer.length).toBeGreaterThan(100);
+    expect(buffer.subarray(0, 4).toString("hex")).toBe("504b0304");
+    expect(exportResponse.headers()["content-type"] ?? "").toMatch(/spreadsheetml|octet-stream/i);
   });
 });

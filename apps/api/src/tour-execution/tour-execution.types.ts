@@ -86,6 +86,7 @@ export type TourExecutionView = {
   readonly state: TourExecutionState;
   readonly rowVersion: number;
   readonly tourLeaderUserId: string | null;
+  readonly tourLeaderDisplayName: string | null;
   readonly scheduledMeetingAt: string | null;
   readonly meetingLocation: string | null;
   readonly manifestLockedAt: string | null;
@@ -108,4 +109,5 @@ export type MemberTourExecutionSummaryView = {
   readonly paymentStatus: string;
   readonly insuranceStatus: string | null;
   readonly attendanceStatus: string | null;
+  readonly tourLeaderDisplayName: string | null;
 };

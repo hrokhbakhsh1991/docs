@@ -19,9 +19,10 @@ const webDir = path.join(repoRoot, "apps/web");
 
 const dbUrl =
   process.env.DATABASE_URL?.trim() ||
-  "postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32";
+  "postgresql://app_tour:app_tour@127.0.0.1:5432/app_tour_dev?connection_limit=32";
 const dbAdmin =
-  process.env.DATABASE_URL_ADMIN?.trim() || "postgresql://postgres:postgres@127.0.0.1:5434/tour_db";
+  process.env.DATABASE_URL_ADMIN?.trim() ||
+  "postgresql://postgres:postgres@127.0.0.1:5432/app_tour_dev";
 const denaliSmokeTenantId =
   process.env.DENALI_SMOKE_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000003";
 const denaliSmokeOwnerUserId =
@@ -29,9 +30,9 @@ const denaliSmokeOwnerUserId =
 const denaliSmokeWorkspaceId = process.env.DENALI_SMOKE_WORKSPACE_ID?.trim() || "ws-denali-dev";
 const useProdStart = isSmokeProdStartEnv();
 
-const seed = spawn("node", ["scripts/seed-denali-smoke-tenant.mjs"], {
-  cwd: webDir,
-  env: { ...process.env, DATABASE_URL: dbUrl, DATABASE_URL_ADMIN: dbAdmin },
+const seed = spawn("pnpm", ["--filter", "@apps/api", "exec", "node", "--import", "tsx", "scripts/seed-denali-ito-e2e-fixtures.ts"], {
+  cwd: repoRoot,
+  env: { ...process.env, DATABASE_URL: dbUrl, DATABASE_URL_ADMIN: dbAdmin, STORAGE_DRIVER: "prisma", NODE_ENV: "development" },
   stdio: "inherit",
 });
 

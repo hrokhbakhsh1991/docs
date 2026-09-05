@@ -18,6 +18,11 @@ import {
   TourExecutionVersionConflictError,
 } from "./tour-execution-authorization";
 import {
+  assertEligibleTourLeaderUser,
+  resolveTourLeaderPublicDisplayName,
+  TourExecutionInvalidLeaderError,
+} from "./tour-execution-leader.util";
+import {
   DEFAULT_CHECKLIST_TEMPLATES,
   TOUR_EXECUTION_STATE_TRANSITIONS,
   type MemberTourExecutionSummaryView,
@@ -90,12 +95,18 @@ async function loadExecutionView(
       take: 50,
     });
 
+    const tourLeaderDisplayName = await resolveTourLeaderPublicDisplayName(
+      tenantId,
+      execution.tourLeaderUserId,
+    );
+
     return {
       id: execution.id,
       tourId: execution.tourId,
       state: execution.state as TourExecutionState,
       rowVersion: execution.rowVersion,
       tourLeaderUserId: execution.tourLeaderUserId,
+      tourLeaderDisplayName,
       scheduledMeetingAt: toIso(execution.scheduledMeetingAt),
       meetingLocation: execution.meetingLocation,
       manifestLockedAt: toIso(execution.manifestLockedAt),
@@ -678,9 +689,13 @@ export async function patchTourExecutionTourLeader(input: {
   tourLeaderUserId: string | null;
   idempotencyKey?: string;
 }): Promise<TourExecutionView> {
+  assertTourExecutionAdmin(input.auth);
   const execution = await findActiveExecution(input.auth.tenantId, input.tourId);
   if (execution === null) {
     throw new TourExecutionNotFoundError();
+  }
+  if (input.tourLeaderUserId !== null) {
+    await assertEligibleTourLeaderUser(input.auth.tenantId, input.tourLeaderUserId);
   }
   return applyExecutionChange({
     auth: input.auth,
@@ -731,6 +746,11 @@ export async function getMemberTourExecutionSummary(input: {
       },
     });
 
+    const tourLeaderDisplayName = await resolveTourLeaderPublicDisplayName(
+      input.tenantId,
+      execution.tourLeaderUserId,
+    );
+
     return {
       tourId: input.tourId,
       state: execution.state as TourExecutionState,
@@ -741,6 +761,7 @@ export async function getMemberTourExecutionSummary(input: {
       paymentStatus: manifestRow?.paymentStatus ?? registration.paymentStatus,
       insuranceStatus: manifestRow?.insuranceStatus ?? deriveInsuranceStatus(registration.registrationIntake),
       attendanceStatus: registration.attendanceStatus,
+      tourLeaderDisplayName,
     };
   });
 }

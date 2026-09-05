@@ -382,6 +382,7 @@
     "executionStateLabel": "وضعیت",
     "executionMeetingTimeLabel": "زمان جمع",
     "executionMeetingLocationLabel": "محل جمع",
+    "executionTourLeaderLabel": "سرپرست تور",
     "executionStates": {
       "draft": "در حال آماده‌سازی",
       "manifest_locked": "لیست نهایی تأیید شد",

@@ -192,6 +192,11 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               {t("executionStateLabel")}:{" "}
               {t(`executionStates.${executionSummary.state}` as "executionStates.draft")}
             </p>
+            {executionSummary.tourLeaderDisplayName ? (
+              <p data-ito-member-tour-leader>
+                {t("executionTourLeaderLabel")}: {executionSummary.tourLeaderDisplayName}
+              </p>
+            ) : null}
             {executionMeetingTimeLabel ? (
               <p data-ito-member-meeting-time>
                 {t("executionMeetingTimeLabel")}: {executionMeetingTimeLabel}

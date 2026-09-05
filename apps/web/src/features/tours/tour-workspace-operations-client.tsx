@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
+import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { useTourWorkspaceChrome } from "@/features/tours/tour-workspace-chrome-context";
 import type { InTourOpsPanels } from "@/features/tours/in-tour-ops-enablement";
@@ -30,6 +31,8 @@ type ExecutionPayload = {
   readonly state?: ExecutionState;
   readonly rowVersion?: number;
   readonly tourLeaderUserId?: string | null;
+  readonly tourLeaderDisplayName?: string | null;
+  readonly manifestLockedAt?: string | null;
   readonly scheduledMeetingAt?: string | null;
   readonly meetingLocation?: string | null;
   readonly manifest?: ReadonlyArray<{
@@ -59,6 +62,20 @@ type ExecutionPayload = {
     readonly reportedAt?: string;
   }>;
 };
+
+type LeaderDirectoryRow = {
+  readonly userId: string;
+  readonly displayName: string;
+  readonly role: string;
+  readonly isSelectableLeader?: boolean;
+};
+
+function isLeaderCandidate(row: LeaderDirectoryRow): boolean {
+  if (row.role === "admin" || row.role === "owner") {
+    return true;
+  }
+  return row.isSelectableLeader === true;
+}
 
 const NEXT_STATE: Partial<Record<ExecutionState, ExecutionState>> = {
   manifest_locked: "pre_tour",
@@ -101,6 +118,7 @@ export function TourWorkspaceOperationsClient({
   const [eventDescription, setEventDescription] = useState("");
   const [meetingLocation, setMeetingLocation] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
+  const [leaderOptions, setLeaderOptions] = useState<readonly SelectOption[]>([]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -133,6 +151,92 @@ export function TourWorkspaceOperationsClient({
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (!canManage) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/users?limit=100&status=active&sort=name_asc", {
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) {
+          return;
+        }
+        const body = (await res.json()) as { items?: LeaderDirectoryRow[] };
+        const options: SelectOption[] = [
+          { value: "", label: t("tourLeaderUnsetOption") },
+          ...(body.items ?? [])
+            .filter(isLeaderCandidate)
+            .map((row) => ({ value: row.userId, label: row.displayName })),
+        ];
+        setLeaderOptions(options);
+      } catch {
+        /* leader picker stays empty until retry via reload */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, t]);
+
+  async function saveTourLeader(nextLeaderUserId: string | null): Promise<void> {
+    setBusy(true);
+    setActionNotice(null);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/tours/${encodeURIComponent(tourId)}/execution/tour-leader`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tourLeaderUserId: nextLeaderUserId }),
+        },
+      );
+      if (!res.ok) {
+        setError("TOUR_EXECUTION_LEADER_FAILED");
+        return;
+      }
+      setActionNotice(
+        nextLeaderUserId
+          ? t("tourLeaderAssignedSuccess")
+          : t("tourLeaderUnsetSuccess"),
+      );
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadManifestExport(): Promise<void> {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/tours/${encodeURIComponent(tourId)}/execution/manifest-export`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) {
+        setError("TOUR_EXECUTION_EXPORT_FAILED");
+        return;
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("content-disposition") ?? "";
+      const match = /filename=\"?([^\";]+)\"?/i.exec(cd);
+      const filename = match?.[1] ?? `manifest-${tourId.slice(0, 8)}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setActionNotice(t("exportSuccess"));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function apiPost(
     path: string,
@@ -257,6 +361,8 @@ export function TourWorkspaceOperationsClient({
   }
 
   const manifest = execution?.manifest ?? [];
+  const manifestExportEnabled =
+    execution?.manifestLockedAt != null && execution?.state !== "draft";
   const meetingTimeLabel = formatMeetingTime(execution?.scheduledMeetingAt);
   const showOptionalGroups = panels.groups;
   const showOptionalChecklists = panels.checklists;
@@ -276,9 +382,22 @@ export function TourWorkspaceOperationsClient({
                 <OperatorStatusBadge variant="outline" data-testid="ito-execution-state">
                   {stateLabel}
                 </OperatorStatusBadge>
-                {execution?.tourLeaderUserId ? (
+                {canManage ? (
+                  <div className="min-w-[12rem] flex-1 sm:max-w-xs" data-testid="ito-tour-leader-picker">
+                    <Select
+                      aria-label={t("tourLeaderPickerLabel")}
+                      disabled={busy}
+                      options={leaderOptions}
+                      value={execution?.tourLeaderUserId ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        void saveTourLeader(value.length > 0 ? value : null);
+                      }}
+                    />
+                  </div>
+                ) : execution?.tourLeaderDisplayName ? (
                   <span className="text-sm text-muted-foreground" data-testid="ito-tour-leader">
-                    {t("tourLeaderAssigned")}
+                    {t("tourLeaderNamed", { name: execution.tourLeaderDisplayName })}
                   </span>
                 ) : (
                   <span className="text-sm text-muted-foreground" data-testid="ito-tour-leader-empty">
@@ -329,11 +448,25 @@ export function TourWorkspaceOperationsClient({
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg">{t("manifestTitle")}</CardTitle>
-          {manifest.length > 0 ? (
-            <span className="text-sm text-muted-foreground" data-testid="ito-manifest-count">
-              {t("manifestCount", { count: manifest.length })}
-            </span>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {manifest.length > 0 ? (
+              <span className="text-sm text-muted-foreground" data-testid="ito-manifest-count">
+                {t("manifestCount", { count: manifest.length })}
+              </span>
+            ) : null}
+            {canManage ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="ito-export-manifest"
+                disabled={busy || !manifestExportEnabled}
+                onClick={() => void downloadManifestExport()}
+              >
+                {t("exportManifest")}
+              </Button>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           {manifest.length === 0 ? (

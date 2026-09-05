@@ -13,6 +13,7 @@ export type MemberTourExecutionSummary = {
   readonly paymentStatus: string;
   readonly insuranceStatus: string | null;
   readonly attendanceStatus: string | null;
+  readonly tourLeaderDisplayName: string | null;
 };
 
 export async function fetchMemberTourExecutionSummary(

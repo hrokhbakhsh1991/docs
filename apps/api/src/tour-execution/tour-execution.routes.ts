@@ -25,6 +25,8 @@ import {
   toggleTourExecutionChecklistItem,
   transitionTourExecutionState,
 } from "./tour-execution.service";
+import { exportTourExecutionManifestXlsx } from "./tour-execution-manifest-export.service";
+import { TourExecutionInvalidLeaderError } from "./tour-execution-leader.util";
 
 function mapTourExecutionError(res: ServerResponse, error: unknown): boolean {
   if (error instanceof TourExecutionNotFoundError) {
@@ -50,6 +52,10 @@ function mapTourExecutionError(res: ServerResponse, error: unknown): boolean {
   }
   if (error instanceof TourExecutionInvalidStateError) {
     sendHttpError(res, 409, { error: "conflict", code: error.message, state: error.state });
+    return true;
+  }
+  if (error instanceof TourExecutionInvalidLeaderError) {
+    sendHttpError(res, 400, { error: "invalid_body", code: error.message });
     return true;
   }
   return false;
@@ -434,6 +440,44 @@ export async function handleGetMemberTourExecutionSummary(
       { rateLimit: "read" },
     );
   } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleGetTourExecutionManifestExport(
+  req: IncomingMessage,
+  res: ServerResponse,
+  tourId: string,
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const url = new URL(req.url ?? "", "http://localhost");
+    const locale = url.searchParams.get("locale") ?? undefined;
+    const includeGroups = url.searchParams.get("includeGroups") === "1";
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const exported = await exportTourExecutionManifestXlsx({
+          auth,
+          tourId,
+          locale,
+          includeGroups,
+        });
+        res.statusCode = 200;
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        );
+        res.setHeader("Content-Disposition", `attachment; filename="${exported.filename}"`);
+        res.end(exported.buffer);
+      },
+      { rateLimit: "read" },
+    );
+  } catch (error) {
+    if (mapTourExecutionError(res, error)) {
+      return;
+    }
     handleHttpError(res, error);
   }
 }

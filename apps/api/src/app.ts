@@ -1127,6 +1127,10 @@ async function dispatchRequest(
       await routes.handleLockTourExecutionManifest(req, res, tourId);
       return;
     }
+    if (method === "GET" && subPath === "manifest/export") {
+      await routes.handleGetTourExecutionManifestExport(req, res, tourId);
+      return;
+    }
     if (method === "PATCH" && subPath === "state") {
       await routes.handlePatchTourExecutionState(req, res, tourId);
       return;

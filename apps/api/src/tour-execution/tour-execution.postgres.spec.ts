@@ -18,6 +18,9 @@ import { disconnectPrisma } from "../db/prisma";
 import { processOutboxRelayForTenantOnce } from "../outbox/outbox-relay";
 import { listMemberNotifications } from "../notifications/member-notification.repository";
 import { deleteTourExecutionForTests } from "../tour-execution/tour-execution.service";
+import {
+  parseTourExecutionManifestXlsx,
+} from "../tour-execution/tour-execution-manifest-export.service";
 import { integrationTenantId, preparePostgresOutboxIsolation } from "../../test/test-helpers";
 import { installPostgresNotificationTestIsolation } from "../../test/postgres-notification-test-isolation";
 
@@ -108,9 +111,59 @@ async function requestJson(
   });
 }
 
+async function requestBuffer(
+  listener: ReturnType<typeof createRequestListener>,
+  input: {
+    readonly method: string;
+    readonly path: string;
+    readonly tenantId: string;
+    readonly userId: string;
+    readonly role?: "admin" | "owner" | "member" | "viewer";
+  },
+): Promise<{ status: number; buffer: Buffer; headers: http.IncomingHttpHeaders }> {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer(listener);
+    server.listen(0, () => {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") {
+        server.close();
+        reject(new Error("no listen address"));
+        return;
+      }
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: addr.port,
+          path: input.path,
+          method: input.method,
+          headers: authHeaders(input),
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk) => chunks.push(chunk as Buffer));
+          res.on("end", () => {
+            server.close();
+            resolve({
+              status: res.statusCode ?? 0,
+              buffer: Buffer.concat(chunks),
+              headers: res.headers,
+            });
+          });
+        },
+      );
+      req.on("error", (error) => {
+        server.close();
+        reject(error);
+      });
+      req.end();
+    });
+  });
+}
+
 describe("tour-execution.postgres.spec.ts — ITO-001", { skip: postgresSkip, concurrency: false }, () => {
   const tenantA = integrationTenantId();
   const operatorId = randomUUID();
+  const leaderUserId = randomUUID();
   const memberId = randomUUID();
   const tourId = randomUUID();
   let bookingId = "";
@@ -145,6 +198,31 @@ describe("tour-execution.postgres.spec.ts — ITO-001", { skip: postgresSkip, co
       },
       update: {},
     });
+    for (const seed of [
+      { userId: operatorId, mobile: `+1555ito-op-${operatorId.slice(0, 8)}`, displayName: "ITO Operator" },
+      { userId: leaderUserId, mobile: `+1555ito-ld-${leaderUserId.slice(0, 8)}`, displayName: "ITO Leader" },
+    ] as const) {
+      await admin.user.upsert({
+        where: { id: seed.userId },
+        create: { id: seed.userId, mobile: seed.mobile },
+        update: {},
+      });
+      await admin.userTenant.upsert({
+        where: { userId_tenantId: { userId: seed.userId, tenantId: tenantA } },
+        create: {
+          userId: seed.userId,
+          tenantId: tenantA,
+          role: "admin",
+          status: "ACTIVE",
+          membershipMetadata: { displayName: seed.displayName },
+        },
+        update: {
+          role: "admin",
+          status: "ACTIVE",
+          membershipMetadata: { displayName: seed.displayName },
+        },
+      });
+    }
   });
 
   beforeEach(async () => {
@@ -435,5 +513,156 @@ describe("tour-execution.postgres.spec.ts — ITO-001", { skip: postgresSkip, co
     assert.equal(event.status, 200);
     const events = event.body.operationalEvents as Array<{ description: string }>;
     assert.ok(events.some((row) => row.description.includes("Bus delayed")));
+  });
+
+  it("ITO-P11 assign and unset tour leader with audit log", async () => {
+    await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const assign = await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/tour-leader`,
+      tenantId: tenantA,
+      userId: operatorId,
+      body: { tourLeaderUserId: leaderUserId },
+    });
+    assert.equal(assign.status, 200);
+    assert.equal(assign.body.tourLeaderUserId, leaderUserId);
+    assert.equal(assign.body.tourLeaderDisplayName, "ITO Leader");
+
+    const logs = await admin.tourExecutionChangeLog.findMany({
+      where: { tenantId: tenantA, changeType: "tour_leader" },
+    });
+    assert.ok(logs.length >= 1);
+
+    const unset = await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/tour-leader`,
+      tenantId: tenantA,
+      userId: operatorId,
+      body: { tourLeaderUserId: null },
+    });
+    assert.equal(unset.status, 200);
+    assert.equal(unset.body.tourLeaderUserId, null);
+  });
+
+  it("ITO-P12 rejects invalid tour leader and viewer mutation", async () => {
+    await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const invalid = await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/tour-leader`,
+      tenantId: tenantA,
+      userId: operatorId,
+      body: { tourLeaderUserId: randomUUID() },
+    });
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.code, "TOUR_EXECUTION_INVALID_LEADER");
+
+    const viewer = await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/tour-leader`,
+      tenantId: tenantA,
+      userId: operatorId,
+      role: "viewer",
+      body: { tourLeaderUserId: leaderUserId },
+    });
+    assert.equal(viewer.status, 403);
+  });
+
+  it("ITO-P13 member summary exposes public tour leader name", async () => {
+    await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    await requestJson(listener, {
+      method: "POST",
+      path: `/tours/${tourId}/execution/manifest/lock`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/tour-leader`,
+      tenantId: tenantA,
+      userId: operatorId,
+      body: { tourLeaderUserId: leaderUserId },
+    });
+    const summary = await requestJson(listener, {
+      method: "GET",
+      path: `/member/tours/${tourId}/execution-summary`,
+      tenantId: tenantA,
+      userId: operatorId,
+      role: "member",
+    });
+    assert.equal(summary.status, 200);
+    assert.equal(summary.body.tourLeaderDisplayName, "ITO Leader");
+  });
+
+  it("ITO-P14 exports locked manifest xlsx and parses rows", async () => {
+    await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    await requestJson(listener, {
+      method: "POST",
+      path: `/tours/${tourId}/execution/manifest/lock`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const exported = await requestBuffer(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution/manifest/export?locale=en`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    assert.equal(exported.status, 200);
+    assert.match(String(exported.headers["content-type"] ?? ""), /spreadsheetml/);
+    const rows = parseTourExecutionManifestXlsx(exported.buffer);
+    assert.ok(rows.length >= 1);
+    assert.ok(Object.keys(rows[0] ?? {}).includes("Guest"));
+    assert.ok(String(rows[0]?.Guest ?? "").startsWith("Guest-"));
+  });
+
+  it("ITO-P15 export forbidden before manifest lock and for viewer", async () => {
+    await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const draftExport = await requestBuffer(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution/manifest/export`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    assert.equal(draftExport.status, 409);
+
+    await requestJson(listener, {
+      method: "POST",
+      path: `/tours/${tourId}/execution/manifest/lock`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const viewerExport = await requestBuffer(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution/manifest/export`,
+      tenantId: tenantA,
+      userId: operatorId,
+      role: "viewer",
+    });
+    assert.equal(viewerExport.status, 403);
   });
 });

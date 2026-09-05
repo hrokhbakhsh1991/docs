@@ -382,6 +382,7 @@
     "executionStateLabel": "Status",
     "executionMeetingTimeLabel": "Meeting time",
     "executionMeetingLocationLabel": "Meeting point",
+    "executionTourLeaderLabel": "Tour leader",
     "executionStates": {
       "draft": "Preparing",
       "manifest_locked": "Roster confirmed",
