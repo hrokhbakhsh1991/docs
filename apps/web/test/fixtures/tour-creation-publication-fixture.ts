@@ -127,6 +127,58 @@ export async function expectTourInDenaliCatalog(
     .toContain(tourTitle);
 }
 
+export async function fetchDenaliTourCanonicalData(
+  page: Page,
+  tourId: string
+): Promise<Record<string, unknown>> {
+  const response = await page.request.get(`/api/tours/${encodeURIComponent(tourId)}`);
+  expect(
+    response.ok(),
+    `GET /api/tours/${tourId} failed: ${response.status()} ${await response.text()}`
+  ).toBeTruthy();
+  const body = (await response.json()) as {
+    canonical?: { data?: Record<string, unknown> };
+  };
+  return body.canonical?.data ?? {};
+}
+
+export async function expectDraftCanonicalFieldsPersisted(
+  page: Page,
+  tourId: string,
+  expected: {
+    readonly title: string;
+    readonly category?: string;
+    readonly capacityMax?: number;
+    readonly peakHeight?: number;
+    readonly itineraryDayCount?: number;
+  }
+): Promise<void> {
+  const data = await fetchDenaliTourCanonicalData(page, tourId);
+  expect(data.title).toBe(expected.title);
+  if (expected.category !== undefined) {
+    expect(data.category).toBe(expected.category);
+  }
+  if (expected.capacityMax !== undefined) {
+    expect(data.capacityMax).toBe(expected.capacityMax);
+  }
+  if (expected.peakHeight !== undefined) {
+    const tripDetails = data.tripDetails as { overview?: { peakHeight?: number } } | undefined;
+    expect(tripDetails?.overview?.peakHeight).toBe(expected.peakHeight);
+  }
+  if (expected.itineraryDayCount !== undefined) {
+    const program = data.program as { itinerary?: unknown[] } | undefined;
+    expect(Array.isArray(program?.itinerary) ? program.itinerary.length : 0).toBe(
+      expected.itineraryDayCount
+    );
+  }
+}
+
+export async function expectFlatEditShowsTitle(page: Page, title: string): Promise<void> {
+  const titleField = page.getByRole("textbox", { name: /نام تور|^title$/i }).first();
+  await expect(titleField).toBeVisible({ timeout: 30_000 });
+  await expect(titleField).toHaveValue(title);
+}
+
 export async function runTourCreationPublicationJourney(
   page: Page,
   title: string

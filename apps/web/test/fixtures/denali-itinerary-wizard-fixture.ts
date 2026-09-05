@@ -3,6 +3,7 @@
  */
 import { expect, type Page } from "@playwright/test";
 
+import { toAsciiDigits } from "../../src/i18n/format-localized-digits";
 import { navigateOperatorToNewTour } from "./operator-tour-navigation-fixture";
 
 import { DENALI_DATETIME_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-datetime-test-ids";
@@ -14,6 +15,8 @@ import { DENALI_TOUR_KIND_TEST_IDS } from "@app-tour/workspace-denali/host/ui/te
 import { WIZARD_STEP_SHELL_TEST_IDS } from "../../src/wizard/wizard-step-shell-logic";
 
 export const OPERATOR_SMOKE_DESTINATION_LABEL = "Smoke Summit";
+/** ED-PEAK-LOCK-01 — Smoke Summit `altitudeM` from operator smoke catalog seed. */
+export const OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M = 4200;
 
 export const DENALI_FLAT_EDIT_SECTION_TEST_ID = (stepId: string) =>
   `operator-tour-edit-section-${stepId}`;
@@ -139,13 +142,19 @@ export async function fillDenaliMultiDayWizardBasics(
   }
   await settleOperatorWizardDraftSync(page);
 
+  const peakMetricHost = page.locator(
+    '[data-catalog-metric-path="tripDetails.overview.peakHeight"]'
+  );
+  await expect(peakMetricHost).toHaveAttribute("data-catalog-metric-locked", "true", {
+    timeout: 15_000,
+  });
   const peakHeight = page.getByRole("textbox", {
     name: /ارتفاع قله|peakHeight|Peak height/i,
   });
-  if (await peakHeight.isEnabled().catch(() => false)) {
-    await peakHeight.fill("5671");
-    await settleOperatorWizardDraftSync(page);
-  }
+  await expect(peakHeight).toBeDisabled();
+  await expect
+    .poll(async () => toAsciiDigits(await peakHeight.inputValue()))
+    .toBe(String(OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M));
 
   await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.start, 1, "08", "00");
   await settleOperatorWizardDraftSync(page);

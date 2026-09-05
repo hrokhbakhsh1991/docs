@@ -7,10 +7,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detail-types";
+import { OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M } from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import {
   createDenaliMultiDayDraftTour,
+  expectDraftCanonicalFieldsPersisted,
+  expectFlatEditShowsTitle,
   expectTourInDenaliCatalog,
   expectTourListedAsActive,
+  openFlatEditForTour,
   prepareDenaliTourWizard,
   publishTourFromFlatEdit,
   runTourCreationPublicationJourney,
@@ -114,5 +118,34 @@ test.describe("tour-creation-publication.spec.ts — Denali create → publish",
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator('[data-tour-status="active"]')).toBeVisible({ timeout: 30_000 });
     await expectTourInDenaliCatalog(page, tourTitle);
+  });
+
+  test("TC-FIELD-01 draft canonical fields persist via API after wizard create", async ({
+    page,
+  }) => {
+    const tourTitle = `TC-FIELD-01 ${Date.now()}`;
+    await prepareDenaliTourWizard(page);
+    const tourId = await createDenaliMultiDayDraftTour(page, tourTitle);
+    await expectDraftCanonicalFieldsPersisted(page, tourId, {
+      title: tourTitle,
+      category: "mountain_multi",
+      capacityMax: 12,
+      peakHeight: OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M,
+      itineraryDayCount: 3,
+    });
+  });
+
+  test("TC-DRAFT-01 flat-edit reload keeps wizard title after draft create", async ({ page }) => {
+    const tourTitle = `TC-DRAFT-01 ${Date.now()}`;
+    await prepareDenaliTourWizard(page);
+    const tourId = await createDenaliMultiDayDraftTour(page, tourTitle);
+    await openFlatEditForTour(page, tourId);
+    await expectFlatEditShowsTitle(page, tourTitle);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expectFlatEditShowsTitle(page, tourTitle);
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/tour-creation-draft-flat-edit-reload.png",
+      fullPage: true,
+    });
   });
 });
