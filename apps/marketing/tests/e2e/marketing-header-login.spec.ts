@@ -80,4 +80,19 @@ test.describe("SMK-MKT-HEADER-02 logged-out header login visibility", () => {
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expectHeaderSignInVisible(page);
   });
+
+  test("hard refresh preserves login CTA on tour detail", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expectHeaderSignInVisible(page);
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expectHeaderSignInVisible(page);
+  });
 });
