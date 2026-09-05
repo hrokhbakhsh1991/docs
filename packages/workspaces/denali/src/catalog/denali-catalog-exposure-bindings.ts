@@ -43,10 +43,6 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "endAt"),
     },
     {
-      fieldId: "denali.approximate-return-time",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "approximateReturnTime"),
-    },
-    {
       fieldId: "denali.pricing-participants",
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "priceAmount"),
     },
@@ -74,13 +70,18 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
 
 export function applyDenaliCatalogCardExposure(
   card: PublicCatalogCard,
-  visibleFieldIds: ReadonlySet<string>,
+  visibleFieldIds: ReadonlySet<string>
 ): PublicCatalogCard {
   let next = applyWorkspaceCatalogCardFieldBindings(
     card,
     visibleFieldIds,
-    DENALI_CATALOG_CARD_EXPOSURE_BINDINGS,
+    DENALI_CATALOG_CARD_EXPOSURE_BINDINGS
   );
+  // Approximate return time is a surface-level PDP field, not an integration
+  // delivery binding. Keep its catalog redaction explicit at this boundary.
+  if (!visibleFieldIds.has("denali.approximate-return-time")) {
+    next = clearWorkspaceCatalogCardStringField(next, "approximateReturnTime");
+  }
   if (!visibleFieldIds.has("title")) {
     next = omitWorkspaceCatalogCardKey(next, "structuredData");
   } else if ("structuredData" in next) {
