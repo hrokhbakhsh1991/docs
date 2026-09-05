@@ -20,6 +20,7 @@ import {
   bookingActionUnavailableMessageKey,
   resolveBookingActionAvailability,
 } from "@/features/bookings/booking-action-availability-logic";
+import { BookingInboxColumnHeader } from "@/features/bookings/booking-inbox-column-header";
 import { BookingInboxRow } from "@/features/bookings/booking-inbox-row";
 import { BookingInspectionDetails } from "@/features/bookings/booking-inspection-details";
 import {
@@ -219,6 +220,7 @@ export function BookingsPageClient({
   const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
   const [actionBusy, setActionBusy] = useState(false);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+  const isNarrowViewportRef = useRef(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -279,6 +281,9 @@ export function BookingsPageClient({
   const selectBooking = (bookingId: string) => {
     clearInlineApproveArm();
     setSelectedId(bookingId);
+    if (isNarrowViewportRef.current) {
+      setMobileSheetOpen(true);
+    }
     if (embedded) {
       return;
     }
@@ -322,7 +327,11 @@ export function BookingsPageClient({
 
   useEffect(() => {
     const mq = window.matchMedia(BOOKINGS_MOBILE_INSPECTION_MAX_WIDTH_MQ);
-    const sync = () => setIsNarrowViewport(mq.matches);
+    const sync = () => {
+      const matches = mq.matches;
+      setIsNarrowViewport(matches);
+      isNarrowViewportRef.current = matches;
+    };
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -331,10 +340,20 @@ export function BookingsPageClient({
   useEffect(() => {
     if (!isNarrowViewport) {
       setMobileSheetOpen(false);
+    }
+  }, [isNarrowViewport]);
+
+  useEffect(() => {
+    if (!isNarrowViewport) {
       return;
     }
-    setMobileSheetOpen(selectedId !== null);
-  }, [isNarrowViewport, selectedId]);
+    const bookingIdFromUrl = readBookingIdFromCommandCenterParams(
+      new URLSearchParams(searchParams.toString())
+    );
+    if (bookingIdFromUrl.length > 0) {
+      setMobileSheetOpen(true);
+    }
+  }, [isNarrowViewport, searchParams]);
 
   useEffect(() => {
     setSearchInput(query.search);
@@ -1126,6 +1145,15 @@ export function BookingsPageClient({
                 }
               }}
             >
+              {query.layout === "inbox" ? (
+                <>
+                  <BookingInboxColumnHeader
+                    showTourTitle={!isWorkspaceEmbed}
+                    showBulkSelect={canManageOps && pageApprovableIds.length > 0}
+                  />
+                  {displayItems.map((item) => renderInboxRow(item))}
+                </>
+              ) : null}
               {query.layout === "timeline"
                 ? groupBookingsByDepartureDay(displayItems, locale).map((group) => (
                     <div key={group.dayKey} className="space-y-0" data-operator-inbox-group="day">
@@ -1136,7 +1164,7 @@ export function BookingsPageClient({
                     </div>
                   ))
                 : null}
-              {query.layout === "board"
+              {query.layout !== "inbox" && query.layout === "board"
                 ? groupBookingsByTour(displayItems).map((group) => (
                     <div key={group.tourId} className="space-y-0" data-operator-inbox-group="tour">
                       <p className="sticky top-0 z-[1] border-b border-border/60 bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
@@ -1146,7 +1174,6 @@ export function BookingsPageClient({
                     </div>
                   ))
                 : null}
-              {query.layout === "inbox" ? displayItems.map((item) => renderInboxRow(item)) : null}
               <BookingsDirectoryPagination
                 page={query.page}
                 totalPages={totalPages}

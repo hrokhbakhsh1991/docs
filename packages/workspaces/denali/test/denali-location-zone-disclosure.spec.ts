@@ -44,7 +44,13 @@ describe("denali-location-zone-disclosure (INV-DENALI-WIZ-019)", () => {
       "utf8"
     );
     assert.match(picker, /mapMounted/);
-    assert.match(picker, /map-deferred/);
-    assert.match(picker, /DenaliLocationPickerMap/);
+    assert.match(picker, /deferred=\{!mapMounted\}/);
+    assert.match(picker, /DenaliWizardMapExperience/);
+
+    const experience = readFileSync(
+      join(root, "src/ui/components/map/denali-wizard-map-experience.tsx"),
+      "utf8"
+    );
+    assert.match(experience, /map-deferred/);
   });
 });

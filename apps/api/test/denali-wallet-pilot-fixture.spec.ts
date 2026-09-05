@@ -37,7 +37,7 @@ describe("denali-wallet-pilot-fixture.spec.ts", () => {
       source.indexOf("seedDenaliWalletPilotTenant"),
       source.indexOf("seedOperatorSmokeTenant")
     );
-    assert.match(pilotBlock, /enabledModules:\s*\["wallet"\]/);
+    assert.match(pilotBlock, /enabledModules:\s*\["wallet",\s*"finance"\]/);
     assert.match(pilotBlock, /currency:\s*"IRR"/);
     assert.doesNotMatch(pilotBlock, /DENALI_SMOKE_TENANT_ID/);
   });

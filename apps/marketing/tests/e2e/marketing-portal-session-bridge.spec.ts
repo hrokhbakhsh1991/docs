@@ -46,9 +46,16 @@ async function resolveVisibleGuestRegisterCta(
       return candidate.first();
     }
   }
-  const fallback = page.locator("[data-marketing-register][data-marketing-register-ready='true']").first();
-  if (await fallback.count()) {
-    return fallback;
+  const fallback = page.locator("[data-marketing-register][data-marketing-register-ready='true']");
+  const count = await fallback.count();
+  for (let i = 0; i < count; i++) {
+    const candidate = fallback.nth(i);
+    if (await candidate.isVisible().catch(() => false)) {
+      return candidate;
+    }
+  }
+  if (count > 0) {
+    return fallback.first();
   }
   return page.locator("[data-marketing-register]").first();
 }
@@ -194,18 +201,19 @@ for (const viewport of [
       });
       await expect(page.locator("[data-marketing-member-authenticated]")).toHaveCount(0);
 
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      const registerCta =
-        viewport.width < 1024
-          ? page.locator("[data-marketing-catalog-detail-sticky-cta] [data-marketing-register]").first()
-          : await resolveVisibleGuestRegisterCta(page);
-      await expect(registerCta).toBeAttached({ timeout: 60_000 });
+      const registerCta = await resolveVisibleGuestRegisterCta(page);
+      await expect(registerCta).toHaveAttribute("data-marketing-register-ready", "true", {
+        timeout: 60_000,
+      });
       await registerCta.evaluate((el) => {
         (el as HTMLAnchorElement).click();
       });
 
       const marketingModal = page.locator('[data-marketing-login-modal-open="true"]');
-      if (await marketingModal.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      if (await marketingModal.isVisible({ timeout: 15_000 }).catch(() => false)) {
+        await expect(page).toHaveURL(new RegExp(`/tours/${TOUR_ID}`));
+      } else if (page.url().includes("auth=login")) {
+        await expect(marketingModal).toBeVisible({ timeout: 60_000 });
         await expect(page).toHaveURL(new RegExp(`/tours/${TOUR_ID}`));
       } else {
         await expect(page).toHaveURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 });

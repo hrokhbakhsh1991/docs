@@ -100,7 +100,6 @@ import {
 import { ImpersonationReadOnlyError } from "../identity/impersonation-read-only.error";
 import { isWorkspaceCommerceGatewayBlockedError } from "../workspace-metadata/assert-workspace-commerce-gateway-blocked.ts";
 import { resolveBookingHttpError } from "../bookings/booking-http-error-map";
-import { resolveTicketingHttpError } from "@app-tour/ticketing-http";
 import {
   isPaymentsWebhookSignatureInvalidError,
   isPaymentsWebhookSignatureMissingError,
@@ -439,21 +438,6 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
         error: bookingHttp.error,
         code: bookingHttp.code,
         ...(bookingHttp.maxBatch !== undefined ? { maxBatch: bookingHttp.maxBatch } : {}),
-      },
-      correlationId
-    );
-    return;
-  }
-
-  const ticketingHttp = resolveTicketingHttpError(error);
-  if (ticketingHttp !== null) {
-    sendHttpError(
-      res,
-      ticketingHttp.status,
-      {
-        error: "ticketing_error",
-        code: ticketingHttp.code,
-        ...(ticketingHttp.field !== undefined ? { field: ticketingHttp.field } : {}),
       },
       correlationId
     );

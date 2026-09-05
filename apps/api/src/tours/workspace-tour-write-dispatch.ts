@@ -99,6 +99,17 @@ export function operatorMemberTourPatchForbidden(workspaceType: string): boolean
   return memberPatchForbidden.has(workspaceType);
 }
 
+/** Denali operator panel: member and viewer are read-only for tour PATCH (owner/admin only). */
+export function operatorTourPatchForbiddenForRole(
+  workspaceType: string,
+  role: string
+): boolean {
+  return (
+    operatorMemberTourPatchForbidden(workspaceType) &&
+    (role === "member" || role === "viewer")
+  );
+}
+
 export function resolveStarterCreateBridgeOperatorTenantId(
   workspaceType: string
 ): string | undefined {

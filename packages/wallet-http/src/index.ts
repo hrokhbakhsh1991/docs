@@ -8,6 +8,7 @@ export {
 export { WALLET_HTTP_ROUTE_MANIFEST, type WorkspaceHttpMethod } from "./routes-manifest";
 export {
   mapWalletDomainErrorToHttp,
+  resolveWalletHttpError,
   throwWalletDomainError,
 } from "./wallet-error-map";
 export {

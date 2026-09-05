@@ -25,3 +25,26 @@ export function mapWalletDomainErrorToHttp(error: WalletDomainError): {
 export function throwWalletDomainError(error: WalletDomainError): never {
   throw new Error(error.code);
 }
+
+export function resolveWalletHttpError(error: unknown): {
+  readonly status: number;
+  readonly code: string;
+} | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+  const code = error.message;
+  if (code === "IDEMPOTENCY_KEY_REQUIRED") {
+    return { status: 422, code: "IDEMPOTENCY_KEY_REQUIRED" };
+  }
+  if (code.startsWith("ZOD_VALIDATION_FAILED")) {
+    return { status: 422, code: "ZOD_VALIDATION_FAILED" };
+  }
+  if (code in WALLET_DOMAIN_HTTP_STATUS) {
+    return {
+      status: WALLET_DOMAIN_HTTP_STATUS[code as WalletErrorCode],
+      code: code as WalletErrorCode,
+    };
+  }
+  return null;
+}

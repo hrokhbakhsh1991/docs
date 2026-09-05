@@ -15,6 +15,10 @@ import {
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
 import {
+  allowsOperatorToursTeamRole,
+  isOperatorToursTeamAccessPath,
+} from "@/features/tours/resolve-operator-tours-middleware-access";
+import {
   allowsOperatorEngagementTeamRole,
   isOperatorEngagementTeamAccessPath,
 } from "@/engagement/resolve-operator-engagement-middleware-access";
@@ -76,13 +80,19 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       isOperatorTicketsTeamAccessPath(pathname) &&
       allowsOperatorTicketsTeamRole(session.role, "GET");
 
+    const toursTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorToursTeamAccessPath(pathname) &&
+      allowsOperatorToursTeamRole(session.role, "GET");
+
     const engagementTeamAccess =
       isDevWebSessionAllowed() &&
       session !== null &&
       isOperatorEngagementTeamAccessPath(pathname) &&
       allowsOperatorEngagementTeamRole(session.role, "GET");
 
-    if (!ticketsTeamAccess && !engagementTeamAccess) {
+    if (!ticketsTeamAccess && !toursTeamAccess && !engagementTeamAccess) {
       const gate = requireOperatorSessionWeb({ session, pathname, host });
       if (!gate.allowed) {
         redirect(gate.redirectTo);

@@ -16,7 +16,7 @@ import {
   resetWalletHttpHostForTests,
 } from "@app-tour/wallet-http";
 
-import { handleHttpError } from "../middleware/error-interceptor.ts";
+import { handleWalletRouteHttpError } from "../http/product-route-http-error.ts";
 import { runWithTraceContext } from "../observability/trace-request-context.ts";
 import {
   createFakeWalletService,
@@ -72,7 +72,7 @@ describe("WALLET-P2D wallet HTTP handlers", () => {
       },
       handleHttpError: (res, error) => {
         void runWithTraceContext("wallet-http-trace", () => {
-          handleHttpError(res, error);
+          handleWalletRouteHttpError(res, error);
         });
       },
       resolveTenantContextFromRequest: async () => hostState.auth,

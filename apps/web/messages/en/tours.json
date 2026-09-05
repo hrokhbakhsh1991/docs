@@ -50,6 +50,17 @@
   "emptyFilter": "No tours match your filters. Try adjusting search or status.",
   "createdNotice": "Tour created successfully.",
   "pagination": "Page {page, number} of {totalPages, number} · {total, number} tours",
+  "table": {
+    "tour": "Tour",
+    "status": "Status",
+    "departure": "Departure",
+    "capacity": "Capacity",
+    "price": "Price",
+    "updated": "Updated",
+    "actions": "Actions",
+    "noDeparture": "—",
+    "noPrice": "—"
+  },
   "card": {
     "noDescription": "No description",
     "noCover": "No cover image",
