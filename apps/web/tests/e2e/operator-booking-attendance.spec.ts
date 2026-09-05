@@ -3,7 +3,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../src/features/bookings/bookings-command-center-types";
+import { BOOKINGS_COMMAND_CENTER_TEST_IDS, bookingsRowAvatarTestId } from "../../src/features/bookings/bookings-command-center-types";
 import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
 import {
   loginOperatorWithPhone,
@@ -134,10 +134,21 @@ async function openApprovedBooking(
     timeout: 15_000,
   });
 
-  const markActions = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.markAbsentButton);
-  if (!(await markActions.first().isVisible())) {
-    await page.getByRole("button", { name: new RegExp(guestLabel, "i") }).first().click({ force: true });
-  }
+  await expect
+    .poll(async () => {
+      const row = page.getByTestId(bookingsRowAvatarTestId(registrationId));
+      if (await row.isVisible()) {
+        await row.click({ force: true });
+        return true;
+      }
+      const loadMore = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.loadMoreButton);
+      if (await loadMore.isVisible()) {
+        await loadMore.click();
+      }
+      return false;
+    }, { timeout: 60_000 })
+    .toBe(true);
+
   const isMobile = (page.viewportSize()?.width ?? 1280) < 1024;
   if (isMobile) {
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.mobileInspectionSheet)).toBeVisible({

@@ -58,6 +58,38 @@ export async function createOperatorNotificationApiContext(): Promise<APIRequest
   });
 }
 
+export async function operatorEnsureTourCapacity(
+  operatorApi: APIRequestContext,
+  tourId: string,
+  capacityMax: number,
+): Promise<void> {
+  const getRes = await operatorApi.get(`/tours/${encodeURIComponent(tourId)}`, {
+    timeout: 120_000,
+  });
+  expect(getRes.ok(), await getRes.text()).toBeTruthy();
+  const tour = (await getRes.json()) as {
+    rowVersion?: number;
+    canonical?: { data?: Record<string, unknown> };
+  };
+  expect(typeof tour.rowVersion).toBe("number");
+  const beforeData = tour.canonical?.data ?? {};
+  const patchRes = await operatorApi.patch(`/tours/${encodeURIComponent(tourId)}`, {
+    data: {
+      rowVersion: tour.rowVersion,
+      data: {
+        capacityMax,
+        basicInfo: {
+          ...((beforeData.basicInfo as Record<string, unknown> | undefined) ?? {}),
+          capacityMax,
+        },
+      },
+      operatorMutationOverride: true,
+    },
+    timeout: 120_000,
+  });
+  expect(patchRes.ok(), await patchRes.text()).toBeTruthy();
+}
+
 export async function operatorCreatePendingBooking(
   operatorApi: APIRequestContext,
   input: { readonly guestLabel: string; readonly tourId?: string },
@@ -91,6 +123,27 @@ export async function operatorApproveBooking(
   const body = (await res.json()) as { status?: string; paymentDueAt?: string };
   expect(body.status).toBe("approved");
   return { paymentDueAt: body.paymentDueAt };
+}
+
+export async function operatorMarkAttendance(
+  operatorApi: APIRequestContext,
+  bookingId: string,
+  attendanceStatus: "present" | "absent",
+): Promise<{ readonly attendanceStatus: string; readonly idempotentReplay?: boolean }> {
+  const res = await operatorApi.post(`/bookings/${encodeURIComponent(bookingId)}/attendance`, {
+    data: { attendanceStatus },
+    timeout: 120_000,
+  });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  const body = (await res.json()) as {
+    attendanceStatus?: string;
+    idempotentReplay?: boolean;
+  };
+  expect(body.attendanceStatus).toBe(attendanceStatus);
+  return {
+    attendanceStatus: body.attendanceStatus!,
+    idempotentReplay: body.idempotentReplay,
+  };
 }
 
 export async function operatorUpdateTourSchedule(

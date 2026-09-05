@@ -42,7 +42,15 @@ Columns on `operator_registrations`:
 
 Relay invokes `dispatchMemberNotificationFromOutbox` → `member_notifications` inbox row with template `booking.attendance.marked`.
 
-Engagement may consume normalized `attendance.marked` (alias `attendance.verified` at ingress only).
+### Integration proof (MNI-001)
+
+| Layer | Proof |
+| ----- | ----- |
+| Postgres | `pnpm --filter @apps/api run test:booking-attendance-postgres` — ATT-01..10 |
+| Portal browser | `MNI-BRW-05` in `shared-notification-journeys-browser.spec.ts` — attendance → outbox → relay → inbox → mark-read |
+| Operator UI | `operator-booking-attendance.spec.ts` — ATT-B01/B02 desktop/mobile RTL |
+
+Chain: operator mark → durable outbox `attendance.marked` → relay → exactly one `member_notifications` row → portal inbox → mark-read persists after reload.
 
 ## Audit
 

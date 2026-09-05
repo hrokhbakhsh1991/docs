@@ -20,7 +20,7 @@ import { resetLazyRouteHandlersForTests } from "../boot/lazy-route-handlers";
 import { resetLazyWorkspaceFinanceHandlersForTests } from "../boot/lazy-workspace-finance-handlers";
 import { disconnectPrisma } from "../db/prisma";
 import { processOutboxRelayForTenantOnce } from "../outbox/outbox-relay";
-import { listMemberNotifications } from "../notifications/member-notification.repository";
+import { listMemberNotifications, markMemberNotificationRead } from "../notifications/member-notification.repository";
 import { integrationTenantId, preparePostgresOutboxIsolation } from "../../test/test-helpers";
 import { installPostgresNotificationTestIsolation } from "../../test/postgres-notification-test-isolation";
 
@@ -36,7 +36,7 @@ const postgresSkip = !hasDatabase
 function authHeaders(input: {
   readonly tenantId: string;
   readonly userId: string;
-  readonly role?: "admin" | "owner" | "member";
+  readonly role?: "admin" | "owner" | "member" | "viewer";
 }): Record<string, string> {
   return {
     "x-tenant-id": input.tenantId,
@@ -55,7 +55,7 @@ async function requestJson(
     readonly path: string;
     readonly tenantId: string;
     readonly userId: string;
-    readonly role?: "admin" | "owner" | "member";
+    readonly role?: "admin" | "owner" | "member" | "viewer";
     readonly body?: unknown;
   },
 ): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -368,6 +368,23 @@ describe(
         (item) => item.eventType === "attendance.marked" && item.entityId === bookingId,
       );
       assert.ok(match, "attendance.marked must fan out to member inbox");
+      const attendanceRows = list.items.filter(
+        (item) => item.eventType === "attendance.marked" && item.entityId === bookingId,
+      );
+      assert.equal(attendanceRows.length, 1, "exactly one attendance.marked notification per mark");
+
+      const secondRelay = await processOutboxRelayForTenantOnce(tenantA, 20);
+      assert.ok(secondRelay.published >= 0);
+      const afterSecondRelay = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        sourceModule: "booking",
+        limit: 20,
+      });
+      const dupes = afterSecondRelay.items.filter(
+        (item) => item.eventType === "attendance.marked" && item.entityId === bookingId,
+      );
+      assert.equal(dupes.length, 1, "relay must not duplicate attendance.marked inbox row");
     });
 
     it("ATT-03 idempotent replay same status — no duplicate outbox", async () => {
@@ -482,6 +499,54 @@ describe(
       });
       assert.equal(mark.status, 400);
       assert.match(String(mark.body.code ?? ""), /BOOKING_ATTENDANCE_INVALID/);
+    });
+
+    it("ATT-09 viewer role forbidden", async () => {
+      const bookingId = await createAndApproveBooking();
+      const mark = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${bookingId}/attendance`,
+        tenantId: tenantA,
+        userId: operatorId,
+        role: "viewer",
+        body: { attendanceStatus: "present" },
+      });
+      assert.equal(mark.status, 403);
+    });
+
+    it("ATT-10 mark-read persists for attendance.marked notification", async () => {
+      const bookingId = await createAndApproveBooking({ memberUserId: memberUser });
+      await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${bookingId}/attendance`,
+        tenantId: tenantA,
+        userId: operatorId,
+        body: { attendanceStatus: "present" },
+      });
+      await processOutboxRelayForTenantOnce(tenantA, 20);
+      const before = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        limit: 20,
+      });
+      const row = before.items.find(
+        (item) => item.eventType === "attendance.marked" && item.entityId === bookingId,
+      );
+      assert.ok(row);
+      assert.equal(row!.readAt, null);
+      const marked = await markMemberNotificationRead({
+        tenantId: tenantA,
+        notificationId: row!.id,
+        userId: memberUser,
+      });
+      assert.ok(marked?.readAt);
+      const after = await listMemberNotifications({
+        tenantId: tenantA,
+        userId: memberUser,
+        limit: 20,
+      });
+      const persisted = after.items.find((item) => item.id === row!.id);
+      assert.ok(persisted?.readAt);
     });
   },
 );

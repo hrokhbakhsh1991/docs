@@ -9,6 +9,8 @@ import {
   linkBookingToMember,
   operatorApproveBooking,
   operatorCreatePendingBooking,
+  operatorEnsureTourCapacity,
+  operatorMarkAttendance,
   operatorUpdateTourSchedule,
   OPERATOR_SMOKE_SEED_TOUR_ID,
   OPERATOR_SMOKE_TENANT_ID,
@@ -237,6 +239,119 @@ test.describe("MNI-001 shared notification browser journeys", () => {
     await expectInboxSourceVisible(page, "engagement");
     await page.screenshot({
       path: "/opt/cursor/artifacts/shared-notification-engagement-badge-en.png",
+      fullPage: true,
+    });
+  });
+
+  test("MNI-BRW-05 attendance.marked → relay → inbox → mark-read (EN desktop + FA mobile RTL)", async ({
+    page,
+  }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+    await authenticatePortalMemberForEngagement(page, {
+      phone,
+      fullName: "Attendance Notification Member",
+    });
+    const memberUserId = await resolveMemberUserId(page);
+
+    const beforeRes = await page.request.get("/api/me/notifications/unread-count");
+    expect(beforeRes.ok()).toBeTruthy();
+    const beforeCount = ((await beforeRes.json()) as { count?: number }).count ?? 0;
+
+    let bookingId = "";
+    const operatorApi = await createOperatorNotificationApiContext();
+    try {
+      await operatorEnsureTourCapacity(operatorApi, OPERATOR_SMOKE_SEED_TOUR_ID, 200);
+      bookingId = await operatorCreatePendingBooking(operatorApi, {
+        guestLabel: `MNI-BRW-05-${Date.now()}`,
+      });
+      linkBookingToMember({
+        tenantId: OPERATOR_SMOKE_TENANT_ID,
+        bookingId,
+        memberUserId,
+      });
+      await operatorApproveBooking(operatorApi, bookingId);
+      relayTenantOutboxForTenant(OPERATOR_SMOKE_TENANT_ID);
+      await operatorMarkAttendance(operatorApi, bookingId, "present");
+    } finally {
+      await operatorApi.dispose();
+    }
+
+    await expect
+      .poll(
+        async () => {
+          relayTenantOutboxForTenant(OPERATOR_SMOKE_TENANT_ID);
+          const res = await page.request.get("/api/me/notifications?limit=30");
+          if (!res.ok()) return 0;
+          const body = (await res.json()) as {
+            items?: readonly { eventType?: string; entityId?: string | null }[];
+          };
+          return (body.items ?? []).filter(
+            (item) => item.eventType === "attendance.marked" && item.entityId === bookingId,
+          ).length;
+        },
+        { timeout: 90_000 },
+      )
+      .toBe(1);
+
+    await expectUnreadIncreased(page, beforeCount);
+
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+
+    const attendanceItem = page
+      .locator(
+        `[data-portal-member-notification-item][data-portal-member-notification-source='booking'][data-portal-member-notification-unread='true']`,
+      )
+      .filter({ hasText: /attendance|حضور|present|حاضر/i })
+      .first();
+    await expect(attendanceItem).toBeVisible({ timeout: 60_000 });
+    await attendanceItem.locator("a").click();
+
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await expect(
+      page
+        .locator(
+          `[data-portal-member-notification-item][data-portal-member-notification-source='booking'][data-portal-member-notification-unread='false']`,
+        )
+        .filter({ hasText: /attendance|حضور|present|حاضر/i })
+        .first(),
+    ).toBeVisible({ timeout: 30_000 });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(
+      page
+        .locator(
+          `[data-portal-member-notification-item][data-portal-member-notification-source='booking'][data-portal-member-notification-unread='false']`,
+        )
+        .filter({ hasText: /attendance|حضور|present|حاضر/i })
+        .first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/shared-notification-attendance-mark-read-desktop-en.png",
+      fullPage: true,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/?locale=fa", { waitUntil: "domcontentloaded" });
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      page.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/shared-notification-attendance-mark-read-mobile-fa-rtl.png",
       fullPage: true,
     });
   });
