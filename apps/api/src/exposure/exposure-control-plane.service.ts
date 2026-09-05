@@ -20,7 +20,7 @@ import {
   resolveLegacyDeliveryExposureProfile,
 } from "./legacy-delivery-exposure-mapper";
 import type { ExposureProfile } from "./exposure-profile";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import { createExposureProfileRepository } from "./prisma-exposure-profile.repository";
 import { resolveRegistrySeededExposureProfile } from "./resolve-registry-seeded-exposure-profile";
 import type { ExposureIntentContextKey } from "./exposure-intent.repository";

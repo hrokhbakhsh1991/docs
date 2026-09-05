@@ -20,7 +20,7 @@ import {
 import type { ExposureProfile } from "./exposure-profile";
 import { resolveLegacyDeliveryExposureProfile } from "./legacy-delivery-exposure-mapper";
 import { resolvePersistedExposureProfileForContext } from "./resolve-persisted-exposure-profile";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import type { FieldExposureRuntimeCoordinate } from "./resolve-runtime-truth-source";
 
 export class ExposureSimulationInvalidBodyError extends Error {
