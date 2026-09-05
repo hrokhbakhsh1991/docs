@@ -243,16 +243,16 @@ export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> 
 
   const itinerary = page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary);
   if (await itinerary.isVisible().catch(() => false)) {
-    const days = itinerary.locator(
-      "section[data-testid^=\"denali-composite-itinerary-day-\"]"
-    );
-    for (let index = 0; index < (await days.count()); index += 1) {
-      const day = days.nth(index);
-      await day.getByRole("textbox", { name: /عنوان روز|Day title/i }).fill(`روز ${index + 1} تست`);
+    const dayCount = await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.nav).locator("button").count();
+    for (let index = 0; index < dayCount; index += 1) {
+      const dayNumber = index + 1;
+      await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(dayNumber)).click();
+      const day = itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.day(dayNumber));
+      await day.getByRole("textbox", { name: /عنوان روز|Day title/i }).fill(`روز ${dayNumber} تست`);
       await day
         .getByRole("textbox", { name: /^عنوان$|^Title$/i })
         .first()
-        .fill(`فعالیت روز ${index + 1}`);
+        .fill(`فعالیت روز ${dayNumber}`);
     }
   }
   await clickWizardNextToStep(page, "denali_logistics");
