@@ -168,7 +168,7 @@ export class ProvisioningService {
         primaryColor: "#059669",
         cssVariables: { "--color-primary": "#059669" },
         defaultLocale: "fa",
-        enabledModules: ["wallet", "finance"],
+        enabledModules: ["wallet"],
         portalModuleGrants: ["wallet"],
         commerce: {
           currency: "IRR",

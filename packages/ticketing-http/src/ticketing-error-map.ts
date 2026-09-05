@@ -106,10 +106,11 @@ export function resolveTicketingHttpError(error: unknown): {
   ) {
     return { status: 404, code: "TICKET_MODULE_DISABLED" };
   }
-  if (code === "IDEMPOTENCY_KEY_REQUIRED") {
+  const domainCode = DOMAIN_HTTP_CODE[code as TicketingErrorCode];
+  if (domainCode !== undefined) {
     return {
-      status: 422,
-      code: "IDEMPOTENCY_KEY_REQUIRED",
+      status: DOMAIN_HTTP_STATUS[code as TicketingErrorCode] ?? 422,
+      code: domainCode,
     };
   }
   if (code === "FORBIDDEN_OPERATOR_ENDPOINT") {

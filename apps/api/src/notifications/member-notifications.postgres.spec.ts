@@ -87,7 +87,16 @@ describe(
             "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only"
           );
         }
-        await admin.tenant.deleteMany({ where: { id: tenantA } });
+        await admin.$executeRawUnsafe(
+          "ALTER TABLE engagement_point_events DISABLE TRIGGER engagement_point_events_append_only"
+        );
+        try {
+          await admin.tenant.deleteMany({ where: { id: tenantA } });
+        } finally {
+          await admin.$executeRawUnsafe(
+            "ALTER TABLE engagement_point_events ENABLE TRIGGER engagement_point_events_append_only"
+          );
+        }
       } finally {
         await disconnectPrisma();
       }

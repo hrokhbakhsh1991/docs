@@ -10,6 +10,8 @@ const SRC_DIR = join(PACKAGE_ROOT, "src");
 
 const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/booking-http-contracts",
+  "@app-tour/engagement-http",
+  "@app-tour/engagement-http-contracts",
   "@app-tour/finance-core",
   "@app-tour/finance-http",
   "@app-tour/finance-http-contracts",
@@ -17,6 +19,9 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/platform-core",
   "@app-tour/platform-events",
   "@app-tour/tenant-kernel",
+  "@app-tour/ticketing-core",
+  "@app-tour/ticketing-http",
+  "@app-tour/ticketing-http-contracts",
   "@app-tour/tour-core",
   "@app-tour/wallet-core",
   "@app-tour/wallet-http",
