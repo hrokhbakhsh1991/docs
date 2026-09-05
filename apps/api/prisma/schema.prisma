@@ -93,6 +93,12 @@ model Tenant {
   engagementLevelDefinitions     EngagementLevelDefinition[]
   engagementAwardRuleDefinitions EngagementAwardRuleDefinition[]
   engagementDefinitionAuditLogs  EngagementDefinitionAuditLog[]
+  tourExecutions                 TourExecution[]
+  tourExecutionManifestRows      TourExecutionManifestRow[]
+  tourExecutionGroups            TourExecutionGroup[]
+  tourExecutionChecklistItems    TourExecutionChecklistItem[]
+  tourExecutionOperationalEvents TourExecutionOperationalEvent[]
+  tourExecutionChangeLogs        TourExecutionChangeLog[]
 
   @@map("tenants")
 }
@@ -1747,4 +1753,122 @@ model TicketWorkspaceSettings {
   tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("ticket_workspace_settings")
+}
+
+/// ITO-001 — day-of tour execution desk (one active row per tour while non-terminal).
+model TourExecution {
+  id                  String                        @id @default(uuid()) @db.Uuid
+  tenantId            String                        @map("tenant_id") @db.Uuid
+  tourId              String                        @map("tour_id") @db.Uuid
+  state               String                        @default("draft")
+  rowVersion          Int                           @default(0) @map("row_version")
+  tourLeaderUserId    String?                       @map("tour_leader_user_id") @db.Uuid
+  scheduledMeetingAt  DateTime?                     @map("scheduled_meeting_at") @db.Timestamptz
+  meetingLocation     String?                       @map("meeting_location")
+  manifestLockedAt    DateTime?                     @map("manifest_locked_at") @db.Timestamptz
+  startedAt           DateTime?                     @map("started_at") @db.Timestamptz
+  completedAt         DateTime?                     @map("completed_at") @db.Timestamptz
+  cancelledAt         DateTime?                     @map("cancelled_at") @db.Timestamptz
+  createdAt           DateTime                      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime                      @updatedAt @map("updated_at") @db.Timestamptz
+  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  manifestRows        TourExecutionManifestRow[]
+  groups              TourExecutionGroup[]
+  checklistItems      TourExecutionChecklistItem[]
+  operationalEvents   TourExecutionOperationalEvent[]
+  changeLogs          TourExecutionChangeLog[]
+
+  @@index([tenantId, state, updatedAt(sort: Desc)], map: "idx_tour_executions_tenant_state")
+  @@map("tour_executions")
+}
+
+model TourExecutionManifestRow {
+  id                 String        @id @default(uuid()) @db.Uuid
+  tenantId           String        @map("tenant_id") @db.Uuid
+  executionId        String        @map("execution_id") @db.Uuid
+  registrationId     String        @map("registration_id") @db.Uuid
+  guestLabel         String        @map("guest_label")
+  partySize          Int           @map("party_size")
+  registrationStatus String        @map("registration_status")
+  paymentStatus      String        @map("payment_status")
+  insuranceStatus    String?       @map("insurance_status")
+  groupId            String?       @map("group_id") @db.Uuid
+  sortOrder          Int           @default(0) @map("sort_order")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  execution          TourExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, executionId, registrationId], map: "uq_tour_execution_manifest_registration")
+  @@index([tenantId, executionId, sortOrder], map: "idx_tour_execution_manifest_execution")
+  @@map("tour_execution_manifest_rows")
+}
+
+model TourExecutionGroup {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  executionId    String        @map("execution_id") @db.Uuid
+  name           String
+  leaderUserId   String?       @map("leader_user_id") @db.Uuid
+  sortOrder      Int           @default(0) @map("sort_order")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  execution      TourExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, executionId, sortOrder], map: "idx_tour_execution_groups_execution")
+  @@map("tour_execution_groups")
+}
+
+model TourExecutionChecklistItem {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  executionId       String        @map("execution_id") @db.Uuid
+  phase             String
+  label             String
+  completedAt       DateTime?     @map("completed_at") @db.Timestamptz
+  completedByUserId String?       @map("completed_by_user_id") @db.Uuid
+  sortOrder         Int           @default(0) @map("sort_order")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  execution         TourExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, executionId, phase, sortOrder], map: "idx_tour_execution_checklist_execution")
+  @@map("tour_execution_checklist_items")
+}
+
+model TourExecutionOperationalEvent {
+  id               String        @id @default(uuid()) @db.Uuid
+  tenantId         String        @map("tenant_id") @db.Uuid
+  executionId      String        @map("execution_id") @db.Uuid
+  eventKind        String        @map("event_kind")
+  severity         String        @default("info")
+  description      String
+  reportedByUserId String        @map("reported_by_user_id") @db.Uuid
+  reportedAt       DateTime      @default(now()) @map("reported_at") @db.Timestamptz
+  resolvedAt       DateTime?     @map("resolved_at") @db.Timestamptz
+  metadata         Json          @default("{}")
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  execution        TourExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, executionId, reportedAt(sort: Desc)], map: "idx_tour_execution_operational_events_execution")
+  @@map("tour_execution_operational_events")
+}
+
+model TourExecutionChangeLog {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  executionId    String        @map("execution_id") @db.Uuid
+  changeType     String        @map("change_type")
+  previousValue  Json?         @map("previous_value")
+  newValue       Json          @map("new_value")
+  actorUserId    String        @map("actor_user_id") @db.Uuid
+  changedAt      DateTime      @default(now()) @map("changed_at") @db.Timestamptz
+  idempotencyKey String?       @map("idempotency_key")
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  execution      TourExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, executionId, changedAt(sort: Desc)], map: "idx_tour_execution_change_logs_execution")
+  @@map("tour_execution_change_logs")
 }

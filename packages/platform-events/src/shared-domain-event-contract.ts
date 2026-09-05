@@ -75,6 +75,30 @@ export const SHARED_DOMAIN_EVENT_INVENTORY: readonly SharedDomainEventInventoryE
       producerNote: "emit-tour-mutation-side-effects",
       notificationConsumer: "dispatch-tour-schedule-notification-from-outbox",
     },
+    {
+      canonicalEventType: "tour.execution.started",
+      aggregateType: "tour_execution",
+      description: "In-tour operations execution entered in_progress",
+      compatibilityAliases: Object.freeze([]),
+      producerNote: "ITO-001 transitionTourExecutionState",
+      notificationConsumer: "dispatch-tour-execution-notification-from-outbox",
+    },
+    {
+      canonicalEventType: "tour.execution.completed",
+      aggregateType: "tour_execution",
+      description: "In-tour operations execution completed",
+      compatibilityAliases: Object.freeze([]),
+      producerNote: "ITO-001 transitionTourExecutionState",
+      notificationConsumer: "dispatch-tour-execution-notification-from-outbox",
+    },
+    {
+      canonicalEventType: "tour.execution.change.notified",
+      aggregateType: "tour_execution",
+      description: "Day-of meeting schedule/location/leader change",
+      compatibilityAliases: Object.freeze([]),
+      producerNote: "ITO-001 applyExecutionChange",
+      notificationConsumer: "dispatch-tour-execution-notification-from-outbox",
+    },
   ]);
 
 const ALIAS_TO_CANONICAL: Readonly<Record<string, string>> = Object.freeze(

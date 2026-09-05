@@ -376,6 +376,10 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
     await import("../notifications/dispatch-tour-schedule-notification-from-outbox");
   await dispatchTourScheduleNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
 
+  const { dispatchTourExecutionNotificationFromOutbox } =
+    await import("../notifications/dispatch-tour-execution-notification-from-outbox");
+  await dispatchTourExecutionNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
+
   const { dispatchTicketNotificationFromOutbox } =
     await import("../notifications/dispatch-ticket-notification-from-outbox");
   await dispatchTicketNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
