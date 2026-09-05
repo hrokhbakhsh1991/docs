@@ -4,7 +4,6 @@ format: markdoc
 doc_role: agent_charter
 extends:
   - docs/dev/feature-delivery/completion-rules.mdoc
-  - docs/dev/feature-delivery/notification-case-study.mdoc
 code_sot:
   - .cursor/skills/feature-delivery/evaluate-fda-verdict.mjs
   - .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs
@@ -12,7 +11,7 @@ code_sot:
 
 # Completion Rules — Regression Fixture
 
-**Purpose:** Prove that final reports containing **`broken`**, **`missing`**, or mandatory **`unverified`** rows **cannot** emit `COMPLETE`. Executable cases live in [`.cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs`](../../.cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs).
+**Purpose:** Prove reports with **`broken`**, **`missing`**, **`partial`**, or mandatory **`unverified`** rows **cannot** emit `FEATURE_COMPLETE`.
 
 **Run:**
 
@@ -22,35 +21,27 @@ node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs
 
 ---
 
-## 1. Fixture cases (summary)
+## Fixture cases (v1.4)
 
-| Case ID | Matrix signal | Proposed verdict | Expected |
-| ------- | ------------- | ---------------- | -------- |
-| `CRF-001` | mandatory `broken` payment-hold outbox | `COMPLETE` | **reject** |
-| `CRF-002` | mandatory `broken` payment-hold outbox | `COMPLETE_WITH_ACCEPTED_RISKS` | **reject** |
-| `CRF-003` | mandatory `missing` event producer | `COMPLETE` | **reject** |
-| `CRF-004` | mandatory `unverified` browser proof | `COMPLETE` | **reject** |
-| `CRF-005` | mandatory `browser-unverified` UI | `COMPLETE_WITH_ACCEPTED_RISKS` | **reject** |
-| `CRF-006` | mandatory `rls/security unverified` | `COMPLETE_WITH_ACCEPTED_RISKS` + approval | **reject** (non-acceptable risk category) |
-| `CRF-007` | all mandatory rows `complete` | `COMPLETE` | **allow** |
-| `CRF-008` | optional row `partial` + valid approval | `COMPLETE_WITH_ACCEPTED_RISKS` | **allow** |
-| `CRF-009` | mandatory `broken` | `INCOMPLETE` | **allow** |
-| `CRF-010` | mandatory `producer-missing` | `INCOMPLETE` | **allow** |
+| Case | Signal | Proposed verdict | Expected |
+| ---- | ------ | ---------------- | -------- |
+| CRF-001 | mandatory `broken` | `FEATURE_COMPLETE` | reject |
+| CRF-002 | mandatory `broken` | `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | reject |
+| CRF-003 | mandatory `missing` | `FEATURE_COMPLETE` | reject |
+| CRF-004 | mandatory `unverified` | `SHARED_NOTIFICATION_AUDIT_COMPLETE` | reject |
+| CRF-005 | `browser-unverified` | `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | reject |
+| CRF-006 | `rls/security unverified` + rls risk approval | accepted risks | reject |
+| CRF-007 | all mandatory `complete` | `FEATURE_COMPLETE` | allow |
+| CRF-008 | optional `partial` + valid approval | `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | allow |
+| CRF-009 | mandatory `broken` | `FEATURE_INCOMPLETE` | allow |
+| CRF-010 | `producer-missing` | `SHARED_NOTIFICATION_AUDIT_INCOMPLETE` | allow |
+| CRF-011 | mandatory `partial` | `FEATURE_COMPLETE` | reject |
+| CRF-012 | `browser-unverified` | legacy `COMPLETE` alias | reject |
 
----
-
-## 2. Notification audit regression (historical)
-
-The Shared Notification adversarial audit reported `COMPLETE_WITH_ACCEPTED_RISKS` while mandatory rows included:
-
-- **B1** — payment-hold outbox **broken** (Prisma durability)
-- **B3** — `registration.rejected` producer **missing**
-- **Browser** — J1–J3/J5–J6 **browser-unverified**
-
-Under FDA-001 v1.3 completion rules, that report **must not** use `COMPLETE` or `COMPLETE_WITH_ACCEPTED_RISKS`. Correct verdict: **`INCOMPLETE`** until B1 is fixed or explicitly downgraded with non-mandatory scope change, producers ship, and browser proof closes.
+Executable cases: [`.cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs`](../../.cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs)
 
 ---
 
-## 3. Machine-readable fixture location
+## Staged design reminder
 
-Full input/output pairs are encoded in `evaluate-fda-verdict.regression.mjs` — keep doc summary and executable fixture in sync when adding cases.
+Under FDA-001 v1.4, agents must complete tier-required **D0–D7** design artifacts before implementation and **B1–B8** adversarial passes after — see [staged-design-workflow](staged-design-workflow.mdoc) and [adversarial-bug-hunt](adversarial-bug-hunt.mdoc). Missing design or bug-hunt evidence remains **`unverified`** in the final matrix.

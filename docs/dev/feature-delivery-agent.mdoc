@@ -1,7 +1,7 @@
 ---
 title: Feature Delivery Agent (FDA-001)
 standard_id: FDA-001
-version: 1.3.0
+version: 1.4.0
 status: draft
 format: markdoc
 doc_role: agent_charter
@@ -15,6 +15,8 @@ extends:
   - docs/dev/feature-delivery/research-and-design-gate.mdoc
   - docs/dev/feature-delivery/completion-rules.mdoc
   - docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc
+  - docs/dev/feature-delivery/staged-design-workflow.mdoc
+  - docs/dev/feature-delivery/adversarial-bug-hunt.mdoc
 mandatory_for:
   - .cursor/agents
   - .cursor/skills
@@ -25,9 +27,9 @@ code_sot:
 
 # Feature Delivery Agent (FDA-001)
 
-**Purpose:** Define a reusable, repository-level **architecture-aware feature delivery orchestrator** for the app-tour **pnpm workspace** monorepo. The agent performs deep discovery, product/design/UI-UX planning, architecture classification, consumer analysis, bounded research, vertical-slice implementation, browser verification, evidence-backed blocker recovery, and scope-guarded commit/push on a **locked branch**.
+**Purpose:** Define a reusable, repository-level **architecture-aware feature delivery orchestrator** for the app-tour **pnpm workspace** monorepo. The agent performs **staged design (D0–D7)**, dependency tracing, consumer analysis, threat modeling, implementation, **adversarial bug-hunting (B1–B8)**, browser verification, evidence-backed blocker recovery, and scope-guarded commit/push on a **locked branch**.
 
-**Principle:** The agent is an orchestrator, not an autonomous architect. Static scripts may emit **signals**; **architecture decisions** require a read-only **architecture-reviewer** subagent (or equivalent human gate). The agent never silently changes branch, worktree, scope, architecture boundary, or product contract. It stops only for genuine human architecture/security/product decisions after evidenced recovery attempts.
+**Principle:** Do **not** begin coding immediately after a basic plan. Spend more time designing, tracing dependencies, and searching for bugs **before and after** implementation. Practical depth scales by workflow tier ([staged-design-workflow](feature-delivery/staged-design-workflow.mdoc) §10).
 
 **Canonical Cursor paths:** `.cursor/rules/`, `.cursor/skills/`, `.cursor/agents/`, `.cursor/hooks.json`.
 
@@ -92,44 +94,79 @@ Changes under `packages/platform-core`, `packages/workspace-sdk`, or `apps/api` 
 
 ---
 
-## 3. Lifecycle
+## 3. Lifecycle (D0–D7 → Implementation → B1–B8)
 
 ```mermaid
 flowchart TD
-  start[SessionStart] --> cp0[CP0: Discovery + requirement inventory]
-  cp0 --> cp1a[CP1: Product + IA analysis]
-  cp1a --> cp1b[CP1: UI UX Pro Max advisory]
-  cp1b --> cp1c[CP1: Design-system review + ui-ux-decision.json]
-  cp1c --> cp2[CP2: Plan + consumer review]
-  cp2 --> cp3[CP3: Vertical slice]
-  cp3 --> cp4[CP4: Pre-DB shared contract]
-  cp4 --> cp5[CP5: UI browser integration]
-  cp5 --> bqc[BQC: Browser quality verification]
-  bqc --> cp6[CP6: Verification + blocker recovery]
-  cp6 --> cp7[CP7: Commit push final report]
-  cp6 -->|failure| recover[Blocker recovery 3 hypotheses]
-  recover -->|recovered| cp6
+  start[SessionStart] --> d0[D0: Repository baseline]
+  d0 --> d1[D1: Product and journey discovery]
+  d1 --> d2[D2: Consumer and boundary map]
+  d2 --> d3[D3: Data and contract design]
+  d3 --> d4[D4: Architecture and security review]
+  d4 --> d5[D5: UI/UX and IA review]
+  d5 --> d6[D6: Test design and realness]
+  d6 --> d7[D7: Threat and failure-mode analysis]
+  d7 --> impl[Implementation vertical slice]
+  impl --> b1[B1-B8: Adversarial bug-hunt passes]
+  b1 --> verify[Verification + blocker recovery]
+  verify --> report[Final report + commit/push]
+  verify -->|failure| recover[Blocker recovery 3 hypotheses]
+  recover -->|recovered| verify
   recover -->|exhausted| stop[HardStop]
 ```
 
-### 3.1 Checkpoints
+**Canonical subdocs:**
 
-| ID | When | Mandatory actions |
-| -- | ---- | ----------------- |
-| **CP0** | Before first file edit | Deep discovery; requirement inventory; classifier; consumer scan; architecture-reviewer when required |
-| **CP1** | Before implementation | Product/IA analysis; UI UX Pro Max advisory; design-system review; **ui-ux-decision.json** (24 sections); design brief; architecture-reviewer |
-| **CP2** | Before slice | Implementation plan; future-consumer review; user/plan gate |
-| **CP3** | First vertical slice | Smallest E2E path; reviewer on diff; re-run consumer analysis |
-| **CP4** | Before DB/shared contracts | Doc-first; RLS; dedupe; architecture-reviewer |
-| **CP5** | Before UI sign-off | Browser proof; RTL/LTR; tokens; accessibility; screenshots |
-| **CP6** | Verification | Fast-track tests; ledger; blocker recovery; queue updates |
-| **CP7** | Commit/push | Scope guard; final report with every queue item |
+| Phase | Doc |
+| ----- | --- |
+| D0–D7 staged design | [staged-design-workflow](feature-delivery/staged-design-workflow.mdoc) |
+| B1–B8 adversarial hunt | [adversarial-bug-hunt](feature-delivery/adversarial-bug-hunt.mdoc) |
+| UI/UX gate detail | [research-and-design-gate](feature-delivery/research-and-design-gate.mdoc) |
+| Verdict gating | [completion-rules](feature-delivery/completion-rules.mdoc) |
 
-**Legacy mapping (v1.1 → v1.2):** old CP1 (slice) → CP3; old CP2 (pre-DB) → CP4; old CP3 (UI) → CP5; old CP4–CP5 (commit/push) → CP7.
+### 3.1 Design stages (before code)
 
-### 3.2 User control and autonomy
+| ID | Artifact | Hard gate |
+| -- | -------- | --------- |
+| **D0** | `baseline.json` | Branch lock; runtime/DB/browser inventory |
+| **D1** | `requirements-matrix.json` | Actors, states, exclusions, risk per requirement |
+| **D2** | `consumer-and-boundary-map.json` | ≥2 consumers for shared concepts |
+| **D3** | `data-contract-map.json` | Before DB/contract/outbox changes (Tier B/C) |
+| **D4** | `architecture-review.json` | architecture-reviewer when triggers apply |
+| **D5** | `ui-ux-decision.json` | Before user-visible implementation |
+| **D6** | `test-plan-and-realness.json` | Test design + existing test classification |
+| **D7** | `failure-mode-analysis.json` | Mandatory for finance/identity/permission/notification/tenant |
 
-After **CP1 design + CP2 plan approval**, agent may execute CP3–CP7 without micro-prompts. Mandatory gates remain non-optional. Unresolved product intent, shared contracts, security/RLS, or scope expansion → hard-stop.
+**Workflow tiers:** UI-only reduced (A), API/DB full (B), platform deepest (C) — [staged-design-workflow](feature-delivery/staged-design-workflow.mdoc) §10.
+
+### 3.2 Implementation and adversarial passes (after design)
+
+| Phase | When |
+| ----- | ---- |
+| **Vertical slice** | Smallest end-to-end path after D-gates for tier |
+| **Finding cycle** | Reproduce → root cause → fix → regression test → rerun — [adversarial-bug-hunt](feature-delivery/adversarial-bug-hunt.mdoc) §1 |
+| **B1–B8** | Static, contract, RLS, integration, browser, resilience, regression, independent second review |
+
+Do not fix UI symptoms when root cause is API, contract, persistence, or authorization.
+
+### 3.3 Legacy checkpoint mapping (v1.2 → v1.4)
+
+| Legacy | v1.4 |
+| ------ | ---- |
+| CP0 | D0 + D1 + D2 |
+| CP1 | D5 (+ D1 product) |
+| CP2 | D6 + implementation plan |
+| CP3 | Vertical slice + B8 review |
+| CP4 | D3 + D4 |
+| CP5 | D5 verification + B5 (BQC) |
+| CP6 | B1–B7 + verification |
+| CP7 | Final report + commit/push |
+
+Ledger `checkpoint` column accepts `D0`–`D7`, `B1`–`B8`, legacy `CP0`–`CP7`, `bootstrap`, `report`.
+
+### 3.4 User control and autonomy
+
+After **D-stages + plan approval** for session tier, agent may execute implementation and B-passes without micro-prompts. Mandatory gates remain non-optional. Unresolved product intent, shared contracts, security/RLS, or scope expansion → hard-stop.
 
 ---
 
@@ -170,20 +207,22 @@ Mandatory per [blocker-recovery](feature-delivery/blocker-recovery.mdoc):
 2. 11-step loop with up to **3 hypotheses**.
 3. Blocked sub-features do not stop unrelated queue items.
 4. Hard stops not overridable by research.
-5. `COMPLETE` forbidden while mandatory rows carry blocking statuses — [completion-rules](feature-delivery/completion-rules.mdoc) §2.
+5. `FEATURE_COMPLETE` forbidden while mandatory rows carry blocking statuses — [completion-rules](feature-delivery/completion-rules.mdoc) §2.
 
 ---
 
 ## 7. Completion rules and verdict gating
 
-**Canonical:** [completion-rules](feature-delivery/completion-rules.mdoc) (FDA-001 v1.3).
+**Canonical:** [completion-rules](feature-delivery/completion-rules.mdoc) (FDA-001 v1.4).
 
 | Verdict | Gate |
 | ------- | ---- |
-| `COMPLETE` | All mandatory rows closed; no §2 blocking status |
-| `COMPLETE_WITH_ACCEPTED_RISKS` | §3 conditions + explicit approval; never for security/RLS/durability/mandatory producers |
-| `INCOMPLETE` | Open mandatory rows; known broken/missing producers |
-| `BLOCKED` | Hard stop active |
+| `FEATURE_COMPLETE` | All mandatory rows closed; no §2 blocking status; required D-stages and B-passes for tier |
+| `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | §3 conditions + explicit approval; never for security/RLS/durability/mandatory producers |
+| `FEATURE_INCOMPLETE` | Open mandatory rows; known broken/missing producers; skipped adversarial passes |
+| `FEATURE_BLOCKED` | Hard stop active |
+
+Legacy aliases (`COMPLETE`, `SHARED_NOTIFICATION_AUDIT_*`) normalize to the same gates — [evaluate-fda-verdict.mjs](../../.cursor/skills/feature-delivery/evaluate-fda-verdict.mjs).
 
 **Regression fixture:** [completion-rules-regression-fixture](feature-delivery/completion-rules-regression-fixture.mdoc) — run `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs`.
 
@@ -198,15 +237,17 @@ Session artifacts per [evidence-ledger-schema](feature-delivery/evidence-ledger-
 Final report minimum:
 
 1. Branch, heads, working tree
-2. **Requirement queue** — every item and status
-3. Classification and reviewer verdict(s)
-4. Files changed (scope allowlist)
-5. Capability status table
-6. Test/guard matrix; artifacts (screenshots, research URLs)
-7. Remaining / accepted risks
-8. Commit SHAs and push result
+2. **Design stages completed** (D0–D7 per tier)
+3. **Bug-hunt passes completed** (B1–B8 per tier)
+4. **Requirement queue** — every item and status
+5. Classification and reviewer verdict(s)
+6. Files changed (scope allowlist)
+7. Bugs found, reproduced, root causes, fixes, regression tests
+8. Test/guard matrix; UI/UX findings; browser evidence
+9. Skipped/unverified items; accepted risks with explicit approval
+10. Commit SHAs and push result
 
-**Forbidden claims:** COMPLETE with open mandatory blocking rows; COMPLETE_WITH_ACCEPTED_RISKS for security/RLS/durability/mandatory-producer gaps; admin usability from read-only catalog; browser success from curl; production readiness from local tests only; architecture approval without reviewer evidence; test pass without ledger command.
+**Forbidden claims:** `FEATURE_COMPLETE` with open mandatory blocking rows; accepted risks for security/RLS/durability/mandatory producers; admin usability from read-only catalog; browser success from curl; production readiness from local tests only; architecture approval without reviewer evidence; test pass without ledger command.
 
 ---
 
@@ -233,7 +274,8 @@ Final report minimum:
 | **B.2** | v1.2 discovery, design, research, queue, recovery | **Current** |
 | **B.3** | Browser Quality & E2E Closure sub-agent (BQC-001) | **Current** |
 | **B.4** | UI UX Pro Max design-intelligence integration (advisory) | **Current** |
-| **B.5** | Completion rules + verdict regression fixture | **Current** |
+| **B.5** | Completion rules + verdict regression fixture | Done |
+| **B.6** | Staged design D0–D7 + adversarial B1–B8 workflow | **Current** |
 | **C** | `scripts/agents/feature-delivery-*` guards + ledger CLI | Planned |
 | **D** | `test-changed` path map fixes | Planned |
 
@@ -274,4 +316,4 @@ For **every user-visible feature**, CP1 requires an evidence-based UI/UX decisio
 
 ---
 
-_FDA-001 v1.3.0 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery, completion gating._
+_FDA-001 v1.4.0 — staged design D0–D7, adversarial bug-hunt B1–B8, tiered workflow depth, completion gating._

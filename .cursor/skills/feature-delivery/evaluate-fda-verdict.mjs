@@ -1,10 +1,10 @@
 /**
- * FDA-001 v1.3 — evaluate final Feature Delivery verdict against capability matrix.
+ * FDA-001 v1.4 — evaluate final Feature Delivery verdict against capability matrix.
  * @see docs/dev/feature-delivery/completion-rules.mdoc
  */
 
 /** @typedef {'mandatory' | 'optional'} RowMandatory */
-/** @typedef {'COMPLETE' | 'COMPLETE_WITH_ACCEPTED_RISKS' | 'INCOMPLETE' | 'BLOCKED'} FdaVerdict */
+/** @typedef {'FEATURE_COMPLETE' | 'FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS' | 'FEATURE_INCOMPLETE' | 'FEATURE_BLOCKED'} FdaVerdict */
 
 /**
  * @typedef {Object} CapabilityRow
@@ -35,8 +35,10 @@ export const BLOCKING_STATUSES = Object.freeze([
   "unverified",
   "browser-unverified",
   "producer-missing",
-  "data durability unverified",
-  "rls/security unverified",
+  "data-durability-unverified",
+  "rls-unverified",
+  "rls-security-unverified",
+  "security-unverified",
   "blocked",
   "fixture-only",
   "mocked",
@@ -54,20 +56,29 @@ export const NON_ACCEPTABLE_RISK_CATEGORIES = Object.freeze([
 ]);
 
 const COMPLETE_ALIASES = Object.freeze([
-  "COMPLETE",
   "FEATURE_COMPLETE",
+  "COMPLETE",
   "SHARED_NOTIFICATION_AUDIT_COMPLETE",
   "BROWSER_GAPS_CLOSED",
 ]);
 
 const COMPLETE_WITH_RISKS_ALIASES = Object.freeze([
+  "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS",
   "COMPLETE_WITH_ACCEPTED_RISKS",
   "SHARED_NOTIFICATION_AUDIT_COMPLETE_WITH_ACCEPTED_RISKS",
 ]);
 
-const INCOMPLETE_ALIASES = Object.freeze(["INCOMPLETE", "SHARED_NOTIFICATION_AUDIT_INCOMPLETE"]);
+const INCOMPLETE_ALIASES = Object.freeze([
+  "FEATURE_INCOMPLETE",
+  "INCOMPLETE",
+  "SHARED_NOTIFICATION_AUDIT_INCOMPLETE",
+]);
 
-const BLOCKED_ALIASES = Object.freeze(["BLOCKED", "SHARED_NOTIFICATION_AUDIT_BLOCKED"]);
+const BLOCKED_ALIASES = Object.freeze([
+  "FEATURE_BLOCKED",
+  "BLOCKED",
+  "SHARED_NOTIFICATION_AUDIT_BLOCKED",
+]);
 
 /**
  * @param {string} raw
@@ -78,7 +89,9 @@ export function normalizeCapabilityStatus(raw) {
     .trim()
     .toLowerCase()
     .replace(/_/g, "-")
-    .replace(/\s+/g, " ");
+    .replace(/\//g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 /**
@@ -87,10 +100,12 @@ export function normalizeCapabilityStatus(raw) {
  */
 export function normalizeVerdict(raw) {
   const v = String(raw ?? "").trim();
-  if (COMPLETE_ALIASES.includes(v)) return "COMPLETE";
-  if (COMPLETE_WITH_RISKS_ALIASES.includes(v)) return "COMPLETE_WITH_ACCEPTED_RISKS";
-  if (INCOMPLETE_ALIASES.includes(v)) return "INCOMPLETE";
-  if (BLOCKED_ALIASES.includes(v)) return "BLOCKED";
+  if (COMPLETE_ALIASES.includes(v)) return "FEATURE_COMPLETE";
+  if (COMPLETE_WITH_RISKS_ALIASES.includes(v)) {
+    return "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS";
+  }
+  if (INCOMPLETE_ALIASES.includes(v)) return "FEATURE_INCOMPLETE";
+  if (BLOCKED_ALIASES.includes(v)) return "FEATURE_BLOCKED";
   return v;
 }
 
@@ -189,18 +204,18 @@ export function evaluateFdaVerdict(input) {
   const acceptedRisks = input.acceptedRisks ?? [];
   const blocking = listBlockingMandatoryRows(matrix);
 
-  if (normalizedVerdict === "COMPLETE") {
+  if (normalizedVerdict === "FEATURE_COMPLETE") {
     if (blocking.length > 0) {
       reasons.push(
-        `COMPLETE forbidden: ${blocking.length} mandatory row(s) blocking — ${blocking.map((r) => `${r.id}:${r.status}`).join(", ")}`,
+        `FEATURE_COMPLETE forbidden: ${blocking.length} mandatory row(s) blocking — ${blocking.map((r) => `${r.id}:${r.status}`).join(", ")}`,
       );
     }
   }
 
-  if (normalizedVerdict === "COMPLETE_WITH_ACCEPTED_RISKS") {
+  if (normalizedVerdict === "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS") {
     if (blocking.length > 0) {
       reasons.push(
-        `COMPLETE_WITH_ACCEPTED_RISKS forbidden while mandatory rows block: ${blocking.map((r) => `${r.id}:${r.status}`).join(", ")}`,
+        `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS forbidden while mandatory rows block: ${blocking.map((r) => `${r.id}:${r.status}`).join(", ")}`,
       );
     }
     for (const risk of acceptedRisks) {
@@ -214,27 +229,31 @@ export function evaluateFdaVerdict(input) {
       }
     }
     if (acceptedRisks.length === 0 && blocking.length > 0) {
-      reasons.push("COMPLETE_WITH_ACCEPTED_RISKS requires explicit acceptedRisks[] records");
+      reasons.push(
+        "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS requires explicit acceptedRisks[] records",
+      );
     }
   }
 
   const brokenPaymentHold = findBrokenPaymentHoldRow(matrix);
   if (
     brokenPaymentHold &&
-    (normalizedVerdict === "COMPLETE" || normalizedVerdict === "COMPLETE_WITH_ACCEPTED_RISKS")
+    (normalizedVerdict === "FEATURE_COMPLETE" ||
+      normalizedVerdict === "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS")
   ) {
     reasons.push(
-      `known BROKEN payment-hold outbox (${brokenPaymentHold.id}) requires INCOMPLETE or BLOCKED, not ${normalizedVerdict}`,
+      `known BROKEN payment-hold outbox (${brokenPaymentHold.id}) requires FEATURE_INCOMPLETE or FEATURE_BLOCKED, not ${normalizedVerdict}`,
     );
   }
 
   const missingProducer = findMissingMandatoryProducerRow(matrix);
   if (
     missingProducer &&
-    (normalizedVerdict === "COMPLETE" || normalizedVerdict === "COMPLETE_WITH_ACCEPTED_RISKS")
+    (normalizedVerdict === "FEATURE_COMPLETE" ||
+      normalizedVerdict === "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS")
   ) {
     reasons.push(
-      `MISSING mandatory producer (${missingProducer.id}) requires INCOMPLETE, not ${normalizedVerdict}`,
+      `MISSING mandatory producer (${missingProducer.id}) requires FEATURE_INCOMPLETE, not ${normalizedVerdict}`,
     );
   }
 

@@ -1,0 +1,274 @@
+---
+title: Feature Delivery — Staged Design Workflow
+format: markdoc
+doc_role: agent_charter
+standard_id: FDA-001
+version: 1.4.0
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/research-and-design-gate.mdoc
+  - docs/dev/feature-delivery/architecture-classifier.mdoc
+mandatory_for:
+  - .cursor/skills/feature-delivery
+  - .cursor/rules/feature-delivery.mdc
+code_sot:
+  - docs/dev/feature-delivery/staged-design-workflow.mdoc
+---
+
+# Staged Design Workflow (D0–D7)
+
+**Purpose:** Force **design-before-code** and **dependency tracing** before implementation. The agent must not begin coding immediately after a basic plan.
+
+**Principle:** Spend more time designing, tracing dependencies, and searching for bugs **before and after** implementation. Practical depth scales by feature class (§8).
+
+**Legacy mapping:** D0≈CP0 baseline; D1–D2≈CP0–CP1 discovery; D3≈CP4 pre-DB; D4≈CP4 architecture; D5≈CP1 UI; D6≈CP2 test plan; D7≈threat model; implementation follows D7; post-impl → [adversarial-bug-hunt](adversarial-bug-hunt.mdoc).
+
+---
+
+## 1. Hard gate
+
+**No application source implementation** until mandatory design stages for the session tier (§8) are complete and recorded in session artifacts.
+
+Allowed before D-gates complete:
+
+- Read-only discovery (grep, graph, file read, runtime inspection)
+- Session artifact writes under `.cache/feature-delivery/<sessionId>/`
+- Markdoc/doc proposals on protected paths (doc-first covenant)
+
+---
+
+## 2. D0 — Repository baseline
+
+**When:** Session start, before D1.
+
+**Record:**
+
+| Field | Source |
+| ----- | ------ |
+| Branch | `git branch --show-current` |
+| HEAD | `git rev-parse HEAD` |
+| Upstream | `git rev-parse --abbrev-ref @{upstream}` or null |
+| Working tree | `git status --short` |
+| Unrelated WIP | Paths outside `scopePaths` |
+| Package structure | Root `package.json`, `pnpm-workspace.yaml`, AGENTS.md |
+| Available scripts | Relevant `pnpm run` / filter scripts for touched surfaces |
+| Runtime services | API/Web/Portal/Marketing dev commands; ports from AGENTS.md |
+| Database | `DATABASE_URL` set; `STORAGE_DRIVER`; Postgres vs memory |
+| Browser | Playwright configs; smoke scripts for target app |
+| Test infrastructure | Existing unit/integration/e2e specs for scope |
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/baseline.json`
+
+**Ledger:** `gate_id=bootstrap.baseline`, checkpoint `D0`
+
+---
+
+## 3. D1 — Product and user journey discovery
+
+**When:** Before coding; expands requirement inventory.
+
+**Identify:**
+
+- Target actors (member, operator, admin, viewer, system)
+- User goals and operator/admin goals
+- System-triggered behavior (outbox, cron, webhooks)
+- Entry points (routes, BFF, commands, events)
+- Expected outputs and permission boundaries
+- Success, failure, empty, loading, denied states
+- Audit requirements and **explicit exclusions**
+
+**Requirement matrix columns:**
+
+| Column | Description |
+| ------ | ----------- |
+| `requirementId` | Stable ID (e.g. `REQ-001`) |
+| `actor` | Who triggers or receives |
+| `expectedBehavior` | Observable outcome |
+| `currentImplementation` | `complete` \| `partial` \| `missing` \| `unknown` |
+| `evidence` | Spec, route, producer, or `none` |
+| `risk` | `low` \| `medium` \| `high` \| `critical` |
+| `status` | Inventory status per [completion-rules](completion-rules.mdoc) |
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/requirements-matrix.json`
+
+Also maintain `requirement-queue.json` for execution ordering.
+
+---
+
+## 4. D2 — Existing-system and consumer analysis
+
+**When:** Before boundary or contract decisions.
+
+**Trace through:**
+
+- Routes, BFFs, API contracts, services, repositories
+- Database models, migrations, RLS policies
+- Outbox/events, consumers, UI components
+- Existing tests, workspace manifests, adjacent modules
+
+**Search for:**
+
+- Duplicate implementations, parallel tables, duplicate event names
+- Inconsistent IDs, incompatible payloads
+- Existing and **future** consumers (≥2 for shared concepts)
+- Hidden feature gates, workspace-specific behavior (Denali/Urban/starter)
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/consumer-and-boundary-map.json`
+
+**Rule:** Shared platform candidates require ≥2 real consumers before choosing boundary — [architecture-classifier](architecture-classifier.mdoc).
+
+---
+
+## 5. D3 — Data and contract design
+
+**When:** Before database, HTTP contract, outbox, or shared payload changes.
+
+**Define:**
+
+- Canonical field names; request/response shapes
+- Null/default behavior; state transitions
+- Idempotency keys; deduplication rules; row versioning
+- Tenant scope; RLS strategy; migration strategy
+- Backward compatibility; event envelope and payload
+- Retry and failure behavior
+
+**Edge cases to design tests for:**
+
+`null`, `empty`, `zero`, `false`, `duplicate`, `stale`, `missing`, `malformed`, `out-of-order`, `partial`, `unauthorized`, `cross-tenant`
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/data-contract-map.json`
+
+**Skip when:** Tier A UI-only with no API/contract change (document skip in baseline).
+
+---
+
+## 6. D4 — Architecture and security review
+
+**When:** Before implementation when any trigger applies:
+
+- Shared platform code
+- Database schema / Prisma
+- `workspace-sdk` / `platform-core`
+- Event/outbox/notification/inbox
+- Identity, permission, tenant routing
+- Financial data
+
+**Review:**
+
+- Module vs platform boundary; future consumers
+- Denali/Urban/starter isolation; tenant isolation; authorization
+- RLS; sensitive data exposure; internal vs member projection
+- Migration safety; idempotency; durability; retry; failure recovery
+
+**Invoke architecture-reviewer** when triggers apply — record verdict before code.
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/architecture-review.json` (or `arch-review.json`)
+
+---
+
+## 7. D5 — UI/UX and information architecture
+
+**When:** Before any user-visible implementation.
+
+**Actions:**
+
+- Inspect existing placement; reuse existing tab/page when possible
+- Member vs operator IA; Denali tokens and primitives
+- UI UX Pro Max when available — [FDA-INTEGRATION](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md)
+- Desktop/mobile; FA RTL / EN LTR
+- Loading, empty, error, denied, long content, accessibility
+- Success/error feedback; before/after screenshot plan
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/ui-ux-decision.json` (24 sections per [research-and-design-gate](research-and-design-gate.mdoc) §3.3)
+
+**Hard gate:** No UI implementation before D5 complete for visible features.
+
+---
+
+## 8. D6 — Test design and test-realness review
+
+**When:** Before implementation (design tests first).
+
+**Design coverage for:**
+
+- Happy and negative paths; boundary values
+- Permissions; tenant isolation; stale state
+- Duplicate actions; retries; concurrency
+- Refresh/reload; mobile; RTL/LTR; accessibility
+- Empty, error, loading states
+
+**Classify existing tests:**
+
+| Class | Meaning |
+| ----- | ------- |
+| `real-e2e` | Real browser/API/Postgres on critical path |
+| `partially-mocked` | Some real boundaries; document mocks |
+| `api-only` | HTTP without UI or persistence proof |
+| `fixture-only` | Direct DB insert as sole proof |
+| `static-dom` | Render-only; no interaction |
+| `skipped` | Skipped assertions or suite |
+| `flaky` | Intermittent without root-cause fix |
+| `unverified` | Not run this session or insufficient |
+
+**Rule:** A test cannot prove a feature if it bypasses the critical behavior.
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/test-plan-and-realness.json`
+
+---
+
+## 9. D7 — Threat and failure-mode analysis
+
+**When:** Before coding; **mandatory** for financial, identity, permission, notification, tenant features.
+
+**Identify behavior when:**
+
+- Request repeated; network fails; DB write succeeds but response fails
+- Event delivered twice; data stale; tenant or permission changes
+- After reload; after process restart; partial configuration
+- Invalid input; concurrent operators
+
+**Artifact:** `.cache/feature-delivery/<sessionId>/failure-mode-analysis.json`
+
+---
+
+## 10. Workflow tiers (practical depth)
+
+| Tier | When | Mandatory stages | Notes |
+| ---- | ---- | ---------------- | ----- |
+| **A — UI-only reduced** | Copy/layout/styling; no API/DB/contract change | D0, D1 (light), D5, D6 (UI-focused) | Skip D3; D4/D7 light unless permission copy |
+| **B — API/DB full** | API routes, repositories, migrations, BFF | D0–D7 | Full data/security workflow |
+| **C — Platform deepest** | Shared platform, finance, permission, notification, tenant, outbox | D0–D7 full depth + all [adversarial passes](adversarial-bug-hunt.mdoc) | architecture-reviewer at D4; Postgres RLS proof |
+
+Record `workflowTier` in `baseline.json` and `SESSION.lock`.
+
+---
+
+## 11. Implementation entry
+
+After mandatory D-stages for tier:
+
+1. Produce CP2-style implementation plan (sequencing, scopePaths, rollback)
+2. First **vertical slice** — smallest end-to-end path
+3. Follow [implementation cycle](adversarial-bug-hunt.mdoc) §2 for each finding
+4. Run [adversarial bug-hunt passes](adversarial-bug-hunt.mdoc) B1–B8 after slice and before final verdict
+
+**Forbidden:** Symptom fix in UI when root cause is API, contract, persistence, or authorization.
+
+---
+
+## 12. Session artifact checklist
+
+| Artifact | Stage | Required when |
+| -------- | ----- | ------------- |
+| `baseline.json` | D0 | Always |
+| `requirements-matrix.json` | D1 | Always |
+| `consumer-and-boundary-map.json` | D2 | Tier B/C; recommended A |
+| `data-contract-map.json` | D3 | Tier B/C with contract/DB |
+| `architecture-review.json` | D4 | Tier B/C triggers; always C |
+| `ui-ux-decision.json` | D5 | User-visible features |
+| `test-plan-and-realness.json` | D6 | Always |
+| `failure-mode-analysis.json` | D7 | Tier B/C; mandatory C + regulated domains |
+
+---
+
+_Staged design workflow — FDA-001 v1.4.0._

@@ -24,9 +24,11 @@ extends:
 | **Hard stop**    | Any condition in [stop-conditions](stop-conditions.mdoc) §1–§4, §7 — security/RLS ambiguity, migration rewrite, production mutation, unresolved product decision, architecture-reviewer `blocked`/`pivot` without acceptance |
 | **Queue resume** | After recovery — continue from last unfinished mandatory matrix item                                                                                                                                                         |
 
-**Never** mark a feature `COMPLETE` or `COMPLETE_WITH_ACCEPTED_RISKS` while any **mandatory** item carries a blocking status per [completion-rules](completion-rules.mdoc) §2: `broken`, `missing`, `partial`, `skipped`, `unverified`, `browser-unverified`, `producer-missing`, `data durability unverified`, `rls/security unverified`.
+**Never** mark a feature `FEATURE_COMPLETE` or `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` while any **mandatory** item carries a blocking status per [completion-rules](completion-rules.mdoc) §2.
 
-Known **BROKEN** mandatory paths (e.g. payment-hold outbox durability) → verdict **`INCOMPLETE`** or **`BLOCKED`** only. **MISSING** mandatory event producers → **`INCOMPLETE`** only. Skipped browser/a11y evidence remains **`unverified`** and cannot support `COMPLETE`.
+Complete tier-required **D0–D7** design stages before implementation and **B1–B8** adversarial passes after — [staged-design-workflow](staged-design-workflow.mdoc), [adversarial-bug-hunt](adversarial-bug-hunt.mdoc).
+
+Known **BROKEN** mandatory paths → **`FEATURE_INCOMPLETE`** or **`FEATURE_BLOCKED`** only. **MISSING** mandatory producers → **`FEATURE_INCOMPLETE`** only.
 
 ---
 

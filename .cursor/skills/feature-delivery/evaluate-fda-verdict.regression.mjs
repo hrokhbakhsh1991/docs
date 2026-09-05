@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * FDA-001 v1.3 regression fixture — completion verdict gating.
+ * FDA-001 v1.4 regression fixture — completion verdict gating.
  * @see docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc
  */
 import assert from "node:assert/strict";
@@ -28,7 +28,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-001",
       expectAllowed: false,
-      proposedVerdict: "COMPLETE",
+      proposedVerdict: "FEATURE_COMPLETE",
       matrix: [
         {
           id: "B1-payment-hold-outbox",
@@ -45,7 +45,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-002",
       expectAllowed: false,
-      proposedVerdict: "COMPLETE_WITH_ACCEPTED_RISKS",
+      proposedVerdict: "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS",
       acceptedRisks: [validApproval],
       matrix: [
         {
@@ -62,7 +62,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-003",
       expectAllowed: false,
-      proposedVerdict: "COMPLETE",
+      proposedVerdict: "FEATURE_COMPLETE",
       matrix: [
         {
           id: "registration.rejected-producer",
@@ -93,7 +93,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-005",
       expectAllowed: false,
-      proposedVerdict: "COMPLETE_WITH_ACCEPTED_RISKS",
+      proposedVerdict: "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS",
       acceptedRisks: [validApproval],
       matrix: [
         {
@@ -109,7 +109,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-006",
       expectAllowed: false,
-      proposedVerdict: "COMPLETE_WITH_ACCEPTED_RISKS",
+      proposedVerdict: "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS",
       acceptedRisks: [
         {
           riskId: "RLS-001",
@@ -134,7 +134,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-007",
       expectAllowed: true,
-      proposedVerdict: "COMPLETE",
+      proposedVerdict: "FEATURE_COMPLETE",
       matrix: [
         { id: "outbox-relay", mandatory: "mandatory", status: "complete" },
         { id: "member-inbox-api", mandatory: "mandatory", status: "complete" },
@@ -147,7 +147,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-008",
       expectAllowed: true,
-      proposedVerdict: "COMPLETE_WITH_ACCEPTED_RISKS",
+      proposedVerdict: "FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS",
       acceptedRisks: [validApproval],
       matrix: [
         { id: "core-api", mandatory: "mandatory", status: "complete" },
@@ -160,7 +160,7 @@ const FIXTURE_CASES = [
     input: {
       caseId: "CRF-009",
       expectAllowed: true,
-      proposedVerdict: "INCOMPLETE",
+      proposedVerdict: "FEATURE_INCOMPLETE",
       matrix: [
         {
           id: "B1-payment-hold-outbox",
@@ -185,6 +185,36 @@ const FIXTURE_CASES = [
       ],
     },
   },
+  {
+    caseId: "CRF-011",
+    input: {
+      caseId: "CRF-011",
+      expectAllowed: false,
+      proposedVerdict: "FEATURE_COMPLETE",
+      matrix: [
+        {
+          id: "inbox-mark-all-read",
+          mandatory: "mandatory",
+          status: "partial",
+        },
+      ],
+    },
+  },
+  {
+    caseId: "CRF-012",
+    input: {
+      caseId: "CRF-012",
+      expectAllowed: false,
+      proposedVerdict: "COMPLETE",
+      matrix: [
+        {
+          id: "mandatory-browser",
+          mandatory: "mandatory",
+          status: "browser-unverified",
+        },
+      ],
+    },
+  },
 ];
 
 let passed = 0;
@@ -202,11 +232,13 @@ assert.equal(
   "normalizeCapabilityStatus must treat BROKEN as blocking",
 );
 assert.equal(normalizeCapabilityStatus(" browser-unverified "), "browser-unverified");
+assert.equal(normalizeCapabilityStatus("rls/security unverified"), "rls-security-unverified");
 
 const rejectCompleteOnBroken = evaluateFdaVerdict({
-  proposedVerdict: "COMPLETE",
+  proposedVerdict: "FEATURE_COMPLETE",
   matrix: [{ id: "cap", mandatory: "mandatory", status: "broken" }],
 });
 assert.equal(rejectCompleteOnBroken.allowed, false);
+assert.equal(rejectCompleteOnBroken.normalizedVerdict, "FEATURE_COMPLETE");
 
 console.log(`\nFDA completion-rules regression: ${passed}/${FIXTURE_CASES.length} cases PASS`);

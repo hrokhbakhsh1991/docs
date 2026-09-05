@@ -1,6 +1,6 @@
 # UI UX Pro Max — FDA integration (advisory)
 
-**Role:** Optional **design-intelligence** input for FDA CP1. **Advisory only** — repository design tokens, Denali workspace rules, product requirements, accessibility, RTL/LTR, and existing UI conventions **always win**.
+**Role:** Optional **design-intelligence** input for FDA **D5**. **Advisory only** — repository design tokens, Denali workspace rules, product requirements, accessibility, RTL/LTR, and existing UI conventions **always win**.
 
 **Charter:** [`docs/dev/feature-delivery-agent.mdoc`](../../../docs/dev/feature-delivery-agent.mdoc)  
 **Gate:** [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../../docs/dev/feature-delivery/research-and-design-gate.mdoc) §3.3  
@@ -8,7 +8,7 @@
 
 ---
 
-## Detection (run at CP1)
+## Detection (run at D5)
 
 ```bash
 # Skill present?
@@ -27,16 +27,22 @@ python3 --version
 
 ---
 
-## FDA workflow position
+## FDA workflow position (D5 gate)
 
 ```text
-CP0 discovery
-  → product / IA analysis
-  → UI UX Pro Max recommendations (when available)
-  → repository design-system review (tokens, primitives, shell-skin)
-  → ui-ux-decision.json + design-brief.json
-  → CP2 plan → implementation → BQC browser verification
+D0 baseline
+  → D1 requirements matrix
+  → D2 consumer / boundary map
+  → D3 data contract (Tier B/C)
+  → D4 architecture review
+  → D5 UI/UX (this integration) ← UI UX Pro Max advisory here
+  → D6 test plan / realness
+  → D7 failure modes
+  → implementation
+  → B5 browser audit (BQC)
 ```
+
+**Hard gate:** No user-visible implementation before `ui-ux-decision.json` complete.
 
 ---
 
