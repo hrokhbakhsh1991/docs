@@ -120,12 +120,9 @@ export async function fillDenaliMultiDayWizardBasics(
   await expect(multiDay).toHaveAttribute("aria-pressed", "true");
   await settleOperatorWizardDraftSync(page);
 
-  const titleField = page.getByRole("textbox", { name: "title" });
-  if (await titleField.isVisible().catch(() => false)) {
-    await titleField.fill(title);
-  } else {
-    await page.getByRole("textbox", { name: /نام تور|title/i }).fill(title);
-  }
+  const titleField = page.getByRole("textbox", { name: /نام تور|tour name|^title$/i });
+  await expect(titleField).toBeVisible({ timeout: 30_000 });
+  await titleField.fill(title);
 
   await settleOperatorWizardDraftSync(page);
   const destination = page.getByTestId(DENALI_COMPOSITE_TEST_IDS.destination);
@@ -161,7 +158,9 @@ export async function fillDenaliMultiDayWizardBasics(
   await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.end, 3, "18", "00");
   await settleOperatorWizardDraftSync(page);
 
-  const capacity = page.getByRole("textbox", { name: /حداکثر ظرفیت|capacity max|capacityMax/i });
+  const capacity = page.getByRole("textbox", {
+    name: /حداکثر ظرفیت|maximum capacity|capacity max|capacityMax/i,
+  });
   await expect(capacity).toBeVisible({ timeout: 15_000 });
   await capacity.fill("12");
   await settleOperatorWizardDraftSync(page);

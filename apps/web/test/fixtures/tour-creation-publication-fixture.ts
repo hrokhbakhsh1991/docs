@@ -174,7 +174,7 @@ export async function expectDraftCanonicalFieldsPersisted(
 }
 
 export async function expectFlatEditShowsTitle(page: Page, title: string): Promise<void> {
-  const titleField = page.getByRole("textbox", { name: /نام تور|^title$/i }).first();
+  const titleField = page.getByRole("textbox", { name: /نام تور|tour name|^title$/i }).first();
   await expect(titleField).toBeVisible({ timeout: 30_000 });
   await expect(titleField).toHaveValue(title);
 }
