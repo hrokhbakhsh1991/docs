@@ -3,7 +3,7 @@
 # Simulates mid-wizard save + reload: PATCH step 3 envelope, GET round-trip twice.
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
 WEB="http://127.0.0.1:${WEB_PORT}"

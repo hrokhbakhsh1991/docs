@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EVIDENCE_DIR="${P7_EVIDENCE_DIR:-$ROOT/docs/phase-20/p7/evidence/2026-06-23-operator}"
 LOG="$EVIDENCE_DIR/architect-dry-run.log"
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 API_PORT="${STAGING_API_PORT:-23001}"

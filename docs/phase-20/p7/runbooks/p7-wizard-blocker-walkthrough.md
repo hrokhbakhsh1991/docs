@@ -10,14 +10,14 @@ route: /tours/new
 staging_profile: B-staging
 ```
 
-## Staging URLs (Profile B-staging · VPS `89.45.89.206`)
+## Staging URLs (Profile B-staging · VPS `89.42.210.252`)
 
 | Surface | URL | Host header (curl) |
 | ------- | --- | ------------------ |
-| Admin login | `http://89.45.89.206:23000/auth/login` | optional `operator.admin.localhost` |
-| Wizard | `http://89.45.89.206:23000/tours/new` | **`Host: operator.admin.localhost`** |
-| Marketing | `http://89.45.89.206:23002/tours` | `Host: operator.localhost` |
-| Portal | `http://89.45.89.206:23003` | `Host: operator.portal.localhost` |
+| Admin login | `http://89.42.210.252:23000/auth/login` | optional `operator.admin.localhost` |
+| Wizard | `http://89.42.210.252:23000/tours/new` | **`Host: operator.admin.localhost`** |
+| Marketing | `http://89.42.210.252:23002/tours` | `Host: operator.localhost` |
+| Portal | `http://89.42.210.252:23003` | `Host: operator.portal.localhost` |
 
 **OTP:** Profile B uses `AUTH_ALLOW_DEV_STATIC_OTP=true` — code **`1234`** for `09174070937` ([p7-sms-otp-staging.md](p7-sms-otp-staging.md)).
 

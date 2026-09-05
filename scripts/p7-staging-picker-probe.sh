@@ -2,7 +2,7 @@
 # P7-1-N-004 — staging picker catalog probe (~8s)
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
 API_PORT="${STAGING_API_PORT:-23001}"

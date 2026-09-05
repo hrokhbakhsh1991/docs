@@ -64,7 +64,7 @@ curl -I "https://alborz.${PLATFORM_ROOT_DOMAIN}/health"
 **Profile B interim (IP — not exit proof alone):**
 
 ```bash
-curl -I "http://89.45.89.206:23000/auth/login" -H "Host: alborz.admin.localhost"
+curl -I "http://89.42.210.252:23000/auth/login" -H "Host: alborz.admin.localhost"
 ```
 
 ### 4. Gates
@@ -75,7 +75,7 @@ ENV_DIR=/etc/app-tour-staging TOUR_OPS_API_URL=http://127.0.0.1:23001 P7_FAST=1 
   bash /opt/app-tour-staging/scripts/p7-staging-verify.sh
 
 # from laptop
-VPS_HOST=89.45.89.206 pnpm run p10:staging-remote-smoke
+VPS_HOST=89.42.210.252 pnpm run p10:staging-remote-smoke
 ```
 
 ### 5. Sign-off

@@ -39,8 +39,8 @@ Production operator stack (`/etc/app-tour`, ports **13000/13001**) — do not us
 | `PORT` | **23001** | 23000 | 23002 | 23003 |
 | `TOUR_OPS_API_URL` | — | `http://127.0.0.1:23001` | same | same |
 | `NODE_ENV` | `development` (tsx API) | `production` | `production` | `production` |
-| `PUBLIC_TENANT_FALLBACK_LABEL` | `operator` | — | — | — |
-| `PUBLIC_TENANT_FALLBACK_HOSTS` | `89.45.89.206,127.0.0.1` | — | — | — |
+| `PUBLIC_TENANT_FALLBACK_LABEL` | `denali` | — | — | — |
+| `PUBLIC_TENANT_FALLBACK_HOSTS` | `89.42.210.252,127.0.0.1` | — | — | — |
 | `ALLOW_DEV_WEB_SESSION` | — | `true` | `true` | `true` |
 | `TOUR_OPS_DEV_TENANT_ID` | — | — | `…000014` | `…000014` |
 

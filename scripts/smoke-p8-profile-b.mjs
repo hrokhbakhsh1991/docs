@@ -5,7 +5,7 @@
  */
 import { spawnSync } from "node:child_process";
 
-const HOST = process.env.P8_PROFILE_B_HOST?.trim() || process.env.VPS_HOST?.trim() || "89.45.89.206";
+const HOST = process.env.P8_PROFILE_B_HOST?.trim() || process.env.VPS_HOST?.trim() || "89.42.210.252";
 const API_URL = (process.env.TOUR_OPS_API_URL?.trim() || `http://${HOST}:23001`).replace(/\/$/, "");
 const WEB_URL = (process.env.P8_WEB_URL?.trim() || `http://${HOST}:23000`).replace(/\/$/, "");
 const MKT_URL = (process.env.P8_MKT_URL?.trim() || `http://${HOST}:23002`).replace(/\/$/, "");

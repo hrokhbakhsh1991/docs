@@ -23,7 +23,7 @@ variables:
     required: [api]
     optional: [web]
     deprecated_aliases: [TOUR_OPS_PUBLIC_FALLBACK_HOSTS]
-    example: "89.45.89.206,127.0.0.1"
+    example: "89.42.210.252,127.0.0.1"
 
   TOUR_OPS_DEFAULT_TENANT_ID:
     required: []
