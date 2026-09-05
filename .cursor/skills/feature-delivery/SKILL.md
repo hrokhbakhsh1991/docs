@@ -28,6 +28,7 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 | Evidence ledger                 | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc)   |
 | Stop conditions                 | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc)                 |
 | Blocker recovery                | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc)               |
+| Completion rules (verdict gating) | [`docs/dev/feature-delivery/completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc)               |
 | Completion regression fixture   | [`docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc`](../../../docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc) |
 | Notification regression fixture | [`docs/dev/feature-delivery/notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) |
 | UI UX Pro Max (advisory)        | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../ui-ux-pro-max/FDA-INTEGRATION.md)                               |
@@ -47,7 +48,7 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 
 ## Session lock (every checkpoint)
 
-Record at CP0 and verify before every checkpoint:
+Record at **D0** and verify before every checkpoint:
 
 | Field          | Rule                                                                                |
 | -------------- | ----------------------------------------------------------------------------------- |
