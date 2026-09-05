@@ -32,9 +32,9 @@ describe("field exposure phase 10 Denali product + enterprise ops contract (M3/M
     assert.match(routes, /getDenaliReminderFeed/);
   });
 
-  it("keeps catalog bindings free of no-op approximate-return-time entry", () => {
+  it("includes approximate-return-time in catalog bindings for PDP redaction", () => {
     const bindings = readFileSync(CATALOG_BINDINGS, "utf8");
-    assert.equal(bindings.includes("denali.approximate-return-time"), false);
+    assert.equal(bindings.includes("denali.approximate-return-time"), true);
   });
 
   it("supports denali settings module codegen with --check", () => {
