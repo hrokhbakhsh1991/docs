@@ -35,8 +35,8 @@ artifact_clean_room_check() {
       echo "artifact-clean-room: symlink points to build host: ${external_links}" >&2
       return 1
     fi
-    if grep -rF "$repo_root" "${vroot}/bin" "${vroot}/prisma-migrate" >/dev/null 2>&1; then
-      echo "artifact-clean-room: build-host path in bin/prisma-migrate" >&2
+    if grep -rF "${repo_root}/" "${vroot}/bin" "${vroot}/prisma-migrate" >/dev/null 2>&1; then
+      echo "artifact-clean-room: build-host path in bin or prisma-migrate" >&2
       return 1
     fi
   fi
