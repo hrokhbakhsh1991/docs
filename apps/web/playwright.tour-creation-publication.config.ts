@@ -26,7 +26,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "node scripts/smoke-operator-e2e-servers.mjs",
+          command: "OPERATOR_SMOKE_USE_DATABASE=0 node scripts/smoke-operator-e2e-servers.mjs",
           url: "http://127.0.0.1:3000/auth/login",
           reuseExistingServer:
             process.env.PW_NO_REUSE_SERVER !== "1" &&
