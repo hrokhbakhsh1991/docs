@@ -377,7 +377,8 @@
     "transportLabel": "Transport",
     "transportLineOccupants": "{kind} · {occupants} seats",
     "forOtherBadge": "For someone else",
-    "guestLine": "Guest: {guestLabel}"
+    "guestLine": "Guest: {guestLabel}",
+    "executionTitle": "Tour day operations"
   },
   "receipt": {
     "uploadEyebrow": "Pay by receipt",

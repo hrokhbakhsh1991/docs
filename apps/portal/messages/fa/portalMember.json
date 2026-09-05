@@ -377,7 +377,8 @@
     "transportLabel": "حمل‌ونقل",
     "transportLineOccupants": "{kind} · {occupants} صندلی",
     "forOtherBadge": "برای دیگری",
-    "guestLine": "مسافر: {guestLabel}"
+    "guestLine": "مسافر: {guestLabel}",
+    "executionTitle": "وضعیت اجرای تور"
   },
   "receipt": {
     "uploadEyebrow": "پرداخت با فیش",

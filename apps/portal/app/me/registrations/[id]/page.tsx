@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
+import { fetchMemberTourExecutionSummary } from "@/me/fetch-member-tour-execution-summary.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { formatMemberRegistrationDeparture,
   localizeMemberPaymentStatus,
@@ -72,6 +73,12 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   const tourHref =
     typeof row.tourId === "string" && row.tourId.trim().length > 0
       ? resolveMarketingTourDetailUrl(host, row.tourId)
+      : null;
+  const executionSummary =
+    lifecycleStatus === "approved" &&
+    typeof row.tourId === "string" &&
+    row.tourId.trim().length > 0
+      ? await fetchMemberTourExecutionSummary(host, row.tourId)
       : null;
   const registrantTarget = row.registrantTarget === "other" ? "other" : "self";
   const transportKind =
@@ -171,6 +178,21 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </section>
+        {executionSummary !== null ? (
+          <section
+            data-portal-member-execution-summary
+            data-ito-execution-state={executionSummary.state}
+          >
+            <h2>{t("executionTitle")}</h2>
+            <p data-ito-member-execution-state>{executionSummary.state}</p>
+            {executionSummary.scheduledMeetingAt ? (
+              <p data-ito-member-meeting-time>{executionSummary.scheduledMeetingAt}</p>
+            ) : null}
+            {executionSummary.meetingLocation ? (
+              <p data-ito-member-meeting-location>{executionSummary.meetingLocation}</p>
+            ) : null}
+          </section>
+        ) : null}
         {showIntakeAmend && tour !== null ? (
           <MemberIntakeAmendForm
             registrationId={row.id}
