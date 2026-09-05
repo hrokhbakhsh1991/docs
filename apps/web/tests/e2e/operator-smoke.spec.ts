@@ -268,7 +268,11 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toBeVisible();
 
-    await page.getByRole("button", { name: /Ali Rezaei/i }).click();
+    await page
+      .locator("[data-booking-row]")
+      .filter({ hasText: /Ali Rezaei/i })
+      .locator(`[data-testid^="${BOOKINGS_COMMAND_CENTER_TEST_IDS.inboxRow}-"]`)
+      .click();
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton)).toBeVisible();
     const approveResponse = page.waitForResponse(
       (response) =>

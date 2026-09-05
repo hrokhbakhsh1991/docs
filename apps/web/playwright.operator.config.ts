@@ -34,6 +34,7 @@ export default defineConfig({
     "denali-workspace-finance-inbox.spec.ts",
     "denali-settings-route-matrix.spec.ts",
     "denali-booking-confidence.spec.ts",
+    "bookings-inbox-ux.spec.ts",
     "denali-edit-confidence.spec.ts",
     "denali-clone-confidence.spec.ts",
     "p6-admin-publish-smoke.spec.ts",

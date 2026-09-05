@@ -11,7 +11,7 @@ const OPERATOR_SMOKE_BASE_URL =
 export default defineConfig({
   globalSetup: useExternalServers ? undefined : "./tests/e2e/operator-smoke-global-setup.ts",
   testDir: "./tests/e2e",
-  testMatch: ["tour-creation-publication.spec.ts"],
+  testMatch: ["tour-creation-publication.spec.ts", "tour-creation-wizard-map.spec.ts"],
   retries: process.env.CI || useExternalServers ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,

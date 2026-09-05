@@ -133,6 +133,8 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   inspectionActionsHint: "operator-bookings-inspection-actions-hint",
   layoutSwitch: "operator-bookings-layout",
   inbox: "operator-bookings-inbox",
+  inboxColumnHeader: "operator-bookings-inbox-column-header",
+  inboxRow: "operator-bookings-inbox-row",
   inspection: "operator-bookings-inspection",
   /** PR21-H1 — booking settlement badge (inbox list row). */
   rowAvatar: "operator-bookings-row-avatar",

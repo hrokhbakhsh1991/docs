@@ -62,11 +62,14 @@ describe("operator-ui-consistency.spec.ts", () => {
     assert.ok(prefetchDisabledCount >= 2);
   });
 
-  it("WEB-OPUI-03 bookings inbox row shows member avatar + status badges", () => {
+  it("WEB-OPUI-03 bookings inbox row shows member avatar + status badges + column scan affordances", () => {
     const row = read("src/features/bookings/booking-inbox-row.tsx");
+    const header = read("src/features/bookings/booking-inbox-column-header.tsx");
     const avatar = read("src/features/bookings/booking-member-avatar.tsx");
     assert.match(row, /BookingMemberAvatar/);
     assert.match(row, /OperatorStatusBadge/);
+    assert.match(row, /data-operator-booking-row-tour/);
+    assert.match(header, /BOOKINGS_COMMAND_CENTER_TEST_IDS\.inboxColumnHeader/);
     assert.match(avatar, /bookingsRowAvatarTestId/);
   });
 
