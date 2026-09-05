@@ -89,7 +89,9 @@ export class InMemoryExposureIntentRepository implements ExposureIntentRepositor
       scope,
       mode: input.mode,
       selectedFieldIds,
-      ...(input.fieldDecorations === undefined ? {} : { fieldDecorations: input.fieldDecorations }),
+      ...(input.fieldDecorations === undefined || input.fieldDecorations === null
+        ? {}
+        : { fieldDecorations: input.fieldDecorations }),
       ...(input.templateOverrideId === undefined || input.templateOverrideId === null
         ? {}
         : { templateOverrideId: input.templateOverrideId }),
