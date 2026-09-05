@@ -1,5 +1,6 @@
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { isOwnerRole } from "@/admin/require-operator-session";
+import { shouldShowGlobalBookingsNav } from "@/features/bookings/bookings-nav-enablement";
 import { shouldShowFinanceNav } from "@/finance/finance-nav-enablement";
 import { shouldShowTicketsNav } from "@/features/tickets/tickets-nav-enablement";
 import { shouldShowWalletNav } from "@/wallet/wallet-nav-enablement";
@@ -23,8 +24,11 @@ export function resolveOperatorNav(input: ResolveOperatorNavInput): readonly Ope
   const items: OperatorNavItem[] = [
     { pathKey: "dashboard", href: "/dashboard" },
     { pathKey: "tours", href: "/tours" },
-    { pathKey: "bookings", href: "/bookings" },
   ];
+
+  if (shouldShowGlobalBookingsNav(input.pluginId)) {
+    items.push({ pathKey: "bookings", href: "/bookings" });
+  }
 
   if (shouldShowTicketsNav(input.pluginId) && input.session.role !== "member") {
     items.push({ pathKey: "tickets", href: "/tickets" });

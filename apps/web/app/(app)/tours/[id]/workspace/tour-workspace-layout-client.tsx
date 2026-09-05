@@ -24,13 +24,8 @@ import {
   TourWorkspaceChromeProvider,
   useTourWorkspaceChrome,
 } from "@/features/tours/tour-workspace-chrome-context";
-import {
-  buildTourWorkspaceBookingsHref,
-  buildTourWorkspaceFinanceHref,
-  buildTourWorkspaceOpsCountsQuery,
-  resolveTourWorkspaceOpsCountsFromListPayloads,
-  type TourWorkspaceOpsCounts,
-} from "@/features/tours/tour-workspace-header-logic";
+import { buildTourWorkspaceOpsCountsQuery, resolveTourWorkspaceOpsCountsFromListPayloads, type TourWorkspaceOpsCounts } from "@/features/tours/tour-workspace-header-logic";
+import { resolveTourWorkspaceLifecyclePhase } from "@/features/tours/tour-workspace-lifecycle-phase";
 import {
   listTourWorkspaceSubnavTabs,
   resolveWorkspaceSubnavTab,
@@ -185,10 +180,14 @@ function TourWorkspaceLayoutInner({
     if (opsCounts !== null) {
       map.registrations = opsCounts.pending;
       map.waitlist = opsCounts.waitlisted;
-      map.transport = opsCounts.approved;
     }
     return map;
-  }, [opsCounts, subnavTabs]);
+  }, [opsCounts]);
+
+  const pendingCount = opsCounts?.pending ?? 0;
+  const showPendingPrimary = canManage && pendingCount > 0;
+  const lifecyclePhase =
+    detail !== null ? resolveTourWorkspaceLifecyclePhase(detail.projection) : null;
 
   const localizedError = resolveTourErrorMessage(tErrors, error);
   const opsErrorLocalized = resolveTourErrorMessage(tErrors, opsCountsError);
@@ -233,29 +232,28 @@ function TourWorkspaceLayoutInner({
                   {tNav("editTour")}
                 </TourInternalLink>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <TourInternalLink
-                  href={buildTourWorkspaceBookingsHref(tourId)}
-                  data-testid={TOUR_WORKSPACE_TEST_IDS.openBookings}
-                >
-                  {t("openCommandCenter")}
-                </TourInternalLink>
-              </DropdownMenuItem>
-              {includeFinance ? (
-                <DropdownMenuItem asChild>
-                  <TourInternalLink
-                    href={buildTourWorkspaceFinanceHref(tourId)}
-                    data-testid={TOUR_WORKSPACE_TEST_IDS.openFinance}
-                  >
-                    {t("openFinance")}
-                  </TourInternalLink>
-                </DropdownMenuItem>
-              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {showPendingPrimary ? (
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              className="shrink-0"
+              data-testid={TOUR_WORKSPACE_TEST_IDS.reviewPendingPrimary}
+              onClick={() => navigateWorkspaceTab?.("registrations")}
+            >
+              {t("reviewPending", { count: pendingCount })}
+            </Button>
+          ) : null}
           {canManage ? (
-            <Button asChild variant="default" size="sm" className="shrink-0">
+            <Button
+              asChild
+              variant={showPendingPrimary ? "outline" : "default"}
+              size="sm"
+              className="shrink-0"
+            >
               <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/register`}>
                 {tNav("registerGuest")}
               </TourInternalLink>
@@ -280,6 +278,14 @@ function TourWorkspaceLayoutInner({
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <TourStatusBadge status={detail.projection.uiStatus} />
+                  {lifecyclePhase !== null ? (
+                    <OperatorStatusBadge
+                      variant="secondary"
+                      data-testid={TOUR_WORKSPACE_TEST_IDS.lifecyclePhase}
+                    >
+                      {t(`lifecyclePhase.${lifecyclePhase}`)}
+                    </OperatorStatusBadge>
+                  ) : null}
                   <span className="text-sm font-medium text-muted-foreground">{t("title")}</span>
                 </div>
                 <CardTitle className="text-xl leading-tight sm:text-2xl">

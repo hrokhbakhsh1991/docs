@@ -19,6 +19,8 @@ export const TOUR_WORKSPACE_TEST_IDS = {
   operationsPanel: "operator-tour-workspace-operations-panel",
   openBookings: "operator-tour-workspace-open-bookings",
   openFinance: "operator-tour-workspace-open-finance",
+  reviewPendingPrimary: "operator-tour-workspace-review-pending-primary",
+  lifecyclePhase: "operator-tour-workspace-lifecycle-phase",
   roleBanner: "operator-tour-workspace-role-banner",
   opsCountsError: "operator-tour-workspace-ops-counts-error",
 } as const;
