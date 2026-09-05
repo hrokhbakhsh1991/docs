@@ -482,6 +482,59 @@ describe(
       await assertMarkReadViaHttp(inbox.id, memberUser);
     });
 
+    it("J2b payment.hold.scheduled — approve with payable quote → durable outbox → relay → inbox", async () => {
+      const memberId = randomUUID();
+      const create = await requestJson(listener, {
+        method: "POST",
+        path: "/bookings",
+        tenantId: tenantA,
+        userId: operatorId,
+        body: {
+          tourId,
+          tourTitle: "MNI Data-Backed Tour",
+          guestLabel: `Hold-${randomUUID().slice(0, 8)}`,
+          partySize: 1,
+          departureAt: new Date(Date.now() + 86_400_000).toISOString(),
+          registrationIntake: { tourCapacityMax: 20 },
+        },
+      });
+      assert.equal(create.status, 201);
+      const bookingId = create.body.id as string;
+      await admin.operatorRegistration.update({
+        where: { id: bookingId },
+        data: { submittedByUserId: memberId },
+      });
+
+      const approve = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${bookingId}/approve`,
+        tenantId: tenantA,
+        userId: operatorId,
+      });
+      assert.equal(approve.status, 200, JSON.stringify(approve.body));
+      assert.equal(typeof approve.body.paymentDueAt, "string");
+
+      const holdOutbox = await admin.outboxEvent.findFirst({
+        where: {
+          tenantId: tenantA,
+          aggregateId: bookingId,
+          eventType: "payment.hold.scheduled",
+          status: "pending",
+        },
+      });
+      assert.ok(holdOutbox, "approve must persist payment.hold.scheduled in prisma outbox");
+
+      await relayUntilOutboxDone(holdOutbox.id);
+      await assertOutboxDone(holdOutbox.id);
+
+      const inbox = await assertSingleInboxRow({
+        userId: memberId,
+        dedupeKey: holdOutbox.domainEventId,
+        eventType: "payment.hold.scheduled",
+      });
+      await assertMarkReadViaHttp(inbox.id, memberId);
+    });
+
     it("J3 payment.confirmed — prepayment on approved registration → ledger outbox → inbox", async () => {
       const { bookingId, memberId } = await createApprovedRegistrationForMember();
 

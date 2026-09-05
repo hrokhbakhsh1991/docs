@@ -45,13 +45,7 @@ const MEMBER_NOTIFICATION_EVENT_MAP: Readonly<
     titleKey: "notification.registration.cancelled.title",
     bodyKey: "notification.registration.cancelled.body",
   },
-  "registration.rejected": {
-    sourceModule: "booking",
-    entityType: "registration",
-    templateId: "booking.registration.rejected",
-    titleKey: "notification.registration.rejected.title",
-    bodyKey: "notification.registration.rejected.body",
-  },
+  // registration.rejected — reserved token only (decision B); never emitted — see BOOKING_REJECT_LIFECYCLE_OWNERSHIP.md
   "payment.hold.scheduled": {
     sourceModule: "finance",
     entityType: "payment",

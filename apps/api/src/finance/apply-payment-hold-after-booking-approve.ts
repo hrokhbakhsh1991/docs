@@ -2,10 +2,8 @@
  * DP1-C — approve side effects: commercial quote freeze + payment hold scheduling.
  */
 import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
-import {
-  appendBookingOutboxEventIfAbsent,
-  setBookingPaymentDueAtProjection,
-} from "../bookings/in-memory-bookings.repository.ts";
+import { setBookingPaymentDueAtProjection } from "../bookings/in-memory-bookings.repository.ts";
+import { persistBookingFinanceOutboxEventIfAbsent } from "../outbox/persist-booking-finance-outbox-event.ts";
 import { ensureFrozenCommercialQuoteOnApprove } from "./commercial-quote-approve.service.ts";
 import { isPaymentHoldEnabled, PaymentHoldService } from "./payment-hold.service.ts";
 import { resolvePaymentHoldPolicyHoursForBooking } from "./resolve-payment-hold-policy-for-booking.ts";
@@ -60,7 +58,7 @@ export async function applyPaymentHoldAfterBookingApprove(input: {
     paymentDueAt: hold.dueAt,
   });
 
-  appendBookingOutboxEventIfAbsent({
+  await persistBookingFinanceOutboxEventIfAbsent({
     tenantId: input.tenantId,
     aggregateId: input.bookingId,
     eventType: "payment.hold.scheduled",
