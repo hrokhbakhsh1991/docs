@@ -723,6 +723,42 @@ export function BookingsPageClient({
     }
   };
 
+  const runMarkAttendance = async (
+    bookingId: string,
+    attendanceStatus: "present" | "absent",
+  ) => {
+    setActionBusy(true);
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendanceStatus }),
+      });
+      if (!response.ok) {
+        throw new Error(`BOOKINGS_ATTENDANCE_HTTP_${response.status}`);
+      }
+      const payload = (await response.json()) as { readonly idempotentReplay?: boolean };
+      if (payload.idempotentReplay !== true) {
+        const snapshot = findSelectedBooking(listDataRef.current?.items ?? [], bookingId);
+        setActionNotice(
+          t(attendanceStatus === "present" ? "markPresentSuccess" : "markAbsentSuccess", {
+            guest: snapshot?.guestLabel ?? bookingId,
+          }),
+        );
+      }
+      refreshData();
+      onOpsMutationSuccess?.();
+    } catch (actionErr: unknown) {
+      setActionError(
+        actionErr instanceof Error ? actionErr.message : "BOOKINGS_ATTENDANCE_FAILED",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   const requestApprove = (bookingId: string) => {
     if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
       setOverbookConfirmMode("approve");
@@ -1198,6 +1234,10 @@ export function BookingsPageClient({
                   onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
+                  canMarkPresent={actionAvailability.canMarkPresent}
+                  canMarkAbsent={actionAvailability.canMarkAbsent}
+                  onMarkPresent={() => void runMarkAttendance(inspectionTarget.id, "present")}
+                  onMarkAbsent={() => void runMarkAttendance(inspectionTarget.id, "absent")}
                   actionClassName="flex"
                   actionHint={actionUnavailableHint}
                   capacityFullHint={capacityFullHint}
@@ -1244,6 +1284,10 @@ export function BookingsPageClient({
                   onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
+                  canMarkPresent={actionAvailability.canMarkPresent}
+                  canMarkAbsent={actionAvailability.canMarkAbsent}
+                  onMarkPresent={() => void runMarkAttendance(inspectionTarget.id, "present")}
+                  onMarkAbsent={() => void runMarkAttendance(inspectionTarget.id, "absent")}
                   actionClassName="flex w-full flex-wrap"
                   actionHint={actionUnavailableHint}
                   capacityFullHint={capacityFullHint}

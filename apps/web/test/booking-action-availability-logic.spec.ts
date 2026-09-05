@@ -34,7 +34,7 @@ describe("booking-action-availability-logic", () => {
     assert.equal(result.showCapacityFullHint, true);
   });
 
-  it("approved routes to finance hint", () => {
+  it("approved exposes attendance actions before mark", () => {
     const result = resolveBookingActionAvailability({
       canManageOps: true,
       booking: booking("approved"),
@@ -43,7 +43,21 @@ describe("booking-action-availability-logic", () => {
       capacityFull: false,
     });
     assert.equal(result.canApprove, false);
+    assert.equal(result.canMarkPresent, true);
+    assert.equal(result.canMarkAbsent, true);
     assert.equal(result.unavailableReason, "approved_use_finance");
+  });
+
+  it("approved with attendance marked hides mark actions", () => {
+    const result = resolveBookingActionAvailability({
+      canManageOps: true,
+      booking: { ...booking("approved"), attendanceStatus: "present" },
+      isWaitlistable: false,
+      isCancellable: true,
+      capacityFull: false,
+    });
+    assert.equal(result.canMarkPresent, false);
+    assert.equal(result.canMarkAbsent, false);
   });
 
   it("terminal rejected blocks actions", () => {

@@ -13,9 +13,13 @@ type BookingActionButtonsProps = {
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
+  readonly onMarkPresent?: () => void;
+  readonly onMarkAbsent?: () => void;
   readonly showApproveReject: boolean;
   readonly showWaitlist: boolean;
   readonly showCancel: boolean;
+  readonly showMarkPresent?: boolean;
+  readonly showMarkAbsent?: boolean;
   readonly actionHint?: string | null;
   readonly capacityFullHint?: string | null;
   readonly className?: string;
@@ -29,9 +33,13 @@ export function BookingActionButtons({
   onApproveWithoutPayment,
   onWaitlist,
   onCancel,
+  onMarkPresent,
+  onMarkAbsent,
   showApproveReject,
   showWaitlist,
   showCancel,
+  showMarkPresent = false,
+  showMarkAbsent = false,
   actionHint = null,
   capacityFullHint = null,
   className,
@@ -110,6 +118,34 @@ export function BookingActionButtons({
           onClick={onWaitlist}
         >
           {t("waitlist")}
+        </Button>
+      ) : null}
+      {showMarkPresent && onMarkPresent !== undefined ? (
+        <Button
+          variant="default"
+          className="w-full"
+          disabled={busy}
+          aria-label={t("markPresentActionAria")}
+          {...(includeTestIds
+            ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.markPresentButton }
+            : {})}
+          onClick={onMarkPresent}
+        >
+          {t("markPresent")}
+        </Button>
+      ) : null}
+      {showMarkAbsent && onMarkAbsent !== undefined ? (
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          aria-label={t("markAbsentActionAria")}
+          {...(includeTestIds
+            ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.markAbsentButton }
+            : {})}
+          onClick={onMarkAbsent}
+        >
+          {t("markAbsent")}
         </Button>
       ) : null}
       {showCancel ? (
