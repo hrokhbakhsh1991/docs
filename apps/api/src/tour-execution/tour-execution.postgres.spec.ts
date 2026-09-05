@@ -362,6 +362,45 @@ describe("tour-execution.postgres.spec.ts — ITO-001", { skip: postgresSkip, co
     assert.ok(match, "tour.execution.started must reach member inbox");
   });
 
+  it("ITO-P04b SEC-032 stale expectedVersion returns version conflict", async () => {
+    await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    await requestJson(listener, {
+      method: "POST",
+      path: `/tours/${tourId}/execution/manifest/lock`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const beforeLock = await requestJson(listener, {
+      method: "GET",
+      path: `/tours/${tourId}/execution`,
+      tenantId: tenantA,
+      userId: operatorId,
+    });
+    const staleVersion = beforeLock.body.rowVersion as number;
+    const preTour = await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/state`,
+      tenantId: tenantA,
+      userId: operatorId,
+      body: { targetState: "pre_tour", expectedVersion: staleVersion },
+    });
+    assert.equal(preTour.status, 200, JSON.stringify(preTour.body));
+    const conflict = await requestJson(listener, {
+      method: "PATCH",
+      path: `/tours/${tourId}/execution/state`,
+      tenantId: tenantA,
+      userId: operatorId,
+      body: { targetState: "in_progress", expectedVersion: staleVersion },
+    });
+    assert.equal(conflict.status, 409);
+    assert.equal(conflict.body.code, "TOUR_EXECUTION_VERSION_CONFLICT");
+  });
+
   it("ITO-P05 schedule change notifies members once", async () => {
     await requestJson(listener, {
       method: "GET",
