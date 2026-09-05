@@ -236,11 +236,11 @@ describe("denali-wizard-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(locationZones, /<h3 className="denali-wizard-composite__title">/);
-    const itinerary = readFileSync(
-      join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-itinerary-field.tsx"),
+    const itineraryDayPanel = readFileSync(
+      join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-itinerary-day-panel.tsx"),
       "utf8"
     );
-    assert.match(itinerary, /denali-wizard-composite__subtitle/);
+    assert.match(itineraryDayPanel, /denali-wizard-composite__subtitle/);
   });
 
   it("WEB-DENALI-WIZARD-14 infrastructure hardening (phase 4b)", () => {
