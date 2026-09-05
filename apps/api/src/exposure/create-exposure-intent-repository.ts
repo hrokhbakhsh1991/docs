@@ -2,10 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
-import {
-  NATIVE_EXPOSURE_INTENT_SOURCE,
-  type ExposureIntent,
-} from "./exposure-intent";
+import { NATIVE_EXPOSURE_INTENT_SOURCE, type ExposureIntent } from "./exposure-intent";
 import {
   exposureIntentContextLookupKey,
   normalizeExposureIntentScope,
@@ -36,7 +33,7 @@ export class InMemoryExposureIntentRepository implements ExposureIntentRepositor
   }
 
   async findForContexts(
-    contexts: readonly ExposureIntentContextKey[],
+    contexts: readonly ExposureIntentContextKey[]
   ): Promise<ReadonlyMap<string, ExposureIntent>> {
     const lookup = new Map<string, ExposureIntent>();
     for (const context of contexts) {
@@ -89,7 +86,7 @@ export class InMemoryExposureIntentRepository implements ExposureIntentRepositor
       scope,
       mode: input.mode,
       selectedFieldIds,
-      ...(input.fieldDecorations === undefined ? {} : { fieldDecorations: input.fieldDecorations }),
+      ...(input.fieldDecorations == null ? {} : { fieldDecorations: input.fieldDecorations }),
       ...(input.templateOverrideId === undefined || input.templateOverrideId === null
         ? {}
         : { templateOverrideId: input.templateOverrideId }),
