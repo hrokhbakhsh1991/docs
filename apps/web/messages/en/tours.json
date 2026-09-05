@@ -200,13 +200,42 @@
       "registrations": "Registrations",
       "waitlist": "Waitlist",
       "transport": "Participant roster",
-      "finance": "Payment follow-up"
+      "finance": "Payment follow-up",
+      "operations": "In-tour operations"
     },
     "tabsHint": {
       "registrations": "Review and approve new registrations",
       "waitlist": "Capacity queue — approve when a seat opens",
       "transport": "Tour participants and transport",
-      "finance": "Payment follow-up, deadlines, receipts"
+      "finance": "Payment follow-up, deadlines, receipts",
+      "operations": "Day-of manifest, checklist, and execution desk"
+    },
+    "operations": {
+      "title": "In-tour operations",
+      "lockManifest": "Lock participant manifest",
+      "advanceState": "Advance to {state}",
+      "manifestTitle": "Participant manifest",
+      "manifestEmpty": "No approved participants yet — approve registrations first.",
+      "checklistTitle": "Execution checklist",
+      "groupsTitle": "Participant groups",
+      "groupsEmpty": "No groups yet.",
+      "groupNamePlaceholder": "Group name",
+      "addGroup": "Add group",
+      "groupAssigned": "Grouped",
+      "eventsTitle": "Operational events",
+      "eventsEmpty": "No operational events logged.",
+      "eventDescriptionPlaceholder": "Describe the incident or note",
+      "logEvent": "Log event",
+      "changesTitle": "Meeting changes",
+      "meetingTimeLabel": "Meeting time",
+      "saveSchedule": "Notify schedule change",
+      "meetingLocationLabel": "Meeting location",
+      "meetingLocationPlaceholder": "Updated meeting point",
+      "saveLocation": "Notify location change",
+      "insuranceUnknown": "Insurance unknown",
+      "attendancePending": "Attendance pending",
+      "error": "Could not load tour execution.",
+      "forbidden": "You do not have permission to manage tour execution."
     },
     "approvedQuickAccess": {
       "title": "Final approved members",

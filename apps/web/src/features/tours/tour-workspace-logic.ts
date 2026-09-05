@@ -15,7 +15,7 @@ export function parseWorkspaceTabParam(
   raw: string | null | undefined
 ): TourWorkspaceSubnavTab {
   const trimmed = raw?.trim() ?? "";
-  if (trimmed === "waitlist" || trimmed === "transport" || trimmed === "finance") {
+  if (trimmed === "waitlist" || trimmed === "transport" || trimmed === "finance" || trimmed === "operations") {
     return trimmed;
   }
   return "registrations";
@@ -90,6 +90,9 @@ export function resolveWorkspaceSubnavTab(
   if (pathname.startsWith(`${base}/transport`)) {
     return "transport";
   }
+  if (pathname.startsWith(`${base}/operations`)) {
+    return "operations";
+  }
   if (pathname.startsWith(`${base}/finance`)) {
     return "finance";
   }
@@ -114,6 +117,10 @@ const TOUR_WORKSPACE_CORE_SUBNAV_TABS: ReadonlyArray<{
   {
     tab: "transport",
     testId: TOUR_WORKSPACE_TEST_IDS.tabTransport,
+  },
+  {
+    tab: "operations",
+    testId: TOUR_WORKSPACE_TEST_IDS.tabOperations,
   },
 ];
 

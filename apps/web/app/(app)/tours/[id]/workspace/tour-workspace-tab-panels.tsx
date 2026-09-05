@@ -7,6 +7,7 @@ import type { BookingsOpsActionChrome } from "@/features/bookings/bookings-ops-a
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { TourWorkspaceFinanceClient } from "@/features/tours/tour-workspace-finance-client";
 import type { TourWorkspaceSubnavTab } from "@/features/tours/tour-workspace-types";
+import { TourWorkspaceOperationsClient } from "@/features/tours/tour-workspace-operations-client";
 import { TourWorkspaceRegistrationsClient } from "./tour-workspace-registrations-client";
 import { TourWorkspaceTransportClient } from "./transport/tour-workspace-transport-client";
 import { TourWorkspaceWaitlistClient } from "./waitlist/tour-workspace-waitlist-client";
@@ -56,6 +57,11 @@ export function TourWorkspaceTabPanels({
 
   return (
     <>
+      {mountedTabs.has("operations") ? (
+        <div hidden={activeTab !== "operations"} aria-hidden={activeTab !== "operations"}>
+          <TourWorkspaceOperationsClient session={session} tourId={tourId} />
+        </div>
+      ) : null}
       {mountedTabs.has("registrations") ? (
         <div hidden={activeTab !== "registrations"} aria-hidden={activeTab !== "registrations"}>
           <TourWorkspaceRegistrationsClient

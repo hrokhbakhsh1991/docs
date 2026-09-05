@@ -46,7 +46,7 @@ seed.on("exit", async (code) => {
 
   const apiEnv = ensureSmokeJwtEnv(repoRoot, {
     ...process.env,
-    NODE_ENV: useProdStart ? "test" : "development",
+    NODE_ENV: "test",
     DATABASE_URL: dbUrl,
     STORAGE_DRIVER: "prisma",
     PORT: "3001",
