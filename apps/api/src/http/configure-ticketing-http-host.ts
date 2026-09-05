@@ -2,7 +2,7 @@ import { configureTicketingHttpHost, type TicketingServicePort } from "@app-tour
 import { assertTicketingIdempotencyKeyPresent } from "@app-tour/ticketing-http-contracts";
 
 import { resolveTicketingServiceForTenant } from "../boot/lazy-ticketing-service";
-import { handleHttpError } from "../middleware/error-interceptor";
+import { handleTicketingRouteHttpError } from "./product-route-http-error";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { runWithHttpRequestContext } from "./bind-request-context";
@@ -17,7 +17,7 @@ import { readBinaryRequestBody } from "./read-binary-body";
 configureTicketingHttpHost({
   runWithHttpRequestContext,
   sendJson,
-  handleHttpError,
+  handleHttpError: handleTicketingRouteHttpError,
   resolveTenantContextFromRequest,
   requireOperatorSession,
   readTicketingRequestBody: async (req) => {

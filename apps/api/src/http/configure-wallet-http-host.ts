@@ -2,7 +2,7 @@ import { configureWalletHttpHost } from "@app-tour/wallet-http";
 
 import { resolveWalletServiceForTenant } from "../boot/lazy-wallet-service";
 import type { WalletService } from "../workspace-wallet/wallet.service";
-import { handleHttpError } from "../middleware/error-interceptor";
+import { handleWalletRouteHttpError } from "./product-route-http-error";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { runWithHttpRequestContext } from "./bind-request-context";
 import {
@@ -16,7 +16,7 @@ import { parseJsonBody, readRequestBodyRaw, sendJson } from "./json";
 configureWalletHttpHost({
   runWithHttpRequestContext,
   sendJson,
-  handleHttpError,
+  handleHttpError: handleWalletRouteHttpError,
   resolveTenantContextFromRequest,
   readWalletRequestBody: async (req) => {
     const rawBody = await readRequestBodyRaw(req);

@@ -106,8 +106,17 @@ export function resolveTicketingHttpError(error: unknown): {
   ) {
     return { status: 404, code: "TICKET_MODULE_DISABLED" };
   }
-  // ZOD_VALIDATION_FAILED and IDEMPOTENCY_KEY_REQUIRED are handled by the API
-  // error interceptor (400). Ticketing BFF routes map their own 422 envelopes.
+  // Product-route contract: ticketing parsers use 422 for Zod/idempotency misses.
+  // Scoped to ticketing host wrapper — not the global API error interceptor.
+  if (
+    code === "IDEMPOTENCY_KEY_REQUIRED" ||
+    code.startsWith("ZOD_VALIDATION_FAILED")
+  ) {
+    return {
+      status: 422,
+      code: code === "IDEMPOTENCY_KEY_REQUIRED" ? "IDEMPOTENCY_KEY_REQUIRED" : "ZOD_VALIDATION_FAILED",
+    };
+  }
   if (code === "FORBIDDEN_OPERATOR_ENDPOINT") {
     return { status: 403, code: "FORBIDDEN_OPERATOR_FORBIDDEN" };
   }
