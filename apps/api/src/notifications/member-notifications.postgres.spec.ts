@@ -80,11 +80,22 @@ describe(
         await admin.$executeRawUnsafe(
           "ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only"
         );
+        await admin.$executeRawUnsafe(
+          "ALTER TABLE engagement_point_events DISABLE TRIGGER engagement_point_events_append_only"
+        );
         try {
           await admin.auditEvent.deleteMany({ where: { tenantId: tenantA } });
+          await admin.$executeRawUnsafe(
+            `DELETE FROM engagement_point_events WHERE tenant_id = '${tenantA}'::uuid`
+          );
+          await admin.memberEngagementBadge.deleteMany({ where: { tenantId: tenantA } });
+          await admin.engagementProfile.deleteMany({ where: { tenantId: tenantA } });
         } finally {
           await admin.$executeRawUnsafe(
             "ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only"
+          );
+          await admin.$executeRawUnsafe(
+            "ALTER TABLE engagement_point_events ENABLE TRIGGER engagement_point_events_append_only"
           );
         }
         await admin.tenant.deleteMany({ where: { id: tenantA } });
