@@ -7,7 +7,7 @@ import {
 
 import { buildFieldExposureEngineDecisionMap } from "./build-field-exposure-engine-input";
 import { resolveSeededExposureProfile } from "./exposure-profile";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import { resolvePersistedExposureProfileForContext } from "./resolve-persisted-exposure-profile";
 
 export type ResolveUrbanSurfaceExposureInput = {

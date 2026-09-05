@@ -11,7 +11,8 @@ const WEB_ROOT = join(import.meta.dirname, "..");
 const TOUR_UI_FILES = [
   "src/admin/patterns/tour-category-badge.tsx",
   "app/(app)/tours/tours-page-client.tsx",
-  "app/(app)/tours/tour-card.tsx",
+  "app/(app)/tours/tours-directory-table.tsx",
+  "app/(app)/tours/tour-list-row-actions.tsx",
   "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx",
   "app/(app)/tours/[id]/workspace/transport/page.tsx",
   "app/(app)/settings/tour-wizard-template/wizard-template-client.tsx",

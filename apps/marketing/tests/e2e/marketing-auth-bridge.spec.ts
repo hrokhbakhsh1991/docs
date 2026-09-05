@@ -8,6 +8,27 @@ import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "./fixtures/smoke-published-tour"
 
 const TOUR = `/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}`;
 
+async function assertMarketingPdpOverlayNotPortalTakeover(page: Page): Promise<void> {
+  await expect(page).toHaveURL(new RegExp(`/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}`));
+  await expect(page).not.toHaveURL(/\/catalog\//);
+  await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible();
+  await expect(page.locator("[data-portal-login-full-page]")).toHaveCount(0);
+  await expect(page.locator("[data-portal-register-guest-auth]")).toHaveCount(0);
+
+  const panel = page.locator("[data-marketing-login-modal-panel]");
+  await expect(panel).toBeVisible();
+  const panelBox = await panel.boundingBox();
+  const viewport = page.viewportSize();
+  expect(panelBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  if (panelBox !== null && viewport !== null) {
+    expect(panelBox.width).toBeLessThan(viewport.width * 0.9);
+    if (viewport.width >= 768) {
+      expect(panelBox.height).toBeLessThan(viewport.height * 0.85);
+    }
+  }
+}
+
 async function openPdpModal(page: Page): Promise<void> {
   await page.goto(TOUR, { waitUntil: "load" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
@@ -30,12 +51,15 @@ async function openPdpModal(page: Page): Promise<void> {
   );
   const cta = (await rail.isVisible().catch(() => false)) ? rail : sticky;
   await expect(cta).toBeVisible({ timeout: 15_000 });
+  await expect(cta).toHaveAttribute("href", new RegExp(`/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}\\?auth=login`));
+  await expect(cta).not.toHaveAttribute("href", /\/catalog\//);
   await cta.scrollIntoViewIfNeeded();
   await cta.click();
   await expect(page).toHaveURL(new RegExp(`/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}`));
   await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
     timeout: 15_000,
   });
+  await assertMarketingPdpOverlayNotPortalTakeover(page);
 }
 
 test.describe("marketing auth bridge Quiet Ledger", () => {
@@ -113,5 +137,24 @@ test.describe("marketing auth bridge Quiet Ledger", () => {
       "sheet"
     );
     await expect(page.locator("#marketing-login-modal-title")).toHaveText("Sign in");
+  });
+
+  test("AB-E2E-04 guest register href stays on marketing PDP (no portal takeover)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(TOUR, { waitUntil: "load" });
+    await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
+      timeout: 60_000,
+    });
+    const register = page.locator("[data-marketing-register]").first();
+    await expect(register).toHaveAttribute(
+      "href",
+      new RegExp(`/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}\\?auth=login`)
+    );
+    await register.click({ noWaitAfter: true });
+    await expect(page).toHaveURL(new RegExp(`/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}`));
+    await expect(page).not.toHaveURL(/\/catalog\//);
+    await assertMarketingPdpOverlayNotPortalTakeover(page);
   });
 });

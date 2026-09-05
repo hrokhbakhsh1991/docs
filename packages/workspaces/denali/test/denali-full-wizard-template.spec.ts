@@ -87,4 +87,13 @@ describe("denali-full-wizard-template.spec.ts", () => {
     const paths = payload.steps.flatMap((step) => step.fields.map((field) => field.canonicalPath));
     assert.ok(!paths.includes("publishStatus"));
   });
+
+  it("DN-FULL-TPL-08 pricing step anchors composite for basePricePerPerson", () => {
+    const pricing = buildDenaliFullWizardTemplateSteps().find(
+      (step) => step.stepId === "denali_pricing"
+    );
+    const paths = new Set(pricing?.fields.map((field) => field.canonicalPath) ?? []);
+    assert.ok(paths.has("pricing.requiresPayment"));
+    assert.ok(!paths.has("pricing.basePricePerPerson"));
+  });
 });

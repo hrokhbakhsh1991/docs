@@ -983,9 +983,11 @@ const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
 const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
 const OPERATOR_SMOKE_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
+const OPERATOR_SMOKE_VIEWER_USER_ID = "00000000-0000-4000-8000-000000000104";
 const DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE = "09174070937";
 const OPERATOR_SMOKE_ADMIN_MOBILE = "+15550001002";
 const OPERATOR_SMOKE_MEMBER_MOBILE = "+15550001003";
+const OPERATOR_SMOKE_VIEWER_MOBILE = "+15550001004";
 const OPERATOR_SMOKE_INVITEE_USER_ID = "00000000-0000-4000-8000-000000000195";
 const OPERATOR_SMOKE_INVITEE_MOBILE = "+15550008803";
 
@@ -1008,6 +1010,7 @@ function resolveOperatorSmokeOwnerSeed(): {
 function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId: string): void {
   repo.seedUser({ id: OPERATOR_SMOKE_ADMIN_USER_ID, mobile: OPERATOR_SMOKE_ADMIN_MOBILE });
   repo.seedUser({ id: OPERATOR_SMOKE_MEMBER_USER_ID, mobile: OPERATOR_SMOKE_MEMBER_MOBILE });
+  repo.seedUser({ id: OPERATOR_SMOKE_VIEWER_USER_ID, mobile: OPERATOR_SMOKE_VIEWER_MOBILE });
   repo.seedMembership({
     userId: OPERATOR_SMOKE_ADMIN_USER_ID,
     tenantId,
@@ -1025,6 +1028,15 @@ function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId:
     sessionVersion: 1,
     workspaceId: "ws-operator-smoke-member",
     displayName: "Smoke Member",
+  });
+  repo.seedMembership({
+    userId: OPERATOR_SMOKE_VIEWER_USER_ID,
+    tenantId,
+    role: "viewer",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: "ws-operator-smoke-viewer",
+    displayName: "Smoke Viewer",
   });
 }
 

@@ -28,8 +28,9 @@ import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@ap
 import { tourListQueryHasFilters, tourListTotalPages } from "@/features/tours/tours-list-logic";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
-import { TourCard } from "./tour-card";
 import { ToursDirectoryControls } from "./tours-directory-controls";
+import { ToursDirectoryMobileRow } from "./tours-directory-mobile-row";
+import { ToursDirectoryTable } from "./tours-directory-table";
 import { ToursListSkeleton, ToursListToolbarSkeleton } from "./tours-list-skeleton";
 
 type OperatorToursPageClientProps = {
@@ -280,22 +281,30 @@ export function OperatorToursPageClient({
       ) : null}
 
       {!isInitialLoad && !error && items.length > 0 ? (
-        <ul
-          className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3${isRefetching ? " opacity-60" : ""}`}
+        <div
+          className={`space-y-4${isRefetching ? " opacity-60" : ""}`}
           data-testid={TOURS_LIST_TEST_IDS.list}
           aria-busy={isRefetching ? true : undefined}
         >
-          {items.map((tour) => (
-            <li key={tour.id}>
-              <TourCard
-                pluginId={session.pluginId}
-                tour={tour}
-                canManage={showCreate}
-                showExtendedCard={showExtendedCard}
-              />
-            </li>
-          ))}
-        </ul>
+          <ToursDirectoryTable
+            pluginId={session.pluginId}
+            tours={items}
+            canManage={showCreate}
+            showExtendedMeta={showExtendedCard}
+          />
+          <ul className="grid grid-cols-1 gap-3 lg:hidden" data-testid={TOURS_LIST_TEST_IDS.tableMobile}>
+            {items.map((tour) => (
+              <li key={tour.id}>
+                <ToursDirectoryMobileRow
+                  pluginId={session.pluginId}
+                  tour={tour}
+                  canManage={showCreate}
+                  showExtendedMeta={showExtendedCard}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       {data && data.total > 0 ? (
@@ -314,7 +323,7 @@ export function OperatorToursPageClient({
               disabled={data.page <= 1}
               onClick={() => replaceQuery({ ...query, page: Math.max(1, data.page - 1) })}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" aria-hidden />
               {tCommon("previous")}
             </Button>
             <Button
@@ -325,7 +334,7 @@ export function OperatorToursPageClient({
               onClick={() => replaceQuery({ ...query, page: data.page + 1 })}
             >
               {tCommon("next")}
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
             </Button>
           </div>
         </div>
