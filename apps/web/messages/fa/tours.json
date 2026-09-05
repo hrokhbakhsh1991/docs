@@ -183,6 +183,12 @@
     "openFinance": "باز کردن پیگیری پرداخت",
     "openWorkspace": "باز کردن مدیریت تور",
     "secondaryActions": "بیشتر",
+    "reviewPending": "بررسی در انتظار ({count, number})",
+    "lifecyclePhase": {
+      "design": "طراحی",
+      "selling": "فروش",
+      "running": "اجرای تور"
+    },
     "readOnlyBanner": "دسترسی محدود — فقط ادمین یا مالک می‌تواند تأیید، رد یا ثبت‌نام کند.",
     "header": {
       "departure": "حرکت",
@@ -217,7 +223,11 @@
       "manifestTitle": "مانيفست شرکت‌کنندگان",
       "manifestCount": "{count, number} شرکت‌کننده",
       "manifestEmpty": "هنوز شرکت‌کننده تأیید‌شده‌ای نیست — ابتدا ثبت‌نام‌ها را تأیید کنید.",
+      "manifestEmptyStepApprove": "ثبت‌نام‌ها را در تب ثبت‌نام‌ها تأیید کنید.",
+      "manifestEmptyStepLock": "پس از نهایی شدن فهرست، مانيفست را قفل کنید.",
+      "manifestEmptyStepRun": "در روز اجرا حضور را ثبت و خروجی بگیرید.",
       "goRegistrations": "بررسی ثبت‌نام‌ها",
+      "lifecycleSummary": "چرخه اجرا",
       "checklistTitle": "چک‌لیست اجرا",
       "groupsTitle": "گروه‌های شرکت‌کنندگان",
       "groupsEmpty": "هنوز گروهی تعریف نشده.",

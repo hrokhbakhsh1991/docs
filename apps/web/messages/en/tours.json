@@ -183,6 +183,12 @@
     "openFinance": "Open payment follow-up",
     "openWorkspace": "Open tour workspace",
     "secondaryActions": "More",
+    "reviewPending": "Review pending ({count, number})",
+    "lifecyclePhase": {
+      "design": "Design",
+      "selling": "Selling",
+      "running": "Running"
+    },
     "readOnlyBanner": "Limited actions — only admin or owner can approve, reject, or register guests.",
     "header": {
       "departure": "Departure",
@@ -217,7 +223,11 @@
       "manifestTitle": "Participant manifest",
       "manifestCount": "{count, number} participants",
       "manifestEmpty": "No approved participants yet — approve registrations first.",
+      "manifestEmptyStepApprove": "Approve registrations in the Registrations tab.",
+      "manifestEmptyStepLock": "Lock the manifest when the roster is final.",
+      "manifestEmptyStepRun": "Mark attendance and export on departure day.",
       "goRegistrations": "Review registrations",
+      "lifecycleSummary": "Execution lifecycle",
       "checklistTitle": "Execution checklist",
       "groupsTitle": "Participant groups",
       "groupsEmpty": "No groups yet.",

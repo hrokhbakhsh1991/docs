@@ -304,17 +304,21 @@ export function TourWorkspaceOperationsClient({
     return NEXT_STATE[current] ?? null;
   }, [execution?.state]);
 
-  const primaryAction = useMemo(() => {
-    if (!canManage || execution?.state === undefined) {
+  const lockManifestAction = useMemo(() => {
+    if (!canManage || execution?.state !== "draft") {
       return null;
     }
-    if (execution.state === "draft") {
-      return {
-        testId: "ito-lock-manifest",
-        label: t("lockManifest"),
-        onClick: () => void apiPost("/manifest/lock", "POST"),
-        disabled: busy,
-      };
+    return {
+      testId: "ito-lock-manifest",
+      label: t("lockManifest"),
+      onClick: () => void apiPost("/manifest/lock", "POST"),
+      disabled: busy,
+    };
+  }, [busy, canManage, execution?.state, t]);
+
+  const advanceStateAction = useMemo(() => {
+    if (!canManage || execution?.state === undefined || execution.state === "draft") {
+      return null;
     }
     if (nextState !== null && execution.rowVersion !== undefined) {
       return {
@@ -373,66 +377,6 @@ export function TourWorkspaceOperationsClient({
 
   return (
     <div className="space-y-4" data-testid={TOUR_WORKSPACE_TEST_IDS.operationsPanel}>
-      <Card>
-        <CardHeader className="space-y-3 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">{t("title")}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <OperatorStatusBadge variant="outline" data-testid="ito-execution-state">
-                  {stateLabel}
-                </OperatorStatusBadge>
-                {canManage ? (
-                  <div className="min-w-[12rem] flex-1 sm:max-w-xs" data-testid="ito-tour-leader-picker">
-                    <Select
-                      aria-label={t("tourLeaderPickerLabel")}
-                      disabled={busy}
-                      options={leaderOptions}
-                      value={execution?.tourLeaderUserId ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        void saveTourLeader(value.length > 0 ? value : null);
-                      }}
-                    />
-                  </div>
-                ) : execution?.tourLeaderDisplayName ? (
-                  <span className="text-sm text-muted-foreground" data-testid="ito-tour-leader">
-                    {t("tourLeaderNamed", { name: execution.tourLeaderDisplayName })}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground" data-testid="ito-tour-leader-empty">
-                    {t("tourLeaderUnset")}
-                  </span>
-                )}
-              </div>
-            </div>
-            {primaryAction !== null ? (
-              <Button
-                type="button"
-                className="w-full sm:w-auto"
-                data-testid={primaryAction.testId}
-                disabled={primaryAction.disabled}
-                onClick={primaryAction.onClick}
-              >
-                {primaryAction.label}
-              </Button>
-            ) : null}
-          </div>
-          {(meetingTimeLabel || execution?.meetingLocation) && (
-            <div className="text-sm text-muted-foreground" data-testid="ito-meeting-summary">
-              {meetingTimeLabel ? (
-                <p data-testid="ito-meeting-time">{t("meetingTimeSummary", { time: meetingTimeLabel })}</p>
-              ) : null}
-              {execution?.meetingLocation ? (
-                <p data-testid="ito-meeting-location">
-                  {t("meetingLocationSummary", { location: execution.meetingLocation })}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </CardHeader>
-      </Card>
-
       {actionNotice !== null ? (
         <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm" data-testid="ito-action-notice">
           {actionNotice}
@@ -445,7 +389,7 @@ export function TourWorkspaceOperationsClient({
         </p>
       ) : null}
 
-      <Card>
+      <Card data-testid="ito-manifest-card">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg">{t("manifestTitle")}</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
@@ -453,6 +397,17 @@ export function TourWorkspaceOperationsClient({
               <span className="text-sm text-muted-foreground" data-testid="ito-manifest-count">
                 {t("manifestCount", { count: manifest.length })}
               </span>
+            ) : null}
+            {lockManifestAction !== null ? (
+              <Button
+                type="button"
+                size="sm"
+                data-testid={lockManifestAction.testId}
+                disabled={lockManifestAction.disabled}
+                onClick={lockManifestAction.onClick}
+              >
+                {lockManifestAction.label}
+              </Button>
             ) : null}
             {canManage ? (
               <Button
@@ -472,6 +427,14 @@ export function TourWorkspaceOperationsClient({
           {manifest.length === 0 ? (
             <div className="space-y-3" data-testid="ito-manifest-empty">
               <p className="text-sm text-muted-foreground">{t("manifestEmpty")}</p>
+              <ol
+                className="list-decimal space-y-1 ps-5 text-sm text-muted-foreground"
+                data-testid="ito-manifest-empty-checklist"
+              >
+                <li>{t("manifestEmptyStepApprove")}</li>
+                <li>{t("manifestEmptyStepLock")}</li>
+                <li>{t("manifestEmptyStepRun")}</li>
+              </ol>
               {navigateWorkspaceTab !== null ? (
                 <Button
                   type="button"
@@ -568,6 +531,70 @@ export function TourWorkspaceOperationsClient({
           )}
         </CardContent>
       </Card>
+
+      <details className="rounded-xl border bg-card" data-testid="ito-lifecycle" open>
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+          {t("lifecycleSummary")}
+        </summary>
+        <div className="space-y-4 border-t px-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <OperatorStatusBadge variant="outline" data-testid="ito-execution-state">
+                  {stateLabel}
+                </OperatorStatusBadge>
+                {canManage ? (
+                  <div className="min-w-[12rem] flex-1 sm:max-w-xs" data-testid="ito-tour-leader-picker">
+                    <Select
+                      aria-label={t("tourLeaderPickerLabel")}
+                      disabled={busy}
+                      options={leaderOptions}
+                      value={execution?.tourLeaderUserId ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        void saveTourLeader(value.length > 0 ? value : null);
+                      }}
+                    />
+                  </div>
+                ) : execution?.tourLeaderDisplayName ? (
+                  <span className="text-sm text-muted-foreground" data-testid="ito-tour-leader">
+                    {t("tourLeaderNamed", { name: execution.tourLeaderDisplayName })}
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted-foreground" data-testid="ito-tour-leader-empty">
+                    {t("tourLeaderUnset")}
+                  </span>
+                )}
+              </div>
+            </div>
+            {advanceStateAction !== null ? (
+              <Button
+                type="button"
+                className="w-full sm:w-auto"
+                data-testid={advanceStateAction.testId}
+                disabled={advanceStateAction.disabled}
+                onClick={advanceStateAction.onClick}
+              >
+                {advanceStateAction.label}
+              </Button>
+            ) : null}
+          </div>
+          {(meetingTimeLabel || execution?.meetingLocation) && (
+            <div className="text-sm text-muted-foreground" data-testid="ito-meeting-summary">
+              {meetingTimeLabel ? (
+                <p data-testid="ito-meeting-time">
+                  {t("meetingTimeSummary", { time: meetingTimeLabel })}
+                </p>
+              ) : null}
+              {execution?.meetingLocation ? (
+                <p data-testid="ito-meeting-location">
+                  {t("meetingLocationSummary", { location: execution.meetingLocation })}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </details>
 
       {canManage ? (
         <details className="rounded-xl border bg-card" data-testid="ito-notify-changes">
