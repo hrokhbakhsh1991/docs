@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Profile B — canonical M↔P public URLs for IP:port staging (23002/23003).
-# PCMS-COOK-03: egress URLs must match cookie Domain share-parent (denali.localhost),
-# not raw VPS IP — otherwise marketing session is invisible on portal register.
+# Profile B — staging env parity (IP fallback hosts + ingress-derived M↔P URLs).
+# Do NOT set PORTAL_PUBLIC_BASE_URL / MARKETING_PUBLIC_BASE_URL — apps derive egress
+# from request Host (IP → IP links, denali.localhost → portal.denali.localhost, denali.club → apex).
 set -euo pipefail
 
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -48,50 +48,6 @@ resolve_club_label() {
   printf '%s' "denali"
 }
 
-resolve_platform_root_domain() {
-  local root
-  root="$(read_api_env PLATFORM_ROOT_DOMAIN)"
-  root="${root// /}"
-  if [[ -n "$root" ]]; then
-    printf '%s' "$root"
-    return
-  fi
-  printf '%s' "localhost"
-}
-
-# Browser-facing M↔P URLs — hostname when localhost profile, else IP:port fallback.
-resolve_marketing_public_url() {
-  local club="$1"
-  local root="$2"
-  local port="$3"
-  local public_host="$4"
-
-  case "$root" in
-    localhost | staging.localhost)
-      printf 'http://%s.localhost:%s' "$club" "$port"
-      ;;
-    *)
-      printf 'http://%s:%s' "$public_host" "$port"
-      ;;
-  esac
-}
-
-resolve_portal_public_url() {
-  local club="$1"
-  local root="$2"
-  local port="$3"
-  local public_host="$4"
-
-  case "$root" in
-    localhost | staging.localhost)
-      printf 'http://portal.%s.localhost:%s' "$club" "$port"
-      ;;
-    *)
-      printf 'http://%s:%s' "$public_host" "$port"
-      ;;
-  esac
-}
-
 set_env_kv() {
   local file="$1" key="$2" value="$3"
   [[ -f "$file" ]] || touch "$file"
@@ -102,9 +58,14 @@ set_env_kv() {
   fi
 }
 
+unset_env_kv() {
+  local file="$1" key="$2"
+  [[ -f "$file" ]] || return 0
+  sed -i "/^${key}=/d" "$file"
+}
+
 PUBLIC_HOST="$(resolve_public_host)"
 CLUB_LABEL="$(resolve_club_label)"
-ROOT_DOMAIN="$(resolve_platform_root_domain)"
 MKT_PORT="23002"
 PTL_PORT="23003"
 if [[ -f "${ENV_DIR}/marketing.env" ]]; then
@@ -115,9 +76,6 @@ if [[ -f "${ENV_DIR}/portal.env" ]]; then
   ptl_from_file="$(grep -E '^PORT=' "${ENV_DIR}/portal.env" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
   [[ -n "$ptl_from_file" ]] && PTL_PORT="$ptl_from_file"
 fi
-
-MARKETING_URL="$(resolve_marketing_public_url "$CLUB_LABEL" "$ROOT_DOMAIN" "$MKT_PORT" "$PUBLIC_HOST")"
-PORTAL_URL="$(resolve_portal_public_url "$CLUB_LABEL" "$ROOT_DOMAIN" "$PTL_PORT" "$PUBLIC_HOST")"
 
 for app in marketing portal web; do
   target="${ENV_DIR}/${app}.env"
@@ -136,14 +94,17 @@ set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "http://${PUBLIC_HOST}:9002"
 
-set_env_kv "${ENV_DIR}/marketing.env" PLATFORM_ROOT_DOMAIN localhost
-set_env_kv "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL "$PORTAL_URL"
-set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL "$MARKETING_URL"
+# Ingress-derived egress (WRS-URL-01) — never hardcode localhost or IP here.
+for app in marketing portal; do
+  target="${ENV_DIR}/${app}.env"
+  set_env_kv "$target" PLATFORM_ROOT_DOMAIN localhost
+  unset_env_kv "$target" PORTAL_PUBLIC_BASE_URL
+  unset_env_kv "$target" MARKETING_PUBLIC_BASE_URL
+done
+
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 set_env_kv "${ENV_DIR}/marketing.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
-set_env_kv "${ENV_DIR}/portal.env" PLATFORM_ROOT_DOMAIN localhost
-set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL "$MARKETING_URL"
 set_env_kv "${ENV_DIR}/portal.env" PORTAL_INTERNAL_URL "http://127.0.0.1:${PTL_PORT}"
 set_env_kv "${ENV_DIR}/portal.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/portal.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
@@ -152,4 +113,4 @@ set_env_kv "${ENV_DIR}/portal.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST
 chown root:app-tour "${ENV_DIR}"/*.env 2>/dev/null || true
 chmod 640 "${ENV_DIR}"/*.env 2>/dev/null || true
 
-echo "sync-staging-profile-b-public-urls: OK marketing=${MARKETING_URL} portal=${PORTAL_URL} fallback_host=${PUBLIC_HOST}"
+echo "sync-staging-profile-b-public-urls: OK profile=staging ingress-derived-urls fallback_host=${PUBLIC_HOST} ports=${MKT_PORT}/${PTL_PORT}"

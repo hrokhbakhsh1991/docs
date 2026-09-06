@@ -97,6 +97,14 @@ pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-operato
   --packages=external \
   --outfile="${ARTIFACT_ROOT}/bin/seed-staging.cjs"
 
+log "bundle WRS denali.club domain seed (staging apex)"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-wrs-denali-club-domains.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-wrs-denali-club-domains.cjs"
+
 log "bundle Denali Wallet pilot seed (explicit staging opt-in)"
 pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-wallet-pilot.ts" \
   --bundle \

@@ -58,13 +58,7 @@ do
   NODE_ENV=development pnpm exec tsx "\$script"
 done
 
-MKT_ENV="\${ENV_DIR}/marketing.env"
-PORTAL_BASE="http://portal.denali.localhost:\${PTL_PORT}"
-if grep -q '^PORTAL_PUBLIC_BASE_URL=' "\$MKT_ENV"; then
-  sed -i "s|^PORTAL_PUBLIC_BASE_URL=.*|PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}|" "\$MKT_ENV"
-else
-  echo "PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}" >> "\$MKT_ENV"
-fi
+ENV_DIR="\${ENV_DIR}" bash "\${DEPLOY_PATH}/scripts/vps-deploy/sync-staging-profile-b-public-urls.sh"
 systemctl restart app-tour-staging-marketing app-tour-staging-portal
 sleep 2
 systemctl is-active app-tour-staging-marketing app-tour-staging-portal
