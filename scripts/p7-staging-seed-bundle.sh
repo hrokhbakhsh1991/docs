@@ -59,7 +59,7 @@ do
 done
 
 MKT_ENV="\${ENV_DIR}/marketing.env"
-PORTAL_BASE="http://operator.portal.localhost:\${PTL_PORT}"
+PORTAL_BASE="http://portal.denali.localhost:\${PTL_PORT}"
 if grep -q '^PORTAL_PUBLIC_BASE_URL=' "\$MKT_ENV"; then
   sed -i "s|^PORTAL_PUBLIC_BASE_URL=.*|PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}|" "\$MKT_ENV"
 else
