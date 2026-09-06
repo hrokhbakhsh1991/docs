@@ -30,8 +30,11 @@ describe("staging-env-contract", () => {
     const sh = read("scripts/vps-deploy/sync-staging-profile-b-public-urls.sh");
     assert.match(sh, /MINIO_PUBLIC_ENDPOINT/);
     assert.match(sh, /PORTAL_INTERNAL_URL/);
-    assert.match(sh, /PUBLIC_TENANT_FALLBACK_LABEL denali/);
+    assert.match(sh, /PUBLIC_TENANT_FALLBACK_LABEL "\$CLUB_LABEL"/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_HOSTS/);
+    assert.match(sh, /portal\.%s\.localhost/);
+    assert.match(sh, /MARKETING_PUBLIC_BASE_URL/);
+    assert.match(sh, /PLATFORM_ROOT_DOMAIN localhost/);
   });
 
   it("REG-STG-ENV-03 active staging deploy scripts default to canonical staging IP", () => {
