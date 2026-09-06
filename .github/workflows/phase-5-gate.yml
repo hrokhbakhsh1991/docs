@@ -60,6 +60,9 @@ jobs:
       DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
       STORAGE_DRIVER: prisma
       NODE_ENV: test
+      # Align with phase-6 fast-closure: shared GHA runners after build+test exceed 100ms serial p95.
+      P5_PERF_GATE_MS: "850"
+      P5_SERIAL_PERF_GATE_MS: "250"
 
     steps:
       - name: Checkout
