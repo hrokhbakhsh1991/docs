@@ -65,7 +65,9 @@ jobs:
     name: Phase 0 integration gate
     runs-on: ubuntu-latest
     # PR uses test:changed (integration-gate:pr); main keeps full pnpm test.
-    timeout-minutes: 45
+    # build + test:changed + adversarial + guards can exceed 45m when package.json
+    # or scripts/guards change fans out to @apps/api (observed cancel at boundary).
+    timeout-minutes: 60
     env:
       # H-12 — full monorepo legacy-import depcruise (all packages/workspaces).
       LEGACY_IMPORT_SCAN_SCOPE: monorepo

@@ -29,6 +29,7 @@ const DETAIL_MAX = 4000;
 
 /** Gate-tier env (matches root package.json Phase 5 full-closure script). */
 const P5_PERF_GATE_MS = "850";
+const P5_SERIAL_PERF_GATE_MS = "250";
 const MIN_THROUGHPUT = "100";
 const BASELINE_RATIO_MAX = "1.25";
 
@@ -184,11 +185,12 @@ function main() {
   checks.push(
     checkTargetedPerf(
       "p5rp_atomic_write_perf",
-      `atomic-write-perf (P5_PERF_GATE_MS=${P5_PERF_GATE_MS})`,
+      `atomic-write-perf (P5_PERF_GATE_MS=${P5_PERF_GATE_MS}, P5_SERIAL_PERF_GATE_MS=${P5_SERIAL_PERF_GATE_MS})`,
       "test/chaos/atomic-write-perf.spec.ts",
       {
         STORAGE_DRIVER: process.env.STORAGE_DRIVER?.trim() || "memory",
         P5_PERF_GATE_MS,
+        P5_SERIAL_PERF_GATE_MS,
       },
     ),
   );
@@ -236,6 +238,7 @@ function writeReportAndExit(checks) {
     },
     env: {
       P5_PERF_GATE_MS,
+      P5_SERIAL_PERF_GATE_MS,
       MIN_THROUGHPUT,
       BASELINE_RATIO_MAX,
     },

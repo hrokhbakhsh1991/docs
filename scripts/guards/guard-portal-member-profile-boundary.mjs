@@ -173,11 +173,32 @@ for (const scanRoot of SCAN_ROOTS) {
     }
 
     if (relPath === "apps/portal/src/me/fetch-member-profile.server.ts") {
-      if (!source.includes("/api/me/profile")) {
-        fail("mp_guard_ssr_bff_entrypoint", "fetchMemberProfile must call /api/me/profile only");
-      }
       if (IDENTITY_ME_PATTERN.test(source) || source.includes("resolveTourOpsApiBaseUrl")) {
-        fail("mp_guard_ssr_no_identity", "fetchMemberProfile must not call identity/me directly");
+        fail(
+          "mp_guard_ssr_no_identity",
+          "fetchMemberProfile must delegate to fetchMemberProfileUpstreamForHost (no loopback /api/me/profile)"
+        );
+      }
+      if (!source.includes("fetchMemberProfileUpstreamForHost")) {
+        fail(
+          "mp_guard_ssr_cookie_safe_upstream",
+          "fetchMemberProfile must delegate to cookie-safe upstream helper"
+        );
+      }
+      if (source.includes("/api/me/profile")) {
+        fail(
+          "mp_guard_ssr_no_loopback_bff",
+          "fetchMemberProfile must not loopback self-fetch /api/me/profile on document SSR"
+        );
+      }
+    }
+
+    if (relPath === "apps/portal/src/me/fetch-member-profile-from-session.server.ts") {
+      if (!source.includes("fetchMemberProfileUpstreamForHost")) {
+        fail(
+          "mp_guard_ssr_upstream_helper",
+          "fetch-member-profile-from-session must export cookie-safe upstream helper"
+        );
       }
     }
 
