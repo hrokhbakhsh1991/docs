@@ -175,6 +175,28 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
 });
 
 test.describe("portal member notifications — isolated member", () => {
+  test("NOTIF-BQC-08 skeleton loading state screenshot", async ({ page }) => {
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+
+    await page.route("**/api/me/notifications?*", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await route.continue();
+    });
+
+    const loadingPanel = page.locator(
+      "[data-portal-member-notifications-panel][data-portal-member-notifications-state='loading']",
+    );
+    await page.goto("/me/notifications", { waitUntil: "commit" });
+    await expect(loadingPanel).toBeVisible({ timeout: 15_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-skeleton-loading.png",
+      fullPage: true,
+    });
+
+    await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 60_000 });
+  });
+
   test("NOTIF-BQC-07 error state shows retry and recovers inbox", async ({ page }) => {
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
 

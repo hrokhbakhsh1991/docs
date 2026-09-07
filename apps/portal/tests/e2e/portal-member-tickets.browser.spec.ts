@@ -19,7 +19,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
 
     await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']")
+      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']"),
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-ticket-row]").first()).toBeVisible({
       timeout: 30_000,
@@ -46,7 +46,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
     await page.waitForURL(/\/me\/tickets\//, { timeout: 60_000 });
 
     await expect(
-      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']")
+      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']"),
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-ticket-detail-hero]")).toBeVisible();
     await expect(page.locator("[data-portal-member-ticket-messages] li").first()).toBeVisible();
@@ -66,7 +66,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
 
     await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']")
+      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']"),
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
@@ -93,6 +93,29 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
 
     await page.screenshot({
       path: "/opt/cursor/artifacts/bqc-tickets-filter-resolved.png",
+      fullPage: true,
+    });
+  });
+});
+
+test.describe("portal member tickets — TKT-BQC states", () => {
+  test("TKT-BQC-03 fresh member sees empty tickets list", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+    await authenticatePortalMemberForTickets(page, {
+      phone,
+      fullName: `Ticket Empty ${Date.now()}`,
+    });
+
+    await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']"),
+    ).toBeVisible({ timeout: 90_000 });
+    await expect(page.locator("[data-portal-member-tickets-empty]")).toBeVisible();
+    await expect(page.locator("[data-portal-member-ticket-row]")).toHaveCount(0);
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-tickets-empty-list.png",
       fullPage: true,
     });
   });
@@ -129,17 +152,17 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     await Promise.all([
       page.waitForResponse(
         (res) => res.request().method() === "POST" && res.url().includes("/api/me/tickets"),
-        { timeout: 90_000 }
+        { timeout: 90_000 },
       ),
       page.locator('[data-portal-member-tickets-new-form] button[type="submit"]').click(),
     ]);
 
     await page.waitForURL(/\/me\/tickets\/[^/]+$/, { timeout: 90_000 });
     await expect(
-      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']")
+      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']"),
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-ticket-detail-subject]")).toContainText(
-      ticketSubject
+      ticketSubject,
     );
     await expect(page.locator("[data-portal-member-ticket-code]")).toBeVisible();
 
@@ -159,14 +182,14 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
           res.request().method() === "POST" &&
           res.url().includes("/messages") &&
           res.status() === 201,
-        { timeout: 60_000 }
+        { timeout: 60_000 },
       ),
       page.locator("[data-portal-member-ticket-composer] button[type='submit']").click(),
     ]);
 
     await expect(page.getByText(replyText)).toBeVisible({ timeout: 60_000 });
     await expect(
-      page.locator('[data-portal-member-ticket-message][data-author="member"]').last()
+      page.locator('[data-portal-member-ticket-message][data-author="member"]').last(),
     ).toBeVisible();
 
     await page.screenshot({
@@ -176,11 +199,11 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
 
     await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']")
+      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']"),
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.getByText(ticketSubject)).toBeVisible({ timeout: 60_000 });
     await expect(
-      page.locator(`[data-portal-member-ticket-subject]:has-text("${ticketSubject}")`)
+      page.locator(`[data-portal-member-ticket-subject]:has-text("${ticketSubject}")`),
     ).toBeVisible();
   });
 });

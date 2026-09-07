@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import type { MemberTicketListView } from "@/me/tickets/member-tickets-bff.server";
@@ -31,6 +31,11 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
   const [status, setStatus] = useState<TicketStatusFilter>(initialStatus);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+
+  useEffect(() => {
+    setList(initialList);
+    setStatus(initialStatus);
+  }, [initialList, initialStatus]);
 
   const loadList = useCallback(async (nextStatus: TicketStatusFilter, cursor?: string | null) => {
     setIsPending(true);
@@ -82,6 +87,7 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
               key={filter || "all"}
               type="button"
               data-portal-member-tickets-filter-chip
+              data-testid={`portal-tickets-filter-${filter || "all"}`}
               data-status={filter || "all"}
               aria-pressed={active}
               disabled={isPending}
