@@ -67,13 +67,15 @@ test("WALLET-NOTIF-01 operator credit surfaces wallet notification in portal bel
     await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
     await expect(
       memberPage.locator(
-        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
-      ),
+        "[data-portal-member-notifications-panel][data-portal-member-notifications-state='ready']"
+      )
     ).toBeVisible({ timeout: 90_000 });
     await expect(
-      memberPage.locator(
-        "[data-portal-member-notification-item][data-portal-member-notification-source='wallet']",
-      ).first(),
+      memberPage
+        .locator(
+          "[data-portal-member-notification-item][data-portal-member-notification-source='wallet']"
+        )
+        .first()
     ).toBeVisible({ timeout: 60_000 });
 
     const engagementAfter = await memberPage.request.get("/api/me/engagement/summary");

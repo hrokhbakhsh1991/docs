@@ -78,7 +78,7 @@ test.describe("MEG-001 portal member engagement", () => {
       timeout: 90_000,
     });
     await expect(
-      page.locator('[data-portal-member-engagement-badge][data-earned="true"]').first(),
+      page.locator('[data-portal-member-engagement-badge][data-earned="true"]').first()
     ).toBeVisible();
   });
 
@@ -153,18 +153,22 @@ test.describe("MEG-001 portal member engagement", () => {
           };
           return (body.items ?? []).some((item) => item.sourceModule === "engagement");
         },
-        { timeout: 90_000 },
+        { timeout: 90_000 }
       )
       .toBe(true);
 
     await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-notifications][data-portal-member-notifications-state='ready']"),
+      page.locator(
+        "[data-portal-member-notifications-panel][data-portal-member-notifications-state='ready']"
+      )
     ).toBeVisible({ timeout: 60_000 });
     await expect(
-      page.locator(
-        "[data-portal-member-notification-item][data-portal-member-notification-source='engagement']",
-      ).first(),
+      page
+        .locator(
+          "[data-portal-member-notification-item][data-portal-member-notification-source='engagement']"
+        )
+        .first()
     ).toBeVisible({ timeout: 60_000 });
 
     await page.screenshot({
@@ -173,7 +177,9 @@ test.describe("MEG-001 portal member engagement", () => {
     });
   });
 
-  test("SMK-MEG-06 member never sees negative points or punitive correction UX", async ({ page }) => {
+  test("SMK-MEG-06 member never sees negative points or punitive correction UX", async ({
+    page,
+  }) => {
     const phone = `+1555${String(Date.now()).slice(-7)}`;
     const email = `smk-meg-06-${Date.now()}@denali-smoke.local`;
 
@@ -214,7 +220,7 @@ test.describe("MEG-001 portal member engagement", () => {
     expect(operatorAfterDeduct.totalPoints).toBe(35);
     const deductEvent = operatorAfterDeduct.recentPointEvents.find(
       (event) =>
-        event.sourceEventType === "engagement.points.manual_adjustment" && event.pointsDelta === -15,
+        event.sourceEventType === "engagement.points.manual_adjustment" && event.pointsDelta === -15
     );
     expect(deductEvent).toBeTruthy();
     expect(deductEvent?.reason).toContain("SMK-MEG-06");
@@ -234,25 +240,25 @@ test.describe("MEG-001 portal member engagement", () => {
     });
 
     const correctionItem = page.locator(
-      '[data-portal-member-engagement-history-item][data-portal-member-engagement-history-kind="correction"]',
+      '[data-portal-member-engagement-history-item][data-portal-member-engagement-history-kind="correction"]'
     );
     await expect(correctionItem).toBeVisible({ timeout: 60_000 });
     await expect(correctionItem).toContainText(/اصلاح امتیاز|Points correction/i);
     await expect(correctionItem).not.toContainText("-15");
     await expect(correctionItem).not.toContainText("SMK-MEG-06");
 
-    const correctionColor = await correctionItem.evaluate((el) =>
-      window.getComputedStyle(el).color,
+    const correctionColor = await correctionItem.evaluate(
+      (el) => window.getComputedStyle(el).color
     );
     const destructiveToken = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue("--destructive").trim(),
+      getComputedStyle(document.documentElement).getPropertyValue("--destructive").trim()
     );
     if (destructiveToken.length > 0) {
       expect(correctionColor).not.toContain(destructiveToken);
     }
 
     const awardEvent = operatorAfterDeduct.recentPointEvents.find(
-      (event) => event.sourceEventType === "profile.completed" && event.pointsDelta > 0,
+      (event) => event.sourceEventType === "profile.completed" && event.pointsDelta > 0
     );
     expect(awardEvent).toBeTruthy();
 
@@ -268,7 +274,7 @@ test.describe("MEG-001 portal member engagement", () => {
     });
 
     const reversalItem = page.locator(
-      '[data-portal-member-engagement-history-item][data-portal-member-engagement-history-kind="reversal"]',
+      '[data-portal-member-engagement-history-item][data-portal-member-engagement-history-kind="reversal"]'
     );
     await expect(reversalItem).toBeVisible({ timeout: 60_000 });
     await expect(reversalItem).toContainText(/برگشت امتیاز|Points reversal/i);
@@ -276,7 +282,7 @@ test.describe("MEG-001 portal member engagement", () => {
 
     await reversalItem.locator("summary").click();
     await expect(reversalItem).toContainText(
-      /امتیاز این رویداد اصلاح شد|Points for this activity were corrected/i,
+      /امتیاز این رویداد اصلاح شد|Points for this activity were corrected/i
     );
 
     const memberHistoryRes = await page.request.get("/api/me/engagement/points?limit=20");

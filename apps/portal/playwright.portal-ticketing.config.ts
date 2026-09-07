@@ -8,6 +8,7 @@ export default defineConfig({
   testMatch: [
     "portal-member-tickets-smoke.spec.ts",
     "portal-ticket-notifications-smoke.spec.ts",
+    "portal-member-notifications.browser.spec.ts",
     "portal-ticketing-a11y.spec.ts",
   ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
