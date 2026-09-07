@@ -48,6 +48,30 @@ function waitForUrl(url, timeoutMs = 600_000) {
   });
 }
 
+function isPortListening(port) {
+  return new Promise((resolve) => {
+    const req = http.get(`http://127.0.0.1:${port}/`, (res) => {
+      res.resume();
+      resolve(true);
+    });
+    req.on("error", () => resolve(false));
+    req.setTimeout(1_500, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function ensurePortFree(port) {
+  if (await isPortListening(port)) {
+    console.log(`smoke-portal-gap-e2e-servers: port ${port} already listening — reusing`);
+    return false;
+  }
+  freePort(port);
+  await waitForPortFree(port);
+  return true;
+}
+
 function freePort(port) {
   try {
     execSync(`fuser -k ${port}/tcp`, { stdio: "ignore" });
@@ -109,54 +133,63 @@ const portalEnv = {
   MARKETING_PUBLIC_BASE_URL: marketingPublicBaseUrl,
 };
 
-freePort(3001);
-freePort(3002);
-freePort(3003);
-await waitForPortFree(3001);
-await waitForPortFree(3002);
-await waitForPortFree(3003);
+const apiNeeded = await ensurePortFree(3001);
+const marketingNeeded = await ensurePortFree(3002);
+const portalNeeded = await ensurePortFree(3003);
 
-const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
-  cwd: path.join(repoRoot, "apps/api"),
-  env: apiEnv,
-  stdio: "inherit",
-});
-
+let api;
 let marketing;
 let portal;
 
-void waitForUrl("http://127.0.0.1:3001/health")
-  .then(() => {
+const startChain = async () => {
+  if (apiNeeded) {
+    api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+      cwd: path.join(repoRoot, "apps/api"),
+      env: apiEnv,
+      stdio: "inherit",
+    });
+    await waitForUrl("http://127.0.0.1:3001/health");
+  } else {
+    await waitForUrl("http://127.0.0.1:3001/health");
+  }
+
+  if (marketingNeeded) {
     marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002", "--hostname", "127.0.0.1"], {
       cwd: marketingDir,
       env: marketingEnv,
       stdio: "inherit",
     });
-    return waitForUrl("http://127.0.0.1:3002/health");
-  })
-  .then(() => {
+    await waitForUrl("http://127.0.0.1:3002/health");
+  } else {
+    await waitForUrl("http://127.0.0.1:3002/health");
+  }
+
+  if (portalNeeded) {
     portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
       cwd: portalDir,
       env: portalEnv,
       stdio: "inherit",
     });
-    return waitForUrl("http://127.0.0.1:3003/health");
-  })
-  .then(async () => {
-    console.log("smoke-portal-gap-e2e-servers: API + marketing + portal ready");
-    await new Promise(() => {});
-  })
-  .catch((error) => {
-    console.error(error);
-    api.kill("SIGTERM");
-    if (marketing) marketing.kill("SIGTERM");
-    if (portal) portal.kill("SIGTERM");
-    process.exit(1);
-  });
+    await waitForUrl("http://127.0.0.1:3003/health");
+  } else {
+    await waitForUrl("http://127.0.0.1:3003/health");
+  }
+
+  console.log("smoke-portal-gap-e2e-servers: API + marketing + portal ready");
+  await new Promise(() => {});
+};
+
+void startChain().catch((error) => {
+  console.error(error);
+  if (api) api.kill("SIGTERM");
+  if (marketing) marketing.kill("SIGTERM");
+  if (portal) portal.kill("SIGTERM");
+  process.exit(1);
+});
 
 const shutdown = (signal) => {
   console.log(`smoke-portal-gap-e2e-servers: ${signal}`);
-  api.kill("SIGTERM");
+  if (api) api.kill("SIGTERM");
   if (marketing) marketing.kill("SIGTERM");
   if (portal) portal.kill("SIGTERM");
   process.exit(0);

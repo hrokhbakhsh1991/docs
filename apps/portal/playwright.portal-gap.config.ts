@@ -7,6 +7,18 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const portalSmokeBaseUrl =
   process.env.SMOKE_PORTAL_BASE_URL ?? "http://denali.portal.localhost:3003";
 
+function chromiumLaunchArgs(): string[] {
+  const vpsIp = process.env.VPS_IP?.trim();
+  const target =
+    useExternalServers && vpsIp !== undefined && vpsIp.length > 0 ? vpsIp : "127.0.0.1";
+  const rules = [
+    `MAP denali.portal.localhost ${target}`,
+    `MAP portal.denali.localhost ${target}`,
+    `MAP denali.localhost ${target}`,
+  ].join(", ");
+  return [`--host-resolver-rules=${rules}`];
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["portal-home-gap.browser.spec.ts"],
@@ -20,6 +32,7 @@ export default defineConfig({
     baseURL: portalSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
     navigationTimeout: 180_000,
+    launchOptions: { args: chromiumLaunchArgs() },
   },
   ...(useExternalServers
     ? {}
