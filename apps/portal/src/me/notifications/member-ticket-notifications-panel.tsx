@@ -89,29 +89,67 @@ export function MemberNotificationsPanel() {
   const t = useTranslations("portalMember.notifications");
   const locale = useLocale();
   const [items, setItems] = useState<readonly NotificationItem[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/me/notifications?limit=20", { cache: "no-store" });
-      if (!res.ok) {
-        setError(t("loadError"));
-        setItems([]);
-        return;
+  const load = useCallback(
+    async (cursor?: string | null) => {
+      const isLoadMore = cursor !== undefined && cursor !== null && cursor.length > 0;
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError(null);
       }
-      const body = (await res.json()) as ListResponse;
-      setItems(body.items ?? []);
-    } catch {
-      setError(t("loadError"));
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+
+      const params = new URLSearchParams({ limit: "20" });
+      if (isLoadMore) {
+        params.set("cursor", cursor);
+      }
+
+      try {
+        const res = await fetch(`/api/me/notifications?${params.toString()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          if (!isLoadMore) {
+            setError(t("loadError"));
+            setItems([]);
+            setHasMore(false);
+            setNextCursor(null);
+          }
+          return;
+        }
+        const body = (await res.json()) as ListResponse;
+        const pageItems = body.items ?? [];
+        if (isLoadMore) {
+          setItems((current) => [...current, ...pageItems]);
+        } else {
+          setItems(pageItems);
+        }
+        setHasMore(body.hasMore ?? false);
+        setNextCursor(body.nextCursor ?? null);
+      } catch {
+        if (!isLoadMore) {
+          setError(t("loadError"));
+          setItems([]);
+          setHasMore(false);
+          setNextCursor(null);
+        }
+      } finally {
+        if (isLoadMore) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [t]
+  );
 
   useEffect(() => {
     void load();
@@ -261,6 +299,17 @@ export function MemberNotificationsPanel() {
           })}
         </ul>
       )}
+
+      {hasMore ? (
+        <button
+          type="button"
+          data-portal-member-notifications-load-more
+          disabled={loadingMore}
+          onClick={() => void load(nextCursor)}
+        >
+          {loadingMore ? t("loadingMore") : t("loadMore")}
+        </button>
+      ) : null}
     </div>
   );
 }

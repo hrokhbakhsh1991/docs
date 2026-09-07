@@ -3068,6 +3068,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-tickets-load-more],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-notifications-load-more],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-tickets-error]
   button {
   min-height: 2.5rem;

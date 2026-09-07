@@ -445,6 +445,8 @@
     "emptyBody": "وقتی در سفرها، تیکت‌ها یا کیف پول شما تغییری باشد، اینجا نمایش داده می‌شود.",
     "markAllRead": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
     "markingAllRead": "در حال علامت‌گذاری…",
+    "loadMore": "نمایش بیشتر",
+    "loadingMore": "در حال بارگذاری…",
     "unreadSummary": "{count, plural, one {# خوانده‌نشده} other {# خوانده‌نشده}}",
     "ticketUpdateBody": "به‌روزرسانی برای تیکت {ticketRef}",
     "genericUpdateBody": "به‌روزرسانی جدیدی دارید.",

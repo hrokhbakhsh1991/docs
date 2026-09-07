@@ -454,6 +454,8 @@
     "emptyBody": "When something changes on your trips, tickets, or wallet, it will show up here.",
     "markAllRead": "Mark all as read",
     "markingAllRead": "Marking…",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
     "unreadSummary": "{count, plural, one {# unread} other {# unread}}",
     "ticketUpdateBody": "Update for ticket {ticketRef}",
     "genericUpdateBody": "You have a new update.",
