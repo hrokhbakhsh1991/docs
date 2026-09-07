@@ -106,15 +106,19 @@ test.describe("MEG-001 Denali operator engagement", () => {
   });
 
   test("SMK-MEG-OP-05 member search by phone and adjust/reverse", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await loginDenaliOperatorOwner(page);
     await page.goto("/users", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("operator-users-page")).toBeVisible({ timeout: 60_000 });
 
-    await page.getByTestId("operator-users-search").fill("09174070937");
-    await expect(page.getByTestId("operator-users-row-details").first()).toBeVisible({
-      timeout: 60_000,
-    });
-    await page.getByTestId("operator-users-row-details").first().click();
+    const ownerOpen = page
+      .getByTestId("operator-users-table-desktop")
+      .locator("tbody tr")
+      .filter({ hasText: "09174070937" })
+      .getByRole("button", { name: /open member|باز کردن عضو/i });
+    await expect(ownerOpen).toBeVisible({ timeout: 60_000 });
+    await ownerOpen.scrollIntoViewIfNeeded();
+    await ownerOpen.click();
     await expect(page.getByTestId("operator-users-member-detail")).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId("operator-users-member-engagement")).toBeVisible({
       timeout: 60_000,

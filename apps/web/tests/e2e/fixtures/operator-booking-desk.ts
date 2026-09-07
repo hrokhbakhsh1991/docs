@@ -154,6 +154,7 @@ export async function seedDenaliGuestRegistration(
   page: Page,
   input: { guestName: string; email: string; partySize?: number; tourId?: string },
 ): Promise<string> {
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
   const res = await page.request.post(`${tourOpsApiBase()}/denali/registrations`, {
     headers: {
       "x-tenant-id": DENALI_SMOKE_TENANT_ID,
@@ -161,8 +162,9 @@ export async function seedDenaliGuestRegistration(
     },
     data: {
       tourId: input.tourId ?? DENALI_PUBLISHED_TOUR_ID,
-      contact: { email: input.email, fullName: input.guestName },
-      partySize: input.partySize ?? 2,
+      registrantTarget: "other",
+      contact: { email: input.email, fullName: input.guestName, phone },
+      partySize: input.partySize ?? 1,
     },
   });
   expect(res.status(), await res.text()).toBe(201);

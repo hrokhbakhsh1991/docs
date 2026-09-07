@@ -54,10 +54,20 @@ test.describe("operator gap audit — GAP-BQC", () => {
 
   test("GAP-TRANSPORT-01 operational roster API + transport UI", async ({ page }) => {
     await loginDenaliOperatorOwner(page);
-    const rosterRes = await page.request.get(
-      `/api/tours/${DENALI_PUBLISHED_TOUR_ID}/operational-roster?filter=operational&limit=20`,
-    );
-    expect(rosterRes.ok(), await rosterRes.text()).toBeTruthy();
+    let rosterBody = "";
+    let rosterOk = false;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const rosterRes = await page.request.get(
+        `/api/tours/${DENALI_PUBLISHED_TOUR_ID}/operational-roster?filter=operational&limit=20`,
+      );
+      rosterBody = await rosterRes.text();
+      rosterOk = rosterRes.ok();
+      if (rosterOk || !rosterBody.includes("TENANT_DB_BUDGET_EXCEEDED")) {
+        break;
+      }
+      await page.waitForTimeout(400 * (attempt + 1));
+    }
+    expect(rosterOk, rosterBody).toBeTruthy();
 
     await page.goto(
       `/tours/${DENALI_PUBLISHED_TOUR_ID}/workspace?tab=transport`,

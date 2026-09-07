@@ -100,7 +100,8 @@ async function seedGuestOnTour(
     },
     data: {
       tourId: input.tourId,
-      contact: { email: input.email, fullName: input.guestName },
+      registrantTarget: "other",
+      contact: { email: input.email, fullName: input.guestName, phone: `+1555${String(Date.now()).slice(-7)}` },
       partySize: input.partySize ?? 1,
     },
   });
