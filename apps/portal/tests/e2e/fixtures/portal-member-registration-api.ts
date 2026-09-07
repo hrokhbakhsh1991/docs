@@ -48,6 +48,9 @@ export async function attachMemberReceiptFile(page: Page): Promise<void> {
     mimeType: "image/png",
     buffer: minimalReceiptPngBuffer(),
   });
+  await fileInput.evaluate((element) => {
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await expect(fileInput).toHaveJSProperty("files.length", 1);
 }
 

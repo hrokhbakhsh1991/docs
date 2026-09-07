@@ -1,6 +1,6 @@
 /**
  * BOOK-BQC — portal tour purchase path under different registration/payment states.
- * Member steps are real browser E2E; operator approve/reject uses API (partial realness).
+ * Member + operator steps are real browser E2E (cross-surface).
  */
 import { expect, test } from "@playwright/test";
 
@@ -10,10 +10,10 @@ import {
   completePortalCatalogRegistration,
 } from "./fixtures/complete-portal-registration";
 import {
-  createOperatorBookingApiContext,
-  operatorApproveBooking,
-  operatorRejectBooking,
-} from "./fixtures/operator-booking-api";
+  operatorApproveBookingViaUi,
+  operatorRejectBookingViaUi,
+  withOperatorBookingsUi,
+} from "./fixtures/operator-booking-ui";
 import {
   attachMemberReceiptFile,
   fetchMemberRegistrationId,
@@ -34,6 +34,8 @@ function uniqueContact(prefix: string): { email: string; phone: string } {
 }
 
 test.describe("portal booking purchase matrix — BOOK-BQC", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("BOOK-BQC-01 fresh catalog registration awaits club approval", async ({ page }) => {
     const contact = uniqueContact("book-bqc-01");
     await completePortalCatalogRegistration(page, {
@@ -55,11 +57,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-01-awaiting-approval.png");
   });
 
-  test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({ page }) => {
+  test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({ page, browser }) => {
     const contact = uniqueContact("book-bqc-02");
+    const guestName = "BOOK BQC 02 Approved";
     await completePortalCatalogRegistration(page, {
       email: contact.email,
-      fullName: "BOOK BQC 02 Approved",
+      fullName: guestName,
       phone: contact.phone,
     });
 
@@ -67,9 +70,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
     });
 
-    const operatorApi = await createOperatorBookingApiContext();
-    await operatorApproveBooking(operatorApi, registrationId);
-    await operatorApi.dispose();
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorApproveBookingViaUi(operatorPage, {
+        guestLabel: guestName,
+        bookingId: registrationId,
+      });
+    });
 
     await openMemberRegistrationDetailById(page, registrationId);
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
@@ -82,11 +88,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-02-upload-unlocked.png");
   });
 
-  test("BOOK-BQC-03 operator reject shows closed registration to member", async ({ page }) => {
+  test("BOOK-BQC-03 operator reject shows closed registration to member", async ({ page, browser }) => {
     const contact = uniqueContact("book-bqc-03");
+    const guestName = "BOOK BQC 03 Rejected";
     await completePortalCatalogRegistration(page, {
       email: contact.email,
-      fullName: "BOOK BQC 03 Rejected",
+      fullName: guestName,
       phone: contact.phone,
     });
 
@@ -94,11 +101,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
     });
 
-    const operatorApi = await createOperatorBookingApiContext();
-    await operatorRejectBooking(operatorApi, registrationId, {
-      reason: "BOOK-BQC-03 smoke rejection",
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorRejectBookingViaUi(operatorPage, {
+        guestLabel: guestName,
+        bookingId: registrationId,
+      });
     });
-    await operatorApi.dispose();
 
     await openMemberRegistrationDetailById(page, registrationId);
     const closed = page.locator("[data-portal-member-receipt-closed]");
@@ -109,11 +117,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-03-rejected-closed.png");
   });
 
-  test("BOOK-BQC-04 member receipt upload enters waiting-for-review state", async ({ page }) => {
+  test("BOOK-BQC-04 member receipt upload enters waiting-for-review state", async ({ page, browser }) => {
     const contact = uniqueContact("book-bqc-04");
+    const guestName = "BOOK BQC 04 Receipt";
     await completePortalCatalogRegistration(page, {
       email: contact.email,
-      fullName: "BOOK BQC 04 Receipt",
+      fullName: guestName,
       phone: contact.phone,
     });
 
@@ -121,9 +130,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
     });
 
-    const operatorApi = await createOperatorBookingApiContext();
-    await operatorApproveBooking(operatorApi, registrationId);
-    await operatorApi.dispose();
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorApproveBookingViaUi(operatorPage, {
+        guestLabel: guestName,
+        bookingId: registrationId,
+      });
+    });
 
     await openMemberRegistrationDetailById(page, registrationId);
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
@@ -141,11 +153,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-04-receipt-waiting.png");
   });
 
-  test("BOOK-BQC-05 approved receipt state persists after reload", async ({ page }) => {
+  test("BOOK-BQC-05 approved receipt state persists after reload", async ({ page, browser }) => {
     const contact = uniqueContact("book-bqc-05");
+    const guestName = "BOOK BQC 05 Persist";
     await completePortalCatalogRegistration(page, {
       email: contact.email,
-      fullName: "BOOK BQC 05 Persist",
+      fullName: guestName,
       phone: contact.phone,
     });
 
@@ -153,9 +166,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
     });
 
-    const operatorApi = await createOperatorBookingApiContext();
-    await operatorApproveBooking(operatorApi, registrationId);
-    await operatorApi.dispose();
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorApproveBookingViaUi(operatorPage, {
+        guestLabel: guestName,
+        bookingId: registrationId,
+      });
+    });
 
     await openMemberRegistrationDetailById(page, registrationId);
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({

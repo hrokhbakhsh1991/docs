@@ -13,6 +13,7 @@ import { resolveSmokeApiJwtEnv } from "../../api/scripts/smoke-api-jwt-env.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const portalDir = path.join(repoRoot, "apps/portal");
+const webDir = path.join(repoRoot, "apps/web");
 
 const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
@@ -100,8 +101,21 @@ const portalEnv = {
   MARKETING_PUBLIC_BASE_URL: `${portalSmokeHost.replace(/\/$/, "")}/health`,
 };
 
+const webEnv = {
+  ...process.env,
+  ...jwtEnv,
+  NODE_ENV: "development",
+  ALLOW_DEV_WEB_SESSION: "true",
+  TOUR_OPS_API_URL: "http://127.0.0.1:3001",
+  TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
+  TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
+  PORT: "3000",
+};
+
+freePort(3000);
 freePort(3001);
 freePort(3003);
+await waitForPortFree(3000);
 await waitForPortFree(3001);
 await waitForPortFree(3003);
 
@@ -111,9 +125,18 @@ const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
   stdio: "inherit",
 });
 
+let web;
 let portal;
 
 void waitForUrl("http://127.0.0.1:3001/health")
+  .then(() => {
+    web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000", "--hostname", "127.0.0.1"], {
+      cwd: webDir,
+      env: webEnv,
+      stdio: "inherit",
+    });
+    return waitForUrl("http://127.0.0.1:3000/bookings");
+  })
   .then(() => {
     portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
       cwd: portalDir,
@@ -123,18 +146,22 @@ void waitForUrl("http://127.0.0.1:3001/health")
     return waitForUrl("http://127.0.0.1:3003/health");
   })
   .then(async () => {
-    console.log("smoke-portal-booking-e2e-servers: API + portal ready");
+    console.log("smoke-portal-booking-e2e-servers: API + web + portal ready");
     await new Promise(() => {});
   })
   .catch((error) => {
     console.error(error);
     api.kill("SIGTERM");
+    if (web) web.kill("SIGTERM");
     if (portal) portal.kill("SIGTERM");
     process.exit(1);
   });
 
 const shutdown = (signal) => {
   api.kill(signal);
+  if (web) {
+    web.kill(signal);
+  }
   if (portal) {
     portal.kill(signal);
   }
