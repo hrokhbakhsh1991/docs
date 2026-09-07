@@ -19,6 +19,14 @@ describe("resolve-portal-public-base-url", () => {
     );
   });
 
+  it("WRS-GSH-05 bare IPv4 ingress maps to same host with portal port", () => {
+    assert.equal(
+      resolvePortalPublicBaseUrl("89.42.210.252:23002"),
+      "http://89.42.210.252:3003"
+    );
+    assert.doesNotThrow(() => new URL(resolvePortalPublicBaseUrl("89.42.210.252:23002")));
+  });
+
   it("WRS-GSH-04 registration URL on custom apex", () => {
     assert.equal(
       resolvePortalRegistrationUrl("denali.club", "tour-1"),

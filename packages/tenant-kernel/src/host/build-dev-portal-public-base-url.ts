@@ -8,6 +8,10 @@ import {
 } from "./parse-custom-apex-host";
 import { parseMultiLevelTenantHost } from "./parse-multi-level-tenant-host";
 
+function isIpv4Host(hostname: string): boolean {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
+}
+
 export type BuildDevPortalPublicBaseUrlInput = {
   readonly ingressHost: string;
   readonly rootDomain: string;
@@ -43,6 +47,11 @@ export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlIn
   }
 
   if (outcome.kind === "club_portal") {
+    return `http://${withoutShop}:${port}`;
+  }
+
+  // Profile B staging — bare VPS IP cannot use portal.{ip} (invalid URL); same host, portal port.
+  if (isIpv4Host(withoutShop)) {
     return `http://${withoutShop}:${port}`;
   }
 

@@ -15,8 +15,32 @@ import { DENALI_TOUR_KIND_TEST_IDS } from "@app-tour/workspace-denali/host/ui/te
 import { WIZARD_STEP_SHELL_TEST_IDS } from "../../src/wizard/wizard-step-shell-logic";
 
 export const OPERATOR_SMOKE_DESTINATION_LABEL = "Smoke Summit";
-/** ED-PEAK-LOCK-01 — Smoke Summit `altitudeM` from operator smoke catalog seed. */
+/** ED-PEAK-LOCK-01 — Smoke Summit `altitudeM` from operator smoke catalog seed (tenant …014). */
 export const OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M = 4200;
+
+/** Denali club dev catalog (tenant …003) — Persian destination labels from seed-operator-smoke-catalog. */
+export const DENALI_DEV_DESTINATION_LABELS = ["دماوند", "توچال", "علم‌کوه"] as const;
+export const DENALI_DEV_DEFAULT_DESTINATION_LABEL = DENALI_DEV_DESTINATION_LABELS[0];
+
+const DESTINATION_LOCKED_PEAK_HEIGHT_BY_LABEL: Readonly<Record<string, number>> = {
+  [OPERATOR_SMOKE_DESTINATION_LABEL]: OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M,
+  دماوند: 5_610,
+  توچال: 3_962,
+  "علم‌کوه": 4_850,
+};
+
+export function resolveLockedPeakHeightForDestination(label: string): number {
+  const height = DESTINATION_LOCKED_PEAK_HEIGHT_BY_LABEL[label.trim()];
+  if (height === undefined) {
+    throw new Error(`Unknown destination label for locked peak height: ${label}`);
+  }
+  return height;
+}
+
+export const WIZARD_DESTINATION_LABEL_CANDIDATES = [
+  ...DENALI_DEV_DESTINATION_LABELS,
+  OPERATOR_SMOKE_DESTINATION_LABEL,
+] as const;
 
 export const DENALI_FLAT_EDIT_SECTION_TEST_ID = (stepId: string) =>
   `operator-tour-edit-section-${stepId}`;
@@ -151,7 +175,7 @@ export async function fillDenaliMultiDayWizardBasics(
   await expect(peakHeight).toBeDisabled();
   await expect
     .poll(async () => toAsciiDigits(await peakHeight.inputValue()))
-    .toBe(String(OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M));
+    .toBe(String(resolveLockedPeakHeightForDestination(destinationLabel)));
 
   await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.start, 1, "08", "00");
   await settleOperatorWizardDraftSync(page);
@@ -278,9 +302,10 @@ async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
 
 export async function fillDenaliMultiDayWizardThroughLegal(
   page: Page,
-  title: string
+  title: string,
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
 ): Promise<void> {
-  await fillDenaliMultiDayWizardBasics(page, title);
+  await fillDenaliMultiDayWizardBasics(page, title, destinationLabel);
   await fillDenaliWizardPhotosMinimal(page);
   await fillDenaliWizardProgramMinimal(page);
   await fillDenaliWizardLogisticsMinimal(page);
@@ -290,9 +315,10 @@ export async function fillDenaliMultiDayWizardThroughLegal(
 
 export async function fillDenaliMultiDayWizardThroughReview(
   page: Page,
-  title: string
+  title: string,
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
 ): Promise<void> {
-  await fillDenaliMultiDayWizardThroughLegal(page, title);
+  await fillDenaliMultiDayWizardThroughLegal(page, title, destinationLabel);
   await clickWizardNextToStep(page, "review");
 }
 

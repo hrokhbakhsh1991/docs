@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { unstable_cache } from "next/cache";
+import { notFound } from "next/navigation";
 
 import { resolveGuestSeoForPlugin } from "@app-tour/workspace-sdk";
 
@@ -12,6 +13,7 @@ import {
   shouldEmitMarketingSitemap,
 } from "@/seo/build-marketing-sitemap";
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
+import { isMarketingTenantUnresolvedError } from "@/tenant/resolve-marketing-bootstrap-api";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
 
@@ -31,7 +33,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [];
   }
 
-  const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const bootstrap = await resolveMarketingBootstrapForHost(host).catch((error: unknown) => {
+    if (isMarketingTenantUnresolvedError(error)) {
+      return null;
+    }
+    throw error;
+  });
+  if (bootstrap === null) {
+    notFound();
+  }
   const seoTag = buildMarketingSeoCacheTag(bootstrap.tenantId);
   const guestSeo = resolveGuestSeoForPlugin(bootstrap.pluginId).marketing;
 

@@ -69,7 +69,11 @@ function TourWorkspaceLayoutInner({
   const tNav = useTranslations("tours.nav");
   const pathname = useAppPathname();
   const searchParams = useAppSearchParams();
-  const tabParam = searchParams.get(WORKSPACE_TAB_QUERY_KEY);
+  const [tabHydrated, setTabHydrated] = useState(false);
+  useEffect(() => {
+    setTabHydrated(true);
+  }, []);
+  const tabParam = tabHydrated ? searchParams.get(WORKSPACE_TAB_QUERY_KEY) : null;
   const activeTab = resolveWorkspaceSubnavTab(pathname, tourId, tabParam);
   const { reloadNonce, navigateWorkspaceTab } = useTourWorkspaceChrome();
   const canManage = isAdminOrOwnerRole(session.role);

@@ -9,7 +9,7 @@ import {
   resolveCatalogRevalidateSeconds,
 } from "@/catalog/catalog-fetch-options";
 import { resolveTourOpsApiBaseUrl } from "@/env";
-import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
+import { resolveMarketingBootstrapForApi } from "@/tenant/resolve-marketing-bootstrap-api";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,11 @@ export async function GET(_request: Request, context: RouteContext): Promise<Nex
   const { tourId } = await context.params;
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3002";
-  const { tenantId, pluginId } = await resolveMarketingBootstrapForHost(host);
+  const resolved = await resolveMarketingBootstrapForApi(host);
+  if (!resolved.ok) {
+    return resolved.response;
+  }
+  const { tenantId, pluginId } = resolved.bootstrap;
   const path = resolveCatalogTourApiPath(pluginId, tourId);
 
   const upstream = await fetch(`${resolveTourOpsApiBaseUrl()}${path}`, {
