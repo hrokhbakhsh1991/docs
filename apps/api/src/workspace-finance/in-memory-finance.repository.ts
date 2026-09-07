@@ -26,6 +26,7 @@ import type {
   OutstandingBalanceCandidateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
+  RecordPrepaymentAtomicResult,
   RegistrationInvoiceFacts,
   SumCompletedRefundsQuery,
   TransitionRefundStatusInput,
@@ -778,16 +779,87 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listPrepayments(
-    _tenantId: string,
-    _limit: number
+    tenantId: string,
+    limit: number
   ): Promise<readonly FinancePrepaymentListRow[]> {
-    return [];
+    return [...prepaymentsByDomainEventId.values()]
+      .filter((row) => row.tenantId === tenantId)
+      .slice(0, limit)
+      .map(({ tenantId: _t, ...row }) => row);
   }
 
   async recordPrepaymentAtomic(
-    _input: RecordPrepaymentAtomicInput
-  ): Promise<never> {
-    throw new Error("FINANCE_MEMORY_DRIVER_READ_ONLY_PREPAYMENT");
+    input: RecordPrepaymentAtomicInput
+  ): Promise<RecordPrepaymentAtomicResult> {
+    if (input.lines.length === 0) {
+      throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+    }
+    const existing = prepaymentsByDomainEventId.get(input.prepaymentDomainEventId);
+    if (existing !== undefined && existing.tenantId === input.tenantId) {
+      return {
+        created: false,
+        id: existing.id,
+        registrationId: existing.registrationId,
+        amountMinor: existing.amountMinor,
+        currency: existing.currency,
+        method: existing.method,
+        note: existing.note,
+        recordedAt: existing.recordedAt,
+      };
+    }
+    const id = randomUUID();
+    const row: FinancePrepaymentListRow & { readonly tenantId: string } = {
+      tenantId: input.tenantId,
+      id,
+      registrationId: input.registrationId,
+      amountMinor: input.amountMinor,
+      currency: input.currency,
+      method: input.method,
+      note: input.note,
+      recordedAt: input.recordedAt,
+    };
+    prepaymentsByDomainEventId.set(input.prepaymentDomainEventId, row);
+    const now = new Date();
+    ledgerEvents.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      eventType: "finance.ledger.capture",
+      payload: {
+        journalId: input.journalId,
+        domainEventId: input.ledgerDomainEventId,
+        lines: input.lines,
+        registrationId: input.registrationId,
+      },
+      createdAt: now,
+      domainEventId: input.ledgerDomainEventId,
+      aggregateId: input.journalId,
+    });
+    ledgerEvents.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      eventType: "finance.prepayment.recorded",
+      payload: {
+        registrationId: input.registrationId,
+        amountMinor: input.amountMinor,
+        currency: input.currency,
+        method: input.method,
+        note: input.note,
+        recordedAt: input.recordedAt,
+      },
+      createdAt: now,
+      domainEventId: input.prepaymentDomainEventId,
+      aggregateId: input.registrationId,
+    });
+    return {
+      created: true,
+      id,
+      registrationId: input.registrationId,
+      amountMinor: input.amountMinor,
+      currency: input.currency,
+      method: input.method,
+      note: input.note,
+      recordedAt: input.recordedAt,
+    };
   }
 
   async recordPrepaymentBookingSyncDegraded(_input: {
