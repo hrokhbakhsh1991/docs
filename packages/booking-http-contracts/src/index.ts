@@ -5,6 +5,8 @@
 export {
   BOOKING_PAYMENT_STATUSES,
   BOOKING_STATUSES,
+  BOOKING_ATTENDANCE_STATUSES,
+  type BookingAttendanceStatus,
   type BookingPaymentStatus,
   type BookingStatus,
   type BookingsListView,
@@ -32,6 +34,8 @@ export type {
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
+  MarkAttendanceRequest,
+  MarkAttendanceResponse,
 } from "./booking-http-types";
 
 export {
@@ -42,6 +46,7 @@ export {
   parseBookingsSummaryQuery,
   parseBulkApproveBookingsBody,
   parseCreateBookingBody,
+  parseMarkAttendanceBody,
   parseRejectBookingBody,
   readBookingNumberField,
   readBookingRegistrationIntake,
@@ -71,6 +76,7 @@ export {
 } from "./booking-approve-delivery";
 
 export {
+  BOOKING_ATTENDANCE_OUTBOX_EVENT_TYPE,
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
   BOOKING_REJECT_OUTBOX_EVENT_TYPE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,

@@ -6,6 +6,8 @@
  * @see docs/phase-20/p7/appendices/BOOKING_HTTP_ERROR_MATRIX.md
  */
 import {
+  BookingAttendanceConflictError,
+  BookingAttendanceInvalidStatusError,
   BookingCapabilityViolationError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
@@ -131,6 +133,24 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     clientAction: "Refresh status; choose a valid transition",
   },
   {
+    domainError: "BOOKING_ATTENDANCE_INVALID_STATUS",
+    status: 409,
+    reason: "Attendance can only be marked on approved registrations",
+    clientAction: "Approve registration before marking attendance",
+  },
+  {
+    domainError: "BOOKING_ATTENDANCE_CONFLICT",
+    status: 409,
+    reason: "Attendance already marked with a different status",
+    clientAction: "Refresh roster; attendance is immutable after mark",
+  },
+  {
+    domainError: "BOOKING_ATTENDANCE_INVALID",
+    status: 400,
+    reason: "attendanceStatus must be present or absent",
+    clientAction: "Fix request body",
+  },
+  {
     domainError: "BULK_APPROVE_BATCH_LIMIT",
     status: 400,
     reason: "Bulk approve batch exceeds max",
@@ -151,6 +171,9 @@ const CLIENT_ERROR_TOKEN: Readonly<Record<string, string>> = {
   BOOKING_ALREADY_APPROVED: "conflict",
   BOOKING_ALREADY_CANCELLED: "conflict",
   BOOKING_STATUS_CONFLICT: "conflict",
+  BOOKING_ATTENDANCE_INVALID_STATUS: "conflict",
+  BOOKING_ATTENDANCE_CONFLICT: "conflict",
+  BOOKING_ATTENDANCE_INVALID: "invalid_body",
   BULK_APPROVE_BATCH_LIMIT: "batch_limit",
 };
 
@@ -211,6 +234,12 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
     return resolutionFromCode(error.code, error.message, { maxBatch: error.maxBatch });
   }
   if (error instanceof BookingStatusConflictError) {
+    return resolutionFromCode(error.code, error.message);
+  }
+  if (error instanceof BookingAttendanceInvalidStatusError) {
+    return resolutionFromCode(error.code, error.message);
+  }
+  if (error instanceof BookingAttendanceConflictError) {
     return resolutionFromCode(error.code, error.message);
   }
 

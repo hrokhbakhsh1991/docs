@@ -1,0 +1,190 @@
+---
+title: Feature Delivery — Adversarial Bug Hunt
+format: markdoc
+doc_role: agent_charter
+standard_id: FDA-001
+version: 1.4.0
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/staged-design-workflow.mdoc
+  - docs/dev/feature-delivery/completion-rules.mdoc
+mandatory_for:
+  - .cursor/skills/feature-delivery
+  - .cursor/skills/browser-quality-closure
+code_sot:
+  - docs/dev/feature-delivery/adversarial-bug-hunt.mdoc
+---
+
+# Adversarial Bug Hunt (B1–B8)
+
+**Purpose:** Structured **post-implementation** and **pre-verdict** bug hunting. Do not stop after the first green test or one happy browser path.
+
+**When:** After vertical slice lands; re-run affected passes after each fix. Tier C and audit sessions run **all** passes.
+
+---
+
+## 1. Implementation cycle (per finding)
+
+For every bug or gap found:
+
+1. **Reproduce** before changing code
+2. Record exact steps and evidence → `bug-reproduction.json`
+3. Trace to **root cause** (not symptom)
+4. Compare with repository standards and adjacent implementations
+5. Classify fix: `local` \| `shared` \| `contractual` \| `architectural`
+6. Apply **smallest standard-compliant** fix
+7. Add **regression test**
+8. Rerun narrow test
+9. Rerun affected integration test
+10. Rerun browser test where applicable
+11. Re-run relevant **D-stage review** (D3 contract, D4 architecture, D5 UI, D6 test plan)
+
+**Forbidden:** UI-only patch when root cause is API, contract, persistence, or authorization.
+
+---
+
+## 2. Adversarial passes
+
+### B1 — Static and structural audit
+
+- Imports and boundary violations
+- Dead paths; duplicate logic
+- Incorrect feature gates; wrong workspace branching
+- Missing error handling
+
+**Ledger:** `bug-hunt.B1`, checkpoint `B1`
+
+### B2 — Contract audit
+
+- Field name mismatches (BFF ↔ API ↔ UI)
+- Request/response shape drift
+- Null/default mismatches; localization mismatches
+- Event alias mismatches (SDE-001)
+
+**Ledger:** `bug-hunt.B2`
+
+### B3 — Persistence and RLS audit
+
+- Tenant leaks; missing tenant predicates
+- Incorrect DB role; missing FORCE RLS proof
+- Lost updates; duplicate rows
+- Failed transaction / rollback behavior
+
+**Requires:** Postgres with `app_tour` role for claims — not memory driver alone.
+
+**Ledger:** `bug-hunt.B3`
+
+### B4 — Integration audit
+
+- Outbox enqueue; relay; retries; idempotency
+- Duplicate notifications/events
+- Downstream consumers; stale cache; event ordering
+
+**Ledger:** `bug-hunt.B4`
+
+### B5 — Browser and UI/UX audit
+
+Real user interaction — not curl/build:
+
+- Desktop and mobile; FA RTL and EN LTR
+- Loading, empty, error, denied states
+- Keyboard; accessibility; long content; visual hierarchy
+
+**Owned by BQC** when browser-heavy — [browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md).
+
+**Ledger:** `bug-hunt.B5`, `browser.<capabilityId>`
+
+### B6 — Recovery and resilience audit
+
+- Restart behavior; retry behavior; network failure
+- Partial failure; repeated submission; concurrent actions
+- Stale browser tab after mutation
+
+**Ledger:** `bug-hunt.B6`
+
+### B7 — Regression audit
+
+- Adjacent feature suites; impacted workspace tests
+- Before/after behavior comparison
+- Unrelated feature regression check
+
+**Ledger:** `bug-hunt.B7`
+
+### B8 — Independent second review
+
+After all fixes:
+
+- Review final diff as if written by **another team**
+- Do not rely on first analysis
+- Search specifically for issues missed by original implementation
+
+**Invoke architecture-reviewer** when platform/shared diff is material.
+
+**Ledger:** `bug-hunt.B8`, `arch-review.B8`
+
+---
+
+## 3. Pass completion matrix
+
+Record in `.cache/feature-delivery/<sessionId>/bug-hunt-matrix.json`:
+
+```json
+{
+  "sessionId": "<session-id>",
+  "workflowTier": "A|B|C",
+  "passes": {
+    "B1": { "status": "complete|partial|skipped|unverified", "findings": [] },
+    "B2": { "status": "complete", "findings": [] }
+  }
+}
+```
+
+| Tier | Required passes |
+| ---- | --------------- |
+| A | B1, B5 (if UI), B7 |
+| B | B1–B7 |
+| C | B1–B8 all mandatory |
+
+Skipped pass → `unverified` — blocks `FEATURE_COMPLETE`.
+
+---
+
+## 4. bug-reproduction.json
+
+**Location:** `.cache/feature-delivery/<sessionId>/bug-reproduction.json` (array of records)
+
+```json
+{
+  "bugId": "BUG-001",
+  "pass": "B3",
+  "reproducedAt": "2026-09-04T12:00:00.000Z",
+  "steps": ["..."],
+  "evidence": { "command": "...", "exitCode": 1, "artifact": "/path" },
+  "rootCause": "...",
+  "fixClass": "local|shared|contractual|architectural",
+  "regressionTest": "apps/api/src/.../spec.ts",
+  "status": "open|fixed|accepted-risk|wontfix"
+}
+```
+
+---
+
+## 5. Queue behavior
+
+- Blocked pass or finding **must not** stop unrelated requirement-queue items
+- Final verdict stays **incomplete** until mandatory rows and passes close — [completion-rules](completion-rules.mdoc)
+
+---
+
+## 6. BQC mapping
+
+| FDA pass | BQC lifecycle |
+| -------- | ------------- |
+| B5 | BQC-2 reproduce, BQC-5 verify |
+| B6 | BQC resilience checks |
+| B7 | BQC adjacent suite runs |
+| B8 | browser-quality-reviewer at BQC-7 |
+
+---
+
+_Adversarial bug hunt — FDA-001 v1.4.0._

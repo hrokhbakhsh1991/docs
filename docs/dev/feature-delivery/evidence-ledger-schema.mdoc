@@ -16,18 +16,26 @@ extends:
 
 ## 1. Storage
 
-| Item                  | Location                                                                                         | Committed           |
-| --------------------- | ------------------------------------------------------------------------------------------------ | ------------------- |
-| Session lock          | `.cache/feature-delivery/<sessionId>/SESSION.lock`                                               | **No** (gitignored) |
-| Ledger (TSV)          | `.cache/feature-delivery/<sessionId>/evidence.tsv`                                               | **No**              |
-| Architecture review   | `.cache/feature-delivery/<sessionId>/arch-review.json`                                           | **No**              |
-| Requirement inventory | `.cache/feature-delivery/<sessionId>/requirement-inventory.json`                                 | **No**              |
-| Design brief          | `.cache/feature-delivery/<sessionId>/design-brief.json`                                          | **No**              |
-| Research              | `.cache/feature-delivery/<sessionId>/research.json`                                              | **No**              |
-| Requirement queue     | `.cache/feature-delivery/<sessionId>/requirement-queue.json`                                     | **No**              |
-| Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` (or `blocker-<blockerId>.json`) | **No**              |
-| UI/UX decision brief    | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json`                                        | **No**              |
-| Walkthrough artifacts | `/opt/cursor/artifacts/` (Cloud) or project artifacts dir                                        | **No**              |
+| Item | Location |
+| ---- | -------- |
+| Session lock | `.cache/feature-delivery/<sessionId>/SESSION.lock` |
+| Branch checkpoint | `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` |
+| Baseline | `.cache/feature-delivery/<sessionId>/baseline.json` |
+| Requirements matrix | `.cache/feature-delivery/<sessionId>/requirements-matrix.json` |
+| Consumer map | `.cache/feature-delivery/<sessionId>/consumer-and-boundary-map.json` |
+| Data contract | `.cache/feature-delivery/<sessionId>/data-contract-map.json` |
+| Architecture review | `.cache/feature-delivery/<sessionId>/architecture-review.json` |
+| UI/UX decision | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json` |
+| Test plan / realness | `.cache/feature-delivery/<sessionId>/test-plan-and-realness.json` |
+| Failure modes | `.cache/feature-delivery/<sessionId>/failure-mode-analysis.json` |
+| Bug hunt matrix | `.cache/feature-delivery/<sessionId>/bug-hunt-matrix.json` |
+| Bug reproduction | `.cache/feature-delivery/<sessionId>/bug-reproduction.json` |
+| Ledger (TSV) | `.cache/feature-delivery/<sessionId>/evidence.tsv` |
+| Design brief | `.cache/feature-delivery/<sessionId>/design-brief.json` |
+| Research | `.cache/feature-delivery/<sessionId>/research.json` |
+| Requirement queue | `.cache/feature-delivery/<sessionId>/requirement-queue.json` |
+| Blocker investigation | `.cache/feature-delivery/<sessionId>/blocker-investigation.json` |
+| Accepted risks | `.cache/feature-delivery/<sessionId>/accepted-risks.json` |
 
 Phase C may add `scripts/agents/feature-delivery-evidence-ledger.mjs` to append rows. Phase A defines schema only.
 
@@ -55,6 +63,15 @@ Phase C may add `scripts/agents/feature-delivery-evidence-ledger.mjs` to append 
 | `initialHead`  | Recorded at bootstrap — evidence baseline only                                  |
 | `currentHead`  | Updated after each authorized commit — **allowed to change**                    |
 | `scopePaths`   | Glob allowlist for staged files at CP4 — **derived per feature session** at CP0 |
+| `authorizedBranchTransitions` | Append-only array — user-authorized branch changes only — see [branch-and-data-preservation](branch-and-data-preservation.mdoc) §4 |
+
+### 2.1 branch-checkpoint.json (JSON)
+
+Written at session start (D0) and updated after authorized branch transitions. Schema per [branch-and-data-preservation](branch-and-data-preservation.mdoc) §1.
+
+**Required fields:** `sessionId`, `recordedAt`, `current.branch`, `current.headSha`, `current.upstreamBranch`, `current.ahead`, `current.behind`, `workingTree.*`, `lockedSessionBranch`, `authorizedBranchTransitions`.
+
+**Ledger:** `gate_id=bootstrap.branch-checkpoint`, checkpoint `D0` or `bootstrap`.
 
 ---
 
@@ -73,7 +90,7 @@ session_id	feature_id	locked_branch	initial_head	current_head	checkpoint	gate_id
 | `locked_branch` | string  | Branch at time of row (must match lock)                       |
 | `initial_head`  | string  | Session baseline SHA (constant per session)                   |
 | `current_head`  | string  | `git rev-parse HEAD` when row recorded — **may advance**      |
-| `checkpoint`    | enum    | `CP0` … `CP7`, `bootstrap`, `report`                          |
+| `checkpoint`    | enum    | `D0`–`D7`, `B1`–`B8`, legacy `CP0`–`CP7`, `bootstrap`, `report` |
 | `gate_id`       | string  | Stable id e.g. `guard.import-boundary`, `test.<package-name>` |
 | `command`       | string  | Exact shell command run                                       |
 | `exit_code`     | int     | `0` = pass; non-zero = fail/skip documented in `result`       |
@@ -127,12 +144,21 @@ Architecture-reviewer output (read-only phase). Schema per [architecture-reviewe
 | Prefix | Example | Binds to |
 | ------ | ------- | -------- |
 | `research.` | `research.RES-001` | `research.json` entry |
-| `design.` | `design.brief` | `design-brief.json` |
+| `bug-hunt.` | `bug-hunt.B3` | `bug-hunt-matrix.json` / `bug-reproduction.json` |
+| `design.` | `design.baseline` | `baseline.json` |
+| `design.` | `design.requirements-matrix` | `requirements-matrix.json` |
+| `design.` | `design.consumer-map` | `consumer-and-boundary-map.json` |
+| `design.` | `design.data-contract` | `data-contract-map.json` |
+| `design.` | `design.failure-modes` | `failure-mode-analysis.json` |
+| `design.` | `design.test-realness` | `test-plan-and-realness.json` |
 | `browser.` | `browser.CAP-003` | Screenshot / recording artifact |
 | `uiux.` | `uiux.decision` | `ui-ux-decision.json` |
 | `uiux.promax.` | `uiux.promax.member-wallet` | UI UX Pro Max search stdout |
 | `capability.` | `capability.CAP-001` | Requirement inventory status |
 | `blocker.` | `blocker.BR-CODE-001` | `blocker-investigation.json` |
+| `checkpoint.` | `checkpoint.pre-commit` | Pre-commit branch verification — [branch-and-data-preservation](branch-and-data-preservation.mdoc) §7 |
+| `checkpoint.` | `checkpoint.pre-push` | Pre-push branch verification |
+| `bootstrap.` | `bootstrap.branch-checkpoint` | `branch-checkpoint.json` at D0 |
 | `arch-review` | `arch-review.CP1` | `arch-review.json` |
 
 ---
@@ -141,7 +167,7 @@ Architecture-reviewer output (read-only phase). Schema per [architecture-reviewe
 
 | Touch surface       | Minimum `gate_id` rows before push                                                    |
 | ------------------- | ------------------------------------------------------------------------------------- |
-| Any code            | `bootstrap.branch`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
+| Any code            | `bootstrap.branch`, `bootstrap.branch-checkpoint`, `git.diff-check`, `pre-commit.fast` or documented hook suspension |
 | `apps/api` / Prisma | `guard.repository-rls`, `guard.api-workspace-isolation`, targeted postgres spec       |
 | Protected packages  | `guard.docs`, `doc.markdoc.validate`                                                  |
 | UI                  | app `build`, Playwright smoke, **browser** screenshots desktop+mobile, accessibility when available, `ui-ux-decision.json` for visible features |
@@ -191,7 +217,7 @@ Each report section must cite ledger rows or session artifacts:
 
 | Report claim          | Required evidence                                                  |
 | --------------------- | ------------------------------------------------------------------ |
-| Branch unchanged      | `bootstrap.branch` + pre-push `git branch --show-current`          |
+| Branch unchanged      | `bootstrap.branch-checkpoint` + `checkpoint.pre-commit` + `checkpoint.pre-push` + pre-push `git branch --show-current` |
 | Tests passed          | Row per suite with `exit_code=0`                                   |
 | Tests skipped         | Row with `result=skip` — matrix stays **UNVERIFIED**, not COMPLETE |
 | RLS verified          | Postgres spec row + `guard.repository-rls`                         |
@@ -206,8 +232,14 @@ Each report section must cite ledger rows or session artifacts:
 | Capability complete   | `capability.<id>` with status `tested` or `browser-verified`       |
 | Admin mutation works  | Browser or API proof with permission + audit ledger rows           |
 | Blocker recovered     | `blocker-investigation.json` + `gate_id=blocker.<id>` rows         |
-| Queue complete        | `requirement-queue.json` — every item `completed` or documented risk |
+| Design stages complete | `baseline.json`, `requirements-matrix.json`, tier-required D-artifacts |
+| Adversarial passes | `bug-hunt-matrix.json` + `bug-hunt.B*` ledger rows |
+| Verdict | `evaluate-fda-verdict.regression.mjs` pass + `FEATURE_*` aligned to matrix |
 | Commits               | Rows with `gate_id=commit` and SHAs matching `git log`             |
+| Preserved WIP         | Bootstrap `branch-checkpoint.json` unrelated paths still dirty at report time |
+| Remote parity         | `checkpoint.pre-push` ahead/behind vs upstream |
+
+**Branch safety:** Final report must satisfy [branch-and-data-preservation](branch-and-data-preservation.mdoc) §11.
 
 **Forbidden without evidence:** COMPLETE with open rows; admin usability from read-only catalog; browser success from API/curl; production readiness from local tests only; UI UX Pro Max cited without `uiux.promax.*` ledger row.
 
@@ -267,4 +299,4 @@ Never claim `ui-browser-verified` from build, API 200, or screenshot without int
 
 ---
 
-_Subdoc of FDA-001 v1.2. Schema version 1.3.0._
+_Subdoc of FDA-001 v1.5.0. Schema version 1.5.0._

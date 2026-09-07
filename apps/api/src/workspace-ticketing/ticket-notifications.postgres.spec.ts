@@ -296,12 +296,55 @@ describe(
     });
 
     it("viewer can list tenant-wide notifications read-only", async () => {
+      const ticketId = randomUUID();
+      const domainEventId = randomUUID();
+      const seededSubject = "Viewer tenant-wide seed";
+
+      await withTenantRls(tenantA, async (tx) => {
+        await tx.ticket.create({
+          data: {
+            id: ticketId,
+            tenantId: tenantA,
+            requesterUserId: requesterA,
+            categoryCode: "general",
+            priority: "normal",
+            status: "open",
+            subject: seededSubject,
+            ticketNumber: nextPostgresTestTicketNumber(),
+            lastActivityAt: new Date(),
+          },
+        });
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "ticket",
+          aggregateId: ticketId,
+          eventType: "ticket.created",
+          domainEventId,
+          payload: {
+            ticketId,
+            subject: seededSubject,
+            requesterUserId: requesterA,
+            assigneeUserId: null,
+            assigneeTeamId: null,
+            queueId: null,
+            actorUserId: requesterA,
+            eventPayload: {},
+          },
+        });
+      });
+      await processOutboxRelayForTenantOnce(tenantA, 20);
+
       const list = await listTicketNotifications({
         tenantId: tenantA,
         viewerTenantWide: true,
         limit: 50,
       });
-      assert.ok(Array.isArray(list.items));
+      assert.ok(
+        list.items.some(
+          (item) => item.ticketId === ticketId && item.eventType === "ticket.created",
+        ),
+        "viewer tenant-wide list must include relay-created ticket notification",
+      );
       void viewerA;
     });
 
@@ -421,12 +464,157 @@ describe(
       assert.equal(operatorMatches.length, 0);
     });
 
+    it("relay processes ticket.closed outbox into member inbox", async () => {
+      const ticketId = randomUUID();
+      const domainEventId = randomUUID();
+
+      await withTenantRls(tenantA, async (tx) => {
+        await tx.ticket.create({
+          data: {
+            id: ticketId,
+            tenantId: tenantA,
+            requesterUserId: requesterA,
+            categoryCode: "general",
+            priority: "normal",
+            status: "closed",
+            subject: "Closed ticket",
+            ticketNumber: nextPostgresTestTicketNumber(),
+            lastActivityAt: new Date(),
+          },
+        });
+        await enqueueOutboxEvent(tx, {
+          tenantId: tenantA,
+          aggregateType: "ticket",
+          aggregateId: ticketId,
+          eventType: "ticket.closed",
+          domainEventId,
+          payload: {
+            ticketId,
+            subject: "Closed ticket",
+            requesterUserId: requesterA,
+            assigneeUserId: null,
+            assigneeTeamId: null,
+            queueId: null,
+            actorUserId: operatorA,
+            eventPayload: { to: "closed" },
+          },
+        });
+      });
+
+      await processOutboxRelayForTenantOnce(tenantA, 20);
+
+      const list = await listTicketNotifications({
+        tenantId: tenantA,
+        userId: requesterA,
+        limit: 20,
+      });
+      const match = list.items.find(
+        (item) => item.ticketId === ticketId && item.eventType === "ticket.closed",
+      );
+      assert.ok(match, "ticket.closed must dispatch to requester inbox");
+    });
+
     it("mark-all-read updates only target user rows", async () => {
+      const ticketIdA1 = randomUUID();
+      const ticketIdA2 = randomUUID();
+      const ticketIdB = randomUUID();
+      const unreadA1 = randomUUID();
+      const unreadA2 = randomUUID();
+      const unreadB = randomUUID();
+
+      await withTenantRls(tenantA, async (tx) => {
+        await tx.ticket.create({
+          data: {
+            id: ticketIdA1,
+            tenantId: tenantA,
+            requesterUserId: requesterA,
+            categoryCode: "general",
+            priority: "normal",
+            status: "open",
+            subject: "Unread A1",
+            ticketNumber: nextPostgresTestTicketNumber(),
+            lastActivityAt: new Date(),
+          },
+        });
+        await tx.ticket.create({
+          data: {
+            id: ticketIdA2,
+            tenantId: tenantA,
+            requesterUserId: requesterA,
+            categoryCode: "general",
+            priority: "normal",
+            status: "open",
+            subject: "Unread A2",
+            ticketNumber: nextPostgresTestTicketNumber(),
+            lastActivityAt: new Date(),
+          },
+        });
+        await tx.ticket.create({
+          data: {
+            id: ticketIdB,
+            tenantId: tenantA,
+            requesterUserId: operatorA,
+            categoryCode: "general",
+            priority: "normal",
+            status: "open",
+            subject: "Unread B",
+            ticketNumber: nextPostgresTestTicketNumber(),
+            lastActivityAt: new Date(),
+          },
+        });
+        for (const [notificationId, userId, ticketId, subject] of [
+          [unreadA1, requesterA, ticketIdA1, "Unread A1"],
+          [unreadA2, requesterA, ticketIdA2, "Unread A2"],
+          [unreadB, operatorA, ticketIdB, "Unread B"],
+        ] as const) {
+          await tx.memberNotification.create({
+            data: {
+              id: notificationId,
+              tenantId: tenantA,
+              userId,
+              sourceModule: "ticketing",
+              eventType: "ticket.message.posted",
+              entityType: "ticket",
+              entityId: ticketId,
+              title: subject,
+              body: subject,
+              dedupeKey: randomUUID(),
+              payload: {},
+            },
+          });
+        }
+      });
+
+      const beforeA = await countUnreadTicketNotifications({
+        tenantId: tenantA,
+        userId: requesterA,
+      });
+      const beforeB = await countUnreadTicketNotifications({
+        tenantId: tenantA,
+        userId: operatorA,
+      });
+      assert.ok(beforeA >= 2);
+      assert.ok(beforeB >= 1);
+
       const updated = await markAllTicketNotificationsRead({
         tenantId: tenantA,
         userId: requesterA,
       });
-      assert.ok(updated >= 0);
+      assert.ok(updated >= 2);
+
+      const listA = await listTicketNotifications({
+        tenantId: tenantA,
+        userId: requesterA,
+        limit: 50,
+      });
+      const listB = await listTicketNotifications({
+        tenantId: tenantA,
+        userId: operatorA,
+        limit: 50,
+      });
+      assert.ok(listA.items.find((item) => item.id === unreadA1)?.readAt);
+      assert.ok(listA.items.find((item) => item.id === unreadA2)?.readAt);
+      assert.equal(listB.items.find((item) => item.id === unreadB)?.readAt, null);
     });
   },
 );

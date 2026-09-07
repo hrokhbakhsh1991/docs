@@ -12,7 +12,8 @@ export type TenantFeatureFlags = {
 };
 
 const ADVANCED_RULE_ENGINE_DEFAULT = true;
-const IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT = true;
+/** SEC-042 — MNI inbox is canonical; legacy SK2.C deliver off unless tenant opts in. */
+const IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT = false;
 
 function defaults(): TenantFeatureFlags {
   return {
@@ -23,7 +24,7 @@ function defaults(): TenantFeatureFlags {
 
 /**
  * Parses `theme.featureFlags` from tenant theme JSON.
- * Omitted or non-boolean values use defaults (advanced rules on; notify on).
+ * Omitted or non-boolean values use defaults (advanced rules on; legacy notify off).
  * Only explicit `false` disables a boolean flag.
  */
 export function parseFeatureFlagsFromTheme(theme: unknown): TenantFeatureFlags {
@@ -43,9 +44,11 @@ export function parseFeatureFlagsFromTheme(theme: unknown): TenantFeatureFlags {
     advancedRuleEngine:
       advancedRuleEngine === false ? false : ADVANCED_RULE_ENGINE_DEFAULT,
     inAppRegistrationApprovedNotify:
-      inAppRegistrationApprovedNotify === false
-        ? false
-        : IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT,
+      inAppRegistrationApprovedNotify === true
+        ? true
+        : inAppRegistrationApprovedNotify === false
+          ? false
+          : IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT,
   };
 }
 

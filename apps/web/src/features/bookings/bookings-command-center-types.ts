@@ -91,6 +91,8 @@ export type BookingListItem = {
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
   readonly memberAvatarUrl?: string | null;
+  readonly attendanceStatus?: "present" | "absent";
+  readonly attendanceMarkedAt?: string;
 };
 
 export type BookingsListResponse = {
@@ -147,6 +149,8 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   rejectButton: "operator-bookings-reject",
   waitlistButton: "operator-bookings-waitlist",
   cancelButton: "operator-bookings-cancel",
+  markPresentButton: "operator-bookings-mark-present",
+  markAbsentButton: "operator-bookings-mark-absent",
   bulkApproveButton: "operator-bookings-bulk-approve",
   bulkSelectAllButton: "operator-bookings-bulk-select-all",
   clearFiltersButton: "operator-bookings-clear-filters",

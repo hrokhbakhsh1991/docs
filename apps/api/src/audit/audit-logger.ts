@@ -12,8 +12,15 @@ export const AUDIT_ACTION_TOUR_UPDATED = "TOUR_UPDATED";
 export const AUDIT_ACTION_TOUR_PUBLISHED = "TOUR_PUBLISHED";
 export const AUDIT_ACTION_TOUR_UNPUBLISHED = "TOUR_UNPUBLISHED";
 export const AUDIT_ACTION_TENANT_PROVISIONED = "TENANT_PROVISIONED";
+export const AUDIT_ACTION_BOOKING_ATTENDANCE_MARKED = "BOOKING_ATTENDANCE_MARKED";
 
-const AUDIT_METADATA_ALLOWLIST = ["workspaceType", "fromPublishStatus", "toPublishStatus"] as const;
+const AUDIT_METADATA_ALLOWLIST = [
+  "workspaceType",
+  "fromPublishStatus",
+  "toPublishStatus",
+  "attendanceStatus",
+  "markedAt",
+] as const;
 
 export type AppendAuditEventInput = {
   readonly action: string;

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
@@ -32,9 +32,55 @@ export function parseBootstrapJwtLines(stdout) {
   return env;
 }
 
+function readEnvValueFromFile(envPath, key) {
+  try {
+    const text = readFileSync(envPath, "utf8");
+    const match = text.match(new RegExp(`^${key}=(.+)$`, "m"));
+    if (!match) {
+      return null;
+    }
+    const raw = match[1].trim();
+    if (raw.startsWith('"') && raw.endsWith('"')) {
+      return raw.slice(1, -1).replace(/\\n/g, "\n");
+    }
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+function isUsableJwtPrivateKey(value) {
+  const key = value?.trim();
+  return (
+    typeof key === "string" &&
+    key.includes("BEGIN PRIVATE KEY") &&
+    key.includes("END PRIVATE KEY") &&
+    key.length > 200
+  );
+}
+
+function resolveDevJwtEnvFromApiEnvLocal(repoRoot) {
+  const envPath = path.join(repoRoot, "apps/api/.env.local");
+  const publicKey = readEnvValueFromFile(envPath, "AUTH_JWT_PUBLIC_KEY")?.trim();
+  const privateKey = readEnvValueFromFile(envPath, "AUTH_JWT_PRIVATE_KEY")?.trim();
+  if (!publicKey || !isUsableJwtPrivateKey(privateKey)) {
+    return null;
+  }
+  return {
+    AUTH_JWT_PUBLIC_KEY: publicKey,
+    AUTH_JWT_PRIVATE_KEY: privateKey,
+    AUTH_JWT_ISSUER: readEnvValueFromFile(envPath, "AUTH_JWT_ISSUER")?.trim() || "tour-ops",
+    AUTH_JWT_AUDIENCE: readEnvValueFromFile(envPath, "AUTH_JWT_AUDIENCE")?.trim() || "tour-ops-api",
+  };
+}
+
 export function ensureSmokeJwtEnv(repoRoot, baseEnv) {
-  if (baseEnv.AUTH_JWT_PRIVATE_KEY?.trim()) {
+  if (isUsableJwtPrivateKey(baseEnv.AUTH_JWT_PRIVATE_KEY)) {
     return baseEnv;
+  }
+  const devKeys = resolveDevJwtEnvFromApiEnvLocal(repoRoot);
+  if (devKeys !== null) {
+    return { ...baseEnv, ...devKeys };
   }
   const result = spawnSync("pnpm", ["--filter", "@apps/api", "run", "bootstrap:dev-jwt"], {
     cwd: repoRoot,

@@ -1,10 +1,8 @@
 /**
  * DP1-I — operator extend payment hold deadline.
  */
-import {
-  appendBookingOutboxEventIfAbsent,
-  setBookingPaymentDueAtProjection,
-} from "../bookings/in-memory-bookings.repository.ts";
+import { setBookingPaymentDueAtProjection } from "../bookings/in-memory-bookings.repository.ts";
+import { persistBookingFinanceOutboxEventIfAbsent } from "../outbox/persist-booking-finance-outbox-event.ts";
 import { PaymentHoldService } from "./payment-hold.service.ts";
 
 export async function extendPaymentHoldDeadline(input: {
@@ -28,7 +26,7 @@ export async function extendPaymentHoldDeadline(input: {
     paymentDueAt: hold.dueAt,
   });
 
-  appendBookingOutboxEventIfAbsent({
+  await persistBookingFinanceOutboxEventIfAbsent({
     tenantId: input.tenantId,
     aggregateId: input.registrationId,
     eventType: "payment.hold.extended",

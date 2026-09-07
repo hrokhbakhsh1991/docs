@@ -5,6 +5,7 @@ import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { resolveBookingOpsCapabilityForHub } from "@/features/bookings/booking-ops-panels";
 import { resolveBookingsOpsActionChrome } from "@/features/bookings/bookings-ops-action-chrome";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import { resolveInTourOpsForHub } from "@/features/tours/in-tour-ops-enablement";
 
 import { TourWorkspaceLayoutClient } from "./tour-workspace-layout-client";
 
@@ -29,6 +30,8 @@ export default async function TourWorkspaceLayout({
   // TW-C-05 — resolve financeNav on the server. Client plugin load cannot see ALLOW_* and
   // would fail-closed-cache the tab away (sidebar Finance still works via app layout ensure).
   const includeFinance = await ensureFinanceNavSupported(session.pluginId);
+  const inTourOpsManifest = await resolveInTourOpsForHub(null, session.pluginId);
+  const includeOperations = inTourOpsManifest?.enabled === true;
   return (
     <Suspense fallback={<OperatorSkeleton size="user-card" />}>
       <TourWorkspaceLayoutClient
@@ -36,6 +39,8 @@ export default async function TourWorkspaceLayout({
         tourId={id}
         opsActions={opsActions}
         includeFinance={includeFinance}
+        includeOperations={includeOperations}
+        inTourOpsPanels={inTourOpsManifest?.panels ?? { groups: false, checklists: false, incidentLog: false }}
       />
       {children}
     </Suspense>

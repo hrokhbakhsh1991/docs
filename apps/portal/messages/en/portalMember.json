@@ -377,7 +377,21 @@
     "transportLabel": "Transport",
     "transportLineOccupants": "{kind} · {occupants} seats",
     "forOtherBadge": "For someone else",
-    "guestLine": "Guest: {guestLabel}"
+    "guestLine": "Guest: {guestLabel}",
+    "executionTitle": "Tour day operations",
+    "executionStateLabel": "Status",
+    "executionMeetingTimeLabel": "Meeting time",
+    "executionMeetingLocationLabel": "Meeting point",
+    "executionTourLeaderLabel": "Tour leader",
+    "executionStates": {
+      "draft": "Preparing",
+      "manifest_locked": "Roster confirmed",
+      "pre_tour": "Pre-tour briefing",
+      "in_progress": "Tour in progress",
+      "post_tour": "Wrapping up",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
   },
   "receipt": {
     "uploadEyebrow": "Pay by receipt",
@@ -438,12 +452,34 @@
   },
   "notifications": {
     "title": "Notifications",
-    "lede": "Updates on your support tickets.",
+    "lede": "Updates on your trips, payments, wallet, and support tickets.",
     "bellAria": "{count, plural, =0 {Notifications} one {# unread notification} other {# unread notifications}}",
     "loading": "Loading notifications…",
     "loadError": "Could not load notifications.",
     "retry": "Try again",
     "empty": "No notifications yet.",
-    "markAllRead": "Mark all as read"
+    "markAllRead": "Mark all as read",
+    "events": {
+      "wallet": {
+        "transaction": {
+          "posted": {
+            "title": "Wallet credit received",
+            "body": "A credit was posted to your wallet."
+          }
+        },
+        "balance": {
+          "updated": {
+            "title": "Wallet balance updated",
+            "body": "Your wallet balance changed."
+          }
+        },
+        "refund": {
+          "credited": {
+            "title": "Refund credited to wallet",
+            "body": "A refund was added to your wallet balance."
+          }
+        }
+      }
+    }
   }
 }

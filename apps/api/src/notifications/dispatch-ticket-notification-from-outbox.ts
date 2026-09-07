@@ -19,6 +19,7 @@ const TICKET_NOTIFICATION_OUTBOX_TYPES = new Set<string>([
   "ticket.priority.changed",
   "ticket.resolved",
   "ticket.reopened",
+  "ticket.closed",
   "ticket.sla.warning",
   "ticket.sla.breached",
   "ticket.sla.escalated",

@@ -45,6 +45,8 @@ import type {
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
+  MarkAttendanceRequest,
+  MarkAttendanceResponse,
 } from "./bookings.types";
 import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
 
@@ -323,6 +325,18 @@ export async function waitlistBooking(
   bookingId: string
 ): Promise<WaitlistBookingResponse> {
   return (await resolveBookingsServiceForTenant(auth.tenantId)).waitlistBooking(auth, bookingId);
+}
+
+export async function markBookingAttendance(
+  auth: BookingActorContext,
+  bookingId: string,
+  body: MarkAttendanceRequest,
+): Promise<MarkAttendanceResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).markBookingAttendance(
+    auth,
+    bookingId,
+    body,
+  );
 }
 
 export async function cancelBooking(

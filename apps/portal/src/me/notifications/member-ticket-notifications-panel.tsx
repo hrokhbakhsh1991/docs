@@ -23,8 +23,36 @@ type ListResponse = {
   readonly nextCursor?: string | null;
 };
 
-function resolveLocalizedCopy(item: NotificationItem, locale: string): { title: string; body: string } {
+const EVENT_MESSAGE_KEYS: Readonly<
+  Record<string, { readonly title: string; readonly body: string }>
+> = {
+  "wallet.transaction.posted": {
+    title: "events.wallet.transaction.posted.title",
+    body: "events.wallet.transaction.posted.body",
+  },
+  "wallet.balance.updated": {
+    title: "events.wallet.balance.updated.title",
+    body: "events.wallet.balance.updated.body",
+  },
+  "wallet.refund.credited": {
+    title: "events.wallet.refund.credited.title",
+    body: "events.wallet.refund.credited.body",
+  },
+};
+
+function resolveLocalizedCopy(
+  item: NotificationItem,
+  locale: string,
+  translate: (key: string) => string,
+): { title: string; body: string } {
   const payload = item.payload ?? {};
+  const messageKeys = EVENT_MESSAGE_KEYS[item.eventType];
+  if (messageKeys !== undefined) {
+    return {
+      title: translate(messageKeys.title),
+      body: translate(messageKeys.body),
+    };
+  }
   if (locale.startsWith("fa")) {
     const titleFa = typeof payload.titleFa === "string" ? payload.titleFa : item.title;
     const bodyFa = typeof payload.bodyFa === "string" ? payload.bodyFa : item.body;
@@ -146,7 +174,7 @@ export function MemberNotificationsPanel() {
       ) : (
         <ul data-portal-member-notifications-list>
           {items.map((item) => {
-            const copy = resolveLocalizedCopy(item, locale);
+            const copy = resolveLocalizedCopy(item, locale, (key) => t(key as "events.wallet.transaction.posted.title"));
             const unread = item.readAt === null;
             return (
               <li

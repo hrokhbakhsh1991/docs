@@ -26,6 +26,8 @@ export type {
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
+  MarkAttendanceRequest,
+  MarkAttendanceResponse,
 } from "@app-tour/booking-http-contracts";
 
 export type CreateBookingRequest = BookingHttpCreateBookingRequest & {
@@ -70,6 +72,10 @@ export type BookingRecord = {
   readonly paymentDueAt?: string | null;
   /** DP1 — terminal cancel provenance (`payment_deadline` | `operator` | null). */
   readonly cancelSource?: string | null;
+  /** DP-7 — day-of attendance projection. */
+  readonly attendanceStatus?: "present" | "absent" | null;
+  readonly attendanceMarkedAt?: string | null;
+  readonly attendanceMarkedByUserId?: string | null;
 };
 
 export type BookingOutboxRecord = {

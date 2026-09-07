@@ -26,7 +26,8 @@ Specialized **FDA sub-agent** for auditing and repairing **real browser quality 
 | Browser quality reviewer (read-only) | [`.cursor/agents/browser-quality-reviewer.md`](../../agents/browser-quality-reviewer.md) |
 | Evidence ledger | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc) |
 | Blocker recovery | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc) |
-| Stop conditions | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc) |
+| Adversarial bug hunt | [`docs/dev/feature-delivery/adversarial-bug-hunt.mdoc`](../../../docs/dev/feature-delivery/adversarial-bug-hunt.mdoc) |
+| Staged design | [`docs/dev/feature-delivery/staged-design-workflow.mdoc`](../../../docs/dev/feature-delivery/staged-design-workflow.mdoc) |
 | Tiered testing | [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md) |
 | Walkthrough artifacts | [`walkthrough-artifacts` skill]($HOME/.cursor/skills-cursor/walkthrough-artifacts/SKILL.md) |
 | UI/UX decision brief | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../ui-ux-pro-max/FDA-INTEGRATION.md) |
@@ -46,9 +47,22 @@ Specialized **FDA sub-agent** for auditing and repairing **real browser quality 
 | **Tenant / RLS hard stops** | `BR-SEC` — no guessing on entitlements, seeds, migrations, workspace isolation |
 | **Workspace isolation** | Preserve Denali / Urban / starter boundaries — no cross-workspace leakage in tests or fixes |
 | **No silent post-v1 downgrades** | Never weaken assertions, add skips, or mock critical APIs to green a suite |
-| **No fake COMPLETE** | Test file exists ≠ journey verified; build pass ≠ browser proof; API 200 ≠ UI success |
+| **No fake COMPLETE** | Test file exists ≠ journey verified; build pass ≠ browser proof; API 200 ≠ UI success; skipped browser/a11y stays `unverified` — [completion-rules.mdoc](../../../docs/dev/feature-delivery/completion-rules.mdoc) |
 
 Record at BQC-0: `lockedBranch`, `initialHead`, `scopePaths`, `sessionId`.
+
+---
+
+## BQC ↔ FDA adversarial mapping
+
+| FDA pass | BQC responsibility |
+| -------- | ------------------ |
+| **B5** | Real browser interaction — desktop/mobile, RTL/LTR, states, a11y |
+| **B6** | Reload persistence, stale tab, retry after failure |
+| **B7** | Adjacent Playwright suites; no unrelated regression |
+| **B8** | browser-quality-reviewer independent second review |
+
+BQC sessions record pass status in `bug-hunt-matrix.json`. Skipped B5 → `browser-unverified` → blocks parent `FEATURE_COMPLETE`.
 
 ---
 
@@ -356,7 +370,9 @@ Every claim maps to a **ledger row** + artifact.
 | `BLOCKED` | env/RLS/product blocker |
 | `FLAKY` | intermittent without fix |
 
-**Forbidden final verdicts:** `BROWSER_QUALITY_COMPLETE` while any critical journey row is `MISSING`, `PARTIAL`, `BLOCKED`, `FLAKY`, or `UNVERIFIED`.
+**Forbidden final verdicts:** `BROWSER_GAPS_CLOSED` or parent `COMPLETE` while any **mandatory** critical journey row is `MISSING`, `PARTIAL`, `BLOCKED`, `FLAKY`, `UNVERIFIED`, or `browser-unverified` — [completion-rules.mdoc](../../../docs/dev/feature-delivery/completion-rules.mdoc).
+
+Before parent feature `COMPLETE` or `COMPLETE_WITH_ACCEPTED_RISKS`, run `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` when matrix is available.
 
 ---
 
@@ -402,7 +418,7 @@ Pass: `sessionId`, `lockedBranch`, coverage matrix, realness audit, failing spec
 8. Capability status table per journey
 9. **Unverified items** — explicit list
 10. Commit SHAs and push result
-11. Verdict: `BROWSER_GAPS_CLOSED` | `BROWSER_GAPS_PARTIAL` | `BROWSER_AUDIT_ONLY`
+11. Verdict: `BROWSER_GAPS_CLOSED` \| `BROWSER_GAPS_PARTIAL` \| `BROWSER_AUDIT_ONLY` — parent FDA uses `FEATURE_*` per [completion-rules.mdoc](../../../docs/dev/feature-delivery/completion-rules.mdoc)
 12. `Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
 
 ---

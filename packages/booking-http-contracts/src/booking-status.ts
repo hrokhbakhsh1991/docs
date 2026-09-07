@@ -24,3 +24,11 @@ export const BOOKING_PAYMENT_STATUSES: readonly BookingPaymentStatus[] = [
   "partial",
   "paid",
 ];
+
+/** DP-7 day-of attendance mark — separate from registration lifecycle status. */
+export type BookingAttendanceStatus = "present" | "absent";
+
+export const BOOKING_ATTENDANCE_STATUSES: readonly BookingAttendanceStatus[] = [
+  "present",
+  "absent",
+];

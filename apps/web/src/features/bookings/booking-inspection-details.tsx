@@ -44,6 +44,10 @@ type BookingInspectionDetailsProps = {
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
+  readonly onMarkPresent?: () => void;
+  readonly onMarkAbsent?: () => void;
+  readonly canMarkPresent?: boolean;
+  readonly canMarkAbsent?: boolean;
   readonly actionClassName: string;
   readonly actionHint?: string | null;
   readonly capacityFullHint?: string | null;
@@ -65,6 +69,10 @@ export function BookingInspectionDetails({
   onApproveWithoutPayment,
   onWaitlist,
   onCancel,
+  onMarkPresent,
+  onMarkAbsent,
+  canMarkPresent = false,
+  canMarkAbsent = false,
   actionClassName,
   actionHint = null,
   capacityFullHint = null,
@@ -87,6 +95,9 @@ export function BookingInspectionDetails({
           <Badge variant={bookingStatusBadgeVariant(booking.status)}>
             {t(`status.${booking.status}`)}
           </Badge>
+          {booking.attendanceStatus === "present" || booking.attendanceStatus === "absent" ? (
+            <Badge variant="secondary">{t(`attendance.${booking.attendanceStatus}`)}</Badge>
+          ) : null}
           <Badge
             variant={bookingPaymentBadgeVariant(booking.paymentStatus)}
             data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInspection}
@@ -122,17 +133,26 @@ export function BookingInspectionDetails({
         ) : null}
       </dl>
       {canManageOps &&
-      (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (
+      (canActOnSelected ||
+        canWaitlistSelected ||
+        canCancelSelected ||
+        canMarkPresent ||
+        canMarkAbsent ||
+        actionHint !== null) ? (
         <BookingActionButtons
           busy={actionBusy}
           showApproveReject={canActOnSelected}
           showWaitlist={canWaitlistSelected}
           showCancel={canCancelSelected}
+          showMarkPresent={canMarkPresent}
+          showMarkAbsent={canMarkAbsent}
           onReject={onReject}
           onApprove={onApprove}
           onApproveWithoutPayment={onApproveWithoutPayment}
           onWaitlist={onWaitlist}
           onCancel={onCancel}
+          onMarkPresent={onMarkPresent}
+          onMarkAbsent={onMarkAbsent}
           className={actionClassName}
           actionHint={actionHint}
           capacityFullHint={capacityFullHint}

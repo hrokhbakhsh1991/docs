@@ -1,0 +1,47 @@
+---
+title: Feature Delivery — Completion Rules Regression Fixture
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery/completion-rules.mdoc
+code_sot:
+  - .cursor/skills/feature-delivery/evaluate-fda-verdict.mjs
+  - .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs
+---
+
+# Completion Rules — Regression Fixture
+
+**Purpose:** Prove reports with **`broken`**, **`missing`**, **`partial`**, or mandatory **`unverified`** rows **cannot** emit `FEATURE_COMPLETE`.
+
+**Run:**
+
+```bash
+node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs
+```
+
+---
+
+## Fixture cases (v1.4)
+
+| Case | Signal | Proposed verdict | Expected |
+| ---- | ------ | ---------------- | -------- |
+| CRF-001 | mandatory `broken` | `FEATURE_COMPLETE` | reject |
+| CRF-002 | mandatory `broken` | `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | reject |
+| CRF-003 | mandatory `missing` | `FEATURE_COMPLETE` | reject |
+| CRF-004 | mandatory `unverified` | `SHARED_NOTIFICATION_AUDIT_COMPLETE` | reject |
+| CRF-005 | `browser-unverified` | `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | reject |
+| CRF-006 | `rls/security unverified` + rls risk approval | accepted risks | reject |
+| CRF-007 | all mandatory `complete` | `FEATURE_COMPLETE` | allow |
+| CRF-008 | optional `partial` + valid approval | `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | allow |
+| CRF-009 | mandatory `broken` | `FEATURE_INCOMPLETE` | allow |
+| CRF-010 | `producer-missing` | `SHARED_NOTIFICATION_AUDIT_INCOMPLETE` | allow |
+| CRF-011 | mandatory `partial` | `FEATURE_COMPLETE` | reject |
+| CRF-012 | `browser-unverified` | legacy `COMPLETE` alias | reject |
+
+Executable cases: [`.cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs`](../../.cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs)
+
+---
+
+## Staged design reminder
+
+Under FDA-001 v1.4, agents must complete tier-required **D0–D7** design artifacts before implementation and **B1–B8** adversarial passes after — see [staged-design-workflow](staged-design-workflow.mdoc) and [adversarial-bug-hunt](adversarial-bug-hunt.mdoc). Missing design or bug-hunt evidence remains **`unverified`** in the final matrix.

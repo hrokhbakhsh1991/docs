@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
+import { fetchMemberTourExecutionSummary } from "@/me/fetch-member-tour-execution-summary.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { formatMemberRegistrationDeparture,
   localizeMemberPaymentStatus,
@@ -44,14 +45,24 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   }
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
-  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
-    localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
-    localizeMemberPaymentStatus(row.paymentStatus),
-    formatMemberRegistrationDeparture(row.departureAt),
-    fetchMemberReceiptPanel(host, row.id),
-  ]);
-
   const lifecycleStatus = parseRegistrationLifecycleStatus(row.status) ?? "pending";
+  const executionSummary =
+    lifecycleStatus === "approved" &&
+    typeof row.tourId === "string" &&
+    row.tourId.trim().length > 0
+      ? await fetchMemberTourExecutionSummary(host, row.tourId)
+      : null;
+  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel, executionMeetingTimeLabel] =
+    await Promise.all([
+      localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
+      localizeMemberPaymentStatus(row.paymentStatus),
+      formatMemberRegistrationDeparture(row.departureAt),
+      fetchMemberReceiptPanel(host, row.id),
+      executionSummary?.scheduledMeetingAt
+        ? formatMemberRegistrationDeparture(executionSummary.scheduledMeetingAt)
+        : Promise.resolve(null),
+    ]);
+
   bindWorkspacePluginRegisterInvokers();
   await registerWorkspaceIntakeSafe(bootstrap.pluginId);
   const intakeFeatures = resolveIntakeSchema(bootstrap.pluginId).features;
@@ -171,6 +182,33 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </section>
+        {executionSummary !== null ? (
+          <section
+            data-portal-member-execution-summary
+            data-ito-execution-state={executionSummary.state}
+          >
+            <h2>{t("executionTitle")}</h2>
+            <p data-ito-member-execution-state>
+              {t("executionStateLabel")}:{" "}
+              {t(`executionStates.${executionSummary.state}` as "executionStates.draft")}
+            </p>
+            {executionSummary.tourLeaderDisplayName ? (
+              <p data-ito-member-tour-leader>
+                {t("executionTourLeaderLabel")}: {executionSummary.tourLeaderDisplayName}
+              </p>
+            ) : null}
+            {executionMeetingTimeLabel ? (
+              <p data-ito-member-meeting-time>
+                {t("executionMeetingTimeLabel")}: {executionMeetingTimeLabel}
+              </p>
+            ) : null}
+            {executionSummary.meetingLocation ? (
+              <p data-ito-member-meeting-location>
+                {t("executionMeetingLocationLabel")}: {executionSummary.meetingLocation}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
         {showIntakeAmend && tour !== null ? (
           <MemberIntakeAmendForm
             registrationId={row.id}

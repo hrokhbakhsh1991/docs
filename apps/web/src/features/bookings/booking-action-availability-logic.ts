@@ -23,6 +23,8 @@ export type BookingActionAvailability = {
   readonly canReject: boolean;
   readonly canWaitlist: boolean;
   readonly canCancel: boolean;
+  readonly canMarkPresent: boolean;
+  readonly canMarkAbsent: boolean;
   readonly unavailableReason: BookingActionUnavailableReasonCode | null;
   readonly showCapacityFullHint: boolean;
 };
@@ -48,13 +50,18 @@ export function resolveBookingActionAvailability(
   }
 
   if (status === "approved") {
+    const attendanceMarked =
+      input.booking?.attendanceStatus === "present" ||
+      input.booking?.attendanceStatus === "absent";
     return {
       canApprove: false,
       canApproveWithoutPayment: false,
       canReject: false,
       canWaitlist: false,
       canCancel: input.isCancellable,
-      unavailableReason: input.isCancellable ? "approved_use_finance" : "approved_use_finance",
+      canMarkPresent: !attendanceMarked,
+      canMarkAbsent: !attendanceMarked,
+      unavailableReason: attendanceMarked ? "approved_use_finance" : "approved_use_finance",
       showCapacityFullHint: false,
     };
   }
@@ -70,6 +77,8 @@ export function resolveBookingActionAvailability(
     canReject: canAct,
     canWaitlist: input.isWaitlistable,
     canCancel: input.isCancellable,
+    canMarkPresent: false,
+    canMarkAbsent: false,
     unavailableReason: null,
     showCapacityFullHint: input.capacityFull,
   };
@@ -82,6 +91,8 @@ function inactive(reason: BookingActionUnavailableReasonCode | null): BookingAct
     canReject: false,
     canWaitlist: false,
     canCancel: false,
+    canMarkPresent: false,
+    canMarkAbsent: false,
     unavailableReason: reason,
     showCapacityFullHint: false,
   };

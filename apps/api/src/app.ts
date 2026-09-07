@@ -17,6 +17,7 @@ import {
   handlePostMemberCancellation,
   handleRejectBooking,
   handleWaitlistBooking,
+  handleMarkBookingAttendance,
 } from "./bookings/bookings.routes";
 import {
   handleMemberListNotifications,
@@ -537,6 +538,12 @@ async function dispatchRequest(
   const bookingWaitlistMatch = url.pathname.match(/^\/bookings\/([^/]+)\/waitlist$/);
   if (method === "POST" && bookingWaitlistMatch) {
     await handleWaitlistBooking(req, res, bookingWaitlistMatch[1]!);
+    return;
+  }
+
+  const bookingAttendanceMatch = url.pathname.match(/^\/bookings\/([^/]+)\/attendance$/);
+  if (method === "POST" && bookingAttendanceMatch) {
+    await handleMarkBookingAttendance(req, res, bookingAttendanceMatch[1]!);
     return;
   }
 
@@ -1104,6 +1111,70 @@ async function dispatchRequest(
   if (method === "GET" && tourOperationalRosterMatch) {
     const { handleGetTourOperationalRoster } = await import("./roster/operational-roster.routes.ts");
     await handleGetTourOperationalRoster(req, res, tourOperationalRosterMatch[1]!);
+    return;
+  }
+
+  const tourExecutionBaseMatch = url.pathname?.match(/^\/tours\/([^/]+)\/execution(?:\/(.+))?$/);
+  if (tourExecutionBaseMatch) {
+    const tourId = tourExecutionBaseMatch[1]!;
+    const subPath = tourExecutionBaseMatch[2] ?? "";
+    const routes = await import("./tour-execution/tour-execution.routes.ts");
+    if (method === "GET" && subPath === "") {
+      await routes.handleGetTourExecution(req, res, tourId);
+      return;
+    }
+    if (method === "POST" && subPath === "manifest/lock") {
+      await routes.handleLockTourExecutionManifest(req, res, tourId);
+      return;
+    }
+    if (method === "GET" && subPath === "manifest/export") {
+      await routes.handleGetTourExecutionManifestExport(req, res, tourId);
+      return;
+    }
+    if (method === "PATCH" && subPath === "state") {
+      await routes.handlePatchTourExecutionState(req, res, tourId);
+      return;
+    }
+    if (method === "PUT" && subPath === "groups") {
+      await routes.handlePutTourExecutionGroups(req, res, tourId);
+      return;
+    }
+    const manifestGroupMatch = subPath.match(/^manifest\/([^/]+)\/group$/);
+    if (method === "PATCH" && manifestGroupMatch) {
+      await routes.handlePatchTourExecutionManifestGroup(req, res, tourId, manifestGroupMatch[1]!);
+      return;
+    }
+    const checklistMatch = subPath.match(/^checklist\/([^/]+)$/);
+    if (method === "PATCH" && checklistMatch) {
+      await routes.handlePatchTourExecutionChecklistItem(req, res, tourId, checklistMatch[1]!);
+      return;
+    }
+    if (method === "POST" && subPath === "operational-events") {
+      await routes.handlePostTourExecutionOperationalEvent(req, res, tourId);
+      return;
+    }
+    if (method === "PATCH" && subPath === "schedule") {
+      await routes.handlePatchTourExecutionSchedule(req, res, tourId);
+      return;
+    }
+    if (method === "PATCH" && subPath === "location") {
+      await routes.handlePatchTourExecutionLocation(req, res, tourId);
+      return;
+    }
+    if (method === "PATCH" && subPath === "tour-leader") {
+      await routes.handlePatchTourExecutionTourLeader(req, res, tourId);
+      return;
+    }
+  }
+
+  const memberTourExecutionSummaryMatch = url.pathname.match(
+    /^\/member\/tours\/([^/]+)\/execution-summary$/,
+  );
+  if (method === "GET" && memberTourExecutionSummaryMatch) {
+    const { handleGetMemberTourExecutionSummary } = await import(
+      "./tour-execution/tour-execution.routes.ts"
+    );
+    await handleGetMemberTourExecutionSummary(req, res, memberTourExecutionSummaryMatch[1]!);
     return;
   }
 

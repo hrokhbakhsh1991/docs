@@ -5,6 +5,8 @@
  * @see docs/phase-11/subphases/11.0-smoke-workspace-alignment.md
  * @see docs/workspaces/denali/operator-tour-edit-remediation.mdoc
  */
+import { createHash } from "node:crypto";
+
 import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
 
 export { DENALI_SMOKE_TENANT_ID };
@@ -61,12 +63,40 @@ const DENALI_CLUB_NATURE_THEME_SLUG = "nature-camping";
 const DENALI_CLUB_TENT_NAME = "چادر";
 const DENALI_CLUB_SLEEPING_BAG_NAME = "کیسه خواب";
 
-function resolveSmokeCatalogIds(
-  tenantId: string
-): typeof OPERATOR_SMOKE_CATALOG_IDS | typeof DENALI_DEV_SMOKE_CATALOG_IDS {
-  return tenantId === DENALI_SMOKE_TENANT_ID
-    ? DENALI_DEV_SMOKE_CATALOG_IDS
-    : OPERATOR_SMOKE_CATALOG_IDS;
+export type SmokeCatalogIds = {
+  readonly equipment: string;
+  readonly region: string;
+  readonly destination: string;
+  readonly theme: string;
+};
+
+/** Deterministic catalog PKs per tenant — avoids global workspace_equipment id collisions in integration tests. */
+function deriveTenantScopedCatalogIds(tenantId: string): SmokeCatalogIds {
+  const slot = (name: string): string => {
+    const hash = createHash("sha256").update(`${tenantId}:catalog:${name}`).digest("hex");
+    return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+  };
+  return {
+    equipment: slot("equipment"),
+    region: slot("region"),
+    destination: slot("destination"),
+    theme: slot("theme"),
+  };
+}
+
+/** Resolve stable catalog ids for smoke tenants (014/003) or tenant-scoped ids for integration tests. */
+export function resolveCatalogIdsForTenant(tenantId: string): SmokeCatalogIds {
+  if (tenantId === DENALI_SMOKE_TENANT_ID) {
+    return DENALI_DEV_SMOKE_CATALOG_IDS;
+  }
+  if (tenantId === OPERATOR_SMOKE_TENANT_ID) {
+    return OPERATOR_SMOKE_CATALOG_IDS;
+  }
+  return deriveTenantScopedCatalogIds(tenantId);
+}
+
+function resolveSmokeCatalogIds(tenantId: string): SmokeCatalogIds {
+  return resolveCatalogIdsForTenant(tenantId);
 }
 
 function buildDenaliDevExtraDestinations(

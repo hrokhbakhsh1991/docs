@@ -125,3 +125,24 @@ export class BookingStatusConflictError extends Error {
     this.code = code;
   }
 }
+
+export class BookingAttendanceInvalidStatusError extends Error {
+  readonly code = "BOOKING_ATTENDANCE_INVALID_STATUS" as const;
+
+  constructor(readonly status: BookingStatus) {
+    super(`BOOKING_ATTENDANCE_INVALID_STATUS:${status}`);
+    this.name = "BookingAttendanceInvalidStatusError";
+  }
+}
+
+export class BookingAttendanceConflictError extends Error {
+  readonly code = "BOOKING_ATTENDANCE_CONFLICT" as const;
+
+  constructor(
+    readonly existingStatus: "present" | "absent",
+    readonly requestedStatus: "present" | "absent",
+  ) {
+    super(`BOOKING_ATTENDANCE_CONFLICT:${existingStatus}:${requestedStatus}`);
+    this.name = "BookingAttendanceConflictError";
+  }
+}

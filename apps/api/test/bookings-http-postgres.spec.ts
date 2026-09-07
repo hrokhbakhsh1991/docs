@@ -415,6 +415,11 @@ describe(
       });
       assert.equal(outbox.length, 1);
       assert.equal(outbox[0]?.aggregateType, "registration");
+
+      const holdOutbox = await admin.outboxEvent.findMany({
+        where: { tenantId: tenantA, aggregateId: id, eventType: "payment.hold.scheduled" },
+      });
+      assert.equal(holdOutbox.length, 1, "approve must enqueue durable payment.hold.scheduled outbox");
     });
 
     it("A2 POST /bookings/:id/approve capacity conflict → 409", async () => {

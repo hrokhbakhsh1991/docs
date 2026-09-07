@@ -15,7 +15,7 @@ Typed surface (`TenantFeatureFlags`):
 | Key | Default | Role |
 | --- | ------- | ---- |
 | `advancedRuleEngine` | `true` | Wizard validation variant (`default` vs `basic`) |
-| `inAppRegistrationApprovedNotify` | `true` | Gate SK2.C in_app notify on `registration.approved` |
+| `inAppRegistrationApprovedNotify` | `false` | Gate legacy SK2.C in_app notify on `registration.approved` (MNI inbox canonical; set `true` to opt in) |
 
 Rollback windows use `feature-flag-freeze.ts` (cache-only reads while freeze active).
 

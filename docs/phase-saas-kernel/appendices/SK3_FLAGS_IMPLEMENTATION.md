@@ -19,19 +19,19 @@ SK2.C always delivers in_app structured notification on `registration.approved`.
 
 | Flag | Type | Default (omit / non-boolean) | Effect |
 | ---- | ---- | ---------------------------- | ------ |
-| `inAppRegistrationApprovedNotify` | `boolean` | **`true`** | When `false`, `dispatchRegistrationApprovedNotification` no-ops (still durable outbox; no notify sink) |
+| `inAppRegistrationApprovedNotify` | `boolean` | **`false`** (2026-09 SEC-042) | When `false`, `dispatchRegistrationApprovedNotification` no-ops (MNI inbox remains canonical; explicit `true` opts into legacy SK2.C deliver) |
 
 ## Theme JSON migration plan
 
 | Existing theme | Behavior after land |
 | -------------- | ------------------- |
-| No `featureFlags` object | Default **on** (notify) — same as pre-flag SK2.C |
-| `featureFlags` without this key | Default **on** |
-| `"inAppRegistrationApprovedNotify": false` | Notify **off** |
-| `"inAppRegistrationApprovedNotify": true` | Notify **on** |
-| Non-boolean value | Treated as default **on** (strict only `false` disables) |
+| No `featureFlags` object | Default **off** (legacy SK2.C deliver skipped; MNI relay unchanged) |
+| `featureFlags` without this key | Default **off** |
+| `"inAppRegistrationApprovedNotify": false` | Legacy notify **off** |
+| `"inAppRegistrationApprovedNotify": true` | Legacy notify **on** (pre-SEC-042 default behavior) |
+| Non-boolean value | Treated as default **off** (strict only explicit `true` enables legacy path) |
 
-No DB migration / backfill required — JSONB theme is schemaless; parse defaults are fail-open for notify continuity.
+No DB migration / backfill required — JSONB theme is schemaless. Tenants that relied on legacy SK2.C in_app deliver without MNI must set `"inAppRegistrationApprovedNotify": true` explicitly.
 
 Opt-out example:
 
@@ -49,7 +49,7 @@ Opt-out example:
 | Piece | Change |
 | ----- | ------ |
 | `TenantFeatureFlags` | Add `inAppRegistrationApprovedNotify: boolean` |
-| `parseFeatureFlagsFromTheme` | Parse with default `true` |
+| `parseFeatureFlagsFromTheme` | Parse with default `false` (SEC-042) |
 | `dispatchRegistrationApprovedNotification` | Resolve flags; skip deliver when `false` |
 | Specs | Parse defaults + dispatch gate |
 | README-feature-flags | Document new key |

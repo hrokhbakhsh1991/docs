@@ -7,6 +7,8 @@ import type { BookingsOpsActionChrome } from "@/features/bookings/bookings-ops-a
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { TourWorkspaceFinanceClient } from "@/features/tours/tour-workspace-finance-client";
 import type { TourWorkspaceSubnavTab } from "@/features/tours/tour-workspace-types";
+import type { InTourOpsPanels } from "@/features/tours/in-tour-ops-enablement";
+import { TourWorkspaceOperationsClient } from "@/features/tours/tour-workspace-operations-client";
 import { TourWorkspaceRegistrationsClient } from "./tour-workspace-registrations-client";
 import { TourWorkspaceTransportClient } from "./transport/tour-workspace-transport-client";
 import { TourWorkspaceWaitlistClient } from "./waitlist/tour-workspace-waitlist-client";
@@ -17,6 +19,7 @@ type TourWorkspaceTabPanelsProps = {
   readonly tourId: string;
   readonly opsActions: BookingsOpsActionChrome;
   readonly includeFinance: boolean;
+  readonly inTourOpsPanels: InTourOpsPanels;
   readonly detail: OperatorTourDetailResponse | null;
 };
 
@@ -50,12 +53,22 @@ export function TourWorkspaceTabPanels({
   tourId,
   opsActions,
   includeFinance,
+  inTourOpsPanels,
   detail,
 }: TourWorkspaceTabPanelsProps) {
   const mountedTabs = useLazyMountedTabs(activeTab);
 
   return (
     <>
+      {mountedTabs.has("operations") ? (
+        <div hidden={activeTab !== "operations"} aria-hidden={activeTab !== "operations"}>
+          <TourWorkspaceOperationsClient
+            session={session}
+            tourId={tourId}
+            panels={inTourOpsPanels}
+          />
+        </div>
+      ) : null}
       {mountedTabs.has("registrations") ? (
         <div hidden={activeTab !== "registrations"} aria-hidden={activeTab !== "registrations"}>
           <TourWorkspaceRegistrationsClient

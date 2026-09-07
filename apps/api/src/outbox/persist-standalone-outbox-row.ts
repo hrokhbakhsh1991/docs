@@ -12,8 +12,9 @@ export async function persistStandaloneOutboxRowIfPrismaDriver(
   if (!isPrismaStorageDriverActive()) {
     return false;
   }
-  const { getPrisma } = await import("../db/prisma");
-  const prisma = getPrisma();
-  await enqueueOutboxEvent(prisma, input);
+  const { withTenantRls } = await import("../db/with-tenant-rls");
+  await withTenantRls(input.tenantId, async (tx) => {
+    await enqueueOutboxEvent(tx, input);
+  });
   return true;
 }

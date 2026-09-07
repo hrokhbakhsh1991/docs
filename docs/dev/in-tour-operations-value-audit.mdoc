@@ -1,0 +1,165 @@
+---
+title: In-Tour Operations — Feature Value Audit
+description: CORE / OPTIONAL / DEFERRED classification before continued ITO implementation.
+standard_id: ITO-001-VA
+version: 1.0.0
+status: approved
+format: markdoc
+doc_role: product_audit
+extends:
+  - docs/standards/in-tour-operations.mdoc
+---
+
+# In-Tour Operations — Feature Value Audit
+
+**Session:** `in-tour-value-audit-20260905`  
+**Branch:** `feature/tour-attendance-producer` @ `5f3f09ff`  
+**Goal:** Small, activatable core for many clubs — not every possible ops feature.
+
+---
+
+## Executive summary
+
+Current build **over-ships OPTIONAL UI by default** (groups, checklists, incident log, full state machine) while **under-shipping two CORE items** (attendance on the operations desk, Excel export).
+
+**Recommendation:** Shrink default operator UI to CORE; gate OPTIONAL via workspace theme/manifest (`inTourOps.*`, default off); keep backend tables for enabled workspaces only.
+
+**No implementation in this audit turn** — next slice: `REFACTOR-01` + `ITO-C03` + `ITO-C07` only.
+
+---
+
+## Classification
+
+### CORE (always when operations module enabled)
+
+| ID | Capability | Owner | 2+ consumers? | Status |
+| -- | ---------- | ----- | ------------- | ------ |
+| ITO-C01 | Final participant manifest | Platform tour ops | Yes (desk + portal) | Built |
+| ITO-C02 | Payment / insurance readiness columns | Platform | Yes (desk + finance tab) | Built |
+| ITO-C03 | Attendance on manifest rows | Platform bookings | Yes (desk + MNI) | **API only — UI gap** |
+| ITO-C04 | Tour leader assignment | Platform | Yes (auth + member summary) | Partial UI |
+| ITO-C05 | Schedule / location change + notify | Platform MNI | Yes (portal + inbox) | Built |
+| ITO-C06 | Member in-app notifications | Platform MNI | Yes (inbox + detail) | Partial proof |
+| ITO-C07 | Excel manifest export | Platform | Yes (operator + external coordinator) | **Missing** |
+
+### OPTIONAL (workspace flag, default **off**, no UI when off)
+
+| ID | Flag | Owner | Notes |
+| -- | ---- | ----- | ----- |
+| ITO-O01 | `inTourOps.groups` | Workspace | Large tours; **currently always shown — trim** |
+| ITO-O02 | `inTourOps.checklists` | Workspace | SOP clubs; **trim** |
+| ITO-O03 | `inTourOps.incidentLog` | Workspace | Post-tour review; **trim** |
+| ITO-O04 | `inTourOps.pdfExport` | Workspace | Defer until Excel CORE |
+| ITO-O05 | `inTourOps.multiSupervisor` | Workspace | Defer |
+| ITO-O06 | — | Workspace | Use existing **transport tab** — do not duplicate |
+| ITO-O07 | `notifications.sms` | Notifications product | Out of ITO scope |
+
+### DEFERRED (do not build now)
+
+| ID | Reason |
+| -- | ------ |
+| ITO-D01 | Live GPS — cost/complexity, no proven club demand |
+| ITO-D02 | Expose full 7-state FSM in default UI — confuse small clubs; backend may keep states, UI simplified |
+| ITO-D03 | Group-leader attendance auth — security slice 2 |
+| ITO-D04 | Emergency SOS — product/safety gate |
+| ITO-D05 | Operator dashboard home chip — second surface; after CORE stable |
+
+---
+
+## Per-capability audit (CORE sample)
+
+### ITO-C01 — Final participant manifest
+
+| Dimension | Assessment |
+| --------- | ---------- |
+| Real users | Admin, tour leader |
+| Problem | Stale WhatsApp/Excel lists vs approved roster |
+| E2E | Approve registrations → lock manifest → day-of roster stable |
+| Data | `operator_registrations` → `tour_execution_manifest_rows` |
+| Alternative | Registrations tab + manual Excel |
+| Ops value | **High** |
+| Complexity | Low (shipped) |
+| Consumers | Operator desk, portal execution summary |
+
+### ITO-C03 — Attendance (CORE gap)
+
+| Dimension | Assessment |
+| --------- | ---------- |
+| Real users | Tour leader at departure |
+| Problem | Headcount / missing guests |
+| E2E | Tap present/absent on manifest row → DP-7 → live column |
+| Data | `POST /bookings/:id/attendance` (existing) |
+| Alternative | Bookings command center (different tab) |
+| Ops value | **High** |
+| Complexity | Medium (UI wire only) |
+| Consumers | Operations desk, notification producer |
+
+**Action:** Build — owner Platform bookings; evidence: browser + Postgres attendance join.
+
+### ITO-C07 — Excel export (CORE gap)
+
+| Dimension | Assessment |
+| --------- | ---------- |
+| Real users | Admin, external bus coordinator |
+| Problem | Offline handoff without copy-paste |
+| E2E | Locked manifest → Download XLSX |
+| Data | Manifest projection + attendance |
+| Alternative | Manual Excel |
+| Ops value | **High** for transport-heavy clubs |
+| Complexity | Medium (new export endpoint) |
+| Consumers | Operator, external partner |
+
+**Action:** Build — owner Platform; evidence: file download test.
+
+---
+
+## UI / UX — progressive disclosure
+
+Mirror **finance tab gating** (`ensureFinanceNavSupported`):
+
+1. **Operations tab** visible only if workspace execution ops module enabled.
+2. **Default panel:** state banner, leader picker, manifest table, notify-change (collapsed), export.
+3. **Never render** disabled optional cards (groups/checklists/events) — remove from DOM when flag false.
+4. **Mobile / RTL:** stacked cards; FA via existing `tours.workspace.operations` keys.
+5. **Empty:** link to registrations tab — not empty operations forms.
+
+---
+
+## Current build violations
+
+```text
+apps/web/src/features/tours/tour-workspace-logic.ts
+  → operations in TOUR_WORKSPACE_CORE_SUBNAV_TABS (always on)
+
+apps/web/src/features/tours/tour-workspace-operations-client.tsx
+  → groups, checklist, events cards always mounted
+```
+
+---
+
+## Implementation queue (evidence + owner required)
+
+| Priority | ID | Owner | Evidence needed |
+| -------- | -- | ----- | ----------------- |
+| 1 | REFACTOR-01 | Platform | Flag-off = no tab/panels in Playwright |
+| 2 | ITO-C03 | Platform bookings | Mark attendance from operations browser test |
+| 3 | ITO-C04 UI | Platform | Leader picker + notify |
+| 4 | ITO-C07 | Platform | XLSX export integration test |
+| — | ITO-O* | Workspace | Only after REFACTOR-01 |
+| — | ITO-D* | Product | Do not schedule |
+
+---
+
+## Requirement matrix artifact
+
+Canonical machine-readable matrix:
+
+`.cache/feature-delivery/in-tour-value-audit-20260905/requirements-matrix.json`
+
+---
+
+## Verdict
+
+**Value audit complete.** Proceed with **shrink + gate**, not expand. Do **not** claim `FEATURE_COMPLETE` until CORE gaps (C03, C07) closed and optional UI trimmed.
+
+Architect, documentation status: **Updated**. Link to docs: `docs/dev/in-tour-operations-value-audit.mdoc`

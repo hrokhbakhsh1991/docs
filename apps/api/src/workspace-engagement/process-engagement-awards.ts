@@ -2,6 +2,7 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
 import { insertMemberNotificationRow } from "../notifications/member-notification.repository";
+import { withTenantRls } from "../db/with-tenant-rls";
 import type { WorkspaceOutboxPublishedRow } from "../workspace/workspace-outbox-row-context";
 import { buildAwardDedupeKey } from "./engagement-admin-catalog";
 import { assertEngagementWorkspaceGate } from "./engagement-module-enabled";
@@ -160,7 +161,22 @@ export async function dispatchEngagementFromOutbox(row: WorkspaceOutboxPublished
   }
 
   const payload = asRecord(row.payload);
-  const userId = optionalString(payload.guestUserId);
+  let userId = optionalString(payload.guestUserId);
+  if (userId === undefined) {
+    const registrationId = optionalString(payload.bookingId) ?? row.aggregateId;
+    if (
+      registrationId !== undefined &&
+      process.env.STORAGE_DRIVER?.trim().toLowerCase() === "prisma"
+    ) {
+      userId = await withTenantRls(row.tenantId, async (tx) => {
+        const registration = await tx.operatorRegistration.findFirst({
+          where: { tenantId: row.tenantId, id: registrationId },
+          select: { submittedByUserId: true },
+        });
+        return optionalString(registration?.submittedByUserId);
+      });
+    }
+  }
   if (userId === undefined) {
     return;
   }

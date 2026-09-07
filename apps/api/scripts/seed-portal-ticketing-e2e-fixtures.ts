@@ -13,6 +13,7 @@ import {
   seedOperatorSmokePublishedTour,
 } from "../src/settings/seed-operator-smoke-published-tour";
 import { runWithTenantContext } from "../src/tenant/tenant-request-context";
+import { createPrismaEngagementDefinitionsRepository } from "../src/workspace-engagement/infrastructure/prisma-engagement-definitions.repository";
 
 const OPERATOR_SMOKE_TENANT_ID_CONST = "00000000-0000-4000-8000-000000000014";
 
@@ -31,9 +32,10 @@ async function enableTicketingModule(admin: PrismaClient): Promise<void> {
           ...theme.enabledModules.filter((v): v is string => typeof v === "string"),
           "ticketing",
           "finance",
+          "engagement",
         ]),
       ]
-    : ["ticketing", "finance"];
+    : ["ticketing", "finance", "engagement"];
   await admin.tenant.upsert({
     where: { id: OPERATOR_SMOKE_TENANT_ID_CONST },
     create: {
@@ -64,9 +66,13 @@ async function main(): Promise<void> {
       await seedOperatorSmokeCatalog(repo, { tenantId: OPERATOR_SMOKE_TENANT_ID });
       await seedOperatorSmokePublishedTour(OPERATOR_SMOKE_TENANT_ID);
       await ensureOperatorSmokePublishedTourEditReady(OPERATOR_SMOKE_TENANT_ID);
+      await createPrismaEngagementDefinitionsRepository().ensureSeeded(
+        OPERATOR_SMOKE_TENANT_ID,
+        "denali",
+      );
     });
 
-    console.log("seed-portal-ticketing-e2e-fixtures: operator smoke + ticketing ready");
+    console.log("seed-portal-ticketing-e2e-fixtures: operator smoke + ticketing + engagement ready");
   } finally {
     await admin.$disconnect();
   }

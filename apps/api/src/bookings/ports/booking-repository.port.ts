@@ -188,6 +188,17 @@ export interface BookingRepositoryPort {
     outboxEvent: string;
     cancelSource?: string;
   }): Promise<BookingRecord>;
+  /**
+   * approved → attendance marked in one tenant TX + outbox (`attendance.marked`).
+   * Idempotent when the same attendanceStatus is replayed.
+   */
+  markAttendanceWithOutbox(input: {
+    bookingId: string;
+    tenantId: string;
+    actorUserId: string;
+    attendanceStatus: "present" | "absent";
+    outboxEvent: string;
+  }): Promise<{ readonly record: BookingRecord; readonly idempotentReplay: boolean }>;
   seedBooking(record: BookingRecord): void;
 }
 

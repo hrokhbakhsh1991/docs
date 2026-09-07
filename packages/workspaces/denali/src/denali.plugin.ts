@@ -5,6 +5,7 @@ import {
   denaliRegistrationOpsManifest,
   resolveBookingOpsManifestFromTheme,
 } from "./bookings/ops-manifest";
+import { resolveInTourOpsManifestFromTheme } from "./tour-execution/in-tour-ops-manifest";
 import { toDenaliCatalogCard } from "./catalog/denali-catalog-card";
 import { denaliCatalogIntakeSurface } from "./catalog/denali-catalog-intake";
 import { isDenaliTourPublished } from "./catalog/denali-publish-status";
@@ -272,6 +273,12 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
           theme === null || theme === undefined
             ? DEFAULT_BOOKING_OPS_MANIFEST
             : resolveBookingOpsManifestFromTheme(theme),
+      }),
+      inTourOps: deepFreeze({
+        resolveManifest: (theme: unknown = null) =>
+          theme === null || theme === undefined
+            ? resolveInTourOpsManifestFromTheme(null)
+            : resolveInTourOpsManifestFromTheme(theme),
       }),
       wizardCreate: deepFreeze({
         extendedChrome: true as const,

@@ -24,13 +24,8 @@ import {
   TourWorkspaceChromeProvider,
   useTourWorkspaceChrome,
 } from "@/features/tours/tour-workspace-chrome-context";
-import {
-  buildTourWorkspaceBookingsHref,
-  buildTourWorkspaceFinanceHref,
-  buildTourWorkspaceOpsCountsQuery,
-  resolveTourWorkspaceOpsCountsFromListPayloads,
-  type TourWorkspaceOpsCounts,
-} from "@/features/tours/tour-workspace-header-logic";
+import { buildTourWorkspaceOpsCountsQuery, resolveTourWorkspaceOpsCountsFromListPayloads, type TourWorkspaceOpsCounts } from "@/features/tours/tour-workspace-header-logic";
+import { resolveTourWorkspaceLifecyclePhase } from "@/features/tours/tour-workspace-lifecycle-phase";
 import {
   listTourWorkspaceSubnavTabs,
   resolveWorkspaceSubnavTab,
@@ -46,6 +41,8 @@ import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 
 import { TourStatusBadge } from "../../tour-status-badge";
 
+import type { InTourOpsPanels } from "@/features/tours/in-tour-ops-enablement";
+
 import { TourWorkspaceTabPanels } from "./tour-workspace-tab-panels";
 
 type TourWorkspaceLayoutClientProps = {
@@ -54,6 +51,9 @@ type TourWorkspaceLayoutClientProps = {
   readonly opsActions: BookingsOpsActionChrome;
   /** TW-C-05 — resolved on RSC layout via ensureFinanceNavSupported (not client plugin load). */
   readonly includeFinance: boolean;
+  /** ITO-001 — operations tab when workspace exposes inTourOps capability. */
+  readonly includeOperations: boolean;
+  readonly inTourOpsPanels: InTourOpsPanels;
 };
 
 function TourWorkspaceLayoutInner({
@@ -61,6 +61,8 @@ function TourWorkspaceLayoutInner({
   tourId,
   opsActions,
   includeFinance,
+  includeOperations,
+  inTourOpsPanels,
 }: TourWorkspaceLayoutClientProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.workspace");
@@ -151,28 +153,41 @@ function TourWorkspaceLayoutInner({
   }, [tourId, reloadNonce]);
 
   const subnavTabs = useMemo(
-    () => listTourWorkspaceSubnavTabs({ includeFinance }),
-    [includeFinance]
+    () => listTourWorkspaceSubnavTabs({ includeFinance, includeOperations }),
+    [includeFinance, includeOperations],
   );
 
   const financeEnabled = includeFinance;
-  const visibleActiveTab = activeTab === "finance" && !financeEnabled ? "registrations" : activeTab;
+  const operationsEnabled = includeOperations;
+  const visibleActiveTab =
+    activeTab === "finance" && !financeEnabled
+      ? "registrations"
+      : activeTab === "operations" && !operationsEnabled
+        ? "registrations"
+        : activeTab;
 
   useEffect(() => {
     if (activeTab === "finance" && !financeEnabled && navigateWorkspaceTab !== null) {
       navigateWorkspaceTab("registrations");
     }
-  }, [activeTab, financeEnabled, navigateWorkspaceTab]);
+    if (activeTab === "operations" && !operationsEnabled && navigateWorkspaceTab !== null) {
+      navigateWorkspaceTab("registrations");
+    }
+  }, [activeTab, financeEnabled, operationsEnabled, navigateWorkspaceTab]);
 
   const tabBadgeCounts = useMemo(() => {
     const map: Partial<Record<(typeof subnavTabs)[number]["tab"], number>> = {};
     if (opsCounts !== null) {
       map.registrations = opsCounts.pending;
       map.waitlist = opsCounts.waitlisted;
-      map.transport = opsCounts.approved;
     }
     return map;
-  }, [opsCounts, subnavTabs]);
+  }, [opsCounts]);
+
+  const pendingCount = opsCounts?.pending ?? 0;
+  const showPendingPrimary = canManage && pendingCount > 0;
+  const lifecyclePhase =
+    detail !== null ? resolveTourWorkspaceLifecyclePhase(detail.projection) : null;
 
   const localizedError = resolveTourErrorMessage(tErrors, error);
   const opsErrorLocalized = resolveTourErrorMessage(tErrors, opsCountsError);
@@ -217,29 +232,28 @@ function TourWorkspaceLayoutInner({
                   {tNav("editTour")}
                 </TourInternalLink>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <TourInternalLink
-                  href={buildTourWorkspaceBookingsHref(tourId)}
-                  data-testid={TOUR_WORKSPACE_TEST_IDS.openBookings}
-                >
-                  {t("openCommandCenter")}
-                </TourInternalLink>
-              </DropdownMenuItem>
-              {includeFinance ? (
-                <DropdownMenuItem asChild>
-                  <TourInternalLink
-                    href={buildTourWorkspaceFinanceHref(tourId)}
-                    data-testid={TOUR_WORKSPACE_TEST_IDS.openFinance}
-                  >
-                    {t("openFinance")}
-                  </TourInternalLink>
-                </DropdownMenuItem>
-              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {showPendingPrimary ? (
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              className="shrink-0"
+              data-testid={TOUR_WORKSPACE_TEST_IDS.reviewPendingPrimary}
+              onClick={() => navigateWorkspaceTab?.("registrations")}
+            >
+              {t("reviewPending", { count: pendingCount })}
+            </Button>
+          ) : null}
           {canManage ? (
-            <Button asChild variant="default" size="sm" className="shrink-0">
+            <Button
+              asChild
+              variant={showPendingPrimary ? "outline" : "default"}
+              size="sm"
+              className="shrink-0"
+            >
               <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/register`}>
                 {tNav("registerGuest")}
               </TourInternalLink>
@@ -264,6 +278,14 @@ function TourWorkspaceLayoutInner({
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <TourStatusBadge status={detail.projection.uiStatus} />
+                  {lifecyclePhase !== null ? (
+                    <OperatorStatusBadge
+                      variant="secondary"
+                      data-testid={TOUR_WORKSPACE_TEST_IDS.lifecyclePhase}
+                    >
+                      {t(`lifecyclePhase.${lifecyclePhase}`)}
+                    </OperatorStatusBadge>
+                  ) : null}
                   <span className="text-sm font-medium text-muted-foreground">{t("title")}</span>
                 </div>
                 <CardTitle className="text-xl leading-tight sm:text-2xl">
@@ -355,6 +377,7 @@ function TourWorkspaceLayoutInner({
         tourId={tourId}
         opsActions={opsActions}
         includeFinance={financeEnabled}
+        inTourOpsPanels={inTourOpsPanels}
         detail={detail}
       />
     </div>

@@ -64,6 +64,11 @@ test("WALLET-NOTIF-01 operator credit surfaces wallet notification in portal bel
       })
       .toBeGreaterThan(beforeCount);
 
+    const afterCreditRes = await memberPage.request.get("/api/me/notifications/unread-count");
+    expect(afterCreditRes.ok()).toBeTruthy();
+    const afterCreditBody = (await afterCreditRes.json()) as { count?: number };
+    const afterCreditCount = afterCreditBody.count ?? 0;
+
     await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
     await expect(
       memberPage.locator(
@@ -75,6 +80,80 @@ test("WALLET-NOTIF-01 operator credit surfaces wallet notification in portal bel
         "[data-portal-member-notification-item][data-portal-member-notification-source='wallet']",
       ).first(),
     ).toBeVisible({ timeout: 60_000 });
+
+    const walletItem = memberPage
+      .locator(
+        "[data-portal-member-notification-item][data-portal-member-notification-source='wallet'][data-portal-member-notification-unread='true']",
+      )
+      .first();
+    await expect(walletItem).toBeVisible({ timeout: 60_000 });
+    await walletItem.locator("a").click();
+    await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      memberPage.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await expect(
+      memberPage
+        .locator(
+          "[data-portal-member-notification-item][data-portal-member-notification-source='wallet'][data-portal-member-notification-unread='false']",
+        )
+        .first(),
+    ).toBeVisible({ timeout: 30_000 });
+
+    await memberPage.reload({ waitUntil: "domcontentloaded" });
+    await expect(
+      memberPage.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await expect(
+      memberPage.locator(
+        "[data-portal-member-notification-item][data-portal-member-notification-source='wallet'][data-portal-member-notification-unread='false']",
+      ).first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    const unreadAfterRead = await memberPage.request.get("/api/me/notifications/unread-count");
+    expect(unreadAfterRead.ok()).toBeTruthy();
+    const unreadAfterBody = (await unreadAfterRead.json()) as { count?: number };
+    expect(unreadAfterBody.count ?? 0).toBe(afterCreditCount - 1);
+
+    await memberPage.goto("/?locale=en", { waitUntil: "domcontentloaded" });
+    await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      memberPage.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await memberPage.screenshot({
+      path: "/opt/cursor/artifacts/shared-notification-wallet-read-desktop-en.png",
+      fullPage: true,
+    });
+
+    await memberPage.setViewportSize({ width: 390, height: 844 });
+    await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      memberPage.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await memberPage.screenshot({
+      path: "/opt/cursor/artifacts/shared-notification-wallet-read-mobile-en.png",
+      fullPage: true,
+    });
+
+    await memberPage.goto("/?locale=fa", { waitUntil: "domcontentloaded" });
+    await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(
+      memberPage.locator(
+        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+      ),
+    ).toBeVisible({ timeout: 90_000 });
+    await memberPage.screenshot({
+      path: "/opt/cursor/artifacts/shared-notification-wallet-read-mobile-fa-rtl.png",
+      fullPage: true,
+    });
 
     const engagementAfter = await memberPage.request.get("/api/me/engagement/summary");
     expect(engagementAfter.ok()).toBeTruthy();

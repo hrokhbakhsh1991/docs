@@ -11,7 +11,7 @@ description: >
 disable-model-invocation: true
 ---
 
-# Feature Delivery (FDA-001 v1.2)
+# Feature Delivery (FDA-001 v1.5)
 
 Orchestrate end-to-end feature work on a **locked branch** with mandatory discovery, design, architecture gates, evidence ledger, queued execution, and stop conditions. Feature-agnostic — ticketing is a regression example only.
 
@@ -21,11 +21,16 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 
 | Topic                           | Path                                                                                                                        |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Research, design, UI/UX, queue  | [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../../docs/dev/feature-delivery/research-and-design-gate.mdoc) |
+| Staged design (D0–D7)           | [`docs/dev/feature-delivery/staged-design-workflow.mdoc`](../../../docs/dev/feature-delivery/staged-design-workflow.mdoc) |
+| Adversarial bug hunt (B1–B8)    | [`docs/dev/feature-delivery/adversarial-bug-hunt.mdoc`](../../../docs/dev/feature-delivery/adversarial-bug-hunt.mdoc) |
+| Research, design, UI/UX detail  | [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../../docs/dev/feature-delivery/research-and-design-gate.mdoc) |
 | Architecture classifier         | [`docs/dev/feature-delivery/architecture-classifier.mdoc`](../../../docs/dev/feature-delivery/architecture-classifier.mdoc) |
 | Evidence ledger                 | [`docs/dev/feature-delivery/evidence-ledger-schema.mdoc`](../../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc)   |
 | Stop conditions                 | [`docs/dev/feature-delivery/stop-conditions.mdoc`](../../../docs/dev/feature-delivery/stop-conditions.mdoc)                 |
 | Blocker recovery                | [`docs/dev/feature-delivery/blocker-recovery.mdoc`](../../../docs/dev/feature-delivery/blocker-recovery.mdoc)               |
+| Completion rules (verdict gating) | [`docs/dev/feature-delivery/completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc)               |
+| Completion regression fixture   | [`docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc`](../../../docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc) |
+| Branch + data preservation      | [`docs/dev/feature-delivery/branch-and-data-preservation.mdoc`](../../../docs/dev/feature-delivery/branch-and-data-preservation.mdoc) |
 | Notification regression fixture | [`docs/dev/feature-delivery/notification-case-study.mdoc`](../../../docs/dev/feature-delivery/notification-case-study.mdoc) |
 | UI UX Pro Max (advisory)        | [`.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md`](../../ui-ux-pro-max/FDA-INTEGRATION.md)                               |
 | Browser quality closure         | [`.cursor/skills/browser-quality-closure/SKILL.md`](../browser-quality-closure/SKILL.md)                                    |
@@ -42,9 +47,14 @@ Orchestrate end-to-end feature work on a **locked branch** with mandatory discov
 
 ---
 
-## Session lock (every checkpoint)
+## Session lock and branch protocol (every checkpoint)
 
-Record at CP0 and verify before every checkpoint:
+**Canonical:** [branch-and-data-preservation.mdoc](../../../docs/dev/feature-delivery/branch-and-data-preservation.mdoc)
+
+At **D0** (before any git mutation):
+
+1. Write `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` — branch, HEAD, upstream, ahead/behind, staged/unstaged/untracked, unrelated WIP, `authorizedBranchTransitions: []`.
+2. Write or update `SESSION.lock` with matching `lockedBranch` and `initialHead`.
 
 | Field          | Rule                                                                                |
 | -------------- | ----------------------------------------------------------------------------------- |
@@ -53,125 +63,88 @@ Record at CP0 and verify before every checkpoint:
 | `currentHead`  | May advance after authorized commits on `lockedBranch` — **not a branch violation** |
 | `scopePaths`   | Glob allowlist from approved plan — amend only with user/architect approval         |
 
-**Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `worktree`, or force-push.
+**Hard-stop** if `git branch --show-current` ≠ `lockedBranch` ([SC-GIT-01](stop-conditions)). Never `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `restore`, `stash`, `worktree`, or force-push unless current task explicitly authorizes that exact operation ([SC-GIT-05](stop-conditions)–[SC-GIT-06](stop-conditions)).
+
+**Before every commit** — emit `BRANCH_CHECKPOINT_PRE_COMMIT` (branch, head, staged, unrelated WIP, upstream).
+
+**Before every push** — emit `BRANCH_CHECKPOINT_PRE_PUSH` (branch, head, remote, ahead/behind, unrelated WIP).
+
+**Feature branch creation** — only with user contract: exact name, source branch/SHA, creation intent ([SC-GIT-07](stop-conditions)). Post-create verification mandatory ([SC-GIT-08](stop-conditions)).
+
+**Parallel agents** — same local workspace + branch risk → `SHARED_WORKSPACE_BRANCH_RISK` ([SC-WORKSPACE-01](stop-conditions)).
+
+**Committed data safety** — inspect read-only (`git log --all`, `branch --contains`, `reflog`, `fsck`) before claiming commits lost ([SC-DATA-05](stop-conditions)).
 
 Never compare `currentHead` to `initialHead` as an error when commits were authorized on the locked branch.
 
+Never auto-stash, restore, clean, or reset WIP — stop and report.
+
 ---
 
-## Lifecycle (CP0–CP7)
+## Lifecycle — staged design (D0–D7)
 
-### CP0 — Repository and requirement discovery
+**Do not code after a basic plan.** Complete mandatory D-stages for session tier first — [staged-design-workflow](staged-design-workflow).
 
-**Before any file edit.**
+| Stage | Artifact | Gate |
+| ----- | -------- | ---- |
+| **D0** | `baseline.json` | Branch, HEAD, WIP, scripts, DB, browser, tests |
+| **D1** | `requirements-matrix.json` | Actors, goals, states, exclusions, risk |
+| **D2** | `consumer-and-boundary-map.json` | Routes→DB trace; ≥2 consumers if shared |
+| **D3** | `data-contract-map.json` | Before DB/contract/outbox (Tier B/C) |
+| **D4** | `architecture-review.json` | architecture-reviewer when triggers apply |
+| **D5** | `ui-ux-decision.json` | Before user-visible code; UI UX Pro Max advisory |
+| **D6** | `test-plan-and-realness.json` | Test design + classify existing tests |
+| **D7** | `failure-mode-analysis.json` | Mandatory finance/identity/permission/notification/tenant |
 
-1. Confirm repository root; record `lockedBranch` and `initialHead`.
-2. Inspect working-tree status; undeclared WIP outside scope → hard-stop until acknowledged ([SC-GIT-04](stop-conditions)).
-3. **Deep discovery** per [research-and-design-gate](research-and-design-gate) §1 — AGENTS.md, pnpm graph, routes, BFFs, ports, outbox, Prisma/RLS, adjacent modules, tests, manifests, docs, runtime when needed. Use repo evidence only.
-4. Build **requirement inventory** — classify capabilities; record actor, states, evidence requirements ([research-and-design-gate](research-and-design-gate) §2).
-5. Derive `featureId` and `scopePaths`.
-6. Classify per [architecture-classifier](architecture-classifier); run **consumer investigation** (≥2 consumers when platform candidate).
-7. Invoke **architecture-reviewer** when: platform candidate, multi-consumer primitive, protected paths, or classifier `unknown`.
+### Workflow tiers
 
-**Artifacts:** `requirement-inventory.json`, `requirement-queue.json` (initial).
+| Tier | Scope | Mandatory D-stages |
+| ---- | ----- | ------------------ |
+| **A** | UI-only, no API/DB | D0, D1 light, D5, D6 UI-focused |
+| **B** | API/DB/BFF/migration | D0–D7 |
+| **C** | Platform, finance, notification, tenant | D0–D7 full + all B-passes |
 
-**CP0 output:** discovery evidence, requirement inventory, classification signals, consumers, scope allowlist, test plan, doc-first requirement, risks.
+Record `workflowTier` in `baseline.json`.
 
-### CP1 — Product, architecture, and UI/UX design gate
+### Implementation (after D-gates)
 
-**No source implementation until CP1 complete.**
+1. Implementation plan + vertical slice (smallest E2E)
+2. Per finding: reproduce → root cause → fix → regression test → rerun
+3. **No UI symptom fixes** when root cause is API/contract/persistence/auth
 
-1. **Product / IA analysis** — actors, journeys, existing surfaces (dashboard, account, operator workspace, tours/registrations, notification bell, profile/detail).
-2. **UI UX Pro Max advisory** (when available) — per [FDA-INTEGRATION](../ui-ux-pro-max/FDA-INTEGRATION.md); record search commands in ledger (`uiux.promax.*`). Set `uiUxProMaxUsed: false` when skill/Python unavailable — use fallback checklist.
-3. **Repository design-system review** — tokens, primitives, Denali/Urban/starter patterns (`design-system/`, phase-2 docs, semantic-color contract).
-4. Produce **`ui-ux-decision.json`** — 24 sections per [research-and-design-gate](research-and-design-gate) §3.3; tag each decision: `design-recommendation` \| `repository-convention` \| `product-requirement` \| `fact` \| `inference` \| `unresolved-decision`.
-5. Produce **design brief** per [research-and-design-gate](research-and-design-gate) §3.1 → `design-brief.json`.
-6. Invoke **architecture-reviewer** with requirement inventory + design brief + `ui-ux-decision.json`.
+### Adversarial bug-hunt (B1–B8)
 
-Perform **internet research** when design uncertainty warrants it ([research-and-design-gate](research-and-design-gate) §5) → `research.json`.
+After implementation — [adversarial-bug-hunt](adversarial-bug-hunt):
 
-**Do not implement** until `ui-ux-decision.json`, design brief, and reviewer verdict (when required) are recorded.
+| Pass | Focus |
+| ---- | ----- |
+| B1 | Static/structural |
+| B2 | Contracts |
+| B3 | Persistence/RLS |
+| B4 | Integration/outbox |
+| B5 | Browser/UI/UX (BQC) |
+| B6 | Recovery/resilience |
+| B7 | Regression suites |
+| B8 | Independent second review |
 
-**Priority:** product requirements → repository tokens → workspace rules → accessibility/RTL/LTR → UI UX Pro Max recommendations.
+Record `bug-hunt-matrix.json`, `bug-reproduction.json`.
 
-### CP2 — Implementation plan and consumer review
+### Verification, commit, report
 
-Produce implementation plan: task IDs, invariants, non-goals, files/packages, sequencing, risks/rollback, focused tests, evidence requirements.
+```bash
+pnpm run pre-commit:fast && pnpm run guard:import-boundary
+pnpm run test:changed   # when behavior changed
+```
 
-Re-run **future-consumer analysis** ([research-and-design-gate](research-and-design-gate) §4).
+Scope-guarded commit; final report lists **every D-stage, B-pass, queue item**; run `evaluate-fda-verdict.regression.mjs` before `FEATURE_COMPLETE*`.
 
-**architecture-reviewer** on plan + consumer scan before CP3.
-
-### CP3 — First vertical slice
-
-1. Implement **smallest end-to-end slice** (one happy path).
-2. Run focused validation.
-3. **architecture-reviewer** on **actual diff**.
-4. Re-run consumer analysis on slice shape.
-5. **Stop** if narrower/broader than approved architecture ([SC-ARCH-03](stop-conditions)).
-
-### CP4 — Pre-DB / shared-contract review
-
-**Mandatory before** database, Prisma, `workspace-sdk`, HTTP contract, outbox, inbox, notification, identity, permission, tenant-routing, or `platform-core` changes:
-
-1. Re-run consumer scan on proposed shape.
-2. WAC-001 workspace-agnostic boundary.
-3. Tenant/auth/RLS posture (FORCE RLS, no superuser proof).
-4. Idempotency / dedupe / `rowVersion`.
-5. **architecture-reviewer** verdict `proceed` or `proceed_with_accepted_risk`.
-6. Doc-first on protected paths.
-
-### CP5 — UI / browser integration review
-
-Per [research-and-design-gate](research-and-design-gate) §6:
-
-1. Confirm `ui-ux-decision.json` from CP1 still matches implementation.
-2. Portal vs Web ownership (PCMS-001).
-3. Denali / Urban / starter divergence.
-4. Existing UI placement before new routes/tabs.
-5. Design tokens, primitives, RTL/LTR, responsive, all states from CP1 brief.
-6. **BQC browser proof** — real interaction; canonical smoke scripts; traces on failure ([Playwright best practices](https://playwright.dev/docs/best-practices)).
-7. Screenshots desktop/mobile; accessibility when available.
-8. Never mark UI `ui-browser-verified` from curl/API/build alone.
-9. **architecture-reviewer** when shared notification/inbox or cross-surface contracts touched.
-10. **browser-quality-reviewer** when material browser claims are made.
-
-### CP6 — Verification and blocker recovery
-
-1. Run required tests for changed surfaces only.
-2. `test:changed` gaps → explicit package tests + ledger ([SC-VERIFY-03](stop-conditions)).
-3. Fast-track default:
-
-   ```bash
-   pnpm run pre-commit:fast && pnpm run guard:import-boundary
-   pnpm run test:changed   # when behavior changed
-   ```
-
-4. Heavy gates need explicit user **YES** ([SC-VERIFY-04](stop-conditions)).
-5. Ledger every command, exit code, artifact ([evidence-ledger-schema](evidence-ledger-schema)).
-6. **SKIP ≠ PASS.** Unverified rows stay open.
-7. On failure → [blocker-recovery](blocker-recovery) — up to 3 hypotheses before STOP.
-8. **Queued execution:** blocked sub-feature must not stop unrelated queue items.
-9. Update capability status per inventory — never claim complete for stub/route-only/admin-read-only.
-
-Postgres/RLS: `DATABASE_URL` with `app_tour` role (NOSUPERUSER).
-
-### CP7 — Scope-guarded commit/push and final report
-
-1. Scope guard — only `scopePaths` staged ([SC-SCOPE-01](stop-conditions)).
-2. Branch still `lockedBranch`.
-3. Logical commits; no force-push.
-4. `git push origin <lockedBranch>`.
-5. Update `currentHead` after commits.
-6. **Final report** — every queue item status; ledger-backed claims only.
-
-**architecture-reviewer** on full diff before commit when platform candidates or multi-consumer primitives in scope.
+**Legacy CP0–CP7** maps to D/B stages — see [feature-delivery-agent.mdoc](../../../docs/dev/feature-delivery-agent.mdoc) §3.3.
 
 ---
 
 ## Mandatory architecture re-evaluation
 
-At **CP0**, **CP1**, **after CP3 slice**, **before CP4 shared boundaries**, **CP5 UI**, and **CP7 commit**:
+At **D2**, **D4**, **after vertical slice**, **B8**, and **before commit**:
 
 1. Reusable by another module/workspace?
 2. Inspect future consumers (not only requesting module).
@@ -218,7 +191,7 @@ Per [blocker-recovery.mdoc](../../../docs/dev/feature-delivery/blocker-recovery.
 3. Categories: code, test, dependency, environment, browser/runtime, architecture, security/product (hard stop).
 4. **Blocked sub-feature** must not stop unrelated queue items.
 5. After **3 failed hypotheses** or architecture/security/product issue → STOP with evidence and options.
-6. **Never** `COMPLETE` while mandatory rows `MISSING`, `PARTIAL`, `BLOCKED`, `SKIPPED`, or `UNVERIFIED`.
+6. **Never** `FEATURE_COMPLETE` while mandatory rows carry blocking statuses per [completion-rules](completion-rules.mdoc) §2.
 
 **Artifacts:** `blocker-investigation.json`, `research.json` (when external), `requirement-queue.json`.
 
@@ -226,7 +199,7 @@ Per [blocker-recovery.mdoc](../../../docs/dev/feature-delivery/blocker-recovery.
 
 ## Autonomy
 
-After **CP1 design + plan approval**, agent may execute CP2–CP7 without micro-prompts, subject to gates.
+After **D-stages + plan approval** for tier, agent may execute implementation and B-passes without micro-prompts.
 
 **Always stop for:** unresolved architecture, shared contracts, product scope change, migration rewrite, security/RLS ambiguity, branch mismatch, scope creep, missing evidence, staging/production without unlock.
 
@@ -247,9 +220,17 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 | Artifact | Path |
 | -------- | ---- |
 | Session lock | `.cache/feature-delivery/<sessionId>/SESSION.lock` |
+| Branch checkpoint | `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` |
 | Ledger TSV | `.cache/feature-delivery/<sessionId>/evidence.tsv` |
 | Arch review | `.cache/feature-delivery/<sessionId>/arch-review.json` |
-| Requirement inventory | `.cache/feature-delivery/<sessionId>/requirement-inventory.json` |
+| Baseline | `.cache/feature-delivery/<sessionId>/baseline.json` |
+| Requirements matrix | `.cache/feature-delivery/<sessionId>/requirements-matrix.json` |
+| Consumer map | `.cache/feature-delivery/<sessionId>/consumer-and-boundary-map.json` |
+| Data contract | `.cache/feature-delivery/<sessionId>/data-contract-map.json` |
+| Test plan / realness | `.cache/feature-delivery/<sessionId>/test-plan-and-realness.json` |
+| Failure modes | `.cache/feature-delivery/<sessionId>/failure-mode-analysis.json` |
+| Bug hunt matrix | `.cache/feature-delivery/<sessionId>/bug-hunt-matrix.json` |
+| Bug reproduction | `.cache/feature-delivery/<sessionId>/bug-reproduction.json` |
 | Design brief | `.cache/feature-delivery/<sessionId>/design-brief.json` |
 | UI/UX decision | `.cache/feature-delivery/<sessionId>/ui-ux-decision.json` |
 | Research | `.cache/feature-delivery/<sessionId>/research.json` |
@@ -262,32 +243,34 @@ Per [evidence-ledger-schema](evidence-ledger-schema):
 
 ## Full closure (mandatory work queue)
 
-**Audit completion ≠ feature completion.**
+**Canonical rules:** [`completion-rules.mdoc`](../../../docs/dev/feature-delivery/completion-rules.mdoc) (FDA-001 v1.4)
+
+Verdicts: `FEATURE_COMPLETE` \| `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` \| `FEATURE_INCOMPLETE` \| `FEATURE_BLOCKED`
 
 | Rule | Behavior |
 | ---- | -------- |
-| Mandatory rows | `MISSING` / `PARTIAL` / `BLOCKED` / `UNVERIFIED` blocks `COMPLETE` |
-| SKIP | Never PASS or COMPLETE |
-| Stub/route-only | Never complete capability |
-| Admin read-only catalog | Not admin-complete without mutation path |
-| Browser | curl/API/build ≠ browser-verified |
-| Queue | Process independent items when one blocked |
-| Final report | Lists every queue item; forbidden while rows open |
+| Blocking statuses | `broken`, `missing`, `partial`, `skipped`, `unverified`, `browser-unverified`, `producer-missing`, `data-durability-unverified`, `rls-unverified`, `security-unverified` |
+| Accepted risks | Explicit approval only; never security/RLS/tenant/durability/mandatory producers |
+| Skipped B-pass | Stays `unverified`; blocks `FEATURE_COMPLETE` |
+| Regression fixture | `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` |
 
 ---
 
 ## Final report template
 
-1. Branch, `initialHead`, `currentHead`, working tree
-2. Requirement queue — every item and status
-3. Classification and architecture-reviewer verdict(s)
-4. Files changed (within `scopePaths`)
-5. Test/guard matrix; capability status table; **UI evidence status** (`ui-designed` … `ui-unverified`)
-6. Artifacts (screenshots, research URLs, design brief ref)
-7. Remaining / accepted risks
-8. Commit SHAs and push result
-9. `Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
+1. Branch, `initialHead`, `currentHead`, working tree, preserved WIP, remote parity — [branch-and-data-preservation](branch-and-data-preservation) §11
+2. `workflowTier`; design stages completed (D0–D7)
+3. Bug-hunt passes completed (B1–B8)
+4. Requirement queue — every item and status
+5. Bugs found/reproduced/root causes/fixes/regression tests
+6. Classification and architecture-reviewer verdict(s)
+7. Files changed (within `scopePaths`)
+8. Test/guard matrix; UI/UX findings; browser evidence
+9. Skipped/unverified items; accepted risks with explicit approval
+10. Verdict: `FEATURE_*` (evaluator-backed)
+11. Commit SHAs and push result; authorized branch transitions
+12. `Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
 
 ---
 
-_FDA-001 v1.2 — deep discovery, design gate, research, UI/UX review, queued execution, bounded blocker recovery._
+_FDA-001 v1.5 — branch checkpoint + data preservation, staged design D0–D7, adversarial B1–B8, tiered depth, completion gating._

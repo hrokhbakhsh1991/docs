@@ -3,25 +3,33 @@ description: Non-negotiable safety and architecture rules for Feature Delivery s
 alwaysApply: true
 ---
 
-# Feature Delivery — session safety (FDA-001 v1.2)
+# Feature Delivery — session safety (FDA-001 v1.5)
 
-Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/skills/feature-delivery/SKILL.md`](../skills/feature-delivery/SKILL.md). Charter: [`docs/dev/feature-delivery-agent.mdoc`](../../docs/dev/feature-delivery-agent.mdoc). Design/research: [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
+Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/skills/feature-delivery/SKILL.md`](../skills/feature-delivery/SKILL.md). Charter: [`docs/dev/feature-delivery-agent.mdoc`](../../docs/dev/feature-delivery-agent.mdoc). Branch protocol: [`docs/dev/feature-delivery/branch-and-data-preservation.mdoc`](../../docs/dev/feature-delivery/branch-and-data-preservation.mdoc). Design/research: [`docs/dev/feature-delivery/research-and-design-gate.mdoc`](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
 
-## Git and session
+## Git, branch, and WIP (mandatory)
 
-- **Never** change branch or create a worktree during a Feature Delivery session.
-- Lock the **actual** starting branch as `lockedBranch`; verify `git branch --show-current` at every checkpoint.
+- **Never** change branch, create a worktree, or run forbidden git ops during a Feature Delivery session unless the **current user task** explicitly authorizes that **exact** operation.
+- At **D0**: write `.cache/feature-delivery/<sessionId>/branch-checkpoint.json` — see branch-and-data-preservation §1.
+- Lock the **actual** starting branch as `lockedBranch`; verify `git branch --show-current` at every checkpoint ([SC-GIT-01](stop-conditions)).
 - `initialHead` is baseline evidence only; `currentHead` may advance after authorized commits on `lockedBranch`.
-- **Never** modify or revert unrelated user changes. Wrong direction → STOP report + pivot memo, not auto-revert.
-- Forbidden: `merge`, `rebase`, `reset --hard`, `clean`, force-push (unless user explicitly unlocks outside FDA).
+- **Never** modify, revert, stash, restore, clean, or reset unrelated user WIP. Wrong direction → STOP report + pivot memo, not auto-revert.
+- Forbidden without unlock: `checkout`, `switch`, `merge`, `rebase`, `reset`, `clean`, `restore`, `stash`, force-push ([SC-GIT-05](stop-conditions)–[SC-GIT-06](stop-conditions)).
+- Feature branch creation requires explicit user contract: exact name, source branch/SHA, creation intent ([SC-GIT-07](stop-conditions)).
+- Before **every** commit: emit `BRANCH_CHECKPOINT_PRE_COMMIT`. Before **every** push: emit `BRANCH_CHECKPOINT_PRE_PUSH` — branch-and-data-preservation §7.
+- Parallel Cursor chats on same local workspace → **SHARED_WORKSPACE_BRANCH_RISK** ([SC-WORKSPACE-01](stop-conditions)).
+- Committed data not visible on current branch is **not** lost — read-only `git log --all`, `branch --contains`, `reflog`, `fsck` before claiming deletion ([SC-DATA-05](stop-conditions)).
+- Prefer **hard-stop + clear report** over continuing on uncertain branch.
 
-## Discovery and design (CP0–CP1)
+## Discovery and design (D0–D7)
 
-- **No source implementation** before CP1 design brief is recorded per [research-and-design-gate.mdoc](../../docs/dev/feature-delivery/research-and-design-gate.mdoc).
-- CP0 **deep discovery** mandatory — repo instructions, pnpm graph, routes, BFFs, ports, outbox, Prisma/RLS, tests, manifests, docs. Use repository evidence only — never invent paths or commands.
-- **Requirement inventory** with capability status — stub/route/seed/read-only catalog ≠ complete feature.
-- Admin feature incomplete without authorized mutation path, permission checks, validation, audit, browser proof when applicable.
+- **No source implementation** before mandatory D-stages for session tier — [staged-design-workflow.mdoc](../../docs/dev/feature-delivery/staged-design-workflow.mdoc).
+- **Do not code after a basic plan** — complete D0–D7 (tier-dependent) first.
+- D0 baseline + branch checkpoint → D1 requirements matrix → D2 consumer map → D3 data contract → D4 architecture → D5 UI/UX → D6 test realness → D7 failure modes.
+- **Workflow tiers:** A UI-only reduced; B API/DB full; C platform/finance/notification/tenant deepest.
+- CP1 legacy = D5 + D1; doc-first on protected paths unchanged.
 - **pnpm workspace only** — never NX or `nx affected`.
+- Stub/route/seed/read-only catalog ≠ complete feature.
 
 ## Planning and scope
 
@@ -47,6 +55,15 @@ Non-negotiable rules during Feature Delivery sessions. Full workflow: [`.cursor/
 - **UI/UX gate (CP5) + BQC:** inspect existing placement; real browser proof; RTL/LTR; all states; screenshots/traces; [Playwright best practices](https://playwright.dev/docs/best-practices).
 - curl/API/build **never** equals `ui-browser-verified`. Unavailable browser → `ui-unverified` or `ui-accepted-risk`, not PASS.
 
+## Adversarial bug-hunt (B1–B8)
+
+After implementation — [adversarial-bug-hunt.mdoc](../../docs/dev/feature-delivery/adversarial-bug-hunt.mdoc):
+
+- B1 static → B2 contract → B3 RLS → B4 integration → B5 browser (BQC) → B6 resilience → B7 regression → B8 independent second review.
+- Per finding: reproduce → root cause → smallest fix → regression test → rerun → re-check relevant D-stage.
+- **Forbidden:** UI symptom fix when root cause is API/contract/persistence/auth.
+- Skipped B-pass for tier → `unverified`; blocks `FEATURE_COMPLETE`.
+
 ## Verification and evidence
 
 - **No claim without ledger evidence** — [`evidence-ledger-schema.mdoc`](../../docs/dev/feature-delivery/evidence-ledger-schema.mdoc).
@@ -67,10 +84,14 @@ Per [`blocker-recovery.mdoc`](../../docs/dev/feature-delivery/blocker-recovery.m
 
 ## Full closure
 
-- Audit completion ≠ feature completion.
-- Process queue; blocked items must not stop unrelated work.
-- No `COMPLETE` while any mandatory row or queue item is `MISSING`, `PARTIAL`, `BLOCKED`, or `UNVERIFIED`.
-- Final report lists **every** queue item status.
+Canonical rules: [`completion-rules.mdoc`](../../docs/dev/feature-delivery/completion-rules.mdoc) (FDA-001 v1.5).
+
+Verdicts: `FEATURE_COMPLETE` \| `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` \| `FEATURE_INCOMPLETE` \| `FEATURE_BLOCKED`
+
+- Mandatory blocking statuses block `FEATURE_COMPLETE` — see completion-rules §2.
+- Never emit `FEATURE_COMPLETE` when mandatory row is broken, missing, partial, or unverified.
+- Accepted risks require explicit approval; never for security, RLS, tenant, durability, mandatory producers.
+- Run `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` before final verdict.
 
 ## Operations
 

@@ -3,10 +3,10 @@
  */
 import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
 import {
-  appendBookingOutboxEventIfAbsent,
   runSerialBookingMutation,
   setBookingPaymentDueAtProjection,
 } from "../bookings/in-memory-bookings.repository.ts";
+import { persistBookingFinanceOutboxEventIfAbsent } from "../outbox/persist-booking-finance-outbox-event.ts";
 import { promoteOldestWaitlistedGuest } from "../bookings/promote-waitlist-after-seat-release.ts";
 import { isPaymentHoldEnabled, PaymentHoldService } from "./payment-hold.service.ts";
 
@@ -58,7 +58,7 @@ async function expirePaymentHoldForRegistrationImpl(input: {
     paymentDueAt: null,
   });
 
-  appendBookingOutboxEventIfAbsent({
+  await persistBookingFinanceOutboxEventIfAbsent({
     tenantId: input.tenantId,
     aggregateId: input.registrationId,
     eventType: "payment.hold.expired",

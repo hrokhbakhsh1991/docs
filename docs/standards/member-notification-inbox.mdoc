@@ -9,6 +9,7 @@ extends:
   - docs/phase-saas-kernel/appendices/SK2_NOTIFICATION_OUTBOX.md
   - docs/phase-saas-kernel/appendices/SK2_D_MEMBER_INBOX.md
   - docs/standards/workspace-api-capabilities.mdoc
+  - docs/standards/shared-domain-event-contract.mdoc
 mandatory_for:
   - apps/api/src/notifications
   - apps/portal/src/me/notifications
@@ -79,6 +80,14 @@ code_sot:
 
 Async email/SMS channel retries keyed to `member_notifications`. Same retry semantics as legacy `ticket_notification_deliveries`.
 
+| `status` (DB) | Delivery semantic |
+| ------------- | ----------------- |
+| `pending` | queued |
+| `delivered` | sent |
+| `failed` | failed (non-retryable or exhausted) |
+
+**SMS:** `SmsNotificationAdapter` port in `apps/api/src/notifications/sms-notification.adapter.ts`. Default `SMS_ENABLED=false` — no credentials, no fake delivery; rows mark `failed` when disabled.
+
 ---
 
 ## 4. HTTP API
@@ -100,7 +109,9 @@ Async email/SMS channel retries keyed to `member_notifications`. Same retry sema
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------------- |
 | Ticketing    | `dispatch-ticket-notification-from-outbox.ts`                                                                                                                   | `ticketing`     | `ticket`       |
 | Booking/tour | `dispatch-member-notification-from-outbox.ts`                                                                                                                   | `booking`       | `registration` |
-| Payment/debt | same dispatcher (finance events)                                                                                                                                | `finance`       | `payment`      |
+| Payment/debt | same dispatcher (finance events incl. `payment.confirmed` via `finance.ledger.double_entry_applied`)                                                            | `finance`       | `payment`      |
+| Tour schedule | `dispatch-tour-schedule-notification-from-outbox.ts` fans out to **approved registrations** on the tour when relay processes `tour.mutation.notification_required` (canonical `tour.schedule.changed`) | `booking`       | `registration` |
+| Attendance   | same dispatcher (`attendance.marked` canonical; alias `attendance.verified` when producer ships)                                                                | `booking`       | `registration` |
 | Wallet       | `dispatch-wallet-notification-from-outbox.ts` + `PrismaWalletRepository.persistMutation` outbox enqueue (`wallet.transaction.posted`, `wallet.refund.credited`) | `wallet`        | `wallet_event` |
 | Engagement   | `process-engagement-awards.ts` (`notifyBadgeEarned` → `insertMemberNotificationRow`)                                                                            | `engagement`    | `engagement_event` |
 
@@ -118,10 +129,11 @@ All dispatchers call `insertMemberNotificationRow` in `member-notification.repos
 
 ## 7. Testing requirements
 
-| Suite                                   | Proves                                                                                                                                                                 |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `member-notifications.postgres.spec.ts` | RLS, dedupe, cross-module list; **relay** proofs for booking (`registration.approved`), finance (`payment.hold.scheduled`), wallet (`operatorCredit` → outbox → inbox) |
-| `ticket-notifications.postgres.spec.ts` | Ticketing path regression + relay dedupe via shared table                                                                                                              |
+| Suite                                                          | Proves                                                                                                                                                                 |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `member-notifications.postgres.spec.ts`                        | RLS, dedupe, cross-module list; **relay** proofs for booking (`registration.approved`), finance (`payment.hold.scheduled`), wallet (`operatorCredit` → outbox → inbox) |
+| `member-notification-data-backed-journeys.postgres.spec.ts`    | **Data-backed closure:** real HTTP/domain ops → outbox → relay → `member_notifications` → mark-read for ticket, registration, payment, wallet, engagement, tour schedule |
+| `ticket-notifications.postgres.spec.ts`                        | Ticketing path regression + relay dedupe via shared table                                                                                                                |
 | Portal E2E                              | Bell + list after operator reply                                                                                                                                       |
 | Axe specs                               | No serious/critical violations (scoped ticketing regions; executed 2026-09-04 adversarial pass)                                                                        |
 

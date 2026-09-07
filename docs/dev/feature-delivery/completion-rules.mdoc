@@ -1,0 +1,165 @@
+---
+title: Feature Delivery — Completion Rules
+format: markdoc
+doc_role: agent_charter
+standard_id: FDA-001
+version: 1.4.0
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/staged-design-workflow.mdoc
+  - docs/dev/feature-delivery/adversarial-bug-hunt.mdoc
+  - docs/dev/feature-delivery/blocker-recovery.mdoc
+  - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
+mandatory_for:
+  - .cursor/skills/feature-delivery
+  - .cursor/skills/browser-quality-closure
+  - .cursor/rules/feature-delivery.mdc
+code_sot:
+  - .cursor/skills/feature-delivery/evaluate-fda-verdict.mjs
+  - docs/dev/feature-delivery/completion-rules-regression-fixture.mdoc
+---
+
+# Feature Delivery — Completion Rules (FDA-001 §7)
+
+**Purpose:** Define **mandatory verdict gating** for Feature Delivery and Browser Quality Closure final reports. Audit completion ≠ feature completion. Agents may continue independent queue work after a blocker, but the **final verdict must remain incomplete** until every mandatory capability row is closed.
+
+**Executable SoT:** [`.cursor/skills/feature-delivery/evaluate-fda-verdict.mjs`](../../.cursor/skills/feature-delivery/evaluate-fda-verdict.mjs)
+
+**Regression fixture:** [completion-rules-regression-fixture](completion-rules-regression-fixture.mdoc)
+
+---
+
+## 1. Verdict vocabulary
+
+**Canonical verdicts (use in final reports):**
+
+| Verdict | When allowed |
+| ------- | ------------ |
+| `FEATURE_COMPLETE` | Every **mandatory** row closed; required D-stages and B-passes for tier; ledger-backed proof |
+| `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` | §3 conditions + explicit architect approval per open optional item |
+| `FEATURE_INCOMPLETE` | Mandatory row open, broken, missing, partial, or unverified; skipped adversarial pass |
+| `FEATURE_BLOCKED` | Hard stop — security/RLS ambiguity, migration rewrite, unresolved product decision |
+
+**Legacy aliases** (`COMPLETE`, `SHARED_NOTIFICATION_AUDIT_*`, `INCOMPLETE`, `BLOCKED`) normalize to the same gates via [evaluate-fda-verdict.mjs](../../.cursor/skills/feature-delivery/evaluate-fda-verdict.mjs).
+
+**Never emit `FEATURE_COMPLETE`** when a mandatory row is `broken`, `missing`, `partial`, or `unverified`.
+
+---
+
+## 2. Blocking capability statuses (mandatory rows)
+
+A **mandatory** capability with **any** of these statuses **blocks `FEATURE_COMPLETE`**:
+
+| Status | Meaning |
+| ------ | ------- |
+| `broken` | Known defect on a required path |
+| `missing` | Required capability or producer absent |
+| `partial` | Happy path only; mandatory edge/state missing |
+| `skipped` | Required check or journey deliberately not run |
+| `unverified` | No ledger-backed proof for a mandatory claim |
+| `browser-unverified` | UI feature without required browser proof |
+| `producer-missing` | Mandatory domain event producer not wired |
+| `data-durability-unverified` | Persistence/outbox not proven on Postgres with app role |
+| `rls-unverified` | Tenant isolation or FORCE RLS proof missing |
+| `security-unverified` | Authorization or sensitive-data exposure not proven |
+
+Legacy spellings (`data durability unverified`, `rls/security unverified`) normalize to the same gate.
+
+**Also blocks `FEATURE_COMPLETE`:** `blocked`, `fixture-only`, `mocked`, `test-only` on mandatory rows.
+
+**Rule:** `SKIP ≠ PASS`. Skipped browser, a11y, Postgres, producer proof, or adversarial pass stays **`unverified`**.
+
+---
+
+## 3. `FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` — strict allowance
+
+Allowed **only** when **all** of the following hold:
+
+1. **Capability implemented and usable** — not stub, route-only, fixture-only, or read-only catalog masquerading as admin-complete.
+2. **Required tests executed and passing** — ledger rows for every mandatory test/guard in scope.
+3. **Required browser proof for UI features** — desktop/mobile and RTL/LTR when D5 requires them
+4. **Risk is optional, non-critical, or explicitly out of scope** — polish, deferred nice-to-have, non-mandatory journey.
+5. **Explicit approval record** containing:
+   - `riskId`
+   - `approvedBy`
+   - `decision`
+   - `release` or `scope`
+   - `expiry` or `followUp`
+6. **Never silently accepted** (hard deny for accepted-risk path):
+   - Security posture
+   - Tenant isolation
+   - RLS proof
+   - Data durability / outbox persistence
+   - Mandatory event producers
+
+If any mandatory row still carries a blocking status from §2, **`FEATURE_COMPLETE_WITH_EXPLICIT_ACCEPTED_RISKS` is forbidden** — known broken or missing mandatory capabilities **cannot** be auto-labeled accepted risk.
+
+---
+
+## 4. Mandatory downgrade rules
+
+| Condition | Required verdict |
+| --------- | ---------------- |
+| Known **BROKEN** mandatory outbox / durability path | `FEATURE_INCOMPLETE` or `FEATURE_BLOCKED` only |
+| **MISSING** mandatory event producer | `FEATURE_INCOMPLETE` only |
+| Skipped browser/a11y on mandatory UI | `browser-unverified` / `unverified`; blocks `FEATURE_COMPLETE` |
+| Skipped adversarial pass (B1–B8) | `unverified` for tier-required pass |
+
+---
+
+## 5. Queue behavior vs final verdict
+
+- **During session:** blocked sub-features must not stop unrelated queue items ([blocker-recovery](blocker-recovery.mdoc)).
+- **At final report:** emit honest `FEATURE_*` verdict even when partial progress landed
+- **Forbidden:** `FEATURE_COMPLETE` because unrelated tests pass or one journey is green
+
+---
+
+## 6. Accepted-risk approval schema (session artifact)
+
+Append to `.cache/feature-delivery/<sessionId>/accepted-risks.json`:
+
+```json
+{
+  "riskId": "B1-payment-hold-prisma",
+  "approvedBy": "architect@example.com",
+  "decision": "defer to finance durability PR",
+  "release": "vNext",
+  "expiry": "2026-10-01",
+  "followUp": "FIN-042",
+  "category": "optional-polish",
+  "mandatory": false
+}
+```
+
+**Invalid `category` values for accepted-risk (always hard deny):** `security`, `tenant-isolation`, `rls`, `data-durability`, `mandatory-event-producer`, `broken-mandatory-path`.
+
+---
+
+## 7. BQC alignment
+
+Browser Quality Closure inherits these rules ([browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md)).
+
+| BQC verdict | FDA mapping |
+| ----------- | ----------- |
+| `BROWSER_GAPS_CLOSED` | Parent `FEATURE_COMPLETE` only if all FDA mandatory rows + B-passes closed |
+| `BROWSER_GAPS_PARTIAL` | Parent feature **must not** be `COMPLETE` |
+| `BROWSER_AUDIT_ONLY` | Parent feature **must not** be `COMPLETE` |
+
+Critical journey rows in `MISSING`, `PARTIAL`, `FLAKY`, `UNVERIFIED`, or `browser-unverified` block parent `COMPLETE`.
+
+---
+
+## 8. Final report checklist
+
+Before emitting any `FEATURE_COMPLETE*` verdict:
+
+1. List **every** mandatory row, D-stage, and B-pass status
+2. Run evaluator: `node .cursor/skills/feature-delivery/evaluate-fda-verdict.regression.mjs` (CI/guard planned Phase C).
+3. Confirm no §2 blocking status on mandatory rows.
+4. If using accepted risks — attach approval records; confirm none violate §6.
+5. Separate **progress summary** from **verdict** — partial delivery is allowed; false completion is not.
+
+---
+
+_FDA-001 v1.4.0 — FEATURE_* verdicts, staged design + adversarial pass gating, regression fixture._

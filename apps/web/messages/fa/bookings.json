@@ -214,6 +214,16 @@
   "approveAwaitingPayment": "تأیید و منتظر پرداخت",
   "approveWithoutPayment": "تأیید بدون نیاز به پرداخت",
   "approveWithoutPaymentSuccess": "{guest} تأیید شد — نیازی به پرداخت ندارد.",
+  "markPresent": "حاضر",
+  "markAbsent": "غایب",
+  "markPresentActionAria": "ثبت حضور مهمان در روز تور",
+  "markAbsentActionAria": "ثبت غیبت مهمان در روز تور",
+  "markPresentSuccess": "{guest} به‌عنوان حاضر ثبت شد.",
+  "markAbsentSuccess": "{guest} به‌عنوان غایب ثبت شد.",
+  "attendance": {
+    "present": "حاضر",
+    "absent": "غایب"
+  },
   "nextStepReceiptHint": "گام بعد: عضو فیش واریز را بارگذاری می‌کند. بررسی فیش‌ها در مالی ← رسیدها.",
   "nextStepReceiptLink": "صف بررسی رسید",
   "selectGuest": "انتخاب {guest}",

@@ -214,6 +214,16 @@
   "approveAwaitingPayment": "Approve — payment pending",
   "approveWithoutPayment": "Approve — no payment required",
   "approveWithoutPaymentSuccess": "{guest} approved — no payment required.",
+  "markPresent": "Mark present",
+  "markAbsent": "Mark absent",
+  "markPresentActionAria": "Mark guest as present on tour day",
+  "markAbsentActionAria": "Mark guest as absent on tour day",
+  "markPresentSuccess": "{guest} marked present.",
+  "markAbsentSuccess": "{guest} marked absent.",
+  "attendance": {
+    "present": "Present",
+    "absent": "Absent"
+  },
   "nextStepReceiptHint": "Next: member uploads a payment receipt. Review proofs in Finance → Receipts.",
   "nextStepReceiptLink": "Open receipt queue",
   "selectGuest": "Select {guest}",

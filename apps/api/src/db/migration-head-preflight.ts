@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260905140000_engagement_admin_definitions";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260905170000_tour_execution_operations";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
@@ -21,6 +21,7 @@ export const REQUIRED_PRISMA_MIGRATION_NAMES = [
   "20260826120000_workspace_tour_theme_icon_key",
   "20260902120000_wallet_member_accounts_rls",
   "20260904180000_member_notifications_platform",
+  "20260905160000_operator_registration_attendance",
   EXPECTED_PRISMA_MIGRATION_HEAD,
 ] as const;
 
