@@ -13,6 +13,7 @@ import {
   seedOperatorSmokePublishedTour,
 } from "../src/settings/seed-operator-smoke-published-tour";
 import { runWithTenantContext } from "../src/tenant/tenant-request-context";
+import { OPERATOR_SMOKE } from "../test/fixtures/operator-smoke-e2e-tenant";
 
 const OPERATOR_SMOKE_TENANT_ID_CONST = "00000000-0000-4000-8000-000000000014";
 
@@ -31,9 +32,11 @@ async function enableTicketingModule(admin: PrismaClient): Promise<void> {
           ...theme.enabledModules.filter((v): v is string => typeof v === "string"),
           "ticketing",
           "finance",
+          "wallet",
+          "engagement",
         ]),
       ]
-    : ["ticketing", "finance"];
+    : ["ticketing", "finance", "wallet", "engagement"];
   await admin.tenant.upsert({
     where: { id: OPERATOR_SMOKE_TENANT_ID_CONST },
     create: {
@@ -48,6 +51,43 @@ async function enableTicketingModule(admin: PrismaClient): Promise<void> {
   });
 }
 
+async function grantSmokeMemberPortalModuleGrants(admin: PrismaClient): Promise<void> {
+  const existing = await admin.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: OPERATOR_SMOKE.memberUserId,
+        tenantId: OPERATOR_SMOKE.tenantId,
+      },
+    },
+    select: { membershipMetadata: true },
+  });
+  if (existing === null) {
+    throw new Error("seed-portal-ticketing-e2e-fixtures: operator smoke member membership missing");
+  }
+
+  const metadata =
+    existing.membershipMetadata !== null &&
+    typeof existing.membershipMetadata === "object" &&
+    !Array.isArray(existing.membershipMetadata)
+      ? { ...(existing.membershipMetadata as Record<string, unknown>) }
+      : {};
+
+  await admin.userTenant.update({
+    where: {
+      userId_tenantId: {
+        userId: OPERATOR_SMOKE.memberUserId,
+        tenantId: OPERATOR_SMOKE.tenantId,
+      },
+    },
+    data: {
+      membershipMetadata: {
+        ...metadata,
+        portalModuleGrants: ["wallet", "engagement"],
+      },
+    },
+  });
+}
+
 async function main(): Promise<void> {
   const adminUrl = process.env.DATABASE_URL_ADMIN ?? process.env.DATABASE_URL;
   if (!adminUrl?.trim()) {
@@ -58,6 +98,7 @@ async function main(): Promise<void> {
   try {
     await admin.$executeRawUnsafe(`GRANT SELECT ON TABLE "_prisma_migrations" TO app_tour`);
     await enableTicketingModule(admin);
+    await grantSmokeMemberPortalModuleGrants(admin);
 
     await runWithTenantContext(OPERATOR_SMOKE_TENANT_ID, async () => {
       const repo = getSettingsResourcesRepository();
