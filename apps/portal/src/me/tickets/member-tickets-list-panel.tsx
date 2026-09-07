@@ -92,7 +92,6 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
               data-portal-member-tickets-filter-chip
               data-testid={`portal-tickets-filter-${filter || "all"}`}
               data-status={filter || "all"}
-              aria-pressed={active}
               aria-current={active ? "page" : undefined}
             >
               {label}

@@ -3023,7 +3023,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: block;
   margin-block-start: var(--space-2);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
