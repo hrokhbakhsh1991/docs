@@ -3,7 +3,9 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
+import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
 import {
   loginDenaliOperatorOwner,
   loginDenaliOperatorViewer,
@@ -68,7 +70,7 @@ test.describe("operator gap audit — GAP-BQC", () => {
     await captureGapArtifact(page, "/opt/cursor/artifacts/gap-transport-roster-panel.png");
   });
 
-  test("GAP-RECEIPT-01 advanced manual payment path in workspace finance", async ({ page }) => {
+  test("GAP-RECEIPT-01 workspace finance payment recording", async ({ page }) => {
     test.setTimeout(300_000);
     await loginDenaliOperatorOwner(page);
     const stamp = Date.now();
@@ -118,26 +120,48 @@ test.describe("operator gap audit — GAP-BQC", () => {
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
       timeout: 90_000,
     });
-
-    const advancedSummary = page.locator("summary").filter({
-      hasText: /تنظیمات بیشتر|advanced/i,
+    await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
+      timeout: 30_000,
     });
-    await expect(advancedSummary).toBeVisible({ timeout: 30_000 });
-    await advancedSummary.click();
 
-    const manualBtn = page.getByRole("button", {
-      name: /Create pending manual payment|ثبت پرداخت دستی در انتظار/i,
-    });
-    await expect(manualBtn).toBeVisible({ timeout: 30_000 });
-    const manualRes = page.waitForResponse(
+    const amountInput = page.locator(`#workspace-payment-amount-${registrationId}`);
+    await expect(amountInput).toBeVisible({ timeout: 15_000 });
+    await expect(amountInput).not.toHaveValue("", { timeout: 30_000 });
+
+    const createResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/finance/payments/manual") &&
+        response.url().includes("/api/finance/prepayments") &&
         response.request().method() === "POST",
+      { timeout: 60_000 },
     );
-    await manualBtn.click();
-    const created = await manualRes;
+    const submitBtn = page
+      .getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)
+      .getByRole("button", { name: /Record received payment|ثبت مبلغ واریزشده/i });
+    await expect(submitBtn).toBeVisible({ timeout: 15_000 });
+    await submitBtn.click();
+    const created = await createResponse;
     expect(created.ok(), await created.text()).toBeTruthy();
 
-    await captureGapArtifact(page, "/opt/cursor/artifacts/gap-receipt-advanced-manual-payment.png");
+    const actionBanner = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.paymentActionResult);
+    await expect(actionBanner).toBeVisible({ timeout: 30_000 });
+    await expect(actionBanner).toHaveAttribute("data-action-kind", "prepayment_recorded");
+
+    const prepaymentsRes = await page.request.get(
+      `/api/finance/prepayments?registrationId=${encodeURIComponent(registrationId)}&limit=20`,
+    );
+    expect(prepaymentsRes.ok(), await prepaymentsRes.text()).toBeTruthy();
+    const prepayments = (await prepaymentsRes.json()) as {
+      items?: Array<{ amountMinor?: string; registrationId?: string }>;
+    };
+    expect((prepayments.items ?? []).length).toBeGreaterThan(0);
+    const recorded = prepayments.items?.find((row) => row.registrationId === registrationId);
+    expect(recorded?.amountMinor).toBe("1000000");
+
+    await expect(page.getByText(/واریز ادمین ثبت شد|Admin payment recorded/i)).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByText(/تسویه شده|fully settled/i)).toBeVisible({ timeout: 30_000 });
+
+    await captureGapArtifact(page, "/opt/cursor/artifacts/gap-receipt-workspace-finance-payment.png");
   });
 });
