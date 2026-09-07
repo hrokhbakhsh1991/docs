@@ -284,6 +284,12 @@
     "loadMore": "Load more",
     "loadingMore": "Loading…",
     "messageCount": "{count} messages",
+    "listFallbackTitle": "Support request",
+    "replyPlaceholder": "Write your message…",
+    "messageAuthors": {
+      "member": "You",
+      "operator": "Support team"
+    },
     "backToList": "Back to list",
     "viewerReadOnlyBanner": "Read-only access — you can view all club tickets but cannot reply or create requests.",
     "timelineTitle": "Conversation",

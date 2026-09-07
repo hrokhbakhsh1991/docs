@@ -2519,22 +2519,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-ticket-message][data-author="member"]
-  [data-portal-member-ticket-message-bubble] {
-  margin-inline-start: auto;
-  max-width: min(100%, 36rem);
-  background: var(--color-primary-subtle, color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-muted)));
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-ticket-message][data-author="operator"]
-  [data-portal-member-ticket-message-bubble] {
-  margin-inline-end: auto;
-  max-width: min(100%, 36rem);
-  background: var(--color-surface-muted, var(--color-bg-muted));
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-ticket-composer] {
   position: sticky;
   bottom: 0;
@@ -2798,6 +2782,327 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   background: var(--color-warning-bg, #fff7ed);
   color: var(--color-warning, #b45309);
   font-size: var(--text-sm, 0.875rem);
+}
+
+/* TKT UI/UX v2 — list/detail polish aligned with notifications inbox */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-tickets]
+  [data-portal-member-page-header]
+  h1,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-tickets-new]
+  [data-portal-member-page-header]
+  h1,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-detail]
+  [data-portal-member-ticket-detail-subject] {
+  font-family: var(--font-heading, inherit);
+  font-size: clamp(1.375rem, 4.5vw, 1.625rem);
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-lede],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-tickets-new]
+  [data-portal-member-page-header]
+  p {
+  margin: 0;
+  max-width: 44rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-new-cta] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-block-start: var(--space-3);
+  min-height: 2.75rem;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--color-primary);
+  color: var(--color-primary-fg, #fff);
+  text-decoration: none;
+  font-weight: 600;
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-new-cta]:hover {
+  filter: brightness(1.05);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-row] {
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-row]:hover {
+  border-color: color-mix(in oklab, var(--color-primary) 35%, var(--color-border-subtle));
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--color-primary) 8%, transparent);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-row-link]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg, 0.75rem);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-row-top] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-code] {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm, 0.25rem);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-muted, var(--color-bg-muted));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary, inherit);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-meta-chip] {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted, var(--color-bg-muted));
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--color-text-secondary, inherit);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-meta-chip][data-kind="priority"] {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle, color-mix(in oklab, var(--color-primary) 10%, transparent));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-detail-header] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-back] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  color: var(--color-primary);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-back]:hover {
+  text-decoration: underline;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-detail-hero] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-surface-raised, var(--color-bg-surface));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-detail-badges] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-timeline]
+  h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-messages] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: min(100%, 40rem);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message][data-author="member"] {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message][data-author="operator"] {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message-author] {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, inherit);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message-bubble] {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message][data-author="member"]
+  [data-portal-member-ticket-message-bubble] {
+  border-color: color-mix(in oklab, var(--color-primary) 25%, var(--color-border-subtle));
+  background: var(--color-primary-subtle, color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-muted)));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message][data-author="operator"]
+  [data-portal-member-ticket-message-bubble] {
+  background: var(--color-surface-muted, var(--color-bg-muted));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message-body] {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-message-bubble]
+  time {
+  display: block;
+  margin-block-start: var(--space-2);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, inherit);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-composer] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-composer]
+  textarea {
+  width: 100%;
+  min-height: 6rem;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-surface-raised, var(--color-bg-surface));
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-composer]
+  textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-ticket-reply-error] {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--color-danger-bg, #fef2f2);
+  color: var(--color-danger, #b91c1c);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-load-more],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-error]
+  button {
+  min-height: 2.5rem;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-raised, var(--color-bg-surface));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-tickets-skeleton-row] {
+  height: 5.5rem;
+  border-radius: var(--radius-lg, 0.75rem);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-muted, var(--color-bg-muted)) 0%,
+    color-mix(in oklab, var(--color-surface-muted, var(--color-bg-muted)) 70%, white) 50%,
+    var(--color-surface-muted, var(--color-bg-muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: portal-member-notifications-shimmer 1.2s ease-in-out infinite;
+}
+
+@media (max-width: 640px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-ticket-detail-hero] {
+    padding: var(--space-3);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-ticket-message] {
+    max-width: 100%;
+  }
 }
 
 /* NOTIF — member notifications inbox */
