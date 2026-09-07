@@ -26,6 +26,8 @@
     "test:smoke:engagement": "playwright test -c playwright.operator-engagement.config.ts",
     "test:smoke:gap": "playwright test -c playwright.operator-gap.config.ts",
     "test:smoke:booking-desk": "playwright test -c playwright.operator-booking.config.ts",
+    "test:smoke:tour-creation-bqc": "playwright test -c playwright.tour-creation-bqc.config.ts",
+    "test:smoke:wallet-bqc": "playwright test -c playwright.wallet-bqc.config.ts",
     "test:e2e:prepayment": "playwright test -c playwright.prepayment.config.ts",
     "test:e2e:operator:install": "playwright install chromium",
     "test:e2e:exposure": "playwright test -c playwright.exposure.config.ts",
