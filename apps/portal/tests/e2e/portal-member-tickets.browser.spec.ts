@@ -12,9 +12,8 @@ import {
 const SMOKE_MEMBER_PHONE = "+15550001003";
 const SMOKE_MEMBER_NAME = "Smoke Member";
 
-test.describe.configure({ mode: "serial" });
-
 test.describe("portal member tickets — TKT-BQC walkthrough", () => {
+  test.describe.configure({ mode: "serial" });
   test("TKT-BQC-WALK list page desktop screenshot", async ({ page }) => {
     await authenticatePortalMemberForTickets(page, {
       phone: SMOKE_MEMBER_PHONE,
@@ -92,7 +91,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
       timeout: 90_000,
     });
 
-    const resolvedChip = page.getByRole("button", { name: "حل‌شده" });
+    const resolvedChip = page.getByTestId("portal-tickets-filter-resolved");
     await expect(resolvedChip).toHaveAttribute("aria-pressed", "true");
 
     await page.screenshot({
@@ -126,6 +125,8 @@ test.describe("portal member tickets — TKT-BQC states", () => {
 });
 
 test.describe("portal member tickets — TKT-BQC journey", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("TKT-BQC-01 create reply and list persistence with UI evidence", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     const phone = `+1555${String(Date.now()).slice(-7)}`;
@@ -220,8 +221,8 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
       fullName: "TKT BQC Reopen Member",
     });
 
-    await page.goto("/me/tickets/new", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("[data-portal-member-tickets-new-form]")).toBeVisible({
+    await page.locator("[data-portal-member-tickets-new-cta]").click();
+    await expect(page.locator("[data-portal-member-tickets-new-form][data-client-ready='true']")).toBeVisible({
       timeout: 60_000,
     });
 
@@ -238,11 +239,35 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     ]);
 
     await page.waitForURL(/\/me\/tickets\/[^/]+$/, { timeout: 90_000 });
-    const ticketId = page.url().split("/").pop() ?? "";
+    await expect(
+      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']"),
+    ).toBeVisible({ timeout: 90_000 });
+
+    await page.locator("[data-portal-member-ticket-composer] textarea").pressSequentially(
+      "پاسخ قبل از resolve",
+      { delay: 10 },
+    );
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          res.url().includes("/messages") &&
+          res.status() === 201,
+        { timeout: 60_000 },
+      ),
+      page.locator("[data-portal-member-ticket-composer] button[type='submit']").click(),
+    ]);
+
+    const ticketId = page.url().split("/").pop()?.split("?")[0] ?? "";
+    expect(ticketId.length).toBeGreaterThan(0);
+
     const rowVersion = await readMemberTicketRowVersion(page.request, ticketId);
     await resolveTicketForSmoke(page.request, ticketId, rowVersion);
 
     await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']"),
+    ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-ticket-status][data-status='resolved']")).toBeVisible({
       timeout: 60_000,
     });

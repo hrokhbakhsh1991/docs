@@ -10,6 +10,7 @@ import {
   fetchUnreadNotificationCount,
   gotoMemberNotificationsReady,
   NOTIFICATIONS_PANEL_READY,
+  NOTIFICATIONS_PAGE_READY,
   notificationBellBadge,
   unreadNotificationItems,
 } from "./fixtures/portal-member-notifications";
@@ -17,9 +18,8 @@ import {
 const MEMBER_PHONE = "+15550001003";
 const MEMBER_NAME = "Smoke Member";
 
-test.describe.configure({ mode: "serial" });
-
 test.describe("portal member notifications — NOTIF-BQC", () => {
+  test.describe.configure({ mode: "serial" });
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext({
       baseURL: process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.portal.localhost:3003",
@@ -61,6 +61,7 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
       path: "/opt/cursor/artifacts/bqc-notifications-inbox-mobile-rtl.png",
       fullPage: true,
     });
+    await page.setViewportSize({ width: 1280, height: 900 });
   });
 
   test("NOTIF-BQC-WALK bell badge on tickets page screenshot", async ({ page }) => {
@@ -80,7 +81,9 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
   test("NOTIF-BQC-02 marks a single unread notification read and persists after reload", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await ensurePortalSmokeMemberHasUnreadNotifications(page);
 
     const unreadBefore = await fetchUnreadNotificationCount(page);
     expect(unreadBefore).toBeGreaterThan(0);
@@ -294,18 +297,16 @@ test.describe("portal member notifications — deep links", () => {
 
 test.describe("portal member notifications — locale and auth", () => {
   test("NOTIF-BQC-11 English LTR inbox layout", async ({ page }) => {
-    await page.context().addCookies([
-      {
-        name: "NEXT_LOCALE",
-        value: "en",
-        domain: "operator.portal.localhost",
-        path: "/",
-      },
-    ]);
-
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
     await ensurePortalSmokeMemberHasUnreadNotifications(page);
-    await gotoMemberNotificationsReady(page);
+
+    await page.evaluate(() => {
+      document.cookie = "NEXT_LOCALE=en;path=/;max-age=31536000;SameSite=Lax";
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(NOTIFICATIONS_PAGE_READY)).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 60_000 });
 
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     await expect(page.locator("h1")).toContainText(/notification/i);

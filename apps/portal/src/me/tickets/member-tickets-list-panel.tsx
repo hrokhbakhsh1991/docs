@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -26,10 +25,15 @@ const STATUS_FILTERS: readonly TicketStatusFilter[] = [
   "closed",
 ];
 
+function resolveFilterHref(filter: TicketStatusFilter): string {
+  if (filter.length === 0) {
+    return "/me/tickets";
+  }
+  return `/me/tickets?status=${filter}`;
+}
+
 export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
   const t = useTranslations("portalMember.tickets");
-  const router = useRouter();
-  const pathname = usePathname();
   const [list, setList] = useState(initialList);
   const [status, setStatus] = useState<TicketStatusFilter>(initialStatus);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -75,19 +79,6 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
     }
   }, []);
 
-  const onFilterChange = (nextStatus: TicketStatusFilter) => {
-    if (nextStatus === status || isPending) {
-      return;
-    }
-    setIsPending(true);
-    const params = new URLSearchParams();
-    if (nextStatus.length > 0) {
-      params.set("status", nextStatus);
-    }
-    const query = params.toString();
-    router.push(query.length > 0 ? `${pathname}?${query}` : pathname);
-  };
-
   return (
     <>
       <nav data-portal-member-tickets-filter aria-label={t("filterAria")}>
@@ -95,18 +86,17 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
           const active = filter === status;
           const label = filter.length === 0 ? t("filterAll") : t(`statuses.${filter}`);
           return (
-            <button
+            <a
               key={filter || "all"}
-              type="button"
+              href={resolveFilterHref(filter)}
               data-portal-member-tickets-filter-chip
               data-testid={`portal-tickets-filter-${filter || "all"}`}
               data-status={filter || "all"}
               aria-pressed={active}
-              disabled={isPending}
-              onClick={() => onFilterChange(filter)}
+              aria-current={active ? "page" : undefined}
             >
               {label}
-            </button>
+            </a>
           );
         })}
       </nav>
