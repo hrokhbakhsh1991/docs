@@ -11,6 +11,7 @@ export default defineConfig({
     "portal-member-notifications.browser.spec.ts",
     "portal-member-tickets.browser.spec.ts",
     "portal-ticketing-a11y.spec.ts",
+    "portal-notifications-a11y.spec.ts",
   ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI ? 1 : 0,

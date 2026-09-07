@@ -3,6 +3,7 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { authenticatePortalMemberForEngagement } from "./fixtures/authenticate-portal-member-for-engagement";
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
 import { ensurePortalSmokeDeeplinkNotification } from "./fixtures/ensure-portal-smoke-deeplink-notifications";
 import {
@@ -10,6 +11,13 @@ import {
   getPortalSmokeEventMatrixMatchers,
 } from "./fixtures/ensure-portal-smoke-event-matrix-notifications";
 import { ensurePortalSmokeMemberHasUnreadNotifications } from "./fixtures/ensure-portal-smoke-member-has-unread-notifications";
+import {
+  DENALI_PROFILE_BIRTH_DATE,
+  DENALI_PROFILE_FATHER_NAME,
+  DENALI_PROFILE_NATIONAL_ID,
+  gotoMemberProfile,
+  saveMemberProfileFields,
+} from "./fixtures/portal-member-profile";
 import {
   fetchUnreadNotificationCount,
   gotoMemberNotificationsReady,
@@ -219,6 +227,7 @@ test.describe("portal member notifications — isolated member", () => {
   });
 
   test("NOTIF-BQC-07 error state shows retry and recovers inbox", async ({ page }) => {
+    // Partial realness: first list fetch stubbed 500; retry uses real BFF + Postgres inbox.
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
 
     let failOnce = true;
@@ -405,6 +414,81 @@ test.describe("portal member notifications — event matrix", () => {
 
     await page.screenshot({
       path: "/opt/cursor/artifacts/bqc-notifications-ticketing-event-matrix.png",
+      fullPage: true,
+    });
+  });
+});
+
+test.describe("portal member notifications — cross-module", () => {
+  test("NOTIF-BQC-14 engagement badge notification appears in inbox", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+    const email = `notif-bqc-14-${Date.now()}@denali-smoke.local`;
+
+    await authenticatePortalMemberForEngagement(page, {
+      phone,
+      fullName: "Notif Engagement BQC",
+    });
+
+    await gotoMemberProfile(page);
+    await saveMemberProfileFields(page, {
+      email,
+      nationalId: DENALI_PROFILE_NATIONAL_ID,
+      fatherName: DENALI_PROFILE_FATHER_NAME,
+      birthDate: DENALI_PROFILE_BIRTH_DATE,
+      gender: "female",
+    });
+
+    await expect
+      .poll(
+        async () => {
+          const res = await page.request.get("/api/me/notifications");
+          if (!res.ok()) {
+            return false;
+          }
+          const body = (await res.json()) as {
+            items?: readonly { sourceModule?: string }[];
+          };
+          return (body.items ?? []).some((item) => item.sourceModule === "engagement");
+        },
+        { timeout: 90_000 },
+      )
+      .toBe(true);
+
+    await gotoMemberNotificationsReady(page);
+    await expect(
+      page
+        .locator(
+          "[data-portal-member-notification-item][data-portal-member-notification-source='engagement']",
+        )
+        .first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-engagement-inbox.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-15 wallet notification deep-link lands on ready wallet panel", async ({ page }) => {
+    ensurePortalSmokeDeeplinkNotification("wallet");
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
+
+    const walletItem = page.locator('[data-portal-member-notification-source="wallet"]').first();
+    await expect(walletItem).toBeVisible({ timeout: 30_000 });
+
+    await walletItem.locator("[data-portal-member-notification-link]").click();
+    await page.waitForURL(/\/me\/wallet/, { timeout: 60_000 });
+
+    const walletProbe = await page.request.get("/api/me/wallet");
+    expect(walletProbe.ok(), await walletProbe.text()).toBeTruthy();
+
+    await expect(
+      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']"),
+    ).toBeVisible({ timeout: 90_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-wallet-panel-ready.png",
       fullPage: true,
     });
   });
