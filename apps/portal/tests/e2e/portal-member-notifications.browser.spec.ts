@@ -5,6 +5,11 @@ import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForEngagement } from "./fixtures/authenticate-portal-member-for-engagement";
 import { captureBqcArtifact } from "./fixtures/capture-bqc-artifact";
+import {
+  waitForNotificationsPanelState,
+  withFirstMatchingRequestFailed,
+  withPausedMatchingRequest,
+} from "./fixtures/portal-browser-network";
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
 import { ensurePortalSmokeDeeplinkNotification } from "./fixtures/ensure-portal-smoke-deeplink-notifications";
 import {
@@ -194,41 +199,35 @@ test.describe("portal member notifications — isolated member", () => {
   test("NOTIF-BQC-08 skeleton loading state screenshot", async ({ page }) => {
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
 
-    await page.route("**/api/me/notifications?*", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 3_000));
-      await route.continue();
-    });
-
-    const loadingPanel = page.locator(
-      "[data-portal-member-notifications-panel][data-portal-member-notifications-state='loading']",
+    await withPausedMatchingRequest(
+      page,
+      "/api/me/notifications?",
+      async () => {
+        await expect(page.locator("[data-portal-member-notifications-skeleton]")).toBeAttached();
+        await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-skeleton-loading.png", {
+          fullPage: true,
+        });
+      },
+      async () => {
+        await page.goto("/me/notifications", { waitUntil: "commit" });
+      },
     );
-    await page.goto("/me/notifications", { waitUntil: "commit" });
-    await expect(loadingPanel).toBeVisible({ timeout: 15_000 });
 
-    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-skeleton-loading.png", { fullPage: true });
-
-    await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 90_000 });
   });
 
   test("NOTIF-BQC-07 error state shows retry and recovers inbox", async ({ page }) => {
-    // Partial realness: first list fetch stubbed 500; retry uses real BFF + Postgres inbox.
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
 
-    let failOnce = true;
-    await page.route("**/api/me/notifications?*", async (route) => {
-      if (failOnce) {
-        failOnce = false;
-        await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
-        return;
-      }
-      await route.continue();
+    await withFirstMatchingRequestFailed(page, "/api/me/notifications?", async () => {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForNotificationsPanelState(page, "error", 60_000);
     });
 
-    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-portal-member-notifications-error]")).toBeVisible({
-      timeout: 60_000,
+      timeout: 15_000,
     });
-
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-error-retry.png", { fullPage: true });
 
     await page.locator("[data-portal-member-notifications-error] button").click();

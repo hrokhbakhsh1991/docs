@@ -6,9 +6,9 @@ import { expect, test } from "@playwright/test";
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
 import { captureBqcArtifact } from "./fixtures/capture-bqc-artifact";
 import {
-  readMemberTicketRowVersion,
-  resolveTicketForSmoke,
-} from "./fixtures/resolve-ticket-for-smoke";
+  operatorResolveTicketViaUi,
+  withOperatorTicketingUi,
+} from "./fixtures/operator-ticketing-ui";
 
 const SMOKE_MEMBER_PHONE = "+15550001003";
 const SMOKE_MEMBER_NAME = "Smoke Member";
@@ -189,7 +189,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     ).toBeVisible();
   });
 
-  test("TKT-BQC-05 reopen resolved ticket from detail page", async ({ page }) => {
+  test("TKT-BQC-05 reopen resolved ticket from detail page", async ({ page, browser }) => {
     const phone = `+1555${String(Date.now()).slice(-7)}`;
     const ticketSubject = `TKT-BQC-REOPEN-${Date.now()}`;
 
@@ -238,8 +238,9 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     const ticketId = page.url().split("/").pop()?.split("?")[0] ?? "";
     expect(ticketId.length).toBeGreaterThan(0);
 
-    const rowVersion = await readMemberTicketRowVersion(page.request, ticketId);
-    await resolveTicketForSmoke(page.request, ticketId, rowVersion);
+    await withOperatorTicketingUi(browser, async (operatorPage) => {
+      await operatorResolveTicketViaUi(operatorPage, { ticketId, subject: ticketSubject });
+    });
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(
