@@ -12,6 +12,7 @@ import {
   getPortalSmokeEventMatrixMatchers,
 } from "./fixtures/ensure-portal-smoke-event-matrix-notifications";
 import { ensurePortalSmokeMemberHasUnreadNotifications } from "./fixtures/ensure-portal-smoke-member-has-unread-notifications";
+import { ensurePortalSmokeMemberHasPaginatedNotifications } from "./fixtures/ensure-portal-smoke-member-has-paginated-notifications";
 import {
   DENALI_PROFILE_BIRTH_DATE,
   DENALI_PROFILE_FATHER_NAME,
@@ -444,5 +445,46 @@ test.describe("portal member notifications — cross-module", () => {
     ).toBeVisible({ timeout: 90_000 });
 
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-wallet-panel-ready.png", { fullPage: true });
+  });
+});
+
+test.describe("portal member notifications — pagination", () => {
+  test("NOTIF-BQC-19 load-more fetches additional inbox rows", async ({ page }) => {
+    ensurePortalSmokeMemberHasPaginatedNotifications();
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+
+    const firstPage = await page.request.get("/api/me/notifications?limit=20");
+    expect(firstPage.ok()).toBeTruthy();
+    const firstBody = (await firstPage.json()) as {
+      items?: unknown[];
+      hasMore?: boolean;
+      nextCursor?: string | null;
+    };
+    expect(firstBody.items?.length).toBe(20);
+    expect(firstBody.hasMore).toBe(true);
+    expect(typeof firstBody.nextCursor).toBe("string");
+
+    const secondPage = await page.request.get(
+      `/api/me/notifications?limit=20&cursor=${encodeURIComponent(firstBody.nextCursor!)}`,
+    );
+    expect(secondPage.ok()).toBeTruthy();
+    const secondBody = (await secondPage.json()) as { items?: unknown[]; hasMore?: boolean };
+    const expectedTotal = (firstBody.items?.length ?? 0) + (secondBody.items?.length ?? 0);
+
+    await gotoMemberNotificationsReady(page);
+    await expect(page.locator("[data-portal-member-notification-item]")).toHaveCount(20);
+
+    const loadMore = page.locator("[data-portal-member-notifications-load-more]");
+    await expect(loadMore).toBeVisible();
+    await loadMore.click();
+
+    await expect(page.locator("[data-portal-member-notification-item]")).toHaveCount(expectedTotal, {
+      timeout: 60_000,
+    });
+    await expect(loadMore).toHaveCount(0, { timeout: 60_000 });
+
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-pagination-load-more.png", {
+      fullPage: true,
+    });
   });
 });
