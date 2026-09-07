@@ -16,6 +16,7 @@
     "test": "node --import ./test/css-hook.mjs --import tsx --test test/**/*.spec.ts",
     "test:smoke": "playwright test -c playwright.portal.config.ts",
     "test:smoke:booking": "playwright test -c playwright.portal-booking.config.ts",
+    "test:smoke:gap": "playwright test -c playwright.portal-gap.config.ts",
     "test:smoke:custom-apex": "playwright test -c playwright.portal-custom-apex.config.ts",
     "test:smoke:visual": "playwright test -c playwright.portal-visual.config.ts",
     "test:smoke:visual:update": "playwright test -c playwright.portal-visual.config.ts --update-snapshots",
