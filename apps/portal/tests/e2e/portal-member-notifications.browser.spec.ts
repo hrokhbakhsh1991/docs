@@ -35,6 +35,47 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     }
   });
 
+  test("NOTIF-BQC-WALK captures redesigned inbox screenshots (desktop)", async ({ page }) => {
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await ensurePortalSmokeMemberHasUnreadNotifications(page);
+    await gotoMemberNotificationsReady(page);
+
+    await expect(page.locator("[data-portal-member-notifications-toolbar]")).toBeVisible();
+    await expect(unreadNotificationItems(page).first()).toBeVisible();
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-inbox-desktop.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-12 mobile RTL inbox layout screenshot", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await ensurePortalSmokeMemberHasUnreadNotifications(page);
+    await gotoMemberNotificationsReady(page);
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-inbox-mobile-rtl.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-WALK bell badge on tickets page screenshot", async ({ page }) => {
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await ensurePortalSmokeMemberHasUnreadNotifications(page);
+
+    await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-tickets]")).toBeVisible({ timeout: 90_000 });
+    await expect(notificationBellBadge(page)).toBeVisible({ timeout: 30_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-bell-on-tickets.png",
+      fullPage: true,
+    });
+  });
+
   test("NOTIF-BQC-02 marks a single unread notification read and persists after reload", async ({
     page,
   }) => {
@@ -87,6 +128,11 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     ).toBeVisible({
       timeout: 90_000,
     });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-ticket-deeplink.png",
+      fullPage: true,
+    });
   });
 
   test("NOTIF-BQC-03 mark all read clears toolbar and unread styling", async ({ page }) => {
@@ -107,6 +153,11 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     });
     await expect(unreadNotificationItems(page)).toHaveCount(0);
 
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-all-read.png",
+      fullPage: true,
+    });
+
     const unreadAfter = await fetchUnreadNotificationCount(page);
     expect(unreadAfter).toBe(0);
   });
@@ -124,6 +175,33 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
 });
 
 test.describe("portal member notifications — isolated member", () => {
+  test("NOTIF-BQC-07 error state shows retry and recovers inbox", async ({ page }) => {
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+
+    let failOnce = true;
+    await page.route("**/api/me/notifications?*", async (route) => {
+      if (failOnce) {
+        failOnce = false;
+        await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-notifications-error]")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-error-retry.png",
+      fullPage: true,
+    });
+
+    await page.locator("[data-portal-member-notifications-error] button").click();
+    await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 60_000 });
+  });
+
   test("NOTIF-BQC-05 fresh member sees empty inbox state", async ({ page }) => {
     const phone = `+1555${String(Date.now()).slice(-7)}`;
 
@@ -137,6 +215,11 @@ test.describe("portal member notifications — isolated member", () => {
     await expect(page.locator("[data-portal-member-notifications-empty]")).toBeVisible();
     await expect(page.locator("[data-portal-member-notifications-toolbar]")).toHaveCount(0);
     await expect(page.locator("[data-portal-member-notification-item]")).toHaveCount(0);
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-empty-state.png",
+      fullPage: true,
+    });
 
     const unread = await fetchUnreadNotificationCount(page);
     expect(unread).toBe(0);
