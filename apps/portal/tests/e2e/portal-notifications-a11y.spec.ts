@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
+import { captureBqcArtifact } from "./fixtures/capture-bqc-artifact";
 import { ensurePortalSmokeMemberHasUnreadNotifications } from "./fixtures/ensure-portal-smoke-member-has-unread-notifications";
 import { gotoMemberNotificationsReady } from "./fixtures/portal-member-notifications";
 
@@ -74,9 +75,6 @@ test.describe("NOTIF-BQC portal notifications accessibility", () => {
       "portal member notifications inbox",
     );
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-inbox-a11y.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-inbox-a11y.png", { fullPage: true });
   });
 });

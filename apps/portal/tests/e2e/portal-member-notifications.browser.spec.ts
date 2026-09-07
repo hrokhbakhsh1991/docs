@@ -4,6 +4,7 @@
 import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForEngagement } from "./fixtures/authenticate-portal-member-for-engagement";
+import { captureBqcArtifact } from "./fixtures/capture-bqc-artifact";
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
 import { ensurePortalSmokeDeeplinkNotification } from "./fixtures/ensure-portal-smoke-deeplink-notifications";
 import {
@@ -56,10 +57,7 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     await expect(page.locator("[data-portal-member-notifications-toolbar]")).toBeVisible();
     await expect(unreadNotificationItems(page).first()).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-inbox-desktop.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-inbox-desktop.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-12 mobile RTL inbox layout screenshot", async ({ page }) => {
@@ -69,10 +67,7 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     await gotoMemberNotificationsReady(page);
 
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-inbox-mobile-rtl.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-inbox-mobile-rtl.png", { fullPage: true });
     await page.setViewportSize({ width: 1280, height: 900 });
   });
 
@@ -84,10 +79,7 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     await expect(page.locator("[data-portal-member-tickets]")).toBeVisible({ timeout: 90_000 });
     await expect(notificationBellBadge(page)).toBeVisible({ timeout: 30_000 });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-bell-on-tickets.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-bell-on-tickets.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-02 marks a single unread notification read and persists after reload", async ({
@@ -158,10 +150,7 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
       timeout: 90_000,
     });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-ticket-deeplink.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-ticket-deeplink.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-03 mark all read clears toolbar and unread styling", async ({ page }) => {
@@ -182,10 +171,7 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     });
     await expect(unreadNotificationItems(page)).toHaveCount(0);
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-all-read.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-all-read.png", { fullPage: true });
 
     const unreadAfter = await fetchUnreadNotificationCount(page);
     expect(unreadAfter).toBe(0);
@@ -218,10 +204,7 @@ test.describe("portal member notifications — isolated member", () => {
     await page.goto("/me/notifications", { waitUntil: "commit" });
     await expect(loadingPanel).toBeVisible({ timeout: 15_000 });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-skeleton-loading.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-skeleton-loading.png", { fullPage: true });
 
     await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 60_000 });
   });
@@ -245,10 +228,7 @@ test.describe("portal member notifications — isolated member", () => {
       timeout: 60_000,
     });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-error-retry.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-error-retry.png", { fullPage: true });
 
     await page.locator("[data-portal-member-notifications-error] button").click();
     await expect(page.locator(NOTIFICATIONS_PANEL_READY)).toBeVisible({ timeout: 60_000 });
@@ -268,10 +248,7 @@ test.describe("portal member notifications — isolated member", () => {
     await expect(page.locator("[data-portal-member-notifications-toolbar]")).toHaveCount(0);
     await expect(page.locator("[data-portal-member-notification-item]")).toHaveCount(0);
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-empty-state.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-empty-state.png", { fullPage: true });
 
     const unread = await fetchUnreadNotificationCount(page);
     expect(unread).toBe(0);
@@ -293,10 +270,7 @@ test.describe("portal member notifications — deep links", () => {
     await walletItem.locator("[data-portal-member-notification-link]").click();
     await page.waitForURL(/\/me\/wallet/, { timeout: 60_000 });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-wallet-deeplink.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-wallet-deeplink.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-10 booking notification deep-links to registrations page", async ({ page }) => {
@@ -314,10 +288,7 @@ test.describe("portal member notifications — deep links", () => {
     await page.waitForURL(/\/me\/registrations/, { timeout: 60_000 });
     await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({ timeout: 90_000 });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-booking-deeplink.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-booking-deeplink.png", { fullPage: true });
   });
 });
 
@@ -338,10 +309,7 @@ test.describe("portal member notifications — locale and auth", () => {
     await expect(page.locator("h1")).toContainText(/notification/i);
     await expect(page.locator("[data-portal-member-notifications-toolbar]")).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-inbox-english-ltr.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-inbox-english-ltr.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-20 unauthenticated user redirected from notifications", async ({ page }) => {
@@ -368,10 +336,7 @@ test.describe("portal member notifications — event matrix", () => {
     }
     await expect(page.locator('[data-portal-member-notification-source="booking"]').first()).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-booking-event-matrix.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-booking-event-matrix.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-17 finance event matrix renders source chips", async ({ page }) => {
@@ -390,10 +355,7 @@ test.describe("portal member notifications — event matrix", () => {
     }
     await expect(page.locator('[data-portal-member-notification-source="finance"]').first()).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-finance-event-matrix.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-finance-event-matrix.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-18 ticketing event matrix renders source chips", async ({ page }) => {
@@ -412,10 +374,7 @@ test.describe("portal member notifications — event matrix", () => {
     }
     await expect(page.locator('[data-portal-member-notification-source="ticketing"]').first()).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-ticketing-event-matrix.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-ticketing-event-matrix.png", { fullPage: true });
   });
 });
 
@@ -463,10 +422,7 @@ test.describe("portal member notifications — cross-module", () => {
         .first(),
     ).toBeVisible({ timeout: 60_000 });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-engagement-inbox.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-engagement-inbox.png", { fullPage: true });
   });
 
   test("NOTIF-BQC-15 wallet notification deep-link lands on ready wallet panel", async ({ page }) => {
@@ -487,9 +443,6 @@ test.describe("portal member notifications — cross-module", () => {
       page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']"),
     ).toBeVisible({ timeout: 90_000 });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-notifications-wallet-panel-ready.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-notifications-wallet-panel-ready.png", { fullPage: true });
   });
 });

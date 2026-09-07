@@ -4,6 +4,7 @@
 import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
+import { captureBqcArtifact } from "./fixtures/capture-bqc-artifact";
 import {
   readMemberTicketRowVersion,
   resolveTicketForSmoke,
@@ -29,10 +30,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
     });
     await expect(page.locator("[data-portal-member-ticket-code]").first()).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-list-desktop.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-list-desktop.png", { fullPage: true });
   });
 
   test("TKT-BQC-WALK detail page with conversation screenshot", async ({ page }) => {
@@ -54,10 +52,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
     await expect(page.locator("[data-portal-member-ticket-detail-hero]")).toBeVisible();
     await expect(page.locator("[data-portal-member-ticket-messages] li").first()).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-detail-desktop.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-detail-desktop.png", { fullPage: true });
   });
 
   test("TKT-BQC-WALK mobile RTL list screenshot", async ({ page }) => {
@@ -73,10 +68,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-list-mobile-rtl.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-list-mobile-rtl.png", { fullPage: true });
   });
 
   test("TKT-BQC-02 resolved filter via URL shows active chip", async ({ page }) => {
@@ -94,10 +86,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
     const resolvedChip = page.getByTestId("portal-tickets-filter-resolved");
     await expect(resolvedChip).toHaveAttribute("aria-current", "page");
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-filter-resolved.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-filter-resolved.png", { fullPage: true });
   });
 });
 
@@ -117,10 +106,7 @@ test.describe("portal member tickets — TKT-BQC states", () => {
     await expect(page.locator("[data-portal-member-tickets-empty]")).toBeVisible();
     await expect(page.locator("[data-portal-member-ticket-row]")).toHaveCount(0);
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-empty-list.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-empty-list.png", { fullPage: true });
   });
 });
 
@@ -143,10 +129,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
       timeout: 60_000,
     });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-new-form.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-new-form.png", { fullPage: true });
 
     await page.locator('select[name="categoryCode"]').selectOption("general");
     await page.locator('input[name="subject"]').click();
@@ -171,10 +154,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     );
     await expect(page.locator("[data-portal-member-ticket-code]")).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-created-detail.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-created-detail.png", { fullPage: true });
 
     const replyText = "پاسخ تست BQC از عضو";
     await page.locator("[data-portal-member-ticket-composer] textarea").click();
@@ -197,10 +177,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
       page.locator('[data-portal-member-ticket-message][data-author="member"]').last(),
     ).toBeVisible();
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-after-reply.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-after-reply.png", { fullPage: true });
 
     await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
     await expect(
@@ -285,10 +262,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
       timeout: 60_000,
     });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-reopened-detail.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-reopened-detail.png", { fullPage: true });
   });
 
   test("TKT-BQC-06 filter chip click updates URL and active chip", async ({ page }) => {
@@ -309,10 +283,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     await page.waitForURL(/status=resolved/, { timeout: 60_000 });
     await expect(resolvedChip).toHaveAttribute("aria-current", "page");
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-filter-chip-click.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-filter-chip-click.png", { fullPage: true });
   });
 
   test("TKT-BQC-07 new ticket form shows validation errors for empty submit", async ({ page }) => {
@@ -333,10 +304,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
       timeout: 30_000,
     });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-form-validation.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-form-validation.png", { fullPage: true });
   });
 
   test("TKT-BQC-08 attachment upload shows success state", async ({ page }) => {
@@ -384,9 +352,6 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
       timeout: 60_000,
     });
 
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-tickets-attachment-success.png",
-      fullPage: true,
-    });
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-attachment-success.png", { fullPage: true });
   });
 });
