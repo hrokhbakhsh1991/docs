@@ -68,4 +68,44 @@ test.describe("TKT-L portal ticketing accessibility", () => {
       "portal member tickets list",
     );
   });
+
+  test("TKT-BQC-09 member ticket detail has no serious/critical axe violations", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+    const ticketSubject = `TKT-A11Y-${Date.now()}`;
+
+    await authenticatePortalMemberForTickets(page, {
+      phone,
+      fullName: "Portal A11y Detail",
+    });
+
+    await page.locator("[data-portal-member-tickets-new-cta]").click();
+    await expect(page.locator("[data-portal-member-tickets-new-form][data-client-ready='true']")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.locator('select[name="categoryCode"]').selectOption("general");
+    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
+    await page.locator('textarea[name="body"]').pressSequentially("A11y detail surface", { delay: 10 });
+    await Promise.all([
+      page.waitForResponse(
+        (res) => res.request().method() === "POST" && res.url().includes("/api/me/tickets"),
+        { timeout: 90_000 },
+      ),
+      page.locator('[data-portal-member-tickets-new-form] button[type="submit"]').click(),
+    ]);
+    await page.waitForURL(/\/me\/tickets\/[^/]+$/, { timeout: 90_000 });
+    await expect(
+      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']"),
+    ).toBeVisible({ timeout: 90_000 });
+
+    await assertNoSeriousA11yViolations(
+      page,
+      "[data-portal-member-ticket-detail][data-client-ready='true']",
+      "portal member ticket detail",
+    );
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-tickets-detail-a11y.png",
+      fullPage: true,
+    });
+  });
 });

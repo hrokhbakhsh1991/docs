@@ -5,6 +5,10 @@ import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
 import { ensurePortalSmokeDeeplinkNotification } from "./fixtures/ensure-portal-smoke-deeplink-notifications";
+import {
+  ensurePortalSmokeEventMatrixNotifications,
+  getPortalSmokeEventMatrixMatchers,
+} from "./fixtures/ensure-portal-smoke-event-matrix-notifications";
 import { ensurePortalSmokeMemberHasUnreadNotifications } from "./fixtures/ensure-portal-smoke-member-has-unread-notifications";
 import {
   fetchUnreadNotificationCount,
@@ -96,7 +100,10 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
     expect(notificationId).toBeTruthy();
 
     await firstUnread.locator("[data-portal-member-notification-link]").click();
-    await page.waitForURL(/\/me\/tickets\//, { timeout: 60_000 });
+    await page.waitForURL(
+      (url) => !url.pathname.endsWith("/me/notifications"),
+      { timeout: 60_000 }
+    );
 
     await gotoMemberNotificationsReady(page);
 
@@ -115,17 +122,27 @@ test.describe("portal member notifications — NOTIF-BQC", () => {
 
   test("NOTIF-BQC-04 ticketing notification deep-links to ticket detail", async ({ page }) => {
     await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+
+    const ticketsRes = await page.request.get("/api/me/tickets?limit=20");
+    expect(ticketsRes.ok(), await ticketsRes.text()).toBeTruthy();
+    const ticketsBody = (await ticketsRes.json()) as {
+      readonly ok?: boolean;
+      readonly list?: { readonly items?: ReadonlyArray<{ readonly id: string }> };
+    };
+    const ticketId = ticketsBody.list?.items?.[0]?.id;
+    expect(ticketId, "smoke member must have at least one ticket for deeplink proof").toBeTruthy();
+
     await gotoMemberNotificationsReady(page);
 
-    const ticketItem = page.locator('[data-portal-member-notification-source="ticketing"]').first();
-    await expect(ticketItem).toBeVisible();
+    const ticketItem = page
+      .locator(`[data-portal-member-notification-source="ticketing"] a[href="/me/tickets/${ticketId}"]`)
+      .first();
+    await expect(ticketItem).toBeVisible({ timeout: 30_000 });
 
-    const href = await ticketItem
-      .locator("[data-portal-member-notification-link]")
-      .getAttribute("href");
+    const href = await ticketItem.getAttribute("href");
     expect(href).toMatch(/^\/me\/tickets\/.+/);
 
-    await ticketItem.locator("[data-portal-member-notification-link]").click();
+    await ticketItem.click();
     await page.waitForURL(/\/me\/tickets\//, { timeout: 60_000 });
     await expect(
       page.locator("[data-portal-member-ticket-detail][data-client-ready='true']")
@@ -322,5 +339,73 @@ test.describe("portal member notifications — locale and auth", () => {
     await page.context().clearCookies();
     await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/login/, { timeout: 60_000 });
+  });
+});
+
+test.describe("portal member notifications — event matrix", () => {
+  test("NOTIF-BQC-16 booking event matrix renders source chips", async ({ page }) => {
+    ensurePortalSmokeEventMatrixNotifications("booking");
+    const matchers = getPortalSmokeEventMatrixMatchers("booking");
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
+
+    for (const matcher of matchers) {
+      await expect(
+        page
+          .locator('[data-portal-member-notification-source="booking"]')
+          .filter({ hasText: matcher })
+          .first()
+      ).toBeVisible({ timeout: 30_000 });
+    }
+    await expect(page.locator('[data-portal-member-notification-source="booking"]').first()).toBeVisible();
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-booking-event-matrix.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-17 finance event matrix renders source chips", async ({ page }) => {
+    ensurePortalSmokeEventMatrixNotifications("finance");
+    const matchers = getPortalSmokeEventMatrixMatchers("finance");
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
+
+    for (const matcher of matchers) {
+      await expect(
+        page
+          .locator('[data-portal-member-notification-source="finance"]')
+          .filter({ hasText: matcher })
+          .first()
+      ).toBeVisible({ timeout: 30_000 });
+    }
+    await expect(page.locator('[data-portal-member-notification-source="finance"]').first()).toBeVisible();
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-finance-event-matrix.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-18 ticketing event matrix renders source chips", async ({ page }) => {
+    ensurePortalSmokeEventMatrixNotifications("ticketing");
+    const matchers = getPortalSmokeEventMatrixMatchers("ticketing");
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
+
+    for (const matcher of matchers) {
+      await expect(
+        page
+          .locator('[data-portal-member-notification-source="ticketing"]')
+          .filter({ hasText: matcher })
+          .first()
+      ).toBeVisible({ timeout: 30_000 });
+    }
+    await expect(page.locator('[data-portal-member-notification-source="ticketing"]').first()).toBeVisible();
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-ticketing-event-matrix.png",
+      fullPage: true,
+    });
   });
 });

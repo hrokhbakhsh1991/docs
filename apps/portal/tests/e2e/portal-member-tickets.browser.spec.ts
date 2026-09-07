@@ -92,7 +92,7 @@ test.describe("portal member tickets — TKT-BQC walkthrough", () => {
     });
 
     const resolvedChip = page.getByTestId("portal-tickets-filter-resolved");
-    await expect(resolvedChip).toHaveAttribute("aria-pressed", "true");
+    await expect(resolvedChip).toHaveAttribute("aria-current", "page");
 
     await page.screenshot({
       path: "/opt/cursor/artifacts/bqc-tickets-filter-resolved.png",
@@ -307,7 +307,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     await resolvedChip.click();
 
     await page.waitForURL(/status=resolved/, { timeout: 60_000 });
-    await expect(resolvedChip).toHaveAttribute("aria-pressed", "true");
+    await expect(resolvedChip).toHaveAttribute("aria-current", "page");
 
     await page.screenshot({
       path: "/opt/cursor/artifacts/bqc-tickets-filter-chip-click.png",
@@ -335,6 +335,57 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
 
     await page.screenshot({
       path: "/opt/cursor/artifacts/bqc-tickets-form-validation.png",
+      fullPage: true,
+    });
+  });
+
+  test("TKT-BQC-08 attachment upload shows success state", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+    const ticketSubject = `TKT-BQC-ATTACH-${Date.now()}`;
+
+    await authenticatePortalMemberForTickets(page, {
+      phone,
+      fullName: "TKT BQC Attachment",
+    });
+
+    await page.locator("[data-portal-member-tickets-new-cta]").click();
+    await expect(page.locator("[data-portal-member-tickets-new-form][data-client-ready='true']")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.locator('select[name="categoryCode"]').selectOption("general");
+    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
+    await page.locator('textarea[name="body"]').pressSequentially("BQC attachment journey", { delay: 10 });
+
+    await Promise.all([
+      page.waitForResponse(
+        (res) => res.request().method() === "POST" && res.url().includes("/api/me/tickets"),
+        { timeout: 90_000 },
+      ),
+      page.locator('[data-portal-member-tickets-new-form] button[type="submit"]').click(),
+    ]);
+
+    await page.waitForURL(/\/me\/tickets\/[^/]+$/, { timeout: 90_000 });
+    await expect(
+      page.locator("[data-portal-member-ticket-detail][data-client-ready='true']"),
+    ).toBeVisible({ timeout: 90_000 });
+
+    const pngBuffer = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    await page.locator('[data-portal-member-ticket-attachment-field] input[type="file"]').setInputFiles({
+      name: "bqc-attachment.png",
+      mimeType: "image/png",
+      buffer: pngBuffer,
+    });
+    await page.locator("[data-portal-member-ticket-attachment-field] button").click();
+    await expect(page.locator("[data-portal-member-ticket-attachment-success]")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-tickets-attachment-success.png",
       fullPage: true,
     });
   });
