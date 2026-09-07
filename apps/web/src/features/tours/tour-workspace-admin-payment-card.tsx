@@ -174,7 +174,8 @@ export function TourWorkspaceAdminPaymentCard({
           })
         : null;
     setAmount(suggested ?? resolveSuggestedPaymentAmountMinor(invoice));
-    setCurrency(invoice.currency);
+    const invoiceCurrency = invoice.currency.trim();
+    setCurrency(invoiceCurrency.length >= 3 ? invoiceCurrency : "IRR");
   }, [amount, invoice, normalizedRegistrationId, tourCanonicalData]);
 
   const handleRecordAdminPayment = async (event: React.FormEvent<HTMLFormElement>) => {
