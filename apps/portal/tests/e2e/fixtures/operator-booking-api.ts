@@ -1,6 +1,6 @@
 /**
- * Operator booking API helpers for cross-surface portal BOOK-BQC tests.
- * Portal smoke stack does not start @apps/web — transitions use API directly (partial realness).
+ * Operator booking API helpers for cross-surface portal tests.
+ * Prefer operator-booking-ui.ts for BOOK-BQC real-e2e; keep API for narrow setup shortcuts.
  */
 import { expect, type APIRequestContext } from "@playwright/test";
 
