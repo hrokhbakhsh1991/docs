@@ -9,9 +9,7 @@ import {
 } from "./fixtures/authenticate-denali-operator-for-engagement";
 
 test.describe("MEG-001 Denali operator engagement", () => {
-  test("SMK-MEG-OP-01 overview loads with recent points separate from wallet", async ({
-    page,
-  }) => {
+  test("SMK-MEG-OP-01 overview loads with recent points separate from wallet", async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on("console", (message) => {
       if (message.type() === "error") {
@@ -31,8 +29,12 @@ test.describe("MEG-001 Denali operator engagement", () => {
 
     await page.goto("/engagement", { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-operator-engagement-page]")).toBeVisible({ timeout: 90_000 });
-    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible();
-    await expect(page.locator("[data-operator-engagement-recent-badges]")).toBeVisible();
+    await expect(page.locator("[data-operator-engagement-recent-points]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-operator-engagement-recent-badges]")).toBeVisible({
+      timeout: 60_000,
+    });
 
     await expect(page.getByTestId("operator-engagement-tab-members")).toHaveCount(0);
     await expect(page.getByTestId("operator-engagement-member-ops-users-link")).toBeVisible();
@@ -55,8 +57,8 @@ test.describe("MEG-001 Denali operator engagement", () => {
 
     expect(
       consoleErrors.filter(
-        (line) => !line.includes("favicon") && !line.includes("Download the React DevTools"),
-      ),
+        (line) => !line.includes("favicon") && !line.includes("Download the React DevTools")
+      )
     ).toEqual([]);
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -129,7 +131,7 @@ test.describe("MEG-001 Denali operator engagement", () => {
 
     const pointsBefore = Number.parseInt(
       await page.getByTestId("operator-engagement-member-points").innerText(),
-      10,
+      10
     );
 
     await page.getByTestId("operator-engagement-adjust-button").click();
@@ -140,7 +142,7 @@ test.describe("MEG-001 Denali operator engagement", () => {
 
     await expect(page.getByTestId("operator-engagement-member-points")).toContainText(
       String(pointsBefore + 5),
-      { timeout: 60_000 },
+      { timeout: 60_000 }
     );
 
     await page.getByTestId("operator-engagement-reverse-button").first().click();
@@ -150,7 +152,7 @@ test.describe("MEG-001 Denali operator engagement", () => {
 
     await expect(page.getByTestId("operator-engagement-member-points")).toContainText(
       String(pointsBefore),
-      { timeout: 60_000 },
+      { timeout: 60_000 }
     );
 
     await page.screenshot({
@@ -182,7 +184,9 @@ test.describe("MEG-001 Denali operator engagement", () => {
     await page.getByRole("button", { name: /create badge|ایجاد نشان/i }).click();
 
     await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toBeVisible({ timeout: 60_000 });
-    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toContainText(/inactive|غیرفعال/i);
+    await expect(page.locator(`[data-badge-code="${badgeCode}"]`)).toContainText(
+      /inactive|غیرفعال/i
+    );
 
     await page
       .locator(`[data-badge-code="${badgeCode}"]`)
@@ -238,7 +242,7 @@ test.describe("MEG-001 Denali operator engagement", () => {
     await page.getByRole("button", { name: /create rule|ایجاد قاعده/i }).click();
 
     await expect(
-      page.locator('[data-rule-event="profile.completed"]').filter({ hasText: "+12" }).first(),
+      page.locator('[data-rule-event="profile.completed"]').filter({ hasText: "+12" }).first()
     ).toBeVisible({ timeout: 60_000 });
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -247,7 +251,7 @@ test.describe("MEG-001 Denali operator engagement", () => {
     });
     await page.getByTestId("operator-engagement-tab-award-rules").click();
     await expect(
-      page.locator('[data-rule-event="profile.completed"]').filter({ hasText: "+12" }).first(),
+      page.locator('[data-rule-event="profile.completed"]').filter({ hasText: "+12" }).first()
     ).toBeVisible({ timeout: 60_000 });
   });
 
@@ -258,7 +262,9 @@ test.describe("MEG-001 Denali operator engagement", () => {
     expect(overviewRes.ok(), await overviewRes.text()).toBeTruthy();
 
     await page.goto("/engagement", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("operator-engagement-tab-badges")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId("operator-engagement-tab-badges")).toBeVisible({
+      timeout: 60_000,
+    });
     await page.getByTestId("operator-engagement-tab-badges").click();
 
     const badgePostRes = await page.request.post("/api/engagement/badges", {

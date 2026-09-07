@@ -1,8 +1,15 @@
 import { expect, type Page } from "@playwright/test";
 
 const SESSION_COOKIE = "atour_mb_session";
-const COOKIE_DOMAIN = "portal.operator.localhost";
 const DEV_OTP = "1234";
+
+function resolvePortalCookieUrl(): string {
+  return (
+    process.env.SMOKE_PORTAL_BASE_URL?.replace(/\/$/, "") ??
+    process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
+    "http://operator.portal.localhost:3003"
+  );
+}
 
 /**
  * Member session for portal ticketing smoke — BFF OTP + optional register-complete.
@@ -12,7 +19,7 @@ export async function authenticatePortalMemberForTickets(
   input: {
     readonly phone: string;
     readonly fullName: string;
-  },
+  }
 ): Promise<void> {
   await page.context().clearCookies();
 
@@ -62,8 +69,7 @@ export async function authenticatePortalMemberForTickets(
     {
       name: SESSION_COOKIE,
       value: sessionToken!,
-      domain: COOKIE_DOMAIN,
-      path: "/",
+      url: resolvePortalCookieUrl(),
       httpOnly: true,
       sameSite: "Lax",
     },
