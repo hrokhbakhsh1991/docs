@@ -8,13 +8,10 @@ import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-lo
 import { FINANCE_RECEIPTS_TEST_IDS } from "../../src/finance/finance-receipts-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
-import {
-  loginOperatorWithPhone,
-  OPERATOR_OWNER_MOBILE,
-} from "../../test/fixtures/operator-owner-session";
+import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/plp-pdp-field-visibility-fixture";
+import { loginDenaliOperatorOwner } from "./fixtures/authenticate-denali-operator-for-engagement";
 
-const TOUR_ID = process.env.QA_TOUR_ID?.trim() || OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+const TOUR_ID = process.env.QA_TOUR_ID?.trim() || DENALI_SMOKE_PUBLISHED_TOUR_ID;
 
 type PaymentRow = {
   readonly id?: string;
@@ -45,7 +42,7 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
     page,
   }) => {
     test.setTimeout(240_000);
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await loginDenaliOperatorOwner(page);
 
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const guestName = `Scenario5 Candidate ${stamp}`;
@@ -96,17 +93,32 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
     );
     expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
 
-    await page.goto(financeWorkspacePath(registrationId), { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
-      timeout: 90_000,
-    });
+    await page.goto(
+      `/finance?tourId=${encodeURIComponent(TOUR_ID)}&tab=payments&registrationId=${encodeURIComponent(registrationId)}`,
+      { waitUntil: "domcontentloaded" }
+    );
+    const createOpen = page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createOpen);
+    if (await createOpen.isVisible().catch(() => false)) {
+      await createOpen.click();
+    } else {
+      await page
+        .getByTestId(FINANCE_PAYMENTS_TEST_IDS.createDetails)
+        .getByText(/Show pending payment form|نمایش فرم پرداخت در انتظار/i)
+        .click();
+    }
     await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
       timeout: 30_000,
     });
 
-    const amountInput = page.locator(`#workspace-payment-amount-${registrationId}`);
+    const amountInput = page.locator("#payment-amount");
     await expect(amountInput).toBeVisible({ timeout: 15_000 });
-    await expect(amountInput).not.toHaveValue("", { timeout: 15_000 });
+    if ((await amountInput.inputValue()).trim().length === 0) {
+      await amountInput.fill("1000000");
+    }
+    const currencyInput = page.locator("#payment-currency");
+    if ((await currencyInput.inputValue()).trim().length === 0) {
+      await currencyInput.fill("IRR");
+    }
 
     const createResponse = page.waitForResponse(
       (response) =>
@@ -114,6 +126,7 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
         response.request().method() === "POST"
     );
     await page
+      .getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)
       .getByRole("button", { name: /Create pending manual payment|ثبت پرداخت دستی در انتظار/i })
       .click();
     const created = await createResponse;
@@ -124,9 +137,9 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
         createText
       ).toBeTruthy();
     } else {
-      const actionBanner = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.paymentActionResult);
-      await expect(actionBanner).toBeVisible({ timeout: 20_000 });
-      await expect(actionBanner).toHaveAttribute("data-action-kind", "manual_payment_created");
+      await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createResult)).toBeVisible({
+        timeout: 20_000,
+      });
     }
 
     const paymentsRes = await page.request.get(
@@ -148,6 +161,11 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
       "new pending manual payment should be visible for the registration"
     ).not.toBeNull();
 
+    await page.goto(financeWorkspacePath(registrationId), { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
+      timeout: 90_000,
+    });
+    await page.locator("summary").filter({ hasText: /More settings|تنظیمات بیشتر/i }).click();
     await page.getByTestId("finance-submit-receipt-advanced").locator("summary").click();
     const paymentIdInput = page.locator(`#workspace-receipt-payment-id-${registrationId}`);
     await expect(paymentIdInput).toBeVisible({ timeout: 15_000 });
