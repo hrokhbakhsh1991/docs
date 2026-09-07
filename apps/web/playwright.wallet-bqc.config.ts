@@ -19,7 +19,7 @@ export default defineConfig({
     navigationTimeout: 180_000,
   },
   webServer: {
-    command: "node scripts/smoke-operator-engagement-e2e-servers.mjs",
+    command: "node scripts/smoke-operator-wallet-bqc-servers.mjs",
     url: `${denaliOperatorBaseUrl}/auth/login`,
     reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
     timeout: 720_000,

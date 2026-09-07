@@ -103,26 +103,18 @@ test.describe("BQC Denali wallet operator states", () => {
       timeout: 60_000,
     });
 
-    if (await accountRow.isVisible()) {
-      await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-03-accounts-found.png");
-      await accountRow.click();
-      await expect(
-        page
-          .getByTestId(WALLET_OPS_TEST_IDS.balanceAmount)
-          .or(page.getByTestId(WALLET_OPS_TEST_IDS.loading)),
-      ).toBeVisible({ timeout: 60_000 });
-      await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-04-account-selected.png");
-      return;
-    }
-
-    if (await empty.isVisible()) {
-      await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-03-empty-accounts.png");
-      return;
-    }
-
     if (await loadError.isVisible()) {
       await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-03-api-error.png");
+      throw new Error("wallet accounts API returned error state");
     }
+
+    await expect(accountRow).toBeVisible({ timeout: 15_000 });
+    await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-03-accounts-found.png");
+    await accountRow.click();
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.balanceAmount)).toBeVisible({
+      timeout: 60_000,
+    });
+    await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-04-account-selected.png");
   });
 
   test("W04 credit dialog validation and cancel", async ({ page }) => {
@@ -134,19 +126,7 @@ test.describe("BQC Denali wallet operator states", () => {
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
 
     const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
-    const hasAccount = await accountRow
-      .waitFor({ state: "visible", timeout: 60_000 })
-      .then(() => true)
-      .catch(() => false);
-
-    if (!hasAccount) {
-      test.info().annotations.push({
-        type: "blocked",
-        description: "No wallet account — Postgres seed required for mutation dialog tests",
-      });
-      await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-04-mutations-blocked-no-account.png");
-      return;
-    }
+    await expect(accountRow).toBeVisible({ timeout: 60_000 });
 
     await accountRow.click();
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.creditButton)).toBeVisible({
@@ -176,15 +156,7 @@ test.describe("BQC Denali wallet operator states", () => {
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
 
     const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
-    const hasAccount = await accountRow
-      .waitFor({ state: "visible", timeout: 60_000 })
-      .then(() => true)
-      .catch(() => false);
-
-    if (!hasAccount) {
-      test.skip(true, "Postgres wallet seed required");
-      return;
-    }
+    await expect(accountRow).toBeVisible({ timeout: 60_000 });
 
     await accountRow.click();
     await page.getByTestId(WALLET_OPS_TEST_IDS.debitButton).click();
