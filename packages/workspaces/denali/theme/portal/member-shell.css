@@ -105,7 +105,64 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-marketing-header-toolbar] {
   display: flex;
   align-items: center;
+  gap: var(--space-1);
   min-width: 0;
+}
+
+/* Member notification bell — shell header */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-notification-bell] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--portal-pocket-touch, 2.75rem);
+  height: var(--portal-pocket-touch, 2.75rem);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-notification-bell]:hover {
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-bg-surface));
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-notification-bell]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-notification-bell]
+  svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-notification-badge] {
+  position: absolute;
+  inset-block-start: 0.25rem;
+  inset-inline-end: 0.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-bg-surface);
+  background: var(--color-primary);
+  color: var(--color-primary-fg, #fff);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

@@ -438,12 +438,26 @@
   },
   "notifications": {
     "title": "Notifications",
-    "lede": "Updates on your support tickets.",
+    "lede": "Updates on your trips, support tickets, wallet, and account.",
     "bellAria": "{count, plural, =0 {Notifications} one {# unread notification} other {# unread notifications}}",
     "loading": "Loading notifications…",
     "loadError": "Could not load notifications.",
     "retry": "Try again",
     "empty": "No notifications yet.",
-    "markAllRead": "Mark all as read"
+    "emptyTitle": "You're all caught up",
+    "emptyBody": "When something changes on your trips, tickets, or wallet, it will show up here.",
+    "markAllRead": "Mark all as read",
+    "markingAllRead": "Marking…",
+    "unreadSummary": "{count, plural, one {# unread} other {# unread}}",
+    "ticketUpdateBody": "Update for ticket {ticketRef}",
+    "genericUpdateBody": "You have a new update.",
+    "sources": {
+      "default": "Account",
+      "ticketing": "Support",
+      "wallet": "Wallet",
+      "finance": "Payments",
+      "engagement": "Rewards",
+      "booking": "Trips"
+    }
   }
 }

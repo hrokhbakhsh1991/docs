@@ -22,9 +22,14 @@ test.describe("portal ticket notifications — TKT-H1", () => {
         "[data-portal-member-notifications][data-portal-member-notifications-state='ready']"
       )
     ).toBeVisible({ timeout: 60_000 });
+    await expect(
+      page.locator(
+        "[data-portal-member-notifications-panel][data-portal-member-notifications-state='ready']"
+      )
+    ).toBeVisible({ timeout: 60_000 });
 
     await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-postgres-portal-notifications.png",
+      path: "/opt/cursor/artifacts/bqc-portal-notifications-redesign.png",
       fullPage: true,
     });
   });
