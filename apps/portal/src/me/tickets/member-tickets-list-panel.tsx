@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -27,6 +28,8 @@ const STATUS_FILTERS: readonly TicketStatusFilter[] = [
 
 export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
   const t = useTranslations("portalMember.tickets");
+  const router = useRouter();
+  const pathname = usePathname();
   const [list, setList] = useState(initialList);
   const [status, setStatus] = useState<TicketStatusFilter>(initialStatus);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -35,6 +38,7 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
   useEffect(() => {
     setList(initialList);
     setStatus(initialStatus);
+    setIsPending(false);
   }, [initialList, initialStatus]);
 
   const loadList = useCallback(async (nextStatus: TicketStatusFilter, cursor?: string | null) => {
@@ -72,8 +76,16 @@ export function MemberTicketsListPanel({ initialList, initialStatus }: Props) {
   }, []);
 
   const onFilterChange = (nextStatus: TicketStatusFilter) => {
-    setStatus(nextStatus);
-    void loadList(nextStatus);
+    if (nextStatus === status || isPending) {
+      return;
+    }
+    setIsPending(true);
+    const params = new URLSearchParams();
+    if (nextStatus.length > 0) {
+      params.set("status", nextStatus);
+    }
+    const query = params.toString();
+    router.push(query.length > 0 ? `${pathname}?${query}` : pathname);
   };
 
   return (

@@ -4,6 +4,7 @@
 import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
+import { ensurePortalSmokeDeeplinkNotification } from "./fixtures/ensure-portal-smoke-deeplink-notifications";
 import { ensurePortalSmokeMemberHasUnreadNotifications } from "./fixtures/ensure-portal-smoke-member-has-unread-notifications";
 import {
   fetchUnreadNotificationCount,
@@ -245,5 +246,80 @@ test.describe("portal member notifications — isolated member", () => {
 
     const unread = await fetchUnreadNotificationCount(page);
     expect(unread).toBe(0);
+  });
+});
+
+test.describe("portal member notifications — deep links", () => {
+  test("NOTIF-BQC-09 wallet notification deep-links to wallet page", async ({ page }) => {
+    ensurePortalSmokeDeeplinkNotification("wallet");
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
+
+    const walletItem = page.locator('[data-portal-member-notification-source="wallet"]').first();
+    await expect(walletItem).toBeVisible({ timeout: 30_000 });
+
+    const href = await walletItem.locator("[data-portal-member-notification-link]").getAttribute("href");
+    expect(href).toBe("/me/wallet");
+
+    await walletItem.locator("[data-portal-member-notification-link]").click();
+    await page.waitForURL(/\/me\/wallet/, { timeout: 60_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-wallet-deeplink.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-10 booking notification deep-links to registrations page", async ({ page }) => {
+    ensurePortalSmokeDeeplinkNotification("booking");
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await gotoMemberNotificationsReady(page);
+
+    const bookingItem = page.locator('[data-portal-member-notification-source="booking"]').first();
+    await expect(bookingItem).toBeVisible({ timeout: 30_000 });
+
+    const href = await bookingItem.locator("[data-portal-member-notification-link]").getAttribute("href");
+    expect(href).toBe("/me/registrations");
+
+    await bookingItem.locator("[data-portal-member-notification-link]").click();
+    await page.waitForURL(/\/me\/registrations/, { timeout: 60_000 });
+    await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({ timeout: 90_000 });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-booking-deeplink.png",
+      fullPage: true,
+    });
+  });
+});
+
+test.describe("portal member notifications — locale and auth", () => {
+  test("NOTIF-BQC-11 English LTR inbox layout", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "en",
+        domain: "operator.portal.localhost",
+        path: "/",
+      },
+    ]);
+
+    await authenticatePortalMemberForTickets(page, { phone: MEMBER_PHONE, fullName: MEMBER_NAME });
+    await ensurePortalSmokeMemberHasUnreadNotifications(page);
+    await gotoMemberNotificationsReady(page);
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    await expect(page.locator("h1")).toContainText(/notification/i);
+    await expect(page.locator("[data-portal-member-notifications-toolbar]")).toBeVisible();
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-notifications-inbox-english-ltr.png",
+      fullPage: true,
+    });
+  });
+
+  test("NOTIF-BQC-20 unauthenticated user redirected from notifications", async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto("/me/notifications", { waitUntil: "domcontentloaded" });
+    await expect(page).toHaveURL(/\/login/, { timeout: 60_000 });
   });
 });

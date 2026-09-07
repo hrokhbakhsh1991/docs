@@ -4,6 +4,10 @@
 import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForTickets } from "./fixtures/authenticate-portal-member-for-tickets";
+import {
+  readMemberTicketRowVersion,
+  resolveTicketForSmoke,
+} from "./fixtures/resolve-ticket-for-smoke";
 
 const SMOKE_MEMBER_PHONE = "+15550001003";
 const SMOKE_MEMBER_NAME = "Smoke Member";
@@ -205,5 +209,108 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     await expect(
       page.locator(`[data-portal-member-ticket-subject]:has-text("${ticketSubject}")`),
     ).toBeVisible();
+  });
+
+  test("TKT-BQC-05 reopen resolved ticket from detail page", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+    const ticketSubject = `TKT-BQC-REOPEN-${Date.now()}`;
+
+    await authenticatePortalMemberForTickets(page, {
+      phone,
+      fullName: "TKT BQC Reopen Member",
+    });
+
+    await page.goto("/me/tickets/new", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-tickets-new-form]")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.locator('select[name="categoryCode"]').selectOption("general");
+    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
+    await page.locator('textarea[name="body"]').pressSequentially("BQC reopen journey", { delay: 10 });
+
+    await Promise.all([
+      page.waitForResponse(
+        (res) => res.request().method() === "POST" && res.url().includes("/api/me/tickets"),
+        { timeout: 90_000 },
+      ),
+      page.locator('[data-portal-member-tickets-new-form] button[type="submit"]').click(),
+    ]);
+
+    await page.waitForURL(/\/me\/tickets\/[^/]+$/, { timeout: 90_000 });
+    const ticketId = page.url().split("/").pop() ?? "";
+    const rowVersion = await readMemberTicketRowVersion(page.request, ticketId);
+    await resolveTicketForSmoke(page.request, ticketId, rowVersion);
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-ticket-status][data-status='resolved']")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const reopenButton = page.getByRole("button", { name: "بازگشایی درخواست" });
+    await Promise.all([
+      page.waitForResponse(
+        (res) => res.request().method() === "POST" && res.url().includes("/reopen") && res.ok(),
+        { timeout: 60_000 },
+      ),
+      reopenButton.click(),
+    ]);
+
+    await expect(page.locator("[data-portal-member-ticket-status][data-status='open']")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-tickets-reopened-detail.png",
+      fullPage: true,
+    });
+  });
+
+  test("TKT-BQC-06 filter chip click updates URL and active chip", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await authenticatePortalMemberForTickets(page, {
+      phone: SMOKE_MEMBER_PHONE,
+      fullName: SMOKE_MEMBER_NAME,
+    });
+
+    await page.goto("/me/tickets", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator("[data-portal-member-tickets][data-portal-member-tickets-state='ready']"),
+    ).toBeVisible({ timeout: 90_000 });
+
+    const resolvedChip = page.getByTestId("portal-tickets-filter-resolved");
+    await resolvedChip.click();
+
+    await page.waitForURL(/status=resolved/, { timeout: 60_000 });
+    await expect(resolvedChip).toHaveAttribute("aria-pressed", "true");
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-tickets-filter-chip-click.png",
+      fullPage: true,
+    });
+  });
+
+  test("TKT-BQC-07 new ticket form shows validation errors for empty submit", async ({ page }) => {
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+    await authenticatePortalMemberForTickets(page, {
+      phone,
+      fullName: "TKT BQC Validation",
+    });
+
+    await page.goto("/me/tickets/new", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-tickets-new-form][data-client-ready='true']")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await page.locator('[data-portal-member-tickets-new-form] button[type="submit"]').click();
+    await expect(page.locator("[data-portal-member-tickets-new-form] [role='alert']").first()).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await page.screenshot({
+      path: "/opt/cursor/artifacts/bqc-tickets-form-validation.png",
+      fullPage: true,
+    });
   });
 });

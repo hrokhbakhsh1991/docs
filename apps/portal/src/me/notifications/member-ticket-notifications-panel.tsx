@@ -52,10 +52,10 @@ function resolveNotificationHref(item: NotificationItem): string {
     }
   }
   if (item.entityType === "registration") {
-    return "/me/bookings";
+    return "/me/registrations";
   }
   if (item.entityType === "payment") {
-    return "/me/bookings";
+    return "/me/registrations";
   }
   if (item.entityType === "wallet_event") {
     return "/me/wallet";
