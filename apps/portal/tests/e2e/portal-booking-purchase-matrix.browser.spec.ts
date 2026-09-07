@@ -15,8 +15,9 @@ import {
   operatorRejectBooking,
 } from "./fixtures/operator-booking-api";
 import {
+  attachMemberReceiptFile,
   fetchMemberRegistrationId,
-  minimalReceiptPngBuffer,
+  submitMemberReceiptUpload,
 } from "./fixtures/portal-member-registration-api";
 import {
   openMemberRegistrationDetailById,
@@ -129,23 +130,8 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       timeout: 60_000,
     });
 
-    const fileInput = page.locator("#receipt-file");
-    await fileInput.setInputFiles({
-      name: "bqc-receipt.png",
-      mimeType: "image/png",
-      buffer: minimalReceiptPngBuffer(),
-    });
-
-    const [uploadResponse] = await Promise.all([
-      page.waitForResponse(
-        (res) =>
-          res.request().method() === "POST" &&
-          res.url().includes(`/api/me/registrations/${registrationId}/receipt`),
-        { timeout: 90_000 },
-      ),
-      page.locator("[data-portal-member-receipt-submit]").click(),
-    ]);
-    expect(uploadResponse.ok(), await uploadResponse.text()).toBeTruthy();
+    await attachMemberReceiptFile(page);
+    await submitMemberReceiptUpload(page, registrationId);
 
     await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
       timeout: 60_000,
