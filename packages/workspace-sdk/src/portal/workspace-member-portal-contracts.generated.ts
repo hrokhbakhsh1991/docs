@@ -114,6 +114,14 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
           labelKey: "tickets",
         }),
       }),
+      Object.freeze({
+        id: "engagement",
+        routePath: "/me/engagement",
+        nav: Object.freeze({
+          tier: "secondary",
+          labelKey: "engagement",
+        }),
+      }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "finance-ws2": Object.freeze({ availability: "off" as const }),

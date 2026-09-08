@@ -783,6 +783,11 @@
         "id": "tickets",
         "routePath": "/me/tickets",
         "nav": { "tier": "primary", "labelKey": "tickets" }
+      },
+      {
+        "id": "engagement",
+        "routePath": "/me/engagement",
+        "nav": { "tier": "secondary", "labelKey": "engagement" }
       }
     ]
   },
