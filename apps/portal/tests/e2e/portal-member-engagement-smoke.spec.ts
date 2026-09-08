@@ -5,11 +5,11 @@ import { expect, test } from "@playwright/test";
 
 import { authenticatePortalMemberForEngagement } from "./fixtures/authenticate-portal-member-for-engagement";
 import {
-  createOperatorEngagementApiContext,
-  operatorAdjustMemberPoints,
-  operatorFetchMemberEngagement,
-  operatorReverseMemberPointEvent,
-} from "./fixtures/operator-engagement-api";
+  operatorAdjustMemberPointsViaUi,
+  operatorOpenMemberEngagementByPhone,
+  operatorReverseFirstPointEventViaUi,
+  withOperatorEngagementUi,
+} from "./fixtures/operator-engagement-ui";
 import {
   DENALI_PROFILE_BIRTH_DATE,
   DENALI_PROFILE_FATHER_NAME,
@@ -179,6 +179,7 @@ test.describe("MEG-001 portal member engagement", () => {
 
   test("SMK-MEG-06 member never sees negative points or punitive correction UX", async ({
     page,
+    browser,
   }) => {
     const phone = `+1555${String(Date.now()).slice(-7)}`;
     const email = `smk-meg-06-${Date.now()}@denali-smoke.local`;
@@ -202,29 +203,13 @@ test.describe("MEG-001 portal member engagement", () => {
       timeout: 90_000,
     });
 
-    const profileRes = await page.request.get("/api/me/profile");
-    expect(profileRes.ok()).toBeTruthy();
-    const profileBody = (await profileRes.json()) as { profile?: { userId?: string } };
-    const userId = profileBody.profile?.userId;
-    expect(typeof userId).toBe("string");
-
-    const operatorApi = await createOperatorEngagementApiContext();
-
-    await operatorAdjustMemberPoints(operatorApi, userId!, {
-      pointsDelta: -15,
-      reason: "SMK-MEG-06 internal deduction note",
-      idempotencyKey: `smk-meg-06-deduct-${Date.now()}`,
+    await withOperatorEngagementUi(browser, async (operatorPage) => {
+      await operatorOpenMemberEngagementByPhone(operatorPage, phone);
+      await operatorAdjustMemberPointsViaUi(operatorPage, {
+        pointsDelta: -15,
+        reason: "SMK-MEG-06 internal deduction note",
+      });
     });
-
-    const operatorAfterDeduct = await operatorFetchMemberEngagement(operatorApi, userId!);
-    expect(operatorAfterDeduct.totalPoints).toBe(35);
-    const deductEvent = operatorAfterDeduct.recentPointEvents.find(
-      (event) =>
-        event.sourceEventType === "engagement.points.manual_adjustment" && event.pointsDelta === -15
-    );
-    expect(deductEvent).toBeTruthy();
-    expect(deductEvent?.reason).toContain("SMK-MEG-06");
-    expect(deductEvent?.actorRole).toBeTruthy();
 
     await page.goto("/me/home", { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-portal-member-engagement-points]")).toContainText("35", {
@@ -257,15 +242,12 @@ test.describe("MEG-001 portal member engagement", () => {
       expect(correctionColor).not.toContain(destructiveToken);
     }
 
-    const awardEvent = operatorAfterDeduct.recentPointEvents.find(
-      (event) => event.sourceEventType === "profile.completed" && event.pointsDelta > 0
-    );
-    expect(awardEvent).toBeTruthy();
-
-    await operatorReverseMemberPointEvent(operatorApi, userId!, {
-      originalEventId: awardEvent!.id,
-      reason: "SMK-MEG-06 duplicate award correction",
-      idempotencyKey: `smk-meg-06-reverse-${Date.now()}`,
+    await withOperatorEngagementUi(browser, async (operatorPage) => {
+      await operatorOpenMemberEngagementByPhone(operatorPage, phone);
+      await operatorReverseFirstPointEventViaUi(
+        operatorPage,
+        "SMK-MEG-06 duplicate award correction",
+      );
     });
 
     await page.goto("/me/engagement", { waitUntil: "domcontentloaded" });

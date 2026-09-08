@@ -6,11 +6,18 @@ import { expect, test } from "@playwright/test";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
 import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
+import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../src/features/bookings/bookings-command-center-types";
 import {
   loginDenaliOperatorOwner,
   loginDenaliOperatorViewer,
 } from "./fixtures/authenticate-denali-operator-for-engagement";
-import { DENALI_PUBLISHED_TOUR_ID } from "./fixtures/operator-booking-desk";
+import {
+  clickApproveAndWait,
+  DENALI_PUBLISHED_TOUR_ID,
+  loginDenaliBookings,
+  selectBookingByGuest,
+  seedDenaliGuestRegistration,
+} from "./fixtures/operator-booking-desk";
 
 async function captureGapArtifact(page: import("@playwright/test").Page, path: string): Promise<void> {
   try {
@@ -82,37 +89,21 @@ test.describe("operator gap audit — GAP-BQC", () => {
 
   test("GAP-RECEIPT-01 workspace finance payment recording", async ({ page }) => {
     test.setTimeout(300_000);
-    await loginDenaliOperatorOwner(page);
     const stamp = Date.now();
     const guestName = `GAP Receipt ${stamp}`;
 
-    const tourRes = await page.request.get(
-      `/api/tours/${encodeURIComponent(DENALI_PUBLISHED_TOUR_ID)}`,
-    );
-    expect(tourRes.ok(), await tourRes.text()).toBeTruthy();
-    const tourBody = (await tourRes.json()) as {
-      projection?: { title?: string; departureAt?: string };
-    };
-
-    const createRes = await page.request.post("/api/bookings", {
-      headers: { "content-type": "application/json" },
-      data: {
-        tourId: DENALI_PUBLISHED_TOUR_ID,
-        tourTitle: tourBody.projection?.title ?? "North Ridge Trek",
-        guestLabel: guestName,
-        guestEmail: `gap-receipt-${stamp}@denali.local`,
-        guestPhone: `+1555${String(stamp).slice(-10)}`,
-        partySize: 1,
-        departureAt: tourBody.projection?.departureAt ?? "2026-12-25T08:00:00.000Z",
-        registrationIntake: { registrantTarget: "other" },
-      },
+    await loginDenaliBookings(page);
+    const registrationId = await seedDenaliGuestRegistration(page, {
+      guestName,
+      email: `gap-receipt-${stamp}@denali.local`,
     });
-    expect(createRes.ok(), await createRes.text()).toBeTruthy();
-    const registrationId = ((await createRes.json()) as { id?: string }).id?.trim() ?? "";
-    expect(registrationId.length).toBeGreaterThan(0);
 
-    const approveRes = await page.request.post(`/api/bookings/${registrationId}/approve`);
-    expect(approveRes.ok(), await approveRes.text()).toBeTruthy();
+    await page.goto("/bookings", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
+      timeout: 60_000,
+    });
+    await selectBookingByGuest(page, guestName, registrationId);
+    await clickApproveAndWait(page, registrationId);
 
     const overrideRes = await page.request.put(
       `/api/finance/registrations/${registrationId}/obligation-override`,
