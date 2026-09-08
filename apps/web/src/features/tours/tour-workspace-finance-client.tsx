@@ -262,6 +262,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     };
   }, []);
 
+  const degradedSeparator = locale === "fa" ? "، " : ", ";
   const rollup = useMemo(() => pickTourCollectionRollup(tours, tourId), [tourId, tours]);
   const inbox = useMemo(
     () =>
@@ -271,6 +272,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
       }),
     [outstanding, receipts]
   );
+
+  const showFinanceDegradedBanner =
+    !panelBlocking &&
+    financeDegradedSections.length > 0 &&
+    !(followUpList.rosterDegraded && followUpList.loading) &&
+    (loadSucceeded || followUpList.rosterDegraded);
 
   const clearFocusFromUrl = useCallback(() => {
     if (!searchParams.has(WORKSPACE_FOCUS_REGISTRATION_QUERY_KEY)) {
@@ -963,7 +970,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </p>
         ) : null}
 
-        {!panelBlocking && loadSucceeded && financeDegradedSections.length > 0 ? (
+        {showFinanceDegradedBanner ? (
           <div
             className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm"
             role="status"
@@ -975,7 +982,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
               {t("degradedAffected", {
                 sections: financeDegradedSections
                   .map((section) => degradedSectionLabel(t, section))
-                  .join("، "),
+                  .join(degradedSeparator),
               })}
             </p>
             {followUpList.error !== null ? (

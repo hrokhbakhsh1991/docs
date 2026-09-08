@@ -86,12 +86,15 @@ Implementation: `apps/api/src/roster/operational-roster-enrichment.ts` (`enrichO
 | Unit | `test/dp2/operational-roster-projection.spec.ts` — ≥12 approved rows under `TENANT_MAX_CONCURRENT_DB_OPS=4` |
 | Unit | `test/dp2/operational-roster-enrichment.spec.ts` — enrichment module contract |
 | DP-2 script | `scripts/test-dp2-operational-roster.sh` — `guard:operational-roster-budget` + denali + api dp2/* + web roster contract |
+| Web | `apps/web/test/tour-workspace-payment-follow-up-load.spec.ts` — roster 503 keeps pending follow-up rows |
 
 This keeps peak tenant DB ops ≤4 for a single roster request without raising staging caps.
 
 ## Operator UI
 
 Tour workspace **transport** tab consumes the roster endpoint and renders payment + deadline + final-participant indicator alongside transport columns (no new dashboard).
+
+**Finance follow-up** (`useTourWorkspacePaymentFollowUpList`) merges pending bookings (`/api/bookings?status=pending`) with the operational roster. Fetches use `Promise.allSettled` so a roster outage (for example **503** `TENANT_DB_BUDGET_EXCEEDED`) does **not** clear pending rows. When roster fails but pending succeeds, the finance tab shows a degraded banner (`rosterDegraded`) and keeps actionable pending approvals visible. Resolver: `apps/web/src/features/tours/tour-workspace-payment-follow-up-load.ts` (`resolvePaymentFollowUpLoadOutcome`).
 
 ## Events
 
