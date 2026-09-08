@@ -743,7 +743,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     );
     const messages = readFileSync(join(process.cwd(), "messages/en/tours.json"), "utf8");
     assert.match(client, /TOUR_WORKSPACE_FINANCE_TEST_IDS\.degraded/);
-    assert.match(client, /degradedSections\.length > 0/);
+    assert.match(client, /showFinanceDegradedBanner/);
+    assert.match(client, /financeDegradedSections/);
     assert.match(client, /degradedSectionLabel/);
     assert.match(messages, /"degradedTitle": "Some tour finance data is temporarily incomplete\./);
     assert.match(messages, /"degradedReceipts": "receipt queue"/);

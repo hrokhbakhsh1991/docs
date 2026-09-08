@@ -34,10 +34,11 @@ test.describe("denali-workspace-finance-inbox.spec.ts — H-11", () => {
       timeout: 30_000,
     });
     await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.panel)).toBeVisible();
-    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.rollup)).toBeVisible();
+    const rollup = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.rollup);
+    const settled = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled);
+    await expect(rollup.or(settled)).toBeAttached({ timeout: 20_000 });
 
     const filters = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.filters);
-    const settled = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled);
     await expect(filters.or(settled)).toBeVisible({ timeout: 20_000 });
 
     const guestList = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.guestList);
@@ -50,8 +51,9 @@ test.describe("denali-workspace-finance-inbox.spec.ts — H-11", () => {
         .or(settled)
     ).toBeVisible({ timeout: 20_000 });
 
-    // Hub escape exists when panel loaded (footer always renders after load).
-    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.openHub)).toBeVisible();
+    // Hub escape lives in compact rollup footer when actionable finance rows exist.
+    const openHub = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.openHub);
+    await expect(openHub.or(settled)).toBeAttached({ timeout: 20_000 });
   });
 
   test("finance focusRegistrationId miss shows fail-soft case link", async ({ page }) => {
