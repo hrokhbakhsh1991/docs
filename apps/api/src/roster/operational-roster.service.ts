@@ -2,7 +2,6 @@
  * DP-2 — tour operational roster service (composed projection).
  */
 import {
-  composeTourOperationalRosterRow,
   filterOperationalRosterRows,
   type OperationalRosterListQuery,
   type OperationalRosterListResponse,
@@ -13,6 +12,7 @@ import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service.ts"
 import { listBookings } from "../bookings/create-bookings-service.ts";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import { getPaymentHoldRepository } from "../finance/payment-hold.repository.ts";
+import { enrichOperationalRosterRowsBudgetSafe } from "./operational-roster-enrichment.ts";
 
 function toFinanceAuth(auth: BookingActorContext): FinanceActorContext {
   return {
@@ -45,50 +45,12 @@ export async function listTourOperationalRoster(
   const holdRepo = getPaymentHoldRepository();
   const nowIso = new Date().toISOString();
 
-  // Sequential per booking — parallel page-wide composition exceeded DEC-055 tenant DB budget.
-  const composed = [];
-  for (const booking of bookings.items) {
-    let invoice: {
-      readonly remainingMinor: string;
-      readonly paidAmountMinor: string;
-      readonly invoiceTotalMinor: string;
-      readonly currency: string;
-    } | null = null;
-    let refundStatuses: string[] = [];
-    try {
-      const [compiled, refunds] = await Promise.all([
-        finance.getRegistrationInvoice(financeAuth, booking.id),
-        finance.listRefundsForRegistration(financeAuth, booking.id),
-      ]);
-      invoice = {
-        remainingMinor: compiled.remainingMinor,
-        paidAmountMinor: compiled.paidAmountMinor,
-        invoiceTotalMinor: compiled.invoiceTotalMinor,
-        currency: compiled.currency,
-      };
-      refundStatuses = refunds.map((row) => row.status);
-    } catch {
-      invoice = null;
-      refundStatuses = [];
-    }
-
-    const hold = await holdRepo.getByRegistrationId(auth.tenantId, booking.id);
-    composed.push(
-      composeTourOperationalRosterRow({
-        booking,
-        invoice,
-        hold:
-          hold !== null
-            ? {
-                status: hold.status,
-                dueAt: hold.dueAt,
-              }
-            : null,
-        refundStatuses,
-        nowIso,
-      })
-    );
-  }
+  const composed = await enrichOperationalRosterRowsBudgetSafe(
+    auth,
+    bookings.items,
+    { finance, financeAuth, holdRepo },
+    nowIso
+  );
 
   const filtered = filterOperationalRosterRows({
     rows: composed,

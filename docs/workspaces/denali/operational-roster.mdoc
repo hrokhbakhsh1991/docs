@@ -74,7 +74,18 @@ Roster rows are composed **sequentially per booking** (not `Promise.all` across 
 | ----- | ----------- |
 | Bookings list fetch | One `listBookings` call |
 | Per-row Finance/hold enrichment | Sequential `for` over `bookings.items` |
-| Inner invoice + refunds + hold for one row | Parallel `Promise.all` (≤3 slots) |
+| Inner invoice + refunds + hold for one row | Sequential awaits (≤1 slot at a time) |
+
+Implementation: `apps/api/src/roster/operational-roster-enrichment.ts` (`enrichOperationalRosterRowsBudgetSafe`). `operational-roster.service.ts` must delegate to it — enforced by `guard-operational-roster-budget.mjs`.
+
+### Regression prevention
+
+| Layer | Guard |
+| ----- | ----- |
+| Static | `pnpm --filter @apps/api run guard:operational-roster-budget` — forbids page-wide `Promise.all(bookings.items.map)` and `Promise.all` inside enrichment |
+| Unit | `test/dp2/operational-roster-projection.spec.ts` — ≥12 approved rows under `TENANT_MAX_CONCURRENT_DB_OPS=4` |
+| Unit | `test/dp2/operational-roster-enrichment.spec.ts` — enrichment module contract |
+| DP-2 script | `scripts/test-dp2-operational-roster.sh` — denali + api dp2/* + web roster contract |
 
 This keeps peak tenant DB ops ≤4 for a single roster request without raising staging caps.
 
