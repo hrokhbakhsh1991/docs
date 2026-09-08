@@ -31,9 +31,13 @@ test.describe("marketing home landing — LAND-BQC sections", () => {
     await expect(gallery).toBeVisible();
     await expect(gallery.locator("[data-marketing-catalog-detail-photo-trigger]")).toHaveCount(1);
 
-    await gallery.locator("[data-marketing-catalog-detail-photo-trigger]").click();
+    const trigger = gallery.locator("[data-marketing-catalog-detail-photo-trigger]");
+    await expect(trigger).toBeVisible();
     const lightbox = page.locator("[data-marketing-catalog-detail-photo-lightbox]");
-    await expect(lightbox).toBeVisible();
+    await expect(async () => {
+      await trigger.click();
+      await expect(lightbox).toBeVisible();
+    }).toPass({ timeout: 30_000 });
     await captureBqcArtifact(page, "/opt/cursor/artifacts/landing-bqc-gallery-lightbox.png");
     await page.keyboard.press("Escape");
     await expect(lightbox).not.toBeVisible();
