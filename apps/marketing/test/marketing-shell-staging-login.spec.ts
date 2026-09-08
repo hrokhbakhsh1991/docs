@@ -33,12 +33,12 @@ describe("marketing shell — Profile B staging login egress", () => {
       portal: process.env.PORTAL_PUBLIC_BASE_URL,
     };
     process.env.PUBLIC_TENANT_FALLBACK_LABEL = "denali";
-    process.env.PUBLIC_TENANT_FALLBACK_HOSTS = "89.45.89.206";
-    process.env.PORTAL_PUBLIC_BASE_URL = "http://89.45.89.206:23003";
+    process.env.PUBLIC_TENANT_FALLBACK_HOSTS = "89.42.210.252";
+    process.env.PORTAL_PUBLIC_BASE_URL = "http://89.42.210.252:23003";
 
     try {
-      assert.equal(resolveIngressPluginId("89.45.89.206:23002"), "denali");
-      assert.match(resolvePortalMemberLoginUrl("89.45.89.206:23002") ?? "", /\/login\?/);
+      assert.equal(resolveIngressPluginId("89.42.210.252:23002"), "denali");
+      assert.match(resolvePortalMemberLoginUrl("89.42.210.252:23002") ?? "", /\/login\?/);
     } finally {
       if (previous.label === undefined) delete process.env.PUBLIC_TENANT_FALLBACK_LABEL;
       else process.env.PUBLIC_TENANT_FALLBACK_LABEL = previous.label;

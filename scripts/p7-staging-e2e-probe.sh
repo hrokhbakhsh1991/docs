@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -140,13 +140,7 @@ do
 done
 grep -q OPERATOR_SMOKE_PENDING_BOOKING_SEED_OK /tmp/p7-e2e-seed-post-restart.log
 
-MKT_ENV="\${ENV_DIR}/marketing.env"
-PORTAL_BASE="http://operator.portal.localhost:${PTL_PORT}"
-if grep -q '^PORTAL_PUBLIC_BASE_URL=' "\$MKT_ENV"; then
-  sed -i "s|^PORTAL_PUBLIC_BASE_URL=.*|PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}|" "\$MKT_ENV"
-else
-  echo "PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}" >> "\$MKT_ENV"
-fi
+ENV_DIR="\${ENV_DIR}" bash "\${DEPLOY_PATH}/scripts/vps-deploy/sync-staging-profile-b-public-urls.sh"
 systemctl restart app-tour-staging-marketing app-tour-staging-portal
 sleep 2
 systemctl is-active app-tour-staging-marketing app-tour-staging-portal

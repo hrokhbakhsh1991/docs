@@ -50,15 +50,15 @@ Verify: [p7-0-local-stack.md](../runbooks/p7-0-local-stack.md)
 | `TOUR_OPS_PUBLIC_FALLBACK_HOSTS` | — | VPS IP | VPS IP | VPS IP |
 | `SESSION_COOKIE_SECURE` | — | `false` | — | `false` |
 
-Public URLs (example IP `89.45.89.206`):
+Public URLs (example IP `89.42.210.252`):
 
 | Surface | URL |
 | ------- | --- |
-| Admin | `http://89.45.89.206:3000/auth/login` |
-| Marketing | `http://89.45.89.206:3002/tours` |
-| Portal | `http://89.45.89.206:3003` |
+| Admin | `http://89.42.210.252:3000/auth/login` |
+| Marketing | `http://89.42.210.252:3002/tours` |
+| Portal | `http://89.42.210.252:3003` |
 
-Host bind smoke: `TOUR_OPS_API_URL=http://89.45.89.206:3001 node scripts/smoke-p6-host-bind.mjs`
+Host bind smoke: `TOUR_OPS_API_URL=http://89.42.210.252:3001 node scripts/smoke-p6-host-bind.mjs`
 
 ---
 

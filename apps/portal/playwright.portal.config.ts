@@ -29,6 +29,7 @@ export default defineConfig({
     "portal-registration-resume-smoke.spec.ts",
     "portal-member-profile-smoke.spec.ts",
     "portal-member-smoke.spec.ts",
+    "portal-profile-ssr-cookie-fix.spec.ts",
   ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,

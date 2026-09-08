@@ -2,7 +2,7 @@
 # P7-3-N-002 — T3 finance-ops on staging Postgres (~30s)
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"

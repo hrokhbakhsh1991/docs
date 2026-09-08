@@ -50,7 +50,7 @@ export PW_NO_REUSE_SERVER=1
 
 ## Profile B — VPS IP (copy-paste)
 
-Replace `VPS_IP` (example `89.45.89.206`). API must accept host bind for fallback tenant.
+Replace `VPS_IP` (example `89.42.210.252`). API must accept host bind for fallback tenant.
 
 ### Profile B-staging — isolated stack (230xx ports)
 
@@ -68,7 +68,7 @@ Manual equivalent (keep tunnel open in another terminal):
 ssh -N -L 127.0.0.1:23000:127.0.0.1:23000 \
        -L 127.0.0.1:23001:127.0.0.1:23001 \
        -L 127.0.0.1:23002:127.0.0.1:23002 \
-       -L 127.0.0.1:23003:127.0.0.1:23003 root@89.45.89.206
+       -L 127.0.0.1:23003:127.0.0.1:23003 root@89.42.210.252
 export VPS_IP=127.0.0.1
 export TOUR_OPS_API_URL=http://127.0.0.1:23001
 export PW_EXTERNAL_SERVERS=1
@@ -83,7 +83,7 @@ export SMOKE_PORTAL_BASE_URL=http://operator.portal.localhost:23003
 ### Profile B — prod-reference ports (3000–3003)
 
 ```bash
-export VPS_IP=89.45.89.206
+export VPS_IP=89.42.210.252
 export TOUR_OPS_API_URL=http://${VPS_IP}:3001
 export PW_EXTERNAL_SERVERS=1
 export PW_NO_REUSE_SERVER=1

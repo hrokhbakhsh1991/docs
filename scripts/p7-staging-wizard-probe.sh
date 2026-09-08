@@ -3,7 +3,7 @@
 # Runs on VPS via SSH: OTP login → session → /tours/new HTTP check
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
 WEB="http://127.0.0.1:${WEB_PORT}"
