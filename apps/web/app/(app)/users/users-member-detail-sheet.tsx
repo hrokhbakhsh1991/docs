@@ -224,7 +224,7 @@ export function UsersMemberDetailSheet({
   }, [open, activeUser, reloadToken, loadMemberDetail]);
 
   if (activeUser === null) {
-    return null;
+    return <Sheet open={false} onOpenChange={onOpenChange} />;
   }
 
   const manageable = canManageUserRow(session.role, session.userId, activeUser);
