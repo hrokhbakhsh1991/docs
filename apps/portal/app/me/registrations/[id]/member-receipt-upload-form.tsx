@@ -124,6 +124,7 @@ export function MemberReceiptUploadForm({
   const t = useTranslations("portalMember.receipt");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
+  const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(null);
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
@@ -147,11 +148,28 @@ export function MemberReceiptUploadForm({
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    replaceLocalPreview(event.target.files?.[0]);
+    const file = event.target.files?.[0];
+    setSelectedFile(file);
+    replaceLocalPreview(file);
+  }
+
+  function resolveSelectedReceiptFile(): File | undefined {
+    if (selectedFile !== undefined) {
+      return selectedFile;
+    }
+    const fromRef = fileInputRef.current?.files?.[0];
+    if (fromRef !== undefined) {
+      return fromRef;
+    }
+    const fromDom = document.getElementById("receipt-file");
+    if (fromDom instanceof HTMLInputElement) {
+      return fromDom.files?.[0];
+    }
+    return undefined;
   }
 
   async function uploadReceipt() {
-    const file = fileInputRef.current?.files?.[0];
+    const file = resolveSelectedReceiptFile();
     if (file === undefined) {
       return;
     }

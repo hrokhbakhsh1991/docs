@@ -23,9 +23,7 @@ import { WALLET_OPS_TEST_IDS } from "../../../web/src/wallet/wallet-ops-logic";
 test.describe("WALLET-A11Y member portal", () => {
   test.setTimeout(300_000);
 
-  test("WALLET-A11Y-M01 dashboard wallet summary positive balance (desktop)", async ({
-    page,
-  }) => {
+  test("WALLET-A11Y-M01 dashboard wallet summary positive balance (desktop)", async ({ page }) => {
     await loginDenaliWalletPilotMember(page);
     await page.goto("/me/home", { waitUntil: "domcontentloaded" });
     const walletSection = page.locator("[data-portal-member-dashboard-wallet]");
@@ -37,7 +35,7 @@ test.describe("WALLET-A11Y member portal", () => {
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-dashboard-wallet]",
-      "dashboard wallet positive balance",
+      "dashboard wallet positive balance"
     );
     await assertKeyboardReachable(page, page.locator("[data-portal-member-wallet-cta]"));
     await assertVisibleFocusRing(page, page.locator("[data-portal-member-wallet-cta]"));
@@ -52,12 +50,12 @@ test.describe("WALLET-A11Y member portal", () => {
     await expect(page.locator("[data-portal-member-dashboard-wallet]")).toHaveAttribute(
       "data-portal-member-wallet-state",
       "ready",
-      { timeout: 90_000 },
+      { timeout: 90_000 }
     );
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-dashboard-wallet]",
-      "dashboard wallet mobile RTL",
+      "dashboard wallet mobile RTL"
     );
   });
 
@@ -69,13 +67,13 @@ test.describe("WALLET-A11Y member portal", () => {
       timeout: 90_000,
     });
     await expect(page.locator("[data-portal-member-wallet-dashboard-balance]")).toContainText(
-      /۰|0|ریال/,
+      /۰|0|ریال/
     );
     await expect(page.locator("[data-portal-member-wallet-empty-history]")).toBeVisible();
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-dashboard-wallet]",
-      "dashboard wallet zero balance",
+      "dashboard wallet zero balance"
     );
   });
 
@@ -83,7 +81,7 @@ test.describe("WALLET-A11Y member portal", () => {
     await loginDenaliWalletPilotMember(page);
     await page.goto("/me/wallet", { waitUntil: "domcontentloaded" });
     const walletMain = page.locator(
-      "[data-portal-member-wallet][data-portal-member-wallet-state='ready']",
+      "[data-portal-member-wallet][data-portal-member-wallet-state='ready']"
     );
     await expect(walletMain).toBeVisible({ timeout: 90_000 });
     await assertHeadingHierarchy(walletMain);
@@ -96,13 +94,13 @@ test.describe("WALLET-A11Y member portal", () => {
     await loginDenaliWalletPilotMember(page, DENALI_WALLET_PILOT.zeroBalanceMemberMobile);
     await page.goto("/me/wallet", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']"),
+      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']")
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-wallet-empty]")).toBeVisible();
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-wallet-empty]",
-      "wallet empty history",
+      "wallet empty history"
     );
   });
 
@@ -110,13 +108,13 @@ test.describe("WALLET-A11Y member portal", () => {
     await loginDenaliWalletPilotMember(page, DENALI_WALLET_PILOT.deniedMemberMobile);
     await page.goto("/me/wallet", { waitUntil: "domcontentloaded" });
     const denied = page.locator(
-      "[data-portal-member-unauthorized][data-portal-member-unauthorized-module='wallet']",
+      "[data-portal-member-unauthorized][data-portal-member-unauthorized-module='wallet']"
     );
     await expect(denied).toBeVisible({ timeout: 90_000 });
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-unauthorized][data-portal-member-unauthorized-module='wallet']",
-      "wallet denied",
+      "wallet denied"
     );
     await assertKeyboardReachable(page, page.locator("[data-portal-member-status-actions] a"));
   });
@@ -154,19 +152,19 @@ test.describe("WALLET-A11Y member portal", () => {
 
       await memberPage.goto("/me/notifications", { waitUntil: "domcontentloaded" });
       const inbox = memberPage.locator(
-        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
+        "[data-portal-member-notifications-panel][data-portal-member-notifications-state='ready']"
       );
       await expect(inbox).toBeVisible({ timeout: 90_000 });
       const walletItem = memberPage
         .locator(
-          "[data-portal-member-notification-item][data-portal-member-notification-source='wallet']",
+          "[data-portal-member-notification-item][data-portal-member-notification-source='wallet']"
         )
         .first();
       await expect(walletItem).toBeVisible({ timeout: 60_000 });
       await assertNoSeriousA11yViolations(
         memberPage,
-        "[data-portal-member-notifications][data-portal-member-notifications-state='ready']",
-        "wallet notification inbox",
+        "[data-portal-member-notifications-panel][data-portal-member-notifications-state='ready']",
+        "wallet notification inbox"
       );
       await assertKeyboardReachable(memberPage, walletItem.locator("a").first());
     } finally {
@@ -179,7 +177,7 @@ test.describe("WALLET-A11Y member portal", () => {
     await loginDenaliWalletPilotMember(page);
     await page.goto("/me/wallet", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']"),
+      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']")
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-wallet-transaction]")).toHaveCount(20, {
       timeout: 60_000,
@@ -204,7 +202,7 @@ test.describe("WALLET-A11Y member portal", () => {
       });
     });
     const historyRequest = page.waitForRequest((request) =>
-      request.url().includes("/api/me/wallet/transactions"),
+      request.url().includes("/api/me/wallet/transactions")
     );
     await loadMore.click();
     await historyRequest;
@@ -214,7 +212,7 @@ test.describe("WALLET-A11Y member portal", () => {
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-wallet-transactions]",
-      "wallet history error",
+      "wallet history error"
     );
   });
 
@@ -222,7 +220,7 @@ test.describe("WALLET-A11Y member portal", () => {
     await loginDenaliWalletPilotMember(page);
     await page.goto("/me/wallet", { waitUntil: "domcontentloaded" });
     await expect(
-      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']"),
+      page.locator("[data-portal-member-wallet][data-portal-member-wallet-state='ready']")
     ).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("[data-portal-member-wallet-transaction]")).toHaveCount(20, {
       timeout: 60_000,
@@ -234,7 +232,7 @@ test.describe("WALLET-A11Y member portal", () => {
     await assertNoSeriousA11yViolations(
       page,
       "[data-portal-member-wallet-transactions]",
-      "wallet history load-more control",
+      "wallet history load-more control"
     );
   });
 });

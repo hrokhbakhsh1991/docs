@@ -46,3 +46,27 @@ export function ticketStatusLabelKey(status: TicketStatus): string {
 export function ticketCategoryLabelKey(categoryCode: string): string {
   return `categories.${categoryCode}`;
 }
+
+const TICKET_OP_SMOKE_SUBJECT_PATTERN = /^TKT-OP-SMOKE[-_]/i;
+
+export function isTicketCodeLikeSubject(subject: string, ticketCode: string): boolean {
+  const normalizedSubject = subject.trim();
+  if (normalizedSubject.length === 0) {
+    return true;
+  }
+  if (normalizedSubject === ticketCode.trim()) {
+    return true;
+  }
+  return TICKET_OP_SMOKE_SUBJECT_PATTERN.test(normalizedSubject);
+}
+
+export function resolveTicketDisplaySubject(
+  subject: string,
+  ticketCode: string,
+  fallbackTitle: string
+): string {
+  if (isTicketCodeLikeSubject(subject, ticketCode)) {
+    return fallbackTitle;
+  }
+  return subject.trim();
+}

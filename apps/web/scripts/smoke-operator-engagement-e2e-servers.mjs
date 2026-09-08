@@ -56,6 +56,43 @@ function waitForUrl(url, timeoutMs = 600_000) {
   });
 }
 
+function resolveTestResetAdminUrl() {
+  const explicit =
+    process.env.DATABASE_URL_ADMIN_RESET?.trim() ||
+    process.env.SMOKE_DATABASE_URL_ADMIN?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  const admin = databaseUrlAdmin;
+  if (/postgres:postgres@/i.test(admin) || /:postgres@/i.test(admin)) {
+    return admin;
+  }
+  try {
+    const parsed = new URL(databaseUrl);
+    parsed.username = "postgres";
+    parsed.password = "postgres";
+    return parsed.toString();
+  } catch {
+    return "postgresql://postgres:postgres@127.0.0.1:5432/tour_db";
+  }
+}
+
+const testResetAdminUrl = resolveTestResetAdminUrl();
+const testReset = spawnSync("pnpm", ["run", "db:test-reset"], {
+  cwd: repoRoot,
+  env: {
+    ...process.env,
+    DATABASE_URL_ADMIN: testResetAdminUrl,
+    NODE_ENV: "test",
+  },
+  stdio: "inherit",
+});
+if (testReset.status !== 0) {
+  console.warn(
+    "smoke-operator-engagement-e2e-servers: db:test-reset skipped or failed — continuing with idempotent seed",
+  );
+}
+
 const migrate = spawnSync("pnpm", ["exec", "prisma", "migrate", "deploy"], {
   cwd: apiDir,
   env: { ...process.env, DATABASE_URL: databaseUrlAdmin, DATABASE_URL_ADMIN: databaseUrlAdmin },
@@ -97,6 +134,8 @@ const apiEnv = {
   PORT: "3001",
   HOST: "127.0.0.1",
   TENANT_RATE_LIMIT_ENABLED: "false",
+  TENANT_MAX_CONCURRENT_DB_OPS:
+    process.env.TENANT_MAX_CONCURRENT_DB_OPS?.trim() || "32",
   PUBLIC_TENANT_FALLBACK_LABEL: "denali",
   PUBLIC_TENANT_FALLBACK_HOSTS: "127.0.0.1,localhost,denali.localhost",
 };

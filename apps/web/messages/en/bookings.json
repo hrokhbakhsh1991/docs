@@ -52,6 +52,7 @@
   "submittedShort": "Submitted {date}",
   "status": {
     "all": "All",
+    "actionable": "Work queue",
     "pending": "Pending",
     "approved": "Approved",
     "waitlisted": "Waitlisted",

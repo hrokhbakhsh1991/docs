@@ -10,6 +10,7 @@ import { parseUsersDirectoryQuery } from "@/features/users/users-directory-types
 import { USERS_OWNERSHIP_TRANSFER_UI_ENABLED } from "@/features/users/users-page-logic";
 import { buildUsersPageMetadata } from "@/i18n/app-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 
 import { UsersPageClient } from "./users-page-client";
 
@@ -51,6 +52,7 @@ export default async function OperatorUsersPage({ searchParams }: OperatorUsersP
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const resolved = await resolveBootstrapAppSessionForHost(host);
+  await ensureWizardCreate(resolved.session.pluginId);
   if (!isUsersRouteAllowed(resolved.session.pluginId)) {
     notFound();
   }

@@ -971,6 +971,9 @@ export class OwnershipTransferTargetInvalidError extends Error {
 
 /** Phase 6.6 dev host tenant — sync resolve-host-tenant.ts fixture labels. */
 const DENALI_DEV_HOST_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+/** Engagement / ticketing BQC viewer — mirrors seed-operator-engagement-e2e-fixtures. */
+const DENALI_ENGAGEMENT_VIEWER_USER_ID = "00000000-0000-4000-8000-000000000196";
+const DENALI_ENGAGEMENT_VIEWER_MOBILE = "+15550001996";
 /** Phase 8.4 workspace smoke — sync URBAN_SMOKE_E2E fixture. */
 const URBAN_SMOKE_E2E_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
@@ -1056,6 +1059,19 @@ function seedOperatorSmokeDevFixture(repo: InMemoryIdentityRepository): void {
     ...ownerMembership,
     tenantId: DENALI_DEV_HOST_TENANT_ID,
     workspaceId: "ws-denali-dev",
+  });
+  repo.seedUser({
+    id: DENALI_ENGAGEMENT_VIEWER_USER_ID,
+    mobile: DENALI_ENGAGEMENT_VIEWER_MOBILE,
+  });
+  repo.seedMembership({
+    userId: DENALI_ENGAGEMENT_VIEWER_USER_ID,
+    tenantId: DENALI_DEV_HOST_TENANT_ID,
+    role: "viewer",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: "ws-denali-dev",
+    displayName: "Denali Engagement Viewer",
   });
 
   // Playwright operator smoke (`OPERATOR_SMOKE_E2E_SEED=1`) binds bare localhost to …000014.

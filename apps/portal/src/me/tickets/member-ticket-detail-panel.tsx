@@ -6,6 +6,7 @@ import type { FormEvent } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import type { MemberTicketDetailView } from "@/me/tickets/member-tickets-bff.server";
+import { resolveTicketDisplaySubject } from "@/me/tickets/member-tickets-format";
 
 import { MemberTicketAttachmentField } from "./member-ticket-attachment-field";
 
@@ -48,6 +49,11 @@ export function MemberTicketDetailPanel({
   const readOnly = detail.readOnly === true;
   const composerHidden = status === "closed" || readOnly;
   const canReopen = status === "resolved" && !readOnly;
+  const displaySubject = resolveTicketDisplaySubject(
+    detail.ticket.subject,
+    detail.ticket.ticketCode,
+    t("listFallbackTitle")
+  );
 
   const refreshDetail = async () => {
     const res = await fetch(`/api/me/tickets/${detail.ticket.id}`, { cache: "no-store" });
@@ -145,26 +151,31 @@ export function MemberTicketDetailPanel({
   return (
     <div data-portal-member-ticket-detail data-client-ready={clientReady ? "true" : undefined}>
       <header data-portal-member-ticket-detail-header>
-        <p>
-          <a href="/me/tickets">{t("backToList")}</a>
-        </p>
-        <h1>{detail.ticket.subject}</h1>
-        <div data-portal-member-ticket-detail-badges>
-          <span data-portal-member-ticket-status data-status={detail.ticket.status}>
-            <span aria-hidden="true">{detail.ticket.statusIcon}</span>
-            {t(detail.ticket.statusLabelKey)}
-          </span>
-          <span data-portal-member-ticket-category>{t(detail.ticket.categoryLabelKey)}</span>
-          <span data-portal-member-ticket-priority>{t(detail.ticket.priorityLabelKey)}</span>
+        <a href="/me/tickets" data-portal-member-ticket-back>
+          {t("backToList")}
+        </a>
+        <div data-portal-member-ticket-detail-hero>
+          <span data-portal-member-ticket-code>{detail.ticket.ticketCode}</span>
+          <h1 data-portal-member-ticket-detail-subject>{displaySubject}</h1>
+          <div data-portal-member-ticket-detail-badges>
+            <span data-portal-member-ticket-status data-status={detail.ticket.status}>
+              <span aria-hidden="true">{detail.ticket.statusIcon}</span>
+              {t(detail.ticket.statusLabelKey)}
+            </span>
+            <span data-portal-member-ticket-meta-chip data-kind="category">
+              {t(detail.ticket.categoryLabelKey)}
+            </span>
+            <span data-portal-member-ticket-meta-chip data-kind="priority">
+              {t(detail.ticket.priorityLabelKey)}
+            </span>
+          </div>
+          <time dateTime={detail.ticket.lastActivityAt} data-portal-member-ticket-activity>
+            {detail.ticket.lastActivityLabel}
+          </time>
         </div>
-        <time dateTime={detail.ticket.lastActivityAt}>{detail.ticket.lastActivityLabel}</time>
       </header>
 
-      <div
-        data-portal-member-ticket-status-banner
-        data-status={detail.ticket.status}
-        role="status"
-      >
+      <div data-portal-member-ticket-status-banner data-status={detail.ticket.status} role="status">
         {t(`banners.${detail.ticket.status}`)}
       </div>
 
@@ -197,8 +208,11 @@ export function MemberTicketDetailPanel({
               data-portal-member-ticket-message
               data-author={message.isMemberAuthor ? "member" : "operator"}
             >
+              <span data-portal-member-ticket-message-author>
+                {message.isMemberAuthor ? t("messageAuthors.member") : t("messageAuthors.operator")}
+              </span>
               <div data-portal-member-ticket-message-bubble>
-                <p>{message.body}</p>
+                <p data-portal-member-ticket-message-body>{message.body}</p>
                 {message.attachments.length > 0 ? (
                   <ul data-portal-member-ticket-message-attachments>
                     {message.attachments.map((attachment) => (
@@ -233,11 +247,7 @@ export function MemberTicketDetailPanel({
       ) : null}
 
       {!composerHidden ? (
-        <form
-          data-portal-member-ticket-composer
-          onSubmit={onReply}
-          aria-label={t("composerLabel")}
-        >
+        <form data-portal-member-ticket-composer onSubmit={onReply} aria-label={t("composerLabel")}>
           {replyError !== null ? (
             <p role="alert" data-portal-member-ticket-reply-error>
               {replyError}
@@ -249,7 +259,8 @@ export function MemberTicketDetailPanel({
           <textarea
             id={bodyId}
             value={replyBody}
-            rows={3}
+            rows={4}
+            placeholder={t("replyPlaceholder")}
             aria-invalid={replyError !== null}
             onChange={(event) => setReplyBody(event.target.value)}
           />

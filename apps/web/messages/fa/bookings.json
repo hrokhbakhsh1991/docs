@@ -64,6 +64,7 @@
   },
   "status": {
     "all": "همه",
+    "actionable": "صف کار",
     "pending": "در انتظار",
     "approved": "تأییدشده",
     "waitlisted": "در لیست انتظار",

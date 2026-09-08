@@ -70,4 +70,15 @@ describe("buildDevPortalPublicBaseUrl", () => {
       "http://portal.alpine.club:3003"
     );
   });
+
+  it("WRS-P8-01 bare IPv4 ingress maps to same host with portal port (no portal.{ip})", () => {
+    assert.equal(
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "89.42.210.252:23002",
+        rootDomain: "localhost",
+        portalPort: "23003",
+      }),
+      "http://89.42.210.252:23003"
+    );
+  });
 });

@@ -10,6 +10,10 @@ import { shouldEmitMarketingSitemap } from "@/seo/build-marketing-sitemap";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
+import {
+  isMarketingTenantUnresolvedError,
+  marketingTenantUnresolvedResponse,
+} from "@/tenant/resolve-marketing-bootstrap-api";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
 
@@ -29,7 +33,15 @@ export async function GET(): Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const bootstrap = await resolveMarketingBootstrapForHost(host).catch((error: unknown) => {
+    if (isMarketingTenantUnresolvedError(error)) {
+      return null;
+    }
+    throw error;
+  });
+  if (bootstrap === null) {
+    return marketingTenantUnresolvedResponse();
+  }
   const seoTag = buildMarketingSeoCacheTag(bootstrap.tenantId);
   const [branding, t, tours] = await Promise.all([
     fetchPublicTenantBrandingForHost(host),
