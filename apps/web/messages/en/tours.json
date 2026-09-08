@@ -416,6 +416,7 @@
       "degradedOutstanding": "outstanding balances",
       "degradedTours": "tour totals",
       "degradedReceipts": "receipt queue",
+      "degradedRoster": "approved guest roster",
       "filter": {
         "all": "All follow-ups",
         "unpaid": "Unpaid",
@@ -521,6 +522,7 @@
       "TOUR_TRANSPORT_TOUR_HTTP_404": "Tour not found for transport roster.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "Transport bookings not found.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_503": "The transport bookings service is temporarily unavailable. Please try again.",
+      "TOUR_ROSTER_HTTP_503": "The approved guest roster is temporarily unavailable. Pending registrations still appear below.",
       "TOUR_TRANSPORT_TOUR_HTTP_500": "Failed to load transport tour (server error).",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "Failed to load transport bookings (server error)."
     }
