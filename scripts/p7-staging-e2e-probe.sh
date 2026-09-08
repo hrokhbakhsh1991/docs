@@ -92,7 +92,7 @@ export VPS_IP="127.0.0.1"
 export PW_EXTERNAL_SERVERS=1
 export PW_NO_REUSE_SERVER=1
 export TOUR_OPS_API_URL="http://127.0.0.1:${API_PORT}"
-export PLAYWRIGHT_BASE_URL="http://operator.admin.localhost:${WEB_PORT}"
+export PLAYWRIGHT_BASE_URL="http://admin.operator.localhost:${WEB_PORT}"
 export SMOKE_MARKETING_BASE_URL="http://operator.localhost:${MKT_PORT}"
 export SMOKE_PORTAL_BASE_URL="http://operator.portal.localhost:${PTL_PORT}"
 export OPERATOR_OWNER_MOBILE="${OPERATOR_OWNER_MOBILE:-09174070937}"
@@ -197,7 +197,7 @@ systemctl is-active app-tour-staging-web
 code=\$(curl -sf -o /dev/null -w '%{http_code}' "http://127.0.0.1:${WEB_PORT}/health" 2>/dev/null || echo 000)
 [[ "\$code" == "200" ]] || { echo "web /health on :${WEB_PORT} expected 200 got \$code"; exit 1; }
 EOF
-web_health="$(tunnel_health_code "${WEB_PORT}" "operator.admin.localhost")"
+web_health="$(tunnel_health_code "${WEB_PORT}" "admin.operator.localhost")"
 [[ "${web_health}" == "200" ]] || fail "web /health via tunnel expected 200 got ${web_health}"
 pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-VS-01"
 pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-ADM-02"

@@ -15,11 +15,11 @@ carryover: ../../phase-19/p6/runbooks/p6-e2e-smoke.md
 
 ## When to run
 
-| Context | Command |
-| ------- | ------- |
-| Every PR | `pnpm run p7:gate` only (T1) |
-| After four-process staging up | This runbook (T2) |
-| Pre sign-off | T2 + T3 + T4 |
+| Context                       | Command                      |
+| ----------------------------- | ---------------------------- |
+| Every PR                      | `pnpm run p7:gate` only (T1) |
+| After four-process staging up | This runbook (T2)            |
+| Pre sign-off                  | T2 + T3 + T4                 |
 
 **Order:** T1 (`p7:gate`) → T2 (this doc) → T3 (`finance-ops.spec.ts`) → T4 (sign-off).
 
@@ -27,13 +27,13 @@ carryover: ../../phase-19/p6/runbooks/p6-e2e-smoke.md
 
 ## Prerequisites
 
-| Check | Evidence |
-| ----- | -------- |
-| Four processes running | API + web + marketing + portal — [p7-0-live-infra.md](../p7-0-live-infra.md) N-004 |
-| Env matrix | [p7-0-env-matrix.md](p7-0-env-matrix.md) profile chosen |
-| Seed | Smoke or customer fixture — [P7-CUSTOMER-SEED-DELTA.md](../appendices/P7-CUSTOMER-SEED-DELTA.md) |
-| Catalog revalidate | `MARKETING_REVALIDATE_URL` + `MARKETING_REVALIDATE_SECRET` on API **and** marketing |
-| Playwright browsers | `pnpm --filter @apps/portal run test:smoke:install` (once per machine) |
+| Check                  | Evidence                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| Four processes running | API + web + marketing + portal — [p7-0-live-infra.md](../p7-0-live-infra.md) N-004               |
+| Env matrix             | [p7-0-env-matrix.md](p7-0-env-matrix.md) profile chosen                                          |
+| Seed                   | Smoke or customer fixture — [P7-CUSTOMER-SEED-DELTA.md](../appendices/P7-CUSTOMER-SEED-DELTA.md) |
+| Catalog revalidate     | `MARKETING_REVALIDATE_URL` + `MARKETING_REVALIDATE_SECRET` on API **and** marketing              |
+| Playwright browsers    | `pnpm --filter @apps/portal run test:smoke:install` (once per machine)                           |
 
 ---
 
@@ -147,16 +147,16 @@ pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g
 
 ## Scenario matrix (staging)
 
-| ID | VS | Env vars | Spec |
-| -- | -- | -------- | ---- |
-| SMK-P7-INFRA-01 | — | `TOUR_OPS_API_URL` | `smoke-p6-host-bind.mjs` |
-| SMK-P6-VS-01 | VS-01 | `PLAYWRIGHT_BASE_URL` | `p6-admin-publish-smoke.spec.ts` |
-| SMK-P6-MKT-03 | VS-02/03 | `SMOKE_MARKETING_BASE_URL` | `marketing-catalog-smoke.spec.ts` |
-| SMK-P6-PTL-01 | VS-03 | `SMOKE_PORTAL_BASE_URL` | `portal-registration-smoke.spec.ts` |
-| SMK-P6-PTL-02 | VS-04 | same | `portal-member-smoke.spec.ts` |
-| SMK-P6-PTL-04 | VS-05 | same | `portal-member-smoke.spec.ts` |
-| SMK-P9-04 | VS-06 | `PLAYWRIGHT_BASE_URL` | `operator-smoke.spec.ts` |
-| SMK-P6-ADM-02 | VS-07 | `PLAYWRIGHT_BASE_URL` | `p6-operator-receipt-approve-smoke.spec.ts` |
+| ID              | VS       | Env vars                   | Spec                                        |
+| --------------- | -------- | -------------------------- | ------------------------------------------- |
+| SMK-P7-INFRA-01 | —        | `TOUR_OPS_API_URL`         | `smoke-p6-host-bind.mjs`                    |
+| SMK-P6-VS-01    | VS-01    | `PLAYWRIGHT_BASE_URL`      | `p6-admin-publish-smoke.spec.ts`            |
+| SMK-P6-MKT-03   | VS-02/03 | `SMOKE_MARKETING_BASE_URL` | `marketing-catalog-smoke.spec.ts`           |
+| SMK-P6-PTL-01   | VS-03    | `SMOKE_PORTAL_BASE_URL`    | `portal-registration-smoke.spec.ts`         |
+| SMK-P6-PTL-02   | VS-04    | same                       | `portal-member-smoke.spec.ts`               |
+| SMK-P6-PTL-04   | VS-05    | same                       | `portal-member-smoke.spec.ts`               |
+| SMK-P9-04       | VS-06    | `PLAYWRIGHT_BASE_URL`      | `operator-smoke.spec.ts`                    |
+| SMK-P6-ADM-02   | VS-07    | `PLAYWRIGHT_BASE_URL`      | `p6-operator-receipt-approve-smoke.spec.ts` |
 
 ---
 
@@ -173,22 +173,23 @@ Requires `STORAGE_DRIVER=prisma` on staging API.
 
 ## Failure triage (staging-specific)
 
-| Symptom | Check |
-| ------- | ----- |
-| Playwright starts local servers | `PW_EXTERNAL_SERVERS=1` set |
-| Wrong tenant | `PUBLIC_TENANT_FALLBACK_*` (Profile B) · DNS hosts (Profile C) |
-| Catalog stale after publish | `MARKETING_REVALIDATE_URL` on API → marketing `/api/revalidate` · secrets match |
-| OTP fails Profile C | SMS provider env on API · static OTP off |
-| Admin 404 on bare IP path | Use admin **host** URL, not `127.0.0.1:3000` without tenant fallback |
-| VS-06 status assertion | UI fa-IR — expect `تأییدشده` not `approved` |
-| SMK-PTL-04 receipt `500` / `RECEIPT_UPLOAD_FAILED` | Postgres + `STORAGE_DRIVER=prisma`: `PrismaBookingsRepository.getById` must use admin PK lookup — app pool without `withTenantRls` returns `null` → member receipt path fails before finance write |
-| Portal register `404` / no `data-registration-ready` | Tour `…0210` relocated to denali dev tenant `…003` by API bootstrap after seed — ensure `seedOperatorSmokePublishedTour` keeps canonical operator tenant `…014`; re-run `ensure-operator-smoke-vs01-staging.ts` after API restart |
-| SMK-P6-ADM-02 VS-07 seed fails (paid payment) | `seed-operator-smoke-pending-booking-staging.ts` clears payments/receipts for …0310 before upsert — re-run probe pre-seed |
-| SMK-P6-ADM-02 timeout (20+ pending receipts) | Seed script purges **all** tenant …014 `Pending` receipts/payments then upserts stable VS-07 row (`…0408` / `p6-vs07-smoke.jpg`); smoke approves via operator BFF `PATCH /api/finance/receipts/{id}/review` after UI queue assertion |
-| SMK-MKT-03 timeout on register navigation | `PORTAL_PUBLIC_BASE_URL` must be `http://operator.portal.localhost:230xx` (not bare VPS IP) so Playwright host-resolver reaches portal through SSH tunnel — bare IP hangs on `load` |
-| Portal register stuck (no `data-registration-ready`) | Runner ISP intercept on bare VPS IP — use probe SSH tunnels (`VPS_IP=127.0.0.1`) |
-| `portal static chunk` / tunnel sanity `000` | Partial SSH forward (only `:23000`) or stale tunnel — probe now requires all four ports + `/health` 200; kill old `ssh -L` or re-run probe |
-| Deploy staging SSH timeout mid-artifact upload | Transient GHA→VPS link — each chunk used a **new** TCP SSH session (connection storm). Fix: `staging_ssh_open_master` multiplex (`ControlMaster`) in `scripts/vps-deploy/lib/staging-ssh.sh`. Re-run workflow or push to `dev`. |
+| Symptom                                                                                          | Check                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Playwright starts local servers                                                                  | `PW_EXTERNAL_SERVERS=1` set                                                                                                                                                                                                                                        |
+| Wrong tenant                                                                                     | `PUBLIC_TENANT_FALLBACK_*` (Profile B) · DNS hosts (Profile C)                                                                                                                                                                                                     |
+| Catalog stale after publish                                                                      | `MARKETING_REVALIDATE_URL` on API → marketing `/api/revalidate` · secrets match                                                                                                                                                                                    |
+| OTP fails Profile C                                                                              | SMS provider env on API · static OTP off                                                                                                                                                                                                                           |
+| Admin 404 on bare IP path                                                                        | Use admin **host** URL, not `127.0.0.1:3000` without tenant fallback                                                                                                                                                                                               |
+| VS-06 status assertion                                                                           | UI fa-IR — expect `تأییدشده` not `approved`                                                                                                                                                                                                                        |
+| SMK-PTL-04 receipt `500` / `RECEIPT_UPLOAD_FAILED`                                               | Postgres + `STORAGE_DRIVER=prisma`: `PrismaBookingsRepository.getById` must use admin PK lookup — app pool without `withTenantRls` returns `null` → member receipt path fails before finance write                                                                 |
+| Portal register `404` / no `data-registration-ready`                                             | Tour `…0210` relocated to denali dev tenant `…003` by API bootstrap after seed — ensure `seedOperatorSmokePublishedTour` keeps canonical operator tenant `…014`; re-run `ensure-operator-smoke-vs01-staging.ts` after API restart                                  |
+| SMK-P6-ADM-02 VS-07 seed fails (paid payment)                                                    | `seed-operator-smoke-pending-booking-staging.ts` clears payments/receipts for …0310 before upsert — re-run probe pre-seed                                                                                                                                          |
+| SMK-P6-ADM-02 timeout (20+ pending receipts)                                                     | Seed script purges **all** tenant …014 `Pending` receipts/payments then upserts stable VS-07 row (`…0408` / `p6-vs07-smoke.jpg`); smoke approves via operator BFF `PATCH /api/finance/receipts/{id}/review` after UI queue assertion                               |
+| SMK-MKT-03 timeout on register navigation                                                        | `PORTAL_PUBLIC_BASE_URL` must be `http://operator.portal.localhost:230xx` (not bare VPS IP) so Playwright host-resolver reaches portal through SSH tunnel — bare IP hangs on `load`                                                                                |
+| Portal register stuck (no `data-registration-ready`)                                             | Runner ISP intercept on bare VPS IP — use probe SSH tunnels (`VPS_IP=127.0.0.1`)                                                                                                                                                                                   |
+| `portal static chunk` / tunnel sanity `000`                                                      | Partial SSH forward (only `:23000`) or stale tunnel — probe now requires all four ports + `/health` 200; kill old `ssh -L` or re-run probe                                                                                                                         |
+| Deploy staging SSH timeout mid-artifact upload                                                   | Transient GHA→VPS link — each chunk used a **new** TCP SSH session (connection storm). Fix: `staging_ssh_open_master` multiplex (`ControlMaster`) in `scripts/vps-deploy/lib/staging-ssh.sh`. Re-run workflow or push to `dev`.                                    |
+| Operator legacy URL returns HTTP 500 (`/tours/{id}`, `/workspace/registrations`, `/finance/hub`) | Missing Next.js alias pages — add redirect routes to canonical workspace/finance paths (`apps/web/app/(app)/tours/[id]/page.tsx`, etc.). Staging probes: use canonical admin hosts `admin.operator.localhost` / `admin.denali.localhost` (not `operator.admin.*`). |
 
 ---
 

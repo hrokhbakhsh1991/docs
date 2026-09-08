@@ -14,7 +14,7 @@ WEB="http://127.0.0.1:${WEB_PORT}"
 API="http://127.0.0.1:${API_PORT}"
 PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-09174070937}}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
-ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
+ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-admin.operator.localhost}"
 FIXTURE="${ROOT}/scripts/fixtures/p7-staging-publish-violation-body.json"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
