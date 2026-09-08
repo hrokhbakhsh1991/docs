@@ -16,11 +16,12 @@ import {
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import {
-  OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
-  OPERATOR_SMOKE_TENANT_ID,
+  resolveChainSmokePublishedTourId,
+  resolveChainSmokeTenantId,
   seedChainGuestRegistrationViaApi,
   tourOpsApiBase,
 } from "../../test/fixtures/p6-chain-guest-api";
+import { ensureTourHasApprovalCapacity } from "./fixtures/tour-workspace-smoke";
 
 /** Align with packages/workspaces/denali DEFAULT_DENALI_CAPACITY_RULE.maxPartySize */
 const DENALI_MAX_PARTY_SIZE = 20;
@@ -32,14 +33,16 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     const stamp = Date.now();
     const res = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
       headers: {
-        "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+        "x-tenant-id": resolveChainSmokeTenantId(),
         "content-type": "application/json",
       },
       data: {
-        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        tourId: resolveChainSmokePublishedTourId(),
+        registrantTarget: "other",
         contact: {
           email: `p3-e02-${stamp}@denali-smoke.local`,
           fullName: `P3 E02 Overflow ${stamp}`,
+          phone: `+1555${String(stamp).slice(-7)}`,
         },
         partySize: DENALI_MAX_PARTY_SIZE + 1,
       },
@@ -63,18 +66,25 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
   }) => {
     const stamp = Date.now();
     const guestName = `P3 E03 Reject ${stamp}`;
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
     await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p3-e03-${stamp}@denali-smoke.local`,
     });
 
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await page.goto("/bookings");
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 15_000,
     });
 
-    await page.getByRole("button", { name: new RegExp(guestName, "i") }).click();
+    const guestRow = page
+      .locator("[data-booking-row]")
+      .filter({ hasText: new RegExp(guestName, "i") });
+    await expect(guestRow).toBeVisible({ timeout: 15_000 });
+    await guestRow
+      .locator(`[data-testid^="${BOOKINGS_COMMAND_CENTER_TEST_IDS.inboxRow}-"]`)
+      .click();
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -87,6 +97,13 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
         response.ok()
     );
     await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton).click();
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectDialog)).toBeVisible({
+      timeout: 10_000,
+    });
+    await page
+      .getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectDialog)
+      .getByRole("button", { name: /تأیید رد|reject confirm/i })
+      .click();
     await rejectResponse;
 
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection)).toContainText(

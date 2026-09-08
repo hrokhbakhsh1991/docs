@@ -8,10 +8,11 @@ import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-lo
 import { FINANCE_RECEIPTS_TEST_IDS } from "../../src/finance/finance-receipts-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
-import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/plp-pdp-field-visibility-fixture";
+import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 import { loginDenaliOperatorOwner } from "./fixtures/authenticate-denali-operator-for-engagement";
+import { ensureTourHasApprovalCapacity } from "./fixtures/tour-workspace-smoke";
 
-const TOUR_ID = process.env.QA_TOUR_ID?.trim() || DENALI_SMOKE_PUBLISHED_TOUR_ID;
+const TOUR_ID = resolveChainSmokePublishedTourId();
 
 type PaymentRow = {
   readonly id?: string;
@@ -43,6 +44,7 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
   }) => {
     test.setTimeout(240_000);
     await loginDenaliOperatorOwner(page);
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const guestName = `Scenario5 Candidate ${stamp}`;
@@ -64,7 +66,7 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
         guestLabel: guestName,
         guestEmail: `scenario5-${stamp}@denali-smoke.local`,
         guestPhone: `+1555${stamp.replace(/\D/g, "").slice(-10).padStart(10, "0")}`,
-        partySize: 2,
+        partySize: 1,
         departureAt,
         registrationIntake: {
           registrantTarget: "other",

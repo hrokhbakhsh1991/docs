@@ -51,6 +51,25 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.match(route, /resolveTourOpsApiBaseUrl/);
   });
 
+  it("payment follow-up list merges pending bookings with operational roster", () => {
+    const hook = readFileSync(
+      join(webRoot, "src/features/tours/use-tour-workspace-payment-follow-up-list.ts"),
+      "utf8"
+    );
+    const load = readFileSync(
+      join(webRoot, "src/features/tours/tour-workspace-payment-follow-up-load.ts"),
+      "utf8"
+    );
+    assert.match(hook, /buildTourOperationalRosterHref/);
+    assert.match(hook, /resolvePaymentFollowUpLoadOutcome/);
+    assert.match(hook, /Promise\.allSettled/);
+    assert.match(hook, /refreshNonce/);
+    assert.match(load, /rosterDegraded/);
+    assert.match(hook, /toPaymentFollowUpHttpError\("TOUR_ROSTER_HTTP"/);
+    assert.match(hook, /status:\s*"pending"/);
+    assert.doesNotMatch(hook, /status:\s*"approved"/);
+  });
+
   it("renders final participant, amount due, deadline, driver badges", () => {
     const client = readFileSync(
       join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),

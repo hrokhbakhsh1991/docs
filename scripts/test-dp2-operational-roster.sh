@@ -25,6 +25,8 @@ run_step "denali-domain" pnpm --filter @app-tour/workspace-denali exec -- env NO
   test/operational-roster-semantics.spec.ts \
   test/compose-tour-operational-roster.spec.ts
 
+run_step "api-guard-roster-budget" pnpm --filter @apps/api run guard:operational-roster-budget
+
 run_step "api" pnpm --filter @apps/api exec -- env NODE_ENV=test STORAGE_DRIVER=memory APPS_API_TEST_TIER=trunk OUTBOX_RELAY_ENABLED=false PROJECTION_AUTO_RECONCILE_ENABLED=false TENANT_RATE_LIMIT_ENABLED=false PAYMENT_HOLD_ENABLED=true node --import tsx --import ./test/bootstrap-outbox-test-env.ts --test --test-force-exit --test-concurrency=1 \
   test/dp2/*.spec.ts
 

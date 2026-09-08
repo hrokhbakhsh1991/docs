@@ -10,8 +10,7 @@ import {
   FINANCE_RECEIPTS_TEST_IDS,
   parseFinancePendingReceiptsResponse,
 } from "../../src/finance/finance-receipts-logic";
-import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/plp-pdp-field-visibility-fixture";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
+import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 import { loginDenaliOperatorOwner } from "./fixtures/authenticate-denali-operator-for-engagement";
 
 type PaymentRow = {
@@ -33,13 +32,7 @@ type TourDetailResponse = {
 };
 
 function resolveTourId(): string {
-  const override = process.env.QA_TOUR_ID?.trim();
-  if (override) {
-    return override;
-  }
-  const base =
-    process.env.PLAYWRIGHT_BASE_URL?.trim() ?? process.env.SMOKE_DENALI_WEB_BASE_URL?.trim() ?? "";
-  return /denali/i.test(base) ? DENALI_SMOKE_PUBLISHED_TOUR_ID : OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+  return resolveChainSmokePublishedTourId();
 }
 
 async function sleepMs(ms: number): Promise<void> {

@@ -25,7 +25,6 @@ test.describe("p6-vertical-slice-browser-chain.spec.ts — P6 VS-CHAIN browser",
     const chain = await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p6-chain-browser-${stamp}@denali-smoke.local`,
-      mobile: `+1555${String(stamp).slice(-7)}`,
     });
 
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
