@@ -180,7 +180,17 @@ jobs:
           umask 077
           mkdir -p "$HOME/.ssh"
           printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/staging-key"
-          ssh-keyscan -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+          chmod 600 "$HOME/.ssh/staging-key"
+          echo "STAGING_SSH_KEY_FILE=$HOME/.ssh/staging-key" >> "$GITHUB_ENV"
+          for attempt in 1 2 3 4 5; do
+            if ssh-keyscan -T 15 -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null; then
+              break
+            fi
+            echo "ssh-keyscan attempt ${attempt}/5 failed; retrying..."
+            sleep $((attempt * 3))
+          done
+          # staging_ssh_cmd uses StrictHostKeyChecking=no — do not fail deploy on keyscan flake.
+          ssh-keyscan -T 15 -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
       - name: Transfer, install, migrate, and standard seed
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
