@@ -5,8 +5,14 @@
  */
 import { expect, type APIRequestContext } from "@playwright/test";
 
+/** Postgres / operator smoke host (`admin.operator.localhost`, staging). */
 export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+
+/** Memory-driver dev club (`admin.denali.localhost`). */
+export const DENALI_DEV_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+export const DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220";
+
 const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-0000-000000000001";
 
 export type ChainGuestRegistration = {
@@ -20,10 +26,45 @@ export function tourOpsApiBase(): string {
   return (process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 }
 
+function resolvePlaywrightBaseUrl(): string {
+  return (
+    process.env.PLAYWRIGHT_BASE_URL?.trim() ??
+    process.env.SMOKE_DENALI_WEB_BASE_URL?.trim() ??
+    "http://admin.operator.localhost:3000"
+  );
+}
+
+/** True when E2E targets memory-driver tenant 003 (`admin.denali.localhost`). */
+export function usesDenaliDevMemoryFixtures(): boolean {
+  const base = resolvePlaywrightBaseUrl();
+  return /admin\.denali\.localhost/i.test(base);
+}
+
+export function resolveChainSmokeTenantId(): string {
+  const override = process.env.QA_TENANT_ID?.trim();
+  if (override) {
+    return override;
+  }
+  return usesDenaliDevMemoryFixtures()
+    ? DENALI_DEV_SMOKE_TENANT_ID
+    : OPERATOR_SMOKE_TENANT_ID;
+}
+
+export function resolveChainSmokePublishedTourId(): string {
+  const override = process.env.QA_TOUR_ID?.trim();
+  if (override) {
+    return override;
+  }
+  return usesDenaliDevMemoryFixtures()
+    ? DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID
+    : OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+}
+
 function guestReceiptHeaders(userId: string, workspaceId: string): Record<string, string> {
+  const tenantId = resolveChainSmokeTenantId();
   return {
-    "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
-    "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+    "x-tenant-id": tenantId,
+    "x-authenticated-tenant-id": tenantId,
     "x-user-id": userId,
     "x-actor-role": "member",
     "x-membership-status": "ACTIVE",
@@ -34,17 +75,21 @@ function guestReceiptHeaders(userId: string, workspaceId: string): Record<string
 
 export async function seedChainGuestRegistrationViaApi(
   request: APIRequestContext,
-  input: { readonly guestName: string; readonly email: string }
+  input: { readonly guestName: string; readonly email: string; readonly partySize?: number }
 ): Promise<ChainGuestRegistration> {
+  const tenantId = resolveChainSmokeTenantId();
+  const tourId = resolveChainSmokePublishedTourId();
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
   const regRes = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
     headers: {
-      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-tenant-id": tenantId,
       "content-type": "application/json",
     },
     data: {
-      tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
-      contact: { email: input.email, fullName: input.guestName },
-      partySize: 2,
+      tourId,
+      registrantTarget: "other",
+      contact: { email: input.email, fullName: input.guestName, phone },
+      partySize: input.partySize ?? 1,
     },
   });
   expect(regRes.status(), await regRes.text()).toBe(201);

@@ -9,12 +9,12 @@ import {
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import {
-  OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+  resolveChainSmokePublishedTourId,
   seedChainGuestRegistrationViaApi,
 } from "../../test/fixtures/p6-chain-guest-api";
 
 function workspaceRegistrationsPath(): string {
-  return `/tours/${OPERATOR_SMOKE_PUBLISHED_TOUR_ID}/workspace`;
+  return `/tours/${resolveChainSmokePublishedTourId()}/workspace`;
 }
 
 test.describe("denali-workspace-approve-feedback.spec.ts — UX-BKG-56", () => {
@@ -35,9 +35,13 @@ test.describe("denali-workspace-approve-feedback.spec.ts — UX-BKG-56", () => {
       timeout: 30_000,
     });
 
-    const guestRow = page.getByRole("button", { name: new RegExp(guestName, "i") });
+    const guestRow = page
+      .locator("[data-booking-row]")
+      .filter({ hasText: new RegExp(guestName, "i") });
     await expect(guestRow).toBeVisible({ timeout: 15_000 });
-    await guestRow.click();
+    await guestRow
+      .locator(`[data-testid^="${BOOKINGS_COMMAND_CENTER_TEST_IDS.inboxRow}-"]`)
+      .click();
 
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton)).toBeVisible();
     const approveResponse = page.waitForResponse(
@@ -57,9 +61,19 @@ test.describe("denali-workspace-approve-feedback.spec.ts — UX-BKG-56", () => {
       page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionNoticeTransportLink)
     ).toBeVisible();
 
-    await expect(page.getByRole("button", { name: new RegExp(guestName, "i") })).toHaveCount(0, {
-      timeout: 15_000,
-    });
+    await expect(
+      page.locator("[data-booking-row]").filter({ hasText: new RegExp(guestName, "i") })
+    ).toBeVisible({ timeout: 15_000 });
+    const approvedRow = page
+      .locator("[data-booking-row]")
+      .filter({ hasText: new RegExp(guestName, "i") });
+    await expect(approvedRow.locator("[data-operator-booking-row-status]")).toContainText(
+      /approved|تأییدشده/i,
+      { timeout: 15_000 }
+    );
+    await expect(
+      approvedRow.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inlineApproveButton)
+    ).toHaveCount(0);
   });
 
   test("workspace inline approve (2-click) shows action notice", async ({ page, request }) => {
@@ -76,12 +90,12 @@ test.describe("denali-workspace-approve-feedback.spec.ts — UX-BKG-56", () => {
       timeout: 30_000,
     });
 
-    const guestRow = page.getByRole("button", { name: new RegExp(guestName, "i") });
+    const guestRow = page
+      .locator("[data-booking-row]")
+      .filter({ hasText: new RegExp(guestName, "i") });
     await expect(guestRow).toBeVisible({ timeout: 15_000 });
 
-    const inlineBtn = page
-      .getByRole("option", { name: new RegExp(guestName, "i") })
-      .getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inlineApproveButton);
+    const inlineBtn = guestRow.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inlineApproveButton);
     await expect(inlineBtn).toBeVisible();
     await expect(inlineBtn).toHaveAttribute("data-armed", "false");
 

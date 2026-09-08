@@ -15,9 +15,9 @@ import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
+import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 
-const TOUR_ID = process.env.QA_TOUR_ID?.trim() || OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+const TOUR_ID = resolveChainSmokePublishedTourId();
 
 type OutstandingRow = {
   readonly registrationId?: string;

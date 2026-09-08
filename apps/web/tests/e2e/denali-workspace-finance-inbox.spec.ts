@@ -10,10 +10,10 @@ import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
+import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 
 function workspaceFinancePath(focusRegistrationId?: string): string {
-  const base = `/tours/${OPERATOR_SMOKE_PUBLISHED_TOUR_ID}/workspace?tab=finance`;
+  const base = `/tours/${resolveChainSmokePublishedTourId()}/workspace?tab=finance`;
   if (focusRegistrationId === undefined || focusRegistrationId.trim().length === 0) {
     return base;
   }
@@ -38,8 +38,10 @@ test.describe("denali-workspace-finance-inbox.spec.ts — H-11", () => {
     const settled = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled);
     await expect(rollup.or(settled)).toBeAttached({ timeout: 20_000 });
 
-    const filters = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.filters);
-    await expect(filters.or(settled)).toBeVisible({ timeout: 20_000 });
+    const controls = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.controls);
+    const search = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.search);
+    await expect(controls.or(settled)).toBeVisible({ timeout: 20_000 });
+    await expect(search.or(settled)).toBeVisible({ timeout: 20_000 });
 
     const guestList = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.guestList);
     const empty = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.empty);

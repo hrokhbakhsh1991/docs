@@ -8,13 +8,13 @@ import { BOOKING_FINANCIAL_STRIP_TEST_IDS } from "../../src/finance/booking-fina
 import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
+import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 
-const TOUR_ID = process.env.QA_TOUR_ID?.trim() || OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+const TOUR_ID = resolveChainSmokePublishedTourId();
 
 type OutstandingRow = {
   readonly registrationId?: string;

@@ -8,10 +8,10 @@ import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-lo
 import { FINANCE_RECEIPTS_TEST_IDS } from "../../src/finance/finance-receipts-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
-import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/plp-pdp-field-visibility-fixture";
+import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 import { loginDenaliOperatorOwner } from "./fixtures/authenticate-denali-operator-for-engagement";
 
-const TOUR_ID = process.env.QA_TOUR_ID?.trim() || DENALI_SMOKE_PUBLISHED_TOUR_ID;
+const TOUR_ID = resolveChainSmokePublishedTourId();
 
 type PaymentRow = {
   readonly id?: string;
