@@ -36,14 +36,29 @@ EXPECTED_SHA="$(awk '{print $1}' "${ARTIFACT}.sha256")"
 
 log() { printf '[deploy-remote] %s\n' "$*"; }
 
+SSH_RETRY_MAX="${STAGING_SSH_RETRY_MAX:-5}"
+
 ssh_cmd() {
-  staging_ssh_cmd "$@"
+  local attempt
+  local status=255
+  for attempt in $(seq 1 "$SSH_RETRY_MAX"); do
+    set +e
+    staging_ssh_cmd "$@"
+    status=$?
+    set -e
+    if [[ "$status" -eq 0 ]]; then
+      return 0
+    fi
+    log "ssh attempt ${attempt}/${SSH_RETRY_MAX} failed (status ${status}); retrying"
+    sleep $((attempt * 3))
+  done
+  return "$status"
 }
 
 scp_with_retry() {
   local attempt
-  local status
-  for attempt in 1 2 3; do
+  local status=255
+  for attempt in $(seq 1 "$SSH_RETRY_MAX"); do
     set +e
     staging_scp_cmd "$@"
     status=$?
@@ -51,8 +66,8 @@ scp_with_retry() {
     if [[ "$status" -eq 0 ]]; then
       return 0
     fi
-    log "scp attempt ${attempt}/3 failed; retrying"
-    sleep $((attempt * 2))
+    log "scp attempt ${attempt}/${SSH_RETRY_MAX} failed (status ${status}); retrying"
+    sleep $((attempt * 3))
   done
   return "$status"
 }
@@ -192,6 +207,7 @@ log "preflight SSH"
 ssh_cmd 'echo SSH_OK; uptime; free -h | head -2'
 
 log "remote prerequisites (zstd)"
+ssh_cmd "mkdir -p ${DEPLOY_ROOT}/tooling/scripts/vps-deploy"
 scp_with_retry "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh" \
   "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
 ssh_cmd "chmod +x ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/ensure-staging-artifact-prerequisites.sh && \

@@ -39,9 +39,9 @@ staging_ssh_setup() {
 staging_ssh_cmd() {
   staging_ssh_setup
   ssh "${SSH_IDENTITY_ARGS[@]}" \
-    -o ConnectTimeout=20 \
+    -o ConnectTimeout=30 \
     -o ServerAliveInterval=15 \
-    -o ServerAliveCountMax=4 \
+    -o ServerAliveCountMax=6 \
     -o StrictHostKeyChecking=no \
     "${VPS_USER:-root}@${VPS_HOST:?VPS_HOST required}" "$@"
 }
@@ -49,9 +49,9 @@ staging_ssh_cmd() {
 staging_scp_cmd() {
   staging_ssh_setup
   scp -O "${SSH_IDENTITY_ARGS[@]}" \
-    -o ConnectTimeout=20 \
+    -o ConnectTimeout=30 \
     -o ServerAliveInterval=15 \
-    -o ServerAliveCountMax=4 \
+    -o ServerAliveCountMax=6 \
     -o StrictHostKeyChecking=no \
     "$@"
 }

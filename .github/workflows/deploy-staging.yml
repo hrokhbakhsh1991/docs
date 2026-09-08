@@ -198,6 +198,8 @@ jobs:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
           ENV_DIR: ${{ env.STAGING_ENV_DIR }}
+          STAGING_ARTIFACT_CHUNK_SIZE: 4m
+          STAGING_SSH_RETRY_MAX: 5
         run: ARTIFACT="$STAGING_ARTIFACT" bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
       - name: Staging health and RLS verification
         env:
