@@ -19,6 +19,7 @@ const ENV_SNAPSHOT = {
   SMOKE_DENALI_WEB_BASE_URL: process.env.SMOKE_DENALI_WEB_BASE_URL,
   QA_TENANT_ID: process.env.QA_TENANT_ID,
   QA_TOUR_ID: process.env.QA_TOUR_ID,
+  PW_EXTERNAL_SERVERS: process.env.PW_EXTERNAL_SERVERS,
 };
 
 afterEach(() => {
@@ -26,6 +27,7 @@ afterEach(() => {
   process.env.SMOKE_DENALI_WEB_BASE_URL = ENV_SNAPSHOT.SMOKE_DENALI_WEB_BASE_URL;
   process.env.QA_TENANT_ID = ENV_SNAPSHOT.QA_TENANT_ID;
   process.env.QA_TOUR_ID = ENV_SNAPSHOT.QA_TOUR_ID;
+  process.env.PW_EXTERNAL_SERVERS = ENV_SNAPSHOT.PW_EXTERNAL_SERVERS;
 });
 
 describe("p6-chain-guest-api.spec.ts — smoke fixture resolution", () => {
@@ -33,6 +35,28 @@ describe("p6-chain-guest-api.spec.ts — smoke fixture resolution", () => {
     delete process.env.QA_TENANT_ID;
     delete process.env.QA_TOUR_ID;
     process.env.PLAYWRIGHT_BASE_URL = "http://admin.denali.localhost:3000";
+
+    assert.equal(usesDenaliDevMemoryFixtures(), true);
+    assert.equal(resolveChainSmokeTenantId(), DENALI_DEV_SMOKE_TENANT_ID);
+    assert.equal(resolveChainSmokePublishedTourId(), DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID);
+  });
+
+  it("operator.admin.localhost on Profile B-staging port maps to tenant 003 + tour 220", () => {
+    delete process.env.QA_TENANT_ID;
+    delete process.env.QA_TOUR_ID;
+    delete process.env.PW_EXTERNAL_SERVERS;
+    process.env.PLAYWRIGHT_BASE_URL = "http://operator.admin.localhost:23000";
+
+    assert.equal(usesDenaliDevMemoryFixtures(), true);
+    assert.equal(resolveChainSmokeTenantId(), DENALI_DEV_SMOKE_TENANT_ID);
+    assert.equal(resolveChainSmokePublishedTourId(), DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID);
+  });
+
+  it("bare IP with PW_EXTERNAL_SERVERS maps to tenant 003 + tour 220", () => {
+    delete process.env.QA_TENANT_ID;
+    delete process.env.QA_TOUR_ID;
+    process.env.PW_EXTERNAL_SERVERS = "1";
+    process.env.PLAYWRIGHT_BASE_URL = "http://89.42.210.252:23000";
 
     assert.equal(usesDenaliDevMemoryFixtures(), true);
     assert.equal(resolveChainSmokeTenantId(), DENALI_DEV_SMOKE_TENANT_ID);

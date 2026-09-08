@@ -50,7 +50,7 @@ echo "destinations=\${dest} equipment=\${equip} tour_themes=\${themes}"
 [[ "\$equip" -ge 1 ]] || fail "equipment empty"
 [[ "\$themes" -ge 1 ]] || fail "tour_themes empty"
 
-curl -sS "\${HOST_HDR[@]}" -H "Cookie: session=\${TOKEN}" "\${WEB}/tours/new" -o /tmp/p7-pickers.html
+curl -sS "\${HOST_HDR[@]}" -H "Cookie: atour_op_session=\${TOKEN}" "\${WEB}/tours/new" -o /tmp/p7-pickers.html
 grep -q 'data-workspace-wizard' /tmp/p7-pickers.html || fail "wizard shell missing"
 grep -q 'توچال' /tmp/p7-pickers.html || fail "destination label missing in wizard HTML"
 

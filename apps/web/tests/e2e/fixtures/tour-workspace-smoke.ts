@@ -1,13 +1,10 @@
 /**
  * Shared tour workspace E2E helpers (Denali dev smoke).
  */
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../../src/features/bookings/bookings-command-center-types";
-import {
-  resolveChainSmokePublishedTourId,
-  seedChainGuestRegistrationViaApi,
-} from "../../../test/fixtures/p6-chain-guest-api";
+import { resolveChainSmokePublishedTourId } from "../../../test/fixtures/p6-chain-guest-api";
 
 export const WORKSPACE_SMOKE_TOUR_ID = resolveChainSmokePublishedTourId();
 
@@ -45,16 +42,37 @@ export async function fetchWorkspaceBookingRows(
 }
 
 export async function seedPendingUnpaidGuest(
-  request: APIRequestContext,
-  stamp: number
+  page: Page,
+  stamp: number | string
 ): Promise<{ guestName: string; registrationId: string }> {
   const guestName = `WS Unpaid ${stamp}`;
-  const chain = await seedChainGuestRegistrationViaApi(request, {
-    guestName,
-    email: `ws-unpaid-${stamp}@denali-smoke.local`,
-    partySize: 1,
+  const tourRes = await page.request.get(`/api/tours/${encodeURIComponent(WORKSPACE_SMOKE_TOUR_ID)}`);
+  expect(tourRes.ok(), await tourRes.text()).toBeTruthy();
+  const tourBody = (await tourRes.json()) as {
+    projection?: { title?: string | null; departureAt?: string | null };
+  };
+  const tourTitle = tourBody.projection?.title?.trim() ?? "";
+  const departureAt = tourBody.projection?.departureAt?.trim() ?? "";
+  expect(tourTitle.length).toBeGreaterThan(0);
+  expect(departureAt.length).toBeGreaterThan(0);
+
+  const createRes = await page.request.post("/api/bookings", {
+    headers: { "content-type": "application/json" },
+    data: {
+      tourId: WORKSPACE_SMOKE_TOUR_ID,
+      tourTitle,
+      guestLabel: guestName,
+      guestEmail: `ws-unpaid-${stamp}@denali-smoke.local`,
+      guestPhone: `+1555${String(stamp).replace(/\D/g, "").slice(-7)}`,
+      partySize: 1,
+      departureAt,
+      registrationIntake: { registrantTarget: "other" },
+    },
   });
-  return { guestName, registrationId: chain.bookingId };
+  expect(createRes.ok(), await createRes.text()).toBeTruthy();
+  const registrationId = ((await createRes.json()) as { id?: string }).id?.trim() ?? "";
+  expect(registrationId.length).toBeGreaterThan(0);
+  return { guestName, registrationId };
 }
 
 export async function seedApprovedUnpaidGuest(

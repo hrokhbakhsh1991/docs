@@ -34,10 +34,42 @@ function resolvePlaywrightBaseUrl(): string {
   );
 }
 
-/** True when E2E targets memory-driver tenant 003 (`admin.denali.localhost`). */
+function resolvePlaywrightPort(base: string): number | null {
+  try {
+    const url = new URL(base);
+    if (url.port.length > 0) {
+      return Number(url.port);
+    }
+    return url.protocol === "https:" ? 443 : 80;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when smoke catalog should use denali-dev tenant 003 + tour 220.
+ * Covers memory-driver `admin.denali.localhost` and Profile B-staging (230xx / bare IP).
+ */
 export function usesDenaliDevMemoryFixtures(): boolean {
   const base = resolvePlaywrightBaseUrl();
-  return /admin\.denali\.localhost/i.test(base);
+  if (/admin\.denali\.localhost/i.test(base)) {
+    return true;
+  }
+  const port = resolvePlaywrightPort(base);
+  // Profile B-staging isolated stack — operator admin host maps to denali-dev workspace.
+  if (port !== null && port >= 23_000 && port <= 23_099) {
+    return true;
+  }
+  try {
+    const hostname = new URL(base).hostname;
+    // Bare-IP Profile B with external servers — OTP session binds tenant 003 (not tour …0210).
+    if (/^(\d{1,3}\.){3}\d+$/.test(hostname) && process.env.PW_EXTERNAL_SERVERS === "1") {
+      return true;
+    }
+  } catch {
+    // ignore invalid base URL
+  }
+  return false;
 }
 
 export function resolveChainSmokeTenantId(): string {

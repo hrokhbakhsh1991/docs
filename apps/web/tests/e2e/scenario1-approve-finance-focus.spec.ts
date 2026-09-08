@@ -22,14 +22,13 @@ import {
 test.describe("scenario-1 approve unpaid → finance focus", () => {
   test("approve pending unpaid shows finance link and focuses guest on Money Inbox", async ({
     page,
-    request,
   }) => {
     test.setTimeout(240_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = Date.now();
-    const { guestName, registrationId } = await seedPendingUnpaidGuest(request, stamp);
+    const { guestName, registrationId } = await seedPendingUnpaidGuest(page, stamp);
 
     await page.goto(`/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace`, {
       waitUntil: "domcontentloaded",

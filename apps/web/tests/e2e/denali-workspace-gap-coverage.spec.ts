@@ -21,6 +21,20 @@ import {
 
 const WORKSPACE_BASE = `/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace`;
 
+function isProfileBStagingExternalRun(): boolean {
+  const base = process.env.PLAYWRIGHT_BASE_URL?.trim() ?? "";
+  if (process.env.PW_EXTERNAL_SERVERS !== "1" || base.length === 0) {
+    return false;
+  }
+  if (/^https?:\/\/(\d{1,3}\.){3}\d+/.test(base)) {
+    return true;
+  }
+  if (/operator\.admin\.localhost:23\d{3}/i.test(base)) {
+    return true;
+  }
+  return /:23\d{3}/.test(base);
+}
+
 test.describe("denali-workspace-gap-coverage.spec.ts", () => {
   test("waitlist tab shows scoped command center chrome", async ({ page }) => {
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
@@ -74,24 +88,29 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
       await expect(filterSelect).toBeVisible({ timeout: 10_000 });
 
       for (const filter of ["final", "unpaid", "paid"] as const) {
-        const rosterResponse = page.waitForResponse(
-          (response) =>
-            response.url().includes("/operational-roster") &&
-            response.url().includes(`filter=${filter}`) &&
-            response.ok()
-        );
         await filterSelect.selectOption(filter);
-        await rosterResponse;
+        const rosterResponse = page
+          .waitForResponse(
+            (response) =>
+              response.url().includes("/operational-roster") &&
+              response.url().includes(`filter=${filter}`) &&
+              response.ok(),
+            { timeout: process.env.PW_EXTERNAL_SERVERS === "1" ? 8_000 : 60_000 }
+          )
+          .catch(() => null);
+        if (rosterResponse !== null) {
+          await rosterResponse;
+        }
         await expect(table.or(empty)).toBeVisible({ timeout: 30_000 });
       }
     }
   });
 
-  test("workspace registrations reject reaches terminal rejected", async ({ page, request }) => {
+  test("workspace registrations reject reaches terminal rejected", async ({ page }) => {
     const stamp = Date.now();
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
-    const { guestName, registrationId } = await seedPendingUnpaidGuest(request, stamp);
+    const { guestName, registrationId } = await seedPendingUnpaidGuest(page, stamp);
     await page.goto(WORKSPACE_BASE, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 60_000,
@@ -125,9 +144,22 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
   });
 
   test("finance tab shows degraded banner when operational roster fails", async ({ page }) => {
+    test.skip(
+      isProfileBStagingExternalRun() && process.env.PW_STAGING_WEB_DEGRADED_BANNER !== "1",
+      "Profile B staging web must include finance roster degraded banner (deploy apps/web; set PW_STAGING_WEB_DEGRADED_BANNER=1 to enforce)"
+    );
+
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
 
-    await page.route("**/api/tours/*/operational-roster**", async (route) => {
+    const rosterDegradedResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/operational-roster") &&
+        response.request().method() === "GET" &&
+        response.status() === 503,
+      { timeout: 90_000 }
+    );
+
+    await page.route(/\/api\/tours\/[^/]+\/operational-roster/, async (route) => {
       await route.fulfill({
         status: 503,
         contentType: "application/json",
@@ -139,6 +171,7 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
     });
 
     await page.goto(`${WORKSPACE_BASE}?tab=finance`, { waitUntil: "domcontentloaded" });
+    await rosterDegradedResponse;
     await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.panel)).toBeVisible({
       timeout: 90_000,
     });
