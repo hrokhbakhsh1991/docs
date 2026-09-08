@@ -45,32 +45,36 @@ export async function listTourOperationalRoster(
   const holdRepo = getPaymentHoldRepository();
   const nowIso = new Date().toISOString();
 
-  const composed = await Promise.all(
-    bookings.items.map(async (booking) => {
-      let invoice: {
-        readonly remainingMinor: string;
-        readonly paidAmountMinor: string;
-        readonly invoiceTotalMinor: string;
-        readonly currency: string;
-      } | null = null;
-      let refundStatuses: string[] = [];
-      try {
-        const compiled = await finance.getRegistrationInvoice(financeAuth, booking.id);
-        invoice = {
-          remainingMinor: compiled.remainingMinor,
-          paidAmountMinor: compiled.paidAmountMinor,
-          invoiceTotalMinor: compiled.invoiceTotalMinor,
-          currency: compiled.currency,
-        };
-        const refunds = await finance.listRefundsForRegistration(financeAuth, booking.id);
-        refundStatuses = refunds.map((row) => row.status);
-      } catch {
-        invoice = null;
-        refundStatuses = [];
-      }
+  // Sequential per booking — parallel page-wide composition exceeded DEC-055 tenant DB budget.
+  const composed = [];
+  for (const booking of bookings.items) {
+    let invoice: {
+      readonly remainingMinor: string;
+      readonly paidAmountMinor: string;
+      readonly invoiceTotalMinor: string;
+      readonly currency: string;
+    } | null = null;
+    let refundStatuses: string[] = [];
+    try {
+      const [compiled, refunds] = await Promise.all([
+        finance.getRegistrationInvoice(financeAuth, booking.id),
+        finance.listRefundsForRegistration(financeAuth, booking.id),
+      ]);
+      invoice = {
+        remainingMinor: compiled.remainingMinor,
+        paidAmountMinor: compiled.paidAmountMinor,
+        invoiceTotalMinor: compiled.invoiceTotalMinor,
+        currency: compiled.currency,
+      };
+      refundStatuses = refunds.map((row) => row.status);
+    } catch {
+      invoice = null;
+      refundStatuses = [];
+    }
 
-      const hold = await holdRepo.getByRegistrationId(auth.tenantId, booking.id);
-      return composeTourOperationalRosterRow({
+    const hold = await holdRepo.getByRegistrationId(auth.tenantId, booking.id);
+    composed.push(
+      composeTourOperationalRosterRow({
         booking,
         invoice,
         hold:
@@ -82,9 +86,9 @@ export async function listTourOperationalRoster(
             : null,
         refundStatuses,
         nowIso,
-      });
-    })
-  );
+      })
+    );
+  }
 
   const filtered = filterOperationalRosterRows({
     rows: composed,

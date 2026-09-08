@@ -8,6 +8,7 @@ import { after, before, beforeEach, describe, it } from "node:test";
 import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { resolveFinanceServiceForTenant } from "../../src/boot/lazy-finance-service.ts";
+import { resetTenantConnectionBudgetForTests } from "../../src/db/tenant-connection-budget.ts";
 import {
   approveBooking,
   createBooking,
@@ -18,6 +19,7 @@ import {
   DP1_TENANT_DENALI,
   DP1_TOUR_ID,
   dp1BookingBody,
+  dp1CreateAndApprovePending,
   dp1OpsAuth,
   resetDp1MemoryHarness,
 } from "../dp1/dp1-test-harness.ts";
@@ -162,6 +164,32 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
       operational.items.some((item) => item.registrationId === created.id),
       false
     );
+  });
+
+  it("composes many approved rows without exceeding tenant DB budget (DEC-055)", async () => {
+    const prevMax = process.env.TENANT_MAX_CONCURRENT_DB_OPS;
+    process.env.TENANT_MAX_CONCURRENT_DB_OPS = "4";
+    resetTenantConnectionBudgetForTests();
+    try {
+      for (let index = 0; index < 6; index += 1) {
+        await dp1CreateAndApprovePending({ partySize: 1, tourCapacityMax: 20 });
+      }
+
+      const roster = await listTourOperationalRoster(dp1OpsAuth(), DP1_TOUR_ID, {
+        view: "ops",
+        filter: "operational",
+        limit: 50,
+      });
+
+      assert.ok(roster.items.length >= 6, "roster must include all approved rows");
+    } finally {
+      resetTenantConnectionBudgetForTests();
+      if (prevMax === undefined) {
+        delete process.env.TENANT_MAX_CONCURRENT_DB_OPS;
+      } else {
+        process.env.TENANT_MAX_CONCURRENT_DB_OPS = prevMax;
+      }
+    }
   });
 
   it("driver offer and passenger assignment honest", async () => {

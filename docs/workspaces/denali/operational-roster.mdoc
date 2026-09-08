@@ -66,6 +66,18 @@ GET /tours/:tourId/operational-roster?view=ops&filter=&transportKind=&limit=&cur
 
 Tenant isolation: `tourId` scoped list; cross-tenant IDs never returned.
 
+### Composition budget (DEC-055)
+
+Roster rows are composed **sequentially per booking** (not `Promise.all` across the page). Each approved row may fan out to Finance invoice compile, refund list, and payment-hold lookup — parallelizing across many bookings on a single HTTP request exceeded the per-tenant app-pool semaphore (`TENANT_MAX_CONCURRENT_DB_OPS`, default **4**) and returned **503** `TENANT_DB_BUDGET_EXCEEDED` on staging-sized tours (transport tab + finance follow-up list empty while registrations tab still worked).
+
+| Stage | Concurrency |
+| ----- | ----------- |
+| Bookings list fetch | One `listBookings` call |
+| Per-row Finance/hold enrichment | Sequential `for` over `bookings.items` |
+| Inner invoice + refunds + hold for one row | Parallel `Promise.all` (≤3 slots) |
+
+This keeps peak tenant DB ops ≤4 for a single roster request without raising staging caps.
+
 ## Operator UI
 
 Tour workspace **transport** tab consumes the roster endpoint and renders payment + deadline + final-participant indicator alongside transport columns (no new dashboard).
