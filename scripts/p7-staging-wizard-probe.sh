@@ -10,7 +10,7 @@ WEB="http://127.0.0.1:${WEB_PORT}"
 PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-09174070937}}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
 # VPS bare-IP login falls back to tenant …003; use denali.admin.localhost so auth + wizard share tenant.
-ADMIN_HOST="${STAGING_ADMIN_HOST:-denali.admin.localhost}"
+ADMIN_HOST="${STAGING_ADMIN_HOST:-admin.denali.localhost}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 if [[ -n "${VPS_SSH_KEY:-}" ]]; then

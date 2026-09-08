@@ -395,8 +395,12 @@
       "eslint --max-warnings 0 -c apps/marketing/.eslintrc.cjs",
       "prettier --check"
     ],
-    "apps/api/**/*.{ts,tsx}": ["prettier --check"],
-    "*.{json,md,mdoc,yml,yaml}": ["prettier --check"]
+    "apps/api/**/*.{ts,tsx}": [
+      "prettier --check"
+    ],
+    "*.{json,md,mdoc,yml,yaml}": [
+      "prettier --check"
+    ]
   },
   "lint-staged": {
     "packages/workspace-sdk/**/*.{ts,tsx}": [
@@ -419,17 +423,21 @@
       "eslint --max-warnings 0 -c apps/marketing/.eslintrc.cjs",
       "prettier --check"
     ],
-    "apps/api/**/*.{ts,tsx}": ["prettier --check"],
-    "*.{json,md,mdoc,yml,yaml}": ["prettier --check"]
+    "apps/api/**/*.{ts,tsx}": [
+      "prettier --check"
+    ],
+    "*.{json,md,mdoc,yml,yaml}": [
+      "prettier --check"
+    ]
   },
   "pnpm": {
     "overrides": {
       "brace-expansion": "2.1.4",
       "deepmerge-ts": "8.0.2",
       "nanoid": "3.3.18",
-      "next": "15.5.21",
+      "next": "15.5.25",
       "postcss": "8.5.23",
-      "sharp": "0.35.0"
+      "sharp": "0.35.4"
     }
   },
   "devDependencies": {
