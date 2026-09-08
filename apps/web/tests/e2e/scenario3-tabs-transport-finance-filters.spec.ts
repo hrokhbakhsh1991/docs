@@ -22,16 +22,13 @@ import {
 } from "./fixtures/tour-workspace-smoke";
 
 test.describe("scenario-3 tabs: transport roster + finance filters", () => {
-  test("approve then transport roster; finance filter/search without banner", async ({
-    page,
-    request,
-  }) => {
+  test("approve then transport roster; finance filter/search without banner", async ({ page }) => {
     test.setTimeout(240_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = Date.now();
-    const { guestName, registrationId } = await seedPendingUnpaidGuest(request, stamp);
+    const { guestName, registrationId } = await seedPendingUnpaidGuest(page, stamp);
     const guestRe = new RegExp(escapeRegExp(guestName), "i");
 
     await page.goto(`/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace`, {

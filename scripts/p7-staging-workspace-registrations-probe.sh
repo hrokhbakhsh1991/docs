@@ -11,7 +11,7 @@ WEB="http://127.0.0.1:${WEB_PORT}"
 PHONE="${SMOKE_OPERATOR_OWNER_PHONE:-09174070937}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
 ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
-TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000210}"
+TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000220}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 
@@ -48,7 +48,7 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" "\${HOST_HDR[@]}"
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-COOKIE=( -H "Cookie: session=\${TOKEN}" )
+COOKIE=( -H "Cookie: atour_op_session=\${TOKEN}" )
 
 ws_code=\$(curl -sS -o /tmp/p7-ws-reg.html -w '%{http_code}' \\
   "\${HOST_HDR[@]}" "\${COOKIE[@]}" "\${WEB}/tours/\${TOUR_ID}/workspace")

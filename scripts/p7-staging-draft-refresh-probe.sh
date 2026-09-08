@@ -36,7 +36,7 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" "\${HOST_HDR[@]}"
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-COOKIE=( -H "Cookie: session=\${TOKEN}" )
+COOKIE=( -H "Cookie: atour_op_session=\${TOKEN}" )
 
 SESSION_ID="p7-n007-\$(date +%s)"
 TITLE="P7-N007-\${SESSION_ID}"

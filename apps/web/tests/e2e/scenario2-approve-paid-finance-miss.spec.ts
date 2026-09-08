@@ -23,14 +23,13 @@ import {
 test.describe("scenario-2 approve without payment → no finance link + focus miss", () => {
   test("approve without payment has no finance link; unknown focus shows fail-soft case", async ({
     page,
-    request,
   }) => {
     test.setTimeout(240_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = Date.now();
-    const { guestName, registrationId } = await seedPendingUnpaidGuest(request, stamp);
+    const { guestName, registrationId } = await seedPendingUnpaidGuest(page, stamp);
 
     await page.goto(`/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace`, {
       waitUntil: "domcontentloaded",

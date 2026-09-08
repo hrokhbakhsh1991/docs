@@ -11,7 +11,7 @@ WEB="http://127.0.0.1:${WEB_PORT}"
 PHONE="${SMOKE_OPERATOR_OWNER_PHONE:-09174070937}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
 ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
-TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000210}"
+TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000220}"
 WAITLIST_BOOKING_ID="${STAGING_WAITLIST_BOOKING_ID:-00000000-0000-4000-8000-000000000312}"
 GUEST_LABEL="${P7_WAITLIST_GUEST_LABEL:-Jamal Hosseini}"
 
@@ -54,7 +54,7 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" "\${ADMIN_HDR[@]}
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-COOKIE=( -H "Cookie: session=\${TOKEN}" )
+COOKIE=( -H "Cookie: atour_op_session=\${TOKEN}" )
 
 waitlist=\$(curl -sf "\${ADMIN_HDR[@]}" "\${COOKIE[@]}" \\
   "\${WEB}/api/bookings?status=waitlisted&tourId=\${TOUR_ID}&view=ops")

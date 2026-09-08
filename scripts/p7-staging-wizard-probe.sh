@@ -46,13 +46,13 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" \\
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-SESSION=\$(curl -sf "\${HOST_HDR[@]}" -H "Cookie: session=\${TOKEN}" "\${WEB}/api/auth/session")
+SESSION=\$(curl -sf "\${HOST_HDR[@]}" -H "Cookie: atour_op_session=\${TOKEN}" "\${WEB}/api/auth/session")
 echo "session: \${SESSION}" | head -c 200
 echo
 
 WIZ_CODE=\$(curl -sS -o /tmp/p7-wiz.html -w '%{http_code}' \\
   "\${HOST_HDR[@]}" \\
-  -H "Cookie: session=\${TOKEN}" \\
+  -H "Cookie: atour_op_session=\${TOKEN}" \\
   "\${WEB}/tours/new" || echo 000)
 
 if [[ "\${WIZ_CODE}" == "200" ]] && grep -q 'data-workspace-wizard' /tmp/p7-wiz.html 2>/dev/null; then

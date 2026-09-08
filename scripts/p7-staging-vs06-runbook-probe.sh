@@ -15,7 +15,7 @@ PHONE="${SMOKE_OPERATOR_OWNER_PHONE:-09174070937}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
 ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
 PORTAL_HOST="${STAGING_PORTAL_HOST:-operator.portal.localhost}"
-TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000210}"
+TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000220}"
 GUEST_NAME="${P7_VS06_GUEST_NAME:-P7 VS-06 Runbook Guest}"
 GUEST_EMAIL="${P7_VS06_GUEST_EMAIL:-p7-vs06-runbook-$(date +%s)@staging.test}"
 PARTY_SIZE="${P7_VS06_PARTY_SIZE:-2}"
@@ -62,7 +62,7 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" "\${ADMIN_HDR[@]}
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-COOKIE=( -H "Cookie: session=\${TOKEN}" )
+COOKIE=( -H "Cookie: atour_op_session=\${TOKEN}" )
 
 echo "runbook prerequisite: portal registration → pending booking"
 reg=\$(curl -sf -X POST "\${PTL}/api/catalog/registrations" "\${PORTAL_HDR[@]}" \\
