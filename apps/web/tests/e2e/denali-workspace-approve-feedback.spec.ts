@@ -9,6 +9,9 @@ import {
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import {
+  ensureTourHasApprovalCapacity,
+} from "./fixtures/tour-workspace-smoke";
+import {
   resolveChainSmokePublishedTourId,
   seedChainGuestRegistrationViaApi,
 } from "../../test/fixtures/p6-chain-guest-api";
@@ -24,12 +27,13 @@ test.describe("denali-workspace-approve-feedback.spec.ts — UX-BKG-56", () => {
   }) => {
     const stamp = Date.now();
     const guestName = `WS Inspect Approve ${stamp}`;
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
     await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `ws-inspect-${stamp}@denali-smoke.local`,
     });
 
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await page.goto(workspaceRegistrationsPath());
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 30_000,
@@ -79,12 +83,13 @@ test.describe("denali-workspace-approve-feedback.spec.ts — UX-BKG-56", () => {
   test("workspace inline approve (2-click) shows action notice", async ({ page, request }) => {
     const stamp = Date.now();
     const guestName = `WS Inline Approve ${stamp}`;
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
     await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `ws-inline-${stamp}@denali-smoke.local`,
     });
 
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await page.goto(workspaceRegistrationsPath());
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 30_000,

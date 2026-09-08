@@ -21,6 +21,7 @@ import {
   seedChainGuestRegistrationViaApi,
   tourOpsApiBase,
 } from "../../test/fixtures/p6-chain-guest-api";
+import { ensureTourHasApprovalCapacity } from "./fixtures/tour-workspace-smoke";
 
 /** Align with packages/workspaces/denali DEFAULT_DENALI_CAPACITY_RULE.maxPartySize */
 const DENALI_MAX_PARTY_SIZE = 20;
@@ -65,12 +66,13 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
   }) => {
     const stamp = Date.now();
     const guestName = `P3 E03 Reject ${stamp}`;
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
     await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p3-e03-${stamp}@denali-smoke.local`,
     });
 
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await page.goto("/bookings");
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 15_000,

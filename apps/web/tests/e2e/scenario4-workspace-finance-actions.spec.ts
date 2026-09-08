@@ -8,146 +8,50 @@ import { BOOKING_FINANCIAL_STRIP_TEST_IDS } from "../../src/finance/booking-fina
 import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
-import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
 import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
-
-const TOUR_ID = resolveChainSmokePublishedTourId();
-
-type OutstandingRow = {
-  readonly registrationId?: string;
-  readonly bookingPaymentStatus?: string;
-};
-
-type PendingReceiptRow = {
-  readonly payment?: {
-    readonly registrationId?: string;
-  } | null;
-};
-
-type BookingCreateResponse = {
-  readonly id?: string;
-};
-
-type TourDetailResponse = {
-  readonly projection?: {
-    readonly title?: string | null;
-    readonly departureAt?: string | null;
-  };
-};
-
-function financeWorkspacePath(registrationId: string): string {
-  return `/tours/${TOUR_ID}/workspace?tab=finance&focusRegistrationId=${encodeURIComponent(
-    registrationId
-  )}`;
-}
+import {
+  ensureTourHasApprovalCapacity,
+  openFinanceWorkspaceGuest,
+  seedApprovedUnpaidGuest,
+} from "./fixtures/tour-workspace-smoke";
 
 test.describe("scenario-4 workspace finance action surfaces", () => {
   test("finance detail keeps payment actions inside workspace", async ({ page }) => {
     test.setTimeout(240_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
-    const outstandingRes = await page.request.get(
-      `/api/finance/reports/outstanding-balances?tourId=${encodeURIComponent(TOUR_ID)}&limit=50`
-    );
-    expect(outstandingRes.ok(), await outstandingRes.text()).toBeTruthy();
-    const pendingReceiptsRes = await page.request.get(
-      `/api/finance/receipts/pending?tourId=${encodeURIComponent(TOUR_ID)}&limit=50`
-    );
-    expect(pendingReceiptsRes.ok(), await pendingReceiptsRes.text()).toBeTruthy();
-    const outstandingBody = (await outstandingRes.json()) as { items?: OutstandingRow[] };
-    const pendingReceiptsBody = (await pendingReceiptsRes.json()) as {
-      items?: PendingReceiptRow[];
-    };
-    const receiptBlockedRegistrationIds = new Set(
-      (pendingReceiptsBody.items ?? [])
-        .map((row) => row.payment?.registrationId?.trim() ?? "")
-        .filter((registrationId) => registrationId.length > 0)
-    );
-    const outstandingCandidate =
-      outstandingBody.items?.find(
-        (row) =>
-          (row.bookingPaymentStatus === "unpaid" || row.bookingPaymentStatus === "partial") &&
-          typeof row.registrationId === "string" &&
-          row.registrationId.trim().length > 0 &&
-          !receiptBlockedRegistrationIds.has(row.registrationId.trim())
-      ) ?? null;
-
-    let registrationId = outstandingCandidate?.registrationId?.trim() ?? "";
-    if (registrationId.length === 0) {
-      const stamp = Date.now();
-      const guestName = `Scenario4 Candidate ${stamp}`;
-      const tourRes = await page.request.get(`/api/tours/${encodeURIComponent(TOUR_ID)}`);
-      expect(tourRes.ok(), await tourRes.text()).toBeTruthy();
-      const tourBody = (await tourRes.json()) as TourDetailResponse;
-      const tourTitle = tourBody.projection?.title?.trim() ?? "";
-      const departureAt = tourBody.projection?.departureAt?.trim() ?? "";
-      expect(tourTitle.length, "scenario4 fallback needs a tour title").toBeGreaterThan(0);
-      expect(departureAt.length, "scenario4 fallback needs a tour departureAt").toBeGreaterThan(0);
-
-      const createBookingRes = await page.request.post("/api/bookings", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: {
-          tourId: TOUR_ID,
-          tourTitle,
-          guestLabel: guestName,
-          guestEmail: `scenario4-${stamp}@denali-smoke.local`,
-          partySize: 2,
-          departureAt,
-        },
-      });
-      expect(createBookingRes.ok(), await createBookingRes.text()).toBeTruthy();
-      const createdBooking = (await createBookingRes.json()) as BookingCreateResponse;
-      registrationId = createdBooking.id?.trim() ?? "";
-      expect(
-        registrationId.length,
-        "scenario4 fallback should create a booking id"
-      ).toBeGreaterThan(0);
-
-      const approveRes = await page.request.post(`/api/bookings/${registrationId}/approve`);
-      expect(approveRes.ok(), await approveRes.text()).toBeTruthy();
-      const overrideRes = await page.request.put(
-        `/api/finance/registrations/${registrationId}/obligation-override`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          data: {
-            obligationMinor: "1000000",
-            reason: "Scenario 4 workspace finance actions seed",
-          },
-        }
-      );
-      expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
-    }
-
-    expect(
-      registrationId.length > 0,
-      "need at least one unpaid/partial candidate on QA tour without a pending receipt"
-    ).toBeTruthy();
-
-    await page.goto(financeWorkspacePath(registrationId), { waitUntil: "domcontentloaded" });
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const { guestName, registrationId } = await seedApprovedUnpaidGuest(page, stamp);
+    await openFinanceWorkspaceGuest(page, { registrationId, guestName });
 
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
       timeout: 90_000,
     });
-    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel)).toBeVisible({
+    const detailPanel = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel);
+    await expect(detailPanel).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByTestId(BOOKING_FINANCIAL_STRIP_TEST_IDS.strip)).toBeVisible({
+    await expect(detailPanel.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
+
+    const advancedToggle = detailPanel.locator("details summary").filter({
+      hasText: /advanced|پیشرفته|more settings|تنظیمات بیشتر/i,
+    });
+    await expect(advancedToggle.first()).toBeVisible({ timeout: 15_000 });
+    await advancedToggle.first().click();
+
+    await expect(detailPanel.getByTestId(BOOKING_FINANCIAL_STRIP_TEST_IDS.strip)).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByTestId("finance-submit-receipt-advanced")).toBeVisible({
+    await expect(detailPanel.getByTestId("finance-submit-receipt-advanced")).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.receiptForm)).toBeHidden({
+    await expect(detailPanel.getByTestId(FINANCE_PAYMENTS_TEST_IDS.receiptForm)).toBeHidden({
       timeout: 30_000,
     });
   });
