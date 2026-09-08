@@ -17,6 +17,11 @@ ARTIFACT="${ARTIFACT:?ARTIFACT path to .tar.zst required}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 
+cleanup_staging_ssh() {
+  staging_ssh_close_master
+}
+trap cleanup_staging_ssh EXIT INT TERM
+
 [[ -f "$ARTIFACT" ]] || {
   echo "deploy-staging-artifact-remote: missing $ARTIFACT" >&2
   exit 1
@@ -144,8 +149,8 @@ upload_verified_chunk() {
 
   local attempt
   local status
-  for attempt in 1 2 3; do
-    log "upload chunk ${name} attempt ${attempt}/3"
+  for attempt in $(seq 1 "$SSH_RETRY_MAX"); do
+    log "upload chunk ${name} attempt ${attempt}/${SSH_RETRY_MAX}"
     ssh_cmd "mkdir -p ${remote_parts_q} && rm -f ${tmp_part_q}"
     set +e
     staging_scp_cmd "$part" "${REMOTE}:${tmp_part}"
@@ -163,13 +168,13 @@ upload_verified_chunk() {
     else
       log "chunk ${name} upload failed with status ${status}"
     fi
-    if [[ "$attempt" -lt 3 ]]; then
+    if [[ "$attempt" -lt "$SSH_RETRY_MAX" ]]; then
       ssh_cmd 'echo SSH_RETRY_OK >/dev/null'
-      sleep $((attempt * 2))
+      sleep $((attempt * 3))
     fi
   done
 
-  echo "deploy-staging-artifact-remote: chunk ${name} failed after 3 attempts; verified chunks preserved in ${remote_parts}" >&2
+  echo "deploy-staging-artifact-remote: chunk ${name} failed after ${SSH_RETRY_MAX} attempts; verified chunks preserved in ${remote_parts}" >&2
   return 1
 }
 
@@ -202,6 +207,9 @@ reassemble_verified_chunks() {
   fi
   ssh_cmd "mv ${assembling_q} ${remote_artifact_q} && rm -rf ${remote_parts_q}"
 }
+
+log "open SSH multiplex master (single TCP session for transfer)"
+staging_ssh_open_master
 
 log "preflight SSH"
 ssh_cmd 'echo SSH_OK; uptime; free -h | head -2'

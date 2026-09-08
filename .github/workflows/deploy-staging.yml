@@ -122,7 +122,7 @@ jobs:
     needs: build
     if: github.repository == 'hrokhbakhsh1991/docs' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     environment:
       name: staging
     steps:
@@ -189,7 +189,7 @@ jobs:
             echo "ssh-keyscan attempt ${attempt}/5 failed; retrying..."
             sleep $((attempt * 3))
           done
-          # staging_ssh_cmd uses StrictHostKeyChecking=no — do not fail deploy on keyscan flake.
+          # staging_ssh_cmd tolerates keyscan flake via staging-ssh.sh (see vps-deploy lib).
           ssh-keyscan -T 15 -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
       - name: Transfer, install, migrate, and standard seed
         env:
@@ -199,7 +199,8 @@ jobs:
           DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
           ENV_DIR: ${{ env.STAGING_ENV_DIR }}
           STAGING_ARTIFACT_CHUNK_SIZE: 4m
-          STAGING_SSH_RETRY_MAX: 5
+          STAGING_SSH_RETRY_MAX: 8
+          STAGING_SSH_CONTROL_DIR: /tmp/app-tour-staging-ssh
         run: ARTIFACT="$STAGING_ARTIFACT" bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
       - name: Staging health and RLS verification
         env:

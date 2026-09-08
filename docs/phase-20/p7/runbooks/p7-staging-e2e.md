@@ -188,7 +188,7 @@ Requires `STORAGE_DRIVER=prisma` on staging API.
 | SMK-MKT-03 timeout on register navigation | `PORTAL_PUBLIC_BASE_URL` must be `http://operator.portal.localhost:230xx` (not bare VPS IP) so Playwright host-resolver reaches portal through SSH tunnel — bare IP hangs on `load` |
 | Portal register stuck (no `data-registration-ready`) | Runner ISP intercept on bare VPS IP — use probe SSH tunnels (`VPS_IP=127.0.0.1`) |
 | `portal static chunk` / tunnel sanity `000` | Partial SSH forward (only `:23000`) or stale tunnel — probe now requires all four ports + `/health` 200; kill old `ssh -L` or re-run probe |
-| Deploy staging SSH timeout mid-artifact upload | Transient VPS/network — re-run **Deploy staging (dev)** workflow or push a small commit to `dev` to retrigger |
+| Deploy staging SSH timeout mid-artifact upload | Transient GHA→VPS link — each chunk used a **new** TCP SSH session (connection storm). Fix: `staging_ssh_open_master` multiplex (`ControlMaster`) in `scripts/vps-deploy/lib/staging-ssh.sh`. Re-run workflow or push to `dev`. |
 
 ---
 
