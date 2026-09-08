@@ -8,8 +8,7 @@ import { after, before, beforeEach, describe, it } from "node:test";
 import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { resolveFinanceServiceForTenant } from "../../src/boot/lazy-finance-service.ts";
-import { resetTenantConnectionBudgetForTests } from "../../src/db/tenant-connection-budget.ts";
-import { withTenantDbBudget } from "../../src/db/tenant-connection-budget.ts";
+import { resetTenantConnectionBudgetForTests, withTenantDbBudget } from "../../src/db/tenant-connection-budget.ts";
 import {
   approveBooking,
   createBooking,

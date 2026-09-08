@@ -9,6 +9,7 @@
  */
 import {
   composeTourOperationalRosterRow,
+  type ComposeTourOperationalRosterInvoice,
   type TourOperationalRosterRow,
 } from "@app-tour/workspace-denali/roster";
 import type { BookingListItem } from "@app-tour/booking-http-contracts";
@@ -39,12 +40,7 @@ export async function enrichOperationalRosterRowsBudgetSafe(
   const composed: TourOperationalRosterRow[] = [];
 
   for (const booking of bookings) {
-    let invoice: {
-      readonly remainingMinor: string;
-      readonly paidAmountMinor: string;
-      readonly invoiceTotalMinor: string;
-      readonly currency: string;
-    } | null = null;
+    let invoice: ComposeTourOperationalRosterInvoice | null = null;
     let refundStatuses: string[] = [];
 
     try {

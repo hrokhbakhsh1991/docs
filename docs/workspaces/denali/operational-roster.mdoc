@@ -85,7 +85,7 @@ Implementation: `apps/api/src/roster/operational-roster-enrichment.ts` (`enrichO
 | Static | `pnpm --filter @apps/api run guard:operational-roster-budget` — forbids page-wide `Promise.all(bookings.items.map)` and `Promise.all` inside enrichment |
 | Unit | `test/dp2/operational-roster-projection.spec.ts` — ≥12 approved rows under `TENANT_MAX_CONCURRENT_DB_OPS=4` |
 | Unit | `test/dp2/operational-roster-enrichment.spec.ts` — enrichment module contract |
-| DP-2 script | `scripts/test-dp2-operational-roster.sh` — denali + api dp2/* + web roster contract |
+| DP-2 script | `scripts/test-dp2-operational-roster.sh` — `guard:operational-roster-budget` + denali + api dp2/* + web roster contract |
 
 This keeps peak tenant DB ops ≤4 for a single roster request without raising staging caps.
 
