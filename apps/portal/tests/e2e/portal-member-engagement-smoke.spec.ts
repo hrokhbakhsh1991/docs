@@ -288,7 +288,5 @@ test.describe("MEG-001 portal member engagement", () => {
       path: "/opt/cursor/artifacts/portal-member-negative-ux-after-mobile.png",
       fullPage: true,
     });
-
-    await operatorApi.dispose();
   });
 });
