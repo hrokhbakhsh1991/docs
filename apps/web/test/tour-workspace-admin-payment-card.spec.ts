@@ -40,11 +40,11 @@ describe("tour-workspace-admin-payment-card.spec.ts", () => {
     assert.doesNotMatch(source, /setAdvancedOpen\(true\)/);
   });
 
-  it("does not default workspace payment currency to a product-specific value before invoice load", () => {
+  it("falls back to IRR when invoice currency is missing before prefilling payment", () => {
     assert.match(source, /const DEFAULT_PAYMENT_CURRENCY = ""/);
     assert.match(source, /useState\(DEFAULT_PAYMENT_CURRENCY\)/);
     assert.match(source, /setCurrency\(DEFAULT_PAYMENT_CURRENCY\)/);
-    assert.match(source, /setCurrency\(invoice\.currency\)/);
-    assert.doesNotMatch(source, /setCurrency\("IRR"\)/);
+    assert.match(source, /invoice\.currency\.trim\(\)/);
+    assert.match(source, /invoiceCurrency\.length >= 3 \? invoiceCurrency : "IRR"/);
   });
 });
