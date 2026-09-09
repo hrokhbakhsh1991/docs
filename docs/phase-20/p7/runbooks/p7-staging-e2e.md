@@ -77,7 +77,7 @@ export OPERATOR_OWNER_MOBILE=09174070937
 export OPERATOR_DEV_OTP=1234
 export PLAYWRIGHT_BASE_URL=http://operator.admin.localhost:23000
 export SMOKE_MARKETING_BASE_URL=http://operator.localhost:23002
-export SMOKE_PORTAL_BASE_URL=http://operator.portal.localhost:23003
+export SMOKE_PORTAL_BASE_URL=http://portal.operator.localhost:23003
 ```
 
 ### Profile B — prod-reference ports (3000–3003)
@@ -185,7 +185,8 @@ Requires `STORAGE_DRIVER=prisma` on staging API.
 | Portal register `404` / no `data-registration-ready`                                             | Tour `…0210` relocated to denali dev tenant `…003` by API bootstrap after seed — ensure `seedOperatorSmokePublishedTour` keeps canonical operator tenant `…014`; re-run `ensure-operator-smoke-vs01-staging.ts` after API restart                                  |
 | SMK-P6-ADM-02 VS-07 seed fails (paid payment)                                                    | `seed-operator-smoke-pending-booking-staging.ts` clears payments/receipts for …0310 before upsert — re-run probe pre-seed                                                                                                                                          |
 | SMK-P6-ADM-02 timeout (20+ pending receipts)                                                     | Seed script purges **all** tenant …014 `Pending` receipts/payments then upserts stable VS-07 row (`…0408` / `p6-vs07-smoke.jpg`); smoke approves via operator BFF `PATCH /api/finance/receipts/{id}/review` after UI queue assertion                               |
-| SMK-MKT-03 timeout on register navigation                                                        | `PORTAL_PUBLIC_BASE_URL` must be `http://operator.portal.localhost:230xx` (not bare VPS IP) so Playwright host-resolver reaches portal through SSH tunnel — bare IP hangs on `load`                                                                                |
+| SMK-MKT-03 timeout on register navigation                                                        | `PORTAL_PUBLIC_BASE_URL` must be `http://portal.operator.localhost:230xx` (canonical; legacy `operator.portal.localhost` 308-redirects POST). Playwright host-resolver must map portal host through SSH tunnel — bare VPS IP hangs on `load`                       |
+| Portal probe `401 AUTH_UNAUTHENTICATED` on `POST /api/catalog/registrations`                     | Denali intake `requiresMemberSession` — probes must OTP via `portal.operator.localhost` `/api/public-auth/*` and send `atour_mb_session` before register. See `scripts/lib/p7-staging-portal-member-auth.sh`. Operator tour default `…0210` (tenant `…014`).       |
 | Portal register stuck (no `data-registration-ready`)                                             | Runner ISP intercept on bare VPS IP — use probe SSH tunnels (`VPS_IP=127.0.0.1`)                                                                                                                                                                                   |
 | `portal static chunk` / tunnel sanity `000`                                                      | Partial SSH forward (only `:23000`) or stale tunnel — probe now requires all four ports + `/health` 200; kill old `ssh -L` or re-run probe                                                                                                                         |
 | Deploy staging SSH timeout mid-artifact upload                                                   | Transient GHA→VPS link — each chunk used a **new** TCP SSH session (connection storm). Fix: `staging_ssh_open_master` multiplex (`ControlMaster`) in `scripts/vps-deploy/lib/staging-ssh.sh`. Re-run workflow or push to `dev`.                                    |

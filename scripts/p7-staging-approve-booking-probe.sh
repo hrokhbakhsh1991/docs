@@ -2,6 +2,7 @@
 # P7-2-N-003 — portal register → operator approve → approved + outbox (~18s)
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
@@ -13,8 +14,9 @@ PTL="http://127.0.0.1:${PTL_PORT}"
 PHONE="${SMOKE_OPERATOR_OWNER_PHONE:-09174070937}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
 ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-admin.operator.localhost}"
-PORTAL_HOST="${STAGING_PORTAL_HOST:-operator.portal.localhost}"
-TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000220}"
+PORTAL_HOST="${STAGING_PORTAL_HOST:-portal.operator.localhost}"
+TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000210}"
+MEMBER_PHONE="${P7_PORTAL_MEMBER_PHONE:-+1555$(date +%s | tail -c 7)}"
 GUEST_NAME="${P7_APPROVE_GUEST_NAME:-P7 Approve Guest}"
 GUEST_EMAIL="${P7_APPROVE_GUEST_EMAIL:-p7-approve-guest-$(date +%s)@staging.test}"
 PARTY_SIZE="${P7_APPROVE_PARTY_SIZE:-2}"
@@ -34,12 +36,14 @@ OTP="${OTP}"
 ADMIN_HOST="${ADMIN_HOST}"
 PORTAL_HOST="${PORTAL_HOST}"
 TOUR_ID="${TOUR_ID}"
+MEMBER_PHONE="${MEMBER_PHONE}"
 GUEST_NAME="${GUEST_NAME}"
 GUEST_EMAIL="${GUEST_EMAIL}"
 PARTY_SIZE="${PARTY_SIZE}"
 
+$(cat "${ROOT}/scripts/lib/p7-staging-portal-member-auth.sh")
+
 ADMIN_HDR=( -H "Host: \${ADMIN_HOST}" )
-PORTAL_HDR=( -H "Host: \${PORTAL_HOST}" )
 fail() { echo "P7_STAGING_APPROVE_BOOKING_PROBE_FAIL: \$1" >&2; exit 1; }
 
 cd "\${DEPLOY_PATH}/apps/api"
@@ -50,9 +54,10 @@ set +a
 NODE_ENV=development pnpm exec tsx scripts/seed-operator-smoke-identity-staging.ts >/tmp/p7-approve-seed.log 2>&1 \\
   || fail "seed-operator-smoke-identity-staging failed — see /tmp/p7-approve-seed.log"
 
-reg=\$(curl -sf -X POST "\${PTL}/api/catalog/registrations" "\${PORTAL_HDR[@]}" \\
-  -H "Content-Type: application/json" \\
-  -d "{\\"tourId\\":\\"\${TOUR_ID}\\",\\"email\\":\\"\${GUEST_EMAIL}\\",\\"fullName\\":\\"\${GUEST_NAME}\\",\\"partySize\\":\${PARTY_SIZE}}")
+MB_TOKEN=\$(p7_portal_member_session_token "\${MEMBER_PHONE}" "\${GUEST_NAME}") \\
+  || fail "portal member OTP session failed for \${MEMBER_PHONE}"
+
+reg=\$(p7_portal_post_catalog_registration "\${TOUR_ID}" "\${GUEST_EMAIL}" "\${GUEST_NAME}" "\${PARTY_SIZE}" "\${MB_TOKEN}")
 BOOKING_ID=\$(echo "\$reg" | python3 -c "
 import json, sys
 body = json.loads(sys.stdin.read())

@@ -50,12 +50,12 @@ forbidden_until: [P7-1-N-009]
 
 **Pass signals:**
 
-| Layer | Signal |
-| ----- | ------ |
-| Dev | `buildTourRegistrationsWorkspaceQuery` / `buildTourRegistrationsBookingsQuery` specs green |
-| Staging UI | `data-testid="operator-tour-workspace-registrations-panel"` on `/tours/{tourId}/workspace` |
-| Staging links | Register href `/tours/{tourId}/register` · command center `tourId=` query |
-| Staging API | Authenticated `GET /api/bookings?tourId=…&view=ops` returns `{ items: [] }` or rows |
+| Layer         | Signal                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| Dev           | `buildTourRegistrationsWorkspaceQuery` / `buildTourRegistrationsBookingsQuery` specs green |
+| Staging UI    | `data-testid="operator-tour-workspace-registrations-panel"` on `/tours/{tourId}/workspace` |
+| Staging links | Register href `/tours/{tourId}/register` · command center `tourId=` query                  |
+| Staging API   | Authenticated `GET /api/bookings?tourId=…&view=ops` returns `{ items: [] }` or rows        |
 
 ---
 
@@ -75,7 +75,9 @@ forbidden_until: [P7-2-N-001]
 
 **Verify:** After portal register → row visible with party size / guest name · `pnpm run p7:staging-portal-pending-probe`
 
-**Probe flow:** `POST operator.portal.localhost/api/catalog/registrations` → operator.admin OTP → `GET /api/bookings?tourId=…&view=ops` + workspace HTML contains guest name.
+**Probe flow:** member OTP on `portal.operator.localhost` (`/api/public-auth/request-otp` → `verify-otp` → optional `register-complete`) → `POST /api/catalog/registrations` with `atour_mb_session` → `admin.operator.localhost` operator OTP → `GET /api/bookings?tourId=…0210&view=ops` + workspace HTML contains guest name.
+
+**Staging defaults:** `STAGING_PORTAL_HOST=portal.operator.localhost` · `STAGING_OPERATOR_TOUR_ID=00000000-0000-4000-8000-000000000210` · `P7_PORTAL_MEMBER_PHONE` optional (default unique `+1555…` per run).
 
 ---
 
@@ -95,7 +97,7 @@ forbidden_until: [P7-2-N-002]
 
 **Verify:** `bookings-ops.spec.ts` API-9.5-01 · `pnpm run p7:staging-approve-booking-probe` · **VS-06 staging**
 
-**Probe flow:** portal registration → operator OTP → `POST /api/bookings/{id}/approve` (web BFF) → list shows `approved` → `verify-booking-approve-outbox-staging.ts` asserts `registration.approved` outbox row.
+**Probe flow:** member OTP + `POST /api/catalog/registrations` (portal BFF) → operator OTP → `POST /api/bookings/{id}/approve` (web BFF) → list shows `approved` → `verify-booking-approve-outbox-staging.ts` asserts `registration.approved` outbox row.
 
 ---
 

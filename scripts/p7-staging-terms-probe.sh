@@ -16,7 +16,7 @@ OPERATOR_TENANT="00000000-0000-4000-8000-000000000014"
 SEED_TOUR_ID="00000000-0000-4000-8000-000000000210"
 MARKER="P7 staging: cancel 48h"
 MARKETING_HOST="${STAGING_MARKETING_HOST:-operator.localhost}"
-PORTAL_HOST="${STAGING_PORTAL_HOST:-operator.portal.localhost}"
+PORTAL_HOST="${STAGING_PORTAL_HOST:-portal.operator.localhost}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 
