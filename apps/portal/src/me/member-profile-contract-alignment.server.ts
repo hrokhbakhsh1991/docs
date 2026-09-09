@@ -11,6 +11,16 @@ type MemberProfileContractSnapshot = {
 
 const SNAPSHOT_FILE_NAME = "member-profile-contract-v1.snapshot.json";
 
+function listMemberProfileContractSnapshotCandidates(): string[] {
+  const cwd = process.cwd();
+  const moduleSibling = join(dirname(fileURLToPath(import.meta.url)), SNAPSHOT_FILE_NAME);
+  return [
+    moduleSibling,
+    join(cwd, "src/me", SNAPSHOT_FILE_NAME),
+    join(cwd, "apps/portal/src/me", SNAPSHOT_FILE_NAME),
+  ];
+}
+
 /** Resolve snapshot for dev (src sibling), Next bundle, and standalone artifact layouts. */
 export function resolveMemberProfileContractSnapshotPath(): string {
   const envOverride = process.env.MEMBER_PROFILE_CONTRACT_SNAPSHOT_PATH?.trim();
@@ -18,17 +28,10 @@ export function resolveMemberProfileContractSnapshotPath(): string {
     return envOverride;
   }
 
-  const moduleSibling = join(
-    dirname(fileURLToPath(import.meta.url)),
-    SNAPSHOT_FILE_NAME
-  );
-  if (existsSync(moduleSibling)) {
-    return moduleSibling;
-  }
-
-  const artifactRelative = join(process.cwd(), "apps/portal/src/me", SNAPSHOT_FILE_NAME);
-  if (existsSync(artifactRelative)) {
-    return artifactRelative;
+  for (const candidate of listMemberProfileContractSnapshotCandidates()) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
   }
 
   throw new Error("MEMBER_PROFILE_CONTRACT_SNAPSHOT_MISSING");
