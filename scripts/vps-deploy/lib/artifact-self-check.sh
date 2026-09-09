@@ -47,6 +47,10 @@ artifact_self_check() {
     echo "artifact-self-check: missing bin/seed-staging.cjs" >&2
     return 1
   }
+  [[ -f "${vroot}/bin/seed-operator-smoke-pending-booking.cjs" ]] || {
+    echo "artifact-self-check: missing bin/seed-operator-smoke-pending-booking.cjs" >&2
+    return 1
+  }
   [[ -f "${vroot}/bin/seed-denali-wallet-pilot.cjs" ]] || {
     echo "artifact-self-check: missing bin/seed-denali-wallet-pilot.cjs" >&2
     return 1

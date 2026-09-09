@@ -97,6 +97,14 @@ pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-operato
   --packages=external \
   --outfile="${ARTIFACT_ROOT}/bin/seed-staging.cjs"
 
+log "bundle operator smoke pending booking seed (SMK-P9-04 / Ali Rezaei)"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-operator-smoke-pending-booking-staging.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-operator-smoke-pending-booking.cjs"
+
 log "bundle WRS denali.club domain seed (staging apex)"
 pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-wrs-denali-club-domains.ts" \
   --bundle \
@@ -149,6 +157,7 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
   "migrationHead": "${MIGRATION_HEAD}",
   "denaliClientBundle": true,
   "denaliWalletPilotSeedBundle": true,
+  "operatorSmokePendingBookingSeedBundle": true,
   "layout": {
     "api": "api/dist/main.js",
     "web": "web/RUNTIME.json",
