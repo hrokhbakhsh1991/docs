@@ -18,6 +18,9 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
     `MAP operator.portal.localhost ${vpsIp}`,
     `MAP portal.operator.localhost ${vpsIp}`,
     `MAP operator.localhost ${vpsIp}`,
+    `MAP denali.club ${vpsIp}`,
+    `MAP portal.denali.club ${vpsIp}`,
+    `MAP admin.denali.localhost ${vpsIp}`,
   ].join(", ");
   return { args: [`--host-resolver-rules=${rules}`] };
 }
