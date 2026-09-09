@@ -24,6 +24,7 @@
     "test:smoke:denali": "playwright test -c playwright.smoke.config.ts",
     "test:e2e:operator": "playwright test -c playwright.operator.config.ts",
     "test:smoke:engagement": "playwright test -c playwright.operator-engagement.config.ts",
+    "test:smoke:marketing-pages": "playwright test -c playwright.operator-marketing-pages.config.ts",
     "test:smoke:gap": "playwright test -c playwright.operator-gap.config.ts",
     "test:smoke:booking-desk": "playwright test -c playwright.operator-booking.config.ts",
     "test:smoke:tour-creation-bqc": "playwright test -c playwright.tour-creation-bqc.config.ts",
