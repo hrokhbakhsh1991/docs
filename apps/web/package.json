@@ -59,6 +59,7 @@
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/iran-mobile": "workspace:*",
     "@app-tour/iran-mountain-landmarks": "workspace:*",
+    "@app-tour/marketing-pages-http-contracts": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",

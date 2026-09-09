@@ -147,6 +147,10 @@
       "title": "Workspace branding",
       "description": "Upload your organization logo and display name for login and admin chrome."
     },
+    "marketing_pages": {
+      "title": "Marketing pages",
+      "description": "Hero copy and public club homepage content."
+    },
     "integrations": {
       "title": "Connections",
       "description": "Telegram bot and channel setup, enablement, and delivery health checks."
@@ -155,6 +159,22 @@
       "title": "Field exposure",
       "description": "Choose which tour fields are published to external channels per connection."
     }
+  },
+  "marketingPages": {
+    "title": "Marketing pages",
+    "description": "Edit and publish public homepage hero copy.",
+    "homeHeroTitle": "Home hero",
+    "homeHeroDescription": "Shown on the public marketing site for this club.",
+    "leadLabel": "Headline",
+    "supportLabel": "Supporting text",
+    "ctaLabel": "Primary CTA",
+    "saveDraft": "Save draft",
+    "publish": "Publish",
+    "saving": "Saving…",
+    "publishing": "Publishing…",
+    "publishedAt": "Last published: {date}",
+    "notPublishedYet": "Not published yet — visitors see default i18n copy.",
+    "actorHint": "Current role: {role}"
   },
   "branding": {
     "title": "Workspace branding",

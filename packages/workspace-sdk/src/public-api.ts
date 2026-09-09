@@ -413,6 +413,10 @@ export {
   type WorkspaceEngagementCapabilities,
 } from "./catalog/workspace-engagement-capabilities.generated";
 export {
+  getWorkspaceMarketingPagesCapabilities,
+  type WorkspaceMarketingPagesCapabilities,
+} from "./catalog/workspace-marketing-pages-capabilities.generated";
+export {
   getWorkspaceTransportCapabilities,
   type WorkspaceTransportCapabilities,
 } from "./catalog/workspace-transport-capabilities.generated";
