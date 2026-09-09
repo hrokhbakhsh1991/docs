@@ -93,8 +93,26 @@ model Tenant {
   engagementLevelDefinitions     EngagementLevelDefinition[]
   engagementAwardRuleDefinitions EngagementAwardRuleDefinition[]
   engagementDefinitionAuditLogs  EngagementDefinitionAuditLog[]
+  marketingPageContents          MarketingPageContent[]
 
   @@map("tenants")
+}
+
+/// MKP-001 — operator-managed marketing page copy (draft + published).
+model MarketingPageContent {
+  tenantId         String    @map("tenant_id") @db.Uuid
+  workspaceId      String    @map("workspace_id")
+  pageKey          String    @map("page_key")
+  locale           String
+  draftPayload     Json      @default("{}") @map("draft_payload")
+  publishedPayload Json?     @map("published_payload")
+  publishedAt      DateTime? @map("published_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, workspaceId, pageKey, locale])
+  @@index([tenantId, workspaceId], map: "idx_marketing_page_contents_tenant_workspace")
+  @@map("marketing_page_contents")
 }
 
 /// P3-A — logical workspace vertical (metadata platform).

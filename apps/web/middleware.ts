@@ -32,6 +32,10 @@ import {
   allowsOperatorEngagementTeamRole,
   isOperatorEngagementTeamAccessPath,
 } from "@/engagement/resolve-operator-engagement-middleware-access";
+import {
+  allowsOperatorMarketingPagesTeamRole,
+  isOperatorMarketingPagesTeamAccessPath,
+} from "@/features/settings/resolve-operator-marketing-pages-middleware-access";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import {
   normalizeHostHeader,
@@ -325,6 +329,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
         isDevWebSessionAllowed() &&
         isOperatorEngagementTeamAccessPath(pathname) &&
         allowsOperatorEngagementTeamRole(validation.role, request.method)
+      ) {
+        return forwardPathname(request, pathname);
+      }
+      if (
+        isDevWebSessionAllowed() &&
+        isOperatorMarketingPagesTeamAccessPath(pathname) &&
+        allowsOperatorMarketingPagesTeamRole(validation.role, request.method)
       ) {
         return forwardPathname(request, pathname);
       }

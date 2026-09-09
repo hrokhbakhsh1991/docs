@@ -228,6 +228,19 @@ export const WorkspaceEngagementBlockSchema = z.object({
     .optional(),
 });
 
+/** MKP-001 — marketing pages management capability block. */
+export const WorkspaceMarketingPagesBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  allowedPageKeys: z.array(z.string().min(1)).optional(),
+  capabilities: z
+    .object({
+      operatorEditor: z.boolean(),
+    })
+    .optional(),
+});
+
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
@@ -363,6 +376,7 @@ export const WorkspaceManifestCiSchema = z
     workspaceWallet: WorkspaceWalletBlockSchema.optional(),
     workspaceTicketing: WorkspaceTicketingBlockSchema.optional(),
     workspaceEngagement: WorkspaceEngagementBlockSchema.optional(),
+    workspaceMarketingPages: WorkspaceMarketingPagesBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     wizardResume: WorkspaceWizardResumeBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),

@@ -45,6 +45,7 @@
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/workspace-harbor": "workspace:*",
+    "@app-tour/marketing-pages-http-contracts": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
     "@react-three/drei": "^10.7.7",

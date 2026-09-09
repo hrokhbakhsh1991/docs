@@ -173,6 +173,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "getWorkspaceDifficultyFitnessCapabilities",
   "getWorkspaceEquipmentCapabilities",
   "getWorkspaceItineraryCapabilities",
+  "getWorkspaceMarketingPagesCapabilities",
   "getWorkspaceMemberPortalRenderer",
   "getWorkspacePricingCapabilities",
   "getWorkspaceRegistrationFlowPlugin",

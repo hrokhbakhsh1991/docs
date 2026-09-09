@@ -5,6 +5,7 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 
 import { GuestHomeFull } from "./guest-home-full";
 import { GuestHomeMinimal } from "./guest-home-minimal";
+import type { HomeHeroCopyOverride } from "./home-hero";
 
 export type RenderHomePageInput = {
   readonly landing: GuestLandingFeatures;
@@ -12,6 +13,7 @@ export type RenderHomePageInput = {
   readonly catalogItems: readonly MarketingCatalogCard[];
   readonly pluginId: string;
   readonly host: string;
+  readonly homeHeroCopyOverride?: HomeHeroCopyOverride | null;
 };
 
 export function renderHomePage(input: RenderHomePageInput) {
@@ -23,6 +25,7 @@ export function renderHomePage(input: RenderHomePageInput) {
         catalogItems={input.catalogItems}
         pluginId={input.pluginId}
         host={input.host}
+        homeHeroCopyOverride={input.homeHeroCopyOverride}
       />
     );
   }

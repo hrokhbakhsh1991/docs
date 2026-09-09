@@ -1208,6 +1208,45 @@ async function dispatchRequest(
     return;
   }
 
+  const publicMarketingPageMatch = /^\/public\/marketing-pages\/([^/]+)$/.exec(url.pathname);
+  if (method === "GET" && publicMarketingPageMatch !== null) {
+    const { handlePublicMarketingPage } = await import(
+      "./workspace-marketing-pages/marketing-pages.routes"
+    );
+    await handlePublicMarketingPage(req, res, publicMarketingPageMatch[1]!);
+    return;
+  }
+
+  const settingsMarketingPageMatch = /^\/settings\/marketing-pages\/([^/]+)$/.exec(url.pathname);
+  if (settingsMarketingPageMatch !== null) {
+    const pageKey = settingsMarketingPageMatch[1]!;
+    if (method === "GET") {
+      const { handleGetOperatorMarketingPage } = await import(
+        "./workspace-marketing-pages/marketing-pages.routes"
+      );
+      await handleGetOperatorMarketingPage(req, res, pageKey);
+      return;
+    }
+    if (method === "PATCH") {
+      const { handlePatchOperatorMarketingPage } = await import(
+        "./workspace-marketing-pages/marketing-pages.routes"
+      );
+      await handlePatchOperatorMarketingPage(req, res, pageKey);
+      return;
+    }
+  }
+
+  const publishMarketingPageMatch = /^\/settings\/marketing-pages\/([^/]+)\/publish$/.exec(
+    url.pathname,
+  );
+  if (method === "POST" && publishMarketingPageMatch !== null) {
+    const { handlePublishOperatorMarketingPage } = await import(
+      "./workspace-marketing-pages/marketing-pages.routes"
+    );
+    await handlePublishOperatorMarketingPage(req, res, publishMarketingPageMatch[1]!);
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/settings/branding") {
     const { handleGetTenantBranding } = await import("./tenant/tenant-branding.routes");
     await handleGetTenantBranding(req, res);

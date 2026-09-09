@@ -20,6 +20,7 @@
       "workspaceWallet": { "revision": 1 },
       "workspaceTicketing": { "revision": 1 },
       "workspaceEngagement": { "revision": 1 },
+      "workspaceMarketingPages": { "revision": 1 },
       "workspaceItinerary": { "revision": 1 },
       "workspacePricing": { "revision": 1 },
       "workspaceTransport": { "revision": 1 }
@@ -328,6 +329,15 @@
     "capabilities": {
       "memberDashboard": true,
       "operatorOverview": true
+    }
+  },
+  "workspaceMarketingPages": {
+    "supported": true,
+    "capabilityRevision": 1,
+    "defaultModuleEnabledWhenUnset": true,
+    "allowedPageKeys": ["home-hero"],
+    "capabilities": {
+      "operatorEditor": true
     }
   },
   "workspaceBooking": {

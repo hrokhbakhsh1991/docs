@@ -1,0 +1,174 @@
+---
+title: Marketing Pages Management (MKP-001)
+standard_id: MKP-001
+version: 1.2.0
+status: approved
+format: markdoc
+doc_role: platform_standard
+extends:
+  - docs/standards/workspace-api-capabilities.mdoc
+  - docs/standards/member-session-portal-authority.mdoc
+  - docs/dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md
+mandatory_for:
+  - apps/api/src/workspace-marketing-pages
+  - packages/marketing-pages-http-contracts
+  - apps/web/app/(app)/settings/marketing-pages
+  - apps/marketing/src/marketing-pages
+code_sot:
+  - apps/api/prisma/schema.prisma
+  - apps/api/src/workspace-marketing-pages
+  - packages/marketing-pages-http-contracts/src
+  - packages/workspace-sdk/src/catalog/workspace-marketing-pages-capabilities.generated.ts
+  - apps/api/src/workspace-marketing-pages/workspace-marketing-pages-bindings.generated.ts
+---
+
+# Marketing Pages Management (MKP-001)
+
+**Purpose:** Cross-workspace operator-managed marketing page content with tenant isolation, workspace capability gates, and workspace-agnostic public rendering in `apps/marketing`.
+
+**Principle:** Platform engine owns persistence and HTTP contracts. Workspace manifests declare capability and allowed page keys. `guestLanding` remains the structural gate (which sections render); MKP-001 supplies **operator-editable copy** for allowed page keys.
+
+---
+
+## 1. Non-goals (V1 / Phase 1)
+
+| Item | Rationale |
+| ---- | --------- |
+| Full block-based page builder | Defer to Phase 2+ |
+| Blog / testimonials CMS | Requires media + moderation |
+| Custom slug routing (`/about`) | Phase 2 |
+| Marketing session / member auth | PCMS-001 — marketing stays anonymous |
+| Workspace imports in `apps/marketing` | ADR-MKT-001 |
+
+---
+
+## 2. Architecture layers
+
+| Layer | Location | Responsibility |
+| ----- | -------- | -------------- |
+| **Domain** | `apps/api/src/workspace-marketing-pages/` | CRUD, publish, module gate, audit |
+| **Contracts** | `packages/marketing-pages-http-contracts/` | Zod schemas for page payloads |
+| **Capability gate** | Manifest `workspaceMarketingPages` + codegen bindings | Per-workspace enablement |
+| **Operator UI** | `apps/web` settings `/settings/marketing-pages` | Draft edit + publish |
+| **Public render** | `apps/marketing` | Fetch published payload; fallback to i18n |
+| **Structural gates** | `guestLanding` (manifest) | Section on/off — unchanged |
+
+### WAC-001
+
+API resolves workspace type from tenant context. No `workspaceType === "denali"` branches in platform handlers. Use `isMarketingPagesSupportedWorkspace()` from generated bindings.
+
+---
+
+## 3. Data model (`marketing_page_contents`)
+
+| Column | Type | Rule |
+| ------ | ---- | ---- |
+| `tenant_id` | UUID | RLS scope |
+| `workspace_id` | text | Workspace plugin id |
+| `page_key` | text | e.g. `home-hero` |
+| `locale` | text | `fa` \| `en` |
+| `draft_payload` | JSON | Operator draft |
+| `published_payload` | JSON | Public read |
+| `published_at` | timestamptz | Set on publish |
+| `updated_at` | timestamptz | |
+
+**Unique:** `(tenant_id, workspace_id, page_key, locale)`
+
+**RLS:** `FORCE ROW LEVEL SECURITY` with `tenant_id = current_setting('app.tenant_id')::uuid`
+
+---
+
+## 4. Page keys (Phase 1)
+
+| `page_key` | Payload schema | Public surface |
+| ---------- | -------------- | -------------- |
+| `home-hero` | `{ lead, support, ctaPrimary }` | `HomeHero` copy override when `guestLanding.sections.hero` |
+
+Manifest `allowedPageKeys` lists keys per workspace. Unknown keys → 404.
+
+---
+
+## 5. HTTP routes
+
+| Method | Path | Auth | Behavior |
+| ------ | ---- | ---- | -------- |
+| GET | `/public/marketing-pages/:pageKey` | Anonymous + host tenant | Published payload only |
+| GET | `/settings/marketing-pages/:pageKey` | Operator | Draft + published |
+| PATCH | `/settings/marketing-pages/:pageKey` | Operator owner/admin | Save draft |
+| POST | `/settings/marketing-pages/:pageKey/publish` | Operator owner/admin | Promote draft → published |
+
+Locale: `x-tenant-locale` header or `?locale=fa`.
+
+---
+
+## 6. Manifest block
+
+```json
+"workspaceMarketingPages": {
+  "supported": true,
+  "capabilityRevision": 1,
+  "defaultModuleEnabledWhenUnset": true,
+  "capabilities": {
+    "operatorEditor": true
+  },
+  "allowedPageKeys": ["home-hero"]
+}
+```
+
+Settings hub module id: `marketing_pages` (Denali).
+
+---
+
+## 7. Rendering merge rules
+
+1. `resolveGuestLandingFeatures(pluginId)` — if `sections.hero === false`, skip hero (CMS does not force section on).
+2. Fetch published `home-hero` for locale.
+3. If published payload valid → override i18n strings in `HomeHero`.
+4. Else → i18n defaults (`catalog.home.full.hero.*`).
+
+---
+
+## 8. Cache / revalidation
+
+On publish, API calls `scheduleMarketingPagesRevalidate(tenantId)` which hits `apps/marketing/app/api/revalidate` (same hook as catalog). The route purges:
+
+| Tag | Builder |
+| --- | ------- |
+| `marketing-catalog-{tenantId}` | `buildMarketingCatalogCacheTag` |
+| `marketing-seo-{tenantId}` | `buildMarketingSeoCacheTag` |
+| `marketing-pages-{tenantId}` | `buildMarketingPagesCacheTag` |
+
+Public fetch (`fetchPublicMarketingHomeHero`) uses `cache: no-store` in Phase 1. Tagged fetch is reserved for Phase 1.1 when `MARKETING_PAGES_REVALIDATE_SECONDS` lands.
+
+Env (optional, shared with catalog): `MARKETING_REVALIDATE_URL`, `MARKETING_REVALIDATE_SECRET`.
+
+---
+
+## 9. Verification
+
+| Check | Command |
+| ----- | ------- |
+| Contracts | `pnpm --filter @app-tour/marketing-pages-http-contracts test` |
+| API integration | `pnpm --filter @apps/api exec env STORAGE_DRIVER=memory NODE_ENV=test node --import tsx --test test/marketing-pages*.spec.ts` |
+| Playwright smoke | `pnpm --filter @apps/web run test:smoke:marketing-pages` |
+| Smoke IDs | `SMK-MKP-01` owner publish → marketing hero; `SMK-MKP-02` viewer read-only; `SMK-MKP-03` locale tabs; `SMK-MKP-04` reload persistence; `SMK-MKP-05` mobile RTL; `SMK-MKP-06` validation |
+
+### Operator UI (Phase 1.1)
+
+| Capability | Behavior |
+| ---------- | -------- |
+| Locale tabs | `fa` / `en` per `MARKETING_PAGE_LOCALES` |
+| Viewer read-only | `isAdminOrOwnerRole` — banner + disabled inputs; API 403 on PATCH |
+| Success feedback | `data-testid` `marketing-pages-saved-draft` / `marketing-pages-saved-published` |
+| Client validation | `parseMarketingHomeHeroPayload` before save/publish; `marketing-pages-validation-error` |
+| Team viewer access | `resolve-operator-marketing-pages-middleware-access` in middleware + `(app)/layout` |
+
+---
+
+## 10. Phased roadmap
+
+| Phase | Scope |
+| ----- | ----- |
+| **1** | `home-hero` operator edit + public render (this doc) |
+| **2** | Custom slugs (`/p/:slug`), FAQ block page |
+| **3** | Blog, gallery CMS, `guestCrossSurfaceNav` dynamic links |
