@@ -131,19 +131,18 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
 
   if (loading) {
     return (
-      <SettingsPageShell>
-        <OperatorSkeleton size="settings-page" />
+      <SettingsPageShell testId={MARKETING_PAGES_SETTINGS_TEST_IDS.page}>
+        <OperatorSkeleton size="panel-xl" />
       </SettingsPageShell>
     );
   }
 
   return (
-    <SettingsPageShell>
-      <div
-        className="space-y-6"
-        data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.page}
-        data-can-manage={canManage ? "true" : "false"}
-      >
+    <SettingsPageShell
+      testId={MARKETING_PAGES_SETTINGS_TEST_IDS.page}
+      data-can-manage={canManage ? "true" : "false"}
+    >
+      <div className="space-y-6">
         <SettingsPageHeader title={t("title")} description={t("description")} />
 
         {!canManage ? (
