@@ -93,4 +93,56 @@ test.describe("MKP-001 operator marketing pages", () => {
     const enBody = (await enPublic.json()) as { published?: { lead?: string } };
     expect(enBody.published?.lead).toBe(enLead);
   });
+
+  test("SMK-MKP-04 published copy persists after operator reload", async ({ page, browser }) => {
+    const heroLead = uniqueHeroLead();
+
+    await loginDenaliOperatorOwner(page);
+    await page.goto("/settings/marketing-pages", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("marketing-pages-settings-page")).toBeVisible({ timeout: 90_000 });
+
+    await page.getByTestId("marketing-pages-lead-input").fill(heroLead);
+    await page.getByTestId("marketing-pages-support-input").fill(`${heroLead} support`);
+    await page.getByTestId("marketing-pages-cta-input").fill(`${heroLead} CTA`);
+    await page.getByTestId("marketing-pages-publish").click();
+    await expect(page.getByTestId("marketing-pages-saved-published")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId("marketing-pages-status-published")).toBeVisible();
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("marketing-pages-lead-input")).toHaveValue(heroLead, { timeout: 60_000 });
+    await expect(page.getByTestId("marketing-pages-status-published")).toBeVisible();
+
+    const marketingContext = await browser.newContext();
+    const marketingPage = await marketingContext.newPage();
+    await marketingPage.goto(`${MARKETING_BASE_URL}/`, { waitUntil: "domcontentloaded" });
+    await expect(marketingPage.locator("[data-marketing-home-title]")).toContainText(heroLead, {
+      timeout: 60_000,
+    });
+    await marketingContext.close();
+  });
+
+  test("SMK-MKP-05 mobile RTL settings shell remains usable", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginDenaliOperatorOwner(page);
+    await page.goto("/settings/marketing-pages", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("marketing-pages-settings-page")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("marketing-pages-locale-tab-fa")).toBeVisible();
+    const dir = await page.locator("html").getAttribute("dir");
+    expect(dir === "rtl" || dir === "ltr").toBeTruthy();
+    await page.getByTestId("marketing-pages-lead-input").fill(uniqueHeroLead());
+    await expect(page.getByTestId("marketing-pages-save-draft")).toBeVisible();
+  });
+
+  test("SMK-MKP-06 validation blocks publish when headline empty", async ({ page }) => {
+    await loginDenaliOperatorOwner(page);
+    await page.goto("/settings/marketing-pages", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("marketing-pages-settings-page")).toBeVisible({ timeout: 90_000 });
+
+    await page.getByTestId("marketing-pages-lead-input").fill("");
+    await page.getByTestId("marketing-pages-support-input").fill("support only");
+    await page.getByTestId("marketing-pages-cta-input").fill("");
+    await page.getByTestId("marketing-pages-publish").click();
+    await expect(page.getByTestId("marketing-pages-validation-error")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("marketing-pages-saved-published")).toHaveCount(0);
+  });
 });

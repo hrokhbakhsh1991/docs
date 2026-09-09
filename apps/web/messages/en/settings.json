@@ -180,7 +180,8 @@
     "localeFa": "Persian",
     "localeEn": "English",
     "draftSaved": "Draft saved.",
-    "publishedSuccess": "Published — visitors will see this copy on the public site."
+    "publishedSuccess": "Published — visitors will see this copy on the public site.",
+    "validationRequired": "Headline and primary CTA are required."
   },
   "branding": {
     "title": "Workspace branding",

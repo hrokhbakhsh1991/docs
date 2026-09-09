@@ -93,4 +93,29 @@ describe("marketing-pages service integration (memory)", () => {
     );
     assert.equal(page, null);
   });
+
+  it("MKP-API-05 invalid draft payload rejects", async () => {
+    resetMarketingPagesState();
+    const service = getMarketingPagesService();
+    await assert.rejects(async () => {
+      await service.saveDraft(DENALI_TENANT_ID, MARKETING_PAGE_KEY_HOME_HERO, "fa", {
+        lead: "",
+        support: "ok",
+        ctaPrimary: "CTA",
+      });
+    }, (error: unknown) => {
+      assert.equal(error instanceof Error && error.name, "ZodError");
+      return true;
+    });
+  });
+
+  it("MKP-API-06 urban tenant gate rejects operator access", async () => {
+    resetMarketingPagesState();
+    const service = getMarketingPagesService();
+    const URBAN_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+    await assert.rejects(
+      () => service.getOperatorPage(URBAN_TENANT_ID, MARKETING_PAGE_KEY_HOME_HERO, "fa"),
+      /MARKETING_PAGES_WORKSPACE_UNSUPPORTED|FORBIDDEN_MARKETING_PAGES_MODULE_DISABLED/,
+    );
+  });
 });

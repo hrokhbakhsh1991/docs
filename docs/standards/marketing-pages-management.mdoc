@@ -1,7 +1,7 @@
 ---
 title: Marketing Pages Management (MKP-001)
 standard_id: MKP-001
-version: 1.1.0
+version: 1.2.0
 status: approved
 format: markdoc
 doc_role: platform_standard
@@ -151,7 +151,7 @@ Env (optional, shared with catalog): `MARKETING_REVALIDATE_URL`, `MARKETING_REVA
 | Contracts | `pnpm --filter @app-tour/marketing-pages-http-contracts test` |
 | API integration | `pnpm --filter @apps/api exec env STORAGE_DRIVER=memory NODE_ENV=test node --import tsx --test test/marketing-pages*.spec.ts` |
 | Playwright smoke | `pnpm --filter @apps/web run test:smoke:marketing-pages` |
-| Smoke IDs | `SMK-MKP-01` owner publish → marketing hero; `SMK-MKP-02` viewer read-only; `SMK-MKP-03` locale tabs |
+| Smoke IDs | `SMK-MKP-01` owner publish → marketing hero; `SMK-MKP-02` viewer read-only; `SMK-MKP-03` locale tabs; `SMK-MKP-04` reload persistence; `SMK-MKP-05` mobile RTL; `SMK-MKP-06` validation |
 
 ### Operator UI (Phase 1.1)
 
@@ -160,6 +160,8 @@ Env (optional, shared with catalog): `MARKETING_REVALIDATE_URL`, `MARKETING_REVA
 | Locale tabs | `fa` / `en` per `MARKETING_PAGE_LOCALES` |
 | Viewer read-only | `isAdminOrOwnerRole` — banner + disabled inputs; API 403 on PATCH |
 | Success feedback | `data-testid` `marketing-pages-saved-draft` / `marketing-pages-saved-published` |
+| Client validation | `parseMarketingHomeHeroPayload` before save/publish; `marketing-pages-validation-error` |
+| Team viewer access | `resolve-operator-marketing-pages-middleware-access` in middleware + `(app)/layout` |
 
 ---
 

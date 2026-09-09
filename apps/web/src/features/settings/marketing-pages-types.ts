@@ -13,6 +13,7 @@ export const MARKETING_PAGES_SETTINGS_TEST_IDS = {
   statusPublished: "marketing-pages-status-published",
   savedDraft: "marketing-pages-saved-draft",
   savedPublished: "marketing-pages-saved-published",
+  validationError: "marketing-pages-validation-error",
 } as const;
 
 export type MarketingPageOperatorResponse = {

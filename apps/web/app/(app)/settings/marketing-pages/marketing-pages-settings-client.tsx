@@ -1,6 +1,9 @@
 "use client";
 
-import { MARKETING_PAGE_LOCALES } from "@app-tour/marketing-pages-http-contracts";
+import {
+  MARKETING_PAGE_LOCALES,
+  parseMarketingHomeHeroPayload,
+} from "@app-tour/marketing-pages-http-contracts";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
@@ -72,8 +75,22 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
     void loadPage(locale);
   }, [locale, loadPage]);
 
+  function validateHeroForm(): boolean {
+    try {
+      parseMarketingHomeHeroPayload({ lead, support, ctaPrimary });
+      return true;
+    } catch {
+      setError("MARKETING_PAGES_VALIDATION_REQUIRED");
+      setFeedback(null);
+      return false;
+    }
+  }
+
   async function handleSaveDraft(): Promise<void> {
     if (!canManage) {
+      return;
+    }
+    if (!validateHeroForm()) {
       return;
     }
     setSaving(true);
@@ -92,6 +109,9 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
 
   async function handlePublish(): Promise<void> {
     if (!canManage) {
+      return;
+    }
+    if (!validateHeroForm()) {
       return;
     }
     setPublishing(true);
@@ -183,9 +203,19 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
         ) : null}
 
         {error !== null ? (
-          <Card data-operator-surface="card" className="shadow-sm">
+          <Card
+            data-operator-surface="card"
+            className="shadow-sm"
+            data-testid={
+              error === "MARKETING_PAGES_VALIDATION_REQUIRED"
+                ? MARKETING_PAGES_SETTINGS_TEST_IDS.validationError
+                : undefined
+            }
+          >
             <CardContent className="pt-6 text-sm text-destructive">
-              {resolveCodedErrorMessage(tErrors, error)}
+              {error === "MARKETING_PAGES_VALIDATION_REQUIRED"
+                ? t("validationRequired")
+                : resolveCodedErrorMessage(tErrors, error)}
             </CardContent>
           </Card>
         ) : null}
