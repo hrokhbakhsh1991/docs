@@ -89,6 +89,7 @@ pkg_for_path() {
     packages/ticketing-http-contracts/*) echo "@app-tour/ticketing-http-contracts" ;;
     packages/engagement-http/*) echo "@app-tour/engagement-http" ;;
     packages/engagement-http-contracts/*) echo "@app-tour/engagement-http-contracts" ;;
+    packages/marketing-pages-http-contracts/*) echo "@app-tour/marketing-pages-http-contracts" ;;
     packages/wallet-core/*) echo "@app-tour/wallet-core" ;;
     packages/wallet-http/*) echo "@app-tour/wallet-http" ;;
     packages/wallet-http-contracts/*) echo "@app-tour/wallet-http-contracts" ;;
@@ -149,6 +150,9 @@ expand_pkg() {
       ;;
     @app-tour/engagement-http|@app-tour/engagement-http-contracts)
       echo "$1 @apps/api"
+      ;;
+    @app-tour/marketing-pages-http-contracts)
+      echo "$1 @apps/api @apps/marketing @apps/web"
       ;;
     @app-tour/wallet-core|@app-tour/wallet-http|@app-tour/wallet-http-contracts)
       echo "$1 @apps/api"

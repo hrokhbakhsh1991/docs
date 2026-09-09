@@ -43,13 +43,9 @@ function mapMarketingPagesError(res: ServerResponse, error: unknown): void {
 function readLocaleFromRequest(req: IncomingMessage, url: URL): string {
   const headerLocale = req.headers["x-tenant-locale"];
   if (typeof headerLocale === "string" && headerLocale.trim().length > 0) {
-    return headerLocale;
+    return parseMarketingPageLocale(headerLocale);
   }
-  const queryLocale = url.searchParams.get("locale");
-  if (queryLocale !== null && queryLocale.trim().length > 0) {
-    return queryLocale;
-  }
-  return "fa";
+  return parseMarketingPageLocale(url.searchParams.get("locale"));
 }
 
 function isAdminOrOwner(role: string): boolean {
@@ -64,6 +60,10 @@ export async function handlePublicMarketingPage(
   try {
     const host = readIngressHost(req);
     const subdomain = await resolvePublicIngressSubdomain(host);
+    if (subdomain === null) {
+      sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
+      return;
+    }
     const context = await resolvePublicTenantContextBySubdomain(subdomain);
     if (context === null) {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_NOT_FOUND" });
