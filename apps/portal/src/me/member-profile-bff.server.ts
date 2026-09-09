@@ -1,4 +1,5 @@
 import {
+  MemberProfileNotConfiguredError,
   resolveMemberProfileCapabilities,
   type MemberProfileCapabilities,
   type MemberProfileFieldId,
@@ -114,7 +115,15 @@ export function buildMemberProfileView(
     return { code: "PROFILE_FETCH_FAILED", status: 502 };
   }
 
-  const capabilities = resolveMemberProfileCapabilities(pluginId);
+  let capabilities: MemberProfileCapabilities;
+  try {
+    capabilities = resolveMemberProfileCapabilities(pluginId);
+  } catch (error) {
+    if (error instanceof MemberProfileNotConfiguredError) {
+      return { code: "MEMBER_PROFILE_NOT_CONFIGURED", status: 501 };
+    }
+    throw error;
+  }
   if (options?.traceId !== undefined) {
     logMemberProfileEvent({
       traceId: options.traceId,
