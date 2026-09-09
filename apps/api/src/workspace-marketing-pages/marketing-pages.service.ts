@@ -6,6 +6,7 @@ import {
   type MarketingPageLocale,
 } from "@app-tour/marketing-pages-http-contracts";
 
+import { scheduleMarketingPagesRevalidate } from "../marketing/schedule-marketing-pages-revalidate";
 import { getMarketingPagesRepository } from "./create-marketing-pages-repository";
 import {
   assertMarketingPageKeyAllowed,
@@ -116,6 +117,7 @@ export class MarketingPagesService {
       throw new Error("MARKETING_PAGE_DRAFT_REQUIRED");
     }
     await repository.publish(tenantId, gate.workspaceType, pageKey, locale, draftPayload);
+    scheduleMarketingPagesRevalidate(tenantId);
     return this.getOperatorPage(tenantId, pageKey, locale);
   }
 

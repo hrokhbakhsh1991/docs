@@ -174,7 +174,13 @@
     "publishing": "در حال انتشار…",
     "publishedAt": "آخرین انتشار: {date}",
     "notPublishedYet": "هنوز منتشر نشده — بازدیدکنندگان متن پیش‌فرض i18n را می‌بینند.",
-    "actorHint": "نقش فعلی: {role}"
+    "actorHint": "نقش فعلی: {role}",
+    "readOnlyBanner": "می‌توانید صفحات مارکتینگ را ببینید؛ فقط مالک و مدیر می‌توانند ویرایش و انتشار کنند.",
+    "localeTabsLabel": "زبان محتوا",
+    "localeFa": "فارسی",
+    "localeEn": "English",
+    "draftSaved": "پیش‌نویس ذخیره شد.",
+    "publishedSuccess": "محتوا منتشر شد و روی سایت عمومی نمایش داده می‌شود."
   },
   "branding": {
     "title": "برند workspace",

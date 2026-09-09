@@ -1,7 +1,8 @@
 "use client";
 
+import { MARKETING_PAGE_LOCALES } from "@app-tour/marketing-pages-http-contracts";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import { SettingsPageShell } from "@/admin/patterns/settings-page-shell";
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
+import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import {
   fetchMarketingPageSettings,
   publishMarketingPage,
@@ -23,9 +25,15 @@ type MarketingPagesSettingsClientProps = {
   readonly session: OperatorSessionContext;
 };
 
+type MarketingPageLocale = (typeof MARKETING_PAGE_LOCALES)[number];
+
+type FeedbackKind = "draft" | "published" | null;
+
 export function MarketingPagesSettingsClient({ session }: MarketingPagesSettingsClientProps) {
   const t = useTranslations("settings.marketingPages");
   const tErrors = useTranslations("settings.errors");
+  const canManage = isAdminOrOwnerRole(session.role);
+  const [locale, setLocale] = useState<MarketingPageLocale>("fa");
   const [lead, setLead] = useState("");
   const [support, setSupport] = useState("");
   const [ctaPrimary, setCtaPrimary] = useState("");
@@ -34,43 +42,47 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackKind>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    void fetchMarketingPageSettings()
-      .then((page) => {
-        if (cancelled) {
-          return;
-        }
-        const source = page.draft ?? page.published;
-        if (source !== null) {
-          setLead(source.lead);
-          setSupport(source.support);
-          setCtaPrimary(source.ctaPrimary);
-        }
-        setPublishedAt(page.publishedAt);
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "MARKETING_PAGES_LOAD_FAILED");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+  const loadPage = useCallback(async (activeLocale: MarketingPageLocale): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const page = await fetchMarketingPageSettings(undefined, activeLocale);
+      const source = page.draft ?? page.published;
+      if (source !== null) {
+        setLead(source.lead);
+        setSupport(source.support);
+        setCtaPrimary(source.ctaPrimary);
+      } else {
+        setLead("");
+        setSupport("");
+        setCtaPrimary("");
+      }
+      setPublishedAt(page.publishedAt);
+    } catch (fetchError: unknown) {
+      setError(fetchError instanceof Error ? fetchError.message : "MARKETING_PAGES_LOAD_FAILED");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadPage(locale);
+  }, [locale, loadPage]);
+
   async function handleSaveDraft(): Promise<void> {
+    if (!canManage) {
+      return;
+    }
     setSaving(true);
     setError(null);
+    setFeedback(null);
     try {
-      const page = await saveMarketingPageDraft({ lead, support, ctaPrimary });
+      const page = await saveMarketingPageDraft({ lead, support, ctaPrimary }, undefined, locale);
       setPublishedAt(page.publishedAt);
+      setFeedback("draft");
     } catch (saveError: unknown) {
       setError(saveError instanceof Error ? saveError.message : "MARKETING_PAGES_SAVE_FAILED");
     } finally {
@@ -79,12 +91,17 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
   }
 
   async function handlePublish(): Promise<void> {
+    if (!canManage) {
+      return;
+    }
     setPublishing(true);
     setError(null);
+    setFeedback(null);
     try {
-      await saveMarketingPageDraft({ lead, support, ctaPrimary });
-      const page = await publishMarketingPage();
+      await saveMarketingPageDraft({ lead, support, ctaPrimary }, undefined, locale);
+      const page = await publishMarketingPage(undefined, locale);
       setPublishedAt(page.publishedAt);
+      setFeedback("published");
     } catch (publishError: unknown) {
       setError(publishError instanceof Error ? publishError.message : "MARKETING_PAGES_PUBLISH_FAILED");
     } finally {
@@ -102,19 +119,68 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
 
   return (
     <SettingsPageShell>
-      <div className="space-y-6" data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.page}>
+      <div
+        className="space-y-6"
+        data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.page}
+        data-can-manage={canManage ? "true" : "false"}
+      >
         <SettingsPageHeader title={t("title")} description={t("description")} />
+
+        {!canManage ? (
+          <p
+            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.readOnlyBanner}
+          >
+            {t("readOnlyBanner")}
+          </p>
+        ) : null}
+
+        <div
+          className="flex flex-wrap gap-2"
+          role="tablist"
+          aria-label={t("localeTabsLabel")}
+          data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.localeTabs}
+        >
+          {MARKETING_PAGE_LOCALES.map((entry) => (
+            <Button
+              key={entry}
+              type="button"
+              size="sm"
+              variant={locale === entry ? "default" : "outline"}
+              role="tab"
+              aria-selected={locale === entry}
+              data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.localeTab(entry)}
+              onClick={() => setLocale(entry)}
+            >
+              {entry === "fa" ? t("localeFa") : t("localeEn")}
+            </Button>
+          ))}
+        </div>
 
         {publishedAt !== null ? (
           <p
             className="text-sm text-muted-foreground"
             data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.statusPublished}
           >
-            {t("publishedAt", { date: new Date(publishedAt).toLocaleString("fa-IR") })}
+            {t("publishedAt", { date: new Date(publishedAt).toLocaleString(locale === "fa" ? "fa-IR" : "en-US") })}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">{t("notPublishedYet")}</p>
         )}
+
+        {feedback === "draft" ? (
+          <p className="text-sm text-muted-foreground" data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.savedDraft}>
+            {t("draftSaved")}
+          </p>
+        ) : null}
+        {feedback === "published" ? (
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.savedPublished}
+          >
+            {t("publishedSuccess")}
+          </p>
+        ) : null}
 
         {error !== null ? (
           <Card data-operator-surface="card" className="shadow-sm">
@@ -136,6 +202,8 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
                 id="marketing-pages-lead"
                 data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.leadInput}
                 value={lead}
+                readOnly={!canManage}
+                disabled={!canManage}
                 onChange={(event) => setLead(event.target.value)}
               />
             </div>
@@ -144,8 +212,10 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
               <textarea
                 id="marketing-pages-support"
                 data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.supportInput}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 value={support}
+                readOnly={!canManage}
+                disabled={!canManage}
                 onChange={(event) => setSupport(event.target.value)}
                 rows={3}
               />
@@ -156,28 +226,32 @@ export function MarketingPagesSettingsClient({ session }: MarketingPagesSettings
                 id="marketing-pages-cta"
                 data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.ctaInput}
                 value={ctaPrimary}
+                readOnly={!canManage}
+                disabled={!canManage}
                 onChange={(event) => setCtaPrimary(event.target.value)}
               />
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.saveDraft}
-                disabled={saving || publishing}
-                onClick={() => void handleSaveDraft()}
-              >
-                {saving ? t("saving") : t("saveDraft")}
-              </Button>
-              <Button
-                type="button"
-                data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.publish}
-                disabled={saving || publishing}
-                onClick={() => void handlePublish()}
-              >
-                {publishing ? t("publishing") : t("publish")}
-              </Button>
-            </div>
+            {canManage ? (
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.saveDraft}
+                  disabled={saving || publishing}
+                  onClick={() => void handleSaveDraft()}
+                >
+                  {saving ? t("saving") : t("saveDraft")}
+                </Button>
+                <Button
+                  type="button"
+                  data-testid={MARKETING_PAGES_SETTINGS_TEST_IDS.publish}
+                  disabled={saving || publishing}
+                  onClick={() => void handlePublish()}
+                >
+                  {publishing ? t("publishing") : t("publish")}
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

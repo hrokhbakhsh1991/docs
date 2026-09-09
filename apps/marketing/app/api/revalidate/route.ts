@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { buildMarketingCatalogCacheTag, buildMarketingSeoCacheTag } from "@/catalog/catalog-fetch-options";
+import { buildMarketingPagesCacheTag } from "@/marketing-pages/marketing-pages-fetch-options";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const catalogTag = buildMarketingCatalogCacheTag(tenantId);
   const seoTag = buildMarketingSeoCacheTag(tenantId);
+  const pagesTag = buildMarketingPagesCacheTag(tenantId);
   revalidateTag(catalogTag);
   revalidateTag(seoTag);
+  revalidateTag(pagesTag);
 
-  return NextResponse.json({ revalidated: true, tags: [catalogTag, seoTag] });
+  return NextResponse.json({ revalidated: true, tags: [catalogTag, seoTag, pagesTag] });
 }

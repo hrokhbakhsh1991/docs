@@ -174,7 +174,13 @@
     "publishing": "Publishing…",
     "publishedAt": "Last published: {date}",
     "notPublishedYet": "Not published yet — visitors see default i18n copy.",
-    "actorHint": "Current role: {role}"
+    "actorHint": "Current role: {role}",
+    "readOnlyBanner": "You can view marketing pages, but only owners and admins can edit and publish.",
+    "localeTabsLabel": "Content locale",
+    "localeFa": "Persian",
+    "localeEn": "English",
+    "draftSaved": "Draft saved.",
+    "publishedSuccess": "Published — visitors will see this copy on the public site."
   },
   "branding": {
     "title": "Workspace branding",

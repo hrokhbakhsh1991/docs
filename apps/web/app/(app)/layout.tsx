@@ -22,6 +22,10 @@ import {
   allowsOperatorEngagementTeamRole,
   isOperatorEngagementTeamAccessPath,
 } from "@/engagement/resolve-operator-engagement-middleware-access";
+import {
+  allowsOperatorMarketingPagesTeamRole,
+  isOperatorMarketingPagesTeamAccessPath,
+} from "@/features/settings/resolve-operator-marketing-pages-middleware-access";
 import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
@@ -92,7 +96,13 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       isOperatorEngagementTeamAccessPath(pathname) &&
       allowsOperatorEngagementTeamRole(session.role, "GET");
 
-    if (!ticketsTeamAccess && !toursTeamAccess && !engagementTeamAccess) {
+    const marketingPagesTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorMarketingPagesTeamAccessPath(pathname) &&
+      allowsOperatorMarketingPagesTeamRole(session.role, "GET");
+
+    if (!ticketsTeamAccess && !toursTeamAccess && !engagementTeamAccess && !marketingPagesTeamAccess) {
       const gate = requireOperatorSessionWeb({ session, pathname, host });
       if (!gate.allowed) {
         redirect(gate.redirectTo);

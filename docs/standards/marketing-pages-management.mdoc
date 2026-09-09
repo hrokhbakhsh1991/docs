@@ -1,7 +1,7 @@
 ---
 title: Marketing Pages Management (MKP-001)
 standard_id: MKP-001
-version: 1.0.0
+version: 1.1.0
 status: approved
 format: markdoc
 doc_role: platform_standard
@@ -130,7 +130,17 @@ Settings hub module id: `marketing_pages` (Denali).
 
 ## 8. Cache / revalidation
 
-On publish, API may call marketing revalidate hook (tenant-scoped tag). Phase 1: `cache: no-store` on public fetch; revalidate tag `marketing-pages:{tenantId}` reserved for Phase 1.1.
+On publish, API calls `scheduleMarketingPagesRevalidate(tenantId)` which hits `apps/marketing/app/api/revalidate` (same hook as catalog). The route purges:
+
+| Tag | Builder |
+| --- | ------- |
+| `marketing-catalog-{tenantId}` | `buildMarketingCatalogCacheTag` |
+| `marketing-seo-{tenantId}` | `buildMarketingSeoCacheTag` |
+| `marketing-pages-{tenantId}` | `buildMarketingPagesCacheTag` |
+
+Public fetch (`fetchPublicMarketingHomeHero`) uses `cache: no-store` in Phase 1. Tagged fetch is reserved for Phase 1.1 when `MARKETING_PAGES_REVALIDATE_SECONDS` lands.
+
+Env (optional, shared with catalog): `MARKETING_REVALIDATE_URL`, `MARKETING_REVALIDATE_SECRET`.
 
 ---
 
@@ -139,8 +149,17 @@ On publish, API may call marketing revalidate hook (tenant-scoped tag). Phase 1:
 | Check | Command |
 | ----- | ------- |
 | Contracts | `pnpm --filter @app-tour/marketing-pages-http-contracts test` |
-| API unit | `pnpm --filter @apps/api exec node --import tsx --test test/marketing-pages*.spec.ts` |
-| Browser | Operator edit → marketing home shows new hero text |
+| API integration | `pnpm --filter @apps/api exec env STORAGE_DRIVER=memory NODE_ENV=test node --import tsx --test test/marketing-pages*.spec.ts` |
+| Playwright smoke | `pnpm --filter @apps/web run test:smoke:marketing-pages` |
+| Smoke IDs | `SMK-MKP-01` owner publish → marketing hero; `SMK-MKP-02` viewer read-only; `SMK-MKP-03` locale tabs |
+
+### Operator UI (Phase 1.1)
+
+| Capability | Behavior |
+| ---------- | -------- |
+| Locale tabs | `fa` / `en` per `MARKETING_PAGE_LOCALES` |
+| Viewer read-only | `isAdminOrOwnerRole` — banner + disabled inputs; API 403 on PATCH |
+| Success feedback | `data-testid` `marketing-pages-saved-draft` / `marketing-pages-saved-published` |
 
 ---
 
