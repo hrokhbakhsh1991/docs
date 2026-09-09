@@ -19,6 +19,8 @@ OPERATOR_TOUR = "00000000-0000-4000-8000-000000000210"
 DRAFT_TOUR = "00000000-0000-4000-8000-000000000211"
 DENALI_TOUR = "00000000-0000-4000-8000-000000000220"
 OPERATOR_PHONE = "09174070937"
+PENDING_BOOKING_ID = "00000000-0000-4000-8000-000000000310"
+PENDING_GUEST_LABEL = "Ali Rezaei"
 TS = int(time.time())
 
 bugs: list[dict[str, str]] = []
@@ -199,6 +201,16 @@ def check_portal() -> str | None:
             log(f"P-otp/{host}", "FAIL", phone)
             continue
         log(f"P-otp/{host}", "PASS", phone)
+        r_prof = http(PORTS["ptl"], "/api/me/profile", host, cookie=f"atour_mb_session={token}")
+        prof = jload(r_prof.body)
+        if r_prof.status == 200 and prof.get("ok") is True:
+            log(f"P-profile-bff/{host}", "PASS")
+        else:
+            log(
+                f"P-profile-bff/{host}",
+                "FAIL",
+                f"HTTP {r_prof.status} body={r_prof.body[:120]!r}",
+            )
         nat = f"00{(TS + hash(host)) % 100000000:08d}"[-10:]
         r_reg = http(
             PORTS["ptl"],
@@ -262,8 +274,33 @@ def check_operator(booking_id: str | None) -> None:
 
     r_bk = http(PORTS["web"], f"/api/bookings?tourId={OPERATOR_TOUR}&view=ops", admin, cookie=cookie)
     if r_bk.status == 200:
-        n = len(jload(r_bk.body).get("items", []))
+        items = jload(r_bk.body).get("items", [])
+        n = len(items)
         log("O-bookings-api", "PASS", f"{n} items")
+        ali_rows = [
+            item
+            for item in items
+            if isinstance(item, dict)
+            and PENDING_GUEST_LABEL.lower() in str(item.get("guestLabel", "")).lower()
+        ]
+        if ali_rows:
+            status = str(ali_rows[0].get("status", ""))
+            log("O-pending-seed-Ali-Rezaei", "PASS", f"status={status}")
+        else:
+            log(
+                "O-pending-seed-Ali-Rezaei",
+                "FAIL",
+                "SMK-P9-04 seed missing — run seed-operator-smoke-pending-booking-staging.ts on VPS",
+            )
+        pending_by_id = [
+            item
+            for item in items
+            if isinstance(item, dict) and str(item.get("id", "")) == PENDING_BOOKING_ID
+        ]
+        if pending_by_id:
+            log("O-pending-booking-id-0310", "PASS", PENDING_BOOKING_ID)
+        else:
+            log("O-pending-booking-id-0310", "WARN", f"{PENDING_BOOKING_ID} not in ops view")
     else:
         log("O-bookings-api", "FAIL", f"HTTP {r_bk.status}")
 
