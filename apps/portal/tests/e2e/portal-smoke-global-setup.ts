@@ -11,6 +11,23 @@ const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
+/** PW_EXTERNAL_SERVERS + VPS_IP: .localhost/.club hosts resolve to remote staging, not loopback. */
+function resolveConnectHostname(hostname: string): string {
+  const vpsIp = process.env.VPS_IP?.trim();
+  if (
+    process.env.PW_EXTERNAL_SERVERS === "1" &&
+    vpsIp !== undefined &&
+    vpsIp.length > 0 &&
+    (hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".club"))
+  ) {
+    return vpsIp;
+  }
+  if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+    return "127.0.0.1";
+  }
+  return hostname;
+}
+
 /** Compile portal BFF routes before tests — avoids Next dev HMR reload mid-flow. */
 async function warmPortalBffRoute(
   base: string,
@@ -31,10 +48,7 @@ async function warmPortalBffRoute(
         }
         const req = http.request(
           {
-            hostname:
-              url.hostname === "localhost" || url.hostname.endsWith(".localhost")
-                ? "127.0.0.1"
-                : url.hostname,
+            hostname: resolveConnectHostname(url.hostname),
             port: url.port || (url.protocol === "https:" ? 443 : 80),
             path: `${url.pathname}${url.search}`,
             method,
@@ -90,10 +104,7 @@ function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let inFlight = false;
   const target = new URL(url);
-  const connectHostname =
-    target.hostname === "localhost" || target.hostname.endsWith(".localhost")
-      ? "127.0.0.1"
-      : target.hostname;
+  const connectHostname = resolveConnectHostname(target.hostname);
   const requestOptions = {
     hostname: connectHostname,
     port: target.port || (target.protocol === "https:" ? 443 : 80),

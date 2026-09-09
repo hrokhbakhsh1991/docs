@@ -51,7 +51,7 @@ tunnel_health_code() {
 
 staging_tunnels_responsive() {
   [[ "$(tunnel_health_code "${API_PORT}")" == "200" ]] &&
-    [[ "$(tunnel_health_code "${PTL_PORT}" "operator.portal.localhost")" == "200" ]]
+    [[ "$(tunnel_health_code "${PTL_PORT}" "portal.operator.localhost")" == "200" ]]
 }
 
 cleanup() {
@@ -94,7 +94,7 @@ export PW_NO_REUSE_SERVER=1
 export TOUR_OPS_API_URL="http://127.0.0.1:${API_PORT}"
 export PLAYWRIGHT_BASE_URL="http://admin.operator.localhost:${WEB_PORT}"
 export SMOKE_MARKETING_BASE_URL="http://operator.localhost:${MKT_PORT}"
-export SMOKE_PORTAL_BASE_URL="http://operator.portal.localhost:${PTL_PORT}"
+export SMOKE_PORTAL_BASE_URL="http://portal.operator.localhost:${PTL_PORT}"
 export OPERATOR_OWNER_MOBILE="${OPERATOR_OWNER_MOBILE:-09174070937}"
 export OPERATOR_DEV_OTP="${OPERATOR_DEV_OTP:-1234}"
 
@@ -147,7 +147,7 @@ systemctl is-active app-tour-staging-marketing app-tour-staging-portal
 EOF
 
 echo "== tunnel sanity (portal + api /health via tunnel) =="
-portal_health="$(tunnel_health_code "${PTL_PORT}" "operator.portal.localhost")"
+portal_health="$(tunnel_health_code "${PTL_PORT}" "portal.operator.localhost")"
 api_health="$(tunnel_health_code "${API_PORT}")"
 [[ "${portal_health}" == "200" ]] || fail "portal /health via tunnel expected 200 got ${portal_health}"
 [[ "${api_health}" == "200" ]] || fail "api /health via tunnel expected 200 got ${api_health}"

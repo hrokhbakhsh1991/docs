@@ -216,6 +216,8 @@
     "p7:staging-vs06-runbook-probe": "bash scripts/p7-staging-vs06-runbook-probe.sh",
     "p7:staging-finance-ops-probe": "bash scripts/p7-staging-finance-ops-probe.sh",
     "p7:staging-e2e-probe": "bash scripts/p7-staging-e2e-probe.sh",
+    "p7:staging-tour-buy-reserve-audit": "python3 scripts/p7-staging-tour-buy-reserve-audit.py",
+    "p7:staging-bqc-full-audit": "python3 scripts/p7-staging-bqc-full-audit.py",
     "p7:t4-architect-dry-run": "bash scripts/p7-t4-architect-dry-run.sh",
     "p7:t4-closeout": "bash scripts/p7-t4-closeout.sh",
     "p7:t4-prep": "bash scripts/p7-t4-prep.sh",

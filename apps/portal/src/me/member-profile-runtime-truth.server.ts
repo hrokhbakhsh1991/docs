@@ -79,11 +79,39 @@ function logMemberProfileEnforcementEvent(input: {
   console.warn(JSON.stringify(payload));
 }
 
+function readMemberProfileContractSnapshotOrNull(): ReturnType<
+  typeof readMemberProfileContractSnapshot
+> | null {
+  try {
+    return readMemberProfileContractSnapshot();
+  } catch (error) {
+    logMemberProfileEnforcementEvent({
+      level: "WARNING",
+      enforcementMode: resolveMemberProfileEnforcementMode(),
+      contractVersion: "unknown",
+      driftType: "runtime_truth_alignment_failed",
+      traceId: undefined,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Member profile contract snapshot unavailable at runtime",
+    });
+    return null;
+  }
+}
+
 function collectRuntimeArchitectureDrifts(
   context: MemberProfileRuntimeEnforcementContext
 ): Array<{ readonly driftType: MemberProfileRuntimeDriftType; readonly message: string }> {
   const drifts: Array<{ readonly driftType: MemberProfileRuntimeDriftType; readonly message: string }> = [];
-  const snapshot = readMemberProfileContractSnapshot();
+  const snapshot = readMemberProfileContractSnapshotOrNull();
+  if (snapshot === null) {
+    drifts.push({
+      driftType: "runtime_truth_alignment_failed",
+      message: "Member profile contract snapshot unavailable at runtime",
+    });
+    return drifts;
+  }
   const sdkFieldIds = readSdkFieldIds();
   const mappedFieldIds = sortedUnique(context.mappedFieldIds);
   const snapshotFieldIds = sortedUnique(snapshot.memberProfileFieldIds);
