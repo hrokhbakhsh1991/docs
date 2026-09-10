@@ -28,6 +28,7 @@ const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
 const DREG_SESSION_MEMBER_A = "00000000-0000-4000-8000-000000000104";
 const DREG_SESSION_MEMBER_B = "00000000-0000-4000-8000-000000000105";
+const DREG_SESSION_MEMBER_C = "00000000-0000-4000-8000-000000000114";
 
 function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, string> {
   return {
@@ -73,6 +74,7 @@ function seedDenaliRegistrationSessionMembers(): void {
     ["00000000-0000-4000-8000-000000000111", "+15550001011", "DREG Amend"],
     ["00000000-0000-4000-8000-000000000112", "+15550001012", "DREG Get By Id"],
     ["00000000-0000-4000-8000-000000000113", "+15550001013", "DREG Reclassify"],
+    [DREG_SESSION_MEMBER_C, "+15550001014", "DREG Projection"],
   ] as const) {
     identity.seedUser({ id: userId, mobile });
     identity.seedMembership({
@@ -302,13 +304,27 @@ describe("denali-registration (M16)", () => {
 
   it("DREG-20-03 approving a manual registration applies free collection but not paid collection", async () => {
     const cases = [
-      { tourId: OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID, expectedPaymentStatus: "paid" },
-      { tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID, expectedPaymentStatus: "unpaid" },
+      {
+        tourId: OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID,
+        memberId: DREG_SESSION_MEMBER_A,
+        expectedPaymentStatus: "paid",
+      },
+      {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        memberId: DREG_SESSION_MEMBER_C,
+        expectedPaymentStatus: "unpaid",
+      },
     ] as const;
 
     for (const [index, scenario] of cases.entries()) {
       const created = await requestDenali(listener, "POST", "/denali/registrations", {
-        headers: publicHeaders(),
+        headers: {
+          ...publicHeaders(),
+          "x-user-id": scenario.memberId,
+          "x-actor-role": "member",
+          "x-membership-status": "ACTIVE",
+          "x-workspace-id": `ws-dreg-${scenario.memberId.slice(-4)}`,
+        },
         body: {
           tourId: scenario.tourId,
           contact: {
@@ -343,6 +359,26 @@ describe("denali-registration (M16)", () => {
       const data = detail.body as { status?: string; paymentStatus?: string };
       assert.equal(data.status, "approved");
       assert.equal(data.paymentStatus, scenario.expectedPaymentStatus);
+
+      const memberList = await requestDenali(listener, "GET", "/bookings?view=mine&limit=50", {
+        headers: {
+          ...publicHeaders(),
+          "x-user-id": scenario.memberId,
+          "x-actor-role": "member",
+          "x-membership-status": "ACTIVE",
+          "x-workspace-id": `ws-dreg-${scenario.memberId.slice(-4)}`,
+        },
+      });
+      assert.equal(memberList.status, 200);
+      const memberItems = (
+        memberList.body as {
+          items?: Array<{ id?: string; status?: string; paymentStatus?: string }>;
+        }
+      ).items;
+      const memberProjection = memberItems?.find((item) => item.id === bookingId);
+      assert.ok(memberProjection, `member list must contain ${bookingId}`);
+      assert.equal(memberProjection.status, "approved");
+      assert.equal(memberProjection.paymentStatus, scenario.expectedPaymentStatus);
     }
   });
 
