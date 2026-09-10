@@ -8,6 +8,7 @@ import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
+import { createCommercialQuoteApproveServiceForTests } from "../src/finance/commercial-quote-approve.service";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { InMemoryIdentityRepository } from "../src/identity/in-memory-identity.repository";
 import {
@@ -21,6 +22,7 @@ const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 const OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000215";
 const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
+const OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000217";
 const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
@@ -81,6 +83,7 @@ function seedDenaliRegistrationSessionMembers(): void {
       sessionVersion: 1,
       workspaceId: `ws-dreg-${userId.slice(-4)}`,
       displayName,
+      ...(userId === DREG_SESSION_MEMBER_A ? { rewards: { permanentDiscountPercentage: 20 } } : {}),
     });
   }
 }
@@ -181,6 +184,22 @@ describe("denali-registration (M16)", () => {
         },
       });
     }
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "manual",
+            paymentCollection: "offline",
+            allowMembershipDiscount: true,
+          },
+        },
+      },
+    });
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
     seedDenaliRegistrationSessionMembers();
@@ -373,6 +392,48 @@ describe("denali-registration (M16)", () => {
     assert.equal(cancelledDetail.status, 200);
     assert.equal((cancelledDetail.body as { status?: string }).status, "cancelled");
     assert.equal((cancelledDetail.body as { paymentStatus?: string }).paymentStatus, "paid");
+  });
+
+  it("DREG-20-05 member discount is frozen from the Denali booking on operator approve", async () => {
+    const priorPaymentHold = process.env.PAYMENT_HOLD_ENABLED;
+    process.env.PAYMENT_HOLD_ENABLED = "true";
+    try {
+      const created = await requestDenali(listener, "POST", "/denali/registrations", {
+        headers: {
+          ...publicHeaders(),
+          "x-user-id": DREG_SESSION_MEMBER_A,
+          "x-actor-role": "member",
+          "x-membership-status": "ACTIVE",
+        },
+        body: {
+          tourId: OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID,
+          registrantTarget: "self",
+          contact: { fullName: "Discounted Denali Member" },
+          partySize: 2,
+        },
+      });
+      assert.equal(created.status, 201, JSON.stringify(created.body));
+      const bookingId = (created.body as { data?: { id?: string; status?: string } }).data?.id;
+      assert.ok(bookingId);
+      assert.equal((created.body as { data?: { status?: string } }).data?.status, "pending");
+
+      const approved = await requestDenali(listener, "POST", `/bookings/${bookingId}/approve`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(approved.status, 200, JSON.stringify(approved.body));
+
+      const quote = await createCommercialQuoteApproveServiceForTests().getActiveQuote(
+        OPERATOR_SMOKE_TENANT_ID,
+        bookingId
+      );
+      assert.ok(quote);
+      assert.equal(quote.status, "FROZEN");
+      // The seeded Denali trip is 2,500,000 per person: 5,000,000 gross - 20% = 4,000,000.
+      assert.equal(quote.payableMinor, "4000000");
+    } finally {
+      if (priorPaymentHold === undefined) delete process.env.PAYMENT_HOLD_ENABLED;
+      else process.env.PAYMENT_HOLD_ENABLED = priorPaymentHold;
+    }
   });
 
   it("DREG-17-01 POST /denali/registrations accepts M17 session member user id", async () => {
