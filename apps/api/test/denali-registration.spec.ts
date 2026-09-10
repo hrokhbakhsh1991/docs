@@ -327,6 +327,54 @@ describe("denali-registration (M16)", () => {
     }
   });
 
+  it("DREG-20-04 rejecting paid and cancelling free bookings leaves no actionable debt", async () => {
+    const paid = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        contact: { fullName: "HTTP Rejected Paid Guest", phone: "+15550002300" },
+        partySize: 1,
+      },
+    });
+    assert.equal(paid.status, 201);
+    const paidId = (paid.body as { data?: { id?: string } }).data?.id;
+    assert.ok(paidId);
+    const rejected = await requestDenali(listener, "POST", `/bookings/${paidId}/reject`, {
+      headers: operatorOwnerHeaders(),
+      body: { reason: "capacity review" },
+    });
+    assert.equal(rejected.status, 200);
+    const rejectedDetail = await requestDenali(listener, "GET", `/bookings/${paidId}`, {
+      headers: operatorOwnerHeaders(),
+    });
+    assert.equal(rejectedDetail.status, 200);
+    assert.equal((rejectedDetail.body as { status?: string }).status, "rejected");
+    assert.equal((rejectedDetail.body as { paymentStatus?: string }).paymentStatus, "unpaid");
+
+    const free = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_FREE_AUTO_TOUR_ID,
+        contact: { fullName: "HTTP Cancelled Free Guest", phone: "+15550002301" },
+        partySize: 1,
+      },
+    });
+    assert.equal(free.status, 201);
+    const freeId = (free.body as { data?: { id?: string; status?: string } }).data?.id;
+    assert.ok(freeId);
+    assert.equal((free.body as { data?: { status?: string } }).data?.status, "approved");
+    const cancelled = await requestDenali(listener, "POST", `/bookings/${freeId}/cancel`, {
+      headers: operatorOwnerHeaders(),
+    });
+    assert.equal(cancelled.status, 200);
+    const cancelledDetail = await requestDenali(listener, "GET", `/bookings/${freeId}`, {
+      headers: operatorOwnerHeaders(),
+    });
+    assert.equal(cancelledDetail.status, 200);
+    assert.equal((cancelledDetail.body as { status?: string }).status, "cancelled");
+    assert.equal((cancelledDetail.body as { paymentStatus?: string }).paymentStatus, "paid");
+  });
+
   it("DREG-17-01 POST /denali/registrations accepts M17 session member user id", async () => {
     const response = await requestDenali(listener, "POST", "/denali/registrations", {
       headers: {
