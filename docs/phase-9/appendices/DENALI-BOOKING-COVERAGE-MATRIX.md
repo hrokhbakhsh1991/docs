@@ -73,7 +73,7 @@ For each applicable registration row, exercise:
 | Manual/auto + free/paid registration     | `packages/workspaces/denali/test/registration-auto-approve.spec.ts` (`DN-P3-R04`), `apps/api/test/denali-registration.spec.ts` (`DREG-20-02`) | service + real HTTP + persistence |
 | Approval → payment projection             | `apps/api/test/denali-registration.spec.ts` (`DREG-20-03`)                                                           | real HTTP + operator reload |
 | Rejection/cancellation financial safety   | `apps/api/test/denali-registration.spec.ts` (`DREG-20-04`)                                                           | real HTTP + operator reload |
-| Partial/full manual payment               | `apps/api/src/workspace-finance/finance.service.spec.ts` (`PR20-B`), `apps/api/test/finance-ops.spec.ts` (`API-9.7-03`) | service; HTTP requires PostgreSQL |
+| Partial/full manual payment               | `apps/api/src/workspace-finance/finance.service.spec.ts` (`PR20-B`), `apps/api/test/finance-ops.spec.ts` (`API-9.7-03`, `API-9.7-03d`) | service + HTTP + PostgreSQL persistence |
 | Booking transitions and operator actions | `apps/api/test/tour-booking-management-http-matrix.spec.ts`, `apps/web/test/tour-booking-management-matrix.spec.ts` | API + admin logic             |
 | Payment hold after approval              | `apps/api/test/dp1/booking-approve-payment-hold.spec.ts`                                                            | finance domain                |
 | Member discount and quote freeze         | `packages/finance-core/test/commercial-quote-member-discount-*.spec.ts`                                             | finance-core                  |
