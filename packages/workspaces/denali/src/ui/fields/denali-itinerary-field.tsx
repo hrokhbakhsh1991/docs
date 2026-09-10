@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -18,12 +18,14 @@ import {
   getCanonicalValue,
   setCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
-import { Button, Input, Select, type SelectOption } from "../adapters/platform-primitives";
+import { Button, type SelectOption } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
-import { DenaliTimeInput } from "../components/denali-time-input";
-import { DenaliItinerarySegmentDestinationField } from "../components/denali-itinerary-segment-destination-field";
-import { DenaliItinerarySegmentPhotoPicker } from "../components/denali-itinerary-segment-photo-picker";
 import { estimateDenaliTourDayCount, parseDenaliTourPhotos } from "../logic/denali-photo-types";
+import {
+  findFirstDenaliItineraryDayIssueIndex,
+  resolveDenaliItineraryDayStatuses,
+} from "../logic/denali-itinerary-day-status";
+import { DenaliItineraryDayPanel } from "./denali-itinerary-day-panel";
 import { DENALI_ITINERARY_TEST_IDS } from "../test-ids/denali-itinerary-test-ids";
 
 export { DENALI_ITINERARY_TEST_IDS } from "../test-ids/denali-itinerary-test-ids";
@@ -52,9 +54,7 @@ export function DenaliItineraryField({
   invalid = false,
 }: DenaliItineraryFieldProps) {
   const t = useTranslations("denali");
-  const tCommon = useTranslations("denali.composites.common");
   const draftRef = useLatestWizardDraft(draft);
-  // Match validation summary / INV-DENALI-WIZ-009 sectionTitle (not fields.program.itinerary).
   const label = t("composites.itinerary.sectionTitle");
   const stored = parseDenaliItineraryDays(getCanonicalValue(draft, "program.itinerary"));
   const tourPhotos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
@@ -96,6 +96,20 @@ export function DenaliItineraryField({
     return stored;
   }, [stored, targetDayCount]);
 
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+
+  useEffect(() => {
+    if (activeDayIndex < displayDays.length) {
+      return;
+    }
+    setActiveDayIndex(Math.max(0, displayDays.length - 1));
+  }, [activeDayIndex, displayDays.length]);
+
+  const dayStatuses = useMemo(
+    () => resolveDenaliItineraryDayStatuses(displayDays, { showValidationErrors: invalid }),
+    [displayDays, invalid]
+  );
+
   const { invalidDayIndexes, invalidSegmentKeys } = useMemo(() => {
     const days = new Set<number>();
     const segments = new Set<string>();
@@ -110,6 +124,16 @@ export function DenaliItineraryField({
       }
     }
     return { invalidDayIndexes: days, invalidSegmentKeys: segments };
+  }, [invalid, displayDays]);
+
+  useEffect(() => {
+    if (!invalid) {
+      return;
+    }
+    const firstInvalid = findFirstDenaliItineraryDayIssueIndex(displayDays);
+    if (firstInvalid != null) {
+      setActiveDayIndex(firstInvalid);
+    }
   }, [invalid, displayDays]);
 
   const writeDays = (days: DenaliItineraryDay[]) => {
@@ -157,6 +181,36 @@ export function DenaliItineraryField({
     });
   };
 
+  const activeDay = displayDays[activeDayIndex] ?? displayDays[0];
+  const canGoPrevious = activeDayIndex > 0;
+  const canGoNext = activeDayIndex < displayDays.length - 1;
+
+  const selectDay = (dayIndex: number) => {
+    if (dayIndex < 0 || dayIndex >= displayDays.length) {
+      return;
+    }
+    setActiveDayIndex(dayIndex);
+  };
+
+  const dayPreview = (day: DenaliItineraryDay): string => {
+    const trimmed = day.title.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+    return t("composites.itinerary.dayPreviewEmpty");
+  };
+
+  const statusLabel = (status: "complete" | "incomplete" | "error"): string => {
+    switch (status) {
+      case "complete":
+        return t("composites.itinerary.dayStatusComplete");
+      case "error":
+        return t("composites.itinerary.dayStatusError");
+      default:
+        return t("composites.itinerary.dayStatusIncomplete");
+    }
+  };
+
   return (
     <div
       className="denali-wizard-composite denali-wizard-composite--itinerary"
@@ -171,180 +225,109 @@ export function DenaliItineraryField({
         </p>
       </div>
 
-      {displayDays.map((day, dayIndex) => (
-        <section
-          key={day.dayNumber ?? dayIndex}
-          className="denali-wizard-composite__panel"
-          data-testid={DENALI_ITINERARY_TEST_IDS.day(day.dayNumber ?? dayIndex + 1)}
+      <div className="denali-itinerary-layout">
+        <nav
+          className="denali-itinerary-nav"
+          data-testid={DENALI_ITINERARY_TEST_IDS.nav}
+          aria-label={t("composites.itinerary.navLabel")}
         >
-          <h4 className="denali-wizard-composite__subtitle">
-            {t("composites.itinerary.dayHeading", { n: day.dayNumber ?? dayIndex + 1 })}
-          </h4>
-
-          <label className="denali-wizard-composite__field">
-            <span>{t("composites.itinerary.dayTitle")}</span>
-            <Input
-              value={day.title ?? ""}
-              onChange={(event) => updateDay(dayIndex, { title: event.target.value })}
-              required={required}
-              aria-required={required || undefined}
-              invalid={invalidDayIndexes.has(dayIndex)}
-            />
-          </label>
-
-          <label className="denali-wizard-composite__field">
-            <span>{t("composites.itinerary.daySummary")}</span>
-            <textarea
-              className="denali-wizard-composite__textarea"
-              rows={3}
-              value={day.summary ?? ""}
-              onChange={(event) => updateDay(dayIndex, { summary: event.target.value })}
-            />
-          </label>
-
-          <div className="denali-wizard-composite__segment-list">
-            <p className="denali-wizard-composite__segment-list-heading">
-              {t("composites.itinerary.segmentsHeading")}
-            </p>
-            {day.segments.map((segment, segmentIndex) => (
-              <article
-                key={segment.id}
-                className="denali-wizard-composite__segment"
-                data-testid={DENALI_ITINERARY_TEST_IDS.segment(
-                  day.dayNumber ?? dayIndex + 1,
-                  segment.id
-                )}
-              >
-                <div className="denali-wizard-composite__segment-header">
-                  <h5 className="denali-wizard-composite__segment-title">
-                    {t("composites.itinerary.segmentHeading", {
-                      n: segmentIndex + 1,
-                    })}
-                  </h5>
-                  {day.segments.length > 1 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => removeSegment(dayIndex, segmentIndex)}
+          <ol className="denali-itinerary-nav__list">
+            {displayDays.map((day, dayIndex) => {
+              const dayNumber = day.dayNumber ?? dayIndex + 1;
+              const status = dayStatuses[dayIndex] ?? "incomplete";
+              const isActive = dayIndex === activeDayIndex;
+              return (
+                <li key={day.dayNumber ?? dayIndex} className="denali-itinerary-nav__item">
+                  <button
+                    type="button"
+                    className="denali-itinerary-nav__button"
+                    data-testid={DENALI_ITINERARY_TEST_IDS.dayNav(dayNumber)}
+                    data-denali-itinerary-day-nav=""
+                    data-denali-itinerary-day-status={status}
+                    aria-current={isActive ? "true" : undefined}
+                    aria-describedby={`denali-itinerary-day-${dayNumber}-status`}
+                    onClick={() => selectDay(dayIndex)}
+                  >
+                    <span className="denali-itinerary-nav__day-label">
+                      {t("composites.itinerary.dayHeading", { n: dayNumber })}
+                    </span>
+                    <span className="denali-itinerary-nav__day-preview">{dayPreview(day)}</span>
+                    <span
+                      id={`denali-itinerary-day-${dayNumber}-status`}
+                      className={`denali-itinerary-nav__status denali-itinerary-nav__status--${status}`}
+                      data-testid={DENALI_ITINERARY_TEST_IDS.dayNavStatus(dayNumber)}
+                      aria-hidden="true"
                     >
-                      {tCommon("remove")}
-                    </Button>
-                  ) : null}
-                </div>
+                      {status === "complete" ? "✓" : status === "error" ? "!" : "○"}
+                    </span>
+                    <span className="denali-itinerary-nav__status-text">
+                      {statusLabel(status)}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
 
-                <label className="denali-wizard-composite__field">
-                  <span>{t("composites.itinerary.segmentKind")}</span>
-                  <Select
-                    aria-label={t("composites.itinerary.segmentKind")}
-                    options={kindOptions}
-                    value={segment.kind}
-                    onChange={(event) =>
-                      updateSegment(dayIndex, segmentIndex, {
-                        kind: event.target.value as DenaliItinerarySegmentKind,
-                      })
-                    }
-                  />
-                </label>
+        <div className="denali-itinerary-editor">
+          {activeDay != null ? (
+            <DenaliItineraryDayPanel
+              draft={draft}
+              day={activeDay}
+              dayIndex={activeDayIndex}
+              tourPhotos={tourPhotos}
+              kindOptions={kindOptions}
+              required={required}
+              dayInvalid={invalidDayIndexes.has(activeDayIndex)}
+              invalidSegmentKeys={invalidSegmentKeys}
+              onUpdateDay={(patch) => updateDay(activeDayIndex, patch)}
+              onUpdateSegment={(segmentIndex, patch) =>
+                updateSegment(activeDayIndex, segmentIndex, patch)
+              }
+              onAddSegment={() => addSegment(activeDayIndex)}
+              onRemoveSegment={(segmentIndex) => removeSegment(activeDayIndex, segmentIndex)}
+            />
+          ) : null}
 
-                <label className="denali-wizard-composite__field">
-                  <span>{tCommon("title")}</span>
-                  <Input
-                    value={segment.title}
-                    onChange={(event) =>
-                      updateSegment(dayIndex, segmentIndex, { title: event.target.value })
-                    }
-                    required={required}
-                    aria-required={required || undefined}
-                    invalid={invalidSegmentKeys.has(`${dayIndex}:${segmentIndex}`)}
-                  />
-                </label>
-
-                <label className="denali-wizard-composite__field">
-                  <span>{tCommon("description")}</span>
-                  <textarea
-                    className="denali-wizard-composite__textarea"
-                    rows={2}
-                    value={segment.description ?? ""}
-                    onChange={(event) =>
-                      updateSegment(dayIndex, segmentIndex, { description: event.target.value })
-                    }
-                  />
-                </label>
-
-                <div className="denali-wizard-composite__field-row">
-                  <label className="denali-wizard-composite__field">
-                    <span>{t("composites.itinerary.startTime")}</span>
-                    <DenaliTimeInput
-                      appearance="field"
-                      aria-label={t("composites.itinerary.startTime")}
-                      value={segment.startTime ?? ""}
-                      onChange={(next) =>
-                        updateSegment(dayIndex, segmentIndex, { startTime: next })
-                      }
-                    />
-                  </label>
-                  <label className="denali-wizard-composite__field">
-                    <span>{t("composites.itinerary.locationLabel")}</span>
-                    <Input
-                      value={segment.locationLabel ?? ""}
-                      onChange={(event) =>
-                        updateSegment(dayIndex, segmentIndex, { locationLabel: event.target.value })
-                      }
-                      placeholder={t("composites.itinerary.locationPlaceholder")}
-                    />
-                  </label>
-                </div>
-
-                <DenaliItinerarySegmentDestinationField
-                  destinationId={segment.destinationId}
-                  tourKind={getCanonicalStringValue(draft, "category")}
-                  onChange={(selection) => {
-                    if (selection.destinationId != null) {
-                      updateSegment(dayIndex, segmentIndex, {
-                        destinationId: selection.destinationId,
-                        ...(selection.locationLabel != null
-                          ? { locationLabel: selection.locationLabel }
-                          : {}),
-                      });
-                      return;
-                    }
-                    const { destinationId: _removed, ...rest } = segment;
-                    updateSegment(dayIndex, segmentIndex, rest);
-                  }}
-                />
-
-                <DenaliItinerarySegmentPhotoPicker
-                  photos={tourPhotos}
-                  selectedIds={segment.photoIds ?? []}
-                  dayNumber={day.dayNumber ?? dayIndex + 1}
-                  onChange={(photoIds) => {
-                    if (photoIds.length > 0) {
-                      updateSegment(dayIndex, segmentIndex, { photoIds });
-                      return;
-                    }
-                    const { photoIds: _removed, ...rest } = segment;
-                    updateSegment(dayIndex, segmentIndex, rest);
-                  }}
-                />
-              </article>
-            ))}
-
-            <Button
-              type="button"
-              variant="secondary"
-              data-testid={DENALI_ITINERARY_TEST_IDS.addSegment(day.dayNumber ?? dayIndex + 1)}
-              onClick={() => addSegment(dayIndex)}
-            >
-              {t("composites.itinerary.addSegment")}
-            </Button>
-          </div>
-        </section>
-      ))}
+          {displayDays.length > 1 ? (
+            <div className="denali-itinerary-editor__pager">
+              <Button
+                type="button"
+                variant="secondary"
+                data-testid={DENALI_ITINERARY_TEST_IDS.prevDay}
+                disabled={!canGoPrevious}
+                onClick={() => selectDay(activeDayIndex - 1)}
+              >
+                {t("composites.itinerary.previousDay")}
+              </Button>
+              <p className="denali-itinerary-editor__pager-meta">
+                {t("composites.itinerary.dayPager", {
+                  current: activeDayIndex + 1,
+                  total: displayDays.length,
+                })}
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                data-testid={DENALI_ITINERARY_TEST_IDS.nextDay}
+                disabled={!canGoNext}
+                onClick={() => selectDay(activeDayIndex + 1)}
+              >
+                {t("composites.itinerary.nextDay")}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <Button
         type="button"
         variant="secondary"
-        onClick={() => writeDays(buildDefaultItineraryDays(targetDayCount))}
+        onClick={() => {
+          writeDays(buildDefaultItineraryDays(targetDayCount));
+          setActiveDayIndex(0);
+        }}
       >
         {t("composites.itinerary.resetRows", { count: targetDayCount })}
       </Button>

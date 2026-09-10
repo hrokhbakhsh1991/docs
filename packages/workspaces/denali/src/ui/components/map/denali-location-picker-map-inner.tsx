@@ -12,11 +12,14 @@ export type DenaliMapCoordinates = {
   longitude: number;
 } | null;
 
+export type DenaliMapInteractionMode = "preview" | "expanded";
+
 export type DenaliLocationPickerMapInnerProps = {
   value: DenaliMapCoordinates;
   onChange: (_coords: { latitude: number; longitude: number }) => void;
   defaultCenter?: { latitude: number; longitude: number };
   height?: number;
+  interactionMode?: DenaliMapInteractionMode;
   "data-testid"?: string;
 };
 
@@ -38,9 +41,12 @@ function DenaliLocationPickerMapInnerComponent({
   value,
   onChange,
   defaultCenter = DEFAULT_CENTER,
-  height = 220,
+  height,
+  interactionMode = "expanded",
   "data-testid": testId,
 }: DenaliLocationPickerMapInnerProps) {
+  const isInteractive = interactionMode === "expanded";
+  const resolvedHeight = height ?? (interactionMode === "preview" ? undefined : 220);
   const containerRef = useRef<LeafletContainer>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -65,12 +71,21 @@ function DenaliLocationPickerMapInnerComponent({
       : L.latLng(initialCenter.latitude, initialCenter.longitude);
     const initialZoom = initialValue ? 14 : 6;
 
-    const map = L.map(container, { scrollWheelZoom: true }).setView(mapCenter, initialZoom);
+    const map = L.map(container, {
+      scrollWheelZoom: isInteractive,
+      dragging: isInteractive,
+      touchZoom: isInteractive,
+      doubleClickZoom: isInteractive,
+      boxZoom: isInteractive,
+      keyboard: isInteractive,
+    }).setView(mapCenter, initialZoom);
     L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION }).addTo(map);
 
-    map.on("click", (event) => {
-      onChangeRef.current({ latitude: event.latlng.lat, longitude: event.latlng.lng });
-    });
+    if (isInteractive) {
+      map.on("click", (event) => {
+        onChangeRef.current({ latitude: event.latlng.lat, longitude: event.latlng.lng });
+      });
+    }
 
     mapRef.current = map;
     const resizeTimer = window.setTimeout(() => map.invalidateSize(), 120);
@@ -82,7 +97,16 @@ function DenaliLocationPickerMapInnerComponent({
       mapRef.current = null;
       resetLeafletContainer(container);
     };
-  }, []);
+  }, [isInteractive]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map == null || interactionMode !== "expanded") {
+      return;
+    }
+    const resizeTimer = window.setTimeout(() => map.invalidateSize(), 120);
+    return () => window.clearTimeout(resizeTimer);
+  }, [interactionMode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -98,25 +122,43 @@ function DenaliLocationPickerMapInnerComponent({
 
     const latlng = L.latLng(value.latitude, value.longitude);
     if (markerRef.current == null) {
-      const marker = L.marker(latlng, { draggable: true }).addTo(map);
-      marker.on("dragend", () => {
-        const position = marker.getLatLng();
-        onChangeRef.current({ latitude: position.lat, longitude: position.lng });
-      });
+      const marker = L.marker(latlng, { draggable: isInteractive }).addTo(map);
+      if (isInteractive) {
+        marker.on("dragend", () => {
+          const position = marker.getLatLng();
+          onChangeRef.current({ latitude: position.lat, longitude: position.lng });
+        });
+      }
       markerRef.current = marker;
     } else {
       markerRef.current.setLatLng(latlng);
+      if (markerRef.current.dragging) {
+        if (isInteractive) {
+          markerRef.current.dragging.enable();
+        } else {
+          markerRef.current.dragging.disable();
+        }
+      }
     }
 
-    map.flyTo(latlng, 14, { duration: 0.8 });
-  }, [value?.latitude, value?.longitude]);
+    if (isInteractive) {
+      map.flyTo(latlng, 14, { duration: 0.8 });
+    } else {
+      map.setView(latlng, 13, { animate: false });
+    }
+  }, [isInteractive, value?.latitude, value?.longitude]);
 
   return (
     <div
       ref={containerRef}
       data-testid={testId}
       className="denali-wizard-composite__interactive-map"
-      style={{ height, width: "100%" }}
+      data-wizard-map-interaction={interactionMode}
+      style={
+        resolvedHeight === undefined
+          ? { width: "100%", minHeight: "var(--denali-map-preview-height, 9rem)" }
+          : { height: resolvedHeight, width: "100%" }
+      }
     />
   );
 }

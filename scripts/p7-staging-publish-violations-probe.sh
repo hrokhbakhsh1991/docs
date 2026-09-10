@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
@@ -14,7 +14,7 @@ WEB="http://127.0.0.1:${WEB_PORT}"
 API="http://127.0.0.1:${API_PORT}"
 PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-09174070937}}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
-ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
+ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-admin.operator.localhost}"
 FIXTURE="${ROOT}/scripts/fixtures/p7-staging-publish-violation-body.json"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)

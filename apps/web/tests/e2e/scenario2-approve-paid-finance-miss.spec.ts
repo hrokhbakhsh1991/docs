@@ -1,5 +1,5 @@
 /**
- * Manual QA — Scenario 2: approve paid (no remaining) → no finance CTA;
+ * Manual QA — Scenario 2: approve without payment → no finance CTA;
  * focus miss when guest not in money queue → Open case.
  */
 import { expect, test } from "@playwright/test";
@@ -11,95 +11,56 @@ import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
+import {
+  clickWorkspaceApproveWithoutPaymentAndWait,
+  ensureTourHasApprovalCapacity,
+  escapeRegExp,
+  openWorkspaceGuestRow,
+  seedPendingUnpaidGuest,
+  WORKSPACE_SMOKE_TOUR_ID,
+} from "./fixtures/tour-workspace-smoke";
 
-const TOUR_ID =
-  process.env.QA_TOUR_ID?.trim() || "9fc949a0-72a3-4f57-b888-7ba7c81b58db";
-
-type BookingRow = {
-  readonly id?: string;
-  readonly guestLabel?: string;
-  readonly status?: string;
-  readonly paymentStatus?: string;
-};
-
-test.describe("scenario-2 approve paid → no finance link + focus miss", () => {
-  test("approve pending paid has no finance link; unknown focus shows fail-soft case", async ({
+test.describe("scenario-2 approve without payment → no finance link + focus miss", () => {
+  test("approve without payment has no finance link; unknown focus shows fail-soft case", async ({
     page,
   }) => {
     test.setTimeout(240_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
-    let paidPending: BookingRow | null = null;
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const listRes = await page.request.get(
-        `/api/bookings?tourId=${encodeURIComponent(TOUR_ID)}&status=pending&view=ops&limit=50`
-      );
-      if (!listRes.ok()) {
-        await page.waitForTimeout(1500);
-        continue;
-      }
-      const body = (await listRes.json()) as { items?: BookingRow[] };
-      paidPending =
-        body.items?.find(
-          (row) =>
-            row.status === "pending" &&
-            row.paymentStatus === "paid" &&
-            typeof row.guestLabel === "string" &&
-            row.guestLabel.trim().length > 0
-        ) ?? null;
-      if (paidPending !== null) {
-        break;
-      }
-      await page.waitForTimeout(1000);
-    }
-    expect(paidPending, "need a pending paid guest (seed paymentStatus=paid)").not.toBeNull();
-    const guestName = paidPending!.guestLabel!.trim();
-    const registrationId = paidPending!.id!;
+    const stamp = Date.now();
+    const { guestName, registrationId } = await seedPendingUnpaidGuest(page, stamp);
 
-    await page.goto(`/tours/${TOUR_ID}/workspace`, { waitUntil: "domcontentloaded" });
+    await page.goto(`/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace`, {
+      waitUntil: "domcontentloaded",
+    });
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.page)).toBeVisible({
       timeout: 90_000,
     });
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
+    await expect(
+      page
+        .getByTestId(TOUR_WORKSPACE_TEST_IDS.registrationsPanel)
+        .getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)
+    ).toBeVisible({
       timeout: 90_000,
     });
 
-    const guestOption = page.getByRole("option", {
-      name: new RegExp(guestName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"),
-    });
-    await expect(guestOption).toBeVisible({ timeout: 60_000 });
-    await guestOption.getByRole("button").first().click();
-
-    const approve = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton);
-    await expect(approve).toBeVisible({ timeout: 20_000 });
-
-    const approveResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/bookings/${registrationId}/approve`) &&
-        response.request().method() === "POST"
-    );
-    await approve.click();
-    const res = await approveResponse;
-    expect(res.ok(), await res.text()).toBeTruthy();
+    await openWorkspaceGuestRow(page, guestName);
+    await expect(
+      page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveWithoutPaymentButton)
+    ).toBeVisible({ timeout: 20_000 });
+    await clickWorkspaceApproveWithoutPaymentAndWait(page, registrationId);
 
     const notice = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionNotice);
     await expect(notice).toBeVisible({ timeout: 20_000 });
-    await expect(notice).toContainText(
-      new RegExp(guestName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")
-    );
-    await expect(
-      page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionNoticeTransportLink)
-    ).toBeVisible();
-
-    // Paid / no remaining → finance link must not appear on the success notice.
+    await expect(notice).toContainText(new RegExp(escapeRegExp(guestName), "i"));
     await expect(
       page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionNoticeFinanceLink)
     ).toHaveCount(0);
 
-    // Fail-soft: focus a registration that is not in this tour money queue.
     const missingId = "00000000-0000-4000-8000-00000000dead";
     await page.goto(
-      `/tours/${TOUR_ID}/workspace?tab=finance&focusRegistrationId=${missingId}`,
+      `/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace?tab=finance&focusRegistrationId=${missingId}`,
       { waitUntil: "domcontentloaded" }
     );
     await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.panel)).toBeVisible({

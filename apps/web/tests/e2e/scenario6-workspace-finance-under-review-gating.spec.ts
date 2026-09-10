@@ -66,8 +66,8 @@ async function waitForPendingReceiptForRegistration(
 test.describe("scenario-6 workspace finance under-review gating", () => {
   test("receipt-review CTA is prioritized when proof is already pending", async ({ page }) => {
     test.setTimeout(240_000);
-    console.log("S6: login");
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const booking = await seedChainGuestRegistrationViaApi(page.request, {
@@ -108,15 +108,8 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
         currency: "IRR",
       },
     });
-    if (!createManualRes.ok()) {
-      const createManualText = await createManualRes.text();
-      expect(
-        createManualText.includes("pending payment already exists for registration"),
-        createManualText
-      ).toBeTruthy();
-    }
+    expect(createManualRes.ok(), await createManualRes.text()).toBeTruthy();
 
-    console.log("S6: read manual payment");
     const paymentsRes = await page.request.get(
       `/api/finance/payments?registrationId=${encodeURIComponent(registrationId)}&limit=20`
     );
@@ -135,7 +128,6 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
       ) ?? null;
     expect(pendingManual, "new pending manual payment should be visible").not.toBeNull();
 
-    console.log(`S6: submit receipt for payment ${pendingManual!.id!}`);
     const submitReceiptRes = await page.request.post("/api/finance/receipts", {
       headers: {
         "Content-Type": "application/json",
@@ -146,20 +138,12 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
         fileKey: `receipts/${registrationId}/workspace-scenario6-${Date.now()}.jpg`,
       },
     });
-    if (!submitReceiptRes.ok()) {
-      const submitReceiptText = await submitReceiptRes.text();
-      expect(
-        submitReceiptText.includes("payment already has a pending receipt"),
-        submitReceiptText
-      ).toBeTruthy();
-    }
-    console.log("S6: wait for pending receipt visibility");
+    expect(submitReceiptRes.ok(), await submitReceiptRes.text()).toBeTruthy();
     await waitForPendingReceiptForRegistration(page, registrationId);
 
-    console.log("S6: refresh workspace finance");
-    await page.goto(financeWorkspacePath(registrationId), { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel)).toBeVisible({
-      timeout: 30_000,
+    await openFinanceWorkspaceGuest(page, { registrationId, guestName });
+    await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
+      timeout: 90_000,
     });
 
     console.log("S6: assert inline receipt review and hidden payment forms");
@@ -172,7 +156,7 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
       timeout: 30_000,
     });
 
-    await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toHaveCount(0);
-    await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.receiptForm)).toHaveCount(0);
+    await expect(detailPanel.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toHaveCount(0);
+    await expect(detailPanel.getByTestId(FINANCE_PAYMENTS_TEST_IDS.receiptForm)).toHaveCount(0);
   });
 });

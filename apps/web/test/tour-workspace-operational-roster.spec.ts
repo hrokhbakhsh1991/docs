@@ -27,6 +27,21 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.doesNotMatch(client, /fetch\(`\/api\/bookings\?/);
   });
 
+  it("registrations tab shows the whole tour roster, including approved bookings", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /lockedStatus="all"/);
+  });
+
+  it("localizes temporary transport roster outages", () => {
+    for (const locale of ["fa", "en"]) {
+      const messages = readFileSync(join(webRoot, `messages/${locale}/tours.json`), "utf8");
+      assert.match(messages, /TOUR_TRANSPORT_BOOKINGS_HTTP_503/);
+    }
+  });
+
   it("BFF proxies tour operational roster route", () => {
     const route = readFileSync(
       join(webRoot, "app/api/tours/[id]/operational-roster/route.ts"),
@@ -34,6 +49,25 @@ describe("DP-2 tour workspace operational roster contract", () => {
     );
     assert.match(route, /operational-roster/);
     assert.match(route, /resolveTourOpsApiBaseUrl/);
+  });
+
+  it("payment follow-up list merges pending bookings with operational roster", () => {
+    const hook = readFileSync(
+      join(webRoot, "src/features/tours/use-tour-workspace-payment-follow-up-list.ts"),
+      "utf8"
+    );
+    const load = readFileSync(
+      join(webRoot, "src/features/tours/tour-workspace-payment-follow-up-load.ts"),
+      "utf8"
+    );
+    assert.match(hook, /buildTourOperationalRosterHref/);
+    assert.match(hook, /resolvePaymentFollowUpLoadOutcome/);
+    assert.match(hook, /Promise\.allSettled/);
+    assert.match(hook, /refreshNonce/);
+    assert.match(load, /rosterDegraded/);
+    assert.match(hook, /toPaymentFollowUpHttpError\("TOUR_ROSTER_HTTP"/);
+    assert.match(hook, /status:\s*"pending"/);
+    assert.doesNotMatch(hook, /status:\s*"approved"/);
   });
 
   it("renders final participant, amount due, deadline, driver badges", () => {

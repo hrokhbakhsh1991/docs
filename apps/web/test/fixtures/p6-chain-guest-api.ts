@@ -5,6 +5,7 @@
  */
 import { expect, type APIRequestContext } from "@playwright/test";
 
+/** Postgres / operator smoke host (`admin.operator.localhost`, staging). */
 export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 // Isolate the chain from the general operator smoke tour; the latter is intentionally reused by
@@ -23,10 +24,77 @@ export function tourOpsApiBase(): string {
   return (process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 }
 
+function resolvePlaywrightBaseUrl(): string {
+  return (
+    process.env.PLAYWRIGHT_BASE_URL?.trim() ??
+    process.env.SMOKE_DENALI_WEB_BASE_URL?.trim() ??
+    "http://admin.operator.localhost:3000"
+  );
+}
+
+function resolvePlaywrightPort(base: string): number | null {
+  try {
+    const url = new URL(base);
+    if (url.port.length > 0) {
+      return Number(url.port);
+    }
+    return url.protocol === "https:" ? 443 : 80;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when smoke catalog should use denali-dev tenant 003 + tour 220.
+ * Covers memory-driver `admin.denali.localhost` and Profile B-staging (230xx / bare IP).
+ */
+export function usesDenaliDevMemoryFixtures(): boolean {
+  const base = resolvePlaywrightBaseUrl();
+  if (/admin\.denali\.localhost/i.test(base)) {
+    return true;
+  }
+  const port = resolvePlaywrightPort(base);
+  // Profile B-staging isolated stack — operator admin host maps to denali-dev workspace.
+  if (port !== null && port >= 23_000 && port <= 23_099) {
+    return true;
+  }
+  try {
+    const hostname = new URL(base).hostname;
+    // Bare-IP Profile B with external servers — OTP session binds tenant 003 (not tour …0210).
+    if (/^(\d{1,3}\.){3}\d+$/.test(hostname) && process.env.PW_EXTERNAL_SERVERS === "1") {
+      return true;
+    }
+  } catch {
+    // ignore invalid base URL
+  }
+  return false;
+}
+
+export function resolveChainSmokeTenantId(): string {
+  const override = process.env.QA_TENANT_ID?.trim();
+  if (override) {
+    return override;
+  }
+  return usesDenaliDevMemoryFixtures()
+    ? DENALI_DEV_SMOKE_TENANT_ID
+    : OPERATOR_SMOKE_TENANT_ID;
+}
+
+export function resolveChainSmokePublishedTourId(): string {
+  const override = process.env.QA_TOUR_ID?.trim();
+  if (override) {
+    return override;
+  }
+  return usesDenaliDevMemoryFixtures()
+    ? DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID
+    : OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+}
+
 function guestReceiptHeaders(userId: string, workspaceId: string): Record<string, string> {
+  const tenantId = resolveChainSmokeTenantId();
   return {
-    "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
-    "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+    "x-tenant-id": tenantId,
+    "x-authenticated-tenant-id": tenantId,
     "x-user-id": userId,
     "x-actor-role": "member",
     "x-membership-status": "ACTIVE",

@@ -62,8 +62,10 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary)).toBeVisible({
       timeout: 30_000,
     });
+    await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(1))).toBeVisible();
+    await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(2))).toBeVisible();
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))).toBeVisible();
-    await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(2))).toBeVisible();
+    await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(2))).toHaveCount(0);
   });
 
   test("SMK-P9-ITIN-03 multi-day wizard advances from program to logistics", async ({ page }) => {
@@ -180,5 +182,51 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await expect
       .poll(() => indicator.getAttribute("data-status"), { timeout: 30_000 })
       .toMatch(/^(?:IDLE|SAVED)$/);
+  });
+
+  test("SMK-P9-ITIN-09 multi-day itinerary preserves day data across navigation", async ({
+    page,
+  }) => {
+    const tourTitle = `SMK-P9-ITIN-09 ${Date.now()}`;
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+    await resetOperatorWizardToBasic(page);
+    await fillDenaliMultiDayWizardBasics(page, tourTitle);
+    await fillDenaliWizardPhotosMinimal(page);
+
+    const itinerary = page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary);
+    await expect(itinerary).toBeVisible({ timeout: 30_000 });
+
+    await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(1)).click();
+    await itinerary
+      .getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))
+      .getByRole("textbox", { name: /عنوان روز|Day title/i })
+      .fill("Day one proof");
+    await itinerary
+      .getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))
+      .getByRole("textbox", { name: /^عنوان$|^Title$/i })
+      .first()
+      .fill("Day one activity");
+
+    await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(2)).click();
+    await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(2))).toBeVisible();
+    await itinerary
+      .getByTestId(DENALI_ITINERARY_TEST_IDS.day(2))
+      .getByRole("textbox", { name: /عنوان روز|Day title/i })
+      .fill("Day two proof");
+
+    await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(1)).click();
+    await expect(
+      itinerary
+        .getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))
+        .getByRole("textbox", { name: /عنوان روز|Day title/i })
+    ).toHaveValue("Day one proof");
+    await expect(
+      itinerary
+        .getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))
+        .getByRole("textbox", { name: /^عنوان$|^Title$/i })
+        .first()
+    ).toHaveValue("Day one activity");
   });
 });

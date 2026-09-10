@@ -41,6 +41,12 @@ describe("portal-catalog-registrations-dispatch (P4-B PR-10b/c)", () => {
     assert.match(source, /Idempotency-Key/);
   });
 
+  it("PR-10c2 maps registration upstream network failures to a stable 502", () => {
+    const source = readFileSync(ROUTE_PATH, "utf8");
+    assert.match(source, /REGISTRATION_UPSTREAM_UNAVAILABLE/);
+    assert.match(source, /status: 502/);
+  });
+
   it("PR-10d mergeCatalogRegistrationHeaders guest uses x-tenant-id only", () => {
     const headers = mergeCatalogRegistrationHeaders("00000000-0000-4000-8000-000000000003", null);
     assert.equal(headers["x-tenant-id"], "00000000-0000-4000-8000-000000000003");

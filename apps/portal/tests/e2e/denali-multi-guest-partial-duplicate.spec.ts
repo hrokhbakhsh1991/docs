@@ -9,6 +9,7 @@ import {
   CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
   fillCatalogOtp,
+  gotoPortalRegistration,
   requestRegistrationOtp,
 } from "./fixtures/catalog-registration-otp";
 
@@ -19,11 +20,7 @@ const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
 test.describe.configure({ mode: "serial" });
 
 test("Denali other: 10 guests → expect partial failure UI", async ({ page }) => {
-  await page.goto(`/catalog/${DENALI_TOUR_ID}/register`, { waitUntil: "domcontentloaded" });
-
-  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-    timeout: 120_000,
-  });
+  await gotoPortalRegistration(page, DENALI_TOUR_ID);
 
   await requestRegistrationOtp(page, DEV_PHONE);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
@@ -38,6 +35,12 @@ test("Denali other: 10 guests → expect partial failure UI", async ({ page }) =
     phone: DEV_PHONE,
     guestCount: 10,
     expectSuccess: false,
+    // Keep the identity key duplicated so the first POST succeeds and the
+    // following sequential POSTs exercise the API duplicate/partial path.
+    guestOverrides: (index) => ({
+      fullName: `Denali Dup Guest ${index + 1}`,
+      phone: `+1555${String(4104264 + index)}`,
+    }),
   });
 
   await expect(page.locator("[data-denali-submit-results]")).toBeVisible({
@@ -47,4 +50,3 @@ test("Denali other: 10 guests → expect partial failure UI", async ({ page }) =
     timeout: 10_000,
   });
 });
-

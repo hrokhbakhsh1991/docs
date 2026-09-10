@@ -20,7 +20,7 @@ export async function MemberModuleStub({
   const tNav = await getTranslations("portalMember.nav");
   const tStub = await getTranslations("portalMember.moduleStub");
   const backHref = resolveMemberPortalBackTargetPath(pluginId);
-  const ledeKey = moduleId === "wallet" ? "walletLede" : "lede";
+  const ledeKey = "lede";
 
   return (
     <MemberModuleStatusShell

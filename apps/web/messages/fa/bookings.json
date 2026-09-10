@@ -42,6 +42,13 @@
   "copyId": "کپی شناسه",
   "copiedId": "کپی شد",
   "bookingId": "شناسه رزرو",
+  "columns": {
+    "guest": "مهمان",
+    "tour": "تور",
+    "departure": "حرکت",
+    "status": "وضعیت",
+    "submitted": "ثبت"
+  },
   "submittedShort": "ثبت {date}",
   "fields": {
     "party": "تعداد نفرات",

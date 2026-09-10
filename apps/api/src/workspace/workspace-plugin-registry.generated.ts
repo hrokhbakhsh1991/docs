@@ -21,6 +21,7 @@ export const API_WORKSPACE_PLUGIN_IDS = [
   "profile-cert",
   "starter",
   "urban",
+  "wallet-ws1",
 ] as const;
 
 export type ApiWorkspacePluginId = (typeof API_WORKSPACE_PLUGIN_IDS)[number];
@@ -91,6 +92,10 @@ export async function loadApiWorkspacePluginByIdFromManifest(
     case "urban": {
       const mod = await import("@app-tour/workspace-urban/plugin");
       return mod.getWorkspacePlugin();
+    }
+    case "wallet-ws1": {
+      const mod = await import("@app-tour/workspace-wallet-ws1/plugin");
+      return mod.getWalletWs1WorkspacePlugin();
     }
       default:
         throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);

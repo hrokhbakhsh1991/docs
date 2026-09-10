@@ -61,9 +61,12 @@ test.describe("Denali purchase flow (manual-only)", () => {
     await page.goto(`http://denali.portal.localhost:3003/catalog/${DENALI_TOUR_ID}/register`, {
       waitUntil: "domcontentloaded",
     });
-    await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-      timeout: 120_000,
-    });
+    await page
+      .locator(
+        "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready], [data-public-registration-intake][data-registration-ready]"
+      )
+      .first()
+      .waitFor({ state: "visible", timeout: 120_000 });
 
     await requestRegistrationOtp(page, DEV_PHONE);
     await fillCatalogOtp(page, CATALOG_DEV_OTP);

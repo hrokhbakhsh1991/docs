@@ -20,7 +20,8 @@ describe("wave-f-denali-label-barrel.spec.ts — Wave F.d", () => {
       "src/tours/wizard-template-field-labels.ts",
       "src/wizard/wizard-label-surface-registry.ts",
       "app/(app)/tours/tours-page-client.tsx",
-      "app/(app)/tours/tour-card.tsx",
+      "app/(app)/tours/tours-directory-table.tsx",
+      "app/(app)/tours/tour-list-row-actions.tsx",
       "app/(app)/settings/tour-wizard-template/wizard-template-client.tsx",
     ];
     for (const rel of sources) {

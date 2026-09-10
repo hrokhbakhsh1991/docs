@@ -42,6 +42,13 @@
   "copyId": "Copy ID",
   "copiedId": "Copied",
   "bookingId": "Booking ID",
+  "columns": {
+    "guest": "Guest",
+    "tour": "Tour",
+    "departure": "Departure",
+    "status": "Status",
+    "submitted": "Submitted"
+  },
   "submittedShort": "Submitted {date}",
   "status": {
     "all": "All",

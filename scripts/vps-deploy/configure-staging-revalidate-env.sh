@@ -2,7 +2,7 @@
 # BLK-CAT-01 — wire MARKETING_REVALIDATE_* on staging API from marketing.env secret
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 MKT_PORT="${STAGING_MARKETING_PORT:-23002}"

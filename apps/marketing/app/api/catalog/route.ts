@@ -9,7 +9,7 @@ import {
   resolveCatalogRevalidateSeconds,
 } from "@/catalog/catalog-fetch-options";
 import { resolveTourOpsApiBaseUrl } from "@/env";
-import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
+import { resolveMarketingBootstrapForApi } from "@/tenant/resolve-marketing-bootstrap-api";
 import { resolveCatalogListApiPath } from "@app-tour/workspace-sdk";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request): Promise<NextResponse> {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3002";
-  const { tenantId, pluginId } = await resolveMarketingBootstrapForHost(host);
+  const resolved = await resolveMarketingBootstrapForApi(host);
+  if (!resolved.ok) {
+    return resolved.response;
+  }
+  const { tenantId, pluginId } = resolved.bootstrap;
   const path = resolveCatalogListApiPath(pluginId);
   const incoming = new URL(request.url);
   const limitRaw = incoming.searchParams.get("limit");

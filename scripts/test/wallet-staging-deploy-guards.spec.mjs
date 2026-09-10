@@ -1,0 +1,237 @@
+/**
+ * Denali Wallet v1 staging deploy guard tests.
+ */
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import {
+  DENALI_WALLET_PILOT_TENANT_ID,
+} from "../vps-deploy/lib/wallet-staging-constants.mjs";
+import {
+  containsTrackedSecretPattern,
+  releaseShaMatchesVerified,
+  sanitizeLogValue,
+  validatePilotTenantId,
+  validateWalletStagingDeploy,
+  validateWalletStagingRollback,
+} from "../vps-deploy/lib/wallet-staging-guards.mjs";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const TEST_RELEASE_HEAD = "267b662065c59980037894fff143df4e5495f94e";
+
+function read(rel) {
+  return readFileSync(resolve(ROOT, rel), "utf8");
+}
+
+function baseDeployEnv(overrides = {}) {
+  return {
+    DENALI_WALLET_DEPLOY_TARGET: "staging",
+    DENALI_WALLET_STAGING_CONFIRM: "1",
+    ENV_DIR: "/etc/app-tour-staging",
+    DEPLOY_ROOT: "/opt/app-tour-staging",
+    STORAGE_DRIVER: "prisma",
+    DATABASE_URL: "postgres://placeholder",
+    DATABASE_URL_ADMIN: "postgres://placeholder",
+    EXPECTED_RELEASE_SHA: TEST_RELEASE_HEAD,
+    ...overrides,
+  };
+}
+
+describe("wallet-staging-deploy-guards", () => {
+  it("WSD-01 accepts staging target with required env", () => {
+    const result = validateWalletStagingDeploy(baseDeployEnv());
+    assert.equal(result.ok, true);
+  });
+
+  it("WSD-02 rejects production deploy target", () => {
+    const result = validateWalletStagingDeploy(
+      baseDeployEnv({ DENALI_WALLET_DEPLOY_TARGET: "production" })
+    );
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(" "), /staging/);
+  });
+
+  it("WSD-03 rejects wrong pilot tenant id", () => {
+    const tenant = validatePilotTenantId("00000000-0000-4000-8000-000000000003");
+    assert.equal(tenant.ok, false);
+    const deploy = validateWalletStagingDeploy(
+      baseDeployEnv({ DENALI_WALLET_PILOT_TENANT_ID: "00000000-0000-4000-8000-000000000003" })
+    );
+    assert.equal(deploy.ok, false);
+  });
+
+  it("WSD-04 rejects missing DATABASE_URL_ADMIN", () => {
+    const result = validateWalletStagingDeploy(
+      baseDeployEnv({ DATABASE_URL_ADMIN: "", DATABASE_URL: "" })
+    );
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(" "), /DATABASE_URL/);
+  });
+
+  it("WSD-05 rejects non-prisma storage driver", () => {
+    const result = validateWalletStagingDeploy(baseDeployEnv({ STORAGE_DRIVER: "memory" }));
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(" "), /prisma/);
+  });
+
+  it("WSD-06 enforces pilot-only seed (no bulk enable)", () => {
+    const bulk = validateWalletStagingDeploy(
+      baseDeployEnv({ DENALI_WALLET_BULK_TENANT_UPDATE: "1" })
+    );
+    assert.equal(bulk.ok, false);
+    const seed = validateWalletStagingDeploy(
+      baseDeployEnv({ DENALI_WALLET_SEED_PILOT: "1", NODE_ENV: "production" })
+    );
+    assert.equal(seed.ok, false);
+    const stagingProductionSeed = validateWalletStagingDeploy(
+      baseDeployEnv({
+        DENALI_WALLET_SEED_PILOT: "1",
+        NODE_ENV: "production",
+        DENALI_WALLET_EXECUTION_CONTEXT: "vps",
+        DENALI_WALLET_IS_ROOT: "1",
+      })
+    );
+    assert.equal(stagingProductionSeed.ok, true);
+    const productionTarget = validateWalletStagingDeploy(
+      baseDeployEnv({
+        DENALI_WALLET_DEPLOY_TARGET: "production",
+        DENALI_WALLET_SEED_PILOT: "1",
+        NODE_ENV: "production",
+        DENALI_WALLET_EXECUTION_CONTEXT: "vps",
+        DENALI_WALLET_IS_ROOT: "1",
+      })
+    );
+    assert.equal(productionTarget.ok, false);
+    const okSeed = validateWalletStagingDeploy(
+      baseDeployEnv({ DENALI_WALLET_SEED_PILOT: "1", NODE_ENV: "development" })
+    );
+    assert.equal(okSeed.ok, true);
+  });
+
+  it("WSD-07 rejects production hostnames", () => {
+    const result = validateWalletStagingDeploy(
+      baseDeployEnv({
+        DENALI_WALLET_ADMIN_HOST: "admin.denali-wallet-pilot.denali.club",
+        DENALI_WALLET_PORTAL_HOST: "portal.denali-wallet-pilot.staging.example.com",
+      })
+    );
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(" "), /production hostname/);
+  });
+
+  it("WSD-08 rejects wrong application SHA and accepts verified artifact SHA", () => {
+    assert.equal(releaseShaMatchesVerified(TEST_RELEASE_HEAD), true);
+    assert.equal(releaseShaMatchesVerified("deadbeef"), false);
+    assert.equal(releaseShaMatchesVerified("deadbeef"), false);
+    assert.equal(
+      validateWalletStagingDeploy(
+        baseDeployEnv({ EXPECTED_RELEASE_SHA: "deadbeef" })
+      ).ok,
+      false
+    );
+    assert.equal(
+      validateWalletStagingDeploy(
+        baseDeployEnv({ EXPECTED_RELEASE_SHA: TEST_RELEASE_HEAD })
+      ).ok,
+      true
+    );
+  });
+
+  it("WSD-09 rollback requires staging confirmation", () => {
+    const ok = validateWalletStagingRollback({
+      DENALI_WALLET_DEPLOY_TARGET: "staging",
+      DENALI_WALLET_ROLLBACK_CONFIRM: "1",
+      ENV_DIR: "/etc/app-tour-staging",
+      DATABASE_URL_ADMIN: "postgres://placeholder",
+      DENALI_WALLET_PILOT_TENANT_ID: DENALI_WALLET_PILOT_TENANT_ID,
+    });
+    assert.equal(ok.ok, true);
+    const bad = validateWalletStagingRollback({
+      DENALI_WALLET_DEPLOY_TARGET: "production",
+      DENALI_WALLET_ROLLBACK_CONFIRM: "1",
+      ENV_DIR: "/etc/app-tour-staging",
+      DATABASE_URL_ADMIN: "postgres://placeholder",
+    });
+    assert.equal(bad.ok, false);
+  });
+
+  it("WSD-10 sanitizeLogValue redacts secret keys", () => {
+    assert.equal(sanitizeLogValue("DATABASE_URL", "postgres://u:p@h/db"), "<redacted>");
+    assert.equal(sanitizeLogValue("PORT", "3001"), "3001");
+  });
+
+  it("WSD-11 tracked deploy scripts contain no secret patterns", () => {
+    const paths = [
+      "scripts/vps-deploy/deploy-denali-wallet-staging.sh",
+      "scripts/vps-deploy/verify-denali-wallet-staging.sh",
+      "scripts/vps-deploy/rollback-denali-wallet-staging.sh",
+      "scripts/vps-deploy/seed-denali-wallet-pilot-artifact.sh",
+      "scripts/vps-deploy/lib/wallet-staging-guards.mjs",
+      "scripts/vps-deploy/lib/wallet-staging-constants.mjs",
+      "docs/phase-23/runbooks/denali-wallet-v1-staging-deploy.md",
+    ];
+    for (const rel of paths) {
+      const text = read(rel);
+      assert.equal(
+        containsTrackedSecretPattern(text),
+        false,
+        `secret pattern found in ${rel}`
+      );
+    }
+  });
+
+  it("WSD-13 normalizes Prisma URLs before psql and rollback uses the helper", () => {
+    const normalized = execFileSync(
+      "bash",
+      ["-c", 'source "$1"; psql_database_url "$2"', "bash", "scripts/vps-deploy/lib/psql-url.sh", "postgresql://user:pass@db:5432/tour_db?connection_limit=5&schema=public"],
+      { cwd: ROOT, encoding: "utf8" }
+    ).trim();
+    assert.equal(normalized, "postgresql://user:pass@db:5432/tour_db");
+    assert.doesNotMatch(normalized, /connection_limit/);
+    assert.match(read("scripts/vps-deploy/rollback-denali-wallet-staging.sh"), /psql_database_url/);
+  });
+
+  it("WSD-14 artifact verification checks the manifest release SHA", () => {
+    assert.match(read("scripts/vps-deploy/lib/artifact-self-check.sh"), /manifest_sha/);
+    assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifact_self_check "\$ARTIFACT_ROOT" "\$SHA"/);
+    assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifact_self_check "\$VROOT" "\$SHA"/);
+    assert.match(read("scripts/vps-deploy/build-staging-artifact.sh"), /artifactDigestSha256/);
+    assert.match(read("scripts/vps-deploy/install-staging-artifact.sh"), /MANIFEST_DIGEST_SHA256/);
+    assert.match(read("scripts/vps-deploy/verify-denali-wallet-staging.sh"), /INSTALLED_RELEASE_SHA/);
+    assert.match(read("scripts/vps-deploy/verify-denali-wallet-staging.sh"), /ARTIFACT_DIGEST_SHA256/);
+    assert.match(read("scripts/vps-deploy/install-staging-artifact.sh"), /release-integrity\.json/);
+  });
+
+  it("WSD-15 keeps pilot seed runtime resolution inside the artifact", () => {
+    const wrapper = read("scripts/vps-deploy/seed-denali-wallet-pilot-artifact.sh");
+    const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
+    assert.match(wrapper, /ARTIFACT_NODE_MODULES=.*api\/node_modules/);
+    assert.match(wrapper, /export NODE_PATH=/);
+    assert.match(selfCheck, /@app-tour\/booking-http-contracts/);
+    assert.match(selfCheck, /runtime-resolvable/);
+  });
+
+  it("WSD-16 keeps installed guard paths relative to the tooling location", () => {
+    const deploy = read("scripts/vps-deploy/deploy-denali-wallet-staging.sh");
+    const verify = read("scripts/vps-deploy/verify-denali-wallet-staging.sh");
+    assert.match(deploy, /SCRIPT_DIR=.*BASH_SOURCE/);
+    assert.match(deploy, /SCRIPT_DIR}\/lib\/wallet-staging-guards-cli\.mjs/);
+    assert.match(deploy, /SCRIPT_DIR}\/verify-denali-wallet-staging\.sh/);
+    assert.match(verify, /SCRIPT_DIR=.*BASH_SOURCE/);
+    assert.match(verify, /SCRIPT_DIR}\/lib\/ports\.sh/);
+  });
+
+  it("WSD-12 runbook documents VPS-side command and production block", () => {
+    const doc = read("docs/phase-23/runbooks/denali-wallet-v1-staging-deploy.md");
+    assert.match(doc, /DENALI_WALLET_DEPLOY_TARGET=staging/);
+    assert.match(doc, /DENALI_WALLET_STAGING_CONFIRM=1/);
+    assert.match(doc, /deploy-denali-wallet-staging\.sh/);
+    assert.match(doc, /rollback-denali-wallet-staging\.sh/);
+    assert.match(doc, /production.*refus/i);
+    assert.match(doc, /certification dev servers/i);
+  });
+});

@@ -1,4 +1,11 @@
 {
+  "pageNotFound": {
+    "title": "Page not found",
+    "body": "This page does not exist or is not available in this workspace.",
+    "back": "Back to home",
+    "metadataTitle": "Page not found",
+    "metadataDescription": "This page does not exist."
+  },
   "loading": "Loading…",
   "save": "Save",
   "cancel": "Cancel",

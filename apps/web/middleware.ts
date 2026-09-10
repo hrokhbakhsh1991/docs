@@ -21,6 +21,23 @@ import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/t
 import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminIngressHost } from "@/tenant/operator-admin-host";
 import {
+  allowsOperatorTicketsTeamRole,
+  isOperatorTicketsTeamAccessPath,
+} from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import {
+  allowsOperatorToursTeamRole,
+  isOperatorToursTeamAccessPath,
+} from "@/features/tours/resolve-operator-tours-middleware-access";
+import {
+  allowsOperatorEngagementTeamRole,
+  isOperatorEngagementTeamAccessPath,
+} from "@/engagement/resolve-operator-engagement-middleware-access";
+import {
+  allowsOperatorMarketingPagesTeamRole,
+  isOperatorMarketingPagesTeamAccessPath,
+} from "@/features/settings/resolve-operator-marketing-pages-middleware-access";
+import { isDevWebSessionAllowed } from "@/tenant/auth-env";
+import {
   normalizeHostHeader,
   readPlatformRootDomainWeb,
   readWebReservedHostLabels,
@@ -33,6 +50,7 @@ const ADMIN_PATH_PREFIXES = [
   "/dashboard",
   "/users",
   "/bookings",
+  "/tickets",
   "/settings",
   "/finance",
   "/leader",
@@ -54,6 +72,7 @@ const PUBLIC_BFF_API_PATHS = [
   "/api/auth/phone-preflight",
   "/api/auth/request-otp",
   "/api/auth/login-web-session",
+  "/api/auth/login-team-web-session",
   "/api/auth/logout",
   "/api/public/tenant-branding",
   "/api/debug/host",
@@ -231,6 +250,10 @@ function redirectLegacyClubAdminHostIfNeeded(request: NextRequest, host: string)
   return NextResponse.redirect(target, 308);
 }
 
+function preservesTeamPanelSession(role: string | undefined): boolean {
+  return role === "viewer" || role === "admin";
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? request.nextUrl.host ?? "";
@@ -302,10 +325,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
           "AUTH_OWNER_PANEL_ONLY",
           "Owner role required for this panel"
         );
-        clearSessionCookieOnResponse(res.headers);
+        if (!preservesTeamPanelSession(validation.role)) {
+          clearSessionCookieOnResponse(res.headers);
+        }
         return res;
       }
-      return redirectToLogin(request, true, "owner-only");
+      return redirectToLogin(
+        request,
+        !preservesTeamPanelSession(validation.role),
+        "owner-only",
+      );
     }
     return forwardPathname(request, pathname);
   }

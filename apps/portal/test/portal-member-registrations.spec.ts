@@ -25,6 +25,8 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /readonly registrantTarget\?:/);
     assert.match(fetchModule, /readonly transportKind\?:/);
     assert.match(fetchModule, /readonly personalCarOccupants\?:/);
+    assert.match(fetchModule, /resolvePortalSelfFetchOrigin/);
+    assert.match(fetchModule, /x-forwarded-host/);
     assert.doesNotMatch(fetchModule, /registrationIntake/);
     assert.doesNotMatch(fetchModule, /bookings\?view=mine/);
     assert.doesNotMatch(fetchModule, /resolveTourOpsApiBaseUrl/);
@@ -72,6 +74,21 @@ describe("portal-member-registrations", () => {
     assert.match(page, /fetchMemberRegistrations/);
     assert.match(page, /RegistrantListFilter/);
     assert.match(page, /\?target=\$\{filter\}/);
+  });
+
+  it("MEM-BFF-03b SSR detail and receipt fetches preserve ingress host", () => {
+    const detailFetch = readFileSync(
+      join(repoRoot, "apps/portal/src/me/fetch-member-registration-by-id.server.ts"),
+      "utf8"
+    );
+    const receiptFetch = readFileSync(
+      join(repoRoot, "apps/portal/src/me/fetch-member-receipt-status.server.ts"),
+      "utf8"
+    );
+    for (const source of [detailFetch, receiptFetch]) {
+      assert.match(source, /resolvePortalSelfFetchOrigin/);
+      assert.match(source, /x-forwarded-host/);
+    }
   });
 
   it("MEM-BFF-04 /me/registrations detail page markers", () => {

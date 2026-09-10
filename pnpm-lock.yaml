@@ -54,6 +54,12 @@ importers:
       '@app-tour/booking-http-contracts':
         specifier: workspace:*
         version: link:../../packages/booking-http-contracts
+      '@app-tour/engagement-http':
+        specifier: workspace:*
+        version: link:../../packages/engagement-http
+      '@app-tour/engagement-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/engagement-http-contracts
       '@app-tour/finance-core':
         specifier: workspace:*
         version: link:../../packages/finance-core
@@ -66,6 +72,9 @@ importers:
       '@app-tour/iran-mobile':
         specifier: workspace:*
         version: link:../../packages/iran-mobile
+      '@app-tour/marketing-pages-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/marketing-pages-http-contracts
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../packages/platform-core
@@ -75,9 +84,27 @@ importers:
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../../packages/tenant-kernel
+      '@app-tour/ticketing-core':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-core
+      '@app-tour/ticketing-http':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http-contracts
       '@app-tour/tour-core':
         specifier: workspace:*
         version: link:../../packages/tour-core
+      '@app-tour/wallet-core':
+        specifier: workspace:*
+        version: link:../../packages/wallet-core
+      '@app-tour/wallet-http':
+        specifier: workspace:*
+        version: link:../../packages/wallet-http
+      '@app-tour/wallet-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/wallet-http-contracts
       '@app-tour/workspace-acme':
         specifier: workspace:*
         version: link:../../packages/workspaces/acme
@@ -132,6 +159,9 @@ importers:
       '@app-tour/workspace-urban':
         specifier: workspace:*
         version: link:../../packages/workspaces/urban
+      '@app-tour/workspace-wallet-ws1':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/wallet-ws1
       '@casl/ability':
         specifier: ^6.7.3
         version: 6.8.1
@@ -196,6 +226,9 @@ importers:
       '@app-tour/guest-workspace-runtime':
         specifier: workspace:*
         version: link:../../packages/guest-workspace-runtime
+      '@app-tour/marketing-pages-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/marketing-pages-http-contracts
       '@app-tour/session-client':
         specifier: workspace:*
         version: link:../../packages/session-client
@@ -299,6 +332,9 @@ importers:
       '@app-tour/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@app-tour/engagement-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/engagement-http-contracts
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
@@ -317,9 +353,15 @@ importers:
       '@app-tour/theme-react':
         specifier: workspace:*
         version: link:../../packages/theme-react
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http-contracts
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/wallet-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/wallet-http-contracts
       '@app-tour/workspace-alpine':
         specifier: workspace:*
         version: link:../../packages/workspaces/alpine
@@ -420,6 +462,9 @@ importers:
       '@app-tour/iran-mountain-landmarks':
         specifier: workspace:*
         version: link:../../packages/iran-mountain-landmarks
+      '@app-tour/marketing-pages-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/marketing-pages-http-contracts
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../packages/platform-core
@@ -432,9 +477,15 @@ importers:
       '@app-tour/theme-react':
         specifier: workspace:*
         version: link:../../packages/theme-react
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/ticketing-http-contracts
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/wallet-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/wallet-http-contracts
       '@app-tour/wizard-navigation':
         specifier: workspace:*
         version: link:../../packages/wizard-navigation
@@ -544,6 +595,9 @@ importers:
       '@app-tour/workspace-urban':
         specifier: workspace:*
         version: link:../../packages/workspaces/urban
+      '@app-tour/workspace-wallet-ws1':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/wallet-ws1
       '@happy-dom/global-registrator':
         specifier: ^17.4.4
         version: 17.6.3
@@ -703,6 +757,44 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/engagement-http:
+    dependencies:
+      '@app-tour/engagement-http-contracts':
+        specifier: workspace:*
+        version: link:../engagement-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/engagement-http-contracts:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/finance-case-encounter-ui:
     devDependencies:
       '@app-tour/config':
@@ -850,6 +942,9 @@ importers:
       '@app-tour/workspace-urban':
         specifier: workspace:*
         version: link:../workspaces/urban
+      '@app-tour/workspace-wallet-ws1':
+        specifier: workspace:*
+        version: link:../workspaces/wallet-ws1
     devDependencies:
       '@app-tour/config':
         specifier: workspace:*
@@ -930,6 +1025,25 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/marketing-pages-http-contracts:
+    dependencies:
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4
@@ -1045,6 +1159,59 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/ticketing-core:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ticketing-http:
+    dependencies:
+      '@app-tour/ticketing-core':
+        specifier: workspace:*
+        version: link:../ticketing-core
+      '@app-tour/ticketing-http-contracts':
+        specifier: workspace:*
+        version: link:../ticketing-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ticketing-http-contracts:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/tour-core:
     dependencies:
       '@app-tour/booking-http-contracts':
@@ -1109,6 +1276,59 @@ importers:
       storybook:
         specifier: ^8.6.14
         version: 8.6.18(prettier@3.8.3)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/wallet-core:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/wallet-http:
+    dependencies:
+      '@app-tour/wallet-core':
+        specifier: workspace:*
+        version: link:../wallet-core
+      '@app-tour/wallet-http-contracts':
+        specifier: workspace:*
+        version: link:../wallet-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/wallet-http-contracts:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4
@@ -1759,6 +1979,25 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.7
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/wallet-ws1:
+    dependencies:
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4

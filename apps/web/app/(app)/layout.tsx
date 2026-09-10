@@ -64,9 +64,35 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   }
 
   if (!devSmokeHost) {
-    const gate = requireOperatorSessionWeb({ session, pathname, host });
-    if (!gate.allowed) {
-      redirect(gate.redirectTo);
+    const ticketsTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorTicketsTeamAccessPath(pathname) &&
+      allowsOperatorTicketsTeamRole(session.role, "GET");
+
+    const toursTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorToursTeamAccessPath(pathname) &&
+      allowsOperatorToursTeamRole(session.role, "GET");
+
+    const engagementTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorEngagementTeamAccessPath(pathname) &&
+      allowsOperatorEngagementTeamRole(session.role, "GET");
+
+    const marketingPagesTeamAccess =
+      isDevWebSessionAllowed() &&
+      session !== null &&
+      isOperatorMarketingPagesTeamAccessPath(pathname) &&
+      allowsOperatorMarketingPagesTeamRole(session.role, "GET");
+
+    if (!ticketsTeamAccess && !toursTeamAccess && !engagementTeamAccess && !marketingPagesTeamAccess) {
+      const gate = requireOperatorSessionWeb({ session, pathname, host });
+      if (!gate.allowed) {
+        redirect(gate.redirectTo);
+      }
     }
   } else if (session === null) {
     const returnUrl = encodeURIComponent(pathname);

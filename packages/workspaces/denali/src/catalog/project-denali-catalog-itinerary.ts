@@ -131,10 +131,14 @@ function mergePhotoUrlById(
   return merged;
 }
 
-/** Collect segment `destinationId` values from canonical itinerary (for host catalog enrichment). */
+/** Collect tour + segment `destinationId` values for host catalog enrichment. */
 export function collectItinerarySegmentDestinationIds(data: Record<string, unknown>): readonly string[] {
   const days = parseDenaliItineraryDays(readCanonicalPath(data, "program.itinerary"));
   const ids = new Set<string>();
+  const rootDestinationId = readString(data.destinationId);
+  if (rootDestinationId != null) {
+    ids.add(rootDestinationId);
+  }
   for (const day of days) {
     for (const segment of day.segments) {
       const destinationId = segment.destinationId?.trim();

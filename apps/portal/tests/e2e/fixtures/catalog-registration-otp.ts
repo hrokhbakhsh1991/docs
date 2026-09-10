@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+import { pickIntakeBirthDate } from "./intake-birth-date-picker";
+
 export const CATALOG_DEV_OTP = "1234";
 
 /** Next dev HMR can invalidate response bodies before .text() — status is enough for smoke. */
@@ -171,6 +173,14 @@ export async function completeCatalogRegistrationIntake(
      * Defaults to `1`.
      */
     readonly guestCount?: number;
+    /** Optional per-card overrides for duplicate/partial-result probes. */
+    readonly guestOverrides?: (index: number) => {
+      readonly fullName?: string;
+      readonly phone?: string;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    };
     /**
      * Optional UX test hook for `registrantTarget="other"`.
      * If set, we will add up to `guestCount` then remove down to this number before filling fields.
@@ -207,16 +217,8 @@ export async function completeCatalogRegistrationIntake(
     if (fieldId === "birthDate") {
       const picker = root.locator('[data-intake-field="birthDate"]').first();
       if (await picker.isVisible({ timeout: 1_000 }).catch(() => false)) {
-        const tagName = await picker.evaluate((el) => el.tagName);
-        if (tagName === "BUTTON") {
-          await picker.click();
-          const day = page
-            .locator(`[data-testid="localized-calendar"] button[aria-label="${value}"]`)
-            .first();
-          await day.waitFor({ state: "visible", timeout: 10_000 });
-          await day.click();
-          return;
-        }
+        await pickIntakeBirthDate(page, root, value);
+        return;
       }
     }
     const inputEl = root
@@ -305,9 +307,12 @@ export async function completeCatalogRegistrationIntake(
     const remainingCount = await guestCards.count();
     for (let i = 0; i < remainingCount; i++) {
       const card = guestCards.nth(i);
-      await fillIntakeFieldInRootIfVisible(card, "fullName", input.fullName);
-      if (input.phone) {
-        await fillIntakeFieldInRootIfVisible(card, "phone", input.phone);
+      const guestOverride = input.guestOverrides?.(i) ?? {};
+      const guestFullName = guestOverride.fullName ?? input.fullName;
+      const guestPhone = guestOverride.phone ?? input.phone;
+      await fillIntakeFieldInRootIfVisible(card, "fullName", guestFullName);
+      if (guestPhone) {
+        await fillIntakeFieldInRootIfVisible(card, "phone", guestPhone);
       }
       await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1234567890");
       await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");

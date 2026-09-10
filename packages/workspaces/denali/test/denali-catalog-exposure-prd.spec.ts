@@ -48,6 +48,31 @@ describe("applyDenaliCatalogCardExposure PR-D", () => {
     assert.equal(itinerary?.itemListElement?.length, 1);
   });
 
+  it("DN-EXP-PRD-03 approximate return time redaction clears PDP logistics field", () => {
+    const card = toDenaliCatalogCard({
+      id: "tour-1",
+      canonical: {
+        schemaVersion: 1,
+        data: {
+          title: "Alpine trek",
+          publishStatus: "active",
+          startDateTime: "2026-07-01T08:00:00.000Z",
+          capacityMax: 12,
+          approximateReturnTime: "18:30",
+          pricing: { basePricePerPerson: 1000 },
+        },
+      },
+    });
+
+    assert.equal(card.approximateReturnTime, "18:30");
+
+    const redacted = applyDenaliCatalogCardExposure(
+      card,
+      new Set(["title", "denali.datetime"]),
+    );
+    assert.equal(redacted.approximateReturnTime, null);
+  });
+
   it("DN-EXP-PRD-02 photo exposure redaction clears gallery fields and JSON-LD image", () => {
     const card = toDenaliCatalogCard({
       id: "tour-1",

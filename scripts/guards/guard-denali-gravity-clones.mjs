@@ -58,10 +58,11 @@ function overlap(left, right) {
   return [...left].filter((name) => right.has(name)).sort();
 }
 
-function collectSourceFiles(workspaceId) {
+function collectAdapterFiles(workspaceId) {
   const files = [];
-  const root = path.join(WORKSPACES_ROOT, workspaceId, "src");
-  walkFiles(root, files);
+  for (const dirName of SCAN_DIRS) {
+    walkFiles(path.join(WORKSPACES_ROOT, workspaceId, "src", dirName), files);
+  }
   return files;
 }
 
@@ -78,7 +79,7 @@ function walkFiles(dir, files) {
 }
 
 function countG1AdapterModules(workspaceId) {
-  return collectSourceFiles(workspaceId).filter(
+  return collectAdapterFiles(workspaceId).filter(
     (file) => !ADAPTER_BUDGET_EXCLUDED_STEMS.has(path.basename(file)),
   ).length;
 }

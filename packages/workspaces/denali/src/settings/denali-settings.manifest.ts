@@ -18,6 +18,13 @@ const DENALI_SETTINGS_MODULES = Object.freeze([
     nav: Object.freeze({ group: "workspace", labelKey: "settings.workspace_branding" }),
   }),
   Object.freeze({
+    id: "marketing_pages",
+    kind: "readonly_explorer",
+    route: "settings/marketing-pages",
+    ability: "operator.settings.marketing_pages",
+    nav: Object.freeze({ group: "workspace", labelKey: "settings.marketing_pages" }),
+  }),
+  Object.freeze({
     id: "integrations",
     kind: "readonly_explorer",
     route: "settings/integrations",

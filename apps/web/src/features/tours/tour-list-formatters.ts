@@ -48,6 +48,11 @@ export function formatTourDeparture(iso: string | null, locale: AppLocale = "en"
   return label.length > 0 ? label : null;
 }
 
+export function formatTourUpdated(iso: string, locale: AppLocale = "en"): string {
+  const label = formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), locale);
+  return label.length > 0 ? label : iso;
+}
+
 export function formatTourSeats(
   tour: Pick<TourListProjection, "acceptedCount" | "totalCapacity">,
   labels?: TourSeatsFormatLabels

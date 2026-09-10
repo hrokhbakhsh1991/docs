@@ -2,7 +2,6 @@
  * DP-2 — tour operational roster service (composed projection).
  */
 import {
-  composeTourOperationalRosterRow,
   filterOperationalRosterRows,
   type OperationalRosterListQuery,
   type OperationalRosterListResponse,
@@ -13,6 +12,7 @@ import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service.ts"
 import { listBookings } from "../bookings/create-bookings-service.ts";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import { getPaymentHoldRepository } from "../finance/payment-hold.repository.ts";
+import { enrichOperationalRosterRowsBudgetSafe } from "./operational-roster-enrichment.ts";
 
 function toFinanceAuth(auth: BookingActorContext): FinanceActorContext {
   return {

@@ -1,0 +1,4 @@
+/** WALLET-A11Y — scoped contrast for muted helper copy on Denali mist page background. */
+[data-wallet-ops] .text-muted-foreground {
+  color: var(--color-text-secondary, #4a5244);
+}

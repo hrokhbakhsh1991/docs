@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useEffect, useMemo, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -228,7 +228,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const canManage = isAdminOrOwnerRole(session.role);
   const [scheduleGenerateEnabled, setScheduleGenerateEnabled] = useState(false);
   const canGenerateSchedule = canManage && scheduleGenerateEnabled;
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const registrationFilter = searchParams.get("registrationId");
   const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly PaymentScheduleItem[]>([]);

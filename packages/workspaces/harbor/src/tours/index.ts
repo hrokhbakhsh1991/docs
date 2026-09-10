@@ -1,8 +1,8 @@
-export { mergeHarborCanonicalPatchData } from "./tour-write-hooks";
+export { mergeHarborCanonicalPatchData } from "./harbor-tour-write-hooks";
 export {
   harborTourPatchRequiresOwner,
   HARBOR_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
-} from "./tour-write-hooks";
+} from "./harbor-tour-write-hooks";
 export {
   detectHarborTourPublishTransition,
   readHarborTourPublishStatusFromCanonical,

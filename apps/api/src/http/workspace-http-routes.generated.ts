@@ -13,13 +13,34 @@ import type { WorkspaceHttpMethod } from "./workspace-http-method";
 import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/host/http";
 import { CERT_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-cert-club/http";
 import { CERT_EVENTS_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-cert-events/http";
+import { ENGAGEMENT_HTTP_ROUTE_MANIFEST } from "@app-tour/engagement-http";
 import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/finance-http";
 import { GUEST_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-guest-club/host/http";
 import { HARBOR_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-harbor/host/http";
 import { PROFILE_CERT_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-profile-cert/http";
 import { URBAN_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-urban/host/http";
+import { WALLET_HTTP_ROUTE_MANIFEST } from "@app-tour/wallet-http";
 
 export type WorkspaceHttpHandlerKey =
+  | "handleEngagementMemberBadges"
+  | "handleEngagementMemberPoints"
+  | "handleEngagementMemberSummary"
+  | "handleEngagementOperatorAdjust"
+  | "handleEngagementOperatorAuditLog"
+  | "handleEngagementOperatorAwardRulesCreate"
+  | "handleEngagementOperatorAwardRulesList"
+  | "handleEngagementOperatorAwardRulesUpdate"
+  | "handleEngagementOperatorBadgesCreate"
+  | "handleEngagementOperatorBadgesList"
+  | "handleEngagementOperatorBadgesUpdate"
+  | "handleEngagementOperatorCatalog"
+  | "handleEngagementOperatorLevelsCreate"
+  | "handleEngagementOperatorLevelsList"
+  | "handleEngagementOperatorLevelsUpdate"
+  | "handleEngagementOperatorMemberLookup"
+  | "handleEngagementOperatorOverview"
+  | "handleEngagementOperatorPolicy"
+  | "handleEngagementOperatorReverse"
   | "handleFinanceApproveRefund"
   | "handleFinanceCancelPendingManualPayment"
   | "handleFinanceCancelRefund"
@@ -27,6 +48,7 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceCaseEncounter"
   | "handleFinanceCompleteRefund"
   | "handleFinanceCreateManualPayment"
+  | "handleFinanceCreditRefundToWallet"
   | "handleFinanceGenerateSchedule"
   | "handleFinanceGetRefund"
   | "handleFinanceGetRegistrationInvoice"
@@ -81,7 +103,15 @@ export type WorkspaceHttpHandlerKey =
   | "handlePostGuestClubRegistration"
   | "handlePostHarborRegistration"
   | "handlePostProfileCertRegistration"
-  | "handlePostUrbanRegistration";
+  | "handlePostUrbanRegistration"
+  | "handleWalletMemberBalance"
+  | "handleWalletMemberOwnBalance"
+  | "handleWalletMemberOwnTransactions"
+  | "handleWalletMemberTransactions"
+  | "handleWalletOperatorAccounts"
+  | "handleWalletOperatorCredit"
+  | "handleWalletOperatorDebit"
+  | "handleWalletOperatorReversal";
 
 export type WorkspaceHttpStaticRoute = {
   readonly method: WorkspaceHttpMethod;
@@ -158,6 +188,28 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "POST /finance/case/commands/review-receipt": "handleFinanceCaseCommandReviewReceipt"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const DENALI_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /wallet/accounts": "handleWalletOperatorAccounts",
+  "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+  "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /engagement/me/summary": "handleEngagementMemberSummary",
+  "GET /engagement/me/points": "handleEngagementMemberPoints",
+  "GET /engagement/me/badges": "handleEngagementMemberBadges",
+  "GET /engagement/operator/overview": "handleEngagementOperatorOverview",
+  "GET /engagement/operator/policy": "handleEngagementOperatorPolicy",
+  "GET /engagement/operator/badges": "handleEngagementOperatorBadgesList",
+  "POST /engagement/operator/badges": "handleEngagementOperatorBadgesCreate",
+  "GET /engagement/operator/levels": "handleEngagementOperatorLevelsList",
+  "POST /engagement/operator/levels": "handleEngagementOperatorLevelsCreate",
+  "GET /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesList",
+  "POST /engagement/operator/award-rules": "handleEngagementOperatorAwardRulesCreate",
+  "GET /engagement/operator/audit-log": "handleEngagementOperatorAuditLog",
+  "GET /engagement/operator/catalog": "handleEngagementOperatorCatalog"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /guest-club/catalog": "handleGetGuestClubCatalog",
   "POST /guest-club/registrations": "handlePostGuestClubRegistration"
@@ -178,6 +230,12 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "PATCH /urban/settings": "handlePatchUrbanSettings",
   "GET /urban/catalog": "handleGetUrbanCatalog",
   "POST /urban/registrations": "handlePostUrbanRegistration"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /wallet/accounts": "handleWalletOperatorAccounts",
+  "GET /wallet/me/balance": "handleWalletMemberOwnBalance",
+  "GET /wallet/me/transactions": "handleWalletMemberOwnTransactions"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
@@ -201,6 +259,7 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /finance/refunds/:refundId": "handleFinanceGetRefund",
   "POST /finance/refunds/:refundId/approve": "handleFinanceApproveRefund",
   "POST /finance/refunds/:refundId/complete": "handleFinanceCompleteRefund",
+  "POST /finance/refunds/:refundId/credit-to-wallet": "handleFinanceCreditRefundToWallet",
   "POST /finance/refunds/:refundId/reject": "handleFinanceRejectRefund",
   "POST /finance/refunds/:refundId/cancel": "handleFinanceCancelRefund",
   "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
@@ -210,6 +269,23 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule",
   "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem",
   "GET /finance/case/encounters/:registrationId": "handleFinanceCaseEncounter"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const DENALI_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+  "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+  "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+  "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+  "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /engagement/operator/members/:userId": "handleEngagementOperatorMemberLookup",
+  "POST /engagement/operator/members/:userId/adjust": "handleEngagementOperatorAdjust",
+  "POST /engagement/operator/members/:userId/reverse": "handleEngagementOperatorReverse",
+  "PATCH /engagement/operator/badges/:code": "handleEngagementOperatorBadgesUpdate",
+  "PATCH /engagement/operator/levels/:code": "handleEngagementOperatorLevelsUpdate",
+  "PATCH /engagement/operator/award-rules/:ruleId": "handleEngagementOperatorAwardRulesUpdate"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
@@ -228,15 +304,26 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /urban/catalog/:tourId": "handleGetUrbanCatalogTour"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /wallet/accounts/:accountId/balance": "handleWalletMemberBalance",
+  "GET /wallet/accounts/:accountId/transactions": "handleWalletMemberTransactions",
+  "POST /wallet/accounts/:accountId/credit": "handleWalletOperatorCredit",
+  "POST /wallet/accounts/:accountId/debit": "handleWalletOperatorDebit",
+  "POST /wallet/transactions/:transactionId/reverse": "handleWalletOperatorReversal"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] = [
 ...staticRoutesFromManifest(CERT_CLUB_HTTP_ROUTE_MANIFEST, CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, DENALI_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(ENGAGEMENT_HTTP_ROUTE_MANIFEST, DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(GUEST_CLUB_HTTP_ROUTE_MANIFEST, GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(HARBOR_HTTP_ROUTE_MANIFEST, HARBOR_HARBOR_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(PROFILE_CERT_HTTP_ROUTE_MANIFEST, PROFILE_CERT_PROFILE_CERT_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(URBAN_HTTP_ROUTE_MANIFEST, URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ];
 
 export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
@@ -244,8 +331,11 @@ export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
 ...paramRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, DENALI_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(ENGAGEMENT_HTTP_ROUTE_MANIFEST, DENALI_ENGAGEMENT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(GUEST_CLUB_HTTP_ROUTE_MANIFEST, GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(HARBOR_HTTP_ROUTE_MANIFEST, HARBOR_HARBOR_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(PROFILE_CERT_HTTP_ROUTE_MANIFEST, PROFILE_CERT_PROFILE_CERT_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(URBAN_HTTP_ROUTE_MANIFEST, URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(WALLET_HTTP_ROUTE_MANIFEST, WALLET_WS1_WALLET_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ];

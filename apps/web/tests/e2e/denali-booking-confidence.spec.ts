@@ -16,11 +16,12 @@ import {
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import {
-  OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
-  OPERATOR_SMOKE_TENANT_ID,
+  resolveChainSmokePublishedTourId,
+  resolveChainSmokeTenantId,
   seedChainGuestRegistrationViaApi,
   tourOpsApiBase,
 } from "../../test/fixtures/p6-chain-guest-api";
+import { ensureTourHasApprovalCapacity } from "./fixtures/tour-workspace-smoke";
 
 /** Align with packages/workspaces/denali DEFAULT_DENALI_CAPACITY_RULE.maxPartySize */
 const DENALI_MAX_PARTY_SIZE = 20;
@@ -105,6 +106,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
         contact: {
           email: `p3-e02-${stamp}@denali-smoke.local`,
           fullName: `P3 E02 Overflow ${stamp}`,
+          phone: `+1555${String(stamp).slice(-7)}`,
         },
         partySize: DENALI_MAX_PARTY_SIZE + 1,
       },

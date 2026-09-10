@@ -1,0 +1,57 @@
+---
+title: ADR-WALLET-001 — Member Wallet bounded context
+format: markdoc
+doc_role: architecture_sot
+status: accepted
+date: 2026-09-02
+standard_id: WALLET-ADR-001
+extends:
+  - docs/architecture/platform-architecture-v2.md
+  - docs/phase-20/p7/appendices/adr/ADR-002-workspace-finance-capability-registry.md
+  - docs/phase-19/platform-portal-member-entitlements.mdoc
+related:
+  - docs/architecture/wallet-module-phase-0-contract.mdoc
+  - docs/phase-20/p7/appendices/adr/ADR-010-duplicate-wallet-credit-xor.md
+---
+
+# ADR-WALLET-001 — Member Wallet bounded context
+
+## Status
+
+**Accepted** (Phase 0 — architecture preparation only; no Wallet runtime shipped).
+
+## Context
+
+The monorepo already uses the word **wallet** in three unrelated places:
+
+1. **Registration finance ledger accounts** — `bookingWalletId(registrationId)` and `financeWs*BookingWalletId` produce synthetic GL account ids (`booking:{registrationId}`, `wsN:booking:{registrationId}`) for double-entry capture tied to a registration obligation.
+2. **Registration finance outbox ledger events** — durable outbox rows with event types `finance.ledger.*` (e.g. `finance.ledger.capture`, `finance.ledger.double_entry_applied`) record registration payment journals; they are not a member wallet transaction log.
+3. **Invoice read models** — `walletNetMinor` on `RegistrationInvoiceReadModel` is gross paid minus completed refunds for one registration; it is a derived read model, not a stored member balance.
+4. **Member portal module stub** — `member.module.wallet` at `/me/wallet` is a hidden-tier portal module with placeholder UI until explicit `portalModuleGrants` enable it.
+
+A future **Member Wallet** product (stored value, top-ups, withdrawals, member-scoped ledger) must not collide with registration finance semantics or Denali-specific adapters.
+
+## Decision
+
+1. **Separate bounded contexts** — **Member Wallet** and **registration Finance** are distinct domains. Wallet lives in a future `wallet-core` package; registration payments/refunds/schedules remain in `finance-core`. Wallet must not reuse `finance-core` as its domain layer.
+2. **Booking finance ledger accounts are not member wallets** — `bookingWalletId`, `financeWs*BookingWalletId`, and `LEDGER_ACCOUNTS` are synthetic registration-finance account identifiers only.
+3. **Registration finance outbox events are not member wallet transactions** — Outbox event types `finance.ledger.*` belong to registration payment capture and journal posting only; they must not be read as member wallet history or balances.
+4. **Integration via explicit ports/events** — Wallet may credit/debit in response to finance events (e.g. payment captured, refund completed) through host-owned ports and durable outbox handlers. Wallet must not import workspace finance adapters or Denali ledger policy modules.
+5. **No Denali business logic in platform Wallet code** — Platform packages (`wallet-core`, `apps/api` wallet host) resolve behavior through manifest/codegen bindings keyed by `workspaceType` / `pluginId`, mirroring `workspaceFinance` (WAC-001 / P2).
+6. **Per-workspace enablement** — Wallet is optional per workspace via a future manifest block `workspaceWallet` plus theme `enabledModules` (or equivalent) and member portal entitlements. Unsupported or disabled workspaces fail closed at API and UI gates.
+7. **Tenant and workspace scope** — All wallet data and authorization checks are scoped by `tenant_id`; member-facing operations additionally require `workspace_id` and authenticated member identity. Postgres RLS uses `app.current_tenant_id` on every wallet table.
+
+## Consequences
+
+- Phase 0 adds documentation and doc guards only — **no** wallet schema, APIs, or UI.
+- Existing finance identifiers (`bookingWalletId`, `walletNetMinor`) are **not renamed** in Phase 0; the contract doc defines disambiguation for implementers.
+- ADR-010 “booking wallet credit” terminology remains valid for **registration finance** XOR rules; it does not describe member Wallet.
+- Future phases require doc-first updates to this ADR series and `wallet-module-phase-0-contract.mdoc` before touching `packages/platform-core`, `workspace-sdk`, or `apps/api` wallet host code.
+
+## References
+
+- [Wallet module Phase 0 contract](../wallet-module-phase-0-contract.mdoc)
+- [Platform architecture v2](../platform-architecture-v2.md) — P1 manifest authority, P2 no workspace names in platform code
+- [Workspace API capabilities (WAC-001)](../../standards/workspace-api-capabilities.mdoc) — finance module enablement pattern
+- [Portal member entitlements (MPS-ENT-001)](../../phase-19/platform-portal-member-entitlements.mdoc) — `member.module.wallet` grant model
+- [ADR-010 booking-wallet credit XOR](../../phase-20/p7/appendices/adr/ADR-010-duplicate-wallet-credit-xor.md) — registration finance only

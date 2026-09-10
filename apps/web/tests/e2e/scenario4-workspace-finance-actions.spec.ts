@@ -28,6 +28,7 @@ test.describe("scenario-4 workspace finance action surfaces", () => {
   test("finance detail keeps payment actions inside workspace", async ({ page }) => {
     test.setTimeout(240_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = Date.now();
     const booking = await seedChainGuestRegistrationViaApi(page.request, {
@@ -55,7 +56,8 @@ test.describe("scenario-4 workspace finance action surfaces", () => {
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
       timeout: 90_000,
     });
-    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel)).toBeVisible({
+    const detailPanel = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel);
+    await expect(detailPanel).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
@@ -64,7 +66,7 @@ test.describe("scenario-4 workspace finance action surfaces", () => {
     await expect(page.getByTestId("finance-submit-receipt-advanced")).toBeAttached({
       timeout: 30_000,
     });
-    await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.receiptForm)).toBeHidden({
+    await expect(detailPanel.getByTestId(FINANCE_PAYMENTS_TEST_IDS.receiptForm)).toBeHidden({
       timeout: 30_000,
     });
   });

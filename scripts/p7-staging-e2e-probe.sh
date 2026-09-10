@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -51,7 +51,7 @@ tunnel_health_code() {
 
 staging_tunnels_responsive() {
   [[ "$(tunnel_health_code "${API_PORT}")" == "200" ]] &&
-    [[ "$(tunnel_health_code "${PTL_PORT}" "operator.portal.localhost")" == "200" ]]
+    [[ "$(tunnel_health_code "${PTL_PORT}" "portal.operator.localhost")" == "200" ]]
 }
 
 cleanup() {
@@ -92,9 +92,9 @@ export VPS_IP="127.0.0.1"
 export PW_EXTERNAL_SERVERS=1
 export PW_NO_REUSE_SERVER=1
 export TOUR_OPS_API_URL="http://127.0.0.1:${API_PORT}"
-export PLAYWRIGHT_BASE_URL="http://operator.admin.localhost:${WEB_PORT}"
+export PLAYWRIGHT_BASE_URL="http://admin.operator.localhost:${WEB_PORT}"
 export SMOKE_MARKETING_BASE_URL="http://operator.localhost:${MKT_PORT}"
-export SMOKE_PORTAL_BASE_URL="http://operator.portal.localhost:${PTL_PORT}"
+export SMOKE_PORTAL_BASE_URL="http://portal.operator.localhost:${PTL_PORT}"
 export OPERATOR_OWNER_MOBILE="${OPERATOR_OWNER_MOBILE:-09174070937}"
 export OPERATOR_DEV_OTP="${OPERATOR_DEV_OTP:-1234}"
 
@@ -140,20 +140,14 @@ do
 done
 grep -q OPERATOR_SMOKE_PENDING_BOOKING_SEED_OK /tmp/p7-e2e-seed-post-restart.log
 
-MKT_ENV="\${ENV_DIR}/marketing.env"
-PORTAL_BASE="http://operator.portal.localhost:${PTL_PORT}"
-if grep -q '^PORTAL_PUBLIC_BASE_URL=' "\$MKT_ENV"; then
-  sed -i "s|^PORTAL_PUBLIC_BASE_URL=.*|PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}|" "\$MKT_ENV"
-else
-  echo "PORTAL_PUBLIC_BASE_URL=\${PORTAL_BASE}" >> "\$MKT_ENV"
-fi
+ENV_DIR="\${ENV_DIR}" bash "\${DEPLOY_PATH}/scripts/vps-deploy/sync-staging-profile-b-public-urls.sh"
 systemctl restart app-tour-staging-marketing app-tour-staging-portal
 sleep 2
 systemctl is-active app-tour-staging-marketing app-tour-staging-portal
 EOF
 
 echo "== tunnel sanity (portal + api /health via tunnel) =="
-portal_health="$(tunnel_health_code "${PTL_PORT}" "operator.portal.localhost")"
+portal_health="$(tunnel_health_code "${PTL_PORT}" "portal.operator.localhost")"
 api_health="$(tunnel_health_code "${API_PORT}")"
 [[ "${portal_health}" == "200" ]] || fail "portal /health via tunnel expected 200 got ${portal_health}"
 [[ "${api_health}" == "200" ]] || fail "api /health via tunnel expected 200 got ${api_health}"
@@ -203,7 +197,7 @@ systemctl is-active app-tour-staging-web
 code=\$(curl -sf -o /dev/null -w '%{http_code}' "http://127.0.0.1:${WEB_PORT}/health" 2>/dev/null || echo 000)
 [[ "\$code" == "200" ]] || { echo "web /health on :${WEB_PORT} expected 200 got \$code"; exit 1; }
 EOF
-web_health="$(tunnel_health_code "${WEB_PORT}" "operator.admin.localhost")"
+web_health="$(tunnel_health_code "${WEB_PORT}" "admin.operator.localhost")"
 [[ "${web_health}" == "200" ]] || fail "web /health via tunnel expected 200 got ${web_health}"
 pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-VS-01"
 pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-ADM-02"

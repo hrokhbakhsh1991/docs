@@ -185,9 +185,8 @@ async function main(): Promise<void> {
   console.log("OPERATOR_SMOKE_PENDING_BOOKING_SEED_OK", bookingId);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error: unknown) => {
-    console.error(error);
-    process.exit(1);
-  });
-}
+// Artifact bundle (esbuild CJS) and direct tsx both invoke main unconditionally.
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});

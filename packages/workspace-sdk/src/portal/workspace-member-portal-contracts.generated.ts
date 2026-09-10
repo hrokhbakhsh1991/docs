@@ -106,6 +106,22 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
           labelKey: "wallet",
         }),
       }),
+      Object.freeze({
+        id: "tickets",
+        routePath: "/me/tickets",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "tickets",
+        }),
+      }),
+      Object.freeze({
+        id: "engagement",
+        routePath: "/me/engagement",
+        nav: Object.freeze({
+          tier: "secondary",
+          labelKey: "engagement",
+        }),
+      }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "finance-ws2": Object.freeze({ availability: "off" as const }),
@@ -159,6 +175,37 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
         nav: Object.freeze({
           tier: "user_menu",
           labelKey: "profile",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "wallet-ws1": Object.freeze({
+    availability: "minimal",
+    includePlatformHome: true,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+      Object.freeze({
+        id: "wallet",
+        routePath: "/me/wallet",
+        nav: Object.freeze({
+          tier: "hidden",
+          labelKey: "wallet",
         }),
       }),
     ] as const satisfies readonly MemberModuleManifest[]),

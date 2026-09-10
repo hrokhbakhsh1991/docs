@@ -88,7 +88,7 @@ readIngressHost(req)
 | `PUBLIC_TENANT_FALLBACK_LABEL` | Workspace label when host is bare IP/loopback (e.g. `operator`) |
 | `PUBLIC_TENANT_FALLBACK_HOSTS` | Optional CSV allowlist; when unset, any bare IPv4/127.0.0.1/localhost qualifies |
 
-Profile B staging sets both on VPS so `curl -H "x-forwarded-host: 89.45.89.206:23001" …/tenant-context` returns the same `tenantId` as `operator.localhost` — **no web-only hardcode**.
+Profile B staging sets both on VPS so `curl -H "x-forwarded-host: 89.42.210.252:23001" …/tenant-context` returns the same `tenantId` as `operator.localhost` — **no web-only hardcode**.
 
 #### P8-0-N-002 — marketing fail-closed (G-ING-02)
 

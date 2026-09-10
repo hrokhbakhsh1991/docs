@@ -3,13 +3,13 @@
 # Simulates mid-wizard save + reload: PATCH step 3 envelope, GET round-trip twice.
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
 WEB="http://127.0.0.1:${WEB_PORT}"
 PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-09174070937}}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
-ADMIN_HOST="${STAGING_ADMIN_HOST:-denali.admin.localhost}"
+ADMIN_HOST="${STAGING_ADMIN_HOST:-admin.denali.localhost}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 
@@ -36,7 +36,7 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" "\${HOST_HDR[@]}"
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-COOKIE=( -H "Cookie: session=\${TOKEN}" )
+COOKIE=( -H "Cookie: atour_op_session=\${TOKEN}" )
 
 SESSION_ID="p7-n007-\$(date +%s)"
 TITLE="P7-N007-\${SESSION_ID}"

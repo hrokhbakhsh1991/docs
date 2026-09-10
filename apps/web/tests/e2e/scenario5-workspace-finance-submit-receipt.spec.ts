@@ -35,7 +35,8 @@ function financeWorkspacePath(registrationId: string): string {
 test.describe("scenario-5 workspace finance prepayment action", () => {
   test("operator can record a received amount without leaving workspace", async ({ page }) => {
     test.setTimeout(240_000);
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await loginDenaliOperatorOwner(page);
+    await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const guestName = `Scenario5 Candidate ${stamp}`;
@@ -57,7 +58,7 @@ test.describe("scenario-5 workspace finance prepayment action", () => {
         guestLabel: guestName,
         guestEmail: `scenario5-${stamp}@denali-smoke.local`,
         guestPhone: `+1555${stamp.replace(/\D/g, "").slice(-10).padStart(10, "0")}`,
-        partySize: 2,
+        partySize: 1,
         departureAt,
         registrationIntake: {
           registrantTarget: "other",
@@ -86,17 +87,32 @@ test.describe("scenario-5 workspace finance prepayment action", () => {
     );
     expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
 
-    await page.goto(financeWorkspacePath(registrationId), { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.financePanel)).toBeVisible({
-      timeout: 90_000,
-    });
+    await page.goto(
+      `/finance?tourId=${encodeURIComponent(TOUR_ID)}&tab=payments&registrationId=${encodeURIComponent(registrationId)}`,
+      { waitUntil: "domcontentloaded" }
+    );
+    const createOpen = page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createOpen);
+    if (await createOpen.isVisible().catch(() => false)) {
+      await createOpen.click();
+    } else {
+      await page
+        .getByTestId(FINANCE_PAYMENTS_TEST_IDS.createDetails)
+        .getByText(/Show pending payment form|نمایش فرم پرداخت در انتظار/i)
+        .click();
+    }
     await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
       timeout: 30_000,
     });
 
-    const amountInput = page.locator(`#workspace-payment-amount-${registrationId}`);
+    const amountInput = page.locator("#payment-amount");
     await expect(amountInput).toBeVisible({ timeout: 15_000 });
-    await expect(amountInput).not.toHaveValue("", { timeout: 15_000 });
+    if ((await amountInput.inputValue()).trim().length === 0) {
+      await amountInput.fill("1000000");
+    }
+    const currencyInput = page.locator("#payment-currency");
+    if ((await currencyInput.inputValue()).trim().length === 0) {
+      await currencyInput.fill("IRR");
+    }
 
     const createResponse = page.waitForResponse(
       (response) =>

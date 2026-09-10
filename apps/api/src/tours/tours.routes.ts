@@ -13,7 +13,7 @@ import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel"
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import {
   assertTourPublishFieldOwner,
-  operatorMemberTourPatchForbidden,
+  operatorTourPatchForbiddenForRole,
   tourPatchTouchesProtectedPublishFields,
   tourPublishFieldOwnerSurface,
 } from "./workspace-tour-write-dispatch";
@@ -101,7 +101,7 @@ export async function handlePatchTour(
     const body = parseUpdateTourBody(parsedBody);
     const auth = await resolveTenantContextFromRequest(req);
     const workspaceType = await resolveRouteWorkspaceType(deps, auth.tenantId);
-    if (auth.role === "member" && operatorMemberTourPatchForbidden(workspaceType)) {
+    if (operatorTourPatchForbiddenForRole(workspaceType, auth.role)) {
       sendHttpError(res, 403, { error: "forbidden", code: "OPERATOR_TOUR_WRITE_FORBIDDEN" });
       return;
     }

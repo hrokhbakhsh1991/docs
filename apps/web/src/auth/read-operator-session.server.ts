@@ -6,7 +6,7 @@ import { validateSessionToken } from "@app-tour/session-client";
 import { resolveBootstrapPluginIdForTenant } from "@/tenant/tenant-kernel.shared";
 
 function normalizeRole(role: string | undefined): OperatorSessionContext["role"] | null {
-  if (role === "owner" || role === "admin" || role === "member") {
+  if (role === "owner" || role === "admin" || role === "member" || role === "viewer") {
     return role;
   }
   return null;

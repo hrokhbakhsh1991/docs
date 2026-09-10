@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { after, before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
-import { resolveTourCardActionHierarchy } from "../app/(app)/tours/tour-card";
+import { resolveTourCardActionHierarchy } from "../app/(app)/tours/tour-list-row-actions";
 import { ensureTourListCategorySurface } from "../src/features/tours/tour-list-category-registry";
 import {
   DEFAULT_TOUR_LIST_QUERY,
@@ -135,12 +135,12 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   });
 
   it("WEB-TL-ACTIONS-03 keeps edit and workspace routes stable", () => {
-    const card = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+    const actions = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-list-row-actions.tsx"),
       "utf8"
     );
-    assert.match(card, /href=\{`\/tours\/\$\{tour\.id\}\/edit`\}/);
-    assert.match(card, /href=\{`\/tours\/\$\{tour\.id\}\/workspace`\}/);
+    assert.match(actions, /href=\{`\/tours\/\$\{tour\.id\}\/edit`\}/);
+    assert.match(actions, /href=\{`\/tours\/\$\{tour\.id\}\/workspace`\}/);
   });
 
   it("WEB-TL-ACTIONS-04 action copy removes ambiguous view label", async () => {
@@ -153,15 +153,15 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   });
 
   it("WEB-TL-ACTIONS-05 duplicate actions live behind secondary menu", () => {
-    const card = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+    const actions = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-list-row-actions.tsx"),
       "utf8"
     );
     const duplicateActions = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-duplicate-actions.tsx"),
       "utf8"
     );
-    assert.match(card, /<TourDuplicateActions tourId=\{tour\.id\}/);
+    assert.match(actions, /<TourDuplicateActions tourId=\{tour\.id\}/);
     assert.match(duplicateActions, /DropdownMenuTrigger/);
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.secondaryActions/);
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.duplicate/);
@@ -183,14 +183,22 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.doesNotMatch(card.duplicate, /ویزارد/);
   });
 
-  it("WEB-TL-FINAL-01 card leads with title before supporting badges", () => {
-    const card = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-card.tsx"),
+  it("WEB-TL-FINAL-01 directory table leads with title and omits marketing cover", () => {
+    const table = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-table.tsx"),
       "utf8"
     );
-    assert.ok(card.indexOf("<CardTitle") < card.indexOf("<TourStatusBadge"));
-    assert.ok(card.indexOf("t(\"departure\")") < card.indexOf("<TourCardCover"));
-    assert.ok(card.indexOf("t(\"capacity\")") < card.indexOf("<TourCardCover"));
+    const pageClient = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(table, /tour\.title/);
+    assert.match(table, /<TourStatusBadge/);
+    assert.doesNotMatch(table, /TourListCoverImage/);
+    assert.doesNotMatch(table, /cardCover/);
+    assert.doesNotMatch(pageClient, /TourCard/);
+    assert.match(pageClient, /ToursDirectoryTable/);
+    assert.match(pageClient, /ToursDirectoryMobileRow/);
   });
 
   it("WEB-TL-FINAL-02 hides disabled archived filter from launch UI", () => {
@@ -375,7 +383,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(tourListTotalPages(24, 10), 3);
   });
 
-  it("WEB-9.3-L15 tours list skeleton mirrors card and toolbar layout", () => {
+  it("WEB-9.3-L15 tours list skeleton mirrors directory table and mobile rows", () => {
     const skeleton = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-list-skeleton.tsx"),
       "utf8"
@@ -389,9 +397,11 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       "utf8"
     );
     assert.match(skeleton, /OperatorSkeleton size="search"/);
-    assert.match(skeleton, /CardHeader/);
-    assert.match(skeleton, /CardFooter/);
     assert.match(skeleton, /TOURS_LIST_TEST_IDS\.listSkeleton/);
+    assert.match(skeleton, /TOURS_LIST_TEST_IDS\.rowSkeleton/);
+    assert.match(skeleton, /TOURS_LIST_TEST_IDS\.mobileRowSkeleton/);
+    assert.doesNotMatch(skeleton, /aspect-\[16\/9\]/);
+    assert.doesNotMatch(skeleton, /OperatorSkeleton size="hero"/);
     assert.match(pageClient, /isInitialLoad/);
     assert.match(pageClient, /isRefetching/);
     assert.match(pageClient, /aria-busy=\{isRefetching/);
@@ -402,6 +412,45 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.doesNotMatch(pageClient, /\bisDenali\b/);
     assert.match(pageClient, /resolveCatalogListFeatures/);
     assert.match(pageClient, /hasCategoryFilter/);
+  });
+
+  it("WEB-TL-ADMIN-01 exposes operator directory table landmarks", () => {
+    assert.equal(TOURS_LIST_TEST_IDS.tableDesktop, "operator-tours-table-desktop");
+    assert.equal(TOURS_LIST_TEST_IDS.tableMobile, "operator-tours-table-mobile");
+    assert.equal(TOURS_LIST_TEST_IDS.row, "operator-tours-row");
+    assert.equal(TOURS_LIST_TEST_IDS.rowActions, "operator-tours-row-actions");
+    const table = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-table.tsx"),
+      "utf8"
+    );
+    assert.match(table, /<table/);
+    assert.match(table, /data-operator-tours-table/);
+    assert.match(table, /hidden overflow-x-auto rounded-xl border bg-card\/40 lg:block/);
+  });
+
+  it("WEB-TL-ADMIN-02 mobile rows stay compact without cover imagery", () => {
+    const mobile = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-mobile-row.tsx"),
+      "utf8"
+    );
+    assert.match(mobile, /data-operator-surface="list-row"/);
+    assert.doesNotMatch(mobile, /TourListCoverImage/);
+    assert.doesNotMatch(mobile, /img/);
+  });
+
+  it("WEB-TL-ADMIN-03 pagination chevrons support RTL mirroring", () => {
+    const pageClient = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(pageClient, /ChevronLeft className="h-4 w-4 rtl:rotate-180"/);
+    assert.match(pageClient, /ChevronRight className="h-4 w-4 rtl:rotate-180"/);
+  });
+
+  it("WEB-TL-ADMIN-04 formatTourUpdated uses operator datetime display", async () => {
+    const { formatTourUpdated } = await import("../src/features/tours/tour-list-formatters");
+    const label = formatTourUpdated("2026-07-15T12:00:00.000Z", "en");
+    assert.ok(label.includes("2026"));
   });
 
   it("WEB-P11-6-05 tours list shows created notice and strips query param", () => {

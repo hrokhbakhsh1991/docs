@@ -4,6 +4,7 @@ export {
   getWorkspaceMemberPortalRenderer,
   registerWorkspaceMemberPortalRenderers,
 } from "./portal/member-portal-renderer-registry";
+export type { MemberPortalModuleRendererProps } from "./plugin/workspace-plugin-capabilities";
 export {
   assertCanonicalDocument,
   assertCanonicalDocumentRoots,
@@ -117,6 +118,7 @@ export {
   type WorkspaceOperatorShellNavCapability,
   type WorkspaceOperatorShellNavLink,
   type WorkspaceFinanceNavCapability,
+  type WorkspaceWalletNavCapability,
   type WorkspaceFinanceOpsCapability,
   type WorkspaceBookingOpsCapability,
   type WorkspaceWizardCreateCapability,
@@ -154,6 +156,7 @@ export {
   ensureSettingsExposureSurfacesUiReady,
   resolveOperatorShellNavCapability,
   resolveFinanceNavCapability,
+  resolveWalletNavCapability,
   resolveFinanceCaseMeaningCapability,
   resolveFinanceOpsCapability,
   resolveBookingOpsCapability,
@@ -392,6 +395,28 @@ export {
   type WorkspaceEquipmentCapabilities,
 } from "./catalog/workspace-equipment-capabilities.generated";
 export {
+  FORBIDDEN_WALLET_MODULE_DISABLED,
+  WALLET_MODULE_THEME_KEY,
+  WALLET_WORKSPACE_UNSUPPORTED,
+  getWorkspaceWalletCapabilities,
+  isWalletModuleEnabled,
+  listWalletCapableWorkspaceTypes,
+  parseEnabledModulesFromTheme,
+  walletWorkspaceHasCapability,
+  type WalletCapabilityPort,
+  type WalletModuleEnablementBindings,
+  type WalletWorkspaceGateResult,
+  type WorkspaceWalletCapabilities,
+} from "./wallet";
+export {
+  getWorkspaceEngagementCapabilities,
+  type WorkspaceEngagementCapabilities,
+} from "./catalog/workspace-engagement-capabilities.generated";
+export {
+  getWorkspaceMarketingPagesCapabilities,
+  type WorkspaceMarketingPagesCapabilities,
+} from "./catalog/workspace-marketing-pages-capabilities.generated";
+export {
   getWorkspaceTransportCapabilities,
   type WorkspaceTransportCapabilities,
 } from "./catalog/workspace-transport-capabilities.generated";
@@ -606,6 +631,15 @@ export {
   mergePlatformMemberPortalModules,
   memberPortalEntitlementKey,
 } from "./portal/platform-member-portal-modules";
+export {
+  isZeroDecimalWalletCurrency,
+  resolveMemberWalletPresentation,
+  type MemberWalletBalanceView,
+  type MemberWalletHistoryView,
+  type MemberWalletPresentationPolicy,
+  type MemberWalletTransactionView,
+  type MemberWalletTransactionViewKind,
+} from "./portal/member-wallet-portal-contract";
 export {
   GUEST_CROSS_SURFACE_PLATFORM_MOTHER_ONLY_PATHS,
   validateGuestCrossSurfaceNavLinks,

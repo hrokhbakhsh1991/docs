@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ export function FinanceReceiptsPanel({
   const tErrors = useTranslations("finance.errors");
   const router = useRouter();
   const canManage = isAdminOrOwnerRole(session.role);
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const registrationFilter = searchParams.get("registrationId");
   const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly FinancePendingReceipt[]>(initialReceipts?.items ?? []);

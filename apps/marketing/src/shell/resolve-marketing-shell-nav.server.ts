@@ -31,19 +31,23 @@ function isLinkVisible(host: string, link: GuestCrossSurfaceNavLink): boolean {
   return !isMother;
 }
 
-function resolveCrossSurfaceHref(host: string, link: GuestCrossSurfaceNavLink): string {
+function resolveCrossSurfaceHref(
+  host: string,
+  link: GuestCrossSurfaceNavLink,
+  pluginId: string
+): string {
   if (link.surface === "marketing") {
     return link.path ?? "/";
   }
   switch (link.egress) {
     case "member_module":
-      return resolvePortalMemberModuleUrl(host, link.memberModuleId) ?? "/";
+      return resolvePortalMemberModuleUrl(host, link.memberModuleId, pluginId) ?? "/";
     case "marketing_home":
       return "/";
     case "marketing_tours":
       return "/tours";
     default:
-      return resolvePortalMemberModuleUrl(host, link.memberModuleId) ?? "/";
+      return resolvePortalMemberModuleUrl(host, link.memberModuleId, pluginId) ?? "/";
   }
 }
 
@@ -72,7 +76,7 @@ export function resolveMarketingShellNavLinks(
         Object.freeze({
           id: link.id,
           labelKey: link.labelKey,
-          href: resolveMarketingLocalePath(resolveCrossSurfaceHref(host, link), locale),
+          href: resolveMarketingLocalePath(resolveCrossSurfaceHref(host, link, pluginId), locale),
         })
       )
   );

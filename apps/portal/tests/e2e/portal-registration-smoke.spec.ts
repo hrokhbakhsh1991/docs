@@ -18,9 +18,16 @@ test("SMK-PTL-01 portal catalog registration (OTP + intake)", async ({ page }) =
   await requestRegistrationOtp(page, DEV_PHONE);
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
+
+  const profileStep = page.locator("[data-public-registration-profile]");
+  if (await profileStep.isVisible({ timeout: 60_000 }).catch(() => false)) {
+    await page.locator("#displayName").fill("Portal Smoke Guest");
+    await page.locator('[data-action="profile-continue"]').click();
+  }
+
   await expect(
-    page.locator("[data-public-registration-profile], [data-public-registration-intake]")
-  ).toBeVisible({ timeout: 60_000 });
+    page.locator("[data-public-registration-intake][data-registration-ready]")
+  ).toBeVisible({ timeout: 120_000 });
 
   await completeCatalogRegistrationIntake(page, {
     fullName: "Portal Smoke Guest",

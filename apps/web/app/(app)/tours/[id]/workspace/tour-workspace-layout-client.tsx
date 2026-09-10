@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { ArrowLeft, MoreHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 

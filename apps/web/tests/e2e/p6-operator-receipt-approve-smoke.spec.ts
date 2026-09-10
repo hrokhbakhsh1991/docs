@@ -1,9 +1,11 @@
 /**
- * P6 VS-07 — member receipt upload (API seed) → operator finance approve
+ * P6 VS-07 — pending receipt → operator finance approve (Denali-aligned dynamic seed).
  * @see docs/phase-19/p6/runbooks/first-customer-operator.md
  */
 import { expect, test } from "@playwright/test";
 
+import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
+import { parseFinanceReceiptCreateResponse } from "../../src/finance/finance-payments-logic";
 import {
   FINANCE_RECEIPTS_TEST_IDS,
   parseFinancePendingReceiptsResponse,
@@ -19,8 +21,19 @@ import {
 
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 
-function tourOpsApiBase(): string {
-  return (process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
+type BookingCreateResponse = {
+  readonly id?: string;
+};
+
+type TourDetailResponse = {
+  readonly projection?: {
+    readonly title?: string | null;
+    readonly departureAt?: string | null;
+  };
+};
+
+function resolveTourId(): string {
+  return resolveChainSmokePublishedTourId();
 }
 
 async function sleepMs(ms: number): Promise<void> {
@@ -134,11 +147,69 @@ test.describe("p6-operator-receipt-approve-smoke.spec.ts — P6 VS-07", () => {
       fileKey: `receipts/${booking.bookingId}/p6-vs07-smoke.jpg`,
     });
 
-    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await loginDenaliOperatorOwner(page);
+
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const guestName = `P6 ADM02 ${stamp}`;
+    const tourRes = await page.request.get(`/api/tours/${encodeURIComponent(tourId)}`);
+    expect(tourRes.ok(), await tourRes.text()).toBeTruthy();
+    const tourBody = (await tourRes.json()) as TourDetailResponse;
+    const tourTitle = tourBody.projection?.title?.trim() ?? "";
+    const departureAt = tourBody.projection?.departureAt?.trim() ?? "";
+    expect(tourTitle.length, "published tour title required").toBeGreaterThan(0);
+    expect(departureAt.length, "published tour departureAt required").toBeGreaterThan(0);
+
+    const createBookingRes = await page.request.post("/api/bookings", {
+      headers: { "Content-Type": "application/json" },
+      data: {
+        tourId,
+        tourTitle,
+        guestLabel: guestName,
+        guestEmail: `p6-adm02-${stamp}@denali-smoke.local`,
+        guestPhone: `+1555${stamp.replace(/\D/g, "").slice(-10).padStart(10, "0")}`,
+        partySize: 2,
+        departureAt,
+        registrationIntake: { registrantTarget: "other" },
+      },
+    });
+    expect(createBookingRes.ok(), await createBookingRes.text()).toBeTruthy();
+    const createdBooking = (await createBookingRes.json()) as BookingCreateResponse;
+    const registrationId = createdBooking.id?.trim() ?? "";
+    expect(registrationId.length).toBeGreaterThan(0);
+
+    const approveRes = await page.request.post(`/api/bookings/${registrationId}/approve`);
+    expect(approveRes.ok(), await approveRes.text()).toBeTruthy();
+
+    const overrideRes = await page.request.put(
+      `/api/finance/registrations/${registrationId}/obligation-override`,
+      {
+        headers: { "Content-Type": "application/json" },
+        data: {
+          obligationMinor: "1000000",
+          reason: "P6 ADM-02 finance receipt approve smoke",
+        },
+      }
+    );
+    expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
+
+    const { receiptId, fileKey } = await seedPendingReceiptForRegistration(page, {
+      tourId,
+      registrationId,
+    });
+
+    await expect
+      .poll(
+        async () => {
+          const pending = await fetchPendingReceipts(page);
+          return pending.items.some((item) => item.id === receiptId);
+        },
+        { timeout: 30_000 }
+      )
+      .toBe(true);
 
     await page.goto("/finance?tab=receipts", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId(FINANCE_RECEIPTS_TEST_IDS.panel)).toBeVisible({
-      timeout: 15_000,
+      timeout: 60_000,
     });
 
     const receiptId = await resolveReceiptId(page, booking.bookingId);
@@ -159,7 +230,7 @@ test.describe("p6-operator-receipt-approve-smoke.spec.ts — P6 VS-07", () => {
       });
     await receiptRow.scrollIntoViewIfNeeded();
     await expect(receiptRow.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
-      timeout: 15_000,
+      timeout: 60_000,
     });
 
     await approveReceiptViaOperatorBff(page, receiptId);

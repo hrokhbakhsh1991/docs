@@ -1,10 +1,20 @@
 ---
 name: ui-ux-pro-max
-description: "ON-DEMAND ONLY. UI/UX style/palette database. Load only if user explicitly asks for visual style, palette, or UX-pattern lookup. Do not auto-load."
+description: >
+  Optional design-intelligence skill for FDA CP1 UI/UX gates. Advisory recommendations
+  on product type, visual style, layout, hierarchy, color, typography, spacing,
+  responsive behavior, interaction patterns, UX anti-patterns, and accessibility.
+  Always subordinate to repository design tokens, Denali rules, product requirements,
+  RTL/LTR, and accessibility. Use for user-visible features per FDA-INTEGRATION.md.
+  Falls back to repository checklist when skill or python3 unavailable.
 ---
 # ui-ux-pro-max
 
+**FDA integration:** [`FDA-INTEGRATION.md`](FDA-INTEGRATION.md) · **Upstream audit:** [`UPSTREAM-AUDIT.md`](UPSTREAM-AUDIT.md)
+
 Comprehensive design guide for web, mobile, and desktop applications. Contains 67 styles, 161 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 22 technology stacks. Searchable database with priority-based recommendations.
+
+> **FDA rule:** Recommendations are **advisory**. Compare against Denali theme, design tokens, primitives, and product IA before implementation. Record usage in `ui-ux-decision.json`.
 
 # Prerequisites
 

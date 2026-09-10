@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 import type { MemberRegistrationItem } from "@/me/fetch-member-registrations.server";
 import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
