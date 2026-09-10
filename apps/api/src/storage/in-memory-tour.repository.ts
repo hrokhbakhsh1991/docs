@@ -3,12 +3,19 @@ import { randomUUID } from "node:crypto";
 import {
   buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
+  buildDenaliBookingScenarioTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTourItinerary,
   buildOperatorSmokeTransportBusTour,
   buildOperatorSmokeTransportSharedCarsTour,
   DENALI_CLUB_DEV_DRAFT_TOUR_ID,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+  DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
   OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
@@ -219,6 +226,52 @@ export class InMemoryTourRepository implements TourStorageRepository {
     if (!this.hasTour(tenantId, OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
       this.indexTour(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
     }
+    const bookingFixtures = [
+      {
+        id: DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+        title: "Denali paid auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+        title: "Denali free manual booking",
+        registrationApproval: "manual" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+        title: "Denali free auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali paid auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali free auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+        title: "Denali paid manual member discount",
+        registrationApproval: "manual" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+    ];
+    for (const fixture of bookingFixtures) {
+      if (!this.hasTour(tenantId, fixture.id)) {
+        this.indexTour(buildDenaliBookingScenarioTour({ tenantId, ...fixture }));
+      }
+    }
   }
 
   /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
@@ -271,6 +324,58 @@ export class InMemoryTourRepository implements TourStorageRepository {
       this.indexTour(
         buildOperatorSmokeTransportSharedCarsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
       );
+    }
+    const bookingFixtures = [
+      {
+        id: DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+        title: "Denali paid auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+        title: "Denali free manual booking",
+        registrationApproval: "manual" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+        title: "Denali free auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali paid auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali free auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+        title: "Denali paid manual member discount",
+        registrationApproval: "manual" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+    ];
+    for (const fixture of bookingFixtures) {
+      if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, fixture.id)) {
+        this.indexTour(
+          buildDenaliBookingScenarioTour({
+            tenantId: OPERATOR_SMOKE_TENANT_ID,
+            catalog: OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
+            ...fixture,
+          })
+        );
+      }
     }
   }
 

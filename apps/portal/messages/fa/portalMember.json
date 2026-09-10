@@ -188,6 +188,7 @@
     "lede": "وضعیت، زمان حرکت و قدم بعدی همین سفر.",
     "statusLabel": "وضعیت ثبت‌نام",
     "departureLabel": "زمان حرکت",
+    "paymentDueLabel": "مهلت پرداخت",
     "statusLine": "وضعیت: {status} · پرداخت: {paymentStatus}",
     "departure": "تاریخ حرکت: {departureAt}",
     "transportLabel": "حمل‌ونقل",

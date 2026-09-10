@@ -7,7 +7,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { bookingPaymentLabelKey } from "../src/features/bookings/booking-payment-display";
+import {
+  bookingPaymentLabelKey,
+  bookingTimelinePaymentLabelKey,
+} from "../src/features/bookings/booking-payment-display";
 import { resolveBookingActionAvailability } from "../src/features/bookings/booking-action-availability-logic";
 import type { BookingListItem } from "../src/features/bookings/bookings-command-center-types";
 
@@ -142,12 +145,21 @@ describe("tour-booking-management-matrix (admin surface)", () => {
           `payment.${paymentStatus}`,
           `${bookingStatus}:${paymentStatus}`
         );
+        assert.equal(
+          bookingTimelinePaymentLabelKey(booking(bookingStatus, paymentStatus)),
+          `paymentValue.${paymentStatus}`,
+          `timeline:${bookingStatus}:${paymentStatus}`
+        );
       }
     }
 
     assert.equal(
       bookingPaymentLabelKey({ paymentStatus: "paid", financialDisplayState: "WAIVED" }),
       "payment.waived"
+    );
+    assert.equal(
+      bookingTimelinePaymentLabelKey({ paymentStatus: "paid", financialDisplayState: "WAIVED" }),
+      "paymentValue.waived"
     );
   });
 

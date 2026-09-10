@@ -1068,19 +1068,23 @@ export class FinanceService {
       throw new Error("BOOKINGS_FORBIDDEN");
     }
 
-    const latestPromise = this.repository.findLatestReceiptForRegistration(
+    // Keep these registration-scoped reads serial. Production adapters may
+    // open multiple tenant-RLS transactions (booking + tour + invoice); fanning
+    // them out can exceed the per-tenant DB budget and reject sibling promises
+    // after the response path has already failed.
+    const latest = await this.repository.findLatestReceiptForRegistration(
       auth.tenantId,
       registrationId
     );
-    const collectionPromise = this.obligation.resolveRegistrationPaymentCollection({
+    const collection = await this.obligation.resolveRegistrationPaymentCollection({
       tenantId: auth.tenantId,
       registrationId,
     });
-    const obligationPromise = this.obligation.resolveRegistrationObligation({
+    const obligation = await this.obligation.resolveRegistrationObligation({
       tenantId: auth.tenantId,
       registrationId,
     });
-    const invoicePromise = this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
+    const invoice = await this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
       .then((invoice) => ({
         remainingMinor: invoice.balanceDueMinor,
         paidMinor: invoice.paidAmountMinor,
@@ -1094,13 +1098,7 @@ export class FinanceService {
         remainingPositive: false,
       }));
 
-    const latest = await latestPromise;
-    const [collection, obligation, invoice, preview] = await Promise.all([
-      collectionPromise,
-      obligationPromise,
-      invoicePromise,
-      this.resolveMemberReceiptPreview(auth.tenantId, latest),
-    ]);
+    const preview = await this.resolveMemberReceiptPreview(auth.tenantId, latest);
     const zeroObligation =
       collection === "free" ||
       (obligation !== null && isZeroObligationMinor(obligation.obligationMinor));
@@ -1585,6 +1583,15 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const normalizedRegistrationId = registrationId.trim();
+    const lifecycle = await this.bookingPayments.getRegistrationLifecycleStatus({
+      tenantId: auth.tenantId,
+      registrationId: normalizedRegistrationId,
+    });
+    if (lifecycle === null) {
+      // An invoice is registration-scoped. Never synthesize a zero invoice for
+      // a missing or foreign-tenant booking; that masks an IDOR boundary.
+      throw new Error("BOOKING_NOT_FOUND");
+    }
     return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
   }
 

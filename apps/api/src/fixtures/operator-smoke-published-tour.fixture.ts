@@ -15,6 +15,17 @@ export const DENALI_CLUB_DEV_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000
 /** Denali club draft — separate PK from operator draft …0211 (global tour id). */
 export const DENALI_CLUB_DEV_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000221" as const;
 
+/** Denali booking-matrix browser fixtures (dev-only, tenant-scoped). */
+export const DENALI_BOOKING_PAID_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000223" as const;
+export const DENALI_BOOKING_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000224" as const;
+export const DENALI_BOOKING_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000225" as const;
+export const DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID =
+  "00000000-0000-4000-8000-000000000226" as const;
+export const DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID =
+  "00000000-0000-4000-8000-000000000227" as const;
+export const DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID =
+  "00000000-0000-4000-8000-000000000228" as const;
+
 export const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211" as const;
 
 /** Participant-requirements smoke — DEN-INTAKE E2E (nationalId + fatherName + birthDate). */
@@ -370,6 +381,49 @@ export function buildDenaliClubDevDraftTour(input: {
     tenantId: input.tenantId,
     rowVersion: 1,
     createdAt: input.createdAt ?? new Date(1).toISOString(),
+    canonical: toCanonicalDocument(data),
+  };
+}
+
+export function buildDenaliBookingScenarioTour(input: {
+  readonly tenantId: string;
+  readonly id:
+    | typeof DENALI_BOOKING_PAID_AUTO_TOUR_ID
+    | typeof DENALI_BOOKING_FREE_MANUAL_TOUR_ID
+    | typeof DENALI_BOOKING_FREE_AUTO_TOUR_ID
+    | typeof DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID
+    | typeof DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID
+    | typeof DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID;
+  readonly title: string;
+  readonly registrationApproval: "manual" | "auto";
+  readonly paymentCollection: "offline" | "free";
+  readonly allowMembershipDiscount?: boolean;
+  readonly catalog?: OperatorSmokePublishedTourCatalogRefs;
+  readonly createdAt?: string;
+}): Tour {
+  const base = buildOperatorSmokePublishedTourCanonical(
+    input.catalog ?? DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG
+  );
+  const data = {
+    ...base.data,
+    title: input.title,
+    basics: { title: input.title },
+    details: { summary: `Denali booking matrix fixture: ${input.title}` },
+    // Browser confidence runs are intentionally rerunnable against a long-lived
+    // dev database; E02 owns the separate bounded-capacity fixture.
+    capacityMax: 100,
+    pricing: {
+      ...(base.data.pricing as Record<string, unknown>),
+      registrationApproval: input.registrationApproval,
+      paymentCollection: input.paymentCollection,
+      ...(input.allowMembershipDiscount === true ? { allowMembershipDiscount: true } : {}),
+    },
+  };
+  return {
+    id: input.id,
+    tenantId: input.tenantId,
+    rowVersion: 1,
+    createdAt: input.createdAt ?? new Date().toISOString(),
     canonical: toCanonicalDocument(data),
   };
 }

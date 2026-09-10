@@ -40,6 +40,7 @@ describe("portal-member-registrations", () => {
     assert.match(route, /status: 401/);
     assert.match(route, /bookings\?view=mine&limit=50/);
     assert.match(route, /buildMemberApiHeaders/);
+    assert.match(route, /resolvePortalIngressHost\(req\)/);
     assert.match(route, /UPSTREAM_BOOKINGS_ERROR/);
     assert.doesNotMatch(route, /ok: true, data: \{ items: \[\] \}/);
     assert.doesNotMatch(route, /fetchMemberRegistrations/);
@@ -136,6 +137,11 @@ describe("portal-member-registrations", () => {
     );
     assert.match(detailBff, /registrationApiPath/);
     assert.doesNotMatch(detailBff, /pluginId !== "denali"/);
+    const receiptBff = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/registrations/[id]/receipt/route.ts"),
+      "utf8"
+    );
+    assert.match(receiptBff, /resolvePortalIngressHost\(req\)/);
     const amend = readFileSync(
       join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
       "utf8"

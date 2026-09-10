@@ -8,6 +8,7 @@ import {
   applyOperatorSmokePublishedTourEditReadyPatch,
   buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
+  buildDenaliBookingScenarioTour,
   buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
@@ -16,6 +17,12 @@ import {
   DENALI_CLUB_DEV_DRAFT_TOUR_ID,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+  DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
   isOperatorSmokePublishedTourEditReady,
   OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
 } from "../fixtures/operator-smoke-published-tour.fixture";
@@ -69,6 +76,76 @@ export async function seedDenaliClubDevDraftTour(tenantId: string): Promise<void
     },
     "denali club dev draft tour seeded"
   );
+}
+
+/** Idempotent dev-only Denali booking matrix fixtures for browser cross-surface evidence. */
+export async function seedDenaliBookingScenarioTours(tenantId: string): Promise<void> {
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    throw new Error("DENALI_CLUB_DEV_TOUR_SEED_TENANT_MISMATCH");
+  }
+
+  const repo = new PrismaTourRepository();
+  const fixtures = [
+    {
+      id: DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+      title: "Denali paid auto booking",
+      registrationApproval: "auto" as const,
+      paymentCollection: "offline" as const,
+    },
+    {
+      id: DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+      title: "Denali free manual booking",
+      registrationApproval: "manual" as const,
+      paymentCollection: "free" as const,
+    },
+    {
+      id: DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+      title: "Denali free auto booking",
+      registrationApproval: "auto" as const,
+      paymentCollection: "free" as const,
+    },
+    {
+      id: DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+      title: "Denali paid auto member discount",
+      registrationApproval: "auto" as const,
+      paymentCollection: "offline" as const,
+      allowMembershipDiscount: true,
+    },
+    {
+      id: DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+      title: "Denali free auto member discount",
+      registrationApproval: "auto" as const,
+      paymentCollection: "free" as const,
+      allowMembershipDiscount: true,
+    },
+    {
+      id: DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+      title: "Denali paid manual member discount",
+      registrationApproval: "manual" as const,
+      paymentCollection: "offline" as const,
+      allowMembershipDiscount: true,
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const existing = await repo.getById(fixture.id, tenantId);
+    if (existing === null) {
+      await repo.save(buildDenaliBookingScenarioTour({ tenantId, ...fixture }));
+      continue;
+    }
+
+    // These are deterministic dev-only fixtures. Reconcile old rows as well as
+    // inserting missing rows so a previous projection/context bug cannot leave
+    // the Denali booking matrix permanently unavailable after a restart.
+    await repo.save({
+      ...buildDenaliBookingScenarioTour({
+        tenantId,
+        ...fixture,
+        createdAt: existing.createdAt,
+      }),
+      rowVersion: existing.rowVersion,
+    });
+  }
 }
 
 /**

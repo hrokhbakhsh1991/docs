@@ -20,8 +20,21 @@ export async function applyFreeCollectionAfterBookingApprove(input: {
   }
   const { resolveFinanceServiceForTenant } = await import("../boot/lazy-finance-service");
   const finance = await resolveFinanceServiceForTenant(input.tenantId);
-  await finance.applyFreeCollectionPayment({
+  const result = await finance.applyFreeCollectionPayment({
     tenantId: input.tenantId,
     registrationId: input.bookingId,
+  });
+  if (result.paymentStatus !== "paid") {
+    return;
+  }
+
+  // The booking list intentionally does not infer WAIVED from `paid` alone.
+  // Persist a dedicated collection marker so a free collection is not confused
+  // with a manually-entered obligation override.
+  const { getBookingsRepository } = await import("../bookings/create-bookings-repository");
+  await getBookingsRepository().mergeRegistrationIntake({
+    bookingId: input.bookingId,
+    tenantId: input.tenantId,
+    patch: { freeCollectionApplied: true },
   });
 }

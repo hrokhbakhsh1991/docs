@@ -26,6 +26,9 @@ describe("DP1-H portal payment deadline contract", () => {
     );
     assert.match(page, /data-portal-member-payment-due-at/);
     assert.match(form, /data-portal-member-payment-countdown/);
+    assert.match(form, /window\.setTimeout\(checkRegistrationState/);
+    assert.match(form, /\/api\/me\/registrations\//);
+    assert.match(form, /paymentStatus\?: unknown/);
   });
 
   it("S4/S10b MEM-03: closed state uses data-closed-reason=payment_expired", () => {
@@ -66,5 +69,15 @@ describe("DP1-H portal payment deadline contract", () => {
     );
     assert.match(formatModule, /toLocaleString|Intl\.DateTimeFormat/);
     assert.doesNotMatch(formatModule, /paymentDeadlineHours/);
+  });
+
+  it("S18: an open detail rechecks the registration after its deadline", () => {
+    const form = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx"),
+      "utf8"
+    );
+    assert.match(form, /paymentDueAt/);
+    assert.match(form, /window\.location\.reload\(\)/);
+    assert.match(form, /payload\.data\?\.status === ["']approved["']/);
   });
 });

@@ -3,13 +3,14 @@ import { NextResponse } from "next/server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import type { MemberRegistrationItem } from "@/me/fetch-member-registrations.server";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 type BookingsMineResponse = {
   readonly items?: readonly MemberRegistrationItem[];
 };
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const host = req.headers.get("host") ?? "localhost:3003";
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
 
   if (headers.Authorization === undefined) {

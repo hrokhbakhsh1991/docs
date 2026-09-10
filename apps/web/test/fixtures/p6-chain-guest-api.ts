@@ -37,15 +37,23 @@ function guestReceiptHeaders(userId: string, workspaceId: string): Record<string
 
 export async function seedChainGuestRegistrationViaApi(
   request: APIRequestContext,
-  input: { readonly guestName: string; readonly email: string; readonly mobile?: string }
+  input: {
+    readonly guestName: string;
+    readonly email: string;
+    readonly mobile?: string;
+    readonly tenantId?: string;
+    readonly tourId?: string;
+  }
 ): Promise<ChainGuestRegistration> {
+  const tenantId = input.tenantId ?? OPERATOR_SMOKE_TENANT_ID;
+  const tourId = input.tourId ?? OPERATOR_SMOKE_CHAIN_TOUR_ID;
   const regRes = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
     headers: {
-      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-tenant-id": tenantId,
       "content-type": "application/json",
     },
     data: {
-      tourId: OPERATOR_SMOKE_CHAIN_TOUR_ID,
+      tourId,
       // Use an explicit other-guest identity so reruns are unique by the generated phone/name;
       // the anonymous catalog actor is intentionally stable and must not be the dedupe key.
       registrantTarget: "other",

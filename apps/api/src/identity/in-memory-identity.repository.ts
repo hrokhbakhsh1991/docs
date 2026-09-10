@@ -1025,6 +1025,7 @@ function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId:
     sessionVersion: 1,
     workspaceId: "ws-operator-smoke-member",
     displayName: "Smoke Member",
+    rewards: { permanentDiscountPercentage: 20 },
   });
 }
 

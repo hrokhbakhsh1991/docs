@@ -6,7 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { formatMemberRegistrationDeparture,
+import {
+  formatMemberRegistrationDeparture,
   localizeMemberPaymentStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
@@ -148,10 +149,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {transportKind !== null && transportKindLabel !== null ? (
               <div data-portal-member-detail-kpi data-kpi="transport">
                 <p data-portal-member-detail-kpi-label>{t("transportLabel")}</p>
-                <p
-                  data-portal-member-registration-transport
-                  data-transport-kind={transportKind}
-                >
+                <p data-portal-member-registration-transport data-transport-kind={transportKind}>
                   {transportKind === "personal_car" && personalCarOccupants !== null
                     ? t("transportLineOccupants", {
                         kind: transportKindLabel,
@@ -183,10 +181,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
-        <MemberCancellationPanel
-          registrationId={row.id}
-          registrationStatus={lifecycleStatus}
-        />
+        <MemberCancellationPanel registrationId={row.id} registrationStatus={lifecycleStatus} />
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
@@ -205,6 +200,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
+          paymentDueAt={row.paymentDueAt ?? null}
           cancelSource={row.cancelSource ?? null}
         />
       </main>

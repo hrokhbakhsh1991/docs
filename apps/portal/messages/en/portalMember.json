@@ -188,6 +188,7 @@
     "lede": "Status, departure, and the next action for this trip.",
     "statusLabel": "Registration status",
     "departureLabel": "Departure window",
+    "paymentDueLabel": "Payment deadline",
     "statusLine": "Status: {status} · Payment: {paymentStatus}",
     "departure": "Departure: {departureAt}",
     "transportLabel": "Transport",
