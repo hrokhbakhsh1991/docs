@@ -40,6 +40,8 @@ describe("portal-member-registrations", () => {
     assert.match(route, /status: 401/);
     assert.match(route, /bookings\?view=mine&limit=50/);
     assert.match(route, /buildMemberApiHeaders/);
+    assert.match(route, /UPSTREAM_BOOKINGS_ERROR/);
+    assert.doesNotMatch(route, /ok: true, data: \{ items: \[\] \}/);
     assert.doesNotMatch(route, /fetchMemberRegistrations/);
   });
 

@@ -50,6 +50,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
     },
     pricingPayment: {
       requiresPayment: false,
+      registrationApproval: "manual",
       prepaymentEnabled: false,
       prepaymentPercent: undefined,
       basePricePerPerson: undefined,

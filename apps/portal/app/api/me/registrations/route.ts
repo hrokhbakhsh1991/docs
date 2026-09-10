@@ -22,7 +22,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     cache: "no-store",
   });
   if (!res.ok) {
-    return NextResponse.json({ ok: true, data: { items: [] } }, { status: 200 });
+    return NextResponse.json(
+      { ok: false, code: "UPSTREAM_BOOKINGS_ERROR" },
+      { status: res.status >= 500 ? 502 : res.status }
+    );
   }
 
   const payload = (await res.json()) as BookingsMineResponse;

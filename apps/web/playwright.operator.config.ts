@@ -7,17 +7,16 @@ import { defineConfig, devices } from "@playwright/test";
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 
 const OPERATOR_SMOKE_BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ?? "http://operator.admin.localhost:3000";
+  process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.operator.localhost:3000";
 
-function stagingLaunchOptions(): { args: string[] } | undefined {
+function hostResolverLaunchOptions(): { args: string[] } {
   const vpsIp = process.env.VPS_IP?.trim();
-  if (!useExternalServers || vpsIp === undefined || vpsIp.length === 0) {
-    return undefined;
-  }
+  const target =
+    useExternalServers && vpsIp !== undefined && vpsIp.length > 0 ? vpsIp : "127.0.0.1";
   const rules = [
-    `MAP operator.admin.localhost ${vpsIp}`,
-    `MAP operator.portal.localhost ${vpsIp}`,
-    `MAP operator.localhost ${vpsIp}`,
+    `MAP admin.operator.localhost ${target}`,
+    `MAP operator.portal.localhost ${target}`,
+    `MAP operator.localhost ${target}`,
   ].join(", ");
   return { args: [`--host-resolver-rules=${rules}`] };
 }
@@ -38,6 +37,7 @@ export default defineConfig({
     "p6-operator-receipt-approve-smoke.spec.ts",
     "p6-vertical-slice-browser-chain.spec.ts",
     "denali-workspace-approve-feedback.spec.ts",
+    "scenario3-tabs-transport-finance-filters.spec.ts",
     "scenario4-workspace-finance-actions.spec.ts",
     "scenario5-workspace-finance-submit-receipt.spec.ts",
     "scenario6-workspace-finance-under-review-gating.spec.ts",
@@ -50,7 +50,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
-    ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
+    launchOptions: hostResolverLaunchOptions(),
   },
   ...(useExternalServers
     ? {}

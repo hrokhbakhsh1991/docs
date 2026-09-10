@@ -15,14 +15,9 @@ import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
+import { seedChainGuestRegistrationViaApi } from "../../test/fixtures/p6-chain-guest-api";
 
-const TOUR_ID = process.env.QA_TOUR_ID?.trim() || OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
-
-type OutstandingRow = {
-  readonly registrationId?: string;
-  readonly bookingPaymentStatus?: string;
-};
+const TOUR_ID = process.env.QA_TOUR_ID?.trim() || "00000000-0000-4000-8000-000000000213";
 
 type PaymentRow = {
   readonly id?: string;
@@ -31,18 +26,6 @@ type PaymentRow = {
   readonly registrationId?: string;
   readonly amount?: string;
   readonly currency?: string;
-};
-
-type BookingCreateResponse = {
-  readonly id?: string;
-  readonly status?: string;
-};
-
-type TourDetailResponse = {
-  readonly projection?: {
-    readonly title?: string | null;
-    readonly departureAt?: string | null;
-  };
 };
 
 function financeWorkspacePath(registrationId: string): string {
@@ -81,81 +64,31 @@ async function waitForPendingReceiptForRegistration(
 }
 
 test.describe("scenario-6 workspace finance under-review gating", () => {
-  test("receipt-review CTA is prioritized when proof is already pending", async ({
-    page,
-    request,
-  }) => {
+  test("receipt-review CTA is prioritized when proof is already pending", async ({ page }) => {
     test.setTimeout(240_000);
     console.log("S6: login");
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
 
-    console.log("S6: fetch outstanding candidates");
-    const outstandingRes = await page.request.get(
-      `/api/finance/reports/outstanding-balances?tourId=${encodeURIComponent(TOUR_ID)}&limit=500`
-    );
-    expect(outstandingRes.ok(), await outstandingRes.text()).toBeTruthy();
-    const outstandingBody = (await outstandingRes.json()) as { items?: OutstandingRow[] };
-    const candidate =
-      outstandingBody.items?.find(
-        (row) =>
-          (row.bookingPaymentStatus === "unpaid" || row.bookingPaymentStatus === "partial") &&
-          typeof row.registrationId === "string" &&
-          row.registrationId.trim().length > 0
-      ) ?? null;
-
-    let registrationId = candidate?.registrationId?.trim() ?? "";
-    if (registrationId.length === 0) {
-      const stamp = Date.now();
-      const guestName = `Scenario6 Candidate ${stamp}`;
-      console.log(`S6: create + approve fallback operator booking ${guestName}`);
-      const tourRes = await page.request.get(`/api/tours/${encodeURIComponent(TOUR_ID)}`);
-      expect(tourRes.ok(), await tourRes.text()).toBeTruthy();
-      const tourBody = (await tourRes.json()) as TourDetailResponse;
-      const tourTitle = tourBody.projection?.title?.trim() ?? "";
-      const departureAt = tourBody.projection?.departureAt?.trim() ?? "";
-      expect(tourTitle.length, "scenario6 fallback needs a tour title").toBeGreaterThan(0);
-      expect(departureAt.length, "scenario6 fallback needs a tour departureAt").toBeGreaterThan(0);
-
-      const createBookingRes = await page.request.post("/api/bookings", {
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const booking = await seedChainGuestRegistrationViaApi(page.request, {
+      guestName: `Scenario6 Candidate ${stamp}`,
+      email: `scenario6-${stamp}@denali-smoke.local`,
+      mobile: `+1555${String(Date.now()).slice(-7)}`,
+    });
+    const registrationId = booking.bookingId;
+    const approveRes = await page.request.post(`/api/bookings/${registrationId}/approve`);
+    expect(approveRes.ok(), await approveRes.text()).toBeTruthy();
+    const overrideRes = await page.request.put(
+      `/api/finance/registrations/${registrationId}/obligation-override`,
+      {
+        headers: { "Content-Type": "application/json" },
         data: {
-          tourId: TOUR_ID,
-          tourTitle,
-          guestLabel: guestName,
-          guestEmail: `scenario6-${stamp}@denali-smoke.local`,
-          partySize: 2,
-          departureAt,
+          obligationMinor: "1000000",
+          reason: "Scenario 6 workspace finance follow-up seed",
         },
-      });
-      expect(createBookingRes.ok(), await createBookingRes.text()).toBeTruthy();
-      const createdBooking = (await createBookingRes.json()) as BookingCreateResponse;
-      const seededBookingId = createdBooking.id?.trim() ?? "";
-      expect(
-        seededBookingId.length,
-        "scenario6 fallback should create a booking id"
-      ).toBeGreaterThan(0);
-
-      console.log(`S6: approve fallback guest via BFF ${seededBookingId}`);
-      const approveRes = await page.request.post(`/api/bookings/${seededBookingId}/approve`);
-      expect(approveRes.ok(), await approveRes.text()).toBeTruthy();
-      console.log(`S6: set fallback obligation override ${seededBookingId}`);
-      const overrideRes = await page.request.put(
-        `/api/finance/registrations/${seededBookingId}/obligation-override`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          data: {
-            obligationMinor: "1000000",
-            reason: "Scenario 6 workspace finance follow-up seed",
-          },
-        }
-      );
-      expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
-      registrationId = seededBookingId;
-    }
+      }
+    );
+    expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
 
     console.log(`S6: using registration ${registrationId}`);
     expect(
@@ -230,11 +163,11 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
     });
 
     console.log("S6: assert inline receipt review and hidden payment forms");
-    await expect(
-      page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.inlineReceiptReview)
-    ).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.inlineReceiptReview)).toBeVisible(
+      {
+        timeout: 30_000,
+      }
+    );
     await expect(page.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
       timeout: 30_000,
     });

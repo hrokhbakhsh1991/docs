@@ -41,7 +41,9 @@ export async function resolvePlatformOpsPhoneAccess(
       return { role: normalizePlatformOpsRole(dbUser.role) };
     }
   } catch {
-    // fall through to env whitelist
+    // Database failure is not equivalent to an absent platform-ops user.
+    // Preserve the standard null -> PlatformForbidden auth mapping.
+    return null;
   }
 
   const allowed = readPlatformOpsPhones().map((entry) => normalizeLoginMobile(entry));

@@ -20,6 +20,7 @@ import {
   seedWizardCreate,
   type WizardCreateCacheEntry,
 } from "@/workspace/wizard-create-registry";
+import { seedFinanceNavSupported } from "@/finance/finance-nav-enablement";
 
 const OPERATOR_SIDEBAR_STORAGE_KEY = "operator-sidebar-collapsed";
 
@@ -40,6 +41,7 @@ export type OperatorShellProps = {
   readonly pluginId: string;
   /** Server-ensured wizard-create flags — seeded into warm cache for client sync reads. */
   readonly wizardCreate: WizardCreateCacheEntry;
+  readonly financeNavSupported: boolean;
   readonly navItems: readonly OperatorNavItem[];
   readonly impersonationReadonly?: boolean;
   readonly children: ReactNode;
@@ -53,11 +55,13 @@ export function OperatorShell({
   operatorProfileAvatarUrl = null,
   pluginId,
   wizardCreate,
+  financeNavSupported,
   navItems,
   impersonationReadonly = false,
   children,
 }: OperatorShellProps) {
   seedWizardCreate(pluginId, wizardCreate);
+  seedFinanceNavSupported(pluginId, financeNavSupported);
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);

@@ -11,6 +11,9 @@ import { logger } from "../src/observability/logger";
 import { OPERATOR_SMOKE } from "../test/fixtures/operator-smoke-e2e-tenant.ts";
 
 export const OPERATOR_SMOKE_PENDING_GUEST_LABEL = "Ali Rezaei" as const;
+export const OPERATOR_SMOKE_APPROVAL_BOOKING_ID =
+  "00000000-0000-4000-8000-000000000311" as const;
+export const OPERATOR_SMOKE_APPROVAL_GUEST_LABEL = "Approval Smoke Guest" as const;
 export const OPERATOR_SMOKE_VS07_PAYMENT_ID =
   "00000000-0000-4000-8000-000000000407" as const;
 export const OPERATOR_SMOKE_VS07_RECEIPT_ID =
@@ -35,6 +38,14 @@ export async function seedOperatorSmokePendingBooking(): Promise<string> {
     where: {
       tenantId: OPERATOR_SMOKE.tenantId,
       status: "Pending",
+    },
+  });
+  // Reset the exact manual-booking smoke label so a failed browser run cannot
+  // turn the next run into a duplicate 409.
+  await prisma.operatorRegistration.deleteMany({
+    where: {
+      tenantId: OPERATOR_SMOKE.tenantId,
+      guestLabel: "SMK-P9-07 Guest",
     },
   });
 
@@ -64,6 +75,43 @@ export async function seedOperatorSmokePendingBooking(): Promise<string> {
         guestEmail: "ali@example.com",
         guestPhone: "+15550002001",
         partySize: 2,
+        status: "pending",
+        paymentStatus: "unpaid",
+        departureAt,
+        submittedAt: now,
+        approvedAt: null,
+      },
+    })
+  );
+
+  // Independent approval fixture: tour …213 has spare capacity, so the
+  // approval happy path cannot accidentally depend on the full …210 tour.
+  await withTenantRls(OPERATOR_SMOKE.tenantId, (tx) =>
+    tx.operatorRegistration.upsert({
+      where: { id: OPERATOR_SMOKE_APPROVAL_BOOKING_ID },
+      create: {
+        id: OPERATOR_SMOKE_APPROVAL_BOOKING_ID,
+        tenantId: OPERATOR_SMOKE.tenantId,
+        tourId: "00000000-0000-4000-8000-000000000213",
+        tourTitle: "Ridge Bus Shuttle",
+        guestLabel: OPERATOR_SMOKE_APPROVAL_GUEST_LABEL,
+        guestEmail: "approval-smoke@example.com",
+        guestPhone: "+15550002002",
+        partySize: 1,
+        status: "pending",
+        paymentStatus: "unpaid",
+        departureAt,
+        submittedAt: now,
+        submittedByUserId: OPERATOR_SMOKE.memberUserId,
+        approvedAt: null,
+      },
+      update: {
+        tourId: "00000000-0000-4000-8000-000000000213",
+        tourTitle: "Ridge Bus Shuttle",
+        guestLabel: OPERATOR_SMOKE_APPROVAL_GUEST_LABEL,
+        guestEmail: "approval-smoke@example.com",
+        guestPhone: "+15550002002",
+        partySize: 1,
         status: "pending",
         paymentStatus: "unpaid",
         departureAt,

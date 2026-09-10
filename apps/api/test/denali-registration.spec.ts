@@ -15,6 +15,7 @@ import { createTestToursService, installMemoryStorageDriverForDescribe } from ".
 
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
 const DREG_SESSION_MEMBER_A = "00000000-0000-4000-8000-000000000104";
@@ -64,8 +65,7 @@ async function requestDenali(
   path: string,
   options?: { headers?: Record<string, string>; body?: unknown }
 ): Promise<{ status: number; body: unknown }> {
-  const payload =
-    options?.body === undefined ? undefined : JSON.stringify(options.body);
+  const payload = options?.body === undefined ? undefined : JSON.stringify(options.body);
 
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -114,9 +114,28 @@ describe("denali-registration (M16)", () => {
 
   let listener: ReturnType<typeof createRequestListener>;
 
-  before(() => {
+  before(async () => {
     const repo = new InMemoryTourRepository();
     repo.ensureOperatorSmokeSeedTour();
+    const manualTour = await repo.getById(
+      OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+      OPERATOR_SMOKE_TENANT_ID
+    );
+    assert.ok(manualTour);
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "auto",
+          },
+        },
+      },
+    });
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
     seedDenaliRegistrationSessionMembers();
@@ -138,6 +157,24 @@ describe("denali-registration (M16)", () => {
     const data = (response.body as { data?: { id?: string; status?: string } }).data;
     assert.ok(data?.id);
     assert.equal(data?.status, "pending");
+  });
+
+  it("DREG-20-01 POST /denali/registrations honors canonical auto approval", async () => {
+    const response = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID,
+        contact: { fullName: "HTTP Auto Guest", phone: "+15550001214" },
+        partySize: 1,
+      },
+    });
+    if (response.status !== 201) {
+      console.error("DREG-20-01 body", response.body);
+    }
+    assert.equal(response.status, 201);
+    const data = (response.body as { data?: { id?: string; status?: string } }).data;
+    assert.ok(data?.id);
+    assert.equal(data?.status, "approved");
   });
 
   it("DREG-17-01 POST /denali/registrations accepts M17 session member user id", async () => {
@@ -304,12 +341,9 @@ describe("denali-registration (M16)", () => {
     };
     assert.equal(forTourBody.data?.self?.id, otherId);
 
-    const detail = await requestDenali(
-      listener,
-      "GET",
-      `/denali/registrations/${otherId}`,
-      { headers: sessionHeaders }
-    );
+    const detail = await requestDenali(listener, "GET", `/denali/registrations/${otherId}`, {
+      headers: sessionHeaders,
+    });
     assert.equal(detail.status, 200);
     const detailBody = detail.body as {
       data?: { registrantTarget?: string; guestLabel?: string };
@@ -405,15 +439,10 @@ describe("denali-registration (M16)", () => {
     assert.equal(created.status, 201);
     const createdId = (created.body as { data?: { id?: string } }).data?.id;
     assert.ok(typeof createdId === "string" && createdId.length > 0);
-    const patched = await requestDenali(
-      listener,
-      "PATCH",
-      `/denali/registrations/${createdId}`,
-      {
-        headers: sessionHeaders,
-        body: { transport: { kind: "primary" } },
-      }
-    );
+    const patched = await requestDenali(listener, "PATCH", `/denali/registrations/${createdId}`, {
+      headers: sessionHeaders,
+      body: { transport: { kind: "primary" } },
+    });
     assert.equal(patched.status, 200);
     assert.equal((patched.body as { data?: { id?: string } }).data?.id, createdId);
   });

@@ -99,13 +99,15 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     readonly bookingPayments?: IBookingPaymentPort;
     readonly paymentAmount?: string;
     readonly obligationMinor?: string | null;
+    readonly createPayment?: boolean;
   }): Promise<{
     readonly finance: FinanceService;
     readonly financeRepo: InMemoryFinanceRepository;
     readonly receiptId: string;
     readonly paymentId: string;
   }> {
-    const bookingPayments = input.bookingPayments ?? new BookingPaymentAdapter(getBookingsRepository());
+    const bookingPayments =
+      input.bookingPayments ?? new BookingPaymentAdapter(getBookingsRepository());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
     const obligation =
       input.obligationMinor === undefined
@@ -149,6 +151,10 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       seedBooking(input.registrationId);
     }
 
+    if (input.createPayment === false) {
+      return { finance, financeRepo, receiptId: "", paymentId: "" };
+    }
+
     const payment = await financeRepo.createManualPayment({
       tenantId: OPERATOR_SMOKE.tenantId,
       registrationId: input.registrationId,
@@ -165,6 +171,21 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     });
     return { finance, financeRepo, receiptId: receipt.id, paymentId: payment.id };
   }
+
+  it("invoice preserves obligation currency before the first payment", async () => {
+    const registrationId = randomUUID();
+    const { finance } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      obligationMinor: "1000000",
+      createPayment: false,
+    });
+
+    const invoice = await finance.getRegistrationInvoice(operatorAuth, registrationId);
+
+    assert.equal(invoice.currency, "IRR");
+    assert.equal(invoice.balanceDueMinor, "1000000");
+  });
 
   it("FIN-SVC-01 approve raises booking.paymentStatus to paid and returns bookingPaymentStatus", async () => {
     const registrationId = randomUUID();
@@ -234,8 +255,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
 
     await assert.rejects(
       () => finance.reviewReceipt(operatorAuth, receiptId, { decision: "approve" }),
-      (error: unknown) =>
-        error instanceof Error && error.message === "FINANCE_OBLIGATION_OVERPAY"
+      (error: unknown) => error instanceof Error && error.message === "FINANCE_OBLIGATION_OVERPAY"
     );
   });
 
@@ -315,8 +335,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
           { registrationId, amount: "1500001", currency: "IRR" },
           `idem-over-${registrationId}`
         ),
-      (error: unknown) =>
-        error instanceof Error && error.message === "FINANCE_OBLIGATION_OVERPAY"
+      (error: unknown) => error instanceof Error && error.message === "FINANCE_OBLIGATION_OVERPAY"
     );
   });
 

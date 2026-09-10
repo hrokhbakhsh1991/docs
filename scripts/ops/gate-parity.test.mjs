@@ -8,13 +8,14 @@ const docs = readFileSync("docs/platform/PROD-3-GATE-MODEL.md", "utf8");
 const workflow = readFileSync(".github/workflows/prod-3-release-gate.yml", "utf8");
 
 test("public gate front doors have package, catalog, and documentation parity", () => {
-  const doors = ["verify:fast", "verify:pr", "verify:main", "release:verify", "smoke:staging", "smoke:production"];
+  const doors = ["verify:fast", "verify:pr", "verify:main", "release:verify", "release:verify:pr", "smoke:staging", "smoke:production"];
   for (const door of doors) {
     assert.ok(pkg.scripts[door], `${door}: package script`);
     assert.ok(docs.includes(`\`pnpm run ${door}\``), `${door}: docs`);
   }
   for (const node of catalog.nodes) assert.match(docs, new RegExp(node.tier), `${node.id}: tier docs`);
   assert.match(workflow, /Production readiness L3 release gate/);
+  assert.match(workflow, /run release:verify:pr/);
   assert.match(workflow, /run release:verify/);
 });
 

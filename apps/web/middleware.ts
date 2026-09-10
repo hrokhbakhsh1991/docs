@@ -86,6 +86,13 @@ function readSessionToken(request: NextRequest): string | undefined {
   return request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
 }
 
+function isInviteBootstrapPath(pathname: string): boolean {
+  return (
+    pathname === "/api/auth/membership-ability-context" ||
+    /^\/api\/auth\/invite\/[^/]+\/accept$/.test(pathname)
+  );
+}
+
 function redirectToLogin(
   request: NextRequest,
   clearCookie: boolean,
@@ -263,6 +270,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   const isBffApi = isProtectedBffApiPath(pathname);
+  const isInviteBootstrap = isInviteBootstrapPath(pathname);
 
   if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
     return forwardPathname(request, pathname);
@@ -287,7 +295,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       }
       return redirectToLogin(request, true, "tenant-mismatch");
     }
-    if (validation.role !== "owner") {
+    if (validation.role !== "owner" && !isInviteBootstrap) {
       if (isBffApi) {
         const res = jsonAuthError(
           403,

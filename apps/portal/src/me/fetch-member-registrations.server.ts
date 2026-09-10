@@ -42,24 +42,19 @@ export async function fetchMemberRegistrations(host: string): Promise<MemberRegi
   }
 
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-  let res: Response;
-  try {
-    res = await fetch(`${protocol}://${host}/api/me/registrations`, {
-      method: "GET",
-      headers: { cookie: cookieHeader },
-      cache: "no-store",
-    });
-  } catch {
-    return [];
-  }
+  const res = await fetch(`${protocol}://${host}/api/me/registrations`, {
+    method: "GET",
+    headers: { cookie: cookieHeader },
+    cache: "no-store",
+  });
 
   if (!res.ok) {
-    return [];
+    throw new Error(`MEMBER_REGISTRATIONS_UNAVAILABLE:${res.status}`);
   }
 
   const payload = (await res.json()) as MemberRegistrationsBffResponse;
   if (payload.ok !== true) {
-    return [];
+    throw new Error("MEMBER_REGISTRATIONS_INVALID_RESPONSE");
   }
 
   return [...(payload.data?.items ?? [])];

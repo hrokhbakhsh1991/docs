@@ -4,14 +4,16 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import {
   buildWorkspaceTabReplacePath,
+  resolveWorkspaceSubnavTab,
   workspaceBasePath,
 } from "@/features/tours/tour-workspace-logic";
 import type { TourWorkspaceSubnavTab } from "@/features/tours/tour-workspace-types";
@@ -27,11 +29,11 @@ type TourWorkspaceChromeContextValue = {
   readonly navigateWorkspaceTab:
     | ((tab: TourWorkspaceSubnavTab, options?: NavigateWorkspaceTabOptions) => void)
     | null;
+  /** Immediate client state for keep-alive panels; URL remains the shareable source. */
+  readonly activeTab: TourWorkspaceSubnavTab;
 };
 
-const TourWorkspaceChromeContext = createContext<TourWorkspaceChromeContextValue | null>(
-  null
-);
+const TourWorkspaceChromeContext = createContext<TourWorkspaceChromeContextValue | null>(null);
 
 type TourWorkspaceChromeProviderProps = {
   readonly tourId: string;
@@ -42,11 +44,17 @@ export function TourWorkspaceChromeProvider({
   tourId,
   children,
 }: TourWorkspaceChromeProviderProps) {
-  const router = useRouter();
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const workspacePath = workspaceBasePath(tourId);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const resolvedTab = resolveWorkspaceSubnavTab(pathname, tourId, searchParams.get("tab"));
+  const [activeTab, setActiveTab] = useState<TourWorkspaceSubnavTab>(resolvedTab);
+
+  // Keep deep-links, back/forward, and external URL changes authoritative.
+  useEffect(() => {
+    setActiveTab(resolvedTab);
+  }, [resolvedTab]);
 
   const reloadWorkspaceChrome = useCallback(() => {
     setReloadNonce((n) => n + 1);
@@ -60,14 +68,17 @@ export function TourWorkspaceChromeProvider({
       if (nextPath === currentPath) {
         return;
       }
-      router.replace(nextPath, { scroll: false });
+      setActiveTab(tab);
+      // Workspace tabs are keep-alive client panels. Keep the immediate panel state local while
+      // preserving the URL as a shareable deep-link without triggering an RSC navigation.
+      window.history.replaceState(window.history.state, "", nextPath);
     },
-    [pathname, router, searchParams, workspacePath]
+    [pathname, searchParams, workspacePath]
   );
 
   const value = useMemo(
-    () => ({ reloadNonce, reloadWorkspaceChrome, navigateWorkspaceTab }),
-    [reloadNonce, reloadWorkspaceChrome, navigateWorkspaceTab]
+    () => ({ reloadNonce, reloadWorkspaceChrome, navigateWorkspaceTab, activeTab }),
+    [activeTab, reloadNonce, reloadWorkspaceChrome, navigateWorkspaceTab]
   );
 
   return (
@@ -84,6 +95,7 @@ export function useTourWorkspaceChrome(): TourWorkspaceChromeContextValue {
       reloadNonce: 0,
       reloadWorkspaceChrome: () => undefined,
       navigateWorkspaceTab: null,
+      activeTab: "registrations",
     };
   }
   return ctx;

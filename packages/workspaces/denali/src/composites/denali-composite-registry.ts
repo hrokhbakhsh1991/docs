@@ -59,6 +59,8 @@ function enumOptionsForZodKind(zodKind: DenaliZodFieldKind): readonly string[] |
       return ["organizer_vehicle", "bus", "minibus", "train", "shared_cars", "none"];
     case "paymentMode":
       return ["offline_receipt"];
+    case "registrationApproval":
+      return ["manual", "auto"];
     case "publishStatus":
       return ["draft", "active"];
     default:
@@ -105,6 +107,7 @@ function primitiveKindForZodKind(zodKind: DenaliZodFieldKind): WorkspaceFieldKin
     case "tourType":
     case "transportMode":
     case "paymentMode":
+    case "registrationApproval":
     case "publishStatus":
       return "enum";
     case "isoDateTime":

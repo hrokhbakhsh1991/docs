@@ -57,6 +57,7 @@
   },
   "status": {
     "all": "همه",
+    "actionable": "نیازمند اقدام",
     "pending": "در انتظار",
     "approved": "تأییدشده",
     "waitlisted": "در لیست انتظار",

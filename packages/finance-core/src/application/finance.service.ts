@@ -256,28 +256,30 @@ export class FinanceService {
     }
   }
 
-  private async resolveInvoiceObligationMinor(
+  private async resolveInvoiceObligation(
     tenantId: string,
     registrationId: string
-  ): Promise<string | undefined> {
+  ): Promise<{ readonly obligationMinor: string; readonly currency: string } | undefined> {
     if (this.commercialQuotes !== null) {
       const quote = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
       if (quote !== null) {
-        return quote.payableMinor;
+        return { obligationMinor: quote.payableMinor, currency: quote.currency };
       }
       const preview = await this.commercialQuotes.resolveCommercialQuotePreview(
         tenantId,
         registrationId
       );
       if (preview !== null) {
-        return preview.payableMinor;
+        return { obligationMinor: preview.payableMinor, currency: preview.currency };
       }
     }
     const obligation = await this.obligation.resolveRegistrationObligation({
       tenantId,
       registrationId,
     });
-    return obligation?.obligationMinor;
+    return obligation === null || obligation === undefined
+      ? undefined
+      : { obligationMinor: obligation.obligationMinor, currency: obligation.currency };
   }
 
   private async gate(auth: FinanceActorContext): Promise<FinanceWorkspaceGateResult> {
@@ -1589,16 +1591,17 @@ export class FinanceService {
   private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {
     const facts = await this.repository.getRegistrationInvoiceFacts(tenantId, registrationId);
     const scheduleItems = await this.schedules.getSchedule(tenantId, registrationId);
-    const obligationMinor = await this.resolveInvoiceObligationMinor(tenantId, registrationId);
+    const obligation = await this.resolveInvoiceObligation(tenantId, registrationId);
     return compileRegistrationInvoice({
       registrationId,
-      currency: facts.currency,
+      // Fresh unpaid registrations have no payment row; preserve the obligation currency.
+      currency: facts.currency || obligation?.currency || "",
       prepaymentMinor: facts.prepaymentMinor,
       paidPaymentsMinor: facts.paidPaymentsMinor,
       paymentAmountsMinor: facts.paymentAmountsMinor,
       scheduleAmountsMinor: scheduleItems.map((item) => item.amountMinor),
       refundedCompletedMinor: facts.refundedCompletedMinor,
-      ...(obligationMinor !== undefined ? { obligationMinor } : {}),
+      ...(obligation !== undefined ? { obligationMinor: obligation.obligationMinor } : {}),
     });
   }
 

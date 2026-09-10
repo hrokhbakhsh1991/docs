@@ -132,6 +132,12 @@
     "shared_cars": "Shared cars (carpool)",
     "none": "No organized transport"
   },
+  "enumOptions": {
+    "registrationApproval": {
+      "manual": "Manual admin approval",
+      "auto": "Automatic registration approval"
+    }
+  },
   "paymentModes": {
     "offline_receipt": "Offline receipt / bank transfer"
   },

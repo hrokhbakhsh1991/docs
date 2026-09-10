@@ -9,6 +9,7 @@ import { expect, type Page } from "@playwright/test";
 
 import { resolveOperatorSmokeOwnerMobile } from "../../scripts/operator-smoke-identity.mjs";
 import { SESSION_TOKEN_COOKIE } from "../../src/auth/build-session-cookie";
+import { OPERATOR_WELCOME_ARMED_COOKIE } from "../../src/auth/operator-welcome-cookie";
 
 /** Sync with `OPERATOR_SMOKE.ownerMobile` / staging seed (override via env on VPS). */
 export const OPERATOR_OWNER_MOBILE = resolveOperatorSmokeOwnerMobile();
@@ -17,6 +18,9 @@ export const OPERATOR_MEMBER_MOBILE = "+15550001003";
 export const OPERATOR_MEMBER_DISPLAY_NAME = "Smoke Member";
 export const OPERATOR_ADMIN_DISPLAY_NAME = "Smoke Admin";
 export const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
+export const OPERATOR_SMOKE_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
+export const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
+export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_DEV_OTP = process.env.OPERATOR_DEV_OTP?.trim() || "1234";
 export const OPERATOR_INVITEE_MOBILE = "+15550008803";
 
@@ -66,7 +70,8 @@ async function loginOperatorSessionViaBff(
   page: Page,
   phone: string,
   skipAbilityPreflight = false,
-  forceFresh = false
+  forceFresh = false,
+  inviteToken?: string
 ): Promise<void> {
   const cacheKey = cacheKeyForOperatorSession(page, phone);
   const cachedToken = forceFresh ? undefined : OPERATOR_SESSION_TOKEN_CACHE.get(cacheKey);
@@ -95,6 +100,9 @@ async function loginOperatorSessionViaBff(
       phone,
       otp: OPERATOR_DEV_OTP,
       challenge_id: otpBody.challenge_id,
+      ...(inviteToken !== undefined && inviteToken.length > 0
+        ? { invite_token: inviteToken }
+        : {}),
     },
   });
   const loginText = await loginRes.text();
@@ -104,6 +112,21 @@ async function loginOperatorSessionViaBff(
   ).toBeTruthy();
   const loginBody = JSON.parse(loginText) as { session_token?: string };
   await persistOperatorSessionCookie(page, loginBody);
+  // APIRequestContext does not consistently mirror this non-HttpOnly
+  // login-scoped cookie into the page jar across Playwright versions.
+  // Preserve the BFF contract explicitly so the welcome gate tests a real
+  // post-login state rather than an accidental cached-session state.
+  if (loginRes.headers()["set-cookie"]?.includes(`${OPERATOR_WELCOME_ARMED_COOKIE}=1`)) {
+    await page.context().addCookies([
+      {
+        name: OPERATOR_WELCOME_ARMED_COOKIE,
+        value: "1",
+        domain: readRequestCookieDomain(page),
+        path: "/",
+        sameSite: "Lax",
+      },
+    ]);
+  }
   OPERATOR_SESSION_TOKEN_CACHE.set(cacheKey, loginBody.session_token!);
 
   if (skipAbilityPreflight) {
@@ -111,7 +134,7 @@ async function loginOperatorSessionViaBff(
   }
 
   const abilityRes = await page.request.get("/api/auth/membership-ability-context");
-  expect(abilityRes.ok()).toBeTruthy();
+  expect(abilityRes.ok(), await abilityRes.text()).toBeTruthy();
 }
 
 export async function loginOperatorWithPhone(
@@ -121,9 +144,17 @@ export async function loginOperatorWithPhone(
     readonly inviteToken?: string;
     readonly skipDashboard?: boolean;
     readonly skipAbilityPreflight?: boolean;
+    /** Force the BFF login transition so login-scoped cookies are re-armed. */
+    readonly forceFresh?: boolean;
   }
 ): Promise<void> {
-  await loginOperatorSessionViaBff(page, phone, options?.skipAbilityPreflight === true);
+  await loginOperatorSessionViaBff(
+    page,
+    phone,
+    options?.skipAbilityPreflight === true,
+    options?.forceFresh === true,
+    options?.inviteToken
+  );
 
   if (options?.inviteToken !== undefined && options.inviteToken.length > 0) {
     const acceptRes = await page.request.post(
@@ -131,7 +162,8 @@ export async function loginOperatorWithPhone(
     );
     const acceptText = await acceptRes.text();
     expect(acceptRes.ok(), acceptText).toBeTruthy();
-    await loginOperatorSessionViaBff(page, phone, options?.skipAbilityPreflight === true, true);
+    // Keep the constrained pre-accept session through the transition. A fresh
+    // direct login is intentionally rejected for active non-owner members.
   }
 
   if (options?.skipDashboard === true) {

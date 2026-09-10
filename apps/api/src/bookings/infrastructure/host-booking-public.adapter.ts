@@ -6,10 +6,10 @@
 import type { BookingPublicPort } from "../ports/booking-public.port";
 import { getBookingsRepository } from "../create-bookings-repository";
 import {
-  autoApprovePublicBooking,
+  autoApprovePublicBooking as autoApprovePublicBookingService,
   createPublicGuestBooking,
   findGuestBookingDuplicateMatch,
-  sumApprovedPartySizeByTourIds,
+  sumApprovedPartySizeByTourIds as sumApprovedPartySizeByTourIdsService,
 } from "../create-bookings-service";
 import { readRegistrantTargetFromIntake } from "../read-registrant-target";
 
@@ -52,9 +52,7 @@ function toOwnedDetail(row: {
     departureAt: row.departureAt,
     submittedAt: row.submittedAt,
     partySize: row.partySize,
-    ...(row.registrationIntake !== undefined
-      ? { registrationIntake: row.registrationIntake }
-      : {}),
+    ...(row.registrationIntake !== undefined ? { registrationIntake: row.registrationIntake } : {}),
     ...(row.paymentDueAt !== undefined && row.paymentDueAt !== null
       ? { paymentDueAt: row.paymentDueAt }
       : {}),
@@ -69,9 +67,7 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
         kind: "user",
         value: guestUserId,
       });
-      return duplicate === null
-        ? null
-        : { id: duplicate.id, status: duplicate.status };
+      return duplicate === null ? null : { id: duplicate.id, status: duplicate.status };
     },
     async findDuplicateByTourGuestLabel(tenantId, tourId, guestLabel) {
       const duplicate = await findGuestBookingDuplicateMatch(tenantId, tourId, {
@@ -125,10 +121,10 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
       return { id: created.id, status: created.status };
     },
     async autoApprovePublicBooking(input) {
-      return autoApprovePublicBooking(input);
+      return autoApprovePublicBookingService(input);
     },
     async sumApprovedPartySizeByTourIds(tenantId, tourIds) {
-      return sumApprovedPartySizeByTourIds(tenantId, tourIds);
+      return sumApprovedPartySizeByTourIdsService(tenantId, tourIds);
     },
     async findOwnedBooking(tenantId, bookingId, guestUserId) {
       const row = await getBookingsRepository().getById(bookingId, tenantId);

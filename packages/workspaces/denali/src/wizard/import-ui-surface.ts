@@ -9,5 +9,10 @@ export type UiSurfaceModule = {
 };
 
 export function importUiSurface(specifier: string): Promise<UiSurfaceModule> {
-  return import(/* webpackIgnore: true */ specifier) as Promise<UiSurfaceModule>;
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("UI surface loading requires a browser bundle"));
+  }
+  return import("./browser-ui-surface-loader").then(({ loadUiSurface }) =>
+    loadUiSurface(specifier)
+  );
 }

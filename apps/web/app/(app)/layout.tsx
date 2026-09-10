@@ -8,7 +8,11 @@ import {
   type OperatorSessionContext,
 } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
-import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import { ensureFinanceNavSupported, seedFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import {
+  resolveFinanceNavCapability,
+  resolveWizardCreateCapability,
+} from "@app-tour/workspace-sdk";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { ensureOperatorShellNavLinks } from "@/shell/operator-shell-nav-registry";
@@ -73,8 +77,20 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const operatorProfile = await fetchOperatorProfileServer();
   const locale = (await getLocale()) === "fa" ? "fa" : "en";
   const tWorkspaces = await getTranslations("app.workspaces");
+  const financeNavSupported =
+    resolveFinanceNavCapability(bootstrap.plugin)?.supported === true;
+  seedFinanceNavSupported(bootstrap.session.pluginId, financeNavSupported);
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
-  const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
+  const wizardCreateCapability = resolveWizardCreateCapability(bootstrap.plugin);
+  const wizardCreate =
+    wizardCreateCapability?.extendedChrome === true
+      ? {
+          extendedChrome: true as const,
+          ...(wizardCreateCapability.customBrandFallbackMark
+            ? { customBrandFallbackMark: wizardCreateCapability.customBrandFallbackMark }
+            : {}),
+        }
+      : await ensureWizardCreate(bootstrap.session.pluginId);
   const workspaceNavLinks = await ensureOperatorShellNavLinks(bootstrap.session.pluginId);
   const navItems = resolveOperatorNav({
     session: session!,
@@ -101,6 +117,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       operatorProfileDisplayName={operatorProfile?.displayName ?? null}
       operatorProfileAvatarUrl={operatorProfile?.avatarUrl ?? null}
       pluginId={bootstrap.session.pluginId}
+      financeNavSupported={financeNavSupported}
       wizardCreate={wizardCreate}
       navItems={navItems}
       impersonationReadonly={impersonationReadonly}

@@ -66,6 +66,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p3-e03-${stamp}@denali-smoke.local`,
+      mobile: `+1555${String(stamp).slice(-7)}`,
     });
 
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
@@ -74,7 +75,14 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       timeout: 15_000,
     });
 
-    await page.getByRole("button", { name: new RegExp(guestName, "i") }).click();
+    // The row may also render an inline-approve button with the guest name in its aria-label.
+    // Select the row's primary inspection button explicitly so strict mode cannot click the
+    // action affordance by accident.
+    await page
+      .locator('[data-booking-row] button:not([data-testid="operator-bookings-inline-approve"])')
+      .filter({ hasText: guestName })
+      .first()
+      .click();
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -87,11 +95,63 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
         response.ok()
     );
     await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton).click();
+    const rejectDialog = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectDialog);
+    await expect(rejectDialog).toBeVisible();
+    // The active Denali manifest requires a rejection reason; fill it explicitly so the
+    // confirm action is valid under both required and optional-reason configurations.
+    await rejectDialog.locator("input").fill("P3 E03 test rejection");
+    await rejectDialog.getByRole("button", { name: /reject|رد/i }).click();
     await rejectResponse;
 
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection)).toContainText(
-      /rejected|ردشده|رد شده/i,
-      { timeout: 15_000 }
+    // The default queue excludes terminal rejected rows; assert removal from the active queue.
+    await expect(page.locator("[data-booking-row]").filter({ hasText: guestName })).toHaveCount(0, {
+      timeout: 15_000,
+    });
+  });
+
+  test("P3-E2E-E04 operator waitlists a booking and approves it from the queue", async ({
+    page,
+    request,
+  }) => {
+    const stamp = Date.now();
+    const guestName = `P3 E04 Waitlist ${stamp}`;
+    const booking = await seedChainGuestRegistrationViaApi(request, {
+      guestName,
+      email: `p3-e04-${stamp}@denali-smoke.local`,
+      mobile: `+1555${String(stamp).slice(-7)}`,
+    });
+
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await page.goto("/bookings");
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const row = page
+      .locator('[data-booking-row] button:not([data-testid="operator-bookings-inline-approve"])')
+      .filter({ hasText: guestName })
+      .first();
+    await row.click();
+    const waitlistResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/bookings/${booking.bookingId}/waitlist`) &&
+        response.request().method() === "POST" &&
+        response.ok()
     );
+    await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.waitlistButton).click();
+    const waitlisted = await (await waitlistResponse).json();
+    expect(JSON.stringify(waitlisted)).toMatch(/waitlisted/i);
+
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row.click();
+    const approveResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/bookings/${booking.bookingId}/approve`) &&
+        response.request().method() === "POST" &&
+        response.ok()
+    );
+    await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
+    const approved = await (await approveResponse).json();
+    expect(JSON.stringify(approved)).toMatch(/approved/i);
   });
 });

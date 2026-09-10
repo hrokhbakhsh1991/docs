@@ -151,7 +151,11 @@ export async function seedOperatorSmokePublishedTour(tenantId: string): Promise<
 
   await repo.save(buildOperatorSmokePublishedTour({ tenantId }));
   logger.info(
-    { event: "db.seed.operator_smoke_published_tour", tenantId, tourId: OPERATOR_SMOKE_SEED_TOUR_ID },
+    {
+      event: "db.seed.operator_smoke_published_tour",
+      tenantId,
+      tourId: OPERATOR_SMOKE_SEED_TOUR_ID,
+    },
     "operator smoke published tour seeded"
   );
 }
@@ -217,7 +221,9 @@ export async function seedOperatorSmokeDraftTour(tenantId: string): Promise<void
 }
 
 /** Idempotent — participant-requirements tour for DEN-INTAKE / DEN-PROF staging (…000212). */
-export async function seedOperatorSmokeParticipantRequirementsTour(tenantId: string): Promise<void> {
+export async function seedOperatorSmokeParticipantRequirementsTour(
+  tenantId: string
+): Promise<void> {
   const repo = new PrismaTourRepository();
   const existing = await repo.getById(OPERATOR_SMOKE_PARTICIPANT_TOUR_ID, tenantId);
   if (existing !== null) {
@@ -250,6 +256,13 @@ export async function seedOperatorSmokeTransportTours(tenantId: string): Promise
       },
       "operator smoke transport (bus) tour seeded"
     );
+  } else {
+    const canonical = structuredClone(bus.canonical);
+    const data = canonical.data as Record<string, unknown>;
+    if (data.capacityMax !== 100) {
+      data.capacityMax = 100;
+      await repo.save({ ...bus, rowVersion: bus.rowVersion + 1, canonical });
+    }
   }
 
   const shared = await repo.getById(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID, tenantId);

@@ -10,12 +10,10 @@ import {
 export const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210" as const;
 
 /** Denali club dev host (…000003) — separate PK from operator smoke tour …0210 on …014. */
-export const DENALI_CLUB_DEV_PUBLISHED_TOUR_ID =
-  "00000000-0000-4000-8000-000000000220" as const;
+export const DENALI_CLUB_DEV_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220" as const;
 
 /** Denali club draft — separate PK from operator draft …0211 (global tour id). */
-export const DENALI_CLUB_DEV_DRAFT_TOUR_ID =
-  "00000000-0000-4000-8000-000000000221" as const;
+export const DENALI_CLUB_DEV_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000221" as const;
 
 export const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211" as const;
 
@@ -103,9 +101,10 @@ export function buildOperatorSmokePublishedTourItinerary(): readonly Record<stri
 }
 
 /** ED-SEED-01 — inclusive span must stay 3 days to match itinerary day titles. */
-export function resolveOperatorSmokePublishedTourWindow(
-  now: Date = new Date()
-): { readonly startDateTime: string; readonly endDateTime: string } {
+export function resolveOperatorSmokePublishedTourWindow(now: Date = new Date()): {
+  readonly startDateTime: string;
+  readonly endDateTime: string;
+} {
   const start = new Date(now.getTime());
   start.setUTCDate(start.getUTCDate() + 14);
   start.setUTCHours(8, 0, 0, 0);
@@ -294,7 +293,8 @@ export function applyOperatorSmokePublishedTourEditReadyPatch(
       : {};
   const expectedOverview = (expected.tripDetails as { overview: Record<string, unknown> }).overview;
   overview.peakHeight = expectedOverview.peakHeight;
-  overview.customServiceLabels = overview.customServiceLabels ?? expectedOverview.customServiceLabels;
+  overview.customServiceLabels =
+    overview.customServiceLabels ?? expectedOverview.customServiceLabels;
   tripDetails.overview = overview;
   next.tripDetails = tripDetails;
 
@@ -418,6 +418,9 @@ export function buildOperatorSmokeTransportBusTourCanonical(): CanonicalDocument
     ...base.data,
     title: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE,
     basics: { title: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE },
+    // Keep browser transport/finance chains repeatable without consuming the small catalog
+    // capacity used by the general operator smoke tour.
+    capacityMax: 100,
     transport: {
       mode: "bus",
       allowPersonalCar: true,

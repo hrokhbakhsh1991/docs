@@ -45,6 +45,7 @@
   "submittedShort": "Submitted {date}",
   "status": {
     "all": "All",
+    "actionable": "Needs action",
     "pending": "Pending",
     "approved": "Approved",
     "waitlisted": "Waitlisted",

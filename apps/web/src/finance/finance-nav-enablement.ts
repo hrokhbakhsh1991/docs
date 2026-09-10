@@ -9,9 +9,10 @@
 import {
   ensureFinanceNavSupported,
   isFinanceNavPlugin,
+  seedFinanceNavSupported,
 } from "@/finance/finance-nav-registry";
 
-export { ensureFinanceNavSupported, isFinanceNavPlugin };
+export { ensureFinanceNavSupported, isFinanceNavPlugin, seedFinanceNavSupported };
 
 export function shouldShowFinanceNav(pluginId: string): boolean {
   return isFinanceNavPlugin(pluginId);

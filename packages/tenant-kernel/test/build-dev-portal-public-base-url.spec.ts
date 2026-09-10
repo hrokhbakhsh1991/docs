@@ -70,4 +70,15 @@ describe("buildDevPortalPublicBaseUrl", () => {
       "http://portal.alpine.club:3003"
     );
   });
+
+  it("keeps raw IPv4 staging host and changes only the portal port", () => {
+    assert.equal(
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "89.42.210.252:23002",
+        rootDomain: "localhost",
+        portalPort: "23003",
+      }),
+      "http://89.42.210.252:23003"
+    );
+  });
 });

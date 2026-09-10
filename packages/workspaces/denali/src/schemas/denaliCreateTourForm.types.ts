@@ -43,6 +43,7 @@ export interface DenaliCreateTourWizardForm {
   };
   pricingPayment: {
     requiresPayment: boolean;
+    registrationApproval: "manual" | "auto";
     prepaymentEnabled: boolean;
     prepaymentPercent: number | undefined;
     basePricePerPerson: number | undefined;

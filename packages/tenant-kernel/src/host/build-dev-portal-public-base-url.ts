@@ -33,6 +33,9 @@ export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlIn
   const reserved =
     input.reservedLabels ?? parseReservedLabelsCsv(process.env.TENANT_HOST_RESERVED_LABELS);
   const withoutShop = hostname.startsWith("shop.") ? hostname.slice("shop.".length) : hostname;
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(withoutShop)) {
+    return `http://${withoutShop}:${port}`;
+  }
   const outcome = parseMultiLevelTenantHost(withoutShop, root, reserved);
 
   if (outcome.kind === "club_apex") {

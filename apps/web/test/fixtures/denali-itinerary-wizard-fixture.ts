@@ -286,5 +286,8 @@ export async function submitDenaliWizardDraftCreate(page: Page): Promise<void> {
     .getByRole("button", { name: /Create tour|ساخت تور/i });
   await expect(create).toBeEnabled({ timeout: 30_000 });
   await create.click();
-  await expect(page.locator("[data-tour-created]")).toBeVisible({ timeout: 60_000 });
+  await expect(page).toHaveURL(/\/tours(?:\?.*)?$/, { timeout: 60_000 });
+  await expect(page.getByRole("status")).toContainText(/تور با موفقیت ساخته شد|tour created/i, {
+    timeout: 15_000,
+  });
 }

@@ -7,6 +7,9 @@ import { expect, type APIRequestContext } from "@playwright/test";
 
 export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+// Isolate the chain from the general operator smoke tour; the latter is intentionally reused by
+// other flows and can legitimately reach capacity during a full browser suite.
+export const OPERATOR_SMOKE_CHAIN_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-0000-000000000001";
 
 export type ChainGuestRegistration = {
@@ -34,7 +37,7 @@ function guestReceiptHeaders(userId: string, workspaceId: string): Record<string
 
 export async function seedChainGuestRegistrationViaApi(
   request: APIRequestContext,
-  input: { readonly guestName: string; readonly email: string }
+  input: { readonly guestName: string; readonly email: string; readonly mobile?: string }
 ): Promise<ChainGuestRegistration> {
   const regRes = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
     headers: {
@@ -42,8 +45,15 @@ export async function seedChainGuestRegistrationViaApi(
       "content-type": "application/json",
     },
     data: {
-      tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
-      contact: { email: input.email, fullName: input.guestName },
+      tourId: OPERATOR_SMOKE_CHAIN_TOUR_ID,
+      // Use an explicit other-guest identity so reruns are unique by the generated phone/name;
+      // the anonymous catalog actor is intentionally stable and must not be the dedupe key.
+      registrantTarget: "other",
+      contact: {
+        email: input.email,
+        fullName: input.guestName,
+        ...(input.mobile === undefined ? {} : { phone: input.mobile }),
+      },
       partySize: 2,
     },
   });
