@@ -23,6 +23,7 @@ const OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID = "00000000-0000-4000-8000-0000000002
 const OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000215";
 const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
 const OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000217";
+const OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000218";
 const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
@@ -196,6 +197,22 @@ describe("denali-registration (M16)", () => {
           pricing: {
             ...(manualTour.canonical.data.pricing as Record<string, unknown>),
             registrationApproval: "manual",
+            paymentCollection: "offline",
+            allowMembershipDiscount: true,
+          },
+        },
+      },
+    });
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "auto",
             paymentCollection: "offline",
             allowMembershipDiscount: true,
           },
@@ -466,6 +483,59 @@ describe("denali-registration (M16)", () => {
       assert.equal(quote.status, "FROZEN");
       // The seeded Denali trip is 2,500,000 per person: 5,000,000 gross - 20% = 4,000,000.
       assert.equal(quote.payableMinor, "4000000");
+    } finally {
+      if (priorPaymentHold === undefined) delete process.env.PAYMENT_HOLD_ENABLED;
+      else process.env.PAYMENT_HOLD_ENABLED = priorPaymentHold;
+    }
+  });
+
+  it("DREG-20-06 auto approval preserves member discount and canonical non-member pricing", async () => {
+    const priorPaymentHold = process.env.PAYMENT_HOLD_ENABLED;
+    process.env.PAYMENT_HOLD_ENABLED = "true";
+    try {
+      const createForMember = async (memberId: string, fullName: string) =>
+        requestDenali(listener, "POST", "/denali/registrations", {
+          headers: {
+            ...publicHeaders(),
+            "x-user-id": memberId,
+            "x-actor-role": "member",
+            "x-membership-status": "ACTIVE",
+            "x-workspace-id": `ws-dreg-${memberId.slice(-4)}`,
+          },
+          body: {
+            tourId: OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID,
+            registrantTarget: "self",
+            contact: { fullName },
+            partySize: 2,
+          },
+        });
+
+      const discounted = await createForMember(DREG_SESSION_MEMBER_A, "Auto Discount Member");
+      const canonical = await createForMember(DREG_SESSION_MEMBER_B, "Auto Canonical Member");
+      assert.equal(discounted.status, 201, JSON.stringify(discounted.body));
+      assert.equal(canonical.status, 201, JSON.stringify(canonical.body));
+
+      const discountedId = (discounted.body as { data?: { id?: string; status?: string } }).data
+        ?.id;
+      const canonicalId = (canonical.body as { data?: { id?: string; status?: string } }).data?.id;
+      assert.ok(discountedId);
+      assert.ok(canonicalId);
+      assert.equal((discounted.body as { data?: { status?: string } }).data?.status, "approved");
+      assert.equal((canonical.body as { data?: { status?: string } }).data?.status, "approved");
+
+      const quoteService = createCommercialQuoteApproveServiceForTests();
+      const discountedQuote = await quoteService.getActiveQuote(
+        OPERATOR_SMOKE_TENANT_ID,
+        discountedId
+      );
+      const canonicalQuote = await quoteService.getActiveQuote(
+        OPERATOR_SMOKE_TENANT_ID,
+        canonicalId
+      );
+      assert.equal(discountedQuote?.status, "FROZEN");
+      assert.equal(discountedQuote?.payableMinor, "4000000");
+      assert.equal(canonicalQuote?.status, "FROZEN");
+      assert.equal(canonicalQuote?.payableMinor, "5000000");
     } finally {
       if (priorPaymentHold === undefined) delete process.env.PAYMENT_HOLD_ENABLED;
       else process.env.PAYMENT_HOLD_ENABLED = priorPaymentHold;
