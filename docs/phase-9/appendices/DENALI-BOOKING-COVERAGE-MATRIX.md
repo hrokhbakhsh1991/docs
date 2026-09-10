@@ -80,6 +80,14 @@ For each applicable registration row, exercise:
 | Member portal status/deadline            | `apps/portal/test/tour-booking-management-matrix.spec.ts`, `apps/portal/test/portal-payment-deadline.spec.ts`       | portal logic/contract         |
 | Browser operator journeys                | `apps/web/tests/e2e/scenario*.spec.ts`                                                                              | manual/ad-hoc browser E2E     |
 
+### Current browser evidence (local only)
+
+The focused confidence suite executed E02 successfully. E03 (operator reject)
+passed in an isolated run after the test waited for the selected row, but
+failed to open its reject dialog in the full three-test run; E04
+(waitlist → approve) passed only on retry. This is flaky evidence, not a stable
+browser PASS, and the local stack is not staging/production proof.
+
 ## Not yet proven by this matrix
 
 - All B-01..B-08 rows through real member browser → API → admin browser → finance.
