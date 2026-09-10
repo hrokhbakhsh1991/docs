@@ -9,6 +9,14 @@ import http from "node:http";
 import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
+import {
+  DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+  DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+  DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+} from "../src/fixtures/operator-smoke-published-tour.fixture";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -86,7 +94,7 @@ describe("p6-vs01-admin-publish.spec.ts — P6 VS-01 API", () => {
     const items =
       (response.body as { data?: { items?: { id: string; title?: string }[] } }).data?.items ??
       [];
-    assert.equal(items.length, 4);
+    assert.equal(items.length, 10);
     assert.ok(items.some((item) => item.id === OPERATOR_SMOKE_PUBLISHED_TOUR_ID));
     assert.ok(items.some((item) => item.id === OPERATOR_SMOKE_PARTICIPANT_TOUR_ID));
     const northRidge = items.find((item) => item.id === OPERATOR_SMOKE_PUBLISHED_TOUR_ID);
