@@ -10,14 +10,18 @@ import { createRequestListener } from "../src/app";
 import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { InMemoryIdentityRepository } from "../src/identity/in-memory-identity.repository";
-import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
-import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
+import {
+  createSharedMemoryTourStoreForHttpTests,
+  createTestToursService,
+  installMemoryStorageDriverForDescribe,
+} from "./test-helpers";
 
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 const OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000215";
 const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
+const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
 const DREG_SESSION_MEMBER_A = "00000000-0000-4000-8000-000000000104";
@@ -31,11 +35,31 @@ function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, stri
   };
 }
 
+function operatorOwnerHeaders(): Record<string, string> {
+  return {
+    ...publicHeaders(),
+    "x-user-id": OPERATOR_SMOKE_OWNER_ID,
+    "x-actor-role": "owner",
+    "x-membership-status": "ACTIVE",
+    "x-workspace-id": "ws-operator-smoke",
+  };
+}
+
 function seedDenaliRegistrationSessionMembers(): void {
   const identity = getIdentityRepository();
   if (!(identity instanceof InMemoryIdentityRepository)) {
     throw new Error("denali-registration.spec requires in-memory identity");
   }
+  identity.seedUser({ id: OPERATOR_SMOKE_OWNER_ID, mobile: "+15550001001" });
+  identity.seedMembership({
+    userId: OPERATOR_SMOKE_OWNER_ID,
+    tenantId: OPERATOR_SMOKE_TENANT_ID,
+    role: "owner",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: "ws-operator-smoke",
+    displayName: "DREG Operator Owner",
+  });
   for (const [userId, mobile, displayName] of [
     [DREG_SESSION_MEMBER_A, "+15550001004", "DREG Session A"],
     [DREG_SESSION_MEMBER_B, "+15550001005", "DREG Session B"],
@@ -117,8 +141,7 @@ describe("denali-registration (M16)", () => {
   let listener: ReturnType<typeof createRequestListener>;
 
   before(async () => {
-    const repo = new InMemoryTourRepository();
-    repo.ensureOperatorSmokeSeedTour();
+    const repo = createSharedMemoryTourStoreForHttpTests();
     const manualTour = await repo.getById(
       OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
       OPERATOR_SMOKE_TENANT_ID
@@ -243,6 +266,64 @@ describe("denali-registration (M16)", () => {
         scenario.expectedStatus,
         `persisted ${scenario.collection}:${scenario.expectedStatus}`
       );
+
+      const detail = await requestDenali(listener, "GET", `/bookings/${data.data.id}`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(detail.status, 200, `booking detail: ${JSON.stringify(detail.body)}`);
+      assert.equal(
+        (detail.body as { paymentStatus?: string }).paymentStatus,
+        scenario.collection === "free" && scenario.expectedStatus === "approved"
+          ? "paid"
+          : "unpaid",
+        `payment projection ${scenario.collection}:${scenario.expectedStatus}`
+      );
+    }
+  });
+
+  it("DREG-20-03 approving a manual registration applies free collection but not paid collection", async () => {
+    const cases = [
+      { tourId: OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID, expectedPaymentStatus: "paid" },
+      { tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID, expectedPaymentStatus: "unpaid" },
+    ] as const;
+
+    for (const [index, scenario] of cases.entries()) {
+      const created = await requestDenali(listener, "POST", "/denali/registrations", {
+        headers: publicHeaders(),
+        body: {
+          tourId: scenario.tourId,
+          contact: {
+            fullName: `HTTP Approval Payment Guest ${index}`,
+            phone: `+155500022${String(index).padStart(2, "0")}`,
+          },
+          partySize: 1,
+        },
+      });
+      assert.equal(created.status, 201);
+      const bookingId = (created.body as { data?: { id?: string; status?: string } }).data?.id;
+      assert.ok(bookingId);
+      assert.equal(
+        (created.body as { data?: { status?: string } }).data?.status,
+        "pending",
+        `manual ${scenario.tourId}`
+      );
+
+      const approved = await requestDenali(listener, "POST", `/bookings/${bookingId}/approve`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(
+        approved.status,
+        200,
+        `approve ${scenario.tourId}: ${JSON.stringify(approved.body)}`
+      );
+
+      const detail = await requestDenali(listener, "GET", `/bookings/${bookingId}`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(detail.status, 200);
+      const data = detail.body as { status?: string; paymentStatus?: string };
+      assert.equal(data.status, "approved");
+      assert.equal(data.paymentStatus, scenario.expectedPaymentStatus);
     }
   });
 
