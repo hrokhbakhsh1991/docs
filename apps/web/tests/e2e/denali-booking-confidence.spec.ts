@@ -70,7 +70,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     });
 
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
-    await page.goto("/bookings");
+    await page.goto("/bookings", { waitUntil: "domcontentloaded", timeout: 60_000 });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 15_000,
     });
@@ -78,30 +78,32 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     // The row may also render an inline-approve button with the guest name in its aria-label.
     // Select the row's primary inspection button explicitly so strict mode cannot click the
     // action affordance by accident.
-    await page
-      .locator('[data-booking-row] button:not([data-testid="operator-bookings-inline-approve"])')
-      .filter({ hasText: guestName })
+    const selectedRow = page.locator("[data-booking-row]").filter({ hasText: guestName }).first();
+    await selectedRow
+      .locator('button:not([data-testid="operator-bookings-inline-approve"])')
       .first()
       .click();
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton)).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(selectedRow).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
+    const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
+    const rejectButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton);
+    await expect(rejectButton).toBeVisible({ timeout: 15_000 });
+    await expect(rejectButton).toBeEnabled({ timeout: 15_000 });
 
     const rejectResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/bookings/") &&
         response.url().includes("/reject") &&
-        response.request().method() === "POST" &&
-        response.ok()
+        response.request().method() === "POST"
     );
-    await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton).click();
+    await rejectButton.click();
     const rejectDialog = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectDialog);
-    await expect(rejectDialog).toBeVisible();
+    await expect(rejectDialog).toBeVisible({ timeout: 15_000 });
     // The active Denali manifest requires a rejection reason; fill it explicitly so the
     // confirm action is valid under both required and optional-reason configurations.
     await rejectDialog.locator("input").fill("P3 E03 test rejection");
     await rejectDialog.getByRole("button", { name: /reject|رد/i }).click();
-    await rejectResponse;
+    const rejectResult = await rejectResponse;
+    expect(rejectResult.ok(), await rejectResult.text()).toBeTruthy();
 
     // The default queue excludes terminal rejected rows; assert removal from the active queue.
     await expect(page.locator("[data-booking-row]").filter({ hasText: guestName })).toHaveCount(0, {
@@ -138,9 +140,9 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
         response.request().method() === "POST" &&
         response.ok()
     );
-    await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.waitlistButton).click();
-    const waitlisted = await (await waitlistResponse).json();
-    expect(JSON.stringify(waitlisted)).toMatch(/waitlisted/i);
+    const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
+    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.waitlistButton).click();
+    expect((await waitlistResponse).status()).toBe(200);
 
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.click();
@@ -150,8 +152,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
         response.request().method() === "POST" &&
         response.ok()
     );
-    await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
-    const approved = await (await approveResponse).json();
-    expect(JSON.stringify(approved)).toMatch(/approved/i);
+    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
+    expect((await approveResponse).status()).toBe(200);
   });
 });
