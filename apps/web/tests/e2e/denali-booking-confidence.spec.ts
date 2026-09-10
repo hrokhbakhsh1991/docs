@@ -63,7 +63,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
   }) => {
     const stamp = Date.now();
     const guestName = `P3 E03 Reject ${stamp}`;
-    await seedChainGuestRegistrationViaApi(request, {
+    const booking = await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p3-e03-${stamp}@denali-smoke.local`,
       mobile: `+1555${String(stamp).slice(-7)}`,
@@ -79,11 +79,17 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     // Select the row's primary inspection button explicitly so strict mode cannot click the
     // action affordance by accident.
     const selectedRow = page.locator("[data-booking-row]").filter({ hasText: guestName }).first();
+    const detailResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/bookings/${booking.bookingId}`) &&
+        response.request().method() === "GET"
+    );
     await selectedRow
       .locator('button:not([data-testid="operator-bookings-inline-approve"])')
       .first()
       .click();
     await expect(selectedRow).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
+    expect((await detailResponse).status()).toBe(200);
     const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
     const rejectButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton);
     await expect(rejectButton).toBeVisible({ timeout: 15_000 });
