@@ -70,7 +70,8 @@ For each applicable registration row, exercise:
 
 | Area                                     | Evidence                                                                                                            | Boundary                      |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| Manual/auto + free/paid registration     | `packages/workspaces/denali/test/registration-auto-approve.spec.ts` (`DN-P3-R04`)                                   | service + obligation resolver |
+| Manual/auto + free/paid registration     | `packages/workspaces/denali/test/registration-auto-approve.spec.ts` (`DN-P3-R04`), `apps/api/test/denali-registration.spec.ts` (`DREG-20-02`) | service + real HTTP + persistence |
+| Approval → payment projection             | `apps/api/test/denali-registration.spec.ts` (`DREG-20-03`)                                                           | real HTTP + operator reload |
 | Booking transitions and operator actions | `apps/api/test/tour-booking-management-http-matrix.spec.ts`, `apps/web/test/tour-booking-management-matrix.spec.ts` | API + admin logic             |
 | Payment hold after approval              | `apps/api/test/dp1/booking-approve-payment-hold.spec.ts`                                                            | finance domain                |
 | Member discount and quote freeze         | `packages/finance-core/test/commercial-quote-member-discount-*.spec.ts`                                             | finance-core                  |
@@ -81,7 +82,6 @@ For each applicable registration row, exercise:
 
 - All B-01..B-08 rows through real member browser → API → admin browser → finance.
 - Discount cross-product combined with every approval and payment state.
-- Free registration persisted through the real HTTP path with operator reload.
 - Gateway success/failure callback behavior for Denali production policy.
 - Deadline race against payment, cancellation, and waitlist promotion.
 - PostgreSQL persistence/reload for every row; skipped tests are not passing evidence.
