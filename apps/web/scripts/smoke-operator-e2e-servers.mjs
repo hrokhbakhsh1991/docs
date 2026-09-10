@@ -194,8 +194,11 @@ async function resolveSmokeJwtEnv() {
 
 let api;
 let web;
+let shuttingDown = false;
+let smokeReady = false;
 
 const shutdown = (signal) => {
+  shuttingDown = true;
   if (api) {
     api.kill(signal);
   }
@@ -209,6 +212,25 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 function keepAlive() {
   return new Promise(() => {});
+}
+
+function monitorReadyChild(child, label) {
+  if (!child) {
+    return;
+  }
+  child.once("exit", (code, signal) => {
+    if (shuttingDown || !smokeReady) {
+      return;
+    }
+    const suffix =
+      typeof code === "number" ? `exit ${code}` : signal ? `signal ${signal}` : "unknown exit";
+    console.error(`smoke-operator-e2e-servers: ${label} exited after readiness (${suffix})`);
+    const sibling = label === "API server" ? web : api;
+    if (sibling && sibling.exitCode === null) {
+      sibling.kill("SIGTERM");
+    }
+    process.exit(1);
+  });
 }
 
 function freePort(port) {
@@ -694,6 +716,9 @@ try {
   }
 
   console.log("smoke-operator-e2e-servers: API + web ready");
+  monitorReadyChild(api, "API server");
+  monitorReadyChild(web, "web server");
+  smokeReady = true;
   await runP6HostBindSmoke();
   await keepAlive();
 } catch (error) {
