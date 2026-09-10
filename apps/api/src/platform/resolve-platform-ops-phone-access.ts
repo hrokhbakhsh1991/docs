@@ -41,8 +41,11 @@ export async function resolvePlatformOpsPhoneAccess(
       return { role: normalizePlatformOpsRole(dbUser.role) };
     }
   } catch {
-    // Test/dev environments may not have the platform database; fall through
-    // to the explicitly configured phone allowlist in that case.
+    // Production/prodlike must fail closed when the authoritative DB lookup is
+    // unavailable; only test/dev may use the explicit phone allowlist fallback.
+    if (requiresProductionGradeIntegrity()) {
+      return null;
+    }
   }
 
   const allowed = readPlatformOpsPhones().map((entry) => normalizeLoginMobile(entry));
