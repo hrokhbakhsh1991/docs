@@ -4,6 +4,15 @@ This is the test-design source of truth for the Denali booking journey. A row is
 covered only when the expected state is asserted at the owning boundary; a UI
 label alone is not proof of a persisted booking or financial state.
 
+## Scope boundary
+
+Denali v1 is intentionally `offline_receipt` only. Gateway checkout and PSP
+settlement are optional platform capabilities deferred until a second customer
+and are blocked by the P5-D activation guard; they are not counted as Denali
+booking coverage. Gateway rows below remain a separate conditional platform
+track and must not be reported as implemented merely because the ingress route
+accepts a signed webhook.
+
 ## Axes
 
 | Axis                  | Values                                                                 |
@@ -98,7 +107,8 @@ or production deployment proof.
 
 - All B-01..B-08 rows through real member browser → API → admin browser → finance.
 - Discount cross-product combined with every approval and payment state.
-- Gateway success/failure callback behavior for Denali production policy.
+- Gateway success/failure callback behavior for the optional platform gateway
+  track (not a Denali v1 requirement).
 - Deadline race against payment, cancellation, and waitlist promotion.
 - PostgreSQL persistence/reload for every row; skipped tests are not passing evidence.
 
