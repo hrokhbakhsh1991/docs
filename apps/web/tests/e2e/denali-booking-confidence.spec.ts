@@ -70,7 +70,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     });
 
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
-    await page.goto("/bookings", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.goto("/bookings", { waitUntil: "domcontentloaded", timeout: 180_000 });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 15_000,
     });
@@ -130,7 +130,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     });
 
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
-    await page.goto("/bookings");
+    await page.goto("/bookings", { waitUntil: "domcontentloaded", timeout: 180_000 });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 15_000,
     });
@@ -139,26 +139,49 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       .locator('[data-booking-row] button:not([data-testid="operator-bookings-inline-approve"])')
       .filter({ hasText: guestName })
       .first();
+    const detailResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/bookings/${booking.bookingId}`) &&
+        response.request().method() === "GET"
+    );
     await row.click();
+    await expect(row.locator("xpath=ancestor::*[@data-booking-row][1]")).toHaveAttribute(
+      "aria-selected",
+      "true",
+      {
+        timeout: 15_000,
+      }
+    );
+    expect((await detailResponse).status()).toBe(200);
     const waitlistResponse = page.waitForResponse(
       (response) =>
-        response.url().includes(`/api/bookings/${booking.bookingId}/waitlist`) &&
-        response.request().method() === "POST" &&
-        response.ok()
+        response.url().includes("/api/bookings/") &&
+        response.url().includes("/waitlist") &&
+        response.request().method() === "POST"
     );
     const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
-    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.waitlistButton).click();
-    expect((await waitlistResponse).status()).toBe(200);
+    const waitlistButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.waitlistButton);
+    await expect(waitlistButton).toBeVisible({ timeout: 15_000 });
+    await expect(waitlistButton).toBeEnabled({ timeout: 15_000 });
+    await waitlistButton.click();
+    const waitlistResult = await waitlistResponse;
+    expect(waitlistResult.url()).toContain(`/api/bookings/${booking.bookingId}/waitlist`);
+    expect(waitlistResult.status(), await waitlistResult.text()).toBe(200);
 
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.click();
     const approveResponse = page.waitForResponse(
       (response) =>
-        response.url().includes(`/api/bookings/${booking.bookingId}/approve`) &&
-        response.request().method() === "POST" &&
-        response.ok()
+        response.url().includes("/api/bookings/") &&
+        response.url().includes("/approve") &&
+        response.request().method() === "POST"
     );
-    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
-    expect((await approveResponse).status()).toBe(200);
+    const approveButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton);
+    await expect(approveButton).toBeVisible({ timeout: 15_000 });
+    await expect(approveButton).toBeEnabled({ timeout: 15_000 });
+    await approveButton.click();
+    const approveResult = await approveResponse;
+    expect(approveResult.url()).toContain(`/api/bookings/${booking.bookingId}/approve`);
+    expect(approveResult.status(), await approveResult.text()).toBe(200);
   });
 });

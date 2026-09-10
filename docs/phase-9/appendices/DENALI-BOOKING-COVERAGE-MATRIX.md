@@ -82,11 +82,13 @@ For each applicable registration row, exercise:
 
 ### Current browser evidence (local only)
 
-The focused confidence suite executed E02 successfully. E03 (operator reject)
-passed in an isolated run after the test waited for the selected row, but
-failed to open its reject dialog in the full three-test run; E04
-(waitlist → approve) passed only on retry. This is flaky evidence, not a stable
-browser PASS, and the local stack is not staging/production proof.
+The confidence suite was executed against a built production Next server with
+the DB-backed operator smoke stack: E02 (over-capacity rejection), E03
+(operator reject), and E04 (waitlist → approve) all passed in one run (3/3).
+The earlier dev-server run remains non-certifying: Next dev exited cleanly
+(`exit 0`) during E04 before the action request, so dev runtime stability is
+tracked separately from booking behavior. This is local evidence, not staging
+or production deployment proof.
 
 ## Not yet proven by this matrix
 
