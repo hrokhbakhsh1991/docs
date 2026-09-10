@@ -16,6 +16,8 @@ import { createTestToursService, installMemoryStorageDriverForDescribe } from ".
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID = "00000000-0000-4000-8000-000000000214";
+const OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000215";
+const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
 const DREG_SESSION_MEMBER_A = "00000000-0000-4000-8000-000000000104";
@@ -136,6 +138,26 @@ describe("denali-registration (M16)", () => {
         },
       },
     });
+    for (const [id, registrationApproval] of [
+      [OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID, "manual"],
+      [OPERATOR_SMOKE_FREE_AUTO_TOUR_ID, "auto"],
+    ] as const) {
+      await repo.save({
+        ...manualTour,
+        id,
+        canonical: {
+          ...manualTour.canonical,
+          data: {
+            ...manualTour.canonical.data,
+            pricing: {
+              ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+              registrationApproval,
+              paymentCollection: "free",
+            },
+          },
+        },
+      });
+    }
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
     seedDenaliRegistrationSessionMembers();
@@ -175,6 +197,53 @@ describe("denali-registration (M16)", () => {
     const data = (response.body as { data?: { id?: string; status?: string } }).data;
     assert.ok(data?.id);
     assert.equal(data?.status, "approved");
+  });
+
+  it("DREG-20-02 HTTP matrix persists the four free/paid × manual/auto outcomes", async () => {
+    const cases = [
+      { tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID, expectedStatus: "pending", collection: "paid" },
+      {
+        tourId: OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID,
+        expectedStatus: "approved",
+        collection: "paid",
+      },
+      { tourId: OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID, expectedStatus: "pending", collection: "free" },
+      { tourId: OPERATOR_SMOKE_FREE_AUTO_TOUR_ID, expectedStatus: "approved", collection: "free" },
+    ] as const;
+
+    for (const [index, scenario] of cases.entries()) {
+      const response = await requestDenali(listener, "POST", "/denali/registrations", {
+        headers: publicHeaders(),
+        body: {
+          tourId: scenario.tourId,
+          contact: {
+            fullName: `HTTP Matrix Guest ${index}`,
+            phone: `+155500021${String(index).padStart(2, "0")}`,
+          },
+          partySize: 1,
+        },
+      });
+
+      assert.equal(response.status, 201, `${scenario.collection}:${scenario.expectedStatus}`);
+      const data = response.body as { data?: { id?: string; status?: string } };
+      assert.ok(data.data?.id);
+      assert.equal(
+        data.data.status,
+        scenario.expectedStatus,
+        `${scenario.collection}:${scenario.expectedStatus}`
+      );
+
+      const persisted = await getBookingsRepository().getById(
+        data.data.id,
+        OPERATOR_SMOKE_TENANT_ID
+      );
+      assert.ok(persisted);
+      assert.equal(
+        persisted.status,
+        scenario.expectedStatus,
+        `persisted ${scenario.collection}:${scenario.expectedStatus}`
+      );
+    }
   });
 
   it("DREG-17-01 POST /denali/registrations accepts M17 session member user id", async () => {
