@@ -11,10 +11,13 @@ type Props = {
   readonly sharedCarsMode: boolean;
   readonly dongAvailable: boolean;
   readonly initialKind?: TransportKind;
-  readonly initialOccupants?: 1 | 2 | 3;
+  readonly initialOccupants?: 0 | 1 | 2 | 3;
 };
 
-function resolveAmendKind(initialKind: TransportKind | undefined, sharedCarsMode: boolean): TransportKind {
+function resolveAmendKind(
+  initialKind: TransportKind | undefined,
+  sharedCarsMode: boolean
+): TransportKind {
   if (
     initialKind === "primary" ||
     initialKind === "personal_car" ||
@@ -26,8 +29,10 @@ function resolveAmendKind(initialKind: TransportKind | undefined, sharedCarsMode
   return sharedCarsMode ? "personal_car" : "primary";
 }
 
-function resolveAmendOccupants(initialOccupants: 1 | 2 | 3 | undefined): 1 | 2 | 3 {
-  return initialOccupants === 2 || initialOccupants === 3 ? initialOccupants : 1;
+function resolveAmendOccupants(initialOccupants: 0 | 1 | 2 | 3 | undefined): 0 | 1 | 2 | 3 {
+  return initialOccupants === 0 || initialOccupants === 2 || initialOccupants === 3
+    ? initialOccupants
+    : 1;
 }
 
 export function MemberIntakeAmendForm({
@@ -39,8 +44,12 @@ export function MemberIntakeAmendForm({
   initialOccupants,
 }: Props) {
   const t = useTranslations("portalMember.intakeAmend");
-  const [kind, setKind] = useState<TransportKind>(() => resolveAmendKind(initialKind, sharedCarsMode));
-  const [occupants, setOccupants] = useState<1 | 2 | 3>(() => resolveAmendOccupants(initialOccupants));
+  const [kind, setKind] = useState<TransportKind>(() =>
+    resolveAmendKind(initialKind, sharedCarsMode)
+  );
+  const [occupants, setOccupants] = useState<0 | 1 | 2 | 3>(() =>
+    resolveAmendOccupants(initialOccupants)
+  );
   const [phase, setPhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   if (!allowPersonalCar && !sharedCarsMode) {
@@ -149,8 +158,9 @@ export function MemberIntakeAmendForm({
           <span data-portal-member-intake-occupants-label>{t("occupants")}</span>
           <select
             value={occupants}
-            onChange={(event) => setOccupants(Number(event.target.value) as 1 | 2 | 3)}
+            onChange={(event) => setOccupants(Number(event.target.value) as 0 | 1 | 2 | 3)}
           >
+            <option value={0}>{t("noCompanion")}</option>
             <option value={1}>1</option>
             <option value={2}>2</option>
             <option value={3}>3</option>

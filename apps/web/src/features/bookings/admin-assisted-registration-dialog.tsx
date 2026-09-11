@@ -59,9 +59,11 @@ function readErrorCode(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-function formatContactSummary(phone: string | null | undefined, email: string | null | undefined): string {
-  const phoneLabel =
-    (phone ?? "").trim().length > 0 ? formatIranMobileForDisplay(phone ?? "") : "";
+function formatContactSummary(
+  phone: string | null | undefined,
+  email: string | null | undefined
+): string {
+  const phoneLabel = (phone ?? "").trim().length > 0 ? formatIranMobileForDisplay(phone ?? "") : "";
   const emailLabel = (email ?? "").trim();
   return [phoneLabel, emailLabel].filter((value) => value.length > 0).join(" · ");
 }
@@ -569,7 +571,7 @@ export function AdminAssistedRegistrationDialog({
                   <div className="space-y-2">
                     <Label>{t("fields.personalCarOccupants")}</Label>
                     <div className="flex gap-2">
-                      {(["1", "2", "3"] as const).map((count) => (
+                      {(["0", "1", "2", "3"] as const).map((count) => (
                         <Button
                           key={count}
                           type="button"
@@ -577,7 +579,9 @@ export function AdminAssistedRegistrationDialog({
                           variant={form.personalCarOccupants === count ? "default" : "outline"}
                           onClick={() => updateField("personalCarOccupants", count)}
                         >
-                          {t("transport.occupants", { count: Number(count) })}
+                          {count === "0"
+                            ? t("transport.noCompanion")
+                            : t("transport.occupants", { count: Number(count) })}
                         </Button>
                       ))}
                     </div>

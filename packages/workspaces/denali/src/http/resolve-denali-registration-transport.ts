@@ -45,7 +45,7 @@ export function normalizeDenaliRegistrationTransportIntake(
 
   if (kind === "personal_car") {
     const occupants = input.personalCarOccupants;
-    if (occupants !== 1 && occupants !== 2 && occupants !== 3) {
+    if (occupants !== 0 && occupants !== 1 && occupants !== 2 && occupants !== 3) {
       throw new DenaliRegistrationInvalidError();
     }
     return { kind: "personal_car", personalCarOccupants: occupants };

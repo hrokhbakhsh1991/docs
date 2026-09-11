@@ -383,6 +383,7 @@
     "departure": "Departure: {departureAt}",
     "transportLabel": "Transport",
     "transportLineOccupants": "{kind} · {occupants} seats",
+    "transportLineDriverOnly": "{kind} · Driver only (no companion)",
     "forOtherBadge": "For someone else",
     "guestLine": "Guest: {guestLabel}"
   },
@@ -437,7 +438,8 @@
     "personalCar": "I will bring a personal car",
     "noCarDong": "No car — pay dong",
     "noCarAcquaintance": "No car — ride with acquaintance",
-    "occupants": "Seats in my car",
+    "occupants": "Companion seats in my car",
+    "noCompanion": "Driver only (no companion)",
     "save": "Save changes",
     "saving": "Saving…",
     "saved": "Saved.",

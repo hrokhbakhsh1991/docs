@@ -25,6 +25,13 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /readonly registrantTarget\?:/);
     assert.match(fetchModule, /readonly transportKind\?:/);
     assert.match(fetchModule, /readonly personalCarOccupants\?:/);
+    assert.match(
+      readFileSync(
+        join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
+        "utf8"
+      ),
+      /option value=\{0\}/
+    );
     assert.match(fetchModule, /resolvePortalSelfFetchOrigin/);
     assert.match(fetchModule, /x-forwarded-host/);
     assert.doesNotMatch(fetchModule, /registrationIntake/);
@@ -61,10 +68,7 @@ describe("portal-member-registrations", () => {
   });
 
   it("MEM-BFF-03 /me/registrations page SSR marker", () => {
-    const page = readFileSync(
-      join(repoRoot, "apps/portal/app/me/registrations/page.tsx"),
-      "utf8"
-    );
+    const page = readFileSync(join(repoRoot, "apps/portal/app/me/registrations/page.tsx"), "utf8");
     assert.match(page, /data-portal-member-registrations/);
     assert.match(page, /data-registrant-filter/);
     assert.match(page, /data-portal-member-registrations-filter/);

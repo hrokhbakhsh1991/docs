@@ -63,7 +63,7 @@ export type BookingRecord = {
     | "no_car_dong"
     | "no_car_acquaintance"
     | null;
-  readonly personalCarOccupants?: 1 | 2 | 3 | null;
+  readonly personalCarOccupants?: 0 | 1 | 2 | 3 | null;
   /** Ops reject reason when status=rejected; omitted when unset (BC). */
   readonly rejectReason?: string;
   /** DP1 — payment deadline instant projection (Finance hold SoT). */

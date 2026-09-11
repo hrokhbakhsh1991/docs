@@ -35,7 +35,7 @@ export const DENALI_CATALOG_OPENAPI_OVERRIDES: Record<string, Record<string, unk
                     type: "string",
                     enum: ["primary", "personal_car", "no_car_dong", "no_car_acquaintance"],
                   },
-                  personalCarOccupants: { type: "integer", enum: [1, 2, 3] },
+                  personalCarOccupants: { type: "integer", enum: [0, 1, 2, 3] },
                 },
               },
             },

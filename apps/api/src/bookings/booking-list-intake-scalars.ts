@@ -12,7 +12,7 @@ import {
 export type BookingListIntakeScalars = {
   readonly registrantTarget: "self" | "other";
   readonly transportKind: BookingTransportKind | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly obligationOverride: Readonly<Record<string, unknown>> | null;
   readonly freeCollectionApplied: boolean;
 };
@@ -79,7 +79,7 @@ export async function loadBookingListIntakeScalarsById(
         ELSE NULL
       END AS transport_kind,
       CASE
-        WHEN registration_intake->'transport'->>'personalCarOccupants' IN ('1','2','3')
+        WHEN registration_intake->'transport'->>'personalCarOccupants' IN ('0','1','2','3')
         THEN (registration_intake->'transport'->>'personalCarOccupants')::int
         ELSE NULL
       END AS personal_car_occupants,
@@ -93,10 +93,11 @@ export async function loadBookingListIntakeScalarsById(
   return new Map(
     scalarRows.map((row) => {
       const personalCarOccupants =
+        row.personal_car_occupants === 0 ||
         row.personal_car_occupants === 1 ||
         row.personal_car_occupants === 2 ||
         row.personal_car_occupants === 3
-          ? (row.personal_car_occupants as 1 | 2 | 3)
+          ? (row.personal_car_occupants as 0 | 1 | 2 | 3)
           : null;
       const obligationOverride =
         row.obligation_override !== null &&

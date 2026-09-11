@@ -66,13 +66,8 @@ export type BookingListItem = {
   readonly guestPhone?: string;
   readonly registrantTarget?: "self" | "other";
   /** H5-T3 list scalar — always present on HTTP list; null when unknown. */
-  readonly transportKind:
-    | "primary"
-    | "personal_car"
-    | "no_car_dong"
-    | "no_car_acquaintance"
-    | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly transportKind: "primary" | "personal_car" | "no_car_dong" | "no_car_acquaintance" | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: Exclude<BookingStatus, "all" | "actionable">;
   readonly paymentStatus: "unpaid" | "partial" | "paid";
@@ -215,7 +210,10 @@ export const BOOKINGS_QUEUE_STATUS_OPTIONS = [
 
 export const PAYMENT_STATUS_FILTER_OPTIONS = ["all", "unpaid", "partial", "paid"] as const;
 
-export const BOOKINGS_LIST_SORT_OPTIONS = ["submittedAt", "departureAt"] as const satisfies readonly BookingsListSort[];
+export const BOOKINGS_LIST_SORT_OPTIONS = [
+  "submittedAt",
+  "departureAt",
+] as const satisfies readonly BookingsListSort[];
 
 /** Status chips — excludes L1 actionable (Work Queue preset / bare URL). */
 export const BOOKING_STATUS_FILTER_OPTIONS = [

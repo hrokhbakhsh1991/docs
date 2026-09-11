@@ -79,9 +79,9 @@ export type BookingListItem = {
    */
   readonly transportKind: BookingTransportKind | null;
   /**
-   * When `transportKind=personal_car`, optional occupants 1–3 (list scalar).
+   * When `transportKind=personal_car`, optional occupants 0–3 (list scalar); 0 means driver only.
    */
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: BookingStatus;
   readonly paymentStatus: BookingPaymentStatus;

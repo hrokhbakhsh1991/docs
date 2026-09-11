@@ -383,6 +383,7 @@
     "departure": "تاریخ حرکت: {departureAt}",
     "transportLabel": "حمل‌ونقل",
     "transportLineOccupants": "{kind} · {occupants} صندلی",
+    "transportLineDriverOnly": "{kind} · فقط راننده (بدون همراه)",
     "forOtherBadge": "برای دیگری",
     "guestLine": "مسافر: {guestLabel}"
   },
@@ -428,7 +429,8 @@
     "personalCar": "ماشین شخصی می‌آورم",
     "noCarDong": "ماشین ندارم — پرداخت دونگ",
     "noCarAcquaintance": "ماشین ندارم — با آشنا",
-    "occupants": "ظرفیت صندلی ماشین من",
+    "occupants": "ظرفیت همراه ماشین من",
+    "noCompanion": "فقط خودم می‌آیم (بدون همراه)",
     "save": "ذخیره تغییرات",
     "saving": "در حال ذخیره…",
     "saved": "ذخیره شد.",

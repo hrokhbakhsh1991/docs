@@ -288,7 +288,7 @@ Opt-in / shared-cars follow-up (only when visible):
 
 ```text
 Has personal car?
-  yes → occupants: 1 | 2 | 3 (includes companions who do not pay dong separately)
+  yes → occupants: 0 | 1 | 2 | 3 (0 = driver only; includes companions who do not pay dong separately)
   no  → if dongAmount > 0: pays dong? yes (no_car_dong) | no (acquaintance)
         else: no dong radios — persist no_car_acquaintance (bus/minibus/train + allowPersonalCar without dong)
 ```
@@ -300,7 +300,7 @@ Persisted on booking as `registrationIntake.transport`:
 | `kind` | Meaning |
 |--------|---------|
 | `primary` | Organized transport (default when no opt-in) |
-| `personal_car` | Own vehicle; optional `personalCarOccupants` 1–3 |
+| `personal_car` | Own vehicle; optional `personalCarOccupants` 0–3; `0` means driver only / no companion |
 | `no_car_dong` | No vehicle; pays dong share |
 | `no_car_acquaintance` | No vehicle; rides with acquaintance — tour price only |
 
@@ -433,7 +433,7 @@ Bookings command center inspection panel and tour transport roster read `registr
 |-------|-------------|
 | `registrantTarget` | self / other |
 | `transport.kind` | primary · personal_car · no_car_dong · no_car_acquaintance |
-| `transport.personalCarOccupants` | 1–3 when `personal_car` |
+| `transport.personalCarOccupants` | 0–3 when `personal_car`; `0` is displayed as «فقط خودم می‌آیم (بدون همراه)» |
 | `nationalId` | When collected at intake (egress-safe; ops-only) |
 
 ---

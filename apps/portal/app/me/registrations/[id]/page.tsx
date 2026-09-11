@@ -93,6 +93,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ? tAmend("noCarAcquaintance")
             : null;
   const personalCarOccupants =
+    row.personalCarOccupants === 0 ||
     row.personalCarOccupants === 1 ||
     row.personalCarOccupants === 2 ||
     row.personalCarOccupants === 3
@@ -151,10 +152,12 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 <p data-portal-member-detail-kpi-label>{t("transportLabel")}</p>
                 <p data-portal-member-registration-transport data-transport-kind={transportKind}>
                   {transportKind === "personal_car" && personalCarOccupants !== null
-                    ? t("transportLineOccupants", {
-                        kind: transportKindLabel,
-                        occupants: personalCarOccupants,
-                      })
+                    ? personalCarOccupants === 0
+                      ? t("transportLineDriverOnly", { kind: transportKindLabel })
+                      : t("transportLineOccupants", {
+                          kind: transportKindLabel,
+                          occupants: personalCarOccupants,
+                        })
                     : transportKindLabel}
                 </p>
               </div>
