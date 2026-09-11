@@ -5,8 +5,9 @@ import { expect, test } from "@playwright/test";
 
 import {
   loginOperatorMember,
-  loginOperatorOwner,
+  loginOperatorWithPhone,
   loginOperatorViewer,
+  OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import { OPERATOR_TICKETS_TEST_IDS } from "../../src/features/tickets/operator-tickets-types";
 import {
@@ -27,6 +28,11 @@ async function openTicketsInbox(page: import("@playwright/test").Page): Promise<
   });
 }
 
+async function loginTicketingOwner(page: import("@playwright/test").Page): Promise<void> {
+  await page.context().clearCookies();
+  await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { forceFresh: true });
+}
+
 async function confirmOperatorAction(
   page: import("@playwright/test").Page,
   testIdPrefix: "operator-tickets-resolve" | "operator-tickets-close"
@@ -38,7 +44,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
   test("admin triage flow + viewer read-only + member denied + mobile", async ({
     page,
   }, testInfo) => {
-    await loginOperatorOwner(page);
+    await loginTicketingOwner(page);
     await openTicketsInbox(page);
 
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.inbox)).toBeVisible();
@@ -128,7 +134,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
   });
 
   test("mutation conflict surfaces without full-page error", async ({ page }) => {
-    await loginOperatorOwner(page);
+    await loginTicketingOwner(page);
     await openTicketsInbox(page);
     await applyInboxStatusFilter(page, "open");
     const { ticketId } = await selectOpenTicketInInbox(page);

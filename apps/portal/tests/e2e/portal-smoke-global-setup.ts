@@ -173,6 +173,8 @@ export default async function globalSetup(): Promise<void> {
     ["GET", "/api/me/entitlements"],
     ["GET", "/api/me/home"],
     ["GET", "/api/me/notifications"],
+    ["GET", "/api/me/tickets"],
+    ["POST", "/api/me/tickets", { categoryCode: "general", subject: "Warmup", body: "Warmup" }],
     ["PATCH", "/api/me/profile", { displayName: "Warmup" }],
     ["GET", `/api/me/registrations/${warmupRegistrationId}`],
     ["GET", `/api/me/registrations/${warmupRegistrationId}/receipt`],

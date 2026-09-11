@@ -52,7 +52,7 @@ export function OperatorTicketsComposer({
         const payload = (await res.json()) as { items?: TemplateItem[] };
         if (Array.isArray(payload.items)) {
           setTemplates(payload.items);
-        }
+        },
       } catch {
         // templates optional
       }
@@ -74,7 +74,7 @@ export function OperatorTicketsComposer({
             ticketId: detail.ticket.id,
             status: detail.ticket.status,
           }),
-        },
+        }
       );
       const payload = (await res.json()) as { rendered?: string };
       if (res.ok && typeof payload.rendered === "string") {
@@ -145,6 +145,11 @@ export function OperatorTicketsComposer({
           role="tab"
           size="sm"
           variant={mode === "public" ? "default" : "outline"}
+          className={
+            mode === "public"
+              ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+              : undefined
+          }
           aria-selected={mode === "public"}
           onClick={() => setMode("public")}
         >
@@ -155,6 +160,11 @@ export function OperatorTicketsComposer({
           role="tab"
           size="sm"
           variant={mode === "internal" ? "default" : "outline"}
+          className={
+            mode === "internal"
+              ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+              : undefined
+          }
           aria-selected={mode === "internal"}
           onClick={() => setMode("internal")}
         >
