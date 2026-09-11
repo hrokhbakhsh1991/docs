@@ -45,51 +45,12 @@ export async function listTourOperationalRoster(
   const holdRepo = getPaymentHoldRepository();
   const nowIso = new Date().toISOString();
 
-  // Keep the finance projection within the tenant DB semaphore. A roster can contain many
-  // approved bookings, and fan-out here would start two finance reads per row concurrently;
-  // with the production default of four tenant DB operations that turns a normal roster load
-  // into TENANT_DB_BUDGET_EXCEEDED instead of a usable response.
-  const composed = [] as Awaited<ReturnType<typeof composeTourOperationalRosterRow>>[];
-  for (const booking of bookings.items) {
-    let invoice: {
-      readonly remainingMinor: string;
-      readonly paidAmountMinor: string;
-      readonly invoiceTotalMinor: string;
-      readonly currency: string;
-    } | null = null;
-    let refundStatuses: string[] = [];
-    try {
-      const compiled = await finance.getRegistrationInvoice(financeAuth, booking.id);
-      invoice = {
-        remainingMinor: compiled.remainingMinor,
-        paidAmountMinor: compiled.paidAmountMinor,
-        invoiceTotalMinor: compiled.invoiceTotalMinor,
-        currency: compiled.currency,
-      };
-      const refunds = await finance.listRefundsForRegistration(financeAuth, booking.id);
-      refundStatuses = refunds.map((row) => row.status);
-    } catch {
-      invoice = null;
-      refundStatuses = [];
-    }
-
-    const hold = await holdRepo.getByRegistrationId(auth.tenantId, booking.id);
-    composed.push(
-      composeTourOperationalRosterRow({
-        booking,
-        invoice,
-        hold:
-          hold !== null
-            ? {
-                status: hold.status,
-                dueAt: hold.dueAt,
-              }
-            : null,
-        refundStatuses,
-        nowIso,
-      })
-    );
-  }
+  const composed = await enrichOperationalRosterRowsBudgetSafe(
+    auth,
+    bookings.items,
+    { finance, financeAuth, holdRepo },
+    nowIso
+  );
 
   const filtered = filterOperationalRosterRows({
     rows: composed,
