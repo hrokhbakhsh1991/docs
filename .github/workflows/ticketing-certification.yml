@@ -124,6 +124,13 @@ jobs:
       - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
       - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
       - run: bash scripts/ci/build-api-workspace-deps.sh
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-chromium-${{ runner.os }}-
       - run: pnpm --filter @apps/web exec playwright install --with-deps chromium
       - run: pnpm --filter @apps/web exec playwright test -c playwright.operator-ticketing.config.ts
 
@@ -165,5 +172,12 @@ jobs:
       - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
       - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
       - run: bash scripts/ci/build-api-workspace-deps.sh
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-chromium-${{ runner.os }}-
       - run: pnpm --filter @apps/portal exec playwright install --with-deps chromium
       - run: pnpm --filter @apps/portal exec playwright test -c playwright.portal-ticketing.config.ts
