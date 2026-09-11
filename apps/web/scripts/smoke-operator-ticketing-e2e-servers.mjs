@@ -167,15 +167,7 @@ const webEnv = {
 
 const api = spawn(
   "node",
-  [
-    "--import",
-    "tsx",
-    "--import",
-    "./scripts/e2e-memory-object-storage.ts",
-    "--env-file=.env",
-    "--env-file=.env.local",
-    "src/main.ts",
-  ],
+  ["--import", "tsx", "--import", "./scripts/e2e-memory-object-storage.ts", "src/main.ts"],
   {
     cwd: apiDir,
     env: { ...apiEnv, TICKETING_E2E_MEMORY_STORAGE: "1" },
