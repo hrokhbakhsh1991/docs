@@ -19,6 +19,7 @@ const ALLOWED_EXPORT_KEYS = [
   "./domain",
   "./application",
   "./case",
+  "./infrastructure/in-memory-payment-hold.repository",
   "./package.json",
 ];
 
