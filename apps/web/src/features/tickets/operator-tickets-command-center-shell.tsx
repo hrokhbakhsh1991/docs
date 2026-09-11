@@ -61,18 +61,15 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
   const t = useTranslations("tickets");
   const router = useRouter();
   const searchParams = useAppSearchParams();
-  const query = useMemo(
-    () => parseOperatorTicketsCommandCenterQuery(searchParams),
-    [searchParams],
-  );
+  const query = useMemo(() => parseOperatorTicketsCommandCenterQuery(searchParams), [searchParams]);
   const canMutate = canMutateTickets(session.role);
   const [selectedId, setSelectedId] = useState(() => query.ticketId);
 
   const [list, setList] = useState<OperatorTicketListView>(
-    initialPrefetch?.list ?? { items: [], nextCursor: null, hasMore: false },
+    initialPrefetch?.list ?? { items: [], nextCursor: null, hasMore: false }
   );
   const [listState, setListState] = useState<"ready" | "loading" | "error">(
-    initialPrefetch ? "ready" : "loading",
+    initialPrefetch ? "ready" : "loading"
   );
   const [detail, setDetail] = useState<OperatorTicketDetailView | null>(null);
   const [detailState, setDetailState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -86,9 +83,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
   const [clientReady, setClientReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const bulkConfirm = useOperatorConfirmDialog();
-  const skipInitialListLoadRef = useRef(
-    initialPrefetch !== null && initialPrefetch !== undefined,
-  );
+  const skipInitialListLoadRef = useRef(initialPrefetch !== null && initialPrefetch !== undefined);
 
   useEffect(() => {
     setSelectedId(query.ticketId);
@@ -116,7 +111,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
     (nextQuery: typeof query) => {
       router.replace(buildOperatorTicketsCommandCenterHref(nextQuery), { scroll: false });
     },
-    [router],
+    [router]
   );
 
   const loadList = useCallback(
@@ -149,7 +144,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
         }
       });
     },
-    [query],
+    [query]
   );
 
   const loadDetail = useCallback(async (ticketId: string) => {
@@ -169,7 +164,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
       setList((current) => ({
         ...current,
         items: current.items.map((item) =>
-          item.id === body.detail.ticket.id ? body.detail.ticket : item,
+          item.id === body.detail.ticket.id ? body.detail.ticket : item
         ),
       }));
     } catch {
@@ -240,7 +235,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
     setList((current) => ({
       ...current,
       items: current.items.map((item) =>
-        item.id === nextDetail.ticket.id ? nextDetail.ticket : item,
+        item.id === nextDetail.ticket.id ? nextDetail.ticket : item
       ),
     }));
     setMutationNotice(t("mutationSuccess"));
@@ -252,9 +247,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
 
   const toggleBulkSelection = (ticketId: string) => {
     setBulkSelectedIds((current) =>
-      current.includes(ticketId)
-        ? current.filter((id) => id !== ticketId)
-        : [...current, ticketId],
+      current.includes(ticketId) ? current.filter((id) => id !== ticketId) : [...current, ticketId]
     );
   };
 
@@ -303,7 +296,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
         ...current,
         items: current.items.map((item) => {
           const updated = payload.results.find(
-            (entry) => entry.ok && entry.detail !== undefined && entry.ticketId === item.id,
+            (entry) => entry.ok && entry.detail !== undefined && entry.ticketId === item.id
           );
           return updated?.detail !== undefined ? updated.detail.ticket : item;
         }),
@@ -313,7 +306,7 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
         payload.results.some((entry) => entry.ok && entry.ticketId === detail.ticket.id)
       ) {
         const refreshed = payload.results.find(
-          (entry) => entry.ok && entry.detail !== undefined && entry.ticketId === detail.ticket.id,
+          (entry) => entry.ok && entry.detail !== undefined && entry.ticketId === detail.ticket.id
         );
         if (refreshed?.detail !== undefined) {
           setDetail(refreshed.detail);
@@ -401,14 +394,14 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
               replaceQuery(
                 withOperatorTicketsFiltersReset(query, {
                   search: (event.currentTarget as HTMLInputElement).value.trim(),
-                }),
+                })
               );
             }
           }}
         />
         <div className="flex flex-wrap gap-2">
-          <label className="text-xs">
-            <span className="sr-only">{t("filterStatus")}</span>
+          <label className="operator-tickets-filter-field">
+            <span>{t("filterStatus")}</span>
             <select
               data-testid={OPERATOR_TICKETS_TEST_IDS.filterStatus}
               defaultValue={query.status}
@@ -423,8 +416,8 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
               ))}
             </select>
           </label>
-          <label className="text-xs">
-            <span className="sr-only">{t("filterPriority")}</span>
+          <label className="operator-tickets-filter-field">
+            <span>{t("filterPriority")}</span>
             <select
               data-testid={OPERATOR_TICKETS_TEST_IDS.filterPriority}
               defaultValue={query.priority}
@@ -440,8 +433,8 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
             </select>
           </label>
           {meta !== null && meta.categories.length > 0 ? (
-            <label className="text-xs">
-              <span className="sr-only">{t("filterCategory")}</span>
+            <label className="operator-tickets-filter-field">
+              <span>{t("filterCategory")}</span>
               <select
                 data-testid={OPERATOR_TICKETS_TEST_IDS.filterCategory}
                 defaultValue={query.categoryCode}
@@ -565,7 +558,9 @@ export function OperatorTicketsCommandCenterShell({ session, initialPrefetch }: 
           data-testid={OPERATOR_TICKETS_TEST_IDS.mobileSheet}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>{findOperatorTicketListItem(list.items, selectedId)?.subject ?? t("title")}</SheetTitle>
+            <SheetTitle>
+              {findOperatorTicketListItem(list.items, selectedId)?.subject ?? t("title")}
+            </SheetTitle>
           </SheetHeader>
           <OperatorTicketsDetailPanel key="mobile-detail" {...detailPanelProps} />
         </SheetContent>

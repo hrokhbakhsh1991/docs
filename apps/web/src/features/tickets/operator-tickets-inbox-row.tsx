@@ -16,6 +16,14 @@ type Props = {
   readonly onBulkToggle?: (ticketId: string) => void;
 };
 
+function resolveTicketLabel(
+  t: ReturnType<typeof useTranslations<"tickets">>,
+  key: string,
+  fallback: string
+): string {
+  return t.has(key) ? t(key) : fallback;
+}
+
 export function OperatorTicketsInboxRow({
   item,
   selected,
@@ -58,7 +66,8 @@ export function OperatorTicketsInboxRow({
       <div className="flex min-w-0 items-start justify-between gap-2">
         <span className="min-w-0 flex-1 truncate font-medium text-foreground">{item.subject}</span>
         <OperatorStatusBadge variant="outline" className="shrink-0">
-          <span aria-hidden="true">{item.statusIcon}</span> {t(item.statusLabelKey)}
+          <span aria-hidden="true">{item.statusIcon}</span>{" "}
+          {resolveTicketLabel(t, item.statusLabelKey, item.status)}
         </OperatorStatusBadge>
       </div>
       <div
@@ -67,9 +76,9 @@ export function OperatorTicketsInboxRow({
       >
         <span>{item.requesterLabel}</span>
         <span aria-hidden="true">·</span>
-        <span>{t(item.categoryLabelKey)}</span>
+        <span>{resolveTicketLabel(t, item.categoryLabelKey, item.categoryCode)}</span>
         <span aria-hidden="true">·</span>
-        <span>{t(item.priorityLabelKey)}</span>
+        <span>{resolveTicketLabel(t, item.priorityLabelKey, item.priority)}</span>
         {item.assigneeLabel !== null ? (
           <>
             <span aria-hidden="true">·</span>

@@ -54,6 +54,13 @@ describe("denali-gathering-points.spec.ts", () => {
     );
   });
 
+  it("ED-GATHER-03 consecutive add actions read the visible local list", () => {
+    assert.match(
+      FIELD_SRC,
+      /if \(localPoints !== null && localPoints\.length > 0\) \{[\s\S]*return localPoints;/
+    );
+  });
+
   it("ED-GATHER-01 invariant strips empty gathering rows before persist", () => {
     const form = buildDenaliTourCreateDefaultValues();
     form.tripDetails.logistics.gatheringPoints = [createEmptyDenaliGatheringPoint(true)];

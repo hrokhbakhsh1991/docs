@@ -13,7 +13,7 @@
 
 @media (min-width: 1024px) {
   .operator-tickets-grid {
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: minmax(20rem, 2fr) minmax(28rem, 3fr);
     min-height: calc(100dvh - 12rem);
   }
 }
@@ -45,6 +45,53 @@
 .operator-tickets-detail-pane [data-operator-status-badge] {
   background-color: var(--color-success, hsl(var(--primary)));
   font-size: 0.75rem;
+}
+
+.operator-tickets-filter-field,
+.operator-tickets-action-field {
+  display: inline-flex;
+  min-width: 9rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.operator-tickets-filter-field select,
+.operator-tickets-action-field select {
+  min-height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--background);
+  color: var(--foreground);
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-weight: 500;
+}
+
+.operator-tickets-filter-field select:focus-visible,
+.operator-tickets-action-field select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+[data-operator-tickets-actions] {
+  align-items: flex-end;
+}
+
+[data-operator-tickets-detail] > header {
+  background: color-mix(in oklab, var(--muted) 35%, var(--background));
+}
+
+[data-operator-tickets-row] button {
+  min-width: 0;
+  cursor: pointer;
+}
+
+[data-operator-tickets-row-selected="true"] {
+  border-inline-start: 3px solid var(--primary);
 }
 
 [data-operator-tickets-message][data-visibility="public"] {

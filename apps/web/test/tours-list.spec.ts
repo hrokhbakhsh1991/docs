@@ -218,6 +218,8 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     );
     assert.match(table, /border-separate border-spacing-0/);
     assert.match(table, /bg-muted\/50/);
+    assert.match(table, /sticky left-0 z-20 w-\[15rem\] bg-muted/);
+    assert.match(table, /sticky left-0 z-10 min-w-\[15rem\] bg-card/);
     assert.match(actions, /grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)_auto\]/);
     assert.match(actions, /compact \? "h-9 min-w-0 w-full px-2 text-xs"/);
   });

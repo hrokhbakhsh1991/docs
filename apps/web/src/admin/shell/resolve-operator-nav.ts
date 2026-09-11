@@ -65,7 +65,7 @@ export function resolveOperatorNav(input: ResolveOperatorNavInput): readonly Ope
         pathKey: `workspace:${href}`,
         href,
         labelKey,
-        labelNamespace: "tours.shell",
+        labelNamespace: labelKey.startsWith("settings.") ? "settings" : "tours.shell",
       });
     }
   }

@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
-import {
-  DenaliLocationPickerMap,
-  type DenaliMapCoordinates,
-} from "./denali-location-picker-map";
+import { DenaliLocationPickerMap, type DenaliMapCoordinates } from "./denali-location-picker-map";
 
 export type DenaliWizardMapExperienceProps = {
   readonly value: DenaliMapCoordinates;
@@ -118,6 +115,11 @@ export function DenaliWizardMapExperience({
         className="denali-wizard-map-dialog"
         aria-labelledby={titleId}
         data-testid={`denali-wizard-map-dialog-${testIdKey}`}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            closeExpanded();
+          }
+        }}
       >
         <header className="denali-wizard-map-dialog__header">
           <h4 id={titleId} className="denali-wizard-map-dialog__title">
@@ -129,11 +131,19 @@ export function DenaliWizardMapExperience({
             className="denali-wizard-map-dialog__done"
             onClick={closeExpanded}
             data-testid={`denali-wizard-map-close-${testIdKey}`}
+            aria-label={t("doneMap")}
           >
             {t("doneMap")}
           </button>
         </header>
-        <div className="denali-wizard-map-dialog__body">
+        <div
+          className="denali-wizard-map-dialog__body"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              closeExpanded();
+            }
+          }}
+        >
           {expandedMounted ? (
             <DenaliLocationPickerMap
               value={value}
