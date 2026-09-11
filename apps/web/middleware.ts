@@ -20,22 +20,6 @@ import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
 import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/tenant-kernel/host-only";
 import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminIngressHost } from "@/tenant/operator-admin-host";
-import {
-  allowsOperatorTicketsTeamRole,
-  isOperatorTicketsTeamAccessPath,
-} from "@/features/tickets/resolve-operator-tickets-middleware-access";
-import {
-  allowsOperatorToursTeamRole,
-  isOperatorToursTeamAccessPath,
-} from "@/features/tours/resolve-operator-tours-middleware-access";
-import {
-  allowsOperatorEngagementTeamRole,
-  isOperatorEngagementTeamAccessPath,
-} from "@/engagement/resolve-operator-engagement-middleware-access";
-import {
-  allowsOperatorMarketingPagesTeamRole,
-  isOperatorMarketingPagesTeamAccessPath,
-} from "@/features/settings/resolve-operator-marketing-pages-middleware-access";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import {
   normalizeHostHeader,
