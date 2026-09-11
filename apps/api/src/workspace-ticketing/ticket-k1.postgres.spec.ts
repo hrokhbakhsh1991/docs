@@ -30,12 +30,11 @@ import { PrismaTicketingRepository } from "./infrastructure/prisma-ticketing.rep
 
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
-const postgresSkip =
-  !hasDatabase
-    ? "TICKET_K1_REQUIRES_DATABASE"
-    : process.env.STORAGE_DRIVER?.trim().toLowerCase() !== "prisma"
-      ? "TICKET_K1_REQUIRES_STORAGE_DRIVER=prisma"
-      : false;
+const postgresSkip = !hasDatabase
+  ? "TICKET_K1_REQUIRES_DATABASE"
+  : process.env.STORAGE_DRIVER?.trim().toLowerCase() !== "prisma"
+    ? "TICKET_K1_REQUIRES_STORAGE_DRIVER=prisma"
+    : false;
 
 const repository = new PrismaTicketingRepository();
 
@@ -63,7 +62,7 @@ async function requestJson(
     readonly userId: string;
     readonly role?: "admin" | "owner" | "member" | "viewer";
     readonly body?: unknown;
-  },
+  }
 ): Promise<{ status: number; body: Record<string, unknown>; headers: http.IncomingHttpHeaders }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -105,7 +104,7 @@ async function requestJson(
             if (text.length > 0) body = JSON.parse(text) as Record<string, unknown>;
             resolve({ status: res.statusCode ?? 0, body, headers: res.headers });
           });
-        },
+        }
       );
       req.on("error", (error) => {
         server.close();
@@ -126,6 +125,12 @@ describe(
     const adminA = randomUUID();
     const viewerA = randomUUID();
     const requesterA = randomUUID();
+    const requesterMobileA = `+1555${tenantA
+      .replaceAll("-", "")
+      .split("")
+      .map((character) => Number.parseInt(character, 16) % 10)
+      .join("")
+      .slice(0, 9)}`;
     const priorDriver = process.env.STORAGE_DRIVER;
     let listener: ReturnType<typeof createRequestListener>;
 
@@ -152,9 +157,10 @@ describe(
           },
         ],
       });
-      await admin.user.createMany({
-        data: [{ id: requesterA, mobile: "+15550009901" }],
-        skipDuplicates: true,
+      await admin.user.upsert({
+        where: { id: requesterA },
+        create: { id: requesterA, mobile: requesterMobileA },
+        update: { mobile: requesterMobileA },
       });
       await admin.userTenant.createMany({
         data: [
@@ -231,7 +237,7 @@ describe(
 
       const byRequester = await repository.findOperatorTickets({
         tenantId: tenantA,
-        q: "9901",
+        q: requesterMobileA,
         limit: 20,
         sort: "lastActivityAt",
       });
@@ -289,11 +295,7 @@ describe(
       assert.ok(summary.ticketCount >= 1);
       assert.ok(typeof summary.statusDistribution === "object");
 
-      const key = buildTicketReportCacheKey(
-        tenantA,
-        summary.window.from,
-        summary.window.to,
-      );
+      const key = buildTicketReportCacheKey(tenantA, summary.window.from, summary.window.to);
       assert.ok(readTicketReportCache(key));
 
       writeTicketReportCache(key, {
@@ -360,12 +362,14 @@ describe(
         updatedByUserId: adminA,
       });
       assert.ok(updated);
-      assert.ok(updated?.categories.find((category) => category.code === "billing")?.enabled === false);
+      assert.ok(
+        updated?.categories.find((category) => category.code === "billing")?.enabled === false
+      );
 
       const audits = await withTenantRls(tenantA, async (tx) =>
         tx.operatorSettingsAuditEvent.findMany({
           where: { tenantId: tenantA, resourceType: "ticketing_settings" },
-        }),
+        })
       );
       assert.ok(audits.length >= 1);
     });
@@ -384,5 +388,5 @@ describe(
       assert.ok(!leaked.items.some((item) => item.ticket.tenantId === tenantB));
       assert.equal(foreign.ticketCount, 0);
     });
-  },
+  }
 );
