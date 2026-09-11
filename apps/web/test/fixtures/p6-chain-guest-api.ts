@@ -8,6 +8,9 @@ import { expect, type APIRequestContext } from "@playwright/test";
 /** Postgres / operator smoke host (`admin.operator.localhost`, staging). */
 export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+/** Memory-driver Denali dev host (`admin.denali.localhost`, Profile B staging). */
+export const DENALI_DEV_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+export const DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220";
 // Isolate the chain from the general operator smoke tour; the latter is intentionally reused by
 // other flows and can legitimately reach capacity during a full browser suite.
 export const OPERATOR_SMOKE_CHAIN_TOUR_ID = "00000000-0000-4000-8000-000000000213";
@@ -75,9 +78,7 @@ export function resolveChainSmokeTenantId(): string {
   if (override) {
     return override;
   }
-  return usesDenaliDevMemoryFixtures()
-    ? DENALI_DEV_SMOKE_TENANT_ID
-    : OPERATOR_SMOKE_TENANT_ID;
+  return usesDenaliDevMemoryFixtures() ? DENALI_DEV_SMOKE_TENANT_ID : OPERATOR_SMOKE_TENANT_ID;
 }
 
 export function resolveChainSmokePublishedTourId(): string {

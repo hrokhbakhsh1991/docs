@@ -12,6 +12,7 @@ import {
   ensureFinanceNavSupported,
   seedFinanceNavSupported,
 } from "@/finance/finance-nav-enablement";
+import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
 import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
@@ -130,6 +131,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const financeNavSupported = resolveFinanceNavCapability(bootstrap.plugin)?.supported === true;
   seedFinanceNavSupported(bootstrap.session.pluginId, financeNavSupported);
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
+  await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
   const wizardCreateCapability = resolveWizardCreateCapability(bootstrap.plugin);
   const wizardCreate =
     wizardCreateCapability?.extendedChrome === true

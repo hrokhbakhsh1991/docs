@@ -23,7 +23,6 @@ export const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-00000000010
 export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_DEV_OTP = process.env.OPERATOR_DEV_OTP?.trim() || "1234";
 export const OPERATOR_INVITEE_MOBILE = "+15550008803";
-export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_ANONYMOUS_OTP_USER_ID = "00000000-0000-4000-8000-000000000099";
 export const OPERATOR_SMOKE_COOKIE_DOMAIN = "admin.operator.localhost";
 
@@ -82,7 +81,7 @@ function cacheKeyForOperatorSession(page: Page, phone: string): string {
 async function loginOperatorTeamSessionViaBff(
   page: Page,
   phone: string,
-  forceFresh = false,
+  forceFresh = false
 ): Promise<void> {
   await page.context().clearCookies();
 
@@ -111,7 +110,7 @@ async function loginOperatorTeamSessionViaBff(
   const loginText = await loginRes.text();
   expect(
     loginRes.ok(),
-    `login-team-web-session failed (${loginRes.status()}): ${loginText}`,
+    `login-team-web-session failed (${loginRes.status()}): ${loginText}`
   ).toBeTruthy();
   const loginBody = JSON.parse(loginText) as { session_token?: string };
   expect(typeof loginBody.session_token).toBe("string");
@@ -153,9 +152,7 @@ async function loginOperatorSessionViaBff(
       phone,
       otp: OPERATOR_DEV_OTP,
       challenge_id: otpBody.challenge_id,
-      ...(inviteToken !== undefined && inviteToken.length > 0
-        ? { invite_token: inviteToken }
-        : {}),
+      ...(inviteToken !== undefined && inviteToken.length > 0 ? { invite_token: inviteToken } : {}),
     },
   });
   const loginText = await loginRes.text();

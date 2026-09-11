@@ -7,20 +7,19 @@ import {
   OPERATOR_WIZARD_PATH,
 } from "@/admin/require-operator-session";
 import { resolveOperatorAdminRootRedirect } from "@/admin/resolve-operator-admin-root-redirect";
-import {
-  SESSION_TOKEN_COOKIE,
-  clearSessionCookieOnResponse,
-} from "@/auth/build-session-cookie";
+import { SESSION_TOKEN_COOKIE, clearSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@app-tour/session-client";
 import {
   PLATFORM_SESSION_COOKIE,
   validatePlatformSessionToken,
 } from "@/platform/build-platform-session-cookie";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
-import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/tenant-kernel/host-only";
+import {
+  parseMultiLevelTenantHost,
+  toCanonicalClubAdminHost,
+} from "@app-tour/tenant-kernel/host-only";
 import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminIngressHost } from "@/tenant/operator-admin-host";
-import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import {
   normalizeHostHeader,
   readPlatformRootDomainWeb,
@@ -63,9 +62,7 @@ const PUBLIC_BFF_API_PATHS = [
 ] as const;
 
 function isPublicBffApiPath(pathname: string): boolean {
-  return PUBLIC_BFF_API_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`)
-  );
+  return PUBLIC_BFF_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 function isProtectedBffApiPath(pathname: string): boolean {
@@ -147,7 +144,10 @@ function redirectToPlatformLogin(request: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
-async function handlePlatformAdminHost(request: NextRequest, host: string): Promise<NextResponse | null> {
+async function handlePlatformAdminHost(
+  request: NextRequest,
+  host: string
+): Promise<NextResponse | null> {
   if (!isPlatformAdminHost(host)) {
     return null;
   }
@@ -223,8 +223,15 @@ function blockOperatorOnWrongHost(request: NextRequest, host: string): NextRespo
   return null;
 }
 
-function redirectLegacyClubAdminHostIfNeeded(request: NextRequest, host: string): NextResponse | null {
-  const canonical = toCanonicalClubAdminHost(host, readPlatformRootDomainWeb(), readWebReservedHostLabels());
+function redirectLegacyClubAdminHostIfNeeded(
+  request: NextRequest,
+  host: string
+): NextResponse | null {
+  const canonical = toCanonicalClubAdminHost(
+    host,
+    readPlatformRootDomainWeb(),
+    readWebReservedHostLabels()
+  );
   if (canonical === null) {
     return null;
   }
@@ -314,11 +321,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
         }
         return res;
       }
-      return redirectToLogin(
-        request,
-        !preservesTeamPanelSession(validation.role),
-        "owner-only",
-      );
+      return redirectToLogin(request, !preservesTeamPanelSession(validation.role), "owner-only");
     }
     return forwardPathname(request, pathname);
   }
