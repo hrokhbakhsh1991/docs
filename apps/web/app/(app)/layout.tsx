@@ -17,6 +17,7 @@ import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import { ensureTicketsNavSupported } from "@/features/tickets/tickets-nav-enablement";
 import {
   allowsOperatorToursTeamRole,
   isOperatorToursTeamAccessPath,
@@ -132,6 +133,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   seedFinanceNavSupported(bootstrap.session.pluginId, financeNavSupported);
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
   await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
+  await ensureTicketsNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
   const wizardCreateCapability = resolveWizardCreateCapability(bootstrap.plugin);
   const wizardCreate =
     wizardCreateCapability?.extendedChrome === true

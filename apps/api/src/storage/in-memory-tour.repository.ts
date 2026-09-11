@@ -56,9 +56,13 @@ function compareInMemoryOperatorTours(
     delta = (leftProj.title ?? "").localeCompare(rightProj.title ?? "");
   } else if (sortBy === "departure_at") {
     const leftDate =
-      typeof left.canonical.data?.startDateTime === "string" ? left.canonical.data.startDateTime : null;
+      typeof left.canonical.data?.startDateTime === "string"
+        ? left.canonical.data.startDateTime
+        : null;
     const rightDate =
-      typeof right.canonical.data?.startDateTime === "string" ? right.canonical.data.startDateTime : null;
+      typeof right.canonical.data?.startDateTime === "string"
+        ? right.canonical.data.startDateTime
+        : null;
     if (leftDate === null && rightDate !== null) {
       return 1;
     }
@@ -269,7 +273,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
     ];
     for (const fixture of bookingFixtures) {
       if (!this.hasTour(tenantId, fixture.id)) {
-        this.indexTour(buildDenaliBookingScenarioTour({ tenantId, ...fixture }));
+        this.indexTour(
+          buildDenaliBookingScenarioTour({
+            tenantId,
+            ...fixture,
+            createdAt: new Date(0).toISOString(),
+          })
+        );
       }
     }
   }
@@ -373,6 +383,9 @@ export class InMemoryTourRepository implements TourStorageRepository {
             tenantId: OPERATOR_SMOKE_TENANT_ID,
             catalog: OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
             ...fixture,
+            // Keep deterministic smoke fixtures behind the primary published tour
+            // so the default newest catalog page always contains North Ridge Trek.
+            createdAt: new Date(0).toISOString(),
           })
         );
       }
@@ -476,9 +489,7 @@ export class InMemoryTourRepository implements TourStorageRepository {
 
   async getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]> {
     assertTenantId(tenantId);
-    const unique = [
-      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
-    ];
+    const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
     const out: Tour[] = [];
     for (const id of unique) {
       const tour = this.byId.get(tourStorageKey(tenantId, id));
@@ -537,7 +548,9 @@ export class InMemoryTourRepository implements TourStorageRepository {
     };
   }
 
-  async listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput> {
+  async listOperatorToursPage(
+    input: TourOperatorListPageInput
+  ): Promise<TourOperatorListPageOutput> {
     assertTenantId(input.tenantId);
     const { query } = input;
     const allPage = await this.listByTenantPage({
@@ -562,7 +575,9 @@ export class InMemoryTourRepository implements TourStorageRepository {
         return allowed.has(publishStatus);
       });
     }
-    items.sort((left, right) => compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir));
+    items.sort((left, right) =>
+      compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir)
+    );
     const total = items.length;
     const offset = (query.page - 1) * query.limit;
     const pageItems = items.slice(offset, offset + query.limit);

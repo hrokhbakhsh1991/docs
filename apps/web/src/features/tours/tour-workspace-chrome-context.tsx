@@ -48,7 +48,7 @@ export function TourWorkspaceChromeProvider({
   const searchParams = useSearchParams();
   const workspacePath = workspaceBasePath(tourId);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const resolvedTab = resolveWorkspaceSubnavTab(pathname, tourId, searchParams.get("tab"));
+  const resolvedTab = resolveWorkspaceSubnavTab(pathname, tourId, searchParams?.get("tab"));
   const [activeTab, setActiveTab] = useState<TourWorkspaceSubnavTab>(resolvedTab);
 
   // Keep deep-links, back/forward, and external URL changes authoritative.
@@ -62,8 +62,13 @@ export function TourWorkspaceChromeProvider({
 
   const navigateWorkspaceTab = useCallback(
     (tab: TourWorkspaceSubnavTab, options?: NavigateWorkspaceTabOptions) => {
-      const nextPath = buildWorkspaceTabReplacePath(workspacePath, tab, searchParams, options);
-      const currentQs = searchParams.toString();
+      const nextPath = buildWorkspaceTabReplacePath(
+        workspacePath,
+        tab,
+        searchParams?.toString(),
+        options
+      );
+      const currentQs = searchParams?.toString() ?? "";
       const currentPath = currentQs.length > 0 ? `${pathname}?${currentQs}` : pathname;
       if (nextPath === currentPath) {
         return;
