@@ -28,6 +28,10 @@ import {
 import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
+import {
+  allowsOperatorTicketsTeamRole,
+  isOperatorTicketsTeamAccessPath,
+} from "@/features/tickets/resolve-operator-tickets-middleware-access";
 
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
@@ -309,7 +313,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       }
       return redirectToLogin(request, true, "tenant-mismatch");
     }
-    if (validation.role !== "owner" && !isInviteBootstrap) {
+    const allowsTicketingTeamAccess =
+      isOperatorTicketsTeamAccessPath(pathname) &&
+      allowsOperatorTicketsTeamRole(validation.role, request.method);
+    if (validation.role !== "owner" && !isInviteBootstrap && !allowsTicketingTeamAccess) {
       if (isBffApi) {
         const res = jsonAuthError(
           403,

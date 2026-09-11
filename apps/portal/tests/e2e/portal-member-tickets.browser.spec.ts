@@ -132,10 +132,8 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-new-form.png", { fullPage: true });
 
     await page.locator('select[name="categoryCode"]').selectOption("general");
-    await page.locator('input[name="subject"]').click();
-    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
-    await page.locator('textarea[name="body"]').click();
-    await page.locator('textarea[name="body"]').pressSequentially(ticketBody, { delay: 10 });
+    await page.locator('input[name="subject"]').fill(ticketSubject);
+    await page.locator('textarea[name="body"]').fill(ticketBody);
 
     await Promise.all([
       page.waitForResponse(
@@ -204,7 +202,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     });
 
     await page.locator('select[name="categoryCode"]').selectOption("general");
-    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
+    await page.locator('input[name="subject"]').fill(ticketSubject);
     await page.locator('textarea[name="body"]').pressSequentially("BQC reopen journey", { delay: 10 });
 
     await Promise.all([
@@ -323,7 +321,7 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     });
 
     await page.locator('select[name="categoryCode"]').selectOption("general");
-    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
+    await page.locator('input[name="subject"]').fill(ticketSubject);
     await page.locator('textarea[name="body"]').pressSequentially("BQC attachment journey", { delay: 10 });
 
     await Promise.all([
