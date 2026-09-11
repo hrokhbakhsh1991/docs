@@ -67,13 +67,15 @@ function TourWorkspaceLayoutInner({
   const tFormat = useTranslations("tours.format");
   const tErrors = useTranslations("tours.workspace.errors");
   const tNav = useTranslations("tours.nav");
-  const pathname = usePathname() ?? "";
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get(WORKSPACE_TAB_QUERY_KEY);
-  const resolvedActiveTab = resolveWorkspaceSubnavTab(pathname, tourId, tabParam);
-  const { reloadNonce, navigateWorkspaceTab, activeTab: contextActiveTab } =
-    useTourWorkspaceChrome();
-  const activeTab = contextActiveTab ?? resolvedActiveTab;
+  const pathname = useAppPathname();
+  const searchParams = useAppSearchParams();
+  const [tabHydrated, setTabHydrated] = useState(false);
+  useEffect(() => {
+    setTabHydrated(true);
+  }, []);
+  const tabParam = tabHydrated ? searchParams.get(WORKSPACE_TAB_QUERY_KEY) : null;
+  const activeTab = resolveWorkspaceSubnavTab(pathname, tourId, tabParam);
+  const { reloadNonce, navigateWorkspaceTab } = useTourWorkspaceChrome();
   const canManage = isAdminOrOwnerRole(session.role);
   const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(() =>
     readCachedTourDetail(tourId)

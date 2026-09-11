@@ -19,7 +19,7 @@ const useProductionServers = process.env.PW_USE_PROD_SERVERS === "1";
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const marketingSmokeBaseUrl =
-  process.env.SMOKE_MARKETING_BASE_URL?.trim() || "http://denali.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL?.trim() || "http://operator.localhost:3002";
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
 const readinessPort = Number(process.env.MARKETING_SMOKE_READY_PORT?.trim() || "3012");
 const mandatoryWarmTimeoutMs = 600_000;
