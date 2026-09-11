@@ -25,12 +25,7 @@ type Props = {
   readonly onError: (messageKey: string) => void;
 };
 
-export function OperatorTicketsComposer({
-  detail,
-  canMutate,
-  onDetailUpdated,
-  onError,
-}: Props) {
+export function OperatorTicketsComposer({ detail, canMutate, onDetailUpdated, onError }: Props) {
   const t = useTranslations("tickets");
   const [mode, setMode] = useState<ComposerMode>("public");
   const [body, setBody] = useState("");
@@ -52,7 +47,7 @@ export function OperatorTicketsComposer({
         const payload = (await res.json()) as { items?: TemplateItem[] };
         if (Array.isArray(payload.items)) {
           setTemplates(payload.items);
-        },
+        }
       } catch {
         // templates optional
       }
@@ -210,10 +205,16 @@ export function OperatorTicketsComposer({
         rows={3}
         disabled={pending}
         className="mb-2 w-full min-w-0 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
-        placeholder={mode === "public" ? t("composerPublicPlaceholder") : t("composerInternalPlaceholder")}
+        placeholder={
+          mode === "public" ? t("composerPublicPlaceholder") : t("composerInternalPlaceholder")
+        }
         onChange={(event) => setBody(event.target.value)}
       />
-      <Button type="button" disabled={pending || body.trim().length === 0} onClick={() => void submit()}>
+      <Button
+        type="button"
+        disabled={pending || body.trim().length === 0}
+        onClick={() => void submit()}
+      >
         {pending ? t("sending") : t("send")}
       </Button>
     </div>
