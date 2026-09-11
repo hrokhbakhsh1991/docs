@@ -15,7 +15,8 @@
     "more": "More",
     "memberFallback": "Member",
     "wallet": "Wallet",
-    "tickets": "Support"
+    "tickets": "Support",
+    "engagement": "Engagement & points"
   },
   "locale": {
     "fa": "FA",
@@ -223,11 +224,11 @@
     }
   },
   "hub": {
-    "title": "More",
-    "lede": "Less-frequent member tools and secondary account paths live here.",
+    "title": "More account tools",
+    "lede": "Find and manage supporting account features, engagement points, and support from here.",
     "sectionEyebrow": "Secondary paths",
-    "sectionTitle": "More member tools",
-    "sectionLede": "Use this list when you need supporting modules beyond the main trips and profile flow.",
+    "sectionTitle": "Supporting account features",
+    "sectionLede": "Choose an option to view its details and continue.",
     "emptyTitle": "Nothing more to show yet",
     "empty": "No additional modules are available yet.",
     "linkDescriptions": {
@@ -463,6 +464,24 @@
     "unreadSummary": "{count, plural, one {# unread} other {# unread}}",
     "ticketUpdateBody": "Update for ticket {ticketRef}",
     "genericUpdateBody": "You have a new update.",
+    "genericTitle": "New notification",
+    "eventTitles": {
+      "ticketCreated": "New ticket",
+      "ticketReply": "New ticket reply",
+      "ticketInternalNote": "Ticket internal note",
+      "ticketStatusChanged": "Ticket status changed",
+      "ticketAssigned": "Ticket assigned",
+      "ticketPriorityChanged": "Ticket priority changed",
+      "ticketResolved": "Ticket resolved",
+      "ticketReopened": "Ticket reopened",
+      "registrationApproved": "Registration approved",
+      "registrationWaitlisted": "Added to the waitlist",
+      "registrationCancelled": "Registration cancelled",
+      "registrationRejected": "Registration declined",
+      "paymentScheduled": "Payment scheduled",
+      "paymentExpired": "Payment deadline passed",
+      "walletUpdated": "Wallet updated"
+    },
     "openTourSocialLink": "Open the tour group or social channel",
     "sources": {
       "default": "Account",

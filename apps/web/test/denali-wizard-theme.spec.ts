@@ -59,7 +59,10 @@ describe("denali-wizard-theme.spec.ts", () => {
   });
 
   it("WEB-DENALI-WIZARD-07 step shell avoids tailwind layout utilities", () => {
-    const shell = readFileSync(join(import.meta.dirname, "../src/wizard/wizard-step-shell.tsx"), "utf8");
+    const shell = readFileSync(
+      join(import.meta.dirname, "../src/wizard/wizard-step-shell.tsx"),
+      "utf8"
+    );
     assert.doesNotMatch(shell, /space-y-/);
     const adminAppearance = readFileSync(
       join(REPO_ROOT, "packages/design-tokens/src/operator-admin-appearance.css"),
@@ -81,10 +84,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(skin, /wizard-bridge-shell__theme-toggle/);
     assert.match(skin, /--color-surface:\s*var\(--color-bg-surface\)/);
     const datetimePicker = readFileSync(
-      join(
-        REPO_ROOT,
-        "packages/workspaces/denali/src/ui/components/localized-datetime-picker.tsx"
-      ),
+      join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/localized-datetime-picker.tsx"),
       "utf8"
     );
     assert.match(datetimePicker, /operator-wizard-datetime/);
@@ -114,17 +114,11 @@ describe("denali-wizard-theme.spec.ts", () => {
     const calendarCss = readFileSync(join(DENALI_THEME_DIR, "wizard-calendar.css"), "utf8");
     assert.match(calendarCss, /\[data-operator-wizard-calendar\]/);
     assert.match(calendarCss, /button\[aria-pressed="true"\]/);
-    assert.match(
-      calendarCss,
-      /--operator-wizard-calendar-primary:\s*var\(--color-primary\)/
-    );
+    assert.match(calendarCss, /--operator-wizard-calendar-primary:\s*var\(--color-primary\)/);
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.doesNotMatch(fields, /data-selected="true"/);
     const calendarBarrel = readFileSync(
-      join(
-        REPO_ROOT,
-        "packages/workspaces/denali/src/ui/components/calendar/denali-calendar.tsx"
-      ),
+      join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/calendar/denali-calendar.tsx"),
       "utf8"
     );
     assert.match(calendarBarrel, /@app-tour\/localized-calendar\/solar-hijri-calendar/);
@@ -142,12 +136,18 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(calendarCss, /operator-wizard-calendar__picker-grid/);
     assert.match(calendarCss, /operator-wizard-calendar__title-btn/);
     assert.match(calendarCss, /operator-wizard-calendar__day--disabled/);
-    assert.match(calendarCss, /operator-wizard-calendar__day--today:not\(\[aria-pressed="true"\]\)/);
+    assert.match(
+      calendarCss,
+      /operator-wizard-calendar__day--today:not\(\[aria-pressed="true"\]\)/
+    );
   });
 
   it("WEB-DENALI-WIZARD-16 social media link input wiring", () => {
     const social = readFileSync(
-      join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-social-media-link-field.tsx"),
+      join(
+        REPO_ROOT,
+        "packages/workspaces/denali/src/ui/fields/denali-social-media-link-field.tsx"
+      ),
       "utf8"
     );
     assert.match(social, /data-operator-social-media-link/);
@@ -172,6 +172,24 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.doesNotMatch(leaders, /Checkbox/);
   });
 
+  it("WEB-DENALI-WIZARD-21 selection rows keep labels beside visible checks", () => {
+    const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
+    for (const picker of ["catalog-multi-picker", "leader-picker", "gear-picker"]) {
+      assert.match(fields, new RegExp(`denali-${picker}__grid[\\s\\S]*flex-direction: column`));
+      assert.match(fields, new RegExp(`denali-${picker}__check[\\s\\S]*opacity: 1`));
+    }
+    assert.match(fields, /denali-leader-picker__card[\s\S]*flex-direction: row/);
+    assert.match(fields, /denali-gear-picker__select[\s\S]*min-height: 3\.5rem/);
+  });
+
+  it("WEB-DENALI-WIZARD-22 map action and time picker have high-contrast affordances", () => {
+    const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
+    assert.match(fields, /denali-wizard-map-experience__preview-overlay[\s\S]*z-index: 2/);
+    assert.match(fields, /denali-wizard-map-experience__open[\s\S]*background: var\(--color-primary\)/);
+    assert.match(fields, /operator-time-picker__option[\s\S]*min-height: 2\.75rem/);
+    assert.match(fields, /operator-time-picker__preview[\s\S]*font-size: 1\.375rem/);
+  });
+
   it("WEB-DENALI-WIZARD-09 photo grid BEM in wizard-fields.css", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.match(fields, /denali-wizard-composite__photos-layout/);
@@ -185,18 +203,18 @@ describe("denali-wizard-theme.spec.ts", () => {
   it("WEB-DENALI-WIZARD-20 select chevron inset for RTL wizard fields", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.match(fields, /denali-searchable-select__trigger-icon[\s\S]*margin-inline-end:/);
-    assert.doesNotMatch(
-      fields,
-      /\[dir="rtl"\][\s\S]*denali-searchable-select__trigger[\s\S]*padding-inline-start:/
-    );
+    assert.match(fields, /\[dir="rtl"\][\s\S]*background-position:\s*left/);
     const selectCss = readFileSync(
       join(REPO_ROOT, "packages/ui-primitives/src/Select/select-affordance.css"),
       "utf8"
     );
     assert.match(selectCss, /appearance:\s*none/);
-    assert.match(selectCss, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
-    assert.doesNotMatch(selectCss, /\[dir="rtl"\]/);
-    assert.match(fields, /background-position:\s*center inline-end var\(--select-chevron-edge-inset\)/);
+    assert.match(
+      selectCss,
+      /background-position:\s*right var\(--select-chevron-edge-inset\) center/
+    );
+    assert.match(selectCss, /\[dir="rtl"\][\s\S]*background-position:\s*left/);
+    assert.match(fields, /background-position:\s*right var\(--select-chevron-edge-inset\) center/);
   });
 
   it("WEB-DENALI-WIZARD-12 composite UX phase 3 (WZ-P1-06…10)", () => {
@@ -278,7 +296,10 @@ describe("denali-wizard-theme.spec.ts", () => {
     );
     assert.match(gear, /DenaliCatalogLoadNotice/);
     const catalogLoadNotice = readFileSync(
-      join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/denali-catalog-load-notice.tsx"),
+      join(
+        REPO_ROOT,
+        "packages/workspaces/denali/src/ui/components/denali-catalog-load-notice.tsx"
+      ),
       "utf8"
     );
     assert.match(catalogLoadNotice, /denali-wizard-composite__error/);
@@ -403,7 +424,10 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(stepper, /workspace-wizard-shell__progress-rail/);
     assert.match(stepper, /\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*nowrap/);
     assert.match(stepper, /@media \(min-width: 640px\) and \(max-width: 820px\)/);
-    assert.match(stepper, /@media \(min-width: 640px\) and \(max-width: 820px\)[\s\S]*\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*wrap/);
+    assert.match(
+      stepper,
+      /@media \(min-width: 640px\) and \(max-width: 820px\)[\s\S]*\.workspace-wizard-shell__progress-list \{[\s\S]*flex-wrap:\s*wrap/
+    );
     assert.match(stepper, /@media \(max-width: 639px\)/);
     assert.match(
       stepper,

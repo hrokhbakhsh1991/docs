@@ -158,7 +158,10 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       "utf8"
     );
     const duplicateActions = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-duplicate-actions.tsx"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/tour-duplicate-actions.tsx"
+      ),
       "utf8"
     );
     assert.match(actions, /<TourDuplicateActions tourId=\{tour\.id\}/);
@@ -166,7 +169,10 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.secondaryActions/);
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.duplicate/);
     assert.match(duplicateActions, /TOURS_LIST_TEST_IDS\.duplicateServer/);
-    assert.doesNotMatch(duplicateActions, /<Button asChild variant="outline" size="sm" data-testid=\{TOURS_LIST_TEST_IDS\.duplicate\}/);
+    assert.doesNotMatch(
+      duplicateActions,
+      /<Button asChild variant="outline" size="sm" data-testid=\{TOURS_LIST_TEST_IDS\.duplicate\}/
+    );
   });
 
   it("WEB-TL-ACTIONS-06 duplicate copy hides implementation wording", async () => {
@@ -199,6 +205,21 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.doesNotMatch(pageClient, /TourCard/);
     assert.match(pageClient, /ToursDirectoryTable/);
     assert.match(pageClient, /ToursDirectoryMobileRow/);
+  });
+
+  it("WEB-TL-FINAL-04 desktop table keeps primary row actions horizontal", () => {
+    const table = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-table.tsx"),
+      "utf8"
+    );
+    const actions = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tour-list-row-actions.tsx"),
+      "utf8"
+    );
+    assert.match(table, /border-separate border-spacing-0/);
+    assert.match(table, /bg-muted\/50/);
+    assert.match(actions, /grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)_auto\]/);
+    assert.match(actions, /compact \? "h-9 min-w-0 w-full px-2 text-xs"/);
   });
 
   it("WEB-TL-FINAL-02 hides disabled archived filter from launch UI", () => {
@@ -315,7 +336,10 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(slugs.length, 6);
     assert.ok(slugs.includes("mountain_day"));
     assert.ok(slugs.includes("desert_multi"));
-    assert.equal(slugs.some((slug) => slug.startsWith("event_")), false);
+    assert.equal(
+      slugs.some((slug) => slug.startsWith("event_")),
+      false
+    );
   });
 
   it("WEB-W5-FMT-01 fa locale formatters use Persian copy", async () => {
@@ -368,7 +392,10 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
 
   it("WEB-TL-FILTER-02 compact controls hide status button wall", () => {
     const controls = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-controls.tsx"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/tours-directory-controls.tsx"
+      ),
       "utf8"
     );
     assert.match(controls, /TOUR_STATUS_UI_OPTIONS\.map/);
@@ -393,7 +420,10 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       "utf8"
     );
     const controls = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-controls.tsx"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/tours-directory-controls.tsx"
+      ),
       "utf8"
     );
     assert.match(skeleton, /OperatorSkeleton size="search"/);
@@ -425,12 +455,18 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     );
     assert.match(table, /<table/);
     assert.match(table, /data-operator-tours-table/);
-    assert.match(table, /hidden overflow-x-auto rounded-xl border bg-card\/40 lg:block/);
+    assert.match(
+      table,
+      /hidden overflow-x-auto rounded-xl border border-border bg-card shadow-sm lg:block/
+    );
   });
 
   it("WEB-TL-ADMIN-02 mobile rows stay compact without cover imagery", () => {
     const mobile = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-mobile-row.tsx"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/tours-directory-mobile-row.tsx"
+      ),
       "utf8"
     );
     assert.match(mobile, /data-operator-surface="list-row"/);

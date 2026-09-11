@@ -29,20 +29,25 @@ type TourListRowActionsProps = {
   readonly compact?: boolean;
 };
 
-export function TourListRowActions({
-  tour,
-  canManage,
-  compact = false,
-}: TourListRowActionsProps) {
+export function TourListRowActions({ tour, canManage, compact = false }: TourListRowActionsProps) {
   const t = useTranslations("tours.card");
   const actionHierarchy = resolveTourCardActionHierarchy(tour.uiStatus, canManage);
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-1.5${compact ? "" : " justify-end"}`}
+      className={
+        compact
+          ? "grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1"
+          : "flex flex-wrap items-center justify-end gap-1.5"
+      }
       data-testid={TOURS_LIST_TEST_IDS.rowActions}
     >
-      <Button asChild variant={actionHierarchy.editVariant} size="sm" className="h-8 whitespace-nowrap">
+      <Button
+        asChild
+        variant={actionHierarchy.editVariant}
+        size="sm"
+        className={compact ? "h-9 min-w-0 w-full px-2 text-xs" : "h-8 whitespace-nowrap"}
+      >
         <TourInternalLink href={`/tours/${tour.id}/edit`}>{t("view")}</TourInternalLink>
       </Button>
       {canManage ? (
@@ -50,7 +55,7 @@ export function TourListRowActions({
           asChild
           variant={actionHierarchy.workspaceVariant}
           size="sm"
-          className="h-8 whitespace-nowrap"
+          className={compact ? "h-9 min-w-0 w-full px-2 text-xs" : "h-8 whitespace-nowrap"}
           data-testid={TOURS_LIST_TEST_IDS.workspace}
         >
           <TourInternalLink href={`/tours/${tour.id}/workspace`}>{t("workspace")}</TourInternalLink>

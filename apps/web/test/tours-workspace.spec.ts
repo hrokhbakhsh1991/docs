@@ -117,6 +117,30 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.equal(workspaceBasePath(TOUR_ID), `/tours/${TOUR_ID}/workspace`);
   });
 
+  it("WEB-9.3-W03a tabs use live chrome state and the ARIA tab contract", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    const root = join(__dirname, "..");
+    const layout = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx"),
+      "utf8"
+    );
+    const panels = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/tour-workspace-tab-panels.tsx"),
+      "utf8"
+    );
+
+    assert.match(layout, /activeTab\s*\}\s*=\s*useTourWorkspaceChrome\(\)/);
+    assert.match(layout, /role="tablist"/);
+    assert.match(layout, /role="tab"/);
+    assert.match(layout, /aria-selected=\{isActive\}/);
+    assert.match(layout, /aria-controls=\{`tour-workspace-panel-\$\{tab\}`\}/);
+    assert.match(panels, /role="tabpanel"/);
+    assert.match(panels, /aria-labelledby="tour-workspace-tab-registrations"/);
+    assert.match(panels, /aria-labelledby="tour-workspace-tab-waitlist"/);
+    assert.match(panels, /aria-labelledby="tour-workspace-tab-transport"/);
+  });
+
   it("WEB-9.3-W04 waitlist query scopes bookings API to tour + waitlisted (CP-9.3-W05)", () => {
     const query = buildTourWaitlistBookingsQuery(TOUR_ID);
     const params = new URLSearchParams(query);
@@ -308,12 +332,17 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       join(root, "app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx"),
       "utf8"
     );
+    const registrations = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
+      "utf8"
+    );
     assert.match(layout, /ensureFinanceNavSupported/);
     assert.match(layout, /includeFinance=\{includeFinance\}/);
     assert.match(client, /readonly includeFinance: boolean/);
     assert.doesNotMatch(client, /finance-nav-enablement/);
     assert.doesNotMatch(client, /void ensureFinanceNavSupported/);
     assert.doesNotMatch(client, /approvedQuickAccess/);
+    assert.match(registrations, /lockedStatus="pending"/);
     assert.match(client, /navigateWorkspaceTab\("registrations"\)/);
     assert.equal(
       pickTourCollectionRollup(
@@ -843,6 +872,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     );
     assert.doesNotMatch(client, /hydrateTransportRosterIntake/);
     assert.match(client, /buildTourOperationalRosterHref/);
+    assert.match(client, /<caption className="sr-only">\{t\("tableCaption"\)\}<\/caption>/);
+    assert.match(client, /scope="col"/);
     const logic = readFileSync(
       join(process.cwd(), "src/features/tours/tour-workspace-transport-logic.ts"),
       "utf8"

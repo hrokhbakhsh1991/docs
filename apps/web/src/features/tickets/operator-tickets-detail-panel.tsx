@@ -6,7 +6,10 @@ import { OperatorConfirmDialog } from "@/admin/patterns/operator-confirm-dialog"
 import { useOperatorConfirmDialog } from "@/admin/patterns/use-operator-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { OperatorStatusBadge } from "@/admin/patterns/operator-status-badge";
-import { createTicketsIdempotencyKey } from "@/features/tickets/operator-tickets-format";
+import {
+  createTicketsIdempotencyKey,
+  ticketEventLabelKey,
+} from "@/features/tickets/operator-tickets-format";
 import type {
   OperatorTicketDetailView,
   OperatorTicketsMetaView,
@@ -28,7 +31,7 @@ type Props = {
 
 async function patchTicket(
   ticketId: string,
-  body: Record<string, unknown>,
+  body: Record<string, unknown>
 ): Promise<OperatorTicketDetailView | null> {
   const res = await fetch(`/api/tickets/${ticketId}`, {
     method: "PATCH",
@@ -212,7 +215,7 @@ export function OperatorTicketsDetailPanel({
       {
         method: "DELETE",
         headers: { "Idempotency-Key": createTicketsIdempotencyKey("ticket-tag-rm") },
-      },
+      }
     );
     const payload = (await res.json()) as
       | { readonly ok: true; readonly detail: OperatorTicketDetailView }
@@ -255,7 +258,8 @@ export function OperatorTicketsDetailPanel({
         <h2 className="text-lg font-semibold break-words">{detail.ticket.subject}</h2>
         <div className="flex flex-wrap items-center gap-2 text-sm text-foreground/80">
           <OperatorStatusBadge>
-            <span aria-hidden="true">{detail.ticket.statusIcon}</span> {t(detail.ticket.statusLabelKey)}
+            <span aria-hidden="true">{detail.ticket.statusIcon}</span>{" "}
+            {t(detail.ticket.statusLabelKey)}
           </OperatorStatusBadge>
           <span>{t(detail.ticket.priorityLabelKey)}</span>
           <span>{t(detail.ticket.categoryLabelKey)}</span>
@@ -361,9 +365,27 @@ export function OperatorTicketsDetailPanel({
           {publicMessages.map((message) => (
             <li key={message.id} data-operator-tickets-message data-visibility="public">
               <p className="text-xs text-foreground/75">
-                {message.authorLabel} · <time dateTime={message.createdAt}>{message.createdAtLabel}</time>
+                {message.authorLabel} ·{" "}
+                <time dateTime={message.createdAt}>{message.createdAtLabel}</time>
               </p>
               <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
+              {message.attachments.length > 0 ? (
+                <ul className="mt-2 space-y-1" aria-label={t("attachmentsTitle")}>
+                  {message.attachments.map((attachment) => (
+                    <li key={attachment.id}>
+                      <a
+                        href={`/api/tickets/${detail.ticket.id}/attachments/${attachment.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        data-operator-tickets-attachment-link
+                      >
+                        {t("openAttachment", { name: attachment.originalFileName })}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -373,9 +395,27 @@ export function OperatorTicketsDetailPanel({
           {internalMessages.map((message) => (
             <li key={message.id} data-operator-tickets-message data-visibility="internal">
               <p className="text-xs text-foreground/75">
-                {message.authorLabel} · <time dateTime={message.createdAt}>{message.createdAtLabel}</time>
+                {message.authorLabel} ·{" "}
+                <time dateTime={message.createdAt}>{message.createdAtLabel}</time>
               </p>
               <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
+              {message.attachments.length > 0 ? (
+                <ul className="mt-2 space-y-1" aria-label={t("attachmentsTitle")}>
+                  {message.attachments.map((attachment) => (
+                    <li key={attachment.id}>
+                      <a
+                        href={`/api/tickets/${detail.ticket.id}/attachments/${attachment.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        data-operator-tickets-attachment-link
+                      >
+                        {t("openAttachment", { name: attachment.originalFileName })}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -386,7 +426,8 @@ export function OperatorTicketsDetailPanel({
             <ul className="space-y-2 text-xs" data-operator-tickets-detail-meta>
               {detail.events.map((event) => (
                 <li key={event.id} data-operator-tickets-event>
-                  {event.eventType} · <time dateTime={event.createdAt}>{event.createdAtLabel}</time>
+                  {t(ticketEventLabelKey(event.eventType))} · {event.actorLabel ?? t("actorSystem")}{" "}
+                  · <time dateTime={event.createdAt}>{event.createdAtLabel}</time>
                 </li>
               ))}
             </ul>

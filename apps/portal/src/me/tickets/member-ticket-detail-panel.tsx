@@ -219,6 +219,8 @@ export function MemberTicketDetailPanel({
                       <li key={attachment.id}>
                         <a
                           href={`/api/me/tickets/${detail.ticket.id}/attachments/${attachment.id}`}
+                          target="_blank"
+                          rel="noreferrer"
                           data-portal-member-ticket-attachment-link
                         >
                           {attachment.originalFileName}

@@ -29,9 +29,37 @@ test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context 
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });
 
-test("SMK-MKT-17 denali catalog page matches current backend catalog batch", async ({
-  page,
-}) => {
+test("SMK-MKT-01b client navigation keeps the catalog title below the header", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-home]")).toBeVisible({ timeout: 60_000 });
+
+  const toursLink = page.locator('a[data-marketing-nav-link-id="tours"]').first();
+  await expect(toursLink).toBeVisible();
+  await toursLink.click();
+
+  await expect(page).toHaveURL(/\/tours(?:\?|$)/);
+  await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
+
+  const layout = await page.locator("[data-marketing-catalog-title]").evaluate((title) => {
+    const header = document.querySelector<HTMLElement>("[data-marketing-header]");
+    if (!header) {
+      throw new Error("Marketing header is missing");
+    }
+
+    const titleTop = title.getBoundingClientRect().top;
+    const headerBottom = header.getBoundingClientRect().bottom;
+    return {
+      headerOverlay: header.hasAttribute("data-marketing-header-overlay"),
+      titleTop,
+      headerBottom,
+    };
+  });
+
+  expect(layout.headerOverlay).toBe(false);
+  expect(layout.titleTop).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+});
+
+test("SMK-MKT-17 denali catalog page matches current backend catalog batch", async ({ page }) => {
   const response = await page.request.get("/api/catalog");
   expect(response.ok()).toBe(true);
 
@@ -137,7 +165,9 @@ test("SMK-MKT-04 tour detail renders multi-day itinerary; smoke photos stay empt
   await expect(page.locator("[data-marketing-catalog-segment-photos-empty]").first()).toBeVisible();
 });
 
-test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({ page }) => {
+test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({
+  page,
+}) => {
   await page.goto("/tours?category=mountain", { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();

@@ -15,7 +15,8 @@
     "more": "بیشتر",
     "memberFallback": "عضو",
     "wallet": "کیف پول",
-    "tickets": "پشتیبانی"
+    "tickets": "پشتیبانی",
+    "engagement": "مشارکت و امتیازها"
   },
   "locale": {
     "fa": "FA",
@@ -223,11 +224,11 @@
     }
   },
   "hub": {
-    "title": "بیشتر",
-    "lede": "ماژول‌های کم‌استفاده‌تر یا مسیرهای تکمیلی حساب شما اینجا جمع می‌شوند.",
+    "title": "ابزارهای بیشتر حساب",
+    "lede": "امکانات تکمیلی حساب، امتیازهای مشارکت و پشتیبانی را از اینجا پیدا و مدیریت کنید.",
     "sectionEyebrow": "مسیرهای تکمیلی",
-    "sectionTitle": "دسترسی‌های دیگر",
-    "sectionLede": "برای ادامه‌ی کارهای فرعی یا ماژول‌های کمتر استفاده‌شده از این فهرست وارد شوید.",
+    "sectionTitle": "امکانات تکمیلی حساب",
+    "sectionLede": "هر گزینه را برای مشاهده جزئیات و ادامه کار انتخاب کنید.",
     "emptyTitle": "چیز بیشتری برای نمایش نیست",
     "empty": "هنوز ماژول اضافه‌ای در دسترس نیست.",
     "linkDescriptions": {
@@ -421,6 +422,15 @@
     "rejectedTitle": "ثبت‌نام رد شد",
     "rejectedBody": "باشگاه این ثبت‌نام را رد کرده و امکان ارسال فیش وجود ندارد."
   },
+  "cancellation": {
+    "withdrawHint": "پیش از تأیید باشگاه می‌توانید این ثبت‌نام را پس بگیرید.",
+    "requestHint": "ثبت‌نام‌های پرداخت‌شده نیاز به بررسی باشگاه دارند. درخواست لغو را ثبت کنید.",
+    "withdrawAction": "پس‌گرفتن ثبت‌نام",
+    "requestAction": "درخواست لغو",
+    "blocked": "امکان لغو وجود ندارد ({reason}).",
+    "error": "ثبت درخواست لغو ممکن نشد ({code}).",
+    "refundEligible": "مبلغ قابل‌استرداد: {amount} {currency}"
+  },
   "intakeAmend": {
     "eyebrow": "پیش از تأیید",
     "title": "ویرایش اطلاعات ثبت‌نام",
@@ -454,6 +464,24 @@
     "unreadSummary": "{count, plural, one {# خوانده‌نشده} other {# خوانده‌نشده}}",
     "ticketUpdateBody": "به‌روزرسانی برای تیکت {ticketRef}",
     "genericUpdateBody": "به‌روزرسانی جدیدی دارید.",
+    "genericTitle": "اعلان جدید",
+    "eventTitles": {
+      "ticketCreated": "تیکت جدید",
+      "ticketReply": "پاسخ جدید تیکت",
+      "ticketInternalNote": "یادداشت داخلی تیکت",
+      "ticketStatusChanged": "وضعیت تیکت تغییر کرد",
+      "ticketAssigned": "تیکت ارجاع شد",
+      "ticketPriorityChanged": "اولویت تیکت تغییر کرد",
+      "ticketResolved": "تیکت حل شد",
+      "ticketReopened": "تیکت دوباره باز شد",
+      "registrationApproved": "ثبت‌نام تأیید شد",
+      "registrationWaitlisted": "در فهرست انتظار قرار گرفتید",
+      "registrationCancelled": "ثبت‌نام لغو شد",
+      "registrationRejected": "ثبت‌نام رد شد",
+      "paymentScheduled": "پرداخت زمان‌بندی شد",
+      "paymentExpired": "مهلت پرداخت به پایان رسید",
+      "walletUpdated": "کیف پول به‌روزرسانی شد"
+    },
     "openTourSocialLink": "ورود به گروه یا شبکه اجتماعی تور",
     "sources": {
       "default": "حساب",

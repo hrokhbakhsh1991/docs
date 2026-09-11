@@ -267,13 +267,24 @@ export function TourWorkspaceTransportClient({
                 className="w-full table-fixed text-start text-sm"
                 data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.table}
               >
+                <caption className="sr-only">{t("tableCaption")}</caption>
                 <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="w-[28%] px-3 py-2 font-medium">{tTable("guest")}</th>
-                    <th className="w-[16%] px-3 py-2 font-medium">{t("columns.participation")}</th>
-                    <th className="w-[20%] px-3 py-2 font-medium">{tTable("transportIntake")}</th>
-                    <th className="w-[22%] px-3 py-2 font-medium">{t("columns.note")}</th>
-                    <th className="w-[14%] px-3 py-2 font-medium">{t("columns.financial")}</th>
+                    <th scope="col" className="w-[28%] px-3 py-2 font-medium">
+                      {tTable("guest")}
+                    </th>
+                    <th scope="col" className="w-[16%] px-3 py-2 font-medium">
+                      {t("columns.participation")}
+                    </th>
+                    <th scope="col" className="w-[20%] px-3 py-2 font-medium">
+                      {tTable("transportIntake")}
+                    </th>
+                    <th scope="col" className="w-[22%] px-3 py-2 font-medium">
+                      {t("columns.note")}
+                    </th>
+                    <th scope="col" className="w-[14%] px-3 py-2 font-medium">
+                      {t("columns.financial")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

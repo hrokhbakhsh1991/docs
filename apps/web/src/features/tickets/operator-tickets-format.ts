@@ -47,6 +47,28 @@ export function ticketCategoryLabelKey(categoryCode: string): string {
   return `categories.${categoryCode}`;
 }
 
+const TICKET_EVENT_LABEL_KEYS: Readonly<Record<string, string>> = {
+  "ticket.created": "created",
+  "ticket.message.created": "messageCreated",
+  "ticket.internal_note.created": "internalNoteCreated",
+  "ticket.status.changed": "statusChanged",
+  "ticket.priority.changed": "priorityChanged",
+  "ticket.assigned": "assigned",
+  "ticket.team.assigned": "teamAssigned",
+  "ticket.queue.changed": "queueChanged",
+  "ticket.tag.added": "tagAdded",
+  "ticket.tag.removed": "tagRemoved",
+  "ticket.category.changed": "categoryChanged",
+  "ticket.reopened": "reopened",
+  "ticket.closed": "closed",
+  "ticket.link.created": "linkCreated",
+  "ticket.link.deleted": "linkDeleted",
+};
+
+export function ticketEventLabelKey(eventType: string): string {
+  return `events.${TICKET_EVENT_LABEL_KEYS[eventType] ?? "unknown"}`;
+}
+
 export function shortenUserId(userId: string): string {
   const trimmed = userId.trim();
   if (trimmed.length <= 8) {

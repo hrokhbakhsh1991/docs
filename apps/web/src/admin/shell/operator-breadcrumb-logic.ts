@@ -28,6 +28,7 @@ const SETTINGS_MODULE_BY_PATH: Record<string, string> = {
   "audit-trail": "audit_trail",
   "reconciliation-triage": "reconciliation_triage",
   branding: "workspace_branding",
+  "marketing-pages": "marketing_pages",
   integrations: "integrations",
   "workspace-owner": "workspaceOwner.title",
 };

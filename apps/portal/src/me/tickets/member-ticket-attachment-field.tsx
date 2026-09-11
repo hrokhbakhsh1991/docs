@@ -12,6 +12,7 @@ type Props = {
   readonly messageId: string | null;
   readonly maxBytes: number;
   readonly onMessageId?: (messageId: string) => void;
+  readonly onFileSelected?: (file: File | null) => void;
   readonly onUploaded?: () => void;
 };
 
@@ -24,12 +25,47 @@ function createIdempotencyKey(): string {
 
 const ALLOWED_TYPES = new Set<string>(TICKET_ATTACHMENT_ALLOWED_CONTENT_TYPES);
 
+export async function uploadMemberTicketAttachment(input: {
+  readonly ticketId: string;
+  readonly messageId: string;
+  readonly file: File;
+  readonly maxBytes: number;
+}): Promise<
+  "ok" | "unsupportedType" | "tooLarge" | "intentFailed" | "uploadFailed" | "completeFailed"
+> {
+  if (!ALLOWED_TYPES.has(input.file.type)) return "unsupportedType";
+  if (input.file.size > input.maxBytes) return "tooLarge";
+  const intentRes = await fetch(`/api/me/tickets/${input.ticketId}/attachments/intents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": createIdempotencyKey() },
+    body: JSON.stringify({
+      messageId: input.messageId,
+      originalFileName: input.file.name,
+      contentType: input.file.type,
+      sizeBytes: input.file.size,
+    }),
+  });
+  const intentBody = await intentRes.json().catch(() => ({}));
+  if (!intentRes.ok || typeof intentBody.attachmentId !== "string") return "intentFailed";
+  const uploadRes = await fetch(
+    `/api/me/tickets/${input.ticketId}/attachments/${intentBody.attachmentId}`,
+    { method: "PUT", headers: { "Content-Type": input.file.type }, body: input.file }
+  );
+  if (!uploadRes.ok) return "uploadFailed";
+  const completeRes = await fetch(
+    `/api/me/tickets/${input.ticketId}/messages/${input.messageId}/attachments/${intentBody.attachmentId}/complete`,
+    { method: "POST", headers: { "Idempotency-Key": createIdempotencyKey() } }
+  );
+  return completeRes.ok ? "ok" : "completeFailed";
+}
+
 export function MemberTicketAttachmentField({
   mode,
   ticketId,
   messageId,
   maxBytes,
   onMessageId,
+  onFileSelected,
   onUploaded,
 }: Props) {
   const t = useTranslations("portalMember.tickets.attachments");
@@ -43,6 +79,7 @@ export function MemberTicketAttachmentField({
     setPhase("idle");
     const next = event.target.files?.[0] ?? null;
     setFile(next);
+    onFileSelected?.(next);
   };
 
   const upload = async () => {
@@ -62,58 +99,10 @@ export function MemberTicketAttachmentField({
 
     setPhase("uploading");
     setError(null);
-    const idempotencyKey = createIdempotencyKey();
     try {
-      const intentRes = await fetch(`/api/me/tickets/${ticketId}/attachments/intents`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": idempotencyKey,
-        },
-        body: JSON.stringify({
-          messageId,
-          originalFileName: file.name,
-          contentType: file.type,
-          sizeBytes: file.size,
-        }),
-      });
-      const intentBody = await intentRes.json().catch(() => ({}));
-      if (!intentRes.ok) {
-        setError(t("intentFailed"));
-        setPhase("error");
-        return;
-      }
-      const attachmentId =
-        typeof intentBody.attachmentId === "string" ? intentBody.attachmentId : null;
-      if (attachmentId === null) {
-        setError(t("intentFailed"));
-        setPhase("error");
-        return;
-      }
-
-      const uploadRes = await fetch(
-        `/api/me/tickets/${ticketId}/attachments/${attachmentId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        },
-      );
-      if (!uploadRes.ok) {
-        setError(t("uploadFailed"));
-        setPhase("error");
-        return;
-      }
-
-      const completeRes = await fetch(
-        `/api/me/tickets/${ticketId}/messages/${messageId}/attachments/${attachmentId}/complete`,
-        {
-          method: "POST",
-          headers: { "Idempotency-Key": createIdempotencyKey() },
-        },
-      );
-      if (!completeRes.ok) {
-        setError(t("completeFailed"));
+      const result = await uploadMemberTicketAttachment({ ticketId, messageId, file, maxBytes });
+      if (result !== "ok") {
+        setError(t(result));
         setPhase("error");
         return;
       }

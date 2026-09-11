@@ -44,6 +44,42 @@ function resolveLocalizedCopy(
   return { title: item.title, body: item.body };
 }
 
+function resolveNotificationTitle(
+  item: NotificationItem,
+  locale: string,
+  t: ReturnType<typeof useTranslations<"portalMember.notifications">>
+): string {
+  const localizedTitle = locale.startsWith("fa") ? item.payload?.titleFa : undefined;
+  if (typeof localizedTitle === "string" && localizedTitle.trim().length > 0) {
+    return localizedTitle.trim();
+  }
+  const rawTitle = item.title.trim();
+  if (rawTitle.length > 0 && !rawTitle.startsWith("notification.")) {
+    return rawTitle;
+  }
+  const eventTitleKeys: Record<string, string> = {
+    "ticket.created": "eventTitles.ticketCreated",
+    "ticket.message.posted": "eventTitles.ticketReply",
+    "ticket.internal_note.created": "eventTitles.ticketInternalNote",
+    "ticket.status.changed": "eventTitles.ticketStatusChanged",
+    "ticket.assigned": "eventTitles.ticketAssigned",
+    "ticket.priority.changed": "eventTitles.ticketPriorityChanged",
+    "ticket.resolved": "eventTitles.ticketResolved",
+    "ticket.reopened": "eventTitles.ticketReopened",
+    "registration.approved": "eventTitles.registrationApproved",
+    "registration.waitlisted": "eventTitles.registrationWaitlisted",
+    "registration.cancelled": "eventTitles.registrationCancelled",
+    "registration.rejected": "eventTitles.registrationRejected",
+    "payment.hold.scheduled": "eventTitles.paymentScheduled",
+    "payment.hold.expired": "eventTitles.paymentExpired",
+    "wallet.transaction.posted": "eventTitles.walletUpdated",
+    "wallet.balance.updated": "eventTitles.walletUpdated",
+    "wallet.refund.credited": "eventTitles.walletUpdated",
+  };
+  const key = eventTitleKeys[item.eventType];
+  return key === undefined ? t("genericTitle") : t(key);
+}
+
 function resolveNotificationHref(item: NotificationItem): string {
   if (item.entityType === "ticket") {
     const ticketId = item.entityId ?? item.ticketId;
@@ -243,7 +279,7 @@ export function MemberNotificationsPanel() {
         <ul data-portal-member-notifications-list>
           {items.map((item) => {
             const copy = resolveLocalizedCopy(item, locale);
-            const title = sanitizeNotificationTitle(copy.title);
+            const title = sanitizeNotificationTitle(resolveNotificationTitle(item, locale, t));
             const body = resolveNotificationBodyForLocale({
               title,
               body: copy.body,

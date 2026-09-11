@@ -99,6 +99,7 @@ function mapMemoryRow(row: {
 }
 
 function inferSourceModuleFromTemplate(templateId: string): MemberNotificationSourceModule {
+  if (templateId.startsWith("ticketing.")) return "ticketing";
   if (templateId.startsWith("booking.") || templateId.startsWith("tour.")) return "booking";
   if (templateId.startsWith("finance.") || templateId.startsWith("payment.")) return "finance";
   if (templateId.startsWith("wallet.")) return "wallet";
@@ -106,7 +107,7 @@ function inferSourceModuleFromTemplate(templateId: string): MemberNotificationSo
 }
 
 function inferEntityType(
-  sourceModule: MemberNotificationSourceModule,
+  sourceModule: MemberNotificationSourceModule
 ): MemberNotificationRow["entityType"] {
   if (sourceModule === "ticketing") return "ticket";
   if (sourceModule === "finance") return "payment";
@@ -116,7 +117,7 @@ function inferEntityType(
 
 function resolveEntityId(
   payload: Readonly<Record<string, unknown>>,
-  sourceModule: MemberNotificationSourceModule,
+  sourceModule: MemberNotificationSourceModule
 ): string | null {
   if (sourceModule === "ticketing") {
     const ticketId = payload.ticketId;
@@ -142,7 +143,7 @@ function encodeCursor(createdAt: Date, id: string): string {
 }
 
 export async function insertMemberNotificationRow(
-  input: MemberNotificationInsertInput,
+  input: MemberNotificationInsertInput
 ): Promise<string | null> {
   if (!usePostgresInbox()) {
     const row = insertMemberNotificationInboxRow({
@@ -217,11 +218,15 @@ export async function insertMemberNotificationRow(
 }
 
 export async function listMemberNotifications(
-  query: MemberNotificationListQuery,
+  query: MemberNotificationListQuery
 ): Promise<MemberNotificationListResult> {
   if (!usePostgresInbox()) {
     const rows = listMemberNotificationInbox(query.tenantId, query.userId ?? "")
-      .filter((row) => query.sourceModule === undefined || inferSourceModuleFromTemplate(row.templateId) === query.sourceModule)
+      .filter(
+        (row) =>
+          query.sourceModule === undefined ||
+          inferSourceModuleFromTemplate(row.templateId) === query.sourceModule
+      )
       .filter((row) => query.unreadOnly !== true || row.readAt === null)
       .map(mapMemoryRow);
     return {
@@ -275,7 +280,7 @@ export async function countUnreadMemberNotifications(input: {
       (row) =>
         row.readAt === null &&
         (input.sourceModule === undefined ||
-          inferSourceModuleFromTemplate(row.templateId) === input.sourceModule),
+          inferSourceModuleFromTemplate(row.templateId) === input.sourceModule)
     ).length;
   }
 
@@ -289,7 +294,7 @@ export async function countUnreadMemberNotifications(input: {
           : {}),
         ...(input.sourceModule !== undefined ? { sourceModule: input.sourceModule } : {}),
       },
-    }),
+    })
   );
 }
 
@@ -324,7 +329,7 @@ export async function markMemberNotificationRead(input: {
 
 export async function findMemberNotificationById(
   tenantId: string,
-  notificationId: string,
+  notificationId: string
 ): Promise<MemberNotificationRow | null> {
   if (!usePostgresInbox()) {
     return null;
@@ -363,7 +368,7 @@ export async function markAllMemberNotificationsRead(input: {
 
 export async function claimPendingMemberNotificationDeliveries(
   tenantId: string,
-  batchSize: number,
+  batchSize: number
 ): Promise<
   readonly {
     readonly id: string;
@@ -443,7 +448,9 @@ export async function claimPendingMemberNotificationDeliveries(
 export async function markMemberNotificationDeliveryResult(
   tenantId: string,
   deliveryId: string,
-  result: { readonly ok: true } | { readonly ok: false; readonly retryable: boolean; readonly error: string },
+  result:
+    | { readonly ok: true }
+    | { readonly ok: false; readonly retryable: boolean; readonly error: string }
 ): Promise<void> {
   if (!usePostgresInbox()) {
     return;
@@ -463,7 +470,7 @@ export async function markMemberNotificationDeliveryResult(
       return;
     }
     const nextAttempt = result.retryable
-      ? new Date(Date.now() + Math.min(60_000 * (2 ** 1), 3_600_000))
+      ? new Date(Date.now() + Math.min(60_000 * 2 ** 1, 3_600_000))
       : null;
     await tx.memberNotificationDelivery.update({
       where: { id: deliveryId },

@@ -11,8 +11,8 @@ import { TourListRowActions } from "./tour-list-row-actions";
 import { TourStatusBadge } from "./tour-status-badge";
 
 const HEAD_CELL =
-  "px-4 py-3 text-start align-middle font-medium whitespace-nowrap text-muted-foreground";
-const BODY_CELL = "px-4 py-3 text-start align-middle";
+  "border-b border-border/70 px-4 py-3 text-start align-middle text-xs font-semibold uppercase tracking-wide whitespace-nowrap text-muted-foreground";
+const BODY_CELL = "border-b border-border/60 px-4 py-3 text-start align-middle";
 
 type ToursDirectoryTableProps = {
   readonly pluginId: string;
@@ -35,19 +35,36 @@ export function ToursDirectoryTable({
 
   return (
     <div
-      className="hidden overflow-x-auto rounded-xl border bg-card/40 lg:block"
+      className="hidden overflow-x-auto rounded-xl border border-border bg-card shadow-sm lg:block"
       data-testid={TOURS_LIST_TEST_IDS.tableDesktop}
     >
-      <table className="w-full min-w-[56rem] border-collapse text-sm" data-operator-tours-table>
-        <thead className="border-b bg-muted/40">
+      <table
+        className="w-full min-w-[62rem] border-separate border-spacing-0 text-sm"
+        data-operator-tours-table
+      >
+        <thead className="bg-muted/50">
           <tr>
-            <th className={`${HEAD_CELL} min-w-[16rem]`} scope="col">{t("tour")}</th>
-            <th className={`${HEAD_CELL} w-[7rem]`} scope="col">{t("status")}</th>
-            <th className={`${HEAD_CELL} w-[10rem]`} scope="col">{t("departure")}</th>
-            <th className={`${HEAD_CELL} w-[8rem]`} scope="col">{t("capacity")}</th>
-            <th className={`${HEAD_CELL} w-[8rem]`} scope="col">{t("price")}</th>
-            <th className={`${HEAD_CELL} w-[10rem]`} scope="col">{t("updated")}</th>
-            <th className={`${HEAD_CELL} w-[12rem]`} scope="col">{t("actions")}</th>
+            <th className={`${HEAD_CELL} min-w-[16rem]`} scope="col">
+              {t("tour")}
+            </th>
+            <th className={`${HEAD_CELL} w-[7rem]`} scope="col">
+              {t("status")}
+            </th>
+            <th className={`${HEAD_CELL} w-[10rem]`} scope="col">
+              {t("departure")}
+            </th>
+            <th className={`${HEAD_CELL} w-[8rem]`} scope="col">
+              {t("capacity")}
+            </th>
+            <th className={`${HEAD_CELL} w-[8rem]`} scope="col">
+              {t("price")}
+            </th>
+            <th className={`${HEAD_CELL} w-[10rem]`} scope="col">
+              {t("updated")}
+            </th>
+            <th className={`${HEAD_CELL} w-[15rem]`} scope="col">
+              {t("actions")}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -82,7 +99,7 @@ function TourDirectoryTableRow({
 
   return (
     <tr
-      className="border-b transition-colors hover:bg-muted/30 focus-within:bg-muted/30 last:border-b-0"
+      className="transition-colors odd:bg-background/20 hover:bg-accent/40 focus-within:bg-accent/40 last:[&>td]:border-b-0"
       data-testid={TOURS_LIST_TEST_IDS.row}
       data-tour-id={tour.id}
     >
@@ -106,26 +123,34 @@ function TourDirectoryTableRow({
       <td className={BODY_CELL}>
         <TourStatusBadge status={tour.uiStatus} />
       </td>
-      <td className={BODY_CELL}>
+      <td className={`${BODY_CELL} whitespace-nowrap`}>
         {row.departureLabel ? (
-          <span dir="ltr" className="inline-block tabular-nums">{row.departureLabel}</span>
+          <span dir="ltr" className="inline-block tabular-nums">
+            {row.departureLabel}
+          </span>
         ) : (
           <EmptyCellValue label={t("noDeparture")} />
         )}
       </td>
-      <td className={BODY_CELL}>
-        <span dir="ltr" className="inline-block tabular-nums" data-testid={TOURS_LIST_TEST_IDS.cardMeta}>
+      <td className={`${BODY_CELL} whitespace-nowrap`}>
+        <span
+          dir="ltr"
+          className="inline-block tabular-nums"
+          data-testid={TOURS_LIST_TEST_IDS.cardMeta}
+        >
           {row.seatsLabel}
         </span>
       </td>
-      <td className={BODY_CELL}>
+      <td className={`${BODY_CELL} whitespace-nowrap`}>
         {row.priceLabel ? (
-          <span dir="ltr" className="inline-block tabular-nums">{row.priceLabel}</span>
+          <span dir="ltr" className="inline-block tabular-nums">
+            {row.priceLabel}
+          </span>
         ) : (
           <EmptyCellValue label={t("noPrice")} />
         )}
       </td>
-      <td className={BODY_CELL}>
+      <td className={`${BODY_CELL} whitespace-nowrap`}>
         <span dir="ltr" className="inline-block tabular-nums text-muted-foreground">
           {row.updatedLabel}
         </span>
