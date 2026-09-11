@@ -9,8 +9,8 @@ import type {
   UsersDirectoryStatus,
 } from "./users-directory-types";
 
-/** Product gate — hide ownership transfer panel until flow is explicitly enabled. */
-export const USERS_OWNERSHIP_TRANSFER_UI_ENABLED = false;
+/** Ownership transfer is backed by the owner-only API contract and is part of the users surface. */
+export const USERS_OWNERSHIP_TRANSFER_UI_ENABLED = true;
 
 export type InviteRequestBody = {
   readonly phone: string;

@@ -155,7 +155,7 @@ async function requestJson(
     readonly role: "admin" | "owner" | "member" | "viewer";
     readonly body?: unknown;
     readonly idempotencyKey?: string;
-  },
+  }
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -180,7 +180,9 @@ async function requestJson(
                   "Content-Length": String(Buffer.byteLength(payload)),
                 }
               : {}),
-            ...(input.idempotencyKey !== undefined ? { "idempotency-key": input.idempotencyKey } : {}),
+            ...(input.idempotencyKey !== undefined
+              ? { "idempotency-key": input.idempotencyKey }
+              : {}),
             "x-tenant-id": OPERATOR_SMOKE.tenantId,
             "x-authenticated-tenant-id": OPERATOR_SMOKE.tenantId,
             "x-user-id": input.userId,
@@ -201,7 +203,7 @@ async function requestJson(
             }
             resolve({ status: res.statusCode ?? 0, body });
           });
-        },
+        }
       );
       req.on("error", (error) => {
         server.close();
@@ -215,7 +217,9 @@ async function requestJson(
   });
 }
 
-async function seedOperationalArtifacts(listener: ReturnType<typeof createRequestListener>): Promise<void> {
+async function seedOperationalArtifacts(
+  listener: ReturnType<typeof createRequestListener>
+): Promise<void> {
   const tag = await requestJson(listener, {
     method: "POST",
     path: "/ticket-tags",
@@ -239,7 +243,11 @@ async function seedOperationalArtifacts(listener: ReturnType<typeof createReques
       name: "Smoke team",
     },
   });
-  if (team.status !== 201 && team.body.code !== "TICKET_DUPLICATE_TEAM" && team.body.code !== "UNIQUE_CONSTRAINT_VIOLATION") {
+  if (
+    team.status !== 201 &&
+    team.body.code !== "TICKET_DUPLICATE_TEAM" &&
+    team.body.code !== "UNIQUE_CONSTRAINT_VIOLATION"
+  ) {
     throw new Error(`seed team failed: ${team.status} ${JSON.stringify(team.body)}`);
   }
 
@@ -251,12 +259,18 @@ async function seedOperationalArtifacts(listener: ReturnType<typeof createReques
     idempotencyKey: `seed-queue-${randomUUID()}`,
     body: { code: "smoke-queue", name: "Smoke queue", teamCode: "smoke-team" },
   });
-  if (queue.status !== 201 && queue.body.code !== "TICKET_DUPLICATE_QUEUE" && queue.body.code !== "UNIQUE_CONSTRAINT_VIOLATION") {
+  if (
+    queue.status !== 201 &&
+    queue.body.code !== "TICKET_DUPLICATE_QUEUE" &&
+    queue.body.code !== "UNIQUE_CONSTRAINT_VIOLATION"
+  ) {
     throw new Error(`seed queue failed: ${queue.status} ${JSON.stringify(queue.body)}`);
   }
 }
 
-async function seedMemberTicket(listener: ReturnType<typeof createRequestListener>): Promise<string> {
+async function seedMemberTicket(
+  listener: ReturnType<typeof createRequestListener>
+): Promise<string> {
   const subject = `TKT-OP-SMOKE-${Date.now()}`;
   const created = await requestJson(listener, {
     method: "POST",
@@ -290,8 +304,11 @@ async function main(): Promise<void> {
   const admin = new PrismaClient({ datasourceUrl: adminUrl });
   try {
     await admin.$executeRawUnsafe(`GRANT SELECT ON TABLE "_prisma_migrations" TO app_tour`);
-    await seedOperatorSmokeIdentity();
     await enableTicketingModule(admin);
+    // The identity seed writes user_tenants and therefore requires the tenant
+    // row to exist first. Keep this order explicit so a fresh CI database does
+    // not fail with user_tenants_tenant_id_fkey.
+    await seedOperatorSmokeIdentity();
     await ensureAdminMemberUsers(admin);
     await ensureViewerUser(admin);
 
@@ -306,7 +323,7 @@ async function main(): Promise<void> {
     await seedOperationalArtifacts(listener);
     const ticketId = await seedMemberTicket(listener);
     console.log(
-      `seed-operator-ticketing-e2e-fixtures: ready (viewer=${VIEWER_MOBILE}, ticket=${ticketId})`,
+      `seed-operator-ticketing-e2e-fixtures: ready (viewer=${VIEWER_MOBILE}, ticket=${ticketId})`
     );
   } finally {
     await admin.$disconnect();

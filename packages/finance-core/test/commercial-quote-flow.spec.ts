@@ -74,7 +74,10 @@ function createMutableObligation(initialMinor = "5000000"): {
   };
 }
 
-function approvedBookingPort(tenantId = TENANT_A): IBookingPaymentPort {
+function approvedBookingPort(
+  tenantId = TENANT_A,
+  lifecycle: "pending" | "approved" | "waitlisted" | "rejected" | "cancelled" | null = "approved"
+): IBookingPaymentPort {
   return {
     async syncStatus(input) {
       return input.paymentStatus;
@@ -89,7 +92,7 @@ function approvedBookingPort(tenantId = TENANT_A): IBookingPaymentPort {
       return "unpaid";
     },
     async getRegistrationLifecycleStatus() {
-      return "approved";
+      return lifecycle;
     },
   };
 }
@@ -164,6 +167,39 @@ describe("commercial-quote-flow.spec.ts — CQ-1B", () => {
 
     assert.equal(invoice.invoiceTotalMinor, "5000000");
     assert.equal(await quoteRepo.getActive(TENANT_A, registrationId), null);
+  });
+
+  it("CQ-FLOW-02b: missing booking never becomes a synthetic zero invoice", async () => {
+    const registrationId = randomUUID();
+    const booking = approvedBookingPort(TENANT_A, null);
+    const repo = new InMemoryFinanceRepository(booking);
+    const quoteRepo = new InMemoryCommercialQuoteRepository();
+    const obligation = createMutableObligation("5000000").port;
+    const commercialQuotes = new CommercialQuoteService(quoteRepo, obligation, FakeClock);
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock,
+      obligation,
+      "0",
+      nullFinanceArObservationPort,
+      commercialQuotes
+    );
+
+    await assert.rejects(
+      finance.getRegistrationInvoice(opsAuth(), registrationId),
+      /BOOKING_NOT_FOUND/
+    );
   });
 
   it("CQ-FLOW-03: invoice uses quote when available", async () => {

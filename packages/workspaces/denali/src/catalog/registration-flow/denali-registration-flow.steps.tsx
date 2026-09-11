@@ -1000,7 +1000,7 @@ export function DenaliIntakeStep({
                     {selfDraft.transportState.hasPersonalCar === true ? (
                       <div data-public-registration-transport-occupants>
                         <p>{t("intake.personalCarOccupantsLabel")}</p>
-                        {([1, 2, 3] as const).map((count) => (
+                        {([0, 1, 2, 3] as const).map((count) => (
                           <label key={count}>
                             <input
                               type="radio"
@@ -1237,7 +1237,7 @@ export function DenaliIntakeStep({
                           {guest.transportState.hasPersonalCar === true ? (
                             <div data-public-registration-transport-occupants>
                               <p>{t("intake.personalCarOccupantsLabel")}</p>
-                              {([1, 2, 3] as const).map((count) => (
+                              {([0, 1, 2, 3] as const).map((count) => (
                                 <label key={count}>
                                   <input
                                     type="radio"

@@ -11,5 +11,10 @@ export type UiSurfaceModule = {
 };
 
 export function importUiSurface(specifier: string): Promise<UiSurfaceModule> {
-  return resolveImportUiSurfaceLoader(specifier)();
+  if (typeof window === "undefined") {
+    return resolveImportUiSurfaceLoader(specifier)();
+  }
+  return import("./browser-ui-surface-loader").then(({ loadUiSurface }) =>
+    loadUiSurface(specifier)
+  );
 }

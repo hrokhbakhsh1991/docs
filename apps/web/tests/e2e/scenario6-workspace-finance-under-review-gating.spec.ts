@@ -15,11 +15,9 @@ import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
-import {
-  ensureTourHasApprovalCapacity,
-  openFinanceWorkspaceGuest,
-  seedApprovedUnpaidGuest,
-} from "./fixtures/tour-workspace-smoke";
+import { seedChainGuestRegistrationViaApi } from "../../test/fixtures/p6-chain-guest-api";
+
+const TOUR_ID = process.env.QA_TOUR_ID?.trim() || "00000000-0000-4000-8000-000000000213";
 
 type PaymentRow = {
   readonly id?: string;
@@ -29,6 +27,12 @@ type PaymentRow = {
   readonly amount?: string;
   readonly currency?: string;
 };
+
+function financeWorkspacePath(registrationId: string): string {
+  return `/tours/${TOUR_ID}/workspace?tab=finance&focusRegistrationId=${encodeURIComponent(
+    registrationId
+  )}`;
+}
 
 async function sleepMs(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -66,8 +70,33 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
     await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const { guestName, registrationId } = await seedApprovedUnpaidGuest(page, stamp);
+    const booking = await seedChainGuestRegistrationViaApi(page.request, {
+      guestName: `Scenario6 Candidate ${stamp}`,
+      email: `scenario6-${stamp}@denali-smoke.local`,
+      mobile: `+1555${String(Date.now()).slice(-7)}`,
+    });
+    const registrationId = booking.bookingId;
+    const approveRes = await page.request.post(`/api/bookings/${registrationId}/approve`);
+    expect(approveRes.ok(), await approveRes.text()).toBeTruthy();
+    const overrideRes = await page.request.put(
+      `/api/finance/registrations/${registrationId}/obligation-override`,
+      {
+        headers: { "Content-Type": "application/json" },
+        data: {
+          obligationMinor: "1000000",
+          reason: "Scenario 6 workspace finance follow-up seed",
+        },
+      }
+    );
+    expect(overrideRes.ok(), await overrideRes.text()).toBeTruthy();
 
+    console.log(`S6: using registration ${registrationId}`);
+    expect(
+      registrationId.length > 0,
+      "need at least one unpaid/partial candidate on smoke tour"
+    ).toBeTruthy();
+
+    console.log("S6: create manual payment via BFF");
     const createManualRes = await page.request.post("/api/finance/payments/manual", {
       headers: {
         "Content-Type": "application/json",
@@ -117,16 +146,13 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
       timeout: 90_000,
     });
 
-    const detailPanel = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel);
-    await expect(detailPanel).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(
-      detailPanel.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.inlineReceiptReview)
-    ).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(detailPanel.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
+    console.log("S6: assert inline receipt review and hidden payment forms");
+    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.inlineReceiptReview)).toBeVisible(
+      {
+        timeout: 30_000,
+      }
+    );
+    await expect(page.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
       timeout: 30_000,
     });
 

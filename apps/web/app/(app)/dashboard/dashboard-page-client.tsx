@@ -21,6 +21,7 @@ import {
 } from "@/admin/dashboard/dashboard-widgets-logic";
 import { shouldShowFinanceDashboardWidget } from "@/finance/finance-dashboard-widget-logic";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { FinanceDashboardWidget } from "@/finance/finance-dashboard-widget";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 type DashboardPageClientProps = {
   readonly pluginId: string;
   readonly role: string;
+  readonly initialFinanceNavSupported?: boolean;
   readonly initialPrefetch?: DashboardServerPrefetch | null;
 };
 
@@ -36,11 +38,14 @@ const DASHBOARD_WIDGET_SLOT_CLASS = "h-full min-h-0";
 export function DashboardPageClient({
   pluginId,
   role,
+  initialFinanceNavSupported = false,
   initialPrefetch = null,
 }: DashboardPageClientProps) {
   const t = useTranslations("dashboard");
   const brandName = useTenantBrandTitle();
-  const [showFinanceWidget, setShowFinanceWidget] = useState(false);
+  const [showFinanceWidget, setShowFinanceWidget] = useState(
+    initialFinanceNavSupported && isAdminOrOwnerRole(role)
+  );
   const attentionItems = buildDashboardAttentionItems({
     summary: initialPrefetch?.bookingsSummary ?? parseDashboardBookingsSummary(null),
     financeSummary: initialPrefetch?.financeSummary ?? null,
@@ -49,15 +54,18 @@ export function DashboardPageClient({
 
   useEffect(() => {
     let cancelled = false;
-    void ensureFinanceNavSupported(pluginId).then(() => {
+    void ensureFinanceNavSupported(pluginId).then((supported) => {
       if (!cancelled) {
-        setShowFinanceWidget(shouldShowFinanceDashboardWidget(pluginId, role));
+        setShowFinanceWidget(
+          (initialFinanceNavSupported || supported) &&
+            (shouldShowFinanceDashboardWidget(pluginId, role) || isAdminOrOwnerRole(role))
+        );
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [pluginId, role]);
+  }, [initialFinanceNavSupported, pluginId, role]);
 
   return (
     <section data-operator-dashboard className="space-y-6">

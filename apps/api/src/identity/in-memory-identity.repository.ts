@@ -1031,6 +1031,7 @@ function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId:
     sessionVersion: 1,
     workspaceId: "ws-operator-smoke-member",
     displayName: "Smoke Member",
+    rewards: { permanentDiscountPercentage: 20 },
   });
   repo.seedMembership({
     userId: OPERATOR_SMOKE_VIEWER_USER_ID,

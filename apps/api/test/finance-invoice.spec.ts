@@ -25,7 +25,7 @@ function authHeaders(tenantId: string): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
-    "x-user-id": "finance-invoice-user",
+    "x-user-id": "00000000-0000-4000-8000-000000000901",
     "x-actor-role": "admin",
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "ws-finance-invoice",
@@ -97,84 +97,127 @@ async function requestJson(
   });
 }
 
-describe("finance-invoice.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, concurrency: false }, () => {
-  const denaliTenantId = integrationTenantId();
-  let admin: PrismaClient;
-  const listener = createRequestListener();
+describe(
+  "finance-invoice.spec.ts — Phase 9.7 R2",
+  { skip: !hasDatabase, concurrency: false },
+  () => {
+    const denaliTenantId = integrationTenantId();
+    const tourId = randomUUID();
+    let admin: PrismaClient;
+    const listener = createRequestListener();
 
-  before(async () => {
-    resetLazyRouteHandlersForTests();
-    resetLazyFinanceServiceForTests();
-    resetLazyWorkspaceFinanceHandlersForTests();
-    resetFinanceScheduleStoreForTests();
-    admin = new PrismaClient({ datasources: { db: { url: ADMIN_URL } } });
-    await admin.tenant.create({
-      data: {
-        id: denaliTenantId,
-        subdomain: `inv-${denaliTenantId.slice(0, 8)}`,
-        workspaceType: "denali",
-        theme: {},
-      },
+    before(async () => {
+      resetLazyRouteHandlersForTests();
+      resetLazyFinanceServiceForTests();
+      resetLazyWorkspaceFinanceHandlersForTests();
+      resetFinanceScheduleStoreForTests();
+      admin = new PrismaClient({ datasources: { db: { url: ADMIN_URL } } });
+      await admin.tenant.create({
+        data: {
+          id: denaliTenantId,
+          subdomain: `inv-${denaliTenantId.slice(0, 8)}`,
+          workspaceType: "denali",
+          theme: {},
+        },
+      });
+      await admin.tour.create({
+        data: {
+          id: tourId,
+          tenantId: denaliTenantId,
+          title: "Invoice Test Tour",
+          publishStatus: "published",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["pricing"],
+            data: {
+              title: "Invoice Test Tour",
+              publishStatus: "published",
+              capacityMax: 20,
+              pricing: {
+                basePricePerPerson: 10_000_000,
+                paymentMode: "offline_receipt",
+                paymentCollection: "offline",
+              },
+            },
+          },
+        },
+      });
     });
-  });
 
-  after(async () => {
-    await admin.$executeRawUnsafe(
-      `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
-    );
-    try {
-      await admin.paymentReceipt.deleteMany({ where: { tenantId: denaliTenantId } });
-      await admin.payment.deleteMany({ where: { tenantId: denaliTenantId } });
-      await admin.outboxEvent.deleteMany({ where: { tenantId: denaliTenantId } });
-      await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId: denaliTenantId } });
-      await admin.tenant.delete({ where: { id: denaliTenantId } });
-    } finally {
+    after(async () => {
       await admin.$executeRawUnsafe(
-        `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
       );
-    }
-    await admin.$disconnect();
-    await disconnectPrisma();
-  });
-
-  it("API-9.7-R2-INV-04 prepayment + paid payment produce correct balance", async () => {
-    const registrationId = randomUUID();
-
-    await requestJson(listener, {
-      method: "POST",
-      path: "/finance/payments/manual",
-      tenantId: denaliTenantId,
-      idempotencyKey: `inv-manual-${registrationId}`,
-      body: {
-        registrationId,
-        amount: "10000000",
-        currency: "IRR",
-      },
+      try {
+        await admin.paymentReceipt.deleteMany({ where: { tenantId: denaliTenantId } });
+        await admin.payment.deleteMany({ where: { tenantId: denaliTenantId } });
+        await admin.outboxEvent.deleteMany({ where: { tenantId: denaliTenantId } });
+        await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId: denaliTenantId } });
+        await admin.tour.deleteMany({ where: { tenantId: denaliTenantId } });
+        await admin.tenant.delete({ where: { id: denaliTenantId } });
+      } finally {
+        await admin.$executeRawUnsafe(
+          `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+        );
+      }
+      await admin.$disconnect();
+      await disconnectPrisma();
     });
 
-    await requestJson(listener, {
-      method: "POST",
-      path: "/finance/prepayments",
-      tenantId: denaliTenantId,
-      idempotencyKey: `inv-prepay-${registrationId}`,
-      body: {
-        registrationId,
-        amountMinor: "3000000",
-        currency: "IRR",
-        method: "Manual",
-      },
-    });
+    it("API-9.7-R2-INV-04 prepayment + paid payment produce correct balance", async () => {
+      const booking = await requestJson(listener, {
+        method: "POST",
+        path: "/bookings",
+        tenantId: denaliTenantId,
+        body: {
+          tourId,
+          tourTitle: "Invoice Test Tour",
+          guestLabel: "Invoice Test Guest",
+          partySize: 1,
+          departureAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          registrationIntake: { tourCapacityMax: 20 },
+        },
+      });
+      assert.equal(booking.status, 201, JSON.stringify(booking.body));
+      const registrationId = String(booking.body.id);
+      assert.ok(registrationId.length > 0);
 
-    const invoice = await requestJson(listener, {
-      method: "GET",
-      path: `/finance/invoices/${registrationId}`,
-      tenantId: denaliTenantId,
+      await requestJson(listener, {
+        method: "POST",
+        path: "/finance/payments/manual",
+        tenantId: denaliTenantId,
+        idempotencyKey: `inv-manual-${registrationId}`,
+        body: {
+          registrationId,
+          amount: "10000000",
+          currency: "IRR",
+        },
+      });
+
+      await requestJson(listener, {
+        method: "POST",
+        path: "/finance/prepayments",
+        tenantId: denaliTenantId,
+        idempotencyKey: `inv-prepay-${registrationId}`,
+        body: {
+          registrationId,
+          amountMinor: "3000000",
+          currency: "IRR",
+          method: "Manual",
+        },
+      });
+
+      const invoice = await requestJson(listener, {
+        method: "GET",
+        path: `/finance/invoices/${registrationId}`,
+        tenantId: denaliTenantId,
+      });
+      assert.equal(invoice.status, 200);
+      assert.equal(invoice.body.registrationId, registrationId);
+      assert.equal(invoice.body.invoiceTotalMinor, "10000000");
+      assert.equal(invoice.body.walletNetMinor, "3000000");
+      assert.equal(invoice.body.paidAmountMinor, "3000000");
+      assert.equal(invoice.body.balanceDueMinor, "7000000");
     });
-    assert.equal(invoice.status, 200);
-    assert.equal(invoice.body.registrationId, registrationId);
-    assert.equal(invoice.body.invoiceTotalMinor, "10000000");
-    assert.equal(invoice.body.walletNetMinor, "3000000");
-    assert.equal(invoice.body.paidAmountMinor, "3000000");
-    assert.equal(invoice.body.balanceDueMinor, "7000000");
-  });
-});
+  }
+);

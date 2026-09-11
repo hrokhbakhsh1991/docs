@@ -71,7 +71,7 @@ describe("buildDevPortalPublicBaseUrl", () => {
     );
   });
 
-  it("WRS-P8-01 bare IPv4 ingress maps to same host with portal port (no portal.{ip})", () => {
+  it("keeps raw IPv4 staging host and changes only the portal port", () => {
     assert.equal(
       buildDevPortalPublicBaseUrl({
         ingressHost: "89.42.210.252:23002",

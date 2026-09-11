@@ -113,6 +113,7 @@ const webEnv = {
   ...process.env,
   ...jwtEnv,
   NODE_ENV: "development",
+  ALLOW_DENALI_WEB_PLUGIN: "true",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,

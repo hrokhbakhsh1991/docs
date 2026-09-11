@@ -8,11 +8,12 @@ import { expect, type APIRequestContext } from "@playwright/test";
 /** Postgres / operator smoke host (`admin.operator.localhost`, staging). */
 export const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
-
-/** Memory-driver dev club (`admin.denali.localhost`). */
+/** Memory-driver Denali dev host (`admin.denali.localhost`, Profile B staging). */
 export const DENALI_DEV_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 export const DENALI_DEV_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220";
-
+// Isolate the chain from the general operator smoke tour; the latter is intentionally reused by
+// other flows and can legitimately reach capacity during a full browser suite.
+export const OPERATOR_SMOKE_CHAIN_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-0000-000000000001";
 
 export type ChainGuestRegistration = {
@@ -77,9 +78,7 @@ export function resolveChainSmokeTenantId(): string {
   if (override) {
     return override;
   }
-  return usesDenaliDevMemoryFixtures()
-    ? DENALI_DEV_SMOKE_TENANT_ID
-    : OPERATOR_SMOKE_TENANT_ID;
+  return usesDenaliDevMemoryFixtures() ? DENALI_DEV_SMOKE_TENANT_ID : OPERATOR_SMOKE_TENANT_ID;
 }
 
 export function resolveChainSmokePublishedTourId(): string {
@@ -107,11 +106,16 @@ function guestReceiptHeaders(userId: string, workspaceId: string): Record<string
 
 export async function seedChainGuestRegistrationViaApi(
   request: APIRequestContext,
-  input: { readonly guestName: string; readonly email: string; readonly partySize?: number }
+  input: {
+    readonly guestName: string;
+    readonly email: string;
+    readonly mobile?: string;
+    readonly tenantId?: string;
+    readonly tourId?: string;
+  }
 ): Promise<ChainGuestRegistration> {
-  const tenantId = resolveChainSmokeTenantId();
-  const tourId = resolveChainSmokePublishedTourId();
-  const phone = `+1555${String(Date.now()).slice(-7)}`;
+  const tenantId = input.tenantId ?? OPERATOR_SMOKE_TENANT_ID;
+  const tourId = input.tourId ?? OPERATOR_SMOKE_CHAIN_TOUR_ID;
   const regRes = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
     headers: {
       "x-tenant-id": tenantId,
@@ -119,9 +123,15 @@ export async function seedChainGuestRegistrationViaApi(
     },
     data: {
       tourId,
+      // Use an explicit other-guest identity so reruns are unique by the generated phone/name;
+      // the anonymous catalog actor is intentionally stable and must not be the dedupe key.
       registrantTarget: "other",
-      contact: { email: input.email, fullName: input.guestName, phone },
-      partySize: input.partySize ?? 1,
+      contact: {
+        email: input.email,
+        fullName: input.guestName,
+        ...(input.mobile === undefined ? {} : { phone: input.mobile }),
+      },
+      partySize: 2,
     },
   });
   expect(regRes.status(), await regRes.text()).toBe(201);

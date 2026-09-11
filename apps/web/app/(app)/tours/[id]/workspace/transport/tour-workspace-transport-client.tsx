@@ -101,7 +101,7 @@ export function TourWorkspaceTransportClient({
       {
         registrantTarget: null,
         transportKind: row.transportKind as PublicCatalogRegistrationTransportKind | null,
-        personalCarOccupants: row.personalCarOccupants as 1 | 2 | 3 | null,
+        personalCarOccupants: row.personalCarOccupants as 0 | 1 | 2 | 3 | null,
         nationalId: null,
       },
       {
@@ -109,7 +109,10 @@ export function TourWorkspaceTransportClient({
         personalCar: tBookingsIntake("transportPersonalCar"),
         noCarDong: tBookingsIntake("transportNoCarDong"),
         noCarAcquaintance: tBookingsIntake("transportNoCarAcquaintance"),
-        occupants: (count) => tBookingsIntake("transportOccupants", { count, locale }),
+        occupants: (count) =>
+          count === 0
+            ? tBookingsIntake("transportNoCompanion")
+            : tBookingsIntake("transportOccupants", { count, locale }),
       }
     );
   }

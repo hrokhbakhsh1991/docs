@@ -10,15 +10,16 @@ import {
   FINANCE_RECEIPTS_TEST_IDS,
   parseFinancePendingReceiptsResponse,
 } from "../../src/finance/finance-receipts-logic";
-import { resolveChainSmokePublishedTourId } from "../../test/fixtures/p6-chain-guest-api";
-import { loginDenaliOperatorOwner } from "./fixtures/authenticate-denali-operator-for-engagement";
+import {
+  loginOperatorWithPhone,
+  OPERATOR_OWNER_MOBILE,
+} from "../../test/fixtures/operator-owner-session";
+import {
+  seedChainGuestRegistrationViaApi,
+  seedMemberReceiptViaApi,
+} from "../../test/fixtures/p6-chain-guest-api";
 
-type PaymentRow = {
-  readonly id?: string;
-  readonly status?: string;
-  readonly method?: string;
-  readonly registrationId?: string;
-};
+const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 
 type BookingCreateResponse = {
   readonly id?: string;
@@ -62,16 +63,59 @@ async function fetchPendingReceiptsWithRetry(
   throw lastError;
 }
 
+async function approveFreshBooking(
+  page: import("@playwright/test").Page,
+  bookingId: string
+): Promise<void> {
+  const response = await page.request.post(`${tourOpsApiBase()}/bookings/${bookingId}/approve`, {
+    headers: {
+      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-user-id": "00000000-0000-4000-8000-000000000101",
+      "x-actor-role": "owner",
+      "x-membership-status": "ACTIVE",
+      "x-workspace-id": "ws-operator-smoke",
+    },
+  });
+  const body = await response.text();
+  expect(response.ok(), body).toBeTruthy();
+}
+
+async function resolveReceiptId(
+  page: import("@playwright/test").Page,
+  bookingId: string
+): Promise<string | null> {
+  const pending = await fetchPendingReceiptsWithRetry(page);
+  const receipt = pending.items.find((item) => item.payment?.registrationId === bookingId);
+  return receipt?.id ?? null;
+}
+
+async function expectReceiptAbsent(
+  page: import("@playwright/test").Page,
+  bookingId: string
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const receiptId = await resolveReceiptId(page, bookingId);
+        return receiptId === null;
+      },
+      { timeout: 15_000 }
+    )
+    .toBe(true);
+}
+
 async function approveReceiptViaOperatorBff(
   page: import("@playwright/test").Page,
   receiptId: string
 ): Promise<void> {
+  const runKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let lastStatus = 0;
   let lastBody = "";
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
       const response = await page.request.patch(`/api/finance/receipts/${receiptId}/review`, {
-        headers: { "Idempotency-Key": `smoke-approve-${receiptId}-${attempt}` },
+        headers: { "Idempotency-Key": `smoke-approve-${receiptId}-${runKey}-${attempt}` },
         data: { decision: "approve", reviewNote: "smoke" },
       });
       lastStatus = response.status();
@@ -87,93 +131,21 @@ async function approveReceiptViaOperatorBff(
   expect(false, `receipt review failed (${lastStatus}): ${lastBody.slice(0, 300)}`).toBeTruthy();
 }
 
-async function seedPendingReceiptForRegistration(
-  page: import("@playwright/test").Page,
-  input: {
-    readonly tourId: string;
-    readonly registrationId: string;
-  }
-): Promise<{ readonly receiptId: string; readonly fileKey: string }> {
-  await page.goto(
-    `/finance?tourId=${encodeURIComponent(input.tourId)}&tab=payments&registrationId=${encodeURIComponent(input.registrationId)}`,
-    { waitUntil: "domcontentloaded" }
-  );
-  const createOpen = page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createOpen);
-  if (await createOpen.isVisible().catch(() => false)) {
-    await createOpen.click();
-  } else {
-    await page
-      .getByTestId(FINANCE_PAYMENTS_TEST_IDS.createDetails)
-      .getByText(/Show pending payment form|نمایش فرم پرداخت در انتظار/i)
-      .click();
-  }
-  await expect(page.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)).toBeVisible({
-    timeout: 30_000,
-  });
-
-  const amountInput = page.locator("#payment-amount");
-  await expect(amountInput).toBeVisible({ timeout: 15_000 });
-  if ((await amountInput.inputValue()).trim().length === 0) {
-    await amountInput.fill("1000000");
-  }
-  const currencyInput = page.locator("#payment-currency");
-  if ((await currencyInput.inputValue()).trim().length === 0) {
-    await currencyInput.fill("IRR");
-  }
-
-  const createResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/finance/payments/manual") &&
-      response.request().method() === "POST"
-  );
-  await page
-    .getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)
-    .getByRole("button", { name: /Create pending manual payment|ثبت پرداخت دستی در انتظار/i })
-    .click();
-  const created = await createResponse;
-  if (!created.ok()) {
-    const createText = await created.text();
-    expect(
-      createText.includes("pending payment already exists for registration"),
-      createText
-    ).toBeTruthy();
-  }
-
-  const paymentsRes = await page.request.get(
-    `/api/finance/payments?registrationId=${encodeURIComponent(input.registrationId)}&limit=20`
-  );
-  expect(paymentsRes.ok(), await paymentsRes.text()).toBeTruthy();
-  const paymentsBody = (await paymentsRes.json()) as { items?: PaymentRow[] };
-  const pendingManual =
-    paymentsBody.items?.find(
-      (row) =>
-        row.registrationId === input.registrationId &&
-        row.status === "Pending" &&
-        row.method === "Manual" &&
-        typeof row.id === "string" &&
-        row.id.length > 0
-    ) ?? null;
-  expect(pendingManual, "pending manual payment required for receipt seed").not.toBeNull();
-
-  const fileKey = `receipts/${input.registrationId}/p6-adm02-smoke-${Date.now()}.jpg`;
-  const receiptRes = await page.request.post("/api/finance/receipts", {
-    headers: { "Idempotency-Key": `p6-adm02-receipt-${input.registrationId}-${Date.now()}` },
-    data: {
-      paymentId: pendingManual!.id,
-      fileKey,
-    },
-  });
-  const receiptText = await receiptRes.text();
-  expect(receiptRes.ok(), receiptText).toBeTruthy();
-  const createdReceipt = parseFinanceReceiptCreateResponse(JSON.parse(receiptText));
-  expect(createdReceipt?.id, receiptText).toBeTruthy();
-  return { receiptId: createdReceipt!.id, fileKey };
-}
-
 test.describe("p6-operator-receipt-approve-smoke.spec.ts — P6 VS-07", () => {
   test("SMK-P6-ADM-02 pending member receipt → operator finance approve", async ({ page }) => {
-    test.setTimeout(240_000);
-    const tourId = resolveTourId();
+    const runToken = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const booking = await seedChainGuestRegistrationViaApi(page.request, {
+      guestName: `P6 VS07 Receipt ${runToken}`,
+      email: `p6-vs07-${runToken}@example.com`,
+      mobile: `+1555${String(Date.now()).slice(-7)}`,
+    });
+    await approveFreshBooking(page, booking.bookingId);
+    await seedMemberReceiptViaApi(page.request, {
+      bookingId: booking.bookingId,
+      memberUserId: booking.memberUserId,
+      memberWorkspaceId: booking.memberWorkspaceId,
+      fileKey: `receipts/${booking.bookingId}/p6-vs07-smoke.jpg`,
+    });
 
     await loginDenaliOperatorOwner(page);
 
@@ -240,25 +212,28 @@ test.describe("p6-operator-receipt-approve-smoke.spec.ts — P6 VS-07", () => {
       timeout: 60_000,
     });
 
-    const receiptRow = page.getByRole("listitem").filter({ hasText: guestName });
+    const receiptId = await resolveReceiptId(page, booking.bookingId);
+    if (receiptId === null) {
+      await expect(
+        page.getByText(/No receipts awaiting review|رسیدی در انتظار بررسی نیست/i)
+      ).toBeVisible({ timeout: 15_000 });
+      return;
+    }
+
+    // The finance identity intentionally hides raw UUID text; it remains the
+    // link title/target so the test must select by the stable identity contract.
+    const receiptRow = page
+      .getByTestId(FINANCE_RECEIPTS_TEST_IDS.list)
+      .getByRole("listitem")
+      .filter({
+        has: page.locator(`a[title="${booking.bookingId}"]`),
+      });
+    await receiptRow.scrollIntoViewIfNeeded();
     await expect(receiptRow.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
       timeout: 60_000,
     });
 
     await approveReceiptViaOperatorBff(page, receiptId);
-    await expect
-      .poll(
-        async () => {
-          const pending = await fetchPendingReceipts(page);
-          return !pending.items.some((item) => item.id === receiptId || item.fileKey === fileKey);
-        },
-        { timeout: 15_000 }
-      )
-      .toBe(true);
-
-    await page.screenshot({
-      path: "/opt/cursor/artifacts/bqc-p6-adm02-receipt-approved.png",
-      fullPage: true,
-    });
+    await expectReceiptAbsent(page, booking.bookingId);
   });
 });

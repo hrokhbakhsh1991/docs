@@ -23,14 +23,13 @@ export function BookingRegistrationIntakeDetails({
     personalCar: t("intake.transportPersonalCar"),
     noCarDong: t("intake.transportNoCarDong"),
     noCarAcquaintance: t("intake.transportNoCarAcquaintance"),
-    occupants: (count) => t("intake.transportOccupants", { count, locale }),
+    occupants: (count) =>
+      count === 0
+        ? t("intake.transportNoCompanion")
+        : t("intake.transportOccupants", { count, locale }),
   });
 
-  if (
-    summary.registrantTarget === null &&
-    transportLabel === null &&
-    summary.nationalId === null
-  ) {
+  if (summary.registrantTarget === null && transportLabel === null && summary.nationalId === null) {
     return null;
   }
 

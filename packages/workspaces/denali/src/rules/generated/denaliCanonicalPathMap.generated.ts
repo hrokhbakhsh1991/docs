@@ -50,6 +50,7 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "pricing.paymentMode": "pricingPayment.paymentMode",
   "pricing.prepaymentEnabled": "pricingPayment.prepaymentEnabled",
   "pricing.prepaymentPercent": "pricingPayment.prepaymentPercent",
+  "pricing.registrationApproval": "pricingPayment.registrationApproval",
   "pricing.requiresPayment": "pricingPayment.requiresPayment",
   "program.difficultyLevel": "programNature.difficultyLevel",
   "program.guideLanguageIds": "programNature.guideLanguageIds",

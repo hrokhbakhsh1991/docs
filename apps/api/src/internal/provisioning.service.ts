@@ -114,7 +114,7 @@ export class ProvisioningService {
       workspaceType: "denali",
       theme: {
         ...clubTheme,
-        enabledModules: ["wallet", "finance"],
+        enabledModules: ["wallet", "finance", "marketing_pages", "ticketing"],
         portalModuleGrants: ["wallet"],
         commerce: {
           currency: "IRR",
@@ -160,24 +160,27 @@ export class ProvisioningService {
       stagingPilotTenantId: DENALI_WALLET_PILOT_TENANT_ID,
     };
     assertProvisioningDevelopmentOnly(stagingPilotGuard);
-    return this.upsertSeedTenant({
-      subdomain: DENALI_WALLET_PILOT_SUBDOMAIN,
-      tenantId: DENALI_WALLET_PILOT_TENANT_ID,
-      workspaceType: "denali",
-      theme: {
-        primaryColor: "#059669",
-        cssVariables: { "--color-primary": "#059669" },
-        defaultLocale: "fa",
-        enabledModules: ["wallet", "finance"],
-        portalModuleGrants: ["wallet"],
-        commerce: {
-          currency: "IRR",
-          paymentMode: "offline_receipt",
-          gatewayProvider: null,
-          frozen: true,
+    return this.upsertSeedTenant(
+      {
+        subdomain: DENALI_WALLET_PILOT_SUBDOMAIN,
+        tenantId: DENALI_WALLET_PILOT_TENANT_ID,
+        workspaceType: "denali",
+        theme: {
+          primaryColor: "#059669",
+          cssVariables: { "--color-primary": "#059669" },
+          defaultLocale: "fa",
+          enabledModules: ["wallet", "finance"],
+          portalModuleGrants: ["wallet"],
+          commerce: {
+            currency: "IRR",
+            paymentMode: "offline_receipt",
+            gatewayProvider: null,
+            frozen: true,
+          },
         },
       },
-    }, stagingPilotGuard);
+      stagingPilotGuard
+    );
   }
 
   /** Phase 11.0 — operator smoke tenant (`operator` / `…000014`). */

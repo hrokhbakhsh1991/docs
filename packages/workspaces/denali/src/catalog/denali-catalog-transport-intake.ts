@@ -32,7 +32,7 @@ function buildPayload(
 ):
   | {
       readonly kind: PublicCatalogRegistrationTransportKind;
-      readonly personalCarOccupants?: 1 | 2 | 3;
+      readonly personalCarOccupants?: 0 | 1 | 2 | 3;
     }
   | undefined {
   if (!showTransportFollowUp(transport, state)) {
@@ -41,6 +41,7 @@ function buildPayload(
 
   if (state.hasPersonalCar === true) {
     if (
+      state.personalCarOccupants !== 0 &&
       state.personalCarOccupants !== 1 &&
       state.personalCarOccupants !== 2 &&
       state.personalCarOccupants !== 3

@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 
-import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
-
 import type { MemberRegistrationItem } from "@/me/fetch-member-registrations.server";
+import { resolvePortalSelfFetchOrigin } from "@/me/resolve-portal-self-fetch-origin";
 
 type MemberRegistrationDetailBffResponse = {
   readonly ok?: boolean;
@@ -29,10 +28,7 @@ export async function fetchMemberRegistrationById(
       `${origin}/api/me/registrations/${encodeURIComponent(registrationId)}`,
       {
         method: "GET",
-        headers: {
-          cookie: cookieHeader,
-          "x-forwarded-host": ingressHost,
-        },
+        headers: { cookie: cookieHeader, "x-forwarded-host": ingressHost },
         cache: "no-store",
       }
     );

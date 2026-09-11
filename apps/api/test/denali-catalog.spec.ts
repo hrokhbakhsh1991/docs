@@ -11,7 +11,15 @@ import {
   resetBookingsRepositoryForTests,
   resetBookingsRepositorySingletonForTests,
 } from "../src/bookings/create-bookings-repository";
-import { OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL } from "../src/fixtures/operator-smoke-published-tour.fixture";
+import {
+  DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+  DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+  DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+  OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
+} from "../src/fixtures/operator-smoke-published-tour.fixture";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -89,7 +97,7 @@ describe("denali-catalog", () => {
     });
     assert.equal(response.status, 200);
     const items = (response.body as { data?: { items?: { id: string }[] } }).data?.items ?? [];
-    assert.equal(items.length, 4);
+    assert.equal(items.length, 10);
     const ids = items.map((item) => item.id).sort();
     assert.deepEqual(
       ids,
@@ -98,8 +106,24 @@ describe("denali-catalog", () => {
         OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
         OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
         OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+        DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+        DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+        DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+        DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+        DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+        DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
       ].sort()
     );
+  });
+
+  it("DCAT-01a keeps the primary smoke tour on the six-card home page", async () => {
+    const response = await requestDenali(listener, "GET", "/denali/catalog?limit=6", {
+      headers: publicHeaders(),
+    });
+    assert.equal(response.status, 200);
+    const items = (response.body as { data?: { items?: { title: string }[] } }).data?.items ?? [];
+    assert.equal(items.length, 6);
+    assert.ok(items.some((item) => item.title === "North Ridge Trek"));
   });
 
   it("DCAT-02 GET /denali/catalog/{tourId} returns 404 for draft tour", async () => {
@@ -166,11 +190,16 @@ describe("denali-catalog", () => {
       { headers: publicHeaders() }
     );
     assert.equal(response.status, 200);
-    const data = (response.body as {
-      data?: {
-        itineraryDays?: Array<{ title?: string; segments?: Array<{ title?: string; photoUrls?: string[] }> }>;
-      };
-    }).data;
+    const data = (
+      response.body as {
+        data?: {
+          itineraryDays?: Array<{
+            title?: string;
+            segments?: Array<{ title?: string; photoUrls?: string[] }>;
+          }>;
+        };
+      }
+    ).data;
     assert.equal(data?.itineraryDays?.length, 3);
     assert.equal(data?.itineraryDays?.[0]?.title, "Summit push");
     assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.title, "Ridge ascent");
@@ -189,13 +218,15 @@ describe("denali-catalog", () => {
       { headers: publicHeaders() }
     );
     assert.equal(response.status, 200);
-    const data = (response.body as {
-      data?: {
-        policiesText?: string;
-        cancellationDeadlineHours?: number;
-        cancellationPenaltyPercentage?: number;
-      };
-    }).data;
+    const data = (
+      response.body as {
+        data?: {
+          policiesText?: string;
+          cancellationDeadlineHours?: number;
+          cancellationPenaltyPercentage?: number;
+        };
+      }
+    ).data;
     assert.match(data?.policiesText ?? "", /P7 staging: cancel 48h/);
     assert.equal(data?.cancellationDeadlineHours, 48);
     assert.equal(data?.cancellationPenaltyPercentage, 20);
@@ -209,15 +240,17 @@ describe("denali-catalog", () => {
       { headers: publicHeaders() }
     );
     assert.equal(response.status, 200);
-    const data = (response.body as {
-      data?: {
-        id?: string;
-        title?: string;
-        nationalIdRequired?: boolean;
-        fatherNameRequired?: boolean;
-        birthDateRequired?: boolean;
-      };
-    }).data;
+    const data = (
+      response.body as {
+        data?: {
+          id?: string;
+          title?: string;
+          nationalIdRequired?: boolean;
+          fatherNameRequired?: boolean;
+          birthDateRequired?: boolean;
+        };
+      }
+    ).data;
     assert.equal(data?.id, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID);
     assert.equal(data?.title, "Alpine Identity Check");
     assert.equal(data?.nationalIdRequired, true);

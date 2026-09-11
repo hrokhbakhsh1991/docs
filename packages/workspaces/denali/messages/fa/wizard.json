@@ -89,6 +89,7 @@
     "photos": "آپلود عکس",
     "pricing": {
       "requiresPayment": "تور پولی (ثبت‌نام با پرداخت)",
+      "registrationApproval": "روش تأیید ثبت‌نام",
       "prepaymentEnabled": "امکان ثبت‌نام با پیش‌پرداخت",
       "prepaymentPercent": "درصد پیش‌پرداخت از مبلغ کل",
       "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
@@ -131,6 +132,12 @@
     "train": "قطار",
     "shared_cars": "ماشین‌های مشترک (دنگ)",
     "none": "بدون حمل‌ونقل سازمان‌یافته"
+  },
+  "enumOptions": {
+    "registrationApproval": {
+      "manual": "تأیید دستی توسط ادمین",
+      "auto": "تأیید خودکار ثبت‌نام"
+    }
   },
   "paymentModes": {
     "offline_receipt": "رسید / پرداخت آفلاین"

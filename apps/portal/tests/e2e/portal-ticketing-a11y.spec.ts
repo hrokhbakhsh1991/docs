@@ -83,7 +83,7 @@ test.describe("TKT-L portal ticketing accessibility", () => {
       timeout: 60_000,
     });
     await page.locator('select[name="categoryCode"]').selectOption("general");
-    await page.locator('input[name="subject"]').pressSequentially(ticketSubject, { delay: 10 });
+    await page.locator('input[name="subject"]').fill(ticketSubject);
     await page.locator('textarea[name="body"]').pressSequentially("A11y detail surface", { delay: 10 });
     await Promise.all([
       page.waitForResponse(

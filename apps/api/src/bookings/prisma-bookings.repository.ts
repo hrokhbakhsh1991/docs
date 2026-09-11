@@ -37,6 +37,7 @@ import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
 } from "./read-transport-kind-from-intake";
+import { readTourSocialMediaLink } from "./read-tour-social-media-link";
 
 /**
  * Serialize capacity + status decisions for one tour inside an open tenant TX.
@@ -1022,6 +1023,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const updated = await tx.operatorRegistration.findFirstOrThrow({
         where: { id: current.id, tenantId: input.tenantId },
       });
+      const approvedTour = await tx.tour.findFirst({
+        where: { id: updated.tourId, tenantId: input.tenantId },
+        select: { canonical: true },
+      });
+      const socialMediaLink = readTourSocialMediaLink(approvedTour?.canonical);
 
       const domainEventId = `registration.approved:${updated.id}:${approvedAt.toISOString()}`;
       await enqueueOutboxEvent(tx, {
@@ -1034,6 +1040,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tourId: updated.tourId,
           status: updated.status,
           approvedAt: approvedAt.toISOString(),
+          guestUserId: updated.submittedByUserId,
+          ...(updated.guestEmail !== null ? { guestEmail: updated.guestEmail } : {}),
+          ...(socialMediaLink !== null ? { socialMediaLink } : {}),
           ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
         },
         domainEventId,
@@ -1126,6 +1135,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         approvedIds.push(row.id);
 
         const domainEventId = `registration.approved:${row.id}:${approvedAt.toISOString()}`;
+        const approvedTour = await tx.tour.findFirst({
+          where: { id: row.tourId, tenantId: input.tenantId },
+          select: { canonical: true },
+        });
+        const socialMediaLink = readTourSocialMediaLink(approvedTour?.canonical);
         await enqueueOutboxEvent(tx, {
           tenantId: input.tenantId,
           aggregateType: "registration",
@@ -1136,6 +1150,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             tourId: row.tourId,
             status: "approved",
             approvedAt: approvedAt.toISOString(),
+            guestUserId: row.submittedByUserId,
+            ...(row.guestEmail !== null ? { guestEmail: row.guestEmail } : {}),
+            ...(socialMediaLink !== null ? { socialMediaLink } : {}),
           },
           domainEventId,
           createdAt: approvedAt,

@@ -25,12 +25,7 @@ type Props = {
   readonly onError: (messageKey: string) => void;
 };
 
-export function OperatorTicketsComposer({
-  detail,
-  canMutate,
-  onDetailUpdated,
-  onError,
-}: Props) {
+export function OperatorTicketsComposer({ detail, canMutate, onDetailUpdated, onError }: Props) {
   const t = useTranslations("tickets");
   const [mode, setMode] = useState<ComposerMode>("public");
   const [body, setBody] = useState("");
@@ -74,7 +69,7 @@ export function OperatorTicketsComposer({
             ticketId: detail.ticket.id,
             status: detail.ticket.status,
           }),
-        },
+        }
       );
       const payload = (await res.json()) as { rendered?: string };
       if (res.ok && typeof payload.rendered === "string") {
@@ -145,6 +140,11 @@ export function OperatorTicketsComposer({
           role="tab"
           size="sm"
           variant={mode === "public" ? "default" : "outline"}
+          className={
+            mode === "public"
+              ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+              : undefined
+          }
           aria-selected={mode === "public"}
           onClick={() => setMode("public")}
         >
@@ -155,6 +155,11 @@ export function OperatorTicketsComposer({
           role="tab"
           size="sm"
           variant={mode === "internal" ? "default" : "outline"}
+          className={
+            mode === "internal"
+              ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+              : undefined
+          }
           aria-selected={mode === "internal"}
           onClick={() => setMode("internal")}
         >
@@ -200,10 +205,16 @@ export function OperatorTicketsComposer({
         rows={3}
         disabled={pending}
         className="mb-2 w-full min-w-0 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
-        placeholder={mode === "public" ? t("composerPublicPlaceholder") : t("composerInternalPlaceholder")}
+        placeholder={
+          mode === "public" ? t("composerPublicPlaceholder") : t("composerInternalPlaceholder")
+        }
         onChange={(event) => setBody(event.target.value)}
       />
-      <Button type="button" disabled={pending || body.trim().length === 0} onClick={() => void submit()}>
+      <Button
+        type="button"
+        disabled={pending || body.trim().length === 0}
+        onClick={() => void submit()}
+      >
         {pending ? t("sending") : t("send")}
       </Button>
     </div>

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
+import { resolvePortalSelfFetchOrigin } from "@/me/resolve-portal-self-fetch-origin";
 
 export type MemberRegistrationItem = {
   readonly id: string;
@@ -14,7 +14,7 @@ export type MemberRegistrationItem = {
   readonly guestLabel?: string;
   readonly registrantTarget?: "self" | "other";
   readonly transportKind?: "primary" | "personal_car" | "no_car_dong" | "no_car_acquaintance";
-  readonly personalCarOccupants?: 1 | 2 | 3;
+  readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   readonly dueCurrency?: string;
   readonly dueTotalMinor?: string;
   readonly dueLines?: readonly {
@@ -44,27 +44,19 @@ export async function fetchMemberRegistrations(host: string): Promise<MemberRegi
   }
 
   const { origin, ingressHost } = resolvePortalSelfFetchOrigin(host);
-  let res: Response;
-  try {
-    res = await fetch(`${origin}/api/me/registrations`, {
-      method: "GET",
-      headers: {
-        cookie: cookieHeader,
-        "x-forwarded-host": ingressHost,
-      },
-      cache: "no-store",
-    });
-  } catch {
-    return [];
-  }
+  const res = await fetch(`${origin}/api/me/registrations`, {
+    method: "GET",
+    headers: { cookie: cookieHeader, "x-forwarded-host": ingressHost },
+    cache: "no-store",
+  });
 
   if (!res.ok) {
-    return [];
+    throw new Error(`MEMBER_REGISTRATIONS_UNAVAILABLE:${res.status}`);
   }
 
   const payload = (await res.json()) as MemberRegistrationsBffResponse;
   if (payload.ok !== true) {
-    return [];
+    throw new Error("MEMBER_REGISTRATIONS_INVALID_RESPONSE");
   }
 
   return [...(payload.data?.items ?? [])];

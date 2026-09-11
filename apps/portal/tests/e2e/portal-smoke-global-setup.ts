@@ -6,7 +6,8 @@
  */
 import http from "node:http";
 
-const DEFAULT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const OPERATOR_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const DENALI_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000220";
 const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
@@ -150,11 +151,14 @@ function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   const base =
-    process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
     process.env.SMOKE_PORTAL_BASE_URL?.replace(/\/$/, "") ??
+    process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
     "http://127.0.0.1:3003";
 
-  await waitForUrl(`${base}/catalog/${DEFAULT_SMOKE_TOUR_ID}/register`);
+  const defaultSmokeTourId = base.includes("denali")
+    ? DENALI_SMOKE_TOUR_ID
+    : OPERATOR_SMOKE_TOUR_ID;
+  await waitForUrl(`${base}/catalog/${defaultSmokeTourId}/register`);
   await waitForUrl(`${base}/catalog/${PARTICIPANT_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${TRANSPORT_BUS_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${TRANSPORT_SHARED_SMOKE_TOUR_ID}/register`);
@@ -169,6 +173,8 @@ export default async function globalSetup(): Promise<void> {
     ["GET", "/api/me/entitlements"],
     ["GET", "/api/me/home"],
     ["GET", "/api/me/notifications"],
+    ["GET", "/api/me/tickets"],
+    ["POST", "/api/me/tickets", { categoryCode: "general", subject: "Warmup", body: "Warmup" }],
     ["PATCH", "/api/me/profile", { displayName: "Warmup" }],
     ["GET", `/api/me/registrations/${warmupRegistrationId}`],
     ["GET", `/api/me/registrations/${warmupRegistrationId}/receipt`],

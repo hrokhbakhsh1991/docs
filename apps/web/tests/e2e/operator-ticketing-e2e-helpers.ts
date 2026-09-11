@@ -22,14 +22,26 @@ function operatorTicketingDatabaseAdminUrl(): string {
 
 export async function waitForInboxListReady(page: Page): Promise<void> {
   await expect(
-    page.locator("[data-operator-tickets-inbox][data-operator-tickets-state='ready']"),
+    page.locator("[data-operator-tickets-inbox][data-operator-tickets-state='ready']")
   ).toBeVisible({ timeout: 60_000 });
 }
 
 export async function applyInboxStatusFilter(
   page: Page,
-  status: "open" | "pending_member" | "resolved" | "closed" | "all",
+  status: "open" | "pending_member" | "resolved" | "closed" | "all"
 ): Promise<void> {
+  const filter = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.filterStatus);
+  const currentValue = await filter.inputValue();
+  const currentUrl = page.url();
+  const alreadyApplied =
+    currentValue === status &&
+    (status === "all"
+      ? !/[?&]status=/.test(currentUrl)
+      : new RegExp(`[?&]status=${status}(?:&|$)`).test(currentUrl));
+  if (alreadyApplied) {
+    await waitForInboxListReady(page);
+    return;
+  }
   const listResponse = page.waitForResponse(
     (response) => {
       if (response.request().method() !== "GET" || !response.ok()) {
@@ -44,9 +56,9 @@ export async function applyInboxStatusFilter(
       }
       return url.includes(`status=${status}`);
     },
-    { timeout: 60_000 },
+    { timeout: 60_000 }
   );
-  await page.getByTestId(OPERATOR_TICKETS_TEST_IDS.filterStatus).selectOption(status);
+  await filter.selectOption(status);
   await listResponse;
   if (status === "all") {
     await expect(page).not.toHaveURL(/[?&]status=/);
@@ -59,9 +71,23 @@ export async function applyInboxStatusFilter(
 export async function applyInboxPriorityFilter(
   page: Page,
   priority: "low" | "normal" | "high" | "urgent" | "all",
-  options?: { readonly requireStatus?: string },
+  options?: { readonly requireStatus?: string }
 ): Promise<void> {
   const requiredStatus = options?.requireStatus;
+  const filter = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.filterPriority);
+  const currentValue = await filter.inputValue();
+  const currentUrl = page.url();
+  const alreadyApplied =
+    currentValue === priority &&
+    (priority === "all"
+      ? !/[?&]priority=/.test(currentUrl)
+      : new RegExp(`[?&]priority=${priority}(?:&|$)`).test(currentUrl)) &&
+    (requiredStatus === undefined ||
+      new RegExp(`[?&]status=${requiredStatus}(?:&|$)`).test(currentUrl));
+  if (alreadyApplied) {
+    await waitForInboxListReady(page);
+    return;
+  }
   const listResponse = page.waitForResponse(
     (response) => {
       if (response.request().method() !== "GET" || !response.ok()) {
@@ -79,9 +105,9 @@ export async function applyInboxPriorityFilter(
       }
       return url.includes(`priority=${priority}`);
     },
-    { timeout: 60_000 },
+    { timeout: 60_000 }
   );
-  await page.getByTestId(OPERATOR_TICKETS_TEST_IDS.filterPriority).selectOption(priority);
+  await filter.selectOption(priority);
   await listResponse;
   if (priority === "all") {
     await expect(page).not.toHaveURL(/[?&]priority=/);
@@ -96,14 +122,14 @@ export async function applyInboxPriorityFilter(
 
 export async function selectOpenTicketInInbox(
   page: Page,
-  options?: { readonly subjectPrefix?: string; readonly ticketId?: string },
+  options?: { readonly subjectPrefix?: string; readonly ticketId?: string }
 ): Promise<{ ticketId: string; subjectPrefix: string }> {
   const subjectPrefix = options?.subjectPrefix ?? OPERATOR_TICKETING_SMOKE_SUBJECT_PREFIX;
   const openRow =
     options?.ticketId !== undefined
       ? page
           .locator(
-            `[data-testid="${OPERATOR_TICKETS_TEST_IDS.inboxRow}"][data-ticket-id="${options.ticketId}"]`,
+            `[data-testid="${OPERATOR_TICKETS_TEST_IDS.inboxRow}"][data-ticket-id="${options.ticketId}"]`
           )
           .filter({
             has: page.locator("[data-operator-status-badge]").filter({ hasText: /باز|Open/i }),
@@ -125,18 +151,21 @@ export async function selectOpenTicketInInbox(
       response.request().method() === "GET" &&
       response.url().includes(`/api/tickets/${ticketId}`) &&
       response.ok(),
-    { timeout: 60_000 },
+    { timeout: 60_000 }
   );
   await openRow.getByRole("button").click();
   await detailResponse;
 
-  const detailPanel = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.detail).filter({ visible: true }).first();
+  const detailPanel = page
+    .getByTestId(OPERATOR_TICKETS_TEST_IDS.detail)
+    .filter({ visible: true })
+    .first();
   await expect(detailPanel).toHaveAttribute("data-operator-tickets-detail-state", "ready");
   if (options?.ticketId === undefined) {
     await expect(detailPanel.locator("h2")).toContainText(subjectPrefix);
   }
   await expect(
-    detailPanel.locator("[data-operator-status-badge]").filter({ hasText: /باز|Open/i }),
+    detailPanel.locator("[data-operator-status-badge]").filter({ hasText: /باز|Open/i })
   ).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`ticketId=${ticketId}`));
 
@@ -145,13 +174,16 @@ export async function selectOpenTicketInInbox(
 
 export async function assertTicketDetailReadyForReply(
   page: Page,
-  expected: { readonly ticketId: string; readonly subjectPrefix: string },
+  expected: { readonly ticketId: string; readonly subjectPrefix: string }
 ): Promise<void> {
-  const detailPanel = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.detail).filter({ visible: true }).first();
+  const detailPanel = page
+    .getByTestId(OPERATOR_TICKETS_TEST_IDS.detail)
+    .filter({ visible: true })
+    .first();
   await expect(detailPanel).toBeVisible();
   await expect(detailPanel.locator("h2")).toContainText(expected.subjectPrefix);
   await expect(
-    detailPanel.locator("[data-operator-status-badge]").filter({ hasText: /باز|Open/i }),
+    detailPanel.locator("[data-operator-status-badge]").filter({ hasText: /باز|Open/i })
   ).toBeVisible();
   await expect(page.locator("[data-operator-tickets-composer-readonly]")).toHaveCount(0);
 

@@ -8,12 +8,16 @@ import {
   type OperatorSessionContext,
 } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
-import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
-import { ensureTicketsNavSupported } from "@/features/tickets/tickets-nav-enablement";
+import {
+  ensureFinanceNavSupported,
+  seedFinanceNavSupported,
+} from "@/finance/finance-nav-enablement";
+import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
 import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import { ensureTicketsNavSupported } from "@/features/tickets/tickets-nav-enablement";
 import {
   allowsOperatorToursTeamRole,
   isOperatorToursTeamAccessPath,
@@ -26,7 +30,10 @@ import {
   allowsOperatorMarketingPagesTeamRole,
   isOperatorMarketingPagesTeamAccessPath,
 } from "@/features/settings/resolve-operator-marketing-pages-middleware-access";
-import { ensureWalletNavSupported } from "@/wallet/wallet-nav-enablement";
+import {
+  resolveFinanceNavCapability,
+  resolveWizardCreateCapability,
+} from "@app-tour/workspace-sdk";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { ensureOperatorShellNavLinks } from "@/shell/operator-shell-nav-registry";
@@ -102,7 +109,12 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       isOperatorMarketingPagesTeamAccessPath(pathname) &&
       allowsOperatorMarketingPagesTeamRole(session.role, "GET");
 
-    if (!ticketsTeamAccess && !toursTeamAccess && !engagementTeamAccess && !marketingPagesTeamAccess) {
+    if (
+      !ticketsTeamAccess &&
+      !toursTeamAccess &&
+      !engagementTeamAccess &&
+      !marketingPagesTeamAccess
+    ) {
       const gate = requireOperatorSessionWeb({ session, pathname, host });
       if (!gate.allowed) {
         redirect(gate.redirectTo);
@@ -117,10 +129,21 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const operatorProfile = await fetchOperatorProfileServer();
   const locale = (await getLocale()) === "fa" ? "fa" : "en";
   const tWorkspaces = await getTranslations("app.workspaces");
+  const financeNavSupported = resolveFinanceNavCapability(bootstrap.plugin)?.supported === true;
+  seedFinanceNavSupported(bootstrap.session.pluginId, financeNavSupported);
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
-  await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme);
-  await ensureTicketsNavSupported(bootstrap.session.pluginId, tenantTheme);
-  const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
+  await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
+  await ensureTicketsNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
+  const wizardCreateCapability = resolveWizardCreateCapability(bootstrap.plugin);
+  const wizardCreate =
+    wizardCreateCapability?.extendedChrome === true
+      ? {
+          extendedChrome: true as const,
+          ...(wizardCreateCapability.customBrandFallbackMark
+            ? { customBrandFallbackMark: wizardCreateCapability.customBrandFallbackMark }
+            : {}),
+        }
+      : await ensureWizardCreate(bootstrap.session.pluginId);
   const workspaceNavLinks = await ensureOperatorShellNavLinks(bootstrap.session.pluginId);
   const navItems = resolveOperatorNav({
     session: session!,
@@ -147,6 +170,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       operatorProfileDisplayName={operatorProfile?.displayName ?? null}
       operatorProfileAvatarUrl={operatorProfile?.avatarUrl ?? null}
       pluginId={bootstrap.session.pluginId}
+      financeNavSupported={financeNavSupported}
       wizardCreate={wizardCreate}
       navItems={navItems}
       impersonationReadonly={impersonationReadonly}

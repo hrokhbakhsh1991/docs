@@ -8,7 +8,7 @@ import { OPERATOR_TICKETS_TEST_IDS } from "../../../../web/src/features/tickets/
 import { SESSION_TOKEN_COOKIE } from "../../../../web/src/auth/build-session-cookie";
 
 const OPERATOR_WEB_BASE_URL =
-  process.env.SMOKE_OPERATOR_WEB_BASE_URL ?? "http://operator.localhost:3000";
+  process.env.SMOKE_OPERATOR_WEB_BASE_URL ?? "http://admin.operator.localhost:3000";
 const OPERATOR_OWNER_MOBILE = "09174070937";
 const DEV_OTP = "1234";
 

@@ -84,7 +84,7 @@ async function probeOperatorSmokeLoginReady() {
             resolve(false);
           }
         });
-      },
+      }
     );
     req.on("error", () => resolve(false));
     req.setTimeout(3_000, () => {
@@ -96,7 +96,10 @@ async function probeOperatorSmokeLoginReady() {
   });
 }
 
-async function waitForOperatorSmokeLoginReady(timeoutMs = 120_000) {
+// First-use Next.js compilation can be slow on shared CI/local workstations.
+// Keep the readiness probe alive long enough to distinguish startup latency
+// from a real authentication failure.
+async function waitForOperatorSmokeLoginReady(timeoutMs = 300_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await probeOperatorSmokeLoginReady()) {
@@ -164,20 +167,12 @@ const webEnv = {
 
 const api = spawn(
   "node",
-  [
-    "--import",
-    "tsx",
-    "--import",
-    "./scripts/e2e-memory-object-storage.ts",
-    "--env-file=.env",
-    "--env-file=.env.local",
-    "src/main.ts",
-  ],
+  ["--import", "tsx", "--import", "./scripts/e2e-memory-object-storage.ts", "src/main.ts"],
   {
     cwd: apiDir,
     env: { ...apiEnv, TICKETING_E2E_MEMORY_STORAGE: "1" },
     stdio: "inherit",
-  },
+  }
 );
 await waitForUrl("http://127.0.0.1:3001/health");
 
@@ -193,7 +188,7 @@ const loginReady = await waitForOperatorSmokeLoginReady();
 if (!loginReady) {
   console.error(
     "smoke-operator-ticketing-e2e-servers: operator smoke login preflight failed for",
-    operatorSmokeOwnerMobile,
+    operatorSmokeOwnerMobile
   );
   api.kill("SIGTERM");
   web.kill("SIGTERM");

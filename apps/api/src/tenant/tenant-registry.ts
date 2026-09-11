@@ -40,7 +40,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
       cssVariables: { "--color-primary": "#059669" },
       displayName: DENALI_CLUB_PUBLIC_DISPLAY_NAME,
       defaultLocale: "fa",
-      enabledModules: ["wallet", "finance", "marketing_pages"],
+      enabledModules: ["wallet", "finance", "marketing_pages", "ticketing"],
       portalModuleGrants: ["wallet"],
       commerce: {
         currency: "IRR",

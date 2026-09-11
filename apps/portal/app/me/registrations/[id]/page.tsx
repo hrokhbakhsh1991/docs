@@ -6,7 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { formatMemberRegistrationDeparture,
+import {
+  formatMemberRegistrationDeparture,
   localizeMemberPaymentStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
@@ -59,14 +60,17 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     intakeFeatures.memberPendingIntakeAmend === true &&
     (lifecycleStatus === "pending" || lifecycleStatus === "waitlisted");
 
-  const tour =
-    showIntakeAmend && typeof row.tourId === "string" && row.tourId.trim().length > 0
-      ? await fetchCatalogTour({
-          tenantId: bootstrap.tenantId,
-          pluginId: bootstrap.pluginId,
-          tourId: row.tourId,
-        })
-      : null;
+  const shouldLoadTour =
+    (showIntakeAmend || lifecycleStatus === "approved") &&
+    typeof row.tourId === "string" &&
+    row.tourId.trim().length > 0;
+  const tour = shouldLoadTour
+    ? await fetchCatalogTour({
+        tenantId: bootstrap.tenantId,
+        pluginId: bootstrap.pluginId,
+        tourId: row.tourId,
+      })
+    : null;
 
   const tripsListHref = resolveMemberPortalTripsListPath(bootstrap.pluginId);
   const tourHref =
@@ -92,6 +96,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ? tAmend("noCarAcquaintance")
             : null;
   const personalCarOccupants =
+    row.personalCarOccupants === 0 ||
     row.personalCarOccupants === 1 ||
     row.personalCarOccupants === 2 ||
     row.personalCarOccupants === 3
@@ -148,15 +153,14 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {transportKind !== null && transportKindLabel !== null ? (
               <div data-portal-member-detail-kpi data-kpi="transport">
                 <p data-portal-member-detail-kpi-label>{t("transportLabel")}</p>
-                <p
-                  data-portal-member-registration-transport
-                  data-transport-kind={transportKind}
-                >
+                <p data-portal-member-registration-transport data-transport-kind={transportKind}>
                   {transportKind === "personal_car" && personalCarOccupants !== null
-                    ? t("transportLineOccupants", {
-                        kind: transportKindLabel,
-                        occupants: personalCarOccupants,
-                      })
+                    ? personalCarOccupants === 0
+                      ? t("transportLineDriverOnly", { kind: transportKindLabel })
+                      : t("transportLineOccupants", {
+                          kind: transportKindLabel,
+                          occupants: personalCarOccupants,
+                        })
                     : transportKindLabel}
                 </p>
               </div>
@@ -171,6 +175,18 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </section>
+        {lifecycleStatus === "approved" && tour?.socialMediaLink ? (
+          <section data-portal-member-registration-social-link>
+            <a
+              href={tour.socialMediaLink}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-portal-member-registration-social-link-anchor
+            >
+              {t("socialMediaLink")}
+            </a>
+          </section>
+        ) : null}
         {showIntakeAmend && tour !== null ? (
           <MemberIntakeAmendForm
             registrationId={row.id}
@@ -183,10 +199,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
-        <MemberCancellationPanel
-          registrationId={row.id}
-          registrationStatus={lifecycleStatus}
-        />
+        <MemberCancellationPanel registrationId={row.id} registrationStatus={lifecycleStatus} />
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
@@ -205,6 +218,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
+          paymentDueAt={row.paymentDueAt ?? null}
           cancelSource={row.cancelSource ?? null}
         />
       </main>

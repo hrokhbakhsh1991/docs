@@ -12,24 +12,61 @@ import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
-import {
-  clickWorkspaceApproveAndWait,
-  ensureTourHasApprovalCapacity,
-  escapeRegExp,
-  openWorkspaceGuestRow,
-  seedPendingUnpaidGuest,
-  WORKSPACE_SMOKE_TOUR_ID,
-} from "./fixtures/tour-workspace-smoke";
+
+// Default to the operator-smoke tour seeded by the official harness; QA_TOUR_ID can still
+// override it for a separately provisioned staging tour.
+const TOUR_ID = process.env.QA_TOUR_ID?.trim() || "00000000-0000-4000-8000-000000000210";
+
+type BookingRow = {
+  readonly id?: string;
+  readonly guestLabel?: string;
+  readonly status?: string;
+  readonly paymentStatus?: string;
+};
 
 test.describe("scenario-3 tabs: transport roster + finance filters", () => {
   test("approve then transport roster; finance filter/search without banner", async ({ page }) => {
     test.setTimeout(240_000);
+    const browserErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        browserErrors.push(`console: ${message.text()}`);
+      }
+    });
+    page.on("pageerror", (error) => {
+      browserErrors.push(`pageerror: ${error.message}`);
+    });
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
     await ensureTourHasApprovalCapacity(page, { minFreePartySlots: 1 });
 
-    const stamp = Date.now();
-    const { guestName, registrationId } = await seedPendingUnpaidGuest(page, stamp);
-    const guestRe = new RegExp(escapeRegExp(guestName), "i");
+    let unpaid: BookingRow | null = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const listRes = await page.request.get(
+        `/api/bookings?tourId=${encodeURIComponent(TOUR_ID)}&status=pending&view=ops&limit=50`,
+        { timeout: 10_000 }
+      );
+      if (!listRes.ok()) {
+        await page.waitForTimeout(1500);
+        continue;
+      }
+      const body = (await listRes.json()) as { items?: BookingRow[] };
+      unpaid =
+        body.items?.find(
+          (row) =>
+            row.status === "pending" &&
+            (row.paymentStatus === "unpaid" || row.paymentStatus === "partial") &&
+            typeof row.guestLabel === "string" &&
+            row.guestLabel.trim().length > 0
+        ) ?? null;
+      if (unpaid !== null) {
+        break;
+      }
+      await page.waitForTimeout(1000);
+    }
+    expect(unpaid, "need pending unpaid/partial on QA tour").not.toBeNull();
+    const guestName = unpaid!.guestLabel!.trim();
+    const registrationId = unpaid!.id!;
+    const guestRe = new RegExp(guestName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
 
     await page.goto(`/tours/${WORKSPACE_SMOKE_TOUR_ID}/workspace`, {
       waitUntil: "domcontentloaded",
@@ -55,8 +92,16 @@ test.describe("scenario-3 tabs: transport roster + finance filters", () => {
       timeout: 20_000,
     });
 
+    const rosterResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/tours/${TOUR_ID}/operational-roster`) &&
+        response.request().method() === "GET",
+      { timeout: 30_000 }
+    );
     await page.getByTestId(TOUR_WORKSPACE_TEST_IDS.tabTransport).click();
     await expect(page).toHaveURL(/tab=transport/);
+    const rosterResponse = await rosterResponsePromise;
+    expect(rosterResponse.ok(), await rosterResponse.text()).toBeTruthy();
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.transportPanel)).toBeVisible({
       timeout: 90_000,
     });
@@ -75,6 +120,9 @@ test.describe("scenario-3 tabs: transport roster + finance filters", () => {
       timeout: 90_000,
     });
 
+    const controls = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.controls);
+    await expect(controls).toBeVisible({ timeout: 60_000 });
+    await page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.filtersToggle).click();
     const settled = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled);
     const controls = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.controls);
     const search = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.search);
@@ -82,6 +130,7 @@ test.describe("scenario-3 tabs: transport roster + finance filters", () => {
 
     if ((await settled.count()) > 0 && (await controls.count()) === 0) {
       await expect(search).toHaveCount(0);
+      expect(browserErrors, "transport/finance workspace must be free of browser errors").toEqual([]);
       return;
     }
 
@@ -90,23 +139,33 @@ test.describe("scenario-3 tabs: transport roster + finance filters", () => {
     await expect(filtersToggle).toBeVisible();
     await filtersToggle.click();
 
-    const filterSelect = page.locator("#tour-workspace-finance-payment-filter");
-    await expect(filterSelect).toBeVisible({ timeout: 10_000 });
+    const paymentFilter = filters.locator("select#tour-workspace-finance-payment-filter");
+    await expect(paymentFilter).toBeVisible({ timeout: 10_000 });
 
     const guestList = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.guestList);
     const empty = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.empty);
 
     const assertFilterApplied = async () => {
       await expect(guestList.or(empty)).toBeVisible({ timeout: 15_000 });
+      if (await guestList.isVisible()) {
+        const kinds = await guestList
+          .locator("[data-follow-up-kind]")
+          .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-follow-up-kind")));
+        expect(kinds.length).toBeGreaterThan(0);
+        expect(kinds.every((k) => k === kind)).toBeTruthy();
+      } else {
+        await expect(empty).toBeVisible();
+      }
     };
 
-    await filterSelect.selectOption("unpaid");
-    await assertFilterApplied();
+    await paymentFilter.selectOption("unpaid");
+    await assertKindOrEmpty("unpaid");
 
-    await filterSelect.selectOption("partial");
-    await assertFilterApplied();
+    await paymentFilter.selectOption("partial");
+    await assertKindOrEmpty("partial");
 
-    await filterSelect.selectOption("all");
+    // Name search against a visible row (tour outstanding may paginate past the just-approved guest).
+    await paymentFilter.selectOption("all");
     await search.fill("");
     await expect(guestList.or(empty)).toBeVisible({ timeout: 15_000 });
     if (!(await guestList.isVisible())) {
@@ -130,5 +189,6 @@ test.describe("scenario-3 tabs: transport roster + finance filters", () => {
     ).toBeVisible({ timeout: 10_000 });
     await search.fill("___no_such_guest_zz___");
     await expect(empty).toBeVisible({ timeout: 10_000 });
+    expect(browserErrors, "transport/finance workspace must be free of browser errors").toEqual([]);
   });
 });

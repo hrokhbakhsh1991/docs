@@ -52,7 +52,9 @@ function resolveNotificationHref(item: NotificationItem): string {
     }
   }
   if (item.entityType === "registration") {
-    return "/me/registrations";
+    return item.entityId
+      ? `/me/registrations/${encodeURIComponent(item.entityId)}`
+      : "/me/registrations";
   }
   if (item.entityType === "payment") {
     return "/me/registrations";
@@ -254,6 +256,12 @@ export function MemberNotificationsPanel() {
             const Icon = resolveNotificationSourceIcon(item.sourceModule, item.eventType);
             const href = resolveNotificationHref(item);
             const sourceLabel = resolveSourceLabel(item.sourceModule, t);
+            const socialMediaLink =
+              item.eventType === "registration.approved" &&
+              typeof item.payload?.socialMediaLink === "string" &&
+              /^https?:\/\//i.test(item.payload.socialMediaLink)
+                ? item.payload.socialMediaLink
+                : null;
 
             return (
               <li
@@ -262,38 +270,52 @@ export function MemberNotificationsPanel() {
                 data-portal-member-notification-unread={unread ? "true" : "false"}
                 data-portal-member-notification-source={item.sourceModule}
               >
-                <a
-                  href={href}
-                  data-portal-member-notification-link
-                  aria-describedby={`notification-time-${item.id}`}
-                  onClick={() => {
-                    if (unread) void markRead(item.id);
-                  }}
-                >
-                  <span data-portal-member-notification-icon aria-hidden="true">
-                    <Icon />
-                  </span>
-                  <span data-portal-member-notification-content>
-                    <span data-portal-member-notification-row>
-                      <strong data-portal-member-notification-title>{title}</strong>
-                      {unread ? (
-                        <span data-portal-member-notification-unread-dot aria-hidden="true" />
-                      ) : null}
+                <div data-portal-member-notification-row-shell>
+                  <a
+                    href={href}
+                    data-portal-member-notification-link
+                    aria-describedby={`notification-time-${item.id}`}
+                    onClick={() => {
+                      if (unread) void markRead(item.id);
+                    }}
+                  >
+                    <span data-portal-member-notification-icon aria-hidden="true">
+                      <Icon />
                     </span>
-                    <span data-portal-member-notification-source-chip>{sourceLabel}</span>
-                    {body.length > 0 ? (
-                      <span data-portal-member-notification-body>{body}</span>
-                    ) : null}
-                    <time
-                      id={`notification-time-${item.id}`}
-                      dateTime={item.createdAt}
-                      data-portal-member-notification-time
-                      title={formatMemberNotificationDateTime(item.createdAt, locale)}
-                    >
-                      {formatMemberNotificationRelativeTime(item.createdAt, locale)}
-                    </time>
-                  </span>
-                </a>
+                    <span data-portal-member-notification-content>
+                      <span data-portal-member-notification-row>
+                        <strong data-portal-member-notification-title>{title}</strong>
+                        {unread ? (
+                          <span data-portal-member-notification-unread-dot aria-hidden="true" />
+                        ) : null}
+                      </span>
+                      <span data-portal-member-notification-source-chip>{sourceLabel}</span>
+                      {body.length > 0 ? (
+                        <span data-portal-member-notification-body>{body}</span>
+                      ) : null}
+                      <time
+                        id={`notification-time-${item.id}`}
+                        dateTime={item.createdAt}
+                        data-portal-member-notification-time
+                        title={formatMemberNotificationDateTime(item.createdAt, locale)}
+                      >
+                        {formatMemberNotificationRelativeTime(item.createdAt, locale)}
+                      </time>
+                    </span>
+                  </a>
+                  {socialMediaLink ? (
+                    <span data-portal-member-notification-social-link>
+                      <a
+                        href={socialMediaLink}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        data-portal-member-notification-social-link-anchor
+                      >
+                        {t("openTourSocialLink")}
+                      </a>
+                    </span>
+                  ) : null}
+                </div>
               </li>
             );
           })}

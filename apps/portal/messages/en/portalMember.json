@@ -373,15 +373,18 @@
     }
   },
   "detail": {
+    "socialMediaLink": "Open the tour group or social channel",
     "backToList": "Back to my registrations",
     "summaryEyebrow": "Registration overview",
     "lede": "Status, departure, and the next action for this trip.",
     "statusLabel": "Registration status",
     "departureLabel": "Departure window",
+    "paymentDueLabel": "Payment deadline",
     "statusLine": "Status: {status} · Payment: {paymentStatus}",
     "departure": "Departure: {departureAt}",
     "transportLabel": "Transport",
     "transportLineOccupants": "{kind} · {occupants} seats",
+    "transportLineDriverOnly": "{kind} · Driver only (no companion)",
     "forOtherBadge": "For someone else",
     "guestLine": "Guest: {guestLabel}"
   },
@@ -436,7 +439,8 @@
     "personalCar": "I will bring a personal car",
     "noCarDong": "No car — pay dong",
     "noCarAcquaintance": "No car — ride with acquaintance",
-    "occupants": "Seats in my car",
+    "occupants": "Companion seats in my car",
+    "noCompanion": "Driver only (no companion)",
     "save": "Save changes",
     "saving": "Saving…",
     "saved": "Saved.",
@@ -459,6 +463,7 @@
     "unreadSummary": "{count, plural, one {# unread} other {# unread}}",
     "ticketUpdateBody": "Update for ticket {ticketRef}",
     "genericUpdateBody": "You have a new update.",
+    "openTourSocialLink": "Open the tour group or social channel",
     "sources": {
       "default": "Account",
       "ticketing": "Support",

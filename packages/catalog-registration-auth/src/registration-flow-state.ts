@@ -7,7 +7,7 @@ import {
 export type CatalogRegistrationTransportIntakeState = Readonly<{
   readonly optInPersonalCar: boolean;
   readonly hasPersonalCar: boolean | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
 }>;
 
@@ -135,6 +135,7 @@ function isTransportState(value: unknown): value is CatalogRegistrationTransport
     typeof row.optInPersonalCar === "boolean" &&
     (row.hasPersonalCar === null || typeof row.hasPersonalCar === "boolean") &&
     (row.personalCarOccupants === null ||
+      row.personalCarOccupants === 0 ||
       row.personalCarOccupants === 1 ||
       row.personalCarOccupants === 2 ||
       row.personalCarOccupants === 3) &&
@@ -170,7 +171,11 @@ export function assertCatalogRegistrationFlowState(
     }
   }
   for (const key of Object.keys(record)) {
-    if (!CATALOG_REGISTRATION_FLOW_STATE_KEYS.includes(key as (typeof CATALOG_REGISTRATION_FLOW_STATE_KEYS)[number])) {
+    if (
+      !CATALOG_REGISTRATION_FLOW_STATE_KEYS.includes(
+        key as (typeof CATALOG_REGISTRATION_FLOW_STATE_KEYS)[number]
+      )
+    ) {
       throw new CatalogRegistrationFlowStateError(`${label}: unexpected key "${key}"`);
     }
   }
@@ -200,7 +205,9 @@ export function assertCatalogRegistrationFlowState(
     }
   }
   if (record.registrantTarget !== "self" && record.registrantTarget !== "other") {
-    throw new CatalogRegistrationFlowStateError(`${label}: registrantTarget must be "self" | "other"`);
+    throw new CatalogRegistrationFlowStateError(
+      `${label}: registrantTarget must be "self" | "other"`
+    );
   }
   if (!isSavedDefaults(record.savedSelfIntakeDefaults)) {
     throw new CatalogRegistrationFlowStateError(`${label}: savedSelfIntakeDefaults invalid`);

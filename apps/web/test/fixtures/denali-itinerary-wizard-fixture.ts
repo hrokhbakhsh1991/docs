@@ -26,7 +26,7 @@ const DESTINATION_LOCKED_PEAK_HEIGHT_BY_LABEL: Readonly<Record<string, number>> 
   [OPERATOR_SMOKE_DESTINATION_LABEL]: OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M,
   دماوند: 5_610,
   توچال: 3_962,
-  "علم‌کوه": 4_850,
+  علم‌کوه: 4_850,
 };
 
 export function resolveLockedPeakHeightForDestination(label: string): number {
@@ -92,7 +92,9 @@ async function fillDenaliDatetimeField(
   await host.locator("[data-operator-date-picker]").click();
   const calendar = page.getByTestId("localized-calendar");
   await expect(calendar).toBeVisible({ timeout: 10_000 });
-  await calendar.getByRole("button", { name: isoDateFromToday(dateOffsetDays), exact: true }).click();
+  await calendar
+    .getByRole("button", { name: isoDateFromToday(dateOffsetDays), exact: true })
+    .click();
 
   await host.locator("[data-operator-time-picker]").click();
   const picker = page.locator("[data-operator-wizard-time-picker]");
@@ -109,7 +111,12 @@ export async function resetOperatorWizardToBasic(page: Page): Promise<void> {
   await clearOperatorWizardDraftIfPresent(page);
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    if (await page.locator('[data-wizard-step="denali_basic"]').isVisible().catch(() => false)) {
+    if (
+      await page
+        .locator('[data-wizard-step="denali_basic"]')
+        .isVisible()
+        .catch(() => false)
+    ) {
       return;
     }
     const back = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.back);
@@ -209,11 +216,7 @@ async function clickWizardNextToStep(page: Page, expectedStepId: string): Promis
   });
 }
 
-async function fillWizardNumericField(
-  page: Page,
-  label: RegExp,
-  value: string
-): Promise<void> {
+async function fillWizardNumericField(page: Page, label: RegExp, value: string): Promise<void> {
   const input = page.getByRole("textbox", { name: label });
   await expect(input).toBeVisible({ timeout: 15_000 });
   await input.fill(value);
@@ -234,7 +237,7 @@ export async function advanceWizardToStep(page: Page, stepId: string, maxNext = 
 }
 
 export async function fillDenaliWizardPhotosMinimal(page: Page): Promise<void> {
-  await expect(page.locator("[data-wizard-step=\"denali_photos\"]")).toBeVisible({
+  await expect(page.locator('[data-wizard-step="denali_photos"]')).toBeVisible({
     timeout: 30_000,
   });
   const shortDescription = page.getByTestId(DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription);
@@ -252,7 +255,7 @@ export async function fillDenaliWizardPhotosMinimal(page: Page): Promise<void> {
 }
 
 export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> {
-  await expect(page.locator("[data-wizard-step=\"denali_program\"]")).toBeVisible({
+  await expect(page.locator('[data-wizard-step="denali_program"]')).toBeVisible({
     timeout: 30_000,
   });
   const difficulty = page.getByTestId("denali-difficulty-slider");
@@ -267,7 +270,10 @@ export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> 
 
   const itinerary = page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary);
   if (await itinerary.isVisible().catch(() => false)) {
-    const dayCount = await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.nav).locator("button").count();
+    const dayCount = await itinerary
+      .getByTestId(DENALI_ITINERARY_TEST_IDS.nav)
+      .locator("button")
+      .count();
     for (let index = 0; index < dayCount; index += 1) {
       const dayNumber = index + 1;
       await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(dayNumber)).click();
@@ -303,7 +309,7 @@ async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
 export async function fillDenaliMultiDayWizardThroughLegal(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL
 ): Promise<void> {
   await fillDenaliMultiDayWizardBasics(page, title, destinationLabel);
   await fillDenaliWizardPhotosMinimal(page);
@@ -316,7 +322,7 @@ export async function fillDenaliMultiDayWizardThroughLegal(
 export async function fillDenaliMultiDayWizardThroughReview(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL
 ): Promise<void> {
   await fillDenaliMultiDayWizardThroughLegal(page, title, destinationLabel);
   await clickWizardNextToStep(page, "review");
@@ -327,10 +333,11 @@ export async function submitDenaliWizardDraftCreate(page: Page): Promise<string>
     .locator("[data-wizard-footer]")
     .getByRole("button", { name: /Create tour|ساخت تور/i });
   await expect(create).toBeEnabled({ timeout: 30_000 });
-  const createdRedirect = page.waitForURL(/\/tours\?created=/, { timeout: 60_000 });
   await create.click();
-  await createdRedirect;
-  const tourId = new URL(page.url()).searchParams.get("created")?.trim() ?? "";
-  expect(tourId.length).toBeGreaterThan(0);
-  return tourId;
+  const created = page.locator("[data-tour-created]");
+  await expect(created).toBeVisible({ timeout: 60_000 });
+  const createdText = (await created.textContent()) ?? "";
+  const match = createdText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  expect(match?.[0]).toBeTruthy();
+  return match![0];
 }

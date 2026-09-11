@@ -5,8 +5,9 @@ import { expect, test } from "@playwright/test";
 
 import {
   loginOperatorMember,
-  loginOperatorOwner,
+  loginOperatorWithPhone,
   loginOperatorViewer,
+  OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import { OPERATOR_TICKETS_TEST_IDS } from "../../src/features/tickets/operator-tickets-types";
 import {
@@ -20,21 +21,30 @@ async function openTicketsInbox(page: import("@playwright/test").Page): Promise<
   await page.goto("/tickets", { waitUntil: "load" });
   await expect(page).toHaveURL(/\/tickets\/?$/);
   await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.shell)).toBeVisible({ timeout: 90_000 });
-  await expect(page.locator("[data-operator-tickets][data-operator-tickets-ready='true']")).toBeVisible({
+  await expect(
+    page.locator("[data-operator-tickets][data-operator-tickets-ready='true']")
+  ).toBeVisible({
     timeout: 90_000,
   });
 }
 
+async function loginTicketingOwner(page: import("@playwright/test").Page): Promise<void> {
+  await page.context().clearCookies();
+  await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { forceFresh: true });
+}
+
 async function confirmOperatorAction(
   page: import("@playwright/test").Page,
-  testIdPrefix: "operator-tickets-resolve" | "operator-tickets-close",
+  testIdPrefix: "operator-tickets-resolve" | "operator-tickets-close"
 ): Promise<void> {
   await page.getByTestId(`${testIdPrefix}-confirm-confirm`).click();
 }
 
 test.describe("TKT-G1 operator ticketing inbox", () => {
-  test("admin triage flow + viewer read-only + member denied + mobile", async ({ page }) => {
-    await loginOperatorOwner(page);
+  test("admin triage flow + viewer read-only + member denied + mobile", async ({
+    page,
+  }, testInfo) => {
+    await loginTicketingOwner(page);
     await openTicketsInbox(page);
 
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.inbox)).toBeVisible();
@@ -50,7 +60,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     await Promise.all([
       page.waitForResponse(
         (res) => res.request().method() === "POST" && res.url().includes("/replies") && res.ok(),
-        { timeout: 60_000 },
+        { timeout: 60_000 }
       ),
       composer.getByRole("button", { name: /ارسال|Send/i }).click(),
     ]);
@@ -63,14 +73,20 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
       page.waitForResponse(
         (res) =>
           res.request().method() === "POST" && res.url().includes("/internal-notes") && res.ok(),
-        { timeout: 60_000 },
+        { timeout: 60_000 }
       ),
       composer.getByRole("button", { name: /ارسال|Send/i }).click(),
     ]);
     await expect(page.getByText("یادداشت داخلی smoke")).toBeVisible({ timeout: 60_000 });
 
-    const detailPanel = page.getByTestId(OPERATOR_TICKETS_TEST_IDS.detail).filter({ visible: true }).first();
-    await detailPanel.locator("[data-operator-tickets-actions] select").first().selectOption("high");
+    const detailPanel = page
+      .getByTestId(OPERATOR_TICKETS_TEST_IDS.detail)
+      .filter({ visible: true })
+      .first();
+    await detailPanel
+      .locator("[data-operator-tickets-actions] select")
+      .first()
+      .selectOption("high");
     await expect(page.getByTestId(OPERATOR_TICKETS_TEST_IDS.mutationNotice)).toBeVisible({
       timeout: 60_000,
     });
@@ -86,7 +102,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
     await detailPanel.getByRole("button", { name: /بازگشایی|Reopen/i }).click();
 
     await page.screenshot({
-      path: "/opt/cursor/artifacts/screenshots/operator-tickets-desktop.png",
+      path: testInfo.outputPath("operator-tickets-desktop.png"),
       fullPage: true,
     });
 
@@ -98,7 +114,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
       timeout: 60_000,
     });
     await page.screenshot({
-      path: "/opt/cursor/artifacts/screenshots/operator-tickets-mobile.png",
+      path: testInfo.outputPath("operator-tickets-mobile.png"),
       fullPage: true,
     });
 
@@ -118,7 +134,7 @@ test.describe("TKT-G1 operator ticketing inbox", () => {
   });
 
   test("mutation conflict surfaces without full-page error", async ({ page }) => {
-    await loginOperatorOwner(page);
+    await loginTicketingOwner(page);
     await openTicketsInbox(page);
     await applyInboxStatusFilter(page, "open");
     const { ticketId } = await selectOpenTicketInInbox(page);

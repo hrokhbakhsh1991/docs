@@ -64,7 +64,7 @@ export function DenaliWizardDatetimePicker({
             invalid={invalid}
             aria-label={ariaLabel ?? t("pickDate")}
             className="operator-wizard-datetime__date-trigger"
-            onChange={(nextDate) => {
+            onChange={(nextDate: string) => {
               if (isDatetimePickerDateUnchanged(nextDate, date)) {
                 return;
               }

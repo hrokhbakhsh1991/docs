@@ -23,7 +23,11 @@ import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-work
 import { disconnectPrisma } from "../src/db/prisma";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { reclaimStaleProcessingHttpIdempotencyRecords } from "../src/http/http-idempotency-reclaim";
-import { integrationTenantId, postgresFinanceEnsureTour, postgresFinanceSeedRegistration } from "./test-helpers";
+import {
+  integrationTenantId,
+  postgresFinanceEnsureTour,
+  postgresFinanceSeedRegistration,
+} from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -109,7 +113,9 @@ async function ensureFinanceTables(admin: PrismaClient): Promise<void> {
   `);
   await admin.$executeRawUnsafe(`ALTER TABLE payment_receipts ENABLE ROW LEVEL SECURITY;`);
   await admin.$executeRawUnsafe(`ALTER TABLE payment_receipts FORCE ROW LEVEL SECURITY;`);
-  await admin.$executeRawUnsafe(`DROP POLICY IF EXISTS payment_receipts_tenant_isolation ON payment_receipts;`);
+  await admin.$executeRawUnsafe(
+    `DROP POLICY IF EXISTS payment_receipts_tenant_isolation ON payment_receipts;`
+  );
   await admin.$executeRawUnsafe(`
     CREATE POLICY payment_receipts_tenant_isolation ON payment_receipts
       USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
@@ -212,12 +218,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
   let admin: PrismaClient;
   const listener = createRequestListener();
   const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
-  const tenantIds = () => [
-    denaliTenantId,
-    denaliTenantBId,
-    urbanTenantId,
-    disabledFinanceTenantId,
-  ];
+  const tenantIds = () => [denaliTenantId, denaliTenantBId, urbanTenantId, disabledFinanceTenantId];
 
   before(async () => {
     process.env.STORAGE_DRIVER = process.env.STORAGE_DRIVER?.trim() || "prisma";
@@ -309,6 +310,8 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     readonly tenantId: string;
     readonly withBooking: boolean;
     readonly amount?: string;
+    readonly obligationMinor?: string;
+    readonly paymentAmount?: string;
   }): Promise<{
     readonly registrationId: string;
     readonly paymentId: string;
@@ -320,9 +323,10 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
         tenantId: input.tenantId,
         registrationId,
         tourId: input.tenantId === denaliTenantBId ? denaliTourBId : denaliTourId,
-        amountMinor: input.amount ?? "5000000",
+        amountMinor: input.obligationMinor ?? input.amount ?? "5000000",
       });
     }
+    const paymentAmount = input.paymentAmount ?? input.amount ?? "5000000";
     const manual = await requestJson(listener, {
       method: "POST",
       path: "/finance/payments/manual",
@@ -330,7 +334,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       idempotencyKey: `manual-${registrationId}`,
       body: {
         registrationId,
-        amount: input.amount ?? "5000000",
+        amount: paymentAmount,
         currency: "IRR",
       },
     });
@@ -411,6 +415,65 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       },
     });
     assert.equal(ledgerCount, 1);
+  });
+
+  it("API-9.7-03d partial receipt → second receipt settles booking payment", async () => {
+    const { registrationId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+      obligationMinor: "2500000",
+      paymentAmount: "1500000",
+    });
+
+    const firstReview = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `ops-03d-first-${receiptId}`,
+      body: { decision: "approve", reviewNote: "partial payment verified" },
+    });
+    assert.equal(firstReview.status, 200);
+    assert.equal(firstReview.body.bookingPaymentStatus, "partial");
+
+    const firstBooking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    assert.equal(firstBooking?.paymentStatus, "partial");
+
+    const secondPayment = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey: `manual-03d-second-${registrationId}`,
+      body: { registrationId, amount: "1000000", currency: "IRR" },
+    });
+    assert.equal(secondPayment.status, 201);
+    const secondPaymentId = String(secondPayment.body.id);
+    const secondReceipt = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey: `receipt-03d-second-${secondPaymentId}`,
+      body: { paymentId: secondPaymentId, fileKey: `receipts/${secondPaymentId}/second.jpg` },
+    });
+    assert.equal(secondReceipt.status, 201);
+
+    const finalReview = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${secondReceipt.body.id}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `ops-03d-second-${secondReceipt.body.id}`,
+      body: { decision: "approve", reviewNote: "balance settled" },
+    });
+    assert.equal(finalReview.status, 200);
+    assert.equal(finalReview.body.bookingPaymentStatus, "paid");
+
+    const finalBooking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    assert.equal(finalBooking?.paymentStatus, "paid");
   });
 
   it("API-9.7-03b approve without booking row fails closed (409 sync miss)", async () => {

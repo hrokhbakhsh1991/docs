@@ -74,7 +74,7 @@ describe("users-ownership-transfer-logic (R5)", () => {
     );
   });
 
-  it("WEB-9.4-19b ownership transfer panel gated off by default", () => {
-    assert.equal(USERS_OWNERSHIP_TRANSFER_UI_ENABLED, false);
+  it("WEB-9.4-19b ownership transfer panel is enabled for the owner flow", () => {
+    assert.equal(USERS_OWNERSHIP_TRANSFER_UI_ENABLED, true);
   });
 });

@@ -22,7 +22,7 @@ export type DenaliRegistrationPayload = {
   readonly partySize: number;
   readonly transport?: {
     readonly kind: "primary" | "personal_car" | "no_car_dong" | "no_car_acquaintance";
-    readonly personalCarOccupants?: 1 | 2 | 3;
+    readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   };
 };
 

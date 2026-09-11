@@ -22,8 +22,7 @@ const operatorSmokeOwnerUserId = "00000000-0000-4000-8000-000000000101";
 const operatorSmokeOwnerMobile = resolveOperatorSmokeOwnerMobile();
 const operatorSmokeSeedTourTitle = "North Ridge Trek";
 const operatorSmokeDbUrl =
-  process.env.DATABASE_URL?.trim() ||
-  "postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev";
+  process.env.DATABASE_URL?.trim() || "postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev";
 const operatorSmokeDbAdminUrl =
   process.env.DATABASE_URL_ADMIN?.trim() ||
   "postgresql://postgres:postgres@127.0.0.1:5434/app_tour_dev";
@@ -32,6 +31,7 @@ const operatorSmokeDbAdminUrl =
  * needs Prisma + DATABASE_URL by default. Set OPERATOR_SMOKE_USE_DATABASE=0 to force legacy memory smoke.
  */
 const useFinanceDatabase = process.env.OPERATOR_SMOKE_USE_DATABASE !== "0";
+const useProductionWeb = process.env.OPERATOR_SMOKE_WEB_MODE === "production";
 
 /** Cursor shell may expose Node 22 on PATH ahead of nvm — pin repo .nvmrc for spawned pnpm/next. */
 function resolveRepoNodeBinDir() {
@@ -112,11 +112,7 @@ function waitForUrl(url, timeoutMs = 300_000) {
 
 function createChildExitError(label, code, signal) {
   const suffix =
-    typeof code === "number"
-      ? `exit ${code}`
-      : signal
-        ? `signal ${signal}`
-        : "unknown exit";
+    typeof code === "number" ? `exit ${code}` : signal ? `signal ${signal}` : "unknown exit";
   return new Error(`smoke-operator-e2e-servers: ${label} exited before readiness (${suffix})`);
 }
 
@@ -198,8 +194,11 @@ async function resolveSmokeJwtEnv() {
 
 let api;
 let web;
+let shuttingDown = false;
+let smokeReady = false;
 
 const shutdown = (signal) => {
+  shuttingDown = true;
   if (api) {
     api.kill(signal);
   }
@@ -213,6 +212,25 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 function keepAlive() {
   return new Promise(() => {});
+}
+
+function monitorReadyChild(child, label) {
+  if (!child) {
+    return;
+  }
+  child.once("exit", (code, signal) => {
+    if (shuttingDown || !smokeReady) {
+      return;
+    }
+    const suffix =
+      typeof code === "number" ? `exit ${code}` : signal ? `signal ${signal}` : "unknown exit";
+    console.error(`smoke-operator-e2e-servers: ${label} exited after readiness (${suffix})`);
+    const sibling = label === "API server" ? web : api;
+    if (sibling && sibling.exitCode === null) {
+      sibling.kill("SIGTERM");
+    }
+    process.exit(1);
+  });
 }
 
 function freePort(port) {
@@ -389,7 +407,7 @@ async function probeOperatorSmokeLoginReady() {
         path: "/api/auth/phone-preflight",
         method: "POST",
         headers: {
-          host: "operator.admin.localhost:3000",
+          host: "admin.operator.localhost:3000",
           "content-type": "application/json",
           "content-length": Buffer.byteLength(body),
         },
@@ -463,7 +481,7 @@ function probeTenantContextHost(forwardedHost) {
 async function waitForTenantContextReady(timeoutMs = 90_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await probeTenantContextHost("operator.admin.localhost")) {
+    if (await probeTenantContextHost("admin.operator.localhost")) {
       return true;
     }
     await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -479,7 +497,7 @@ async function runP6HostBindSmoke() {
   const ready = await waitForTenantContextReady(30_000);
   if (!ready) {
     console.warn(
-      "smoke-operator-e2e-servers: skipping P6 host-bind — tenant-context not ready on operator.admin.localhost (memory smoke continues)"
+      "smoke-operator-e2e-servers: skipping P6 host-bind — tenant-context not ready on admin.operator.localhost (memory smoke continues)"
     );
     return;
   }
@@ -519,6 +537,10 @@ function runDbBackedOperatorSmokeSeed() {
   }
   const scripts = [
     "scripts/seed-denali-smoke-for-playwright.ts",
+    // The tenant/identity seed alone does not create the stable tour and booking IDs used by
+    // P6 browser fixtures. Keep these after tenant creation because both use tenant FKs.
+    "scripts/ensure-operator-smoke-vs01-staging.ts",
+    "scripts/seed-operator-smoke-pending-booking-staging.ts",
     "scripts/seed-operator-smoke-identity-staging.ts",
   ];
   for (const script of scripts) {
@@ -602,9 +624,10 @@ try {
           DATABASE_URL_ADMIN: operatorSmokeDbAdminUrl,
         }
       : {}),
-    STORAGE_DRIVER: useFinanceDatabase
-      ? process.env.STORAGE_DRIVER?.trim() || "prisma"
-      : "memory",
+    // DB-backed smoke must never inherit a shell's memory-driver override: the seed scripts and
+    // the API must use the same durable source, otherwise a passing-looking review can write to
+    // memory while assertions read Postgres.
+    STORAGE_DRIVER: useFinanceDatabase ? "prisma" : "memory",
     AUTH_ALLOW_DEV_STATIC_OTP: "true",
     OPERATOR_SMOKE_E2E_SEED: "1",
     OPERATOR_OWNER_MOBILE: operatorSmokeOwnerMobile,
@@ -615,6 +638,10 @@ try {
     TENANT_RATE_LIMIT_ENABLED: "false",
     PROJECTION_AUTO_RECONCILE_ENABLED: "false",
     PRIORITY_LOAD_SHED_ENABLED: "false",
+    // Make the operator smoke host resolvable by the API's public tenant
+    // context route when exercising the production-like Next server.
+    PUBLIC_TENANT_FALLBACK_LABEL: "operator",
+    PUBLIC_TENANT_FALLBACK_HOSTS: "admin.operator.localhost,127.0.0.1",
   });
   if (!useFinanceDatabase) {
     // Strip shell Postgres/Redis so legacy memory smoke cannot bind …0014 to a durable DB.
@@ -633,6 +660,11 @@ try {
     TOUR_OPS_DEV_TENANT_ID: operatorTenantId,
     TOUR_OPS_API_URL: "http://127.0.0.1:3001",
     API_INTERNAL_URL: "http://127.0.0.1:3001",
+    // The Playwright base host is admin.operator.localhost in both dev and
+    // production-like smoke modes. Keep the BFF tenant resolver aligned with
+    // the API fallback so auth and subsequent mutations use the same tenant.
+    PUBLIC_TENANT_FALLBACK_LABEL: "operator",
+    PUBLIC_TENANT_FALLBACK_HOSTS: "admin.operator.localhost,127.0.0.1",
     PORT: "3000",
   });
 
@@ -641,9 +673,9 @@ try {
       "node",
       ["--import", "tsx", "--env-file=.env", "--env-file=.env.local", "src/main.ts"],
       {
-      cwd: path.join(repoRoot, "apps/api"),
-      env: apiEnv,
-      stdio: "inherit",
+        cwd: path.join(repoRoot, "apps/api"),
+        env: apiEnv,
+        stdio: "inherit",
       }
     );
     await waitForUrlOrChildExit(api, "http://127.0.0.1:3001/health", "API server");
@@ -658,11 +690,23 @@ try {
   }
 
   if (!webListening) {
-    web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000", "--hostname", "127.0.0.1"], {
-      cwd: webDir,
-      env: webEnv,
-      stdio: "inherit",
-    });
+    web = spawn(
+      "pnpm",
+      [
+        "exec",
+        "next",
+        useProductionWeb ? "start" : "dev",
+        "--port",
+        "3000",
+        "--hostname",
+        "127.0.0.1",
+      ],
+      {
+        cwd: webDir,
+        env: webEnv,
+        stdio: "inherit",
+      }
+    );
     await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/", "web server", 300_000);
     await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/auth/login", "web server", 300_000);
     await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/bookings/new", "web server", 300_000);
@@ -672,6 +716,9 @@ try {
   }
 
   console.log("smoke-operator-e2e-servers: API + web ready");
+  monitorReadyChild(api, "API server");
+  monitorReadyChild(web, "web server");
+  smokeReady = true;
   await runP6HostBindSmoke();
   await keepAlive();
 } catch (error) {

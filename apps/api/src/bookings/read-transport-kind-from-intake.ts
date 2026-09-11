@@ -33,7 +33,7 @@ export function readTransportKindFromIntake(
 
 export function readPersonalCarOccupantsFromIntake(
   intake: Readonly<Record<string, unknown>> | null | undefined
-): 1 | 2 | 3 | null {
+): 0 | 1 | 2 | 3 | null {
   if (intake === null || intake === undefined) {
     return null;
   }
@@ -42,7 +42,7 @@ export function readPersonalCarOccupantsFromIntake(
     return null;
   }
   const occupants = (transport as Record<string, unknown>).personalCarOccupants;
-  if (occupants === 1 || occupants === 2 || occupants === 3) {
+  if (occupants === 0 || occupants === 1 || occupants === 2 || occupants === 3) {
     return occupants;
   }
   return null;

@@ -15,6 +15,9 @@ import { resolveOperatorOwnerSeedMobile } from "./resolve-operator-owner-seed-mo
 export const DENALI_DEV_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101" as const;
 export const DENALI_DEV_OWNER_MOBILE = "09174070937" as const;
 export const DENALI_DEV_WORKSPACE_ID = "ws-denali-dev" as const;
+export const DENALI_DEV_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103" as const;
+export const DENALI_DEV_MEMBER_MOBILE = "+15550001003" as const;
+export const DENALI_DEV_MEMBER_WORKSPACE_ID = "ws-denali-dev-member" as const;
 
 /** SMK-P9-03 / P1 owner handoff — user row only; no membership until invite accept. */
 export const OPERATOR_SMOKE_INVITEE_USER_ID = "00000000-0000-4000-8000-000000000195" as const;
@@ -52,8 +55,14 @@ export async function seedDenaliOperatorIdentity(): Promise<void> {
     },
   });
 
-  await withTenantRls(DENALI_SMOKE_TENANT_ID, (tx) =>
-    tx.userTenant.upsert({
+  await prisma.user.upsert({
+    where: { id: DENALI_DEV_MEMBER_USER_ID },
+    create: { id: DENALI_DEV_MEMBER_USER_ID, mobile: DENALI_DEV_MEMBER_MOBILE },
+    update: { mobile: DENALI_DEV_MEMBER_MOBILE },
+  });
+
+  await withTenantRls(DENALI_SMOKE_TENANT_ID, async (tx) => {
+    await tx.userTenant.upsert({
       where: {
         userId_tenantId: {
           userId: owner.userId,
@@ -75,8 +84,38 @@ export async function seedDenaliOperatorIdentity(): Promise<void> {
         workspaceId: DENALI_DEV_WORKSPACE_ID,
         membershipMetadata,
       },
-    })
-  );
+    });
+
+    await tx.userTenant.upsert({
+      where: {
+        userId_tenantId: {
+          userId: DENALI_DEV_MEMBER_USER_ID,
+          tenantId: DENALI_SMOKE_TENANT_ID,
+        },
+      },
+      create: {
+        userId: DENALI_DEV_MEMBER_USER_ID,
+        tenantId: DENALI_SMOKE_TENANT_ID,
+        role: "member",
+        status: "ACTIVE",
+        sessionVersion: 1,
+        workspaceId: DENALI_DEV_MEMBER_WORKSPACE_ID,
+        membershipMetadata: {
+          displayName: "Smoke Member",
+          rewards: { permanentDiscountPercentage: 20 },
+        },
+      },
+      update: {
+        role: "member",
+        status: "ACTIVE",
+        workspaceId: DENALI_DEV_MEMBER_WORKSPACE_ID,
+        membershipMetadata: {
+          displayName: "Smoke Member",
+          rewards: { permanentDiscountPercentage: 20 },
+        },
+      },
+    });
+  });
 
   logger.info(
     {

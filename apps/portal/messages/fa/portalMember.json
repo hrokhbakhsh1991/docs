@@ -373,15 +373,18 @@
     }
   },
   "detail": {
+    "socialMediaLink": "ورود به گروه یا شبکه اجتماعی تور",
     "backToList": "بازگشت به ثبت‌نام‌های من",
     "summaryEyebrow": "خلاصه ثبت‌نام",
     "lede": "وضعیت، زمان حرکت و قدم بعدی همین سفر.",
     "statusLabel": "وضعیت ثبت‌نام",
     "departureLabel": "زمان حرکت",
+    "paymentDueLabel": "مهلت پرداخت",
     "statusLine": "وضعیت: {status} · پرداخت: {paymentStatus}",
     "departure": "تاریخ حرکت: {departureAt}",
     "transportLabel": "حمل‌ونقل",
     "transportLineOccupants": "{kind} · {occupants} صندلی",
+    "transportLineDriverOnly": "{kind} · فقط راننده (بدون همراه)",
     "forOtherBadge": "برای دیگری",
     "guestLine": "مسافر: {guestLabel}"
   },
@@ -427,7 +430,8 @@
     "personalCar": "ماشین شخصی می‌آورم",
     "noCarDong": "ماشین ندارم — پرداخت دونگ",
     "noCarAcquaintance": "ماشین ندارم — با آشنا",
-    "occupants": "ظرفیت صندلی ماشین من",
+    "occupants": "ظرفیت همراه ماشین من",
+    "noCompanion": "فقط خودم می‌آیم (بدون همراه)",
     "save": "ذخیره تغییرات",
     "saving": "در حال ذخیره…",
     "saved": "ذخیره شد.",
@@ -450,6 +454,7 @@
     "unreadSummary": "{count, plural, one {# خوانده‌نشده} other {# خوانده‌نشده}}",
     "ticketUpdateBody": "به‌روزرسانی برای تیکت {ticketRef}",
     "genericUpdateBody": "به‌روزرسانی جدیدی دارید.",
+    "openTourSocialLink": "ورود به گروه یا شبکه اجتماعی تور",
     "sources": {
       "default": "حساب",
       "ticketing": "پشتیبانی",

@@ -12,6 +12,25 @@ function assertAuthBffOk(response: { ok(): boolean; status(): number }, label: s
 
 export async function gotoPortalRegistration(page: Page, tourId: string): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
+  const continueRegistration = page.getByRole("button", {
+    name: "ورود برای ادامه ثبت‌نام",
+  });
+  const loginPhone = page.locator(
+    "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready]"
+  );
+  const registrationIntake = page.locator(
+    "[data-public-registration-intake][data-registration-ready]"
+  );
+  if (!(await registrationIntake.isVisible().catch(() => false))) {
+    const modalOpened = await loginPhone
+      .first()
+      .waitFor({ state: "visible", timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!modalOpened && (await continueRegistration.isVisible().catch(() => false))) {
+      await continueRegistration.click();
+    }
+  }
   // Guest path: OTP phone inside dialog[open] (PCMS-UX-MODAL-04). Resume: intake.
   // Do not toBeVisible on the <dialog> itself — Preflight 0×0 box until L2 flex frame.
   await page
@@ -295,21 +314,9 @@ export async function completeCatalogRegistrationIntake(
       if (guestPhone) {
         await fillIntakeFieldInRootIfVisible(card, "phone", guestPhone);
       }
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "nationalId",
-        guestOverride.nationalId ?? input.nationalId ?? "0012345679"
-      );
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "fatherName",
-        guestOverride.fatherName ?? input.fatherName ?? "Smoke Father"
-      );
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "birthDate",
-        guestOverride.birthDate ?? input.birthDate ?? "1990-01-15"
-      );
+      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1234567890");
+      await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");
+      await fillIntakeFieldInRootIfVisible(card, "birthDate", input.birthDate ?? "1990-01-15");
       await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
 
       await selectNoPersonalCarAndPayDong(card);
@@ -320,7 +327,7 @@ export async function completeCatalogRegistrationIntake(
     if (input.phone) {
       await fillIntakeFieldInRootIfVisible(page, "phone", input.phone);
     }
-    await fillIntakeFieldInRootIfVisible(page, "nationalId", input.nationalId ?? "0012345679");
+    await fillIntakeFieldInRootIfVisible(page, "nationalId", input.nationalId ?? "1234567890");
     await fillIntakeFieldInRootIfVisible(page, "fatherName", input.fatherName ?? "Smoke Father");
     await fillIntakeFieldInRootIfVisible(page, "birthDate", input.birthDate ?? "1990-01-15");
     await fillIntakeFieldInRootIfVisible(page, "partySize", input.partySize ?? "2");

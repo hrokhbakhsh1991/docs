@@ -58,10 +58,7 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
       stepId: "denali_photos",
       label: "عکس‌ها",
       enabled: true,
-      fields: [
-        field("program.themeIds"),
-        field("photos"),
-      ],
+      fields: [field("program.themeIds"), field("photos")],
     },
     {
       stepId: "denali_program",
