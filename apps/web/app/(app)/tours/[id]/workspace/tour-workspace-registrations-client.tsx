@@ -91,7 +91,7 @@ export function TourWorkspaceRegistrationsClient({
       <BookingsPageClient
         session={session}
         lockedTourId={tourId}
-        lockedStatus="all"
+        lockedStatus="pending"
         embedded
         opsActions={opsActions}
         onOpsMutationSuccess={reloadWorkspaceChrome}

@@ -134,7 +134,13 @@ export function OperatorTicketsComposer({ detail, canMutate, onDetailUpdated, on
       data-testid={OPERATOR_TICKETS_TEST_IDS.composer}
       className="sticky bottom-0 border-t border-border bg-background/95 p-3 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
-      <div className="mb-2 flex flex-wrap gap-2" role="tablist" aria-label={t("composerModeAria")}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-foreground">{t("composerModeAria")}</p>
+        <span className="text-xs text-muted-foreground">
+          {mode === "public" ? t("composerPublicHint") : t("composerInternalHint")}
+        </span>
+      </div>
+      <div className="mb-3 flex flex-wrap gap-2" role="tablist" aria-label={t("composerModeAria")}>
         <Button
           type="button"
           role="tab"
@@ -168,7 +174,7 @@ export function OperatorTicketsComposer({ detail, canMutate, onDetailUpdated, on
       </div>
       {mode === "public" && templates.length > 0 ? (
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <label className="sr-only" htmlFor="operator-ticket-template-picker">
+          <label className="text-xs font-medium" htmlFor="operator-ticket-template-picker">
             {t("templatePickerLabel")}
           </label>
           <select
@@ -196,7 +202,7 @@ export function OperatorTicketsComposer({ detail, canMutate, onDetailUpdated, on
           </Button>
         </div>
       ) : null}
-      <label className="sr-only" htmlFor="operator-ticket-composer-body">
+      <label className="mb-1 block text-xs font-medium" htmlFor="operator-ticket-composer-body">
         {mode === "public" ? t("composerPublic") : t("composerInternal")}
       </label>
       <textarea

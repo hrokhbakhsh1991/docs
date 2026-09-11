@@ -304,6 +304,15 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"guestLine"/);
     assert.match(fa, /"transportLabel"/);
     assert.match(en, /"transportLabel"/);
+    assert.match(fa, /"engagement":\s*"مشارکت و امتیازها"/);
+    assert.match(en, /"engagement":\s*"Engagement & points"/);
+    assert.doesNotMatch(fa, /portalMember\.nav\.engagement/);
+    assert.doesNotMatch(en, /portalMember\.nav\.engagement/);
+    assert.match(fa, /"withdrawHint"/);
+    assert.match(fa, /"withdrawAction"/);
+    assert.doesNotMatch(fa, /portalMember\.cancellation\.(withdrawHint|withdrawAction)/);
+    assert.match(en, /"withdrawHint"/);
+    assert.match(en, /"withdrawAction"/);
     assert.match(fa, /PROFILE_NATIONAL_ID_CHECKSUM/);
     assert.match(en, /PROFILE_NATIONAL_ID_CHECKSUM/);
   });

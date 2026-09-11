@@ -35,7 +35,7 @@ export async function PUT(req: Request, { params }: RouteParams): Promise<NextRe
         method: "PUT",
         body: bytes,
         contentType,
-      },
+      }
     );
   } catch {
     return jsonTicketsError("BACKEND_UNREACHABLE", 502);
@@ -64,7 +64,7 @@ export async function GET(req: Request, { params }: RouteParams): Promise<NextRe
   try {
     upstream = await fetchTicketsUpstream(
       context.host,
-      `/member/tickets/${ticketId}/attachments/${attachmentId}`,
+      `/member/tickets/${ticketId}/attachments/${attachmentId}`
     );
   } catch {
     return jsonTicketsError("BACKEND_UNREACHABLE", 502);
@@ -76,10 +76,11 @@ export async function GET(req: Request, { params }: RouteParams): Promise<NextRe
     return jsonTicketsError(code, upstream.status, localizeMemberTicketsBffError(code, code));
   }
 
-  return NextResponse.json(await upstream.json(), {
-    status: 200,
-    headers: { "Cache-Control": "private, no-store" },
-  });
+  const payload = (await upstream.json().catch(() => null)) as { readonly readUrl?: string } | null;
+  if (payload === null || typeof payload.readUrl !== "string" || payload.readUrl.length === 0) {
+    return jsonTicketsError("TICKET_ATTACHMENT_NOT_FOUND", 502);
+  }
+  return NextResponse.redirect(new URL(payload.readUrl, req.url), 302);
 }
 
 export async function DELETE(req: Request, { params }: RouteParams): Promise<NextResponse> {
@@ -94,7 +95,7 @@ export async function DELETE(req: Request, { params }: RouteParams): Promise<Nex
     upstream = await fetchTicketsUpstream(
       context.host,
       `/member/tickets/${ticketId}/attachments/${attachmentId}`,
-      { method: "DELETE" },
+      { method: "DELETE" }
     );
   } catch {
     return jsonTicketsError("BACKEND_UNREACHABLE", 502);

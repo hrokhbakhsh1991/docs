@@ -87,6 +87,9 @@ export function resolveNotificationBodyForLocale(input: {
   readonly genericFallback: string;
 }): string {
   const body = input.body.trim();
+  if (body.startsWith("notification.")) {
+    return input.genericFallback;
+  }
   if (input.locale.startsWith("fa")) {
     if (body.length === 0) {
       return input.genericFallback;

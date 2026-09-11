@@ -27,12 +27,12 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.doesNotMatch(client, /fetch\(`\/api\/bookings\?/);
   });
 
-  it("registrations tab shows the whole tour roster, including approved bookings", () => {
+  it("registrations tab is scoped to pending requests while final roster stays in transport", () => {
     const client = readFileSync(
       join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
       "utf8"
     );
-    assert.match(client, /lockedStatus="all"/);
+    assert.match(client, /lockedStatus="pending"/);
   });
 
   it("localizes temporary transport roster outages", () => {

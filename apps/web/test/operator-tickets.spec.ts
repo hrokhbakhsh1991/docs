@@ -15,6 +15,7 @@ import {
   buildOperatorTicketsApiQuery,
   parseOperatorTicketsCommandCenterQuery,
 } from "../src/features/tickets/operator-tickets-command-center-logic";
+import { ticketEventLabelKey } from "../src/features/tickets/operator-tickets-format";
 import {
   canAccessTicketsInbox,
   canMutateTickets,
@@ -39,8 +40,8 @@ describe("operator tickets inbox", () => {
   it("parses operator list query filters", () => {
     const query = parseOperatorTicketsCommandCenterQuery(
       new URLSearchParams(
-        "status=open&priority=high&categoryCode=billing&queueCode=smoke-queue&unassigned=true&q=refund",
-      ),
+        "status=open&priority=high&categoryCode=billing&queueCode=smoke-queue&unassigned=true&q=refund"
+      )
     );
     assert.equal(query.status, "open");
     assert.equal(query.priority, "high");
@@ -74,7 +75,7 @@ describe("operator tickets inbox", () => {
         nextCursor: null,
         hasMore: false,
       },
-      "fa",
+      "fa"
     );
     assert.equal(list.items.length, 1);
     assert.match(list.items[0]!.lastActivityLabel, /۱۴|2026/);
@@ -107,7 +108,7 @@ describe("operator tickets inbox", () => {
         events: [],
         rowVersion: 3,
       },
-      "en",
+      "en"
     );
     assert.equal(detail.ticket.hasInternalNotes, true);
     assert.equal(detail.messages[0]!.visibility, "internal");
@@ -120,5 +121,18 @@ describe("operator tickets inbox", () => {
     assert.equal(canAccessTicketsInbox("viewer"), true);
     assert.equal(classifyOperatorTicketsBffFailure(403, "TICKET_ACCESS_DENIED"), "forbidden");
     assert.equal(mapOperatorTicketsMutationErrorCode("ROW_VERSION_CONFLICT"), "versionConflict");
+  });
+
+  it("localizes activity event keys instead of exposing technical event names", () => {
+    assert.equal(ticketEventLabelKey("ticket.status.changed"), "events.statusChanged");
+    assert.equal(ticketEventLabelKey("ticket.internal_note.created"), "events.internalNoteCreated");
+    assert.equal(ticketEventLabelKey("future.ticket.event"), "events.unknown");
+
+    const detailPanel = readWeb("src/features/tickets/operator-tickets-detail-panel.tsx");
+    const composer = readWeb("src/features/tickets/operator-tickets-composer.tsx");
+    assert.doesNotMatch(detailPanel, /\{event\.eventType\}/);
+    assert.match(detailPanel, /ticketEventLabelKey/);
+    assert.match(composer, /composerPublicHint/);
+    assert.match(composer, /composerInternalHint/);
   });
 });

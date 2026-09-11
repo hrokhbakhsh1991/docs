@@ -43,14 +43,14 @@ export function TourDuplicateActions({ tourId, iconOnly = false }: TourDuplicate
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className={iconOnly ? "flex shrink-0 items-center" : "flex flex-col items-start gap-1"}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className={iconOnly ? "h-8 w-8 shrink-0 px-0" : "gap-1"}
+            className={iconOnly ? "h-9 w-9 shrink-0 px-0" : "gap-1"}
             aria-label={t("moreActions")}
             data-testid={TOURS_LIST_TEST_IDS.secondaryActions}
           >

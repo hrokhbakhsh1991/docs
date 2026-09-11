@@ -7,7 +7,10 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import type { MemberTicketCategoriesView } from "@/me/tickets/member-tickets-bff.server";
 
-import { MemberTicketAttachmentField } from "./member-ticket-attachment-field";
+import {
+  MemberTicketAttachmentField,
+  uploadMemberTicketAttachment,
+} from "./member-ticket-attachment-field";
 
 type Props = {
   readonly categories: MemberTicketCategoriesView;
@@ -73,7 +76,7 @@ export function MemberTicketsNewForm({ categories }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [clientReady, setClientReady] = useState(false);
-  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [state, setState] = useState<FormState>(() => ({
     categoryCode: categories.defaultCategoryCode,
@@ -161,21 +164,39 @@ export function MemberTicketsNewForm({ categories }: Props) {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         const code = typeof body?.code === "string" ? body.code : "TICKET_CREATE_FAILED";
-        setFormError(typeof body?.message === "string" ? body.message : t(`errors.${code}`, { defaultValue: t("createError") }));
+        setFormError(
+          typeof body?.message === "string"
+            ? body.message
+            : t(`errors.${code}`, { defaultValue: t("createError") })
+        );
         setSubmitting(false);
         errorRef.current?.focus();
         return;
       }
 
-      const ticketId =
-        typeof body?.ticket?.ticket?.id === "string"
-          ? body.ticket.ticket.id
-          : null;
+      const ticketId = typeof body?.ticket?.ticket?.id === "string" ? body.ticket.ticket.id : null;
 
       if (ticketId === null) {
         setFormError(t("createError"));
         setSubmitting(false);
         return;
+      }
+
+      const firstMessageId =
+        typeof body?.ticket?.messages?.[0]?.id === "string" ? body.ticket.messages[0].id : null;
+      if (selectedFile !== null && firstMessageId !== null) {
+        const attachmentResult = await uploadMemberTicketAttachment({
+          ticketId,
+          messageId: firstMessageId,
+          file: selectedFile,
+          maxBytes: categories.maxAttachmentSizeBytes,
+        });
+        if (attachmentResult !== "ok") {
+          setFormError(t(`attachments.${attachmentResult}`));
+          setSubmitting(false);
+          errorRef.current?.focus();
+          return;
+        }
       }
 
       dirtyRef.current = false;
@@ -307,9 +328,9 @@ export function MemberTicketsNewForm({ categories }: Props) {
         <MemberTicketAttachmentField
           mode="create"
           ticketId={null}
-          messageId={pendingMessageId}
+          messageId={null}
           maxBytes={categories.maxAttachmentSizeBytes}
-          onMessageId={setPendingMessageId}
+          onFileSelected={setSelectedFile}
         />
       ) : null}
 

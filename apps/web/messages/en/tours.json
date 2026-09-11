@@ -208,16 +208,16 @@
       "opsCountsUnavailable": "Could not load registration counts."
     },
     "tabs": {
-      "registrations": "Registrations",
+      "registrations": "Registration requests",
       "waitlist": "Waitlist",
-      "transport": "Participant roster",
-      "finance": "Payment follow-up"
+      "transport": "Final participants",
+      "finance": "Payment status"
     },
     "tabsHint": {
-      "registrations": "Review and approve new registrations",
+      "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
-      "transport": "Tour participants and transport",
-      "finance": "Payment follow-up, deadlines, receipts"
+      "transport": "Final tour participants and their transport status",
+      "finance": "See paid guests, outstanding balances, and receipts to review"
     },
     "approvedQuickAccess": {
       "title": "Final approved members",
@@ -440,8 +440,8 @@
       "openDetails": "Details"
     },
     "registrations": {
-      "title": "Registrations",
-      "description": "Approve, reject, and inspect guest registrations for this tour.",
+      "title": "Registration requests",
+      "description": "Approve, reject, and inspect guest requests for this tour.",
       "capacityFullBanner": "At capacity — new registrations do not auto-waitlist. Use Waitlist or approve to overbook.",
       "capacityFullWaitlistLink": "Open waitlist",
       "adminCreateCta": "Manual registration",
@@ -460,8 +460,9 @@
       "capacityFullWarn": "This tour is at capacity. Approve anyway?"
     },
     "transport": {
-      "title": "Participant roster",
-      "description": "Operational list of guests who are expected to join the tour; attendance and transport first, payment state second.",
+      "title": "Final participants",
+      "description": "Confirmed tour participants; manage attendance and transport here.",
+      "tableCaption": "Final participants and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",
       "finalParticipant": "Final",
