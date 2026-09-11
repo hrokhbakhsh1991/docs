@@ -128,6 +128,9 @@ test.describe("portal member tickets — TKT-BQC journey", () => {
     await expect(page.locator("[data-portal-member-tickets-new-form]")).toBeVisible({
       timeout: 60_000,
     });
+    await expect(
+      page.locator("[data-portal-member-tickets-new-form][data-client-ready='true']"),
+    ).toBeVisible({ timeout: 60_000 });
 
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-tickets-new-form.png", { fullPage: true });
 
