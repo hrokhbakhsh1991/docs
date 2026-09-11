@@ -1,7 +1,5 @@
 import { cookies } from "next/headers";
 
-import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
-
 import type { MemberRegistrationItem } from "@/me/fetch-member-registrations.server";
 import { resolvePortalSelfFetchOrigin } from "@/me/resolve-portal-self-fetch-origin";
 

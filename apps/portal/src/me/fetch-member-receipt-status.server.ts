@@ -1,7 +1,5 @@
 import { cookies } from "next/headers";
 
-import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
-
 import {
   emptyMemberReceiptPanel,
   parseMemberReceiptPanel,
