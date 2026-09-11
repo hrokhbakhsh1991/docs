@@ -55,6 +55,10 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "paymentMode"),
     },
     {
+      fieldId: "denali.social-media-link",
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "socialMediaLink"),
+    },
+    {
       fieldId: "denali.photos",
       applyHidden: (card) => clearPhotos(card),
     },
@@ -74,12 +78,12 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
 
 export function applyDenaliCatalogCardExposure(
   card: PublicCatalogCard,
-  visibleFieldIds: ReadonlySet<string>,
+  visibleFieldIds: ReadonlySet<string>
 ): PublicCatalogCard {
   let next = applyWorkspaceCatalogCardFieldBindings(
     card,
     visibleFieldIds,
-    DENALI_CATALOG_CARD_EXPOSURE_BINDINGS,
+    DENALI_CATALOG_CARD_EXPOSURE_BINDINGS
   );
   if (!visibleFieldIds.has("title")) {
     next = omitWorkspaceCatalogCardKey(next, "structuredData");

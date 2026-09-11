@@ -373,6 +373,7 @@
     }
   },
   "detail": {
+    "socialMediaLink": "Open the tour group or social channel",
     "backToList": "Back to my registrations",
     "summaryEyebrow": "Registration overview",
     "lede": "Status, departure, and the next action for this trip.",
@@ -462,6 +463,7 @@
     "unreadSummary": "{count, plural, one {# unread} other {# unread}}",
     "ticketUpdateBody": "Update for ticket {ticketRef}",
     "genericUpdateBody": "You have a new update.",
+    "openTourSocialLink": "Open the tour group or social channel",
     "sources": {
       "default": "Account",
       "ticketing": "Support",

@@ -60,14 +60,17 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     intakeFeatures.memberPendingIntakeAmend === true &&
     (lifecycleStatus === "pending" || lifecycleStatus === "waitlisted");
 
-  const tour =
-    showIntakeAmend && typeof row.tourId === "string" && row.tourId.trim().length > 0
-      ? await fetchCatalogTour({
-          tenantId: bootstrap.tenantId,
-          pluginId: bootstrap.pluginId,
-          tourId: row.tourId,
-        })
-      : null;
+  const shouldLoadTour =
+    (showIntakeAmend || lifecycleStatus === "approved") &&
+    typeof row.tourId === "string" &&
+    row.tourId.trim().length > 0;
+  const tour = shouldLoadTour
+    ? await fetchCatalogTour({
+        tenantId: bootstrap.tenantId,
+        pluginId: bootstrap.pluginId,
+        tourId: row.tourId,
+      })
+    : null;
 
   const tripsListHref = resolveMemberPortalTripsListPath(bootstrap.pluginId);
   const tourHref =
@@ -172,6 +175,18 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </section>
+        {lifecycleStatus === "approved" && tour?.socialMediaLink ? (
+          <section data-portal-member-registration-social-link>
+            <a
+              href={tour.socialMediaLink}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-portal-member-registration-social-link-anchor
+            >
+              {t("socialMediaLink")}
+            </a>
+          </section>
+        ) : null}
         {showIntakeAmend && tour !== null ? (
           <MemberIntakeAmendForm
             registrationId={row.id}

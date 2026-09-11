@@ -373,6 +373,7 @@
     }
   },
   "detail": {
+    "socialMediaLink": "ورود به گروه یا شبکه اجتماعی تور",
     "backToList": "بازگشت به ثبت‌نام‌های من",
     "summaryEyebrow": "خلاصه ثبت‌نام",
     "lede": "وضعیت، زمان حرکت و قدم بعدی همین سفر.",
@@ -453,6 +454,7 @@
     "unreadSummary": "{count, plural, one {# خوانده‌نشده} other {# خوانده‌نشده}}",
     "ticketUpdateBody": "به‌روزرسانی برای تیکت {ticketRef}",
     "genericUpdateBody": "به‌روزرسانی جدیدی دارید.",
+    "openTourSocialLink": "ورود به گروه یا شبکه اجتماعی تور",
     "sources": {
       "default": "حساب",
       "ticketing": "پشتیبانی",

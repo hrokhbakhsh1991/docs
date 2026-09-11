@@ -95,6 +95,16 @@ describe("portal-member-registrations", () => {
     }
   });
 
+  it("MEM-NOTIF-06 approved registration notification carries a tour detail link and social CTA", () => {
+    const panel = readFileSync(
+      join(repoRoot, "apps/portal/src/me/notifications/member-ticket-notifications-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panel, /me\/registrations\/\$\{encodeURIComponent\(item\.entityId\)\}/);
+    assert.match(panel, /registration\.approved/);
+    assert.match(panel, /data-portal-member-notification-social-link-anchor/);
+  });
+
   it("MEM-BFF-04 /me/registrations detail page markers", () => {
     const page = readFileSync(
       join(repoRoot, "apps/portal/app/me/registrations/[id]/page.tsx"),

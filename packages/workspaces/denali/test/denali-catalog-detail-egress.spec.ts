@@ -48,6 +48,7 @@ describe("readDenaliCatalogDetailEgress", () => {
       includesTourInsurance: true,
       paymentMode: "offline_receipt",
     },
+    socialMediaLink: "instagram.com/denali.club",
     photos: [{ url: "https://cdn.example/1.jpg" }, { url: "https://cdn.example/2.jpg" }],
   };
 
@@ -69,6 +70,7 @@ describe("readDenaliCatalogDetailEgress", () => {
     assert.deepEqual(egress.includedServices, ["Guide", "Snack"]);
     assert.equal(egress.includesTourInsurance, true);
     assert.equal(egress.paymentMode, "offline_receipt");
+    assert.equal(egress.socialMediaLink, "https://instagram.com/denali.club");
     assert.equal(egress.photoUrls?.length, 2);
   });
 
@@ -84,5 +86,6 @@ describe("readDenaliCatalogDetailEgress", () => {
     assert.equal(card.destinationLabel, "Alam-Kuh");
     assert.equal(card.peakHeightMeters, 4100);
     assert.equal(card.gearItems?.length, 1);
+    assert.equal(card.socialMediaLink, "https://instagram.com/denali.club");
   });
 });

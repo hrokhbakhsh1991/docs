@@ -438,6 +438,23 @@ Bookings command center inspection panel and tour transport roster read `registr
 
 ---
 
+## Tour social link after approval
+
+The optional creator field `socialMediaLink` is persisted on the tour canonical document and is
+exposed through the published catalog detail only (not the catalog list). The public tour detail
+renders it as an external group/social-channel link after safe HTTP(S) normalization.
+
+After a registration transitions to `approved`, the member notification deep-links to that
+registration detail. The approval outbox payload may carry the normalized link snapshot, and the
+member notification renders an external CTA when present. The registration detail also resolves
+the current published tour link and displays it only for the approved lifecycle state. Pending,
+waitlisted, rejected, and cancelled registrations do not expose the link.
+
+The approval notification remains in-app and idempotent; SMS/email delivery is a separate provider
+capability and is not implied by this flow.
+
+---
+
 ## Smoke coverage
 
 | ID | Spec | Host |
