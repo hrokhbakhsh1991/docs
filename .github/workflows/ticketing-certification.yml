@@ -82,6 +82,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
       - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+      - run: bash scripts/ci/build-api-workspace-deps.sh
       - name: Execute Ticketing PostgreSQL matrix
         run: pnpm --filter @apps/api run test:ticketing:postgres
 
