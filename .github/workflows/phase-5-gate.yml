@@ -1,4 +1,5 @@
 # Phase 5 — full closure gate with Postgres (DEC-096).
+# PR: phase-5:gate:pr (test:changed + runtime-proof). Trunk/main: full phase-5:gate.
 
 name: phase-5-gate
 
