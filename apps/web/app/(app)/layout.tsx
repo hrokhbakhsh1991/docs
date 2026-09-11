@@ -8,7 +8,26 @@ import {
   type OperatorSessionContext,
 } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
-import { ensureFinanceNavSupported, seedFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import {
+  ensureFinanceNavSupported,
+  seedFinanceNavSupported,
+} from "@/finance/finance-nav-enablement";
+import {
+  allowsOperatorTicketsTeamRole,
+  isOperatorTicketsTeamAccessPath,
+} from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import {
+  allowsOperatorToursTeamRole,
+  isOperatorToursTeamAccessPath,
+} from "@/features/tours/resolve-operator-tours-middleware-access";
+import {
+  allowsOperatorEngagementTeamRole,
+  isOperatorEngagementTeamAccessPath,
+} from "@/engagement/resolve-operator-engagement-middleware-access";
+import {
+  allowsOperatorMarketingPagesTeamRole,
+  isOperatorMarketingPagesTeamAccessPath,
+} from "@/features/settings/resolve-operator-marketing-pages-middleware-access";
 import {
   resolveFinanceNavCapability,
   resolveWizardCreateCapability,
@@ -88,7 +107,12 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       isOperatorMarketingPagesTeamAccessPath(pathname) &&
       allowsOperatorMarketingPagesTeamRole(session.role, "GET");
 
-    if (!ticketsTeamAccess && !toursTeamAccess && !engagementTeamAccess && !marketingPagesTeamAccess) {
+    if (
+      !ticketsTeamAccess &&
+      !toursTeamAccess &&
+      !engagementTeamAccess &&
+      !marketingPagesTeamAccess
+    ) {
       const gate = requireOperatorSessionWeb({ session, pathname, host });
       if (!gate.allowed) {
         redirect(gate.redirectTo);
@@ -103,8 +127,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const operatorProfile = await fetchOperatorProfileServer();
   const locale = (await getLocale()) === "fa" ? "fa" : "en";
   const tWorkspaces = await getTranslations("app.workspaces");
-  const financeNavSupported =
-    resolveFinanceNavCapability(bootstrap.plugin)?.supported === true;
+  const financeNavSupported = resolveFinanceNavCapability(bootstrap.plugin)?.supported === true;
   seedFinanceNavSupported(bootstrap.session.pluginId, financeNavSupported);
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
   const wizardCreateCapability = resolveWizardCreateCapability(bootstrap.plugin);
