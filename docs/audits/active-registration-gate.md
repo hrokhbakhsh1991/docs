@@ -26,3 +26,5 @@ route must repeat the self lookup; it cannot rely on the marketing page's server
 - Denali intake tests assert that an existing self registration locks the self participant.
 - The provider-independent notification mapping test explicitly uses the memory inbox so the
   Postgres phase gate does not route it into an unrelated database fixture.
+- Ticketing Playwright jobs have a 45-minute timeout so a stalled browser/server cannot leave the
+  PR permanently in progress.
