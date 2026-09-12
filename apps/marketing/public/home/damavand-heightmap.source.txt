@@ -1,0 +1,11 @@
+Source: Copernicus DEM GLO-30, Copernicus Data Space Ecosystem
+Tile: Copernicus_DSM_COG_10_N35_00_E052_00_DEM
+Source URL: https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N35_00_E052_00_DEM/Copernicus_DSM_COG_10_N35_00_E052_00_DEM.tif
+Processed asset: 256x256 8-bit heightmap crop for the Damavand marketing hero.
+Data access and licensing: https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+
+Reference image: "Mount Damavand, South face" by Safa Daneshvar, viewed from the Polour region.
+Reference URL: https://commons.wikimedia.org/wiki/File:030915-Damavand-Polour-IMG_3449-4.jpg
+Image URL: https://upload.wikimedia.org/wikipedia/commons/0/03/030915-Damavand-Polour-IMG_3449-4.jpg
+License: CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+Changes: Resized to 1600x1067 for the marketing fallback asset.

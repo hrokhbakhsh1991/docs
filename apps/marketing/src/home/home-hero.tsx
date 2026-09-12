@@ -3,6 +3,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { isAppLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 
+import { DamavandHero3DLoader } from "./damavand-hero-3d-loader";
+
 export type HomeHeroCopyOverride = {
   readonly lead: string;
   readonly support: string;
@@ -44,8 +46,12 @@ export async function HomeHero({
           data-marketing-home-hero-background
         />
       </picture>
+      <DamavandHero3DLoader locale={locale} />
       <div data-marketing-home-hero-layout>
         <div data-marketing-home-hero-copy>
+          <span data-marketing-home-hero-eyebrow>
+            {locale === "fa" ? "دماوند · جبهه جنوبی" : "Damavand · South Face"}
+          </span>
           <h1 data-marketing-home-title>
             {copyOverride?.lead?.trim() || t("home.full.hero.lead")}
           </h1>

@@ -2,7 +2,7 @@
  * HOME-UNIT — Walk / Trail Scale Hero runtime contract.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -26,16 +26,34 @@ function readCatalog(locale: "en" | "fa"): {
 describe("home-hero-walk.spec.ts", () => {
   it("renders one H1, support, and a single /tours CTA with Walk media", () => {
     const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
+    const hero3d = readSrc("apps/marketing/src/home/damavand-hero-3d.tsx");
     const full = readSrc("apps/marketing/src/home/guest-home-full.tsx");
 
     assert.match(hero, /data-marketing-home-hero-walk/);
     assert.match(hero, /data-marketing-home-title/);
+    assert.match(hero, /data-marketing-home-hero-eyebrow/);
     assert.match(hero, /home\.full\.hero\.lead/);
     assert.match(hero, /data-marketing-home-hero-support/);
     assert.match(hero, /home\.full\.hero\.support/);
     assert.match(hero, /home\.full\.hero\.ctaPrimary/);
     assert.match(hero, /resolveMarketingToursListPath\(locale\)/);
     assert.match(hero, /<picture data-marketing-home-hero-media>/);
+    assert.match(hero, /DamavandHero3DLoader/);
+    assert.match(hero3d, /data-damavand-hero-3d/);
+    assert.match(hero3d, /data-damavand-hero-facts/);
+    assert.match(hero3d, /data-damavand-hero-3d-stage/);
+    assert.match(hero3d, /damavand-heightmap\.png/);
+    assert.match(hero3d, /damavand-reference\.jpg/);
+    assert.match(hero3d, /createProceduralTerrainField/);
+    assert.match(hero3d, /TextureLoader/);
+    assert.doesNotMatch(hero3d, /ROUTE_POINTS/);
+    assert.ok(
+      statSync(join(repoRoot, "apps/marketing/public/home/damavand-heightmap.png")).size > 0
+    );
+    assert.ok(
+      statSync(join(repoRoot, "apps/marketing/public/home/damavand-reference.jpg")).size > 0
+    );
+    assert.match(hero3d, /prefers-reduced-motion/);
     assert.match(hero, /media="\(max-width: 48rem\)"/);
     assert.equal((hero.match(/<h1 /g) ?? []).length, 1);
     assert.equal((hero.match(/<Link /g) ?? []).length, 1);
@@ -46,11 +64,11 @@ describe("home-hero-walk.spec.ts", () => {
     assert.doesNotMatch(hero, /HomeHeroCarouselMedia/);
     assert.doesNotMatch(hero, /data-marketing-home-search/);
     assert.doesNotMatch(hero, /data-marketing-home-cta-secondary/);
-    assert.doesNotMatch(hero, /data-marketing-home-hero-eyebrow/);
     assert.doesNotMatch(hero, /role="radiogroup"/);
     assert.doesNotMatch(hero, /#why-us/);
     assert.match(full, /resolveMarketingHomeHeroMedia/);
     assert.match(full, /heroImageUrl/);
+    assert.ok(full.indexOf("<HomeHero") < full.indexOf("<HomePublishedPrograms"));
     assert.doesNotMatch(full, /whySectionHref/);
   });
 
@@ -76,10 +94,10 @@ describe("home-hero-walk.spec.ts", () => {
       defaultLocale: null,
     };
     const media = resolveMarketingHomeHeroMedia(empty);
-    assert.equal(media.desktopSrc, "/home/hero-walk.webp");
-    assert.equal(media.mobileSrc, "/home/hero-walk-mobile.webp");
-    assert.equal(media.desktopWidth, 1536);
-    assert.equal(media.desktopHeight, 1024);
+    assert.equal(media.desktopSrc, "/home/damavand-reference.jpg");
+    assert.equal(media.mobileSrc, "/home/damavand-reference-mobile.jpg");
+    assert.equal(media.desktopWidth, 1600);
+    assert.equal(media.desktopHeight, 1067);
     assert.equal(media.mobileWidth, 1024);
     assert.equal(media.mobileHeight, 1536);
 
@@ -95,7 +113,7 @@ describe("home-hero-walk.spec.ts", () => {
   it("owns Walk CSS in the existing Hero partial", () => {
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
     const overlay = readSrc(
-      "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css",
+      "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css"
     );
     assert.match(css, /data-marketing-home-hero-walk/);
     assert.doesNotMatch(css, /data-marketing-header-overlay/);
@@ -108,7 +126,7 @@ describe("home-hero-walk.spec.ts", () => {
     assert.doesNotMatch(overlay, /data-marketing-nav-link-id="tours"/);
     assert.match(
       overlay,
-      /summary\[data-marketing-nav-drawer-toggle\] \{[\s\S]*?border-radius: 0;/,
+      /summary\[data-marketing-nav-drawer-toggle\] \{[\s\S]*?border-radius: 0;/
     );
     assert.doesNotMatch(css, /data-marketing-home-hero-peak-margin/);
     assert.doesNotMatch(css, /data-marketing-home-hero-selector/);

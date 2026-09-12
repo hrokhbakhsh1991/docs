@@ -22,6 +22,172 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
+  > section[data-marketing-home-hero-walk]::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(7 19 28 / 0.78) 0%, rgb(7 19 28 / 0.2) 52%, rgb(7 19 28 / 0.48) 100%),
+    linear-gradient(0deg, rgb(7 19 28 / 0.74) 0%, transparent 36%, rgb(7 19 28 / 0.12) 100%);
+  content: "";
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-3d] {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-3d]
+  canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-3d-stage] {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 16%;
+  inset-inline-start: 30%;
+  width: min(40vw, 40rem);
+  height: min(64vh, 36rem);
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 2rem;
+  background: radial-gradient(circle at 50% 35%, #29444d 0%, #10232b 58%, #07131c 100%);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.32);
+  backdrop-filter: blur(0.5rem);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-3d-stage-label] {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 0.85rem;
+  inset-inline-start: 50%;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  background: rgb(7 19 28 / 0.72);
+  color: rgb(255 255 255 / 0.8);
+  font-size: 0.72rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-facts] {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: clamp(6.5rem, 18vh, 10rem);
+  inset-inline-start: clamp(1.25rem, 5vw, 5.5rem);
+  display: grid;
+  width: min(14rem, 28vw);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 1.25rem;
+  background: rgb(7 19 28 / 0.54);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.22);
+  backdrop-filter: blur(0.75rem);
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-fact] {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 1rem;
+  background: rgb(255 255 255 / 0.06);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-fact]
+  span {
+  color: rgb(255 255 255 / 0.62);
+  font-size: 0.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-fact]
+  strong {
+  color: #fff5d6;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-hint] {
+  position: absolute;
+  inset-block-end: 1.4rem;
+  inset-inline-start: 50%;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  background: rgb(7 19 28 / 0.7);
+  color: rgb(255 255 255 / 0.78);
+  font-size: 0.75rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-canvas-fallback],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-loading] {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #07131c 0%, #18333a 55%, #785f3c 100%);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-canvas-fallback] {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-canvas-fallback]::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(7 19 28 / 0.86), rgb(7 19 28 / 0.18) 62%, rgb(7 19 28 / 0.52));
+  content: "";
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  [data-damavand-hero-canvas-fallback] img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(0.82) contrast(1.08) brightness(0.78);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
   section[data-marketing-home-hero-walk]
   picture[data-marketing-home-hero-media] {
   position: absolute;
@@ -42,6 +208,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   object-position: 28% 62%;
   transform: none;
   animation: none;
+  filter: saturate(0.86) contrast(1.08) brightness(0.78);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -49,7 +216,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   section[data-marketing-home-hero-walk]
   div[data-marketing-home-hero-layout] {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -69,7 +236,26 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   align-items: flex-start;
   gap: var(--space-4);
   max-width: min(26rem, 34vw);
-  margin-left: auto;
+  margin-left: 0;
+  margin-right: auto;
+  padding: 1.2rem 1.35rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 1.25rem;
+  background: #10232b;
+  color: #f8faf9;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.22);
+  backdrop-filter: blur(0.75rem);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-hero-walk]
+  span[data-marketing-home-hero-eyebrow] {
+  color: #f4b942;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -83,7 +269,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.03em;
-  color: var(--denali-hero-ink);
+  color: #f8faf9;
   text-shadow: none;
 }
 
@@ -113,7 +299,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-size: 1.0625rem;
   font-weight: 400;
   line-height: 1.55;
-  color: var(--denali-hero-ink-muted);
+  color: rgb(248 250 249 / 0.82);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -161,12 +347,19 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-hero-walk]
   a[data-marketing-home-cta]:focus-visible {
-  outline: 2px solid var(--denali-hero-ink);
+  outline: 2px solid #f4b942;
   outline-offset: 3px;
   box-shadow: none;
 }
 
 @media (max-width: 64rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    [data-damavand-hero-3d-stage] {
+    inset-inline-start: 27%;
+    width: min(46vw, 34rem);
+  }
+
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-hero-walk]
@@ -192,6 +385,40 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 @media (max-width: 48rem) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
+    [data-damavand-hero-3d-stage] {
+    inset-block-start: 12rem;
+    inset-inline-start: var(--catalog-page-padding-x);
+    width: calc(100% - 2 * var(--catalog-page-padding-x));
+    height: min(40vh, 20rem);
+    border-radius: 1.25rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    [data-damavand-hero-facts] {
+    inset-block-start: auto;
+    inset-block-end: 4.5rem;
+    inset-inline-start: var(--catalog-page-padding-x);
+    width: min(18rem, calc(100vw - 2 * var(--catalog-page-padding-x)));
+    grid-template-columns: repeat(3, 1fr);
+    border-radius: 0.9rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    [data-damavand-hero-fact] {
+    padding: 0.55rem 0.65rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    [data-damavand-hero-fact]
+    strong {
+    font-size: 0.72rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
     section[data-marketing-home-hero-walk]
     img[data-marketing-home-hero-background] {
     object-position: 46% 28%;
@@ -213,7 +440,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     width: 100%;
     max-width: 22rem;
     margin-left: 0;
+    margin-right: 0;
     gap: var(--space-3);
+    padding: 1rem;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]

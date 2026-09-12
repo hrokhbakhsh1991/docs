@@ -1,12 +1,12 @@
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
 
-/** Walk / Trail Scale stills — native pixel size, not upscaled. */
-export const MARKETING_HOME_HERO_DESKTOP_PATH = "/home/hero-walk.webp";
-export const MARKETING_HOME_HERO_MOBILE_PATH = "/home/hero-walk-mobile.webp";
+/** Damavand reference stills — native pixel size, not upscaled. */
+export const MARKETING_HOME_HERO_DESKTOP_PATH = "/home/damavand-reference.jpg";
+export const MARKETING_HOME_HERO_MOBILE_PATH = "/home/damavand-reference-mobile.jpg";
 
 export const MARKETING_HOME_HERO_DESKTOP_SIZE = {
-  width: 1536,
-  height: 1024,
+  width: 1600,
+  height: 1067,
 } as const;
 
 export const MARKETING_HOME_HERO_MOBILE_SIZE = {
