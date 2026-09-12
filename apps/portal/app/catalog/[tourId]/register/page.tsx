@@ -16,6 +16,7 @@ import { PortalRegisterGuestAuthGate } from "@/auth/portal-register-guest-auth-g
 import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
+import { fetchMemberSelfRegistrationForTour } from "@/me/fetch-member-self-registration-for-tour.server";
 import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -99,6 +100,9 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
     memberModuleHref,
   });
   const resumeAtIntake = registrationResume !== null;
+  const existingSelfRegistration = resumeAtIntake
+    ? await fetchMemberSelfRegistrationForTour(host, tourId)
+    : null;
   // PCMS-UX-MODAL-04 — guests auth in modal only; page is intake after session.
   const heroLede = resumeAtIntake ? t("intake.resumeLede") : t("phone.loginDescription");
   const heroKicker = resumeAtIntake ? t("intake.kicker") : null;
@@ -148,6 +152,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           backHref={backHref}
           memberModuleHref={memberModuleHref}
           initialRuntimeState={registrationResume.initialState}
+          existingSelfRegistrationId={existingSelfRegistration?.id ?? null}
         />
       ) : (
         <>

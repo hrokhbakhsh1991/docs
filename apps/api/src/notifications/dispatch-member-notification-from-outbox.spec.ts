@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 
 import { dispatchMemberNotificationFromOutbox } from "./dispatch-member-notification-from-outbox";
 import {
@@ -12,7 +12,22 @@ const USER_ID = "00000000-0000-4000-8000-000000000015";
 const REGISTRATION_ID = "00000000-0000-4000-8000-000000000016";
 
 describe("member notification outbox mapping", () => {
-  afterEach(() => resetMemberNotificationInboxForTests());
+  let priorStorageDriver: string | undefined;
+
+  beforeEach(() => {
+    priorStorageDriver = process.env.STORAGE_DRIVER;
+    // This spec validates the provider-independent mapping and owns the memory inbox.
+    process.env.STORAGE_DRIVER = "memory";
+  });
+
+  afterEach(() => {
+    resetMemberNotificationInboxForTests();
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
+  });
 
   it("maps approved receipt to the member registration and preserves social link", async () => {
     await dispatchMemberNotificationFromOutbox({

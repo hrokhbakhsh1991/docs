@@ -23,4 +23,16 @@ describe("denali intake — Phase 3 self-already empty guest card", () => {
       /const includeOther = selfTabLocked \|\| data\.registrantTarget === "other"/
     );
   });
+
+  it("DN-INTAKE-P3-02 an existing self registration disables the self participant", () => {
+    const steps = readFileSync(
+      join(denaliRoot, "src/catalog/registration-flow/denali-registration-flow.steps.tsx"),
+      "utf8"
+    );
+    assert.match(steps, /context\.existingSelfRegistrationId/);
+    assert.match(steps, /const selfTabLocked = effectiveSelfRegistrationId !== null/);
+    assert.match(steps, /!selfTabLocked && data\.registrantTarget === "self"/);
+    assert.match(steps, /Never POST self when the gate already knows an active self registration/);
+    assert.match(steps, /data-registration-self-already/);
+  });
 });
