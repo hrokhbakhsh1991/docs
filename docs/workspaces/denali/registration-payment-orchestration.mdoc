@@ -201,6 +201,18 @@ Canonical path (Denali tour document):
 | ------------------------------ | ------------------ | ------------------------------------- |
 | `pricing.registrationApproval` | `manual` \| `auto` | `manual` (missing / unknown → manual) |
 
+## Phase 4 — Transport acknowledgement and money display policy (2026-09-13)
+
+The public registration flow must collect an explicit acknowledgement whenever the
+registrant is not using a personal car. This acknowledgement is UI state only; the
+server remains authoritative and still normalizes the submitted transport kind.
+
+Denali catalog prices continue to use the existing product policy: the canonical
+integer is displayed as تومان while the financial ISO currency remains `IRR`; no
+implicit ×10 conversion is introduced without a separate product/migration decision.
+Finance-facing Denali displays must consume the same display policy so the member,
+operator, and finance surfaces do not label the same stored digits as different units.
+
 ```text
 manual (default): create → pending → operator approve → receipt
 auto:             create → pending → host autoApprove (capacity OK) → approved → receipt

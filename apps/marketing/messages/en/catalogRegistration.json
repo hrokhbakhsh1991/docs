@@ -118,6 +118,7 @@
     "paysDongQuestion": "Will you pay a dong (fuel share)?",
     "paysDongYes": "Yes, I pay dong",
     "paysDongNo": "No — riding with someone I know",
+    "nonPersonalCarAcknowledgement": "I confirm that I will not use a personal car for this registration.",
     "submit": "Submit registration",
     "submitting": "Submitting…",
     "partySizeInvalid": "Enter a valid party size.",

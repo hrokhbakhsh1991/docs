@@ -47,7 +47,7 @@ function formatMinorAmount(amountMinor: string, currency: string): string {
     return amountMinor;
   }
   const formatted = n.toLocaleString("fa-IR");
-  return currency.toUpperCase() === "IRR" ? `${formatted} ریال` : `${formatted} ${currency}`;
+  return currency.toUpperCase() === "IRR" ? `${formatted} تومان` : `${formatted} ${currency}`;
 }
 
 function isPositiveMinor(value: string | null): boolean {

@@ -29,9 +29,12 @@ function storeWithApproval(mode: "manual" | "auto" | undefined): DenaliTourStore
             publishStatus: "active",
             capacityMax: 12,
             startDateTime: "2026-06-01T08:00:00.000Z",
-            ...(mode !== undefined
-              ? { pricing: { registrationApproval: mode } }
-              : {}),
+            pricing: {
+              registrationApproval: mode,
+              requiresPayment: true,
+              basePricePerPerson: 500_000,
+              paymentMode: "offline_receipt",
+            },
           },
         },
       };

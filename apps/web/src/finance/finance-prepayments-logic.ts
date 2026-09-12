@@ -111,11 +111,16 @@ export function formatMinorAmount(
   currency: string,
   locale: AppLocale = "en"
 ): string {
+  // Denali stores operator-entered تومان digits under ISO IRR under the
+  // existing no-×10 product policy. Keep finance labels aligned with catalog.
+  const normalizedCurrency = currency.trim().toUpperCase();
+  const displayCurrency =
+    normalizedCurrency === "IRR" ? (locale === "fa" ? "تومان" : "toman") : currency;
   const digits = amountMinor.replace(/\D/g, "");
   if (digits.length === 0) {
-    return `${formatLocalizedNumber(0, locale)} ${currency}`;
+    return `${formatLocalizedNumber(0, locale)} ${displayCurrency}`;
   }
-  return `${formatGroupedDigitsString(digits, locale)} ${currency}`;
+  return `${formatGroupedDigitsString(digits, locale)} ${displayCurrency}`;
 }
 
 export function formatPrepaymentRecordedAt(iso: string, locale: AppLocale = "en"): string {
