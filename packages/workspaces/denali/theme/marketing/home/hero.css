@@ -57,14 +57,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-damavand-hero-3d-stage] {
   position: absolute;
   z-index: 1;
-  inset-block-start: 16%;
-  inset-inline-start: 30%;
-  width: min(40vw, 40rem);
-  height: min(64vh, 36rem);
+  inset-block-start: 34%;
+  inset-inline-start: 44%;
+  width: min(30vw, 28rem);
+  height: min(50vh, 28rem);
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.2);
   border-radius: 2rem;
-  background: radial-gradient(circle at 50% 35%, #29444d 0%, #10232b 58%, #07131c 100%);
+  background: radial-gradient(circle at 50% 38%, #4a6872 0%, #234752 52%, #122a34 100%);
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.32);
   backdrop-filter: blur(0.5rem);
 }
@@ -205,7 +205,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   height: 100%;
   max-width: none;
   object-fit: cover;
-  object-position: 28% 62%;
+  object-position: 20% 52%;
   transform: none;
   animation: none;
   filter: saturate(0.86) contrast(1.08) brightness(0.78);
@@ -356,15 +356,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     [data-damavand-hero-3d-stage] {
-    inset-inline-start: 27%;
-    width: min(46vw, 34rem);
+    inset-block-start: 30%;
+    inset-inline-start: 32%;
+    width: min(42vw, 28rem);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-hero-walk]
     img[data-marketing-home-hero-background] {
-    object-position: 34% 48%;
+    object-position: 26% 44%;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
