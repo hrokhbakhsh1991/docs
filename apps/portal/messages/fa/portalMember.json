@@ -480,7 +480,11 @@
       "registrationRejected": "ثبت‌نام رد شد",
       "paymentScheduled": "پرداخت زمان‌بندی شد",
       "paymentExpired": "مهلت پرداخت به پایان رسید",
+      "receiptApproved": "فیش پرداخت تأیید شد",
       "walletUpdated": "کیف پول به‌روزرسانی شد"
+    },
+    "eventBodies": {
+      "receiptApproved": "فیش پرداخت شما تأیید شد؛ ثبت‌نام این سفر تکمیل شد."
     },
     "openTourSocialLink": "ورود به گروه یا شبکه اجتماعی تور",
     "sources": {

@@ -480,7 +480,11 @@
       "registrationRejected": "Registration declined",
       "paymentScheduled": "Payment scheduled",
       "paymentExpired": "Payment deadline passed",
+      "receiptApproved": "Payment receipt approved",
       "walletUpdated": "Wallet updated"
+    },
+    "eventBodies": {
+      "receiptApproved": "Your payment receipt was approved; your registration is complete."
     },
     "openTourSocialLink": "Open the tour group or social channel",
     "sources": {

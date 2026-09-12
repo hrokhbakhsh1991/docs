@@ -254,6 +254,18 @@ Rules:
 
 Portal: list/detail KPI still show booking `paymentStatus`; the receipt **panel** uses remaining + `waived`/`paid` from `GET /bookings/{id}/receipts`, never the booking ratchet alone.
 
+## Phase 6 — Member completion surfaces after receipt approval (2026-09-13)
+
+Receipt review is a finance-owned state transition, but it must also publish a
+durable member-facing completion event in the same transaction as the payment,
+booking projection, receipt approval, and ledger outbox write. The event carries
+the registration, member user, tour, and validated social link. The portal then
+shows the link in both the approved registration detail and the notification
+inbox. Missing or invalid links are omitted without blocking payment approval.
+
+The notification renderer resolves event keys through the portal locale catalog;
+raw keys or legacy English bodies must never be displayed as user-facing Persian.
+
 ## Phase 5 — Personal obligation override / discount (2026-08-06)
 
 Commercial amount for a **single registration** may be lowered (or set explicitly) without changing tour list price.

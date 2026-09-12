@@ -6,6 +6,7 @@ import {
   isPrismaUniqueConstraintError,
 } from "../../db/prisma-error-instance";
 import { loadRegistrationInvoiceFacts } from "../../finance/load-registration-invoice-facts";
+import { readTourSocialMediaLink } from "../../bookings/read-tour-social-media-link";
 import { enqueueOutboxEvent } from "../../outbox/enqueue-domain-event";
 import { shouldAbortAtomicTx } from "../../test-hooks/atomic-tx-test-abort";
 import { enqueueFinanceLedgerCaptureOutbox } from "../enqueue-finance-ledger-capture";
@@ -1135,6 +1136,33 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         });
         if (!inserted) {
           throw new Error("FINANCE_APPROVE_CONFLICT");
+        }
+
+        const registration = await tx.operatorRegistration.findFirst({
+          where: { id: input.registrationId, tenantId: input.tenantId },
+          select: { id: true, tourId: true, submittedByUserId: true },
+        });
+        if (registration !== null) {
+          const approvedTour = await tx.tour.findFirst({
+            where: { id: registration.tourId, tenantId: input.tenantId },
+            select: { canonical: true },
+          });
+          const socialMediaLink = readTourSocialMediaLink(approvedTour?.canonical);
+          await enqueueOutboxEvent(tx, {
+            tenantId: input.tenantId,
+            aggregateType: "registration",
+            aggregateId: registration.id,
+            eventType: "finance.receipt.approved",
+            domainEventId: `finance.receipt.approved:${input.receiptId}`,
+            payload: {
+              registrationId: registration.id,
+              paymentId: input.paymentId,
+              tourId: registration.tourId,
+              guestUserId: registration.submittedByUserId,
+              ...(socialMediaLink !== null ? { socialMediaLink } : {}),
+              approvedAt: updated.reviewedAt?.toISOString() ?? new Date().toISOString(),
+            },
+          });
         }
 
         return {

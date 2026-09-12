@@ -16,6 +16,8 @@ describe("portal member notification labels", () => {
     assert.match(panel, /portalMember\|tickets\|settings\|nav\|common/);
     assert.match(panel, /payload\?\.ticketId/);
     assert.match(panel, /eventTitles\.registrationApproved/);
+    assert.match(panel, /eventTitles\.receiptApproved/);
+    assert.match(panel, /eventBodies\.receiptApproved/);
   });
 
   it("keeps notifications without a destination read-only", () => {
