@@ -147,8 +147,8 @@ function main() {
   }
 
   const bindings = readText(CATALOG_BINDINGS);
-  if (bindings?.includes('"denali.approximate-return-time"')) {
-    failures.push("catalog bindings must not include no-op denali.approximate-return-time");
+  if (!bindings?.includes('"denali.approximate-return-time"')) {
+    failures.push("catalog bindings must include denali.approximate-return-time PDP redaction");
   }
 
   const enrichSpec = readText(ENRICH_SPEC);

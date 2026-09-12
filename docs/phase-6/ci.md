@@ -25,7 +25,7 @@ closure_gate:
 | **L1** | `pnpm run test:changed`                         | **Local**          | 1–5 min             | Before push           |
 | **L2** | `pnpm run phase-6:guard`                        | Local or CI        | ~30 s               | Doc-only changes      |
 | **C1** | `phase-4-gate` + `phase-5-gate`                 | **GitHub PR**      | ~30–45 min          | Every PR              |
-| **C2** | `fast-closure` · `minio-photo` · `smoke-denali` | **GitHub PR/main** | ~15–45 min parallel | PR + merge            |
+| **C2** | `fast-closure` · `minio-photo` · `smoke-denali` | **GitHub PR/main** | ~15–60 min parallel | PR + merge            |
 | **C3** | `phase-6:gate` (full)                           | **GitHub only**    | ~60–90 min          | Sunday cron or manual |
 
 **Rule:** Do not run **C2/C3** locally unless explicitly debugging — use GitHub as source of truth.

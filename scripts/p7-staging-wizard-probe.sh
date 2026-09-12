@@ -3,14 +3,14 @@
 # Runs on VPS via SSH: OTP login → session → /tours/new HTTP check
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
 WEB="http://127.0.0.1:${WEB_PORT}"
 PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-09174070937}}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
 # VPS bare-IP login falls back to tenant …003; use denali.admin.localhost so auth + wizard share tenant.
-ADMIN_HOST="${STAGING_ADMIN_HOST:-denali.admin.localhost}"
+ADMIN_HOST="${STAGING_ADMIN_HOST:-admin.denali.localhost}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 if [[ -n "${VPS_SSH_KEY:-}" ]]; then
@@ -46,13 +46,13 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" \\
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-SESSION=\$(curl -sf "\${HOST_HDR[@]}" -H "Cookie: session=\${TOKEN}" "\${WEB}/api/auth/session")
+SESSION=\$(curl -sf "\${HOST_HDR[@]}" -H "Cookie: atour_op_session=\${TOKEN}" "\${WEB}/api/auth/session")
 echo "session: \${SESSION}" | head -c 200
 echo
 
 WIZ_CODE=\$(curl -sS -o /tmp/p7-wiz.html -w '%{http_code}' \\
   "\${HOST_HDR[@]}" \\
-  -H "Cookie: session=\${TOKEN}" \\
+  -H "Cookie: atour_op_session=\${TOKEN}" \\
   "\${WEB}/tours/new" || echo 000)
 
 if [[ "\${WIZ_CODE}" == "200" ]] && grep -q 'data-workspace-wizard' /tmp/p7-wiz.html 2>/dev/null; then

@@ -29,6 +29,14 @@ describe("operator-breadcrumb-logic.spec.ts", () => {
     assert.equal(segments[1]?.key, "workspaceOwner.title");
   });
 
+  it("resolves marketing pages settings module label", () => {
+    const segments = resolveOperatorBreadcrumbSegments("/settings/marketing-pages");
+    assert.equal(segments.length, 2);
+    assert.equal(segments[0]?.href, "/settings");
+    assert.equal(segments[1]?.namespace, "settings");
+    assert.equal(segments[1]?.key, "modules.marketing_pages.title");
+  });
+
   it("resolves tours new wizard trail", () => {
     const segments = resolveOperatorBreadcrumbSegments("/tours/new");
     assert.equal(segments.length, 2);

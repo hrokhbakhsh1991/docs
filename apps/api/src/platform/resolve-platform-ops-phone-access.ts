@@ -41,7 +41,11 @@ export async function resolvePlatformOpsPhoneAccess(
       return { role: normalizePlatformOpsRole(dbUser.role) };
     }
   } catch {
-    // fall through to env whitelist
+    // Production/prodlike must fail closed when the authoritative DB lookup is
+    // unavailable; only test/dev may use the explicit phone allowlist fallback.
+    if (requiresProductionGradeIntegrity()) {
+      return null;
+    }
   }
 
   const allowed = readPlatformOpsPhones().map((entry) => normalizeLoginMobile(entry));

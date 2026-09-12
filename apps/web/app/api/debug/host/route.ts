@@ -15,6 +15,10 @@ import {
  * Compares BFF host resolution vs middleware (Host header only).
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: { code: "NOT_FOUND", message: "Not found" } }, { status: 404 });
+  }
+
   const rawHost = request.headers.get("host");
   const rawForwardedHost = request.headers.get("x-forwarded-host");
 

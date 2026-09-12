@@ -23,6 +23,9 @@ function createFakeResponse(body: unknown, ok = true, status = 200) {
     async text() {
       return JSON.stringify(body);
     },
+    headers() {
+      return {};
+    },
   };
 }
 

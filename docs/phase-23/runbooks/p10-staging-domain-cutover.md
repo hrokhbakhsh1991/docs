@@ -8,7 +8,7 @@
 | Item | Example |
 | ---- | ------- |
 | Apex domain you control | `staging.yourclub.ir` |
-| DNS A records | `*.staging.yourclub.ir` → VPS IP (`89.45.89.206`) |
+| DNS A records | `*.staging.yourclub.ir` → VPS IP (`89.42.210.252`) |
 | ACME email | `ops@yourclub.ir` |
 | VPS path | `/opt/app-tour-staging` |
 | Env dir | `/etc/app-tour-staging` |
@@ -70,7 +70,7 @@ ENV_DIR=/etc/app-tour-staging bash /opt/app-tour-staging/scripts/vps-deploy/smok
 From laptop:
 
 ```bash
-VPS_HOST=89.45.89.206 pnpm run p10:vps-smoke
+VPS_HOST=89.42.210.252 pnpm run p10:vps-smoke
 ```
 
 ## 5 — HTTPS edge smoke (closes P10-1-N-001)
@@ -84,7 +84,7 @@ Expect `P10_PROFILE_C_EDGE_OK` for admin login, portal `/health`, marketing `/he
 ## 6 — Full staging gate
 
 ```bash
-VPS_HOST=89.45.89.206 pnpm run p10:staging-gate
+VPS_HOST=89.42.210.252 pnpm run p10:staging-gate
 ```
 
 ## Rollback

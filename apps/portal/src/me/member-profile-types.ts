@@ -23,6 +23,12 @@ export type MemberProfileViewPayload = {
   readonly profile: MemberProfileViewProfile;
 };
 
+export type MemberProfileFetchResult =
+  | { readonly status: "ok"; readonly payload: MemberProfileViewPayload }
+  | { readonly status: "missing_cookie" }
+  | { readonly status: "unauthenticated" }
+  | { readonly status: "unavailable" };
+
 export type MemberProfileApiErrorPayload = {
   readonly ok: false;
   readonly error: {

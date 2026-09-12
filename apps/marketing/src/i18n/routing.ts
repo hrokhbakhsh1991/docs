@@ -62,3 +62,18 @@ export function resolveMarketingToursListPath(
 export function resolveMarketingTourDetailPath(tourId: string, locale: AppLocale): string {
   return resolveMarketingLocalePath(`/tours/${tourId}`, locale);
 }
+
+/**
+ * PDP login-modal deep link — progressive-enhancement href for guest register/sign-in.
+ * Stays on marketing tour detail; `MarketingLoginModalProvider` auto-opens on `auth=login`.
+ */
+export function resolveMarketingTourDetailAuthModalHref(
+  tourId: string,
+  locale: AppLocale
+): string {
+  const id = tourId.trim();
+  if (id.length === 0) {
+    return resolveMarketingLocalePath("/tours?auth=login", locale);
+  }
+  return `${resolveMarketingTourDetailPath(id, locale)}?auth=login`;
+}

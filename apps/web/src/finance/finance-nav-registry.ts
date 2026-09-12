@@ -26,6 +26,14 @@ function getCache(): Map<string, boolean> {
   return cache;
 }
 
+/** Seed the browser/server cache from an already-resolved workspace plugin. */
+export function seedFinanceNavSupported(pluginId: string, supported: boolean): void {
+  const id = pluginId.trim();
+  if (id.length > 0) {
+    getCache().set(id, supported);
+  }
+}
+
 function supportedFromPlugin(plugin: WorkspacePlugin): boolean {
   return resolveFinanceNavCapability(plugin)?.supported === true;
 }

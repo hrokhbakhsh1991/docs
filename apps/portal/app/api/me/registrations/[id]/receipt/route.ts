@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import { parseMemberReceiptPanel } from "@/me/member-receipt-status";
 import { resolveTourOpsApiBaseUrl } from "@/env";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -35,7 +36,7 @@ function resolveReceiptContentType(file: File): string {
 
 export async function GET(req: Request, context: RouteContext): Promise<NextResponse> {
   const { id: registrationId } = await context.params;
-  const host = req.headers.get("host") ?? "localhost:3003";
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
 
   if (headers.Authorization === undefined) {
@@ -68,7 +69,7 @@ export async function GET(req: Request, context: RouteContext): Promise<NextResp
  */
 export async function POST(req: Request, context: RouteContext): Promise<NextResponse> {
   const { id: registrationId } = await context.params;
-  const host = req.headers.get("host") ?? "localhost:3003";
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
 
   if (headers.Authorization === undefined) {

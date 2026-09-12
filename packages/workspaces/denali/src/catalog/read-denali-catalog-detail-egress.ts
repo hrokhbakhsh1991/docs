@@ -1,7 +1,4 @@
-import type {
-  PublicCatalogGatheringPoint,
-  PublicCatalogGearItem,
-} from "@app-tour/workspace-sdk";
+import type { PublicCatalogGatheringPoint, PublicCatalogGearItem } from "@app-tour/workspace-sdk";
 
 import {
   readDenaliCanonicalPhotoRows,
@@ -13,6 +10,7 @@ import {
   parseDenaliGatheringPoints,
   parseDenaliLocationData,
 } from "../ui/logic/denali-location-types";
+import { normalizeSocialMediaLink } from "../ui/logic/denali-social-media-link-logic";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
@@ -62,7 +60,9 @@ function readStringArray(value: unknown): readonly string[] {
 
 function readLocationGatheringPoint(value: unknown): PublicCatalogGatheringPoint | null {
   const location = parseDenaliLocationData(value);
-  const label = [location.label, location.address].filter((part) => part != null && part.length > 0).join(" — ");
+  const label = [location.label, location.address]
+    .filter((part) => part != null && part.length > 0)
+    .join(" — ");
   if (label.length === 0 && location.latitude == null && location.longitude == null) {
     return null;
   }
@@ -74,12 +74,16 @@ function readLocationGatheringPoint(value: unknown): PublicCatalogGatheringPoint
 }
 
 function readGatheringPoints(data: Record<string, unknown>): PublicCatalogGatheringPoint | null {
-  const points = parseDenaliGatheringPoints(readCanonicalPath(data, "tripDetails.logistics.gatheringPoints"));
+  const points = parseDenaliGatheringPoints(
+    readCanonicalPath(data, "tripDetails.logistics.gatheringPoints")
+  );
   const primary = points.find((point) => point.isPrimary === true) ?? points[0];
   if (primary == null) {
     return readLocationGatheringPoint(readCanonicalPath(data, "startPoint"));
   }
-  const label = [primary.name, primary.address].filter((part) => part != null && part.length > 0).join(" — ");
+  const label = [primary.name, primary.address]
+    .filter((part) => part != null && part.length > 0)
+    .join(" — ");
   if (label.length === 0 && primary.latitude == null && primary.longitude == null) {
     return null;
   }
@@ -90,7 +94,9 @@ function readGatheringPoints(data: Record<string, unknown>): PublicCatalogGather
   });
 }
 
-function readGearItems(data: Record<string, unknown>): readonly PublicCatalogGearItem[] | undefined {
+function readGearItems(
+  data: Record<string, unknown>
+): readonly PublicCatalogGearItem[] | undefined {
   const raw =
     readCanonicalPath(data, "participants.gearItems") ??
     readCanonicalPath(data, "participantRequirements.gearItems");
@@ -123,6 +129,7 @@ export type DenaliCatalogDetailEgress = {
   readonly excludedServices?: readonly string[];
   readonly includesTourInsurance?: boolean;
   readonly paymentMode?: string | null;
+  readonly socialMediaLink?: string | null;
   readonly photoUrls?: readonly string[];
 };
 
@@ -178,8 +185,12 @@ export function readDenaliCatalogDetailEgress(
   const hikingGoHours = readInteger(readCanonicalPath(data, "program.hikingGoHours"));
   const hikingReturnHours = readInteger(readCanonicalPath(data, "program.hikingReturnHours"));
   const peakHeightMeters = readInteger(readCanonicalPath(data, "tripDetails.overview.peakHeight"));
-  const trailDistanceKm = readInteger(readCanonicalPath(data, "tripDetails.overview.trailDistanceKm"));
-  const elevationGainMeters = readInteger(readCanonicalPath(data, "tripDetails.metrics.elevationGain"));
+  const trailDistanceKm = readInteger(
+    readCanonicalPath(data, "tripDetails.overview.trailDistanceKm")
+  );
+  const elevationGainMeters = readInteger(
+    readCanonicalPath(data, "tripDetails.metrics.elevationGain")
+  );
   const minimumAge = readInteger(readCanonicalPath(data, "participants.minimumAge"));
   const maximumAge = readInteger(readCanonicalPath(data, "participants.maximumAge"));
   const fitnessPrerequisiteText = readString(
@@ -187,8 +198,7 @@ export function readDenaliCatalogDetailEgress(
   );
   const approximateReturnTime = readString(data.approximateReturnTime);
   const gatheringPoint = readGatheringPoints(data);
-  const meetingPointText =
-    readString(data.meetingPoint) ?? readString(data.startPointLocationText);
+  const meetingPointText = readString(data.meetingPoint) ?? readString(data.startPointLocationText);
   const gearItems = readGearItems(data);
   const includedServices = readStringArray(
     readCanonicalPath(data, "tripDetails.logistics.includedServices")
@@ -196,10 +206,21 @@ export function readDenaliCatalogDetailEgress(
   const excludedServices = readStringArray(
     readCanonicalPath(data, "tripDetails.logistics.excludedServices")
   );
-  const includesTourInsurance = readBoolean(readCanonicalPath(data, "pricing.includesTourInsurance"));
+  const includesTourInsurance = readBoolean(
+    readCanonicalPath(data, "pricing.includesTourInsurance")
+  );
   const paymentMode =
     readString(readCanonicalPath(data, "pricing.paymentMode")) ??
     readString(readCanonicalPath(data, "pricingPayment.paymentMode"));
+  const socialMediaLinkRaw =
+    readString(data.socialMediaLink) ??
+    readString(readCanonicalPath(data, "basicInfo.socialMediaLink"));
+  const socialMediaLinkResult =
+    socialMediaLinkRaw === null ? null : normalizeSocialMediaLink(socialMediaLinkRaw);
+  const socialMediaLink =
+    socialMediaLinkResult?.ok === true && socialMediaLinkResult.value.length > 0
+      ? socialMediaLinkResult.value
+      : null;
   const photoUrls = readDenaliCatalogGalleryPhotoUrls(data, {
     photoUrlById: options?.photoUrlById,
     coverImageUrl: options?.coverImageUrl,
@@ -225,6 +246,7 @@ export function readDenaliCatalogDetailEgress(
     ...(excludedServices.length > 0 ? { excludedServices } : {}),
     ...(includesTourInsurance ? { includesTourInsurance: true } : {}),
     ...(paymentMode != null ? { paymentMode } : {}),
+    ...(socialMediaLink != null ? { socialMediaLink } : {}),
     ...(photoUrls != null ? { photoUrls } : {}),
   });
 }

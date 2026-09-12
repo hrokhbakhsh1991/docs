@@ -5,6 +5,8 @@ import {
   PLATFORM_OPS_BEARER_TOKEN_REQUIRED,
   readPlatformOpsBearerToken,
 } from "./read-platform-ops-bearer-token.ts";
+import { assertPlatformOpsAuth } from "./assert-platform-ops-auth.ts";
+import { PlatformForbidden } from "./platform.errors.ts";
 import { resolvePlatformOpsPhoneAccess } from "./resolve-platform-ops-phone-access.ts";
 
 const ENV_SNAPSHOT = {
@@ -58,5 +60,29 @@ describe("TODO-004 platform ops auth fail-closed", () => {
       } as never,
     });
     assert.equal(access, null);
+  });
+
+  it("DB exception never falls through to a populated production whitelist", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.PLATFORM_OPS_BEARER_TOKEN = "proof-bearer";
+    process.env.PLATFORM_OPS_PHONES = "+15550000002";
+
+    await assert.rejects(
+      () =>
+        assertPlatformOpsAuth(
+          {
+            Authorization: "Bearer proof-bearer",
+            "X-Platform-Ops-Phone": "+15550000002",
+          },
+          {
+            repository: {
+              findByPhone: async () => {
+                throw new Error("controlled-db-exception");
+              },
+            } as never,
+          }
+        ),
+      PlatformForbidden
+    );
   });
 });

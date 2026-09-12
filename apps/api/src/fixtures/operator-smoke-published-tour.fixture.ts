@@ -10,12 +10,21 @@ import {
 export const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210" as const;
 
 /** Denali club dev host (…000003) — separate PK from operator smoke tour …0210 on …014. */
-export const DENALI_CLUB_DEV_PUBLISHED_TOUR_ID =
-  "00000000-0000-4000-8000-000000000220" as const;
+export const DENALI_CLUB_DEV_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220" as const;
 
 /** Denali club draft — separate PK from operator draft …0211 (global tour id). */
-export const DENALI_CLUB_DEV_DRAFT_TOUR_ID =
-  "00000000-0000-4000-8000-000000000221" as const;
+export const DENALI_CLUB_DEV_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000221" as const;
+
+/** Denali booking-matrix browser fixtures (dev-only, tenant-scoped). */
+export const DENALI_BOOKING_PAID_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000223" as const;
+export const DENALI_BOOKING_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000224" as const;
+export const DENALI_BOOKING_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000225" as const;
+export const DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID =
+  "00000000-0000-4000-8000-000000000226" as const;
+export const DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID =
+  "00000000-0000-4000-8000-000000000227" as const;
+export const DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID =
+  "00000000-0000-4000-8000-000000000228" as const;
 
 export const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211" as const;
 
@@ -103,9 +112,10 @@ export function buildOperatorSmokePublishedTourItinerary(): readonly Record<stri
 }
 
 /** ED-SEED-01 — inclusive span must stay 3 days to match itinerary day titles. */
-export function resolveOperatorSmokePublishedTourWindow(
-  now: Date = new Date()
-): { readonly startDateTime: string; readonly endDateTime: string } {
+export function resolveOperatorSmokePublishedTourWindow(now: Date = new Date()): {
+  readonly startDateTime: string;
+  readonly endDateTime: string;
+} {
   const start = new Date(now.getTime());
   start.setUTCDate(start.getUTCDate() + 14);
   start.setUTCHours(8, 0, 0, 0);
@@ -294,7 +304,8 @@ export function applyOperatorSmokePublishedTourEditReadyPatch(
       : {};
   const expectedOverview = (expected.tripDetails as { overview: Record<string, unknown> }).overview;
   overview.peakHeight = expectedOverview.peakHeight;
-  overview.customServiceLabels = overview.customServiceLabels ?? expectedOverview.customServiceLabels;
+  overview.customServiceLabels =
+    overview.customServiceLabels ?? expectedOverview.customServiceLabels;
   tripDetails.overview = overview;
   next.tripDetails = tripDetails;
 
@@ -374,6 +385,49 @@ export function buildDenaliClubDevDraftTour(input: {
   };
 }
 
+export function buildDenaliBookingScenarioTour(input: {
+  readonly tenantId: string;
+  readonly id:
+    | typeof DENALI_BOOKING_PAID_AUTO_TOUR_ID
+    | typeof DENALI_BOOKING_FREE_MANUAL_TOUR_ID
+    | typeof DENALI_BOOKING_FREE_AUTO_TOUR_ID
+    | typeof DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID
+    | typeof DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID
+    | typeof DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID;
+  readonly title: string;
+  readonly registrationApproval: "manual" | "auto";
+  readonly paymentCollection: "offline" | "free";
+  readonly allowMembershipDiscount?: boolean;
+  readonly catalog?: OperatorSmokePublishedTourCatalogRefs;
+  readonly createdAt?: string;
+}): Tour {
+  const base = buildOperatorSmokePublishedTourCanonical(
+    input.catalog ?? DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG
+  );
+  const data = {
+    ...base.data,
+    title: input.title,
+    basics: { title: input.title },
+    details: { summary: `Denali booking matrix fixture: ${input.title}` },
+    // Browser confidence runs are intentionally rerunnable against a long-lived
+    // dev database; E02 owns the separate bounded-capacity fixture.
+    capacityMax: 100,
+    pricing: {
+      ...(base.data.pricing as Record<string, unknown>),
+      registrationApproval: input.registrationApproval,
+      paymentCollection: input.paymentCollection,
+      ...(input.allowMembershipDiscount === true ? { allowMembershipDiscount: true } : {}),
+    },
+  };
+  return {
+    id: input.id,
+    tenantId: input.tenantId,
+    rowVersion: 1,
+    createdAt: input.createdAt ?? new Date().toISOString(),
+    canonical: toCanonicalDocument(data),
+  };
+}
+
 export function buildOperatorSmokeParticipantRequirementsTourCanonical(): CanonicalDocument {
   const base = buildOperatorSmokePublishedTourCanonical();
   return toCanonicalDocument({
@@ -418,6 +472,9 @@ export function buildOperatorSmokeTransportBusTourCanonical(): CanonicalDocument
     ...base.data,
     title: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE,
     basics: { title: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE },
+    // Keep browser transport/finance chains repeatable without consuming the small catalog
+    // capacity used by the general operator smoke tour.
+    capacityMax: 100,
     transport: {
       mode: "bus",
       allowPersonalCar: true,

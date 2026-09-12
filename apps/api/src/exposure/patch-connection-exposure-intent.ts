@@ -3,7 +3,7 @@ import {
 } from "./exposure-catalog.service";
 import type { ExposureIntentMode, ExposureFieldDecorations } from "./exposure-intent";
 import type { UpsertExposureIntentInput } from "./exposure-intent.repository";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import {
   mapLegacyDeliveryIntentFields,
   resolveLegacyDeliveryExposureProfile,

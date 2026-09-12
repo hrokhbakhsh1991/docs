@@ -9,6 +9,7 @@ import {
 } from "@/admin/patterns/operator-directory-filter-chrome";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select } from "@app-tour/ui-primitives/select";
 import {
   bookingsAdvancedFiltersDirty,
   clearBookingsCommandCenterFilters,
@@ -115,9 +116,13 @@ export function BookingsWorkspaceEmbeddedControls({
               <Label htmlFor="bookings-workspace-status-filter">
                 {tControls("statusFilterLabel")}
               </Label>
-              <select
+              <Select
                 id="bookings-workspace-status-filter"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="h-10 w-full"
+                options={BOOKING_STATUS_FILTER_OPTIONS.map((status) => ({
+                  value: status,
+                  label: t(`status.${status}`),
+                }))}
                 value={query.status}
                 onChange={(event) =>
                   patchQuery({
@@ -125,13 +130,7 @@ export function BookingsWorkspaceEmbeddedControls({
                     approvedWithinDays: "",
                   })
                 }
-              >
-                {BOOKING_STATUS_FILTER_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {t(`status.${status}`)}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           ) : null}
 
@@ -139,41 +138,35 @@ export function BookingsWorkspaceEmbeddedControls({
             <Label htmlFor="bookings-workspace-payment-filter">
               {tControls("paymentFilterLabel")}
             </Label>
-            <select
+            <Select
               id="bookings-workspace-payment-filter"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="h-10 w-full"
+              options={PAYMENT_STATUS_FILTER_OPTIONS.map((paymentStatus) => ({
+                value: paymentStatus,
+                label: t(`payment.${paymentStatus}`),
+              }))}
               value={query.paymentStatus}
               onChange={(event) =>
                 patchQuery({
                   paymentStatus: event.target.value as BookingsCommandCenterQuery["paymentStatus"],
                 })
               }
-            >
-              {PAYMENT_STATUS_FILTER_OPTIONS.map((paymentStatus) => (
-                <option key={paymentStatus} value={paymentStatus}>
-                  {t(`payment.${paymentStatus}`)}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="bookings-workspace-sort-filter">{tControls("sortFilterLabel")}</Label>
-            <select
+            <Select
               id="bookings-workspace-sort-filter"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="h-10 w-full"
+              options={BOOKINGS_LIST_SORT_OPTIONS.map((sort) => ({
+                value: sort,
+                label: t(`sort.${sort}`),
+              }))}
               data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.sortSelect}
               value={query.sort}
-              onChange={(event) =>
-                patchQuery({ sort: event.target.value as BookingsListSort })
-              }
-            >
-              {BOOKINGS_LIST_SORT_OPTIONS.map((sort) => (
-                <option key={sort} value={sort}>
-                  {t(`sort.${sort}`)}
-                </option>
-              ))}
-            </select>
+              onChange={(event) => patchQuery({ sort: event.target.value as BookingsListSort })}
+            />
           </div>
 
           {filtersDirty || activeChips.length > 0 ? (

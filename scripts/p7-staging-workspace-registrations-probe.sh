@@ -2,7 +2,7 @@
 # P7-2-N-001 — workspace registrations tourId preset probe (~12s)
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -10,7 +10,7 @@ WEB_PORT="${STAGING_WEB_PORT:-23000}"
 WEB="http://127.0.0.1:${WEB_PORT}"
 PHONE="${SMOKE_OPERATOR_OWNER_PHONE:-09174070937}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
-ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
+ADMIN_HOST="${STAGING_OPERATOR_ADMIN_HOST:-admin.operator.localhost}"
 TOUR_ID="${STAGING_OPERATOR_TOUR_ID:-00000000-0000-4000-8000-000000000210}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
@@ -48,7 +48,7 @@ TOKEN=\$(curl -sf -X POST "\${WEB}/api/auth/login-web-session" "\${HOST_HDR[@]}"
   -d "{\\"phone\\":\\"\${PHONE}\\",\\"otp\\":\\"\${OTP}\\",\\"challenge_id\\":\\"\${CID}\\"}" \\
   | python3 -c "import json,sys; print(json.load(sys.stdin)['session_token'])")
 
-COOKIE=( -H "Cookie: session=\${TOKEN}" )
+COOKIE=( -H "Cookie: atour_op_session=\${TOKEN}" )
 
 ws_code=\$(curl -sS -o /tmp/p7-ws-reg.html -w '%{http_code}' \\
   "\${HOST_HDR[@]}" "\${COOKIE[@]}" "\${WEB}/tours/\${TOUR_ID}/workspace")

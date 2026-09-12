@@ -103,6 +103,33 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     assert.deepEqual(ids, ["dest-1"]);
   });
 
+  it("DN-CAT-13 collectItinerarySegmentDestinationIds includes root destinationId", () => {
+    const ids = collectItinerarySegmentDestinationIds({
+      destinationId: "dest-root",
+      program: { itinerary: [] },
+    });
+    assert.deepEqual(ids, ["dest-root"]);
+  });
+
+  it("DN-CAT-14 toDenaliCatalogCard resolves destinationLabel from root destinationId", () => {
+    const card = toDenaliCatalogCard(
+      {
+        id: TOUR_ID,
+        canonical: {
+          schemaVersion: 1,
+          roots: ["basics"],
+          data: {
+            title: "Smoke Trek",
+            destinationId: "dest-root",
+            program: { itinerary: [] },
+          },
+        },
+      },
+      { destinationNameById: new Map([["dest-root", "Tochal"]]) },
+    );
+    assert.equal(card.destinationLabel, "Tochal");
+  });
+
   it("DN-CAT-12 projectDenaliCatalogItinerary resolves storageKey photos via photoUrlById", () => {
     const data = canonical({
       photos: [{ id: "p1", storageKey: "tenant/tours/t1/photos/p1" }],

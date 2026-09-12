@@ -40,6 +40,8 @@ describe("web guest API base parity — PSC-1a", () => {
       "utf8"
     );
     assert.match(source, /resolveTourOpsApiBaseUrl/);
+    assert.match(source, /SESSION_TOKEN_COOKIE/);
+    assert.match(source, /authorization = `Bearer \$\{sessionToken\}`/);
     assert.doesNotMatch(source, /function apiBaseUrl\(\)/);
   });
 });

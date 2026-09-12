@@ -25,6 +25,15 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /readonly registrantTarget\?:/);
     assert.match(fetchModule, /readonly transportKind\?:/);
     assert.match(fetchModule, /readonly personalCarOccupants\?:/);
+    assert.match(
+      readFileSync(
+        join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
+        "utf8"
+      ),
+      /option value=\{0\}/
+    );
+    assert.match(fetchModule, /resolvePortalSelfFetchOrigin/);
+    assert.match(fetchModule, /x-forwarded-host/);
     assert.doesNotMatch(fetchModule, /registrationIntake/);
     assert.doesNotMatch(fetchModule, /bookings\?view=mine/);
     assert.doesNotMatch(fetchModule, /resolveTourOpsApiBaseUrl/);
@@ -40,6 +49,9 @@ describe("portal-member-registrations", () => {
     assert.match(route, /status: 401/);
     assert.match(route, /bookings\?view=mine&limit=50/);
     assert.match(route, /buildMemberApiHeaders/);
+    assert.match(route, /resolvePortalIngressHost\(req\)/);
+    assert.match(route, /UPSTREAM_BOOKINGS_ERROR/);
+    assert.doesNotMatch(route, /ok: true, data: \{ items: \[\] \}/);
     assert.doesNotMatch(route, /fetchMemberRegistrations/);
   });
 
@@ -56,10 +68,7 @@ describe("portal-member-registrations", () => {
   });
 
   it("MEM-BFF-03 /me/registrations page SSR marker", () => {
-    const page = readFileSync(
-      join(repoRoot, "apps/portal/app/me/registrations/page.tsx"),
-      "utf8"
-    );
+    const page = readFileSync(join(repoRoot, "apps/portal/app/me/registrations/page.tsx"), "utf8");
     assert.match(page, /data-portal-member-registrations/);
     assert.match(page, /data-registrant-filter/);
     assert.match(page, /data-portal-member-registrations-filter/);
@@ -69,6 +78,31 @@ describe("portal-member-registrations", () => {
     assert.match(page, /fetchMemberRegistrations/);
     assert.match(page, /RegistrantListFilter/);
     assert.match(page, /\?target=\$\{filter\}/);
+  });
+
+  it("MEM-BFF-03b SSR detail and receipt fetches preserve ingress host", () => {
+    const detailFetch = readFileSync(
+      join(repoRoot, "apps/portal/src/me/fetch-member-registration-by-id.server.ts"),
+      "utf8"
+    );
+    const receiptFetch = readFileSync(
+      join(repoRoot, "apps/portal/src/me/fetch-member-receipt-status.server.ts"),
+      "utf8"
+    );
+    for (const source of [detailFetch, receiptFetch]) {
+      assert.match(source, /resolvePortalSelfFetchOrigin/);
+      assert.match(source, /x-forwarded-host/);
+    }
+  });
+
+  it("MEM-NOTIF-06 approved registration notification carries a tour detail link and social CTA", () => {
+    const panel = readFileSync(
+      join(repoRoot, "apps/portal/src/me/notifications/member-ticket-notifications-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panel, /me\/registrations\/\$\{encodeURIComponent\(item\.entityId\)\}/);
+    assert.match(panel, /registration\.approved/);
+    assert.match(panel, /data-portal-member-notification-social-link-anchor/);
   });
 
   it("MEM-BFF-04 /me/registrations detail page markers", () => {
@@ -134,6 +168,11 @@ describe("portal-member-registrations", () => {
     );
     assert.match(detailBff, /registrationApiPath/);
     assert.doesNotMatch(detailBff, /pluginId !== "denali"/);
+    const receiptBff = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/registrations/[id]/receipt/route.ts"),
+      "utf8"
+    );
+    assert.match(receiptBff, /resolvePortalIngressHost\(req\)/);
     const amend = readFileSync(
       join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
       "utf8"
@@ -265,6 +304,15 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"guestLine"/);
     assert.match(fa, /"transportLabel"/);
     assert.match(en, /"transportLabel"/);
+    assert.match(fa, /"engagement":\s*"مشارکت و امتیازها"/);
+    assert.match(en, /"engagement":\s*"Engagement & points"/);
+    assert.doesNotMatch(fa, /portalMember\.nav\.engagement/);
+    assert.doesNotMatch(en, /portalMember\.nav\.engagement/);
+    assert.match(fa, /"withdrawHint"/);
+    assert.match(fa, /"withdrawAction"/);
+    assert.doesNotMatch(fa, /portalMember\.cancellation\.(withdrawHint|withdrawAction)/);
+    assert.match(en, /"withdrawHint"/);
+    assert.match(en, /"withdrawAction"/);
     assert.match(fa, /PROFILE_NATIONAL_ID_CHECKSUM/);
     assert.match(en, /PROFILE_NATIONAL_ID_CHECKSUM/);
   });

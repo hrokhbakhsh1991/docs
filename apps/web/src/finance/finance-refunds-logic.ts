@@ -28,6 +28,9 @@ export const FINANCE_REFUNDS_TEST_IDS = {
   completeSuccess: "finance-refund-complete-success",
   amountHero: "finance-refund-amount-hero",
   completeOpenPayments: "finance-refund-complete-open-payments",
+  creditToWallet: "finance-refund-credit-to-wallet",
+  creditToWalletConfirm: "finance-refund-credit-to-wallet-confirm",
+  walletCredited: "finance-refund-wallet-credited",
 } as const;
 
 /** Outstanding handoff after Complete when invoice remaining reopens AR. */
@@ -87,6 +90,15 @@ export type FinanceRefundListItem = {
     readonly status: string;
     readonly method: string;
   } | null;
+  readonly memberUserId: string | null;
+  readonly canCreditToWallet: boolean;
+  readonly walletCredit: {
+    readonly credited: boolean;
+    readonly transactionId: string | null;
+    readonly accountId: string | null;
+    readonly creditedAt: string | null;
+    readonly replay: boolean;
+  };
   readonly href: {
     readonly payments: string;
     readonly receipts: string;
@@ -180,6 +192,26 @@ function parseLinkedPayment(raw: unknown): FinanceRefundListItem["linkedPayment"
   };
 }
 
+function parseWalletCredit(raw: unknown): FinanceRefundListItem["walletCredit"] {
+  if (raw === null || typeof raw !== "object") {
+    return {
+      credited: false,
+      transactionId: null,
+      accountId: null,
+      creditedAt: null,
+      replay: false,
+    };
+  }
+  const row = raw as Record<string, unknown>;
+  return {
+    credited: row.credited === true,
+    transactionId: typeof row.transactionId === "string" ? row.transactionId : null,
+    accountId: typeof row.accountId === "string" ? row.accountId : null,
+    creditedAt: typeof row.creditedAt === "string" ? row.creditedAt : null,
+    replay: row.replay === true,
+  };
+}
+
 export function parseFinanceRefundItem(raw: unknown): FinanceRefundListItem | null {
   if (raw === null || typeof raw !== "object") {
     return null;
@@ -227,6 +259,9 @@ export function parseFinanceRefundItem(raw: unknown): FinanceRefundListItem | nu
     identity: parseIdentity(row.identity),
     invoice: parseInvoice(row.invoice),
     linkedPayment: parseLinkedPayment(row.linkedPayment),
+    memberUserId: typeof row.memberUserId === "string" ? row.memberUserId : null,
+    canCreditToWallet: row.canCreditToWallet === true,
+    walletCredit: parseWalletCredit(row.walletCredit),
     href: { payments: paymentsHref, receipts: receiptsHref },
   };
 }
@@ -275,6 +310,9 @@ export type RefundMutationClientError =
   | "REFUND_REASON_INVALID"
   | "REFUND_INVALID_AMOUNT"
   | "REFUND_SOURCE_INVALID"
+  | "REFUND_WALLET_NOT_COMPLETED"
+  | "REFUND_WALLET_MEMBER_OWNER_MISSING"
+  | "REFUND_WALLET_UNSUPPORTED"
   | "REFUND_MUTATION_FAILED";
 
 export function mapRefundMutationHttpError(
@@ -301,6 +339,11 @@ export function mapRefundMutationHttpError(
   if (code === "REFUND_INVALID_AMOUNT") return "REFUND_INVALID_AMOUNT";
   if (code === "REFUND_SOURCE_INVALID" || code === "REFUND_CURRENCY_MISMATCH") {
     return "REFUND_SOURCE_INVALID";
+  }
+  if (code === "REFUND_WALLET_NOT_COMPLETED") return "REFUND_WALLET_NOT_COMPLETED";
+  if (code === "REFUND_WALLET_MEMBER_OWNER_MISSING") return "REFUND_WALLET_MEMBER_OWNER_MISSING";
+  if (code === "REFUND_WALLET_UNSUPPORTED" || code === "FORBIDDEN_WALLET_MODULE_DISABLED") {
+    return "REFUND_WALLET_UNSUPPORTED";
   }
   return "REFUND_MUTATION_FAILED";
 }

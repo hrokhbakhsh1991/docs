@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
+import { IMPORT_UI_SURFACE_LOADERS } from "../src/wizard/import-ui-surface.loaders.ts";
 import {
   DENALI_SETTINGS_EXPOSURE_SURFACES_UI_KEYS,
   type DenaliSettingsExposureSurfacesChrome,
@@ -17,6 +18,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 describe("settings-exposure-surfaces-ui-surface (H1.c.2.b)", () => {
   it("locks WorkspaceSurfacesPanel key and binding surface export", () => {
+    assert.ok(
+      "../ui/settings/settings-exposure-surfaces-ui-binding" in IMPORT_UI_SURFACE_LOADERS
+    );
     assert.deepEqual(Object.keys(DENALI_SETTINGS_EXPOSURE_SURFACES_UI_KEYS), [
       "WorkspaceSurfacesPanel",
     ]);

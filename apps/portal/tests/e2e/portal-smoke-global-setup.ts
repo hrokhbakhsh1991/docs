@@ -6,10 +6,28 @@
  */
 import http from "node:http";
 
-const DEFAULT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const OPERATOR_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const DENALI_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000220";
 const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
+
+/** PW_EXTERNAL_SERVERS + VPS_IP: .localhost/.club hosts resolve to remote staging, not loopback. */
+function resolveConnectHostname(hostname: string): string {
+  const vpsIp = process.env.VPS_IP?.trim();
+  if (
+    process.env.PW_EXTERNAL_SERVERS === "1" &&
+    vpsIp !== undefined &&
+    vpsIp.length > 0 &&
+    (hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".club"))
+  ) {
+    return vpsIp;
+  }
+  if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+    return "127.0.0.1";
+  }
+  return hostname;
+}
 
 /** Compile portal BFF routes before tests — avoids Next dev HMR reload mid-flow. */
 async function warmPortalBffRoute(
@@ -18,33 +36,48 @@ async function warmPortalBffRoute(
   method: "GET" | "POST" | "PATCH",
   body?: object
 ): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const url = new URL(`${base}${path}`);
-    const payload = body === undefined ? undefined : JSON.stringify(body);
-    const headers: Record<string, string> = { host: url.host };
-    if (payload !== undefined) {
-      headers["Content-Type"] = "application/json";
-      headers["Content-Length"] = String(Buffer.byteLength(payload));
-    }
-    const req = http.request(
-      {
-        hostname: url.hostname,
-        port: url.port || (url.protocol === "https:" ? 443 : 80),
-        path: `${url.pathname}${url.search}`,
-        method,
-        headers,
-      },
-      (res) => {
-        res.resume();
-        resolve();
+  let lastError: unknown = new Error(`warm-up failed for ${method} ${path}`);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const url = new URL(`${base}${path}`);
+        const payload = body === undefined ? undefined : JSON.stringify(body);
+        const headers: Record<string, string> = { host: url.host };
+        if (payload !== undefined) {
+          headers["Content-Type"] = "application/json";
+          headers["Content-Length"] = String(Buffer.byteLength(payload));
+        }
+        const req = http.request(
+          {
+            hostname: resolveConnectHostname(url.hostname),
+            port: url.port || (url.protocol === "https:" ? 443 : 80),
+            path: `${url.pathname}${url.search}`,
+            method,
+            headers,
+          },
+          (res) => {
+            res.resume();
+            resolve();
+          }
+        );
+        req.on("error", reject);
+        req.setTimeout(120_000, () => {
+          req.destroy(new Error(`warm-up timeout for ${method} ${path}`));
+        });
+        if (payload !== undefined) {
+          req.write(payload);
+        }
+        req.end();
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
       }
-    );
-    req.on("error", reject);
-    if (payload !== undefined) {
-      req.write(payload);
     }
-    req.end();
-  });
+  }
+  throw lastError;
 }
 
 async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
@@ -71,6 +104,14 @@ async function warmPublicAuthBffRoutes(base: string): Promise<void> {
 function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let inFlight = false;
+  const target = new URL(url);
+  const connectHostname = resolveConnectHostname(target.hostname);
+  const requestOptions = {
+    hostname: connectHostname,
+    port: target.port || (target.protocol === "https:" ? 443 : 80),
+    path: `${target.pathname}${target.search}`,
+    headers: { host: target.host },
+  };
 
   return new Promise((resolve, reject) => {
     const retry = () => {
@@ -85,7 +126,7 @@ function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
         return;
       }
       inFlight = true;
-      const req = http.get(url, (res) => {
+      const req = http.get(requestOptions, (res) => {
         inFlight = false;
         res.resume();
         if (res.statusCode && res.statusCode < 500) {
@@ -110,11 +151,14 @@ function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   const base =
-    process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
     process.env.SMOKE_PORTAL_BASE_URL?.replace(/\/$/, "") ??
+    process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
     "http://127.0.0.1:3003";
 
-  await waitForUrl(`${base}/catalog/${DEFAULT_SMOKE_TOUR_ID}/register`);
+  const defaultSmokeTourId = base.includes("denali")
+    ? DENALI_SMOKE_TOUR_ID
+    : OPERATOR_SMOKE_TOUR_ID;
+  await waitForUrl(`${base}/catalog/${defaultSmokeTourId}/register`);
   await waitForUrl(`${base}/catalog/${PARTICIPANT_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${TRANSPORT_BUS_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${TRANSPORT_SHARED_SMOKE_TOUR_ID}/register`);
@@ -129,17 +173,14 @@ export default async function globalSetup(): Promise<void> {
     ["GET", "/api/me/entitlements"],
     ["GET", "/api/me/home"],
     ["GET", "/api/me/notifications"],
+    ["GET", "/api/me/tickets"],
+    ["POST", "/api/me/tickets", { categoryCode: "general", subject: "Warmup", body: "Warmup" }],
     ["PATCH", "/api/me/profile", { displayName: "Warmup" }],
     ["GET", `/api/me/registrations/${warmupRegistrationId}`],
     ["GET", `/api/me/registrations/${warmupRegistrationId}/receipt`],
     ["GET", `/me/registrations/${warmupRegistrationId}`],
   ] as const;
   for (const [method, path, body] of meBffRoutes) {
-    await warmPortalBffRoute(
-      base,
-      path,
-      method,
-      body as object | undefined
-    );
+    await warmPortalBffRoute(base, path, method, body as object | undefined);
   }
 }

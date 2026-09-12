@@ -1,4 +1,11 @@
 {
+  "pageNotFound": {
+    "title": "Page not found",
+    "body": "This page does not exist or is not available on this portal.",
+    "back": "Back to home",
+    "metadataTitle": "Page not found",
+    "metadataDescription": "This page does not exist."
+  },
   "calendar": {
     "pickDate": "Pick a date",
     "today": "Today",

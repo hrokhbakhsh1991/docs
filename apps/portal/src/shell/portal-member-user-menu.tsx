@@ -21,7 +21,9 @@ export function PortalMemberUserMenu({ items, logoutTarget }: PortalMemberUserMe
   return (
     <div data-portal-shell-user-menu data-slot="shell-user-menu">
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active =
+          pathname !== null &&
+          (pathname === item.href || pathname.startsWith(`${item.href}/`));
         return (
           <Link
             key={item.href}

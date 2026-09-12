@@ -171,6 +171,18 @@ export async function CatalogTourDetail({
                   <p data-marketing-catalog-detail-destination>{destinationLabel}</p>
                 ) : null}
               </header>
+              {tour.socialMediaLink ? (
+                <p data-marketing-catalog-detail-social-link>
+                  <a
+                    href={tour.socialMediaLink}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    data-marketing-catalog-detail-social-link-anchor
+                  >
+                    {t("detail.socialMediaLink")}
+                  </a>
+                </p>
+              ) : null}
             </div>
 
             {metaLine ? <p data-marketing-catalog-detail-meta>{metaLine}</p> : null}

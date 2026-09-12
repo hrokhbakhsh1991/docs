@@ -1,0 +1,183 @@
+name: Denali Ticketing certification
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/src/workspace-ticketing/**"
+      - "apps/api/test/**ticket*.spec.ts"
+      - "apps/api/scripts/*ticketing*.ts"
+      - "apps/portal/tests/e2e/*ticket*.spec.ts"
+      - "apps/portal/playwright.portal-ticketing.config.ts"
+      - "apps/portal/scripts/smoke-portal-ticketing-e2e-servers.mjs"
+      - "apps/web/tests/e2e/*ticket*.spec.ts"
+      - "apps/web/playwright.operator-ticketing.config.ts"
+      - "apps/web/scripts/smoke-operator-ticketing-e2e-servers.mjs"
+      - "packages/ticketing-*/**"
+      - "packages/workspaces/denali/**"
+      - "packages/workspace-sdk/src/**ticketing**"
+      - "docs/phase-ticketing/DENALI-CERTIFICATION-MATRIX.md"
+      - ".github/workflows/ticketing-certification.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: denali-ticketing-certification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ticketing-package:
+    name: Ticketing package matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Core and HTTP contract suites
+        run: |
+          pnpm --filter @app-tour/ticketing-core test
+          pnpm --filter @app-tour/ticketing-http test
+          pnpm --filter @app-tour/ticketing-http-contracts test
+
+  ticketing-postgres:
+    name: Ticketing PostgreSQL and RLS matrix
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+      TENANT_MAX_CONCURRENT_DB_OPS: "32"
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+      - run: bash scripts/ci/build-api-workspace-deps.sh
+      - name: Execute Ticketing PostgreSQL matrix
+        run: pnpm --filter @apps/api run test:ticketing:postgres
+
+  ticketing-operator-playwright:
+    name: Denali operator Ticketing Playwright
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_tour_dev
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_tour_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/app_tour_dev
+      NODE_ENV: test
+      STORAGE_DRIVER: prisma
+      CI: "true"
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+      - run: bash scripts/ci/build-api-workspace-deps.sh
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-chromium-${{ runner.os }}-
+      - run: pnpm --filter @apps/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @apps/web exec playwright test -c playwright.operator-ticketing.config.ts
+
+  ticketing-member-playwright:
+    name: Denali member Ticketing Playwright
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_tour_dev
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_tour_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/app_tour_dev
+      NODE_ENV: test
+      STORAGE_DRIVER: prisma
+      CI: "true"
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+      - run: bash scripts/ci/build-api-workspace-deps.sh
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-chromium-${{ runner.os }}-
+      - run: pnpm --filter @apps/portal exec playwright install --with-deps chromium
+      - run: pnpm --filter @apps/portal exec playwright test -c playwright.portal-ticketing.config.ts

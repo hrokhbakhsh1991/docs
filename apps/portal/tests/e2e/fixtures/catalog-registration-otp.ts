@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+import { pickIntakeBirthDate } from "./intake-birth-date-picker";
+
 export const CATALOG_DEV_OTP = "1234";
 
 /** Next dev HMR can invalidate response bodies before .text() — status is enough for smoke. */
@@ -10,6 +12,25 @@ function assertAuthBffOk(response: { ok(): boolean; status(): number }, label: s
 
 export async function gotoPortalRegistration(page: Page, tourId: string): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
+  const continueRegistration = page.getByRole("button", {
+    name: "ورود برای ادامه ثبت‌نام",
+  });
+  const loginPhone = page.locator(
+    "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready]"
+  );
+  const registrationIntake = page.locator(
+    "[data-public-registration-intake][data-registration-ready]"
+  );
+  if (!(await registrationIntake.isVisible().catch(() => false))) {
+    const modalOpened = await loginPhone
+      .first()
+      .waitFor({ state: "visible", timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!modalOpened && (await continueRegistration.isVisible().catch(() => false))) {
+      await continueRegistration.click();
+    }
+  }
   // Guest path: OTP phone inside dialog[open] (PCMS-UX-MODAL-04). Resume: intake.
   // Do not toBeVisible on the <dialog> itself — Preflight 0×0 box until L2 flex frame.
   await page
@@ -31,9 +52,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   // Wait before typing — OtpSegmentInput auto-submits onComplete; cell-by-cell
   // fill avoids rAF focus races from keyboard.type across maxLength=1 inputs.
   const responsePromise = page.waitForResponse(
-    (res) =>
-      res.request().method() === "POST" &&
-      res.url().includes("/api/public-auth/verify-otp"),
+    (res) => res.request().method() === "POST" && res.url().includes("/api/public-auth/verify-otp"),
     { timeout: 90_000 }
   );
   for (let i = 0; i < digits.length; i++) {
@@ -47,9 +66,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
 
 /** Reliable phone entry for portal LocalizedNumericInput (fa locale). */
 export async function fillRegistrationPhone(page: Page, phone: string): Promise<void> {
-  const phoneStep = page.locator(
-    "[data-public-registration-phone][data-registration-ready]"
-  );
+  const phoneStep = page.locator("[data-public-registration-phone][data-registration-ready]");
   await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
   const input = phoneStep.locator("#phone");
   await input.click();
@@ -67,8 +84,7 @@ export async function requestRegistrationOtp(page: Page, phone: string): Promise
   const [response] = await Promise.all([
     page.waitForResponse(
       (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/public-auth/request-otp"),
+        res.request().method() === "POST" && res.url().includes("/api/public-auth/request-otp"),
       { timeout: 90_000 }
     ),
     sendCode.click(),
@@ -157,6 +173,14 @@ export async function completeCatalogRegistrationIntake(
      * Defaults to `1`.
      */
     readonly guestCount?: number;
+    /** Optional per-card overrides for duplicate/partial-result probes. */
+    readonly guestOverrides?: (index: number) => {
+      readonly fullName?: string;
+      readonly phone?: string;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    };
     /**
      * Optional UX test hook for `registrantTarget="other"`.
      * If set, we will add up to `guestCount` then remove down to this number before filling fields.
@@ -193,16 +217,8 @@ export async function completeCatalogRegistrationIntake(
     if (fieldId === "birthDate") {
       const picker = root.locator('[data-intake-field="birthDate"]').first();
       if (await picker.isVisible({ timeout: 1_000 }).catch(() => false)) {
-        const tagName = await picker.evaluate((el) => el.tagName);
-        if (tagName === "BUTTON") {
-          await picker.click();
-          const day = page
-            .locator(`[data-testid="localized-calendar"] button[aria-label="${value}"]`)
-            .first();
-          await day.waitFor({ state: "visible", timeout: 10_000 });
-          await day.click();
-          return;
-        }
+        await pickIntakeBirthDate(page, root, value);
+        return;
       }
     }
     const inputEl = root
@@ -215,16 +231,12 @@ export async function completeCatalogRegistrationIntake(
     }
   };
 
-  const selectNoPersonalCarAndPayDong = async (
-    cardRoot: Locator
-  ): Promise<void> => {
+  const selectNoPersonalCarAndPayDong = async (cardRoot: Locator): Promise<void> => {
     // Prefer radios inside `[data-public-registration-transport]` when the opt-in
     // already revealed the follow-up fieldset; otherwise fall back to name prefix.
     const transportRoot = cardRoot.locator("[data-public-registration-transport]");
     const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
-    const hasPersonalCarRadios = scope.locator(
-      'input[type="radio"][name^="hasPersonalCar-"]'
-    );
+    const hasPersonalCarRadios = scope.locator('input[type="radio"][name^="hasPersonalCar-"]');
     if ((await hasPersonalCarRadios.count()) > 0) {
       // Convention: we render "has car" then "no car"; pick the second.
       await hasPersonalCarRadios.nth(1).click();
@@ -295,20 +307,15 @@ export async function completeCatalogRegistrationIntake(
     const remainingCount = await guestCards.count();
     for (let i = 0; i < remainingCount; i++) {
       const card = guestCards.nth(i);
-      await fillIntakeFieldInRootIfVisible(card, "fullName", input.fullName);
-      if (input.phone) {
-        await fillIntakeFieldInRootIfVisible(card, "phone", input.phone);
+      const guestOverride = input.guestOverrides?.(i) ?? {};
+      const guestFullName = guestOverride.fullName ?? input.fullName;
+      const guestPhone = guestOverride.phone ?? input.phone;
+      await fillIntakeFieldInRootIfVisible(card, "fullName", guestFullName);
+      if (guestPhone) {
+        await fillIntakeFieldInRootIfVisible(card, "phone", guestPhone);
       }
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "nationalId",
-        input.nationalId ?? "1234567890"
-      );
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "fatherName",
-        input.fatherName ?? "Smoke Father"
-      );
+      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1234567890");
+      await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");
       await fillIntakeFieldInRootIfVisible(card, "birthDate", input.birthDate ?? "1990-01-15");
       await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
 
@@ -320,16 +327,8 @@ export async function completeCatalogRegistrationIntake(
     if (input.phone) {
       await fillIntakeFieldInRootIfVisible(page, "phone", input.phone);
     }
-    await fillIntakeFieldInRootIfVisible(
-      page,
-      "nationalId",
-      input.nationalId ?? "1234567890"
-    );
-    await fillIntakeFieldInRootIfVisible(
-      page,
-      "fatherName",
-      input.fatherName ?? "Smoke Father"
-    );
+    await fillIntakeFieldInRootIfVisible(page, "nationalId", input.nationalId ?? "1234567890");
+    await fillIntakeFieldInRootIfVisible(page, "fatherName", input.fatherName ?? "Smoke Father");
     await fillIntakeFieldInRootIfVisible(page, "birthDate", input.birthDate ?? "1990-01-15");
     await fillIntakeFieldInRootIfVisible(page, "partySize", input.partySize ?? "2");
 

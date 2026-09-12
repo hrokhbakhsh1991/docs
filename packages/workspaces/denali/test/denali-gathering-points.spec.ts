@@ -44,6 +44,23 @@ describe("denali-gathering-points.spec.ts", () => {
     assert.match(FIELD_SRC, /data-gathering-scaffold/);
   });
 
+  it("ED-GATHER-02 keeps added empty stations visible until they are edited", () => {
+    assert.match(FIELD_SRC, /useState<DenaliGatheringPoint\[\] \| null>/);
+    assert.match(FIELD_SRC, /const points = localPoints \?\? editor\.points/);
+    assert.match(FIELD_SRC, /setLocalPoints\(next\)/);
+    assert.match(
+      FIELD_SRC,
+      /updateGatheringPoints\(\[\.\.\.current, createEmptyDenaliGatheringPoint\(false\)\]\)/
+    );
+  });
+
+  it("ED-GATHER-03 consecutive add actions read the visible local list", () => {
+    assert.match(
+      FIELD_SRC,
+      /if \(localPoints !== null && localPoints\.length > 0\) \{[\s\S]*return localPoints;/
+    );
+  });
+
   it("ED-GATHER-01 invariant strips empty gathering rows before persist", () => {
     const form = buildDenaliTourCreateDefaultValues();
     form.tripDetails.logistics.gatheringPoints = [createEmptyDenaliGatheringPoint(true)];

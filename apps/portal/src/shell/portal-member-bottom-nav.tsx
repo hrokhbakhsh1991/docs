@@ -45,7 +45,8 @@ export function PortalMemberBottomNav({
       <ul>
         {items.map((item) => {
           const active =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+            pathname !== null &&
+            (pathname === item.href || pathname.startsWith(`${item.href}/`));
           return (
             <li key={item.href}>
               <Link

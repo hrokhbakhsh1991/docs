@@ -93,6 +93,14 @@
     "./equipment": {
       "types": "./dist/equipment/index.d.ts",
       "default": "./dist/equipment/index.js"
+    },
+    "./wallet": {
+      "types": "./dist/wallet/index.d.ts",
+      "default": "./dist/wallet/index.js"
+    },
+    "./ticketing": {
+      "types": "./dist/ticketing/index.d.ts",
+      "default": "./dist/ticketing/index.js"
     }
   },
   "scripts": {

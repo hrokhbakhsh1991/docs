@@ -64,6 +64,37 @@ function offlineObligation(amountMinor = "2500000"): FinanceObligationPort {
   };
 }
 
+function serialReceiptObligation(): FinanceObligationPort & { readonly maxActive: () => number } {
+  let active = 0;
+  let maxActive = 0;
+  const track = async <T>(run: () => Promise<T>): Promise<T> => {
+    active += 1;
+    maxActive = Math.max(maxActive, active);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      return await run();
+    } finally {
+      active -= 1;
+    }
+  };
+  return {
+    async resolveRegistrationObligation() {
+      return track(async () => ({
+        currency: "IRR",
+        obligationMinor: "2500000",
+        source: "tour_canonical" as const,
+      }));
+    },
+    async resolveRegistrationPaymentCollection() {
+      return track(async () => "offline" as const);
+    },
+    async setRegistrationObligationOverride() {
+      return false;
+    },
+    maxActive: () => maxActive,
+  };
+}
+
 /** Production-like ratchet: unpaid → partial → paid, never down. */
 function createBookingPort(initial: BookingPaymentSyncStatus = "unpaid"): IBookingPaymentPort & {
   paymentStatus: BookingPaymentSyncStatus;
@@ -170,7 +201,11 @@ describe("member receipt status after reject (remaining SoT)", () => {
       `idem-b-paid-${registrationId}`
     );
     await repo.markPaymentPaid(TENANT, paidPayment.id, "journal:probe-b");
-    assert.equal(booking.paymentStatus, "unpaid", "booking ratchet not raised — leftover remaining");
+    assert.equal(
+      booking.paymentStatus,
+      "unpaid",
+      "booking ratchet not raised — leftover remaining"
+    );
 
     const pendingPayment = await finance.createManualPayment(
       OPERATOR,
@@ -182,7 +217,10 @@ describe("member receipt status after reject (remaining SoT)", () => {
       { paymentId: pendingPayment.id, fileKey: `receipts/${pendingPayment.id}.jpg` },
       `idem-b-rcpt-${pendingPayment.id}`
     );
-    await finance.reviewReceipt(OPERATOR, receipt.id, { decision: "reject", reviewNote: "wrong amount" });
+    await finance.reviewReceipt(OPERATOR, receipt.id, {
+      decision: "reject",
+      reviewNote: "wrong amount",
+    });
 
     const member = await finance.getMemberReceiptStatusForRegistration(MEMBER, registrationId);
     const outstanding = await finance.listOutstandingBalances(OPERATOR, { limit: 50 });
@@ -216,7 +254,10 @@ describe("member receipt status after reject (remaining SoT)", () => {
       registrationId,
       paymentStatus: "paid",
     });
-    await finance.reviewReceipt(OPERATOR, receipt.id, { decision: "reject", reviewNote: "late reject" });
+    await finance.reviewReceipt(OPERATOR, receipt.id, {
+      decision: "reject",
+      reviewNote: "late reject",
+    });
 
     const member = await finance.getMemberReceiptStatusForRegistration(MEMBER, registrationId);
     assert.equal(member.status, "rejected");
@@ -237,6 +278,18 @@ describe("member receipt status after reject (remaining SoT)", () => {
     );
     assert.doesNotMatch(page, /paymentStatus === ["']paid["']/);
     assert.match(page, /initialPanel=\{receiptPanel\}/);
+  });
+
+  it("F — member receipt reads do not fan out tenant-scoped obligation calls", async () => {
+    const registrationId = randomUUID();
+    const booking = createBookingPort("unpaid");
+    const repo = new InMemoryFinanceRepository(booking);
+    const obligation = serialReceiptObligation();
+    const finance = createService(repo, booking, obligation);
+
+    await finance.getMemberReceiptStatusForRegistration(MEMBER, registrationId);
+
+    assert.equal(obligation.maxActive(), 1);
   });
 
   it("E — partial approve then reject second receipt: member rejected, outstanding remaining, booking partial", async () => {

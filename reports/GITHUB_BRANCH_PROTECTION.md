@@ -103,6 +103,46 @@ Requires repo **admin**.
 
 ---
 
+## Branch protection for `dev` (staging — admin)
+
+`dev` is the staging trunk ([`docs/dev/deployment-branch-model.md`](../docs/dev/deployment-branch-model.md)). Protection blocks direct pushes and requires PR CI gates before merge.
+
+### Required status checks (exact job contexts)
+
+| Check | Workflow |
+| ----- | -------- |
+| Phase 0 foundation gate | `phase-0-gate.yml` |
+| Phase 0 integration gate | `phase-0-gate.yml` |
+| Phase 1 platform-core gate | `phase-1-gate.yml` |
+| Phase 4 gate (Postgres required) | `phase-4-gate.yml` |
+| Phase 5 gate (Postgres required) | `phase-5-gate.yml` |
+| Booking PostgreSQL capacity | `booking-postgres-gate.yml` |
+| Booking HTTP PostgreSQL | `booking-postgres-gate.yml` |
+| marketing-guard | `marketing-guard.yml` |
+
+Also enabled: **require pull request before merging** (0 approvals), **strict** up-to-date branch, **no force push**.
+
+### CLI (after `gh auth login` + repo admin)
+
+```bash
+pnpm run guard:dev-required-check-names
+pnpm run ops:branch-protection:dev:dry-run
+pnpm run ops:branch-protection:dev
+pnpm run ops:branch-protection:dev:verify
+```
+
+| Script | Purpose |
+| ------ | ------- |
+| `pnpm run ops:branch-protection:dev` | Apply dev protection (merge contexts + PR-only) |
+| `pnpm run ops:branch-protection:dev:verify` | Fail if any dev gate missing on `dev` |
+| `pnpm run ops:branch-protection:dev:dry-run` | Planned contexts; no write |
+| `pnpm run ops:branch-protection:dev:print` | Print canonical dev names |
+| `pnpm run guard:dev-required-check-names` | Assert workflow YAML names match dev script |
+
+Canonical list: `scripts/ops/dev-branch-required-checks.mjs`.
+
+---
+
 ## PR hygiene (§12 #8)
 
 ```bash

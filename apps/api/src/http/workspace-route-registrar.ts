@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { FinanceService } from "../workspace-finance/finance.service";
+import type { EngagementService } from "../workspace-engagement/engagement.service";
+import type { WalletService } from "../workspace-wallet/wallet.service";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { getIdentityRepository } from "../identity/create-identity-repository";
 import { MembershipNotFoundError } from "../identity/in-memory-identity.repository";
@@ -25,6 +27,8 @@ export type WorkspaceRouteHandlers = Record<WorkspaceHttpHandlerKey, WorkspaceHt
 export type WorkspaceRouteRegistrarDeps = {
   readonly tourStore?: TourStorageRepository;
   readonly financeService?: FinanceService;
+  readonly walletService?: WalletService;
+  readonly engagementService?: EngagementService;
 };
 
 type WorkspaceProductRouteDeps = {
@@ -50,7 +54,16 @@ type WorkspaceProductRouteDeps = {
   ) => Promise<void>;
 };
 
-type HandlerDispatchKind = "bare" | "product" | "product-param" | "finance" | "finance-param";
+type HandlerDispatchKind =
+  | "bare"
+  | "product"
+  | "product-param"
+  | "finance"
+  | "finance-param"
+  | "wallet"
+  | "wallet-param"
+  | "engagement"
+  | "engagement-param";
 
 const HANDLER_DISPATCH_KIND = {
   handleFinanceCreateManualPayment: "finance",
@@ -72,6 +85,7 @@ const HANDLER_DISPATCH_KIND = {
   handleFinanceGetRefund: "finance-param",
   handleFinanceApproveRefund: "finance-param",
   handleFinanceCompleteRefund: "finance-param",
+  handleFinanceCreditRefundToWallet: "finance-param",
   handleFinanceRejectRefund: "finance-param",
   handleFinanceCancelRefund: "finance-param",
   handleFinanceReceiptUpload: "finance",
@@ -115,6 +129,33 @@ const HANDLER_DISPATCH_KIND = {
   handlePostHarborRegistration: "product",
   handlePostProfileCertRegistration: "product",
   handlePostUrbanRegistration: "product",
+  handleWalletMemberOwnBalance: "wallet",
+  handleWalletMemberOwnTransactions: "wallet",
+  handleWalletMemberBalance: "wallet-param",
+  handleWalletMemberTransactions: "wallet-param",
+  handleWalletOperatorAccounts: "wallet",
+  handleWalletOperatorCredit: "wallet-param",
+  handleWalletOperatorDebit: "wallet-param",
+  handleWalletOperatorReversal: "wallet-param",
+  handleEngagementMemberSummary: "engagement",
+  handleEngagementMemberPoints: "engagement",
+  handleEngagementMemberBadges: "engagement",
+  handleEngagementOperatorOverview: "engagement",
+  handleEngagementOperatorPolicy: "engagement",
+  handleEngagementOperatorBadgesList: "engagement",
+  handleEngagementOperatorBadgesCreate: "engagement",
+  handleEngagementOperatorBadgesUpdate: "engagement-param",
+  handleEngagementOperatorLevelsList: "engagement",
+  handleEngagementOperatorLevelsCreate: "engagement",
+  handleEngagementOperatorLevelsUpdate: "engagement-param",
+  handleEngagementOperatorAwardRulesList: "engagement",
+  handleEngagementOperatorAwardRulesCreate: "engagement",
+  handleEngagementOperatorAwardRulesUpdate: "engagement-param",
+  handleEngagementOperatorAuditLog: "engagement",
+  handleEngagementOperatorCatalog: "engagement",
+  handleEngagementOperatorMemberLookup: "engagement-param",
+  handleEngagementOperatorAdjust: "engagement-param",
+  handleEngagementOperatorReverse: "engagement-param",
 } as const satisfies Record<WorkspaceHttpHandlerKey, HandlerDispatchKind>;
 
 function workspaceProductDeps(deps: WorkspaceRouteRegistrarDeps): WorkspaceProductRouteDeps {
@@ -162,6 +203,22 @@ function financeRouteDeps(deps: WorkspaceRouteRegistrarDeps): { financeService?:
   return {};
 }
 
+function walletRouteDeps(deps: WorkspaceRouteRegistrarDeps): { walletService?: WalletService } {
+  if (deps.walletService !== undefined) {
+    return { walletService: deps.walletService };
+  }
+  return {};
+}
+
+function engagementRouteDeps(
+  deps: WorkspaceRouteRegistrarDeps,
+): { engagementService?: EngagementService } {
+  if (deps.engagementService !== undefined) {
+    return { engagementService: deps.engagementService };
+  }
+  return {};
+}
+
 async function dispatchWorkspaceHandler(
   handlerKey: WorkspaceHttpHandlerKey,
   req: IncomingMessage,
@@ -187,6 +244,18 @@ async function dispatchWorkspaceHandler(
       return;
     case "finance-param":
       await handler(req, res, financeRouteDeps(deps), pathParam!);
+      return;
+    case "wallet":
+      await handler(req, res, walletRouteDeps(deps));
+      return;
+    case "wallet-param":
+      await handler(req, res, walletRouteDeps(deps), pathParam!);
+      return;
+    case "engagement":
+      await handler(req, res, engagementRouteDeps(deps));
+      return;
+    case "engagement-param":
+      await handler(req, res, engagementRouteDeps(deps), pathParam!);
       return;
     default: {
       const _exhaustive: never = kind;

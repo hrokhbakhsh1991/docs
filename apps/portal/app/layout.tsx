@@ -14,6 +14,8 @@ import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap
 import { importGuestPortalThemeForPlugin } from "@app-tour/guest-workspace-runtime/themes/portal";
 import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 
+import { ensureMemberWalletRendererRegistered } from "@/me/wallet/register-member-wallet-renderer.server";
+
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +47,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const bootstrap = await resolvePortalBootstrapForHost(host);
   bindWorkspacePluginRegisterInvokers();
   await registerWorkspacePluginSafe(bootstrap.pluginId);
+  ensureMemberWalletRendererRegistered(bootstrap.pluginId);
   await importGuestPortalThemeForPlugin(bootstrap.pluginId);
   const dir = resolveTextDirection(locale);
   const fontClassName = resolveAppFontClassName(locale);

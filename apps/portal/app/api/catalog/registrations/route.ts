@@ -106,11 +106,19 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
   }
 
-  const res = await fetch(`${apiBase}${upstream.path}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(upstream.body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${apiBase}${upstream.path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(upstream.body),
+    });
+  } catch {
+    return NextResponse.json(
+      { ok: false, code: "REGISTRATION_UPSTREAM_UNAVAILABLE" },
+      { status: 502 }
+    );
+  }
   const payload = (await res.json().catch(() => ({}))) as {
     code?: string;
     data?: { id?: string };

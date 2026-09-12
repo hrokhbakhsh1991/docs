@@ -40,7 +40,10 @@ describe("operator-ui-consistency.spec.ts", () => {
       resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-shell-structure.css"),
       "utf8"
     );
-    assert.match(css, /\[data-operator-sidebar-header-row\][\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/);
+    assert.match(
+      css,
+      /\[data-operator-sidebar-header-row\][\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/
+    );
     assert.match(
       css,
       /\[data-operator-sidebar\]\[data-operator-sidebar-collapsed="true"\]\s*\[data-operator-sidebar-header-row\][\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/
@@ -53,7 +56,10 @@ describe("operator-ui-consistency.spec.ts", () => {
       "utf8"
     );
     assert.match(css, /@media \(min-width: 768px\)[\s\S]*data-operator-sidebar-collapse-wrap/);
-    assert.doesNotMatch(css, /@media \(min-width: 1200px\)[\s\S]*data-operator-sidebar-collapse-wrap/);
+    assert.doesNotMatch(
+      css,
+      /@media \(min-width: 1200px\)[\s\S]*data-operator-sidebar-collapse-wrap/
+    );
   });
 
   it("WEB-OPUI-02c sidebar navigation does not prefetch heavy operator routes", () => {
@@ -62,11 +68,14 @@ describe("operator-ui-consistency.spec.ts", () => {
     assert.ok(prefetchDisabledCount >= 2);
   });
 
-  it("WEB-OPUI-03 bookings inbox row shows member avatar + status badges", () => {
+  it("WEB-OPUI-03 bookings inbox row shows member avatar + status badges + column scan affordances", () => {
     const row = read("src/features/bookings/booking-inbox-row.tsx");
+    const header = read("src/features/bookings/booking-inbox-column-header.tsx");
     const avatar = read("src/features/bookings/booking-member-avatar.tsx");
     assert.match(row, /BookingMemberAvatar/);
     assert.match(row, /OperatorStatusBadge/);
+    assert.match(row, /data-operator-booking-row-tour/);
+    assert.match(header, /BOOKINGS_COMMAND_CENTER_TEST_IDS\.inboxColumnHeader/);
     assert.match(avatar, /bookingsRowAvatarTestId/);
   });
 
@@ -119,7 +128,10 @@ describe("operator-ui-consistency.spec.ts", () => {
       "utf8"
     );
     assert.match(affordanceCss, /\[data-operator-searchable-select-trigger\]/);
-    assert.match(affordanceCss, /background-position:\s*center inline-end/);
+    assert.match(
+      affordanceCss,
+      /background-position:\s*right var\(--select-chevron-edge-inset\) center/
+    );
 
     const motionCss = readFileSync(
       resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-select-motion.css"),
@@ -135,7 +147,10 @@ describe("operator-ui-consistency.spec.ts", () => {
     assert.match(popover, /motion-reduce:animate-none/);
 
     const denaliSelect = readFileSync(
-      resolve(WEB_ROOT, "../../packages/workspaces/denali/src/ui/components/denali-searchable-select.tsx"),
+      resolve(
+        WEB_ROOT,
+        "../../packages/workspaces/denali/src/ui/components/denali-searchable-select.tsx"
+      ),
       "utf8"
     );
     assert.match(denaliSelect, /data-operator-searchable-select-panel/);

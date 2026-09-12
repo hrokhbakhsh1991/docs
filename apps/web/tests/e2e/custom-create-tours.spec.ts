@@ -47,6 +47,8 @@ const DENALI_DATETIME_TEST_IDS = {
 
 const DENALI_ITINERARY_TEST_IDS = {
   itinerary: "denali-composite-itinerary",
+  nav: "denali-composite-itinerary-nav",
+  dayNav: (dayNumber: number) => `denali-composite-itinerary-day-nav-${dayNumber}`,
   day: (dayNumber: number) => `denali-composite-itinerary-day-${dayNumber}`,
   segment: (dayNumber: number, segmentId: string) =>
     `denali-composite-itinerary-day-${dayNumber}-segment-${segmentId}`,
@@ -172,10 +174,9 @@ async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> {
   );
 
   if (await itinerary.isVisible().catch(() => false)) {
-    const dayCount = await itinerary
-      .locator("section[data-testid^='denali-composite-itinerary-day-']")
-      .count();
+    const dayCount = await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.nav).locator("button").count();
     for (let dayNumber = 1; dayNumber <= dayCount; dayNumber += 1) {
+      await itinerary.getByTestId(DENALI_ITINERARY_TEST_IDS.dayNav(dayNumber)).click();
       const day = page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(dayNumber));
       await expect(day).toBeVisible({ timeout: 15_000 });
       await day.getByRole("textbox", { name: /عنوان روز|Day title/i }).fill(`روز ${dayNumber} تست`);

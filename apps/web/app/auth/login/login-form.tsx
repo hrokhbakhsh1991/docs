@@ -205,11 +205,12 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({
-          phone: effectivePhone,
-          otp: code,
-          challenge_id: challengeId,
-        }),
+      body: JSON.stringify({
+        phone: effectivePhone,
+        otp: code,
+        challenge_id: challengeId,
+        ...(inviteToken !== null ? { invite_token: inviteToken } : {}),
+      }),
       });
       const data = (await res.json()) as ApiErrorPayload;
       if (!res.ok || !data.ok) {

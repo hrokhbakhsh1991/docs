@@ -12,19 +12,24 @@ import {
 export type BookingListIntakeScalars = {
   readonly registrantTarget: "self" | "other";
   readonly transportKind: BookingTransportKind | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly obligationOverride: Readonly<Record<string, unknown>> | null;
+  readonly freeCollectionApplied: boolean;
 };
 
 export function resolveFinancialDisplayStateForListRecord(
   record: Pick<BookingRecord, "status" | "paymentStatus" | "financialDisplayState">,
-  obligationOverride: Readonly<Record<string, unknown>> | null | undefined
+  obligationOverride: Readonly<Record<string, unknown>> | null | undefined,
+  freeCollectionApplied = false
 ): BookingRecord["financialDisplayState"] {
   if (record.financialDisplayState !== undefined) {
     return record.financialDisplayState;
   }
   if (record.status !== "approved" || record.paymentStatus !== "paid") {
     return undefined;
+  }
+  if (freeCollectionApplied) {
+    return "WAIVED";
   }
   const override = readObligationOverrideFromIntake(
     obligationOverride === null || obligationOverride === undefined
@@ -54,6 +59,7 @@ export async function loadBookingListIntakeScalarsById(
       readonly transport_kind: BookingTransportKind | null;
       readonly personal_car_occupants: number | null;
       readonly obligation_override: Prisma.JsonValue | null;
+      readonly free_collection_applied: boolean;
     }>
   >`
     SELECT
@@ -73,11 +79,12 @@ export async function loadBookingListIntakeScalarsById(
         ELSE NULL
       END AS transport_kind,
       CASE
-        WHEN registration_intake->'transport'->>'personalCarOccupants' IN ('1','2','3')
+        WHEN registration_intake->'transport'->>'personalCarOccupants' IN ('0','1','2','3')
         THEN (registration_intake->'transport'->>'personalCarOccupants')::int
         ELSE NULL
       END AS personal_car_occupants,
       registration_intake->'obligationOverride' AS obligation_override
+      ,registration_intake->>'freeCollectionApplied' = 'true' AS free_collection_applied
     FROM operator_registrations
     WHERE tenant_id = ${tenantId}::uuid
       AND id IN (${idSql})
@@ -86,10 +93,11 @@ export async function loadBookingListIntakeScalarsById(
   return new Map(
     scalarRows.map((row) => {
       const personalCarOccupants =
+        row.personal_car_occupants === 0 ||
         row.personal_car_occupants === 1 ||
         row.personal_car_occupants === 2 ||
         row.personal_car_occupants === 3
-          ? (row.personal_car_occupants as 1 | 2 | 3)
+          ? (row.personal_car_occupants as 0 | 1 | 2 | 3)
           : null;
       const obligationOverride =
         row.obligation_override !== null &&
@@ -105,6 +113,7 @@ export async function loadBookingListIntakeScalarsById(
           transportKind: row.transport_kind,
           personalCarOccupants,
           obligationOverride,
+          freeCollectionApplied: row.free_collection_applied === true,
         },
       ] as const;
     })
@@ -123,7 +132,8 @@ export function attachBookingListIntakeScalars(
 
     const financialDisplayState = resolveFinancialDisplayStateForListRecord(
       record,
-      scalars.obligationOverride
+      scalars.obligationOverride,
+      scalars.freeCollectionApplied
     );
 
     return {
@@ -163,9 +173,11 @@ export function enrichInMemoryBookingListRecord(record: BookingRecord): BookingR
     !Array.isArray(registrationIntake.obligationOverride)
       ? (registrationIntake.obligationOverride as Readonly<Record<string, unknown>>)
       : null;
+  const freeCollectionApplied = registrationIntake?.freeCollectionApplied === true;
   const financialDisplayState = resolveFinancialDisplayStateForListRecord(
     record,
-    obligationOverride
+    obligationOverride,
+    freeCollectionApplied
   );
   const { registrationIntake: _intake, ...rest } = record;
   return {

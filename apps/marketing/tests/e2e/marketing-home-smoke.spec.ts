@@ -93,9 +93,11 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(gallery.locator("a[href*='/tours']")).toHaveCount(0);
   await expect(gallery.getByRole("link", { name: /همه تورها|All tours/i })).toHaveCount(0);
   await expect(gallery.locator("[data-marketing-catalog-detail-photo-trigger]")).toHaveCount(1);
-  await gallery.locator("[data-marketing-catalog-detail-photo-trigger]").click();
+  const trigger = gallery.locator("[data-marketing-catalog-detail-photo-trigger]");
+  await expect(trigger).toBeVisible();
+  await trigger.click();
   const lightbox = page.locator("[data-marketing-catalog-detail-photo-lightbox]");
-  await expect(lightbox).toBeVisible();
+  await expect(lightbox).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await expect(lightbox).not.toBeVisible();
 

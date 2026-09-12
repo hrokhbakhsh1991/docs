@@ -68,6 +68,14 @@ export {
   resolvePortalMemberLoginUrl,
 } from "./resolve-portal-member-login-url";
 export { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
+export { resolveIngressPluginId } from "./resolve-ingress-plugin-id";
+export {
+  resolveProductionIngressLabelFromHost,
+} from "./resolve-production-ingress-label";
+export {
+  readDefaultPublicTenantIdFromEnv,
+  readPublicFallbackHostsFromEnv,
+} from "./read-public-fallback-hosts";
 export {
   isEmbeddedMemberPortalHost,
   resolveEmbeddedMemberPortalHost,

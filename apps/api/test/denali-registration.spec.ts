@@ -8,17 +8,28 @@ import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
+import { createCommercialQuoteApproveServiceForTests } from "../src/finance/commercial-quote-approve.service";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { InMemoryIdentityRepository } from "../src/identity/in-memory-identity.repository";
-import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
-import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
+import {
+  createSharedMemoryTourStoreForHttpTests,
+  createTestToursService,
+  installMemoryStorageDriverForDescribe,
+} from "./test-helpers";
 
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID = "00000000-0000-4000-8000-000000000214";
+const OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000215";
+const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
+const OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000217";
+const OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000218";
+const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
 const DREG_SESSION_MEMBER_A = "00000000-0000-4000-8000-000000000104";
 const DREG_SESSION_MEMBER_B = "00000000-0000-4000-8000-000000000105";
+const DREG_SESSION_MEMBER_C = "00000000-0000-4000-8000-000000000114";
 
 function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, string> {
   return {
@@ -28,11 +39,31 @@ function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, stri
   };
 }
 
+function operatorOwnerHeaders(): Record<string, string> {
+  return {
+    ...publicHeaders(),
+    "x-user-id": OPERATOR_SMOKE_OWNER_ID,
+    "x-actor-role": "owner",
+    "x-membership-status": "ACTIVE",
+    "x-workspace-id": "ws-operator-smoke",
+  };
+}
+
 function seedDenaliRegistrationSessionMembers(): void {
   const identity = getIdentityRepository();
   if (!(identity instanceof InMemoryIdentityRepository)) {
     throw new Error("denali-registration.spec requires in-memory identity");
   }
+  identity.seedUser({ id: OPERATOR_SMOKE_OWNER_ID, mobile: "+15550001001" });
+  identity.seedMembership({
+    userId: OPERATOR_SMOKE_OWNER_ID,
+    tenantId: OPERATOR_SMOKE_TENANT_ID,
+    role: "owner",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: "ws-operator-smoke",
+    displayName: "DREG Operator Owner",
+  });
   for (const [userId, mobile, displayName] of [
     [DREG_SESSION_MEMBER_A, "+15550001004", "DREG Session A"],
     [DREG_SESSION_MEMBER_B, "+15550001005", "DREG Session B"],
@@ -44,6 +75,7 @@ function seedDenaliRegistrationSessionMembers(): void {
     ["00000000-0000-4000-8000-000000000111", "+15550001011", "DREG Amend"],
     ["00000000-0000-4000-8000-000000000112", "+15550001012", "DREG Get By Id"],
     ["00000000-0000-4000-8000-000000000113", "+15550001013", "DREG Reclassify"],
+    [DREG_SESSION_MEMBER_C, "+15550001014", "DREG Projection"],
   ] as const) {
     identity.seedUser({ id: userId, mobile });
     identity.seedMembership({
@@ -54,6 +86,7 @@ function seedDenaliRegistrationSessionMembers(): void {
       sessionVersion: 1,
       workspaceId: `ws-dreg-${userId.slice(-4)}`,
       displayName,
+      ...(userId === DREG_SESSION_MEMBER_A ? { rewards: { permanentDiscountPercentage: 20 } } : {}),
     });
   }
 }
@@ -64,8 +97,7 @@ async function requestDenali(
   path: string,
   options?: { headers?: Record<string, string>; body?: unknown }
 ): Promise<{ status: number; body: unknown }> {
-  const payload =
-    options?.body === undefined ? undefined : JSON.stringify(options.body);
+  const payload = options?.body === undefined ? undefined : JSON.stringify(options.body);
 
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -114,9 +146,79 @@ describe("denali-registration (M16)", () => {
 
   let listener: ReturnType<typeof createRequestListener>;
 
-  before(() => {
-    const repo = new InMemoryTourRepository();
-    repo.ensureOperatorSmokeSeedTour();
+  before(async () => {
+    const repo = createSharedMemoryTourStoreForHttpTests();
+    const manualTour = await repo.getById(
+      OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+      OPERATOR_SMOKE_TENANT_ID
+    );
+    assert.ok(manualTour);
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "auto",
+          },
+        },
+      },
+    });
+    for (const [id, registrationApproval] of [
+      [OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID, "manual"],
+      [OPERATOR_SMOKE_FREE_AUTO_TOUR_ID, "auto"],
+    ] as const) {
+      await repo.save({
+        ...manualTour,
+        id,
+        canonical: {
+          ...manualTour.canonical,
+          data: {
+            ...manualTour.canonical.data,
+            pricing: {
+              ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+              registrationApproval,
+              paymentCollection: "free",
+            },
+          },
+        },
+      });
+    }
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "manual",
+            paymentCollection: "offline",
+            allowMembershipDiscount: true,
+          },
+        },
+      },
+    });
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "auto",
+            paymentCollection: "offline",
+            allowMembershipDiscount: true,
+          },
+        },
+      },
+    });
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
     seedDenaliRegistrationSessionMembers();
@@ -138,6 +240,306 @@ describe("denali-registration (M16)", () => {
     const data = (response.body as { data?: { id?: string; status?: string } }).data;
     assert.ok(data?.id);
     assert.equal(data?.status, "pending");
+  });
+
+  it("DREG-20-01 POST /denali/registrations honors canonical auto approval", async () => {
+    const response = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID,
+        contact: { fullName: "HTTP Auto Guest", phone: "+15550001214" },
+        partySize: 1,
+      },
+    });
+    if (response.status !== 201) {
+      console.error("DREG-20-01 body", response.body);
+    }
+    assert.equal(response.status, 201);
+    const data = (response.body as { data?: { id?: string; status?: string } }).data;
+    assert.ok(data?.id);
+    assert.equal(data?.status, "approved");
+  });
+
+  it("DREG-20-02 HTTP matrix persists the four free/paid × manual/auto outcomes", async () => {
+    const cases = [
+      { tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID, expectedStatus: "pending", collection: "paid" },
+      {
+        tourId: OPERATOR_SMOKE_AUTO_APPROVAL_TOUR_ID,
+        expectedStatus: "approved",
+        collection: "paid",
+      },
+      { tourId: OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID, expectedStatus: "pending", collection: "free" },
+      { tourId: OPERATOR_SMOKE_FREE_AUTO_TOUR_ID, expectedStatus: "approved", collection: "free" },
+    ] as const;
+
+    for (const [index, scenario] of cases.entries()) {
+      const response = await requestDenali(listener, "POST", "/denali/registrations", {
+        headers: publicHeaders(),
+        body: {
+          tourId: scenario.tourId,
+          contact: {
+            fullName: `HTTP Matrix Guest ${index}`,
+            phone: `+155500021${String(index).padStart(2, "0")}`,
+          },
+          partySize: 1,
+        },
+      });
+
+      assert.equal(response.status, 201, `${scenario.collection}:${scenario.expectedStatus}`);
+      const data = response.body as { data?: { id?: string; status?: string } };
+      assert.ok(data.data?.id);
+      assert.equal(
+        data.data.status,
+        scenario.expectedStatus,
+        `${scenario.collection}:${scenario.expectedStatus}`
+      );
+
+      const persisted = await getBookingsRepository().getById(
+        data.data.id,
+        OPERATOR_SMOKE_TENANT_ID
+      );
+      assert.ok(persisted);
+      assert.equal(
+        persisted.status,
+        scenario.expectedStatus,
+        `persisted ${scenario.collection}:${scenario.expectedStatus}`
+      );
+
+      const detail = await requestDenali(listener, "GET", `/bookings/${data.data.id}`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(detail.status, 200, `booking detail: ${JSON.stringify(detail.body)}`);
+      assert.equal(
+        (detail.body as { paymentStatus?: string }).paymentStatus,
+        scenario.collection === "free" && scenario.expectedStatus === "approved"
+          ? "paid"
+          : "unpaid",
+        `payment projection ${scenario.collection}:${scenario.expectedStatus}`
+      );
+    }
+  });
+
+  it("DREG-20-03 approving a manual registration applies free collection but not paid collection", async () => {
+    const cases = [
+      {
+        tourId: OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID,
+        memberId: DREG_SESSION_MEMBER_A,
+        expectedPaymentStatus: "paid",
+      },
+      {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        memberId: DREG_SESSION_MEMBER_C,
+        expectedPaymentStatus: "unpaid",
+      },
+    ] as const;
+
+    for (const [index, scenario] of cases.entries()) {
+      const created = await requestDenali(listener, "POST", "/denali/registrations", {
+        headers: {
+          ...publicHeaders(),
+          "x-user-id": scenario.memberId,
+          "x-actor-role": "member",
+          "x-membership-status": "ACTIVE",
+          "x-workspace-id": `ws-dreg-${scenario.memberId.slice(-4)}`,
+        },
+        body: {
+          tourId: scenario.tourId,
+          contact: {
+            fullName: `HTTP Approval Payment Guest ${index}`,
+            phone: `+155500022${String(index).padStart(2, "0")}`,
+          },
+          partySize: 1,
+        },
+      });
+      assert.equal(created.status, 201);
+      const bookingId = (created.body as { data?: { id?: string; status?: string } }).data?.id;
+      assert.ok(bookingId);
+      assert.equal(
+        (created.body as { data?: { status?: string } }).data?.status,
+        "pending",
+        `manual ${scenario.tourId}`
+      );
+
+      const approved = await requestDenali(listener, "POST", `/bookings/${bookingId}/approve`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(
+        approved.status,
+        200,
+        `approve ${scenario.tourId}: ${JSON.stringify(approved.body)}`
+      );
+
+      const detail = await requestDenali(listener, "GET", `/bookings/${bookingId}`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(detail.status, 200);
+      const data = detail.body as { status?: string; paymentStatus?: string };
+      assert.equal(data.status, "approved");
+      assert.equal(data.paymentStatus, scenario.expectedPaymentStatus);
+
+      const memberList = await requestDenali(listener, "GET", "/bookings?view=mine&limit=50", {
+        headers: {
+          ...publicHeaders(),
+          "x-user-id": scenario.memberId,
+          "x-actor-role": "member",
+          "x-membership-status": "ACTIVE",
+          "x-workspace-id": `ws-dreg-${scenario.memberId.slice(-4)}`,
+        },
+      });
+      assert.equal(memberList.status, 200);
+      const memberItems = (
+        memberList.body as {
+          items?: Array<{ id?: string; status?: string; paymentStatus?: string }>;
+        }
+      ).items;
+      const memberProjection = memberItems?.find((item) => item.id === bookingId);
+      assert.ok(memberProjection, `member list must contain ${bookingId}`);
+      assert.equal(memberProjection.status, "approved");
+      assert.equal(memberProjection.paymentStatus, scenario.expectedPaymentStatus);
+    }
+  });
+
+  it("DREG-20-04 rejecting paid and cancelling free bookings leaves no actionable debt", async () => {
+    const paid = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        contact: { fullName: "HTTP Rejected Paid Guest", phone: "+15550002300" },
+        partySize: 1,
+      },
+    });
+    assert.equal(paid.status, 201);
+    const paidId = (paid.body as { data?: { id?: string } }).data?.id;
+    assert.ok(paidId);
+    const rejected = await requestDenali(listener, "POST", `/bookings/${paidId}/reject`, {
+      headers: operatorOwnerHeaders(),
+      body: { reason: "capacity review" },
+    });
+    assert.equal(rejected.status, 200);
+    const rejectedDetail = await requestDenali(listener, "GET", `/bookings/${paidId}`, {
+      headers: operatorOwnerHeaders(),
+    });
+    assert.equal(rejectedDetail.status, 200);
+    assert.equal((rejectedDetail.body as { status?: string }).status, "rejected");
+    assert.equal((rejectedDetail.body as { paymentStatus?: string }).paymentStatus, "unpaid");
+
+    const free = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_FREE_AUTO_TOUR_ID,
+        contact: { fullName: "HTTP Cancelled Free Guest", phone: "+15550002301" },
+        partySize: 1,
+      },
+    });
+    assert.equal(free.status, 201);
+    const freeId = (free.body as { data?: { id?: string; status?: string } }).data?.id;
+    assert.ok(freeId);
+    assert.equal((free.body as { data?: { status?: string } }).data?.status, "approved");
+    const cancelled = await requestDenali(listener, "POST", `/bookings/${freeId}/cancel`, {
+      headers: operatorOwnerHeaders(),
+    });
+    assert.equal(cancelled.status, 200);
+    const cancelledDetail = await requestDenali(listener, "GET", `/bookings/${freeId}`, {
+      headers: operatorOwnerHeaders(),
+    });
+    assert.equal(cancelledDetail.status, 200);
+    assert.equal((cancelledDetail.body as { status?: string }).status, "cancelled");
+    assert.equal((cancelledDetail.body as { paymentStatus?: string }).paymentStatus, "paid");
+  });
+
+  it("DREG-20-05 member discount is frozen from the Denali booking on operator approve", async () => {
+    const priorPaymentHold = process.env.PAYMENT_HOLD_ENABLED;
+    process.env.PAYMENT_HOLD_ENABLED = "true";
+    try {
+      const created = await requestDenali(listener, "POST", "/denali/registrations", {
+        headers: {
+          ...publicHeaders(),
+          "x-user-id": DREG_SESSION_MEMBER_A,
+          "x-actor-role": "member",
+          "x-membership-status": "ACTIVE",
+        },
+        body: {
+          tourId: OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID,
+          registrantTarget: "self",
+          contact: { fullName: "Discounted Denali Member" },
+          partySize: 2,
+        },
+      });
+      assert.equal(created.status, 201, JSON.stringify(created.body));
+      const bookingId = (created.body as { data?: { id?: string; status?: string } }).data?.id;
+      assert.ok(bookingId);
+      assert.equal((created.body as { data?: { status?: string } }).data?.status, "pending");
+
+      const approved = await requestDenali(listener, "POST", `/bookings/${bookingId}/approve`, {
+        headers: operatorOwnerHeaders(),
+      });
+      assert.equal(approved.status, 200, JSON.stringify(approved.body));
+
+      const quote = await createCommercialQuoteApproveServiceForTests().getActiveQuote(
+        OPERATOR_SMOKE_TENANT_ID,
+        bookingId
+      );
+      assert.ok(quote);
+      assert.equal(quote.status, "FROZEN");
+      // The seeded Denali trip is 2,500,000 per person: 5,000,000 gross - 20% = 4,000,000.
+      assert.equal(quote.payableMinor, "4000000");
+    } finally {
+      if (priorPaymentHold === undefined) delete process.env.PAYMENT_HOLD_ENABLED;
+      else process.env.PAYMENT_HOLD_ENABLED = priorPaymentHold;
+    }
+  });
+
+  it("DREG-20-06 auto approval preserves member discount and canonical non-member pricing", async () => {
+    const priorPaymentHold = process.env.PAYMENT_HOLD_ENABLED;
+    process.env.PAYMENT_HOLD_ENABLED = "true";
+    try {
+      const createForMember = async (memberId: string, fullName: string) =>
+        requestDenali(listener, "POST", "/denali/registrations", {
+          headers: {
+            ...publicHeaders(),
+            "x-user-id": memberId,
+            "x-actor-role": "member",
+            "x-membership-status": "ACTIVE",
+            "x-workspace-id": `ws-dreg-${memberId.slice(-4)}`,
+          },
+          body: {
+            tourId: OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID,
+            registrantTarget: "self",
+            contact: { fullName },
+            partySize: 2,
+          },
+        });
+
+      const discounted = await createForMember(DREG_SESSION_MEMBER_A, "Auto Discount Member");
+      const canonical = await createForMember(DREG_SESSION_MEMBER_B, "Auto Canonical Member");
+      assert.equal(discounted.status, 201, JSON.stringify(discounted.body));
+      assert.equal(canonical.status, 201, JSON.stringify(canonical.body));
+
+      const discountedId = (discounted.body as { data?: { id?: string; status?: string } }).data
+        ?.id;
+      const canonicalId = (canonical.body as { data?: { id?: string; status?: string } }).data?.id;
+      assert.ok(discountedId);
+      assert.ok(canonicalId);
+      assert.equal((discounted.body as { data?: { status?: string } }).data?.status, "approved");
+      assert.equal((canonical.body as { data?: { status?: string } }).data?.status, "approved");
+
+      const quoteService = createCommercialQuoteApproveServiceForTests();
+      const discountedQuote = await quoteService.getActiveQuote(
+        OPERATOR_SMOKE_TENANT_ID,
+        discountedId
+      );
+      const canonicalQuote = await quoteService.getActiveQuote(
+        OPERATOR_SMOKE_TENANT_ID,
+        canonicalId
+      );
+      assert.equal(discountedQuote?.status, "FROZEN");
+      assert.equal(discountedQuote?.payableMinor, "4000000");
+      assert.equal(canonicalQuote?.status, "FROZEN");
+      assert.equal(canonicalQuote?.payableMinor, "5000000");
+    } finally {
+      if (priorPaymentHold === undefined) delete process.env.PAYMENT_HOLD_ENABLED;
+      else process.env.PAYMENT_HOLD_ENABLED = priorPaymentHold;
+    }
   });
 
   it("DREG-17-01 POST /denali/registrations accepts M17 session member user id", async () => {
@@ -304,12 +706,9 @@ describe("denali-registration (M16)", () => {
     };
     assert.equal(forTourBody.data?.self?.id, otherId);
 
-    const detail = await requestDenali(
-      listener,
-      "GET",
-      `/denali/registrations/${otherId}`,
-      { headers: sessionHeaders }
-    );
+    const detail = await requestDenali(listener, "GET", `/denali/registrations/${otherId}`, {
+      headers: sessionHeaders,
+    });
     assert.equal(detail.status, 200);
     const detailBody = detail.body as {
       data?: { registrantTarget?: string; guestLabel?: string };
@@ -405,15 +804,10 @@ describe("denali-registration (M16)", () => {
     assert.equal(created.status, 201);
     const createdId = (created.body as { data?: { id?: string } }).data?.id;
     assert.ok(typeof createdId === "string" && createdId.length > 0);
-    const patched = await requestDenali(
-      listener,
-      "PATCH",
-      `/denali/registrations/${createdId}`,
-      {
-        headers: sessionHeaders,
-        body: { transport: { kind: "primary" } },
-      }
-    );
+    const patched = await requestDenali(listener, "PATCH", `/denali/registrations/${createdId}`, {
+      headers: sessionHeaders,
+      body: { transport: { kind: "primary" } },
+    });
     assert.equal(patched.status, 200);
     assert.equal((patched.body as { data?: { id?: string } }).data?.id, createdId);
   });

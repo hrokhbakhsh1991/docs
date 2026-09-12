@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -63,7 +63,7 @@ export function FinancePrepaymentsPanel({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const registrationFilter = searchParams.get("registrationId");
   const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly PrepaymentRecord[]>(initialPrepayments?.items ?? []);

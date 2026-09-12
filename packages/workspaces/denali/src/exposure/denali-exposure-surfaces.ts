@@ -90,6 +90,7 @@ export const DENALI_PUBLIC_DETAILS_FIELD_IDS = Object.freeze([
   "meetingPoint",
   "startPointLocationText",
   "denali.approximate-return-time",
+  "denali.social-media-link",
 ] as const);
 
 export const DENALI_USER_DASHBOARD_FIELD_IDS = Object.freeze([

@@ -1,0 +1,4 @@
+/* wallet-ws1 certification admin theme — minimal ws tokens */
+[data-workspace-theme] {
+  --ws-color-accent: var(--color-primary);
+}

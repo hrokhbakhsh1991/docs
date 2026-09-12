@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useAppPathname } from "@/navigation/app-navigation-hooks";
 import { ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -40,7 +40,7 @@ type OperatorBreadcrumbProps = {
 };
 
 export function OperatorBreadcrumb({ className }: OperatorBreadcrumbProps) {
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const segments = resolveOperatorBreadcrumbSegments(pathname);
 
   if (segments.length === 0) {

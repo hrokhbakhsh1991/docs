@@ -30,10 +30,9 @@ describe("portal-visual-wave3.spec.ts", () => {
     assert.match(page, /emptyCta/);
   });
 
-  it("MEM-WALLET-01 wallet stub uses dedicated copy hook", () => {
-    const stub = readPortal("src/me/member-module-stub.tsx");
-    assert.match(stub, /data-portal-member-module-stub-lede/);
-    assert.match(stub, /walletLede/);
+  it("MEM-WALLET-01 wallet module registers renderer via layout bootstrap", () => {
+    const layout = readPortal("app/layout.tsx");
+    assert.match(layout, /ensureMemberWalletRendererRegistered/);
     const navIcon = readPortal("src/shell/portal-nav-icon.tsx");
     assert.match(navIcon, /case "wallet"/);
     assert.match(navIcon, /Wallet/);

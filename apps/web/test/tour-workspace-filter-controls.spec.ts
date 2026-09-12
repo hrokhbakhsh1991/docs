@@ -61,19 +61,16 @@ describe("tour-workspace-filter-controls.spec.ts", () => {
     assert.match(shell, /embedded \? \(/);
     assert.match(shell, /BookingsWorkspaceEmbeddedControls/);
     assert.match(controls, /BOOKINGS_COMMAND_CENTER_TEST_IDS\.activeFilters/);
-    assert.match(controls, /<select/);
+    assert.match(controls, /from "@app-tour\/ui-primitives\/select"/);
+    assert.doesNotMatch(controls, /<select/);
     assert.doesNotMatch(controls, /variant=\{query\.status === status \? "default" : "outline"\}/);
   });
 
   it("TW-FLT-05 i18n exposes workspace filter chip labels", () => {
-    const fa = JSON.parse(
-      readFileSync(join(webRoot, "messages/fa/tours.json"), "utf8")
-    ) as {
+    const fa = JSON.parse(readFileSync(join(webRoot, "messages/fa/tours.json"), "utf8")) as {
       workspace: { controls: { filtersToggle: string; activeFilters: { payment: string } } };
     };
-    const en = JSON.parse(
-      readFileSync(join(webRoot, "messages/en/tours.json"), "utf8")
-    ) as {
+    const en = JSON.parse(readFileSync(join(webRoot, "messages/en/tours.json"), "utf8")) as {
       workspace: { controls: { filtersToggle: string; activeFilters: { roster: string } } };
     };
     assert.match(fa.workspace.controls.filtersToggle, /فیلتر/);

@@ -22,4 +22,5 @@ export const ADMIN_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/workspace-profile-cert",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban",
+  "@app-tour/workspace-wallet-ws1",
 ]);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { DraftSchemaGate } from "@app-tour/draft-engine";
@@ -78,7 +79,7 @@ export function useOperatorCreateTourWizard(options: {
   readonly initialTemplateResponse?: unknown | null;
 }): OperatorCreateTourWizardCoreState {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const session = useAppSession();
   const cloneTourId = useMemo(() => resolveCloneTourId(searchParams.get("clone")), [searchParams]);
   const presetId = useMemo(() => resolvePresetId(searchParams.get("preset")), [searchParams]);

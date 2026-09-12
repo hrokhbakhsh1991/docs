@@ -6,7 +6,7 @@
  */
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,cert-club,cert-events,denali,guest-club,harbor,profile-cert,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,cert-club,cert-events,denali,guest-club,harbor,profile-cert,starter,urban,wallet-ws1";
 
 export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
   "alpine",
@@ -18,6 +18,7 @@ export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
   "profile-cert",
   "starter",
   "urban",
+  "wallet-ws1",
 ]) as readonly string[];
 
 /** Dynamic per-plugin full registrar — product imports live in register-*.generated.ts. */
@@ -66,6 +67,11 @@ export async function invokeWorkspacePluginRegister(pluginId: string): Promise<v
     case "urban": {
       const mod = await import("./register-urban.generated");
       await mod.registerWorkspacePluginURBANFromManifest();
+      return;
+    }
+    case "wallet-ws1": {
+      const mod = await import("./register-wallet-ws1.generated");
+      await mod.registerWorkspacePluginWALLET_WS1FromManifest();
       return;
     }
     default:
@@ -119,6 +125,11 @@ export async function invokeWorkspaceIntakeRegister(pluginId: string): Promise<v
     case "urban": {
       const mod = await import("./register-urban.generated");
       await mod.registerWorkspaceIntakeURBANFromManifest();
+      return;
+    }
+    case "wallet-ws1": {
+      const mod = await import("./register-wallet-ws1.generated");
+      await mod.registerWorkspaceIntakeWALLET_WS1FromManifest();
       return;
     }
     default:

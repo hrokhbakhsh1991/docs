@@ -7,17 +7,17 @@ import {
   OPERATOR_WIZARD_PATH,
 } from "@/admin/require-operator-session";
 import { resolveOperatorAdminRootRedirect } from "@/admin/resolve-operator-admin-root-redirect";
-import {
-  SESSION_TOKEN_COOKIE,
-  clearSessionCookieOnResponse,
-} from "@/auth/build-session-cookie";
+import { SESSION_TOKEN_COOKIE, clearSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@app-tour/session-client";
 import {
   PLATFORM_SESSION_COOKIE,
   validatePlatformSessionToken,
 } from "@/platform/build-platform-session-cookie";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
-import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/tenant-kernel/host-only";
+import {
+  parseMultiLevelTenantHost,
+  toCanonicalClubAdminHost,
+} from "@app-tour/tenant-kernel/host-only";
 import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminIngressHost } from "@/tenant/operator-admin-host";
 import {
@@ -28,11 +28,16 @@ import {
 import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
+import {
+  allowsOperatorTicketsTeamRole,
+  isOperatorTicketsTeamAccessPath,
+} from "@/features/tickets/resolve-operator-tickets-middleware-access";
 
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
   "/users",
   "/bookings",
+  "/tickets",
   "/settings",
   "/finance",
   "/leader",
@@ -54,15 +59,14 @@ const PUBLIC_BFF_API_PATHS = [
   "/api/auth/phone-preflight",
   "/api/auth/request-otp",
   "/api/auth/login-web-session",
+  "/api/auth/login-team-web-session",
   "/api/auth/logout",
   "/api/public/tenant-branding",
   "/api/debug/host",
 ] as const;
 
 function isPublicBffApiPath(pathname: string): boolean {
-  return PUBLIC_BFF_API_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`)
-  );
+  return PUBLIC_BFF_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 function isProtectedBffApiPath(pathname: string): boolean {
@@ -84,6 +88,13 @@ function isProtectedPath(pathname: string): boolean {
 
 function readSessionToken(request: NextRequest): string | undefined {
   return request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
+}
+
+function isInviteBootstrapPath(pathname: string): boolean {
+  return (
+    pathname === "/api/auth/membership-ability-context" ||
+    /^\/api\/auth\/invite\/[^/]+\/accept$/.test(pathname)
+  );
 }
 
 function redirectToLogin(
@@ -137,7 +148,10 @@ function redirectToPlatformLogin(request: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
-async function handlePlatformAdminHost(request: NextRequest, host: string): Promise<NextResponse | null> {
+async function handlePlatformAdminHost(
+  request: NextRequest,
+  host: string
+): Promise<NextResponse | null> {
   if (!isPlatformAdminHost(host)) {
     return null;
   }
@@ -213,8 +227,15 @@ function blockOperatorOnWrongHost(request: NextRequest, host: string): NextRespo
   return null;
 }
 
-function redirectLegacyClubAdminHostIfNeeded(request: NextRequest, host: string): NextResponse | null {
-  const canonical = toCanonicalClubAdminHost(host, readPlatformRootDomainWeb(), readWebReservedHostLabels());
+function redirectLegacyClubAdminHostIfNeeded(
+  request: NextRequest,
+  host: string
+): NextResponse | null {
+  const canonical = toCanonicalClubAdminHost(
+    host,
+    readPlatformRootDomainWeb(),
+    readWebReservedHostLabels()
+  );
   if (canonical === null) {
     return null;
   }
@@ -222,6 +243,10 @@ function redirectLegacyClubAdminHostIfNeeded(request: NextRequest, host: string)
   const target = request.nextUrl.clone();
   target.host = canonical;
   return NextResponse.redirect(target, 308);
+}
+
+function preservesTeamPanelSession(role: string | undefined): boolean {
+  return role === "viewer" || role === "admin";
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
@@ -263,6 +288,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   const isBffApi = isProtectedBffApiPath(pathname);
+  const isInviteBootstrap = isInviteBootstrapPath(pathname);
 
   if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
     return forwardPathname(request, pathname);
@@ -287,17 +313,22 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       }
       return redirectToLogin(request, true, "tenant-mismatch");
     }
-    if (validation.role !== "owner") {
+    const allowsTicketingTeamAccess =
+      isOperatorTicketsTeamAccessPath(pathname) &&
+      allowsOperatorTicketsTeamRole(validation.role, request.method);
+    if (validation.role !== "owner" && !isInviteBootstrap && !allowsTicketingTeamAccess) {
       if (isBffApi) {
         const res = jsonAuthError(
           403,
           "AUTH_OWNER_PANEL_ONLY",
           "Owner role required for this panel"
         );
-        clearSessionCookieOnResponse(res.headers);
+        if (!preservesTeamPanelSession(validation.role)) {
+          clearSessionCookieOnResponse(res.headers);
+        }
         return res;
       }
-      return redirectToLogin(request, true, "owner-only");
+      return redirectToLogin(request, !preservesTeamPanelSession(validation.role), "owner-only");
     }
     return forwardPathname(request, pathname);
   }

@@ -2,7 +2,7 @@
 # P7-1-N-008 — staging tour policies/terms probe (~15s)
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -16,7 +16,7 @@ OPERATOR_TENANT="00000000-0000-4000-8000-000000000014"
 SEED_TOUR_ID="00000000-0000-4000-8000-000000000210"
 MARKER="P7 staging: cancel 48h"
 MARKETING_HOST="${STAGING_MARKETING_HOST:-operator.localhost}"
-PORTAL_HOST="${STAGING_PORTAL_HOST:-operator.portal.localhost}"
+PORTAL_HOST="${STAGING_PORTAL_HOST:-portal.operator.localhost}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 

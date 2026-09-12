@@ -12,40 +12,40 @@ export const DENALI_COMPOSITE_ANCHOR_BY_ZOD_KIND: Partial<Record<DenaliZodFieldK
 };
 
 /** Composite anchor → dependent canonical paths rendered inside the same widget (INV-WIZ-002). */
-export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<
-  Record<string, readonly string[]>
-> = Object.freeze({
-  "program.themeIds": ["program.shortDescription", "program.longDescription"],
-  "participants.minimumAge": [
-    "participants.maximumAge",
-    "participants.fitnessLevel",
-    "participants.sportsInsuranceRequired",
-    "participants.fitnessPrerequisiteText",
-    "participants.medicationsRequired",
-    "participants.allergiesRequired",
-    "participants.dietaryRequirementsRequired",
-    "participants.medicalDeclarationRequired",
-    "participants.emergencyContactRequired",
-    "participants.physicalLimitationsRequired",
-    "participants.evacuationInsuranceRequired",
-  ],
-  "pricing.requiresPayment": [
-    "pricing.prepaymentEnabled",
-    "pricing.prepaymentPercent",
-    "pricing.basePricePerPerson",
-    "pricing.includesTourInsurance",
-    "pricing.allowMembershipDiscount",
-  ],
-  // INV-DENALI-WIZ-013 — contextualRequired leaves inside denali.transport-mode.
-  "transport.mode": [
-    "transport.transportCost",
-    "transport.allowPersonalCar",
-    "transport.dongAmount",
-    "transport.transportNotes",
-    "transport.seatPreference",
-    "transport.adminCapacityApproval",
-  ],
-});
+export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<Record<string, readonly string[]>> =
+  Object.freeze({
+    "program.themeIds": ["program.shortDescription", "program.longDescription"],
+    "participants.minimumAge": [
+      "participants.maximumAge",
+      "participants.fitnessLevel",
+      "participants.sportsInsuranceRequired",
+      "participants.fitnessPrerequisiteText",
+      "participants.medicationsRequired",
+      "participants.allergiesRequired",
+      "participants.dietaryRequirementsRequired",
+      "participants.medicalDeclarationRequired",
+      "participants.emergencyContactRequired",
+      "participants.physicalLimitationsRequired",
+      "participants.evacuationInsuranceRequired",
+    ],
+    "pricing.requiresPayment": [
+      "pricing.prepaymentEnabled",
+      "pricing.prepaymentPercent",
+      "pricing.basePricePerPerson",
+      "pricing.includesTourInsurance",
+      "pricing.allowMembershipDiscount",
+      "pricing.registrationApproval",
+    ],
+    // INV-DENALI-WIZ-013 — contextualRequired leaves inside denali.transport-mode.
+    "transport.mode": [
+      "transport.transportCost",
+      "transport.allowPersonalCar",
+      "transport.dongAmount",
+      "transport.transportNotes",
+      "transport.seatPreference",
+      "transport.adminCapacityApproval",
+    ],
+  });
 
 /** Top-level tour-kind / location aliases — never persist separately (INV-DENALI-WIZ-003). */
 export const DENALI_FORM_PROFILE_GHOST_PATHS = new Set<string>([
@@ -87,6 +87,7 @@ export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
   "pricing.basePricePerPerson",
   "pricing.includesTourInsurance",
   "pricing.allowMembershipDiscount",
+  "pricing.registrationApproval",
   "tripDetails.logistics.excludedServices",
 ]);
 

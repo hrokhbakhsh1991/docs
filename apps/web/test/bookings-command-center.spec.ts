@@ -1378,6 +1378,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(pageSource, /inspectionActionsHint/);
     assert.match(pageSource, /kpi\.pendingAria/);
     assert.match(pageSource, /kpi\.waitlistAria/);
+    assert.match(pageSource, /BookingInboxColumnHeader/);
     assert.match(pageSource, /data-queue-list="dense"/);
     assert.match(pageSource, /bulkSelectedIds\.length > 0 && bulkApprovableIds\.length > 0/);
     // Layout / show-all-tours demoted out of page primary imports (UX-BKG-53).
@@ -1402,11 +1403,12 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "utf8"
     );
     assert.match(rowSource, /data-queue-row="dense"/);
-    assert.match(rowSource, /sm:flex-nowrap/);
-    assert.match(rowSource, /flex-col gap-2 sm:flex-row/);
-    assert.match(rowSource, /sm:w-36/);
-    assert.match(rowSource, /sm:w-auto/);
-    assert.match(rowSource, /fields\.departure/);
+    assert.match(rowSource, /data-operator-booking-row-guest/);
+    assert.match(rowSource, /data-operator-booking-row-tour/);
+    assert.match(rowSource, /data-operator-booking-row-schedule/);
+    assert.match(rowSource, /data-operator-booking-row-status/);
+    assert.match(rowSource, /data-operator-booking-row-submitted/);
+    assert.match(rowSource, /truncateBookingId/);
     assert.match(rowSource, /paymentDueAt/);
     assert.match(rowSource, /resolveBookingActionablePaymentDueAt/);
     assert.doesNotMatch(rowSource, /rowMetaParts/);
@@ -1415,6 +1417,13 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.doesNotMatch(rowSource, /rounded-lg border/);
     assert.doesNotMatch(rowSource, /BookingCapacityBar/);
     assert.match(rowSource, /intake\.registrantSelf/);
+
+    const headerSource = readFileSync(
+      new URL("../src/features/bookings/booking-inbox-column-header.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.match(headerSource, /BOOKINGS_COMMAND_CENTER_TEST_IDS\.inboxColumnHeader/);
+    assert.match(headerSource, /columns\.guest/);
 
     const detailSource = readFileSync(
       new URL("../src/features/bookings/booking-inspection-details.tsx", import.meta.url),

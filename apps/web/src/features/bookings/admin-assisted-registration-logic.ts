@@ -48,7 +48,7 @@ export type AdminAssistedRegistrationFormState = {
   readonly birthDate: string;
   readonly paymentStatus: "unpaid" | "partial" | "paid";
   readonly transportKind: WorkspaceRegistrationTransportKind;
-  readonly personalCarOccupants: "" | "1" | "2" | "3";
+  readonly personalCarOccupants: "" | "0" | "1" | "2" | "3";
   readonly approveNow: boolean;
 };
 
@@ -272,7 +272,7 @@ export function validateAdminAssistedRegistrationStep(input: {
   if (step === "logistics") {
     if (
       form.transportKind === "personal_car" &&
-      !["1", "2", "3"].includes(form.personalCarOccupants)
+      !["0", "1", "2", "3"].includes(form.personalCarOccupants)
     ) {
       return {
         ok: false,
@@ -296,7 +296,7 @@ export function buildAdminAssistedRegistrationPayload(input: {
     input.form.transportKind === "personal_car"
       ? {
           kind: "personal_car" as const,
-          personalCarOccupants: Number(input.form.personalCarOccupants) as 1 | 2 | 3,
+          personalCarOccupants: Number(input.form.personalCarOccupants) as 0 | 1 | 2 | 3,
         }
       : { kind: input.form.transportKind };
 
