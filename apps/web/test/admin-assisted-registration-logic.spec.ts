@@ -163,4 +163,31 @@ describe("admin-assisted-registration-logic", () => {
     assert.equal(payload.guestLabel, "Member Guest");
     assert.equal(payload.registrationIntake.registrantTarget, "self");
   });
+
+  it("accepts zero companions for an admin-assisted personal-car booking", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
+    const form = {
+      ...createDefaultAdminAssistedRegistrationForm(requirements),
+      registrantMode: "guest" as const,
+      guestLabel: "Solo Driver",
+      guestPhone: "09125550000",
+      nationalId: "1234567890",
+      fatherName: "Reza",
+      transportKind: "personal_car" as const,
+      personalCarOccupants: "0" as const,
+    };
+    assert.deepEqual(
+      validateAdminAssistedRegistrationStep({
+        step: "logistics",
+        requirements,
+        form,
+      }),
+      { ok: true }
+    );
+    assert.deepEqual(
+      buildAdminAssistedRegistrationPayload({ tourId: "tour-1", requirements, form })
+        .registrationIntake.transport,
+      { kind: "personal_car", personalCarOccupants: 0 }
+    );
+  });
 });

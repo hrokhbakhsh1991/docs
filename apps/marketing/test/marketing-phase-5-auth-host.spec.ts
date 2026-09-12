@@ -68,6 +68,8 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
     assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.match(trigger, /preventDefault/);
+    assert.match(trigger, /host === "pdp"/);
+    assert.match(trigger, /window\.location\.assign\(href\)/);
     assert.match(trigger, /data-marketing-register-ready/);
     assert.match(trigger, /data-marketing-register-modal/);
     assert.doesNotMatch(trigger, /canHostAuth/);
@@ -78,10 +80,10 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.match(cta, /primaryKind === "register"/);
     assert.match(
       cta,
-      /cta\.primaryKind === "register" \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/
+      /cta\.primaryKind === "register" && pdpAuthModalHref !== null \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/
     );
-    assert.match(cta, /data-marketing-register/);
-    assert.match(cta, /<a href=\{cta\.primaryHref\} data-marketing-register>/);
+    assert.match(cta, /href=\{pdpAuthModalHref\}/);
+    assert.match(cta, /resolveMarketingTourDetailAuthModalHref/);
     assert.doesNotMatch(cta, /tryCreatePortalOriginGuestAuthTransport/);
     assert.match(modal, /isMarketingTourDetailPathname/);
     assert.match(modal, /host: "pdp"/);

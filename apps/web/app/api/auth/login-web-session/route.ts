@@ -59,6 +59,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     userId?: unknown;
     tenantId?: unknown;
     code?: unknown;
+    pendingInvite?: unknown;
   };
 
   if (!backendRes.ok) {
@@ -80,7 +81,11 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const claims = decodeJwtPayload(sessionToken);
   const sessionRole = typeof claims?.role === "string" ? claims.role.trim() : "";
-  if (sessionRole !== "owner") {
+  // Active admin/member accounts must not enter the owner panel directly.
+  // A pending invite is the one deliberate exception: it needs a constrained
+  // session so the invite-login flow can call the accept endpoint, after which
+  // the backend membership status becomes active.
+  if (sessionRole !== "owner" && backendBody.pendingInvite !== true) {
     return bffCodedError("AUTH_OWNER_PANEL_ONLY", 403);
   }
 

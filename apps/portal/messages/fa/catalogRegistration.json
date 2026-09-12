@@ -136,8 +136,9 @@
     "hasPersonalCarQuestion": "ماشین شخصی داری؟",
     "hasPersonalCarYes": "بله",
     "hasPersonalCarNo": "خیر",
-    "personalCarOccupantsLabel": "چند نفر (شامل خودت)؟",
+    "personalCarOccupantsLabel": "چند همراه را می‌توانی سوار کنی؟",
     "personalCarOccupants": {
+      "0": "فقط خودم می‌آیم (بدون همراه)",
       "1": "۱ نفر",
       "2": "۲ نفر",
       "3": "۳ نفر"

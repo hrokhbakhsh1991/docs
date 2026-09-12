@@ -24,6 +24,23 @@ export async function openMemberRegistrationsFromSuccess(page: Page): Promise<vo
   });
 }
 
+/** Open registration detail by id (direct route). */
+export async function openMemberRegistrationDetailById(
+  page: Page,
+  registrationId: string,
+): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await page.goto(`/me/registrations/${registrationId}`, { waitUntil: "domcontentloaded" });
+    const detail = page.locator("[data-portal-member-registration-detail]");
+    if (await detail.isVisible({ timeout: 30_000 }).catch(() => false)) {
+      return;
+    }
+  }
+  await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
+    timeout: 90_000,
+  });
+}
+
 /** Open a registration detail row by tour title from the trips list. */
 export async function openMemberRegistrationDetailByTitle(
   page: Page,

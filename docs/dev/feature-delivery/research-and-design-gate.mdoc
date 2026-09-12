@@ -1,0 +1,334 @@
+---
+title: Feature Delivery — Research and Design Gate
+format: markdoc
+doc_role: agent_charter
+extends:
+  - docs/dev/feature-delivery-agent.mdoc
+  - docs/dev/feature-delivery/architecture-classifier.mdoc
+  - docs/dev/feature-delivery/evidence-ledger-schema.mdoc
+  - docs/dev/feature-delivery/blocker-recovery.mdoc
+---
+
+# Feature Delivery — Research and Design Gate (FDA-001 v1.2)
+
+**Purpose:** Canonical rules for **deep discovery**, **product requirement inventory**, **initial product/architecture/UI-UX design**, **internet research**, **UI/UX review**, and **queued feature execution** before and during implementation.
+
+**Principle:** Repository evidence first. No invented paths, commands, package names, or architecture. Research reduces uncertainty — it never overrides repository constraints or hard stops.
+
+---
+
+## 1. Deep discovery gate (CP0)
+
+Before any source edit, the agent must inspect **read-only** evidence:
+
+| Area | What to inspect |
+| ---- | --------------- |
+| Repository instructions | Root `AGENTS.md`, nested `AGENTS.md`, `.cursorrules`, `.cursor/rules/` |
+| Workspace graph | `pnpm-workspace.yaml`, root `package.json` scripts, per-package `package.json` — **pnpm workspace only** (never NX / `nx affected`) |
+| Routes and BFFs | App route trees, route registrars, BFF handlers, `*-http-contracts` packages |
+| Domain layer | Ports, repositories, dispatchers, `*.operations.ts`, workspace bindings |
+| Events / outbox | `apps/api/src/outbox/`, domain side-effects, enqueue/relay patterns |
+| Data / tenant | Prisma models, migrations, RLS policies, tenant guards, `tenantId` sourcing |
+| Adjacent modules | Similar behavior in other bounded contexts (grep + codebase-memory graph) |
+| Tests | Unit, contract, Postgres, browser, accessibility specs for touched surfaces |
+| Workspaces | `workspace.manifest.json`, capabilities, Denali / Urban / starter differences |
+| Docs / standards | Phase docs, ADRs, design freezes, post-v1 exclusions |
+| Runtime (when needed) | Dev env files, `AGENTS.md` Cloud instructions, health endpoints, available services |
+
+**Rules:**
+
+- Cite **exact paths** and **exact commands** from the repo — never invent.
+- Record findings in `.cache/feature-delivery/<sessionId>/requirement-inventory.json` (discovery section).
+- CP0 is **not complete** until discovery checklist rows have evidence refs.
+
+---
+
+## 2. Product requirement inventory
+
+For every requested capability, classify:
+
+| Class | Definition |
+| ----- | ---------- |
+| `member-interactive` | Member-visible action or state change on Portal/marketing |
+| `operator-admin-managed` | Operator/admin mutation via Web workspace UI or admin API |
+| `system-automated` | Background job, outbox relay, cron, webhook handler |
+| `internal-infrastructure` | Build, guard, codegen, dev tooling — usually out of feature scope |
+
+### 2.1 Capability record (required fields)
+
+```json
+{
+  "capabilityId": "CAP-001",
+  "title": "Operator can refund a ticket",
+  "class": "operator-admin-managed",
+  "actor": "operator with finance.refund permission",
+  "entryPoint": "Web > Tours > Ticket detail > Refund action",
+  "permission": "finance.refund",
+  "input": "ticketId, amount, reason",
+  "stateTransition": "ticket.status: paid → refunded",
+  "successState": "Refund confirmed; member notified",
+  "loadingState": "Spinner on confirm; disable double-submit",
+  "emptyState": "N/A — action on existing ticket",
+  "errorState": "Inline error; toast on network failure",
+  "deniedState": "403 with permission message",
+  "auditRequirement": "audit log row with actor, tenantId, ticketId",
+  "testEvidence": "ledger row for postgres spec + unit test",
+  "browserEvidence": "screenshot desktop + mobile when user-visible"
+}
+```
+
+### 2.2 Capability status (never conflate)
+
+| Status | Meaning |
+| ------ | ------- |
+| `implemented` | Code exists for the capability path |
+| `tested` | Automated test passed with ledger row |
+| `browser-verified` | Real browser interaction with artifact |
+| `production-verified` | Verified on production/staging with explicit unlock |
+| `accepted-risk` | Documented gap with architect/user acceptance |
+| `blocked` | Recoverable or hard-stop blocker open |
+| `unverified` | Could not run required check (env, browser, etc.) |
+
+**Forbidden completions:**
+
+- Route, seed, stub, placeholder, read-only catalog, dispatcher-only, or fixture-only behavior → **not** a complete usable feature.
+- Admin feature **not complete** unless authorized admin can perform the intended **mutation** through UI/API with permission checks, confirmation, validation, audit evidence, and browser proof when applicable.
+- Passing build or curl alone → **not** browser-verified.
+
+Store inventory in `.cache/feature-delivery/<sessionId>/requirement-inventory.json`.
+
+---
+
+## 3. Initial product / architecture / UI-UX design gate (CP1)
+
+**No source implementation** until CP1 design brief is recorded and internally consistent.
+
+### 3.1 Design brief (required sections)
+
+1. Problem and user outcome
+2. Member journey
+3. Operator/admin journey
+4. System-automation journey
+5. Domain boundary
+6. Platform-vs-module-vs-workspace-plugin classification
+7. Existing consumers and future consumers (≥2 when platform candidate)
+8. Data model and tenant/RLS approach
+9. API and BFF contract
+10. UI placement and information hierarchy
+11. Desktop and mobile behavior
+12. Persian RTL and English LTR behavior
+13. Loading, empty, error, denied, and long-content states
+14. Verification matrix (maps to capability records)
+15. Known risks and explicit exclusions
+
+Store as `.cache/feature-delivery/<sessionId>/design-brief.json` and summarize in the CP1 plan for user/architect review.
+
+### 3.2 Design gate exit criteria
+
+- All capability records have class, actor, and states defined.
+- UI placement justified against existing IA (no new tab/route without inspection).
+- **`ui-ux-decision.json` recorded** for every user-visible feature (§3.3).
+- Verification matrix lists every capability with expected evidence type.
+- architecture-reviewer invoked at CP1 when platform candidate or protected paths.
+
+### 3.3 Mandatory UI/UX decision brief (CP1)
+
+**Before source implementation** for any **user-visible** feature, produce `.cache/feature-delivery/<sessionId>/ui-ux-decision.json`.
+
+**Workflow:**
+
+1. Product and information-architecture analysis (existing surfaces, actors, journeys).
+2. **UI UX Pro Max** advisory search when skill + `python3` available — [FDA-INTEGRATION](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md).
+3. **Repository design-system review** — tokens, primitives, Denali/Urban/starter patterns.
+4. Record decisions with explicit **kind** tags: `design-recommendation` \| `repository-convention` \| `product-requirement` \| `fact` \| `inference` \| `unresolved-decision`.
+
+**Required brief sections (24):**
+
+| # | Section |
+| - | ------- |
+| 1 | User problem |
+| 2 | Target actor |
+| 3 | Primary user task |
+| 4 | Existing surface analysis |
+| 5 | Recommended placement |
+| 6 | Information hierarchy |
+| 7 | Navigation decision |
+| 8 | Desktop layout |
+| 9 | Mobile layout |
+| 10 | Persian RTL behavior |
+| 11 | English LTR behavior |
+| 12 | Typography |
+| 13 | Color and semantic tokens |
+| 14 | Component choices |
+| 15 | Interaction states |
+| 16 | Loading state |
+| 17 | Empty state |
+| 18 | Validation/error state |
+| 19 | Permission-denied state |
+| 20 | Long-content behavior |
+| 21 | Accessibility and keyboard behavior |
+| 22 | Before/after comparison (when modifying existing UI) |
+| 23 | Rejected alternatives and reasons |
+| 24 | Browser verification plan (BQC) |
+
+**UI UX Pro Max is advisory.** Compare recommendations against Denali theme, design tokens, primitives, typography/localization, IA, product domain, and RTL/LTR requirements. Never apply glassmorphism, gradients, animations, fonts, colors, icons, or new tabs solely because the skill suggested them.
+
+**Information architecture:** Before a new page/tab, inspect dashboard, member account, operator workspace, tours/registrations, notification bell, profile/detail. New tab requires documented justification in §5 and §7.
+
+**Admin completeness:** read-only catalog, static card, placeholder, seed, mock, API-only, or non-mutating button ≠ complete admin capability.
+
+**Member completeness:** requires understandable copy, visible state, useful next action, loading/empty/error, permission behavior, mobile + RTL verification plan.
+
+Link ledger: `gate_id=uiux.decision` and `gate_id=uiux.promax.<slug>` when search commands run.
+
+Schema: [evidence-ledger-schema](evidence-ledger-schema.mdoc) §10.
+
+---
+
+## 4. Future-consumer analysis
+
+For notifications, inboxes, outbox, attachments, identity, permissions, wallet, engagement, routing, shared SDKs, or reusable UI:
+
+1. Search **≥2 plausible consumers** in code and docs.
+2. Inspect existing ports and dispatchers.
+3. Compare similar implementations.
+4. Detect duplicate tables, contracts, dedupe keys, or parallel UI models.
+5. Re-run after first vertical slice (CP3) and before DB/shared-contract work (CP4).
+
+Use [notification-case-study](notification-case-study.mdoc) as regression fixture — not the only example.
+
+---
+
+## 5. Internet research policy
+
+Perform focused web research when the problem involves:
+
+- Current library/framework behavior
+- Official API or platform documentation
+- Accessibility standards (WCAG, ARIA)
+- Security/RLS recommendations
+- Current browser behavior
+- UX patterns where placement or interaction is uncertain
+- Blocker whose cause is unclear from repository evidence
+- Architectural pattern that may have changed
+
+### 5.1 Research rules
+
+| Rule | Behavior |
+| ---- | -------- |
+| Sources | Prefer official docs, standards, primary sources, maintained project docs |
+| Snippets | Do not rely on search snippets alone — fetch and read |
+| Record | URL, query/topic, date, supported decision, `fact` or `inference` |
+| Override | Never copy external architecture blindly; never override repo constraints |
+| Unavailable | Record limitation; continue with local evidence |
+| Hard stops | Research **never** overrides security, tenant/RLS, migration rewrite, production, or unresolved product decisions |
+
+### 5.2 research.json
+
+**Location:** `.cache/feature-delivery/<sessionId>/research.json`
+
+```json
+{
+  "entries": [
+    {
+      "id": "RES-001",
+      "query": "Playwright trace on timeout",
+      "url": "https://playwright.dev/docs/trace-viewer",
+      "date": "2026-09-04",
+      "supportedDecision": "Enable trace on first retry for CP5 browser failures",
+      "conclusionKind": "fact",
+      "checkpoint": "CP6"
+    }
+  ]
+}
+```
+
+Link ledger rows: `gate_id=research.<id>`.
+
+---
+
+## 6. UI/UX review gate (CP5) and browser quality (BQC)
+
+For any **visible** feature:
+
+| Check | Requirement |
+| ----- | ----------- |
+| CP1 artifact | `ui-ux-decision.json` complete — §3.3 |
+| Placement | Inspect existing UI before new tab/route — dashboard, profile, account, operator workspace, existing tabs |
+| IA | Compare member vs operator information architecture |
+| Tokens | Use design tokens and repository primitives — no raw controls where primitives exist |
+| i18n | RTL (Persian) and LTR (English); long labels; responsive layout |
+| States | Loading, empty, error, permission-denied, long content — per CP1 brief |
+| Browser | **BQC** — real interaction; canonical smoke scripts; [Playwright best practices](https://playwright.dev/docs/best-practices) |
+| Traces | Enable on important failures — [trace viewer](https://playwright.dev/docs/trace-viewer) |
+| Accessibility | Run axe or equivalent when available |
+| Evidence | Never mark UI complete from API/curl/build alone |
+
+**UI evidence status (distinct):** `ui-designed` \| `ui-implemented` \| `ui-tested` \| `ui-browser-verified` \| `ui-accessibility-verified` \| `ui-production-verified` \| `ui-accepted-risk` \| `ui-unverified` — never conflate.
+
+If browser verification cannot run → `ui-unverified` or `ui-accepted-risk`. **Never** silently convert to PASS.
+
+Artifacts: `/opt/cursor/artifacts/` (Cloud) with ledger rows `gate_id=browser.<capabilityId>`.
+
+**BQC agent:** [browser-quality-closure skill](../../.cursor/skills/browser-quality-closure/SKILL.md).
+
+---
+
+## 7. Queued feature execution
+
+Maintain `.cache/feature-delivery/<sessionId>/requirement-queue.json`:
+
+```json
+{
+  "items": [
+    {
+      "capabilityId": "CAP-001",
+      "status": "completed",
+      "checkpoint": "CP6"
+    },
+    {
+      "capabilityId": "CAP-002",
+      "status": "recoverable-blocker",
+      "blockerId": "BR-CODE-001"
+    },
+    {
+      "capabilityId": "CAP-003",
+      "status": "waiting-for-decision",
+      "stopId": "SC-ARCH-02"
+    },
+    {
+      "capabilityId": "CAP-004",
+      "status": "not-started"
+    }
+  ]
+}
+```
+
+| Queue status | Behavior |
+| ------------ | -------- |
+| `completed` | Capability status meets matrix |
+| `in-progress` | Active work item |
+| `recoverable-blocker` | Run blocker recovery; continue other items |
+| `waiting-for-decision` | Hard stop — human architecture/security/product |
+| `not-started` | Queued |
+| `unverified` | Missing browser/env evidence |
+
+When one sub-feature is blocked, **continue independent work**, then return to blocked item. Final report lists **every** queue item and exact status.
+
+---
+
+## 8. Related documents
+
+| Doc | Role |
+| --- | ---- |
+| [feature-delivery-agent](../feature-delivery-agent.mdoc) | Charter and CP0–CP7 lifecycle |
+| [architecture-classifier](architecture-classifier.mdoc) | Classification and consumer scan |
+| [blocker-recovery](blocker-recovery.mdoc) | 11-step recovery loop |
+| [evidence-ledger-schema](evidence-ledger-schema.mdoc) | Ledger rows for design, research, browser, ui-ux |
+| [stop-conditions](stop-conditions.mdoc) | Hard stops — unchanged |
+| [notification-case-study](notification-case-study.mdoc) | Regression fixture |
+| [ui-ux-pro-max FDA integration](../../.cursor/skills/ui-ux-pro-max/FDA-INTEGRATION.md) | Advisory design intelligence |
+
+---
+
+_Subdoc of FDA-001 v1.2. Canonical owner for discovery, design, research, UI/UX, and requirement queue._

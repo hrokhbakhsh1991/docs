@@ -57,7 +57,14 @@ export function TourWorkspaceTabPanels({
   return (
     <>
       {mountedTabs.has("registrations") ? (
-        <div hidden={activeTab !== "registrations"} aria-hidden={activeTab !== "registrations"}>
+        <div
+          id="tour-workspace-panel-registrations"
+          role="tabpanel"
+          aria-labelledby="tour-workspace-tab-registrations"
+          tabIndex={0}
+          hidden={activeTab !== "registrations"}
+          aria-hidden={activeTab !== "registrations"}
+        >
           <TourWorkspaceRegistrationsClient
             session={session}
             tourId={tourId}
@@ -67,21 +74,38 @@ export function TourWorkspaceTabPanels({
         </div>
       ) : null}
       {mountedTabs.has("waitlist") ? (
-        <div hidden={activeTab !== "waitlist"} aria-hidden={activeTab !== "waitlist"}>
-          <TourWorkspaceWaitlistClient
-            session={session}
-            tourId={tourId}
-            opsActions={opsActions}
-          />
+        <div
+          id="tour-workspace-panel-waitlist"
+          role="tabpanel"
+          aria-labelledby="tour-workspace-tab-waitlist"
+          tabIndex={0}
+          hidden={activeTab !== "waitlist"}
+          aria-hidden={activeTab !== "waitlist"}
+        >
+          <TourWorkspaceWaitlistClient session={session} tourId={tourId} opsActions={opsActions} />
         </div>
       ) : null}
       {mountedTabs.has("transport") ? (
-        <div hidden={activeTab !== "transport"} aria-hidden={activeTab !== "transport"}>
+        <div
+          id="tour-workspace-panel-transport"
+          role="tabpanel"
+          aria-labelledby="tour-workspace-tab-transport"
+          tabIndex={0}
+          hidden={activeTab !== "transport"}
+          aria-hidden={activeTab !== "transport"}
+        >
           <TourWorkspaceTransportClient tourId={tourId} pluginId={session.pluginId} />
         </div>
       ) : null}
       {includeFinance && mountedTabs.has("finance") ? (
-        <div hidden={activeTab !== "finance"} aria-hidden={activeTab !== "finance"}>
+        <div
+          id="tour-workspace-panel-finance"
+          role="tabpanel"
+          aria-labelledby="tour-workspace-tab-finance"
+          tabIndex={0}
+          hidden={activeTab !== "finance"}
+          aria-hidden={activeTab !== "finance"}
+        >
           <TourWorkspaceFinanceClient session={session} tourId={tourId} />
         </div>
       ) : null}

@@ -148,6 +148,25 @@ describe("admin-shell-access.spec.ts — Phase 9.2", () => {
     });
   });
 
+  it("CP-9.2-14 settings capability links resolve through the settings catalog", () => {
+    const items = resolveOperatorNav({
+      session: {
+        userId: "owner",
+        tenantId: "tenant",
+        role: "owner",
+        workspaceType: "denali",
+      },
+      pluginId: "denali",
+      workspaceLinks: [{ href: "/settings/marketing-pages", labelKey: "settings.marketing_pages" }],
+    });
+    assert.deepEqual(items.at(-1), {
+      pathKey: "workspace:/settings/marketing-pages",
+      href: "/settings/marketing-pages",
+      labelKey: "settings.marketing_pages",
+      labelNamespace: "settings",
+    });
+  });
+
   it("CP-9.2-12 invalid workspace links fail closed and owner visibility remains enforced", () => {
     const links = [
       { href: "//external.example", labelKey: "external" },

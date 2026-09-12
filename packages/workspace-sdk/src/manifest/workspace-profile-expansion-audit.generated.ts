@@ -33,4 +33,5 @@ export const WORKSPACE_PROFILE_EXPANSION_AUDIT = {
   },
   "starter": null,
   "urban": null,
+  "wallet-ws1": null,
 } as const satisfies Record<string, WorkspaceProfileExpansionAuditEntry | null>;

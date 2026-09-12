@@ -61,6 +61,12 @@ describe("tenant-registry static gate (DI-REG-01 / DEC-039)", () => {
     assert.ok(denali);
     assert.equal(denali.subdomain, "denali");
     assert.equal(denali.workspaceType, "denali");
+    assert.deepEqual(denali.theme.enabledModules, [
+      "wallet",
+      "finance",
+      "marketing_pages",
+      "ticketing",
+    ]);
   });
 
   it("GL-BRAND-02 club tenant seeds displayName; operator smoke does not", () => {

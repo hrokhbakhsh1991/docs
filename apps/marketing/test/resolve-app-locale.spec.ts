@@ -9,6 +9,7 @@ import { resolveAppLocale } from "../src/i18n/resolve-app-locale";
 import {
   isMarketingLocaleExternalPath,
   resolveMarketingLocalePath,
+  resolveMarketingTourDetailAuthModalHref,
   resolveMarketingTourDetailPath,
   resolveMarketingToursListPath,
 } from "../src/i18n/routing";
@@ -71,5 +72,22 @@ describe("resolveMarketingTourDetailPath", () => {
   it("MKT-LOCALE-02 preserves locale on detail paths", () => {
     assert.equal(resolveMarketingTourDetailPath("tour-1", "fa"), "/tours/tour-1");
     assert.equal(resolveMarketingTourDetailPath("tour-1", "en"), "/en/tours/tour-1");
+  });
+});
+
+describe("resolveMarketingTourDetailAuthModalHref", () => {
+  it("MKT-AUTH-01 PDP modal fallback stays on marketing tour detail with auth=login", () => {
+    assert.equal(
+      resolveMarketingTourDetailAuthModalHref("tour-1", "fa"),
+      "/tours/tour-1?auth=login"
+    );
+    assert.equal(
+      resolveMarketingTourDetailAuthModalHref("tour-1", "en"),
+      "/en/tours/tour-1?auth=login"
+    );
+    assert.doesNotMatch(
+      resolveMarketingTourDetailAuthModalHref("tour-1", "fa"),
+      /\/catalog\//
+    );
   });
 });

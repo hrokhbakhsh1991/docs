@@ -17,12 +17,21 @@ ARTIFACT="${ARTIFACT:?ARTIFACT path to .tar.zst required}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 
+cleanup_staging_ssh() {
+  staging_ssh_close_master
+}
+trap cleanup_staging_ssh EXIT INT TERM
+
 [[ -f "$ARTIFACT" ]] || {
   echo "deploy-staging-artifact-remote: missing $ARTIFACT" >&2
   exit 1
 }
 [[ -f "${ARTIFACT}.sha256" ]] || {
   echo "deploy-staging-artifact-remote: missing ${ARTIFACT}.sha256" >&2
+  exit 1
+}
+[[ -f "${ARTIFACT}.manifest.json" ]] || {
+  echo "deploy-staging-artifact-remote: missing ${ARTIFACT}.manifest.json" >&2
   exit 1
 }
 
@@ -32,14 +41,29 @@ EXPECTED_SHA="$(awk '{print $1}' "${ARTIFACT}.sha256")"
 
 log() { printf '[deploy-remote] %s\n' "$*"; }
 
+SSH_RETRY_MAX="${STAGING_SSH_RETRY_MAX:-5}"
+
 ssh_cmd() {
-  staging_ssh_cmd "$@"
+  local attempt
+  local status=255
+  for attempt in $(seq 1 "$SSH_RETRY_MAX"); do
+    set +e
+    staging_ssh_cmd "$@"
+    status=$?
+    set -e
+    if [[ "$status" -eq 0 ]]; then
+      return 0
+    fi
+    log "ssh attempt ${attempt}/${SSH_RETRY_MAX} failed (status ${status}); retrying"
+    sleep $((attempt * 3))
+  done
+  return "$status"
 }
 
 scp_with_retry() {
   local attempt
-  local status
-  for attempt in 1 2 3; do
+  local status=255
+  for attempt in $(seq 1 "$SSH_RETRY_MAX"); do
     set +e
     staging_scp_cmd "$@"
     status=$?
@@ -47,8 +71,8 @@ scp_with_retry() {
     if [[ "$status" -eq 0 ]]; then
       return 0
     fi
-    log "scp attempt ${attempt}/3 failed; retrying"
-    sleep $((attempt * 2))
+    log "scp attempt ${attempt}/${SSH_RETRY_MAX} failed (status ${status}); retrying"
+    sleep $((attempt * 3))
   done
   return "$status"
 }
@@ -69,6 +93,7 @@ transfer_artifact() {
   if [[ "$(remote_sha_for "$remote_artifact")" == "$EXPECTED_SHA" ]]; then
     log "artifact already present with matching checksum"
     scp_with_retry "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+    scp_with_retry "${ARTIFACT}.manifest.json" "${REMOTE}:/tmp/app-tour-artifacts/"
     return 0
   fi
 
@@ -88,6 +113,7 @@ transfer_artifact() {
 
   reassemble_verified_chunks "$chunk_dir" "$remote_parts" "$remote_artifact"
   scp_with_retry "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+  scp_with_retry "${ARTIFACT}.manifest.json" "${REMOTE}:/tmp/app-tour-artifacts/"
 
   local remote_sha
   remote_sha="$(remote_sha_for "$remote_artifact")"
@@ -123,8 +149,8 @@ upload_verified_chunk() {
 
   local attempt
   local status
-  for attempt in 1 2 3; do
-    log "upload chunk ${name} attempt ${attempt}/3"
+  for attempt in $(seq 1 "$SSH_RETRY_MAX"); do
+    log "upload chunk ${name} attempt ${attempt}/${SSH_RETRY_MAX}"
     ssh_cmd "mkdir -p ${remote_parts_q} && rm -f ${tmp_part_q}"
     set +e
     staging_scp_cmd "$part" "${REMOTE}:${tmp_part}"
@@ -142,13 +168,13 @@ upload_verified_chunk() {
     else
       log "chunk ${name} upload failed with status ${status}"
     fi
-    if [[ "$attempt" -lt 3 ]]; then
+    if [[ "$attempt" -lt "$SSH_RETRY_MAX" ]]; then
       ssh_cmd 'echo SSH_RETRY_OK >/dev/null'
-      sleep $((attempt * 2))
+      sleep $((attempt * 3))
     fi
   done
 
-  echo "deploy-staging-artifact-remote: chunk ${name} failed after 3 attempts; verified chunks preserved in ${remote_parts}" >&2
+  echo "deploy-staging-artifact-remote: chunk ${name} failed after ${SSH_RETRY_MAX} attempts; verified chunks preserved in ${remote_parts}" >&2
   return 1
 }
 
@@ -182,10 +208,14 @@ reassemble_verified_chunks() {
   ssh_cmd "mv ${assembling_q} ${remote_artifact_q} && rm -rf ${remote_parts_q}"
 }
 
+log "open SSH multiplex master (single TCP session for transfer)"
+staging_ssh_open_master
+
 log "preflight SSH"
 ssh_cmd 'echo SSH_OK; uptime; free -h | head -2'
 
 log "remote prerequisites (zstd)"
+ssh_cmd "mkdir -p ${DEPLOY_ROOT}/tooling/scripts/vps-deploy"
 scp_with_retry "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh" \
   "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
 ssh_cmd "chmod +x ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/ensure-staging-artifact-prerequisites.sh && \

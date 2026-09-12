@@ -50,6 +50,17 @@
   "emptyFilter": "No tours match your filters. Try adjusting search or status.",
   "createdNotice": "Tour created successfully.",
   "pagination": "Page {page, number} of {totalPages, number} · {total, number} tours",
+  "table": {
+    "tour": "Tour",
+    "status": "Status",
+    "departure": "Departure",
+    "capacity": "Capacity",
+    "price": "Price",
+    "updated": "Updated",
+    "actions": "Actions",
+    "noDeparture": "—",
+    "noPrice": "—"
+  },
   "card": {
     "noDescription": "No description",
     "noCover": "No cover image",
@@ -197,16 +208,16 @@
       "opsCountsUnavailable": "Could not load registration counts."
     },
     "tabs": {
-      "registrations": "Registrations",
+      "registrations": "Registration requests",
       "waitlist": "Waitlist",
-      "transport": "Participant roster",
-      "finance": "Payment follow-up"
+      "transport": "Final participants",
+      "finance": "Payment status"
     },
     "tabsHint": {
-      "registrations": "Review and approve new registrations",
+      "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
-      "transport": "Tour participants and transport",
-      "finance": "Payment follow-up, deadlines, receipts"
+      "transport": "Final tour participants and their transport status",
+      "finance": "See paid guests, outstanding balances, and receipts to review"
     },
     "approvedQuickAccess": {
       "title": "Final approved members",
@@ -405,6 +416,7 @@
       "degradedOutstanding": "outstanding balances",
       "degradedTours": "tour totals",
       "degradedReceipts": "receipt queue",
+      "degradedRoster": "approved guest roster",
       "filter": {
         "all": "All follow-ups",
         "unpaid": "Unpaid",
@@ -428,8 +440,8 @@
       "openDetails": "Details"
     },
     "registrations": {
-      "title": "Registrations",
-      "description": "Approve, reject, and inspect guest registrations for this tour.",
+      "title": "Registration requests",
+      "description": "Approve, reject, and inspect guest requests for this tour.",
       "capacityFullBanner": "At capacity — new registrations do not auto-waitlist. Use Waitlist or approve to overbook.",
       "capacityFullWaitlistLink": "Open waitlist",
       "adminCreateCta": "Manual registration",
@@ -448,8 +460,9 @@
       "capacityFullWarn": "This tour is at capacity. Approve anyway?"
     },
     "transport": {
-      "title": "Participant roster",
-      "description": "Operational list of guests who are expected to join the tour; attendance and transport first, payment state second.",
+      "title": "Final participants",
+      "description": "Confirmed tour participants; manage attendance and transport here.",
+      "tableCaption": "Final participants and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",
       "finalParticipant": "Final",
@@ -509,6 +522,8 @@
       "TOUR_TRANSPORT_FETCH_FAILED": "Failed to load transport roster.",
       "TOUR_TRANSPORT_TOUR_HTTP_404": "Tour not found for transport roster.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "Transport bookings not found.",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_503": "The transport bookings service is temporarily unavailable. Please try again.",
+      "TOUR_ROSTER_HTTP_503": "The approved guest roster is temporarily unavailable. Pending registrations still appear below.",
       "TOUR_TRANSPORT_TOUR_HTTP_500": "Failed to load transport tour (server error).",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "Failed to load transport bookings (server error)."
     }

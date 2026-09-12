@@ -70,6 +70,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
       "profile-cert",
       "starter",
       "urban",
+      "wallet-ws1",
     ]);
   });
 
@@ -570,7 +571,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
     assert.match(generated, /workspace-plugin-load-cache/);
     assert.match(generated, /getOrCreateWorkspacePluginLoad/);
     assert.match(generated, /WORKSPACE_PLUGIN_REGISTRY_REVISION/);
-    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 13/);
+    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 14/);
     assert.doesNotMatch(generated, /const pluginLoadCache\s*=\s*new Map/);
   });
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useEffect, useState } from "react";
 
 export default function PlatformImpersonatePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

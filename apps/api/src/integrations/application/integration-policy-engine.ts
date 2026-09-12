@@ -10,7 +10,7 @@ import {
   resolveRegistrySeededExposureProfile,
 } from "../../exposure/resolve-registry-seeded-exposure-profile";
 import type { ExposureIntentRepository } from "../../exposure/exposure-intent.repository";
-import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "../../exposure/create-exposure-intent-repository";
 import type { IntegrationPolicyRepository } from "../infrastructure/integration-policy.repository";
 import { createIntegrationPolicyRepository } from "../infrastructure/prisma-integration-policy.repository";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useAppPathname } from "@/navigation/app-navigation-hooks";
 import {
   CalendarCheck,
   PanelLeftClose,
@@ -10,8 +10,10 @@ import {
   Map,
   Plus,
   Settings,
+  Ticket,
   Users,
   Wallet,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -25,9 +27,11 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   tours: Map,
   bookings: CalendarCheck,
+  tickets: Ticket,
   users: Users,
   settings: Settings,
   finance: Wallet,
+  wallet: Coins,
 };
 
 type OperatorNavProps = {
@@ -49,9 +53,10 @@ export function OperatorNav({
   collapsed = false,
   onCollapsedChange,
 }: OperatorNavProps) {
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const tNav = useTranslations("nav");
   const tTours = useTranslations("tours.shell");
+  const tSettings = useTranslations("settings");
   const tApp = useTranslations("app");
   const CollapseIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
 
@@ -92,12 +97,15 @@ export function OperatorNav({
         <p data-operator-nav-group-label>{tApp("operatorNavGroup")}</p>
         <ul data-operator-nav-list>
           {items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              pathname !== null && (pathname === item.href || pathname.startsWith(`${item.href}/`));
             const Icon = NAV_ICONS[item.pathKey];
             const label =
               item.labelNamespace === "tours.shell" && item.labelKey !== undefined
                 ? tTours(item.labelKey)
-                : tNav(item.labelKey ?? item.pathKey);
+                : item.labelNamespace === "settings" && item.labelKey !== undefined
+                  ? tSettings(`${item.labelKey.replace(/^settings\./u, "modules.")}.title` as never)
+                  : tNav(item.labelKey ?? item.pathKey);
             return (
               <li key={item.pathKey} data-operator-nav-item>
                 <Link

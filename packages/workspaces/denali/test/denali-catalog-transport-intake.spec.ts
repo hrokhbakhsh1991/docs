@@ -84,7 +84,6 @@ describe("denali catalog transport intake", () => {
       kind: "no_car_dong",
     });
   });
-
   it("DEN-TR-05 requires explicit acknowledgement for non-personal transport", () => {
     const transport = { mode: "shared_cars" as const, dongAmount: 80_000 };
     const state = {
@@ -101,5 +100,19 @@ describe("denali catalog transport intake", () => {
       }),
       { kind: "no_car_acquaintance" }
     );
+  });
+
+  it("DEN-TR-05 accepts zero companions for a personal car", () => {
+    const transport = { mode: "shared_cars" as const, dongAmount: 80_000 };
+    const state = {
+      ...denaliCatalogTransportIntakeSurface.initialState(transport),
+      hasPersonalCar: true as const,
+      personalCarOccupants: 0 as const,
+    };
+    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+      kind: "personal_car",
+      personalCarOccupants: 0,
+    });
+    assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
   });
 });

@@ -4,10 +4,17 @@
  * with `moduleResolution: Node` does not typecheck CSS/React pickers.
  * See docs/dev/localized-calendar.mdoc.
  */
+import { resolveImportUiSurfaceLoader } from "./import-ui-surface.loaders";
+
 export type UiSurfaceModule = {
   readonly [exportName: string]: any;
 };
 
 export function importUiSurface(specifier: string): Promise<UiSurfaceModule> {
-  return import(/* webpackIgnore: true */ specifier) as Promise<UiSurfaceModule>;
+  if (typeof window === "undefined") {
+    return resolveImportUiSurfaceLoader(specifier)();
+  }
+  return import("./browser-ui-surface-loader").then(({ loadUiSurface }) =>
+    loadUiSurface(specifier)
+  );
 }

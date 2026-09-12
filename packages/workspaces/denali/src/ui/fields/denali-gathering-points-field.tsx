@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -41,10 +42,14 @@ export function DenaliGatheringPointsField({
     getCanonicalValue(draft, DENALI_GATHERING_POINTS_NESTED_PATH)
   );
   const editor = resolveDenaliGatheringPointsEditorState(stored);
-  const points = editor.points;
+  const [localPoints, setLocalPoints] = useState<DenaliGatheringPoint[] | null>(null);
+  const points = localPoints ?? editor.points;
   const label = resolveDenaliFieldLabel(t, "gatheringPoints");
 
   const updateGatheringPoints = (next: DenaliGatheringPoint[]) => {
+    // Keep newly-added empty rows visible while the parent draft sanitizer waits
+    // for the operator to populate them.
+    setLocalPoints(next);
     commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
       const withRoot = setCanonicalValue(base, DENALI_GATHERING_POINTS_CANONICAL_PATH, next);
       return setCanonicalValue(withRoot, DENALI_GATHERING_POINTS_NESTED_PATH, next);
@@ -52,6 +57,11 @@ export function DenaliGatheringPointsField({
   };
 
   const readCurrentOrScaffold = (): DenaliGatheringPoint[] => {
+    // The local editor state is authoritative while the parent draft update is
+    // propagating. Reading only draftRef here loses a row on consecutive adds.
+    if (localPoints !== null && localPoints.length > 0) {
+      return localPoints;
+    }
     const current = resolveDenaliGatheringPointsFromStorage(
       getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_CANONICAL_PATH),
       getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_NESTED_PATH)
@@ -68,7 +78,7 @@ export function DenaliGatheringPointsField({
 
   const addPoint = () => {
     const current = readCurrentOrScaffold();
-    updateGatheringPoints([...current, createEmptyDenaliGatheringPoint(current.length === 0)]);
+    updateGatheringPoints([...current, createEmptyDenaliGatheringPoint(false)]);
   };
 
   const removePoint = (index: number) => {

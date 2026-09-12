@@ -8,7 +8,7 @@ import { resolveStorageDriver } from "../../storage/production-storage-driver-as
 import { logger } from "../../observability/logger";
 import { mapLatestExposureIntentsToConnectionPublic } from "../../exposure/exposure-intent-public";
 import { normalizeFieldDecorations } from "../../exposure/field-decorations";
-import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "../../exposure/create-exposure-intent-repository";
 import {
   buildConnectionExposureIntentUpsert,
   exposureSelectableCatalogFieldIds,

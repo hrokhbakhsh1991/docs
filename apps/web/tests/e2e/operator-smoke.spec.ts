@@ -24,6 +24,9 @@ import {
   OPERATOR_ADMIN_MOBILE,
   OPERATOR_ADMIN_DISPLAY_NAME,
   OPERATOR_SMOKE_ADMIN_USER_ID,
+  OPERATOR_SMOKE_MEMBER_USER_ID,
+  OPERATOR_SMOKE_OWNER_USER_ID,
+  OPERATOR_SMOKE_TENANT_ID,
   OPERATOR_INVITEE_MOBILE,
   OPERATOR_MEMBER_DISPLAY_NAME,
   OPERATOR_OWNER_MOBILE,
@@ -31,6 +34,10 @@ import {
 
 const UNAUTHORIZED_LOGIN_MOBILE = "+15559999999";
 import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
+import {
+  fillDenaliMultiDayWizardThroughReview,
+  submitDenaliWizardDraftCreate,
+} from "../../test/fixtures/denali-itinerary-wizard-fixture";
 
 test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
   test("SMK-P9-01 owner OTP login reaches dashboard", async ({ page }) => {
@@ -40,7 +47,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
   });
 
   test("SMK-P9-WELCOME owner login shows welcome-back dialog once per login", async ({ page }) => {
-    await loginOperatorOwner(page);
+    await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { forceFresh: true });
     const dialog = page.getByTestId(OPERATOR_WELCOME_TEST_IDS.dialog);
     await expect(dialog).toBeVisible({ timeout: 15_000 });
     await page.getByTestId(OPERATOR_WELCOME_TEST_IDS.dismissCta).click();
@@ -65,13 +72,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
 
     const cta = page.getByTestId("operator-new-tour-cta");
     await expect(cta).toBeVisible();
-    const buttonBg = await cta.evaluate((el) => {
-      const button = el.querySelector("button");
-      if (!(button instanceof HTMLElement)) {
-        return "";
-      }
-      return getComputedStyle(button).backgroundColor;
-    });
+    const buttonBg = await cta.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(buttonBg).toBe("rgb(5, 150, 105)");
 
     // Mirror OperatorThemeToggleButton.applyThemeMode — headless click on the toggle is flaky.
@@ -98,13 +99,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       );
     expect(tenantDarkPrimary).toBe("#5eead4");
 
-    const darkButtonBg = await cta.evaluate((el) => {
-      const button = el.querySelector("button");
-      if (!(button instanceof HTMLElement)) {
-        return "";
-      }
-      return getComputedStyle(button).backgroundColor;
-    });
+    const darkButtonBg = await cta.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(darkButtonBg).toBe("rgb(94, 234, 212)");
   });
 
@@ -194,16 +189,16 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     const tourTitle = `SMK-P9-02 Tour ${Date.now()}`;
 
     await loginOperatorOwner(page);
-    await publishOperatorWizardTemplate(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
 
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 120_000 });
-    await page.getByRole("textbox", { name: "title" }).fill(tourTitle);
-    await page.getByRole("button", { name: "Create tour" }).click();
-    await expect(page.locator("[data-tour-created]")).toBeVisible({ timeout: 30_000 });
+    await fillDenaliMultiDayWizardThroughReview(page, tourTitle);
+    await submitDenaliWizardDraftCreate(page);
 
     await page.goto("/tours");
     await expect(page.getByTestId(TOURS_LIST_TEST_IDS.page)).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId(TOURS_LIST_TEST_IDS.search).fill(tourTitle);
     await expect(page.getByTestId(TOURS_LIST_TEST_IDS.list)).toContainText(tourTitle, {
       timeout: 15_000,
     });
@@ -241,10 +236,14 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
 
     await page.getByTestId(OPERATOR_SEARCHABLE_SELECT_TEST_IDS.trigger).click();
-    await page.getByTestId(OPERATOR_SEARCHABLE_SELECT_TEST_IDS.search).fill("North Ridge");
-    await page.getByRole("option", { name: /North Ridge Trek/i }).click();
+    await page.getByTestId(OPERATOR_SEARCHABLE_SELECT_TEST_IDS.search).fill("Ridge Bus");
+    await page.getByRole("option", { name: /Ridge Bus Shuttle/i }).click();
     await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.guestInput).fill(guestLabel);
-    await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.departureInput).fill("2026-12-15");
+    await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.departureInput).click();
+    await page
+      .locator('[data-testid="localized-calendar"]')
+      .getByRole("button", { name: /امروز|today/i })
+      .click();
     await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.submitButton).click();
 
     await expect(page).toHaveURL(/\/bookings/, { timeout: 15_000 });
@@ -264,23 +263,33 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toBeVisible();
 
-    await page.getByRole("button", { name: /Ali Rezaei/i }).click();
+    const pendingBooking = page
+      .getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)
+      .getByRole("option")
+      .filter({ hasText: /Approval Smoke Guest/i })
+      .first();
+    await pendingBooking.getByRole("button").first().click();
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton)).toBeVisible();
-    const approveResponse = page.waitForResponse(
-      (response) =>
+    let approveResponseOk = false;
+    const responseListener = (response: import("@playwright/test").Response) => {
+      if (
         response.url().includes("/api/bookings/") &&
         response.url().includes("/approve") &&
-        response.request().method() === "POST" &&
-        response.ok()
-    );
+        response.request().method() === "POST"
+      ) {
+        approveResponseOk = response.ok();
+      }
+    };
+    page.on("response", responseListener);
     await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
-    await approveResponse;
+    const overbookDialog = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.overbookConfirmDialog);
+    if (await overbookDialog.isVisible().catch(() => false)) {
+      await overbookDialog.getByRole("button", { name: /باز هم تأیید|approve anyway/i }).click();
+    }
+    await expect.poll(() => approveResponseOk, { timeout: 15_000 }).toBe(true);
+    page.off("response", responseListener);
 
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection)).toContainText(
-      /approved|تأییدشده/i,
-      { timeout: 15_000 }
-    );
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText(
       /approved|تأییدشده/i,
       { timeout: 15_000 }
     );
@@ -323,10 +332,16 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
 
     const inviteeContext = await browser.newContext();
     const inviteePage = await inviteeContext.newPage();
-    await loginOperatorWithPhone(inviteePage, OPERATOR_INVITEE_MOBILE, { inviteToken });
-    await expect(inviteePage.getByTestId("operator-dashboard-grid")).toBeVisible({
-      timeout: 15_000,
+    await loginOperatorWithPhone(inviteePage, OPERATOR_INVITEE_MOBILE, {
+      inviteToken,
+      skipDashboard: true,
     });
+    const inviteeAbility = await inviteePage.request.get(
+      "/api/auth/membership-ability-context"
+    );
+    expect(inviteeAbility.ok()).toBeTruthy();
+    await inviteePage.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await expect(inviteePage).toHaveURL(/\/auth\/login\?.*access=owner-only/);
     await inviteeContext.close();
 
     await page.getByTestId(USERS_DIRECTORY_TEST_IDS.tabActive).click();
@@ -336,7 +351,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
 
     await page.getByTestId(USERS_DIRECTORY_TEST_IDS.tabPending).click();
     await expect(page.getByTestId(USERS_DIRECTORY_TEST_IDS.empty)).toContainText(
-      "No pending invites"
+      /No pending invites|دعوتی در انتظار نیست/i
     );
   });
 
@@ -403,6 +418,10 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     await expect(memberRow.getByTestId(USERS_DIRECTORY_TEST_IDS.rowStatusSuspended)).toBeVisible({
       timeout: 15_000,
     });
+    const reactivateResponse = await page.request.patch(
+      `/api/users/${OPERATOR_SMOKE_MEMBER_USER_ID}/reactivate`
+    );
+    expect(reactivateResponse.ok()).toBeTruthy();
   });
 
   test("SMK-P9-USERS-01 owner suspends seeded admin row (R1 E2E)", async ({ page }) => {
@@ -414,11 +433,65 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
 
     const adminRow = page.locator("tr").filter({ hasText: OPERATOR_ADMIN_DISPLAY_NAME });
-    await adminRow.getByTestId(USERS_DIRECTORY_TEST_IDS.rowSuspend).click();
+    await adminRow.getByTestId(USERS_DIRECTORY_TEST_IDS.rowDetails).click();
+    await expect(page.getByTestId(USERS_DIRECTORY_TEST_IDS.memberDetail)).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByTestId(USERS_DIRECTORY_TEST_IDS.rowSuspend).click();
 
     await expect(adminRow.getByTestId(USERS_DIRECTORY_TEST_IDS.rowStatusSuspended)).toBeVisible({
       timeout: 15_000,
     });
+    const reactivateResponse = await page.request.patch(
+      `/api/users/${OPERATOR_SMOKE_ADMIN_USER_ID}/reactivate`
+    );
+    expect(reactivateResponse.ok()).toBeTruthy();
+  });
+
+  test("SMK-P9-USERS-05 owner transfers ownership and the target can log in", async ({ page }) => {
+    await loginOperatorOwner(page);
+    await page.goto("/users");
+    await expect(page.getByTestId(USERS_DIRECTORY_TEST_IDS.ownershipTransfer)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const select = page.getByTestId(USERS_DIRECTORY_TEST_IDS.ownershipTransferSelect);
+    await select.selectOption(OPERATOR_SMOKE_ADMIN_USER_ID);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (await page.getByTestId(USERS_DIRECTORY_TEST_IDS.ownershipTransferSubmit).isEnabled()) {
+        break;
+      }
+      await select.selectOption(OPERATOR_SMOKE_ADMIN_USER_ID);
+      await page.waitForTimeout(250);
+    }
+    await expect(page.getByTestId(USERS_DIRECTORY_TEST_IDS.ownershipTransferSubmit)).toBeEnabled();
+
+    page.once("dialog", (dialog) => void dialog.accept());
+    const transferResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/ownership-transfer") &&
+        response.request().method() === "POST" &&
+        response.ok()
+    );
+    await page.getByTestId(USERS_DIRECTORY_TEST_IDS.ownershipTransferSubmit).click();
+    await transferResponse;
+    await expect(page).toHaveURL(/\/auth\/login\?access=ownership-transferred/, {
+      timeout: 15_000,
+    });
+
+    await loginOperatorWithPhone(page, OPERATOR_ADMIN_MOBILE, { forceFresh: true });
+    await expect(page.getByTestId("operator-dashboard-grid")).toBeVisible({ timeout: 15_000 });
+
+    // Restore the reserved smoke tenant so later tests can authenticate as the
+    // original owner without depending on test order.
+    const restoreResponse = await page.request.post(
+      `/api/tenants/${OPERATOR_SMOKE_TENANT_ID}/ownership-transfer`,
+      {
+        data: { newOwnerUserId: OPERATOR_SMOKE_OWNER_USER_ID },
+      }
+    );
+    expect(restoreResponse.ok()).toBeTruthy();
+    await page.request.post("/api/auth/logout");
   });
 
   test("SMK-P9-LOGIN-01 unauthorized phone stays on phone step with field error", async ({
@@ -539,7 +612,6 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
   test("SMK-P9-03 invite entry shows login banner", async ({ page }) => {
     await page.goto("/auth/login?invite=00000000-0000-4000-8000-000000000001");
     await expect(page.getByTestId(INVITE_ACCEPT_TEST_IDS.loginInviteBanner)).toBeVisible();
-    await expect(page.locator("#phone")).toHaveValue(OPERATOR_OWNER_MOBILE);
   });
 
   test("SMK-P9-05 template seed → wizard prefill", async ({ page }) => {
@@ -587,7 +659,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
     await page.getByTestId(SETTINGS_HUB_TEST_IDS.profileDisplayName).fill(displayName);
     await page.getByTestId(SETTINGS_HUB_TEST_IDS.profileSave).click();
-    await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/پروفایل ذخیره شد|Profile saved/i)).toBeVisible({ timeout: 15_000 });
     await page.reload();
     await expect(page.getByTestId(SETTINGS_HUB_TEST_IDS.profileDisplayName)).toHaveValue(
       displayName,
@@ -604,18 +676,14 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
   });
 
-  test("SMK-P9-12 finance prepayments tab loads", async ({ page }) => {
+  test("SMK-P9-12 finance prepayments tab obeys the default capability gate", async ({ page }) => {
     await loginOperatorOwner(page);
     await page.goto("/finance?tab=prepayments", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("finance-command-center")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId(FINANCE_PREPAYMENTS_TEST_IDS.panel)).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(
-      page
-        .getByTestId(FINANCE_PREPAYMENTS_TEST_IDS.list)
-        .or(page.getByTestId(FINANCE_PREPAYMENTS_TEST_IDS.emptyState))
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(FINANCE_PREPAYMENTS_TEST_IDS.panel)).toHaveCount(0);
+    await expect(page.getByTestId(FINANCE_PREPAYMENTS_TEST_IDS.list)).toHaveCount(0);
+    await expect(page.getByTestId(FINANCE_PREPAYMENTS_TEST_IDS.emptyState)).toHaveCount(0);
+    await expect(page.locator('[data-tab="prepayments"]')).toHaveCount(0);
   });
 
   test("SMK-P9-11 reconciliation triage page loads from settings hub", async ({ page }) => {

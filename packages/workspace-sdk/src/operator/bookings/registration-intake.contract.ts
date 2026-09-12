@@ -4,19 +4,17 @@ export type RegistrationRegistrantTarget = "self" | "other";
 
 export type RegistrationIntakeTransport = {
   readonly kind: PublicCatalogRegistrationTransportKind;
-  readonly personalCarOccupants?: 1 | 2 | 3;
+  readonly personalCarOccupants?: 0 | 1 | 2 | 3;
 };
 
 export type RegistrationIntakeRecord = {
   readonly registrantTarget: RegistrationRegistrantTarget | null;
   readonly transportKind: PublicCatalogRegistrationTransportKind | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly nationalId: string | null;
 };
 
-function readTransportKind(
-  transport: unknown
-): PublicCatalogRegistrationTransportKind | null {
+function readTransportKind(transport: unknown): PublicCatalogRegistrationTransportKind | null {
   if (typeof transport !== "object" || transport === null) {
     return null;
   }
@@ -32,12 +30,12 @@ function readTransportKind(
   return null;
 }
 
-function readPersonalCarOccupants(transport: unknown): 1 | 2 | 3 | null {
+function readPersonalCarOccupants(transport: unknown): 0 | 1 | 2 | 3 | null {
   if (typeof transport !== "object" || transport === null) {
     return null;
   }
   const occupants = (transport as Record<string, unknown>).personalCarOccupants;
-  if (occupants === 1 || occupants === 2 || occupants === 3) {
+  if (occupants === 0 || occupants === 1 || occupants === 2 || occupants === 3) {
     return occupants;
   }
   return null;
@@ -79,7 +77,7 @@ export function formatRegistrationIntakeTransportLabel(
     readonly personalCar: string;
     readonly noCarDong: string;
     readonly noCarAcquaintance: string;
-    readonly occupants: (count: 1 | 2 | 3) => string;
+    readonly occupants: (count: 0 | 1 | 2 | 3) => string;
   }
 ): string | null {
   if (summary.transportKind === null) {

@@ -72,15 +72,34 @@ test("DEN-TRANS-02 personal-car opt-in persists personal_car with occupants", as
   await page.locator("[data-public-registration-personal-car-opt-in] input[type=checkbox]").check();
   const transportFieldset = page.locator("[data-public-registration-transport]");
   await expect(transportFieldset).toBeVisible();
-  await transportFieldset.locator('input[name="hasPersonalCar"]').first().check();
+  await transportFieldset.locator('input[name^="hasPersonalCar-"]').first().check();
   await page
-    .locator('[data-public-registration-transport-occupants] input[name="personalCarOccupants"]')
+    .locator('[data-public-registration-transport-occupants] input[name^="personalCarOccupants-"]')
     .nth(1)
     .check();
 
   const body = await submitAndReadBody(page);
   expect(body.transport?.kind).toBe("personal_car");
   expect(body.transport?.personalCarOccupants).toBe(2);
+});
+
+test("DEN-TRANS-02b personal-car opt-in persists driver-only with zero companions", async ({
+  page,
+}) => {
+  await reachTransportIntake(page, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, uniqueTransportPhone());
+
+  await page.locator("[data-public-registration-personal-car-opt-in] input[type=checkbox]").check();
+  const transportFieldset = page.locator("[data-public-registration-transport]");
+  await expect(transportFieldset).toBeVisible();
+  await transportFieldset.locator('input[name^="hasPersonalCar-"]').first().check();
+  await page
+    .locator("[data-public-registration-transport-occupants] input[type=radio]")
+    .first()
+    .check();
+
+  const body = await submitAndReadBody(page);
+  expect(body.transport?.kind).toBe("personal_car");
+  expect(body.transport?.personalCarOccupants).toBe(0);
 });
 
 test("DEN-TRANS-03 shared_cars tour forces dong follow-up and persists no_car_dong", async ({

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
@@ -9,7 +8,8 @@ import { isUsersRouteAllowed } from "@/features/users/users-nav-access";
 import { parseUsersDirectoryQuery } from "@/features/users/users-directory-types";
 import { USERS_OWNERSHIP_TRANSFER_UI_ENABLED } from "@/features/users/users-page-logic";
 import { buildUsersPageMetadata } from "@/i18n/app-page-metadata";
-import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { resolveRequestBootstrapAppSession } from "@/tenant/tenant-kernel";
+import { resolveWizardCreateCapability } from "@app-tour/workspace-sdk";
 
 import { UsersPageClient } from "./users-page-client";
 
@@ -48,10 +48,11 @@ export default async function OperatorUsersPage({ searchParams }: OperatorUsersP
     return null;
   }
 
-  const headerList = await headers();
-  const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = await resolveBootstrapAppSessionForHost(host);
-  if (!isUsersRouteAllowed(resolved.session.pluginId)) {
+  const resolved = await resolveRequestBootstrapAppSession();
+  const usersRouteAllowed =
+    resolveWizardCreateCapability(resolved.plugin)?.extendedChrome === true ||
+    isUsersRouteAllowed(resolved.session.pluginId);
+  if (!usersRouteAllowed) {
     notFound();
   }
 

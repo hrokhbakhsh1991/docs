@@ -99,6 +99,8 @@ export type PublicCatalogCard = {
   readonly excludedServices?: readonly string[];
   readonly includesTourInsurance?: boolean;
   readonly paymentMode?: string | null;
+  /** Public organizer/group link, exposed only through published catalog egress. */
+  readonly socialMediaLink?: string | null;
   readonly photoUrls?: readonly string[];
 };
 

@@ -42,9 +42,17 @@
   "copyId": "Copy ID",
   "copiedId": "Copied",
   "bookingId": "Booking ID",
+  "columns": {
+    "guest": "Guest",
+    "tour": "Tour",
+    "departure": "Departure",
+    "status": "Status",
+    "submitted": "Submitted"
+  },
   "submittedShort": "Submitted {date}",
   "status": {
     "all": "All",
+    "actionable": "Needs action",
     "pending": "Pending",
     "approved": "Approved",
     "waitlisted": "Waitlisted",
@@ -199,7 +207,8 @@
     "transportPersonalCar": "Personal car",
     "transportNoCarDong": "No car — pays dong",
     "transportNoCarAcquaintance": "No car — acquaintance ride",
-    "transportOccupants": "{count, number} occupants"
+    "transportOccupants": "{count, number} occupants",
+    "transportNoCompanion": "Driver only (no companion)"
   },
   "approve": "Approve",
   "reject": "Reject",
@@ -324,7 +333,8 @@
       "personal_car": "Personal car",
       "no_car_dong": "No car — pays dong",
       "no_car_acquaintance": "No car — acquaintance ride",
-      "occupants": "{count, number} occupants"
+      "occupants": "{count, number} occupants",
+      "noCompanion": "Driver only (no companion)"
     },
     "transportModes": {
       "none": "No transport",

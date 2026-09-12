@@ -16,7 +16,7 @@ export const PUBLIC_CATALOG_REGISTRATION_TRANSPORT_KINDS = [
 export type PublicCatalogTransportIntakeState = {
   readonly optInPersonalCar: boolean;
   readonly hasPersonalCar: boolean | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
   /** Explicit acknowledgement that the registrant will not use a personal car. */
   readonly nonPersonalCarAcknowledged: boolean;
@@ -38,7 +38,7 @@ export type WorkspaceCatalogIntakeTransportSurface = {
   ) =>
     | {
         readonly kind: PublicCatalogRegistrationTransportKind;
-        readonly personalCarOccupants?: 1 | 2 | 3;
+        readonly personalCarOccupants?: 0 | 1 | 2 | 3;
       }
     | undefined;
   readonly isComplete: (

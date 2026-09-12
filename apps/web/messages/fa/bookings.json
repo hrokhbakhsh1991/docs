@@ -42,6 +42,13 @@
   "copyId": "کپی شناسه",
   "copiedId": "کپی شد",
   "bookingId": "شناسه رزرو",
+  "columns": {
+    "guest": "مهمان",
+    "tour": "تور",
+    "departure": "حرکت",
+    "status": "وضعیت",
+    "submitted": "ثبت"
+  },
   "submittedShort": "ثبت {date}",
   "fields": {
     "party": "تعداد نفرات",
@@ -57,6 +64,7 @@
   },
   "status": {
     "all": "همه",
+    "actionable": "نیازمند اقدام",
     "pending": "در انتظار",
     "approved": "تأییدشده",
     "waitlisted": "در لیست انتظار",
@@ -199,7 +207,8 @@
     "transportPersonalCar": "ماشین شخصی",
     "transportNoCarDong": "بدون ماشین — دونگ",
     "transportNoCarAcquaintance": "بدون ماشین — با آشنا",
-    "transportOccupants": "{count, number} نفر"
+    "transportOccupants": "{count, number} نفر",
+    "transportNoCompanion": "فقط خودم می‌آیم (بدون همراه)"
   },
   "approve": "تأیید",
   "reject": "رد",
@@ -324,7 +333,8 @@
       "personal_car": "ماشین شخصی",
       "no_car_dong": "بدون ماشین — دونگ",
       "no_car_acquaintance": "بدون ماشین — با آشنا",
-      "occupants": "{count, number} نفر"
+      "occupants": "{count, number} نفر",
+      "noCompanion": "فقط خودم می‌آیم (بدون همراه)"
     },
     "transportModes": {
       "none": "بدون حمل",

@@ -20,43 +20,43 @@ npm_script: test:e2e:operator
 
 ## Summary matrix
 
-| ID            | Title                               | Playwright target                              | API chain target                       | Pass signal                           |
-| ------------- | ----------------------------------- | ---------------------------------------------- | -------------------------------------- | ------------------------------------- |
-| **SMK-P9-01** | Operator OTP login → dashboard      | `operator-smoke.spec.ts` · `test('SMK-P9-01')` | POST otp + verify + GET session        | Dashboard heading · nav Tours/Users   |
-| **SMK-P9-LOGIN-01** | Unauthorized phone gated before OTP | same · `test('SMK-P9-LOGIN-01')` | POST request-otp 403 | `operator-login-phone-error` visible · no OTP segment |
-| **SMK-P9-LOGIN-02** | Authorized phone → OTP segment      | same · `test('SMK-P9-LOGIN-02')` | POST request-otp 200 | `[data-otp-segment-input]` visible    |
-| **SMK-P9-LOGIN-03** | Wrong OTP → inline field error      | same · `test('SMK-P9-LOGIN-03')` | POST verify-otp 401  | `operator-login-otp-error` visible    |
-| **SMK-P9-LOGIN-04** | Full UI login (phone → 4-box → 1234) | same · `test('SMK-P9-LOGIN-04')` | BFF otp + verify   | `operator-dashboard-grid` visible     |
-| **SMK-P9-LOGIN-05** | Change phone resets OTP step        | same · `test('SMK-P9-LOGIN-05')` | UI only            | `#phone` visible · no OTP segment     |
-| **SMK-P9-LOGIN-06** | Empty phone → field error           | same · `test('SMK-P9-LOGIN-06')` | BFF 400            | `operator-login-phone-error` · no OTP segment |
-| **SMK-P9-LOGIN-07** | Resend OTP after 45s cooldown       | same · `test('SMK-P9-LOGIN-07')` | POST request-otp 200 | Resend button enabled · second challenge |
-| **SMK-P9-02** | Wizard create → tour in list        | same · `test('SMK-P9-02')`                     | POST /tours + GET /tours?view=operator | Tour title in `(app)/tours` card grid |
-| **SMK-P9-03** | Invite → accept → directory         | same · `test('SMK-P9-03')`                     | invite + accept APIs                   | New member row                        |
-| **SMK-P9-04** | Pending booking → approve           | same · `test('SMK-P9-04')`                     | POST approve                           | Status approved badge                 |
-| **SMK-P9-05** | Template seed → wizard prefill      | same · `test('SMK-P9-05')`                     | PUT template + GET wizard              | Field = `SMK-P9-SEED`                 |
-| **SMK-P9-06** | Leader review alias (admin session) | same · `test('SMK-P9-06')`                     | GET `/leader/review` (legacy URL)      | Inspection table renders              |
-| **SMK-P9-07** | Manual booking create               | same · `test('SMK-P9-07')`                     | POST booking create                    | Row in queue pending                  |
-| **SMK-P9-08** | Settings module round-trip          | same · `test('SMK-P9-08')`                     | PUT equipment item                     | Item visible on reload                |
-| **SMK-P9-09** | Finance command center overview     | same · `test('SMK-P9-09')`                     | GET `/finance/reports/summary` BFF     | KPI strip visible on `/finance`       |
-| **SMK-P9-10** | Profile settings save display name  | same · `test('SMK-P9-10')`                     | PATCH `/api/identity/me` BFF           | Reload retains `displayName`          |
-| **SMK-P9-11** | Reconciliation triage page          | same · `test('SMK-P9-11')`                     | GET finance summary + schedules BFF    | Triage page · empty or findings list  |
-| **SMK-P9-12** | Finance prepayments tab (R2)        | same · `test('SMK-P9-12')`                     | GET `/api/finance/prepayments` BFF     | Prepayments panel · list or empty     |
-| **SMK-P9-USERS-03** | Ownership transfer panel (R5) | same · `test('SMK-P9-USERS-03')` | GET `/api/users` roster | Admin candidate in select · submit enabled |
-| **SMK-P9-USERS-02** | Bulk suspend member (R8) | same · `test('SMK-P9-USERS-02')` | PATCH `/api/users/bulk/suspend` | Suspended badge on member row |
-| **SMK-P9-USERS-01** | Row suspend admin (R1) | same · `test('SMK-P9-USERS-01')` | PATCH `/users/{id}/suspend` | Suspended badge on admin row |
-| **SMK-P9-USERS-04** | Admin OTP blocked (DEC-P9-018) | same · `test('SMK-P9-USERS-04')` | BFF `login-web-session` 403 `AUTH_OWNER_PANEL_ONLY` | No session cookie for admin actor |
+| ID                  | Title                                | Playwright target                              | API chain target                                    | Pass signal                                           |
+| ------------------- | ------------------------------------ | ---------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------- |
+| **SMK-P9-01**       | Operator OTP login → dashboard       | `operator-smoke.spec.ts` · `test('SMK-P9-01')` | POST otp + verify + GET session                     | Dashboard heading · nav Tours/Users                   |
+| **SMK-P9-LOGIN-01** | Unauthorized phone gated before OTP  | same · `test('SMK-P9-LOGIN-01')`               | POST request-otp 403                                | `operator-login-phone-error` visible · no OTP segment |
+| **SMK-P9-LOGIN-02** | Authorized phone → OTP segment       | same · `test('SMK-P9-LOGIN-02')`               | POST request-otp 200                                | `[data-otp-segment-input]` visible                    |
+| **SMK-P9-LOGIN-03** | Wrong OTP → inline field error       | same · `test('SMK-P9-LOGIN-03')`               | POST verify-otp 401                                 | `operator-login-otp-error` visible                    |
+| **SMK-P9-LOGIN-04** | Full UI login (phone → 4-box → 1234) | same · `test('SMK-P9-LOGIN-04')`               | BFF otp + verify                                    | `operator-dashboard-grid` visible                     |
+| **SMK-P9-LOGIN-05** | Change phone resets OTP step         | same · `test('SMK-P9-LOGIN-05')`               | UI only                                             | `#phone` visible · no OTP segment                     |
+| **SMK-P9-LOGIN-06** | Empty phone → field error            | same · `test('SMK-P9-LOGIN-06')`               | BFF 400                                             | `operator-login-phone-error` · no OTP segment         |
+| **SMK-P9-LOGIN-07** | Resend OTP after 45s cooldown        | same · `test('SMK-P9-LOGIN-07')`               | POST request-otp 200                                | Resend button enabled · second challenge              |
+| **SMK-P9-02**       | Wizard create → tour in list         | same · `test('SMK-P9-02')`                     | POST /tours + GET /tours?view=operator              | Tour title in `(app)/tours` card grid                 |
+| **SMK-P9-03**       | Invite → accept → directory          | same · `test('SMK-P9-03')`                     | invite + accept APIs                                | New member row                                        |
+| **SMK-P9-04**       | Pending booking → approve            | same · `test('SMK-P9-04')`                     | POST approve                                        | Status approved badge                                 |
+| **SMK-P9-05**       | Template seed → wizard prefill       | same · `test('SMK-P9-05')`                     | PUT template + GET wizard                           | Field = `SMK-P9-SEED`                                 |
+| **SMK-P9-06**       | Leader review alias (admin session)  | same · `test('SMK-P9-06')`                     | GET `/leader/review` (legacy URL)                   | Inspection table renders                              |
+| **SMK-P9-07**       | Manual booking create                | same · `test('SMK-P9-07')`                     | POST booking create                                 | Row in queue pending                                  |
+| **SMK-P9-08**       | Settings module round-trip           | same · `test('SMK-P9-08')`                     | PUT equipment item                                  | Item visible on reload                                |
+| **SMK-P9-09**       | Finance command center overview      | same · `test('SMK-P9-09')`                     | GET `/finance/reports/summary` BFF                  | KPI strip visible on `/finance`                       |
+| **SMK-P9-10**       | Profile settings save display name   | same · `test('SMK-P9-10')`                     | PATCH `/api/identity/me` BFF                        | Reload retains `displayName`                          |
+| **SMK-P9-11**       | Reconciliation triage page           | same · `test('SMK-P9-11')`                     | GET finance summary + schedules BFF                 | Triage page · empty or findings list                  |
+| **SMK-P9-12**       | Finance prepayments tab (R2)         | same · `test('SMK-P9-12')`                     | GET `/api/finance/prepayments` BFF                  | Prepayments panel · list or empty                     |
+| **SMK-P9-USERS-03** | Ownership transfer panel (R5)        | same · `test('SMK-P9-USERS-03')`               | GET `/api/users` roster                             | Admin candidate in select · submit enabled            |
+| **SMK-P9-USERS-02** | Bulk suspend member (R8)             | same · `test('SMK-P9-USERS-02')`               | PATCH `/api/users/bulk/suspend`                     | Suspended badge on member row                         |
+| **SMK-P9-USERS-01** | Row suspend admin (R1)               | same · `test('SMK-P9-USERS-01')`               | PATCH `/users/{id}/suspend`                         | Suspended badge on admin row                          |
+| **SMK-P9-USERS-04** | Admin OTP blocked (DEC-P9-018)       | same · `test('SMK-P9-USERS-04')`               | BFF `login-web-session` 403 `AUTH_OWNER_PANEL_ONLY` | No session cookie for admin actor                     |
 
 **Supporting artifacts (required):**
 
-| Artifact          | Path                                                        | Role                       |
-| ----------------- | ----------------------------------------------------------- | -------------------------- |
-| Fixture SoT       | `apps/api/test/fixtures/operator-smoke-e2e-tenant.ts`       | Stable UUIDs for SMK-P9-\* |
-| Playwright config | `apps/web/playwright.operator.config.ts`                    | `baseURL` → denali host    |
-| npm script        | `apps/web/package.json` → `test:e2e:operator`               | Invokes operator config    |
-| Login UI          | `apps/web/app/auth/login/page.tsx`                          | OTP flow · `OtpSegmentInput` (4-box) · field errors `operator-login-phone-error` / `operator-login-otp-error` · `operator-login-hydrated` before Playwright interacts |
-| Admin shell       | `apps/web/app/(app)/layout.tsx`                             | Session guard              |
-| Identity API      | `apps/api/src/identity/auth.routes.ts`                      | OTP + session              |
-| Session helper    | `apps/web/test/fixtures/operator-owner-session.ts`            | BFF API login (`request-otp` → `login-web-session`) — sets `session` cookie; `skipDashboard: true` for bookings smoke (SMK-P9-04/07) |
+| Artifact          | Path                                                  | Role                                                                                                                                                                  |
+| ----------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fixture SoT       | `apps/api/test/fixtures/operator-smoke-e2e-tenant.ts` | Stable UUIDs for SMK-P9-\*                                                                                                                                            |
+| Playwright config | `apps/web/playwright.operator.config.ts`              | `baseURL` → denali host                                                                                                                                               |
+| npm script        | `apps/web/package.json` → `test:e2e:operator`         | Invokes operator config                                                                                                                                               |
+| Login UI          | `apps/web/app/auth/login/page.tsx`                    | OTP flow · `OtpSegmentInput` (4-box) · field errors `operator-login-phone-error` / `operator-login-otp-error` · `operator-login-hydrated` before Playwright interacts |
+| Admin shell       | `apps/web/app/(app)/layout.tsx`                       | Session guard                                                                                                                                                         |
+| Identity API      | `apps/api/src/identity/auth.routes.ts`                | OTP + session                                                                                                                                                         |
+| Session helper    | `apps/web/test/fixtures/operator-owner-session.ts`    | BFF API login (`request-otp` → `login-web-session`) — sets `session` cookie; `skipDashboard: true` for bookings smoke (SMK-P9-04/07)                                  |
 
 ---
 
@@ -64,10 +64,10 @@ npm_script: test:e2e:operator
 
 `smoke-operator-e2e-servers.mjs` bootstraps a **self-contained** stack (no Postgres):
 
-| Process | `NODE_ENV` | Required env |
-| ------- | ---------- | ------------ |
-| API     | `test`     | `STORAGE_DRIVER=memory` · `AUTH_ALLOW_DEV_STATIC_OTP=true` · `OPERATOR_SMOKE_E2E_SEED=1` · `P5_VALIDATION_WORKERS_ENABLED=false` · tour seed `North Ridge Trek` at starter `basics.title` (SMK-P9-07) · **`DATABASE_URL` / `DATABASE_URL_ADMIN` stripped** from spawned API env so shell Postgres cannot bind tenant `…0014` to Denali while storage is in-memory · Web uses Denali wizard (tenant `…0014`) but `createTourAction` maps flat `title` → starter canonical for memory API (SMK-P9-02) · `AUTH_JWT_*` from env when both keys set, else script generates ephemeral RS256 pair (see IDENTITY-PORT-SCOPE § Dev JWT bootstrap) |
-| Web     | `development` | `ALLOW_DEV_WEB_SESSION=true` · `TOUR_OPS_API_URL=http://127.0.0.1:3001` |
+| Process | `NODE_ENV`    | Required env                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API     | `test`        | `STORAGE_DRIVER=memory` · `AUTH_ALLOW_DEV_STATIC_OTP=true` · `OPERATOR_SMOKE_E2E_SEED=1` · `P5_VALIDATION_WORKERS_ENABLED=false` · tour seed `North Ridge Trek` at starter `basics.title` (SMK-P9-07) · **`DATABASE_URL` / `DATABASE_URL_ADMIN` stripped** from spawned API env so shell Postgres cannot bind tenant `…0014` to Denali while storage is in-memory · Web uses Denali wizard (tenant `…0014`) but `createTourAction` maps flat `title` → starter canonical for memory API (SMK-P9-02) · `AUTH_JWT_*` from env when both keys set, else script generates ephemeral RS256 pair (see IDENTITY-PORT-SCOPE § Dev JWT bootstrap) |
+| Web     | `development` | `ALLOW_DEV_WEB_SESSION=true` · `TOUR_OPS_API_URL=http://127.0.0.1:3001`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Boot order:** API `/health` → Next `next dev --hostname 127.0.0.1` (spawn after API; background warm: `/` · `/auth/login` · `/bookings/new` for SMK-P9-07). Playwright `webServer.url` probes **API health only** (`3001`) so Playwright readiness does not hammer Next during first compile. `operator-smoke-global-setup.ts` repeats the same warm paths when Playwright owns `webServer`.
 
@@ -86,33 +86,92 @@ export OPERATOR_INVITEE_MOBILE="+15550008803"
 # export REDIS_URL=redis://localhost:6379
 ```
 
+**Local canonical-host note:** the operator surface is canonically served at
+`admin.operator.localhost`. The Playwright config maps this host (and the
+portal/public hostnames) to `127.0.0.1` for local runs, while the smoke server
+injects the operator tenant fallback into the web and API processes. This keeps
+the browser path on the same host contract as deployed routing; a direct
+`127.0.0.1` base URL remains available for isolating application behavior from
+host resolution.
+
 **Verification commands:**
 
 ```bash
-# Playwright (starts memory API + web via smoke-operator-e2e-servers.mjs):
+# Playwright (starts the API + web via smoke-operator-e2e-servers.mjs; DB mode seeds the
+# operator tenant `…014` before its identity/membership):
 pnpm --filter @apps/web run test:e2e:operator
+
+# Optional DB-backed smoke (requires the local Postgres service):
+OPERATOR_SMOKE_USE_DATABASE=1 pnpm --filter @apps/web exec playwright test \
+  tests/e2e/p6-vertical-slice-browser-chain.spec.ts -c playwright.operator.config.ts
 
 # Unit landmarks only (no browser):
 pnpm --filter @apps/web exec node --import tsx --test test/users-directory.spec.ts test/invite-accept.spec.ts
 ```
 
+The operational-roster projection must not fan out unbounded finance reads per booking: the API
+tenant DB semaphore defaults to four concurrent operations, so roster composition is bounded at
+this boundary. A browser smoke failure with `TENANT_DB_BUDGET_EXCEEDED` is a real contract failure,
+not a test-environment flake.
+
+DB-backed mode forces `STORAGE_DRIVER=prisma` for the spawned API; inheriting `memory` while
+seeding Postgres invalidates any persistence claim and is a test harness failure.
+
+The repeated guest-to-operator browser chain uses the dedicated bus transport fixture (`…0213`)
+with a larger test capacity, so it cannot consume the general `North Ridge Trek` capacity used by
+other smoke cases.
+
+### Workspace finance critical browser batch
+
+The following DB-backed batch is the minimum cross-panel proof for the tour workspace finance
+surface. Each scenario creates a fresh registration so old payment, receipt, idempotency, or
+capacity history cannot manufacture a green result:
+
+```bash
+OPERATOR_SMOKE_USE_DATABASE=1 PW_NO_REUSE_SERVER=1 \
+  pnpm --filter @apps/web exec playwright test \
+  tests/e2e/scenario3-tabs-transport-finance-filters.spec.ts \
+  tests/e2e/scenario4-workspace-finance-actions.spec.ts \
+  tests/e2e/scenario5-workspace-finance-submit-receipt.spec.ts \
+  tests/e2e/scenario6-workspace-finance-under-review-gating.spec.ts \
+  tests/e2e/p6-vertical-slice-browser-chain.spec.ts \
+  tests/e2e/p6-operator-receipt-approve-smoke.spec.ts \
+  -c playwright.operator.config.ts
+```
+
+Coverage is explicit: transport roster and finance filters; unpaid finance action surfaces;
+admin prepayment recording and post-settlement receipt-action suppression; pending member receipt
+under-review gating; and the member-receipt → operator-review approval chain. The invoice contract
+also has a unit regression for a fresh unpaid registration: its currency must come from the
+commercial obligation before any payment row exists.
+
+The public registration adapter is a separate proof boundary from the booking-service façade:
+adapter delegation must be tested directly for public auto-approval and approved-seat aggregation,
+so same-name imports cannot silently recurse while façade-only tests remain green. The public
+registration HTTP route must also prove both canonical `manual` (201/pending) and canonical `auto`
+(201/approved) modes through the real workspace HTTP dispatcher.
+
+The operator browser boundary must exercise the queue mutation itself as well: a pending booking
+must move to `waitlisted` through the UI and then be approvable from that same queue. API lifecycle
+coverage alone is insufficient for this requirement.
+
 ---
 
 ## Shared fixture contract (`operator-smoke-e2e-tenant.ts`)
 
-| Key                 | UUID / value                           | Purpose                  |
-| ------------------- | -------------------------------------- | ------------------------ |
-| `tenantId`          | `00000000-0000-4000-8000-000000000014` | Denali workspace tenant  |
-| `ownerUserId`       | `00000000-0000-4000-8000-000000000101` | `role: owner`            |
-| `adminUserId`       | `00000000-0000-4000-8000-000000000102` | `role: admin` · display **Smoke Admin** when `OPERATOR_SMOKE_E2E_SEED=1` |
+| Key                 | UUID / value                           | Purpose                                                                    |
+| ------------------- | -------------------------------------- | -------------------------------------------------------------------------- |
+| `tenantId`          | `00000000-0000-4000-8000-000000000014` | Denali workspace tenant                                                    |
+| `ownerUserId`       | `00000000-0000-4000-8000-000000000101` | `role: owner`                                                              |
+| `adminUserId`       | `00000000-0000-4000-8000-000000000102` | `role: admin` · display **Smoke Admin** when `OPERATOR_SMOKE_E2E_SEED=1`   |
 | `memberUserId`      | `00000000-0000-4000-8000-000000000103` | `role: member` · display **Smoke Member** when `OPERATOR_SMOKE_E2E_SEED=1` |
-| `adminMobile`       | `+15550001002`                         | SMK-P9-USERS-01/03/04    |
-| `memberMobile`      | `+15550001003`                         | SMK-P9-USERS-02          |
-| `seedTourId`        | `00000000-0000-4000-8000-000000000210` | SMK-P9-02 list target    |
-| `pendingBookingId`  | `00000000-0000-4000-8000-000000000310` | SMK-P9-04 approve target |
-| `templateSeedValue` | `SMK-P9-SEED`                          | SMK-P9-05 wizard prefill |
-| `inviteMobile`      | `+15550008803`                         | SMK-P9-03 invitee (no membership until accept) |
-| `inviteeUserId`     | `00000000-0000-4000-8000-000000000195` | SMK-P9-03 accept target |
+| `adminMobile`       | `+15550001002`                         | SMK-P9-USERS-01/03/04                                                      |
+| `memberMobile`      | `+15550001003`                         | SMK-P9-USERS-02                                                            |
+| `seedTourId`        | `00000000-0000-4000-8000-000000000210` | SMK-P9-02 list target                                                      |
+| `pendingBookingId`  | `00000000-0000-4000-8000-000000000310` | SMK-P9-04 approve target                                                   |
+| `templateSeedValue` | `SMK-P9-SEED`                          | SMK-P9-05 wizard prefill                                                   |
+| `inviteMobile`      | `+15550008803`                         | SMK-P9-03 invitee (no membership until accept)                             |
+| `inviteeUserId`     | `00000000-0000-4000-8000-000000000195` | SMK-P9-03 accept target                                                    |
 
 Import: `import { OPERATOR_SMOKE } from './fixtures/operator-smoke-e2e-tenant.ts'`
 
@@ -306,3 +365,7 @@ Admin PATCH `/urban/settings` must remain **403** URBAN_OWNER_REQUIRED.
 | AH-9.8-02 | Dashboard reachable without login → **FAIL** INV-P9-007 |
 | AH-9.8-03 | Finance smoke on urban tenant → **FAIL** DEC-P9-002     |
 | AH-9.8-04 | Doc-guard-only closure → **FAIL** P9-F-009              |
+
+The member registrations BFF and its SSR fetcher must fail closed on an upstream booking error. Returning HTTP 200 with an empty list, or catching that response as `[]`, is forbidden because it converts an API, auth, or tenant failure into a false “no registrations” state; the route must return a non-success response with a stable upstream error code and the SSR layer must surface the failure.
+
+Cross-surface URL builders must treat an IPv4 ingress host as an IP literal, not as a tenant subdomain. On raw-IP staging, `portal.<IP>` is invalid; the generated Portal URL must retain the IP and switch only to the Portal port unless an explicit configured base URL exists.

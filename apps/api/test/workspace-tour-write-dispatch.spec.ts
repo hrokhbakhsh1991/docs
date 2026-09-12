@@ -11,6 +11,7 @@ import {
   assertTourPublishFieldOwner,
   mergeCanonicalPatchDataForWorkspace,
   operatorMemberTourPatchForbidden,
+  operatorTourPatchForbiddenForRole,
   tourPublishFieldOwnerSurface,
 } from "../src/tours/workspace-tour-write-dispatch";
 
@@ -24,6 +25,14 @@ describe("workspace-tour-write-dispatch.spec.ts — P15-P-B4", () => {
     assert.equal(operatorMemberTourPatchForbidden("denali"), true);
     assert.equal(operatorMemberTourPatchForbidden("urban"), false);
     assert.equal(operatorMemberTourPatchForbidden("starter"), false);
+  });
+
+  it("API-P15-B4-02b operatorTourPatchForbiddenForRole blocks denali member and viewer", () => {
+    assert.equal(operatorTourPatchForbiddenForRole("denali", "member"), true);
+    assert.equal(operatorTourPatchForbiddenForRole("denali", "viewer"), true);
+    assert.equal(operatorTourPatchForbiddenForRole("denali", "admin"), false);
+    assert.equal(operatorTourPatchForbiddenForRole("denali", "owner"), false);
+    assert.equal(operatorTourPatchForbiddenForRole("urban", "viewer"), false);
   });
 
   it("API-P15-B4-03 assertTourPublishFieldOwner rejects urban member on publish surface", () => {

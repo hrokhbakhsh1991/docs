@@ -137,6 +137,12 @@ describe("TODO-006 booking approve → outbox relay effect", { concurrency: fals
     try {
       await admin.outboxEvent.deleteMany({ where: { tenantId } });
       await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+      // Engagement point events are intentionally append-only. This test owns
+      // an isolated database in CI, so truncate the engagement projection
+      // before deleting its tenant instead of violating the production guard.
+      await admin.$executeRawUnsafe(
+        "TRUNCATE member_engagement_badges, engagement_point_events, engagement_profiles"
+      );
       await admin.tenant.deleteMany({ where: { id: tenantId } });
     } finally {
       await admin.$disconnect();

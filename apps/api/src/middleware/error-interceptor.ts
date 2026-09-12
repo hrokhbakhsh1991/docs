@@ -41,6 +41,12 @@ import {
   FINANCE_WORKSPACE_UNSUPPORTED,
   isFinanceWorkspaceUnsupportedError,
 } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
+import {
+  isWalletWorkspaceUnsupportedError,
+  WALLET_WORKSPACE_UNSUPPORTED,
+} from "../workspace-wallet/resolve-wallet-workspace-type-for-tenant";
+import { FORBIDDEN_MEMBER_MODULE_WALLET } from "../workspace-wallet/assert-wallet-member-entitlement";
+import { FORBIDDEN_WALLET_MODULE_DISABLED } from "@app-tour/workspace-sdk/wallet";
 import { sendJson, isMalformedJsonBodyError, INVALID_JSON } from "../http/json";
 import { isResponseTooLargeError, RESPONSE_TOO_LARGE } from "../http/http-response-size-budget";
 import {
@@ -273,6 +279,22 @@ function mapErrorMessageToStatus(message: string): number {
   ) {
     return 404;
   }
+  if (
+    message === WALLET_WORKSPACE_UNSUPPORTED ||
+    message.startsWith(`${WALLET_WORKSPACE_UNSUPPORTED}:`)
+  ) {
+    return 404;
+  }
+  if (message === FORBIDDEN_WALLET_MODULE_DISABLED) return 403;
+  if (message === FORBIDDEN_MEMBER_MODULE_WALLET) return 403;
+  if (message === "WALLET_INVALID_AMOUNT" || message === "WALLET_INVALID_CURRENCY") return 400;
+  if (message === "WALLET_CURRENCY_MISMATCH") return 400;
+  if (message === "WALLET_INSUFFICIENT_FUNDS") return 409;
+  if (message === "WALLET_ACCOUNT_NOT_ACTIVE") return 409;
+  if (message === "WALLET_TRANSACTION_ALREADY_POSTED") return 409;
+  if (message === "WALLET_REVERSAL_INVALID") return 409;
+  if (message === "WALLET_OWNERSHIP_MISMATCH") return 404;
+  if (message === "WALLET_IDEMPOTENCY_CONFLICT") return 409;
   if (message.startsWith("BOOKING_WORKSPACE_UNSUPPORTED")) return 404;
   if (message.startsWith("BOOKING_VALIDATION_REJECTED")) return 400;
   if (message.startsWith("BOOKING_VALIDATION_FAILED")) return 400;
@@ -315,6 +337,9 @@ function mapErrorMessageToStatus(message: string): number {
   ) {
     return 409;
   }
+  if (message === "REFUND_WALLET_NOT_COMPLETED") return 409;
+  if (message === "REFUND_WALLET_MEMBER_OWNER_MISSING") return 400;
+  if (message === "REFUND_WALLET_UNSUPPORTED") return 404;
   // PR23-A3 — cancel command; NOT_IN_SCOPE collapses to same 404 (no tenant leak).
   if (message === "PAYMENT_NOT_FOUND" || message === "PAYMENT_NOT_IN_SCOPE") return 404;
   if (message === "PAYMENT_CANCEL_REASON_INVALID") return 400;
@@ -434,6 +459,16 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       res,
       404,
       { error: FINANCE_WORKSPACE_UNSUPPORTED, code: FINANCE_WORKSPACE_UNSUPPORTED },
+      correlationId
+    );
+    return;
+  }
+
+  if (isWalletWorkspaceUnsupportedError(error)) {
+    sendHttpError(
+      res,
+      404,
+      { error: WALLET_WORKSPACE_UNSUPPORTED, code: WALLET_WORKSPACE_UNSUPPORTED },
       correlationId
     );
     return;

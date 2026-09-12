@@ -20,6 +20,22 @@ describe("member-profile-contract-alignment.spec.ts", () => {
     assert.match(resolved, /member-profile-contract-v1\.snapshot\.json$/);
   });
 
+  it("MP-SNAPSHOT-03 resolves src/me snapshot when cwd is apps/portal", async () => {
+    const portalCwd = join(dirname(fileURLToPath(import.meta.url)), "..");
+    const snapshotPath = join(portalCwd, "src/me/member-profile-contract-v1.snapshot.json");
+    assert.equal(existsSync(snapshotPath), true);
+    const previousCwd = process.cwd();
+    process.chdir(portalCwd);
+    try {
+      const { resolveMemberProfileContractSnapshotPath } = await import(
+        "../src/me/member-profile-contract-alignment.server"
+      );
+      assert.equal(resolveMemberProfileContractSnapshotPath(), snapshotPath);
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
   it("MP-SNAPSHOT-02 MEMBER_PROFILE_CONTRACT_SNAPSHOT_PATH env override", async () => {
     const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
     const tmpDir = join(repoRoot, ".artifact-test-snapshot-override");

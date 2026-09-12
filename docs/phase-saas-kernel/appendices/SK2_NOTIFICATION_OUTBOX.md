@@ -112,6 +112,18 @@ flowchart LR
 - Moving JWT / tenant ingress into notification code  
 - Full `phase-*:gate` without YES  
 
+### SK2.D+ — Unified member inbox (IMPL authorized 2026-09-04)
+
+| Field | Value |
+| ----- | ----- |
+| Unlock | **IMPL-SK2.D+** — explicit user authorization (FDA `ticketing-system-complete`) |
+| Charter | [member-notification-inbox.mdoc](../../standards/member-notification-inbox.mdoc) |
+| Implementation notes | [SK2_D_MEMBER_INBOX.md](./SK2_D_MEMBER_INBOX.md) |
+| Tables | `member_notifications`, `member_notification_deliveries` |
+| API | `/member/notifications` aggregate |
+
+**Reconciliation:** SK2.D listed unified inbox as deferred. User authorization on 2026-09-04 unlocks implementation on `feature/ticketing-system` without creating a hollow kernel package.
+
 ---
 
 ## 5. Definition of Done — SK2 (tranche)

@@ -136,8 +136,9 @@
     "hasPersonalCarQuestion": "Do you have a personal car?",
     "hasPersonalCarYes": "Yes",
     "hasPersonalCarNo": "No",
-    "personalCarOccupantsLabel": "How many people (including you)?",
+    "personalCarOccupantsLabel": "How many companions can you take?",
     "personalCarOccupants": {
+      "0": "Driver only (no companion)",
       "1": "1 person",
       "2": "2 people",
       "3": "3 people"

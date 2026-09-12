@@ -70,36 +70,35 @@ export async function buildRegistrationResumeInitialState(
     typeof fields.mobile === "string" && fields.mobile.trim().length > 0
       ? fields.mobile.trim()
       : null;
-  const memberMobile = memberMobileRaw !== null
-    ? (guestLoginPhoneFieldValue(memberMobileRaw) || null)
-    : null;
+  const memberMobile =
+    memberMobileRaw !== null ? guestLoginPhoneFieldValue(memberMobileRaw) || null : null;
 
   return Object.freeze({
     memberMobile,
     initialState: Object.freeze({
       currentStep: "intake",
       data: Object.freeze({
-      phone: memberMobile ?? initialPublicRegistrationPhone(),
-      otp: initialPublicRegistrationOtp(),
-      challengeId: "",
-      onboardingToken: "",
-      displayName: sessionDisplayName,
-      profileEmail: resolvedEmail,
-      sessionEmail: resolvedEmail,
-      sessionNationalId: defaults.nationalId,
-      sessionFatherName: defaults.fatherName,
-      sessionBirthDate: defaults.birthDate,
-      savedSelfIntakeDefaults: defaults,
-      intakeName: defaults.name,
-      intakeNationalId: defaults.nationalId,
-      intakeFatherName: defaults.fatherName,
-      intakeBirthDate: defaults.birthDate,
-      intakeEmail: resolvedEmail,
-      intakePhone: "",
-      partySize: "1",
-      notes: "",
-      registrantTarget: "self",
-      transportState: emptyTransportState(),
+        phone: memberMobile ?? initialPublicRegistrationPhone(),
+        otp: initialPublicRegistrationOtp(),
+        challengeId: "",
+        onboardingToken: "",
+        displayName: sessionDisplayName,
+        profileEmail: resolvedEmail,
+        sessionEmail: resolvedEmail,
+        sessionNationalId: defaults.nationalId,
+        sessionFatherName: defaults.fatherName,
+        sessionBirthDate: defaults.birthDate,
+        savedSelfIntakeDefaults: defaults,
+        intakeName: defaults.name,
+        intakeNationalId: defaults.nationalId,
+        intakeFatherName: defaults.fatherName,
+        intakeBirthDate: defaults.birthDate,
+        intakeEmail: resolvedEmail,
+        intakePhone: "",
+        partySize: "1",
+        notes: "",
+        registrantTarget: "self",
+        transportState: emptyTransportState(),
       }),
     }),
   });

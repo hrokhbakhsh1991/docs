@@ -63,6 +63,7 @@ export const USERS_DIRECTORY_TEST_IDS = {
   memberDetailLoading: "operator-users-member-detail-loading",
   memberDetailHistory: "operator-users-member-history",
   memberDetailTrips: "operator-users-member-trips",
+  memberDetailEngagement: "operator-users-member-engagement",
   memberCard: "operator-users-member-card",
   bulkToolbar: "operator-users-bulk-toolbar",
   bulkRoleSelect: "operator-users-bulk-role-select",

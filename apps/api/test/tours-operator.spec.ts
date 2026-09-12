@@ -77,6 +77,15 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
       sessionVersion: 1,
       workspaceId: "ws-operator-member",
     });
+    repo.seedUser({ id: OPERATOR_SMOKE.viewerUserId, mobile: "+15550001004" });
+    repo.seedMembership({
+      userId: OPERATOR_SMOKE.viewerUserId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      role: "viewer",
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: "ws-operator-viewer",
+    });
     repo.seedMembership({
       userId: OPERATOR_SMOKE.ownerUserId,
       tenantId: DENALI_SMOKE_TENANT_ID,
@@ -312,6 +321,26 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.memberUserId,
         "x-actor-role": "member",
+      },
+      body: { data: { basics: { title: "Denied" } }, rowVersion: 1 },
+    });
+    assert.equal(patch.status, 403);
+    assert.equal(patch.body.code, "OPERATOR_TOUR_WRITE_FORBIDDEN");
+  });
+
+  it("API-9.3-02b viewer PATCH tour returns 403", async () => {
+    const created = await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Viewer patch target"),
+    });
+    assert.equal(created.status, 201);
+    const tourId = String(created.body.id);
+
+    const patch = await client.requestJson<OperatorListResponse>("PATCH", `/tours/${tourId}`, {
+      headers: {
+        ...operatorAuthHeaders(),
+        "x-user-id": OPERATOR_SMOKE.viewerUserId,
+        "x-actor-role": "viewer",
       },
       body: { data: { basics: { title: "Denied" } }, rowVersion: 1 },
     });

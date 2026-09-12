@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # P10 — remote staging gate (loopback 4/4 + Profile B regression)
-# Usage: VPS_HOST=89.45.89.206 pnpm run p10:staging-gate
+# Usage: VPS_HOST=89.42.210.252 pnpm run p10:staging-gate
 set -euo pipefail
 
 if [[ -z "${VPS_HOST:-}" ]]; then

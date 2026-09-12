@@ -35,7 +35,7 @@ export type TourOperationalRosterRow = {
   readonly paymentDueAt: string | null;
   readonly holdStatus: string | null;
   readonly transportKind: BookingTransportKind | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly isDriverOffer: boolean;
   readonly passengerAssignmentStatus: OperationalRosterPassengerAssignmentStatus;
   readonly refundDisplayState: OperationalRosterRefundDisplayState;
