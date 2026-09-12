@@ -56,6 +56,7 @@ export function OperatorNav({
   const pathname = useAppPathname();
   const tNav = useTranslations("nav");
   const tTours = useTranslations("tours.shell");
+  const tSettings = useTranslations("settings");
   const tApp = useTranslations("app");
   const CollapseIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
 
@@ -97,13 +98,14 @@ export function OperatorNav({
         <ul data-operator-nav-list>
           {items.map((item) => {
             const active =
-              pathname !== null &&
-              (pathname === item.href || pathname.startsWith(`${item.href}/`));
+              pathname !== null && (pathname === item.href || pathname.startsWith(`${item.href}/`));
             const Icon = NAV_ICONS[item.pathKey];
             const label =
               item.labelNamespace === "tours.shell" && item.labelKey !== undefined
                 ? tTours(item.labelKey)
-                : tNav(item.labelKey ?? item.pathKey);
+                : item.labelNamespace === "settings" && item.labelKey !== undefined
+                  ? tSettings(`${item.labelKey.replace(/^settings\./u, "modules.")}.title` as never)
+                  : tNav(item.labelKey ?? item.pathKey);
             return (
               <li key={item.pathKey} data-operator-nav-item>
                 <Link

@@ -35,20 +35,23 @@ test.describe("tour-creation-wizard-map.spec.ts — wizard map UX", () => {
     await expectWizardMapPreview(page, GATHERING_MAP_KEY);
     await openWizardMap(page, GATHERING_MAP_KEY);
 
+    await expect(page.getByTestId(`denali-wizard-map-close-${GATHERING_MAP_KEY}`)).toBeVisible();
+
     await clickExpandedWizardMap(page, GATHERING_MAP_KEY);
-    await expect(page.getByTestId(`denali-location-${GATHERING_MAP_KEY}-coords-badge`)).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(page.getByTestId(`denali-location-${GATHERING_MAP_KEY}-coords-badge`)).toBeVisible(
+      {
+        timeout: 30_000,
+      }
+    );
 
     const coordsBeforeClose = await page
       .getByTestId(`denali-location-${GATHERING_MAP_KEY}-coords-badge`)
       .innerText();
 
     await closeWizardMap(page, GATHERING_MAP_KEY);
-    await expect(page.getByTestId(`denali-wizard-map-experience-${GATHERING_MAP_KEY}`)).toHaveAttribute(
-      "data-wizard-map-expanded",
-      "false"
-    );
+    await expect(
+      page.getByTestId(`denali-wizard-map-experience-${GATHERING_MAP_KEY}`)
+    ).toHaveAttribute("data-wizard-map-expanded", "false");
     await expect(page.getByTestId(`denali-location-${GATHERING_MAP_KEY}-coords-badge`)).toHaveText(
       coordsBeforeClose
     );
@@ -63,7 +66,9 @@ test.describe("tour-creation-wizard-map.spec.ts — wizard map UX", () => {
     await expectWizardTitlePreserved(page, title);
   });
 
-  test("TC-MAP-02 mobile: gathering map fullscreen dialog is usable at 390×844", async ({ page }) => {
+  test("TC-MAP-02 mobile: gathering map fullscreen dialog is usable at 390×844", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const title = `TC-MAP-02 Mobile ${Date.now()}`;
     await prepareDenaliTourWizard(page);

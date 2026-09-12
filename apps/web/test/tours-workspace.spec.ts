@@ -129,6 +129,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       join(root, "app/(app)/tours/[id]/workspace/tour-workspace-tab-panels.tsx"),
       "utf8"
     );
+    const chrome = readFileSync(
+      join(root, "src/features/tours/tour-workspace-chrome-context.tsx"),
+      "utf8"
+    );
 
     assert.match(layout, /activeTab\s*\}\s*=\s*useTourWorkspaceChrome\(\)/);
     assert.match(layout, /role="tablist"/);
@@ -139,6 +143,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(panels, /aria-labelledby="tour-workspace-tab-registrations"/);
     assert.match(panels, /aria-labelledby="tour-workspace-tab-waitlist"/);
     assert.match(panels, /aria-labelledby="tour-workspace-tab-transport"/);
+    assert.match(chrome, /router\.replace\(nextPath, \{ scroll: false \}\)/);
+    assert.doesNotMatch(chrome, /window\.history\.replaceState\(window\.history\.state/);
   });
 
   it("WEB-9.3-W04 waitlist query scopes bookings API to tour + waitlisted (CP-9.3-W05)", () => {

@@ -78,6 +78,10 @@ export function sanitizeNotificationTitle(title: string): string {
   return title.replace(/\s*\([^)]*\)\s*$/u, "").trim();
 }
 
+function isRawTranslationKey(value: string): boolean {
+  return /^(?:notification|portalMember|tickets|settings|nav|common)(?:[._]|$)/u.test(value.trim());
+}
+
 export function resolveNotificationBodyForLocale(input: {
   readonly title: string;
   readonly body: string;
@@ -87,7 +91,7 @@ export function resolveNotificationBodyForLocale(input: {
   readonly genericFallback: string;
 }): string {
   const body = input.body.trim();
-  if (body.startsWith("notification.")) {
+  if (isRawTranslationKey(body)) {
     return input.genericFallback;
   }
   if (input.locale.startsWith("fa")) {

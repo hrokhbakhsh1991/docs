@@ -6,15 +6,15 @@
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"] {
-  --denali-ledger-cream: #f6f1ea;
+  --denali-ledger-cream: var(--color-bg-page, #f6f1ea);
   --denali-ledger-ink: var(--color-text-primary, #1a1f26);
-  --denali-ledger-muted: #5c656e;
-  --denali-ledger-line: #c9c4bb;
-  --denali-ledger-hair: #ddd6cc;
-  --denali-ledger-forest: var(--denali-forest-700, #047857);
-  --denali-ledger-forest-600: var(--denali-forest-600, #059669);
-  --denali-ledger-surface: #fffdf9;
-  --denali-ledger-danger: #b42318;
+  --denali-ledger-muted: var(--color-text-secondary, #5c656e);
+  --denali-ledger-line: var(--color-border-default, #c9c4bb);
+  --denali-ledger-hair: var(--color-border-subtle, #ddd6cc);
+  --denali-ledger-forest: var(--denali-forest-700, var(--color-primary, #047857));
+  --denali-ledger-forest-600: var(--denali-forest-600, var(--color-primary, #059669));
+  --denali-ledger-surface: var(--color-bg-surface, #fffdf9);
+  --denali-ledger-danger: var(--color-danger, #b42318);
   --denali-ledger-radius: 10px;
   --denali-ledger-field: 52px;
   --portal-auth-layout-max: 67.5rem;
@@ -35,7 +35,11 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-portal-auth-backdrop] {
   background:
-    radial-gradient(900px 380px at 8% -12%, #e4eee6 0%, transparent 55%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--denali-ledger-forest) 7%, transparent),
+      transparent 42%
+    ),
     var(--denali-ledger-cream);
 }
 
@@ -282,7 +286,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-denali-intake-layout] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 17.5rem;
-  gap: 2.75rem;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
   align-items: start;
   margin-top: 1.5rem;
 }
@@ -452,9 +456,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  padding: 0;
-  border: 0;
-  background: none;
+  padding: 1rem;
+  border: 1px solid var(--denali-ledger-hair);
+  border-radius: var(--denali-ledger-radius);
+  background: var(--denali-ledger-surface);
   box-shadow: none;
 }
 
@@ -462,8 +467,12 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-denali-other-guest-card] + [data-denali-other-guest-card] {
   margin-top: 0.85rem;
-  padding-top: 0.85rem;
-  border-top: 1px dashed var(--denali-ledger-hair);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-other-guest-card]:focus-within {
+  border-color: color-mix(in srgb, var(--denali-ledger-forest-600) 62%, var(--denali-ledger-hair));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -496,7 +505,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #3d4650;
+  color: var(--denali-ledger-ink);
   margin: 0 0 0.4rem;
 }
 
@@ -529,6 +538,18 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-public-registration-intake]
   input[aria-invalid="true"] {
   border-color: var(--denali-ledger-danger);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-public-registration-intake]
+  input[type="checkbox"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-public-registration-intake]
+  input[type="radio"] {
+  accent-color: var(--denali-ledger-forest-600);
+  flex: 0 0 auto;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -744,7 +765,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   li {
   font-size: 14px;
   padding: 0.4rem 0;
-  border-top: 1px solid #e6e0d8;
+  border-top: 1px solid var(--denali-ledger-hair);
   overflow-wrap: anywhere;
 }
 

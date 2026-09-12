@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   buildWorkspaceTabReplacePath,
@@ -45,6 +45,7 @@ export function TourWorkspaceChromeProvider({
   children,
 }: TourWorkspaceChromeProviderProps) {
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const searchParams = useSearchParams();
   const workspacePath = workspaceBasePath(tourId);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -74,11 +75,12 @@ export function TourWorkspaceChromeProvider({
         return;
       }
       setActiveTab(tab);
-      // Workspace tabs are keep-alive client panels. Keep the immediate panel state local while
-      // preserving the URL as a shareable deep-link without triggering an RSC navigation.
-      window.history.replaceState(window.history.state, "", nextPath);
+      // Keep the App Router snapshot and the immediate panel state in sync. A raw
+      // history.replaceState leaves the old `tab` query in useSearchParams, which makes
+      // the default registrations tab snap back after selection.
+      router.replace(nextPath, { scroll: false });
     },
-    [pathname, searchParams, workspacePath]
+    [pathname, router, searchParams, workspacePath]
   );
 
   const value = useMemo(

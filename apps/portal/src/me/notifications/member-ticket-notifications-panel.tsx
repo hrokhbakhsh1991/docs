@@ -31,6 +31,11 @@ type ListResponse = {
   readonly nextCursor?: string | null;
 };
 
+function isRawTranslationKey(value: string): boolean {
+  const trimmed = value.trim();
+  return /^(?:notification|portalMember|tickets|settings|nav|common)(?:[._]|$)/u.test(trimmed);
+}
+
 function resolveLocalizedCopy(
   item: NotificationItem,
   locale: string
@@ -50,11 +55,15 @@ function resolveNotificationTitle(
   t: ReturnType<typeof useTranslations<"portalMember.notifications">>
 ): string {
   const localizedTitle = locale.startsWith("fa") ? item.payload?.titleFa : undefined;
-  if (typeof localizedTitle === "string" && localizedTitle.trim().length > 0) {
+  if (
+    typeof localizedTitle === "string" &&
+    localizedTitle.trim().length > 0 &&
+    !isRawTranslationKey(localizedTitle)
+  ) {
     return localizedTitle.trim();
   }
   const rawTitle = item.title.trim();
-  if (rawTitle.length > 0 && !rawTitle.startsWith("notification.")) {
+  if (rawTitle.length > 0 && !isRawTranslationKey(rawTitle)) {
     return rawTitle;
   }
   const eventTitleKeys: Record<string, string> = {
@@ -81,10 +90,12 @@ function resolveNotificationTitle(
 }
 
 function resolveNotificationHref(item: NotificationItem): string {
-  if (item.entityType === "ticket") {
-    const ticketId = item.entityId ?? item.ticketId;
+  if (item.entityType === "ticket" || item.eventType.startsWith("ticket.")) {
+    const payloadTicketId =
+      typeof item.payload?.ticketId === "string" ? item.payload.ticketId : undefined;
+    const ticketId = item.entityId ?? item.ticketId ?? payloadTicketId;
     if (typeof ticketId === "string" && ticketId.length > 0) {
-      return `/me/tickets/${ticketId}`;
+      return `/me/tickets/${encodeURIComponent(ticketId)}`;
     }
   }
   if (item.entityType === "registration") {
@@ -291,6 +302,7 @@ export function MemberNotificationsPanel() {
             const unread = item.readAt === null;
             const Icon = resolveNotificationSourceIcon(item.sourceModule, item.eventType);
             const href = resolveNotificationHref(item);
+            const readOnly = href === "/me/notifications";
             const sourceLabel = resolveSourceLabel(item.sourceModule, t);
             const socialMediaLink =
               item.eventType === "registration.approved" &&
@@ -311,7 +323,10 @@ export function MemberNotificationsPanel() {
                     href={href}
                     data-portal-member-notification-link
                     aria-describedby={`notification-time-${item.id}`}
-                    onClick={() => {
+                    onClick={(event) => {
+                      if (readOnly) {
+                        event.preventDefault();
+                      }
                       if (unread) void markRead(item.id);
                     }}
                   >

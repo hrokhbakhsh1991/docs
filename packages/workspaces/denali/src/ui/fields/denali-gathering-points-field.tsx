@@ -57,6 +57,11 @@ export function DenaliGatheringPointsField({
   };
 
   const readCurrentOrScaffold = (): DenaliGatheringPoint[] => {
+    // The local editor state is authoritative while the parent draft update is
+    // propagating. Reading only draftRef here loses a row on consecutive adds.
+    if (localPoints !== null && localPoints.length > 0) {
+      return localPoints;
+    }
     const current = resolveDenaliGatheringPointsFromStorage(
       getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_CANONICAL_PATH),
       getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_NESTED_PATH)

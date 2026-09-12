@@ -29,6 +29,14 @@ type Props = {
   readonly onRetry: () => void;
 };
 
+function resolveTicketLabel(
+  t: ReturnType<typeof useTranslations<"tickets">>,
+  key: string,
+  fallback: string
+): string {
+  return t.has(key) ? t(key) : fallback;
+}
+
 async function patchTicket(
   ticketId: string,
   body: Record<string, unknown>
@@ -259,16 +267,20 @@ export function OperatorTicketsDetailPanel({
         <div className="flex flex-wrap items-center gap-2 text-sm text-foreground/80">
           <OperatorStatusBadge>
             <span aria-hidden="true">{detail.ticket.statusIcon}</span>{" "}
-            {t(detail.ticket.statusLabelKey)}
+            {resolveTicketLabel(t, detail.ticket.statusLabelKey, detail.ticket.status)}
           </OperatorStatusBadge>
-          <span>{t(detail.ticket.priorityLabelKey)}</span>
-          <span>{t(detail.ticket.categoryLabelKey)}</span>
+          <span>
+            {resolveTicketLabel(t, detail.ticket.priorityLabelKey, detail.ticket.priority)}
+          </span>
+          <span>
+            {resolveTicketLabel(t, detail.ticket.categoryLabelKey, detail.ticket.categoryCode)}
+          </span>
           <span>{detail.ticket.requesterLabel}</span>
         </div>
         {canMutate ? (
           <div className="flex flex-wrap gap-2" data-operator-tickets-actions>
-            <label className="text-xs">
-              <span className="sr-only">{t("actionPriority")}</span>
+            <label className="operator-tickets-action-field">
+              <span>{t("actionPriority")}</span>
               <select
                 defaultValue={detail.ticket.priority}
                 onChange={(event) => void runPriority(event.target.value)}
