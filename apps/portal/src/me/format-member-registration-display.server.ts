@@ -12,6 +12,7 @@ const BOOKING_STATUSES = [
 ] as const;
 
 const PAYMENT_STATUSES = ["unpaid", "partial", "paid"] as const;
+const MEMBER_PAYMENT_DISPLAY_STATUSES = [...PAYMENT_STATUSES, "waived"] as const;
 
 function translateKnownKey(
   translate: (key: string) => string,
@@ -47,8 +48,34 @@ export async function localizeMemberRegistrationStatus(
 }
 
 export async function localizeMemberPaymentStatus(
-  paymentStatus: string
+  paymentStatus: string,
+  financialDisplayState?: string,
 ): Promise<string> {
   const t = await getTranslations("portalMember.registrations.paymentStatusLabels");
-  return translateKnownKey((key) => t(key), paymentStatus, PAYMENT_STATUSES);
+  const displayStatus = financialDisplayState === "WAIVED" ? "waived" : paymentStatus;
+  return translateKnownKey((key) => t(key), displayStatus, MEMBER_PAYMENT_DISPLAY_STATUSES);
+}
+
+export async function localizeMemberFinalizationStatus(
+  registrationStatus: string,
+  paymentStatus: string,
+  financialDisplayState?: string,
+): Promise<string | null> {
+  if (registrationStatus.trim().toLowerCase() !== "approved") {
+    return null;
+  }
+  const t = await getTranslations("portalMember.registrations");
+  if (financialDisplayState === "WAIVED") {
+    return t("paymentProgress.waived");
+  }
+  if (financialDisplayState === "PARTIALLY_PAID" || paymentStatus.trim().toLowerCase() === "partial") {
+    return t("paymentProgress.partial");
+  }
+  if (financialDisplayState === "UNPAID" || paymentStatus.trim().toLowerCase() === "unpaid") {
+    return t("paymentProgress.unpaid");
+  }
+  if (paymentStatus.trim().toLowerCase() === "paid") {
+    return t("paymentProgress.paid");
+  }
+  return null;
 }

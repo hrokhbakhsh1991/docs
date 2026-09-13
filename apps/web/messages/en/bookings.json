@@ -211,6 +211,7 @@
     "transportNoCompanion": "Driver only (no companion)"
   },
   "approve": "Approve",
+  "approveAndRequestPayment": "Approve and request payment",
   "reject": "Reject",
   "rejectRegistration": "Reject registration",
   "approveAwaitingPayment": "Approve — payment pending",

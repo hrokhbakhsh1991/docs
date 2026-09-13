@@ -25,6 +25,7 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /readonly registrantTarget\?:/);
     assert.match(fetchModule, /readonly transportKind\?:/);
     assert.match(fetchModule, /readonly personalCarOccupants\?:/);
+    assert.match(fetchModule, /financialDisplayState\?: "WAIVED"/);
     assert.match(
       readFileSync(
         join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
@@ -74,6 +75,9 @@ describe("portal-member-registrations", () => {
     assert.match(page, /data-portal-member-registrations-filter/);
     assert.match(page, /data-portal-member-registration-row/);
     assert.match(page, /data-portal-member-registration-status-badge/);
+    assert.match(page, /localizeMemberFinalizationStatus/);
+    assert.match(page, /data-portal-member-registration-payment-progress/);
+    assert.match(page, /item\.financialDisplayState/);
     assert.match(page, /data-portal-member-registrations-empty-cta/);
     assert.match(page, /fetchMemberRegistrations/);
     assert.match(page, /RegistrantListFilter/);
@@ -138,6 +142,8 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-preview/);
     assert.match(form, /selectedFile === undefined/);
     assert.match(form, /data-portal-member-receipt-file-picker/);
+    assert.match(form, /t\("noFileSelected"\)/);
+    assert.match(form, /t\("chooseFile"\)/);
     assert.match(form, /data-closed-reason/);
     assert.match(form, /createObjectURL/);
     const closedAt = form.indexOf('registrationStatus === "rejected"');
@@ -298,6 +304,8 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"waivedTitle"/);
     assert.match(fa, /"cancelledTitle"/);
     assert.match(en, /"cancelledTitle"/);
+    assert.match(fa, /"paymentProgress"/);
+    assert.match(en, /"paymentProgress"/);
     assert.match(fa, /"viewTour"/);
     assert.match(en, /"viewTour"/);
     assert.match(fa, /"forOtherBadge"/);

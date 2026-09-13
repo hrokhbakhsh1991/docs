@@ -38,6 +38,12 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
     description: "Payment projection on booking list/create (booking-http-contracts).",
     examples: ["unpaid"],
   },
+  BookingFinalizationStatus: {
+    type: "string",
+    enum: ["not_final", "finalized"],
+    description: "Whether an approved booking is included in the final roster.",
+    examples: ["finalized"],
+  },
   BookingsListView: {
     type: "string",
     enum: ["ops", "mine"],
@@ -320,6 +326,24 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         id: "00000000-0000-4000-8000-000000000891",
         status: "approved",
         approvedAt: "2026-07-20T12:00:00.000Z",
+      },
+    ],
+  },
+  FinalizeBookingResponse: {
+    type: "object",
+    required: ["id", "status", "finalizationStatus", "finalizedAt"],
+    properties: {
+      id: ref("BookingId"),
+      status: ref("BookingStatus"),
+      finalizationStatus: ref("BookingFinalizationStatus"),
+      finalizedAt: { type: "string", format: "date-time", examples: ["2026-07-20T12:30:00.000Z"] },
+    },
+    examples: [
+      {
+        id: "00000000-0000-4000-8000-000000000891",
+        status: "approved",
+        finalizationStatus: "finalized",
+        finalizedAt: "2026-07-20T12:30:00.000Z",
       },
     ],
   },
@@ -726,6 +750,23 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       ...authErrorResponses,
       ...notFoundConflictResponses,
       ...capacityConflictResponses,
+    },
+  },
+  finalizeBooking: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Approved booking added to the final roster",
+        content: jsonContent("FinalizeBookingResponse", {
+          id: "00000000-0000-4000-8000-000000000891",
+          status: "approved",
+          finalizationStatus: "finalized",
+          finalizedAt: "2026-07-20T12:30:00.000Z",
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
     },
   },
   rejectBooking: {

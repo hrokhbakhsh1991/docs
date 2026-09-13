@@ -576,10 +576,42 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       return null;
     }
     const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
-    if (next === row.paymentStatus) {
+    const finalizationStatus =
+      row.status === "approved" && next === "paid" ? "finalized" : row.finalizationStatus;
+    if (next === row.paymentStatus && finalizationStatus === row.finalizationStatus) {
       return cloneBooking(row);
     }
-    const updated: BookingRecord = { ...row, paymentStatus: next };
+    const updated: BookingRecord = {
+      ...row,
+      paymentStatus: next,
+      ...(finalizationStatus !== undefined ? { finalizationStatus } : {}),
+    };
+    bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
+  }
+
+  async finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (row.status !== "approved") {
+      throw new BookingStatusConflictError(row.status);
+    }
+    if (row.finalizationStatus === "finalized") {
+      return cloneBooking(row);
+    }
+    const finalizedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...row,
+      finalizationStatus: "finalized",
+      finalizedAt,
+      finalizedByUserId: input.finalizedByUserId,
+    };
     bookingsStore.set(input.bookingId, updated);
     return cloneBooking(updated);
   }
@@ -906,6 +938,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...current,
       status: "rejected",
       approvedAt: null,
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
       ...(rejectReason !== undefined ? { rejectReason } : {}),
     };
     bookingsStore.set(updated.id, updated);
@@ -929,6 +964,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...current,
       status: "waitlisted",
       approvedAt: null,
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
     };
     bookingsStore.set(updated.id, updated);
     outboxStore.push({
@@ -969,6 +1007,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       status: "cancelled",
       approvedAt: null,
       paymentDueAt: null,
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
       ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
     };
     bookingsStore.set(updated.id, updated);

@@ -3,14 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  buildBookingsApiQuery,
-} from "@/features/bookings/bookings-command-center-logic";
-import type {
-  BookingListItem,
-  BookingsListResponse,
-} from "@/features/bookings/bookings-command-center-types";
-import { DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY } from "@/features/bookings/bookings-command-center-types";
-import {
   buildTourOperationalRosterHref,
   type TourOperationalRosterResponse,
 } from "@/features/tours/tour-workspace-transport-logic";
@@ -27,30 +19,6 @@ type PaymentFollowUpListState = {
   readonly rows: readonly TourWorkspacePaymentFollowUpParticipantRow[];
   readonly refresh: () => void;
 };
-
-async function loadPendingBookingsForFollowUp(
-  tourId: string,
-  signal: AbortSignal
-): Promise<readonly BookingListItem[]> {
-  const pendingQuery = buildBookingsApiQuery(
-    {
-      ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
-      view: "ops",
-      status: "pending",
-      tourId,
-    },
-    { limit: 100 }
-  );
-  const response = await fetch(`/api/bookings?${pendingQuery}`, {
-    cache: "no-store",
-    signal,
-  });
-  if (!response.ok) {
-    throw new Error(toPaymentFollowUpHttpError("BOOKINGS_PENDING_HTTP", response.status));
-  }
-  const payload = (await response.json()) as BookingsListResponse;
-  return payload.items ?? [];
-}
 
 async function loadOperationalRosterForFollowUp(
   tourId: string,
@@ -98,8 +66,7 @@ export function useTourWorkspacePaymentFollowUpList(
 
     void (async () => {
       try {
-        const [pendingResult, rosterResult] = await Promise.allSettled([
-          loadPendingBookingsForFollowUp(normalizedTourId, controller.signal),
+        const rosterResult = await Promise.allSettled([
           loadOperationalRosterForFollowUp(normalizedTourId, controller.signal),
         ]);
 
@@ -107,28 +74,18 @@ export function useTourWorkspacePaymentFollowUpList(
           return;
         }
 
-        const pending =
-          pendingResult.status === "fulfilled"
-            ? { ok: true as const, items: pendingResult.value }
-            : {
-                ok: false as const,
-                error:
-                  pendingResult.reason instanceof Error
-                    ? pendingResult.reason.message
-                    : "BOOKINGS_PENDING_FETCH_FAILED",
-              };
         const roster =
-          rosterResult.status === "fulfilled"
-            ? { ok: true as const, items: rosterResult.value }
+          rosterResult[0]?.status === "fulfilled"
+            ? { ok: true as const, items: rosterResult[0].value }
             : {
                 ok: false as const,
                 error:
-                  rosterResult.reason instanceof Error
-                    ? rosterResult.reason.message
+                  rosterResult[0]?.reason instanceof Error
+                    ? rosterResult[0].reason.message
                     : "TOUR_ROSTER_FETCH_FAILED",
               };
 
-        const outcome = resolvePaymentFollowUpLoadOutcome({ pending, roster });
+        const outcome = resolvePaymentFollowUpLoadOutcome({ roster });
         setRows(outcome.rows);
         setError(outcome.error);
         setRosterDegraded(outcome.rosterDegraded);

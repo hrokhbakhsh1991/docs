@@ -42,6 +42,7 @@ import type {
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
@@ -277,6 +278,13 @@ export async function approveBooking(
   return result;
 }
 
+export async function finalizeBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).finalizeBooking(auth, bookingId);
+}
+
 export async function autoApprovePublicBooking(input: {
   readonly tenantId: string;
   readonly bookingId: string;
@@ -349,9 +357,17 @@ export async function bulkApproveBookings(
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).bulkApproveBookings(auth, body);
   if (result.approvedIds.length > 0) {
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
     const { applyFreeCollectionAfterBookingApprove } =
       await import("../workspace-finance/apply-free-collection-after-booking-approve");
     for (const bookingId of result.approvedIds) {
+      const booking = await getBookingsRepository().getById(bookingId, auth.tenantId);
+      await applyPaymentHoldAfterBookingApprove({
+        tenantId: auth.tenantId,
+        bookingId,
+        approvedAt: booking?.approvedAt ?? new Date().toISOString(),
+      });
       await applyFreeCollectionAfterBookingApprove({
         tenantId: auth.tenantId,
         bookingId,

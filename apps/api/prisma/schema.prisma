@@ -669,11 +669,15 @@ model OperatorRegistration {
   guestPhone        String?   @map("guest_phone")
   partySize         Int       @map("party_size")
   status            String    @default("pending")
+  /// Registration approval and final roster inclusion are separate decisions.
+  finalizationStatus String   @default("not_final") @map("finalization_status")
   paymentStatus     String    @default("unpaid") @map("payment_status")
   departureAt       DateTime  @map("departure_at")
   submittedAt       DateTime  @default(now()) @map("submitted_at")
   submittedByUserId String    @map("submitted_by_user_id") @db.Uuid
   approvedAt        DateTime? @map("approved_at")
+  finalizedAt       DateTime? @map("finalized_at")
+  finalizedByUserId String?   @map("finalized_by_user_id") @db.Uuid
   registrationIntake Json?  @map("registration_intake")
   /// Ops reject reason (optional). Null when never rejected or rejected without reason.
   rejectReason      String?   @map("reject_reason")

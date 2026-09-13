@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import {
   handleApproveBooking,
+  handleFinalizeBooking,
   handleBulkApproveBookings,
   handleApproveMemberCancellation,
   handleCancelBooking,
@@ -525,6 +526,12 @@ async function dispatchRequest(
   const bookingApproveMatch = url.pathname.match(/^\/bookings\/([^/]+)\/approve$/);
   if (method === "POST" && bookingApproveMatch) {
     await handleApproveBooking(req, res, bookingApproveMatch[1]!);
+    return;
+  }
+
+  const bookingFinalizeMatch = url.pathname.match(/^\/bookings\/([^/]+)\/finalize$/);
+  if (method === "POST" && bookingFinalizeMatch) {
+    await handleFinalizeBooking(req, res, bookingFinalizeMatch[1]!);
     return;
   }
 

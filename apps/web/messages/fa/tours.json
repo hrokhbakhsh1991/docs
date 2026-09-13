@@ -217,7 +217,7 @@
       "registrations": "بررسی و تأیید درخواست‌های جدید",
       "waitlist": "صف ظرفیت — تأیید پس از آزاد شدن جا",
       "transport": "افراد تأییدشده را ببینید؛ پرداخت و حمل‌ونقل را تا نهایی‌شدن پیگیری کنید",
-      "finance": "مشاهدهٔ پرداخت‌شده‌ها، بدهکارها و رسیدهای نیازمند بررسی"
+      "finance": "مشاهده بدهکارها و رسیدهای نیازمند بررسی"
     },
     "operationsSummary": {
       "ariaLabel": "خلاصه صف عملیات تور",
@@ -283,8 +283,7 @@
       "statusUnpaid": "هنوز پرداخت نشده",
       "statusPartial": "پرداخت ناقص",
       "statusUnknown": "مبلغ باقی‌مانده",
-      "ctaFollowUpPayment": "پیگیری پرداخت",
-      "ctaFollowUpPartialPayment": "پیگیری مانده پرداخت",
+      "ctaReviewPayment": "بررسی پرداخت",
       "ctaReviewPartial": "بررسی پرداخت ناقص",
       "ctaOpenCase": "جزئیات پرداخت",
       "refreshQueue": "بروزرسانی پیگیری پرداخت",
@@ -293,6 +292,7 @@
       "rowCompleted": "تسویه‌شده",
       "rowSettled": "بدون مانده",
       "rowPending": "در انتظار تأیید",
+      "rowActionFailed": "انجام این اقدام ممکن نشد. فهرست مهمان‌ها به‌روزرسانی شد؛ پیش از تلاش دوباره وضعیت فعلی را بررسی کنید.",
       "rowFinalParticipant": "عضو نهایی",
       "rowPaidReceived": "وجه دریافت شد",
       "rowWaivedNoPayment": "بدون نیاز به پرداخت",
@@ -472,7 +472,18 @@
       "empty": "مهمانی با این فیلتر یافت نشد.",
       "unknownIntake": "انتخاب نامشخص",
       "finalParticipant": "نهایی",
-      "notFinalParticipant": "نیازمند پیگیری",
+      "notFinalParticipant": "هنوز نهایی نشده",
+      "approvedParticipant": "تأییدشده",
+      "addToFinalRoster": "افزودن به فهرست نهایی",
+      "followPayment": "پیگیری پرداخت",
+      "finalizeParticipantSuccess": "شرکت‌کننده نهایی شد؛ وضعیت پرداخت جداگانه باقی می‌ماند.",
+      "finalizeParticipantFailed": "نهایی‌کردن شرکت‌کننده انجام نشد.",
+      "stages": {
+        "approved_payment_required": "تاییدشده؛ پرداخت لازم است",
+        "approved_ready_to_finalize": "تاییدشده؛ آماده افزودن به فهرست نهایی",
+        "final_payment_required": "نهایی؛ پرداخت لازم است",
+        "final_ready": "نهایی؛ آماده حضور"
+      },
       "driverOffer": "راننده",
       "noOperationalDebt": "بدون مبلغ قابل پیگیری",
       "filters": {
@@ -507,7 +518,32 @@
         "ready": "آماده حضور",
         "driver": "راننده پیشنهادی؛ ظرفیت خودرو را بررسی کنید",
         "notFinal": "هنوز شرکت‌کننده نهایی نیست",
+        "paymentRequiredForFinal": "برای نهایی‌شدن، پرداخت باقی‌مانده را پیگیری کنید",
         "paymentDeadline": "پیگیری پرداخت تا {date}"
+      },
+      "settlement": {
+        "unitPerSeat": "مبلغ هر صندلی (تومان)",
+        "unitAmountHint": "یک مبلغ صحیح و بزرگ‌تر از صفر وارد کنید.",
+        "unitAmountInvalid": "پیش از نهایی‌سازی فهرست خودرو، یک مبلغ صحیح و بزرگ‌تر از صفر وارد کنید.",
+        "finalizeRoster": "نهایی‌سازی فهرست خودرو",
+        "allocationFailed": "ذخیره تخصیص مسافر ناموفق بود؛ نهایی‌سازی انجام نشد.",
+        "freezeFailed": "نهایی‌سازی فهرست خودرو ناموفق بود.",
+        "rosterFrozen": "فهرست خودرو نهایی شد و تسویه‌ها ساخته شدند.",
+        "rosterFrozenLoadFailed": "فهرست خودرو نهایی شد، اما بارگذاری وضعیت تسویه‌ها ممکن نشد.",
+        "payableFailed": "تأیید پرداخت راننده ناموفق بود.",
+        "financePayableOpened": "پرداخت راننده برای مالی باز شد.",
+        "billableSeats": "قابل پرداخت: {billable} / ظرفیت پیشنهادی: {offered}",
+        "total": "مجموع: {amount}",
+        "status": {
+          "draft": "پیش‌نویس",
+          "confirmed": "تأییدشده",
+          "approved": "تأیید پرداخت‌شده",
+          "paid": "پرداخت‌شده",
+          "unknown": "وضعیت نامشخص"
+        },
+        "approvePayable": "تأیید پرداخت راننده",
+        "noSettlement": "هنوز تسویه‌ای ساخته نشده؛ پس از تخصیص مسافران، فهرست خودرو را نهایی کنید.",
+        "loadFailed": "بارگذاری وضعیت تسویه‌ها ناموفق بود؛ دوباره تلاش کنید."
       }
     },
     "errors": {

@@ -368,17 +368,19 @@ function TourWorkspaceLayoutInner({
               {formatLocalizedNumber(opsCounts.pending, locale)}
             </span>
           </TourInternalLink>
-          <TourInternalLink
-            href={hrefForWorkspaceTab(tourId, "finance")}
-            className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
-          >
-            <span className="block text-xs text-muted-foreground">
-              {t("operationsSummary.paymentDue")}
-            </span>
-            <span className="text-lg font-semibold">
-              {formatLocalizedNumber(opsCounts.paymentDue, locale)}
-            </span>
-          </TourInternalLink>
+          {financeEnabled ? (
+            <TourInternalLink
+              href={hrefForWorkspaceTab(tourId, "finance")}
+              className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+            >
+              <span className="block text-xs text-muted-foreground">
+                {t("operationsSummary.paymentDue")}
+              </span>
+              <span className="text-lg font-semibold">
+                {formatLocalizedNumber(opsCounts.paymentDue, locale)}
+              </span>
+            </TourInternalLink>
+          ) : null}
           <TourInternalLink
             href={hrefForWorkspaceTab(tourId, "transport")}
             className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"

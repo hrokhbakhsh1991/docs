@@ -88,11 +88,14 @@ export const BOOKING_LIST_SELECT = {
   guestPhone: true,
   partySize: true,
   status: true,
+  finalizationStatus: true,
   paymentStatus: true,
   departureAt: true,
   submittedAt: true,
   submittedByUserId: true,
   approvedAt: true,
+  finalizedAt: true,
+  finalizedByUserId: true,
   rejectReason: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
@@ -111,11 +114,14 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     guestPhone: row.guestPhone,
     partySize: row.partySize,
     status: row.status as BookingStatus,
+    finalizationStatus: row.finalizationStatus as BookingRecord["finalizationStatus"],
     paymentStatus: row.paymentStatus as BookingRecord["paymentStatus"],
     departureAt: row.departureAt.toISOString(),
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    finalizedAt: row.finalizedAt?.toISOString() ?? null,
+    finalizedByUserId: row.finalizedByUserId,
     ...(row.rejectReason !== null && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
@@ -132,11 +138,14 @@ function toBookingRecord(row: {
   guestPhone: string | null;
   partySize: number;
   status: string;
+  finalizationStatus?: string;
   paymentStatus: string;
   departureAt: Date;
   submittedAt: Date;
   submittedByUserId: string;
   approvedAt: Date | null;
+  finalizedAt?: Date | null;
+  finalizedByUserId?: string | null;
   registrationIntake?: Prisma.JsonValue | null;
   rejectReason?: string | null;
 }): BookingRecord {
@@ -157,11 +166,15 @@ function toBookingRecord(row: {
     guestPhone: row.guestPhone,
     partySize: row.partySize,
     status: row.status as BookingStatus,
+    finalizationStatus:
+      (row.finalizationStatus as BookingRecord["finalizationStatus"] | undefined) ?? "not_final",
     paymentStatus: row.paymentStatus as BookingRecord["paymentStatus"],
     departureAt: row.departureAt.toISOString(),
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    finalizedAt: row.finalizedAt?.toISOString() ?? null,
+    finalizedByUserId: row.finalizedByUserId ?? null,
     ...(registrationIntake !== undefined ? { registrationIntake } : {}),
     registrantTarget: readRegistrantTargetFromIntake(registrationIntake),
     transportKind: readTransportKindFromIntake(registrationIntake),
@@ -376,11 +389,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         orderBy: [{ departureAt: "desc" }, { id: "desc" }],
         take: capped,
       });
-      return enrichBookingListRecordsWithIntakeScalars(
-        tx,
-        tenantId,
-        rows.map(toBookingListRecord)
-      );
+      return enrichBookingListRecordsWithIntakeScalars(tx, tenantId, rows.map(toBookingListRecord));
     });
   }
 
@@ -427,11 +436,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         input.tenantId,
         pageRows.map(toBookingListRecord)
       );
-      const items = await enrichBookingListRecordsWithIntakeScalars(
-        tx,
-        input.tenantId,
-        baseItems
-      );
+      const items = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, baseItems);
 
       return { items, hasMore };
     });
@@ -743,17 +748,19 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       }
       const current = existing.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
-      if (next === current) {
-        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(
-          tx,
-          input.tenantId,
-          [toBookingListRecord(existing)]
-        );
+      const shouldFinalize = existing.status === "approved" && next === "paid";
+      if (next === current && (!shouldFinalize || existing.finalizationStatus === "finalized")) {
+        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+          toBookingListRecord(existing),
+        ]);
         return enriched ?? null;
       }
       const updated = await tx.operatorRegistration.updateMany({
         where: { id: input.bookingId, tenantId: input.tenantId },
-        data: { paymentStatus: next },
+        data: {
+          paymentStatus: next,
+          ...(shouldFinalize ? { finalizationStatus: "finalized", finalizedAt: new Date() } : {}),
+        },
       });
       if (updated.count !== 1) {
         return null;
@@ -769,6 +776,65 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         toBookingListRecord(row),
       ]);
       return enriched ?? null;
+    });
+  }
+
+  async finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (existing === null) {
+        throw new BookingNotFoundError();
+      }
+      if (existing.status !== "approved") {
+        throw new BookingStatusConflictError(existing.status as BookingStatus);
+      }
+      if (existing.finalizationStatus !== "finalized") {
+        const finalizedAt = new Date();
+        const changed = await tx.operatorRegistration.updateMany({
+          where: {
+            id: input.bookingId,
+            tenantId: input.tenantId,
+            status: "approved",
+            finalizationStatus: { not: "finalized" },
+          },
+          data: {
+            finalizationStatus: "finalized",
+            finalizedAt,
+            finalizedByUserId: input.finalizedByUserId,
+          },
+        });
+        if (changed.count !== 1) {
+          const current = await tx.operatorRegistration.findFirst({
+            where: { id: input.bookingId, tenantId: input.tenantId },
+            select: BOOKING_LIST_SELECT,
+          });
+          if (current === null) {
+            throw new BookingNotFoundError();
+          }
+          if (current.status !== "approved") {
+            throw new BookingStatusConflictError(current.status as BookingStatus);
+          }
+        }
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (row === null) {
+        throw new BookingNotFoundError();
+      }
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? toBookingListRecord(row);
     });
   }
 
@@ -1204,6 +1270,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         data: {
           status: "rejected",
           approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
           ...(rejectReason !== undefined ? { rejectReason } : {}),
         },
       });
@@ -1244,7 +1313,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("waitlisted")] },
         },
-        data: { status: "waitlisted", approvedAt: null },
+        data: {
+          status: "waitlisted",
+          approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
+        },
       });
       if (transitioned.count !== 1) {
         const again = await tx.operatorRegistration.findFirst({
@@ -1307,7 +1382,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("cancelled")] },
         },
-        data: { status: "cancelled", approvedAt: null },
+        data: {
+          status: "cancelled",
+          approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
+        },
       });
       if (transitioned.count !== 1) {
         const again = await tx.operatorRegistration.findFirst({

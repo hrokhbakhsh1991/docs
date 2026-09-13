@@ -103,6 +103,12 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 **Logic:** outstanding candidates are operator registrations (Prisma `operatorRegistration` / memory bookings page scan). Invoice compile uses obligation even when `getRegistrationInvoiceFacts` returns empty payment arrays. Scanning payment rows as the candidate universe drops the guest until they upload — that is PAY-FIN-02 and is forbidden.
 
+The API coalesces concurrent outstanding-AR and tour-collection reads per tenant for the duration of the shared load. It does not retain the result after completion; both reports therefore continue to read the same invoice-based source without multiplying the expensive scan.
+
+### Registration finalization is independent from payment
+
+`approved` is the registration decision and `finalized` is the operator's decision to include the guest in the final roster. They must not be inferred from one another or from `paymentStatus`. Therefore an approved guest may be either not-final, finalized and unpaid/partially paid, or finalized and settled/waived. Free registrations may transition to finalized automatically after approval; paid registrations require the configured operator finalization rule. The API contract must expose these dimensions separately so the four primary flows cannot collapse into one ambiguous badge.
+
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
 ## Operator hint (phase 1C)
@@ -245,7 +251,7 @@ Rules:
 
 - Pure Denali resolver reads `pricing.paymentCollection` (also accepts `pricingPayment.paymentCollection`).
 - When `free`, commercial obligation resolves to `obligationMinor: "0"` (no offline default amount).
-- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition calls Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved.
+- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition runs the same post-approval finance orchestration: schedule/refresh the payment hold for payable registrations, then call Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved. Bulk approval must not skip the payment-hold step.
 - Free paid is a **booking payment projection only** (`IBookingPaymentPort.syncStatus` → `paid`). No `PaymentIntent`, no receipt, no double-entry journal (zero money).
 - Member receipt submit: blocked when remaining is already 0 or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
 - Member receipt status GET: remaining = 0 and free/zero-obligation → `{ status: "waived" }`. Remaining = 0 after capture → `{ status: "paid" }`. Remaining > 0 never returns `paid`.

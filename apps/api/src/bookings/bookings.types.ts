@@ -23,6 +23,7 @@ export type {
   BulkApproveBookingsResponse,
   CancelBookingResponse,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
@@ -42,12 +43,15 @@ export type BookingRecord = {
   readonly guestPhone: string | null;
   readonly partySize: number;
   readonly status: BookingStatus;
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly paymentStatus: BookingPaymentStatus;
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly submittedByUserId: string;
   readonly approvedAt: string | null;
+  readonly finalizedAt?: string | null;
+  readonly finalizedByUserId?: string | null;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
   /**
    * List projection scalar — set when intake is stripped but target must remain
