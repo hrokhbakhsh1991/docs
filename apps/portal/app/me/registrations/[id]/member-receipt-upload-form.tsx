@@ -438,7 +438,12 @@ export function MemberReceiptUploadForm({
       ) : null}
       {previewBlock}
       <div data-portal-member-receipt-upload-field>
-        <label htmlFor="receipt-file">{t("label")}</label>
+        <label htmlFor="receipt-file" data-portal-member-receipt-file-picker>
+          <span data-portal-member-receipt-file-name>{selectedFile?.name ?? t("chooseFile")}</span>
+          <span data-portal-member-receipt-file-picker-action>
+            {selectedFile === undefined ? t("chooseFile") : t("changeFile")}
+          </span>
+        </label>
         <input
           ref={fileInputRef}
           id="receipt-file"
@@ -455,7 +460,7 @@ export function MemberReceiptUploadForm({
         <button
           type="button"
           data-portal-member-receipt-submit
-          disabled={uploadPhase === "uploading"}
+          disabled={uploadPhase === "uploading" || selectedFile === undefined}
           onClick={() => void uploadReceipt()}
         >
           {uploadPhase === "uploading" ? t("uploading") : t("submit")}

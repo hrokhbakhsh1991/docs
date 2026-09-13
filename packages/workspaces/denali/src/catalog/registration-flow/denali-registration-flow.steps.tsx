@@ -187,6 +187,7 @@ export function DenaliIntakeStep({
   type TransportState = typeof data.transportState;
 
   type ParticipantDraft = Readonly<{
+    readonly draftId: string;
     readonly intakeName: string;
     readonly intakePhone: string;
     readonly intakeNationalId: string;
@@ -212,6 +213,7 @@ export function DenaliIntakeStep({
     () => !selfTabLocked && data.registrantTarget === "self"
   );
   const [selfDraft, setSelfDraft] = useState<ParticipantDraft>(() => ({
+    draftId: createClientSafeId(`portal-denali-self-${context.tourId}`),
     intakeName: data.intakeName,
     intakePhone: "",
     intakeNationalId: data.intakeNationalId,
@@ -231,6 +233,7 @@ export function DenaliIntakeStep({
     if (data.registrantTarget !== "other") return [];
     return [
       {
+        draftId: createClientSafeId(`portal-denali-other-${context.tourId}`),
         intakeName: "",
         intakePhone: "",
         intakeNationalId: "",
@@ -246,6 +249,7 @@ export function DenaliIntakeStep({
 
   function createEmptyOtherDraft(): ParticipantDraft {
     return {
+      draftId: createClientSafeId(`portal-denali-other-${context.tourId}`),
       intakeName: "",
       intakePhone: "",
       intakeNationalId: "",
@@ -410,6 +414,33 @@ export function DenaliIntakeStep({
 
   const travelerDraftCount = (selfSelected ? 1 : 0) + otherGuests.length;
   const canAddGuest = !loading && otherGuests.length < DENALI_MAX_OTHER_GUESTS;
+  const [removedGuest, setRemovedGuest] = useState<{
+    readonly guest: ParticipantDraft;
+    readonly index: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (removedGuest === null) return;
+    const timeout = window.setTimeout(() => setRemovedGuest(null), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [removedGuest]);
+
+  function removeGuest(guestIdx: number): void {
+    const guest = otherGuests[guestIdx];
+    if (guest === undefined) return;
+    setRemovedGuest({ guest, index: guestIdx });
+    setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx));
+  }
+
+  function undoRemoveGuest(): void {
+    if (removedGuest === null) return;
+    setOtherGuests((prev) => {
+      if (prev.some((guest) => guest.draftId === removedGuest.guest.draftId)) return prev;
+      const index = Math.min(removedGuest.index, prev.length);
+      return [...prev.slice(0, index), removedGuest.guest, ...prev.slice(index)];
+    });
+    setRemovedGuest(null);
+  }
 
   function updateSelfField(fieldId: string, value: string): void {
     setSelfDraft((prev) => {
@@ -1145,6 +1176,14 @@ export function DenaliIntakeStep({
               ) : null}
             </div>
             <p data-denali-other-guests-lead>{t("intake.otherGuestsLead")}</p>
+            {removedGuest !== null ? (
+              <p data-denali-guest-removed role="status" aria-live="polite">
+                {t("intake.guestRemoved")}
+                <button type="button" data-denali-undo-guest onClick={undoRemoveGuest}>
+                  {t("intake.undoGuest")}
+                </button>
+              </p>
+            ) : null}
 
             {otherGuests.length > 0 ? (
               <div data-denali-other-guest-cards>
@@ -1156,15 +1195,28 @@ export function DenaliIntakeStep({
                   const guestName = guest.intakeName.trim();
                   return (
                     <div
-                      key={guestIdx}
+                      key={guest.draftId}
                       data-denali-other-guest-card
                       data-denali-guest-idx={guestIdx}
+                      data-denali-guest-id={guest.draftId}
                     >
-                      <h3 data-denali-guest-name>
-                        {guestName.length > 0
-                          ? guestName
-                          : t("intake.guestCardTitle", { index: guestIdx + 1 })}
-                      </h3>
+                      <div data-denali-guest-card-header>
+                        <h3 data-denali-guest-name>
+                          {guestName.length > 0
+                            ? guestName
+                            : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                        </h3>
+                        <button
+                          type="button"
+                          data-denali-remove-guest
+                          aria-label={t("intake.removeGuestAriaLabel", {
+                            index: guestIdx + 1,
+                          })}
+                          onClick={() => removeGuest(guestIdx)}
+                        >
+                          {t("intake.removeGuestShort")}
+                        </button>
+                      </div>
                       <DenaliRenderIntakeForm
                         schema={effectiveSchemaOther}
                         values={{
@@ -1416,17 +1468,6 @@ export function DenaliIntakeStep({
                         </fieldset>
                       ) : null}
 
-                      {otherGuests.length > 1 ? (
-                        <button
-                          type="button"
-                          data-denali-remove-guest
-                          onClick={() =>
-                            setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))
-                          }
-                        >
-                          {t("intake.removeGuestShort")}
-                        </button>
-                      ) : null}
                       {fieldAlert("other", guestIdx)}
                     </div>
                   );
@@ -1461,15 +1502,11 @@ export function DenaliIntakeStep({
             </ul>
             {formattedPreviewPayable !== null ? (
               <>
-                <p data-denali-rail-price-label>{t("intake.payableAmount")}</p>
+                <p data-denali-rail-price-label>{t("intake.pricePerRegistration")}</p>
                 <p data-registration-price-hint>
                   {t("intake.priceAmount", { amount: formattedPreviewPayable })}
                 </p>
-                <p data-denali-price-per>
-                  {hasMembershipDiscount
-                    ? t("intake.memberPriceSummary")
-                    : t("intake.pricePerPerson")}
-                </p>
+                <p data-denali-price-per>{t("intake.separateRegistrationPrice")}</p>
               </>
             ) : formattedPrice !== null ? (
               <>

@@ -115,6 +115,10 @@ describe("portal-member-registrations", () => {
       "utf8"
     );
     assert.match(page, /data-portal-member-registration-detail/);
+    assert.match(page, /data-portal-member-detail-status-card/);
+    assert.match(page, /statusPendingTitle/);
+    assert.match(page, /statusReceiptPendingTitle/);
+    assert.match(page, /statusReceiptRejectedTitle/);
     assert.match(page, /data-portal-member-registrant-target/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(page, /fetchMemberReceiptPanel/);
@@ -132,6 +136,8 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-paid/);
     assert.match(form, /data-portal-member-receipt-waived/);
     assert.match(form, /data-portal-member-receipt-preview/);
+    assert.match(form, /selectedFile === undefined/);
+    assert.match(form, /data-portal-member-receipt-file-picker/);
     assert.match(form, /data-closed-reason/);
     assert.match(form, /createObjectURL/);
     const closedAt = form.indexOf('registrationStatus === "rejected"');
