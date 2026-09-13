@@ -410,7 +410,13 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     });
     assert.equal(ok.ok, true);
     if (ok.ok) {
-      assert.deepEqual(ok.counts, { pending: 2, waitlisted: 1, approved: 4 });
+      assert.deepEqual(ok.counts, {
+        pending: 2,
+        waitlisted: 1,
+        approved: 4,
+        paymentDue: 0,
+        final: 0,
+      });
     }
     const bad = resolveTourWorkspaceOpsCountsFromListPayloads({
       pendingPayload: {},
@@ -427,7 +433,26 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       hrefForWorkspaceOpsKpi(TOUR_ID, "approved"),
       `${workspaceBasePath(TOUR_ID)}?tab=transport`
     );
+    assert.equal(
+      hrefForWorkspaceOpsKpi(TOUR_ID, "paymentDue"),
+      `${workspaceBasePath(TOUR_ID)}?tab=finance`
+    );
+    assert.equal(
+      hrefForWorkspaceOpsKpi(TOUR_ID, "final"),
+      `${workspaceBasePath(TOUR_ID)}?tab=transport`
+    );
     assert.equal(hrefForWorkspaceMoneyKpi(TOUR_ID), `${workspaceBasePath(TOUR_ID)}?tab=finance`);
+    const scenarioCounts = resolveTourWorkspaceOpsCountsFromListPayloads({
+      pendingPayload: { total: 1 },
+      waitlistedPayload: { total: 0 },
+      approvedPayload: { total: 4 },
+      paymentDuePayload: { total: 2 },
+      finalPayload: { total: 2 },
+    });
+    assert.deepEqual(scenarioCounts, {
+      ok: true,
+      counts: { pending: 1, waitlisted: 0, approved: 4, paymentDue: 2, final: 2 },
+    });
     assert.equal(
       buildTourWorkspaceHistoryHref(TOUR_ID, "rejected"),
       `/bookings?tourId=${encodeURIComponent(TOUR_ID)}&status=rejected&view=ops`

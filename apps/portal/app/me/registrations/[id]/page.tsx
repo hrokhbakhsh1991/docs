@@ -8,7 +8,6 @@ import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-i
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import {
   formatMemberRegistrationDeparture,
-  localizeMemberPaymentStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
@@ -45,9 +44,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   }
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
-  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
+  const [statusLabel, departureLabel, receiptPanel] = await Promise.all([
     localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
-    localizeMemberPaymentStatus(row.paymentStatus),
     formatMemberRegistrationDeparture(row.departureAt),
     fetchMemberReceiptPanel(host, row.id),
   ]);
@@ -106,6 +104,42 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     typeof row.guestLabel === "string" && row.guestLabel.trim().length > 0
       ? row.guestLabel.trim()
       : null;
+  const detailStatus =
+    lifecycleStatus === "pending" || lifecycleStatus === "waitlisted"
+      ? {
+          tone: "waiting",
+          title: "statusPendingTitle",
+          body: "statusPendingBody",
+        }
+      : lifecycleStatus === "rejected" || lifecycleStatus === "cancelled"
+        ? {
+            tone: "closed",
+            title: lifecycleStatus === "rejected" ? "statusRejectedTitle" : "statusCancelledTitle",
+            body: lifecycleStatus === "rejected" ? "statusRejectedBody" : "statusCancelledBody",
+          }
+        : receiptPanel.status === "pending"
+          ? {
+              tone: "review",
+              title: "statusReceiptPendingTitle",
+              body: "statusReceiptPendingBody",
+            }
+          : receiptPanel.status === "paid" || receiptPanel.status === "waived"
+            ? {
+                tone: "complete",
+                title: receiptPanel.status === "paid" ? "statusPaidTitle" : "statusWaivedTitle",
+                body: receiptPanel.status === "paid" ? "statusPaidBody" : "statusWaivedBody",
+              }
+            : receiptPanel.status === "rejected"
+              ? {
+                  tone: "action",
+                  title: "statusReceiptRejectedTitle",
+                  body: "statusReceiptRejectedBody",
+                }
+              : {
+                  tone: "action",
+                  title: "statusApprovedTitle",
+                  body: "statusApprovedBody",
+                };
 
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
@@ -137,13 +171,15 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               </p>
             ) : null}
           </div>
-          <div data-portal-member-detail-kpis>
-            <div data-portal-member-detail-kpi data-kpi="status">
-              <p data-portal-member-detail-kpi-label>{t("statusLabel")}</p>
-              <p data-portal-member-registration-status>
-                {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
-              </p>
+          <section data-portal-member-detail-status-card data-status-tone={detailStatus.tone}>
+            <div data-portal-member-detail-status-copy>
+              <p data-portal-member-detail-status-eyebrow>{t("statusLabel")}</p>
+              <h2>{t(detailStatus.title)}</h2>
+              <p>{t(detailStatus.body)}</p>
             </div>
+            <span data-portal-member-detail-status-badge>{statusLabel}</span>
+          </section>
+          <div data-portal-member-detail-kpis>
             <div data-portal-member-detail-kpi data-kpi="departure">
               <p data-portal-member-detail-kpi-label>{t("departureLabel")}</p>
               <p data-portal-member-registration-departure>

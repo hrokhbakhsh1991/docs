@@ -210,14 +210,20 @@
     "tabs": {
       "registrations": "Registration requests",
       "waitlist": "Waitlist",
-      "transport": "Final participants",
+      "transport": "Operations roster",
       "finance": "Payment status"
     },
     "tabsHint": {
       "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
-      "transport": "Final tour participants and their transport status",
+      "transport": "Track approved guests through payment, finalization, attendance, and transport",
       "finance": "See paid guests, outstanding balances, and receipts to review"
+    },
+    "operationsSummary": {
+      "ariaLabel": "Tour operations summary",
+      "pending": "Needs review",
+      "paymentDue": "Awaiting payment",
+      "final": "Final for attendance"
     },
     "approvedQuickAccess": {
       "title": "Final approved members",
@@ -460,9 +466,9 @@
       "capacityFullWarn": "This tour is at capacity. Approve anyway?"
     },
     "transport": {
-      "title": "Final participants",
-      "description": "Confirmed tour participants; manage attendance and transport here.",
-      "tableCaption": "Final participants and transport status",
+      "title": "Operations roster",
+      "description": "Approved guests; track payment, finalization, attendance, and transport here.",
+      "tableCaption": "Operations roster with payment and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",
       "finalParticipant": "Final",
