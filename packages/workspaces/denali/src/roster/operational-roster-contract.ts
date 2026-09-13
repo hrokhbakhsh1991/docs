@@ -28,6 +28,7 @@ export type TourOperationalRosterRow = {
   readonly memberAvatarUrl?: string | null;
   readonly partySize: number;
   readonly registrationStatus: OperationalRosterLifecycleStatus;
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly financialDisplayState: OperationalRosterFinancialDisplayState;
   readonly remainingMinor: string | null;
   readonly paidMinor: string | null;

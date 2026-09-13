@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
 import {
   formatMemberRegistrationDeparture,
-  localizeMemberPaymentStatus,
+  localizeMemberFinalizationStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
@@ -58,7 +58,11 @@ export default async function MeRegistrationsPage({
         registrantTarget,
         guestLabel,
         statusLabel: await localizeMemberRegistrationStatus(item.status, bootstrap.pluginId),
-        paymentStatusLabel: await localizeMemberPaymentStatus(item.paymentStatus),
+        finalizationStatusLabel: await localizeMemberFinalizationStatus(
+          item.status,
+          item.paymentStatus,
+          item.financialDisplayState
+        ),
         departureLabel: await formatMemberRegistrationDeparture(item.departureAt),
       };
     })
@@ -163,7 +167,7 @@ export default async function MeRegistrationsPage({
                 registrantTarget,
                 guestLabel,
                 statusLabel,
-                paymentStatusLabel,
+                finalizationStatusLabel,
                 departureLabel,
               }) => (
                 <li
@@ -201,9 +205,11 @@ export default async function MeRegistrationsPage({
                     </p>
                   )}
                   <p data-portal-member-registration-meta>
-                    <span data-portal-member-registration-payment-status>
-                      {paymentStatusLabel}
-                    </span>
+                    {finalizationStatusLabel !== null ? (
+                      <span data-portal-member-registration-payment-progress>
+                        {finalizationStatusLabel}
+                      </span>
+                    ) : null}
                     <span data-portal-member-registration-departure>{departureLabel}</span>
                   </p>
                   <span data-portal-member-row-chevron aria-hidden="true">

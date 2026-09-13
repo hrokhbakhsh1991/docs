@@ -12,9 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TourWorkspaceFinanceControls } from "@/features/tours/tour-workspace-finance-controls";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
-import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
-import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
-import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
 import { type OutstandingBalanceListItem } from "@/finance/finance-outstanding-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
@@ -43,7 +40,6 @@ import { TourWorkspacePaymentFollowUpRow } from "@/features/tours/tour-workspace
 import {
   filterPaymentFollowUpParticipants,
   findPaymentFollowUpParticipant,
-  type PaymentFollowUpPrimaryActionKind,
   type TourWorkspacePaymentFollowUpParticipantRow,
 } from "@/features/tours/tour-workspace-payment-follow-up-logic";
 import { useTourWorkspacePaymentFollowUpList } from "@/features/tours/use-tour-workspace-payment-follow-up-list";
@@ -92,9 +88,6 @@ function followUpListKindBadgeClass(
   if (kind === "settled") {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
   }
-  if (kind === "pending") {
-    return "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300";
-  }
   return "border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-300";
 }
 
@@ -107,9 +100,6 @@ function followUpListKindLabel(
   }
   if (kind === "settled") {
     return t("rowSettled");
-  }
-  if (kind === "pending") {
-    return t("rowPending");
   }
   return t("statusUnpaid");
 }
@@ -215,7 +205,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     useState<TourWorkspacePaymentActionEvent | null>(null);
   const [financeMutationRefreshKey, setFinanceMutationRefreshKey] = useState(0);
   const [followUpListRefreshKey, setFollowUpListRefreshKey] = useState(0);
-  const [rowActionBusy, setRowActionBusy] = useState(false);
   const [workspaceExitNotice, setWorkspaceExitNotice] = useState<string | null>(null);
   const [receiptReviewNotice, setReceiptReviewNotice] = useState<string | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
@@ -340,7 +329,8 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const showGuestTools =
     !panelBlocking &&
     !followUpList.loading &&
-    (shouldShowTourFinanceGuestTools(inbox) || followUpList.rows.length > 0);
+    (shouldShowTourFinanceGuestTools(inbox) ||
+      followUpList.rows.some((row) => row.listKind === "unpaid" || row.listKind === "partial"));
   const selectedRow = useMemo(
     () => visibleRows.find((row) => row.key === selectedRowKey) ?? null,
     [selectedRowKey, visibleRows]
@@ -387,39 +377,17 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     reloadWorkspaceChrome();
   }, [followUpList, refresh, reloadWorkspaceChrome]);
 
-  const runFollowUpRowAction = useCallback(
-    async (action: PaymentFollowUpPrimaryActionKind, registrationId: string) => {
-      if (action === "none" || action === "follow_up_payment" || action === "follow_up_partial") {
-        const row = findPaymentFollowUpParticipant(followUpList.rows, registrationId);
-        if (row !== null) {
-          setSelectedRowKey(row.key);
-          if (isNarrowViewport) {
-            setMobileSheetOpen(true);
-          }
+  const handleFollowUpRowAction = useCallback(
+    (registrationId: string) => {
+      const row = findPaymentFollowUpParticipant(followUpList.rows, registrationId);
+      if (row !== null) {
+        setSelectedRowKey(row.key);
+        if (isNarrowViewport) {
+          setMobileSheetOpen(true);
         }
-        return;
-      }
-      setRowActionBusy(true);
-      try {
-        if (action === "approve_awaiting_payment") {
-          const response = await fetch(
-            `/api/bookings/${encodeURIComponent(registrationId)}/approve`,
-            { method: "POST", headers: { "Content-Type": "application/json" } }
-          );
-          if (!response.ok) {
-            throw new Error(`BOOKINGS_APPROVE_HTTP_${response.status}`);
-          }
-          invalidateFinanceRegistrationCaches(registrationId);
-        } else if (action === "approve_without_payment") {
-          await approveBookingWithoutPayment(registrationId);
-        }
-        invalidateTourWorkspaceFinanceCache(tourId);
-        refreshWorkspaceFinanceView();
-      } finally {
-        setRowActionBusy(false);
       }
     },
-    [followUpList.rows, isNarrowViewport, refreshWorkspaceFinanceView, tourId]
+    [followUpList.rows, isNarrowViewport]
   );
 
   const handleRegistrationPaymentChanged = useCallback(
@@ -642,7 +610,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </>
         ) : null}
 
-        {selectedRow.listKind !== "pending" && selectedRow.registrationId !== null ? (
+        {selectedRow.registrationId !== null ? (
           <TourWorkspacePaymentActionsSection
             tourId={tourId}
             pluginId={session.pluginId}
@@ -878,18 +846,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                   locale={locale}
                   selected={selected}
                   highlighted={highlighted}
-                  busy={rowActionBusy}
                   onSelect={() => {
                     setSelectedRowKey(row.key);
                     if (isNarrowViewport) {
                       setMobileSheetOpen(true);
                     }
                   }}
-                  onPrimaryAction={(action, registrationId) => {
-                    void runFollowUpRowAction(action, registrationId);
-                  }}
-                  onSecondaryAction={(action, registrationId) => {
-                    void runFollowUpRowAction(action, registrationId);
+                  onPrimaryAction={(_action, registrationId) => {
+                    handleFollowUpRowAction(registrationId);
                   }}
                 />
               </li>
@@ -993,7 +957,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </div>
         ) : null}
 
-        {!panelBlocking && inbox.leadSection === "settled" ? (
+        {!panelBlocking && !showGuestTools && inbox.leadSection === "settled" ? (
           <div
             className="rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled}

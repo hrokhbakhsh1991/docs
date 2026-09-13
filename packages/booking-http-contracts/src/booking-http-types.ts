@@ -51,6 +51,7 @@ export type BookingCapacitySnapshot = {
 export type BookingRegistrantTarget = "self" | "other";
 
 export type BookingFinancialDisplayState = "WAIVED";
+export type BookingFinalizationStatus = "not_final" | "finalized";
 
 /** Guest intake transport kind — list scalar (H5-T3); not the intake blob. */
 export type BookingTransportKind =
@@ -84,6 +85,8 @@ export type BookingListItem = {
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: BookingStatus;
+  /** Independent from payment; optional for backward-compatible clients. */
+  readonly finalizationStatus?: BookingFinalizationStatus;
   readonly paymentStatus: BookingPaymentStatus;
   /**
    * Additive display-only Finance state. Present when paymentStatus=paid means
@@ -94,6 +97,8 @@ export type BookingListItem = {
   readonly submittedAt: string;
   /** Present after approve when the host persisted approvedAt. */
   readonly approvedAt?: string;
+  /** Present when an operator explicitly or automatically finalized the roster entry. */
+  readonly finalizedAt?: string;
   /**
    * Guest intake JSON — **detail / getBooking only** (UX-BKG-50 amend).
    * Must be omitted from `listBookings` list projection (BK-SAFE-01).
@@ -150,6 +155,13 @@ export type BulkApproveBookingsRequest = {
 export type BulkApproveBookingsResponse = {
   readonly approvedIds: readonly string[];
   readonly skippedIds: readonly string[];
+};
+
+export type FinalizeBookingResponse = {
+  readonly id: string;
+  readonly status: BookingStatus;
+  readonly finalizationStatus: BookingFinalizationStatus;
+  readonly finalizedAt: string;
 };
 
 export type CreateBookingRequest = {

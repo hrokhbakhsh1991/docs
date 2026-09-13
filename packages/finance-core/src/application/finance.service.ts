@@ -196,6 +196,11 @@ function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
 }
 
 export class FinanceService {
+  private readonly outstandingBalanceItemsInFlight = new Map<
+    string,
+    Promise<readonly OutstandingBalanceItem[]>
+  >();
+
   constructor(
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
     private readonly repository: FinanceRepositoryPort,
@@ -230,6 +235,23 @@ export class FinanceService {
     assertCompositionDep("clock", clock);
     assertCompositionDep("obligation", obligation);
     assertCompositionDep("arObservation", arObservation);
+  }
+
+  /** Coalesce concurrent report reads without retaining stale financial data. */
+  private loadOutstandingBalanceItemsCoalesced(
+    tenantId: string
+  ): Promise<readonly OutstandingBalanceItem[]> {
+    const existing = this.outstandingBalanceItemsInFlight.get(tenantId);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const load = loadOutstandingBalanceItems(this.outstandingOperatorDeps(), tenantId).finally(
+      () => {
+        this.outstandingBalanceItemsInFlight.delete(tenantId);
+      }
+    );
+    this.outstandingBalanceItemsInFlight.set(tenantId, load);
+    return load;
   }
 
   private async ensureQuoteFrozenForMoneyPath(
@@ -535,7 +557,7 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const loaded = await loadOutstandingBalanceItems(this.outstandingOperatorDeps(), auth.tenantId);
+    const loaded = await this.loadOutstandingBalanceItemsCoalesced(auth.tenantId);
     const tourId = normalizeOptionalTourId(query.tourId);
     const items =
       tourId !== undefined ? loaded.filter((row) => row.identity.tourId === tourId) : loaded;
@@ -566,10 +588,7 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const outstanding = await loadOutstandingBalanceItems(
-      this.outstandingOperatorDeps(),
-      auth.tenantId
-    );
+    const outstanding = await this.loadOutstandingBalanceItemsCoalesced(auth.tenantId);
     const aggregated = aggregateTourCollectionFromOutstanding(outstanding);
     const tourId = normalizeOptionalTourId(query.tourId);
     const tours =

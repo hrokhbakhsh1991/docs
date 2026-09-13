@@ -211,6 +211,7 @@
     "transportNoCompanion": "فقط خودم می‌آیم (بدون همراه)"
   },
   "approve": "تأیید",
+  "approveAndRequestPayment": "تأیید و ارسال برای پرداخت",
   "reject": "رد",
   "rejectRegistration": "رد ثبت‌نام",
   "approveAwaitingPayment": "تأیید و منتظر پرداخت",

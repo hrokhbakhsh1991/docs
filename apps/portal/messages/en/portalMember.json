@@ -54,8 +54,17 @@
     "paymentStatusLabels": {
       "unpaid": "Unpaid",
       "partial": "Partially paid",
-      "paid": "Payment received"
-    }
+      "paid": "Payment received",
+      "waived": "No payment required"
+    },
+    "paymentProgress": {
+      "unpaid": "Payment is required to finalize",
+      "partial": "Complete the remaining payment to finalize",
+      "paid": "Payment recorded",
+      "waived": "Registration finalized; no payment required"
+    },
+    "finalizationPaymentRequired": "Payment required to finalize",
+    "finalizationSettledWithoutPayment": "Registration finalized; no payment required"
   },
   "profile": {
     "title": "My profile",
@@ -410,7 +419,8 @@
     "label": "Upload payment receipt",
     "uploadLede": "Upload the bank slip or PDF receipt so the Denali team can review your payment.",
     "uploadHint": "Image files and PDF are supported. Check that the uploaded file is clear before submitting.",
-    "chooseFile": "Choose receipt",
+    "noFileSelected": "No file selected yet",
+    "chooseFile": "Choose file",
     "changeFile": "Change file",
     "submit": "Submit receipt",
     "uploading": "Uploading…",

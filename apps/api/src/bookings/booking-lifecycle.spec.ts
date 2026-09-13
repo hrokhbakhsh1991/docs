@@ -18,7 +18,10 @@ import {
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
 } from "@app-tour/booking-http-contracts";
 
-import { resetBookingsRepositoryForTests } from "./create-bookings-repository.ts";
+import {
+  getBookingsRepository,
+  resetBookingsRepositoryForTests,
+} from "./create-bookings-repository.ts";
 import { peekOutboxByAggregateForTests } from "./in-memory-bookings.repository.ts";
 import {
   approveBooking,
@@ -90,11 +93,58 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     assert.ok(outbox.some((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE));
   });
 
-  it("pending → waitlisted emits registration.waitlisted", async () => {
-    const created = await createBooking(
+  it("lifecycle transitions clear stale finalization metadata", async () => {
+    const waitlistCandidate = await createBooking(
       opsAuth(TENANT_DENALI),
-      body("Waitlist Guest")
+      body("Final Then Waitlist")
     );
+    getBookingsRepository().seedBooking({
+      ...(await getBookingsRepository().getById(waitlistCandidate.id, TENANT_DENALI))!,
+      finalizationStatus: "finalized",
+      finalizedAt: new Date().toISOString(),
+      finalizedByUserId: opsAuth(TENANT_DENALI).userId,
+    });
+    const waitlisted = await waitlistBooking(opsAuth(TENANT_DENALI), waitlistCandidate.id);
+    assert.equal(waitlisted.status, "waitlisted");
+    const waitlistedRow = await getBookingsRepository().getById(
+      waitlistCandidate.id,
+      TENANT_DENALI
+    );
+    assert.equal(waitlistedRow?.finalizationStatus, "not_final");
+    assert.equal(waitlistedRow?.finalizedAt, null);
+
+    const rejectedCandidate = await createBooking(
+      opsAuth(TENANT_DENALI),
+      body("Final Then Reject")
+    );
+    getBookingsRepository().seedBooking({
+      ...(await getBookingsRepository().getById(rejectedCandidate.id, TENANT_DENALI))!,
+      finalizationStatus: "finalized",
+      finalizedAt: new Date().toISOString(),
+      finalizedByUserId: opsAuth(TENANT_DENALI).userId,
+    });
+    const rejected = await rejectBooking(opsAuth(TENANT_DENALI), rejectedCandidate.id, {});
+    assert.equal(rejected.status, "rejected");
+    const rejectedRow = await getBookingsRepository().getById(rejectedCandidate.id, TENANT_DENALI);
+    assert.equal(rejectedRow?.finalizationStatus, "not_final");
+    assert.equal(rejectedRow?.finalizedAt, null);
+
+    const cancelCandidate = await createBooking(opsAuth(TENANT_DENALI), body("Final Then Cancel"));
+    await approveBooking(opsAuth(TENANT_DENALI), cancelCandidate.id);
+    await getBookingsRepository().finalizeBooking({
+      bookingId: cancelCandidate.id,
+      tenantId: TENANT_DENALI,
+      finalizedByUserId: opsAuth(TENANT_DENALI).userId,
+    });
+    const cancelled = await cancelBooking(opsAuth(TENANT_DENALI), cancelCandidate.id);
+    assert.equal(cancelled.status, "cancelled");
+    const cancelledRow = await getBookingsRepository().getById(cancelCandidate.id, TENANT_DENALI);
+    assert.equal(cancelledRow?.finalizationStatus, "not_final");
+    assert.equal(cancelledRow?.finalizedAt, null);
+  });
+
+  it("pending → waitlisted emits registration.waitlisted", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Waitlist Guest"));
     assert.equal(created.status, "pending");
 
     const waitlisted = await waitlistBooking(opsAuth(TENANT_DENALI), created.id);
@@ -109,20 +159,14 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
   });
 
   it("waitlisted → approve succeeds", async () => {
-    const created = await createBooking(
-      opsAuth(TENANT_DENALI),
-      body("Waitlist Then Approve")
-    );
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Waitlist Then Approve"));
     await waitlistBooking(opsAuth(TENANT_DENALI), created.id);
     const approved = await approveBooking(opsAuth(TENANT_DENALI), created.id);
     assert.equal(approved.status, "approved");
   });
 
   it("rejected cannot approve", async () => {
-    const created = await createBooking(
-      opsAuth(TENANT_DENALI),
-      body("Reject Terminal")
-    );
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Reject Terminal"));
     await rejectBooking(opsAuth(TENANT_DENALI), created.id, {});
     await assert.rejects(
       () => approveBooking(opsAuth(TENANT_DENALI), created.id),
@@ -131,10 +175,7 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
   });
 
   it("cancelled cannot approve", async () => {
-    const created = await createBooking(
-      opsAuth(TENANT_DENALI),
-      body("Cancel Terminal")
-    );
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Cancel Terminal"));
     await cancelBooking(opsAuth(TENANT_DENALI), created.id);
     await assert.rejects(
       () => approveBooking(opsAuth(TENANT_DENALI), created.id),
@@ -143,10 +184,7 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
   });
 
   it("reject: persists status and emits no outbox (silent ≠ cancel)", async () => {
-    const created = await createBooking(
-      opsAuth(TENANT_DENALI),
-      body("Reject No Outbox")
-    );
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Reject No Outbox"));
     await rejectBooking(opsAuth(TENANT_DENALI), created.id, { reason: "nope" });
     const outbox = await peekOutboxByAggregateForTests({
       tenantId: TENANT_DENALI,

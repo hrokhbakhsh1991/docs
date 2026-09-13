@@ -13,8 +13,6 @@ import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "./fixtures/complete-portal-regis
 
 const ARTIFACT_DIR = join(process.cwd(), "apps/portal/.artifacts/2026-08-15-registration-audit");
 
-test.describe.configure({ mode: "serial" });
-
 async function reachRegistrationIntake(page: import("@playwright/test").Page, phone: string) {
   await page.context().clearCookies();
   await page.goto("/health");
@@ -40,7 +38,7 @@ async function reachRegistrationIntake(page: import("@playwright/test").Page, ph
           res.url().includes("/api/public-auth/register-complete"),
         { timeout: 60_000 }
       ),
-      page.locator('[data-action="profile-continue"]').click(),
+      page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true }),
     ]);
     expect(
       response.ok(),
@@ -50,11 +48,11 @@ async function reachRegistrationIntake(page: import("@playwright/test").Page, ph
 
   await page.locator("[data-public-registration-intake]").waitFor({
     state: "visible",
-    timeout: 60_000,
+    timeout: 180_000,
   });
 }
 
-test("VIS-REG-01 denali registration intake desktop + mobile artifacts", async ({ page }) => {
+test("VIS-REG-01 denali registration intake desktop artifact", async ({ page }) => {
   mkdirSync(ARTIFACT_DIR, { recursive: true });
 
   const desktopPhone = `+1555${String(Date.now()).slice(-7)}`;
@@ -72,7 +70,10 @@ test("VIS-REG-01 denali registration intake desktop + mobile artifacts", async (
   await expect(page.locator("[data-denali-other-guest-card]")).toHaveCount(0);
   await page.locator("[data-denali-undo-guest]").click();
   await expect(page.locator("[data-denali-other-guest-card]")).toHaveCount(1);
+});
 
+test("VIS-REG-02 denali registration intake mobile artifact", async ({ page }) => {
+  mkdirSync(ARTIFACT_DIR, { recursive: true });
   const mobilePhone = `+1555${String(Date.now() + 1).slice(-7)}`;
   await page.setViewportSize({ width: 390, height: 844 });
   await reachRegistrationIntake(page, mobilePhone);

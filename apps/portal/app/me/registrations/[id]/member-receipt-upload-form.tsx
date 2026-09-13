@@ -439,7 +439,9 @@ export function MemberReceiptUploadForm({
       {previewBlock}
       <div data-portal-member-receipt-upload-field>
         <label htmlFor="receipt-file" data-portal-member-receipt-file-picker>
-          <span data-portal-member-receipt-file-name>{selectedFile?.name ?? t("chooseFile")}</span>
+          <span data-portal-member-receipt-file-name>
+            {selectedFile?.name ?? t("noFileSelected")}
+          </span>
           <span data-portal-member-receipt-file-picker-action>
             {selectedFile === undefined ? t("chooseFile") : t("changeFile")}
           </span>

@@ -217,7 +217,7 @@
       "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
       "transport": "Track approved guests through payment, finalization, attendance, and transport",
-      "finance": "See paid guests, outstanding balances, and receipts to review"
+      "finance": "See outstanding balances and receipts to review"
     },
     "operationsSummary": {
       "ariaLabel": "Tour operations summary",
@@ -283,8 +283,7 @@
       "statusUnpaid": "Not paid yet",
       "statusPartial": "Partial payment",
       "statusUnknown": "Remaining amount",
-      "ctaFollowUpPayment": "Follow up payment",
-      "ctaFollowUpPartialPayment": "Follow up remaining balance",
+      "ctaReviewPayment": "Review payment",
       "ctaReviewPartial": "Review partial payment",
       "ctaOpenCase": "Payment details",
       "refreshQueue": "Refresh payment follow-up",
@@ -293,6 +292,7 @@
       "rowCompleted": "Settled",
       "rowSettled": "No balance due",
       "rowPending": "Awaiting approval",
+      "rowActionFailed": "The action could not be completed. The guest list was refreshed; check the current status before trying again.",
       "rowFinalParticipant": "Final member",
       "rowPaidReceived": "Payment received",
       "rowWaivedNoPayment": "No payment required",
@@ -472,7 +472,18 @@
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",
       "finalParticipant": "Final",
-      "notFinalParticipant": "Needs follow-up",
+      "notFinalParticipant": "Not final yet",
+      "approvedParticipant": "Approved",
+      "addToFinalRoster": "Add to final roster",
+      "followPayment": "Follow up payment",
+      "finalizeParticipantSuccess": "Participant finalized; payment state remains separate.",
+      "finalizeParticipantFailed": "Could not finalize this participant.",
+      "stages": {
+        "approved_payment_required": "Approved; payment required",
+        "approved_ready_to_finalize": "Approved; ready for final roster",
+        "final_payment_required": "Final; payment required",
+        "final_ready": "Final; ready to join"
+      },
       "driverOffer": "Driver",
       "noOperationalDebt": "No payment follow-up",
       "filters": {
@@ -507,7 +518,32 @@
         "ready": "Ready to join",
         "driver": "Driver offer; check available seats",
         "notFinal": "Not final yet",
+        "paymentRequiredForFinal": "Follow up the remaining payment to finalize participation",
         "paymentDeadline": "Payment follow-up by {date}"
+      },
+      "settlement": {
+        "unitPerSeat": "Amount per seat (toman)",
+        "unitAmountHint": "Enter a positive whole amount.",
+        "unitAmountInvalid": "Enter a positive whole amount before finalizing the vehicle roster.",
+        "finalizeRoster": "Finalize vehicle roster",
+        "allocationFailed": "Passenger allocation could not be saved; roster was not finalized.",
+        "freezeFailed": "Vehicle roster could not be finalized.",
+        "rosterFrozen": "Vehicle roster finalized and settlements generated.",
+        "rosterFrozenLoadFailed": "Vehicle roster finalized, but settlement status could not be loaded.",
+        "payableFailed": "Driver payment approval failed.",
+        "financePayableOpened": "Driver payment was opened for finance.",
+        "billableSeats": "Billable: {billable} / offered capacity: {offered}",
+        "total": "Total: {amount}",
+        "status": {
+          "draft": "Draft",
+          "confirmed": "Confirmed",
+          "approved": "Payment approved",
+          "paid": "Paid",
+          "unknown": "Unknown status"
+        },
+        "approvePayable": "Approve driver payment",
+        "noSettlement": "No settlement yet; finalize the vehicle roster after assigning passengers.",
+        "loadFailed": "Settlement status could not be loaded; try again."
       }
     },
     "errors": {

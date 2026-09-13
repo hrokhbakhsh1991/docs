@@ -466,6 +466,12 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/finalize",
+    summary: "Finalize approved booking for the final roster",
+    operationId: "finalizeBooking",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/reject",
     summary: "Reject booking (intentionally silent — no outbox)",
     operationId: "rejectBooking",

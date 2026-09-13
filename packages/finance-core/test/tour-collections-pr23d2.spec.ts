@@ -115,6 +115,16 @@ function createService(
   );
 }
 
+class CountingFinanceRepository extends InMemoryFinanceRepository {
+  public outstandingCandidateReads = 0;
+
+  override async listOutstandingBalanceCandidates(tenantId: string) {
+    this.outstandingCandidateReads += 1;
+    await new Promise<void>((resolve) => setTimeout(resolve, 5));
+    return super.listOutstandingBalanceCandidates(tenantId);
+  }
+}
+
 function outstandingRow(input: {
   registrationId: string;
   tourId: string;
@@ -366,5 +376,27 @@ describe("tour-collections PR23-D2", () => {
     assert.match(doc, /Invoice-based aggregation/);
     assert.match(doc, /Payment ops vs AR/);
     assert.match(doc, /manual\/offline/i);
+  });
+
+  it("D2-H — concurrent outstanding and collection reads share one load", async () => {
+    const booking = createFakeBookingPort();
+    const repo = new CountingFinanceRepository(booking);
+    const reg = randomUUID();
+    const display = displayFor(
+      new Map([[reg, { tourId: TOUR_A, tourTitle: "Alborz", member: "Ada" }]])
+    );
+    const finance = createService(repo, display, booking, offlineObligation("2500000"));
+    await finance.createManualPayment(
+      AUTH,
+      { registrationId: reg, amount: "100000", currency: "IRR" },
+      "idem-d2-h"
+    );
+
+    await Promise.all([
+      finance.listOutstandingBalances(AUTH, { limit: 25 }),
+      finance.listTourCollectionSummary(AUTH, { limit: 50, tourId: TOUR_A }),
+    ]);
+
+    assert.equal(repo.outstandingCandidateReads, 1);
   });
 });

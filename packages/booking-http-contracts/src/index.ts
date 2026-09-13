@@ -13,6 +13,7 @@ export {
 export type {
   ApproveBookingResponse,
   BookingCapacitySnapshot,
+  BookingFinalizationStatus,
   BookingListItem,
   BookingRegistrantTarget,
   BookingTransportKind,
@@ -29,6 +30,7 @@ export type {
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
