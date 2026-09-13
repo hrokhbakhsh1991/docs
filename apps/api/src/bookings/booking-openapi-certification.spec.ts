@@ -92,6 +92,16 @@ const REGISTERED_BOOKING_ROUTES: readonly {
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/finalize",
+    appMarker: "handleFinalizeBooking",
+    operationId: "finalizeBooking",
+    requestSchema: null,
+    responseSchema: "FinalizeBookingResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + FinalizeBookingResponse",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/reject",
     appMarker: "handleRejectBooking",
     operationId: "rejectBooking",
@@ -146,6 +156,7 @@ const REGISTERED_BOOKING_ROUTES: readonly {
 const REQUIRED_DTO_SCHEMAS = [
   "BookingStatus",
   "BookingPaymentStatus",
+  "BookingFinalizationStatus",
   "BookingsListView",
   "BookingListItem",
   "BookingDetailItem",
@@ -155,6 +166,7 @@ const REQUIRED_DTO_SCHEMAS = [
   "CreateBookingRequest",
   "CreateBookingResponse",
   "ApproveBookingResponse",
+  "FinalizeBookingResponse",
   "RejectBookingRequest",
   "RejectBookingResponse",
   "WaitlistBookingResponse",
@@ -369,7 +381,7 @@ describe("booking OpenAPI certification", () => {
     }
 
     assert.equal(rows.length, REGISTERED_BOOKING_ROUTES.length);
-    assert.equal(rows.length, 11, "coverage must be 100% of registered Booking endpoints");
+    assert.equal(rows.length, 12, "coverage must be 100% of registered Booking endpoints");
     console.log("endpoint | request schema | response schema | errors | examples");
     for (const row of rows) {
       console.log(row);
