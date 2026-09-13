@@ -19,6 +19,13 @@ function showTransportFollowUp(
   return state.optInPersonalCar;
 }
 
+/** Organized transport requires an explicit acknowledgement when personal-car details are not selected. */
+export function requiresDenaliNonPersonalCarAcknowledgement(
+  transport: PublicCatalogTransportSnapshot | undefined
+): boolean {
+  return transport !== undefined && isPublicCatalogOrganizedTransportMode(transport.mode);
+}
+
 export function isDenaliIntakeDongOffered(
   transport: PublicCatalogTransportSnapshot | undefined
 ): boolean {
@@ -35,8 +42,19 @@ function buildPayload(
       readonly personalCarOccupants?: 0 | 1 | 2 | 3;
     }
   | undefined {
-  if (!showTransportFollowUp(transport, state)) {
+  const nonPersonalCarAcknowledgementRequired =
+    requiresDenaliNonPersonalCarAcknowledgement(transport) && !state.optInPersonalCar;
+
+  if (nonPersonalCarAcknowledgementRequired && !state.nonPersonalCarAcknowledged) {
     return undefined;
+  }
+
+  if (!showTransportFollowUp(transport, state)) {
+    return nonPersonalCarAcknowledgementRequired ? { kind: "primary" } : undefined;
+  }
+
+  if (state.hasPersonalCar === null && nonPersonalCarAcknowledgementRequired) {
+    return { kind: "primary" };
   }
 
   if (state.hasPersonalCar === true) {
@@ -52,6 +70,9 @@ function buildPayload(
   }
 
   if (state.hasPersonalCar === false) {
+    if (!state.nonPersonalCarAcknowledged) {
+      return undefined;
+    }
     if (!isDenaliIntakeDongOffered(transport)) {
       return { kind: "no_car_acquaintance" };
     }
@@ -102,6 +123,7 @@ export const denaliCatalogTransportIntakeSurface: WorkspaceCatalogIntakeTranspor
       hasPersonalCar: transport?.mode === "shared_cars" ? null : null,
       personalCarOccupants: null,
       paysDong: null,
+      nonPersonalCarAcknowledged: false,
     }),
     showPersonalCarOptIn: (transport) => {
       if (transport === undefined) {
@@ -112,6 +134,13 @@ export const denaliCatalogTransportIntakeSurface: WorkspaceCatalogIntakeTranspor
     showTransportFollowUp: showTransportFollowUp,
     buildPayload,
     isComplete: (transport, state) => {
+      if (
+        requiresDenaliNonPersonalCarAcknowledgement(transport) &&
+        !state.optInPersonalCar &&
+        !state.nonPersonalCarAcknowledged
+      ) {
+        return false;
+      }
       if (!showTransportFollowUp(transport, state)) {
         return true;
       }

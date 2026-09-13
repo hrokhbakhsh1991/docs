@@ -89,6 +89,7 @@ jobs:
   ticketing-operator-playwright:
     name: Denali operator Ticketing Playwright
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16
@@ -137,6 +138,7 @@ jobs:
   ticketing-member-playwright:
     name: Denali member Ticketing Playwright
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16

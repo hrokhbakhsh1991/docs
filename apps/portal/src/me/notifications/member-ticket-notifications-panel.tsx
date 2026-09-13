@@ -81,6 +81,7 @@ function resolveNotificationTitle(
     "registration.rejected": "eventTitles.registrationRejected",
     "payment.hold.scheduled": "eventTitles.paymentScheduled",
     "payment.hold.expired": "eventTitles.paymentExpired",
+    "finance.receipt.approved": "eventTitles.receiptApproved",
     "wallet.transaction.posted": "eventTitles.walletUpdated",
     "wallet.balance.updated": "eventTitles.walletUpdated",
     "wallet.refund.credited": "eventTitles.walletUpdated",
@@ -299,6 +300,10 @@ export function MemberNotificationsPanel() {
               ticketFallback: (ticketRef) => t("ticketUpdateBody", { ticketRef }),
               genericFallback: t("genericUpdateBody"),
             });
+            const displayBody =
+              item.eventType === "finance.receipt.approved" && isRawTranslationKey(copy.body)
+                ? t("eventBodies.receiptApproved")
+                : body;
             const unread = item.readAt === null;
             const Icon = resolveNotificationSourceIcon(item.sourceModule, item.eventType);
             const href = resolveNotificationHref(item);
@@ -341,8 +346,8 @@ export function MemberNotificationsPanel() {
                         ) : null}
                       </span>
                       <span data-portal-member-notification-source-chip>{sourceLabel}</span>
-                      {body.length > 0 ? (
-                        <span data-portal-member-notification-body>{body}</span>
+                      {displayBody.length > 0 ? (
+                        <span data-portal-member-notification-body>{displayBody}</span>
                       ) : null}
                       <time
                         id={`notification-time-${item.id}`}

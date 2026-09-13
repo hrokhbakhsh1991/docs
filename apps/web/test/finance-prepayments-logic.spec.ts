@@ -85,7 +85,7 @@ describe("finance-prepayments-logic.spec.ts — Phase 9.7 R2", () => {
   });
 
   it("WEB-9.7-R2-04 formatMinorAmount groups digits", () => {
-    assert.equal(formatMinorAmount("5000000", "IRR"), "5,000,000 IRR");
+    assert.equal(formatMinorAmount("5000000", "IRR"), "5,000,000 toman");
     assert.match(formatMinorAmount("5000000", "IRR", "fa"), /۵/);
   });
 

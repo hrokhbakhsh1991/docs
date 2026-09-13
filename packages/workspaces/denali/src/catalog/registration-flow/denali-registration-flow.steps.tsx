@@ -24,6 +24,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "rea
 import {
   denaliCatalogTransportIntakeSurface,
   isDenaliIntakeDongOffered,
+  requiresDenaliNonPersonalCarAcknowledgement,
 } from "../denali-catalog-transport-intake";
 import { readDenaliFlowData } from "./denali-registration-flow.surface";
 import { DenaliDoneStep } from "./denali-registration-flow.done-step";
@@ -203,6 +204,7 @@ export function DenaliIntakeStep({
       hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
+      nonPersonalCarAcknowledged: false,
     } as TransportState;
   }
 
@@ -942,11 +944,32 @@ export function DenaliIntakeStep({
                             hasPersonalCar: null,
                             personalCarOccupants: null,
                             paysDong: null,
+                            nonPersonalCarAcknowledged: false,
                           },
                         }))
                       }
                     />
                     <span>{t("intake.personalCarOptIn")}</span>
+                  </label>
+                ) : null}
+
+                {requiresDenaliNonPersonalCarAcknowledgement(context.tourTransport) &&
+                !selfDraft.transportState.optInPersonalCar ? (
+                  <label data-public-registration-transport-acknowledgement>
+                    <input
+                      type="checkbox"
+                      checked={selfDraft.transportState.nonPersonalCarAcknowledged}
+                      onChange={(event) =>
+                        setSelfDraft((prev) => ({
+                          ...prev,
+                          transportState: {
+                            ...prev.transportState,
+                            nonPersonalCarAcknowledged: event.target.checked,
+                          },
+                        }))
+                      }
+                    />
+                    <span>{t("intake.nonPersonalCarAcknowledgement")}</span>
                   </label>
                 ) : null}
 
@@ -990,6 +1013,7 @@ export function DenaliIntakeStep({
                               hasPersonalCar: false,
                               personalCarOccupants: null,
                               paysDong: null,
+                              nonPersonalCarAcknowledged: false,
                             },
                           }))
                         }
@@ -1055,6 +1079,24 @@ export function DenaliIntakeStep({
                           {t("intake.paysDongNo")}
                         </label>
                       </div>
+                    ) : null}
+                    {selfDraft.transportState.hasPersonalCar === false ? (
+                      <label data-public-registration-transport-acknowledgement>
+                        <input
+                          type="checkbox"
+                          checked={selfDraft.transportState.nonPersonalCarAcknowledged}
+                          onChange={(event) =>
+                            setSelfDraft((prev) => ({
+                              ...prev,
+                              transportState: {
+                                ...prev.transportState,
+                                nonPersonalCarAcknowledged: event.target.checked,
+                              },
+                            }))
+                          }
+                        />
+                        <span>{t("intake.nonPersonalCarAcknowledgement")}</span>
+                      </label>
                     ) : null}
                   </fieldset>
                 ) : null}
@@ -1168,6 +1210,7 @@ export function DenaliIntakeStep({
                                       hasPersonalCar: null,
                                       personalCarOccupants: null,
                                       paysDong: null,
+                                      nonPersonalCarAcknowledged: false,
                                     },
                                   };
                                 })
@@ -1175,6 +1218,33 @@ export function DenaliIntakeStep({
                             }}
                           />
                           <span>{t("intake.personalCarOptIn")}</span>
+                        </label>
+                      ) : null}
+
+                      {requiresDenaliNonPersonalCarAcknowledgement(context.tourTransport) &&
+                      !guest.transportState.optInPersonalCar ? (
+                        <label data-public-registration-transport-acknowledgement>
+                          <input
+                            type="checkbox"
+                            checked={guest.transportState.nonPersonalCarAcknowledged}
+                            onChange={(event) => {
+                              const checked = event.target.checked;
+                              setOtherGuests((prev) =>
+                                prev.map((g, idx) =>
+                                  idx === guestIdx
+                                    ? {
+                                        ...g,
+                                        transportState: {
+                                          ...g.transportState,
+                                          nonPersonalCarAcknowledged: checked,
+                                        },
+                                      }
+                                    : g
+                                )
+                              );
+                            }}
+                          />
+                          <span>{t("intake.nonPersonalCarAcknowledgement")}</span>
                         </label>
                       ) : null}
 
@@ -1224,6 +1294,7 @@ export function DenaliIntakeStep({
                                             hasPersonalCar: false,
                                             personalCarOccupants: null,
                                             paysDong: null,
+                                            nonPersonalCarAcknowledged: false,
                                           },
                                         }
                                       : g
@@ -1316,6 +1387,31 @@ export function DenaliIntakeStep({
                                 {t("intake.paysDongNo")}
                               </label>
                             </div>
+                          ) : null}
+                          {guest.transportState.hasPersonalCar === false ? (
+                            <label data-public-registration-transport-acknowledgement>
+                              <input
+                                type="checkbox"
+                                checked={guest.transportState.nonPersonalCarAcknowledged}
+                                onChange={(event) => {
+                                  const checked = event.target.checked;
+                                  setOtherGuests((prev) =>
+                                    prev.map((g, idx) =>
+                                      idx === guestIdx
+                                        ? {
+                                            ...g,
+                                            transportState: {
+                                              ...g.transportState,
+                                              nonPersonalCarAcknowledged: checked,
+                                            },
+                                          }
+                                        : g
+                                    )
+                                  );
+                                }}
+                              />
+                              <span>{t("intake.nonPersonalCarAcknowledgement")}</span>
+                            </label>
                           ) : null}
                         </fieldset>
                       ) : null}

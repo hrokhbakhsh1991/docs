@@ -20,12 +20,19 @@ describe("portal registration resume — PCMS-REG-01", () => {
     assert.match(page, /sessionBadge/);
   });
 
+  it("PCMS-REG-05 passes the active self-registration gate into the resumed intake", () => {
+    const page = readFileSync(
+      join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
+      "utf8"
+    );
+    assert.match(page, /fetchMemberSelfRegistrationForTour/);
+    assert.match(page, /const existingSelfRegistration = resumeAtIntake/);
+    assert.match(page, /existingSelfRegistrationId=\{existingSelfRegistration\?\.id \?\? null\}/);
+  });
+
   it("PCMS-REG-02 flow accepts initialRuntimeState from server", () => {
     const flow = readFileSync(
-      join(
-        repoRoot,
-        "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
-      ),
+      join(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
       "utf8"
     );
     assert.match(flow, /initialRuntimeState/);
@@ -37,10 +44,7 @@ describe("portal registration resume — PCMS-REG-01", () => {
 
   it("PCMS-REG-02 flow uses intake-only stepper when resuming at intake", () => {
     const flow = readFileSync(
-      join(
-        repoRoot,
-        "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
-      ),
+      join(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
       "utf8"
     );
     assert.match(flow, /initialRuntimeState\?\.currentStep === "intake"/);
@@ -50,10 +54,7 @@ describe("portal registration resume — PCMS-REG-01", () => {
 
   it("PCMS-UX-05 client session probe shows pending state before phone step", () => {
     const flow = readFileSync(
-      join(
-        repoRoot,
-        "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
-      ),
+      join(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
       "utf8"
     );
     assert.match(flow, /data-registration-resume-pending/);

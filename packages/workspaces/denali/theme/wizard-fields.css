@@ -878,6 +878,7 @@ body[data-workspace-plugin="denali"]
     color-mix(in oklch, var(--color-bg-surface) 72%, transparent) 100%
   );
   pointer-events: none;
+  z-index: 2;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-map-experience__open {
@@ -3254,13 +3255,9 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picke
 
 body[data-workspace-plugin="denali"]
   [data-new-tour-wizard]
-  .denali-leader-picker__card
-  > .denali-leader-picker__avatar,
-body[data-workspace-plugin="denali"]
-  [data-new-tour-wizard]
   .denali-gear-picker__card
   > .denali-gear-picker__select {
-  /* The actual clickable row is the direct child in both pickers. */
+  /* The gear selector is the actual clickable row inside its card. */
   width: 100%;
 }
 
