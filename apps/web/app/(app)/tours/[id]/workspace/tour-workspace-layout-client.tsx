@@ -27,10 +27,14 @@ import {
   buildTourWorkspaceBookingsHref,
   buildTourWorkspaceFinanceHref,
   buildTourWorkspaceOpsCountsQuery,
+  buildTourWorkspaceRosterCountsHref,
   resolveTourWorkspaceOpsCountsFromListPayloads,
   type TourWorkspaceOpsCounts,
 } from "@/features/tours/tour-workspace-header-logic";
-import { listTourWorkspaceSubnavTabs } from "@/features/tours/tour-workspace-logic";
+import {
+  hrefForWorkspaceTab,
+  listTourWorkspaceSubnavTabs,
+} from "@/features/tours/tour-workspace-logic";
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { fetchTourDetailCached, readCachedTourDetail } from "@/features/tours/tour-route-cache";
 import {
@@ -140,24 +144,36 @@ function TourWorkspaceLayoutInner({
     let cancelled = false;
     const loadOps = async () => {
       try {
-        const [pendingRes, waitlistedRes, approvedRes] = await Promise.all([
-          fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "pending")}`, {
-            cache: "no-store",
-          }),
-          fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "waitlisted")}`, {
-            cache: "no-store",
-          }),
-          fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "approved")}`, {
-            cache: "no-store",
-          }),
-        ]);
-        if (!pendingRes.ok || !waitlistedRes.ok || !approvedRes.ok) {
+        const [pendingRes, waitlistedRes, approvedRes, paymentDueRes, finalRes] = await Promise.all(
+          [
+            fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "pending")}`, {
+              cache: "no-store",
+            }),
+            fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "waitlisted")}`, {
+              cache: "no-store",
+            }),
+            fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "approved")}`, {
+              cache: "no-store",
+            }),
+            fetch(buildTourWorkspaceRosterCountsHref(tourId, "unpaid"), { cache: "no-store" }),
+            fetch(buildTourWorkspaceRosterCountsHref(tourId, "final"), { cache: "no-store" }),
+          ]
+        );
+        if (
+          !pendingRes.ok ||
+          !waitlistedRes.ok ||
+          !approvedRes.ok ||
+          !paymentDueRes.ok ||
+          !finalRes.ok
+        ) {
           throw new Error("TOUR_WORKSPACE_OPS_COUNTS_FAILED");
         }
         const resolved = resolveTourWorkspaceOpsCountsFromListPayloads({
           pendingPayload: await pendingRes.json(),
           waitlistedPayload: await waitlistedRes.json(),
           approvedPayload: await approvedRes.json(),
+          paymentDuePayload: await paymentDueRes.json(),
+          finalPayload: await finalRes.json(),
         });
         if (!cancelled) {
           if (!resolved.ok) {
@@ -200,7 +216,7 @@ function TourWorkspaceLayoutInner({
     if (opsCounts !== null) {
       map.registrations = opsCounts.pending;
       map.waitlist = opsCounts.waitlisted;
-      map.transport = opsCounts.approved;
+      map.transport = opsCounts.final;
     }
     return map;
   }, [opsCounts, subnavTabs]);
@@ -333,6 +349,48 @@ function TourWorkspaceLayoutInner({
         >
           {t("readOnlyBanner")}
         </p>
+      ) : null}
+
+      {opsCounts !== null ? (
+        <div
+          className="grid gap-2 sm:grid-cols-3"
+          data-testid="operator-tour-workspace-operations-summary"
+          aria-label={t("operationsSummary.ariaLabel")}
+        >
+          <TourInternalLink
+            href={hrefForWorkspaceTab(tourId, "registrations")}
+            className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+          >
+            <span className="block text-xs text-muted-foreground">
+              {t("operationsSummary.pending")}
+            </span>
+            <span className="text-lg font-semibold">
+              {formatLocalizedNumber(opsCounts.pending, locale)}
+            </span>
+          </TourInternalLink>
+          <TourInternalLink
+            href={hrefForWorkspaceTab(tourId, "finance")}
+            className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+          >
+            <span className="block text-xs text-muted-foreground">
+              {t("operationsSummary.paymentDue")}
+            </span>
+            <span className="text-lg font-semibold">
+              {formatLocalizedNumber(opsCounts.paymentDue, locale)}
+            </span>
+          </TourInternalLink>
+          <TourInternalLink
+            href={hrefForWorkspaceTab(tourId, "transport")}
+            className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+          >
+            <span className="block text-xs text-muted-foreground">
+              {t("operationsSummary.final")}
+            </span>
+            <span className="text-lg font-semibold">
+              {formatLocalizedNumber(opsCounts.final, locale)}
+            </span>
+          </TourInternalLink>
+        </div>
       ) : null}
 
       <nav
