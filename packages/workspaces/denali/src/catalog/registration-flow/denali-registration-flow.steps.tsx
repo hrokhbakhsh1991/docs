@@ -151,6 +151,16 @@ export function DenaliIntakeStep({
   }, []);
   useEffect(() => {
     if (invalidField === null) return;
+    if (invalidField.fieldId === "transport") {
+      const transportScope =
+        invalidField.scope === "self" ? "self" : `other-${invalidField.idx}`;
+      document
+        .querySelector<HTMLElement>(
+          `[data-public-registration-transport][data-denali-transport-scope="${transportScope}"] input`
+        )
+        ?.focus();
+      return;
+    }
     const prefix =
       invalidField.scope === "self"
         ? "denali-intake-self"
@@ -591,6 +601,7 @@ export function DenaliIntakeStep({
         }
 
         if (!transportSurface.isComplete(context.tourTransport, p.draft.transportState)) {
+          setInvalidField({ scope: target, idx: p.idx, fieldId: "transport" });
           setError(t("intake.transportIncomplete"));
           return;
         }
@@ -738,7 +749,7 @@ export function DenaliIntakeStep({
       return null;
     }
     return (
-      <p id={errorId} role="alert" data-denali-field-alert>
+      <p id={`${errorId}-${scope}-${idx}`} role="alert" data-denali-field-alert>
         {error}
       </p>
     );
@@ -1008,7 +1019,22 @@ export function DenaliIntakeStep({
                   context.tourTransport,
                   selfDraft.transportState
                 ) ? (
-                  <fieldset data-public-registration-transport>
+                  <fieldset
+                    data-public-registration-transport
+                    data-denali-transport-scope="self"
+                    aria-invalid={
+                      invalidField?.scope === "self" &&
+                      invalidField.idx === 0 &&
+                      invalidField.fieldId === "transport"
+                    }
+                    aria-describedby={
+                      invalidField?.scope === "self" &&
+                      invalidField.idx === 0 &&
+                      invalidField.fieldId === "transport"
+                        ? `${errorId}-self-0`
+                        : undefined
+                    }
+                  >
                     <legend>{t("intake.transportLegend")}</legend>
                     <p>{t("intake.hasPersonalCarQuestion")}</p>
 
@@ -1301,7 +1327,22 @@ export function DenaliIntakeStep({
                       ) : null}
 
                       {transportFollowUpVisible ? (
-                        <fieldset data-public-registration-transport>
+                        <fieldset
+                          data-public-registration-transport
+                          data-denali-transport-scope={`other-${guestIdx}`}
+                          aria-invalid={
+                            invalidField?.scope === "other" &&
+                            invalidField.idx === guestIdx &&
+                            invalidField.fieldId === "transport"
+                          }
+                          aria-describedby={
+                            invalidField?.scope === "other" &&
+                            invalidField.idx === guestIdx &&
+                            invalidField.fieldId === "transport"
+                              ? `${errorId}-other-${guestIdx}`
+                              : undefined
+                          }
+                        >
                           <legend>{t("intake.transportLegend")}</legend>
                           <p>{t("intake.hasPersonalCarQuestion")}</p>
 
