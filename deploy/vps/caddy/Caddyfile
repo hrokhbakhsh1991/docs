@@ -21,6 +21,22 @@
 	}
 }
 
+# Canonical sibling host: admin.{club}.{root}.
+admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+
+    reverse_proxy 127.0.0.1:{$WEB_PORT} {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    log {
+        output file /var/log/caddy/admin-access.log
+        format json
+    }
+}
+
 *.portal.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
 		header_up Host {host}
@@ -33,6 +49,21 @@
 		output file /var/log/caddy/portal-access.log
 		format json
 	}
+}
+
+# Canonical sibling host: portal.{club}.{root}.
+portal.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+    reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    log {
+        output file /var/log/caddy/portal-access.log
+        format json
+    }
 }
 
 *.{$PLATFORM_ROOT_DOMAIN} {
