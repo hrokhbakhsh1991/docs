@@ -94,6 +94,13 @@ TOUR_OPS_API_URL=http://127.0.0.1:3001 pnpm run p7:staging-verify
 
 DNS: `operator.{root}` · `operator.portal.{root}` · `operator.admin.{root}`.
 
+For the current Denali staging ingress, run the synchronizer with
+`PUBLIC_ROOT_DOMAIN=shenski.com` and `PUBLIC_TENANT_LABEL=denali` (the defaults
+used by `sync-staging-profile-b-public-urls.sh`). It writes
+`https://denali.shenski.com` and `https://denali.portal.shenski.com` to the
+surface env files on every artifact install; override with
+`STAGING_PUBLIC_*` variables when a staging tenant uses another public host.
+
 SMS: configure provider on API (no static OTP). Document provider env in `/etc/app-tour/api.env` — waivers only via T4 §Known exceptions.
 
 ---

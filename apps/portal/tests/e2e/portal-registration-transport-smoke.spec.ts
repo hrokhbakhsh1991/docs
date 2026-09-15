@@ -102,6 +102,23 @@ test("DEN-TRANS-02b personal-car opt-in persists driver-only with zero companion
   expect(body.transport?.personalCarOccupants).toBe(0);
 });
 
+test("DEN-TRANS-02c incomplete transport explains the blocker and focuses its control", async ({
+  page,
+}) => {
+  await reachTransportIntake(page, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, uniqueTransportPhone());
+
+  await page.locator("[data-public-registration-personal-car-opt-in] input[type=checkbox]").check();
+  const transportFieldset = page.locator("[data-public-registration-transport]");
+  await expect(transportFieldset).toBeVisible();
+  await transportFieldset.locator('input[name^="hasPersonalCar-"]').first().check();
+
+  await page.locator('[data-action="intake-submit"]').click();
+
+  await expect(page.locator("[data-denali-field-alert]")).toBeVisible();
+  await expect(transportFieldset).toHaveAttribute("aria-invalid", "true");
+  await expect(transportFieldset.locator("input").first()).toBeFocused();
+});
+
 test("DEN-TRANS-03 shared_cars tour forces dong follow-up and persists no_car_dong", async ({
   page,
 }) => {

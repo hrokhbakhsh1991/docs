@@ -10,8 +10,23 @@ PROD_ENV="${PROD_ENV:-/etc/app-tour}"
 APP_USER="${APP_USER:-app-tour}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
 VPS_IP="${VPS_IP:-89.42.210.252}"
+PUBLIC_ROOT_DOMAIN="${PUBLIC_ROOT_DOMAIN:-shenski.com}"
+PUBLIC_TENANT_LABEL="${PUBLIC_TENANT_LABEL:-denali}"
+PUBLIC_MARKETING_BASE_URL="${PUBLIC_MARKETING_BASE_URL:-https://${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+PUBLIC_PORTAL_BASE_URL="${PUBLIC_PORTAL_BASE_URL:-https://${PUBLIC_TENANT_LABEL}.portal.${PUBLIC_ROOT_DOMAIN}}"
 
 log() { printf '[bootstrap-staging] %s\n' "$*"; }
+
+ensure_env_value() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  if grep -qE "^${key}=" "$file"; then
+    sed -i "s#^${key}=.*#${key}=${value}#" "$file"
+  else
+    printf '%s=%s\n' "$key" "$value" >>"$file"
+  fi
+}
 
 [[ "$(id -u)" -eq 0 ]] || {
   echo "bootstrap-staging: run as root" >&2
@@ -75,6 +90,19 @@ for pair in marketing:23002:marketing.env.example portal:23003:portal.env.exampl
     echo "TOUR_OPS_PUBLIC_FALLBACK_HOSTS=${VPS_IP},127.0.0.1" >>"$target"
   fi
 done
+
+# Reconcile public ingress settings on every run. The env files persist across
+# deploys, so only creating them once would leave a host in localhost/dev mode
+# forever. Values are configurable per staging tenant for future workspaces.
+ensure_env_value "$ENV_DIR/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/web.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
+ensure_env_value "$ENV_DIR/marketing.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
+ensure_env_value "$ENV_DIR/marketing.env" SESSION_COOKIE_SECURE true
+ensure_env_value "$ENV_DIR/portal.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/portal.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
+ensure_env_value "$ENV_DIR/portal.env" SESSION_COOKIE_SECURE true
 
 grep -qE '^MINIO_PUBLIC_ENDPOINT=' "$ENV_DIR/api.env" 2>/dev/null || \
   echo "MINIO_PUBLIC_ENDPOINT=http://${VPS_IP}:9002" >>"$ENV_DIR/api.env"
