@@ -159,7 +159,7 @@
     "nationalIdChecksumInvalid": "این کد ملی از نظر رقم کنترل معتبر نیست. ارقام را بررسی کنید.",
     "fatherNameInvalid": "نام پدر الزامی است.",
     "birthDateInvalid": "تاریخ تولد معتبر وارد کنید.",
-    "transportIncomplete": "گزینه‌های حمل‌ونقل را کامل کنید."
+    "transportIncomplete": "لطفاً گزینهٔ حمل‌ونقل را انتخاب کنید؛ اگر ماشین شخصی دارید، تعداد همراهان را هم مشخص کنید."
   },
   "success": {
     "eyebrow": "ثبت شد",
