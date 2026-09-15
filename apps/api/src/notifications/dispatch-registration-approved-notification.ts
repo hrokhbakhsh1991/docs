@@ -69,6 +69,9 @@ export async function dispatchRegistrationApprovedNotification(
       tourId: payload.tourId,
       status: payload.status,
       approvedAt: payload.approvedAt,
+      ...(optionalString(payload.socialMediaLink) !== undefined
+        ? { socialMediaLink: optionalString(payload.socialMediaLink) }
+        : {}),
       eventType: row.eventType,
       domainEventId: row.domainEventId,
     },

@@ -151,6 +151,20 @@ Operator E2E for `/settings/exposure` on Denali smoke tenant:
 Spec: `apps/web/tests/e2e/denali-exposure-settings.spec.ts`  
 Run: `pnpm --filter @apps/web run test:e2e:exposure` (requires smoke servers / `PW_EXTERNAL_SERVERS=1`)
 
+**Memory-driver smoke (PLP/PDP field visibility):** `ExposureIntent` persistence uses
+`createExposureIntentRepository()` — Prisma when `STORAGE_DRIVER=prisma`, otherwise
+`InMemoryExposureIntentRepository` (`apps/api/src/exposure/create-exposure-intent-repository.ts`).
+This unblocks operator exposure saves and marketing catalog redaction in memory smokes without
+Postgres. End-to-end proof: `apps/web/tests/e2e/plp-pdp-field-visibility.spec.ts` via
+`playwright.plp-pdp-field-visibility.config.ts`.
+
+**PDP destination label enrichment:** `readDenaliCatalogDetailEgress` resolves
+`destinationLabel` from tour `destinationId` via `destinationNameById`. Catalog services
+collect ids with `collectItinerarySegmentDestinationIds`, which includes both itinerary
+segment `destinationId` values **and** the tour root `destinationId` (smoke tours often
+only set the root ref). Without the root id, PLP `category` can render while PDP
+`data-marketing-catalog-detail-destination` stays empty.
+
 Root alias: `pnpm run test:exposure:integration` → all Postgres exposure integration specs.
 
 ---

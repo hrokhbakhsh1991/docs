@@ -819,20 +819,21 @@ stem fails immediately.
 
 ### DG-6.5 slice — reproducible G1 adapter-budget metric
 
-**Audit:** Harbor has 16 raw TypeScript source files, while the charter's
-≤15 target describes adapter modules rather than neutral barrels/loaders. No
-executable metric defined that distinction, so the claim could drift.
+**Audit:** Harbor's adapter surface is measured from the governed HTTP, auth,
+tours, catalog, and exposure paths, while the charter's ≤15 target excludes
+neutral barrels/loaders. The executable metric prevents that claim from
+drifting as the workspace grows.
 
-The clone guard now counts TypeScript files under `src/` while excluding only
+The clone guard counts TypeScript files in those governed paths while excluding
 the neutral `index.ts`, `react.ts`, and `routes.ts` basenames. It retains
-`routes-manifest.ts` as workspace configuration. Harbor measures **10/15** and
-the guard fails if the adapter surface grows past 15.
+`routes-manifest.ts` as workspace configuration. Harbor currently measures
+**12/15** and the guard fails if the adapter surface grows past 15.
 
 Harbor reached the recorded G1 smoke on the scaffold date (2026-07-31); this is
 a same-day execution record, not yet a multi-workspace lead-time benchmark.
 
 **Status DG-6.5 (2026-07-31):** adapter budget is executable and time-to-G1 has
-an explicitly scoped baseline.
+an explicitly scoped baseline; the current Harbor result is **12/15**.
 
 ### DG-6.6 slice — executable workspace-role labels
 

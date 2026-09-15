@@ -158,6 +158,7 @@ export const SETTINGS_MODULE_LABEL_KEYS: Record<string, string> = {
   wizard_drafts: "modules.wizard_drafts.title",
   reconciliation_triage: "modules.reconciliation_triage.title",
   workspace_branding: "modules.workspace_branding.title",
+  marketing_pages: "modules.marketing_pages.title",
   integrations: "modules.integrations.title",
   exposure: "modules.exposure.title",
 };
@@ -178,6 +179,7 @@ export const SETTINGS_MODULE_DESCRIPTION_KEYS: Partial<Record<string, string>> =
   reconciliation_triage: "modules.reconciliation_triage.description",
   account_profile: "modules.account_profile.description",
   workspace_branding: "modules.workspace_branding.description",
+  marketing_pages: "modules.marketing_pages.description",
   integrations: "modules.integrations.description",
   exposure: "modules.exposure.description",
 };

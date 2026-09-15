@@ -21,7 +21,7 @@ const iphone13Mobile = {
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["marketing-home-smoke.spec.ts"],
+  testMatch: ["marketing-home-smoke.spec.ts", "marketing-home-landing.browser.spec.ts"],
   fullyParallel: false,
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,
@@ -30,7 +30,7 @@ export default defineConfig({
   projects: [
     {
       name: "home-denali",
-      grep: /SMK-MKT-HOME-0(1|2|3|7|8)|SMK-MKT-HOME-10/,
+      grep: /SMK-MKT-HOME-0(1|2|3|7|8|9)|SMK-MKT-HOME-10|LAND-BQC/,
       use: {
         ...devices["Desktop Chrome"],
         ...iphone13Mobile,

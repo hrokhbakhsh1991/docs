@@ -6,7 +6,7 @@ import {
   BACKGROUND_ADMIN_REASON,
 } from "../../db/background-admin-client";
 import { disconnectPrisma } from "../../db/prisma";
-import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "../../exposure/create-exposure-intent-repository";
 import type { ExposureFieldDecorations } from "../../exposure/exposure-intent";
 import type { ExposureIntentMode } from "../../exposure/exposure-intent";
 import { listTourPublishedExposureRemapTargets } from "../../integrations/platform/workspace-integration-capabilities.generated.ts";

@@ -116,8 +116,9 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
       personalCarOccupants: {
         type: "integer",
         nullable: true,
-        enum: [1, 2, 3],
-        description: "When transportKind=personal_car, occupants 1–3 (list scalar).",
+        enum: [0, 1, 2, 3],
+        description:
+          "When transportKind=personal_car, occupants 0–3 (list scalar); 0 means driver only.",
         examples: [2],
       },
       partySize: { type: "integer", minimum: 1, examples: [2] },

@@ -6,7 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const portalSmokeBaseUrl =
-  process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.portal.localhost:3003";
+  process.env.SMOKE_PORTAL_BASE_URL ?? "http://portal.operator.localhost:3003";
 
 function stagingLaunchOptions(): { args: string[] } | undefined {
   const vpsIp = process.env.VPS_IP?.trim();
@@ -18,6 +18,9 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
     `MAP operator.portal.localhost ${vpsIp}`,
     `MAP portal.operator.localhost ${vpsIp}`,
     `MAP operator.localhost ${vpsIp}`,
+    `MAP denali.club ${vpsIp}`,
+    `MAP portal.denali.club ${vpsIp}`,
+    `MAP admin.denali.localhost ${vpsIp}`,
   ].join(", ");
   return { args: [`--host-resolver-rules=${rules}`] };
 }
@@ -29,6 +32,7 @@ export default defineConfig({
     "portal-registration-resume-smoke.spec.ts",
     "portal-member-profile-smoke.spec.ts",
     "portal-member-smoke.spec.ts",
+    "portal-profile-ssr-cookie-fix.spec.ts",
   ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
@@ -39,6 +43,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: portalSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
+    ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
     navigationTimeout: 180_000,
     ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
   },

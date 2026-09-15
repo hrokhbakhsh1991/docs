@@ -119,7 +119,6 @@ export function createExternalBookingPort(): IBookingPaymentPort {
     async getRegistrationLifecycleStatus() {
       return "approved";
     },
-
   };
 }
 
@@ -128,7 +127,10 @@ export function createExternalBookingPort(): IBookingPaymentPort {
  * Other methods throw to prove the consumer does not accidentally call host infrastructure.
  */
 export function createExternalRepository(): FinanceRepositoryPort {
-  const payments = new Map<string, FinancePaymentRow & { tenantId: string; creationIdempotencyKey?: string }>();
+  const payments = new Map<
+    string,
+    FinancePaymentRow & { tenantId: string; creationIdempotencyKey?: string }
+  >();
 
   function notImplemented(name: string): never {
     throw new Error(`external-consumer stub: ${name} not implemented`);
@@ -233,7 +235,13 @@ export function createExternalRepository(): FinanceRepositoryPort {
     },
     async markPrepaymentBookingSyncRecovered() {},
     async getRegistrationInvoiceFacts() {
-      return notImplemented("getRegistrationInvoiceFacts");
+      return {
+        prepaymentMinor: "0",
+        paidPaymentsMinor: "0",
+        paymentAmountsMinor: [],
+        currency: "IRR",
+        refundedCompletedMinor: "0",
+      };
     },
     async createRefund() {
       return notImplemented("createRefund");

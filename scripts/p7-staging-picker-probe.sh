@@ -2,7 +2,7 @@
 # P7-1-N-004 — staging picker catalog probe (~8s)
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 WEB_PORT="${STAGING_WEB_PORT:-23000}"
 API_PORT="${STAGING_API_PORT:-23001}"
@@ -10,7 +10,7 @@ WEB="http://127.0.0.1:${WEB_PORT}"
 API="http://127.0.0.1:${API_PORT}"
 PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-09174070937}}"
 OTP="${SMOKE_OPERATOR_OTP:-1234}"
-ADMIN_HOST="${STAGING_ADMIN_HOST:-denali.admin.localhost}"
+ADMIN_HOST="${STAGING_ADMIN_HOST:-admin.denali.localhost}"
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=15)
 
@@ -50,7 +50,7 @@ echo "destinations=\${dest} equipment=\${equip} tour_themes=\${themes}"
 [[ "\$equip" -ge 1 ]] || fail "equipment empty"
 [[ "\$themes" -ge 1 ]] || fail "tour_themes empty"
 
-curl -sS "\${HOST_HDR[@]}" -H "Cookie: session=\${TOKEN}" "\${WEB}/tours/new" -o /tmp/p7-pickers.html
+curl -sS "\${HOST_HDR[@]}" -H "Cookie: atour_op_session=\${TOKEN}" "\${WEB}/tours/new" -o /tmp/p7-pickers.html
 grep -q 'data-workspace-wizard' /tmp/p7-pickers.html || fail "wizard shell missing"
 grep -q 'توچال' /tmp/p7-pickers.html || fail "destination label missing in wizard HTML"
 

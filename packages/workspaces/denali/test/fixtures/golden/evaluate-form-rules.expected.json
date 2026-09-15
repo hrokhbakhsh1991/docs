@@ -442,6 +442,14 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "pricing.registrationApproval",
+        "formPath": "pricingPayment.registrationApproval",
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false,
+        "visible": true
+      },
+      {
         "canonicalPath": "pricing.requiresPayment",
         "formPath": "pricingPayment.requiresPayment",
         "visible": true,
@@ -928,6 +936,14 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "pricing.registrationApproval",
+        "formPath": "pricingPayment.registrationApproval",
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false,
+        "visible": true
+      },
+      {
         "canonicalPath": "pricing.requiresPayment",
         "formPath": "pricingPayment.requiresPayment",
         "visible": true,
@@ -1412,6 +1428,14 @@
         "required": false,
         "staticHidden": false,
         "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.registrationApproval",
+        "formPath": "pricingPayment.registrationApproval",
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false,
+        "visible": true
       },
       {
         "canonicalPath": "pricing.requiresPayment",

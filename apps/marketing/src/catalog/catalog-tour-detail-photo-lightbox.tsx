@@ -1,12 +1,14 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { flushSync } from "react-dom";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type MouseEvent,
@@ -67,7 +69,13 @@ export function CatalogTourDetailPhotoLightbox({
         return;
       }
       lastTriggerRef.current = trigger ?? null;
-      setActiveIndex(index);
+      flushSync(() => {
+        setActiveIndex(index);
+      });
+      const dialog = dialogRef.current;
+      if (dialog != null && !dialog.open) {
+        dialog.showModal();
+      }
     },
     [photos.length]
   );
@@ -90,7 +98,7 @@ export function CatalogTourDetailPhotoLightbox({
     });
   }, [photos.length]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (dialog == null || activeIndex == null) {
       return;

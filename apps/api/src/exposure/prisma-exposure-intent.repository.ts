@@ -275,7 +275,3 @@ export class PrismaExposureIntentRepository implements ExposureIntentRepository 
     });
   }
 }
-
-export function createExposureIntentRepository(): ExposureIntentRepository {
-  return new PrismaExposureIntentRepository();
-}

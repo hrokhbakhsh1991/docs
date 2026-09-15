@@ -1,0 +1,110 @@
+---
+title: Ticketing UI/UX Review (Denali)
+description: FDA-001 placement analysis, defect matrix, and acceptance criteria for member portal and operator web ticketing surfaces.
+---
+
+# TICKETING_UI_UX_REVIEW
+
+**Feature:** `ticketing-ui-ux-denali`  
+**Branch:** `cursor/ticketing-ui-ux`  
+**Base:** `feature/ticketing-system` @ `b29244f2` (merge-base)  
+**Date:** 2026-09-04
+
+## Current strengths
+
+- Ticketing is a **primary** member portal module in Denali manifest (`/me/tickets`, nav tier primary).
+- Operator uses **split-pane command center** (inbox 3fr + detail 2fr) — aligns with industry inbox patterns (Zendesk Agent Home split view).
+- Member conversation uses **author-aligned bubbles** with RTL-safe `margin-inline` rules.
+- Operator separates **public vs internal** timelines in markup (`data-visibility`).
+- Shared **member_notifications** bell — no duplicate ticket-only notification UI.
+- Functional Playwright smoke + Axe specs exist for portal and operator ticketing.
+
+## Placement decisions
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Keep Tickets in **primary portal nav** (not buried in More) | Support is a core member self-service path; manifest already places it at primary tier. |
+| 2 | **No open-ticket count in nav badge** (this phase) | Avoid duplicate signal with notification bell; open count belongs in list filters, not nav chrome. |
+| 3 | **No dashboard ticket summary widget** (this phase) | Member home focuses on trips/registrations; ticket CTA lives on list empty state + nav. |
+| 4 | List shows subject, status, category, priority, message count, last activity; detail shows full timeline + composer | List = scan; detail = act. |
+| 5 | Primary action by state: open/pending → **reply**; resolved → **reopen**; closed → read-only | Matches support portal conventions. |
+| 6 | Status via **icon + label + semantic color** (not color alone); priority as secondary meta | WCAG 1.4.1; banners reinforce state in plain language. |
+| 7 | Attachments on mobile: **filename link** in message bubble, full-width tap target | Avoid thumbnail clutter on narrow viewports. |
+| 8 | Internal notes: **warning-tinted panel + border** separate from public thread | Prevents operator confusion (Zendesk/Intercom pattern). |
+| 9 | Operator: **keep split-pane** on desktop; bottom sheet on mobile | Already implemented; matches split-view efficiency research. |
+| 10 | Bulk toolbar: **always visible when mutating**, confirm on destructive bulk status | Discoverable without cluttering rows; confirm before resolve/close. |
+| 11 | Notifications: **bell only** for unread; tickets nav does not duplicate bell | MNI-001 single inbox authority. |
+
+## Defect remediation matrix
+
+| ID | Sev | Surface | Observed defect | Remediation | Verification |
+|----|-----|---------|-----------------|-------------|--------------|
+| UX-01 | P1 | Portal list | Filter chips lacked active/hover styling; unicode ◎/● markers confused | Removed unicode markers; `aria-pressed` + Denali chip tokens | Portal screenshot + Axe smoke |
+| UX-02 | P1 | Portal list/detail | Status badges lacked semantic color hierarchy | Token-based badge colors with icon + label | Portal screenshot + Axe smoke |
+| UX-03 | P1 | Portal detail | Status banner unstyled — weak state communication | Semantic status banners per state | Portal screenshot + Axe smoke |
+| UX-04 | P1 | Portal create | Raw form controls; tour/registration UUID fields exposed | Advanced `<details>` disclosure; Denali form field spacing | Portal screenshot + smoke |
+| UX-05 | P1 | Portal detail | Success actions not announced (`aria-live` only showed errors) | `replySuccess` / `reopenSuccess` in `aria-live="polite"` | Portal smoke + Axe |
+| UX-06 | P1 | Operator detail | Internal notes visually weak (3px border only) | Warning-tinted panel + border on internal messages/composer | Operator detail screenshot + smoke |
+| UX-07 | P1 | Operator inbox | Emoji 📎 attachment indicator — poor a11y | Text label + `aria-label` | Operator inbox screenshot + smoke |
+| UX-08 | P1 | Operator bulk | No confirm before bulk resolve/close | `OperatorConfirmDialog` for bulk `resolved`/`closed` | `operator-ticketing-bulk-confirm.spec.ts` |
+| UX-09 | P2 | Operator detail | Resolve/close lacked explicit confirm | Per-action `OperatorConfirmDialog` | Operator inbox smoke |
+| UX-10 | P2 | Operator CSS | Hardcoded hex colors instead of tokens | `var(--*)` + `color-mix` contrast fixes | Operator Axe smoke |
+| UX-11 | P2 | Portal | Empty state / form field spacing inconsistent | Denali `member-pages.css` ticketing block | Portal screenshots |
+| UX-12 | P3 | Operator inbox | Row meta dense on 360px | Existing wrap rules retained; contrast tweak only | Operator screenshot @ 360×800 |
+
+## Evidence capture (before/after)
+
+`TICKETING_UI_UX_PHASE` alone only selects the output folder — it does **not** change the running code. Use the deterministic capture script:
+
+```bash
+node scripts/capture-ticketing-ui-ux-evidence.mjs
+```
+
+- **Before:** temporarily checks out merge-base UI files on the locked branch, then captures (see script)
+- **After:** current `HEAD` on `cursor/ticketing-ui-ux`
+- **Output:** `/opt/cursor/artifacts/screenshots/ticketing-ui-ux/{before,after}/`
+- **Manifest:** `hash-manifest.json` with SHA-256 per file; script exits non-zero if any pair is byte-identical
+
+## Rejected alternatives
+
+- **Ticket-only notification tab** — violates MNI-001.
+- **Full-page operator detail navigation** — regresses triage efficiency vs split-pane.
+- **Moving tickets to secondary “More” hub** — reduces discoverability for club support.
+- **New bespoke design system** — extend Denali `member-pages.css` + operator tokens only.
+
+## Acceptance criteria
+
+1. BEFORE/AFTER screenshots at 1440×900, 1280×800, 768×1024, 390×844, 360×800 for portal list, new form, nav; operator inbox + detail. Capture via `node scripts/capture-ticketing-ui-ux-evidence.mjs` (worktree before @ `b29244f2`, after @ HEAD).
+2. Filter chips show clear active state without unicode-only markers.
+3. Status badges and banners use semantic tokens with icon + text.
+4. Create form hides tour/registration IDs behind optional advanced disclosure.
+5. Member reply/reopen announces success via `aria-live`.
+6. Operator internal notes visually distinct from public messages.
+7. Bulk resolve/close requires `OperatorConfirmDialog`.
+8. Attachment indicator uses accessible text label.
+9. Portal + operator Playwright smoke and Axe specs pass.
+10. No API / RLS / notification architecture changes.
+
+## Files expected to change
+
+- `packages/workspaces/denali/theme/portal/member-pages.css`
+- `apps/portal/src/me/tickets/member-tickets-list-panel.tsx`
+- `apps/portal/src/me/tickets/member-tickets-new-form.tsx`
+- `apps/portal/src/me/tickets/member-ticket-detail-panel.tsx`
+- `apps/portal/messages/{en,fa}/portalMember.json`
+- `apps/web/src/features/tickets/operator-tickets.css`
+- `apps/web/src/features/tickets/operator-tickets-inbox-row.tsx`
+- `apps/web/src/features/tickets/operator-tickets-command-center-shell.tsx`
+- `apps/web/src/features/tickets/operator-tickets-detail-panel.tsx`
+- `apps/web/messages/{en,fa}/tickets.json`
+- `apps/portal/tests/e2e/ticketing-ui-ux-screenshots.spec.ts`
+- `apps/web/tests/e2e/ticketing-ui-ux-screenshots.spec.ts`
+
+## Research sources
+
+| URL | Principle | Applicability | Decision |
+|-----|-----------|---------------|----------|
+| https://www.w3.org/WAI/WCAG22/Understanding/status-messages | SC 4.1.3 status without focus move | Member success feedback | `aria-live` success copy |
+| https://support.zendesk.com/hc/en-us/articles/10413364615194 | Split view inbox + conversation | Operator layout | Keep split-pane command center |
+| https://www.supportbench.com/customer-portal-accessibility-checklist-wcag-basics-support-teams/ | Clear labels, not placeholder-only | Member create form | Visible labels + advanced disclosure |
+| Material Design 3 — chips (filters) | Toggle chip selected state | Portal status filters | `aria-pressed` + token styling |

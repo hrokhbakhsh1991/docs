@@ -24,6 +24,7 @@ import { HomeTrust } from "./home-trust";
 import { HomeWhy } from "./home-why";
 import { resolveHomeWhySectionAnchor } from "./resolve-home-why-section-anchor";
 import { resolveMarketingHomeHeroMedia } from "./resolve-marketing-home-hero-media";
+import type { HomeHeroCopyOverride } from "./home-hero";
 
 export type GuestHomeFullProps = {
   readonly landing: GuestLandingFeatures;
@@ -31,6 +32,7 @@ export type GuestHomeFullProps = {
   readonly catalogItems: readonly MarketingCatalogCard[];
   readonly pluginId: string;
   readonly host: string;
+  readonly homeHeroCopyOverride?: HomeHeroCopyOverride | null;
 };
 
 export async function GuestHomeFull({
@@ -39,6 +41,7 @@ export async function GuestHomeFull({
   catalogItems,
   pluginId,
   host,
+  homeHeroCopyOverride = null,
 }: GuestHomeFullProps) {
   const t = await getTranslations("catalog");
   const categories = deriveHomeCategories(catalogItems);
@@ -76,6 +79,7 @@ export async function GuestHomeFull({
           heroImageMobileUrl={heroMedia.mobileSrc}
           heroImageWidth={heroMedia.desktopWidth}
           heroImageHeight={heroMedia.desktopHeight}
+          copyOverride={homeHeroCopyOverride}
         />
       ) : null}
       {showPrograms ? (

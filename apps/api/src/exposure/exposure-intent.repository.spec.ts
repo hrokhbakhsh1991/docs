@@ -5,7 +5,7 @@ import {
   exposureIntentScopeHash,
   normalizeExposureIntentScope,
 } from "./exposure-intent.repository";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 
 describe("ExposureIntent repository helpers", () => {
   it("normalizes missing scope to an empty object", () => {
@@ -29,7 +29,7 @@ describe("ExposureIntent repository helpers", () => {
     assert.equal(exposureIntentScopeHash(left), exposureIntentScopeHash(right));
   });
 
-  it("constructs the Prisma repository without touching the database", () => {
+  it("constructs the exposure intent repository for the active storage driver", () => {
     assert.ok(createExposureIntentRepository());
   });
 });

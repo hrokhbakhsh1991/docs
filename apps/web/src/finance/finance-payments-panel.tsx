@@ -5,7 +5,7 @@ import type { VariantProps } from "class-variance-authority";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge, badgeVariants } from "@/components/ui/badge";
@@ -260,7 +260,7 @@ export function FinancePaymentsPanel({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const registrationFilter = searchParams.get("registrationId");
   const tourFilter = searchParams.get("tourId");
   const registrationScoped =

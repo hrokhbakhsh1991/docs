@@ -66,41 +66,41 @@ Deploy (`remote-deploy.sh`) runs the same `--all` check when marketing + portal 
 
 ```bash
 # from laptop
-VPS_HOST=89.45.89.206 pnpm run p10:staging-remote-smoke
+VPS_HOST=89.42.210.252 pnpm run p10:staging-remote-smoke
 
 # on VPS
 ENV_DIR=/etc/app-tour-staging bash /opt/app-tour-staging/scripts/vps-deploy/smoke-four-process.sh
 ```
 
-**P10 Profile B regression:** `VPS_HOST=89.45.89.206 pnpm run p10:profile-b-regression`
+**P10 Profile B regression:** `VPS_HOST=89.42.210.252 pnpm run p10:profile-b-regression`
 
 **P10 P8 env regression:** `pnpm run p10:p8-env-regression`
 
 **P10 staging gate (one command — laptop → VPS):**
 
 ```bash
-VPS_HOST=89.45.89.206 pnpm run p10:staging-gate
+VPS_HOST=89.42.210.252 pnpm run p10:staging-gate
 # → P10_STAGING_GATE_OK
 ```
 
 **P10 ops drill (read-only — systemd + smoke + rollback dry-run):**
 
 ```bash
-VPS_HOST=89.45.89.206 pnpm run p10:ops-drill
+VPS_HOST=89.42.210.252 pnpm run p10:ops-drill
 # → P10_OPS_DRILL_OK
 ```
 
 **On VPS directly (no pnpm — SSH first):**
 
 ```bash
-ssh root@89.45.89.206
+ssh root@89.42.210.252
 ENV_DIR=/etc/app-tour-staging bash /opt/app-tour-staging/scripts/vps-deploy/smoke-four-process.sh
 ```
 
 **From laptop (preferred — do not paste VPS paths into local shell):**
 
 ```bash
-VPS_HOST=89.45.89.206 pnpm run p10:vps-smoke
+VPS_HOST=89.42.210.252 pnpm run p10:vps-smoke
 ```
 
 **Profile C loopback cutover (opt-in — breaks Profile B IP until Caddy proxies):**

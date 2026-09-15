@@ -9,7 +9,7 @@ ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 PROD_ENV="${PROD_ENV:-/etc/app-tour}"
 APP_USER="${APP_USER:-app-tour}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
-VPS_IP="${VPS_IP:-89.45.89.206}"
+VPS_IP="${VPS_IP:-89.42.210.252}"
 
 log() { printf '[bootstrap-staging] %s\n' "$*"; }
 
@@ -43,7 +43,7 @@ if [[ ! -f "$ENV_DIR/api.env" ]]; then
       -e 's/^NODE_ENV=production/NODE_ENV=development/' \
       "$PROD_ENV/api.env" >"$ENV_DIR/api.env"
   grep -q PUBLIC_TENANT_FALLBACK_LABEL "$ENV_DIR/api.env" || {
-    echo "PUBLIC_TENANT_FALLBACK_LABEL=operator" >>"$ENV_DIR/api.env"
+    echo "PUBLIC_TENANT_FALLBACK_LABEL=denali" >>"$ENV_DIR/api.env"
     echo "PUBLIC_TENANT_FALLBACK_HOSTS=${VPS_IP},127.0.0.1" >>"$ENV_DIR/api.env"
   }
 fi
@@ -55,7 +55,7 @@ if [[ ! -f "$ENV_DIR/web.env" ]]; then
       -e 's/127.0.0.1:3001/127.0.0.1:23001/g' \
       "$PROD_ENV/web.env" >"$ENV_DIR/web.env"
   grep -q TOUR_OPS_DEFAULT_TENANT_ID "$ENV_DIR/web.env" || \
-    echo "TOUR_OPS_DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000014" >>"$ENV_DIR/web.env"
+    echo "TOUR_OPS_DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000003" >>"$ENV_DIR/web.env"
   grep -q TOUR_OPS_PUBLIC_FALLBACK_HOSTS "$ENV_DIR/web.env" || \
     echo "TOUR_OPS_PUBLIC_FALLBACK_HOSTS=${VPS_IP},127.0.0.1" >>"$ENV_DIR/web.env"
 fi
@@ -71,10 +71,17 @@ for pair in marketing:23002:marketing.env.example portal:23003:portal.env.exampl
         -e 's/127.0.0.1:3001/127.0.0.1:23001/g' \
         "$DEPLOY_PATH/deploy/vps/env/$example" >"$target"
     echo "ALLOW_DEV_WEB_SESSION=true" >>"$target"
-    echo "TOUR_OPS_DEV_TENANT_ID=00000000-0000-4000-8000-000000000014" >>"$target"
+    echo "TOUR_OPS_DEV_TENANT_ID=00000000-0000-4000-8000-000000000003" >>"$target"
     echo "TOUR_OPS_PUBLIC_FALLBACK_HOSTS=${VPS_IP},127.0.0.1" >>"$target"
   fi
 done
+
+grep -qE '^MINIO_PUBLIC_ENDPOINT=' "$ENV_DIR/api.env" 2>/dev/null || \
+  echo "MINIO_PUBLIC_ENDPOINT=http://${VPS_IP}:9002" >>"$ENV_DIR/api.env"
+if [[ -f "$ENV_DIR/portal.env" ]]; then
+  grep -qE '^PORTAL_INTERNAL_URL=' "$ENV_DIR/portal.env" 2>/dev/null || \
+    echo "PORTAL_INTERNAL_URL=http://127.0.0.1:23003" >>"$ENV_DIR/portal.env"
+fi
 
 chmod 640 "$ENV_DIR"/*.env
 chown root:"$APP_USER" "$ENV_DIR"/*.env

@@ -8,7 +8,9 @@ export const denaliRegistrationTransportKindSchema = z.enum(
 
 export const denaliRegistrationTransportIntakeSchema = z.object({
   kind: denaliRegistrationTransportKindSchema,
-  personalCarOccupants: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  personalCarOccupants: z
+    .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+    .optional(),
 });
 
 export type DenaliRegistrationTransportKind = z.infer<typeof denaliRegistrationTransportKindSchema>;

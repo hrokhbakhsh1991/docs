@@ -73,8 +73,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(gate, /PortalRegisterSignInLink/);
     assert.match(gate, /\/api\/me\/profile/);
     assert.match(page, /resumeAtIntake \?/);
-    assert.match(page, /readPublicCatalogSessionFromCookies/);
-    assert.doesNotMatch(page, /initialRuntimeState=\{registrationResume\?\.initialState\}/);
+    assert.match(page, /buildRegistrationResumeInitialState/);
+    assert.match(page, /initialRuntimeState=\{registrationResume\.initialState\}/);
   });
 
   it("PCMS-LOGIN-03 shared auth shell exposes stable data hooks", () => {

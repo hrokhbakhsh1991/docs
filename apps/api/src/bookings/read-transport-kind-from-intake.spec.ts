@@ -13,7 +13,10 @@ describe("read-transport-kind-from-intake", () => {
       readTransportKindFromIntake({ transport: { kind: "personal_car", personalCarOccupants: 2 } }),
       "personal_car"
     );
-    assert.equal(readTransportKindFromIntake({ transport: { kind: "no_car_dong" } }), "no_car_dong");
+    assert.equal(
+      readTransportKindFromIntake({ transport: { kind: "no_car_dong" } }),
+      "no_car_dong"
+    );
     assert.equal(
       readTransportKindFromIntake({ transport: { kind: "no_car_acquaintance" } }),
       "no_car_acquaintance"
@@ -26,7 +29,13 @@ describe("read-transport-kind-from-intake", () => {
     assert.equal(readTransportKindFromIntake({ transport: { kind: "van" } }), null);
   });
 
-  it("reads personalCarOccupants only for 1|2|3", () => {
+  it("reads personalCarOccupants 0|1|2|3 and rejects other values", () => {
+    assert.equal(
+      readPersonalCarOccupantsFromIntake({
+        transport: { kind: "personal_car", personalCarOccupants: 0 },
+      }),
+      0
+    );
     assert.equal(
       readPersonalCarOccupantsFromIntake({
         transport: { kind: "personal_car", personalCarOccupants: 3 },

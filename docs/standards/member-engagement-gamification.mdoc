@@ -1,0 +1,222 @@
+---
+title: Member Engagement & Gamification (MEG-001)
+standard_id: MEG-001
+version: 1.0.0
+status: approved
+format: markdoc
+doc_role: platform_standard
+extends:
+  - docs/standards/member-notification-inbox.mdoc
+  - docs/standards/workspace-api-capabilities.mdoc
+mandatory_for:
+  - apps/api/src/workspace-engagement
+  - packages/engagement-http
+  - apps/portal/src/me/engagement
+code_sot:
+  - apps/api/prisma/schema.prisma
+  - apps/api/src/workspace-engagement
+  - packages/engagement-http/src/routes-manifest.ts
+---
+
+# Member Engagement & Gamification (MEG-001)
+
+**Purpose:** Define a **workspace-agnostic** member engagement platform for clubs. Engagement points encourage safe, useful participation. Points are **never** wallet balance or money.
+
+---
+
+## 1. Non-goals (V1)
+
+| Rule | Rationale |
+| ---- | --------- |
+| No wallet / ledger coupling | Financial integrity |
+| No public leaderboard | Avoid risky competition |
+| No childish game chrome | Professional mountaineering tone |
+| No payment-amount awards | Avoid pay-to-win |
+| No difficulty-based awards | Safety — do not reward higher-risk climbs |
+| No invented attendance/training awards without verifier | Only verifiable domain events |
+
+---
+
+## 2. Architecture layers
+
+| Layer | Location | Responsibility |
+| ----- | -------- | -------------- |
+| **Engagement domain** | `apps/api/src/workspace-engagement/` | Profiles, immutable point events, badges, levels, award processors |
+| **HTTP boundary** | `packages/engagement-http`, `engagement-http-contracts` | Route handlers, request/response contracts |
+| **Capability gate** | Manifest `workspaceEngagement` + codegen bindings | Per-workspace enablement (Denali first) |
+| **Member dashboard** | `apps/portal` BFF + widgets | Greeting, next tour, points, badges, wallet separation |
+| **Operator overview** | `apps/web` engagement ops | Recent awards, member lookup, audit trail |
+| **Denali presentation** | `packages/workspaces/denali` messages + manifest policy | Persian mountaineering copy, badge labels |
+
+**WAC-001:** `apps/api` resolves engagement via generated bindings — no `workspaceType === "denali"` branches.
+
+---
+
+## 3. Data model
+
+### 3.1 `engagement_profiles`
+
+| Column | Type | Rule |
+| ------ | ---- | ---- |
+| `id` | UUID | PK |
+| `tenant_id` | UUID | RLS scope |
+| `workspace_id` | text | Workspace plugin id |
+| `user_id` | UUID | Member |
+| `total_points` | int | Derived cache; sum of non-reversed events |
+| `current_level_code` | text | From manifest level thresholds |
+| `created_at` / `updated_at` | timestamptz | |
+
+**Unique:** `(tenant_id, workspace_id, user_id)`
+
+### 3.2 `engagement_point_events` (immutable ledger)
+
+| Column | Type | Rule |
+| ------ | ---- | ---- |
+| `id` | UUID | PK |
+| `tenant_id` | UUID | RLS |
+| `workspace_id` | text | |
+| `user_id` | UUID | Recipient |
+| `points_delta` | int | Positive award or negative correction |
+| `source_module` | text | `identity`, `booking`, `engagement` |
+| `source_event_type` | text | e.g. `profile.completed`, `registration.first_approved` |
+| `source_entity_id` | UUID? | Registration id, etc. |
+| `dedupe_key` | text | Stable idempotency key |
+| `reverses_event_id` | UUID? | Correction links to original |
+| `actor_user_id` | UUID? | Operator for manual correction |
+| `actor_role` | text? | |
+| `reason` | text? | Audit note |
+| `created_at` | timestamptz | Insert-only |
+
+**Unique:** `(tenant_id, dedupe_key)`
+
+**RLS:** `FORCE ROW LEVEL SECURITY` on all engagement tables; queries require `tenant_id` from auth context.
+
+---
+
+## 4. V1 award rules (verifiable only)
+
+| Rule | Trigger | Points | Dedupe key pattern |
+| ---- | ------- | ------ | ------------------ |
+| Profile complete | All manifest `memberProfile` required fields filled after PATCH `/identity/me` | 50 | `engagement:profile.completed:{userId}` |
+| First approved registration | First `registration.approved` outbox for user in workspace | 100 | `engagement:registration.first_approved:{userId}` |
+
+Badges (manifest-defined):
+
+| Badge code | Earned when |
+| ---------- | ----------- |
+| `trailhead_ready` | `profile.completed` award posted |
+| `first_expedition` | `registration.first_approved` award posted |
+| `summit_rookie` | `total_points >= 100` |
+| `ridge_partner` | `total_points >= 250` |
+
+Levels (Denali V1):
+
+| Code | Min points |
+| ---- | ---------- |
+| `base_camp` | 0 |
+| `trail_member` | 100 |
+| `summit_circle` | 250 |
+
+---
+
+## 5. HTTP API
+
+### 5.1 Member routes
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
+| GET | `/engagement/me/summary` | Member dashboard aggregate |
+| GET | `/engagement/me/points` | Point event history |
+| GET | `/engagement/me/badges` | Earned badges + progress |
+
+### 5.2 Operator routes — member operations
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
+| GET | `/engagement/operator/overview` | Recent awards + badge activity |
+| GET | `/engagement/operator/members/:userId` | Member engagement lookup |
+| POST | `/engagement/operator/members/:userId/adjust` | Manual point award or deduction (idempotent, reason required) |
+| POST | `/engagement/operator/members/:userId/reverse` | Compensating reversal of a specific positive event (idempotent) |
+
+### 5.3 Operator routes — definition management (V1.1)
+
+Persisted per `(tenant_id, workspace_id)` with RLS, optimistic `row_version`, and append-only audit log.
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
+| GET | `/engagement/operator/badges` | List badge definitions (incl. archived when `includeArchived`) |
+| POST | `/engagement/operator/badges` | Create badge (idempotent POST) |
+| PATCH | `/engagement/operator/badges/:code` | Edit localized copy, icon, trigger, activate/deactivate/archive |
+| GET | `/engagement/operator/levels` | List level definitions |
+| POST | `/engagement/operator/levels` | Create level |
+| PATCH | `/engagement/operator/levels/:code` | Edit thresholds and status |
+| GET | `/engagement/operator/award-rules` | List award rules (all versions) |
+| POST | `/engagement/operator/award-rules` | Create new rule version |
+| PATCH | `/engagement/operator/award-rules/:ruleId` | Edit / activate / deactivate with effective dates |
+| GET | `/engagement/operator/audit-log` | Definition mutation audit trail |
+| GET | `/engagement/operator/catalog` | Approved icons + supported domain events |
+| GET | `/engagement/operator/policy` | Legacy aggregate snapshot (`managementMode: operator_managed`) |
+
+**Permissions:** `owner` and `admin` may mutate definitions and member points; `viewer` is read-only (GET allowed, POST/PATCH denied).
+
+**Award rule allowlist (V1):** only `profile.completed` (identity) and `registration.first_approved` (booking). Forbidden: wallet, payment, finance, or invented event names.
+
+**Immutability:** `engagement_point_events` and earned `member_engagement_badges` rows are never deleted; definition archive disables future awards only.
+
+### 5.4 Operator UI information architecture
+
+| Surface | Route | Responsibility |
+| ------- | ----- | -------------- |
+| **Users** | `/users` | Directory search (name/phone) → member detail sheet **Engagement** section: points, level, badges, history, adjust/reverse |
+| **Engagement** | `/engagement` | Overview (tenant-wide activity), global badge/level/award-rule CRUD, definition audit log |
+
+Member-specific mutations are **not** duplicated under Engagement tabs. Engagement overview links to Users for member operations. Shared UI: `MemberEngagementPanel` (single BFF call chain).
+
+See: `docs/phase-engagement/GAMIFICATION_ADMIN_IA_REVIEW.md`.
+
+### 5.5 Member vs operator point projection (FDA-001)
+
+| Audience | `totalPoints` | History rows | Audit fields |
+| -------- | ------------- | ------------ | ------------ |
+| **Member** (`/engagement/me/*`) | Display floor `max(0, ledger sum)` — never negative in UI | Neutral labels only; no signed negative deltas; expandable detail for corrections/reversals | **No** `actor_user_id`, operator reason text, or internal entity ids |
+| **Operator** (`/engagement/operator/members/:userId`) | Exact signed ledger sum | Signed `points_delta`, mandatory `reason`, `actor_role`, timestamp | Full mutation audit for support |
+
+**Member history kinds** (projected in `packages/engagement-http-contracts`):
+
+| Internal `source_event_type` | Member `kind` | FA label | EN label |
+| -------------------------- | ------------- | -------- | -------- |
+| `engagement.points.manual_adjustment` (negative delta) | `correction` | اصلاح امتیاز | Points correction |
+| `engagement.points.reversed` | `reversal` | برگشت امتیاز | Points reversal |
+| Positive awards (`profile.completed`, etc.) | `award` | Domain copy | Domain copy |
+
+Reversal expandable detail: **امتیاز این رویداد اصلاح شد** / *Points for this activity were corrected.*
+
+**Presentation rules:** no destructive/red styling for corrections; Wallet and Engagement remain separate surfaces.
+
+---
+
+## 6. Notifications (MNI-001)
+
+Badge-earned events enqueue `member_notifications` with:
+
+- `source_module`: `engagement`
+- `entity_type`: `engagement_event`
+- `event_type`: `engagement.badge.earned`
+- `dedupe_key`: domain event id or stable badge award key
+
+---
+
+## 7. Testing matrix
+
+| Suite | Proves |
+| ----- | ------ |
+| `engagement-persistence.postgres.spec.ts` | RLS, dedupe, cross-tenant denial |
+| `engagement-awards.postgres.spec.ts` | Profile + registration award idempotency + outbox dispatch |
+| Operator E2E | Users member detail engagement + global definition CRUD + adjust/reverse |
+| `engagement-http-boundary.spec.ts` | Contract parsing |
+| Portal E2E | Dashboard renders points/badges separate from wallet |
+| Web E2E | Operator overview + permissions |
+
+---
+
+_MEG-001 — Member Engagement & Gamification V1 charter._

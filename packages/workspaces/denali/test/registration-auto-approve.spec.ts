@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { resolveDenaliRegistrationObligationMinor } from "../src/finance/resolve-denali-registration-obligation.ts";
 import { createDenaliRegistration } from "../src/http/registration.service.ts";
 import type { BookingPublicPort } from "../src/http/ports/public-booking.port.ts";
 import type { DenaliTourStorePort } from "../src/http/ports/tour-store.port.ts";
@@ -12,7 +13,10 @@ const TOUR_ID = "00000000-0000-4000-8000-000000000413";
 const TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const GUEST_USER_ID = "00000000-0000-4000-8000-000000000199";
 
-function storeWithApproval(mode: "manual" | "auto" | undefined): DenaliTourStorePort {
+function storeWithPolicy(
+  mode: "manual" | "auto" | undefined,
+  paymentCollection: "free" | "paid" = "paid"
+): DenaliTourStorePort {
   return {
     async listPage() {
       return { items: [] };
@@ -29,9 +33,12 @@ function storeWithApproval(mode: "manual" | "auto" | undefined): DenaliTourStore
             publishStatus: "active",
             capacityMax: 12,
             startDateTime: "2026-06-01T08:00:00.000Z",
-            ...(mode !== undefined
-              ? { pricing: { registrationApproval: mode } }
-              : {}),
+            pricing: {
+              registrationApproval: mode,
+              paymentCollection,
+              basePricePerPerson: 2_500_000,
+              paymentMode: "offline_receipt",
+            },
           },
         },
       };
@@ -98,7 +105,7 @@ describe("registration-auto-approve — Denali Phase 3", () => {
         contact: { fullName: "Auto Guest" },
         partySize: 1,
       },
-      store: storeWithApproval("auto"),
+      store: storeWithPolicy("auto"),
       bookingPort: port,
     });
     assert.equal(createCalls.length, 1);
@@ -119,7 +126,7 @@ describe("registration-auto-approve — Denali Phase 3", () => {
         contact: { fullName: "Manual Guest" },
         partySize: 1,
       },
-      store: storeWithApproval("manual"),
+      store: storeWithPolicy("manual"),
       bookingPort: port,
     });
     assert.equal(createCalls.length, 1);
@@ -138,10 +145,58 @@ describe("registration-auto-approve — Denali Phase 3", () => {
         contact: { fullName: "Default Guest" },
         partySize: 1,
       },
-      store: storeWithApproval(undefined),
+      store: storeWithPolicy(undefined),
       bookingPort: port,
     });
     assert.equal(autoCalls.length, 0);
     assert.equal(created.status, "pending");
+  });
+
+  it("DN-P3-R04 covers free/paid × manual/auto registration outcomes and obligation", async () => {
+    const cases = [
+      { mode: "manual", paymentCollection: "paid", status: "pending", obligation: "2500000" },
+      { mode: "auto", paymentCollection: "paid", status: "approved", obligation: "2500000" },
+      { mode: "manual", paymentCollection: "free", status: "pending", obligation: "0" },
+      { mode: "auto", paymentCollection: "free", status: "approved", obligation: "0" },
+    ] as const;
+
+    for (const [index, scenario] of cases.entries()) {
+      const { port } = trackingPort();
+      const created = await createDenaliRegistration({
+        tenantId: TENANT_ID,
+        workspaceType: "denali",
+        guestUserId: `${GUEST_USER_ID.slice(0, -3)}${String(index + 300).padStart(3, "0")}`,
+        body: {
+          tourId: `${TOUR_ID.slice(0, -3)}${String(index + 500).padStart(3, "0")}`,
+          contact: { fullName: `Matrix Guest ${index}` },
+          partySize: 1,
+        },
+        store: storeWithPolicy(scenario.mode, scenario.paymentCollection),
+        bookingPort: port,
+      });
+
+      assert.equal(
+        created.status,
+        scenario.status,
+        `${scenario.paymentCollection}:${scenario.mode}`
+      );
+      const obligation = resolveDenaliRegistrationObligationMinor({
+        tourCanonical: {
+          data: {
+            pricing: {
+              paymentCollection: scenario.paymentCollection,
+              basePricePerPerson: 2_500_000,
+              paymentMode: "offline_receipt",
+            },
+          },
+        },
+        partySize: 1,
+      });
+      assert.equal(
+        obligation?.obligationMinor,
+        scenario.obligation,
+        `${scenario.paymentCollection}:${scenario.mode}`
+      );
+    }
   });
 });

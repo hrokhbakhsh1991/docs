@@ -7,6 +7,7 @@ const root = process.cwd();
 const workflows = join(root, ".github/workflows");
 const allowed = new Set([
   "actions/checkout@v4",
+  "actions/cache@v4",
   "actions/setup-node@v4",
   "actions/upload-artifact@v4",
   "pnpm/action-setup@v4",

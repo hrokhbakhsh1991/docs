@@ -12,6 +12,7 @@ export const TENANT_OBJECT_KEY_SCOPE_INVALID = "TENANT_OBJECT_KEY_SCOPE_INVALID"
  * Accepted:
  * - `${tenantId}/...` (branding, avatar, workspace media, …)
  * - `receipts/${tenantId}/...` (member receipt proofs)
+ * - `tickets/${tenantId}/...` (ticketing attachments)
  */
 export function assertTenantOwnsObjectKey(storageKey: string, tenantId: string): void {
   const tid = tenantId.trim().toLowerCase();
@@ -22,7 +23,7 @@ export function assertTenantOwnsObjectKey(storageKey: string, tenantId: string):
   if (key.length === 0 || key.includes("..") || key.includes("//") || key.startsWith("/")) {
     throw new Error(TENANT_OBJECT_KEY_SCOPE_INVALID);
   }
-  if (key.startsWith(`${tid}/`) || key.startsWith(`receipts/${tid}/`)) {
+  if (key.startsWith(`${tid}/`) || key.startsWith(`receipts/${tid}/`) || key.startsWith(`tickets/${tid}/`)) {
     return;
   }
   throw new Error(TENANT_OBJECT_KEY_SCOPE_INVALID);

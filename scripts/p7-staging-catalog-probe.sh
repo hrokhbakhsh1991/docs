@@ -2,7 +2,7 @@
 # P7-1-N-006 — staging catalog + revalidate probe (~10s)
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-89.45.89.206}"
+VPS_HOST="${VPS_HOST:-89.42.210.252}"
 VPS_USER="${VPS_USER:-root}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 API_PORT="${STAGING_API_PORT:-23001}"

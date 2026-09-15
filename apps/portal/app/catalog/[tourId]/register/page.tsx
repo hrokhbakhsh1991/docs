@@ -13,7 +13,7 @@ import { bindWorkspacePluginRegisterInvokers } from "@app-tour/guest-workspace-r
 
 import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
 import { PortalRegisterGuestAuthGate } from "@/auth/portal-register-guest-auth-gate";
-import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
+import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
 import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
@@ -21,7 +21,6 @@ import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server"
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 import { PortalAuthExperienceShell } from "@/catalog/portal-auth-experience-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
-import { sessionMemberMatchesPortalGuestSurface } from "@/tenant/session-host-binding";
 
 export const dynamic = "force-dynamic";
 
@@ -91,14 +90,22 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
   const tourTitle = tour.title || "Tour";
   const workspace = bootstrap.pluginId;
 
-  const session = await readPublicCatalogSessionFromCookies();
-  const resumeAtIntake =
-    session !== null &&
-    sessionMemberMatchesPortalGuestSurface(session.tenantId, host, bootstrap.tenantId);
+  const registrationResume = await buildRegistrationResumeInitialState(host, bootstrap.tenantId, {
+    pluginId: workspace,
+    tenantId: bootstrap.tenantId,
+    tourId,
+    tourTitle,
+    backHref,
+    memberModuleHref,
+  });
+  const resumeAtIntake = registrationResume !== null;
   // PCMS-UX-MODAL-04 — guests auth in modal only; page is intake after session.
-  const heroLede = resumeAtIntake ? null : t("phone.loginDescription");
+  const heroLede = resumeAtIntake ? t("intake.resumeLede") : t("phone.loginDescription");
   const heroKicker = resumeAtIntake ? t("intake.kicker") : null;
-  const sessionBadge = null;
+  const sessionBadge =
+    resumeAtIntake && registrationResume.memberMobile !== null
+      ? t("intake.signedInBadge", { mobile: registrationResume.memberMobile })
+      : null;
 
   const loginFlow = {
     workspace,
@@ -140,6 +147,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           tourBirthDateRequired={tour.birthDateRequired === true}
           backHref={backHref}
           memberModuleHref={memberModuleHref}
+          initialRuntimeState={registrationResume.initialState}
         />
       ) : (
         <>

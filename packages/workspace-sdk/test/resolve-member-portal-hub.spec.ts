@@ -13,9 +13,12 @@ import {
 } from "../src/portal/resolve-member-portal-hub";
 
 describe("resolve-member-portal-hub.spec.ts — workspace-sdk", () => {
-  it("SDK-PS6-HUB-01 Denali has no secondary modules today", () => {
-    assert.deepEqual(resolveMemberPortalSecondaryModules("denali"), []);
+  it("SDK-PS6-HUB-01 Denali exposes engagement as a secondary module", () => {
+    const secondary = resolveMemberPortalSecondaryModules("denali");
+    assert.equal(secondary.length, 1);
+    assert.equal(secondary[0]?.id, "engagement");
     assert.equal(shouldRenderMemberPortalMoreHub(0), false);
+    assert.equal(shouldRenderMemberPortalMoreHub(secondary.length), true);
   });
 
   it("SDK-PS6-HUB-02 plain mode below virtualisation threshold", () => {

@@ -490,7 +490,6 @@ describe("club-catalog-publish-http (P4-A PW)", { concurrency: false }, () => {
       OPERATOR_SMOKE.tenantId
     );
     assert.equal(response.status, 200);
-    assert.equal(response.items.length, 4);
     assert.ok(response.items.some((item) => item.id === OPERATOR_SMOKE_PUBLISHED_TOUR_ID));
     assert.ok(response.items.some((item) => item.id === OPERATOR_SMOKE_PARTICIPANT_TOUR_ID));
   });

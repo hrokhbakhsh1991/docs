@@ -8,9 +8,9 @@ import { Input } from "../adapters/platform-primitives";
 import { fetchReverseGeocodeAddress } from "../adapters/reverse-geocode-client";
 import { useDebouncedLocationSearch } from "../hooks/use-debounced-location-search";
 import {
-  DenaliLocationPickerMap,
-  type DenaliMapCoordinates,
-} from "./map/denali-location-picker-map";
+  DenaliWizardMapExperience,
+} from "./map/denali-wizard-map-experience";
+import type { DenaliMapCoordinates } from "./map/denali-location-picker-map";
 
 export type DenaliLocationAddressValue = {
   readonly address?: string;
@@ -241,24 +241,13 @@ export function DenaliLocationAddressPicker({
       )}
 
       <div className="denali-wizard-composite__map-wrap">
-        {mapMounted ? (
-          <DenaliLocationPickerMap
-            value={mapValue}
-            onChange={handleMapChange}
-            height={220}
-            data-testid={`denali-location-${testIdKey}-map`}
-          />
-        ) : (
-          <p
-            className="denali-wizard-composite__location-map-hint"
-            data-testid={`denali-location-${testIdKey}-map-deferred`}
-          >
-            {t("mapDeferredHint")}
-          </p>
-        )}
-        {mapMounted ? (
-          <p className="denali-wizard-composite__location-map-hint">{t("mapInteractionHint")}</p>
-        ) : null}
+        <DenaliWizardMapExperience
+          value={mapValue}
+          onChange={handleMapChange}
+          testIdKey={testIdKey}
+          mapTestId={`denali-location-${testIdKey}-map`}
+          deferred={!mapMounted}
+        />
       </div>
     </div>
   );

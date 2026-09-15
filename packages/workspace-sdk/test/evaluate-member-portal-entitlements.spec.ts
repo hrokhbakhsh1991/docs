@@ -17,6 +17,8 @@ describe("evaluate-member-portal-entitlements.spec.ts — workspace-sdk", () => 
       "member.module.home",
       "member.module.trips",
       "member.module.profile",
+      "member.module.tickets",
+      "member.module.engagement",
     ]);
     assert.deepEqual(evaluation.denied, [
       { key: "member.module.wallet", reason: "plan_limit" },

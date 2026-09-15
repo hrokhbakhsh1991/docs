@@ -11,7 +11,7 @@ current_item: none
 dev_slice_status: CLOSED_LOCAL
 formal_closure_status: CLOSED_FAST
 fast_close: p6-fast-close.yaml
-vps_host: 89.45.89.206
+vps_host: 89.42.210.252
 prod_path: /opt/app-tour
 prod_ports: [13000, 13001]
 staging_path: /opt/app-tour-staging
@@ -100,7 +100,7 @@ P6_FAST_CLOSE=1 pnpm run p6:closure
 bash scripts/vps-deploy/bootstrap-staging.sh
 
 # VPS smoke only (seconds)
-ssh root@89.45.89.206 'TOUR_OPS_API_URL=http://127.0.0.1:23001 node /opt/app-tour-staging/scripts/smoke-p6-host-bind.mjs'
+ssh root@89.42.210.252 'TOUR_OPS_API_URL=http://127.0.0.1:23001 node /opt/app-tour-staging/scripts/smoke-p6-host-bind.mjs'
 ```
 
 **Long steps (install, build, gates):** TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)

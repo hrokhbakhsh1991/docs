@@ -20,7 +20,7 @@ import {
 import type { ExposureProfile } from "./exposure-profile";
 import type { FieldExposureRuntimeCoordinate } from "./resolve-runtime-truth-source";
 import { resolvePersistedExposureProfileForContext } from "./resolve-persisted-exposure-profile";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import { resolveDeterministicExposurePreviewPayload } from "./deterministic-exposure-preview-payload";
 
 export class ExposureEnginePreviewInvalidQueryError extends Error {
