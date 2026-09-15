@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Profile B — staging env parity (IP fallback hosts + ingress-derived M↔P URLs).
-# Do NOT set PORTAL_PUBLIC_BASE_URL / MARKETING_PUBLIC_BASE_URL — apps derive egress
-# from request Host (IP → IP links, denali.localhost → portal.denali.localhost, denali.club → apex).
+# Profile B — staging env parity (fallback hosts + public M↔P URLs).
+# Public staging is served through Caddy/Arvan HTTPS. Keep the public URL
+# contract in this deploy-time synchronizer so artifact installs cannot restore
+# localhost development URLs.
 set -euo pipefail
 
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -48,6 +49,16 @@ resolve_club_label() {
   printf '%s' "denali"
 }
 
+resolve_root_domain() {
+  local domain
+  domain="$(read_api_env PLATFORM_ROOT_DOMAIN)"
+  if [[ -n "$domain" && "$domain" != "localhost" ]]; then
+    printf '%s' "$domain"
+    return
+  fi
+  printf '%s' "${STAGING_PUBLIC_ROOT_DOMAIN:-shenski.com}"
+}
+
 set_env_kv() {
   local file="$1" key="$2" value="$3"
   [[ -f "$file" ]] || touch "$file"
@@ -58,14 +69,11 @@ set_env_kv() {
   fi
 }
 
-unset_env_kv() {
-  local file="$1" key="$2"
-  [[ -f "$file" ]] || return 0
-  sed -i "/^${key}=/d" "$file"
-}
-
 PUBLIC_HOST="$(resolve_public_host)"
 CLUB_LABEL="$(resolve_club_label)"
+PUBLIC_ROOT_DOMAIN="$(resolve_root_domain)"
+PUBLIC_MARKETING_BASE_URL="${STAGING_PUBLIC_MARKETING_BASE_URL:-https://${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://${CLUB_LABEL}.portal.${PUBLIC_ROOT_DOMAIN}}"
 MKT_PORT="23002"
 PTL_PORT="23003"
 if [[ -f "${ENV_DIR}/marketing.env" ]]; then
@@ -82,8 +90,10 @@ for app in marketing portal web; do
   set_env_kv "$target" APP_INFRA_PROFILE staging
   set_env_kv "$target" MARKETING_DEV_PORT "$MKT_PORT"
   set_env_kv "$target" PORTAL_DEV_PORT "$PTL_PORT"
-  set_env_kv "$target" SESSION_COOKIE_SECURE false
+  set_env_kv "$target" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+  set_env_kv "$target" SESSION_COOKIE_SECURE true
 done
+set_env_kv "${ENV_DIR}/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
 
 set_env_kv "${ENV_DIR}/web.env" ALLOW_DEV_WEB_SESSION true
 set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
@@ -94,13 +104,11 @@ set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "http://${PUBLIC_HOST}:9002"
 
-# Ingress-derived egress (WRS-URL-01) — never hardcode localhost or IP here.
-for app in marketing portal; do
-  target="${ENV_DIR}/${app}.env"
-  set_env_kv "$target" PLATFORM_ROOT_DOMAIN localhost
-  unset_env_kv "$target" PORTAL_PUBLIC_BASE_URL
-  unset_env_kv "$target" MARKETING_PUBLIC_BASE_URL
-done
+# Public egress origins. These are overridable for a staging tenant and are
+# deliberately HTTPS so cross-surface auth never points at an internal port.
+set_env_kv "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
+set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
+set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
@@ -113,4 +121,4 @@ set_env_kv "${ENV_DIR}/portal.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST
 chown root:app-tour "${ENV_DIR}"/*.env 2>/dev/null || true
 chmod 640 "${ENV_DIR}"/*.env 2>/dev/null || true
 
-echo "sync-staging-profile-b-public-urls: OK profile=staging ingress-derived-urls fallback_host=${PUBLIC_HOST} ports=${MKT_PORT}/${PTL_PORT}"
+echo "sync-staging-profile-b-public-urls: OK profile=staging public-root=${PUBLIC_ROOT_DOMAIN} fallback_host=${PUBLIC_HOST} ports=${MKT_PORT}/${PTL_PORT}"
