@@ -7,10 +7,10 @@
 	admin off
 }
 
-*.admin.{$PLATFORM_ROOT_DOMAIN} {
+http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$WEB_PORT} {
 		header_up Host {host}
-		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
 		header_up X-Real-IP {remote_host}
 	}
@@ -22,11 +22,11 @@
 }
 
 # Canonical sibling host: admin.{club}.{root}.
-admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+http://admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 
     reverse_proxy 127.0.0.1:{$WEB_PORT} {
         header_up Host {host}
-        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Proto https
         header_up X-Forwarded-Host {host}
         header_up X-Real-IP {remote_host}
     }
@@ -37,10 +37,10 @@ admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
     }
 }
 
-*.portal.{$PLATFORM_ROOT_DOMAIN} {
+http://*.portal.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
 		header_up Host {host}
-		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
 		header_up X-Real-IP {remote_host}
 	}
@@ -52,10 +52,10 @@ admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 }
 
 # Canonical sibling host: portal.{club}.{root}.
-portal.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+http://portal.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
     reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
         header_up Host {host}
-        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Proto https
         header_up X-Forwarded-Host {host}
         header_up X-Real-IP {remote_host}
     }
@@ -66,10 +66,10 @@ portal.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
     }
 }
 
-*.{$PLATFORM_ROOT_DOMAIN} {
+http://*.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$MARKETING_PORT} {
 		header_up Host {host}
-		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
 		header_up X-Real-IP {remote_host}
 	}
