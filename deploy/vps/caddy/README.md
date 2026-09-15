@@ -67,7 +67,7 @@ ENV_DIR=/etc/app-tour-staging PLATFORM_ROOT_DOMAIN=your.staging.apex \
 sudo systemctl restart caddy
 ```
 
-**Staging ports:** `render-caddy-env.sh` reads `PORT=` from each app env file — production `3000–3003`, staging `23000–23003`. It also reads `PUBLIC_TENANT_FALLBACK_LABEL` to configure the exact canonical `portal.{club}.{root}` and `admin.{club}.{root}` hosts. Provisioning another workspace must update that label/edge config and reload Caddy; it does not broaden the session cookie to the platform root.
+**Staging ports:** `render-caddy-env.sh` reads `PORT=` from each app env file — production `3000–3003`, staging `23000–23003`. It also reads `PUBLIC_TENANT_FALLBACK_LABEL` to configure the exact canonical `portal.{club}.{root}` and `admin.{club}.{root}` hosts. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` remains `https` for the applications. Provisioning another workspace must update that label/edge config and reload Caddy; it does not broaden the session cookie to the platform root.
 
 ### 3. Configure DNS
 
