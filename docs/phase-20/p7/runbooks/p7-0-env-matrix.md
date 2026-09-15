@@ -20,7 +20,7 @@ profiles: [local-dev, vps-ip-staging, subdomain-staging]
 | `TOUR_OPS_API_URL` | — | `http://127.0.0.1:4000` | same | same |
 | `ALLOW_DEV_WEB_SESSION` | — | `true` | — | — |
 | `AUTH_ALLOW_DEV_STATIC_OTP` | `true` | — | — | — |
-| `PORTAL_PUBLIC_BASE_URL` | — | — | `http://operator.portal.localhost:3003` | — |
+| `PORTAL_PUBLIC_BASE_URL` | — | — | `http://portal.operator.localhost:3003` | — |
 
 Source: `apps/api/.env.local` · per-app `.env.local`.
 
@@ -88,7 +88,7 @@ TOUR_OPS_API_URL=http://127.0.0.1:3001 pnpm run p7:staging-verify
 | `PLATFORM_ROOT_DOMAIN` | `staging.example.com` | — |
 | `TOUR_OPS_API_URL` | — | `https://api.staging.example.com` |
 | `MARKETING_PUBLIC_BASE_URL` | — | `https://{club}.staging.example.com` |
-| `PORTAL_PUBLIC_BASE_URL` | — | `https://{club}.portal.staging.example.com` |
+| `PORTAL_PUBLIC_BASE_URL` | — | `https://portal.{club}.staging.example.com` |
 | `ALLOW_DEV_WEB_SESSION` | — | **`false`** |
 | `AUTH_ALLOW_DEV_STATIC_OTP` | **`false`** | — |
 
@@ -97,7 +97,7 @@ DNS: `operator.{root}` · `operator.portal.{root}` · `operator.admin.{root}`.
 For the current Denali staging ingress, run the synchronizer with
 `PUBLIC_ROOT_DOMAIN=shenski.com` and `PUBLIC_TENANT_LABEL=denali` (the defaults
 used by `sync-staging-profile-b-public-urls.sh`). It writes
-`https://denali.shenski.com` and `https://denali.portal.shenski.com` to the
+`https://denali.shenski.com` and `https://portal.denali.shenski.com` to the
 surface env files on every artifact install; override with
 `STAGING_PUBLIC_*` variables when a staging tenant uses another public host.
 
