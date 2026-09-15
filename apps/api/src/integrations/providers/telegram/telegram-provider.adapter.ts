@@ -1,4 +1,3 @@
-import { assertSafeOutboundUrl } from "../../egress/assert-safe-outbound-url";
 import type { IntegrationCapability } from "../../platform/integration-capability";
 import type {
   IntegrationCreateChannelLinkInput,
@@ -7,7 +6,9 @@ import type {
   IntegrationProviderAdapter,
   IntegrationSendMessageInput,
 } from "../../platform/integration-provider.types";
-import { TELEGRAM_API_HOST } from "./telegram.types";
+import { buildTelegramApiRequest } from "./telegram-api.transport";
+
+const TELEGRAM_API_TIMEOUT_MS = 15_000;
 
 const TELEGRAM_CAPABILITIES = [
   "message.send",
@@ -17,13 +18,6 @@ const TELEGRAM_CAPABILITIES = [
 function readBotToken(ctx: IntegrationDeliveryContext): string | null {
   const token = ctx.credentials.botToken;
   return typeof token === "string" && token.trim().length > 0 ? token.trim() : null;
-}
-
-function telegramApiUrl(botToken: string, method: string): URL {
-  return assertSafeOutboundUrl({
-    url: `https://${TELEGRAM_API_HOST}/bot${botToken}/${method}`,
-    allowedHosts: [TELEGRAM_API_HOST],
-  });
 }
 
 /** Telegram provider plugin — HTTP mapping only. */
@@ -40,16 +34,22 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
       return { ok: false, errorCode: "TELEGRAM_BOT_TOKEN_MISSING" };
     }
 
-    const url = telegramApiUrl(botToken, "sendMessage");
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
+    let response: Response;
+    try {
+      const request = buildTelegramApiRequest(botToken, "sendMessage", {
         chat_id: input.channelId,
         text: input.text,
         ...(input.parseMode !== undefined ? { parse_mode: input.parseMode } : {}),
-      }),
-    });
+      });
+      response = await fetch(request.url, {
+        method: "POST",
+        headers: request.headers,
+        body: request.body,
+        signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
+      });
+    } catch {
+      return { ok: false, errorCode: "TELEGRAM_NETWORK_ERROR" };
+    }
 
     if (!response.ok) {
       return {
