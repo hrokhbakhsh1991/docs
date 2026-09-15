@@ -73,6 +73,18 @@ test("staging passes the verified artifact through the transfer script contract"
   );
 });
 
+test("staging deploys and reloads the Profile C edge after artifact install", () => {
+  const deploy = read("scripts/vps-deploy/deploy-staging-artifact-remote.sh");
+  assert.match(deploy, /install-caddy-profile-c\.sh/);
+  assert.match(deploy, /deploy\/vps\/caddy\/Caddyfile/);
+  assert.match(deploy, /CADDY_SOURCE_CONFIG=/);
+  assert.ok(
+    deploy.indexOf('bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-staging-artifact.sh') <
+      deploy.indexOf('bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-caddy-profile-c.sh'),
+    "Caddy must be installed after artifact/env reconciliation",
+  );
+});
+
 test("staging uploads the transfer manifest beside the artifact and checksum", () => {
   assert.match(
     workflow,
