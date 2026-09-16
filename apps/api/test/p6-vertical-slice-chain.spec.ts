@@ -71,8 +71,9 @@ describe("p6-vertical-slice-chain", () => {
       tenantId: OPERATOR_SMOKE.tenantId,
       aggregateId: bookingId,
     });
-    assert.equal(outboxRows.length, 1);
-    assert.equal(outboxRows[0]?.eventType, "registration.approved");
+    assert.ok(outboxRows.length >= 2);
+    assert.ok(outboxRows.some((row) => row.eventType === "registration.created"));
+    assert.ok(outboxRows.some((row) => row.eventType === "registration.approved"));
 
     const fileKey = `receipts/${bookingId}/chain-proof.jpg`;
     const upload = await client.requestJson<{ id?: string; status?: string }>(
