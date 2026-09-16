@@ -10,7 +10,7 @@
 http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$WEB_PORT} {
 		header_up Host {host}
-		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
 		header_up X-Real-IP {remote_host}
 	}
@@ -21,26 +21,19 @@ http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-# Canonical sibling host: admin.{club}.{root}.
-http://admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
-
+denali.admin.{$PLATFORM_ROOT_DOMAIN} {
     reverse_proxy 127.0.0.1:{$WEB_PORT} {
         header_up Host {host}
-        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Proto {scheme}
         header_up X-Forwarded-Host {host}
         header_up X-Real-IP {remote_host}
-    }
-
-    log {
-        output file /var/log/caddy/admin-access.log
-        format json
     }
 }
 
 http://*.portal.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
 		header_up Host {host}
-		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
 		header_up X-Real-IP {remote_host}
 	}
@@ -51,25 +44,19 @@ http://*.portal.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-# Canonical sibling host: portal.{club}.{root}.
-http://portal.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+denali.portal.{$PLATFORM_ROOT_DOMAIN} {
     reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
         header_up Host {host}
-        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Proto {scheme}
         header_up X-Forwarded-Host {host}
         header_up X-Real-IP {remote_host}
-    }
-
-    log {
-        output file /var/log/caddy/portal-access.log
-        format json
     }
 }
 
 http://*.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$MARKETING_PORT} {
 		header_up Host {host}
-		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
 		header_up X-Real-IP {remote_host}
 	}
@@ -80,4 +67,17 @@ http://*.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-# API stays loopback-only (127.0.0.1:{$API_PORT}) — BFF uses TOUR_OPS_API_URL
+# Public API endpoint for Telegram webhooks and external integrations.
+http://api.{$PLATFORM_ROOT_DOMAIN} {
+    reverse_proxy 127.0.0.1:{$API_PORT} {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    log {
+        output file /var/log/caddy/api-access.log
+        format json
+    }
+}

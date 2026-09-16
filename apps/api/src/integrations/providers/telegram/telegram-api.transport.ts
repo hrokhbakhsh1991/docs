@@ -1,7 +1,17 @@
 import { assertSafeOutboundUrl } from "../../egress/assert-safe-outbound-url";
 import { TELEGRAM_API_HOST } from "./telegram.types";
 
-const TELEGRAM_API_METHODS = new Set(["sendMessage"]);
+const TELEGRAM_API_METHODS = new Set([
+  "getMe",
+  "getChat",
+  "getChatMember",
+  "createForumTopic",
+  "setWebhook",
+  "answerCallbackQuery",
+  "sendMessage",
+  "sendPhoto",
+  "sendDocument",
+]);
 
 export type TelegramApiRequest = {
   readonly url: URL;
@@ -45,11 +55,12 @@ export function buildTelegramApiRequest(
     };
   }
 
+  const url = assertSafeOutboundUrl({
+    url: `https://${TELEGRAM_API_HOST}/bot${token}/${method}`,
+    allowedHosts: [TELEGRAM_API_HOST],
+  });
   return {
-    url: assertSafeOutboundUrl({
-      url: `https://${TELEGRAM_API_HOST}/bot${token}/${method}`,
-      allowedHosts: [TELEGRAM_API_HOST],
-    }),
+    url,
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   };

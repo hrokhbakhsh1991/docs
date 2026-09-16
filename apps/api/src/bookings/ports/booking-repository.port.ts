@@ -5,6 +5,7 @@ import type {
   BookingRecord,
   CreateBookingRequest,
 } from "../bookings.types";
+import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 
 /**
  * Booking persistence port (Phase B0.4) — Finance `FinanceRepositoryPort` mirror.
@@ -37,9 +38,7 @@ export interface BookingRepositoryPort {
   listByTenant(tenantId: string): Promise<BookingRecord[]>;
   listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
   /** Exact COUNT for the same filters as {@link listByTenantPage} (no row cap). */
-  countByTenantFilters(
-    input: Omit<BookingListPageInput, "limit" | "cursor">
-  ): Promise<number>;
+  countByTenantFilters(input: Omit<BookingListPageInput, "limit" | "cursor">): Promise<number>;
   /**
    * Active guest duplicate on a tour (not cancelled/rejected). Uncapped SQL/filter lookup.
    * @see docs/phase-20/p7/appendices/BOOKING_LIST_CORRECTNESS.md
@@ -134,6 +133,7 @@ export interface BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: BookingPublicOutboxEvent;
   }): Promise<BookingRecord>;
   /**
    * Approve in one tenant TX: load → occupancy sum → optional capacity assert → status + outbox.

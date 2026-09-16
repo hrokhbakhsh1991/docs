@@ -163,7 +163,17 @@ export class IntegrationPolicyEngine {
     }
     const match = policies.find((policy) => policy.eventType === eventType);
     return {
-      allowed: match?.enabled === true,
+      // Existing connections may predate a newly declared default event policy.
+      // Treat an absent policy as the surface default; an explicit false remains
+      // the operator's opt-out and continues to win.
+      allowed:
+        match?.enabled === true ||
+        (match === undefined &&
+          (await isDefaultIntegrationEventEnabled({
+            workspaceType: connection.workspaceType,
+            providerId: connection.provider,
+            eventType,
+          }))),
       exposureCoordinate: exposureResolution.exposureCoordinate,
       exposureIntent: exposureResolution.exposureIntent,
     };

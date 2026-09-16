@@ -53,6 +53,7 @@ export {
 export type {
   BookingPublicAutoApproveInput,
   BookingPublicCreateInput,
+  BookingPublicOutboxEvent,
   BookingPublicCreateResult,
   BookingPublicOwnedDetail,
   BookingPublicPort,

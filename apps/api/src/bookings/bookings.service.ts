@@ -17,6 +17,7 @@ import type {
   BookingsSummaryQuery,
   BookingsSummaryResponse,
   BookingPublicCapabilityPort,
+  BookingPublicOutboxEvent,
   BookingValidationPolicyPort,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
@@ -493,11 +494,12 @@ export class BookingsService {
    */
   async createPublicGuestBooking(
     auth: BookingActorContext,
-    body: CreateBookingRequest
+    body: CreateBookingRequest,
+    outboxEvent?: BookingPublicOutboxEvent
   ): Promise<CreateBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.assertPublicCreateCapability();
-    return this.executeCreatePipeline(auth, body, auth.userId);
+    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent);
   }
 
   private async resolveSubmittedByUserIdForOperatorCreate(
@@ -556,7 +558,8 @@ export class BookingsService {
   private async executeCreatePipeline(
     auth: BookingActorContext,
     body: CreateBookingRequest,
-    submittedByUserId: string
+    submittedByUserId: string,
+    outboxEvent?: BookingPublicOutboxEvent
   ): Promise<CreateBookingResponse> {
     const started = performance.now();
     try {
@@ -602,6 +605,7 @@ export class BookingsService {
             occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
           });
         },
+        ...(outboxEvent === undefined ? {} : { outboxEvent }),
       });
       this.registrationSlo.record({
         workspaceType: this.workspaceType,

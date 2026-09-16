@@ -116,7 +116,8 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
           ...(input.registrationIntake !== undefined
             ? { registrationIntake: input.registrationIntake }
             : {}),
-        }
+        },
+        input.outboxEvent
       );
       return { id: created.id, status: created.status };
     },

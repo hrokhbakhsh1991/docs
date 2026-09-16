@@ -170,7 +170,7 @@ describe("dispatch-integration-domain-event", () => {
     );
 
     assert.equal(
-      (enqueued[0] as { payload: Record<string, unknown> }).payload.topicKey,
+      (enqueued[0] as { payload: Record<string, unknown> }).payload.telegramTopicKey,
       "registration"
     );
   });

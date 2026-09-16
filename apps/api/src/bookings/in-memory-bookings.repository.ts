@@ -710,6 +710,11 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: {
+      readonly eventType: string;
+      readonly payload: Readonly<Record<string, unknown>>;
+      readonly correlationId?: string;
+    };
   }): Promise<BookingRecord> {
     let occupiedApprovedPartySize = 0;
     for (const row of bookingsStore.values()) {
@@ -751,6 +756,15 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         : {}),
     };
     bookingsStore.set(record.id, record);
+    if (input.outboxEvent !== undefined) {
+      appendBookingOutboxEventIfAbsent({
+        tenantId: input.tenantId,
+        aggregateId: record.id,
+        eventType: input.outboxEvent.eventType,
+        payload: { ...input.outboxEvent.payload, bookingId: record.id },
+        domainEventId: `${input.outboxEvent.eventType}:${record.id}`,
+      });
+    }
     return cloneBooking(record);
   }
 

@@ -30,14 +30,18 @@ export async function integrationMappingsForEvent(
       if (!isIntegrationCapability(mapping.capability)) {
         continue;
       }
-      const key = `${mapping.eventType}:${mapping.capability}`;
+      const topicKey =
+        typeof (mapping as { readonly topicKey?: unknown }).topicKey === "string"
+          ? (mapping as unknown as { readonly topicKey: string }).topicKey
+          : undefined;
+      const key = `${mapping.eventType}:${mapping.capability}:${topicKey ?? ""}`;
       const existing = grouped.get(key);
       if (existing === undefined) {
         grouped.set(key, {
           eventType: mapping.eventType,
           capability: mapping.capability,
           providers: [providerId],
-          ...(mapping.topicKey === undefined ? {} : { topicKey: mapping.topicKey }),
+          ...(topicKey === undefined ? {} : { topicKey }),
         });
         continue;
       }
@@ -45,9 +49,6 @@ export async function integrationMappingsForEvent(
         grouped.set(key, {
           ...existing,
           providers: [...existing.providers, providerId],
-          ...(existing.topicKey === undefined && mapping.topicKey !== undefined
-            ? { topicKey: mapping.topicKey }
-            : {}),
         });
       }
     }

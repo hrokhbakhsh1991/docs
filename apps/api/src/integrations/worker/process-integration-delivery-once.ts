@@ -67,13 +67,46 @@ export async function executeIntegrationDeliveryJob(
     if (channelId === null) {
       return { ok: false, error: { code: "INTEGRATION_CONFIG_INCOMPLETE" } };
     }
+    const topicKey =
+      typeof job.payload.telegramTopicKey === "string" ? job.payload.telegramTopicKey : null;
+    const topicThreadIds =
+      typeof connection.config.topicThreadIds === "object" &&
+      connection.config.topicThreadIds !== null
+        ? (connection.config.topicThreadIds as Record<string, unknown>)
+        : {};
+    const messageThreadId =
+      topicKey !== null && typeof topicThreadIds[topicKey] === "number"
+        ? topicThreadIds[topicKey]
+        : undefined;
     const result = await adapter.sendMessage(ctx, {
       channelId,
+      ...(messageThreadId === undefined ? {} : { messageThreadId }),
       text: await formatIntegrationDeliveryMessage({
         workspaceType,
         eventType: job.eventType,
         payload: job.payload,
       }),
+      ...(typeof job.payload.telegramMediaUrl === "string" &&
+      (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
+        ? {
+            media: {
+              kind: job.payload.telegramMediaKind,
+              url: job.payload.telegramMediaUrl,
+            },
+          }
+        : {}),
+      ...(job.eventType === "receipt.submitted" && typeof job.payload.receiptId === "string"
+        ? {
+            replyMarkup: {
+              inline_keyboard: [
+                [
+                  { text: "تأیید فیش", callback_data: `receipt:approve:${job.payload.receiptId}` },
+                  { text: "رد فیش", callback_data: `receipt:reject:${job.payload.receiptId}` },
+                ],
+              ],
+            },
+          }
+        : {}),
     });
     return result.ok
       ? { ok: true }
