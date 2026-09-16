@@ -7,6 +7,7 @@ export type IntegrationEventMapping = {
   readonly eventType: string;
   readonly capability: IntegrationCapability;
   readonly providers: readonly IntegrationProviderId[];
+  readonly topicKey?: string;
 };
 
 export async function integrationMappingsForEvent(
@@ -36,6 +37,7 @@ export async function integrationMappingsForEvent(
           eventType: mapping.eventType,
           capability: mapping.capability,
           providers: [providerId],
+          ...(mapping.topicKey === undefined ? {} : { topicKey: mapping.topicKey }),
         });
         continue;
       }
@@ -43,6 +45,9 @@ export async function integrationMappingsForEvent(
         grouped.set(key, {
           ...existing,
           providers: [...existing.providers, providerId],
+          ...(existing.topicKey === undefined && mapping.topicKey !== undefined
+            ? { topicKey: mapping.topicKey }
+            : {}),
         });
       }
     }

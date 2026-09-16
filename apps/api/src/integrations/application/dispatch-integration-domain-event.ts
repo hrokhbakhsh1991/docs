@@ -642,6 +642,7 @@ export async function dispatchIntegrationDomainEvent(
         aggregateType: row.aggregateType,
         workspaceType,
         integrationConnectionId: decision.connectionId,
+        ...(decision.topicKey === undefined ? {} : { topicKey: decision.topicKey }),
         ...(fieldExposureDecision === undefined
           ? {}
           : deliveryFieldPolicyPayload(

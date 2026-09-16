@@ -137,6 +137,44 @@ describe("dispatch-integration-domain-event", () => {
     assert.equal(isFieldExposureDecisionEngineShadowEnabled(), false);
   });
 
+  it("carries the mapped forum topic into the delivery job", async () => {
+    const enqueued: unknown[] = [];
+    const policyEngine: IntegrationPolicyEngine = {
+      evaluate: async () => [
+        {
+          connectionId: "conn-1",
+          tenantId: "tenant-a",
+          provider: "telegram",
+          capability: "message.send",
+          topicKey: "registration",
+          workspaceType: "denali",
+          exposureIntent: null,
+        },
+      ],
+    };
+
+    await dispatchIntegrationDomainEvent(
+      {
+        tenantId: "tenant-a",
+        domainEventId: "evt-topic-1",
+        eventType: "member.registered",
+        aggregateType: "member",
+        aggregateId: "member-1",
+        payload: { displayName: "Test member" },
+      },
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository: emptyDeliveryRepository(enqueued),
+        resolveWorkspaceType: async () => "denali",
+      })
+    );
+
+    assert.equal(
+      (enqueued[0] as { payload: Record<string, unknown> }).payload.topicKey,
+      "registration"
+    );
+  });
+
   it("keeps integration delivery payload unchanged when forward shadow is enabled", async () => {
     const policyEngine: IntegrationPolicyEngine = {
       evaluate: async () => [

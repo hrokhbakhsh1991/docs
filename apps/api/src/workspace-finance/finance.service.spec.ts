@@ -189,7 +189,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
 
   it("FIN-SVC-01 approve raises booking.paymentStatus to paid and returns bookingPaymentStatus", async () => {
     const registrationId = randomUUID();
-    const { finance, receiptId } = await seedPendingReceipt({
+    const { finance, financeRepo, receiptId } = await seedPendingReceipt({
       registrationId,
       withBooking: true,
     });
@@ -201,9 +201,35 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
 
     assert.equal(reviewed.status, "Approved");
     assert.equal(reviewed.bookingPaymentStatus, "paid");
+    assert.deepEqual(
+      (await financeRepo.listLedgerEvents(OPERATOR_SMOKE.tenantId, 20))
+        .filter((event) => event.eventType.startsWith("receipt."))
+        .map((event) => event.eventType),
+      ["receipt.approved"]
+    );
 
     const booking = await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId);
     assert.equal(booking?.paymentStatus, "paid");
+  });
+
+  it("FIN-SVC-05 reject emits exactly one receipt.rejected notification event", async () => {
+    const registrationId = randomUUID();
+    const { finance, financeRepo, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+    });
+
+    const reviewed = await finance.reviewReceipt(operatorAuth, receiptId, {
+      decision: "reject",
+      reviewNote: "proof is unreadable",
+    });
+
+    assert.equal(reviewed.status, "Rejected");
+    const events = (await financeRepo.listLedgerEvents(OPERATOR_SMOKE.tenantId, 20)).filter(
+      (event) => event.eventType.startsWith("receipt.")
+    );
+    assert.equal(events.length, 1);
+    assert.equal(events[0]?.eventType, "receipt.rejected");
   });
 
   it("PR20-B underpay approve → booking partial (obligation 2500000, payment 1500000)", async () => {

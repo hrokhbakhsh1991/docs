@@ -63,6 +63,20 @@ if [[ ! -f "$ENV_DIR/api.env" ]]; then
   }
 fi
 
+# Existing staging env files predate Telegram delivery. Keep this idempotent so
+# rerunning bootstrap repairs the runtime contract without overwriting secrets.
+ensure_api_env_default() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_DIR/api.env"; then
+    return 0
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$ENV_DIR/api.env"
+}
+
+ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
+ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
+
 if [[ ! -f "$ENV_DIR/web.env" ]]; then
   sed -e 's/^PORT=13000/PORT=23000/' \
       -e 's/^PORT=3000/PORT=23000/' \

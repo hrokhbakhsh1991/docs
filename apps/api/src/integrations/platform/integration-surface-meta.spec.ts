@@ -10,7 +10,8 @@ describe("integration surface meta", () => {
 
     assert.ok(telegram);
     assert.deepEqual(telegram.configFields, [
-      { id: "channelId", kind: "string", requiredOnCreate: true },
+      { id: "groupName", kind: "string", requiredOnCreate: false },
+      { id: "channelId", kind: "string", requiredOnCreate: false },
     ]);
     assert.deepEqual(telegram.credentialFields, [
       { id: "botToken", kind: "secret", requiredOnCreate: true },
@@ -18,6 +19,21 @@ describe("integration surface meta", () => {
     assert.deepEqual(telegram.defaultCapabilities, ["message.send"]);
     assert.deepEqual(telegram.defaultEventPolicies, [
       { eventType: "TourPublished", enabled: true },
+      { eventType: "member.registered", enabled: true },
+      { eventType: "registration.created", enabled: true },
+      { eventType: "registration.approved", enabled: true },
+      { eventType: "receipt.submitted", enabled: true },
+      { eventType: "receipt.approved", enabled: true },
+      { eventType: "receipt.rejected", enabled: true },
+      { eventType: "ticket.created", enabled: true },
+      { eventType: "ticket.message.posted", enabled: true },
+      { eventType: "ticket.internal_note.created", enabled: true },
+      { eventType: "ticket.status.changed", enabled: true },
+      { eventType: "ticket.resolved", enabled: true },
+      { eventType: "ticket.reopened", enabled: true },
+      { eventType: "ticket.assigned", enabled: true },
+      { eventType: "ticket.priority.changed", enabled: true },
+      { eventType: "ticket.closed", enabled: true },
     ]);
 
     const catalogIds = meta.exposureCandidateFields.map((field) => field.id);

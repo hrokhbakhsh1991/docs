@@ -19,6 +19,8 @@ export type WorkspaceIntegrationEventPolicyDefault = {
 export type WorkspaceIntegrationEventMapping = {
   readonly eventType: string;
   readonly capability: string;
+  /** Optional provider-specific destination selector, e.g. a Telegram forum topic key. */
+  readonly topicKey?: string;
 };
 
 export type WorkspaceIntegrationProviderSurface = {
@@ -110,6 +112,9 @@ export function validateIntegrationSurface(surface: WorkspaceIntegrationSurface)
     for (const mapping of provider.eventMappings) {
       assertNonEmptyString(mapping.eventType, `provider.${id}.eventMappings.eventType`);
       assertNonEmptyString(mapping.capability, `provider.${id}.eventMappings.capability`);
+      if (mapping.topicKey !== undefined) {
+        assertNonEmptyString(mapping.topicKey, `provider.${id}.eventMappings.topicKey`);
+      }
     }
   }
 
