@@ -375,11 +375,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         orderBy: [{ departureAt: "desc" }, { id: "desc" }],
         take: capped,
       });
-      return enrichBookingListRecordsWithIntakeScalars(
-        tx,
-        tenantId,
-        rows.map(toBookingListRecord)
-      );
+      return enrichBookingListRecordsWithIntakeScalars(tx, tenantId, rows.map(toBookingListRecord));
     });
   }
 
@@ -426,11 +422,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         input.tenantId,
         pageRows.map(toBookingListRecord)
       );
-      const items = await enrichBookingListRecordsWithIntakeScalars(
-        tx,
-        input.tenantId,
-        baseItems
-      );
+      const items = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, baseItems);
 
       return { items, hasMore };
     });
@@ -743,11 +735,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const current = existing.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
       if (next === current) {
-        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(
-          tx,
-          input.tenantId,
-          [toBookingListRecord(existing)]
-        );
+        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+          toBookingListRecord(existing),
+        ]);
         return enriched ?? null;
       }
       const updated = await tx.operatorRegistration.updateMany({
@@ -910,6 +900,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: {
+      readonly eventType: string;
+      readonly payload: Readonly<Record<string, unknown>>;
+      readonly correlationId?: string;
+    };
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       await acquireTourCapacityLock(tx, input.tenantId, input.body.tourId);
@@ -952,6 +947,22 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           }
           throw error;
         });
+      if (input.outboxEvent !== undefined) {
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: row.id,
+          eventType: input.outboxEvent.eventType,
+          payload: {
+            ...input.outboxEvent.payload,
+            bookingId: row.id,
+          } as Prisma.InputJsonValue,
+          domainEventId: `${input.outboxEvent.eventType}:${row.id}`,
+          ...(input.outboxEvent.correlationId === undefined
+            ? {}
+            : { correlationId: input.outboxEvent.correlationId }),
+        });
+      }
       return toBookingRecord(row);
     });
   }
@@ -1032,6 +1043,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         payload: {
           bookingId: updated.id,
           tourId: updated.tourId,
+          guestUserId: updated.submittedByUserId,
           status: updated.status,
           approvedAt: approvedAt.toISOString(),
           ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
