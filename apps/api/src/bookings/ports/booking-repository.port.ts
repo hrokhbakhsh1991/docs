@@ -3,9 +3,9 @@ import type {
   BookingListPageOutput,
   BookingPaymentStatus,
   BookingRecord,
+  BookingOutboxEventInput,
   CreateBookingRequest,
 } from "../bookings.types";
-import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 
 /**
  * Booking persistence port (Phase B0.4) — Finance `FinanceRepositoryPort` mirror.
@@ -133,7 +133,7 @@ export interface BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
-    outboxEvent?: BookingPublicOutboxEvent;
+    outboxEvent?: BookingOutboxEventInput;
   }): Promise<BookingRecord>;
   /**
    * Approve in one tenant TX: load → occupancy sum → optional capacity assert → status + outbox.

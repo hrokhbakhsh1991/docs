@@ -87,6 +87,12 @@ export type BookingOutboxRecord = {
   readonly createdAt: string;
 };
 
+export type BookingOutboxEventInput = {
+  readonly eventType: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly correlationId?: string;
+};
+
 export type BookingListPageInput = {
   readonly tenantId: string;
   readonly submittedByUserId?: string;
