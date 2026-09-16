@@ -30,7 +30,7 @@ const NATIVE_INTENT = {
 };
 
 function policyRepositoryStub(
-  overrides: Partial<IntegrationPolicyRepository> = {},
+  overrides: Partial<IntegrationPolicyRepository> = {}
 ): IntegrationPolicyRepository {
   return {
     async listEnabledConnectionsForScope() {
@@ -61,7 +61,7 @@ function policyRepositoryStub(
 }
 
 function exposureIntentRepositoryStub(
-  overrides: Partial<ExposureIntentRepository> = {},
+  overrides: Partial<ExposureIntentRepository> = {}
 ): ExposureIntentRepository {
   return {
     async findForContext() {
@@ -132,6 +132,31 @@ describe("integration-policy-engine", () => {
       audience: "external_channel",
       trigger: "TourPublished",
     });
+  });
+
+  it("uses the surface default for a new event missing from an older connection", async () => {
+    const engine = createIntegrationPolicyEngine({
+      policyRepository: policyRepositoryStub({
+        async listPoliciesForConnection() {
+          return [
+            {
+              id: "p1",
+              tenantId: "tenant-a",
+              integrationConnectionId: "conn-1",
+              eventType: "TourPublished",
+              enabled: true,
+            },
+          ];
+        },
+      }),
+      exposureIntentRepository: exposureIntentRepositoryStub(),
+    });
+    const decisions = await engine.evaluate({
+      tenantId: "tenant-a",
+      eventType: "member.registered",
+      workspaceType: "denali",
+    });
+    assert.equal(decisions.length, 1);
   });
 
   it("loads native exposure intent into decisions", async () => {
@@ -273,7 +298,7 @@ describe("integration-policy-engine", () => {
         surface: "telegram",
         audience: "external_channel",
         trigger: "BookingConfirmed",
-      },
+      }
     );
   });
 });

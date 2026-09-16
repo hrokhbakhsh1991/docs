@@ -842,11 +842,46 @@ export class FinanceService {
         throw new Error("BOOKINGS_FORBIDDEN");
       }
     }
+    const previewKind = previewKindFromFileKey(body.fileKey);
+    const submittedAt = new Date().toISOString();
+    let proofUrl: string | undefined;
+    try {
+      proofUrl = await this.receiptProofStorage.getSignedReadUrl({
+        tenantId: auth.tenantId,
+        storageKey: body.fileKey,
+      });
+    } catch (error: unknown) {
+      this.logger.warn({
+        event: "finance.receipt_proof.telegram_media_unavailable",
+        tenantId: auth.tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
       fileKey: body.fileKey,
       note: body.note,
+      outboxEvent: {
+        eventType: "receipt.submitted",
+        payload: {
+          topicKey: "receipts",
+          paymentId: payment.id,
+          registrationId: payment.registrationId,
+          amount: payment.amount,
+          currency: payment.currency,
+          fileKey: body.fileKey,
+          submittedAt,
+          ...(proofUrl === undefined || previewKind === "unknown"
+            ? {}
+            : {
+                telegramMediaUrl: proofUrl,
+                telegramMediaKind: previewKind === "image" ? "photo" : "document",
+              }),
+          ...(body.note === undefined ? {} : { note: body.note }),
+          submittedByUserId: auth.userId,
+        },
+      },
       ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
     });
     this.metrics.increment(

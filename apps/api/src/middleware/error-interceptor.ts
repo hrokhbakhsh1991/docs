@@ -304,6 +304,8 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("BOOKING_WORKSPACE_TENANT_MISMATCH")) return 403;
   if (message.startsWith("BOOKING_CAPABILITY_VIOLATION")) return 422;
   if (message.startsWith("BOOKING_PUBLIC_CREATE_UNSUPPORTED")) return 403;
+  if (message === "INTEGRATION_NOT_FOUND") return 404;
+  if (message.startsWith("INTEGRATION_")) return 400;
   if (message.startsWith("BOOKING_WAITLIST_REQUIRED")) return 409;
   if (message.startsWith("BOOKING_ALREADY_APPROVED")) return 409;
   if (message.startsWith("BOOKING_ALREADY_CANCELLED")) return 409;

@@ -977,6 +977,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: {
+      readonly eventType: string;
+      readonly payload: Readonly<Record<string, unknown>>;
+      readonly correlationId?: string;
+    };
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       await acquireTourCapacityLock(tx, input.tenantId, input.body.tourId);
@@ -1019,6 +1024,22 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           }
           throw error;
         });
+      if (input.outboxEvent !== undefined) {
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: row.id,
+          eventType: input.outboxEvent.eventType,
+          payload: {
+            ...input.outboxEvent.payload,
+            bookingId: row.id,
+          } as Prisma.InputJsonValue,
+          domainEventId: `${input.outboxEvent.eventType}:${row.id}`,
+          ...(input.outboxEvent.correlationId === undefined
+            ? {}
+            : { correlationId: input.outboxEvent.correlationId }),
+        });
+      }
       return toBookingRecord(row);
     });
   }

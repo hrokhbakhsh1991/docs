@@ -15,7 +15,14 @@ export type IntegrationDeliveryContext = {
 export type IntegrationSendMessageInput = {
   readonly channelId: string;
   readonly text: string;
+  readonly messageThreadId?: number;
   readonly parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+  readonly media?: {
+    readonly kind: "photo" | "document";
+    readonly url: string;
+    readonly caption?: string;
+  };
+  readonly replyMarkup?: Readonly<Record<string, unknown>>;
 };
 
 export type IntegrationCreateChannelLinkInput = {

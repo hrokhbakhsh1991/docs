@@ -7,6 +7,7 @@
  */
 
 import { getBookingsRepository } from "./create-bookings-repository";
+import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
 import { HostBookingAssistedRegistrationMembersAdapter } from "./infrastructure/host-booking-assisted-registration-members.adapter";
@@ -244,11 +245,13 @@ export async function findGuestBookingDuplicateMatch(
 
 export async function createPublicGuestBooking(
   auth: BookingActorContext,
-  body: CreateBookingRequest
+  body: CreateBookingRequest,
+  outboxEvent?: BookingPublicOutboxEvent
 ): Promise<CreateBookingResponse> {
   return (await resolveBookingsServiceForTenant(auth.tenantId)).createPublicGuestBooking(
     auth,
-    body
+    body,
+    outboxEvent
   );
 }
 

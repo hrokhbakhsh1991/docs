@@ -65,6 +65,7 @@ import type { TourStorageRepository } from "./db/tour.repository";
 import { handleHealth } from "./health/health.routes";
 import "./http/configure-product-http-hosts";
 import "./http/configure-finance-http-host";
+import { handleTelegramWebhook } from "./integrations/webhooks/telegram-webhook.controller";
 import "./http/configure-wallet-http-host";
 import "./http/configure-ticketing-http-host";
 import "./http/configure-engagement-http-host";
@@ -293,6 +294,19 @@ async function dispatchRequest(
     const { handlePaymentsWebhook } =
       await import("./integrations/webhooks/payments-webhook.controller.ts");
     await handlePaymentsWebhook(req, res);
+    return;
+  }
+
+  const telegramWebhookMatch = url.pathname.match(
+    /^\/webhooks\/telegram\/([^/]+)\/([^/]+)$/
+  );
+  if (method === "POST" && telegramWebhookMatch) {
+    await handleTelegramWebhook(
+      req,
+      res,
+      decodeURIComponent(telegramWebhookMatch[1]!),
+      decodeURIComponent(telegramWebhookMatch[2]!)
+    );
     return;
   }
 
@@ -1572,6 +1586,34 @@ async function dispatchRequest(
     const { handleTestIntegrationConnection } =
       await import("./integrations/http/integrations.routes");
     await handleTestIntegrationConnection(req, res, decodeURIComponent(integrationTestMatch[1]!));
+    return;
+  }
+
+  const telegramProvisionMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/telegram\/provision$/
+  );
+  if (method === "POST" && telegramProvisionMatch) {
+    const { handleProvisionTelegramIntegration } =
+      await import("./integrations/http/integrations.routes");
+    await handleProvisionTelegramIntegration(
+      req,
+      res,
+      decodeURIComponent(telegramProvisionMatch[1]!)
+    );
+    return;
+  }
+
+  const telegramConnectStartMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/telegram\/connect\/start$/
+  );
+  if (method === "POST" && telegramConnectStartMatch) {
+    const { handleStartTelegramForumConnect } =
+      await import("./integrations/http/integrations.routes");
+    await handleStartTelegramForumConnect(
+      req,
+      res,
+      decodeURIComponent(telegramConnectStartMatch[1]!)
+    );
     return;
   }
 

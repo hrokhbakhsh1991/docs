@@ -19,7 +19,7 @@ function readDeliveryFieldIdsOrdered(payload: Record<string, unknown>): readonly
 }
 
 function readDeliveryFieldValues(
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown>
 ): Readonly<Record<string, string>> {
   const raw = payload.integrationDeliveryFieldValues;
   if (typeof raw !== "object" || raw === null) {
@@ -53,8 +53,24 @@ function resolveDeliveryAggregateId(payload: Record<string, unknown>): string {
   return String(payload.aggregateId ?? payload.tourId ?? "");
 }
 
-function readDeliveryFieldDecorations(
+function applyPayloadPlaceholders(
+  template: string,
   payload: Record<string, unknown>,
+  eventType: string
+): string {
+  return template.replace(/\{\{([A-Za-z][A-Za-z0-9_.-]*)\}\}/g, (match, key: string) => {
+    if (key === "title") return resolveDeliveryTitle(payload);
+    if (key === "aggregateId") return resolveDeliveryAggregateId(payload);
+    if (key === "eventType") return eventType;
+    const value = payload[key];
+    return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+      ? String(value)
+      : match;
+  });
+}
+
+function readDeliveryFieldDecorations(
+  payload: Record<string, unknown>
 ): Readonly<Record<string, { prefix: string }>> {
   const raw = payload.integrationDeliveryFieldDecorations;
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -93,7 +109,9 @@ function renderAutomaticDeliveryFieldLines(payload: Record<string, unknown>): st
     const label = humanizeFieldId(fieldId);
     const prefix = decorations[fieldId]?.prefix;
     lines.push(
-      prefix !== undefined && prefix.length > 0 ? `${prefix} ${label}: ${value}` : `${label}: ${value}`,
+      prefix !== undefined && prefix.length > 0
+        ? `${prefix} ${label}: ${value}`
+        : `${label}: ${value}`
     );
   }
   return lines.length > 0 ? lines.join("\n") : null;
@@ -105,8 +123,7 @@ async function renderSurfaceHeaderTemplate(input: {
   readonly payload: Record<string, unknown>;
 }): Promise<string> {
   const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
-  const template =
-    surface?.messageTemplates?.[input.eventType] ?? `${input.eventType}: {{title}}`;
+  const template = surface?.messageTemplates?.[input.eventType] ?? `${input.eventType}: {{title}}`;
   return template
     .replaceAll("{{title}}", resolveDeliveryTitle(input.payload))
     .replaceAll("{{aggregateId}}", resolveDeliveryAggregateId(input.payload))
@@ -119,7 +136,7 @@ async function renderSurfaceHeaderTemplate(input: {
  */
 export async function applyFieldPolicyPlaceholders(
   template: string,
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown>
 ): Promise<string> {
   if (!template.includes("{{field:")) {
     return template;
@@ -149,10 +166,7 @@ export async function formatIntegrationDeliveryMessage(input: {
 
   if (overrideTemplate !== null) {
     const resolved = await applyFieldPolicyPlaceholders(overrideTemplate, input.payload);
-    return resolved
-      .replaceAll("{{title}}", resolveDeliveryTitle(input.payload))
-      .replaceAll("{{aggregateId}}", resolveDeliveryAggregateId(input.payload))
-      .replaceAll("{{eventType}}", input.eventType);
+    return applyPayloadPlaceholders(resolved, input.payload, input.eventType);
   }
 
   const automaticFieldLines = renderAutomaticDeliveryFieldLines(input.payload);
@@ -162,12 +176,8 @@ export async function formatIntegrationDeliveryMessage(input: {
   }
 
   const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
-  const template =
-    surface?.messageTemplates?.[input.eventType] ?? "{{eventType}}: {{title}}";
+  const template = surface?.messageTemplates?.[input.eventType] ?? "{{eventType}}: {{title}}";
 
   const resolved = await applyFieldPolicyPlaceholders(template, input.payload);
-  return resolved
-    .replaceAll("{{title}}", resolveDeliveryTitle(input.payload))
-    .replaceAll("{{aggregateId}}", resolveDeliveryAggregateId(input.payload))
-    .replaceAll("{{eventType}}", input.eventType);
+  return applyPayloadPlaceholders(resolved, input.payload, input.eventType);
 }

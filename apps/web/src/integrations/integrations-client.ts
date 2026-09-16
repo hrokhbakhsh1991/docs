@@ -63,6 +63,32 @@ export async function createWorkspaceIntegration(
   return parseIntegrationConnectionPublic(payload);
 }
 
+export type ProvisionTelegramIntegrationInput = {
+  readonly chatId: string;
+  readonly groupName?: string;
+};
+
+export async function provisionTelegramIntegration(
+  integrationId: string,
+  input: ProvisionTelegramIntegrationInput
+): Promise<IntegrationConnectionPublic> {
+  const res = await fetch(
+    `/api/integrations/${encodeURIComponent(integrationId)}/telegram/provision`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    }
+  );
+  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const code =
+      typeof payload.code === "string" ? payload.code : `INTEGRATION_PROVISION_HTTP_${res.status}`;
+    throw new Error(code);
+  }
+  return parseIntegrationConnectionPublic(payload);
+}
+
 export type PatchIntegrationInput = {
   readonly config?: Record<string, string>;
   readonly credentials?: Record<string, string>;
@@ -103,7 +129,7 @@ export type PatchExposureIntentInput = {
 export async function patchIntegrationEventPolicy(
   integrationId: string,
   eventType: string,
-  input: PatchIntegrationEventPolicyInput,
+  input: PatchIntegrationEventPolicyInput
 ): Promise<IntegrationConnectionPublic> {
   const eventPolicyPath =
     `/api/integrations/${encodeURIComponent(integrationId)}` +
@@ -127,7 +153,7 @@ export async function patchIntegrationEventPolicy(
 export async function patchExposureIntent(
   integrationId: string,
   eventType: string,
-  input: PatchExposureIntentInput,
+  input: PatchExposureIntentInput
 ): Promise<IntegrationConnectionPublic> {
   const exposureIntentPath =
     `/api/integrations/${encodeURIComponent(integrationId)}` +
@@ -140,9 +166,7 @@ export async function patchExposureIntent(
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     const code =
-      typeof payload.code === "string"
-        ? payload.code
-        : `EXPOSURE_INTENT_PATCH_HTTP_${res.status}`;
+      typeof payload.code === "string" ? payload.code : `EXPOSURE_INTENT_PATCH_HTTP_${res.status}`;
     throw new Error(code);
   }
   return parseIntegrationConnectionPublic(payload);
