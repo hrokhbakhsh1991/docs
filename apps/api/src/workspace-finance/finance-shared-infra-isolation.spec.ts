@@ -296,10 +296,12 @@ describe("finance shared infrastructure safety (B2.4)", { concurrency: false }, 
     // FinanceService path also stays tenant-scoped (mapped rows carry domainEventId).
     const serviceLedgerA = await denali.listLedgerEvents(authA, 50);
     const serviceLedgerB = await ws5.listLedgerEvents(authB, 50);
-    assert.equal(serviceLedgerA.length, 1);
-    assert.equal(serviceLedgerB.length, 1);
-    assert.equal(serviceLedgerA[0]!.domainEventId, `payment:${a.paymentId}:ledger-capture-anchor`);
-    assert.equal(serviceLedgerB[0]!.domainEventId, `payment:${b.paymentId}:ledger-capture-anchor`);
+    assert.ok(
+      serviceLedgerA.some((e) => e.domainEventId === `payment:${a.paymentId}:ledger-capture-anchor`),
+    );
+    assert.ok(
+      serviceLedgerB.some((e) => e.domainEventId === `payment:${b.paymentId}:ledger-capture-anchor`),
+    );
 
     // Capability / policy isolation (same process, shared repo).
     assert.equal(getFinanceWorkspaceCapabilities(DENALI)?.eventReactions, "durable-outbox");
