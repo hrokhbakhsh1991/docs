@@ -31,6 +31,7 @@
 @import "./marketing/components/25-pr-20o.css";
 @import "./marketing/components/26-pr-21-p1.css";
 @import "./marketing/components/26-pr-21-p1-cards.css";
+@import "./marketing/components/26-pr-21-p1-loading.css";
 @import "./marketing/components/27-pr-21-p2.css";
 @import "./marketing/components/28-pr-d6b.css";
 @import "./marketing/components/29-mkt-icon-metrics.css";
@@ -41,6 +42,3 @@
 @import "./marketing/components/33-pr-home-mobile-gutter-closure.css";
 @import "./marketing/components/34-mkt-header-member.css";
 @import "./marketing/components/35-mkt-header-desktop.css";
-@import "./marketing/components/36-mkt-tour-sign-in-cta.css";
-@import "./marketing/components/37-mkt-login-modal.css";
-@import "./marketing/home-landing.css";

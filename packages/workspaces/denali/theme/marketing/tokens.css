@@ -64,3 +64,76 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --mkt-trust-logo-max-height: 3rem;
   --mkt-hero-image: url("/home/hero.webp");
 }
+
+/* The shared light bridge can override marketing tokens. Keep landing copy
+ * and primary actions above WCAG AA contrast without changing other surfaces. */
+.theme-light:has([data-marketing-home]) {
+  --color-text-muted: #4b5563;
+  --color-text-secondary: #374151;
+  --color-primary: #047857;
+  --color-primary-hover: #065f46;
+  --denali-forest-600: #047857;
+  --denali-forest-700: #065f46;
+}
+
+/* Keep the public landing compatible with the platform dark theme when the
+ * host enables it. The marketing surface does not own the theme toggle. */
+html.theme-dark body[data-app-surface="marketing"][data-workspace-plugin="denali"],
+html.dark body[data-app-surface="marketing"][data-workspace-plugin="denali"],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"].theme-dark,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] .theme-dark {
+  --color-bg-page: #0d1117;
+  --color-bg-surface: #161b22;
+  --color-bg-muted: #21262d;
+  --color-border-default: #30363d;
+  --color-border-subtle: #21262d;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #aeb4bd;
+  --color-text-muted: #7e8793;
+  --color-text-link: #7eb3df;
+  --color-primary: #56d364;
+  --color-primary-hover: #6fdd7d;
+  --color-primary-fg: #0d1117;
+  --denali-mist-50: #0d1117;
+  --denali-mist-100: #161b22;
+  --denali-forest-600: #56d364;
+  --denali-forest-700: #6fdd7d;
+  --denali-sage-100: #1f3a2a;
+  --mkt-on-overlay: #ffffff;
+  --mkt-hero-ink: #080d13;
+  --border: var(--color-border-default);
+  color-scheme: dark;
+}
+
+/* Marketing is mounted inside a theme-light bridge; mirror the dark contract
+ * on that bridge so its inherited tokens do not repaint the landing white. */
+html.theme-dark .theme-light:has([data-marketing-home]),
+html.dark .theme-light:has([data-marketing-home]) {
+  --background: #0d1117;
+  --foreground: #e8eaed;
+  --card: #161b22;
+  --primary: #56d364;
+  --primary-foreground: #0d1117;
+  --muted-foreground: #7e8793;
+  --border: #30363d;
+  --color-bg-page: #0d1117;
+  --color-bg-surface: #161b22;
+  --color-bg-muted: #21262d;
+  --color-border-default: #30363d;
+  --color-border-subtle: #21262d;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #aeb4bd;
+  --color-text-muted: #7e8793;
+  --color-text-link: #7eb3df;
+  --color-primary: #56d364;
+  --color-primary-hover: #6fdd7d;
+  --color-primary-fg: #0d1117;
+  --denali-mist-50: #0d1117;
+  --denali-mist-100: #161b22;
+  --denali-forest-600: #56d364;
+  --denali-forest-700: #6fdd7d;
+  --denali-sage-100: #1f3a2a;
+  --mkt-on-overlay: #ffffff;
+  --mkt-hero-ink: #080d13;
+  color-scheme: dark;
+}

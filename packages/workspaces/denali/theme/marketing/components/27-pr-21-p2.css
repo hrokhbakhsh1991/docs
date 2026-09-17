@@ -39,9 +39,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 }
 
-/* PR-22 — destination portrait cards + blur reveal (2026-07-05) — active
-   Mobile: horizontal portrait filmstrip. Hover/focus: blur photo + reveal copy.
-   Copy SoT: home.full.destinations.* + home.full.hero.spotlight.* (elevation/region). */
+/*
+ * Retired destination-card skin.
+ *
+ * Destination cards now have one owner in marketing/home/destinations.css.
+ * Keeping this historical PR-22 block active caused its later hover rules to
+ * override the landing rest state (dark gradient, blur, and copy reveal).
+ * The block remains here as provenance until the numbered component bundle is
+ * fully retired; it must not contribute CSS to the active Denali surface.
+ */
+/*
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --mkt-destination-portrait-ratio: 3 / 4;
@@ -406,3 +413,4 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     transform: none;
   }
 }
+*/

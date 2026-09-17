@@ -17,6 +17,7 @@ import {
 } from "@/i18n/routing";
 
 import { resolveHomeTourCoverUrl } from "./resolve-home-tour-cover-url";
+import { MARKETING_FALLBACK_TOUR_CARD_COVER_PATH } from "./home-marketing-assets";
 
 export type HomeLatestTourCardProps = {
   readonly tour: MarketingCatalogCard;
@@ -51,13 +52,23 @@ export async function HomeLatestTourCard({ tour, pluginId }: HomeLatestTourCardP
         data-marketing-home-latest-cover
         {...(!hasCatalogCover ? { "data-marketing-home-latest-cover-fallback": true } : {})}
       >
-        <Link href={detailHref}>
-          <CatalogCoverImage src={coverSrc} alt={title} width={640} height={360} cover />
+        <Link href={detailHref} prefetch={false}>
+          <CatalogCoverImage
+            src={coverSrc}
+            alt={title}
+            width={640}
+            height={360}
+            sizes="(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw"
+            fallbackSrc={MARKETING_FALLBACK_TOUR_CARD_COVER_PATH}
+            cover
+          />
         </Link>
       </figure>
       <div>
         <h3>
-          <Link href={detailHref}>{title}</Link>
+          <Link href={detailHref} prefetch={false}>
+            {title}
+          </Link>
         </h3>
         {datesLine ? <p data-marketing-home-latest-meta>{datesLine}</p> : null}
         {priceLine ? <p data-marketing-home-latest-price>{priceLine}</p> : null}

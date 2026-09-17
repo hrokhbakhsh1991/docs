@@ -78,9 +78,7 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
 
 /** Portal registration phone step — wait for client hydration before interacting. */
 export async function fillCatalogPhone(page: Page, phone: string): Promise<void> {
-  const phoneStep = page.locator(
-    "[data-public-registration-phone][data-registration-ready]"
-  );
+  const phoneStep = page.locator("[data-public-registration-phone][data-registration-ready]");
   await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
   const input = phoneStep.locator("#phone");
   await input.click();
@@ -97,8 +95,7 @@ export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promi
   const [response] = await Promise.all([
     page.waitForResponse(
       (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/public-auth/request-otp"),
+        res.request().method() === "POST" && res.url().includes("/api/public-auth/request-otp"),
       { timeout: 90_000 }
     ),
     sendCode.click(),
@@ -124,9 +121,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const digits = code.replace(/\D/g, "");
 
   const responsePromise = page.waitForResponse(
-    (res) =>
-      res.request().method() === "POST" &&
-      res.url().includes("/api/public-auth/verify-otp"),
+    (res) => res.request().method() === "POST" && res.url().includes("/api/public-auth/verify-otp"),
     { timeout: 90_000 }
   );
 
@@ -200,9 +195,7 @@ async function fillIntakeFieldInRootIfVisible(
 async function selectNoPersonalCarAndPayDong(cardRoot: Locator): Promise<void> {
   const transportRoot = cardRoot.locator("[data-public-registration-transport]");
   const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
-  const hasPersonalCarRadios = scope.locator(
-    'input[type="radio"][name^="hasPersonalCar-"]'
-  );
+  const hasPersonalCarRadios = scope.locator('input[type="radio"][name^="hasPersonalCar-"]');
   if ((await hasPersonalCarRadios.count()) > 0) {
     await hasPersonalCarRadios.nth(1).click();
   }
@@ -301,21 +294,9 @@ export async function completeCatalogRegistrationIntake(
         await fillIntakeFieldInRootIfVisible(card, "phone", input.phone);
       }
       await fillIntakeFieldInRootIfVisible(card, "email", input.email);
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "nationalId",
-        input.nationalId ?? "1234567890"
-      );
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "fatherName",
-        input.fatherName ?? "Smoke Father"
-      );
-      await fillIntakeFieldInRootIfVisible(
-        card,
-        "birthDate",
-        input.birthDate ?? "1990-01-15"
-      );
+      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1234567890");
+      await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");
+      await fillIntakeFieldInRootIfVisible(card, "birthDate", input.birthDate ?? "1990-01-15");
       await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
       await selectNoPersonalCarAndPayDong(card);
     }
@@ -345,16 +326,8 @@ export async function completeCatalogRegistrationIntake(
       "fatherName",
       input.fatherName ?? "Smoke Father"
     );
-    await fillIntakeFieldInRootIfVisible(
-      intakeRoot,
-      "birthDate",
-      input.birthDate ?? "1990-01-15"
-    );
-    await fillIntakeFieldInRootIfVisible(
-      intakeRoot,
-      "partySize",
-      input.partySize ?? "2"
-    );
+    await fillIntakeFieldInRootIfVisible(intakeRoot, "birthDate", input.birthDate ?? "1990-01-15");
+    await fillIntakeFieldInRootIfVisible(intakeRoot, "partySize", input.partySize ?? "2");
 
     const partySizeInput = page.getByLabel(/Party size|تعداد نفرات/);
     if (await partySizeInput.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -369,16 +342,15 @@ export async function completeCatalogRegistrationIntake(
   await expect(submit).toBeEnabled({ timeout: 15_000 });
 
   const responsePromise = page.waitForResponse(
-    (res) =>
-      res.request().method() === "POST" &&
-      res.url().includes("/api/catalog/registrations"),
+    (res) => res.request().method() === "POST" && res.url().includes("/api/catalog/registrations"),
     { timeout: 90_000 }
   );
   await submit.click({ noWaitAfter: true });
   const response = await responsePromise;
+  const responseBody = await response.text();
   expect(
     response.ok(),
-    `catalog registration failed (${response.status()})`
+    `catalog registration failed (${response.status()}): ${responseBody.slice(0, 240)}`
   ).toBeTruthy();
 
   if (expectSuccess) {

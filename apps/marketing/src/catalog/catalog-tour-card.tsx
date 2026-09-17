@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
+import { MARKETING_FALLBACK_TOUR_CARD_COVER_PATH } from "@/home/home-marketing-assets";
 
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
@@ -70,7 +71,15 @@ export async function CatalogTourCard({
     >
       <figure data-marketing-catalog-card-media>
         <Link href={detailHref} data-marketing-catalog-card-cover>
-          <CatalogCoverImage src={coverSrc} alt={title} width={640} height={360} cover />
+          <CatalogCoverImage
+            src={coverSrc}
+            alt={title}
+            width={640}
+            height={360}
+            sizes="(max-width: 48rem) calc(100vw - 3rem), (max-width: 64rem) 50vw, 33vw"
+            fallbackSrc={MARKETING_FALLBACK_TOUR_CARD_COVER_PATH}
+            cover
+          />
         </Link>
         <CatalogCommercialPricingCompact
           preview={pricingPreview}

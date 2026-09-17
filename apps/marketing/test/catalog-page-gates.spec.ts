@@ -9,10 +9,12 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const pagePath = join(repoRoot, "apps/marketing/app/tours/page.tsx");
+const loadingPath = join(repoRoot, "apps/marketing/app/tours/loading.tsx");
 const bffPath = join(repoRoot, "apps/marketing/app/api/catalog/route.ts");
 
 describe("catalog-page-gates.spec.ts — HOME-UNIT-09", () => {
   const source = readFileSync(pagePath, "utf8");
+  const loadingSource = readFileSync(loadingPath, "utf8");
   const bffSource = readFileSync(bffPath, "utf8");
 
   it("wires filter bar, server fetch filters, and pipeline", () => {
@@ -30,6 +32,12 @@ describe("catalog-page-gates.spec.ts — HOME-UNIT-09", () => {
     assert.match(source, /data-marketing-catalog-pagination-next/);
     assert.match(source, /buildCatalogListHref/);
     assert.match(source, /resolveMarketingLocalePath\("\/tours"/);
+  });
+
+  it("provides an accessible loading surface for API-backed navigation", () => {
+    assert.match(loadingSource, /aria-busy="true"/);
+    assert.match(loadingSource, /data-marketing-catalog-loading-grid/);
+    assert.match(loadingSource, /t\("loading\.label"\)/);
   });
 
   it("BFF list route shares PR-22 query builder with server fetch", () => {

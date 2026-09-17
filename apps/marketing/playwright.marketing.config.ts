@@ -5,6 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  * @see docs/workspaces/denali/public-catalog.md
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
+const executablePath = process.env.PW_EXECUTABLE_PATH;
 const marketingSmokeBaseUrl =
   process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
@@ -43,7 +44,10 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: marketingSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
-    launchOptions: { args: chromiumLaunchArgs() },
+    launchOptions: {
+      args: chromiumLaunchArgs(),
+      ...(executablePath ? { executablePath } : {}),
+    },
   },
   ...(useExternalServers
     ? {}

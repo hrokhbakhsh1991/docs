@@ -7,6 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Uses Chromium + iPhone 13 viewport (CI installs chromium only — not WebKit).
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
+const executablePath = process.env.PW_EXECUTABLE_PATH;
 const denaliBaseUrl = process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
 const urbanBaseUrl = process.env.SMOKE_MARKETING_URBAN_BASE_URL ?? "http://urban.localhost:3002";
 const motherBaseUrl = process.env.SMOKE_MOTHER_BASE_URL ?? "http://localhost:3002";
@@ -27,6 +28,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   workers: 1,
   timeout: 180_000,
+  use: {
+    launchOptions: executablePath ? { executablePath } : undefined,
+  },
   projects: [
     {
       name: "home-denali",
@@ -44,6 +48,15 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         ...iphone13Mobile,
         baseURL: urbanBaseUrl,
+      },
+    },
+    {
+      name: "home-denali-tablet",
+      grep: /SMK-MKT-HOME-0(1|2|3|7)|SMK-MKT-HOME-1(0|1)/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 768, height: 1024 },
+        baseURL: denaliBaseUrl,
       },
     },
     {

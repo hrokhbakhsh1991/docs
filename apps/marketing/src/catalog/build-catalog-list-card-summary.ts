@@ -28,7 +28,7 @@ export function computeCatalogTourDurationDays(
   return Math.max(1, Math.ceil((endMs - startMs) / dayMs));
 }
 
-function readDurationDaysFromCategory(category: string | null | undefined): number | null {
+export function readDurationDaysFromCategory(category: string | null | undefined): number | null {
   const slug = category?.trim() ?? "";
   if (slug.endsWith("_day")) {
     return 1;

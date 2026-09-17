@@ -31,6 +31,7 @@ export async function HomeCategories({ categories, embedded = false }: HomeCateg
         <Link
           key={category}
           href={resolveMarketingToursListPath(locale, { category })}
+          prefetch={false}
           data-marketing-home-category-chip
           data-marketing-home-category-chip-id={category}
         >

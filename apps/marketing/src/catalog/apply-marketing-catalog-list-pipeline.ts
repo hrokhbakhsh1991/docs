@@ -25,6 +25,10 @@ export async function applyMarketingCatalogListPipeline(
       difficulty: filters.difficulty,
       fitness: filters.fitness,
       availability: filters.availability,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      minDuration: filters.minDuration,
+      maxDuration: filters.maxDuration,
     },
     pluginId
   );

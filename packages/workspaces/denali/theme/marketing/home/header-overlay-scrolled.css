@@ -53,7 +53,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]

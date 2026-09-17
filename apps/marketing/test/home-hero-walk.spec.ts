@@ -24,7 +24,7 @@ function readCatalog(locale: "en" | "fa"): {
 }
 
 describe("home-hero-walk.spec.ts", () => {
-  it("renders one H1, support, and a single /tours CTA with Walk media", () => {
+  it("renders one H1, support, and two intentional CTAs with Walk media", () => {
     const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
     const full = readSrc("apps/marketing/src/home/guest-home-full.tsx");
 
@@ -37,18 +37,19 @@ describe("home-hero-walk.spec.ts", () => {
     assert.match(hero, /resolveMarketingToursListPath\(locale\)/);
     assert.match(hero, /<picture data-marketing-home-hero-media>/);
     assert.match(hero, /media="\(max-width: 48rem\)"/);
+    assert.match(hero, /sizes="100vw"/);
     assert.equal((hero.match(/<h1 /g) ?? []).length, 1);
-    assert.equal((hero.match(/<Link /g) ?? []).length, 1);
+    assert.equal((hero.match(/<Link /g) ?? []).length, 2);
     assert.doesNotMatch(hero, /data-marketing-home-hero-cinematic/);
     assert.doesNotMatch(hero, /data-marketing-home-hero-peak-margin/);
     assert.doesNotMatch(hero, /HomeHeroDestinationStage/);
     assert.doesNotMatch(hero, /HomeHeroStaticParallax/);
     assert.doesNotMatch(hero, /HomeHeroCarouselMedia/);
     assert.doesNotMatch(hero, /data-marketing-home-search/);
-    assert.doesNotMatch(hero, /data-marketing-home-cta-secondary/);
+    assert.match(hero, /data-marketing-home-cta-secondary/);
     assert.doesNotMatch(hero, /data-marketing-home-hero-eyebrow/);
     assert.doesNotMatch(hero, /role="radiogroup"/);
-    assert.doesNotMatch(hero, /#why-us/);
+    assert.match(hero, /whySectionAnchor/);
     assert.match(full, /resolveMarketingHomeHeroMedia/);
     assert.match(full, /heroImageUrl/);
     assert.doesNotMatch(full, /whySectionHref/);
@@ -68,6 +69,22 @@ describe("home-hero-walk.spec.ts", () => {
     assert.ok(en.ctaSecondary.trim().length > 0);
   });
 
+  it("keeps the Hero brand label data-driven", () => {
+    const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
+    const full = readSrc("apps/marketing/src/home/guest-home-full.tsx");
+    assert.doesNotMatch(hero, /siteName:\s*["']shenski["']/i);
+    assert.match(hero, /siteName\s*\}\)/);
+    assert.match(full, /resolveGuestChromeDisplayName/);
+  });
+
+  it("uses the portal tickets module for the consultation CTA", () => {
+    const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
+    const full = readSrc("apps/marketing/src/home/guest-home-full.tsx");
+    assert.match(hero, /consultationHref/);
+    assert.match(hero, /ctaConsultation/);
+    assert.match(full, /resolvePortalMemberModuleUrl\(host, "tickets"\)/);
+  });
+
   it("resolves desktop + mobile sources without inventing dimensions", () => {
     const empty = {
       displayName: null,
@@ -76,12 +93,13 @@ describe("home-hero-walk.spec.ts", () => {
       defaultLocale: null,
     };
     const media = resolveMarketingHomeHeroMedia(empty);
-    assert.equal(media.desktopSrc, "/home/hero-walk.webp");
-    assert.equal(media.mobileSrc, "/home/hero-walk-mobile.webp");
-    assert.equal(media.desktopWidth, 1536);
-    assert.equal(media.desktopHeight, 1024);
-    assert.equal(media.mobileWidth, 1024);
-    assert.equal(media.mobileHeight, 1536);
+    assert.equal(media.desktopSrc, "/home/hero-walk-v2.webp");
+    assert.equal(media.mobileSrc, "/home/hero-walk-mobile-v2.webp");
+    assert.match(media.mobileSrcSet ?? "", /hero-walk-mobile-v2-480\.webp 480w/);
+    assert.equal(media.desktopWidth, 1916);
+    assert.equal(media.desktopHeight, 821);
+    assert.equal(media.mobileWidth, 941);
+    assert.equal(media.mobileHeight, 1672);
 
     const overridden = resolveMarketingHomeHeroMedia({
       ...empty,
@@ -95,7 +113,7 @@ describe("home-hero-walk.spec.ts", () => {
   it("owns Walk CSS in the existing Hero partial", () => {
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
     const overlay = readSrc(
-      "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css",
+      "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css"
     );
     assert.match(css, /data-marketing-home-hero-walk/);
     assert.doesNotMatch(css, /data-marketing-header-overlay/);
@@ -108,7 +126,7 @@ describe("home-hero-walk.spec.ts", () => {
     assert.doesNotMatch(overlay, /data-marketing-nav-link-id="tours"/);
     assert.match(
       overlay,
-      /summary\[data-marketing-nav-drawer-toggle\] \{[\s\S]*?border-radius: 0;/,
+      /summary\[data-marketing-nav-drawer-toggle\] \{[\s\S]*?border-radius: 0;/
     );
     assert.doesNotMatch(css, /data-marketing-home-hero-peak-margin/);
     assert.doesNotMatch(css, /data-marketing-home-hero-selector/);
