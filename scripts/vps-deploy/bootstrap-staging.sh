@@ -112,6 +112,7 @@ ensure_env_value "$ENV_DIR/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
 ensure_env_value "$ENV_DIR/web.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
 ensure_env_value "$ENV_DIR/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/marketing.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/marketing.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
 ensure_env_value "$ENV_DIR/marketing.env" SESSION_COOKIE_SECURE true
 ensure_env_value "$ENV_DIR/portal.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
