@@ -114,9 +114,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
   const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host, undefined, bootstrap.pluginId);
   const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host, undefined, bootstrap.pluginId);
-  const portalPublicBaseUrl = resolvePortalPublicBaseUrl(host);
-  const memberLoginTourId = resolveMemberLoginCatalogTourId(bootstrap.pluginId);
-  const marketingHomeHref = resolveMarketingLocalePath("/", locale);
   const memberHeader = await resolveMarketingMemberHeader(
     host,
     bootstrap.tenantId,
