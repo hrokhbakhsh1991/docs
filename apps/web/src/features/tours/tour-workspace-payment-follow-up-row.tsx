@@ -33,7 +33,10 @@ type TourWorkspacePaymentFollowUpRowProps = {
   readonly selected: boolean;
   readonly highlighted: boolean;
   readonly onSelect: () => void;
-  readonly onPrimaryAction: (action: PaymentFollowUpPrimaryActionKind, registrationId: string) => void;
+  readonly onPrimaryAction: (
+    action: PaymentFollowUpPrimaryActionKind,
+    registrationId: string
+  ) => void;
 };
 
 function paymentBadgeLabel(
@@ -41,7 +44,10 @@ function paymentBadgeLabel(
   tTransport: ReturnType<typeof useTranslations>,
   row: TourWorkspacePaymentFollowUpParticipantRow
 ): string {
-  if (row.financialDisplayState !== null && tTransport.has(`financial.${row.financialDisplayState}`)) {
+  if (
+    row.financialDisplayState !== null &&
+    tTransport.has(`financial.${row.financialDisplayState}`)
+  ) {
     return tTransport(`financial.${row.financialDisplayState}`);
   }
   if (row.bookingPaymentStatus !== null) {
@@ -83,17 +89,15 @@ export function TourWorkspacePaymentFollowUpRow({
       data-finance-registration-id={row.registrationId}
       data-follow-up-kind={row.listKind}
       className={cn(
-        "relative flex w-full items-center gap-3 overflow-hidden rounded-lg border px-3 py-2.5 transition-colors",
+        "relative flex w-full flex-wrap items-start gap-3 overflow-hidden rounded-lg border px-3 py-2.5 transition-colors",
         highlighted && "ring-2 ring-primary/40 ring-offset-1 ring-offset-background",
-        selected
-          ? "border-primary/50 bg-primary/[0.07] shadow-sm"
-          : "border-border bg-background"
+        selected ? "border-primary/50 bg-primary/[0.07] shadow-sm" : "border-border bg-background"
       )}
     >
       <button
         type="button"
         aria-pressed={selected}
-        className="flex min-w-0 flex-1 items-center gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        className="flex min-w-0 flex-[1_1_12rem] items-center gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         onClick={onSelect}
       >
         <OperatorProfileAvatar
@@ -136,11 +140,12 @@ export function TourWorkspacePaymentFollowUpRow({
           ) : null}
         </div>
       </button>
-      <div className="flex shrink-0 flex-col gap-1">
+      <div className="flex w-full shrink-0 flex-col gap-1 sm:w-auto">
         {primaryLabelKey !== null && row.primaryAction !== "none" ? (
           <Button
             type="button"
             size="sm"
+            className="w-full sm:w-auto"
             data-testid={TOUR_WORKSPACE_PAYMENT_FOLLOW_UP_ROW_TEST_IDS.primaryAction}
             data-action-kind={row.primaryAction}
             onClick={(event) => {

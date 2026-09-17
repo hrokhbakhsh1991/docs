@@ -403,19 +403,23 @@ export function TourWorkspaceTransportClient({
                     data-registration-id={row.registrationId}
                     className="rounded-lg border p-3"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                       {renderParticipantIdentity(row)}
-                      {renderParticipationState(row)}
+                      <div className="min-w-0 max-w-full">{renderParticipationState(row)}</div>
                     </div>
                     <div className="mt-3 grid gap-2 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{tTable("transportIntake")}</span>
-                        <span className="text-end">{transportLabel ?? "—"}</span>
+                      <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start gap-3">
+                        <span className="min-w-0 text-muted-foreground">
+                          {tTable("transportIntake")}
+                        </span>
+                        <span className="min-w-0 break-words text-end">
+                          {transportLabel ?? "—"}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{t("columns.note")}</span>
+                      <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start gap-3">
+                        <span className="min-w-0 text-muted-foreground">{t("columns.note")}</span>
                         <span
-                          className="text-end"
+                          className="min-w-0 break-words text-end"
                           data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.paymentDeadline}
                         >
                           {resolveOperationalNote(row)}
