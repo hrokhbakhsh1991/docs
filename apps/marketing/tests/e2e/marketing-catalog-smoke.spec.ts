@@ -90,7 +90,10 @@ test("SMK-MKT-17 denali catalog page matches current backend catalog batch", asy
 
 test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({ page }) => {
   const devPhone = `+1555${String(Date.now()).slice(-7)}`;
-  const smokeNationalId = String(Date.now()).slice(-10);
+  // Denali validates the Iranian national-id checksum before issuing the POST.
+  // A timestamp is a valid shape but is not a valid checksum, which made this
+  // smoke test time out while the client correctly stopped before submission.
+  const smokeNationalId = "0013542419";
   const smokeGuestName = `Marketing Smoke Guest ${String(Date.now()).slice(-6)}`;
   const catalogResponse = await page.request.get("/api/catalog?limit=50");
   expect(catalogResponse.ok()).toBe(true);
