@@ -32,9 +32,10 @@ describe("staging-env-contract", () => {
     assert.match(sh, /PORTAL_INTERNAL_URL/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_LABEL "\$CLUB_LABEL"/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_HOSTS/);
-    assert.match(sh, /portal\.%s\.localhost/);
+    assert.match(sh, /PORTAL_INTERNAL_URL "http:\/\/127\.0\.0\.1:\$\{PTL_PORT\}"/);
     assert.match(sh, /MARKETING_PUBLIC_BASE_URL/);
-    assert.match(sh, /PLATFORM_ROOT_DOMAIN localhost/);
+    assert.match(sh, /marketing\.env.*MARKETING_PUBLIC_BASE_URL/);
+    assert.match(sh, /domain.*!=.*localhost/);
   });
 
   it("REG-STG-ENV-03 active staging deploy scripts default to canonical staging IP", () => {
