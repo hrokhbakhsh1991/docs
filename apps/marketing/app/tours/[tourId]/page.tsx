@@ -26,8 +26,6 @@ import {
   resolvePortalPublicBaseUrl,
 } from "@app-tour/guest-surface-host";
 
-import "@app-tour/workspace-denali/theme/marketing/detail-auth.css";
-
 export const dynamic = "force-dynamic";
 
 type PageProps = {
