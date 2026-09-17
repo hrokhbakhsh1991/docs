@@ -46,10 +46,7 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(why.locator("a")).toHaveCount(0);
   await expect(why.locator("[data-marketing-home-cta]")).toHaveCount(0);
   await expect(why.locator("[data-marketing-home-why-support]")).toBeVisible();
-  await expect(page.locator("[data-marketing-home-journey]")).toHaveCount(1);
-  await expect(
-    page.locator("[data-marketing-home-journey-steps] [data-marketing-home-journey-step]")
-  ).toHaveCount(4);
+  await expect(page.locator("[data-marketing-home-journey]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-testimonials]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-equipment]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-skip-link]")).toHaveCount(1);
