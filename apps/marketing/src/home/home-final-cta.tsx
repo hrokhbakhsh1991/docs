@@ -15,7 +15,7 @@ export async function HomeFinalCta() {
         <div data-marketing-home-final-cta-body>
           <h2>{t("home.full.finalCta.title")}</h2>
           <p data-marketing-home-final-cta-lead>{t("home.full.finalCta.lead")}</p>
-          <Link href={toursHref} data-marketing-home-cta data-marketing-home-final-cta-action>
+          <Link href={toursHref} prefetch={false} data-marketing-home-cta data-marketing-home-final-cta-action>
             {t("home.full.finalCta.cta")}
           </Link>
         </div>

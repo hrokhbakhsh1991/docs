@@ -35,7 +35,9 @@ export async function MarketingFooter({
           <h3>{t("home.full.footer.toursTitle")}</h3>
           <ul>
             <li>
-              <Link href={toursHref}>{t("home.full.footer.toursBrowse")}</Link>
+              <Link href={toursHref} prefetch={false}>
+                {t("home.full.footer.toursBrowse")}
+              </Link>
             </li>
           </ul>
         </div>

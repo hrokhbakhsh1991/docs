@@ -167,11 +167,23 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-catalog-filter-range] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   form[data-marketing-catalog-filters]
   input[type="search"],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   form[data-marketing-catalog-filters]
   input[type="text"],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  form[data-marketing-catalog-filters]
+  input[type="number"],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   form[data-marketing-catalog-filters]
   select {
@@ -473,21 +485,4 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-weight: 750;
   line-height: 1.2;
   color: color-mix(in srgb, var(--color-primary-fg) 88%, var(--background));
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  span[data-marketing-catalog-card-spots] {
-  inset-block-end: var(--space-3);
-  inset-inline-end: var(--space-3);
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--background) 90%, transparent);
-  border: var(--mkt-border-width) solid var(--border);
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  article[data-marketing-catalog-card][data-marketing-catalog-card-sold-out]
-  span[data-marketing-catalog-card-spots] {
-  color: var(--mkt-on-overlay);
-  background: var(--mkt-destructive-strong);
-  border-color: transparent;
 }

@@ -5,6 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const urbanBaseUrl = process.env.SMOKE_MARKETING_BASE_URL ?? "http://urban.localhost:3002";
+const executablePath = process.env.PW_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -18,6 +19,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: urbanBaseUrl,
     viewport: { width: 1280, height: 900 },
+    launchOptions: executablePath ? { executablePath } : undefined,
   },
   expect: {
     toHaveScreenshot: {

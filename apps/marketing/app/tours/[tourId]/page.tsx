@@ -3,12 +3,13 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { MarketingLoginModalProvider } from "@/auth/marketing-login-modal";
 import { CatalogTourDetail } from "@/catalog/catalog-tour-detail";
 import { fetchCommercialPricingPreviews } from "@/catalog/fetch-commercial-pricing-previews.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { resolveCatalogTourRegistrationState } from "@/catalog/resolve-catalog-tour-registration-state";
 import { resolveMarketingTourDetailCta } from "@/catalog/resolve-marketing-tour-detail-cta.server";
-import { isAppLocale, routing } from "@/i18n/routing";
+import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import {
   resolveWebRegistrationLoginUrl,
   resolveWebRegistrationUrl,
@@ -20,6 +21,12 @@ import {
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
+import {
+  resolvePortalMemberModuleUrl,
+  resolvePortalPublicBaseUrl,
+} from "@app-tour/guest-surface-host";
+
+import "@app-tour/workspace-denali/theme/marketing/detail-auth.css";
 
 export const dynamic = "force-dynamic";
 
@@ -87,16 +94,29 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
     workspace: bootstrap.pluginId,
     tourIds: [tourId],
   });
+  const localeRaw = await getLocale();
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const t = await getTranslations("catalog");
 
   return (
-    <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
-      <CatalogTourDetail
-        tour={tour}
-        registrationUrl={registrationUrl}
-        cta={cta}
-        pluginId={bootstrap.pluginId}
-        pricingPreview={pricingPreviews[tourId] ?? null}
-      />
-    </div>
+    <MarketingLoginModalProvider
+      portalPublicBaseUrl={resolvePortalPublicBaseUrl(host)}
+      pluginId={bootstrap.pluginId}
+      tenantId={bootstrap.tenantId}
+      defaultTourId={tourId}
+      defaultTourTitle={tour.title?.trim() || t("detail.defaultTourTitle")}
+      backHref={resolveMarketingLocalePath("/", locale)}
+      memberModuleHref={resolvePortalMemberModuleUrl(host)}
+    >
+      <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
+        <CatalogTourDetail
+          tour={tour}
+          registrationUrl={registrationUrl}
+          cta={cta}
+          pluginId={bootstrap.pluginId}
+          pricingPreview={pricingPreviews[tourId] ?? null}
+        />
+      </div>
+    </MarketingLoginModalProvider>
   );
 }

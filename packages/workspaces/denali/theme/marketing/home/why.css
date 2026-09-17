@@ -141,6 +141,50 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-why]
+  aside[data-marketing-home-why-support] {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-inline-start: 0.2rem solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-surface));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
+  aside[data-marketing-home-why-support]
+  h3,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
+  aside[data-marketing-home-why-support]
+  p {
+  margin: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
+  aside[data-marketing-home-why-support]
+  h3 {
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
+  aside[data-marketing-home-why-support]
+  p {
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-size: 0.9rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
   li[data-marketing-home-why-item] {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -313,5 +357,41 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     > section[data-marketing-home-why] {
     animation: none;
+  }
+}
+
+/* Editorial finish: give the value rail a quiet visual anchor without turning
+ * informational items into misleading interactive cards. */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
+  > [data-marketing-home-why-inner]
+  > header {
+  position: relative;
+  padding-inline-start: var(--space-4);
+  border-inline-start: 0.2rem solid var(--denali-forest-600);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-why]
+  svg[data-marketing-home-why-item-icon] {
+  box-sizing: content-box;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--denali-forest-600) 22%, var(--border));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--denali-sage-100, #e6eee3) 52%, transparent);
+}
+
+@media (min-width: 48rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-why]
+    svg[data-marketing-home-why-item-icon] {
+    width: 1.15rem;
+    height: 1.15rem;
+    padding: 0.6rem;
   }
 }

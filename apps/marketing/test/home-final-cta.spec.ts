@@ -23,7 +23,7 @@ describe("home-final-cta.spec.ts", () => {
     assert.equal(landing.sections.finalCta, true);
     assert.equal(landing.sections.faq, true);
     assert.equal(landing.sections.gallery, true);
-    assert.equal(landing.sections.journey, false);
+    assert.equal(landing.sections.journey, true);
 
     const visibility = resolveHomeSectionVisibility(landing, 4, 3, 3);
     assert.equal(visibility.finalCta, true);

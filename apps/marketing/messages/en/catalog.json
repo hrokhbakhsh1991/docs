@@ -70,6 +70,18 @@
       "difficultyLabel": "Difficulty level",
       "difficultyOption": "{level, number} of {max, number}",
       "fitnessLabel": "Required fitness",
+      "durationLabel": "Duration (days)",
+      "durationMinLabel": "Minimum duration in days",
+      "durationMaxLabel": "Maximum duration in days",
+      "durationMinPlaceholder": "From",
+      "durationMaxPlaceholder": "To",
+      "priceLabel": "Price",
+      "priceMinLabel": "Minimum price",
+      "priceMaxLabel": "Maximum price",
+      "priceMinPlaceholder": "From",
+      "priceMaxPlaceholder": "To",
+      "durationActive": "Duration filter",
+      "priceActive": "Price filter",
       "availabilityOpen": "Open spots only",
       "categoryLabel": "Program type",
       "categoryGroups": {
@@ -93,6 +105,7 @@
         "multiDay": "{days, number} days",
         "difficulty": "Difficulty {level, number} of {max, number}",
         "capacity": "Max {count, number} guests",
+        "openSpots": "{count, number} spots left",
         "openSpots": "{count, number} spots left"
       }
     }
@@ -263,6 +276,7 @@
         "imageAlt": "Mountain landscape with a hiker on the trail",
         "ctaPrimary": "See programs",
         "ctaSecondary": "Why {siteName}?",
+        "ctaConsultation": "Travel consultation",
         "scrollHint": "Scroll to explore",
         "spotlight": {
           "rotateLabel": "360° rotation",
@@ -325,6 +339,7 @@
         "title": "Popular destinations",
         "lead": "Regions we run programs in often.",
         "explore": "Browse tours",
+        "exploreAll": "Browse all tours",
         "alborz": {
           "name": "Alborz",
           "description": "Popular routes north of Tehran — from day hikes to classic summit programs."
@@ -398,6 +413,10 @@
         "community": {
           "title": "Hiking community",
           "description": "Travel with like-minded people — no unnecessary pressure or hype."
+        },
+        "support": {
+          "title": "Support and coordination",
+          "description": "Use the member portal for coordination and follow-up."
         }
       },
       "journey": {
@@ -515,5 +534,8 @@
     "catalogBody": "We could not load tours. Check the API connection or configuration.",
     "retry": "Try again",
     "backToTours": "Back to tours"
+  },
+  "loading": {
+    "label": "Loading tours…"
   }
 }

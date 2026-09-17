@@ -14,5 +14,12 @@ export async function HomeSectionViewAllLink({ href, ...props }: HomeSectionView
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const resolvedHref = href ?? resolveMarketingToursListPath(locale);
 
-  return <Link href={resolvedHref} data-marketing-home-section-view-all {...props} />;
+  return (
+    <Link
+      href={resolvedHref}
+      prefetch={false}
+      data-marketing-home-section-view-all
+      {...props}
+    />
+  );
 }
