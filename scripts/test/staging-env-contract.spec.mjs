@@ -35,6 +35,7 @@ describe("staging-env-contract", () => {
     assert.match(sh, /PORTAL_INTERNAL_URL "http:\/\/127\.0\.0\.1:\$\{PTL_PORT\}"/);
     assert.match(sh, /MARKETING_PUBLIC_BASE_URL/);
     assert.match(sh, /marketing\.env.*MARKETING_PUBLIC_BASE_URL/);
+    assert.match(sh, /marketing\.env.*MARKETING_PUBLIC_BASE_URL_ALLOWLIST/);
     assert.match(sh, /domain.*!=.*localhost/);
   });
 
