@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
+
 import { WORKSPACE_GUEST_LANDING } from "../../../packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts";
 
 import { resolveHomeSectionVisibility } from "../src/home/home-section-gates";
@@ -23,7 +25,7 @@ describe("home-final-cta.spec.ts", () => {
     assert.equal(landing.sections.finalCta, true);
     assert.equal(landing.sections.faq, true);
     assert.equal(landing.sections.gallery, true);
-    assert.equal(landing.sections.journey, true);
+    assert.equal(landing.sections.journey, false);
 
     const visibility = resolveHomeSectionVisibility(landing, 4, 3, 3);
     assert.equal(visibility.finalCta, true);
@@ -59,7 +61,10 @@ describe("home-final-cta.spec.ts", () => {
     assert.doesNotMatch(source, /#why-us/);
     assert.doesNotMatch(source, /Limited spots|Book now|Join thousands/i);
     assert.equal(en.home.full.finalCta.title, "Ready for your next trip?");
-    assert.equal(en.home.full.finalCta.lead, "Take the next step — choose a program that fits you.");
+    assert.equal(
+      en.home.full.finalCta.lead,
+      "Take the next step — choose a program that fits you."
+    );
     assert.equal(en.home.full.finalCta.cta, "Browse tours");
   });
 
@@ -67,7 +72,9 @@ describe("home-final-cta.spec.ts", () => {
     const aggregator = readSrc("packages/workspaces/denali/theme/marketing/home-landing.css");
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/final-cta.css");
     const faq = readSrc("packages/workspaces/denali/theme/marketing/home/faq.css");
-    const gallery = readSrc("packages/workspaces/denali/theme/marketing/home/gallery.css");
+    const gallery = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/gallery.css")
+    );
     const hero = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
 
     assert.match(aggregator, /@import "\.\/home\/faq\.css"/);

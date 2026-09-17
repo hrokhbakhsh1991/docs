@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
+
 import { HOME_WHY_TILE_IDS } from "../src/home/home-why-tile-ids";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -65,10 +67,12 @@ describe("home-why.spec.ts", () => {
   it("owns Why CSS as a named landing partial and does not restyle locked sections", () => {
     const aggregator = readSrc("packages/workspaces/denali/theme/marketing/home-landing.css");
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/why.css");
-    const destinations = readSrc(
-      "packages/workspaces/denali/theme/marketing/home/destinations.css"
+    const destinations = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/destinations.css")
     );
-    const programs = readSrc("packages/workspaces/denali/theme/marketing/home/programs.css");
+    const programs = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/programs.css")
+    );
     const hero = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
 
     assert.match(aggregator, /@import "\.\/home\/hero\.css"/);

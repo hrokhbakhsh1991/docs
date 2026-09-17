@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
+
 import { WORKSPACE_GUEST_LANDING } from "../../../packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts";
 
 import { HOME_EQUIPMENT_ITEM_IDS } from "../src/home/home-equipment-item-ids";
@@ -20,9 +22,9 @@ function readSrc(rel: string): string {
 }
 
 describe("home-faq.spec.ts", () => {
-  it("Denali landing enables Journey while keeping Testimonials and standalone Equipment off", () => {
+  it("Denali landing keeps Journey, Testimonials, and standalone Equipment off", () => {
     const landing = WORKSPACE_GUEST_LANDING.denali;
-    assert.equal(landing.sections.journey, true);
+    assert.equal(landing.sections.journey, false);
     assert.equal(landing.sections.testimonials, false);
     assert.equal(landing.sections.equipment, false);
     assert.equal(landing.sections.faq, true);
@@ -30,7 +32,7 @@ describe("home-faq.spec.ts", () => {
     assert.equal(landing.sections.finalCta, true);
 
     const visibility = resolveHomeSectionVisibility(landing, 4, 3, 3);
-    assert.equal(visibility.journey, true);
+    assert.equal(visibility.journey, false);
     assert.equal(visibility.testimonials, false);
     assert.equal(visibility.equipment, false);
     assert.equal(visibility.faq, true);
@@ -92,7 +94,9 @@ describe("home-faq.spec.ts", () => {
   it("owns FAQ CSS as a named landing partial and does not restyle locked sections", () => {
     const aggregator = readSrc("packages/workspaces/denali/theme/marketing/home-landing.css");
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/faq.css");
-    const gallery = readSrc("packages/workspaces/denali/theme/marketing/home/gallery.css");
+    const gallery = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/gallery.css")
+    );
     const why = readSrc("packages/workspaces/denali/theme/marketing/home/why.css");
     const hero = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
 
