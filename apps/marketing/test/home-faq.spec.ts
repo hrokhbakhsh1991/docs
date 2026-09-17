@@ -20,9 +20,9 @@ function readSrc(rel: string): string {
 }
 
 describe("home-faq.spec.ts", () => {
-  it("Denali landing enables Journey while keeping Testimonials and standalone Equipment off", () => {
+  it("Denali landing gates drop Journey, Testimonials, and standalone Equipment", () => {
     const landing = WORKSPACE_GUEST_LANDING.denali;
-    assert.equal(landing.sections.journey, true);
+    assert.equal(landing.sections.journey, false);
     assert.equal(landing.sections.testimonials, false);
     assert.equal(landing.sections.equipment, false);
     assert.equal(landing.sections.faq, true);
@@ -30,7 +30,7 @@ describe("home-faq.spec.ts", () => {
     assert.equal(landing.sections.finalCta, true);
 
     const visibility = resolveHomeSectionVisibility(landing, 4, 3, 3);
-    assert.equal(visibility.journey, true);
+    assert.equal(visibility.journey, false);
     assert.equal(visibility.testimonials, false);
     assert.equal(visibility.equipment, false);
     assert.equal(visibility.faq, true);

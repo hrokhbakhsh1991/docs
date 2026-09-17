@@ -200,6 +200,15 @@ async function selectNoPersonalCarAndPayDong(cardRoot: Locator): Promise<void> {
     await hasPersonalCarRadios.nth(1).click();
   }
 
+  const nonPersonalCarAcknowledgement = cardRoot.locator(
+    '[data-public-registration-transport-acknowledgement] input[type="checkbox"]'
+  );
+  if (await nonPersonalCarAcknowledgement.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    if (!(await nonPersonalCarAcknowledgement.isChecked())) {
+      await nonPersonalCarAcknowledgement.check();
+    }
+  }
+
   const paysDongRadios = cardRoot.locator('input[type="radio"][name^="paysDong-"]');
   if ((await paysDongRadios.count()) > 0) {
     await paysDongRadios.first().click();

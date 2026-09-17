@@ -23,7 +23,7 @@ describe("home-final-cta.spec.ts", () => {
     assert.equal(landing.sections.finalCta, true);
     assert.equal(landing.sections.faq, true);
     assert.equal(landing.sections.gallery, true);
-    assert.equal(landing.sections.journey, true);
+    assert.equal(landing.sections.journey, false);
 
     const visibility = resolveHomeSectionVisibility(landing, 4, 3, 3);
     assert.equal(visibility.finalCta, true);
@@ -59,7 +59,10 @@ describe("home-final-cta.spec.ts", () => {
     assert.doesNotMatch(source, /#why-us/);
     assert.doesNotMatch(source, /Limited spots|Book now|Join thousands/i);
     assert.equal(en.home.full.finalCta.title, "Ready for your next trip?");
-    assert.equal(en.home.full.finalCta.lead, "Take the next step — choose a program that fits you.");
+    assert.equal(
+      en.home.full.finalCta.lead,
+      "Take the next step — choose a program that fits you."
+    );
     assert.equal(en.home.full.finalCta.cta, "Browse tours");
   });
 

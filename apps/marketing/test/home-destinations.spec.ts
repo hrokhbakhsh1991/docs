@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { resolveMarketingDestinationImageSrcSet } from "../src/home/resolve-marketing-destination-image-path";
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -64,7 +65,9 @@ describe("home-destinations.spec.ts", () => {
     const source = readSrc("apps/marketing/src/home/home-destinations.tsx");
     const programs = readSrc("apps/marketing/src/home/home-published-programs.tsx");
     const aggregator = readSrc("packages/workspaces/denali/theme/marketing/home-landing.css");
-    const css = readSrc("packages/workspaces/denali/theme/marketing/home/destinations.css");
+    const css = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/destinations.css")
+    );
 
     assert.doesNotMatch(source, /destination=/);
     assert.match(programs, /export const PUBLISHED_PROGRAMS_MAX = 6/);

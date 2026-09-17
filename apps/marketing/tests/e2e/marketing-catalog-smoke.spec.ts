@@ -9,6 +9,17 @@ import {
   SMOKE_PUBLISHED_TOUR_TITLE,
 } from "./fixtures/smoke-published-tour";
 
+function createSmokeNationalId(): string {
+  const body = String(Date.now()).slice(-9).padStart(9, "0");
+  let sum = 0;
+  for (let index = 0; index < body.length; index += 1) {
+    sum += Number(body[index]) * (10 - index);
+  }
+  const remainder = sum % 11;
+  const checkDigit = remainder < 2 ? remainder : 11 - remainder;
+  return `${body}${checkDigit}`;
+}
+
 const SMOKE_PUBLISHED_TOUR_ID = resolveSmokePublishedTourId();
 const REGISTRATION_EMAIL = `smk-mkt-03-${Date.now()}@denali-smoke.local`;
 
@@ -90,7 +101,7 @@ test("SMK-MKT-17 denali catalog page matches current backend catalog batch", asy
 
 test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({ page }) => {
   const devPhone = `+1555${String(Date.now()).slice(-7)}`;
-  const smokeNationalId = String(Date.now()).slice(-10);
+  const smokeNationalId = createSmokeNationalId();
   const smokeGuestName = `Marketing Smoke Guest ${String(Date.now()).slice(-6)}`;
   const catalogResponse = await page.request.get("/api/catalog?limit=50");
   expect(catalogResponse.ok()).toBe(true);
