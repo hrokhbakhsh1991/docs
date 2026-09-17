@@ -77,6 +77,11 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
   });
 
+  it("ships the card fallback asset referenced by the home surface", () => {
+    const assetPath = join(repoRoot, "apps/marketing/public", MARKETING_FALLBACK_TOUR_COVER_PATH);
+    assert.doesNotThrow(() => readFileSync(assetPath));
+  });
+
   it("resolveMarketingHeroImageUrl prefers branding override", () => {
     assert.equal(
       resolveMarketingHeroImageUrl({

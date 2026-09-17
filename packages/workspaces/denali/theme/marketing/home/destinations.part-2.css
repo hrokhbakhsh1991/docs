@@ -1,0 +1,196 @@
+@media (min-width: 48rem) and (max-width: 63.9375rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    :is(
+      article[data-marketing-home-destination-card],
+      article[data-marketing-home-destination-card][data-marketing-home-destination-id="damavand"]
+    ) {
+    display: grid;
+    grid-template-columns: minmax(14rem, 40%) minmax(0, 1fr);
+    min-height: 12.5rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    [data-marketing-home-destination-media] {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 12.5rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    div[data-marketing-home-destination-card-body] {
+    justify-content: center;
+    padding: var(--space-4) var(--space-5);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    p[data-marketing-home-destination-description] {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (min-width: 64rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    > [data-marketing-home-destinations-inner]
+    > header {
+    margin-block-end: var(--space-6);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    div[data-marketing-home-destinations-row] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    :is(
+      article[data-marketing-home-destination-card],
+      article[data-marketing-home-destination-card][data-marketing-home-destination-id="damavand"]
+    ) {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    min-height: 0;
+    aspect-ratio: 4 / 5;
+    border: none;
+    background: var(--mkt-hero-ink);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    [data-marketing-home-destination-media] {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    [data-marketing-home-destination-scrim] {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      rgb(7 18 14 / 0.78) 0%,
+      rgb(7 18 14 / 0.4) 36%,
+      rgb(7 18 14 / 0.08) 56%,
+      transparent 70%
+    );
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    div[data-marketing-home-destination-card-body] {
+    justify-content: flex-end;
+    height: 100%;
+    padding: var(--space-4);
+    color: var(--mkt-on-overlay);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    div[data-marketing-home-destination-card-body]
+    h3 {
+    font-size: clamp(1.25rem, 2.4vw, 1.625rem);
+    color: var(--mkt-on-overlay);
+    text-shadow: 0 1px 8px rgb(0 0 0 / 0.35);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    :is(
+      p[data-marketing-home-destination-tagline],
+      p[data-marketing-home-destination-meta],
+      p[data-marketing-home-destination-description]
+    ) {
+    color: rgb(255 255 255 / 0.88);
+    text-shadow: 0 1px 6px rgb(0 0 0 / 0.28);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    p[data-marketing-home-destination-description] {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    a[data-marketing-home-destination-link],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    a[data-marketing-home-destination-link]:hover {
+    color: var(--mkt-on-overlay);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    a[data-marketing-home-destination-link]:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 4px var(--denali-forest-600);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    article[data-marketing-home-destination-card]:hover
+    [data-marketing-home-destination-scrim] {
+    background: linear-gradient(
+      to top,
+      rgb(7 18 14 / 0.84) 0%,
+      rgb(7 18 14 / 0.48) 38%,
+      rgb(7 18 14 / 0.12) 58%,
+      transparent 72%
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    :is(
+      article[data-marketing-home-destination-card],
+      img[data-marketing-home-destination-image],
+      [data-marketing-home-destination-scrim],
+      a[data-marketing-home-destination-link]
+    ) {
+    transform: none;
+    transition: none;
+    animation: none;
+    opacity: 1;
+  }
+}
