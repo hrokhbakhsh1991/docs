@@ -18,6 +18,49 @@ describe("format integration delivery message", () => {
     );
   });
 
+  it("renders operational registration and receipt payload fields", async () => {
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "member.registered",
+        payload: {
+          displayName: "Ali Test",
+          mobile: "+989121234567",
+          registeredAt: "2026-09-14T10:00:00.000Z",
+        },
+      }),
+      "عضو جدید دنالی\nنام: Ali Test\nشماره تماس: +989121234567\nتاریخ ثبت‌نام: 2026-09-14T10:00:00.000Z"
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "registration.created",
+        payload: {
+          guestLabel: "Ali Test",
+          tourTitle: "Damavand",
+          departureAt: "2026-09-20",
+          partySize: 2,
+          approvalStatus: "awaiting_approval",
+        },
+      }),
+      "ثبت‌نام جدید: Ali Test\nتور: Damavand\nتاریخ حرکت: 2026-09-20\nتعداد نفرات: 2\nوضعیت تأیید: awaiting_approval"
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: {
+          registrationId: "reg-1",
+          paymentId: "pay-1",
+          amount: "2500000",
+          currency: "IRR",
+          submittedAt: "2026-09-14T10:00:00.000Z",
+        },
+      }),
+      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: 2026-09-14T10:00:00.000Z"
+    );
+  });
+
   it("renders automatic field lines in integrationDeliveryFieldIds order when no custom template", async () => {
     assert.equal(
       await formatIntegrationDeliveryMessage({
@@ -39,7 +82,7 @@ describe("format integration delivery message", () => {
         "Destination: Kerman",
         "Title: Alpine Day",
         "Start Date Time: 2026-06-28",
-      ].join("\n"),
+      ].join("\n")
     );
   });
 
@@ -66,7 +109,7 @@ describe("format integration delivery message", () => {
         "Tour published: Alpine Day",
         "✅ 📍 Meeting Point: Jamshidiyeh Park",
         "✅ 🎒 Gear Items: Breakfast, water, baton",
-      ].join("\n"),
+      ].join("\n")
     );
   });
 
@@ -86,7 +129,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "New tour Alpine Day (TourPublished)",
+      "New tour Alpine Day (TourPublished)"
     );
   });
 
@@ -183,7 +226,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "Tour published: Alpine Day\nTitle: Alpine Day",
+      "Tour published: Alpine Day\nTitle: Alpine Day"
     );
   });
 });

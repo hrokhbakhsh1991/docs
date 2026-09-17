@@ -34,4 +34,20 @@ describe("registration-intake.contract", () => {
     );
     assert.equal(label, "Personal car · 3 ppl");
   });
+
+  it("SDK-INT-03 preserves zero as driver-only capacity", () => {
+    const label = formatRegistrationIntakeTransportLabel(
+      parseRegistrationIntakeRecord({
+        transport: { kind: "personal_car", personalCarOccupants: 0 },
+      }),
+      {
+        primary: "Organized",
+        personalCar: "Personal car",
+        noCarDong: "Dong",
+        noCarAcquaintance: "Acquaintance",
+        occupants: (count) => (count === 0 ? "Driver only" : `${count} ppl`),
+      }
+    );
+    assert.equal(label, "Personal car · Driver only");
+  });
 });

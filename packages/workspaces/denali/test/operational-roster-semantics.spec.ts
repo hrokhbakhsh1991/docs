@@ -28,6 +28,17 @@ describe("DP-2 operational roster semantics", () => {
     assert.equal(occupiesCapacity("approved"), true);
   });
 
+  it("finalized unpaid remains final without requiring settlement", () => {
+    assert.equal(
+      isFinalParticipant({
+        status: "approved",
+        remainingMinor: "1000",
+        finalizationStatus: "finalized",
+      }),
+      true
+    );
+  });
+
   it("partial payment display state", () => {
     assert.equal(
       deriveFinancialDisplayState({

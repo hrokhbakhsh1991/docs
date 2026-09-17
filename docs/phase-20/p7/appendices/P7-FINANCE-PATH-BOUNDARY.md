@@ -88,7 +88,17 @@ COMMIT
 → attempt booking paymentStatus=partial (outside TX; soft-fail + structured log; prepayment remains durable)
 ```
 
-No new `finance_prepayment_operations` table. Memory driver remains `FINANCE_MEMORY_DRIVER_READ_ONLY_PREPAYMENT`.
+No new `finance_prepayment_operations` table.
+
+### Memory driver (dev / BQC parity)
+
+`InMemoryFinanceRepository.recordPrepaymentAtomic` mirrors the **finance-core isolation fake** (`packages/finance-core/test/isolation/in-memory-finance.repository.ts`):
+
+- Idempotent on `prepaymentDomainEventId` via `prepaymentsByDomainEventId`
+- Enqueues `finance.ledger.capture` + `finance.prepayment.recorded` ledger rows (no SQL TX)
+- `listPrepayments` reads from the same in-memory map
+
+**Not production-equivalent:** no RLS, no `withTenantRls` concurrency, no durable `finance.prepayment.booking_sync.degraded` rows. Staging and finance gate proofs remain **`STORAGE_DRIVER=prisma`** only (`finance-prepayments.spec.ts`). Memory enables operator workspace prepayment UI on cloud dev (`STORAGE_DRIVER=memory`) without weakening Prisma atomicity claims.
 
 ### Proof
 

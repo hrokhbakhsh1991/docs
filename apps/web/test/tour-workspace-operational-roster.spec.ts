@@ -12,12 +12,22 @@ import {
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
   buildTourOperationalRosterHref,
   formatOperationalRosterAmountDue,
+  normalizeDriverCompensationPerSeat,
   resolveOperationalRosterActionablePaymentDueAt,
+  resolveOperationalRosterNoteKind,
+  resolveOperationalRosterStage,
 } from "../src/features/tours/tour-workspace-transport-logic";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("DP-2 tour workspace operational roster contract", () => {
+  it("normalizes valid localized seat amounts and rejects unsafe values", () => {
+    assert.equal(normalizeDriverCompensationPerSeat("۵۰٬۰۰۰"), "50000");
+    assert.equal(normalizeDriverCompensationPerSeat("50,000"), "50000");
+    assert.equal(normalizeDriverCompensationPerSeat("-50000"), null);
+    assert.equal(normalizeDriverCompensationPerSeat("50.5"), null);
+    assert.equal(normalizeDriverCompensationPerSeat("0"), null);
+  });
   it("transport tab loads unified operational roster endpoint", () => {
     const client = readFileSync(
       join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
@@ -27,6 +37,21 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.doesNotMatch(client, /fetch\(`\/api\/bookings\?/);
   });
 
+  it("registrations tab is scoped to pending requests while final roster stays in transport", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /lockedStatus="pending"/);
+  });
+
+  it("localizes temporary transport roster outages", () => {
+    for (const locale of ["fa", "en"]) {
+      const messages = readFileSync(join(webRoot, `messages/${locale}/tours.json`), "utf8");
+      assert.match(messages, /TOUR_TRANSPORT_BOOKINGS_HTTP_503/);
+    }
+  });
+
   it("BFF proxies tour operational roster route", () => {
     const route = readFileSync(
       join(webRoot, "app/api/tours/[id]/operational-roster/route.ts"),
@@ -34,6 +59,25 @@ describe("DP-2 tour workspace operational roster contract", () => {
     );
     assert.match(route, /operational-roster/);
     assert.match(route, /resolveTourOpsApiBaseUrl/);
+  });
+
+  it("payment follow-up list is roster-backed and does not duplicate registration approvals", () => {
+    const hook = readFileSync(
+      join(webRoot, "src/features/tours/use-tour-workspace-payment-follow-up-list.ts"),
+      "utf8"
+    );
+    const load = readFileSync(
+      join(webRoot, "src/features/tours/tour-workspace-payment-follow-up-load.ts"),
+      "utf8"
+    );
+    assert.match(hook, /buildTourOperationalRosterHref/);
+    assert.match(hook, /resolvePaymentFollowUpLoadOutcome/);
+    assert.match(hook, /Promise\.allSettled/);
+    assert.match(hook, /refreshNonce/);
+    assert.match(load, /rosterDegraded/);
+    assert.match(hook, /toPaymentFollowUpHttpError\("TOUR_ROSTER_HTTP"/);
+    assert.doesNotMatch(hook, /buildBookingsApiQuery/);
+    assert.doesNotMatch(hook, /status:\s*"pending"/);
   });
 
   it("renders final participant, amount due, deadline, driver badges", () => {
@@ -116,6 +160,60 @@ describe("DP-2 tour workspace operational roster contract", () => {
         paymentDueAt: "2026-08-30T00:00:00.000Z",
       }),
       null
+    );
+  });
+
+  it("maps approved unpaid participants to the payment action note", () => {
+    assert.equal(
+      resolveOperationalRosterNoteKind({
+        isFinalParticipant: false,
+        financialDisplayState: "UNPAID",
+        paymentDueAt: null,
+        refundDisplayState: "none",
+        isDriverOffer: false,
+      }),
+      "payment_required"
+    );
+    assert.equal(
+      resolveOperationalRosterNoteKind({
+        isFinalParticipant: true,
+        financialDisplayState: "PAID",
+        paymentDueAt: null,
+        refundDisplayState: "none",
+        isDriverOffer: false,
+      }),
+      "ready"
+    );
+  });
+
+  it("reduces the four operational cases to one primary stage", () => {
+    assert.equal(
+      resolveOperationalRosterStage({
+        isFinalParticipant: false,
+        financialDisplayState: "UNPAID",
+      }),
+      "approved_payment_required"
+    );
+    assert.equal(
+      resolveOperationalRosterStage({
+        isFinalParticipant: true,
+        financialDisplayState: "UNPAID",
+      }),
+      "final_payment_required"
+    );
+    assert.equal(
+      resolveOperationalRosterStage({
+        isFinalParticipant: false,
+        financialDisplayState: "PAID",
+      }),
+      "approved_ready_to_finalize"
+    );
+    assert.equal(
+      resolveOperationalRosterStage({
+        isFinalParticipant: true,
+        financialDisplayState: "WAIVED",
+      }),
+      "final_ready"
     );
   });
 

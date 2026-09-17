@@ -75,6 +75,38 @@ describe("WorkspaceManifestCiSchema", () => {
     });
     assert.equal(parsed.success, false);
   });
+
+  it("accepts workspaceWallet block with platform-neutral capabilities", () => {
+    const parsed = WorkspaceManifestCiSchema.safeParse({
+      ...minimalManifest,
+      workspaceWallet: {
+        supported: true,
+        defaultModuleEnabledWhenUnset: false,
+        capabilities: {
+          memberAccounts: true,
+          ops: false,
+          gatewayTopUp: false,
+          withdrawals: false,
+        },
+        ledgerPolicy: { module: "./wallet/ledger", export: "DemoLedgerPolicy" },
+      },
+    });
+    assert.equal(parsed.success, true);
+  });
+
+  it("rejects workspaceWallet with non-boolean capability flags", () => {
+    const parsed = WorkspaceManifestCiSchema.safeParse({
+      ...minimalManifest,
+      workspaceWallet: {
+        supported: true,
+        capabilities: {
+          memberAccounts: "yes",
+          ops: false,
+        },
+      },
+    });
+    assert.equal(parsed.success, false);
+  });
 });
 
 describe("validateWorkspaceManifestRecord", () => {

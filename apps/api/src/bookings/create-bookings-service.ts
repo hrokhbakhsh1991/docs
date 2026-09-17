@@ -7,6 +7,7 @@
  */
 
 import { getBookingsRepository } from "./create-bookings-repository";
+import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
 import { HostBookingAssistedRegistrationMembersAdapter } from "./infrastructure/host-booking-assisted-registration-members.adapter";
@@ -42,6 +43,7 @@ import type {
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
@@ -243,11 +245,13 @@ export async function findGuestBookingDuplicateMatch(
 
 export async function createPublicGuestBooking(
   auth: BookingActorContext,
-  body: CreateBookingRequest
+  body: CreateBookingRequest,
+  outboxEvent?: BookingPublicOutboxEvent
 ): Promise<CreateBookingResponse> {
   return (await resolveBookingsServiceForTenant(auth.tenantId)).createPublicGuestBooking(
     auth,
-    body
+    body,
+    outboxEvent
   );
 }
 
@@ -275,6 +279,13 @@ export async function approveBooking(
     return { ...result, ...holdSideEffects };
   }
   return result;
+}
+
+export async function finalizeBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).finalizeBooking(auth, bookingId);
 }
 
 export async function autoApprovePublicBooking(input: {
@@ -349,9 +360,17 @@ export async function bulkApproveBookings(
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).bulkApproveBookings(auth, body);
   if (result.approvedIds.length > 0) {
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
     const { applyFreeCollectionAfterBookingApprove } =
       await import("../workspace-finance/apply-free-collection-after-booking-approve");
     for (const bookingId of result.approvedIds) {
+      const booking = await getBookingsRepository().getById(bookingId, auth.tenantId);
+      await applyPaymentHoldAfterBookingApprove({
+        tenantId: auth.tenantId,
+        bookingId,
+        approvedAt: booking?.approvedAt ?? new Date().toISOString(),
+      });
       await applyFreeCollectionAfterBookingApprove({
         tenantId: auth.tenantId,
         bookingId,

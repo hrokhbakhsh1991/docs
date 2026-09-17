@@ -630,7 +630,7 @@ Operators set `defaultLocale` via tenant theme patch (validated in `@app-tour/wo
 | `MARKETING_REVALIDATE_URL` | api | marketing public origin |
 | `MARKETING_IMAGE_REMOTE_HOSTS` | marketing | CDN/MinIO host allowlist |
 | `MARKETING_PUBLIC_BASE_URL` | web | `https://{club}.{root}` for catalog redirects |
-| `PORTAL_PUBLIC_BASE_URL` | marketing | `{club}.portal.{root}` registration bridge |
+| `PORTAL_PUBLIC_BASE_URL` | marketing | `portal.{club}.{root}` registration bridge |
 | `PORTAL_DEV_PORT` | marketing | dev portal port (default `3003`) |
 
 Ingress: public marketing on `{club}.{root}` (platform default); legacy `shop.{club}` alias supported in dev.

@@ -63,7 +63,7 @@ export async function createDenaliRegistration(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
 
   const tour = await requireWorkspacePublishedTour({
@@ -107,10 +107,9 @@ export async function createDenaliRegistration(params: {
     }
   );
 
-  const normalizedTransport = normalizeDenaliRegistrationTransportIntake(
-    params.body.transport,
-    { transport: card.transport }
-  );
+  const normalizedTransport = normalizeDenaliRegistrationTransportIntake(params.body.transport, {
+    transport: card.transport,
+  });
 
   const email = params.body.contact.email?.trim() ?? "";
   const guestLabel = params.body.contact.fullName.trim();
@@ -221,12 +220,10 @@ export async function createDenaliRegistration(params: {
     // Booking-owned capacity: Denali supplies tour max when known; Booking fails closed if missing.
     ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
   };
+  const approvalRequired = resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto";
 
   // Own-other identity collision → reclassify same row to self (tour-global guest uniques).
-  if (
-    registrantTarget === "self" &&
-    params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID
-  ) {
+  if (registrantTarget === "self" && params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID) {
     let identityHit: { readonly id: string } | null = null;
     if (intakeNationalId.length > 0) {
       identityHit = await params.bookingPort.findDuplicateByTourGuestNationalId(
@@ -235,11 +232,7 @@ export async function createDenaliRegistration(params: {
         intakeNationalId
       );
     }
-    if (
-      identityHit === null &&
-      guestPhone !== undefined &&
-      guestPhone.length > 0
-    ) {
+    if (identityHit === null && guestPhone !== undefined && guestPhone.length > 0) {
       identityHit = await params.bookingPort.findDuplicateByTourGuestPhone(
         params.tenantId,
         params.body.tourId,
@@ -294,6 +287,22 @@ export async function createDenaliRegistration(params: {
     partySize: params.body.partySize,
     departureAt,
     registrationIntake,
+    outboxEvent: {
+      eventType: "registration.created",
+      payload: {
+        topicKey: "registration",
+        guestUserId: params.guestUserId,
+        tourId: params.body.tourId,
+        tourTitle: card.title,
+        guestLabel,
+        ...(email.length > 0 ? { guestEmail: email } : {}),
+        ...(guestPhone !== undefined ? { guestPhone } : {}),
+        partySize: params.body.partySize,
+        departureAt,
+        approvalRequired,
+        approvalStatus: approvalRequired ? "awaiting_approval" : "approved",
+      },
+    },
   });
 
   // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).

@@ -23,6 +23,7 @@ export type {
   BulkApproveBookingsResponse,
   CancelBookingResponse,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
@@ -42,12 +43,15 @@ export type BookingRecord = {
   readonly guestPhone: string | null;
   readonly partySize: number;
   readonly status: BookingStatus;
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly paymentStatus: BookingPaymentStatus;
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly submittedByUserId: string;
   readonly approvedAt: string | null;
+  readonly finalizedAt?: string | null;
+  readonly finalizedByUserId?: string | null;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
   /**
    * List projection scalar — set when intake is stripped but target must remain
@@ -63,7 +67,7 @@ export type BookingRecord = {
     | "no_car_dong"
     | "no_car_acquaintance"
     | null;
-  readonly personalCarOccupants?: 1 | 2 | 3 | null;
+  readonly personalCarOccupants?: 0 | 1 | 2 | 3 | null;
   /** Ops reject reason when status=rejected; omitted when unset (BC). */
   readonly rejectReason?: string;
   /** DP1 — payment deadline instant projection (Finance hold SoT). */
@@ -81,6 +85,12 @@ export type BookingOutboxRecord = {
   readonly payload: Record<string, unknown>;
   readonly domainEventId: string;
   readonly createdAt: string;
+};
+
+export type BookingOutboxEventInput = {
+  readonly eventType: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly correlationId?: string;
 };
 
 export type BookingListPageInput = {

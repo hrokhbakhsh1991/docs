@@ -634,8 +634,29 @@ body[data-workspace-plugin="denali"] [data-operator-bookings-inbox] [data-operat
   }
 }
 
-body[data-workspace-plugin="denali"] [data-operator-booking-list] [data-booking-row]:nth-child(odd) {
+body[data-workspace-plugin="denali"] [data-operator-booking-list] > [data-booking-row]:nth-child(even),
+body[data-workspace-plugin="denali"] [data-operator-inbox-group] > [data-booking-row]:nth-child(odd) {
   background: color-mix(in srgb, var(--color-bg-muted) 40%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-booking-list-header] {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+body[data-workspace-plugin="denali"] [data-operator-booking-row-guest] [data-operator-booking-row-id] {
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 1023px) {
+  body[data-workspace-plugin="denali"] [data-operator-booking-list] [data-booking-row] {
+    padding-inline-end: 0.25rem;
+  }
+
+  body[data-workspace-plugin="denali"] [data-operator-booking-row-tour] {
+    color: var(--color-text-primary);
+  }
 }
 
 body[data-workspace-plugin="denali"] [data-operator-booking-timeline-wrap] {

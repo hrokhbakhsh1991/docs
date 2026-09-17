@@ -13,6 +13,7 @@ import {
   resetBookingsServiceCompositionForTests,
 } from "./create-bookings-service.ts";
 import { BookingNotFoundError } from "./bookings.errors.ts";
+import { createHostBookingPublicAdapter } from "./infrastructure/host-booking-public.adapter.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";
 
 const TENANT_DENALI = "00000000-0000-4000-8000-000000000014";
@@ -73,11 +74,42 @@ describe("booking public auto-approve", { concurrency: false }, () => {
     assert.equal(approved.status, "approved");
   });
 
-  it("P3-BA-02 non-submitter cannot auto-approve", async () => {
+  it("P3-BA-ADAPTER-01 public adapter delegates auto-approval to the service", async () => {
     const created = await createPublicGuestBooking(
       publicAuth(GUEST_A),
-      body("Other Guest Label")
+      body("Adapter Auto Approve Guest")
     );
+    const approved = await createHostBookingPublicAdapter().autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: created.id,
+      actorUserId: GUEST_A,
+    });
+
+    assert.equal(approved.id, created.id);
+    assert.equal(approved.status, "approved");
+  });
+
+  it("P3-BA-ADAPTER-02 public adapter delegates approved-seat aggregation", async () => {
+    const created = await createPublicGuestBooking(
+      publicAuth(GUEST_A),
+      body("Adapter Seat Aggregate Guest", 3)
+    );
+    await autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: created.id,
+      actorUserId: GUEST_A,
+    });
+
+    const approvedPartySize = await createHostBookingPublicAdapter().sumApprovedPartySizeByTourIds(
+      TENANT_DENALI,
+      [TOUR_DENALI]
+    );
+
+    assert.deepEqual(approvedPartySize, { [TOUR_DENALI]: 3 });
+  });
+
+  it("P3-BA-02 non-submitter cannot auto-approve", async () => {
+    const created = await createPublicGuestBooking(publicAuth(GUEST_A), body("Other Guest Label"));
     await assert.rejects(
       () =>
         autoApprovePublicBooking({
@@ -91,14 +123,8 @@ describe("booking public auto-approve", { concurrency: false }, () => {
 
   it("P3-BA-03 capacity reject leaves pending", async () => {
     // Soft create: pending does not consume seats — both fit while unapproved.
-    const first = await createPublicGuestBooking(
-      publicAuth(GUEST_A),
-      body("Seat Hogger A", 15)
-    );
-    const second = await createPublicGuestBooking(
-      publicAuth(GUEST_B),
-      body("Seat Hogger B", 10)
-    );
+    const first = await createPublicGuestBooking(publicAuth(GUEST_A), body("Seat Hogger A", 15));
+    const second = await createPublicGuestBooking(publicAuth(GUEST_B), body("Seat Hogger B", 10));
     assert.equal(first.status, "pending");
     assert.equal(second.status, "pending");
 

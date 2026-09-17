@@ -90,6 +90,22 @@ export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
           labelKey: "wallet",
         }),
       }),
+      Object.freeze({
+        id: "tickets",
+        routePath: "/me/tickets",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "tickets",
+        }),
+      }),
+      Object.freeze({
+        id: "engagement",
+        routePath: "/me/engagement",
+        nav: Object.freeze({
+          tier: "secondary",
+          labelKey: "engagement",
+        }),
+      }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "guest-club": Object.freeze({
@@ -132,6 +148,36 @@ export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
         nav: Object.freeze({
           tier: "user_menu",
           labelKey: "profile",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
+  "wallet-ws1": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+      Object.freeze({
+        id: "wallet",
+        routePath: "/me/wallet",
+        nav: Object.freeze({
+          tier: "hidden",
+          labelKey: "wallet",
         }),
       }),
     ] as const satisfies readonly MemberModuleManifest[]),

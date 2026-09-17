@@ -15,6 +15,16 @@ function readPortal(relativePath: string): string {
   return readFileSync(join(portalRoot, relativePath), "utf8");
 }
 
+function sliceMemberPagesSection(css: string, startMarker: string, endMarker?: string): string {
+  const start = css.indexOf(startMarker);
+  assert.ok(start >= 0, `missing CSS section: ${startMarker}`);
+  if (endMarker === undefined) {
+    return css.slice(start);
+  }
+  const end = css.indexOf(endMarker, start + startMarker.length);
+  return end === -1 ? css.slice(start) : css.slice(start, end);
+}
+
 describe("portal-visual-wave4.spec.ts", () => {
   it("VIS-SHELL-04 denali-portal imports member skin pack", () => {
     const skin = readFileSync(join(denaliThemeRoot, "denali-portal.css"), "utf8");
@@ -183,7 +193,7 @@ describe("portal-visual-wave4.spec.ts", () => {
 
   it("VIS-MORE-05 Pocket more hub has canvas title and compact rows", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
-    const more = css.slice(css.indexOf("/* ── More hub (Pocket 4)"));
+    const more = sliceMemberPagesSection(css, "/* ── More hub (Pocket 4)", "/* MEG-001");
     assert.match(more, /background:\s*none/);
     assert.match(more, /content:\s*none/);
     assert.match(more, /portal-pocket-title-size/);
@@ -205,7 +215,7 @@ describe("portal-visual-wave4.spec.ts", () => {
 
   it("VIS-STUB-05 Pocket stub uses solid CTA and no orbs", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
-    const more = css.slice(css.indexOf("/* ── More hub (Pocket 4)"));
+    const more = sliceMemberPagesSection(css, "/* ── More hub (Pocket 4)", "/* MEG-001");
     assert.match(more, /\[data-portal-member-stub-back\]/);
     assert.match(more, /portal-pocket-cta-height/);
     assert.match(more, /background:\s*var\(--color-primary\)/);

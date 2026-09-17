@@ -115,19 +115,19 @@ Tables (RLS per tenant, same pattern as `workspace_telegram_bots`):
 
 Operator routes (tenant RLS + `requireOperatorSession`):
 
-| Method | Path                                         | Action                                                               |
-| ------ | -------------------------------------------- | -------------------------------------------------------------------- |
-| GET    | `/workspaces/:workspaceId/integrations/meta` | Read workspace integration provider form metadata                    |
-| GET    | `/workspaces/:workspaceId/exposure/catalog`  | Read native exposure catalog for field-selection UI                  |
-| POST   | `/workspaces/:workspaceId/integrations`      | Create connection + store secret                                     |
-| GET    | `/workspaces/:workspaceId/integrations`      | List connections + legacy visibility + delivery summary              |
-| GET    | `/integrations/:id`                          | Connection detail (supports `legacy-telegram:{botId}` synthetic ids) |
-| PATCH  | `/integrations/:id`                          | Update config / capabilities                                         |
-| DELETE | `/integrations/:id`                          | Remove connection + secret                                           |
-| POST   | `/integrations/:id/enable`                   | Enable connection (`integration_connections` only)                   |
-| POST   | `/integrations/:id/disable`                  | Disable connection (`integration_connections` only)                  |
-| POST   | `/integrations/:id/test-connection`          | Provider health check (legacy or new row)                            |
-| PATCH  | `/integrations/:id/event-policies/:eventType` | Update event enabled state (routing only)                            |
+| Method | Path                                            | Action                                                               |
+| ------ | ----------------------------------------------- | -------------------------------------------------------------------- |
+| GET    | `/workspaces/:workspaceId/integrations/meta`    | Read workspace integration provider form metadata                    |
+| GET    | `/workspaces/:workspaceId/exposure/catalog`     | Read native exposure catalog for field-selection UI                  |
+| POST   | `/workspaces/:workspaceId/integrations`         | Create connection + store secret                                     |
+| GET    | `/workspaces/:workspaceId/integrations`         | List connections + legacy visibility + delivery summary              |
+| GET    | `/integrations/:id`                             | Connection detail (supports `legacy-telegram:{botId}` synthetic ids) |
+| PATCH  | `/integrations/:id`                             | Update config / capabilities                                         |
+| DELETE | `/integrations/:id`                             | Remove connection + secret                                           |
+| POST   | `/integrations/:id/enable`                      | Enable connection (`integration_connections` only)                   |
+| POST   | `/integrations/:id/disable`                     | Disable connection (`integration_connections` only)                  |
+| POST   | `/integrations/:id/test-connection`             | Provider health check (legacy or new row)                            |
+| PATCH  | `/integrations/:id/event-policies/:eventType`   | Update event enabled state (routing only)                            |
 | PATCH  | `/integrations/:id/exposure-intents/:eventType` | Update native exposure intent for a connection/event                 |
 
 List/detail DTO fields for operator verification (Step 7):
@@ -174,7 +174,9 @@ Web route proxies control-plane HTTP via Next.js API routes under `/api/workspac
   provider declared in `integrationSurface`, `/settings/integrations` fetches
   `/workspaces/:workspaceId/integrations/meta` and renders `configFields` +
   `credentialFields`. Denali currently renders Telegram `channelId` + `botToken`. Submit calls
-  `POST /workspaces/:workspaceId/integrations`; optional “enable after save” calls
+  `POST /workspaces/:workspaceId/integrations`; for Telegram, the admin surface then calls
+  `POST /integrations/:id/telegram/provision` with the entered group name and chat ID so the
+  standard forum topics are created and persisted before optional “enable after save” calls
   `POST /integrations/:id/enable`. Secrets are stored via `secret_ref` only — never echoed in
   list/detail responses.
 - **Edit connection (admin self-service):** when `actionsAllowed.patch` is true for an
@@ -330,23 +332,70 @@ Register in `integration-provider-registry.ts` at API boot.
 
 ## Feature flags
 
-| Env                                   | Default | Meaning                                                                           |
-| ------------------------------------- | ------- | --------------------------------------------------------------------------------- |
-| `INTEGRATION_DELIVERY_ENABLED`        | `false` | Dispatcher enqueues jobs from outbox relay (`true` by dev bootstrap when `DATABASE_URL` set) |
-| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `false` | Background worker processes jobs (`true` by dev bootstrap when `DATABASE_URL` set)             |
+| Env                                   | Default | Meaning                                                                                              |
+| ------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| `INTEGRATION_DELIVERY_ENABLED`        | `false` | Dispatcher enqueues jobs from outbox relay (`true` by dev bootstrap when `DATABASE_URL` set)         |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `false` | Background worker processes jobs (`true` by dev bootstrap when `DATABASE_URL` set)                   |
 | `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL`   | `false` | When `true`, integration mutations blocked if denali Telegram lacks `TourPublished` policy (staging) |
 
 Denali Telegram on publish requires all three delivery flags plus [TourPublished rollout](./tour-published-telegram-rollout-plan.mdoc).
-| `LEGACY_TELEGRAM_FALLBACK_ENABLED`    | `true`  | Dual-read `workspace_telegram_bots` when no enabled `integration_connections` row |
+| `LEGACY_TELEGRAM_FALLBACK_ENABLED` | `true` | Dual-read `workspace_telegram_bots` when no enabled `integration_connections` row |
 
 Set `LEGACY_TELEGRAM_FALLBACK_ENABLED=false` after backfill verification to force `integration_connections` only. Set `true` again to roll back delivery to legacy rows if `integration_connections` rows are removed.
+
+## Telegram forum setup
+
+Telegram is configured per workspace through an integration connection. The
+operator enters the group name and bot token in settings; the token is stored
+in `integration_secrets`, never in the connection response. Provisioning
+verifies that the resolved chat is a forum supergroup, that the bot is an
+administrator with topic-management permission, and creates the standard
+registration, receipts, and tickets topics idempotently. A completed first-time
+portal registration emits `member.registered` and is routed to the registration
+topic with the member name and registration date. Tour registration messages
+use `registration.created` and include the selected tour, departure date, party
+size, and whether operator approval is required. Receipt messages include the payment amount and
+currency, submission date, and the proof media when a signed URL is available;
+the message carries approve/reject actions. The review result is also durable:
+`receipt.approved` and `receipt.rejected` are emitted only after the receipt
+state transition succeeds, and are routed to the receipts topic with the
+receipt, registration, review-time, and review-note facts. Registration approval
+uses `registration.approved` and is routed to the registration topic.
+When a new default event is added, an older connection with no explicit policy
+for that event follows the workspace default; an explicit disabled policy remains
+an opt-out.
+
+For staging and production, set `TELEGRAM_WEBHOOK_BASE_URL` to the public HTTPS
+origin of the API. The admin save flow provisions the forum directly after the
+connection row and secret are committed: it calls Telegram `getChat`,
+`getMe`, and idempotent `createForumTopic` for the standard topics, then stores
+the returned thread IDs in the connection config. The one-time `/connect <code>`
+flow remains available as a recovery path for deployments where direct
+provisioning cannot resolve the target chat. The API receives callbacks at
+`/webhooks/telegram/:tenantId/:integrationId`.
+
+The shared Cloudflare Worker also exposes an authenticated outbound Telegram
+relay for deployments whose server egress cannot reach `api.telegram.org`.
+Set `TELEGRAM_API_RELAY_URL` and the server-only
+`TELEGRAM_API_RELAY_SHARED_SECRET` on the API. The API keeps each workspace bot
+token in `integration_secrets` and sends it over HTTPS per request; the Worker
+does not persist or log tokens and only forwards the allowlisted Telegram Bot
+API methods. Adding a workspace requires no Worker change or new Worker.
+When the relay URL is unset, local development keeps using the direct Telegram
+API path.
+
+Keep the API and outbox relay as separate deployments when scaling; the relay
+needs `WORKER_ROLE=outbox-relay`, `OUTBOX_RELAY_ENABLED=true`, and, for a
+tenant-scoped relay, `INTEGRATION_DELIVERY_TENANT_SCOPE=<tenant-id>`. Cloudflare
+may provide the HTTPS/network edge, but it does not hold workspace tokens or
+decide event routing.
 
 ## Security
 
 - Bot tokens stored via `secret_ref` → `integration_secrets` (never in HTTP responses).
 - Legacy `integration_connections.credentials` column deprecated; dual-read during migration.
-- All outbound URLs pass `assertSafeOutboundUrl` with provider host allowlist (`api.telegram.org`).
-- Webhook ingress (future) uses `integration_webhook_events` with HMAC + replay cache (same pattern as payments webhooks).
+- Direct outbound URLs pass `assertSafeOutboundUrl` with provider host allowlist (`api.telegram.org`); relay requests pass a fixed HTTPS relay URL and an API-to-Worker shared secret.
+- Telegram webhook ingress uses a per-connection secret header and one-time connect codes; callback actions additionally verify the Telegram user is still a member of the configured group. Payment webhooks retain their separate HMAC + replay-cache path.
 
 ## Verification
 

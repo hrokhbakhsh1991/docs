@@ -238,9 +238,13 @@ type CatalogRegistrationUpstreamRequest = {
 | Hook | Input | Output |
 |------|-------|--------|
 | `initialState` | `PublicCatalogTransportSnapshot \| undefined` | `PublicCatalogTransportIntakeState` |
+
+`PublicCatalogTransportIntakeState.nonPersonalCarAcknowledged` is required and defaults to
+`false`. Denali registration requires it when the registrant selects anything other than a
+personal car; the server remains authoritative for the final transport kind.
 | `showPersonalCarOptIn` | transport snapshot | `boolean` |
 | `showTransportFollowUp` | snapshot + state | `boolean` |
-| `buildPayload` | snapshot + state | `{ kind: PublicCatalogRegistrationTransportKind; personalCarOccupants?: 1\|2\|3 } \| undefined` |
+| `buildPayload` | snapshot + state | `{ kind: PublicCatalogRegistrationTransportKind; personalCarOccupants?: 0\|1\|2\|3 } \| undefined` (0 = driver only) |
 | `isComplete` | snapshot + state | `boolean` |
 | `computePricePerPerson` | `{ basePrice, transport, transportKind }` | `number \| null` |
 

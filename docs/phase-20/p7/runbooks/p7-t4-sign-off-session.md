@@ -43,10 +43,10 @@ P7_T4_SKIP_GATE=1 pnpm run p7:t4-architect-dry-run
 
 | Surface | URL |
 | ------- | --- |
-| Admin | http://89.45.89.206:23000/auth/login |
-| Marketing | http://89.45.89.206:23002/tours |
-| Portal | http://89.45.89.206:23003 |
-| API health | http://89.45.89.206:23001/health |
+| Admin | http://89.42.210.252:23000/auth/login |
+| Marketing | http://89.42.210.252:23002/tours |
+| Portal | http://89.42.210.252:23003 |
+| API health | http://89.42.210.252:23001/health |
 
 **Operator OTP (staging):** `09174070937` / `1234`
 

@@ -28,4 +28,18 @@ describe("home-hero-css", () => {
     // Walk dropped Peak Margin scrim; keep the pattern banned so it cannot return.
     assert.doesNotMatch(css, /to inline-end,\s*rgb\(/);
   });
+
+  it("ships landing motion through the workspace bundle", () => {
+    const landing = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home-landing.css"),
+      "utf8"
+    );
+    assert.match(landing, /@import\s+"\.\/home\/animations\.css"/);
+    const motion = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/animations.css"),
+      "utf8"
+    );
+    assert.match(motion, /@keyframes denali-home-fade-up/);
+    assert.match(motion, /prefers-reduced-motion: reduce/);
+  });
 });

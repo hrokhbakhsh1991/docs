@@ -35,9 +35,16 @@ describe("staging artifact resumable transfer", () => {
   });
 
   it("bounds chunk retry attempts and probes ssh before retry", () => {
-    assert.match(deploy, /for attempt in 1 2 3/);
-    assert.match(deploy, /chunk \$\{name\} failed after 3 attempts/);
+    assert.match(deploy, /SSH_RETRY_MAX="\$\{STAGING_SSH_RETRY_MAX:-5\}"/);
+    assert.match(deploy, /for attempt in \$\(seq 1 "\$SSH_RETRY_MAX"\)/);
+    assert.match(deploy, /failed after \$\{SSH_RETRY_MAX\} attempts/);
     assert.match(deploy, /SSH_RETRY_OK/);
+  });
+
+  it("opens one SSH multiplex master before transfer work", () => {
+    assert.match(deploy, /staging_ssh_open_master/);
+    assert.match(deploy, /staging_ssh_close_master/);
+    assert.match(deploy, /trap cleanup_staging_ssh EXIT/);
   });
 
   it("assembles only after chunk verification and uses atomic final rename", () => {
@@ -51,8 +58,11 @@ describe("staging artifact resumable transfer", () => {
     assert.match(deploy, /TRANSFER_ONLY_OK/);
   });
 
-  it("keeps bounded ssh keepalive options for long transfers", () => {
+  it("keeps bounded ssh keepalive and multiplex options for long transfers", () => {
     assert.match(ssh, /ServerAliveInterval=15/);
-    assert.match(ssh, /ServerAliveCountMax=4/);
+    assert.match(ssh, /ServerAliveCountMax=6/);
+    assert.match(ssh, /ControlMaster=auto/);
+    assert.match(ssh, /ControlPath=\$\{STAGING_SSH_CONTROL_PATH\}/);
+    assert.match(ssh, /staging_ssh_open_master/);
   });
 });

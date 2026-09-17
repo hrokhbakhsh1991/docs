@@ -49,8 +49,17 @@ export function isOperationalParticipant(status: OperationalRosterLifecycleStatu
 export function isFinalParticipant(input: {
   readonly status: OperationalRosterLifecycleStatus;
   readonly remainingMinor: string | null | undefined;
+  readonly finalizationStatus?: "not_final" | "finalized" | string | null;
 }): boolean {
-  return isOperationalParticipant(input.status) && isFinanciallySettled(input.remainingMinor);
+  if (!isOperationalParticipant(input.status)) {
+    return false;
+  }
+  if (input.finalizationStatus === "finalized") {
+    return true;
+  }
+  // Legacy rows predate the independent finalization field. Preserve their old
+  // settled=>final projection until the database migration has backfilled them.
+  return input.finalizationStatus === undefined && isFinanciallySettled(input.remainingMinor);
 }
 
 export function occupiesCapacity(status: OperationalRosterLifecycleStatus): boolean {

@@ -971,6 +971,9 @@ export class OwnershipTransferTargetInvalidError extends Error {
 
 /** Phase 6.6 dev host tenant — sync resolve-host-tenant.ts fixture labels. */
 const DENALI_DEV_HOST_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+/** Engagement / ticketing BQC viewer — mirrors seed-operator-engagement-e2e-fixtures. */
+const DENALI_ENGAGEMENT_VIEWER_USER_ID = "00000000-0000-4000-8000-000000000196";
+const DENALI_ENGAGEMENT_VIEWER_MOBILE = "+15550001996";
 /** Phase 8.4 workspace smoke — sync URBAN_SMOKE_E2E fixture. */
 const URBAN_SMOKE_E2E_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
@@ -983,9 +986,11 @@ const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
 const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
 const OPERATOR_SMOKE_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
+const OPERATOR_SMOKE_VIEWER_USER_ID = "00000000-0000-4000-8000-000000000104";
 const DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE = "09174070937";
 const OPERATOR_SMOKE_ADMIN_MOBILE = "+15550001002";
 const OPERATOR_SMOKE_MEMBER_MOBILE = "+15550001003";
+const OPERATOR_SMOKE_VIEWER_MOBILE = "+15550001004";
 const OPERATOR_SMOKE_INVITEE_USER_ID = "00000000-0000-4000-8000-000000000195";
 const OPERATOR_SMOKE_INVITEE_MOBILE = "+15550008803";
 
@@ -1008,6 +1013,7 @@ function resolveOperatorSmokeOwnerSeed(): {
 function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId: string): void {
   repo.seedUser({ id: OPERATOR_SMOKE_ADMIN_USER_ID, mobile: OPERATOR_SMOKE_ADMIN_MOBILE });
   repo.seedUser({ id: OPERATOR_SMOKE_MEMBER_USER_ID, mobile: OPERATOR_SMOKE_MEMBER_MOBILE });
+  repo.seedUser({ id: OPERATOR_SMOKE_VIEWER_USER_ID, mobile: OPERATOR_SMOKE_VIEWER_MOBILE });
   repo.seedMembership({
     userId: OPERATOR_SMOKE_ADMIN_USER_ID,
     tenantId,
@@ -1025,6 +1031,16 @@ function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId:
     sessionVersion: 1,
     workspaceId: "ws-operator-smoke-member",
     displayName: "Smoke Member",
+    rewards: { permanentDiscountPercentage: 20 },
+  });
+  repo.seedMembership({
+    userId: OPERATOR_SMOKE_VIEWER_USER_ID,
+    tenantId,
+    role: "viewer",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: "ws-operator-smoke-viewer",
+    displayName: "Smoke Viewer",
   });
 }
 
@@ -1044,6 +1060,19 @@ function seedOperatorSmokeDevFixture(repo: InMemoryIdentityRepository): void {
     ...ownerMembership,
     tenantId: DENALI_DEV_HOST_TENANT_ID,
     workspaceId: "ws-denali-dev",
+  });
+  repo.seedUser({
+    id: DENALI_ENGAGEMENT_VIEWER_USER_ID,
+    mobile: DENALI_ENGAGEMENT_VIEWER_MOBILE,
+  });
+  repo.seedMembership({
+    userId: DENALI_ENGAGEMENT_VIEWER_USER_ID,
+    tenantId: DENALI_DEV_HOST_TENANT_ID,
+    role: "viewer",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: "ws-denali-dev",
+    displayName: "Denali Engagement Viewer",
   });
 
   // Playwright operator smoke (`OPERATOR_SMOKE_E2E_SEED=1`) binds bare localhost to …000014.

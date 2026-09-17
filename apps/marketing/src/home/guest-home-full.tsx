@@ -28,6 +28,7 @@ import { HomeTrust } from "./home-trust";
 import { HomeWhy } from "./home-why";
 import { resolveHomeWhySectionAnchor } from "./resolve-home-why-section-anchor";
 import { resolveMarketingHomeHeroMedia } from "./resolve-marketing-home-hero-media";
+import type { HomeHeroCopyOverride } from "./home-hero";
 
 export type GuestHomeFullProps = {
   readonly landing: GuestLandingFeatures;
@@ -35,6 +36,7 @@ export type GuestHomeFullProps = {
   readonly catalogItems: readonly MarketingCatalogCard[];
   readonly pluginId: string;
   readonly host: string;
+  readonly homeHeroCopyOverride?: HomeHeroCopyOverride | null;
 };
 
 export async function GuestHomeFull({
@@ -43,6 +45,7 @@ export async function GuestHomeFull({
   catalogItems,
   pluginId,
   host,
+  homeHeroCopyOverride = null,
 }: GuestHomeFullProps) {
   const t = await getTranslations("catalog");
   const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
@@ -86,6 +89,7 @@ export async function GuestHomeFull({
           whySectionAnchor={whySectionAnchor}
           consultationHref={consultationHref}
           siteName={siteName}
+          copyOverride={homeHeroCopyOverride}
         />
       ) : null}
       {showPrograms ? (

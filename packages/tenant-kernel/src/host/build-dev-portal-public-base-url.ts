@@ -8,6 +8,10 @@ import {
 } from "./parse-custom-apex-host";
 import { parseMultiLevelTenantHost } from "./parse-multi-level-tenant-host";
 
+function isIpv4Host(hostname: string): boolean {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
+}
+
 export type BuildDevPortalPublicBaseUrlInput = {
   readonly ingressHost: string;
   readonly rootDomain: string;
@@ -19,7 +23,8 @@ export type BuildDevPortalPublicBaseUrlInput = {
 /**
  * Map marketing/admin ingress host to portal public base URL (dev).
  * Localhost canonical: `portal.{club}.localhost` (PCMS-COOK-03 M↔P cookie share).
- * Other roots: `{club}.portal.{root}` until platform TLS wildcards flip.
+ * Other roots: `portal.{club}.{root}` so the portal and marketing hosts share
+ * the workspace parent and can safely share the member session cookie.
  */
 export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlInput): string {
   const configured = input.configuredBaseUrl?.trim();
@@ -33,16 +38,24 @@ export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlIn
   const reserved =
     input.reservedLabels ?? parseReservedLabelsCsv(process.env.TENANT_HOST_RESERVED_LABELS);
   const withoutShop = hostname.startsWith("shop.") ? hostname.slice("shop.".length) : hostname;
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(withoutShop)) {
+    return `http://${withoutShop}:${port}`;
+  }
   const outcome = parseMultiLevelTenantHost(withoutShop, root, reserved);
 
   if (outcome.kind === "club_apex") {
     if (root === "localhost") {
       return `http://portal.${outcome.subdomain}.localhost:${port}`;
     }
-    return `http://${outcome.subdomain}.portal.${root}:${port}`;
+    return `http://portal.${outcome.subdomain}.${root}:${port}`;
   }
 
   if (outcome.kind === "club_portal") {
+    return `http://${withoutShop}:${port}`;
+  }
+
+  // Profile B staging — bare VPS IP cannot use portal.{ip} (invalid URL); same host, portal port.
+  if (isIpv4Host(withoutShop)) {
     return `http://${withoutShop}:${port}`;
   }
 

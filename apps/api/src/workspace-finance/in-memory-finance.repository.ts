@@ -26,6 +26,7 @@ import type {
   OutstandingBalanceCandidateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
+  RecordPrepaymentAtomicResult,
   RegistrationInvoiceFacts,
   SumCompletedRefundsQuery,
   TransitionRefundStatusInput,
@@ -57,7 +58,10 @@ type StoredLedgerEvent = FinanceLedgerOutboxRow & {
 let paymentsById = new Map<string, StoredPayment>();
 let receiptsById = new Map<string, StoredReceipt>();
 let ledgerEvents: StoredLedgerEvent[] = [];
-let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
+let prepaymentsByDomainEventId = new Map<
+  string,
+  FinancePrepaymentListRow & { readonly tenantId: string }
+>();
 let refundsById = new Map<string, FinanceRefundRow>();
 
 export function resetInMemoryFinanceRepositoryForTests(): void {
@@ -79,11 +83,7 @@ function sortOutstandingBalanceCandidates(
     if (byTime !== 0) {
       return byTime;
     }
-    return a.registrationId < b.registrationId
-      ? -1
-      : a.registrationId > b.registrationId
-        ? 1
-        : 0;
+    return a.registrationId < b.registrationId ? -1 : a.registrationId > b.registrationId ? 1 : 0;
   });
 }
 
@@ -235,10 +235,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     creationIdempotencyKey: string
   ): Promise<FinancePaymentRow | null> {
     for (const row of paymentsById.values()) {
-      if (
-        row.tenantId === tenantId &&
-        row.creationIdempotencyKey === creationIdempotencyKey
-      ) {
+      if (row.tenantId === tenantId && row.creationIdempotencyKey === creationIdempotencyKey) {
         return row;
       }
     }
@@ -248,7 +245,11 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   async countPendingReceiptsForPayment(tenantId: string, paymentId: string): Promise<number> {
     let count = 0;
     for (const receipt of receiptsById.values()) {
-      if (receipt.tenantId === tenantId && receipt.paymentId === paymentId && receipt.status === "Pending") {
+      if (
+        receipt.tenantId === tenantId &&
+        receipt.paymentId === paymentId &&
+        receipt.status === "Pending"
+      ) {
         count += 1;
       }
     }
@@ -311,10 +312,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     if (payment === null) {
       throw new Error("FINANCE_PAYMENT_NOT_FOUND");
     }
-    const pendingCount = await this.countPendingReceiptsForPayment(
-      input.tenantId,
-      input.paymentId
-    );
+    const pendingCount = await this.countPendingReceiptsForPayment(input.tenantId, input.paymentId);
     if (pendingCount > 0) {
       throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
     }
@@ -336,6 +334,21 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         : {}),
     };
     receiptsById.set(receipt.id, receipt);
+    if (input.outboxEvent !== undefined) {
+      ledgerEvents.push({
+        id: randomUUID(),
+        tenantId: input.tenantId,
+        eventType: input.outboxEvent.eventType,
+        payload: {
+          ...input.outboxEvent.payload,
+          receiptId: receipt.id,
+          submittedAt: receipt.createdAt.toISOString(),
+        },
+        createdAt: receipt.createdAt,
+        domainEventId: `${input.outboxEvent.eventType}:${receipt.id}`,
+        aggregateId: receipt.id,
+      });
+    }
     return receipt;
   }
 
@@ -364,9 +377,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     });
   }
 
-  async listFinanceExceptionSources(
-    tenantId: string
-  ): Promise<ListFinanceExceptionSourcesResult> {
+  async listFinanceExceptionSources(tenantId: string): Promise<ListFinanceExceptionSourcesResult> {
     const pendingPayments = [...paymentsById.values()].filter(
       (row) => row.tenantId === tenantId && row.status === "Pending"
     );
@@ -414,7 +425,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         const occurredAt =
           payload?.occurredAt !== undefined
             ? new Date(payload.occurredAt)
-            : cancelEvent?.createdAt ?? payment.createdAt;
+            : (cancelEvent?.createdAt ?? payment.createdAt);
         return {
           paymentId: payment.id,
           registrationId: payment.registrationId,
@@ -462,11 +473,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         const occurredAt = Number.isNaN(submittedAt.getTime()) ? new Date(0) : submittedAt;
         byRegistration.set(booking.id, occurredAt);
       }
-      if (
-        page.nextCursor === null ||
-        page.nextCursor.length === 0 ||
-        page.nextCursor === cursor
-      ) {
+      if (page.nextCursor === null || page.nextCursor.length === 0 || page.nextCursor === cursor) {
         break;
       }
       cursor = page.nextCursor;
@@ -528,6 +535,26 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
           : null,
     };
     receiptsById.set(receiptId, updated);
+    if (input.status === "Approved" || input.status === "Rejected") {
+      ledgerEvents.push({
+        id: randomUUID(),
+        tenantId,
+        eventType: input.status === "Approved" ? "receipt.approved" : "receipt.rejected",
+        payload: {
+          receiptId: updated.id,
+          paymentId: updated.paymentId,
+          registrationId: updated.payment?.registrationId ?? "",
+          status: updated.status,
+          amount: updated.payment?.amount ?? "",
+          currency: updated.payment?.currency ?? "",
+          reviewedAt: now.toISOString(),
+          reviewNote: updated.reviewNote ?? "بدون توضیح",
+        },
+        createdAt: now,
+        domainEventId: `receipt.${input.status.toLowerCase()}:${updated.id}:${now.toISOString()}`,
+        aggregateId: updated.id,
+      });
+    }
     if (payment !== null && input.status === "Approved") {
       const paidPayment = paymentsById.get(payment.id);
       if (paidPayment !== undefined && paidPayment.tenantId === tenantId) {
@@ -597,8 +624,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     // Fake-only: drop the provisional capture row so compensate does not leave orphan ledger facts.
     const captureDomainEventId = `payment:${paymentId}:ledger-capture-anchor`;
     ledgerEvents = ledgerEvents.filter(
-      (event) =>
-        !(event.tenantId === tenantId && event.domainEventId === captureDomainEventId)
+      (event) => !(event.tenantId === tenantId && event.domainEventId === captureDomainEventId)
     );
     return updated;
   }
@@ -623,9 +649,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         paymentAmountsMinor: facts.paymentAmountsMinor,
         scheduleAmountsMinor: input.scheduleAmountsMinor,
         refundedCompletedMinor: facts.refundedCompletedMinor,
-        ...(input.obligationMinor !== undefined
-          ? { obligationMinor: input.obligationMinor }
-          : {}),
+        ...(input.obligationMinor !== undefined ? { obligationMinor: input.obligationMinor } : {}),
       });
       const updatedStatus = await this.bookingPayments.syncStatus({
         tenantId: input.tenantId,
@@ -715,9 +739,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
           event.eventType === "finance.payment.cancelled"
       );
       const auditPayload =
-        prior !== undefined &&
-        typeof prior.payload === "object" &&
-        prior.payload !== null
+        prior !== undefined && typeof prior.payload === "object" && prior.payload !== null
           ? (prior.payload as CancelPendingManualPaymentAtomicResult["auditPayload"])
           : buildAudit(existing);
       return {
@@ -754,8 +776,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     const auditPayload = buildAudit(updated);
     if (
       !ledgerEvents.some(
-        (event) =>
-          event.tenantId === input.tenantId && event.domainEventId === domainEventId
+        (event) => event.tenantId === input.tenantId && event.domainEventId === domainEventId
       )
     ) {
       ledgerEvents.push({
@@ -778,16 +799,87 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listPrepayments(
-    _tenantId: string,
-    _limit: number
+    tenantId: string,
+    limit: number
   ): Promise<readonly FinancePrepaymentListRow[]> {
-    return [];
+    return [...prepaymentsByDomainEventId.values()]
+      .filter((row) => row.tenantId === tenantId)
+      .slice(0, limit)
+      .map(({ tenantId: _t, ...row }) => row);
   }
 
   async recordPrepaymentAtomic(
-    _input: RecordPrepaymentAtomicInput
-  ): Promise<never> {
-    throw new Error("FINANCE_MEMORY_DRIVER_READ_ONLY_PREPAYMENT");
+    input: RecordPrepaymentAtomicInput
+  ): Promise<RecordPrepaymentAtomicResult> {
+    if (input.lines.length === 0) {
+      throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+    }
+    const existing = prepaymentsByDomainEventId.get(input.prepaymentDomainEventId);
+    if (existing !== undefined && existing.tenantId === input.tenantId) {
+      return {
+        created: false,
+        id: existing.id,
+        registrationId: existing.registrationId,
+        amountMinor: existing.amountMinor,
+        currency: existing.currency,
+        method: existing.method,
+        note: existing.note,
+        recordedAt: existing.recordedAt,
+      };
+    }
+    const id = randomUUID();
+    const row: FinancePrepaymentListRow & { readonly tenantId: string } = {
+      tenantId: input.tenantId,
+      id,
+      registrationId: input.registrationId,
+      amountMinor: input.amountMinor,
+      currency: input.currency,
+      method: input.method,
+      note: input.note,
+      recordedAt: input.recordedAt,
+    };
+    prepaymentsByDomainEventId.set(input.prepaymentDomainEventId, row);
+    const now = new Date();
+    ledgerEvents.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      eventType: "finance.ledger.capture",
+      payload: {
+        journalId: input.journalId,
+        domainEventId: input.ledgerDomainEventId,
+        lines: input.lines,
+        registrationId: input.registrationId,
+      },
+      createdAt: now,
+      domainEventId: input.ledgerDomainEventId,
+      aggregateId: input.journalId,
+    });
+    ledgerEvents.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      eventType: "finance.prepayment.recorded",
+      payload: {
+        registrationId: input.registrationId,
+        amountMinor: input.amountMinor,
+        currency: input.currency,
+        method: input.method,
+        note: input.note,
+        recordedAt: input.recordedAt,
+      },
+      createdAt: now,
+      domainEventId: input.prepaymentDomainEventId,
+      aggregateId: input.registrationId,
+    });
+    return {
+      created: true,
+      id,
+      registrationId: input.registrationId,
+      amountMinor: input.amountMinor,
+      currency: input.currency,
+      method: input.method,
+      note: input.note,
+      recordedAt: input.recordedAt,
+    };
   }
 
   async recordPrepaymentBookingSyncDegraded(_input: {
@@ -911,10 +1003,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     creationIdempotencyKey: string
   ): Promise<FinanceRefundRow | null> {
     for (const row of refundsById.values()) {
-      if (
-        row.tenantId === tenantId &&
-        row.creationIdempotencyKey === creationIdempotencyKey
-      ) {
+      if (row.tenantId === tenantId && row.creationIdempotencyKey === creationIdempotencyKey) {
         return row;
       }
     }

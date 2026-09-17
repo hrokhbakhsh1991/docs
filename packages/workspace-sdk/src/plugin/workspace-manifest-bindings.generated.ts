@@ -95,4 +95,15 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
       defaultLocale: "en",
     } as const,
   },
+  {
+    workspaceType: "wallet-ws1",
+    pluginId: "wallet-ws1",
+    tenantBrandingDefaults: {
+      primaryColor: "#6366f1",
+      cssVariables: {
+        "--color-primary": "#6366f1",
+      },
+      defaultLocale: "en",
+    } as const,
+  },
 ];

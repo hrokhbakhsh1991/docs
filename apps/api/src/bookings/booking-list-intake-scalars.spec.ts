@@ -117,4 +117,17 @@ describe("booking-list-intake-scalars.spec.ts", () => {
       undefined
     );
   });
+
+  it("BKG-LIST-07 free collection marker projects WAIVED without an override", () => {
+    const record = enrichInMemoryBookingListRecord(
+      baseRecord({
+        id: "00000000-0000-0000-0000-000000000907",
+        status: "approved",
+        paymentStatus: "paid",
+        registrationIntake: { freeCollectionApplied: true },
+      })
+    );
+    assert.equal(record.registrationIntake, undefined);
+    assert.equal(record.financialDisplayState, "WAIVED");
+  });
 });

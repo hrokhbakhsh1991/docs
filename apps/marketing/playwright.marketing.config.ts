@@ -7,7 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const executablePath = process.env.PW_EXECUTABLE_PATH;
 const marketingSmokeBaseUrl =
-  process.env.SMOKE_MARKETING_BASE_URL ?? "http://denali.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
 const marketingReadinessUrl = `http://127.0.0.1:${process.env.MARKETING_SMOKE_READY_PORT ?? "3012"}/ready`;
 

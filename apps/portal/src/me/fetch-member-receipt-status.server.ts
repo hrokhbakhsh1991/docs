@@ -5,6 +5,7 @@ import {
   parseMemberReceiptPanel,
   type MemberReceiptPanel,
 } from "@/me/member-receipt-status";
+import { resolvePortalSelfFetchOrigin } from "@/me/resolve-portal-self-fetch-origin";
 
 export type { MemberReceiptPanel };
 
@@ -22,14 +23,14 @@ export async function fetchMemberReceiptPanel(
     return emptyMemberReceiptPanel();
   }
 
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const { origin, ingressHost } = resolvePortalSelfFetchOrigin(host);
   let res: Response;
   try {
     res = await fetch(
-      `${protocol}://${host}/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
+      `${origin}/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
       {
         method: "GET",
-        headers: { cookie: cookieHeader },
+        headers: { cookie: cookieHeader, "x-forwarded-host": ingressHost },
         cache: "no-store",
       }
     );

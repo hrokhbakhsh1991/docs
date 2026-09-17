@@ -28,6 +28,7 @@ export type TourOperationalRosterRow = {
   readonly memberAvatarUrl?: string | null;
   readonly partySize: number;
   readonly registrationStatus: OperationalRosterLifecycleStatus;
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly financialDisplayState: OperationalRosterFinancialDisplayState;
   readonly remainingMinor: string | null;
   readonly paidMinor: string | null;
@@ -35,7 +36,7 @@ export type TourOperationalRosterRow = {
   readonly paymentDueAt: string | null;
   readonly holdStatus: string | null;
   readonly transportKind: BookingTransportKind | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly isDriverOffer: boolean;
   readonly passengerAssignmentStatus: OperationalRosterPassengerAssignmentStatus;
   readonly refundDisplayState: OperationalRosterRefundDisplayState;

@@ -7,6 +7,25 @@ import {
   resolveEffectiveIntegrationEventCatalog,
 } from "./resolve-effective-integration-event-catalog";
 
+const DENALI_TELEGRAM_EVENT_TYPES = [
+  "member.registered",
+  "receipt.approved",
+  "receipt.rejected",
+  "receipt.submitted",
+  "registration.approved",
+  "registration.created",
+  "ticket.assigned",
+  "ticket.closed",
+  "ticket.created",
+  "ticket.internal_note.created",
+  "ticket.message.posted",
+  "ticket.priority.changed",
+  "ticket.reopened",
+  "ticket.resolved",
+  "ticket.status.changed",
+  "TourPublished",
+];
+
 describe("resolveEffectiveIntegrationEventCatalog", () => {
   it("defaults denali telegram to TourPublished from surface when no persisted rows", async () => {
     const catalog = await resolveEffectiveIntegrationEventCatalog({
@@ -17,7 +36,7 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
 
     assert.deepEqual(
       catalog.map((entry) => entry.eventType),
-      ["TourPublished"],
+      DENALI_TELEGRAM_EVENT_TYPES,
     );
     assert.equal(catalog[0]?.enabled, true);
     assert.equal(catalog[0]?.declaredOnSurface, true);
@@ -51,8 +70,9 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
       persistedPolicies: [{ eventType: "TourPublished", enabled: false }],
     });
 
-    assert.equal(catalog[0]?.eventType, "TourPublished");
-    assert.equal(catalog[0]?.enabled, false);
+    const published = catalog.find((entry) => entry.eventType === "TourPublished");
+    assert.ok(published);
+    assert.equal(published.enabled, false);
   });
 
   it("maps public DTO policies with deprecated metadata", async () => {
@@ -78,6 +98,9 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
       persistedPolicies: [{ eventType: "TourCreated", enabled: true }],
     });
 
-    assert.deepEqual(listActiveIntegrationEventTypes(catalog), ["TourPublished"]);
+    assert.deepEqual(
+      listActiveIntegrationEventTypes(catalog),
+      DENALI_TELEGRAM_EVENT_TYPES,
+    );
   });
 });

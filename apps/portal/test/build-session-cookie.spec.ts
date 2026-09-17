@@ -130,7 +130,7 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     assert.match(headers.get("set-cookie") ?? "", /Domain=denali\.club/);
   });
 
-  it("PCMS-COOK-09 platform prod ingress stays host-only (no localhost widening)", async () => {
+  it("PCMS-COOK-09 canonical platform portal shares only the workspace apex", async () => {
     const priorNode = process.env.NODE_ENV;
     const priorRoot = process.env.PLATFORM_ROOT_DOMAIN;
     process.env.NODE_ENV = "production";
@@ -138,9 +138,17 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     try {
       const { setSessionCookieOnResponse } = await import("../src/auth/build-session-cookie");
       const headers = new Headers();
-      setSessionCookieOnResponse(headers, "jwt-token", "denali.portal.example.com:3003");
+      setSessionCookieOnResponse(headers, "jwt-token", "portal.denali.example.com:3003");
       const setCookie = headers.get("set-cookie") ?? "";
-      assert.doesNotMatch(setCookie, /Domain=/);
+      assert.match(setCookie, /Domain=denali\.example\.com/);
+
+      const legacyHeaders = new Headers();
+      setSessionCookieOnResponse(
+        legacyHeaders,
+        "jwt-token",
+        "denali.portal.example.com:3003"
+      );
+      assert.doesNotMatch(legacyHeaders.get("set-cookie") ?? "", /Domain=/);
     } finally {
       if (priorNode === undefined) {
         delete process.env.NODE_ENV;

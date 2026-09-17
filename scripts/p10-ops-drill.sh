@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # P10-3-N-001 ops drill — read-only staging/prod health sweep (no git rollback)
-# Usage: VPS_HOST=89.45.89.206 pnpm run p10:ops-drill
+# Usage: VPS_HOST=89.42.210.252 pnpm run p10:ops-drill
 set -euo pipefail
 
 VPS_HOST="${VPS_HOST:-}"

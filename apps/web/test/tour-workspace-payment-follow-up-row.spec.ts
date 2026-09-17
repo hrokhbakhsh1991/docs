@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { TOUR_WORKSPACE_PAYMENT_FOLLOW_UP_ROW_TEST_IDS } from "../src/features/tours/tour-workspace-payment-follow-up-row";
+import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../src/features/tours/tour-workspace-finance-logic";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rowSource = readFileSync(
@@ -45,17 +46,18 @@ describe("tour-workspace-payment-follow-up-row.spec.ts", () => {
     assert.match(rowSource, /OperatorProfileAvatar/);
     assert.match(rowSource, /fallbackMode="icon"/);
     assert.doesNotMatch(rowSource, /rowInitials/);
-    assert.match(rowSource, /registrationBadge/);
     assert.match(rowSource, /paymentBadge/);
     assert.match(rowSource, /rowDeadline/);
     assert.match(rowSource, /primaryAction/);
+    assert.match(rowSource, /paymentFollowUpPrimaryActionLabelKey/);
     assert.match(rowSource, /formatMinorAmount/);
   });
 
   it("finance guest list uses roster-backed follow-up hook and row actions", () => {
     assert.match(financeSource, /useTourWorkspacePaymentFollowUpList/);
-    assert.match(financeSource, /runFollowUpRowAction/);
+    assert.match(financeSource, /handleFollowUpRowAction/);
     assert.match(financeSource, /onPrimaryAction/);
+    assert.match(financeSource, /refreshWorkspaceFinanceView\(\);/);
   });
 });
 
@@ -63,6 +65,7 @@ describe("payment follow-up operator labels — fa", () => {
   it("uses explicit Persian approve/reject/waiver wording", () => {
     const messages = JSON.parse(faBookings) as Record<string, string>;
     assert.equal(messages.rejectRegistration, "رد ثبت‌نام");
+    assert.equal(messages.approveAndRequestPayment, "تأیید و ارسال برای پرداخت");
     assert.equal(messages.approveAwaitingPayment, "تأیید و منتظر پرداخت");
     assert.equal(messages.approveWithoutPayment, "تأیید بدون نیاز به پرداخت");
     assert.match(messages.approveWithoutPaymentSuccess ?? "", /نیازی به پرداخت/);

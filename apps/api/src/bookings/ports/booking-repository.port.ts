@@ -3,6 +3,7 @@ import type {
   BookingListPageOutput,
   BookingPaymentStatus,
   BookingRecord,
+  BookingOutboxEventInput,
   CreateBookingRequest,
 } from "../bookings.types";
 
@@ -37,9 +38,7 @@ export interface BookingRepositoryPort {
   listByTenant(tenantId: string): Promise<BookingRecord[]>;
   listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
   /** Exact COUNT for the same filters as {@link listByTenantPage} (no row cap). */
-  countByTenantFilters(
-    input: Omit<BookingListPageInput, "limit" | "cursor">
-  ): Promise<number>;
+  countByTenantFilters(input: Omit<BookingListPageInput, "limit" | "cursor">): Promise<number>;
   /**
    * Active guest duplicate on a tour (not cancelled/rejected). Uncapped SQL/filter lookup.
    * @see docs/phase-20/p7/appendices/BOOKING_LIST_CORRECTNESS.md
@@ -134,6 +133,7 @@ export interface BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: BookingOutboxEventInput;
   }): Promise<BookingRecord>;
   /**
    * Approve in one tenant TX: load → occupancy sum → optional capacity assert → status + outbox.
@@ -159,6 +159,12 @@ export interface BookingRepositoryPort {
       readonly occupiedApprovedPartySize: number;
     }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
+  /** Explicit operator finalization; independent from financial settlement. */
+  finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord>;
   /**
    * pending|waitlisted → rejected. Persist status + optional rejectReason — **no outbox** (decision B).
    * Intentionally silent; do not compare with cancel observability.

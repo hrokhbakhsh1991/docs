@@ -257,16 +257,21 @@ describe("portal-member-profile-bff route (M2)", () => {
   });
 
   describe("portal-member-profile M3 cutover", () => {
-  it("MP-M3-01 profile page SSR uses fetchMemberProfile BFF only", () => {
+  it("MP-M3-01 profile page SSR uses fetchMemberProfile cookie-safe upstream", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/me/profile/page.tsx"), "utf8");
     const fetchModule = readFileSync(
       join(repoRoot, "apps/portal/src/me/fetch-member-profile.server.ts"),
       "utf8"
     );
+    const upstreamModule = readFileSync(
+      join(repoRoot, "apps/portal/src/me/fetch-member-profile-from-session.server.ts"),
+      "utf8"
+    );
     assert.match(page, /fetchMemberProfile/);
-    assert.match(fetchModule, /\/api\/me\/profile/);
+    assert.match(fetchModule, /fetchMemberProfileUpstreamForHost/);
     assert.match(fetchModule, /MemberProfileFetchResult/);
-    assert.match(fetchModule, /classifyMemberProfileBffFailure/);
+    assert.doesNotMatch(fetchModule, /\/api\/me\/profile/);
+    assert.match(upstreamModule, /identity\/me/);
     assert.doesNotMatch(page, /identity\/me/);
     assert.doesNotMatch(page, /resolveTourOpsApiBaseUrl/);
     assert.doesNotMatch(page, /fetchMemberProfileFromSession/);

@@ -46,7 +46,8 @@ function resolveDisplayLabel(
 /** Authenticated marketing header chip — portal profile egress when member cookie matches tenant. */
 export async function resolveMarketingMemberHeader(
   host: string,
-  tenantId: string
+  tenantId: string,
+  pluginId: string
 ): Promise<MarketingMemberHeader | null> {
   const session = await readMarketingMemberSessionFromCookies();
   if (
@@ -56,7 +57,7 @@ export async function resolveMarketingMemberHeader(
     return null;
   }
 
-  const profileHref = resolvePortalMemberModuleUrl(host, "profile");
+  const profileHref = resolvePortalMemberModuleUrl(host, "profile", pluginId);
   if (profileHref === null) {
     return null;
   }

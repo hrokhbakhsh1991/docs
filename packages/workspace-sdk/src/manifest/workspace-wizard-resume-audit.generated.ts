@@ -32,4 +32,5 @@ export const WORKSPACE_WIZARD_RESUME_AUDIT = {
   "profile-cert": { mode: "noop" },
   "starter": null,
   "urban": null,
+  "wallet-ws1": null,
 } as const satisfies Record<string, WorkspaceWizardResumeAuditEntry | null>;

@@ -23,10 +23,7 @@ describe("settings-generic-crud.spec.ts — Phase 9.6", () => {
     assert.equal(SETTINGS_HUB_TEST_IDS.equipmentForm, "operator-settings-equipment-form");
     assert.equal(SETTINGS_HUB_TEST_IDS.equipmentCreate, "operator-settings-equipment-create");
     assert.equal(SETTINGS_HUB_TEST_IDS.equipmentEdit, "operator-settings-equipment-edit");
-    assert.equal(
-      SETTINGS_HUB_TEST_IDS.equipmentEditSave,
-      "operator-settings-equipment-edit-save"
-    );
+    assert.equal(SETTINGS_HUB_TEST_IDS.equipmentEditSave, "operator-settings-equipment-edit-save");
     assert.equal(
       SETTINGS_HUB_TEST_IDS.equipmentEditCancel,
       "operator-settings-equipment-edit-cancel"
@@ -68,5 +65,18 @@ describe("settings-generic-crud.spec.ts — Phase 9.6", () => {
     assert.ok(equipment);
     assert.equal(labelForSettingsModule(equipment!), SETTINGS_MODULE_LABEL_KEYS.equipment);
     assert.equal(hrefForSettingsModule(equipment!), "/settings/equipment");
+  });
+
+  it("WEB-9.6-CRUD-03 marketing pages uses a translated module label and description", () => {
+    assert.equal(SETTINGS_MODULE_LABEL_KEYS.marketing_pages, "modules.marketing_pages.title");
+    const page = {
+      id: "marketing_pages",
+      kind: "tenant_config" as const,
+      route: "settings/marketing-pages",
+      ability: "operator.settings.marketing_pages",
+      nav: { group: "workspace" as const, labelKey: "settings.marketing_pages" },
+    };
+    assert.equal(labelForSettingsModule(page), "modules.marketing_pages.title");
+    assert.equal(hrefForSettingsModule(page), "/settings/marketing-pages");
   });
 });
