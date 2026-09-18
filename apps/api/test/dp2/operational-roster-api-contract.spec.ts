@@ -106,6 +106,16 @@ describe("DP-2 operational roster API contract", () => {
     assert.equal(response.body.subarray(0, 2).toString("hex"), "504b");
   });
 
+  it("returns not found for an authorized export of an unknown tour", async () => {
+    const response = await client.requestJson<{ code?: string }>(
+      "GET",
+      "/tours/tour-does-not-exist/operational-roster/export?filter=final&format=xlsx",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "TOUR_NOT_FOUND");
+  });
+
   it("requires operator authentication for roster export", async () => {
     const response = await client.requestJson(
       "GET",
