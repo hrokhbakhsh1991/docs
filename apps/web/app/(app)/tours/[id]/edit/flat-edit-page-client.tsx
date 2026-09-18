@@ -24,9 +24,7 @@ import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types"
 import type { TourUiStatus } from "@/features/tours/operator-tours-types";
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { resolveTourPriceDisplayPolicy } from "@/features/tours/resolve-tour-price-display-policy";
-import {
-  readCachedTourPlugin,
-} from "@/features/tours/tour-route-cache";
+import { readCachedTourPlugin } from "@/features/tours/tour-route-cache";
 import {
   formatTourDeparture,
   formatTourPrice,
@@ -38,10 +36,7 @@ import {
   CreateTourWizardLoadingMessage,
   CreateTourWizardNotConfigured,
 } from "@/wizard/create-tour-wizard-chrome";
-import {
-  OperatorFlatEditPageHeader,
-  OperatorFlatEditPageShell,
-} from "@/wizard/flat-edit-chrome";
+import { OperatorFlatEditPageHeader, OperatorFlatEditPageShell } from "@/wizard/flat-edit-chrome";
 import { buildFlatEditMetaLine } from "@/wizard/wizard-host-adapter-registry";
 import { OperatorFlatEditForm } from "@/wizard/flat-edit-form-shell";
 import {
@@ -206,7 +201,8 @@ function OperatorFlatEditPageClientReady({
       formatTourSeats(
         { acceptedCount: projection.acceptedSeats, totalCapacity: projection.capacity },
         {
-          withCapacity: (accepted, capacity) => tFormat("seatsWithCapacity", { accepted, capacity }),
+          withCapacity: (accepted, capacity) =>
+            tFormat("seatsWithCapacity", { accepted, capacity }),
           open: (accepted) => tFormat("seatsOpen", { accepted }),
         }
       ),
@@ -225,9 +221,7 @@ function OperatorFlatEditPageClientReady({
       core={core}
       tourId={tourId}
       slots={{
-        renderLoading: () => (
-          <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />
-        ),
+        renderLoading: () => <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />,
         renderNotConfigured: () => <CreateTourWizardNotConfigured />,
         renderNotFound: () => (
           <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
@@ -240,8 +234,7 @@ function OperatorFlatEditPageClientReady({
         renderReady: ({ core: readyCore, detail, tourId: readyTourId }: any) => {
           const loadError = resolveTourErrorMessage(tErrors, readyCore.error);
           const hasSubmitValidationIssues =
-            readyCore.submitValidationIssues != null &&
-            readyCore.submitValidationIssues.length > 0;
+            readyCore.submitValidationIssues != null && readyCore.submitValidationIssues.length > 0;
           // Field-level validation list already conveys the blocker — suppress duplicate footer summary.
           const submitPresentation = resolveWizardSubmitErrorMessage({
             pluginId: session.pluginId,
@@ -288,64 +281,84 @@ function OperatorFlatEditPageClientReady({
                 draftSync={draftSyncEngine}
               />
 
-              <OperatorFlatEditStickyActionBar
-                saveLabel={saveLabel}
-                saveDisabled={saveDisabled}
-                saveBusy={readyCore.pending && readyCore.pendingIntent === "save"}
-                onSave={handleSave}
-                canPublish={readyCore.canPublish}
-                canUnpublish={readyCore.canUnpublish}
-                publishDisabled={lifecycleDisabled}
-                unpublishDisabled={lifecycleDisabled}
-                publishLabel={
-                  readyCore.pending && readyCore.pendingIntent === "publish"
-                    ? t("publishing")
-                    : t("publishChanges")
-                }
-                unpublishLabel={
-                  readyCore.pending && readyCore.pendingIntent === "unpublish"
-                    ? t("unpublishing")
-                    : t("unpublishChanges")
-                }
-                onPublish={() => void readyCore.handlePatch("publish")}
-                onUnpublish={() => void readyCore.handlePatch("unpublish")}
-                cancelLabel={t("cancelEdits")}
-                draftStatus={readyCore.draftSync.status}
-                saved={readyCore.saved}
-                published={readyCore.published}
-                unpublished={readyCore.unpublished}
-                savedLabel={t("saved")}
-                publishedLabel={t("published")}
-                unpublishedLabel={t("unpublished")}
-              />
-
-              <OperatorFlatEditForm
-                tenantId={session.tenantId}
-                draft={readyCore.draft}
-                onDraftChange={readyCore.onDraftChange}
-                navLocked={readyCore.draftSync.navLocked}
-                templateSteps={readyCore.gate.templateSteps}
-                allowedCanonicalPaths={readyCore.gate.allowedCanonicalPaths}
-                wizardRuleEvalContext={readyCore.wizardRuleEvalContext}
-                wizardSessionId={readyCore.wizardSessionId}
-                footer={
-                  <div className="space-y-3 pt-2" data-wizard-footer>
-                    {readyCore.submitValidationIssues != null &&
-                    readyCore.submitValidationIssues.length > 0 ? (
-                      <FlatEditValidationList issues={readyCore.submitValidationIssues} />
-                    ) : null}
-                    {loadError ? (
-                      <p role="alert" className="text-sm text-destructive">
-                        {loadError}
-                      </p>
-                    ) : null}
-                    <WizardSubmitErrorAlert
-                      presentation={submitPresentation}
-                      className="text-sm text-destructive"
-                    />
+              {readyCore.legacyDraftRecoveryRequired ? (
+                <section
+                  className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4"
+                  data-testid="tour-edit-legacy-draft-recovery"
+                >
+                  <h2 className="font-semibold">{t("legacyDraft.title")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("legacyDraft.description")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={readyCore.recoverLegacyDraft}>
+                      {t("legacyDraft.recover")}
+                    </Button>
+                    <Button type="button" onClick={readyCore.useTourBaseline}>
+                      {t("legacyDraft.useSavedTour")}
+                    </Button>
                   </div>
-                }
-              />
+                </section>
+              ) : (
+                <>
+                  <OperatorFlatEditStickyActionBar
+                    saveLabel={saveLabel}
+                    saveDisabled={saveDisabled}
+                    saveBusy={readyCore.pending && readyCore.pendingIntent === "save"}
+                    onSave={handleSave}
+                    canPublish={readyCore.canPublish}
+                    canUnpublish={readyCore.canUnpublish}
+                    publishDisabled={lifecycleDisabled}
+                    unpublishDisabled={lifecycleDisabled}
+                    publishLabel={
+                      readyCore.pending && readyCore.pendingIntent === "publish"
+                        ? t("publishing")
+                        : t("publishChanges")
+                    }
+                    unpublishLabel={
+                      readyCore.pending && readyCore.pendingIntent === "unpublish"
+                        ? t("unpublishing")
+                        : t("unpublishChanges")
+                    }
+                    onPublish={() => void readyCore.handlePatch("publish")}
+                    onUnpublish={() => void readyCore.handlePatch("unpublish")}
+                    cancelLabel={t("cancelEdits")}
+                    draftStatus={readyCore.draftSync.status}
+                    saved={readyCore.saved}
+                    published={readyCore.published}
+                    unpublished={readyCore.unpublished}
+                    savedLabel={t("saved")}
+                    publishedLabel={t("published")}
+                    unpublishedLabel={t("unpublished")}
+                  />
+
+                  <OperatorFlatEditForm
+                    tenantId={session.tenantId}
+                    draft={readyCore.draft}
+                    onDraftChange={readyCore.onDraftChange}
+                    navLocked={readyCore.draftSync.navLocked}
+                    templateSteps={readyCore.gate.templateSteps}
+                    allowedCanonicalPaths={readyCore.gate.allowedCanonicalPaths}
+                    wizardRuleEvalContext={readyCore.wizardRuleEvalContext}
+                    wizardSessionId={readyCore.wizardSessionId}
+                    footer={
+                      <div className="space-y-3 pt-2" data-wizard-footer>
+                        {readyCore.submitValidationIssues != null &&
+                        readyCore.submitValidationIssues.length > 0 ? (
+                          <FlatEditValidationList issues={readyCore.submitValidationIssues} />
+                        ) : null}
+                        {loadError ? (
+                          <p role="alert" className="text-sm text-destructive">
+                            {loadError}
+                          </p>
+                        ) : null}
+                        <WizardSubmitErrorAlert
+                          presentation={submitPresentation}
+                          className="text-sm text-destructive"
+                        />
+                      </div>
+                    }
+                  />
+                </>
+              )}
             </OperatorFlatEditPageShell>
           );
         },

@@ -142,6 +142,12 @@
     "warmErrorBack": "Back to tour",
     "saving": "Saving…",
     "saved": "Changes saved.",
+    "legacyDraft": {
+      "title": "Legacy draft found",
+      "description": "This draft is not linked to the saved tour version. Choose how to continue so outdated data is not shown by default. If you continue with the saved tour, the legacy draft is replaced when you first edit it.",
+      "recover": "Recover legacy draft",
+      "useSavedTour": "Continue with saved tour"
+    },
     "errors": {
       "TOUR_NOT_FOUND": "Tour not found.",
       "TOUR_EDIT_LOAD_FAILED": "Failed to load tour.",

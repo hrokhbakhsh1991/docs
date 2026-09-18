@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildOperatorTourWhere } from "../src/tours/operator-tour-list-db-query";
+import {
+  buildOperatorTourWhere,
+  compareOperatorTourPrices,
+  readOperatorTourPrice,
+} from "../src/tours/operator-tour-list-db-query";
 
 describe("operator-tour-list-db-query", () => {
   it("applies category before Prisma pagination", () => {
@@ -22,5 +26,22 @@ describe("operator-tour-list-db-query", () => {
     });
 
     assert.equal("canonical" in where, false);
+  });
+
+  it("sorts canonical prices numerically and keeps missing prices last", () => {
+    const cheap = { data: { pricing: { basePricePerPerson: 123_333 } } };
+    const expensive = { data: { pricing: { basePricePerPerson: 2_500_000 } } };
+    const missing = { data: { pricing: {} } };
+
+    assert.equal(readOperatorTourPrice(cheap), 123_333);
+    assert.equal(
+      compareOperatorTourPrices(cheap, expensive, "cheap", "expensive", "asc") < 0,
+      true
+    );
+    assert.equal(
+      compareOperatorTourPrices(expensive, cheap, "expensive", "cheap", "desc") < 0,
+      true
+    );
+    assert.equal(compareOperatorTourPrices(missing, cheap, "missing", "cheap", "asc") > 0, true);
   });
 });
