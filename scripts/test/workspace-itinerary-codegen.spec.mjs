@@ -21,6 +21,7 @@ describe("workspace itinerary codegen (CW7-10)", () => {
     const generated = generateWorkspaceItineraryCapabilities(manifests);
     assert.match(generated, /wizardTourField: true as const/);
     assert.match(generated, /catalogDetailSection: true as const/);
+    assert.match(generated, /maxDayCount: 60 as const/);
     assert.match(generated, /"denali":/);
   });
 

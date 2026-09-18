@@ -2,6 +2,7 @@ import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
 const ITINERARY_SURFACE_KEYS = ["wizardTourField", "catalogDetailSection"];
+const ITINERARY_NUMERIC_CAPABILITY_KEYS = ["maxDayCount"];
 
 /**
  * @param {Record<string, unknown>} manifest
@@ -33,7 +34,9 @@ export function assertWorkspaceItineraryManifest(manifest) {
     throw new Error(`workspace.manifest.json ${manifest.id}: workspaceItinerary must be an object`);
   }
   if (typeof itinerary.supported !== "boolean") {
-    throw new Error(`workspace.manifest.json ${manifest.id}: workspaceItinerary.supported must be boolean`);
+    throw new Error(
+      `workspace.manifest.json ${manifest.id}: workspaceItinerary.supported must be boolean`
+    );
   }
   if (itinerary.supported === false) {
     for (const key of ["fieldModule", "wizardComposite"]) {
@@ -48,12 +51,21 @@ export function assertWorkspaceItineraryManifest(manifest) {
 
   const caps = itinerary.capabilities ?? {};
   if (typeof caps !== "object" || caps === null || Array.isArray(caps)) {
-    throw new Error(`workspace.manifest.json ${manifest.id}: workspaceItinerary.capabilities must be an object`);
+    throw new Error(
+      `workspace.manifest.json ${manifest.id}: workspaceItinerary.capabilities must be an object`
+    );
   }
   for (const key of ITINERARY_SURFACE_KEYS) {
     if (caps[key] !== undefined && typeof caps[key] !== "boolean") {
       throw new Error(
         `workspace.manifest.json ${manifest.id}: workspaceItinerary.capabilities.${key} must be boolean`
+      );
+    }
+  }
+  for (const key of ITINERARY_NUMERIC_CAPABILITY_KEYS) {
+    if (caps[key] !== undefined && (!Number.isInteger(caps[key]) || caps[key] < 1)) {
+      throw new Error(
+        `workspace.manifest.json ${manifest.id}: workspaceItinerary.capabilities.${key} must be a positive integer`
       );
     }
   }
@@ -69,6 +81,11 @@ export function assertWorkspaceItineraryManifest(manifest) {
   }
 
   if (caps.wizardTourField === true) {
+    if (!Number.isInteger(caps.maxDayCount) || caps.maxDayCount < 1) {
+      throw new Error(
+        `workspace.manifest.json ${manifest.id}: capabilities.wizardTourField requires capabilities.maxDayCount`
+      );
+    }
     if (itinerary.fieldModule === undefined) {
       throw new Error(
         `workspace.manifest.json ${manifest.id}: capabilities.wizardTourField requires fieldModule`
@@ -87,7 +104,10 @@ export function assertWorkspaceItineraryManifest(manifest) {
  */
 function resolveItinerarySurfaceFlags(itinerary) {
   const caps = itinerary.capabilities ?? {};
-  return Object.fromEntries(ITINERARY_SURFACE_KEYS.map((key) => [key, caps[key] === true]));
+  return {
+    ...Object.fromEntries(ITINERARY_SURFACE_KEYS.map((key) => [key, caps[key] === true])),
+    maxDayCount: caps.maxDayCount,
+  };
 }
 
 /**
@@ -113,6 +133,7 @@ export function generateWorkspaceItineraryCapabilities(manifests) {
     supported: true as const,
     wizardTourField: ${surfaces.wizardTourField ? "true" : "false"} as const,
     catalogDetailSection: ${surfaces.catalogDetailSection ? "true" : "false"} as const,
+    maxDayCount: ${surfaces.maxDayCount} as const,
   },`);
     }
   }
@@ -123,6 +144,7 @@ export type WorkspaceItineraryCapabilities = {
   readonly supported: true;
   readonly wizardTourField: boolean;
   readonly catalogDetailSection: boolean;
+  readonly maxDayCount: number;
 };
 
 export const WORKSPACE_ITINERARY_CAPABILITIES = {} as const;
@@ -140,6 +162,7 @@ export type WorkspaceItineraryCapabilities = {
   readonly supported: true;
   readonly wizardTourField: boolean;
   readonly catalogDetailSection: boolean;
+  readonly maxDayCount: number;
 };
 
 export const WORKSPACE_ITINERARY_CAPABILITIES = {
