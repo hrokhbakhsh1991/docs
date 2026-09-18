@@ -196,6 +196,7 @@
   "workspace": {
     "title": "مدیریت تور",
     "subnavAria": "بخش‌های مدیریت تور",
+    "subnavScrollHint": "برای دیدن بخش‌های دیگر، نوار را به چپ یا راست بکشید.",
     "openCommandCenter": "باز کردن مرکز رزروها",
     "openFinance": "باز کردن پیگیری پرداخت",
     "openWorkspace": "باز کردن مدیریت تور",

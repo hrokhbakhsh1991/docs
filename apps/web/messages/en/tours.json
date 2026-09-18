@@ -196,6 +196,7 @@
   "workspace": {
     "title": "Tour management",
     "subnavAria": "Tour workspace sections",
+    "subnavScrollHint": "Swipe the section bar left or right to see more sections.",
     "openCommandCenter": "Open Command Center",
     "openFinance": "Open payment follow-up",
     "openWorkspace": "Open tour workspace",

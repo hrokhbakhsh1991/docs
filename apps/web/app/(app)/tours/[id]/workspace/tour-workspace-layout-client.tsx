@@ -2,11 +2,12 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, MoreHorizontal } from "lucide-react";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { scrollHorizontalItemIntoView } from "@/components/ui/horizontal-scroll";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,6 +108,7 @@ function TourWorkspaceLayoutInner({
   const tErrors = useTranslations("tours.workspace.errors");
   const tNav = useTranslations("tours.nav");
   const { reloadNonce, navigateWorkspaceTab, activeTab } = useTourWorkspaceChrome();
+  const subnavRef = useRef<HTMLElement>(null);
   const canManage = isAdminOrOwnerRole(session.role);
   const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(() =>
     readCachedTourDetail(tourId)
@@ -204,6 +206,15 @@ function TourWorkspaceLayoutInner({
 
   const financeEnabled = includeFinance;
   const visibleActiveTab = activeTab === "finance" && !financeEnabled ? "registrations" : activeTab;
+
+  useEffect(() => {
+    const activeButton = subnavRef.current?.querySelector<HTMLButtonElement>(
+      `#tour-workspace-tab-${visibleActiveTab}`
+    );
+    if (activeButton !== null && activeButton !== undefined) {
+      scrollHorizontalItemIntoView(activeButton, { behavior: "auto" });
+    }
+  }, [visibleActiveTab]);
 
   useEffect(() => {
     if (activeTab === "finance" && !financeEnabled && navigateWorkspaceTab !== null) {
@@ -396,6 +407,7 @@ function TourWorkspaceLayoutInner({
       ) : null}
 
       <nav
+        ref={subnavRef}
         className="flex min-w-0 gap-2 overflow-x-auto border-b pb-2"
         role="tablist"
         aria-orientation="horizontal"
@@ -444,6 +456,10 @@ function TourWorkspaceLayoutInner({
           );
         })}
       </nav>
+
+      <p className="sm:hidden text-xs text-muted-foreground" data-testid="tour-workspace-subnav-scroll-hint">
+        {t("subnavScrollHint")}
+      </p>
 
       <p className="text-xs text-muted-foreground" data-testid={TOUR_WORKSPACE_TEST_IDS.tabHint}>
         {t(`tabsHint.${visibleActiveTab}`)}
