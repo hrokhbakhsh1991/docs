@@ -75,6 +75,23 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.financialDisplayState, "UNPAID");
   });
 
+  it("keeps legacy settled rows in the final roster while finalization is backfilled", () => {
+    const row = composeTourOperationalRosterRow({
+      booking: booking({ status: "approved" }),
+      invoice: {
+        remainingMinor: "0",
+        paidAmountMinor: "2500000",
+        invoiceTotalMinor: "2500000",
+        currency: "IRR",
+      },
+      hold: null,
+      refundStatuses: [],
+      nowIso: NOW,
+    });
+    assert.equal(row.finalizationStatus, "finalized");
+    assert.equal(row.isFinalParticipant, true);
+  });
+
   it("partial payment projection", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking(),
@@ -252,30 +269,12 @@ describe("DP-2 compose tour operational roster", () => {
       }),
     ];
 
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      matchesOperationalRosterFilter(rows[0]!, "expiring", NOW),
-      true
-    );
+    assert.equal(filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length, 1);
+    assert.equal(matchesOperationalRosterFilter(rows[0]!, "expiring", NOW), true);
   });
 
   it("transportKind post-filter", () => {

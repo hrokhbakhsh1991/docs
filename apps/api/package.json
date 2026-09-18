@@ -207,6 +207,7 @@
     "@casl/ability": "^6.7.3",
     "@prisma/client": "^6.19.0",
     "archiver": "^7.0.1",
+    "exceljs": "^4.4.0",
     "ioredis": "^5.6.1",
     "jose": "^6.1.0",
     "pino": "^9.6.0",

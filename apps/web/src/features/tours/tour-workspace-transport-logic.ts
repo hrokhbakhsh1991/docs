@@ -95,6 +95,7 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   settlementStatus: "operator-tour-workspace-driver-settlement-status",
   freezeButton: "operator-tour-workspace-roster-freeze",
   approvePayableButton: "operator-tour-workspace-settlement-approve-payable",
+  exportFinalRosterButton: "operator-tour-workspace-export-final-roster",
 } as const;
 
 export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [

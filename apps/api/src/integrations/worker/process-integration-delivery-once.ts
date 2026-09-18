@@ -17,6 +17,30 @@ export type ProcessIntegrationDeliveryDeps = {
   readonly deliveryRepository: IntegrationDeliveryRepository;
 };
 
+/**
+ * Forum-routed Telegram events must never silently fall back to the group's
+ * General topic. A missing mapping is a configuration failure, not a valid
+ * delivery destination.
+ */
+export function resolveTelegramDeliveryThreadId(input: {
+  readonly config: Record<string, unknown>;
+  readonly topicKey: string | null;
+}): { readonly ok: true; readonly threadId?: number } | { readonly ok: false } {
+  if (input.topicKey === null) {
+    return { ok: true };
+  }
+
+  const topicThreadIds =
+    typeof input.config.topicThreadIds === "object" && input.config.topicThreadIds !== null
+      ? (input.config.topicThreadIds as Record<string, unknown>)
+      : null;
+  const rawThreadId = topicThreadIds?.[input.topicKey];
+  if (typeof rawThreadId !== "number" || !Number.isSafeInteger(rawThreadId) || rawThreadId <= 0) {
+    return { ok: false };
+  }
+  return { ok: true, threadId: rawThreadId };
+}
+
 function deliveryFailureReason(error: Record<string, unknown> | undefined): string {
   return typeof error?.code === "string" && error.code.trim().length > 0
     ? error.code
@@ -69,15 +93,20 @@ export async function executeIntegrationDeliveryJob(
     }
     const topicKey =
       typeof job.payload.telegramTopicKey === "string" ? job.payload.telegramTopicKey : null;
-    const topicThreadIds =
-      typeof connection.config.topicThreadIds === "object" &&
-      connection.config.topicThreadIds !== null
-        ? (connection.config.topicThreadIds as Record<string, unknown>)
-        : {};
-    const messageThreadId =
-      topicKey !== null && typeof topicThreadIds[topicKey] === "number"
-        ? topicThreadIds[topicKey]
-        : undefined;
+    const topicResolution = resolveTelegramDeliveryThreadId({
+      config: connection.config,
+      topicKey,
+    });
+    if (!topicResolution.ok) {
+      return {
+        ok: false,
+        error: {
+          code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING",
+          message: `No Telegram forum topic is configured for ${topicKey}`,
+        },
+      };
+    }
+    const messageThreadId = topicResolution.threadId;
     const result = await adapter.sendMessage(ctx, {
       channelId,
       ...(messageThreadId === undefined ? {} : { messageThreadId }),

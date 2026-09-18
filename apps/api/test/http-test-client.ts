@@ -12,6 +12,12 @@ export type HttpTestJsonResult<T extends Record<string, unknown> = Record<string
   readonly body: T;
 };
 
+export type HttpTestRawResult = {
+  readonly status: number;
+  readonly headers: Record<string, string | string[] | undefined>;
+  readonly body: Buffer;
+};
+
 type RequestListener = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
 export type HttpTestClient = {
@@ -20,6 +26,11 @@ export type HttpTestClient = {
     path: string,
     options?: HttpTestJsonOptions
   ) => Promise<HttpTestJsonResult<T>>;
+  readonly requestRaw: (
+    method: string,
+    path: string,
+    options?: HttpTestJsonOptions
+  ) => Promise<HttpTestRawResult>;
 };
 
 async function closeTestServer(server: Server): Promise<void> {
@@ -66,8 +77,22 @@ export function installHttpTestClient(createListener: () => RequestListener): Ht
     path: string,
     options?: HttpTestJsonOptions
   ): Promise<HttpTestJsonResult<T>> {
+    const response = await requestRaw(method, path, options);
+    const text = response.body.toString("utf8");
+    let body = {} as T;
+    if (text.length > 0) {
+      body = JSON.parse(text) as T;
+    }
+    return { status: response.status, body };
+  }
+
+  async function requestRaw(
+    method: string,
+    path: string,
+    options?: HttpTestJsonOptions
+  ): Promise<HttpTestRawResult> {
     const payload = options?.body === undefined ? undefined : JSON.stringify(options.body);
-    return new Promise<HttpTestJsonResult<T>>((resolve, reject) => {
+    return new Promise<HttpTestRawResult>((resolve, reject) => {
       const req = http.request(
         {
           hostname: "127.0.0.1",
@@ -89,17 +114,11 @@ export function installHttpTestClient(createListener: () => RequestListener): Ht
           const chunks: Buffer[] = [];
           res.on("data", (chunk) => chunks.push(chunk as Buffer));
           res.on("end", () => {
-            const text = Buffer.concat(chunks).toString("utf8");
-            let body = {} as T;
-            if (text.length > 0) {
-              try {
-                body = JSON.parse(text) as T;
-              } catch (parseError) {
-                reject(parseError);
-                return;
-              }
-            }
-            resolve({ status: res.statusCode ?? 0, body });
+            resolve({
+              status: res.statusCode ?? 0,
+              headers: res.headers,
+              body: Buffer.concat(chunks),
+            });
           });
         }
       );
@@ -111,5 +130,5 @@ export function installHttpTestClient(createListener: () => RequestListener): Ht
     });
   }
 
-  return { requestJson };
+  return { requestJson, requestRaw };
 }
