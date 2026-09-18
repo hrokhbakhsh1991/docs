@@ -12,7 +12,7 @@ export type WorkspaceItineraryCapabilities = {
 };
 
 export const WORKSPACE_ITINERARY_CAPABILITIES = {
-  denali: {
+  "denali": {
     supported: true as const,
     wizardTourField: true as const,
     catalogDetailSection: true as const,
