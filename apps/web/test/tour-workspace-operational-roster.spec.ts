@@ -52,6 +52,14 @@ describe("DP-2 tour workspace operational roster contract", () => {
     }
   });
 
+  it("labels the non-editable transport value as a status", () => {
+    const faMessages = readFileSync(join(webRoot, "messages/fa/tours.json"), "utf8");
+    const enMessages = readFileSync(join(webRoot, "messages/en/tours.json"), "utf8");
+
+    assert.match(faMessages, /"transportIntake": "وضعیت حمل"/);
+    assert.match(enMessages, /"transportIntake": "Transport status"/);
+  });
+
   it("BFF proxies tour operational roster route", () => {
     const route = readFileSync(
       join(webRoot, "app/api/tours/[id]/operational-roster/route.ts"),
