@@ -57,7 +57,10 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-01-awaiting-approval.png");
   });
 
-  test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({ page, browser }) => {
+  test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({
+    page,
+    browser,
+  }) => {
     const contact = uniqueContact("book-bqc-02");
     const guestName = "BOOK BQC 02 Approved";
     await completePortalCatalogRegistration(page, {
@@ -88,7 +91,10 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-02-upload-unlocked.png");
   });
 
-  test("BOOK-BQC-03 operator reject shows closed registration to member", async ({ page, browser }) => {
+  test("BOOK-BQC-03 operator reject shows closed registration to member", async ({
+    page,
+    browser,
+  }) => {
     const contact = uniqueContact("book-bqc-03");
     const guestName = "BOOK BQC 03 Rejected";
     await completePortalCatalogRegistration(page, {
@@ -117,7 +123,10 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-03-rejected-closed.png");
   });
 
-  test("BOOK-BQC-04 member receipt upload enters waiting-for-review state", async ({ page, browser }) => {
+  test("BOOK-BQC-04 member receipt upload enters waiting-for-review state", async ({
+    page,
+    browser,
+  }) => {
     const contact = uniqueContact("book-bqc-04");
     const guestName = "BOOK BQC 04 Receipt";
     await completePortalCatalogRegistration(page, {
@@ -178,13 +187,21 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       timeout: 60_000,
     });
 
+    await attachMemberReceiptFile(page);
+    await submitMemberReceiptUpload(page, registrationId);
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-upload]")).toHaveCount(0);
+
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
       timeout: 60_000,
     });
+    await expect(page.locator("[data-portal-member-receipt-upload]")).toHaveCount(0);
 
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-05-persist-after-reload.png");
   });

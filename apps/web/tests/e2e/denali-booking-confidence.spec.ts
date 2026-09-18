@@ -16,6 +16,8 @@ import {
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 import {
+  OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+  OPERATOR_SMOKE_TENANT_ID,
   resolveChainSmokePublishedTourId,
   resolveChainSmokeTenantId,
   seedChainGuestRegistrationViaApi,
@@ -137,7 +139,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     const booking = await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p3-e03-${stamp}@denali-smoke.local`,
-      mobile: `+1555${String(stamp).slice(-7)}`,
+      mobile: `0912${String(stamp).slice(-7)}`,
       tenantId: BOOKING_SCENARIO_TENANT_ID,
       ...(BOOKING_SCENARIO_CHAIN_TOUR_ID ? { tourId: BOOKING_SCENARIO_CHAIN_TOUR_ID } : {}),
     });
@@ -199,7 +201,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     const booking = await seedChainGuestRegistrationViaApi(request, {
       guestName,
       email: `p3-e04-${stamp}@denali-smoke.local`,
-      mobile: `+1555${String(stamp).slice(-7)}`,
+      mobile: `0912${String(stamp).slice(-7)}`,
       tenantId: BOOKING_SCENARIO_TENANT_ID,
       ...(BOOKING_SCENARIO_CHAIN_TOUR_ID
         ? { tourId: DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID }
