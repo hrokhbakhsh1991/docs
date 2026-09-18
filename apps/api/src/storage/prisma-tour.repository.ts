@@ -113,9 +113,7 @@ export class PrismaTourRepository implements TourStorageRepository {
 
   async getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]> {
     assertTenantId(tenantId);
-    const unique = [
-      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
-    ];
+    const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
     if (unique.length === 0) {
       return [];
     }
@@ -282,7 +280,9 @@ export class PrismaTourRepository implements TourStorageRepository {
     });
   }
 
-  async listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput> {
+  async listOperatorToursPage(
+    input: TourOperatorListPageInput
+  ): Promise<TourOperatorListPageOutput> {
     assertTenantId(input.tenantId);
     const { query } = input;
     return withTenantRls(input.tenantId, async (tx) => {
@@ -290,6 +290,7 @@ export class PrismaTourRepository implements TourStorageRepository {
         tenantId: input.tenantId,
         search: query.search,
         status: query.status,
+        category: query.category,
       });
       const total = query.includeTotal ? await tx.tour.count({ where }) : 0;
       const rows = await tx.tour.findMany({

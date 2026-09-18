@@ -575,6 +575,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
         return allowed.has(publishStatus);
       });
     }
+    if (query.category !== undefined && query.category.length > 0) {
+      items = items.filter(
+        (tour) =>
+          typeof tour.canonical.data?.category === "string" &&
+          tour.canonical.data.category === query.category
+      );
+    }
     items.sort((left, right) =>
       compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir)
     );

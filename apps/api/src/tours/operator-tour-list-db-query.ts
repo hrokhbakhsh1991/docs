@@ -52,6 +52,7 @@ export function buildOperatorTourWhere(input: {
   readonly tenantId: string;
   readonly search?: string;
   readonly status?: OperatorListStatusFilter;
+  readonly category?: string;
 }): Prisma.TourWhereInput {
   const search = input.search?.trim();
   return {
@@ -61,6 +62,9 @@ export function buildOperatorTourWhere(input: {
       : {}),
     ...(input.status !== undefined
       ? { publishStatus: { in: [...publishStatusesForOperatorFilter(input.status)] } }
+      : {}),
+    ...(input.category !== undefined && input.category.length > 0
+      ? { canonical: { path: ["data", "category"], equals: input.category } }
       : {}),
   };
 }

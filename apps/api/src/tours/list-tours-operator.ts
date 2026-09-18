@@ -1,8 +1,4 @@
-import {
-  buildTourListProjection,
-  type TourListProjection,
-  type TourListProjectionFields,
-} from "@app-tour/workspace-sdk";
+import { buildTourListProjection, type TourListProjection } from "@app-tour/workspace-sdk";
 
 import type { ApiAbility } from "../casl/api-ability";
 import { ScopedTourRepository } from "../db/scoped-tour.repository";
@@ -20,7 +16,11 @@ import {
   OperatorListStatusFilter,
 } from "./operator-tour-list-types";
 
-export type { OperatorListSortBy, OperatorListSortDir, OperatorListStatusFilter } from "./operator-tour-list-types";
+export type {
+  OperatorListSortBy,
+  OperatorListSortDir,
+  OperatorListStatusFilter,
+} from "./operator-tour-list-types";
 
 export type OperatorListToursQuery = {
   readonly search?: string;
@@ -50,16 +50,6 @@ function toRowMeta(record: TourRecord) {
   };
 }
 
-function matchesCategoryFilter(
-  projection: TourListProjectionFields,
-  category: string | undefined
-): boolean {
-  if (category === undefined || category.length === 0) {
-    return true;
-  }
-  return projection.category === category;
-}
-
 export async function listToursOperator(
   store: TourStorageRepository,
   ability: ApiAbility,
@@ -82,10 +72,9 @@ export async function listToursOperator(
     buildTourListProjection(toRowMeta(record), record.canonical, extract)
   );
 
-  const filtered = projected.filter((row) => matchesCategoryFilter(row, query.category));
   const recordsById = new Map(records.map((record) => [record.id, record] as const));
   const pageItemsWithCover = await enrichTourListProjectionsCoverImageUrls(
-    filtered,
+    projected,
     recordsById,
     tenantId,
     workspaceType

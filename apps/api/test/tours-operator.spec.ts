@@ -166,6 +166,28 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     assert.equal(list.body.items![0]!.category, "mountain_day");
   });
 
+  it("CP-9.3-L05b applies category before pagination and reports the filtered total", async () => {
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Category page mismatch non-match", undefined, "desert_day"),
+    });
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Category page mismatch match", undefined, "mountain_day"),
+    });
+
+    const list = await client.requestJson<OperatorListResponse>(
+      "GET",
+      "/tours?view=operator&search=Category%20page%20mismatch&category=mountain_day&limit=1&page=1",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(list.status, 200);
+    assert.equal(list.body.total, 1);
+    assert.equal(list.body.items?.length, 1);
+    assert.equal(list.body.items![0]!.title, "Category page mismatch match");
+    assert.equal(list.body.items![0]!.category, "mountain_day");
+  });
+
   it("CP-9.3-L04 sort_by=title&sort_dir=asc orders rows", async () => {
     await client.requestJson<OperatorListResponse>("POST", "/tours", {
       headers: operatorAuthHeaders(),
