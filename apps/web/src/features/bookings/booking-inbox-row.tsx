@@ -84,9 +84,7 @@ function BookingInboxSubmittedMeta({
 
   return (
     <div className="min-w-0 space-y-0.5 text-xs leading-4 text-muted-foreground lg:text-end">
-      <p className="truncate text-muted-foreground/80">
-        {identityLabel}
-      </p>
+      <p className="truncate text-muted-foreground/80">{identityLabel}</p>
       <p className="truncate">{submittedLabel}</p>
       {pendingAgeDays !== null ? (
         <p className="truncate text-muted-foreground/80">
@@ -204,7 +202,10 @@ export function BookingInboxRow({
             </p>
           ) : null}
 
-          <div className="min-w-0 space-y-0.5 text-xs leading-4 text-muted-foreground" data-operator-booking-row-schedule>
+          <div
+            className="min-w-0 space-y-0.5 text-xs leading-4 text-muted-foreground"
+            data-operator-booking-row-schedule
+          >
             <p className="truncate font-medium text-foreground/90">{departureLabel}</p>
             {capacityLabel !== null ? (
               <p className="truncate">
@@ -238,7 +239,7 @@ export function BookingInboxRow({
             type="button"
             size="sm"
             variant={inlineApproveArmed ? "default" : "outline"}
-            className="h-8 min-w-[5.5rem] px-2.5"
+            className="h-8 w-full min-w-0 px-2.5 sm:w-auto sm:min-w-[5.5rem]"
             disabled={inlineApproveBusy}
             data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.inlineApproveButton}
             data-armed={inlineApproveArmed ? "true" : "false"}

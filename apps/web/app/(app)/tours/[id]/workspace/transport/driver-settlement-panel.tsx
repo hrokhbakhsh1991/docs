@@ -89,13 +89,13 @@ export function DriverSettlementPanel({
       });
       if (!res.ok) throw new Error(`FREEZE_HTTP_${res.status}`);
       const loaded = await loadSettlements();
-      setMessage(
-        loaded ? t("settlement.rosterFrozen") : t("settlement.rosterFrozenLoadFailed")
-      );
+      setMessage(loaded ? t("settlement.rosterFrozen") : t("settlement.rosterFrozenLoadFailed"));
     } catch (e: unknown) {
-      setMessage(e instanceof Error && e.message === "ALLOC_FAILED"
-        ? t("settlement.allocationFailed")
-        : t("settlement.freezeFailed"));
+      setMessage(
+        e instanceof Error && e.message === "ALLOC_FAILED"
+          ? t("settlement.allocationFailed")
+          : t("settlement.freezeFailed")
+      );
     } finally {
       setLoading(false);
     }
@@ -148,15 +148,15 @@ export function DriverSettlementPanel({
       className="space-y-3 rounded-lg border p-4"
       data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.settlementPanel}
     >
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="text-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <label className="min-w-0 text-sm sm:flex-1">
           {t("settlement.unitPerSeat")}
           <Input
             value={unitMinor}
             inputMode="numeric"
             aria-describedby="driver-settlement-unit-hint"
             onChange={(e) => setUnitMinor(e.target.value)}
-            className="mt-1 w-32"
+            className="mt-1 w-full sm:w-32"
           />
           <span id="driver-settlement-unit-hint" className="sr-only">
             {t("settlement.unitAmountHint")}
@@ -165,6 +165,7 @@ export function DriverSettlementPanel({
         <Button
           type="button"
           size="sm"
+          className="w-full sm:w-auto"
           disabled={loading || driverRegistrationId === null}
           data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.freezeButton}
           onClick={() => void freezeRoster()}
