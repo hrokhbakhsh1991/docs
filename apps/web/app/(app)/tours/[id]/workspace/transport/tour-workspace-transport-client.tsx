@@ -132,7 +132,9 @@ export function TourWorkspaceTransportClient({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `denali-tour-${tourId}-final-roster.xlsx`;
+      anchor.download =
+        readAttachmentFilename(response.headers.get("Content-Disposition")) ??
+        `denali-tour-${tourId}-final-roster.xlsx`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -488,4 +490,10 @@ export function TourWorkspaceTransportClient({
       </CardContent>
     </Card>
   );
+}
+
+function readAttachmentFilename(contentDisposition: string | null): string | null {
+  const match = contentDisposition?.match(/filename="([^"]+)"/i);
+  const filename = match?.[1]?.trim() ?? "";
+  return filename.length > 0 ? filename : null;
 }
