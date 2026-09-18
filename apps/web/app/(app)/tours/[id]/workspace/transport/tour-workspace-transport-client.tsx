@@ -63,6 +63,8 @@ export function TourWorkspaceTransportClient({
   const [error, setError] = useState<string | null>(null);
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
   const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const loadTransport = useCallback(async () => {
     setLoading(true);
@@ -112,6 +114,33 @@ export function TourWorkspaceTransportClient({
       setFinalizationMessage(t("finalizeParticipantFailed"));
     } finally {
       setFinalizingId(null);
+    }
+  };
+
+  const exportFinalRoster = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const response = await fetch(
+        `/api/tours/${encodeURIComponent(tourId)}/operational-roster/export?filter=final&format=xlsx`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) {
+        throw new Error(`ROSTER_EXPORT_HTTP_${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `denali-tour-${tourId}-final-roster.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError(t("exportFailed"));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -255,6 +284,24 @@ export function TourWorkspaceTransportClient({
           </p>
         ) : null}
         <TourWorkspaceTransportControls filter={filter} onFilterChange={setFilter} />
+        {canManage ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.exportFinalRosterButton}
+              onClick={() => void exportFinalRoster()}
+              disabled={exporting}
+            >
+              {exporting ? t("exporting") : t("exportFinalRoster")}
+            </Button>
+            {exportError !== null ? (
+              <p className="text-sm text-destructive" role="alert">
+                {exportError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {loading ? <Skeleton className="h-32 w-full rounded-lg" /> : null}
         {localizedError !== null ? (

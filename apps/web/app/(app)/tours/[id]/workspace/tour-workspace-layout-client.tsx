@@ -396,7 +396,7 @@ function TourWorkspaceLayoutInner({
       ) : null}
 
       <nav
-        className="flex flex-wrap gap-2 border-b pb-2"
+        className="flex min-w-0 gap-2 overflow-x-auto border-b pb-2"
         role="tablist"
         aria-orientation="horizontal"
         aria-label={t("subnavAria")}
@@ -419,7 +419,7 @@ function TourWorkspaceLayoutInner({
                 handleWorkspaceTabKeyDown(event, subnavTabs, tab, navigateWorkspaceTab)
               }
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
                 isActive
                   ? "bg-primary font-medium text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted"

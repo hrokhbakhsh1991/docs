@@ -243,8 +243,7 @@ export function BookingsPageClient({
     options?: { preservePagination?: boolean }
   ) => {
     const shouldReset =
-      options?.preservePagination !== true &&
-      shouldResetBookingsPagination(queryRef.current, next);
+      options?.preservePagination !== true && shouldResetBookingsPagination(queryRef.current, next);
     let scoped = shouldReset ? withBookingsPaginationReset(next) : next;
     if (shouldReset) {
       pageStartCursorsRef.current = { 1: "" };
@@ -1247,7 +1246,7 @@ export function BookingsPageClient({
       >
         <SheetContent
           side="bottom"
-          className="max-h-[90vh] overflow-y-auto rounded-t-xl lg:hidden"
+          className="max-h-[90vh] overflow-y-auto rounded-t-xl pb-[calc(1.5rem+env(safe-area-inset-bottom))] lg:hidden"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.mobileInspectionSheet}
         >
           {inspectionTarget !== null ? (

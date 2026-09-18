@@ -468,6 +468,9 @@
     "transport": {
       "title": "Operations roster",
       "description": "Approved guests; track payment, finalization, attendance, and transport here.",
+      "exportFinalRoster": "Export final roster to Excel",
+      "exporting": "Building file…",
+      "exportFailed": "Could not build the Excel file.",
       "tableCaption": "Operations roster with payment and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",

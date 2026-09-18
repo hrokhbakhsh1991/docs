@@ -22,6 +22,10 @@ export type TourOperationalRosterRow = {
   readonly registrationId: string;
   readonly tourId: string;
   readonly guestLabel: string;
+  /** Ops-only contact/timeline scalars; never the registration intake blob. */
+  readonly guestPhone?: string | null;
+  readonly approvedAt?: string | null;
+  readonly finalizedAt?: string | null;
   /** Ops list projection — submitter user id for avatar parity. */
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */

@@ -100,16 +100,13 @@ export function OperatorDirectoryFilterChrome({
       </div>
 
       {activeChips.length > 0 ? (
-        <div
-          className="flex flex-wrap items-center gap-2"
-          data-testid={activeFiltersTestId}
-        >
+        <div className="flex flex-wrap items-center gap-2" data-testid={activeFiltersTestId}>
           {activeChips.map((chip) => (
-            <Badge key={chip.key} variant="secondary" className="gap-1 pe-1">
-              <span>{chip.label}</span>
+            <Badge key={chip.key} variant="secondary" className="max-w-full gap-1 pe-1">
+              <span className="min-w-0 break-words">{chip.label}</span>
               <button
                 type="button"
-                className="rounded-sm p-0.5 hover:bg-muted"
+                className="shrink-0 rounded-sm p-0.5 hover:bg-muted"
                 aria-label={removeFilterAriaLabel(chip.label)}
                 onClick={chip.onRemove}
               >

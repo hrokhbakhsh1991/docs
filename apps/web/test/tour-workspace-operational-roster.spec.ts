@@ -61,6 +61,21 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.match(route, /resolveTourOpsApiBaseUrl/);
   });
 
+  it("exposes the final roster Excel export only from the operator transport surface", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    const exportRoute = readFileSync(
+      join(webRoot, "app/api/tours/[id]/operational-roster/export/route.ts"),
+      "utf8"
+    );
+    assert.match(client, /exportFinalRosterButton/);
+    assert.match(client, /canManage/);
+    assert.match(client, /format=xlsx/);
+    assert.match(exportRoute, /operational-roster\/export/);
+  });
+
   it("payment follow-up list is roster-backed and does not duplicate registration approvals", () => {
     const hook = readFileSync(
       join(webRoot, "src/features/tours/use-tour-workspace-payment-follow-up-list.ts"),
