@@ -70,6 +70,12 @@ export function assertWorkspaceItineraryManifest(manifest) {
     }
   }
 
+  if (!Number.isInteger(caps.maxDayCount) || caps.maxDayCount < 1) {
+    throw new Error(
+      `workspace.manifest.json ${manifest.id}: workspaceItinerary.supported=true requires capabilities.maxDayCount`
+    );
+  }
+
   if (caps.catalogDetailSection === true) {
     const presentation = readCatalogPresentation(manifest);
     const detailSections = presentation?.detailSections ?? {};
@@ -81,11 +87,6 @@ export function assertWorkspaceItineraryManifest(manifest) {
   }
 
   if (caps.wizardTourField === true) {
-    if (!Number.isInteger(caps.maxDayCount) || caps.maxDayCount < 1) {
-      throw new Error(
-        `workspace.manifest.json ${manifest.id}: capabilities.wizardTourField requires capabilities.maxDayCount`
-      );
-    }
     if (itinerary.fieldModule === undefined) {
       throw new Error(
         `workspace.manifest.json ${manifest.id}: capabilities.wizardTourField requires fieldModule`
