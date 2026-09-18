@@ -178,10 +178,9 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     expect(tenantDarkPrimary).toBe("#5eead4");
 
     await expect
-      .poll(
-        async () => continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor),
-        { timeout: 5_000 }
-      )
+      .poll(async () => continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor), {
+        timeout: 5_000,
+      })
       .toBe("rgb(94, 234, 212)");
   });
 
@@ -286,7 +285,9 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     if (await overbookDialog.isVisible().catch(() => false)) {
       await overbookDialog.getByRole("button", { name: /باز هم تأیید|approve anyway/i }).click();
     }
-    await expect.poll(() => approveResponseOk, { timeout: 15_000 }).toBe(true);
+    // The first authenticated POST can include a cold dev BFF/API compilation; the
+    // production build has no compile phase, but the smoke must not report a false failure.
+    await expect.poll(() => approveResponseOk, { timeout: 75_000 }).toBe(true);
     page.off("response", responseListener);
 
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection)).toContainText(
@@ -336,9 +337,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       inviteToken,
       skipDashboard: true,
     });
-    const inviteeAbility = await inviteePage.request.get(
-      "/api/auth/membership-ability-context"
-    );
+    const inviteeAbility = await inviteePage.request.get("/api/auth/membership-ability-context");
     expect(inviteeAbility.ok()).toBeTruthy();
     await inviteePage.goto("/dashboard", { waitUntil: "domcontentloaded" });
     await expect(inviteePage).toHaveURL(/\/auth\/login\?.*access=owner-only/);
@@ -659,7 +658,9 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     });
     await page.getByTestId(SETTINGS_HUB_TEST_IDS.profileDisplayName).fill(displayName);
     await page.getByTestId(SETTINGS_HUB_TEST_IDS.profileSave).click();
-    await expect(page.getByText(/پروفایل ذخیره شد|Profile saved/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/پروفایل ذخیره شد|Profile saved/i)).toBeVisible({
+      timeout: 15_000,
+    });
     await page.reload();
     await expect(page.getByTestId(SETTINGS_HUB_TEST_IDS.profileDisplayName)).toHaveValue(
       displayName,

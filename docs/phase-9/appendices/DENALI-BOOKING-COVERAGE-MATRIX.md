@@ -24,6 +24,7 @@ accepts a signed webhook.
 | Capacity              | available, exact-full, over-capacity, waitlist enabled/disabled                                                                                |
 | Booking state         | `pending`, `waitlisted`, `approved`, `rejected`, `cancelled`                                                                                   |
 | Payment state         | Booking projection: `unpaid`, `partial`, `paid`; finance workflow: `under_review`; free collection: `waived`; payment hold terminal: `expired` |
+| Finalization state    | explicit `not_final`/`finalized`; legacy rows with no field; stale finalized metadata on non-approved rows                                     |
 | Actor                 | guest, authenticated member, owner/admin, support, wrong tenant                                                                                |
 | Collection path       | no payment, manual payment/receipt, gateway, refund/cancel                                                                                     |
 
@@ -52,6 +53,18 @@ Each applicable combination must verify all of these outputs:
 | B-06 | paid       | manual → reject  | `rejected`            | no actionable payment                            |
 | B-07 | paid       | auto → pay       | `approved`            | `partial` then `paid`                            |
 | B-08 | free       | auto → cancel    | `cancelled`           | no financial debt or payment CTA                 |
+
+### Finalization overlay
+
+These rows are independent of payment settlement and must be asserted at the
+roster projection boundary:
+
+| ID   | Lifecycle                     | Finalization input                       | Expected final roster          | Expected payment view                     |
+| ---- | ----------------------------- | ---------------------------------------- | ------------------------------ | ----------------------------------------- |
+| B-09 | `approved`                    | explicit `finalized`, balance > 0        | included                       | remains unpaid/debtor                     |
+| B-10 | `approved`                    | explicit `not_final`, balance = 0        | excluded                       | paid state is not sufficient for finality |
+| B-11 | `approved`                    | legacy missing finalization, balance = 0 | included by compatibility rule | paid                                      |
+| B-12 | waitlisted/rejected/cancelled | stale `finalized` metadata               | excluded                       | non-operational                           |
 
 ## Discount cross-product
 
@@ -93,6 +106,7 @@ For each applicable registration row, exercise:
 | Member portal status/deadline              | `apps/portal/test/tour-booking-management-matrix.spec.ts`, `apps/portal/test/portal-payment-deadline.spec.ts`                                                             | portal logic/contract                                  |
 | Portal purchase → member reservations list | `apps/portal/tests/e2e/portal-member-smoke.spec.ts` (`SMK-PTL-02`, local trace)                                                                                           | OTP + profile + Denali POST 201 + member list 200      |
 | Browser operator journeys                  | `apps/web/tests/e2e/scenario*.spec.ts`                                                                                                                                    | manual/ad-hoc browser E2E                              |
+| Final roster and mobile transport surface  | `packages/workspaces/denali/test/operational-roster-semantics.spec.ts`, `apps/web/tests/e2e/operator-gap-audit.browser.spec.ts`                                           | pure semantics + 390px browser E2E                     |
 
 The Denali dev smoke bootstrap exposes dedicated, non-production fixture tours
 for browser evidence of the core pricing/approval cross-product: paid+auto,

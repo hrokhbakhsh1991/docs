@@ -31,6 +31,7 @@ import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
 import { getPrismaAdmin } from "../db/prisma";
 import { logger } from "../observability/logger";
 import { PrismaTourRepository } from "../storage/prisma-tour.repository";
+import { runWithTenantContext } from "../tenant/tenant-request-context";
 
 /** Idempotent Prisma seed — published tour for denali.club dev tenant (…000003). */
 export async function seedDenaliClubDevPublishedTour(tenantId: string): Promise<void> {
@@ -320,38 +321,44 @@ export async function seedOperatorSmokeParticipantRequirementsTour(
 
 /** Idempotent — transport smoke tours for DEN-TRANS staging (…000213 bus · …000214 shared_cars). */
 export async function seedOperatorSmokeTransportTours(tenantId: string): Promise<void> {
-  const repo = new PrismaTourRepository();
+  await runWithTenantContext(
+    tenantId,
+    async () => {
+      const repo = new PrismaTourRepository();
 
-  const bus = await repo.getById(OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, tenantId);
-  if (bus === null) {
-    await repo.save(buildOperatorSmokeTransportBusTour({ tenantId }));
-    logger.info(
-      {
-        event: "db.seed.operator_smoke_transport_bus_tour",
-        tenantId,
-        tourId: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
-      },
-      "operator smoke transport (bus) tour seeded"
-    );
-  } else {
-    const canonical = structuredClone(bus.canonical);
-    const data = canonical.data as Record<string, unknown>;
-    if (data.capacityMax !== 100) {
-      data.capacityMax = 100;
-      await repo.save({ ...bus, rowVersion: bus.rowVersion + 1, canonical });
-    }
-  }
+      const bus = await repo.getById(OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, tenantId);
+      if (bus === null) {
+        await repo.save(buildOperatorSmokeTransportBusTour({ tenantId }));
+        logger.info(
+          {
+            event: "db.seed.operator_smoke_transport_bus_tour",
+            tenantId,
+            tourId: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+          },
+          "operator smoke transport (bus) tour seeded"
+        );
+      } else {
+        const canonical = structuredClone(bus.canonical);
+        const data = canonical.data as Record<string, unknown>;
+        if (data.capacityMax !== 100) {
+          data.capacityMax = 100;
+          await repo.save({ ...bus, rowVersion: bus.rowVersion + 1, canonical });
+        }
+      }
 
-  const shared = await repo.getById(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID, tenantId);
-  if (shared === null) {
-    await repo.save(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
-    logger.info(
-      {
-        event: "db.seed.operator_smoke_transport_shared_cars_tour",
-        tenantId,
-        tourId: OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
-      },
-      "operator smoke transport (shared_cars) tour seeded"
-    );
-  }
+      const shared = await repo.getById(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID, tenantId);
+      if (shared === null) {
+        await repo.save(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
+        logger.info(
+          {
+            event: "db.seed.operator_smoke_transport_shared_cars_tour",
+            tenantId,
+            tourId: OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+          },
+          "operator smoke transport (shared_cars) tour seeded"
+        );
+      }
+    },
+    { workspaceType: "denali" }
+  );
 }

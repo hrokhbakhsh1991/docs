@@ -153,7 +153,9 @@ export default async function globalSetup(): Promise<void> {
   const base =
     process.env.SMOKE_PORTAL_BASE_URL?.replace(/\/$/, "") ??
     process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
-    "http://127.0.0.1:3003";
+    // Warm the same host that Playwright uses. Using 127.0.0.1 here bypasses
+    // host-based tenant resolution and leaves authenticated BFF routes cold.
+    "http://portal.operator.localhost:3003";
 
   const defaultSmokeTourId = base.includes("denali")
     ? DENALI_SMOKE_TOUR_ID
@@ -166,6 +168,18 @@ export default async function globalSetup(): Promise<void> {
   await waitForUrl(`${base}/me/registrations`);
   await waitForUrl(`${base}/api/me/registrations`);
   await warmPublicAuthBffRoutes(base);
+
+  // Compile both steps of the authenticated mobile-change flow before the
+  // slower member-page warmups. Otherwise Next dev can serialize these route
+  // compilations behind the profile page and hold the browser fetch.
+  await warmPortalBffPostRoute(base, "/api/me/mobile/request-otp", {
+    phone: "+15550009999",
+  });
+  await warmPortalBffPostRoute(base, "/api/me/mobile/verify", {
+    phone: "+15550009999",
+    otp: "1234",
+    challenge_id: "warmup",
+  });
 
   const warmupRegistrationId = "00000000-0000-4000-8000-000000000299";
   const meBffRoutes = [
