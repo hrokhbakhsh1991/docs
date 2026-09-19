@@ -37,12 +37,12 @@ their own migration/acceptance suite.
 
 ## First-delivery HTTP contract
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/tours/:tourId/execution` | Read execution and driver facts for the tenant. |
-| POST | `/tours/:tourId/execution/start` | Idempotently begin execution. |
-| PATCH | `/tours/:tourId/execution/drivers/:registrationId` | Versioned update of attendance/count. |
-| POST | `/tours/:tourId/execution/complete` | Mark execution completed; no financial effect. |
+| Method | Path                                               | Purpose                                         |
+| ------ | -------------------------------------------------- | ----------------------------------------------- |
+| GET    | `/tours/:tourId/execution`                         | Read execution and driver facts for the tenant. |
+| POST   | `/tours/:tourId/execution/start`                   | Idempotently begin execution.                   |
+| PATCH  | `/tours/:tourId/execution/drivers/:registrationId` | Versioned update of attendance/count.           |
+| POST   | `/tours/:tourId/execution/complete`                | Mark execution completed; no financial effect.  |
 
 All write commands require the existing operator session in this first slice.
 The follow-up must introduce separate execution and finance permissions before
@@ -61,3 +61,12 @@ any wallet-credit command lands.
 - Wallet credit/reversal and member-wallet UI.
 - Payment-destination encryption, withdrawal reservation, approval and payment.
 - Telegram/SMS notifications for execution changes.
+
+## Operator UI boundary
+
+The operator workspace exposes an `execution` tab beside the operational roster.
+It is usable on mobile and may start, update, and complete an execution only for
+the existing admin/owner roles. The UI displays the driver identity from the
+operational roster, but treats the execution API as the source of truth for
+attendance and actual passenger counts. It must never display a credit action,
+wallet balance, withdrawal destination, or a financial amount in this delivery.

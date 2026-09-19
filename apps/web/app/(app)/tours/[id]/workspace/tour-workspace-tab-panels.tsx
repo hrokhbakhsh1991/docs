@@ -9,6 +9,7 @@ import { TourWorkspaceFinanceClient } from "@/features/tours/tour-workspace-fina
 import type { TourWorkspaceSubnavTab } from "@/features/tours/tour-workspace-types";
 import { TourWorkspaceRegistrationsClient } from "./tour-workspace-registrations-client";
 import { TourWorkspaceTransportClient } from "./transport/tour-workspace-transport-client";
+import { TourWorkspaceExecutionClient } from "./execution/tour-workspace-execution-client";
 import { TourWorkspaceWaitlistClient } from "./waitlist/tour-workspace-waitlist-client";
 
 type TourWorkspaceTabPanelsProps = {
@@ -97,6 +98,21 @@ export function TourWorkspaceTabPanels({
           <TourWorkspaceTransportClient
             tourId={tourId}
             pluginId={session.pluginId}
+            canManage={session.role === "admin" || session.role === "owner"}
+          />
+        </div>
+      ) : null}
+      {mountedTabs.has("execution") ? (
+        <div
+          id="tour-workspace-panel-execution"
+          role="tabpanel"
+          aria-labelledby="tour-workspace-tab-execution"
+          tabIndex={0}
+          hidden={activeTab !== "execution"}
+          aria-hidden={activeTab !== "execution"}
+        >
+          <TourWorkspaceExecutionClient
+            tourId={tourId}
             canManage={session.role === "admin" || session.role === "owner"}
           />
         </div>
