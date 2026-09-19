@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { TelegramApiClient } from "../providers/telegram/telegram-api.client";
-import { ensureTelegramProviderTestRegistrationTopic } from "./telegram-provider-test-provisioning";
+import {
+  ensureTelegramProviderTestRegistrationTopic,
+  selectTelegramTopicRecoveryJobIds,
+} from "./telegram-provider-test-provisioning";
 
 function fakeApi(overrides: Partial<TelegramApiClient> = {}): TelegramApiClient {
   return {
@@ -75,5 +78,49 @@ describe("Telegram provider test topic provisioning", () => {
       ok: false,
       code: "INTEGRATION_TELEGRAM_BOT_MANAGE_TOPICS_REQUIRED",
     });
+  });
+
+  it("selects only dead jobs recoverable by the current forum topic config", () => {
+    assert.deepEqual(
+      selectTelegramTopicRecoveryJobIds({
+        connectionId: "connection-1",
+        config: { topicThreadIds: { registration: 44, receipts: 45, tickets: 46 } },
+        jobs: [
+          {
+            id: "registration-dead",
+            payload: {
+              integrationConnectionId: "connection-1",
+              telegramTopicKey: "registration",
+            },
+            lastError: { code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING" },
+          },
+          {
+            id: "other-connection",
+            payload: {
+              integrationConnectionId: "connection-2",
+              telegramTopicKey: "registration",
+            },
+            lastError: { code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING" },
+          },
+          {
+            id: "missing-topic",
+            payload: {
+              integrationConnectionId: "connection-1",
+              telegramTopicKey: "unknown",
+            },
+            lastError: { code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING" },
+          },
+          {
+            id: "different-error",
+            payload: {
+              integrationConnectionId: "connection-1",
+              telegramTopicKey: "receipts",
+            },
+            lastError: { code: "TELEGRAM_NETWORK_ERROR" },
+          },
+        ],
+      }),
+      ["registration-dead"]
+    );
   });
 });
