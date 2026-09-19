@@ -79,6 +79,24 @@ describe("Telegram API client", () => {
     ]);
   });
 
+  it("preserves Persian message text in the Telegram JSON body", async () => {
+    let body = "";
+    const client = createTelegramApiClient("test-token", async (_url, init) => {
+      body = String(init?.body);
+      return new Response(JSON.stringify({ ok: true, result: { message_id: 11 } }), {
+        status: 200,
+      });
+    });
+
+    const text =
+      "ثبت‌نام جدید: Local User\nتور: صعود یک‌روزه توچال با تأیید ادمین\nوضعیت تأیید: در انتظار بررسی";
+    await client.sendMessage({ chatId: "-1001", text, messageThreadId: 42 });
+
+    assert.equal(JSON.parse(body).text, text);
+    assert.equal(body.includes("?"), false);
+    assert.equal(body.includes("�"), false);
+  });
+
   it("registers a webhook with Telegram's secret token", async () => {
     let body = "";
     const client = createTelegramApiClient("test-token", async (_url, init) => {
