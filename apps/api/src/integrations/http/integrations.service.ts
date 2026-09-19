@@ -86,8 +86,13 @@ import {
   computeWorkspaceIntegrationsSummary,
   integrationConnectionActionsAllowed,
   legacyIntegrationActionsAllowed,
+  resolveTelegramProviderTestThreadId,
   testConnectionMessageForCode,
 } from "./integrations-verification";
+import {
+  ensureTelegramProviderTestRegistrationTopic,
+  readTelegramTopicConfig,
+} from "./telegram-provider-test-provisioning";
 
 export class IntegrationNotFoundError extends Error {
   readonly code = "INTEGRATION_NOT_FOUND";
@@ -1294,13 +1299,44 @@ export async function testIntegrationConnection(
   const credentials = await resolveIntegrationConnectionCredentials(connection);
   const shouldRefreshTelegramWebhook =
     connection.provider === "telegram" && connection.secretRef !== null;
+  let testConfig = connection.config;
+  if (connection.provider === "telegram") {
+    const topicProvisioning = await ensureTelegramProviderTestRegistrationTopic({
+      config: connection.config,
+      credentials,
+    });
+    if (!topicProvisioning.ok) {
+      await withTenantRls(auth.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: connection.id },
+          data: { status: "error" },
+        });
+      });
+      return {
+        ok: false,
+        code: topicProvisioning.code,
+        message: testConnectionMessageForCode(topicProvisioning.code),
+        testedAt,
+        backingSource: "integration_connection",
+      };
+    }
+    testConfig = topicProvisioning.config;
+    if (topicProvisioning.provisioned) {
+      await withTenantRls(auth.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: connection.id },
+          data: { config: topicProvisioning.config as Prisma.InputJsonValue },
+        });
+      });
+    }
+  }
   const result = await runProviderTest({
     testedAt,
     backingSource: "integration_connection",
     provider: connection.provider,
     tenantId: connection.tenantId,
     workspaceType: connection.workspaceType,
-    config: connection.config,
+    config: testConfig,
     credentials,
     persistStatusForConnectionId: shouldRefreshTelegramWebhook ? null : connection.id,
   });
@@ -1836,26 +1872,6 @@ async function resolveIntegrationCredentialsForConnection(
   return resolveIntegrationConnectionCredentials(connection);
 }
 
-function readTelegramTopicConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const names =
-    typeof config.topicNames === "object" && config.topicNames !== null
-      ? (config.topicNames as Record<string, unknown>)
-      : {};
-  const ids =
-    typeof config.topicThreadIds === "object" && config.topicThreadIds !== null
-      ? (config.topicThreadIds as Record<string, unknown>)
-      : {};
-  return Object.fromEntries(
-    ["registration", "receipts", "tickets"].map((key) => [
-      key,
-      {
-        ...(typeof names[key] === "string" ? { name: names[key] } : {}),
-        ...(typeof ids[key] === "number" ? { threadId: ids[key] } : {}),
-      },
-    ])
-  );
-}
-
 async function runProviderTest(input: {
   readonly testedAt: string;
   readonly backingSource: IntegrationConnectionPublicDto["backingSource"];
@@ -1893,12 +1909,30 @@ async function runProviderTest(input: {
     };
   }
 
-  const topicThreadIds =
-    typeof input.config.topicThreadIds === "object" && input.config.topicThreadIds !== null
-      ? (input.config.topicThreadIds as Record<string, unknown>)
-      : {};
-  const registrationThreadId =
-    typeof topicThreadIds.registration === "number" ? topicThreadIds.registration : undefined;
+  const threadResolution =
+    input.provider === "telegram"
+      ? resolveTelegramProviderTestThreadId({
+          config: input.config,
+          requireRegistrationTopic: input.backingSource === "integration_connection",
+        })
+      : ({ ok: true, threadId: undefined } as const);
+  if (!threadResolution.ok) {
+    if (input.persistStatusForConnectionId !== null) {
+      await withTenantRls(input.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: input.persistStatusForConnectionId! },
+          data: { status: "error" },
+        });
+      });
+    }
+    return {
+      ok: false,
+      code: threadResolution.code,
+      message: testConnectionMessageForCode(threadResolution.code),
+      testedAt: input.testedAt,
+      backingSource: input.backingSource,
+    };
+  }
 
   const result = await adapter.sendMessage(
     {
@@ -1912,7 +1946,9 @@ async function runProviderTest(input: {
     {
       channelId,
       text: "🔔 اطلاع‌رسانی دنالی با موفقیت فعال شد. ✅\n🏔️ دنالی همیشه همراه شماست.",
-      ...(registrationThreadId === undefined ? {} : { messageThreadId: registrationThreadId }),
+      ...(threadResolution.threadId === undefined
+        ? {}
+        : { messageThreadId: threadResolution.threadId }),
     }
   );
 
