@@ -92,6 +92,7 @@ import {
 import {
   ensureTelegramProviderTestRegistrationTopic,
   readTelegramTopicConfig,
+  selectTelegramTopicRecoveryJobIds,
 } from "./telegram-provider-test-provisioning";
 
 export class IntegrationNotFoundError extends Error {
@@ -1340,6 +1341,13 @@ export async function testIntegrationConnection(
     credentials,
     persistStatusForConnectionId: shouldRefreshTelegramWebhook ? null : connection.id,
   });
+  if (result.ok && connection.provider === "telegram") {
+    await requeueTelegramTopicRecoveryJobs({
+      tenantId: connection.tenantId,
+      connectionId: connection.id,
+      config: testConfig,
+    });
+  }
   const secretRef = connection.secretRef;
   if (shouldRefreshTelegramWebhook && !result.ok) {
     await withTenantRls(auth.tenantId, async (tx) => {
@@ -1985,6 +1993,49 @@ async function runProviderTest(input: {
     testedAt: input.testedAt,
     backingSource: input.backingSource,
   };
+}
+
+async function requeueTelegramTopicRecoveryJobs(input: {
+  readonly tenantId: string;
+  readonly connectionId: string;
+  readonly config: Record<string, unknown>;
+}): Promise<void> {
+  await withTenantRls(input.tenantId, async (tx) => {
+    const deadJobs = await tx.integrationDeliveryJob.findMany({
+      where: {
+        tenantId: input.tenantId,
+        provider: "telegram",
+        capability: "message.send",
+        status: "dead",
+      },
+      select: { id: true, payload: true, lastError: true },
+    });
+    const recoverableJobIds = selectTelegramTopicRecoveryJobIds({
+      connectionId: input.connectionId,
+      config: input.config,
+      jobs: deadJobs,
+    });
+    if (recoverableJobIds.length === 0) {
+      return;
+    }
+
+    await tx.integrationDeliveryJob.updateMany({
+      where: { tenantId: input.tenantId, id: { in: [...recoverableJobIds] } },
+      data: {
+        status: "pending",
+        attemptCount: 0,
+        nextAttemptAt: null,
+        lastError: Prisma.JsonNull,
+        processedAt: null,
+      },
+    });
+    logger.info({
+      event: "integration.telegram.topic_recovery.requeued",
+      tenantId: input.tenantId,
+      connectionId: input.connectionId,
+      jobCount: recoverableJobIds.length,
+    });
+  });
 }
 
 function mapRow(row: {

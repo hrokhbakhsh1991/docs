@@ -19,6 +19,51 @@ export type TelegramProviderTestProvisioningResult =
     }
   | { readonly ok: false; readonly code: string };
 
+export type DeadTelegramDeliveryJobCandidate = {
+  readonly id: string;
+  readonly payload: unknown;
+  readonly lastError: unknown;
+};
+
+/**
+ * Select only notifications that became dead because forum topics were not
+ * configured yet. Other failures must remain dead and require their own
+ * operator decision; replaying them here could duplicate messages.
+ */
+export function selectTelegramTopicRecoveryJobIds(input: {
+  readonly connectionId: string;
+  readonly config: Record<string, unknown>;
+  readonly jobs: readonly DeadTelegramDeliveryJobCandidate[];
+}): readonly string[] {
+  const topicThreadIds =
+    typeof input.config.topicThreadIds === "object" && input.config.topicThreadIds !== null
+      ? (input.config.topicThreadIds as Record<string, unknown>)
+      : {};
+
+  return input.jobs
+    .filter((job) => {
+      const payload =
+        typeof job.payload === "object" && job.payload !== null
+          ? (job.payload as Record<string, unknown>)
+          : {};
+      const lastError =
+        typeof job.lastError === "object" && job.lastError !== null
+          ? (job.lastError as Record<string, unknown>)
+          : {};
+      const topicKey = payload.telegramTopicKey;
+      const threadId = typeof topicKey === "string" ? topicThreadIds[topicKey] : undefined;
+      return (
+        payload.integrationConnectionId === input.connectionId &&
+        lastError.code === "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING" &&
+        typeof topicKey === "string" &&
+        typeof threadId === "number" &&
+        Number.isSafeInteger(threadId) &&
+        threadId > 0
+      );
+    })
+    .map((job) => job.id);
+}
+
 export async function ensureTelegramProviderTestRegistrationTopic(input: {
   readonly config: Record<string, unknown>;
   readonly credentials: Record<string, unknown>;
