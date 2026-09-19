@@ -677,7 +677,8 @@
     "supported": true,
     "capabilities": {
       "wizardTourField": true,
-      "catalogDetailSection": true
+      "catalogDetailSection": true,
+      "maxDayCount": 60
     },
     "fieldModule": {
       "module": "./field-registry/denali-itinerary-field-module",

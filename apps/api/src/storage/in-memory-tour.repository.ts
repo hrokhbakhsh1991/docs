@@ -37,7 +37,10 @@ import type {
   TourStorageRepository,
 } from "./tour-storage.interface";
 import type { OperatorListSortBy, OperatorListSortDir } from "../tours/operator-tour-list-types";
-import { publishStatusesForOperatorFilter } from "../tours/operator-tour-list-db-query";
+import {
+  compareOperatorTourPrices,
+  publishStatusesForOperatorFilter,
+} from "../tours/operator-tour-list-db-query";
 
 function tourStorageKey(tenantId: string, id: string): string {
   return `${tenantId}\u0000${id}`;
@@ -70,6 +73,14 @@ function compareInMemoryOperatorTours(
       return -1;
     }
     delta = (leftDate ?? "").localeCompare(rightDate ?? "");
+  } else if (sortBy === "price") {
+    return compareOperatorTourPrices(
+      left.canonical,
+      right.canonical,
+      left.id,
+      right.id,
+      sortDir
+    );
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
   }
@@ -574,6 +585,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
             : "";
         return allowed.has(publishStatus);
       });
+    }
+    if (query.category !== undefined && query.category.length > 0) {
+      items = items.filter(
+        (tour) =>
+          typeof tour.canonical.data?.category === "string" &&
+          tour.canonical.data.category === query.category
+      );
     }
     items.sort((left, right) =>
       compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir)

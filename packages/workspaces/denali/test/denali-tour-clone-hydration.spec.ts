@@ -4,12 +4,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
+import type { CanonicalDocument } from "@app-tour/workspace-sdk";
+
 import {
   appendDenaliCloneTitleSuffix,
   denaliHydrateTourCloneDraft,
+  denaliHydrateTourEditDraft,
   filterGearItemsToActiveEquipmentCatalog,
   prepareDenaliServerCloneCanonical,
 } from "../src/clone/denali-tour-clone-hydration";
+import { extractDenaliTourListProjection } from "../src/list/tour-list-projection";
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "golden");
 
@@ -82,6 +86,25 @@ describe("denali-tour-clone-hydration.spec.ts — Phase 11.6", () => {
     const hydrated = denaliHydrateTourCloneDraft(source, { activeEquipmentIds: [] });
     const gear = hydrated.data.participants as { gearItems: unknown[] };
     assert.equal(gear.gearItems.length, 0);
+  });
+
+  it("T02-01 edit hydrate and list projection read title/capacity from one canonical record", () => {
+    const canonical: CanonicalDocument = {
+      schemaVersion: 1,
+      roots: ["title", "capacityMax", "publishStatus"],
+      data: {
+        title: "Canonical parity tour",
+        capacityMax: 24,
+        publishStatus: "draft",
+      },
+    };
+    const projection = extractDenaliTourListProjection(canonical);
+    const editDraft = denaliHydrateTourEditDraft(canonical.data);
+
+    assert.equal(projection.title, "Canonical parity tour");
+    assert.equal(projection.totalCapacity, 24);
+    assert.equal(editDraft.data.title, projection.title);
+    assert.equal(editDraft.data.capacityMax, projection.totalCapacity);
   });
 
   it("API-P11-12-02 prepareDenaliServerCloneCanonical prunes orphan segment photoIds", () => {

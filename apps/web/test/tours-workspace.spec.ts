@@ -139,6 +139,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(layout, /role="tab"/);
     assert.match(layout, /aria-selected=\{isActive\}/);
     assert.match(layout, /aria-controls=\{`tour-workspace-panel-\$\{tab\}`\}/);
+    assert.match(layout, /scrollHorizontalItemIntoView\(activeButton, \{ behavior: "auto" \}\)/);
+    assert.match(layout, /tour-workspace-subnav-scroll-hint/);
     assert.match(panels, /role="tabpanel"/);
     assert.match(panels, /aria-labelledby="tour-workspace-tab-registrations"/);
     assert.match(panels, /aria-labelledby="tour-workspace-tab-waitlist"/);

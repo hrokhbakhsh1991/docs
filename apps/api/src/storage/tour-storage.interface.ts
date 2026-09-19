@@ -32,6 +32,7 @@ export type TourOperatorListPageInput = {
   readonly query: {
     readonly search?: string;
     readonly status?: "active" | "completed" | "archived";
+    readonly category?: string;
     readonly page: number;
     readonly limit: number;
     readonly sortBy: "created_at" | "title" | "price" | "departure_at";

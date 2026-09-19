@@ -65,6 +65,7 @@ export function TourWorkspaceTransportClient({
   const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   const loadTransport = useCallback(async () => {
     setLoading(true);
@@ -120,6 +121,7 @@ export function TourWorkspaceTransportClient({
   const exportFinalRoster = async () => {
     setExporting(true);
     setExportError(null);
+    setExportSuccess(null);
     try {
       const response = await fetch(
         `/api/tours/${encodeURIComponent(tourId)}/operational-roster/export?filter=final&format=xlsx`,
@@ -132,11 +134,14 @@ export function TourWorkspaceTransportClient({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `denali-tour-${tourId}-final-roster.xlsx`;
+      anchor.download =
+        readAttachmentFilename(response.headers.get("Content-Disposition")) ??
+        `denali-tour-${tourId}-final-roster.xlsx`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+      setExportSuccess(t("exportSucceeded"));
     } catch {
       setExportError(t("exportFailed"));
     } finally {
@@ -285,21 +290,29 @@ export function TourWorkspaceTransportClient({
         ) : null}
         <TourWorkspaceTransportControls filter={filter} onFilterChange={setFilter} />
         {canManage ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.exportFinalRosterButton}
-              onClick={() => void exportFinalRoster()}
-              disabled={exporting}
-            >
-              {exporting ? t("exporting") : t("exportFinalRoster")}
-            </Button>
-            {exportError !== null ? (
-              <p className="text-sm text-destructive" role="alert">
-                {exportError}
-              </p>
-            ) : null}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.exportFinalRosterButton}
+                onClick={() => void exportFinalRoster()}
+                disabled={exporting}
+              >
+                {exporting ? t("exporting") : t("exportFinalRoster")}
+              </Button>
+              {exportError !== null ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {exportError}
+                </p>
+              ) : null}
+              {exportSuccess !== null ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {exportSuccess}
+                </p>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("exportFinalRosterScope")}</p>
           </div>
         ) : null}
 
@@ -488,4 +501,10 @@ export function TourWorkspaceTransportClient({
       </CardContent>
     </Card>
   );
+}
+
+function readAttachmentFilename(contentDisposition: string | null): string | null {
+  const match = contentDisposition?.match(/filename="([^"]+)"/i);
+  const filename = match?.[1]?.trim() ?? "";
+  return filename.length > 0 ? filename : null;
 }

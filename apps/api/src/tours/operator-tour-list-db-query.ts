@@ -43,15 +43,79 @@ export function buildOperatorTourOrderBy(
     return [{ startDate: { sort: sortDir, nulls: "last" } }, { id: sortDir }];
   }
   if (sortBy === "price") {
-    return [{ createdAt: sortDir }, { id: sortDir }];
+    // Price is workspace-canonical JSON and is not a Prisma scalar column.
+    // The repository must use the canonical-price comparator for this mode;
+    // falling back to createdAt makes the UI label lie about the result.
+    return [{ createdAt: "asc" }, { id: "asc" }];
   }
   return [{ createdAt: sortDir }, { id: sortDir }];
+}
+
+function readFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+/**
+ * Reads the shared tour price contract without introducing a workspace-specific
+ * projection. Missing prices sort last in either direction.
+ */
+export function readOperatorTourPrice(canonical: unknown): number | null {
+  if (canonical === null || typeof canonical !== "object") {
+    return null;
+  }
+  const data = (canonical as { data?: unknown }).data;
+  if (data === null || typeof data !== "object") {
+    return null;
+  }
+  const pricing = (data as Record<string, unknown>).pricing;
+  if (pricing === null || typeof pricing !== "object") {
+    return null;
+  }
+  const row = pricing as Record<string, unknown>;
+  return (
+    readFiniteNumber(row.basePricePerPerson) ??
+    readFiniteNumber(row.priceAmount) ??
+    readFiniteNumber(row.amount)
+  );
+}
+
+export function compareOperatorTourPrices(
+  left: unknown,
+  right: unknown,
+  leftId: string,
+  rightId: string,
+  sortDir: OperatorListSortDir
+): number {
+  const leftPrice = readOperatorTourPrice(left);
+  const rightPrice = readOperatorTourPrice(right);
+  let delta: number;
+  if (leftPrice === null && rightPrice === null) {
+    delta = 0;
+  } else if (leftPrice === null) {
+    return 1;
+  } else if (rightPrice === null) {
+    return -1;
+  } else {
+    delta = leftPrice - rightPrice;
+  }
+  if (delta === 0) {
+    delta = leftId.localeCompare(rightId);
+  }
+  return sortDir === "asc" ? delta : -delta;
 }
 
 export function buildOperatorTourWhere(input: {
   readonly tenantId: string;
   readonly search?: string;
   readonly status?: OperatorListStatusFilter;
+  readonly category?: string;
 }): Prisma.TourWhereInput {
   const search = input.search?.trim();
   return {
@@ -61,6 +125,9 @@ export function buildOperatorTourWhere(input: {
       : {}),
     ...(input.status !== undefined
       ? { publishStatus: { in: [...publishStatusesForOperatorFilter(input.status)] } }
+      : {}),
+    ...(input.category !== undefined && input.category.length > 0
+      ? { canonical: { path: ["data", "category"], equals: input.category } }
       : {}),
   };
 }

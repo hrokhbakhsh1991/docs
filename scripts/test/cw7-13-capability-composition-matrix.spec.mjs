@@ -48,7 +48,10 @@ const MATRIX = {
     catalogPresentation: { detailSections: { difficulty: true, fitness: true } },
   }),
   itineraryOnly: baseSynthetic("syn-itinerary-only", {
-    workspaceItinerary: { supported: true, capabilities: { catalogDetailSection: true } },
+    workspaceItinerary: {
+      supported: true,
+      capabilities: { catalogDetailSection: true, maxDayCount: 60 },
+    },
     catalogPresentation: { detailSections: { itinerary: true } },
   }),
   equipmentTransport: baseSynthetic("syn-equipment-transport", {

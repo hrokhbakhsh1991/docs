@@ -659,7 +659,11 @@ export function UsersPageClient({
           }
         }}
       >
-        <DialogContent className="max-w-lg" data-testid={USERS_DIRECTORY_TEST_IDS.inviteModal}>
+        <DialogContent
+          className="max-w-lg"
+          closeLabel={tCommon("cancel")}
+          data-testid={USERS_DIRECTORY_TEST_IDS.inviteModal}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
