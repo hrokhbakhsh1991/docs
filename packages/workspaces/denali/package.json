@@ -318,6 +318,10 @@
       "types": "./dist/settlement/index.d.ts",
       "default": "./dist/settlement/index.js"
     },
+    "./execution": {
+      "types": "./dist/execution/index.d.ts",
+      "default": "./dist/execution/index.js"
+    },
 
     "./settings/denaliFullWizardTemplate": {
       "types": "./dist/settings/denaliFullWizardTemplate.d.ts",

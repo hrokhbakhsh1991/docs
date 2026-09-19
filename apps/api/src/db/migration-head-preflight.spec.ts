@@ -13,7 +13,7 @@ describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
   it("expected head matches tip migration folder (registration_finalization_status)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260913120000_registration_finalization_status"
+      "20260919100000_denali_tour_execution_persistence"
     );
   });
 

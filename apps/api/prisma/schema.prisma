@@ -32,6 +32,9 @@ model Tenant {
   walletAccounts              WalletAccount[]
   walletTransactions          WalletTransaction[]
   walletLedgerEntries         WalletLedgerEntry[]
+  tourExecutions              TourExecution[]
+  driverExecutionFacts        DriverExecutionFact[]
+  driverExecutionFactAudits   DriverExecutionFactAudit[]
   urbanRegistrations          UrbanRegistration[]
   userTenants                 UserTenant[]
   operatorPendingInvites      OperatorPendingInvite[]
@@ -175,6 +178,7 @@ model Tour {
   createdAt     DateTime            @default(now()) @map("created_at")
   tenant        Tenant              @relation(fields: [tenantId], references: [id])
   registrations UrbanRegistration[]
+  executions    TourExecution[]
 
   @@unique([tenantId, id])
   @@index([tenantId], map: "idx_tours_tenant_id")
@@ -182,6 +186,75 @@ model Tour {
   @@index([tenantId, publishStatus, publishedAt(sort: Desc)], map: "idx_tours_tenant_publish_catalog")
   @@index([tenantId, city, publishStatus], map: "idx_tours_tenant_city_publish")
   @@map("tours")
+}
+
+/// DEN-EXEC-01 — operational truth for the day of a tour, independent from publish lifecycle.
+model TourExecution {
+  id                String                @id @default(uuid()) @db.Uuid
+  tenantId          String                @map("tenant_id") @db.Uuid
+  tourId            String                @map("tour_id") @db.Uuid
+  status            String                @default("scheduled")
+  startedAt         DateTime?             @map("started_at")
+  completedAt       DateTime?             @map("completed_at")
+  cancelledAt       DateTime?             @map("cancelled_at")
+  createdByUserId   String                @map("created_by_user_id") @db.Uuid
+  completedByUserId String?               @map("completed_by_user_id") @db.Uuid
+  version           Int                   @default(1)
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  tenant            Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tour              Tour                  @relation(fields: [tenantId, tourId], references: [tenantId, id], onDelete: Cascade)
+  driverFacts       DriverExecutionFact[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, tourId])
+  @@index([tenantId, status, updatedAt])
+  @@map("tour_executions")
+}
+
+/// DEN-EXEC-01 — durable attendance/count snapshot for one driver in an execution.
+model DriverExecutionFact {
+  id                       String                     @id @default(uuid()) @db.Uuid
+  tenantId                 String                     @map("tenant_id") @db.Uuid
+  executionId              String                     @map("execution_id") @db.Uuid
+  driverRegistrationId     String                     @map("driver_registration_id") @db.Uuid
+  offeredPassengerCapacity Int                        @map("offered_passenger_capacity")
+  actualPassengerCount     Int                        @default(0) @map("actual_passenger_count")
+  attendanceStatus         String                     @default("not_arrived") @map("attendance_status")
+  version                  Int                        @default(1)
+  lastEditedByUserId       String                     @map("last_edited_by_user_id") @db.Uuid
+  lastEditedAt             DateTime                   @default(now()) @map("last_edited_at")
+  createdAt                DateTime                   @default(now()) @map("created_at")
+  updatedAt                DateTime                   @updatedAt @map("updated_at")
+  tenant                   Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  execution                TourExecution              @relation(fields: [tenantId, executionId], references: [tenantId, id], onDelete: Cascade)
+  auditEvents              DriverExecutionFactAudit[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, executionId, driverRegistrationId])
+  @@index([tenantId, executionId, attendanceStatus])
+  @@map("driver_execution_facts")
+}
+
+/// DEN-EXEC-01 — append-only history for actual-count and attendance changes.
+model DriverExecutionFactAudit {
+  id                             String               @id @default(uuid()) @db.Uuid
+  tenantId                       String               @map("tenant_id") @db.Uuid
+  factId                         String               @map("fact_id") @db.Uuid
+  sequence                       Int
+  previousActualPassengerCount   Int                  @map("previous_actual_passenger_count")
+  nextActualPassengerCount       Int                  @map("next_actual_passenger_count")
+  previousAttendanceStatus       String               @map("previous_attendance_status")
+  nextAttendanceStatus           String               @map("next_attendance_status")
+  reason                         String?
+  actorUserId                    String               @map("actor_user_id") @db.Uuid
+  createdAt                      DateTime             @default(now()) @map("created_at")
+  tenant                         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fact                           DriverExecutionFact  @relation(fields: [tenantId, factId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, factId, sequence])
+  @@index([tenantId, factId, createdAt])
+  @@map("driver_execution_fact_audit")
 }
 
 /// Phase 8.2 — public registration intake (catalog flow).

@@ -92,6 +92,18 @@ function appWiresRoute(route) {
   if (route.path === "/tours/{tourId}/clone") {
     return app.includes("tourCloneMatch") && app.includes("handleCloneTour");
   }
+  if (route.path === "/tours/{tourId}/execution") {
+    return app.includes("tourExecutionMatch") && app.includes("handleGetTourExecution");
+  }
+  if (route.path === "/tours/{tourId}/execution/start") {
+    return app.includes("tourExecutionStartMatch") && app.includes("handleStartTourExecution");
+  }
+  if (route.path === "/tours/{tourId}/execution/drivers/{driverRegistrationId}") {
+    return app.includes("tourExecutionDriverMatch") && app.includes("handleUpdateTourExecutionDriverFact");
+  }
+  if (route.path === "/tours/{tourId}/execution/complete") {
+    return app.includes("tourExecutionCompleteMatch") && app.includes("handleCompleteTourExecution");
+  }
   if (route.path === "/tours/clone-photo-remint") {
     return app.includes('"/tours/clone-photo-remint"') && app.includes("handleClonePhotoRemint");
   }
