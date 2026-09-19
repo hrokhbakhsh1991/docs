@@ -79,6 +79,21 @@ describe("Telegram API client", () => {
     ]);
   });
 
+  it("registers a webhook with Telegram's secret token", async () => {
+    let body = "";
+    const client = createTelegramApiClient("test-token", async (_url, init) => {
+      body = String(init?.body);
+      return new Response(JSON.stringify({ ok: true, result: true }), { status: 200 });
+    });
+
+    await client.setWebhook("https://api.example/webhooks/telegram/t1/i1", "webhook-secret");
+
+    assert.deepEqual(JSON.parse(body), {
+      url: "https://api.example/webhooks/telegram/t1/i1",
+      secret_token: "webhook-secret",
+    });
+  });
+
   it("uses the shared outbound relay when configured", async () => {
     const previousUrl = process.env.TELEGRAM_API_RELAY_URL;
     const previousSecret = process.env.TELEGRAM_API_RELAY_SHARED_SECRET;
