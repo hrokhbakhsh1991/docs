@@ -1,12 +1,12 @@
 import {
   assertProductionStorageDriver,
   resolveStorageDriver,
-} from "../storage/production-storage-driver-assert";
+} from "../production-storage-driver-assert";
 import {
   InMemoryTourExecutionRepository,
   resetInMemoryTourExecutionRepositoryForTests,
   type TourExecutionRepository,
-} from "./tour-execution.repository";
+} from "../../tour-execution/tour-execution.repository";
 import { PrismaTourExecutionRepository } from "./prisma-tour-execution.repository";
 
 let singleton: TourExecutionRepository | null = null;

@@ -6,14 +6,14 @@ import type {
   TourExecution,
 } from "@app-tour/workspace-denali/execution";
 
-import { withTenantRls } from "../db/with-tenant-rls";
+import { withTenantRls } from "../../db/with-tenant-rls";
 import {
   type StartTourExecutionInput,
   type TourExecutionRepository,
   type TourExecutionSnapshot,
   type UpdateDriverFactCommand,
-} from "./tour-execution.repository";
-import { TourExecutionHttpError } from "./tour-execution.errors";
+} from "../../tour-execution/tour-execution.repository";
+import { TourExecutionHttpError } from "../../tour-execution/tour-execution.errors";
 
 function executionError(code: string, statusCode: number, message: string): Error {
   return new TourExecutionHttpError(code, statusCode, message);

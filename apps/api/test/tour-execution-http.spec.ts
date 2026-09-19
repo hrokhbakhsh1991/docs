@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
-import { resetTourExecutionRepositoryForTests } from "../src/tour-execution/tour-execution.repository.factory";
+import { resetTourExecutionRepositoryForTests } from "../src/storage/tour-execution/tour-execution.repository.factory";
 import { dp5OpsAuth, dp5SeedDriverAndPassengers, resetDp5Harness, DP5_TOUR_ID } from "./dp5/dp5-test-harness";
 import { operatorAuthHeaders, seedOperatorIdentityFixture } from "./fixtures/operator-identity-fixture";
 import { installHttpTestClient } from "./http-test-client";

@@ -7,7 +7,7 @@ import { listBookings } from "../bookings/create-bookings-service";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context";
 import {
   getTourExecutionRepository,
-} from "./tour-execution.repository.factory";
+} from "../storage/tour-execution/tour-execution.repository.factory";
 import type { TourExecutionSnapshot } from "./tour-execution.repository";
 import { TourExecutionHttpError } from "./tour-execution.errors";
 
