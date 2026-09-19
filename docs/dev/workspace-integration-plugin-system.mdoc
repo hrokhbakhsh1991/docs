@@ -369,10 +369,16 @@ For staging and production, set `TELEGRAM_WEBHOOK_BASE_URL` to the public HTTPS
 origin of the API. The admin save flow provisions the forum directly after the
 connection row and secret are committed: it calls Telegram `getChat`,
 `getMe`, and idempotent `createForumTopic` for the standard topics, then stores
-the returned thread IDs in the connection config. The one-time `/connect <code>`
+the returned thread IDs in the connection config. Direct provisioning also
+registers the Telegram webhook and stores its secret token with the connection
+credentials; otherwise inline approve/reject receipt actions can send outbound
+test messages but never call back into the API. The one-time `/connect <code>`
 flow remains available as a recovery path for deployments where direct
 provisioning cannot resolve the target chat. The API receives callbacks at
 `/webhooks/telegram/:tenantId/:integrationId`.
+Testing an existing native Telegram connection also refreshes the webhook secret
+after the outbound test message succeeds, so older rows can be repaired without
+recreating the connection.
 
 The shared Cloudflare Worker also exposes an authenticated outbound Telegram
 relay for deployments whose server egress cannot reach `api.telegram.org`.

@@ -1292,7 +1292,9 @@ export async function testIntegrationConnection(
   const { resolveIntegrationConnectionCredentials } =
     await import("../application/resolve-integration-connection-credentials");
   const credentials = await resolveIntegrationConnectionCredentials(connection);
-  return runProviderTest({
+  const shouldRefreshTelegramWebhook =
+    connection.provider === "telegram" && connection.secretRef !== null;
+  const result = await runProviderTest({
     testedAt,
     backingSource: "integration_connection",
     provider: connection.provider,
@@ -1300,8 +1302,50 @@ export async function testIntegrationConnection(
     workspaceType: connection.workspaceType,
     config: connection.config,
     credentials,
-    persistStatusForConnectionId: connection.id,
+    persistStatusForConnectionId: shouldRefreshTelegramWebhook ? null : connection.id,
   });
+  const secretRef = connection.secretRef;
+  if (shouldRefreshTelegramWebhook && !result.ok) {
+    await withTenantRls(auth.tenantId, async (tx) => {
+      await tx.integrationConnection.update({
+        where: { id: connection.id },
+        data: { status: "error" },
+      });
+    });
+  }
+  if (shouldRefreshTelegramWebhook && result.ok && secretRef !== null) {
+    const botToken = credentials.botToken;
+    if (typeof botToken === "string" && botToken.trim().length > 0) {
+      const webhook = prepareTelegramWebhookRegistration({
+        tenantId: auth.tenantId,
+        integrationId: connection.id,
+      });
+      await withTenantRls(auth.tenantId, async (tx) => {
+        await putIntegrationSecretInTransaction(tx, auth.tenantId, secretRef, {
+          ...credentials,
+          webhookSecret: webhook.webhookSecret,
+        });
+      });
+      try {
+        await setTelegramWebhook(botToken, webhook);
+        await withTenantRls(auth.tenantId, async (tx) => {
+          await tx.integrationConnection.update({
+            where: { id: connection.id },
+            data: { status: "enabled" },
+          });
+        });
+      } catch (error: unknown) {
+        await withTenantRls(auth.tenantId, async (tx) => {
+          await tx.integrationConnection.update({
+            where: { id: connection.id },
+            data: { status: "error" },
+          });
+        });
+        throw error;
+      }
+    }
+  }
+  return result;
 }
 
 export async function provisionTelegramIntegration(
@@ -1336,6 +1380,7 @@ export async function provisionTelegramIntegration(
   if (connection.secretRef === null || connection.secretRef.trim().length === 0) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_SECRET_STORE_REQUIRED");
   }
+  const secretRef = connection.secretRef;
 
   const groupName =
     typeof record.groupName === "string" && record.groupName.trim().length > 0
@@ -1358,6 +1403,10 @@ export async function provisionTelegramIntegration(
       config: currentConfig,
       chatId,
     });
+    const webhook = prepareTelegramWebhookRegistration({
+      tenantId: auth.tenantId,
+      integrationId: connection.id,
+    });
     const topicThreadIds = Object.fromEntries(
       Object.entries(provisioned.config.topics)
         .filter(([, topic]) => topic.threadId !== undefined)
@@ -1366,8 +1415,8 @@ export async function provisionTelegramIntegration(
     const topicNames = Object.fromEntries(
       Object.entries(provisioned.config.topics).map(([key, topic]) => [key, topic.name])
     );
-    const updated = await withTenantRls(auth.tenantId, async (tx) =>
-      tx.integrationConnection.update({
+    const updated = await withTenantRls(auth.tenantId, async (tx) => {
+      const updatedConnection = await tx.integrationConnection.update({
         where: { id: connection.id },
         data: {
           config: {
@@ -1384,8 +1433,14 @@ export async function provisionTelegramIntegration(
           status: "disabled",
           enabled: false,
         },
-      })
-    );
+      });
+      await putIntegrationSecretInTransaction(tx, auth.tenantId, secretRef, {
+        ...credentials,
+        webhookSecret: webhook.webhookSecret,
+      });
+      return updatedConnection;
+    });
+    await setTelegramWebhook(botToken, webhook);
     return await toPublicDto(auth.tenantId, {
       ...mapRow(updated),
       createdAt: updated.createdAt,
@@ -1433,33 +1488,20 @@ export async function startTelegramForumConnect(
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_REQUIRED");
   }
 
-  const webhookBaseUrl = process.env.TELEGRAM_WEBHOOK_BASE_URL?.trim() ?? "";
-  let parsedBaseUrl: URL;
-  try {
-    parsedBaseUrl = new URL(webhookBaseUrl);
-  } catch {
-    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_BASE_URL_REQUIRED");
-  }
-  if (parsedBaseUrl.protocol !== "https:") {
-    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_MUST_USE_HTTPS");
-  }
-
   const credentials = await resolveIntegrationCredentialsForConnection(connection);
   const botToken = credentials.botToken;
   if (typeof botToken !== "string" || botToken.trim().length === 0) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
   }
 
+  const webhook = prepareTelegramWebhookRegistration({
+    tenantId: auth.tenantId,
+    integrationId: connection.id,
+  });
   const code = randomBytes(18).toString("base64url");
   const codeHash = createHash("sha256").update(code).digest("hex");
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-  const webhookSecret = randomBytes(32).toString("base64url");
-  const webhookUrl = new URL(
-    `/webhooks/telegram/${encodeURIComponent(auth.tenantId)}/${encodeURIComponent(integrationId)}`,
-    parsedBaseUrl
-  );
 
-  await createTelegramApiClient(botToken).setWebhook(webhookUrl.toString(), webhookSecret);
   await withTenantRls(auth.tenantId, async (tx) => {
     await tx.integrationConnection.update({
       where: { id: connection.id },
@@ -1476,12 +1518,43 @@ export async function startTelegramForumConnect(
     if (connection.secretRef !== null) {
       await putIntegrationSecretInTransaction(tx, auth.tenantId, connection.secretRef, {
         ...credentials,
-        webhookSecret,
+        webhookSecret: webhook.webhookSecret,
       });
     }
   });
+  await setTelegramWebhook(botToken, webhook);
 
-  return { code, expiresAt, webhookUrl: webhookUrl.toString() };
+  return { code, expiresAt, webhookUrl: webhook.webhookUrl };
+}
+
+function prepareTelegramWebhookRegistration(input: {
+  readonly tenantId: string;
+  readonly integrationId: string;
+}): { readonly webhookSecret: string; readonly webhookUrl: string } {
+  const webhookBaseUrl = process.env.TELEGRAM_WEBHOOK_BASE_URL?.trim() ?? "";
+  let parsedBaseUrl: URL;
+  try {
+    parsedBaseUrl = new URL(webhookBaseUrl);
+  } catch {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_BASE_URL_REQUIRED");
+  }
+  if (parsedBaseUrl.protocol !== "https:") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_MUST_USE_HTTPS");
+  }
+
+  const webhookSecret = randomBytes(32).toString("base64url");
+  const webhookUrl = new URL(
+    `/webhooks/telegram/${encodeURIComponent(input.tenantId)}/${encodeURIComponent(input.integrationId)}`,
+    parsedBaseUrl
+  );
+  return { webhookSecret, webhookUrl: webhookUrl.toString() };
+}
+
+async function setTelegramWebhook(
+  botToken: string,
+  webhook: { readonly webhookSecret: string; readonly webhookUrl: string }
+): Promise<void> {
+  await createTelegramApiClient(botToken).setWebhook(webhook.webhookUrl, webhook.webhookSecret);
 }
 
 export async function processTelegramWebhook(
