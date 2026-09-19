@@ -218,12 +218,14 @@
       "registrations": "Registration requests",
       "waitlist": "Waitlist",
       "transport": "Operations roster",
+      "execution": "Tour execution",
       "finance": "Payment status"
     },
     "tabsHint": {
       "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
       "transport": "Track approved guests through payment, finalization, attendance, and transport",
+      "execution": "Record driver attendance and actual passenger counts on the tour day",
       "finance": "See outstanding balances and receipts to review"
     },
     "operationsSummary": {
@@ -252,6 +254,50 @@
         "sort": "Sort: {value}",
         "search": "Search: {value}",
         "roster": "Transport: {value}"
+      }
+    },
+    "execution": {
+      "title": "Tour execution",
+      "description": "Record driver attendance and actual passenger counts.",
+      "noFinancialSideEffect": "This is an operational record only. It creates no credit or financial transaction in this phase.",
+      "notStartedDescription": "The tour execution has not started. Start it to record driver status.",
+      "start": "Start tour execution",
+      "starting": "Starting…",
+      "started": "Tour execution started.",
+      "complete": "Record tour completion",
+      "completing": "Recording…",
+      "completed": "Tour completion recorded.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Driver record saved.",
+      "capacity": "Declared capacity: {count, number} passengers",
+      "actualPassengerCount": "Actual passengers",
+      "attendanceLabel": "Attendance",
+      "lastSaved": "Last saved: {value}",
+      "startedAt": "Started: {value}",
+      "startedAtPending": "Start time has not been recorded.",
+      "completedAt": "Completed: {value}",
+      "noDrivers": "There are no approved personal-car drivers on this tour.",
+      "driverUnknown": "Driver",
+      "status": {
+        "notStarted": "Not started",
+        "scheduled": "Scheduled",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "attendance": {
+        "not_arrived": "Not arrived",
+        "present": "Present",
+        "departed": "Departed",
+        "cancelled": "Cancelled"
+      },
+      "errors": {
+        "load": "Could not load tour execution.",
+        "start": "Could not start tour execution ({code}).",
+        "complete": "Could not record tour completion ({code}).",
+        "save": "Could not save driver record ({code}).",
+        "stale": "Someone else changed this record. The data has been refreshed."
       }
     },
     "finance": {

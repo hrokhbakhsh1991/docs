@@ -1,0 +1,72 @@
+---
+title: Denali tour execution and driver wallet settlement
+doc_id: DENALI-DRIVER-EXECUTION-WALLET-SETTLEMENT
+version: "2026-09-19-v1"
+workspace: denali
+status: PROPOSED_IMPLEMENTATION
+authority: driver-wallet-settlement-path-temp.md
+---
+
+# Denali tour execution and driver wallet settlement
+
+## Scope of the first delivery
+
+This delivery replaces no money flow. It introduces a durable, tenant-isolated
+operational truth for the day of a tour:
+
+```text
+TourExecution → DriverExecutionFact → audited actual passenger count
+```
+
+It deliberately excludes wallet credit, withdrawal destination storage, reserve
+management, and bank payout. Those commands require a later finance review and
+their own migration/acceptance suite.
+
+## Non-negotiable boundaries
+
+- Tour publishing/sales lifecycle is not TourExecution. Execution has its own
+  `scheduled | in_progress | completed | cancelled` state.
+- A transport allocation is planning data only; it never proves actual carried
+  passengers and never changes money.
+- Every execution record is tenant-scoped, persisted under RLS and carries a
+  version for optimistic concurrency.
+- Updating actual count is operational only. It emits audit facts but no wallet,
+  ledger, payout or notification side effect.
+- `actualPassengerCount` begins at zero, is a non-negative integer, and cannot
+  exceed the snapshotted offered passenger capacity.
+
+## First-delivery HTTP contract
+
+| Method | Path                                               | Purpose                                         |
+| ------ | -------------------------------------------------- | ----------------------------------------------- |
+| GET    | `/tours/:tourId/execution`                         | Read execution and driver facts for the tenant. |
+| POST   | `/tours/:tourId/execution/start`                   | Idempotently begin execution.                   |
+| PATCH  | `/tours/:tourId/execution/drivers/:registrationId` | Versioned update of attendance/count.           |
+| POST   | `/tours/:tourId/execution/complete`                | Mark execution completed; no financial effect.  |
+
+All write commands require the existing operator session in this first slice.
+The follow-up must introduce separate execution and finance permissions before
+any wallet-credit command lands.
+
+## Required proof
+
+- PostgreSQL migration with RLS and tenant-scoped uniqueness.
+- API tests: happy path, validation, replay, stale version, completion guard,
+  cross-tenant denial and restart/persistence.
+- No finance or WalletTransaction mutation in this slice.
+
+## Explicitly deferred
+
+- Calculating/confirming settlement from actual count.
+- Wallet credit/reversal and member-wallet UI.
+- Payment-destination encryption, withdrawal reservation, approval and payment.
+- Telegram/SMS notifications for execution changes.
+
+## Operator UI boundary
+
+The operator workspace exposes an `execution` tab beside the operational roster.
+It is usable on mobile and may start, update, and complete an execution only for
+the existing admin/owner roles. The UI displays the driver identity from the
+operational roster, but treats the execution API as the source of truth for
+attendance and actual passenger counts. It must never display a credit action,
+wallet balance, withdrawal destination, or a financial amount in this delivery.

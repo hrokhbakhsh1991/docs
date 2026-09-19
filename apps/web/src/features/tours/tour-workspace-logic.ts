@@ -1,7 +1,4 @@
-import {
-  TOUR_WORKSPACE_TEST_IDS,
-  type TourWorkspaceSubnavTab,
-} from "./tour-workspace-types";
+import { TOUR_WORKSPACE_TEST_IDS, type TourWorkspaceSubnavTab } from "./tour-workspace-types";
 
 export function workspaceBasePath(tourId: string): string {
   return `/tours/${encodeURIComponent(tourId)}/workspace`;
@@ -11,19 +8,20 @@ export const WORKSPACE_TAB_QUERY_KEY = "tab";
 export const WORKSPACE_FOCUS_REGISTRATION_QUERY_KEY = "focusRegistrationId";
 
 /** Parse `?tab=` (defaults to registrations). */
-export function parseWorkspaceTabParam(
-  raw: string | null | undefined
-): TourWorkspaceSubnavTab {
+export function parseWorkspaceTabParam(raw: string | null | undefined): TourWorkspaceSubnavTab {
   const trimmed = raw?.trim() ?? "";
-  if (trimmed === "waitlist" || trimmed === "transport" || trimmed === "finance") {
+  if (
+    trimmed === "waitlist" ||
+    trimmed === "transport" ||
+    trimmed === "execution" ||
+    trimmed === "finance"
+  ) {
     return trimmed;
   }
   return "registrations";
 }
 
-export function parseWorkspaceFocusRegistrationId(
-  raw: string | null | undefined
-): string | null {
+export function parseWorkspaceFocusRegistrationId(raw: string | null | undefined): string | null {
   const id = raw?.trim() ?? "";
   // Bound length — registration ids are UUIDs; reject junk deep-links.
   if (id.length === 0 || id.length > 128) {
@@ -90,6 +88,9 @@ export function resolveWorkspaceSubnavTab(
   if (pathname.startsWith(`${base}/transport`)) {
     return "transport";
   }
+  if (pathname.startsWith(`${base}/execution`)) {
+    return "execution";
+  }
   if (pathname.startsWith(`${base}/finance`)) {
     return "finance";
   }
@@ -114,6 +115,10 @@ const TOUR_WORKSPACE_CORE_SUBNAV_TABS: ReadonlyArray<{
   {
     tab: "transport",
     testId: TOUR_WORKSPACE_TEST_IDS.tabTransport,
+  },
+  {
+    tab: "execution",
+    testId: TOUR_WORKSPACE_TEST_IDS.tabExecution,
   },
 ];
 

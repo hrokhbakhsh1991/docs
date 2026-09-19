@@ -1141,6 +1141,41 @@ async function dispatchRequest(
     return;
   }
 
+  const tourExecutionMatch = url.pathname?.match(/^\/tours\/([^/]+)\/execution$/);
+  if (method === "GET" && tourExecutionMatch) {
+    const { handleGetTourExecution } = await import("./tour-execution/tour-execution.routes.ts");
+    await handleGetTourExecution(req, res, tourExecutionMatch[1]!);
+    return;
+  }
+
+  const tourExecutionStartMatch = url.pathname?.match(/^\/tours\/([^/]+)\/execution\/start$/);
+  if (method === "POST" && tourExecutionStartMatch) {
+    const { handleStartTourExecution } = await import("./tour-execution/tour-execution.routes.ts");
+    await handleStartTourExecution(req, res, tourExecutionStartMatch[1]!);
+    return;
+  }
+
+  const tourExecutionDriverMatch = url.pathname?.match(
+    /^\/tours\/([^/]+)\/execution\/drivers\/([^/]+)$/
+  );
+  if (method === "PATCH" && tourExecutionDriverMatch) {
+    const { handleUpdateTourExecutionDriverFact } = await import("./tour-execution/tour-execution.routes.ts");
+    await handleUpdateTourExecutionDriverFact(
+      req,
+      res,
+      tourExecutionDriverMatch[1]!,
+      tourExecutionDriverMatch[2]!
+    );
+    return;
+  }
+
+  const tourExecutionCompleteMatch = url.pathname?.match(/^\/tours\/([^/]+)\/execution\/complete$/);
+  if (method === "POST" && tourExecutionCompleteMatch) {
+    const { handleCompleteTourExecution } = await import("./tour-execution/tour-execution.routes.ts");
+    await handleCompleteTourExecution(req, res, tourExecutionCompleteMatch[1]!);
+    return;
+  }
+
   const tourTransportAllocationsMatch = url.pathname?.match(
     /^\/tours\/([^/]+)\/transport-allocations$/
   );
