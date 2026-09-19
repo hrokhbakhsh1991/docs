@@ -1293,6 +1293,29 @@ export class FinanceService {
             toleranceMinor: this.obligationToleranceMinor,
           })
         ) {
+          // A concurrent approval can commit after this request read the
+          // pending receipt but before the balance check. Re-read only in
+          // that case, so a genuine excess manual payment remains a 422.
+          const latest = await this.repository.findReceiptById(auth.tenantId, receiptId);
+          if (
+            latest !== null &&
+            latest.status === "Approved" &&
+            latest.payment !== null &&
+            latest.payment.status === "Paid"
+          ) {
+            this.recordApprove(auth, gate.workspaceType, "replay");
+            return {
+              id: latest.id,
+              status: latest.status,
+              reviewNote: latest.reviewNote,
+              reviewedAt: latest.reviewedAt?.toISOString() ?? null,
+              ledgerJournalId: latest.ledgerJournalId ?? "",
+              bookingPaymentStatus: await this.resolveApproveReplayBookingStatus(
+                auth.tenantId,
+                latest.payment.registrationId
+              ),
+            };
+          }
           throw new Error("FINANCE_OBLIGATION_OVERPAY");
         }
       }
