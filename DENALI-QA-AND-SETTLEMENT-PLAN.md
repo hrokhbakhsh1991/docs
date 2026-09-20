@@ -209,7 +209,7 @@ SHA/PR:
 |          4 | T03 — یکسان‌سازی summary و فهرست مالی                   | P1     | T00                                     | `VERIFIED_LOCALLY`             | منبع اعداد پرداخت، بدهی و وضعیت settlement باید یکی باشد |
 |          5 | T05-CARD — تنظیم مقصد پرداخت کارت‌به‌کارت و نمایش پورتال | P0     | T00, T03                                | `SOURCE_FIXED_RETEST_REQUIRED` | پرداخت بدون مقصد معتبر یا snapshot امن قابل قبول نیست |
 |          6 | T02 — یکسان‌سازی ظرفیت و عنوان تور                      | P1     | T01                                     | `VERIFIED_LOCALLY`             | ظرفیت/عنوان نادرست مستقیماً روی ثبت‌نام اثر می‌گذارد |
-|          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                   | P1     | T02, T03                                | `SOURCE_FIXED_RETEST_REQUIRED` | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد |
+|          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                   | P1     | T02, T03                                | `VERIFIED_LOCALLY`             | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد |
 |          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`                  | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه |
 |          9 | T09 — primitive مشترک mobile: popover/tab/dialog        | P1     | T00                                     | `IN_PROGRESS`                  | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد |
 |         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
@@ -683,6 +683,8 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 - **RETEST SOURCE:** اجرای تازهٔ سه suite canonical دنالی `30/30`، web transport `3/3` و web operational roster `15/15` سبز شد؛ مجموع retest برابر `48/48` است و `git diff --check` نیز سبز است.
 - وضعیت T04: `SOURCE_FIXED_RETEST_REQUIRED`; source/test کافی است، اما browser proof موبایل و بررسی labelهای نهایی در runtime هنوز باید در گام QA سطح UI انجام شود. فعلاً patch جدید یا mapping موازی لازم نیست.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** پنج suite الزام‌شده PASS شدند: transport registration **5/5**، roster semantics **12/12**، roster composition **13/13**، web transport **3/3** و web operational roster **17/17**؛ مجموع **50/50**. هیچ mapping/UI موازی افزوده نشد؛ mobile runtime proof همچنان جداگانه لازم است.
+- **BROWSER PROOF — 2026-09-20:** اجرای رسمی Playwright با `OPERATOR_SMOKE_USE_DATABASE=0` روی سناریوی `scenario3-tabs-transport-finance-filters.spec.ts` با نتیجهٔ **1/1 PASS** انجام شد. مسیر واقعی login، approval، transport roster، نمایش مقدار حمل، نهایی‌سازی participant و finance filters/search بدون خطای browser تأیید شد.
+- وضعیت T04: **`VERIFIED_LOCALLY`**. قرارداد transport، projection واحد roster، label وضعیت read-only و رفتار فیلترها در source، تست‌های الزامی و browser runtime تأیید شدند.
 
 ---
 
