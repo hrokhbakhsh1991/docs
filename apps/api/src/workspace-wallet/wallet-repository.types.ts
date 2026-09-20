@@ -46,7 +46,8 @@ export type WalletMemberTransactionsQuery = {
 
 export type WalletOperatorAccountLookupQuery = {
   readonly tenantId: string;
-  readonly userId: string;
+  readonly userId?: string;
+  readonly search?: string;
   readonly workspaceId?: string;
   readonly currency?: string;
 };

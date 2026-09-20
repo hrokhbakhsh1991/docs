@@ -702,12 +702,30 @@ export class PrismaWalletRepository {
     >
   > {
     const tenantId = query.tenantId.trim();
-    const userId = query.userId.trim();
 
     return withTenantRls(tenantId, async (tx) => {
+      let userIds: string[] | undefined;
+      if (query.userId !== undefined) {
+        userIds = [query.userId.trim()];
+      } else if (query.search !== undefined) {
+        const search = query.search.trim();
+        const members = await tx.userTenant.findMany({
+          where: {
+            tenantId,
+            status: "ACTIVE",
+            ...(query.workspaceId !== undefined ? { workspaceId: query.workspaceId.trim() } : {}),
+            OR: [
+              { user: { mobile: { contains: search, mode: "insensitive" } } },
+              { membershipMetadata: { path: ["displayName"], string_contains: search } },
+            ],
+          },
+          select: { userId: true },
+        });
+        userIds = members.map((member) => member.userId);
+      }
       const where: Prisma.WalletAccountWhereInput = {
         tenantId,
-        userId,
+        ...(userIds !== undefined ? { userId: { in: userIds } } : {}),
         ...(query.workspaceId !== undefined ? { workspaceId: query.workspaceId.trim() } : {}),
         ...(query.currency !== undefined ? { currency: query.currency.trim() } : {}),
       };
