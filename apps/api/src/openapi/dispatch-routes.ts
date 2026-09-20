@@ -422,6 +422,30 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     operationId: "cloneTour",
   },
   {
+    method: "GET",
+    path: "/tours/{tourId}/execution",
+    summary: "Get the current operational execution snapshot for a tour",
+    operationId: "getTourExecution",
+  },
+  {
+    method: "POST",
+    path: "/tours/{tourId}/execution/start",
+    summary: "Start an operational tour execution and snapshot approved drivers",
+    operationId: "startTourExecution",
+  },
+  {
+    method: "PATCH",
+    path: "/tours/{tourId}/execution/drivers/{driverRegistrationId}",
+    summary: "Record one driver's actual passengers and attendance",
+    operationId: "patchTourExecutionDriver",
+  },
+  {
+    method: "POST",
+    path: "/tours/{tourId}/execution/complete",
+    summary: "Complete an operational tour execution without a financial side effect",
+    operationId: "completeTourExecution",
+  },
+  {
     method: "POST",
     path: "/tours/clone-photo-remint",
     summary: "Copy MinIO blobs for wizard clone photo remint plan",

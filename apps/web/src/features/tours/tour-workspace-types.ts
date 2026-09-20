@@ -1,4 +1,9 @@
-export type TourWorkspaceSubnavTab = "registrations" | "waitlist" | "transport" | "finance";
+export type TourWorkspaceSubnavTab =
+  | "registrations"
+  | "waitlist"
+  | "transport"
+  | "execution"
+  | "finance";
 
 export const TOUR_WORKSPACE_TEST_IDS = {
   page: "operator-tour-workspace-page",
@@ -7,6 +12,7 @@ export const TOUR_WORKSPACE_TEST_IDS = {
   tabRegistrations: "operator-tour-workspace-tab-registrations",
   tabWaitlist: "operator-tour-workspace-tab-waitlist",
   tabTransport: "operator-tour-workspace-tab-transport",
+  tabExecution: "operator-tour-workspace-tab-execution",
   tabFinance: "operator-tour-workspace-tab-finance",
   tabBadge: "operator-tour-workspace-tab-badge",
   tabHint: "operator-tour-workspace-tab-hint",
@@ -14,6 +20,7 @@ export const TOUR_WORKSPACE_TEST_IDS = {
   registrationsPanel: "operator-tour-workspace-registrations-panel",
   waitlistPanel: "operator-tour-workspace-waitlist-panel",
   transportPanel: "operator-tour-workspace-transport-panel",
+  executionPanel: "operator-tour-workspace-execution-panel",
   financePanel: "operator-tour-workspace-finance-panel",
   openBookings: "operator-tour-workspace-open-bookings",
   openFinance: "operator-tour-workspace-open-finance",
