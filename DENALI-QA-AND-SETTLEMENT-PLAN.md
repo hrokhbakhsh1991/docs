@@ -1072,6 +1072,7 @@ pnpm --filter @apps/web run test:file -- test/tours-workspace.spec.ts
 - **محدودیت اثبات:** این اصلاحات در worktree ایزولهٔ `codex/tour-qa-tasks` هستند و هنوز روی `dev` deploy نشده‌اند؛ بنابراین وضعیت کل T07 فعلاً `IN_PROGRESS` و موارد بالا `SOURCE_FIXED_RETEST_REQUIRED` هستند.
 - **RETEST — 2026-09-19 (worktree ایزوله):** `settings-integrations`، `integrations-settings-logic`، `settings-audit-trail`، `tours-register` و `tours-workspace` مجموعاً **49/49 PASS** شدند. browser retest همان SHA همچنان لازم است.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** چهار suite الزام‌شدهٔ T07 با harness رسمی دوباره PASS شدند: `settings-integrations` **4/4**، `integrations-settings-logic` **11/11**، `tours-register` **5/5** و `tours-workspace` **26/26**؛ مجموع **46/46**. این نتیجه fallbackهای source را تأیید می‌کند، نه render/runtime واقعی فارسی یا انگلیسی.
+- **BROWSER RETEST — 2026-09-20:** مسیر `/settings/integrations` روی runtime محلی Denali با owner login و marker صفحه **1/1 PASS** شد؛ صفحهٔ فارسی، empty state اتصال و فرم تنظیم Telegram بدون raw event/error code قابل مشاهده بود. Screenshot نهایی در `apps/web/test-results/t07-integrations-settings.png` ثبت شد. ماتریس کامل settings به‌دلیل شاخهٔ دسترسی مستقل `/settings/workspace-owner` متوقف شد و این failure به integrations نسبت داده نمی‌شود.
 
 ---
 

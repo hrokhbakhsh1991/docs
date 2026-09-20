@@ -77,6 +77,12 @@ test.describe("Denali settings route matrix", () => {
       });
       expect(response?.status(), `${path} response`).toBe(200);
       await expect(page.getByTestId(marker), `${path} marker`).toBeVisible({ timeout: 30_000 });
+      if (path === "/settings/integrations") {
+        await page.screenshot({
+          path: "test-results/t07-integrations-settings.png",
+          fullPage: true,
+        });
+      }
     });
   }
 });

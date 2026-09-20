@@ -30,6 +30,6 @@
       ]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/settings/denali-owner-settings-panel.tsx"],
   "exclude": ["src/ui/**", "src/**/*.spec.ts", "test/**/*.spec.ts", "src/schemas/*.generated.ts", "src/catalog/registration-flow/**"]
 }
