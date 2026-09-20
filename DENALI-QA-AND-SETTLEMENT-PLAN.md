@@ -215,7 +215,7 @@ SHA/PR:
 |         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `VERIFIED_LOCALLY`             | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
 |         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `IN_PROGRESS`                  | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
 |         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ             | P2     | T00                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خطای فهم کاربر؛ بدون تغییر در منطق اصلی |
-|         13 | T08 — empty state و feedback عملیات                     | P2     | T01, T03, T05                           | `SOURCE_FIXED_RETEST_REQUIRED` | تکمیل بازخورد بعد از تثبیت داده و عملیات |
+|         13 | T08 — empty state و feedback عملیات                     | P2     | T01, T03, T05                           | `VERIFIED_LOCALLY`             | تکمیل بازخورد بعد از تثبیت داده و عملیات |
 |         14 | T10 — ویزارد ساخت تور و draft                           | P2     | T09                                     | `SOURCE_FIXED_RETEST_REQUIRED` | به primitive مشترک و قراردادهای wizard وابسته است |
 |         15 | T12 — کاربران در desktop/mobile                         | P2     | T09                                     | `IN_PROGRESS`                  | مشکل مهم UX است، اما مسیر خرید را متوقف نمی‌کند |
 |         16 | T14 — ممیزی و پاک‌سازی کنترل‌شدهٔ داده/seed staging     | P2     | T00؛ پاک‌سازی بعد از T01-T13 و T05-CARD | `IN_PROGRESS`                  | ابتدا کد/قرارداد ثابت شود؛ حذف داده بدون target ممنوع است |
@@ -1122,6 +1122,7 @@ pnpm --filter @apps/web run test:file -- test/resolve-finance-error-message.spec
 - تست موجود `bookings-command-center.spec.ts` سناریوهای empty، emptyFiltered و emptyUpcoming، error gate، action error test id و interpolation پیام‌های فارسی/انگلیسی را پوشش می‌دهد؛ تست `tours-workspace.spec.ts` نیز مسیرهای workspace را پوشش می‌دهد.
 - **نتیجه:** source این بخش `SOURCE_FIXED_RETEST_REQUIRED` است؛ retest مرورگر روی staging/live برای مشاهدهٔ واقعی stateها و feedback باقی مانده است. هیچ تغییر کدی برای T08 لازم تشخیص داده نشد.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** suiteهای الزام‌شده دوباره PASS شدند: `tours-workspace` **26/26**، `finance-outstanding-ux1` **9/9** و `resolve-finance-error-message` **10/10**؛ مجموع **45/45**. نتیجه فقط state/error contract است؛ مشاهدهٔ feedback در browser و دادهٔ واقعی همچنان جداگانه لازم است.
+- **BROWSER RETEST — 2026-09-20:** ماتریس مالی Denali در browser محلی برای نمای فارسی desktop و انگلیسی desktop — **2/2 PASS**؛ hierarchy وضعیت‌ها، empty refund state، help/feedback، outstanding و تب‌های مالی بررسی شدند. Screenshotهای ماتریس در `apps/web/test-results/finance-ux2-browser-qa/` ثبت شدند.
 
 ---
 
