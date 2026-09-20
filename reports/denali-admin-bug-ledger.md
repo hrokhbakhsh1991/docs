@@ -27,7 +27,7 @@
 |---|---|---|---|---|
 | DENALI-001 | P1 | CLOSED | پس از deploy migrationهای عقب‌مانده، operational roster با fixture رسمی سالم است و پیام unavailable بازتولید نشد. | status پاسخ، log علت، fixture سالم و دو load موفق. |
 | DENALI-002 | P2 | CLOSED | دو load در مرورگر واقعی با session معتبر، status `200` برای APIهای اصلی، payload ثبت‌شده، DOM سالم و بدون console error/warning مشاهده‌شده تکمیل شد. | build تمیز و دو navigation بدون console error. |
-| DENALI-003 | P2 | OPEN | `bookings.status.actionable` در fa ناقص و در UI خام نمایش داده می‌شود. | fa/en label معتبر و تست locale completeness سبز. |
+| DENALI-003 | P2 | CLOSED | کلیدهای `bookings.status.actionable` در fa/en موجود و در browser با label معتبر render شدند؛ raw key مشاهده نشد. | fa/en label معتبر و تست locale completeness سبز. |
 | DENALI-004 | P2 | OPEN | route ناشناخته Admin به generic 500 می‌رسد، نه 404. | 404 استاندارد، بدون stack داخلی. |
 | DENALI-005 | P1 | OPEN | debug host endpoint برای anonymous قابل‌مشاهده است. | حذف یا auth/allowlist و تست anonymous. |
 | DENALI-006 | P1 | OPEN | unknown Marketing host به catalog API پاسخ 500 کنترل‌نشده می‌دهد. | 4xx کنترل‌شده و بدون tenant fallback. |
@@ -93,6 +93,25 @@
 - **network_payload_note:** payloadهای اصلی در خروجی instrumentation browser ثبت شدند؛ screenshotها با action `screenshot_page` برای هر load ثبت شدند.
 - **next_action:** ندارد؛ evidence لازم برای این task کامل شد.
 - **owner:** QA/browser tooling.
+
+### DENALI-003 evidence
+
+- **task_id:** `DENALI-003`.
+- **reproduce:** route `http://admin.denali.localhost:3000/bookings?status=actionable` در browser واقعی باز شد؛ در runtime جاری finding بازتولید نشد و به‌جای raw key، label فارسی `نیازمند اقدام` نمایش داده شد.
+- **diagnose:** علت تاریخی، نبودن کلید `status.actionable` در localeهای bookings بود؛ `git show 8834e353d` نشان می‌دهد fix دقیقاً با افزودن کلید به هر دو فایل locale انجام شده است. در source جاری هر دو کلید معتبر هستند و component `booking-inbox-row.tsx` از `t(\`status.${item.status}\`)` در namespace `bookings` استفاده می‌کند.
+- **fix:** fix موجود commit `8834e353d` در SHA جاری حاضر است؛ تغییر جدید لازم نبود.
+- **browser_url:** `http://admin.denali.localhost:3000/bookings?status=actionable`.
+- **session:** authenticated؛ redirect به `/auth/login` رخ نداد.
+- **visible_result:** صفحه `مرکز رزروها` و queue status با متن `نیازمند اقدام` render شدند؛ `bookings.status.actionable` در DOM دیده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** `/api/bookings/summary?view=ops` و `/api/bookings?view=ops&status=pending,waitlisted&limit=25` هر دو `200`; payloadها به‌ترتیب summary معتبر با شمارنده‌های صفر و `{items:[],total:0,nextCursor:null}` بودند.
+- **screenshot_or_dom_assertion:** screenshot کامل با browser canvas ثبت شد؛ DOM assertionهای `operator-bookings-page` و `operator-bookings-queue-status` سبز بودند و تنها label معتبر `نیازمند اقدام` پیدا شد.
+- **test_command:** `pnpm --filter @apps/web test:file test/bookings-command-center.spec.ts` و locale-key check با Node.
+- **test_result:** command تست `13 passed, 0 failed`; locale check خروجی `{"en":"Needs action","fa":"نیازمند اقدام"}` با exit code `0`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted web tests.
+- **verified_at:** `2026-09-20T19:29:05.524+03:30`.
+- **source_sha:** `ec66f9638`.
 
 ## 2. تسک‌های قابل‌اجرا
 
