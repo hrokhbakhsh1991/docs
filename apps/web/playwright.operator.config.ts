@@ -44,6 +44,7 @@ export default defineConfig({
     "scenario4-workspace-finance-actions.spec.ts",
     "scenario5-workspace-finance-submit-receipt.spec.ts",
     "scenario6-workspace-finance-under-review-gating.spec.ts",
+    "denali-workspace-gap-coverage.spec.ts",
     "t05-card-settings-browser.spec.ts",
   ],
   retries: process.env.CI || useExternalServers ? 1 : 0,

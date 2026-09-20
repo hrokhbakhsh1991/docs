@@ -44,8 +44,8 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
       timeout: 60_000,
     });
     await expect(page.getByTestId(TOUR_WORKSPACE_TEST_IDS.tabWaitlist)).toHaveAttribute(
-      "aria-current",
-      "page"
+      "aria-selected",
+      "true"
     );
 
     const waitlistPanel = page.getByTestId(TOUR_WORKSPACE_TEST_IDS.waitlistPanel);
@@ -137,10 +137,13 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
       .click();
     await rejectResponse;
 
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection)).toContainText(
-      /rejected|ردشده|رد شده/i,
-      { timeout: 15_000 }
-    );
+    await expect(
+      page.locator("[data-booking-row]").filter({ hasText: guestName })
+    ).toHaveCount(0, { timeout: 15_000 });
+    await page.screenshot({
+      path: "test-results/t09-workspace-reject-terminal.png",
+      fullPage: true,
+    });
   });
 
   test("finance tab shows degraded banner when operational roster fails", async ({ page }) => {
