@@ -165,12 +165,20 @@ In-app tour links → relative /tours/{id} (same host)
 ## 5. Ingress resolution (API — MUST)
 
 ```text
-Host / x-forwarded-host
+Host
   ├─ strip shop. if present (ingress only)
   ├─ parseMultiLevelTenantHost
   ├─ else tenant_domains (verified + SSL)
   └─ resolveRegisteredTenantBySubdomain → tenantId + pluginId
 ```
+
+`x-forwarded-host` is accepted only when the API is explicitly configured behind a
+trusted proxy with `TRUST_PROXY_HOPS > 0` and its address listed in
+`TRUSTED_PROXY_IPS`. The proxy must be the network boundary
+that strips client-supplied forwarded headers and writes the canonical ingress
+host. With the default `TRUST_PROXY_HOPS=0`, the API ignores
+`x-forwarded-host` and resolves the tenant from `Host`; this prevents a client
+from selecting another tenant by sending a forwarded-host header directly.
 
 ---
 
