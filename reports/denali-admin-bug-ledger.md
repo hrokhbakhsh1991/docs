@@ -25,7 +25,7 @@
 
 | ID | اولویت | وضعیت | یافته | معیار بسته‌شدن |
 |---|---|---|---|---|
-| DENALI-001 | P1 | BLOCKED | تب transport roster پیام unavailable می‌دهد؛ علت API هنوز ثبت نشده. | status پاسخ، log علت، fixture سالم و دو load موفق. |
+| DENALI-001 | P1 | CLOSED | پس از deploy migrationهای عقب‌مانده، operational roster با fixture رسمی سالم است و پیام unavailable بازتولید نشد. | status پاسخ، log علت، fixture سالم و دو load موفق. |
 | DENALI-002 | P2 | OPEN | React hydration error `#418` در transport route. | build تمیز و دو navigation بدون console error. |
 | DENALI-003 | P2 | OPEN | `bookings.status.actionable` در fa ناقص و در UI خام نمایش داده می‌شود. | fa/en label معتبر و تست locale completeness سبز. |
 | DENALI-004 | P2 | OPEN | route ناشناخته Admin به generic 500 می‌رسد، نه 404. | 404 استاندارد، بدون stack داخلی. |
@@ -37,16 +37,16 @@
 
 ### DENALI-001 evidence
 
-- **blocker:** fixture رسمی Denali برای browser و PostgreSQL در این محیط قابل اجرا نیست؛ Docker Desktop در دسترس نیست و `127.0.0.1:5434` پاسخ نمی‌دهد.
-- **attempted_proof:** تلاش سوم در `2026-09-20T18:22:24+03:30`: `docker version --format '{{.Server.Version}}'` با خطای `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`؛ `Test-NetConnection 127.0.0.1 -Port 5434` با `TcpTestSucceeded: False`؛ اجرای `node .\apps\web\scripts\th1-e2e-servers.mjs` با exit code `1`. پس از سه تلاش یکسان، مورد باید به owner زیرساخت escalate شود.
-- **browser_url:** قابل ثبت نیست؛ surface محلی قبل از login و route transport بالا نیامد.
-- **visible_result:** قابل مشاهده نیست؛ browser proof انجام نشد.
-- **console_error_count:** قابل اندازه‌گیری نیست؛ صفحه/fixture اجرا نشد.
-- **network_result:** قابل اندازه‌گیری نیست؛ درخواست roster با fixture معتبر ارسال نشد.
-- **screenshot_or_dom_assertion:** موجود نیست؛ به‌دلیل blocker هیچ DOM assertion معتبر ثبت نشد.
-- **next_action:** اجرای fixture PostgreSQL رسمی و سپس بازتولید route `/tours/00000000-0000-0000-0000-000000000220/workspace?tab=transport` با دو load متوالی.
-- **owner:** QA/infra owner محیط Denali staging.
-- **source_sha:** `beeef05d9a21837a083c7a8c0d28f3b4d7ba54aa`.
+- **diagnose:** blocker قبلی از نبود migration در دیتابیس محلی بود؛ `tours.updated_at` و `membership_codes` در source موجود بودند اما deploy نشده بودند و seed رسمی پیش از browser proof متوقف می‌شد.
+- **fix:** migration deploy رسمی با owner URL انجام شد؛ سپس fixture رسمی Denali seed شد و API/Web با JWT dev و OTP fixture بالا آمدند. تغییر کد محصول برای این مورد لازم نشد؛ خطای مشاهده‌شده محیطی بود.
+- **browser_url:** `http://admin.denali.localhost:3000/tours/00000000-0000-4000-8000-000000000220/workspace?tab=transport` (دو load متوالی).
+- **visible_result:** پنل `لیست عملیاتی` و کنترل‌های transport قابل مشاهده بودند؛ متن `unavailable` یا `در دسترس نیست` مشاهده نشد.
+- **console_error_count:** `0` در هر دو load.
+- **network_result:** درخواست‌های `/api/tours/00000000-0000-4000-8000-000000000220/operational-roster` با status `200`؛ دو درخواست مستقیم fixture و درخواست‌های viewهای `operational`, `unpaid`, `final` نیز `200`.
+- **screenshot_or_dom_assertion:** assertionهای DOM برای `tour-workspace` و `transportPanel` در هر دو load سبز؛ screenshot در `apps/web/test-results/denali-001-transport-proof.png`.
+- **prove:** تست Playwright اختصاصی `denali-001-proof.spec.ts` با دو load موفق (`1 passed`, `6.2s`) و تست canonical `GAP-TRANSPORT-01` نیز سبز (`1 passed`, `16.6s`).
+- **owner:** QA.
+- **source_sha:** پس از evidence: `26f3f12e8`.
 
 ## 2. تسک‌های قابل‌اجرا
 
