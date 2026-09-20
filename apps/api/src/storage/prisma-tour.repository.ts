@@ -326,12 +326,27 @@ export class PrismaTourRepository implements TourStorageRepository {
       const rows = await tx.tour.findMany({
         where,
         select: OPERATOR_TOUR_LIST_SELECT,
-        orderBy: buildOperatorTourOrderBy(query.sortBy, query.sortDir),
-        skip: (input.query.page - 1) * input.query.limit,
-        take: input.query.limit,
+        orderBy:
+          query.sortBy === "price"
+            ? [{ id: query.sortDir }]
+            : buildOperatorTourOrderBy(query.sortBy, query.sortDir),
       });
+      const sortedRows =
+        query.sortBy === "price"
+          ? [...rows].sort((left, right) => {
+              const delta = compareOperatorTourPrices(
+                left.canonical as unknown as CanonicalDocument,
+                right.canonical as unknown as CanonicalDocument,
+                query.sortDir
+              );
+              if (delta !== 0) return delta;
+              return left.id.localeCompare(right.id) * (query.sortDir === "asc" ? 1 : -1);
+            })
+          : rows;
+      const start = (input.query.page - 1) * input.query.limit;
+      const pageRows = sortedRows.slice(start, start + input.query.limit);
       return {
-        items: rows.map(toTour),
+        items: pageRows.map(toTour),
         total: query.includeTotal ? total : rows.length,
         page: query.page,
         limit: query.limit,
