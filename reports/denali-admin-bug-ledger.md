@@ -28,7 +28,7 @@
 | DENALI-001 | P1 | CLOSED | پس از deploy migrationهای عقب‌مانده، operational roster با fixture رسمی سالم است و پیام unavailable بازتولید نشد. | status پاسخ، log علت، fixture سالم و دو load موفق. |
 | DENALI-002 | P2 | CLOSED | دو load در مرورگر واقعی با session معتبر، status `200` برای APIهای اصلی، payload ثبت‌شده، DOM سالم و بدون console error/warning مشاهده‌شده تکمیل شد. | build تمیز و دو navigation بدون console error. |
 | DENALI-003 | P2 | CLOSED | کلیدهای `bookings.status.actionable` در fa/en موجود و در browser با label معتبر render شدند؛ raw key مشاهده نشد. | fa/en label معتبر و تست locale completeness سبز. |
-| DENALI-004 | P2 | OPEN | route ناشناخته Admin به generic 500 می‌رسد، نه 404. | 404 استاندارد، بدون stack داخلی. |
+| DENALI-004 | P2 | CLOSED | route ناشناخته Admin در browser و HTTP به 404 استاندارد می‌رسد و صفحهٔ فارسی not-found بدون stack داخلی render می‌شود. | 404 استاندارد، بدون stack داخلی. |
 | DENALI-005 | P1 | OPEN | debug host endpoint برای anonymous قابل‌مشاهده است. | حذف یا auth/allowlist و تست anonymous. |
 | DENALI-006 | P1 | OPEN | unknown Marketing host به catalog API پاسخ 500 کنترل‌نشده می‌دهد. | 4xx کنترل‌شده و بدون tenant fallback. |
 | DENALI-007 | P1 | OPEN | unknown Portal route/API به generic 500 می‌رسد. | 404/400 قراردادشده و بدون stack. |
@@ -112,6 +112,24 @@
 - **verifier:** browser canvas `denali-proof` و targeted web tests.
 - **verified_at:** `2026-09-20T19:29:05.524+03:30`.
 - **source_sha:** `ec66f9638`.
+
+### DENALI-004 evidence
+
+- **task_id:** `DENALI-004`.
+- **reproduce:** route ناشناخته `http://admin.denali.localhost:3000/does-not-exist` در browser واقعی باز شد؛ در runtime جاری generic 500 بازتولید نشد و صفحهٔ not-found استاندارد نمایش داده شد.
+- **diagnose:** `apps/web/app/not-found.tsx` صفحهٔ App Router با `data-web-page-not-found` و متن localized را فراهم می‌کند؛ runtime جاری همین surface را استفاده کرد. `apps/web/app/layout.tsx` نیز فقط خطای صریح `ADMIN_TENANT_UNRESOLVED` را به `notFound()` تبدیل می‌کند و سایر خطاها را پنهان نمی‌کند.
+- **fix:** fix لازم از قبل در source جاری وجود داشت؛ تغییر جدیدی لازم نبود.
+- **browser_url:** `http://admin.denali.localhost:3000/does-not-exist`.
+- **visible_result:** عنوان `صفحه یافت نشد`، توضیح مسیر ناموجود و لینک `بازگشت به صفحه اصلی` نمایش داده شد؛ stack یا متن خطای داخلی در visible DOM نبود.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** fetch همان route با `credentials: "include"` status `404` و `content-type: text/html; charset=utf-8` برگرداند؛ body visible شامل stack نبود.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ `data-web-page-not-found` و `data-web-not-found` موجود بودند و `visibleHasStack: false` بود.
+- **test_command:** `pnpm --filter @apps/web test:file test/app-not-found.spec.ts`.
+- **test_result:** exit code `0`; `3 passed, 0 failed`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted web tests.
+- **verified_at:** `2026-09-20T19:41:06.764+03:30`.
+- **source_sha:** `dba8d565c`.
 
 ## 2. تسک‌های قابل‌اجرا
 
