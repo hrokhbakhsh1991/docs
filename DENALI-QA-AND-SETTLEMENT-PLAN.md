@@ -213,7 +213,7 @@ SHA/PR:
 |          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`                  | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه |
 |          9 | T09 — primitive مشترک mobile: popover/tab/dialog        | P1     | T00                                     | `IN_PROGRESS`                  | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد |
 |         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `VERIFIED_LOCALLY`             | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
-|         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `IN_PROGRESS`                  | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
+|         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `VERIFIED_LOCALLY`             | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
 |         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ             | P2     | T00                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خطای فهم کاربر؛ بدون تغییر در منطق اصلی |
 |         13 | T08 — empty state و feedback عملیات                     | P2     | T01, T03, T05                           | `VERIFIED_LOCALLY`             | تکمیل بازخورد بعد از تثبیت داده و عملیات |
 |         14 | T10 — ویزارد ساخت تور و draft                           | P2     | T09                                     | `VERIFIED_LOCALLY`             | به primitive مشترک و قراردادهای wizard وابسته است |
@@ -1315,6 +1315,8 @@ pnpm --filter @apps/api exec env NODE_ENV=test STORAGE_DRIVER=prisma TENANT_MAX_
 - **STATUS:** `IN_PROGRESS`؛ source، unit/contract و تست ساختاری اصلاح و سبز شده‌اند؛ E2E/mobile runtime هنوز `UNVERIFIED` است و تا اجرای isolated نباید بسته اعلام شود.
 - **RETEST — 2026-09-19 (worktree ایزوله):** `@app-tour/ticketing-core` **75/75**، `@app-tour/ticketing-http-contracts` **38/38**، `@app-tour/ticketing-http` **2/2** و testهای UI ticket/dashboard **15/15** دوباره PASS شدند؛ مجموع **130/130**. اجرای PostgreSQL و browser matrix همچنان runtime evidence جدا می‌خواهد.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** همان چهار suite با harness رسمی دوباره **130/130 PASS** شد. `DATABASE_URL` و `DATABASE_URL_ADMIN` در worktree حاضر نیستند؛ بنابراین `ticketing-http-postgres.spec.ts` عمداً اجرا نشد و با memory runner جایگزین نشد. status E2E/mobile و PostgreSQL همچنان `UNVERIFIED` است، نه سبز.
+- **BROWSER RETEST — 2026-09-20:** PostgreSQL محلی روی پورت `5434` بالا آمد، همهٔ migrationها اعمال شد و fixtureهای ticketing seed شدند. اجرای واقعی Chromium روی runtime جداگانهٔ Denali با `apps/web/tests/e2e/operator-ticketing-inbox.spec.ts` برابر **2/2 PASS** شد؛ شامل triage ادمین، دسترسی viewer/member، نمای mobile و mutation conflict. Screenshotهای اجرای موفق در `apps/web/test-results/` ثبت شدند.
+- **STATUS:** `VERIFIED_LOCALLY`؛ T11 در محیط محلی PostgreSQL و browser واقعی تأیید شد. تأیید staging/production جدا از این تسک است.
 
 ---
 
