@@ -637,6 +637,7 @@ model User {
 model UserTenant {
   userId             String   @map("user_id") @db.Uuid
   tenantId           String   @map("tenant_id") @db.Uuid
+  membershipCode     String?  @map("membership_code")
   role               String
   status             String   @default("ACTIVE")
   sessionVersion     Int      @default(1) @map("session_version")
@@ -649,6 +650,7 @@ model UserTenant {
 
   @@id([userId, tenantId])
   @@index([tenantId, status], map: "idx_user_tenants_tenant_status")
+  @@unique([tenantId, membershipCode], map: "uq_user_tenants_tenant_membership_code")
   @@map("user_tenants")
 }
 

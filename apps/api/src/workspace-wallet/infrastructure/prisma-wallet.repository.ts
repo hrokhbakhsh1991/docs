@@ -717,6 +717,7 @@ export class PrismaWalletRepository {
             OR: [
               { user: { mobile: { contains: search, mode: "insensitive" } } },
               { membershipMetadata: { path: ["displayName"], string_contains: search } },
+              { membershipCode: { contains: search, mode: "insensitive" } },
             ],
           },
           select: { userId: true },

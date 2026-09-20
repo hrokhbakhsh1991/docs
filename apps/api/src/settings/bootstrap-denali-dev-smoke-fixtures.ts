@@ -17,6 +17,7 @@ import { createTourStorageRepository } from "../storage/create-tour-storage";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
+import { allocateMembershipCode } from "../identity/membership-code";
 
 const DENALI_DEV_BOOKING_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
 const DENALI_DEV_BOOKING_MEMBER_MOBILE = "+15550001003";
@@ -32,8 +33,19 @@ async function ensureDenaliDevBookingMember(): Promise<void> {
     },
     update: { mobile: DENALI_DEV_BOOKING_MEMBER_MOBILE },
   });
-  await withTenantRls(DENALI_SMOKE_TENANT_ID, (tx) =>
-    tx.userTenant.upsert({
+  await withTenantRls(DENALI_SMOKE_TENANT_ID, async (tx) => {
+    const existing = await tx.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: DENALI_DEV_BOOKING_MEMBER_USER_ID,
+          tenantId: DENALI_SMOKE_TENANT_ID,
+        },
+      },
+      select: { membershipCode: true },
+    });
+    const membershipCode =
+      existing?.membershipCode ?? (await allocateMembershipCode(tx, DENALI_SMOKE_TENANT_ID));
+    return tx.userTenant.upsert({
       where: {
         userId_tenantId: {
           userId: DENALI_DEV_BOOKING_MEMBER_USER_ID,
@@ -43,6 +55,7 @@ async function ensureDenaliDevBookingMember(): Promise<void> {
       create: {
         userId: DENALI_DEV_BOOKING_MEMBER_USER_ID,
         tenantId: DENALI_SMOKE_TENANT_ID,
+        membershipCode,
         role: "member",
         status: "ACTIVE",
         sessionVersion: 1,
@@ -55,14 +68,15 @@ async function ensureDenaliDevBookingMember(): Promise<void> {
       update: {
         role: "member",
         status: "ACTIVE",
+        membershipCode,
         workspaceId: DENALI_DEV_BOOKING_MEMBER_WORKSPACE_ID,
         membershipMetadata: {
           displayName: "Smoke Member",
           rewards: { permanentDiscountPercentage: 20 },
         },
       },
-    })
-  );
+    });
+  });
 }
 
 /**

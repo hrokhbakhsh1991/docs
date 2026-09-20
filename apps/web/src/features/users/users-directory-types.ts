@@ -93,6 +93,7 @@ export type UsersDirectoryStatus = "all" | "active" | "suspended";
 export type UsersDirectoryRow = {
   readonly userId: string;
   readonly tenantId: string;
+  readonly membershipCode?: string | null;
   readonly role: Exclude<ActorRole, "none">;
   readonly status: string;
   readonly displayName: string;
