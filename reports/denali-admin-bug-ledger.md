@@ -26,7 +26,7 @@
 | ID | اولویت | وضعیت | یافته | معیار بسته‌شدن |
 |---|---|---|---|---|
 | DENALI-001 | P1 | CLOSED | پس از deploy migrationهای عقب‌مانده، operational roster با fixture رسمی سالم است و پیام unavailable بازتولید نشد. | status پاسخ، log علت، fixture سالم و دو load موفق. |
-| DENALI-002 | P2 | OPEN | React hydration error `#418` در transport route. | build تمیز و دو navigation بدون console error. |
+| DENALI-002 | P2 | CLOSED | در runtime جاری، خطای React hydration `#418` در transport route بازتولید نشد؛ دو navigation بدون خطای browser سبز شد. | build تمیز و دو navigation بدون console error. |
 | DENALI-003 | P2 | OPEN | `bookings.status.actionable` در fa ناقص و در UI خام نمایش داده می‌شود. | fa/en label معتبر و تست locale completeness سبز. |
 | DENALI-004 | P2 | OPEN | route ناشناخته Admin به generic 500 می‌رسد، نه 404. | 404 استاندارد، بدون stack داخلی. |
 | DENALI-005 | P1 | OPEN | debug host endpoint برای anonymous قابل‌مشاهده است. | حذف یا auth/allowlist و تست anonymous. |
@@ -54,6 +54,26 @@
 - **verified_at:** `2026-09-20T18:40:00+03:30`.
 - **owner:** QA.
 - **source_sha:** `26f3f12e801443aafefee3a0bebd550191f6176a`.
+
+### DENALI-002 evidence
+
+- **reproduce:** fixture رسمی owner با همان tour منتشرشده اجرا شد و route transport دو بار متوالی باز شد.
+- **diagnose:** در هر دو navigation هیچ `console.error`، `pageerror` یا پیام hydration شامل `#418` ثبت نشد؛ بنابراین finding با runtime و SHA جاری قابل بازتولید نیست.
+- **fix:** تغییر کد لازم نشد؛ counter-evidence نشان داد مشکل در source/runtime فعلی وجود ندارد.
+- **browser_url:** `http://admin.denali.localhost:3000/tours/00000000-0000-4000-8000-000000000220/workspace?tab=transport`.
+- **visible_result:** صفحه workspace و پنل transport در هر دو navigation قابل مشاهده بود.
+- **console_error_count:** `0` در هر دو navigation؛ `pageerror` نیز `0`.
+- **network_result:** route با session fixture معتبر load شد و صفحه بدون خطای browser تکمیل شد.
+- **screenshot_or_dom_assertion:** assertionهای DOM برای `tour-workspace` و `transportPanel` در هر دو navigation سبز؛ screenshot در `apps/web/test-results/denali-002-hydration-proof.png`.
+- **task_id:** `DENALI-002`.
+- **acceptance_criteria:** build/runtime جاری و دو navigation همان route بدون console یا hydration error.
+- **test_command:** `pnpm exec playwright test --config=playwright.denali.config.ts tests/e2e/denali-002-proof.spec.ts --reporter=line`.
+- **test_result:** exit code `0`; `1 passed (1.3m)`.
+- **runtime_environment:** `local`.
+- **verifier:** QA browser verifier.
+- **verified_at:** `2026-09-20T18:59:00+03:30`.
+- **owner:** QA.
+- **source_sha:** `f0e84093433e3fbabd7d3ee1df19de2116ad8e30`.
 
 ## 2. تسک‌های قابل‌اجرا
 
