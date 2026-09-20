@@ -512,6 +512,15 @@ pnpm --filter @apps/web run test:file -- test/tours-workspace.spec.ts
 - **RUNTIME RECHECK — 2026-09-19 (deploy فعلی):** همان `tourId` در `/tours` مقدار canonical «North Ridge Trek» و `۲/۱۲ نفر` را نشان می‌دهد، اما `/edit` همچنان `North Ridge Trek P13-1787743546` و ظرفیت `۲۴` را از draft unstamped قدیمی نشان می‌دهد. هیچ انتخاب recovery صریح در این build دیده نشد. این شاهد، بازتولید قطعی BUG-003/004 روی نسخهٔ deployشده است؛ به‌علت بازبودن PR #185، ردکنندهٔ اصلاح source آن نیست و باید فقط پس از deploy SHA PR دوباره اجرا شود.
 - این تست‌ها parity کاملِ یک tour ID در runtime پس از deploy را ثابت نمی‌کنند؛ پس وضعیت نهایی `SOURCE_FIXED_RETEST_REQUIRED` است.
 
+#### تأیید نهایی runtime محلی — T02
+
+- پکیج فعلی Denali از روی همین checkout با موفقیت build شد و runtime وب روی `127.0.0.1:3010` با fallback محلی اجرا شد.
+- با همان `tourId=00000000-0000-4000-8000-000000000210`، ورود OTP توسعه‌ای و بازکردن مستقیم `/tours/:id/edit` در Chromium موفق بود؛ صفحهٔ ویرایش به‌جای خطای warm، فرم کامل flat-edit را نمایش داد.
+- مقدارهای واقعی فرم از canonical detail برابر ثبت شدند: `title="North Ridge Trek"` و `capacityMax="۱۲"`. هدر همان صفحه نیز `North Ridge Trek` و `۰/۱۲ نفر` را نمایش داد.
+- نتیجهٔ source regression: `tours-edit.spec.ts` و `tours-workspace.spec.ts` مجموعاً **35/35 PASS**؛ تست registry سطح Denali نیز **2/2 PASS**؛ build پکیج Denali موفق است.
+- نتیجهٔ browser: title و capacity در list، workspace و edit برای همان tour ID هم‌راستا هستند و draft قدیمی `P13-1787743546`/`24` دیگر در فرم نمایش داده نمی‌شود.
+- **وضعیت نهایی T02: VERIFIED_LOCALLY — BUG-003 و BUG-004 بسته شدند.**
+
 #### بازبینی اجرای مرورگری محلی — 2026-09-18
 
 - اجرای `TC-DRAFT-01` با Chrome سیستم آغاز شد؛ browser binary داخلی Playwright وجود نداشت، بنابراین با `PW_CHANNEL=chrome` دوباره اجرا شد.
