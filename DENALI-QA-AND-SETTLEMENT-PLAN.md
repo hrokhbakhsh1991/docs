@@ -216,7 +216,7 @@ SHA/PR:
 |         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `IN_PROGRESS`                  | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
 |         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ             | P2     | T00                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خطای فهم کاربر؛ بدون تغییر در منطق اصلی |
 |         13 | T08 — empty state و feedback عملیات                     | P2     | T01, T03, T05                           | `VERIFIED_LOCALLY`             | تکمیل بازخورد بعد از تثبیت داده و عملیات |
-|         14 | T10 — ویزارد ساخت تور و draft                           | P2     | T09                                     | `SOURCE_FIXED_RETEST_REQUIRED` | به primitive مشترک و قراردادهای wizard وابسته است |
+|         14 | T10 — ویزارد ساخت تور و draft                           | P2     | T09                                     | `VERIFIED_LOCALLY`             | به primitive مشترک و قراردادهای wizard وابسته است |
 |         15 | T12 — کاربران در desktop/mobile                         | P2     | T09                                     | `IN_PROGRESS`                  | مشکل مهم UX است، اما مسیر خرید را متوقف نمی‌کند |
 |         16 | T14 — ممیزی و پاک‌سازی کنترل‌شدهٔ داده/seed staging     | P2     | T00؛ پاک‌سازی بعد از T01-T13 و T05-CARD | `IN_PROGRESS`                  | ابتدا کد/قرارداد ثابت شود؛ حذف داده بدون target ممنوع است |
 |         17 | T15 — regression نهایی و بسته‌شدن سند                   | Gate   | همه                                     | `TODO`                         | فقط این مرحله اجازهٔ اعلام بسته‌شدن کل برنامه را می‌دهد |
@@ -1250,6 +1250,7 @@ pnpm --filter @apps/web run test:file -- test/tours-edit.spec.ts
 - نتایج تست: contract `17/17`، persist `4/4`، resume `6/6`، save-loop `3/3`، unification closure `9/9`، systemic closure `12/12`، conditional `6/6`، validation `10/10` و step shell `7/7` سبز شدند.
 - **نتیجه:** برای شکاف‌های source این بخش patch تکراری لازم نیست و وضعیت `SOURCE_FIXED_RETEST_REQUIRED` است؛ اجرای smoke/e2e واقعی و mobile matrix بعد از deploy همچنان برای بستن نهایی باقی مانده است.
 - **RETEST — 2026-09-19 (worktree ایزوله):** `tours-edit.spec.ts` برابر **9/9 PASS** شد؛ gate نقش، shell ویرایش، primary action واحد و warm-failure قابل‌بازیابی دوباره تأیید شدند. smoke Playwright ویزارد اجرا نشد، زیرا browser دانلودشدهٔ Playwright در این محیط وجود ندارد؛ Chrome سیستم موجود است و باید با config/runtime ایزوله استفاده شود.
+- **BROWSER RETEST — 2026-09-20:** اجرای کامل `denali-itinerary-wizard.spec.ts` روی runtime محلی Denali — **9/9 PASS**؛ ساخت draft، navigation، validation، retry خطای draft و حفظ دادهٔ itinerary بین روزها تأیید شد. Screenshot نهایی در `apps/web/test-results/t10-wizard-itinerary.png` ثبت شد.
 
 ---
 
