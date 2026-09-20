@@ -233,18 +233,19 @@ export function MemberReceiptUploadForm({
       return;
     }
     setUploadPhase("uploading");
-    const body = new FormData();
-    body.append("file", file);
     try {
       const res = await fetch(
         `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
         {
           method: "POST",
-          headers:
-            panel.paymentDestination?.revision !== undefined
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "x-receipt-file-name": file.name,
+            ...(panel.paymentDestination?.revision !== undefined
               ? { "x-payment-destination-revision": panel.paymentDestination.revision }
-              : undefined,
-          body,
+              : {}),
+          },
+          body: file,
         }
       );
       if (!res.ok) {
