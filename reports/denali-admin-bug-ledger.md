@@ -29,7 +29,7 @@
 | DENALI-002 | P2 | CLOSED | دو load در مرورگر واقعی با session معتبر، status `200` برای APIهای اصلی، payload ثبت‌شده، DOM سالم و بدون console error/warning مشاهده‌شده تکمیل شد. | build تمیز و دو navigation بدون console error. |
 | DENALI-003 | P2 | CLOSED | کلیدهای `bookings.status.actionable` در fa/en موجود و در browser با label معتبر render شدند؛ raw key مشاهده نشد. | fa/en label معتبر و تست locale completeness سبز. |
 | DENALI-004 | P2 | CLOSED | route ناشناخته Admin در browser و HTTP به 404 استاندارد می‌رسد و صفحهٔ فارسی not-found بدون stack داخلی render می‌شود. | 404 استاندارد، بدون stack داخلی. |
-| DENALI-005 | P1 | OPEN | debug host endpoint برای anonymous قابل‌مشاهده است. | حذف یا auth/allowlist و تست anonymous. |
+| DENALI-005 | P1 | CLOSED | debug host endpoint از middleware عمومی حذف شد؛ anonymous اکنون `401 AUTH_UNAUTHENTICATED` می‌گیرد و دادهٔ host افشا نمی‌شود. | حذف یا auth/allowlist و تست anonymous. |
 | DENALI-006 | P1 | OPEN | unknown Marketing host به catalog API پاسخ 500 کنترل‌نشده می‌دهد. | 4xx کنترل‌شده و بدون tenant fallback. |
 | DENALI-007 | P1 | OPEN | unknown Portal route/API به generic 500 می‌رسد. | 404/400 قراردادشده و بدون stack. |
 | DENALI-008 | P0 | OPEN | tenant resolution به forwarded-host قابل‌دسترس از client اعتماد می‌کند. | spoof دو tenant رد شود و proxy trusted اثبات شود. |
@@ -130,6 +130,25 @@
 - **verifier:** browser canvas `denali-proof` و targeted web tests.
 - **verified_at:** `2026-09-20T19:41:06.764+03:30`.
 - **source_sha:** `dba8d565c`.
+
+### DENALI-005 evidence
+
+- **task_id:** `DENALI-005`.
+- **reproduce:** پیش از fix، browser واقعی روی `http://admin.denali.localhost:3000/api/debug/host` بدون نیاز به session JSON شامل `headers`, `detectedHost`, `parseOutcome` و `operatorAdminRootRedirect` را نمایش داد؛ endpoint در `PUBLIC_BFF_API_PATHS` allowlisted بود.
+- **diagnose:** route در `apps/web/app/api/debug/host/route.ts` در development دادهٔ host و classification را برمی‌گرداند و middleware آن را public کرده بود؛ این باعث دسترسی anonymous شد.
+- **fix:** `/api/debug/host` از `PUBLIC_BFF_API_PATHS` حذف شد تا middleware آن را به‌عنوان protected BFF route بررسی کند؛ تست regression برای anonymous با انتظار `401 AUTH_UNAUTHENTICATED` اضافه شد.
+- **prove_browser_url:** `http://admin.denali.localhost:3000/api/debug/host`.
+- **prove_session:** anonymous؛ پس از logout، browser بدون session به endpoint دسترسی گرفت اما دادهٔ debug دریافت نکرد.
+- **prove_visible_result:** body فقط `{"ok":false,"error":{"code":"AUTH_UNAUTHENTICATED","message":"Authentication required"}}` بود؛ host headers و tenant classification نمایش داده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** request با `credentials: "omit"` status `401` و payload دقیق `AUTH_UNAUTHENTICATED` برگرداند.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ DOM body شامل `AUTH_UNAUTHENTICATED` بود و هیچ field debug وجود نداشت.
+- **test_command:** `pnpm --filter @apps/web test:file test/auth-login-flow.spec.ts`.
+- **test_result:** exit code `0`; `9 passed, 0 failed`، شامل تست `DENALI-005 middleware blocks anonymous debug host endpoint with 401`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted web tests.
+- **verified_at:** `2026-09-20T19:45:13.203+03:30`.
+- **source_sha:** `c1ca8509fa0f`.
 
 ## 2. تسک‌های قابل‌اجرا
 
