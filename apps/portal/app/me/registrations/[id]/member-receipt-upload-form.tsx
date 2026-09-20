@@ -209,6 +209,7 @@ export function MemberReceiptUploadForm({
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     setSelectedFile(file);
+    setUploadPhase("idle");
     replaceLocalPreview(file);
   }
 

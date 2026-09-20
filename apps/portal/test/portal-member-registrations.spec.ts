@@ -142,6 +142,7 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-preview/);
     assert.match(form, /paymentDestinationLabel/);
     assert.match(form, /paymentDestinationUnavailable/);
+    assert.match(form, /setSelectedFile\(file\);[\s\S]*setUploadPhase\("idle"\)/);
     const uploadAt = form.indexOf("<div data-portal-member-receipt-upload>");
     const uploadDestinationAt = form.indexOf("{paymentDestinationBlock}", uploadAt);
     assert.ok(uploadAt > 0 && uploadDestinationAt > uploadAt);
