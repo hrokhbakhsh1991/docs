@@ -1446,6 +1446,55 @@ export async function provisionTelegramIntegration(
       api: createTelegramApiClient(botToken),
       config: currentConfig,
       chatId,
+      loadConfig: async () => {
+        const latest = await createIntegrationConnectionRepository().findByTenantAndId(
+          auth.tenantId,
+          connection.id
+        );
+        if (latest === null) {
+          throw new IntegrationNotFoundError();
+        }
+        return createTelegramForumConfig({
+          groupName:
+            typeof latest.config.groupName === "string"
+              ? latest.config.groupName
+              : currentConfig.groupName,
+          chatId: latest.config.chatId,
+          topics: readTelegramTopicConfig(latest.config),
+        });
+      },
+      saveConfig: async (config) => {
+        const topicThreadIds = Object.fromEntries(
+          Object.entries(config.topics)
+            .filter(([, topic]) => topic.threadId !== undefined)
+            .map(([key, topic]) => [key, topic.threadId])
+        );
+        const topicNames = Object.fromEntries(
+          Object.entries(config.topics).map(([key, topic]) => [key, topic.name])
+        );
+        await withTenantRls(auth.tenantId, async (tx) => {
+          const latest = await tx.integrationConnection.findUnique({
+            where: { id: connection.id },
+            select: { config: true },
+          });
+          const latestConfig =
+            typeof latest?.config === "object" && latest.config !== null
+              ? (latest.config as Record<string, unknown>)
+              : {};
+          await tx.integrationConnection.update({
+            where: { id: connection.id },
+            data: {
+              config: {
+                ...latestConfig,
+                groupName: config.groupName,
+                chatId,
+                topicThreadIds,
+                topicNames,
+              } as Prisma.InputJsonValue,
+            },
+          });
+        });
+      },
     });
     const webhook = prepareTelegramWebhookRegistration({
       tenantId: auth.tenantId,

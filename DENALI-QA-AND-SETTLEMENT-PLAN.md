@@ -939,6 +939,15 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 
 هر رویداد محصول دقیقاً یک پیام به topic درست workspace بفرستد.
 
+### معماری پایدار چند workspace — تصمیم اجرایی
+
+- `registration`، `receipts` و `tickets` policy دنالی هستند و نباید به `workspace-sdk` یا `platform-core` نشت کنند؛ core فقط binding مقصد پایدار و lifecycle آن را مدیریت می‌کند.
+- در لایهٔ provider، `chatId` ظرف خارجی و `message_thread_id` منبع هویت conversation تلگرام هستند؛ نام topic فقط metadata/audit است و معیار lookup یا ایجاد مجدد نیست.
+- binding باید tenant/workspace-scoped و دارای state باشد: `active`، `unknown`، `needs_reconcile` یا `disabled`. در state نامشخص retry ساخت topic ممنوع است.
+- provisioning باید connection را با lock دوباره بخواند؛ اگر `threadId` موجود است همان را حفظ کند و اگر نیست فقط همان binding را یک‌بار بسازد و فوراً ذخیره کند. Telegram برای createForumTopic idempotency key ندارد، پس timeout به‌صورت `unknown` ثبت می‌شود و به reconcile می‌رود.
+- delivery با event mapping workspace انجام می‌شود و برای forum event بدون binding به General fallback نمی‌کند؛ باید fail-closed بماند.
+- mappingهای تکراری فعلی خودکار با نام topic ادغام یا حذف نمی‌شوند؛ ادمین باید یک binding موجود را انتخاب و duplicateها را جداگانه archive/delete کند.
+
 ### رویدادهای اجباری
 
 - ثبت‌نام اولیه.
@@ -996,6 +1005,9 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 - **RETEST — 2026-09-19 (worktree ایزوله):** mapping `4/4`، formatter `12/12`، worker `11/11`، registration/receipt chain `1/1` و receipt flow عضو `7/7` دوباره PASS شدند. `field_exposure.runtime_truth` با `shadow/engine_missing` فقط profile fixture را گزارش می‌کند؛ اثبات Telegram واقعی نیست.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** contract رویدادهای اجباری دوباره با surface و chain تطبیق داده شد: «نیازمند تأیید» event تازه‌ای ندارد و همان `registration.created.approvalStatus` است؛ تأیید نهایی `registration.approved`؛ پرداخت ناقص، payloadِ `receipt.approved.bookingPaymentStatus=partial` است. chain، destination دقیقِ `registration.created/approved → registration`، `receipt.submitted/approved/rejected → receipts` و `ticket.created/message.posted → tickets` را با یک `chatId` و threadهای `101/202/303` assertion می‌کند. اجرای تازهٔ forum config `3/3`، adapter `2/2`، worker/topic/retry `11/11`، member receipt flow `7/7`، portal receipt BFF `6/6` و chain `1/1` همگی PASS شد. هیچ event، route یا mapping موازی اضافه نشد.
 - **BROWSER RETEST — 2026-09-20:** زنجیرهٔ رسمی `p6-vertical-slice-browser-chain.spec.ts` روی runtime محلی Denali با ثبت‌نام API، تأیید در UI اپراتور، ثبت فیش و تأیید در مرکز مالی — **1/1 PASS**. Screenshot نهایی در artifact مرورگر `apps/web/test-results/t06-registration-receipt-finance-chain.png` ثبت شد. این شواهد browser محلی مسیر محصول را تأیید می‌کند؛ دریافت پیام در Telegram واقعی و staging همان SHA هنوز برای `CLOSED` لازم است.
+- **IDEMPOTENCY FIX — 2026-09-20:** `provisionTelegramForum` اکنون روی `chatId` قفل می‌شود، connection را قبل از ساخت دوباره reload می‌کند و mapping جدید را از طریق `saveConfig` داخل همان lock ذخیره می‌کند. اجرای هم‌زمان با config خالی فقط `3` create انجام می‌دهد و اجرای دوم از `threadId`های ثبت‌شده استفاده می‌کند؛ timeout/unknown نباید create را کورکورانه تکرار کند.
+- **TEST:** `telegram-forum.onboarding.spec.ts` برابر `4/4 PASS`، `telegram-provider-test-provisioning.spec.ts` برابر `4/4 PASS`، worker/chain برابر `13/13 PASS` و browser chain محلی برابر `1/1 PASS` شد. این تست‌ها اثبات می‌کنند mapping پایدار و routing receipt حفظ شده است، نه اینکه Telegram خارجی receipt جدید دریافت کرده است.
+- **BROWSER TELEGRAM RETEST — 2026-09-20:** chat واقعی `admintest` با topicهای ثبت‌نام/فیش/تیکت و پیام ثبت‌نام قبلی مشاهده شد؛ پیام diagnostic خود Telegram همچنان «Forum topics are currently disabled» را نشان می‌دهد و receipt جدیدی در شواهد فعلی دیده نشد. تا فعال‌شدن Topics و `Manage Topics`، T06 برای Telegram خارجی `CLOSED` نمی‌شود.
 
 ### تست‌های الزامی
 

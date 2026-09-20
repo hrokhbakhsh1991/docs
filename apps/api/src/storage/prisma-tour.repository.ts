@@ -327,12 +327,12 @@ export class PrismaTourRepository implements TourStorageRepository {
         where,
         select: OPERATOR_TOUR_LIST_SELECT,
         orderBy: buildOperatorTourOrderBy(query.sortBy, query.sortDir),
+        skip: (input.query.page - 1) * input.query.limit,
+        take: input.query.limit,
       });
-      const start = (input.query.page - 1) * input.query.limit;
-      const pageRows = rows.slice(start, start + input.query.limit);
       return {
-        items: pageRows.map(toTour),
-        total: query.includeTotal ? total : pageRows.length,
+        items: rows.map(toTour),
+        total: query.includeTotal ? total : rows.length,
         page: query.page,
         limit: query.limit,
       };
