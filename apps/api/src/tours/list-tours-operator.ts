@@ -45,7 +45,7 @@ function toRowMeta(record: TourRecord) {
     id: record.id,
     tenantId: record.tenantId,
     createdAt: record.createdAt,
-    updatedAt: record.createdAt,
+    updatedAt: record.updatedAt ?? record.createdAt,
     rowVersion: record.rowVersion,
   };
 }

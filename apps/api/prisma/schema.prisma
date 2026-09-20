@@ -175,6 +175,7 @@ model Tour {
   schemaVersion Int                 @default(1) @map("schema_version")
   rowVersion    Int                 @default(1) @map("row_version")
   createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @default(now()) @map("updated_at")
   tenant        Tenant              @relation(fields: [tenantId], references: [id])
   registrations UrbanRegistration[]
 
