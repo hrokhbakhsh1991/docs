@@ -279,8 +279,8 @@ export function MemberReceiptUploadForm({
 
   const paymentDestinationBlock =
     panel.paymentDestination?.enabled === true ? (
-      <section data-portal-member-payment-destination aria-label="Payment destination">
-        <h3>Card-to-card payment</h3>
+      <section data-portal-member-payment-destination aria-label={t("paymentDestinationLabel")}>
+        <h3>{t("paymentDestinationTitle")}</h3>
         <p data-payment-destination-card-number>{panel.paymentDestination.cardNumber}</p>
         <p>{panel.paymentDestination.cardHolderName}</p>
         {panel.paymentDestination.bankName ? <p>{panel.paymentDestination.bankName}</p> : null}
@@ -290,7 +290,7 @@ export function MemberReceiptUploadForm({
       </section>
     ) : (
       <p role="status" data-portal-member-payment-destination-unavailable>
-        Card-to-card payment is currently unavailable.
+        {t("paymentDestinationUnavailable")}
       </p>
     );
 
