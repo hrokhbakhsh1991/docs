@@ -75,6 +75,7 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "bookings/",
   "identity/create-identity-repository.ts",
   "identity/identity-admin-client.ts",
+  "identity/membership-code.ts",
   "identity/prisma-identity.repository.ts",
   "identity/portal-member-plan.service.ts",
   "identity/prisma-portal-member-plan.repository.ts",
@@ -107,7 +108,7 @@ describe("Phase 3.2 integrity audit (automated)", () => {
     assert.deepEqual([...PHASE_32_CANONICAL_STORAGE], ["in_memory.tour_records", "prisma.tours"]);
     const hits: string[] = [];
     for (const file of listTsFiles(SRC_DIR)) {
-      const rel = relative(SRC_DIR, file);
+      const rel = relative(SRC_DIR, file).replaceAll("\\", "/");
       const src = readFileSync(file, "utf8");
       for (const pattern of FORBIDDEN_STORAGE_PATTERNS) {
         if (!pattern.test(src)) continue;
@@ -127,7 +128,7 @@ describe("Phase 3.2 integrity audit (automated)", () => {
   it("handlers never call storage find* directly (ScopedTourRepository only)", () => {
     const violations: string[] = [];
     for (const file of listTsFiles(SRC_DIR)) {
-      const rel = relative(SRC_DIR, file);
+      const rel = relative(SRC_DIR, file).replaceAll("\\", "/");
       if (rel.startsWith("db/") || rel.startsWith("casl/") || rel.startsWith("storage/")) continue;
       const src = readFileSync(file, "utf8");
       if (

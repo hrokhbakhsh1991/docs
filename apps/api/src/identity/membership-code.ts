@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+import { getPrismaAdmin } from "../db/prisma";
+
 const MEMBERSHIP_CODE_WIDTH = 6;
 
 export function membershipCodePrefix(subdomain: string): string {
@@ -26,6 +28,14 @@ export async function allocateMembershipCode(
   tx: Prisma.TransactionClient,
   tenantId: string
 ): Promise<string> {
+  const tenant = await getPrismaAdmin().tenant.findUnique({
+    where: { id: tenantId },
+    select: { subdomain: true },
+  });
+  if (tenant === null) {
+    throw new Error("MEMBERSHIP_CODE_TENANT_NOT_FOUND");
+  }
+
   await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(
       ('x' || substr(md5(${tenantId}), 1, 8))::bit(32)::int,
@@ -33,18 +43,15 @@ export async function allocateMembershipCode(
     )
   `;
 
-  const rows = await tx.$queryRaw<Array<{ subdomain: string; nextSequence: number | string | bigint | null }>>`
+  const rows = await tx.$queryRaw<Array<{ nextSequence: number | string | bigint | null }>>`
     SELECT
-      t."subdomain",
       COALESCE(MAX(NULLIF(SUBSTRING(ut."membership_code" FROM '([0-9]+)$'), '')::bigint), 0) + 1 AS "nextSequence"
-    FROM "tenants" t
-    LEFT JOIN "user_tenants" ut ON ut."tenant_id" = t."id"
-    WHERE t."id" = ${tenantId}::uuid
-    GROUP BY t."subdomain"
+    FROM "user_tenants" ut
+    WHERE ut."tenant_id" = ${tenantId}::uuid
   `;
   const row = rows[0];
   if (row === undefined) {
     throw new Error("MEMBERSHIP_CODE_TENANT_NOT_FOUND");
   }
-  return formatMembershipCode(row.subdomain, Number(row.nextSequence ?? 1));
+  return formatMembershipCode(tenant.subdomain, Number(row.nextSequence ?? 1));
 }
