@@ -19,11 +19,13 @@ import {
 
 const REGISTRATION_EMAIL = `smk-ptl-02-${Date.now()}@denali-smoke.local`;
 const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
+const DEFAULT_ADMIN_BASE_URL =
+  process.env.SMOKE_ADMIN_BASE_URL?.trim() || "http://admin.operator.localhost:3000";
 const cachedOperatorSessionTokens = new Map<string, string>();
 
 async function createDenaliAdminPage(
   browser: Browser,
-  baseURL = "http://admin.denali.localhost:3000"
+  baseURL = DEFAULT_ADMIN_BASE_URL
 ): Promise<{
   readonly context: Awaited<ReturnType<Browser["newContext"]>>;
   readonly page: Page;
@@ -298,7 +300,7 @@ test("DEN-BOOK-CORE wrong-tenant admin cannot read a Denali invoice", async ({ p
 
   const { context: wrongTenantContext, page: wrongTenantPage } = await createDenaliAdminPage(
     browser,
-    "http://admin.operator.localhost:3000"
+    "http://admin.denali.localhost:3000"
   );
   try {
     const invoiceResponse = await wrongTenantPage.request.get(

@@ -139,6 +139,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(layout, /role="tab"/);
     assert.match(layout, /aria-selected=\{isActive\}/);
     assert.match(layout, /aria-controls=\{`tour-workspace-panel-\$\{tab\}`\}/);
+    assert.match(layout, /scrollHorizontalItemIntoView\(activeButton, \{ behavior: "auto" \}\)/);
+    assert.match(layout, /tour-workspace-subnav-scroll-hint/);
     assert.match(panels, /role="tabpanel"/);
     assert.match(panels, /aria-labelledby="tour-workspace-tab-registrations"/);
     assert.match(panels, /aria-labelledby="tour-workspace-tab-waitlist"/);
@@ -1137,6 +1139,23 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(actionsSection, /refreshKey=\{refreshKey\}/);
     assert.match(masterDetailLayout, /lg:h-\[calc\(100vh-8rem\)\]/);
     assert.match(masterDetailLayout, /lg:overflow-y-auto/);
+    const transportClient = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    const inspectionDetails = readFileSync(
+      join(root, "src/features/bookings/booking-inspection-details.tsx"),
+      "utf8"
+    );
+    const mobileFollowUpRowSource = readFileSync(
+      join(root, "src/features/tours/tour-workspace-payment-follow-up-row.tsx"),
+      "utf8"
+    );
+    assert.match(transportClient, /flex min-w-0 items-start justify-between/);
+    assert.match(transportClient, /break-words text-end/);
+    assert.match(inspectionDetails, /min-w-0 break-words/);
+    assert.match(mobileFollowUpRowSource, /flex-wrap items-start/);
+    assert.match(mobileFollowUpRowSource, /w-full sm:w-auto/);
     assert.ok(
       actionsSection.indexOf("<TourWorkspaceAdminPaymentCard") < actionsSection.indexOf("<details")
     );

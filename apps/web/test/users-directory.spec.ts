@@ -73,6 +73,21 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.deepEqual(INVITABLE_ROLES, ["admin", "member", "viewer"]);
   });
 
+  it("BUG-CURRENT-001 invite dialog supplies a localized dismiss label", () => {
+    const source = readFileSync(
+      new URL("../app/(app)/users/users-page-client.tsx", import.meta.url),
+      "utf8"
+    );
+    const dialogSource = readFileSync(
+      new URL("../src/components/ui/dialog.tsx", import.meta.url),
+      "utf8"
+    );
+
+    assert.match(source, /closeLabel=\{tCommon\("cancel"\)\}/);
+    assert.match(dialogSource, /closeLabel = "Close"/);
+    assert.match(dialogSource, /\{closeLabel\}/);
+  });
+
   it("WEB-9.4-04 URL query model round-trips search and role", () => {
     const serialized = serializeUsersDirectoryQuery({
       ...DEFAULT_USERS_DIRECTORY_QUERY,

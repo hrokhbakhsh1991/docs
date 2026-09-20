@@ -21,6 +21,21 @@ die() {
 [[ -f "$ENV_DIR/api.env" ]] || die "missing $ENV_DIR/api.env — copy deploy/vps/env/api.env.example"
 [[ -f "$ENV_DIR/web.env" ]] || die "missing $ENV_DIR/web.env — copy deploy/vps/env/web.env.example"
 
+# Keep long-lived VPS env files compatible with newly deployed delivery code.
+# Only missing keys are added; an explicit operator opt-out remains intact.
+ensure_api_env_default() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_DIR/api.env" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$ENV_DIR/api.env"
+  log "added missing ${key} to ${ENV_DIR}/api.env"
+}
+
+ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
+ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
+
 chmod +x "$DEPLOY_PATH"/scripts/vps-deploy/*.sh 2>/dev/null || true
 
 log "verify database credentials"

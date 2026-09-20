@@ -35,6 +35,10 @@ export async function loadWorkspaceOwnerSettingsPanel(
   pluginId: string
 ): Promise<WorkspaceOwnerSettingsPanelComponent | null> {
   switch (pluginId) {
+    case "denali": {
+      const mod = await import("@app-tour/workspace-denali/host/settings/owner-panel");
+      return mod.WorkspaceOwnerSettingsPanel;
+    }
     case "urban": {
       const mod = await import("@app-tour/workspace-urban/host/settings/owner-panel");
       return mod.WorkspaceOwnerSettingsPanel;

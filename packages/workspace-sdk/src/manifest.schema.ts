@@ -142,6 +142,7 @@ export const WorkspaceItineraryBlockSchema = z.object({
     .object({
       wizardTourField: z.boolean().optional(),
       catalogDetailSection: z.boolean().optional(),
+      maxDayCount: z.number().int().positive().optional(),
     })
     .optional(),
   fieldModule: workspaceModuleBindingSchema.optional(),
@@ -390,10 +391,7 @@ export type WorkspaceManifestValidationResult =
   | { readonly ok: true; readonly manifest: WorkspaceManifestCiRecord }
   | { readonly ok: false; readonly errors: readonly string[] };
 
-export function formatWorkspaceManifestZodIssues(
-  issues: z.ZodIssue[],
-  context: string,
-): string[] {
+export function formatWorkspaceManifestZodIssues(issues: z.ZodIssue[], context: string): string[] {
   return issues.map((issue) => {
     const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
     return `${context}: ${path}: ${issue.message}`;
@@ -409,7 +407,7 @@ export function assertWorkspaceManifestSemantics(manifest: WorkspaceManifestCiRe
 
 export function validateWorkspaceManifestRecord(
   raw: unknown,
-  context: string,
+  context: string
 ): WorkspaceManifestValidationResult {
   const parsed = WorkspaceManifestCiSchema.safeParse(raw);
   if (!parsed.success) {
@@ -429,7 +427,10 @@ export function validateWorkspaceManifestRecord(
   return { ok: true, manifest: parsed.data };
 }
 
-export function parseWorkspaceManifestForCi(raw: unknown, context: string): WorkspaceManifestCiRecord {
+export function parseWorkspaceManifestForCi(
+  raw: unknown,
+  context: string
+): WorkspaceManifestCiRecord {
   const result = validateWorkspaceManifestRecord(raw, context);
   if (!result.ok) {
     throw new Error(result.errors.join("; "));

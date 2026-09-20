@@ -10,34 +10,34 @@ Stripe-style domain facts consumed by the integration dispatcher (webhook-equiva
 
 ## Rules
 
-| Rule | Detail |
-| ---- | ------ |
-| One event = one business fact | Past-tense PascalCase (`TourPublished`, not `PublishTour`) |
-| Idempotency | `domainEventId` deterministic per transition |
-| Snapshot at emit | `deliverySnapshot` frozen in outbox payload (Stripe `data.object` equivalent) |
-| No provider HTTP in TX | Telegram/Slack only in integration delivery worker |
+| Rule                          | Detail                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| One event = one business fact | Past-tense PascalCase (`TourPublished`, not `PublishTour`)                    |
+| Idempotency                   | `domainEventId` deterministic per transition                                  |
+| Snapshot at emit              | `deliverySnapshot` frozen in outbox payload (Stripe `data.object` equivalent) |
+| No provider HTTP in TX        | Telegram/Slack only in integration delivery worker                            |
 
 ## Events
 
 ### `TourCreated`
 
-| Field | Value |
-| ----- | ----- |
-| Aggregate | `tour` |
-| When | New tour row inserted |
-| Payload | `{ tenantId, tourId }` (thin — internal consumers) |
-| Consumers | Denali finance ledger (`workspace.manifest.json` events) |
-| Integration | **Not** mapped to Telegram (use `TourPublished`) |
+| Field       | Value                                                    |
+| ----------- | -------------------------------------------------------- |
+| Aggregate   | `tour`                                                   |
+| When        | New tour row inserted                                    |
+| Payload     | `{ tenantId, tourId }` (thin — internal consumers)       |
+| Consumers   | Denali finance ledger (`workspace.manifest.json` events) |
+| Integration | **Not** mapped to Telegram (use `TourPublished`)         |
 
 ### `TourPublished` (v1)
 
-| Field | Value |
-| ----- | ----- |
-| Aggregate | `tour` |
-| When | `publishStatus` transitions to published/active, **including create-with-publish** |
-| `domainEventId` | `TourPublished:{tourId}:{rowVersion}` |
-| Consumers | Integration dispatcher → Telegram `message.send` |
-| Denali surface | `denali-integration.surface.ts` — default policy + template |
+| Field           | Value                                                                              |
+| --------------- | ---------------------------------------------------------------------------------- |
+| Aggregate       | `tour`                                                                             |
+| When            | `publishStatus` transitions to published/active, **including create-with-publish** |
+| `domainEventId` | `TourPublished:{tourId}:{rowVersion}`                                              |
+| Consumers       | Integration dispatcher → Telegram `message.send`                                   |
+| Denali surface  | `denali-integration.surface.ts` — default policy + template                        |
 
 Payload schema v1:
 
@@ -50,7 +50,7 @@ Payload schema v1:
   "publishStatus": "active",
   "title": "string | null",
   "occurredAt": "ISO-8601",
-  "deliverySnapshot": { }
+  "deliverySnapshot": {}
 }
 ```
 
@@ -65,6 +65,43 @@ Persisted `TourCreated` policies are marked `deprecated: true` with `supersededB
 ### `registration.approved`
 
 Existing booking approval event — see bookings repository outbox enqueue.
+
+### Denali operational Telegram routing
+
+Operational Denali events are delivered through the same tenant-scoped integration
+connection and outbox worker as `TourPublished`. The event is persisted first; the
+provider is never called inside the booking or finance transaction.
+
+| Event family                                                         | Telegram forum topic key | Business meaning                                          |
+| -------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------- |
+| `member.registered`, `registration.created`, `registration.approved` | `registration`           | New member/registration and approval state                |
+| `receipt.submitted`, `receipt.approved`, `receipt.rejected`          | `receipts`               | Receipt submitted and review result                       |
+| `ticket.*`                                                           | `tickets`                | Ticket creation, messages, assignment, status and closure |
+
+The topic key is resolved from the Denali workspace integration surface, then
+resolved to the persisted `topicThreadIds` belonging to the same Telegram
+connection. A missing thread ID is a configuration error for that delivery job;
+it must be retried/dead-lettered without failing the originating business action.
+The connection's `groupName` and `chatId` are verified during Telegram forum
+onboarding, and the bot must be an administrator with topic-management permission.
+
+Each delivery is idempotent by `(tenantId, provider, capability, domainEventId)`.
+Staging and production must use separate Telegram connections (bot token, chat ID,
+and topic IDs); no environment may reuse the other's secret or destination.
+
+## Denali final roster export contract
+
+`GET /tours/:tourId/operational-roster/export?filter=final&format=xlsx` is an
+operator-only read. It uses the same composed roster projection and finalization
+predicate as the operational roster UI, but drains every cursor page before
+building the workbook. Payment state only partitions the workbook; it never
+removes a finalized debtor from `لیست نهایی`.
+
+The workbook contains `خلاصه گزارش`, `لیست نهایی`, `نیازمند تسویه`, and
+`تسویه‌شده`. Every data sheet is a filtered Excel table. Export values are treated
+as text when they begin with `=`, `+`, `-`, or `@` so user-controlled names and
+phone numbers cannot become spreadsheet formulas. The filename is
+`denali-tour-{tourId}-final-roster-{timestamp}.xlsx`.
 
 ## Rollout
 

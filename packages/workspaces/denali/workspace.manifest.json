@@ -41,6 +41,12 @@
     "entry": "./plugin",
     "export": "getWorkspacePlugin"
   },
+  "operatorShell": {
+    "ownerSettingsPanel": {
+      "module": "@app-tour/workspace-denali/host/settings/owner-panel",
+      "exportName": "WorkspaceOwnerSettingsPanel"
+    }
+  },
   "events": [
     {
       "eventType": "TourCreated",
@@ -677,7 +683,8 @@
     "supported": true,
     "capabilities": {
       "wizardTourField": true,
-      "catalogDetailSection": true
+      "catalogDetailSection": true,
+      "maxDayCount": 60
     },
     "fieldModule": {
       "module": "./field-registry/denali-itinerary-field-module",

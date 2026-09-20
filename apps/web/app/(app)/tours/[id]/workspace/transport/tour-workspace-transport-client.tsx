@@ -63,6 +63,9 @@ export function TourWorkspaceTransportClient({
   const [error, setError] = useState<string | null>(null);
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
   const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   const loadTransport = useCallback(async () => {
     setLoading(true);
@@ -112,6 +115,37 @@ export function TourWorkspaceTransportClient({
       setFinalizationMessage(t("finalizeParticipantFailed"));
     } finally {
       setFinalizingId(null);
+    }
+  };
+
+  const exportFinalRoster = async () => {
+    setExporting(true);
+    setExportError(null);
+    setExportSuccess(null);
+    try {
+      const response = await fetch(
+        `/api/tours/${encodeURIComponent(tourId)}/operational-roster/export?filter=final&format=xlsx`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) {
+        throw new Error(`ROSTER_EXPORT_HTTP_${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download =
+        readAttachmentFilename(response.headers.get("Content-Disposition")) ??
+        `denali-tour-${tourId}-final-roster.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportSuccess(t("exportSucceeded"));
+    } catch {
+      setExportError(t("exportFailed"));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -255,6 +289,32 @@ export function TourWorkspaceTransportClient({
           </p>
         ) : null}
         <TourWorkspaceTransportControls filter={filter} onFilterChange={setFilter} />
+        {canManage ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.exportFinalRosterButton}
+                onClick={() => void exportFinalRoster()}
+                disabled={exporting}
+              >
+                {exporting ? t("exporting") : t("exportFinalRoster")}
+              </Button>
+              {exportError !== null ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {exportError}
+                </p>
+              ) : null}
+              {exportSuccess !== null ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {exportSuccess}
+                </p>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("exportFinalRosterScope")}</p>
+          </div>
+        ) : null}
 
         {loading ? <Skeleton className="h-32 w-full rounded-lg" /> : null}
         {localizedError !== null ? (
@@ -403,19 +463,23 @@ export function TourWorkspaceTransportClient({
                     data-registration-id={row.registrationId}
                     className="rounded-lg border p-3"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                       {renderParticipantIdentity(row)}
-                      {renderParticipationState(row)}
+                      <div className="min-w-0 max-w-full">{renderParticipationState(row)}</div>
                     </div>
                     <div className="mt-3 grid gap-2 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{tTable("transportIntake")}</span>
-                        <span className="text-end">{transportLabel ?? "—"}</span>
+                      <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start gap-3">
+                        <span className="min-w-0 text-muted-foreground">
+                          {tTable("transportIntake")}
+                        </span>
+                        <span className="min-w-0 break-words text-end">
+                          {transportLabel ?? "—"}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{t("columns.note")}</span>
+                      <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start gap-3">
+                        <span className="min-w-0 text-muted-foreground">{t("columns.note")}</span>
                         <span
-                          className="text-end"
+                          className="min-w-0 break-words text-end"
                           data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.paymentDeadline}
                         >
                           {resolveOperationalNote(row)}
@@ -437,4 +501,10 @@ export function TourWorkspaceTransportClient({
       </CardContent>
     </Card>
   );
+}
+
+function readAttachmentFilename(contentDisposition: string | null): string | null {
+  const match = contentDisposition?.match(/filename="([^"]+)"/i);
+  const filename = match?.[1]?.trim() ?? "";
+  return filename.length > 0 ? filename : null;
 }

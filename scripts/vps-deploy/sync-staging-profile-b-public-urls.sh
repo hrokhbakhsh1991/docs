@@ -106,9 +106,13 @@ set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "http://${PUBLIC_HOST}:900
 
 # Public egress origins. These are overridable for a staging tenant and are
 # deliberately HTTPS so cross-surface auth never points at an internal port.
+set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
+set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
 set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
+set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
+set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"

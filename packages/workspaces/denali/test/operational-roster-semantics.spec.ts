@@ -21,10 +21,7 @@ describe("DP-2 operational roster semantics", () => {
   it("approved unpaid is operational but not final", () => {
     assert.equal(isOperationalParticipant("approved"), true);
     assert.equal(isFinanciallySettled("1000"), false);
-    assert.equal(
-      isFinalParticipant({ status: "approved", remainingMinor: "1000" }),
-      false
-    );
+    assert.equal(isFinalParticipant({ status: "approved", remainingMinor: "1000" }), false);
     assert.equal(occupiesCapacity("approved"), true);
   });
 
@@ -37,6 +34,52 @@ describe("DP-2 operational roster semantics", () => {
       }),
       true
     );
+  });
+
+  it("keeps finalization independent but bounded by lifecycle and explicit state", () => {
+    const cases = [
+      {
+        name: "explicit not_final",
+        input: {
+          status: "approved" as const,
+          remainingMinor: "0",
+          finalizationStatus: "not_final",
+        },
+        expected: false,
+      },
+      {
+        name: "legacy settled row",
+        input: { status: "approved" as const, remainingMinor: "0" },
+        expected: true,
+      },
+      {
+        name: "legacy unpaid row",
+        input: { status: "approved" as const, remainingMinor: "1000" },
+        expected: false,
+      },
+      {
+        name: "waitlisted stale finalized metadata",
+        input: {
+          status: "waitlisted" as const,
+          remainingMinor: "0",
+          finalizationStatus: "finalized",
+        },
+        expected: false,
+      },
+      {
+        name: "cancelled stale finalized metadata",
+        input: {
+          status: "cancelled" as const,
+          remainingMinor: "0",
+          finalizationStatus: "finalized",
+        },
+        expected: false,
+      },
+    ];
+
+    for (const testCase of cases) {
+      assert.equal(isFinalParticipant(testCase.input), testCase.expected, testCase.name);
+    }
   });
 
   it("partial payment display state", () => {
@@ -59,10 +102,7 @@ describe("DP-2 operational roster semantics", () => {
       }),
       "PAID"
     );
-    assert.equal(
-      isFinalParticipant({ status: "approved", remainingMinor: "0" }),
-      true
-    );
+    assert.equal(isFinalParticipant({ status: "approved", remainingMinor: "0" }), true);
   });
 
   it("waived free registration", () => {
@@ -75,10 +115,7 @@ describe("DP-2 operational roster semantics", () => {
       }),
       "WAIVED"
     );
-    assert.equal(
-      isFinalParticipant({ status: "approved", remainingMinor: "0" }),
-      true
-    );
+    assert.equal(isFinalParticipant({ status: "approved", remainingMinor: "0" }), true);
   });
 
   it("waitlisted does not occupy capacity", () => {

@@ -7,6 +7,26 @@ const denaliOperatorBaseUrl =
   process.env.SMOKE_DENALI_WEB_BASE_URL ?? "http://denali.admin.localhost:3000";
 
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
+
+function hostResolverLaunchOptions(): { args: string[] } {
+  const vpsIp = process.env.VPS_IP?.trim();
+  const target =
+    useExternalServers && vpsIp !== undefined && vpsIp.length > 0 ? vpsIp : "127.0.0.1";
+  return {
+    args: [
+      `--host-resolver-rules=${[
+        "MAP denali.admin.localhost",
+        "MAP admin.denali.localhost",
+        "MAP admin.operator.localhost",
+        "MAP operator.localhost",
+        "MAP denali.localhost",
+      ]
+        .map((host) => `${host} ${target}`)
+        .join(", ")}`,
+    ],
+  };
+}
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -19,6 +39,10 @@ export default defineConfig({
     baseURL: denaliOperatorBaseUrl,
     viewport: { width: 1280, height: 900 },
     navigationTimeout: 180_000,
+    launchOptions: {
+      ...hostResolverLaunchOptions(),
+      ...(chromiumExecutablePath === undefined ? {} : { executablePath: chromiumExecutablePath }),
+    },
   },
   ...(useExternalServers
     ? {}

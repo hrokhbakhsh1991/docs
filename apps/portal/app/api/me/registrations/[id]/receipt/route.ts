@@ -97,6 +97,13 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
         "Content-Type": contentType,
         "Content-Length": String(body.byteLength),
         "x-receipt-file-name": fileName,
+        ...(req.headers.get("x-payment-destination-revision") !== null
+          ? {
+              "x-payment-destination-revision": req.headers.get(
+                "x-payment-destination-revision"
+              ) as string,
+            }
+          : {}),
       },
       body,
       cache: "no-store",

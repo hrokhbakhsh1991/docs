@@ -74,6 +74,8 @@ export type {
   FinancePaymentRow,
   FinancePrepaymentListRow,
   FinanceReceiptRow,
+  PaymentDestinationRevision,
+  PaymentReceiptDestinationSnapshot,
   FinanceRepositoryPort,
   FinanceSummaryRow,
   FinanceTourPaymentAggregateRow,

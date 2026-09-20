@@ -151,6 +151,12 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
     assert.doesNotMatch(path, /tenantId=/);
   });
 
+  it("WEB-WALLET-OPS-10A supports member name/mobile search while preserving UUID lookup", () => {
+    const path = buildWalletAccountsSearchPath("09121234567");
+    assert.match(path, /search=09121234567/);
+    assert.doesNotMatch(path, /userId=/);
+  });
+
   it("WEB-WALLET-OPS-11 BFF routes proxy upstream without authority query params", () => {
     const accountsRoute = readFileSync(
       resolve(WEB_ROOT, "app/api/wallet/accounts/route.ts"),

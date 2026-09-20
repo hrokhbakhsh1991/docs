@@ -116,6 +116,7 @@ export async function seedChainGuestRegistrationViaApi(
 ): Promise<ChainGuestRegistration> {
   const tenantId = input.tenantId ?? OPERATOR_SMOKE_TENANT_ID;
   const tourId = input.tourId ?? OPERATOR_SMOKE_CHAIN_TOUR_ID;
+  const mobile = input.mobile ?? `0912${String(Date.now()).slice(-7)}`;
   const regRes = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
     headers: {
       "x-tenant-id": tenantId,
@@ -129,7 +130,7 @@ export async function seedChainGuestRegistrationViaApi(
       contact: {
         email: input.email,
         fullName: input.guestName,
-        ...(input.mobile === undefined ? {} : { phone: input.mobile }),
+        phone: mobile,
       },
       partySize: 2,
     },

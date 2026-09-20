@@ -142,6 +142,12 @@
     "warmErrorBack": "Back to tour",
     "saving": "Saving…",
     "saved": "Changes saved.",
+    "legacyDraft": {
+      "title": "Legacy draft found",
+      "description": "This draft is not linked to the saved tour version. Choose how to continue so outdated data is not shown by default. If you continue with the saved tour, the legacy draft is replaced when you first edit it.",
+      "recover": "Recover legacy draft",
+      "useSavedTour": "Continue with saved tour"
+    },
     "errors": {
       "TOUR_NOT_FOUND": "Tour not found.",
       "TOUR_EDIT_LOAD_FAILED": "Failed to load tour.",
@@ -190,6 +196,7 @@
   "workspace": {
     "title": "Tour management",
     "subnavAria": "Tour workspace sections",
+    "subnavScrollHint": "Swipe the section bar left or right to see more sections.",
     "openCommandCenter": "Open Command Center",
     "openFinance": "Open payment follow-up",
     "openWorkspace": "Open tour workspace",
@@ -438,7 +445,7 @@
       "guest": "Guest",
       "party": "Party",
       "payment": "Payment",
-      "transportIntake": "Transport choice",
+      "transportIntake": "Transport status",
       "departure": "Departure",
       "submitted": "Submitted",
       "actions": "Actions",
@@ -468,6 +475,11 @@
     "transport": {
       "title": "Operations roster",
       "description": "Approved guests; track payment, finalization, attendance, and transport here.",
+      "exportFinalRoster": "Export final roster to Excel",
+      "exporting": "Building file…",
+      "exportSucceeded": "The Excel file is ready and has been downloaded.",
+      "exportFailed": "Could not build the Excel file.",
+      "exportFinalRosterScope": "The export includes all final participants; settled and payment-follow-up participants are separated into sheets.",
       "tableCaption": "Operations roster with payment and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",

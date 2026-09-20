@@ -19,6 +19,8 @@ import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-boo
 import { resolveGuestLandingFeatures, resolveGuestSeoForPlugin } from "@app-tour/workspace-sdk";
 import { fetchPublicMarketingHomeHero } from "@/marketing-pages/fetch-public-marketing-page";
 
+import "@app-tour/workspace-denali/theme/marketing/home-landing.css";
+
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -89,13 +91,15 @@ export default async function MarketingHomePage() {
 
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
-  const branding = await fetchPublicTenantBrandingForHost(host);
-  const catalogItems = await fetchHomeCatalogItems({
-    landing,
-    tenantId: bootstrap.tenantId,
-    pluginId: bootstrap.pluginId,
-    fetchCatalogList,
-  });
+  const [branding, catalogItems] = await Promise.all([
+    fetchPublicTenantBrandingForHost(host),
+    fetchHomeCatalogItems({
+      landing,
+      tenantId: bootstrap.tenantId,
+      pluginId: bootstrap.pluginId,
+      fetchCatalogList,
+    }),
+  ]);
   const localeRaw = await getLocale();
   const locale: "fa" | "en" = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const homeHeroCopyOverride =

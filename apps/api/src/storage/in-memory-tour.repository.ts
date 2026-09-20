@@ -37,7 +37,10 @@ import type {
   TourStorageRepository,
 } from "./tour-storage.interface";
 import type { OperatorListSortBy, OperatorListSortDir } from "../tours/operator-tour-list-types";
-import { publishStatusesForOperatorFilter } from "../tours/operator-tour-list-db-query";
+import {
+  compareOperatorTourPrices,
+  publishStatusesForOperatorFilter,
+} from "../tours/operator-tour-list-db-query";
 
 function tourStorageKey(tenantId: string, id: string): string {
   return `${tenantId}\u0000${id}`;
@@ -70,6 +73,8 @@ function compareInMemoryOperatorTours(
       return -1;
     }
     delta = (leftDate ?? "").localeCompare(rightDate ?? "");
+  } else if (sortBy === "price") {
+    return compareOperatorTourPrices(left.canonical, right.canonical, left.id, right.id, sortDir);
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
   }
@@ -575,6 +580,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
         return allowed.has(publishStatus);
       });
     }
+    if (query.category !== undefined && query.category.length > 0) {
+      items = items.filter(
+        (tour) =>
+          typeof tour.canonical.data?.category === "string" &&
+          tour.canonical.data.category === query.category
+      );
+    }
     items.sort((left, right) =>
       compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir)
     );
@@ -591,11 +603,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
 
   /** Create helper for db adapter (assigns id + createdAt). */
   async createTour(input: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour> {
+    const now = new Date().toISOString();
     const tour: Tour = {
       id: randomUUID(),
       tenantId: input.tenantId,
       canonical: input.canonical,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       rowVersion: 1,
     };
     await this.save(tour);
@@ -620,6 +634,7 @@ export class InMemoryTourRepository implements TourStorageRepository {
     const updated: Tour = {
       ...existing,
       canonical: input.canonical,
+      updatedAt: new Date().toISOString(),
       rowVersion: existing.rowVersion + 1,
     };
     this.indexTour(updated);

@@ -52,6 +52,14 @@ describe("DP-2 tour workspace operational roster contract", () => {
     }
   });
 
+  it("labels the non-editable transport value as a status", () => {
+    const faMessages = readFileSync(join(webRoot, "messages/fa/tours.json"), "utf8");
+    const enMessages = readFileSync(join(webRoot, "messages/en/tours.json"), "utf8");
+
+    assert.match(faMessages, /"transportIntake": "وضعیت حمل"/);
+    assert.match(enMessages, /"transportIntake": "Transport status"/);
+  });
+
   it("BFF proxies tour operational roster route", () => {
     const route = readFileSync(
       join(webRoot, "app/api/tours/[id]/operational-roster/route.ts"),
@@ -59,6 +67,44 @@ describe("DP-2 tour workspace operational roster contract", () => {
     );
     assert.match(route, /operational-roster/);
     assert.match(route, /resolveTourOpsApiBaseUrl/);
+  });
+
+  it("exposes the final roster Excel export only from the operator transport surface", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    const exportRoute = readFileSync(
+      join(webRoot, "app/api/tours/[id]/operational-roster/export/route.ts"),
+      "utf8"
+    );
+    assert.match(client, /exportFinalRosterButton/);
+    assert.match(client, /canManage/);
+    assert.match(client, /format=xlsx/);
+    assert.match(exportRoute, /operational-roster\/export/);
+  });
+
+  it("preserves the server-provided timestamped roster filename", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    assert.match(
+      client,
+      /readAttachmentFilename\(response\.headers\.get\("Content-Disposition"\)\)/
+    );
+    assert.match(client, /anchor\.download/);
+    assert.match(client, /filename=\"\(\[\^\"\]\+\)\"/);
+  });
+
+  it("communicates final-roster export scope and result without a browser-download guess", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /setExportSuccess\(t\("exportSucceeded"\)\)/);
+    assert.match(client, /t\("exportFinalRosterScope"\)/);
+    assert.match(client, /role="status"/);
   });
 
   it("payment follow-up list is roster-backed and does not duplicate registration approvals", () => {

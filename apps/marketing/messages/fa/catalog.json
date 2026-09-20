@@ -70,6 +70,18 @@
       "difficultyLabel": "درجه سختی",
       "difficultyOption": "{level, number} از {max, number}",
       "fitnessLabel": "توان بدنی مورد نیاز",
+      "durationLabel": "مدت (روز)",
+      "durationMinLabel": "حداقل مدت به روز",
+      "durationMaxLabel": "حداکثر مدت به روز",
+      "durationMinPlaceholder": "از",
+      "durationMaxPlaceholder": "تا",
+      "priceLabel": "قیمت (تومان)",
+      "priceMinLabel": "حداقل قیمت به تومان",
+      "priceMaxLabel": "حداکثر قیمت به تومان",
+      "priceMinPlaceholder": "از",
+      "priceMaxPlaceholder": "تا",
+      "durationActive": "فیلتر مدت",
+      "priceActive": "فیلتر قیمت",
       "availabilityOpen": "فقط با ظرفیت باز",
       "categoryLabel": "نوع برنامه",
       "categoryGroups": {
@@ -93,6 +105,7 @@
         "multiDay": "{days, number} روز",
         "difficulty": "سختی {level, number} از {max, number}",
         "capacity": "حداکثر {count, number} نفر",
+        "openSpots": "{count, number} جای خالی",
         "openSpots": "{count, number} جای خالی"
       }
     }
@@ -265,6 +278,7 @@
         "imageAlt": "کوهستان و یک کوهنورد در مسیر",
         "ctaPrimary": "دیدن برنامه‌ها",
         "ctaSecondary": "چرا {siteName}؟",
+        "ctaConsultation": "مشاوره سفر",
         "scrollHint": "پیمایش برای ادامه",
         "spotlight": {
           "rotateLabel": "چرخش ۳۶۰°",
@@ -327,6 +341,7 @@
         "title": "مقاصد محبوب",
         "lead": "مناطق پرتکرار در برنامه‌های باشگاه.",
         "explore": "مشاهده تورها",
+        "exploreAll": "مشاهده همه برنامه‌ها",
         "alborz": {
           "name": "البرز",
           "description": "مسیرهای محبوب شمال تهران — از پیاده‌روی روزانه تا صعودهای کلاسیک."
@@ -400,6 +415,10 @@
         "community": {
           "title": "جامعه کوهنورد",
           "description": "در کنار افراد هم‌فکر سفر کنید — بدون فشار یا رقابت غیرضروری."
+        },
+        "support": {
+          "title": "پشتیبانی و هماهنگی",
+          "description": "برای هماهنگی و پیگیری، از پورتال اعضا استفاده کنید."
         }
       },
       "journey": {
@@ -517,5 +536,8 @@
     "catalogBody": "در بارگذاری تورها مشکلی پیش آمد. اتصال یا تنظیمات API را بررسی کنید.",
     "retry": "تلاش مجدد",
     "backToTours": "بازگشت به تورها"
+  },
+  "loading": {
+    "label": "در حال بارگذاری تورها…"
   }
 }

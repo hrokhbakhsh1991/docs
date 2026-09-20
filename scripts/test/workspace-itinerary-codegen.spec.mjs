@@ -6,12 +6,24 @@ import { describe, it } from "node:test";
 
 import { discoverManifests } from "../generate-workspace-registry.mjs";
 import {
+  assertWorkspaceItineraryManifest,
   generateWorkspaceItineraryCapabilities,
   generateWorkspaceItineraryFieldModuleBindings,
   generateWorkspaceItineraryWizardCompositeBindings,
 } from "../codegen/workspace-registry/domains/itinerary.mjs";
 
 describe("workspace itinerary codegen (CW7-10)", () => {
+  it("requires a positive maxDayCount for every supported itinerary workspace", () => {
+    assert.throws(
+      () =>
+        assertWorkspaceItineraryManifest({
+          id: "broken-itinerary",
+          workspaceItinerary: { supported: true, capabilities: {} },
+        }),
+      /requires capabilities\.maxDayCount/
+    );
+  });
+
   it("emits denali capability flags from workspaceItinerary block", () => {
     const manifests = discoverManifests();
     const denali = manifests.find((manifest) => manifest.id === "denali");
@@ -21,6 +33,7 @@ describe("workspace itinerary codegen (CW7-10)", () => {
     const generated = generateWorkspaceItineraryCapabilities(manifests);
     assert.match(generated, /wizardTourField: true as const/);
     assert.match(generated, /catalogDetailSection: true as const/);
+    assert.match(generated, /maxDayCount: 60 as const/);
     assert.match(generated, /"denali":/);
   });
 

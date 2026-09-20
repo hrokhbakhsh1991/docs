@@ -22,6 +22,15 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
   return { args: [`--host-resolver-rules=${rules}`] };
 }
 
+function chromiumLaunchOptions(): { args?: string[]; executablePath?: string } {
+  const staging = stagingLaunchOptions();
+  const executablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
+  return {
+    ...(staging?.args ? { args: staging.args } : {}),
+    ...(executablePath ? { executablePath } : {}),
+  };
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["portal-booking-purchase-matrix.browser.spec.ts"],
@@ -36,7 +45,7 @@ export default defineConfig({
     viewport: { width: 1280, height: 900 },
     ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
     navigationTimeout: 180_000,
-    ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
+    launchOptions: chromiumLaunchOptions(),
   },
   ...(useExternalServers
     ? {}

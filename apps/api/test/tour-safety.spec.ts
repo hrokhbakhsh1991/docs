@@ -31,10 +31,20 @@ describe("tour-safety.spec.ts", () => {
 
   it("TR-SAFE-04 prisma listOperatorToursPage uses OPERATOR_TOUR_LIST_SELECT and take", () => {
     const source = fs.readFileSync(PRISMA_TOUR_REPO, "utf8");
-    const methodBody = source.match(/async listOperatorToursPage\([\s\S]*?\n  \}/)?.[0];
+    const methodBody = source.match(
+      /async listOperatorToursPage\([\s\S]*?\n  \}\n\n  async createTour/
+    )?.[0];
     assert.ok(methodBody !== undefined, "listOperatorToursPage must exist");
     assert.match(methodBody, /select:\s*OPERATOR_TOUR_LIST_SELECT/);
-    assert.match(methodBody, /take:\s*input\.query\.limit/);
+    assert.match(
+      methodBody,
+      /orderBy: buildOperatorTourOrderBy[\s\S]*?take:\s*input\.query\.limit/
+    );
+    assert.match(
+      methodBody,
+      /const pageRows = sorted\.slice\(/,
+      "price sorting must remain bounded at the in-memory page boundary"
+    );
   });
 
   it("TR-SAFE-03 tour adapter findMany uses bounded listByTenantPage chunks", () => {

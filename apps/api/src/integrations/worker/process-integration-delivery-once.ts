@@ -1,6 +1,10 @@
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
 import type { IntegrationDeliveryJobRecord } from "../platform/integration-delivery.types";
-import type { IntegrationDeliveryContext } from "../platform/integration-provider.types";
+import type {
+  IntegrationDeliveryContext,
+  IntegrationProviderAdapter,
+} from "../platform/integration-provider.types";
+import type { IntegrationConnectionRecord } from "../platform/integration-connection.types";
 import type { IntegrationDeliveryRepository } from "../infrastructure/prisma-integration-delivery.repository";
 import { resolveDeliveryConnection } from "../application/resolve-integration-connection-credentials";
 import { formatIntegrationDeliveryMessage } from "../platform/format-integration-delivery-message";
@@ -15,7 +19,61 @@ const MAX_DELIVERY_ATTEMPTS = 8;
 
 export type ProcessIntegrationDeliveryDeps = {
   readonly deliveryRepository: IntegrationDeliveryRepository;
+  /** Injectable seams keep retry/reclaim behavior deterministic in unit tests. */
+  readonly executeJob?: typeof executeIntegrationDeliveryJob;
+  readonly reclaimStaleProcessingJobs?: typeof reclaimStaleProcessingIntegrationDeliveryJobs;
 };
+
+export type ExecuteIntegrationDeliveryDeps = {
+  readonly resolveConnection?: typeof resolveDeliveryConnection;
+  readonly getProvider?: (
+    provider: IntegrationDeliveryJobRecord["provider"]
+  ) => IntegrationProviderAdapter | undefined;
+};
+
+/**
+ * Forum-routed Telegram events must never silently fall back to the group's
+ * General topic. A missing mapping is a configuration failure, not a valid
+ * delivery destination.
+ */
+export function resolveTelegramDeliveryThreadId(input: {
+  readonly config: Record<string, unknown>;
+  readonly topicKey: string | null;
+}): { readonly ok: true; readonly threadId?: number } | { readonly ok: false } {
+  if (input.topicKey === null) {
+    return { ok: true };
+  }
+
+  const topicThreadIds =
+    typeof input.config.topicThreadIds === "object" && input.config.topicThreadIds !== null
+      ? (input.config.topicThreadIds as Record<string, unknown>)
+      : null;
+  const rawThreadId = topicThreadIds?.[input.topicKey];
+  if (typeof rawThreadId !== "number" || !Number.isSafeInteger(rawThreadId) || rawThreadId <= 0) {
+    return { ok: false };
+  }
+  return { ok: true, threadId: rawThreadId };
+}
+
+/**
+ * Telegram forum connections persist their stable destination as `chatId`.
+ * Older/generic connections may still use `channelId`; preserve that value
+ * first and only apply the fallback for Telegram.
+ */
+export function resolveIntegrationDeliveryChannelId(input: {
+  readonly provider: IntegrationDeliveryJobRecord["provider"];
+  readonly config: Record<string, unknown>;
+}): string | null {
+  if (typeof input.config.channelId === "string" && input.config.channelId.trim().length > 0) {
+    return input.config.channelId.trim();
+  }
+  if (input.provider === "telegram") {
+    return typeof input.config.chatId === "string" && input.config.chatId.trim().length > 0
+      ? input.config.chatId.trim()
+      : null;
+  }
+  return null;
+}
 
 function deliveryFailureReason(error: Record<string, unknown> | undefined): string {
   return typeof error?.code === "string" && error.code.trim().length > 0
@@ -24,9 +82,10 @@ function deliveryFailureReason(error: Record<string, unknown> | undefined): stri
 }
 
 export async function executeIntegrationDeliveryJob(
-  job: IntegrationDeliveryJobRecord
+  job: IntegrationDeliveryJobRecord,
+  deps: ExecuteIntegrationDeliveryDeps = {}
 ): Promise<{ readonly ok: boolean; readonly error?: Record<string, unknown> }> {
-  const adapter = getIntegrationProvider(job.provider);
+  const adapter = (deps.getProvider ?? getIntegrationProvider)(job.provider);
   if (adapter === undefined) {
     return { ok: false, error: { code: "INTEGRATION_PROVIDER_NOT_REGISTERED" } };
   }
@@ -38,9 +97,14 @@ export async function executeIntegrationDeliveryJob(
       ? job.payload.integrationConnectionId
       : null;
 
-  const connection =
+  const resolveConnection = deps.resolveConnection ?? resolveDeliveryConnection;
+  const connection:
+    | (IntegrationConnectionRecord & {
+        readonly credentials: Record<string, unknown>;
+      })
+    | null =
     connectionId !== null
-      ? await resolveDeliveryConnection({
+      ? await resolveConnection({
           tenantId: job.tenantId,
           connectionId,
           workspaceType,
@@ -60,8 +124,10 @@ export async function executeIntegrationDeliveryJob(
     credentials: connection.credentials,
   };
 
-  const channelId =
-    typeof connection.config.channelId === "string" ? connection.config.channelId : null;
+  const channelId = resolveIntegrationDeliveryChannelId({
+    provider: job.provider,
+    config: connection.config,
+  });
 
   if (job.capability === "message.send") {
     if (channelId === null) {
@@ -69,15 +135,20 @@ export async function executeIntegrationDeliveryJob(
     }
     const topicKey =
       typeof job.payload.telegramTopicKey === "string" ? job.payload.telegramTopicKey : null;
-    const topicThreadIds =
-      typeof connection.config.topicThreadIds === "object" &&
-      connection.config.topicThreadIds !== null
-        ? (connection.config.topicThreadIds as Record<string, unknown>)
-        : {};
-    const messageThreadId =
-      topicKey !== null && typeof topicThreadIds[topicKey] === "number"
-        ? topicThreadIds[topicKey]
-        : undefined;
+    const topicResolution = resolveTelegramDeliveryThreadId({
+      config: connection.config,
+      topicKey,
+    });
+    if (!topicResolution.ok) {
+      return {
+        ok: false,
+        error: {
+          code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING",
+          message: `No Telegram forum topic is configured for ${topicKey}`,
+        },
+      };
+    }
+    const messageThreadId = topicResolution.threadId;
     const result = await adapter.sendMessage(ctx, {
       channelId,
       ...(messageThreadId === undefined ? {} : { messageThreadId }),
@@ -141,8 +212,11 @@ export async function processIntegrationDeliveryOnce(
   readonly dead: number;
   readonly reclaimed: number;
 }> {
-  const reclaimed = await reclaimStaleProcessingIntegrationDeliveryJobs();
+  const reclaimed = await (
+    deps.reclaimStaleProcessingJobs ?? reclaimStaleProcessingIntegrationDeliveryJobs
+  )();
   const claimed = await deps.deliveryRepository.claimPendingBatch(batchSize);
+  const executeJob = deps.executeJob ?? executeIntegrationDeliveryJob;
   let done = 0;
   let retried = 0;
   let dead = 0;
@@ -150,7 +224,7 @@ export async function processIntegrationDeliveryOnce(
   for (const job of claimed) {
     let outcome: { readonly ok: boolean; readonly error?: Record<string, unknown> };
     try {
-      outcome = await executeIntegrationDeliveryJob(job);
+      outcome = await executeJob(job);
     } catch (error: unknown) {
       outcome = {
         ok: false,

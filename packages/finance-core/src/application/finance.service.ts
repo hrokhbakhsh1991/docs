@@ -186,6 +186,14 @@ export type MemberReceiptStatusView = {
   readonly currency: string | null;
   readonly previewUrl: string | null;
   readonly previewKind: MemberReceiptPreviewKind | null;
+  readonly paymentDestination?: {
+    readonly enabled: boolean;
+    readonly revision: string | null;
+    readonly cardNumber: string | null;
+    readonly cardHolderName: string | null;
+    readonly bankName: string | null;
+    readonly instructions: string | null;
+  };
 };
 
 function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
@@ -846,6 +854,13 @@ export class FinanceService {
         throw new Error("BOOKINGS_FORBIDDEN");
       }
     }
+    const destination = await this.repository.findPaymentDestinationRevision(
+      auth.tenantId,
+      body.destinationRevision
+    );
+    if (destination === null && body.destinationRevision !== undefined) {
+      throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
+    }
     const previewKind = previewKindFromFileKey(body.fileKey);
     const submittedAt = new Date().toISOString();
     let proofUrl: string | undefined;
@@ -866,6 +881,17 @@ export class FinanceService {
       paymentId: payment.id,
       fileKey: body.fileKey,
       note: body.note,
+      ...(destination === null
+        ? {}
+        : {
+            destinationSnapshot: {
+              revision: destination.revision,
+              cardNumber: destination.cardNumber,
+              cardHolderName: destination.cardHolderName,
+              bankName: destination.bankName,
+              instructions: destination.instructions,
+            },
+          }),
       outboxEvent: {
         eventType: "receipt.submitted",
         payload: {
@@ -904,7 +930,12 @@ export class FinanceService {
 
   async submitMemberReceiptForRegistration(
     auth: FinanceActorContext,
-    input: { readonly registrationId: string; readonly fileKey: string; readonly note?: string }
+    input: {
+      readonly registrationId: string;
+      readonly fileKey: string;
+      readonly note?: string;
+      readonly destinationRevision?: string;
+    }
   ) {
     const owns = await this.bookingPayments.memberOwnsRegistration({
       tenantId: auth.tenantId,
@@ -1004,6 +1035,9 @@ export class FinanceService {
     return this.submitReceipt(auth, {
       paymentId: payment.id,
       fileKey: input.fileKey,
+      ...(input.destinationRevision !== undefined
+        ? { destinationRevision: input.destinationRevision }
+        : {}),
       ...(input.note !== undefined ? { note: input.note } : {}),
     });
   }
@@ -1332,6 +1366,29 @@ export class FinanceService {
             toleranceMinor: this.obligationToleranceMinor,
           })
         ) {
+          // A concurrent approval can commit after this request read the
+          // pending receipt but before the balance check. Re-read only in
+          // that case, so a genuine excess manual payment remains a 422.
+          const latest = await this.repository.findReceiptById(auth.tenantId, receiptId);
+          if (
+            latest !== null &&
+            latest.status === "Approved" &&
+            latest.payment !== null &&
+            latest.payment.status === "Paid"
+          ) {
+            this.recordApprove(auth, gate.workspaceType, "replay");
+            return {
+              id: latest.id,
+              status: latest.status,
+              reviewNote: latest.reviewNote,
+              reviewedAt: latest.reviewedAt?.toISOString() ?? null,
+              ledgerJournalId: latest.ledgerJournalId ?? "",
+              bookingPaymentStatus: await this.resolveApproveReplayBookingStatus(
+                auth.tenantId,
+                latest.payment.registrationId
+              ),
+            };
+          }
           throw new Error("FINANCE_OBLIGATION_OVERPAY");
         }
       }

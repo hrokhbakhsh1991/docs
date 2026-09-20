@@ -13,6 +13,8 @@ import type {
   FinancePaymentRow,
   FinancePrepaymentListRow,
   FinanceReceiptRow,
+  PaymentDestinationRevision,
+  PaymentReceiptDestinationSnapshot,
   FinanceRefundRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
@@ -63,6 +65,9 @@ let prepaymentsByDomainEventId = new Map<
   FinancePrepaymentListRow & { readonly tenantId: string }
 >();
 let refundsById = new Map<string, FinanceRefundRow>();
+let destinationRevisionsByTenant = new Map<string, Map<string, PaymentDestinationRevision>>();
+let currentDestinationRevisionByTenant = new Map<string, string>();
+let receiptDestinationSnapshots = new Map<string, PaymentReceiptDestinationSnapshot & { tenantId: string }>();
 
 export function resetInMemoryFinanceRepositoryForTests(): void {
   paymentsById = new Map();
@@ -70,6 +75,9 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   ledgerEvents = [];
   prepaymentsByDomainEventId = new Map();
   refundsById = new Map();
+  destinationRevisionsByTenant = new Map();
+  currentDestinationRevisionByTenant = new Map();
+  receiptDestinationSnapshots = new Map();
 }
 
 /** Same page size as BookingRegistrationDisplayAdapter tour-id scans — collect all pages. */
@@ -316,6 +324,15 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     if (pendingCount > 0) {
       throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
     }
+    if (input.destinationSnapshot !== undefined) {
+      const revision = await this.findPaymentDestinationRevision(
+        input.tenantId,
+        input.destinationSnapshot.revision
+      );
+      if (revision === null) {
+        throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
+      }
+    }
     const now = new Date();
     const receipt: StoredReceipt = {
       id: randomUUID(),
@@ -334,6 +351,22 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         : {}),
     };
     receiptsById.set(receipt.id, receipt);
+    if (input.destinationSnapshot !== undefined) {
+      const destination = await this.findPaymentDestinationRevision(
+        input.tenantId,
+        input.destinationSnapshot.revision
+      );
+      if (destination !== null) {
+        receiptDestinationSnapshots.set(receipt.id, {
+          tenantId: input.tenantId,
+          revision: destination.revision,
+          cardNumber: destination.cardNumber,
+          cardHolderName: destination.cardHolderName,
+          bankName: destination.bankName,
+          instructions: destination.instructions,
+        });
+      }
+    }
     if (input.outboxEvent !== undefined) {
       ledgerEvents.push({
         id: randomUUID(),
@@ -350,6 +383,57 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       });
     }
     return receipt;
+  }
+
+  async putPaymentDestinationRevision(input: {
+    readonly tenantId: string;
+    readonly cardNumber: string;
+    readonly cardHolderName: string;
+    readonly bankName?: string | null;
+    readonly instructions?: string | null;
+    readonly actorUserId?: string | null;
+  }): Promise<PaymentDestinationRevision> {
+    const revision: PaymentDestinationRevision = {
+      tenantId: input.tenantId,
+      revision: randomUUID(),
+      cardNumber: input.cardNumber,
+      cardHolderName: input.cardHolderName,
+      bankName: input.bankName ?? null,
+      instructions: input.instructions ?? null,
+      actorUserId: input.actorUserId ?? null,
+      createdAt: new Date(),
+    };
+    const history = destinationRevisionsByTenant.get(input.tenantId) ?? new Map();
+    history.set(revision.revision, revision);
+    destinationRevisionsByTenant.set(input.tenantId, history);
+    currentDestinationRevisionByTenant.set(input.tenantId, revision.revision);
+    return revision;
+  }
+
+  async findPaymentDestinationRevision(
+    tenantId: string,
+    revision?: string
+  ): Promise<PaymentDestinationRevision | null> {
+    const key = revision ?? currentDestinationRevisionByTenant.get(tenantId);
+    return key === undefined
+      ? null
+      : (destinationRevisionsByTenant.get(tenantId)?.get(key) ?? null);
+  }
+
+  async findPaymentReceiptDestinationSnapshot(
+    tenantId: string,
+    receiptId: string
+  ): Promise<PaymentReceiptDestinationSnapshot | null> {
+    const snapshot = receiptDestinationSnapshots.get(receiptId);
+    return snapshot === undefined || snapshot.tenantId !== tenantId
+      ? null
+      : {
+          revision: snapshot.revision,
+          cardNumber: snapshot.cardNumber,
+          cardHolderName: snapshot.cardHolderName,
+          bankName: snapshot.bankName,
+          instructions: snapshot.instructions,
+        };
   }
 
   async findReceiptById(tenantId: string, receiptId: string): Promise<FinanceReceiptRow | null> {

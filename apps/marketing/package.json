@@ -16,6 +16,7 @@
     "test:smoke:session-bridge": "playwright test -c playwright.marketing-session-bridge.config.ts",
     "test:smoke:seo": "playwright test -c playwright.marketing-seo.config.ts",
     "test:lighthouse": "lhci autorun",
+    "test:lighthouse:production": "pnpm run build && lhci autorun --config=lighthouserc.production.json",
     "test:lighthouse:strict": "lhci autorun --config=lighthouserc.strict.json",
     "test:smoke:urban": "playwright test -c playwright.marketing-urban.config.ts",
     "test:smoke:guest-club": "playwright test -c playwright.marketing-guest-club.config.ts",
@@ -63,6 +64,7 @@
   "devDependencies": {
     "@app-tour/config": "workspace:*",
     "@lhci/cli": "^0.14.0",
+    "@next/eslint-plugin-next": "15.5.21",
     "@playwright/test": "^1.51.1",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",

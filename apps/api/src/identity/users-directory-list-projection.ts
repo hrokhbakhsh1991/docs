@@ -45,6 +45,7 @@ export function buildUserTenantDirectoryWhere(
           mode: "insensitive",
         },
       },
+      { membershipCode: { contains: search, mode: "insensitive" } },
     ];
   }
 

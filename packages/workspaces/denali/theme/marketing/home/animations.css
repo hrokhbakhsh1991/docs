@@ -1,0 +1,68 @@
+/**
+ * Denali landing motion.
+ * Loaded from the workspace marketing bundle so production and development
+ * use the same CSS path. Motion is opt-in and respects reduced-motion.
+ */
+
+@keyframes denali-home-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes denali-home-hero-drift {
+  from {
+    transform: scale(1.035);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-marketing-home-hero-walk]
+    img[data-marketing-home-hero-background] {
+    animation: denali-home-hero-drift 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  [data-marketing-home-hero-walk] [data-marketing-home-hero-copy],
+  [data-marketing-home-programs-card],
+  [data-marketing-home-destination-card],
+  [data-marketing-home-why-item],
+  [data-marketing-home-gallery-item],
+  [data-marketing-home-final-cta-body] {
+    animation: denali-home-fade-up 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  [data-marketing-home-programs-card]:nth-child(2),
+  [data-marketing-home-destination-card]:nth-child(2),
+  [data-marketing-home-gallery-item]:nth-child(2) {
+    animation-delay: 80ms;
+  }
+
+  [data-marketing-home-programs-card]:nth-child(3),
+  [data-marketing-home-destination-card]:nth-child(3),
+  [data-marketing-home-gallery-item]:nth-child(3) {
+    animation-delay: 160ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-marketing-home-hero-walk] img[data-marketing-home-hero-background],
+  [data-marketing-home-hero-walk] [data-marketing-home-hero-copy],
+  [data-marketing-home-programs-card],
+  [data-marketing-home-destination-card],
+  [data-marketing-home-why-item],
+  [data-marketing-home-gallery-item],
+  [data-marketing-home-final-cta-body] {
+    animation: none;
+    transform: none;
+  }
+}

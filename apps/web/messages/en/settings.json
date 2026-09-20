@@ -158,6 +158,10 @@
     "exposure": {
       "title": "Field exposure",
       "description": "Choose which tour fields are published to external channels per connection."
+    },
+    "payment_destination": {
+      "title": "Payment destination",
+      "description": "Card and destination details for receiving tour payments."
     }
   },
   "marketingPages": {

@@ -8,6 +8,7 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 
 const OPERATOR_SMOKE_BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.operator.localhost:3000";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 function hostResolverLaunchOptions(): { args: string[] } {
   const vpsIp = process.env.VPS_IP?.trim();
@@ -43,6 +44,9 @@ export default defineConfig({
     "scenario4-workspace-finance-actions.spec.ts",
     "scenario5-workspace-finance-submit-receipt.spec.ts",
     "scenario6-workspace-finance-under-review-gating.spec.ts",
+    "denali-workspace-gap-coverage.spec.ts",
+    "t05-card-settings-browser.spec.ts",
+    "t12-browser-proof.spec.ts",
   ],
   retries: process.env.CI || useExternalServers ? 1 : 0,
   forbidOnly: !!process.env.CI,
@@ -52,7 +56,10 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
-    launchOptions: hostResolverLaunchOptions(),
+    launchOptions: {
+      ...hostResolverLaunchOptions(),
+      ...(chromiumExecutablePath === undefined ? {} : { executablePath: chromiumExecutablePath }),
+    },
   },
   ...(useExternalServers
     ? {}

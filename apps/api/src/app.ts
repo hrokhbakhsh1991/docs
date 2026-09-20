@@ -1122,6 +1122,19 @@ async function dispatchRequest(
   }
 
   const tourOperationalRosterMatch = url.pathname?.match(/^\/tours\/([^/]+)\/operational-roster$/);
+  const tourOperationalRosterExportMatch = url.pathname?.match(
+    /^\/tours\/([^/]+)\/operational-roster\/export$/
+  );
+  if (method === "GET" && tourOperationalRosterExportMatch) {
+    const { handleExportTourFinalRoster } = await import("./roster/operational-roster.routes.ts");
+    await handleExportTourFinalRoster(
+      req,
+      res,
+      tourOperationalRosterExportMatch[1]!,
+      toursService
+    );
+    return;
+  }
   if (method === "GET" && tourOperationalRosterMatch) {
     const { handleGetTourOperationalRoster } = await import("./roster/operational-roster.routes.ts");
     await handleGetTourOperationalRoster(req, res, tourOperationalRosterMatch[1]!);

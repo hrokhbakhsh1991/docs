@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -8,6 +9,9 @@ import { CatalogTourList } from "@/catalog/catalog-tour-list";
 import { CatalogTourFilterBar } from "@/catalog/catalog-tour-filter-bar";
 import {
   buildCatalogListHref,
+  buildCatalogListQuery,
+  catalogFiltersToQueryInput,
+  catalogListQueryHasEmptyValues,
   catalogFiltersToNoindexSearchParams,
   catalogListHasActiveFilters,
   catalogListHasClientFilters,
@@ -80,6 +84,9 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
   const host = headerList.get("host") ?? "localhost:3002";
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const listPath = resolveMarketingLocalePath("/tours", locale);
+  if (catalogListQueryHasEmptyValues(queryInput)) {
+    redirect(`${listPath}${buildCatalogListQuery(catalogFiltersToQueryInput(filters))}`);
+  }
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   const listFeatures = resolveCatalogListFeatures(bootstrap.pluginId);
   const serverListFilters = listFeatures.serverListFilters;

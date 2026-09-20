@@ -20,6 +20,7 @@ export type MembershipRewardsRecord = {
 export type IdentityMembershipRecord = {
   readonly userId: string;
   readonly tenantId: string;
+  readonly membershipCode?: string;
   readonly role: ActorRole;
   readonly status: MembershipStatus;
   readonly sessionVersion: number;
