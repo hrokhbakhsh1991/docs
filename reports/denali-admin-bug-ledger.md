@@ -31,7 +31,7 @@
 | DENALI-004 | P2 | CLOSED | route ناشناخته Admin در browser و HTTP به 404 استاندارد می‌رسد و صفحهٔ فارسی not-found بدون stack داخلی render می‌شود. | 404 استاندارد، بدون stack داخلی. |
 | DENALI-005 | P1 | CLOSED | debug host endpoint از middleware عمومی حذف شد؛ anonymous اکنون `401 AUTH_UNAUTHENTICATED` می‌گیرد و دادهٔ host افشا نمی‌شود. | حذف یا auth/allowlist و تست anonymous. |
 | DENALI-006 | P1 | CLOSED | unknown Marketing host در catalog API با `404 TENANT_HOST_UNKNOWN` fail-closed می‌شود و tenant fallback یا 500 ندارد. | 4xx کنترل‌شده و بدون tenant fallback. |
-| DENALI-007 | P1 | OPEN | unknown Portal route/API به generic 500 می‌رسد. | 404/400 قراردادشده و بدون stack. |
+| DENALI-007 | P1 | CLOSED | unknown Portal route/API اکنون fail-closed است؛ page status `404 Not Found` و API status `404 TENANT_HOST_UNKNOWN` بدون stack داخلی. | 404/400 قراردادشده و بدون stack. |
 | DENALI-008 | P0 | OPEN | tenant resolution به forwarded-host قابل‌دسترس از client اعتماد می‌کند. | spoof دو tenant رد شود و proxy trusted اثبات شود. |
 | DENALI-AUTH-001 | P2 | BLOCKED | fixture رسمی login محلی با فرم پذیرفته نشد؛ bypass ممنوع است. | identity رسمی پذیرفته یا قرارداد fixture اصلاح شود. |
 
@@ -167,6 +167,24 @@
 - **verifier:** browser canvas `denali-proof` و targeted Marketing test.
 - **verified_at:** `2026-09-20T19:50:04.836+03:30`.
 - **source_sha:** `a891fb74e`.
+
+### DENALI-007 evidence
+
+- **task_id:** `DENALI-007`.
+- **reproduce:** پیش از fix، browser واقعی روی `http://unknown.localhost:3003/does-not-exist` صفحهٔ `Something went wrong` نشان داد و fetch همان route status `500` داشت؛ `/api/me/home` در همان host status `401` کنترل‌شده داشت اما APIهای public ناشناخته می‌توانستند layout را به 500 برسانند.
+- **diagnose:** `apps/portal/app/layout.tsx` قبل از render، bootstrap tenant را بدون تبدیل `PORTAL_TENANT_UNRESOLVED` انجام می‌داد و middleware برای host ناشناخته فقط مسیرهای protected را بررسی می‌کرد؛ بنابراین route صفحه‌ای به global error/500 می‌رسید.
+- **fix:** middleware اکنون bootstrap host را پیش از dispatch بررسی می‌کند و برای host ناشناخته page را با `404 Not Found` و API را با `404 TENANT_HOST_UNKNOWN` متوقف می‌کند. layout نیز unresolved bootstrap را به `notFound()` تبدیل می‌کند تا مسیرهای خارج از middleware fail-open نشوند.
+- **browser_url:** `http://unknown.localhost:3003/does-not-exist`.
+- **visible_result:** body دقیقاً `Not Found` بود؛ `Something went wrong`، stack و tenant data نمایش داده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** page status `404`, content-type `text/plain`; `/api/public-auth/session` و `/api/me/home` هر دو status `404` با payload `TENANT_HOST_UNKNOWN` برگشتند.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ `genericError: false`, `notFound: true` و body برابر `Not Found` بود.
+- **test_command:** `pnpm --filter @apps/portal exec tsx --test test/portal-middleware.spec.ts test/resolve-portal-bootstrap.spec.ts`.
+- **test_result:** exit code `0`; `6 passed, 0 failed`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted Portal tests.
+- **verified_at:** `2026-09-20T19:56:41.613+03:30`.
+- **source_sha:** `002b0dc5b5f4`.
 
 ## 2. تسک‌های قابل‌اجرا
 
