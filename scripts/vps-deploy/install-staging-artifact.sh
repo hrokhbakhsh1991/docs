@@ -26,6 +26,26 @@ log() { printf '[install-artifact] %s\n' "$*"; }
   exit 1
 }
 
+# Existing staging env files may predate the integration delivery feature.
+# Preserve explicit operator values, but make the required delivery path
+# self-healing on every artifact deployment.
+ensure_api_env_default() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_DIR/api.env" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$ENV_DIR/api.env"
+  log "added missing ${key} to ${ENV_DIR}/api.env"
+}
+
+[[ -f "$ENV_DIR/api.env" ]] || {
+  echo "install-staging-artifact: missing $ENV_DIR/api.env" >&2
+  exit 1
+}
+ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
+ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=ensure-staging-artifact-prerequisites.sh
 source "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh"
@@ -37,6 +57,35 @@ if [[ -f "${ARTIFACT}.sha256" ]]; then
     sha256sum -c "$(basename "${ARTIFACT}.sha256")"
   )
 fi
+[[ -f "${ARTIFACT}.manifest.json" ]] || {
+  echo "install-staging-artifact: missing ${ARTIFACT}.manifest.json" >&2
+  exit 1
+}
+MANIFEST_RELEASE_SHA="$(python3 - "${ARTIFACT}.manifest.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    print(json.load(manifest_file).get("releaseSha", ""))
+PY
+  )"
+[[ "$MANIFEST_RELEASE_SHA" == "$SHA" ]] || {
+  echo "install-staging-artifact: release manifest SHA does not match artifact name" >&2
+  exit 1
+}
+MANIFEST_DIGEST_SHA256="$(python3 - "${ARTIFACT}.manifest.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    print(json.load(manifest_file).get("artifactDigestSha256", ""))
+PY
+  )"
+EXPECTED_ARTIFACT_DIGEST_SHA256="$(awk '{print $1}' "${ARTIFACT}.sha256")"
+[[ "$MANIFEST_DIGEST_SHA256" == "$EXPECTED_ARTIFACT_DIGEST_SHA256" ]] || {
+  echo "install-staging-artifact: artifact digest manifest does not match checksum file" >&2
+  exit 1
+}
 
 log "stop staging units"
 for u in ${UNIT_PREFIX}-{api,web,marketing,portal}; do
@@ -57,6 +106,15 @@ done
 rm -rf "${RELEASES_DIR}/${SHA}"
 mkdir -p "${RELEASES_DIR}/${SHA}"
 tar -I zstd -xf "$ARTIFACT" -C "${RELEASES_DIR}/${SHA}" --strip-components=1
+cp -a "${ARTIFACT}.manifest.json" "${RELEASES_DIR}/${SHA}/release-integrity.json"
+
+ARTIFACT_TOOLING="${RELEASES_DIR}/${SHA}/tooling/scripts/vps-deploy"
+[[ -d "$ARTIFACT_TOOLING/lib" ]] || {
+  echo "install-staging-artifact: artifact tooling lib directory missing" >&2
+  exit 1
+}
+cp -a "${ARTIFACT_TOOLING}/." "${TOOLING}/scripts/vps-deploy/"
+chmod +x "${TOOLING}/scripts/vps-deploy/"*.sh
 
 chown -R "${APP_USER}:${APP_USER}" "${RELEASES_DIR}/${SHA}"
 

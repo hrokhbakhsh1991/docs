@@ -85,6 +85,7 @@ export async function MarketingShell({
               <Link
                 key={item.id}
                 href={item.href}
+                prefetch={item.id === "tours" ? false : undefined}
                 data-marketing-nav-link
                 data-marketing-nav-link-id={item.id}
               >
@@ -134,7 +135,7 @@ export async function MarketingShell({
                 </a>
               ) : null}
               {showHeaderToursCta ? (
-                <Link href={toursHref} data-marketing-header-cta>
+                <Link href={toursHref} prefetch={false} data-marketing-header-cta>
                   {t("home.full.hero.ctaPrimary")}
                 </Link>
               ) : null}
@@ -159,6 +160,7 @@ export async function MarketingShell({
                       <Link
                         key={item.id}
                         href={item.href}
+                        prefetch={item.id === "tours" ? false : undefined}
                         data-marketing-nav-link
                         data-marketing-nav-link-id={item.id}
                       >
@@ -166,7 +168,12 @@ export async function MarketingShell({
                       </Link>
                     ))
                   : (
-                    <Link href={toursHref} data-marketing-nav-link data-marketing-nav-link-id="tours">
+                    <Link
+                      href={toursHref}
+                      prefetch={false}
+                      data-marketing-nav-link
+                      data-marketing-nav-link-id="tours"
+                    >
                       {t("nav.tours")}
                     </Link>
                   )}

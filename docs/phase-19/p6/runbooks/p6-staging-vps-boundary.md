@@ -1,9 +1,9 @@
-# P6 staging VPS boundary (89.45.89.206)
+# P6 staging VPS boundary (89.42.210.252)
 
 ```yaml
 runbook_id: P6-STAGING-VPS-BOUNDARY
 nano: P6-4-N-006
-host: 89.45.89.206
+host: 89.42.210.252
 hostname: tourapp
 ```
 

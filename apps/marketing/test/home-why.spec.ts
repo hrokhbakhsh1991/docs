@@ -34,7 +34,7 @@ describe("home-why.spec.ts", () => {
     assert.match(fullSource, /<HomeTrust branding=\{branding\} \/>/);
   });
 
-  it("keeps four supported values as a non-interactive rail with no CTA", () => {
+  it("keeps four supported values as a non-interactive rail with a Hero route to Why", () => {
     const whySource = readSrc("apps/marketing/src/home/home-why.tsx");
     const heroSource = readSrc("apps/marketing/src/home/home-hero.tsx");
 
@@ -43,6 +43,9 @@ describe("home-why.spec.ts", () => {
     assert.match(whySource, /home\.full\.why\.lead/);
     assert.match(whySource, /data-marketing-home-why-rail/);
     assert.match(whySource, /data-marketing-home-why-item/);
+    assert.match(whySource, /data-marketing-home-why-support/);
+    assert.match(whySource, /home\.full\.why\.support\.title/);
+    assert.match(whySource, /home\.full\.why\.support\.description/);
     assert.match(whySource, /home\.full\.why\.\$\{id\}\.title/);
     assert.match(whySource, /home\.full\.why\.\$\{id\}\.description/);
     assert.doesNotMatch(whySource, /data-marketing-home-why-tile/);
@@ -54,8 +57,9 @@ describe("home-why.spec.ts", () => {
     assert.doesNotMatch(whySource, /home\.full\.finalCta/);
     assert.doesNotMatch(whySource, /home\.full\.latest\.viewAll/);
     assert.doesNotMatch(whySource, /home\.full\.destinations\.explore/);
-    assert.doesNotMatch(heroSource, /data-marketing-home-cta-secondary/);
-    assert.doesNotMatch(heroSource, /href=\{whySectionHref\}/);
+    assert.match(heroSource, /data-marketing-home-cta-secondary/);
+    assert.match(heroSource, /secondaryHref/);
+    assert.match(heroSource, /whyHref/);
   });
 
   it("owns Why CSS as a named landing partial and does not restyle locked sections", () => {

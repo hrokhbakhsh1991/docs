@@ -2,7 +2,7 @@
 
 import { Download } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
+import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -94,7 +94,7 @@ export function FinanceLedgerPanel({
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
-  const searchParams = useSearchParams();
+  const searchParams = useAppSearchParams();
   const registrationFilter = searchParams.get("registrationId");
   const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly FinanceLedgerEvent[]>(initialLedger?.items ?? []);

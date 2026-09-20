@@ -27,6 +27,7 @@ import {
   bulkApproveBookings,
   cancelBooking,
   createBooking,
+  finalizeBooking,
   getBooking,
   getBookingsSummary,
   listBookings,
@@ -143,6 +144,27 @@ export async function handleApproveBooking(
       auth,
       async () => {
         const result = await approveBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleFinalizeBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await finalizeBooking(auth, bookingId);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }

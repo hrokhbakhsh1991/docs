@@ -3,12 +3,19 @@ import { randomUUID } from "node:crypto";
 import {
   buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
+  buildDenaliBookingScenarioTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTourItinerary,
   buildOperatorSmokeTransportBusTour,
   buildOperatorSmokeTransportSharedCarsTour,
   DENALI_CLUB_DEV_DRAFT_TOUR_ID,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+  DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+  DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+  DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
   OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
@@ -30,7 +37,10 @@ import type {
   TourStorageRepository,
 } from "./tour-storage.interface";
 import type { OperatorListSortBy, OperatorListSortDir } from "../tours/operator-tour-list-types";
-import { publishStatusesForOperatorFilter } from "../tours/operator-tour-list-db-query";
+import {
+  compareOperatorTourPrices,
+  publishStatusesForOperatorFilter,
+} from "../tours/operator-tour-list-db-query";
 
 function tourStorageKey(tenantId: string, id: string): string {
   return `${tenantId}\u0000${id}`;
@@ -49,9 +59,13 @@ function compareInMemoryOperatorTours(
     delta = (leftProj.title ?? "").localeCompare(rightProj.title ?? "");
   } else if (sortBy === "departure_at") {
     const leftDate =
-      typeof left.canonical.data?.startDateTime === "string" ? left.canonical.data.startDateTime : null;
+      typeof left.canonical.data?.startDateTime === "string"
+        ? left.canonical.data.startDateTime
+        : null;
     const rightDate =
-      typeof right.canonical.data?.startDateTime === "string" ? right.canonical.data.startDateTime : null;
+      typeof right.canonical.data?.startDateTime === "string"
+        ? right.canonical.data.startDateTime
+        : null;
     if (leftDate === null && rightDate !== null) {
       return 1;
     }
@@ -59,6 +73,14 @@ function compareInMemoryOperatorTours(
       return -1;
     }
     delta = (leftDate ?? "").localeCompare(rightDate ?? "");
+  } else if (sortBy === "price") {
+    return compareOperatorTourPrices(
+      left.canonical,
+      right.canonical,
+      left.id,
+      right.id,
+      sortDir
+    );
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
   }
@@ -219,6 +241,58 @@ export class InMemoryTourRepository implements TourStorageRepository {
     if (!this.hasTour(tenantId, OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
       this.indexTour(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
     }
+    const bookingFixtures = [
+      {
+        id: DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+        title: "Denali paid auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+        title: "Denali free manual booking",
+        registrationApproval: "manual" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+        title: "Denali free auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali paid auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali free auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+        title: "Denali paid manual member discount",
+        registrationApproval: "manual" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+    ];
+    for (const fixture of bookingFixtures) {
+      if (!this.hasTour(tenantId, fixture.id)) {
+        this.indexTour(
+          buildDenaliBookingScenarioTour({
+            tenantId,
+            ...fixture,
+            createdAt: new Date(0).toISOString(),
+          })
+        );
+      }
+    }
   }
 
   /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
@@ -271,6 +345,61 @@ export class InMemoryTourRepository implements TourStorageRepository {
       this.indexTour(
         buildOperatorSmokeTransportSharedCarsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
       );
+    }
+    const bookingFixtures = [
+      {
+        id: DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+        title: "Denali paid auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
+        title: "Denali free manual booking",
+        registrationApproval: "manual" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_TOUR_ID,
+        title: "Denali free auto booking",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+      },
+      {
+        id: DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali paid auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
+        title: "Denali free auto member discount",
+        registrationApproval: "auto" as const,
+        paymentCollection: "free" as const,
+        allowMembershipDiscount: true,
+      },
+      {
+        id: DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+        title: "Denali paid manual member discount",
+        registrationApproval: "manual" as const,
+        paymentCollection: "offline" as const,
+        allowMembershipDiscount: true,
+      },
+    ];
+    for (const fixture of bookingFixtures) {
+      if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, fixture.id)) {
+        this.indexTour(
+          buildDenaliBookingScenarioTour({
+            tenantId: OPERATOR_SMOKE_TENANT_ID,
+            catalog: OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
+            ...fixture,
+            // Keep deterministic smoke fixtures behind the primary published tour
+            // so the default newest catalog page always contains North Ridge Trek.
+            createdAt: new Date(0).toISOString(),
+          })
+        );
+      }
     }
   }
 
@@ -371,9 +500,7 @@ export class InMemoryTourRepository implements TourStorageRepository {
 
   async getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]> {
     assertTenantId(tenantId);
-    const unique = [
-      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
-    ];
+    const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
     const out: Tour[] = [];
     for (const id of unique) {
       const tour = this.byId.get(tourStorageKey(tenantId, id));
@@ -432,7 +559,9 @@ export class InMemoryTourRepository implements TourStorageRepository {
     };
   }
 
-  async listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput> {
+  async listOperatorToursPage(
+    input: TourOperatorListPageInput
+  ): Promise<TourOperatorListPageOutput> {
     assertTenantId(input.tenantId);
     const { query } = input;
     const allPage = await this.listByTenantPage({
@@ -457,7 +586,16 @@ export class InMemoryTourRepository implements TourStorageRepository {
         return allowed.has(publishStatus);
       });
     }
-    items.sort((left, right) => compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir));
+    if (query.category !== undefined && query.category.length > 0) {
+      items = items.filter(
+        (tour) =>
+          typeof tour.canonical.data?.category === "string" &&
+          tour.canonical.data.category === query.category
+      );
+    }
+    items.sort((left, right) =>
+      compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir)
+    );
     const total = items.length;
     const offset = (query.page - 1) * query.limit;
     const pageItems = items.slice(offset, offset + query.limit);

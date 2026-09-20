@@ -37,4 +37,12 @@ describe("resolve-denali-registration-transport", () => {
       /DENALI_REGISTRATION_INVALID/
     );
   });
+
+  it("DN-TR-05 accepts zero companions as a valid personal-car choice", () => {
+    const result = normalizeDenaliRegistrationTransportIntake(
+      { kind: "personal_car", personalCarOccupants: 0 },
+      { transport: { mode: "shared_cars", dongAmount: 50_000 } }
+    );
+    assert.deepEqual(result, { kind: "personal_car", personalCarOccupants: 0 });
+  });
 });

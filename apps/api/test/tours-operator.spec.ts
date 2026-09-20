@@ -77,6 +77,15 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
       sessionVersion: 1,
       workspaceId: "ws-operator-member",
     });
+    repo.seedUser({ id: OPERATOR_SMOKE.viewerUserId, mobile: "+15550001004" });
+    repo.seedMembership({
+      userId: OPERATOR_SMOKE.viewerUserId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      role: "viewer",
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: "ws-operator-viewer",
+    });
     repo.seedMembership({
       userId: OPERATOR_SMOKE.ownerUserId,
       tenantId: DENALI_SMOKE_TENANT_ID,
@@ -157,6 +166,28 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     assert.equal(list.body.items![0]!.category, "mountain_day");
   });
 
+  it("CP-9.3-L05b applies category before pagination and reports the filtered total", async () => {
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Category page mismatch non-match", undefined, "desert_day"),
+    });
+    await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Category page mismatch match", undefined, "mountain_day"),
+    });
+
+    const list = await client.requestJson<OperatorListResponse>(
+      "GET",
+      "/tours?view=operator&search=Category%20page%20mismatch&category=mountain_day&limit=1&page=1",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(list.status, 200);
+    assert.equal(list.body.total, 1);
+    assert.equal(list.body.items?.length, 1);
+    assert.equal(list.body.items![0]!.title, "Category page mismatch match");
+    assert.equal(list.body.items![0]!.category, "mountain_day");
+  });
+
   it("CP-9.3-L04 sort_by=title&sort_dir=asc orders rows", async () => {
     await client.requestJson<OperatorListResponse>("POST", "/tours", {
       headers: operatorAuthHeaders(),
@@ -179,6 +210,35 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     const titles = list.body.items!.map((row) => String(row.title));
     const sorted = [...titles].sort((left, right) => left.localeCompare(right));
     assert.deepEqual(titles, sorted);
+  });
+
+  it("BUG-CURRENT-002 sort_by=price orders canonical prices, not createdAt", async () => {
+    const expensiveBody = starterTourBody("Price order expensive");
+    expensiveBody.data.pricing = { basePricePerPerson: 2_500_000, paymentMode: "offline_receipt" };
+    const expensiveCreated = await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: expensiveBody,
+    });
+    assert.equal(expensiveCreated.status, 201, JSON.stringify(expensiveCreated.body));
+    const cheapBody = starterTourBody("Price order cheap");
+    cheapBody.data.pricing = { basePricePerPerson: 123_333, paymentMode: "offline_receipt" };
+    const cheapCreated = await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: cheapBody,
+    });
+    assert.equal(cheapCreated.status, 201, JSON.stringify(cheapCreated.body));
+
+    const list = await client.requestJson<OperatorListResponse>(
+      "GET",
+      "/tours?view=operator&search=Price%20order&sort_by=price&sort_dir=asc",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(list.status, 200);
+    assert.deepEqual(
+      list.body.items?.map((row) => row.title),
+      ["Price order cheap", "Price order expensive"],
+      JSON.stringify(list.body)
+    );
   });
 
   it("API-TL-ORDER-01 default operator list prefers nearest upcoming departure", async () => {
@@ -312,6 +372,26 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.memberUserId,
         "x-actor-role": "member",
+      },
+      body: { data: { basics: { title: "Denied" } }, rowVersion: 1 },
+    });
+    assert.equal(patch.status, 403);
+    assert.equal(patch.body.code, "OPERATOR_TOUR_WRITE_FORBIDDEN");
+  });
+
+  it("API-9.3-02b viewer PATCH tour returns 403", async () => {
+    const created = await client.requestJson<OperatorListResponse>("POST", "/tours", {
+      headers: operatorAuthHeaders(),
+      body: starterTourBody("Viewer patch target"),
+    });
+    assert.equal(created.status, 201);
+    const tourId = String(created.body.id);
+
+    const patch = await client.requestJson<OperatorListResponse>("PATCH", `/tours/${tourId}`, {
+      headers: {
+        ...operatorAuthHeaders(),
+        "x-user-id": OPERATOR_SMOKE.viewerUserId,
+        "x-actor-role": "viewer",
       },
       body: { data: { basics: { title: "Denied" } }, rowVersion: 1 },
     });

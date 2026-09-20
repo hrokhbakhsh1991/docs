@@ -1,0 +1,30 @@
+{
+  "name": "@app-tour/ticketing-http",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ticketing-owned HTTP handlers + host ports — TKT-001 Phase C1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@app-tour/ticketing-core": "workspace:*",
+    "@app-tour/ticketing-http-contracts": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

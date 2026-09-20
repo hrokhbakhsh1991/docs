@@ -49,7 +49,7 @@ export const LIST_PROJECTION_OPENAPI_COMPONENTS = {
         personalCarOccupants: {
           type: "integer",
           nullable: true,
-          enum: [1, 2, 3],
+          enum: [0, 1, 2, 3],
         },
         partySize: { type: "integer", minimum: 1 },
         status: { type: "string", enum: [...bookingStatusEnum] },

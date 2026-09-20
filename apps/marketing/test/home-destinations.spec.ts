@@ -7,6 +7,9 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { resolveMarketingDestinationImageSrcSet } from "../src/home/resolve-marketing-destination-image-path";
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function readSrc(rel: string): string {
@@ -14,7 +17,16 @@ function readSrc(rel: string): string {
 }
 
 describe("home-destinations.spec.ts", () => {
-  it("renders the three existing destinations with rest-state CTA and q= names", () => {
+  it("uses compact same-origin candidates without overriding custom stems", () => {
+    assert.match(resolveMarketingDestinationImageSrcSet("alborz") ?? "", /alborz-480\.webp 480w/);
+    assert.match(resolveMarketingDestinationImageSrcSet("alborz") ?? "", /alborz-800\.webp 800w/);
+    assert.equal(
+      resolveMarketingDestinationImageSrcSet("zardkuh", { zardkuh: "zardkooh" }),
+      undefined
+    );
+  });
+
+  it("renders the three existing destinations with a truthful all-tours fallback", () => {
     const source = readSrc("apps/marketing/src/home/home-destinations.tsx");
     const fullSource = readSrc("apps/marketing/src/home/guest-home-full.tsx");
 
@@ -23,8 +35,8 @@ describe("home-destinations.spec.ts", () => {
     assert.match(source, /home\.full\.hero\.spotlight\.\$\{id\}\.elevationValue/);
     assert.match(source, /home\.full\.hero\.spotlight\.\$\{id\}\.regionValue/);
     assert.match(source, /home\.full\.destinations\.\$\{id\}\.description/);
-    assert.match(source, /home\.full\.destinations\.explore/);
-    assert.match(source, /resolveMarketingToursListPath\(locale, \{ q: name \}\)/);
+    assert.match(source, /home\.full\.destinations\.exploreAll/);
+    assert.match(source, /resolveMarketingToursListPath\(locale\)/);
     assert.match(source, /data-marketing-home-destination-link/);
     assert.match(source, /aria-label=\{`\$\{explore\} — \$\{name\}`\}/);
     assert.match(source, /resolveMarketingDestinationImagePath\(id, destinationImageStems\)/);
@@ -39,7 +51,7 @@ describe("home-destinations.spec.ts", () => {
     );
   });
 
-  it("Hero has no destination selector; Destinations still use q=", () => {
+  it("Hero has no destination selector and does not invent destination filtering", () => {
     const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
     assert.doesNotMatch(hero, /HomeHeroDestinationStage/);
     assert.doesNotMatch(hero, /role="radiogroup"/);
@@ -49,14 +61,12 @@ describe("home-destinations.spec.ts", () => {
     assert.doesNotMatch(hero, /[?&]destination=/);
   });
 
-  it("does not invent a destination query or restyle Programs", () => {
+  it("keeps destination queries scoped and preserves intentional motion", () => {
     const source = readSrc("apps/marketing/src/home/home-destinations.tsx");
     const programs = readSrc("apps/marketing/src/home/home-published-programs.tsx");
-    const aggregator = readSrc(
-      "packages/workspaces/denali/theme/marketing/home-landing.css"
-    );
-    const css = readSrc(
-      "packages/workspaces/denali/theme/marketing/home/destinations.css"
+    const aggregator = readSrc("packages/workspaces/denali/theme/marketing/home-landing.css");
+    const css = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/destinations.css")
     );
 
     assert.doesNotMatch(source, /destination=/);
@@ -76,6 +86,7 @@ describe("home-destinations.spec.ts", () => {
     assert.doesNotMatch(css, /scroll-snap-type:\s*x/);
     assert.doesNotMatch(css, /flex:\s*1\.4/);
     assert.doesNotMatch(css, /max-height:\s*0/);
-    assert.doesNotMatch(css, /opacity:\s*0/);
+    assert.match(css, /denali-destination-card-in/);
+    assert.match(css, /prefers-reduced-motion: reduce/);
   });
 });

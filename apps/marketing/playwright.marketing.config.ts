@@ -5,8 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
  * @see docs/workspaces/denali/public-catalog.md
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
+const executablePath = process.env.PW_EXECUTABLE_PATH;
 const marketingSmokeBaseUrl =
-  process.env.SMOKE_MARKETING_BASE_URL ?? "http://denali.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
 const marketingReadinessUrl = `http://127.0.0.1:${process.env.MARKETING_SMOKE_READY_PORT ?? "3012"}/ready`;
 
@@ -34,10 +35,7 @@ function chromiumLaunchArgs(): string[] {
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: [
-    "marketing-catalog-smoke.spec.ts",
-    "denali-guest-funnel.spec.ts",
-  ],
+  testMatch: ["marketing-catalog-smoke.spec.ts", "denali-guest-funnel.spec.ts"],
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,
@@ -46,7 +44,10 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: marketingSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
-    launchOptions: { args: chromiumLaunchArgs() },
+    launchOptions: {
+      args: chromiumLaunchArgs(),
+      ...(executablePath ? { executablePath } : {}),
+    },
   },
   ...(useExternalServers
     ? {}

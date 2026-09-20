@@ -10,7 +10,7 @@ import {
   resolveRegistrySeededExposureProfile,
 } from "../../exposure/resolve-registry-seeded-exposure-profile";
 import type { ExposureIntentRepository } from "../../exposure/exposure-intent.repository";
-import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "../../exposure/create-exposure-intent-repository";
 import type { IntegrationPolicyRepository } from "../infrastructure/integration-policy.repository";
 import { createIntegrationPolicyRepository } from "../infrastructure/prisma-integration-policy.repository";
 
@@ -19,6 +19,8 @@ export type IntegrationPolicyDecision = {
   readonly tenantId: string;
   readonly provider: IntegrationProviderId;
   readonly capability: IntegrationCapability;
+  /** Provider surface destination selector, e.g. Telegram forum topic key. */
+  readonly topicKey?: string;
   readonly workspaceType: string | null;
   /** Effective exposure coordinate used by native intent/profile lookup for this route. */
   readonly exposureCoordinate: FieldExposureRuntimeCoordinate;
@@ -76,7 +78,7 @@ export class IntegrationPolicyEngine {
         exposureIntentRepository,
         input.tenantId,
         connection,
-        input.eventType,
+        input.eventType
       );
       if (!resolution.allowed) {
         continue;
@@ -92,6 +94,7 @@ export class IntegrationPolicyEngine {
             tenantId: connection.tenantId,
             provider: connection.provider,
             capability: mapping.capability,
+            ...(mapping.topicKey === undefined ? {} : { topicKey: mapping.topicKey }),
             workspaceType: connection.workspaceType,
             exposureCoordinate: resolution.exposureCoordinate,
             exposureIntent: resolution.exposureIntent,
@@ -113,7 +116,7 @@ export class IntegrationPolicyEngine {
       readonly workspaceType: string | null;
       readonly syntheticLegacyConnection?: boolean;
     },
-    eventType: string,
+    eventType: string
   ): Promise<ConnectionEventResolution> {
     const exposureCoordinate = resolveIntegrationPolicyExposureCoordinate({
       eventType,
@@ -144,7 +147,7 @@ export class IntegrationPolicyEngine {
         eventType,
         exposureCoordinate,
         workspaceType: connection.workspaceType,
-      },
+      }
     );
 
     if (policies.length === 0) {
@@ -160,7 +163,17 @@ export class IntegrationPolicyEngine {
     }
     const match = policies.find((policy) => policy.eventType === eventType);
     return {
-      allowed: match?.enabled === true,
+      // Existing connections may predate a newly declared default event policy.
+      // Treat an absent policy as the surface default; an explicit false remains
+      // the operator's opt-out and continues to win.
+      allowed:
+        match?.enabled === true ||
+        (match === undefined &&
+          (await isDefaultIntegrationEventEnabled({
+            workspaceType: connection.workspaceType,
+            providerId: connection.provider,
+            eventType,
+          }))),
       exposureCoordinate: exposureResolution.exposureCoordinate,
       exposureIntent: exposureResolution.exposureIntent,
     };
@@ -174,7 +187,7 @@ export class IntegrationPolicyEngine {
       readonly eventType: string;
       readonly exposureCoordinate: FieldExposureRuntimeCoordinate;
       readonly workspaceType: string | null;
-    },
+    }
   ): Promise<{
     readonly exposureIntent: ExposureIntent | null;
     readonly exposureCoordinate: FieldExposureRuntimeCoordinate;
@@ -214,7 +227,7 @@ export function resolveIntegrationPolicyExposureCoordinate(input: {
 }
 
 export function createIntegrationPolicyEngine(
-  deps: IntegrationPolicyEngineDeps = {},
+  deps: IntegrationPolicyEngineDeps = {}
 ): IntegrationPolicyEngine {
   return new IntegrationPolicyEngine(deps);
 }

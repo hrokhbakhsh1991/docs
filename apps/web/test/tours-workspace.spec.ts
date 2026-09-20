@@ -117,6 +117,38 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.equal(workspaceBasePath(TOUR_ID), `/tours/${TOUR_ID}/workspace`);
   });
 
+  it("WEB-9.3-W03a tabs use live chrome state and the ARIA tab contract", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    const root = join(__dirname, "..");
+    const layout = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx"),
+      "utf8"
+    );
+    const panels = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/tour-workspace-tab-panels.tsx"),
+      "utf8"
+    );
+    const chrome = readFileSync(
+      join(root, "src/features/tours/tour-workspace-chrome-context.tsx"),
+      "utf8"
+    );
+
+    assert.match(layout, /activeTab\s*\}\s*=\s*useTourWorkspaceChrome\(\)/);
+    assert.match(layout, /role="tablist"/);
+    assert.match(layout, /role="tab"/);
+    assert.match(layout, /aria-selected=\{isActive\}/);
+    assert.match(layout, /aria-controls=\{`tour-workspace-panel-\$\{tab\}`\}/);
+    assert.match(layout, /scrollHorizontalItemIntoView\(activeButton, \{ behavior: "auto" \}\)/);
+    assert.match(layout, /tour-workspace-subnav-scroll-hint/);
+    assert.match(panels, /role="tabpanel"/);
+    assert.match(panels, /aria-labelledby="tour-workspace-tab-registrations"/);
+    assert.match(panels, /aria-labelledby="tour-workspace-tab-waitlist"/);
+    assert.match(panels, /aria-labelledby="tour-workspace-tab-transport"/);
+    assert.match(chrome, /router\.replace\(nextPath, \{ scroll: false \}\)/);
+    assert.doesNotMatch(chrome, /window\.history\.replaceState\(window\.history\.state/);
+  });
+
   it("WEB-9.3-W04 waitlist query scopes bookings API to tour + waitlisted (CP-9.3-W05)", () => {
     const query = buildTourWaitlistBookingsQuery(TOUR_ID);
     const params = new URLSearchParams(query);
@@ -308,12 +340,17 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       join(root, "app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx"),
       "utf8"
     );
+    const registrations = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
+      "utf8"
+    );
     assert.match(layout, /ensureFinanceNavSupported/);
     assert.match(layout, /includeFinance=\{includeFinance\}/);
     assert.match(client, /readonly includeFinance: boolean/);
     assert.doesNotMatch(client, /finance-nav-enablement/);
     assert.doesNotMatch(client, /void ensureFinanceNavSupported/);
     assert.doesNotMatch(client, /approvedQuickAccess/);
+    assert.match(registrations, /lockedStatus="pending"/);
     assert.match(client, /navigateWorkspaceTab\("registrations"\)/);
     assert.equal(
       pickTourCollectionRollup(
@@ -375,7 +412,13 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     });
     assert.equal(ok.ok, true);
     if (ok.ok) {
-      assert.deepEqual(ok.counts, { pending: 2, waitlisted: 1, approved: 4 });
+      assert.deepEqual(ok.counts, {
+        pending: 2,
+        waitlisted: 1,
+        approved: 4,
+        paymentDue: 0,
+        final: 0,
+      });
     }
     const bad = resolveTourWorkspaceOpsCountsFromListPayloads({
       pendingPayload: {},
@@ -392,7 +435,26 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       hrefForWorkspaceOpsKpi(TOUR_ID, "approved"),
       `${workspaceBasePath(TOUR_ID)}?tab=transport`
     );
+    assert.equal(
+      hrefForWorkspaceOpsKpi(TOUR_ID, "paymentDue"),
+      `${workspaceBasePath(TOUR_ID)}?tab=finance`
+    );
+    assert.equal(
+      hrefForWorkspaceOpsKpi(TOUR_ID, "final"),
+      `${workspaceBasePath(TOUR_ID)}?tab=transport`
+    );
     assert.equal(hrefForWorkspaceMoneyKpi(TOUR_ID), `${workspaceBasePath(TOUR_ID)}?tab=finance`);
+    const scenarioCounts = resolveTourWorkspaceOpsCountsFromListPayloads({
+      pendingPayload: { total: 1 },
+      waitlistedPayload: { total: 0 },
+      approvedPayload: { total: 4 },
+      paymentDuePayload: { total: 2 },
+      finalPayload: { total: 2 },
+    });
+    assert.deepEqual(scenarioCounts, {
+      ok: true,
+      counts: { pending: 1, waitlisted: 0, approved: 4, paymentDue: 2, final: 2 },
+    });
     assert.equal(
       buildTourWorkspaceHistoryHref(TOUR_ID, "rejected"),
       `/bookings?tourId=${encodeURIComponent(TOUR_ID)}&status=rejected&view=ops`
@@ -743,7 +805,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     );
     const messages = readFileSync(join(process.cwd(), "messages/en/tours.json"), "utf8");
     assert.match(client, /TOUR_WORKSPACE_FINANCE_TEST_IDS\.degraded/);
-    assert.match(client, /degradedSections\.length > 0/);
+    assert.match(client, /showFinanceDegradedBanner/);
+    assert.match(client, /financeDegradedSections/);
     assert.match(client, /degradedSectionLabel/);
     assert.match(messages, /"degradedTitle": "Some tour finance data is temporarily incomplete\./);
     assert.match(messages, /"degradedReceipts": "receipt queue"/);
@@ -842,6 +905,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     );
     assert.doesNotMatch(client, /hydrateTransportRosterIntake/);
     assert.match(client, /buildTourOperationalRosterHref/);
+    assert.match(client, /<caption className="sr-only">\{t\("tableCaption"\)\}<\/caption>/);
+    assert.match(client, /scope="col"/);
     const logic = readFileSync(
       join(process.cwd(), "src/features/tours/tour-workspace-transport-logic.ts"),
       "utf8"
@@ -1074,6 +1139,23 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(actionsSection, /refreshKey=\{refreshKey\}/);
     assert.match(masterDetailLayout, /lg:h-\[calc\(100vh-8rem\)\]/);
     assert.match(masterDetailLayout, /lg:overflow-y-auto/);
+    const transportClient = readFileSync(
+      join(root, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    const inspectionDetails = readFileSync(
+      join(root, "src/features/bookings/booking-inspection-details.tsx"),
+      "utf8"
+    );
+    const mobileFollowUpRowSource = readFileSync(
+      join(root, "src/features/tours/tour-workspace-payment-follow-up-row.tsx"),
+      "utf8"
+    );
+    assert.match(transportClient, /flex min-w-0 items-start justify-between/);
+    assert.match(transportClient, /break-words text-end/);
+    assert.match(inspectionDetails, /min-w-0 break-words/);
+    assert.match(mobileFollowUpRowSource, /flex-wrap items-start/);
+    assert.match(mobileFollowUpRowSource, /w-full sm:w-auto/);
     assert.ok(
       actionsSection.indexOf("<TourWorkspaceAdminPaymentCard") < actionsSection.indexOf("<details")
     );

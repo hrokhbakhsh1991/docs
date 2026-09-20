@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   buildDefaultItineraryDays,
+  clampDenaliItineraryDayCount,
   collectDenaliItineraryDayValidationIssues,
   dayHasRequiredItineraryContent,
   parseDenaliItineraryDays,
@@ -12,6 +13,12 @@ import {
 import { sanitizeItineraryPhotoIdsOnDraft } from "../src/wizard/denali-wizard-catalog-sanitize";
 
 describe("denali-itinerary-model.spec.ts", () => {
+  it("DN-ITIN-00 clamps pathological itinerary ranges to the manifest-backed ceiling", () => {
+    assert.equal(clampDenaliItineraryDayCount(1_191), 60);
+    assert.equal(buildDefaultItineraryDays(1_191).length, 60);
+    assert.equal(syncDenaliItineraryRows([], 1_191).length, 60);
+  });
+
   it("DN-ITIN-01 migrates legacy activities string into a segment", () => {
     const days = parseDenaliItineraryDays([
       { day: 1, activities: "صعود به قله", locationText: "پناهگاه بارگاه" },

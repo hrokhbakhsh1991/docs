@@ -25,6 +25,9 @@ function booking(over: Partial<BookingListItem> = {}): BookingListItem {
     personalCarOccupants: over.personalCarOccupants ?? null,
     partySize: over.partySize ?? 1,
     status: over.status ?? "approved",
+    ...(over.finalizationStatus !== undefined
+      ? { finalizationStatus: over.finalizationStatus }
+      : {}),
     paymentStatus: over.paymentStatus ?? "unpaid",
     departureAt: over.departureAt ?? "2031-08-01T10:00:00.000Z",
     submittedAt: over.submittedAt ?? "2026-08-20T10:00:00.000Z",
@@ -52,6 +55,41 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.remainingMinor, "2500000");
     assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
     assert.equal(row.holdStatus, "open");
+  });
+
+  it("finalized unpaid row is visible in final roster and still shows balance", () => {
+    const row = composeTourOperationalRosterRow({
+      booking: booking({ status: "approved", finalizationStatus: "finalized" }),
+      invoice: {
+        remainingMinor: "1000",
+        paidAmountMinor: "0",
+        invoiceTotalMinor: "1000",
+        currency: "IRR",
+      },
+      hold: null,
+      refundStatuses: [],
+      nowIso: NOW,
+    });
+    assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.isFinanciallySettled, false);
+    assert.equal(row.financialDisplayState, "UNPAID");
+  });
+
+  it("keeps legacy settled rows in the final roster while finalization is backfilled", () => {
+    const row = composeTourOperationalRosterRow({
+      booking: booking({ status: "approved" }),
+      invoice: {
+        remainingMinor: "0",
+        paidAmountMinor: "2500000",
+        invoiceTotalMinor: "2500000",
+        currency: "IRR",
+      },
+      hold: null,
+      refundStatuses: [],
+      nowIso: NOW,
+    });
+    assert.equal(row.finalizationStatus, "finalized");
+    assert.equal(row.isFinalParticipant, true);
   });
 
   it("partial payment projection", () => {
@@ -231,30 +269,12 @@ describe("DP-2 compose tour operational roster", () => {
       }),
     ];
 
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      matchesOperationalRosterFilter(rows[0]!, "expiring", NOW),
-      true
-    );
+    assert.equal(filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length, 1);
+    assert.equal(matchesOperationalRosterFilter(rows[0]!, "expiring", NOW), true);
   });
 
   it("transportKind post-filter", () => {

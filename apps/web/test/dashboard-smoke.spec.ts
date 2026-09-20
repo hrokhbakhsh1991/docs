@@ -15,6 +15,7 @@ import { resolveOperatorNav } from "../src/admin/shell/resolve-operator-nav";
 import { OPERATOR_NAV_TEST_IDS } from "../src/admin/shell/operator-nav.types";
 import { OPERATOR_WELCOME_TEST_IDS } from "../src/admin/onboarding/operator-welcome-types";
 import { ensureFinanceNavSupported } from "../src/finance/finance-nav-enablement";
+import { ensureTicketsNavSupported } from "../src/features/tickets/tickets-nav-enablement";
 import { shouldShowFinanceDashboardWidget } from "../src/finance/finance-dashboard-widget-logic";
 
 const OWNER_SESSION = {
@@ -62,16 +63,16 @@ describe("dashboard-smoke.spec.ts — Phase 9.2", () => {
 
   it("WEB-DASH-MOBILE-01 dashboard prioritizes action widgets before generic cards on mobile", () => {
     const page = readFileSync("app/(app)/dashboard/dashboard-page-client.tsx", "utf8");
-    const skin = readFileSync(
-      "../../packages/workspaces/denali/theme/admin-skin.css",
-      "utf8"
-    );
+    const skin = readFileSync("../../packages/workspaces/denali/theme/admin-skin.css", "utf8");
     assert.match(page, /order-1 md:order-none md:col-span-1 xl:col-span-6/);
     assert.match(page, /order-2 md:order-none md:col-span-2 xl:col-span-6/);
     assert.match(page, /order-4 md:order-none xl:col-span-4/);
     assert.match(skin, /@media \(max-width: 639px\)/);
     assert.match(skin, /\[data-operator-dashboard-widget\][\s\S]*?min-height: 0/);
-    assert.match(skin, /\[data-operator-dashboard-kpi-grid\][\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
+    assert.match(
+      skin,
+      /\[data-operator-dashboard-kpi-grid\][\s\S]*?grid-template-columns: minmax\(0, 1fr\)/
+    );
     assert.match(skin, /\[data-operator-dashboard-tour-row-link\][\s\S]*?-webkit-line-clamp: 2/);
   });
 
@@ -80,14 +81,32 @@ describe("dashboard-smoke.spec.ts — Phase 9.2", () => {
     await ensureFinanceNavSupported("urban");
     const denaliNav = resolveOperatorNav({ session: OWNER_SESSION, pluginId: "denali" });
     const urbanNav = resolveOperatorNav({ session: OWNER_SESSION, pluginId: "urban" });
-    assert.deepEqual(denaliNav.slice(0, 3).map((item) => item.href), [
-      "/dashboard",
-      "/tours",
-      "/bookings",
-    ]);
+    assert.deepEqual(
+      denaliNav.slice(0, 3).map((item) => item.href),
+      ["/dashboard", "/tours", "/bookings"]
+    );
     assert.ok(denaliNav.some((item) => item.pathKey === "finance"));
     assert.equal(
       urbanNav.some((item) => item.pathKey === "finance"),
+      false
+    );
+  });
+
+  it("WEB-TKT-NAV-01 ticketing nav follows tenant module enablement", async () => {
+    assert.equal(
+      await ensureTicketsNavSupported("denali", { enabledModules: ["ticketing"] }),
+      true
+    );
+    const enabledNav = resolveOperatorNav({ session: OWNER_SESSION, pluginId: "denali" });
+    assert.ok(enabledNav.some((item) => item.pathKey === "tickets"));
+
+    assert.equal(
+      await ensureTicketsNavSupported("denali", { enabledModules: ["marketing_pages"] }),
+      false
+    );
+    const disabledNav = resolveOperatorNav({ session: OWNER_SESSION, pluginId: "denali" });
+    assert.equal(
+      disabledNav.some((item) => item.pathKey === "tickets"),
       false
     );
   });
@@ -103,6 +122,9 @@ describe("dashboard-smoke.spec.ts — Phase 9.2", () => {
     assert.equal(shouldShowFinanceDashboardWidget("denali", "owner"), true);
     assert.equal(shouldShowFinanceDashboardWidget("urban", "owner"), false);
     assert.equal(FINANCE_DASHBOARD_WIDGET_DESCRIPTOR.testId, "dashboard-widget-finance");
-    assert.equal(DASHBOARD_WIDGET_REGISTRY.some((widget) => widget.id === "finance"), false);
+    assert.equal(
+      DASHBOARD_WIDGET_REGISTRY.some((widget) => widget.id === "finance"),
+      false
+    );
   });
 });

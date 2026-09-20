@@ -9,6 +9,7 @@ import {
   shouldShowCatalogPrice,
 } from "@/catalog/format-catalog-display";
 import { resolveCatalogPriceDisplay } from "@/catalog/resolve-catalog-price-display";
+import { buildCatalogListCardSummary } from "@/catalog/build-catalog-list-card-summary";
 import {
   isAppLocale,
   resolveIntlDateLocale,
@@ -17,6 +18,7 @@ import {
 } from "@/i18n/routing";
 
 import { resolveHomeTourCoverUrl } from "./resolve-home-tour-cover-url";
+import { MARKETING_FALLBACK_TOUR_CARD_COVER_PATH } from "./home-marketing-assets";
 
 export type HomePublishedProgramsCardProps = {
   readonly tour: MarketingCatalogCard;
@@ -32,6 +34,7 @@ export async function HomePublishedProgramsCard({
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
   const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
+  const summaryLine = await buildCatalogListCardSummary(tour, t, { pluginId });
   const detailHref = resolveMarketingTourDetailPath(tour.id, locale);
   const title = tour.title?.trim() || t("detail.untitled");
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
@@ -50,15 +53,28 @@ export async function HomePublishedProgramsCard({
 
   return (
     <article data-marketing-home-programs-card>
-      <Link href={detailHref} data-marketing-home-programs-card-link>
+      <Link
+        href={detailHref}
+        prefetch={false}
+        data-marketing-home-programs-card-link
+      >
         <figure
           data-marketing-home-programs-cover
           {...(!hasCatalogCover ? { "data-marketing-home-programs-cover-fallback": true } : {})}
         >
-          <CatalogCoverImage src={coverSrc} alt="" width={640} height={360} cover />
+          <CatalogCoverImage
+            src={coverSrc}
+            alt=""
+            width={640}
+            height={360}
+            sizes="(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw"
+            fallbackSrc={MARKETING_FALLBACK_TOUR_CARD_COVER_PATH}
+            cover
+          />
         </figure>
         <div data-marketing-home-programs-card-body>
           <h3>{title}</h3>
+          {summaryLine ? <p data-marketing-home-programs-summary>{summaryLine}</p> : null}
           {datesLine ? <p data-marketing-home-programs-meta>{datesLine}</p> : null}
           {priceLine ? <p data-marketing-home-programs-price>{priceLine}</p> : null}
         </div>

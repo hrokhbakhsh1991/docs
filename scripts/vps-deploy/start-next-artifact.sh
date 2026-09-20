@@ -34,5 +34,12 @@ export NODE_ENV="${NODE_ENV:-production}"
 export PORT="${PORT:?PORT missing in env}"
 export HOSTNAME="$bind_host"
 
+if [[ "$APP_KEY" == "portal" ]]; then
+  portal_snapshot="${RELEASE_ROOT}/portal/apps/portal/src/me/member-profile-contract-v1.snapshot.json"
+  if [[ -f "$portal_snapshot" ]]; then
+    export MEMBER_PROFILE_CONTRACT_SNAPSHOT_PATH="$portal_snapshot"
+  fi
+fi
+
 cd "${RELEASE_ROOT}/${APP_KEY}"
 exec /usr/bin/node "$server_js"

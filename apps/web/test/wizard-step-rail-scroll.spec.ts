@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
-import { readWizardStepRailOverflowEdges } from "../src/wizard/wizard-step-rail-scroll";
+import {
+  readWizardStepRailOverflowEdges,
+  scrollWizardStepRailItemIntoView,
+} from "../src/wizard/wizard-step-rail-scroll";
 
 function mockScrollElement(input: {
   readonly scrollWidth: number;
@@ -59,5 +62,21 @@ describe("wizard-step-rail-scroll.spec.ts", () => {
     const edges = readWizardStepRailOverflowEdges(element);
     assert.equal(edges.start, true);
     assert.equal(edges.end, true);
+  });
+
+  it("WEB-WIZ-RAIL-04 delegates active-item scrolling to the shared rail utility", () => {
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const calls: ScrollIntoViewOptions[] = [];
+    HTMLElement.prototype.scrollIntoView = function (options?: ScrollIntoViewOptions) {
+      calls.push(options ?? {});
+    };
+
+    try {
+      scrollWizardStepRailItemIntoView(document.createElement("button"), { behavior: "auto" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+
+    assert.deepEqual(calls, [{ behavior: "auto", block: "nearest", inline: "center" }]);
   });
 });

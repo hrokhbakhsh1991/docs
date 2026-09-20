@@ -10,7 +10,7 @@ import {
   ExposureWorkspaceForbiddenError,
 } from "./exposure-catalog.service";
 import type { ExposureIntentMode, ExposureIntent } from "./exposure-intent";
-import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import { exposureIntentContextLookupKey } from "./exposure-intent.repository";
 import type { ExposureIntentContextKey } from "./exposure-intent.repository";
 import { resolveSeededExposureProfile } from "./exposure-profile";

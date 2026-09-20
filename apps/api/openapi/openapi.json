@@ -3498,6 +3498,142 @@
         }
       }
     },
+    "/bookings/{bookingId}/finalize": {
+      "post": {
+        "operationId": "finalizeBooking",
+        "summary": "Finalize approved booking for the final roster",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved booking added to the final roster",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "FinalizeBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "approved",
+                      "finalizationStatus": "finalized",
+                      "finalizedAt": "2026-07-20T12:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Status conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_STATUS_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/bookings/{bookingId}/reject": {
       "post": {
         "operationId": "rejectBooking",
@@ -4509,6 +4645,7 @@
                       "personalCarOccupants": {
                         "type": "integer",
                         "enum": [
+                          0,
                           1,
                           2,
                           3
@@ -5129,11 +5266,12 @@
             "type": "integer",
             "nullable": true,
             "enum": [
+              0,
               1,
               2,
               3
             ],
-            "description": "When transportKind=personal_car, occupants 1–3 (list scalar).",
+            "description": "When transportKind=personal_car, occupants 0–3 (list scalar); 0 means driver only.",
             "examples": [
               2
             ]
@@ -5150,6 +5288,16 @@
           },
           "paymentStatus": {
             "$ref": "#/components/schemas/BookingPaymentStatus"
+          },
+          "financialDisplayState": {
+            "type": "string",
+            "enum": [
+              "WAIVED"
+            ],
+            "description": "Display-only Finance state; when present with paymentStatus=paid, no payment was required.",
+            "examples": [
+              "WAIVED"
+            ]
           },
           "departureAt": {
             "type": "string",
@@ -5567,6 +5715,17 @@
           "unpaid"
         ]
       },
+      "BookingFinalizationStatus": {
+        "type": "string",
+        "enum": [
+          "not_final",
+          "finalized"
+        ],
+        "description": "Whether an approved booking is included in the final roster.",
+        "examples": [
+          "finalized"
+        ]
+      },
       "BookingsListView": {
         "type": "string",
         "enum": [
@@ -5808,6 +5967,41 @@
             "id": "00000000-0000-4000-8000-000000000891",
             "status": "approved",
             "approvedAt": "2026-07-20T12:00:00.000Z"
+          }
+        ]
+      },
+      "FinalizeBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "finalizationStatus",
+          "finalizedAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "finalizationStatus": {
+            "$ref": "#/components/schemas/BookingFinalizationStatus"
+          },
+          "finalizedAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-20T12:30:00.000Z"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "approved",
+            "finalizationStatus": "finalized",
+            "finalizedAt": "2026-07-20T12:30:00.000Z"
           }
         ]
       },

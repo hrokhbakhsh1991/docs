@@ -113,6 +113,9 @@ function appWiresRoute(route) {
   if (route.path === "/bookings/{bookingId}/approve") {
     return app.includes("bookingApproveMatch") && app.includes("handleApproveBooking");
   }
+  if (route.path === "/bookings/{bookingId}/finalize") {
+    return app.includes("bookingFinalizeMatch") && app.includes("handleFinalizeBooking");
+  }
   if (route.path === "/bookings/{bookingId}/reject") {
     return app.includes("bookingRejectMatch") && app.includes("handleRejectBooking");
   }

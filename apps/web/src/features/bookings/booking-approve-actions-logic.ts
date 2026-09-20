@@ -5,8 +5,10 @@ export type ApproveWithoutPaymentResult = {
 };
 
 /**
- * Approve registration then zero obligation — operator "free seat" path (case C).
+ * Zero the obligation before approving — operator "free seat" path (case C).
  * Does not record cash; obligation override is the finance SoT for waived payable.
+ * The ordering is deliberate: an approval failure must never leave an approved
+ * registration with a payable obligation that was meant to be waived.
  */
 export async function approveBookingWithoutPayment(
   bookingId: string,
@@ -15,14 +17,6 @@ export async function approveBookingWithoutPayment(
   const id = bookingId.trim();
   if (id.length < 32) {
     throw new Error("BOOKINGS_APPROVE_INVALID_ID");
-  }
-
-  const approveResponse = await fetch(`/api/bookings/${encodeURIComponent(id)}/approve`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!approveResponse.ok) {
-    throw new Error(`BOOKINGS_APPROVE_HTTP_${approveResponse.status}`);
   }
 
   const overrideResponse = await fetch(
@@ -38,6 +32,14 @@ export async function approveBookingWithoutPayment(
   );
   if (!overrideResponse.ok) {
     throw new Error(`SET_OBLIGATION_OVERRIDE_HTTP_${overrideResponse.status}`);
+  }
+
+  const approveResponse = await fetch(`/api/bookings/${encodeURIComponent(id)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!approveResponse.ok) {
+    throw new Error(`BOOKINGS_APPROVE_HTTP_${approveResponse.status}`);
   }
 
   invalidateFinanceRegistrationCaches(id);

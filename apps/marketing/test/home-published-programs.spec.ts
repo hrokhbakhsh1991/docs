@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("home-published-programs.spec.ts", () => {
@@ -42,9 +44,8 @@ describe("home-published-programs.spec.ts", () => {
   });
 
   it("adaptive grid CSS composes 1–6 items without a 3+1 orphan", () => {
-    const css = readFileSync(
-      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/programs.css"),
-      "utf8"
+    const css = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/programs.css")
     );
     assert.match(css, /data-programs-count="1"/);
     assert.match(css, /data-programs-count="2"/);

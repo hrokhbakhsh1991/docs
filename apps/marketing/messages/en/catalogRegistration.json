@@ -109,8 +109,9 @@
     "hasPersonalCarQuestion": "Do you have a personal car?",
     "hasPersonalCarYes": "Yes",
     "hasPersonalCarNo": "No",
-    "personalCarOccupantsLabel": "How many people (including you)?",
+    "personalCarOccupantsLabel": "How many companions can you take?",
     "personalCarOccupants": {
+      "0": "Driver only (no companion)",
       "1": "1 person",
       "2": "2 people",
       "3": "3 people"
@@ -118,6 +119,7 @@
     "paysDongQuestion": "Will you pay a dong (fuel share)?",
     "paysDongYes": "Yes, I pay dong",
     "paysDongNo": "No — riding with someone I know",
+    "nonPersonalCarAcknowledgement": "I confirm that I will not use a personal car for this registration.",
     "submit": "Submit registration",
     "submitting": "Submitting…",
     "partySizeInvalid": "Enter a valid party size.",

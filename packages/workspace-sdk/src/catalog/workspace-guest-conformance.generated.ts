@@ -25,6 +25,7 @@ export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
   "profile-cert": "L3",
   "starter": "L0",
   "urban": "L3",
+  "wallet-ws1": "L0",
 });
 
 export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3" | "L4";

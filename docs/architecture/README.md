@@ -12,6 +12,8 @@ active authority. Schema: [`DOC-META-001`](../standards/doc-authority-metadata.s
 | [Field Policy System](./field-policy-system.md) | Entity/workspace field state (PDP); separate from exposure/publication. |
 | [Denali Gravity remediation](./denali-gravity-remediation.mdoc) | Path B: stop second-product clone forests — P-contract/P-lib, maturity ladder G0–G3, DG-0…DG-6 (+ optional DG-F). Detailed map: [`denali-gravity-remediation-map.mdoc`](./denali-gravity-remediation-map.mdoc). |
 | [Denali Gravity — Product Profile example](./denali-gravity-product-profile.example.mdoc) | DG-2.2: C-only G1 deltas + thin W adapter budget for product #2 (fictional `harbor`); anchors guest-club/starter/urban. |
+| [ADR-WALLET-001 — Member Wallet bounded context](./adr/ADR-WALLET-001-member-wallet-bounded-context.mdoc) | Phase 0: Member Wallet vs registration Finance; booking ledger accounts are not member wallets. |
+| [Wallet module Phase 0 contract](./wallet-module-phase-0-contract.mdoc) | `workspaceWallet` manifest contract, codegen surface, auth/RLS invariants, name-collision report. |
 
 Verification:
 

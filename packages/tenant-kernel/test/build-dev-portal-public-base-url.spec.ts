@@ -48,6 +48,17 @@ describe("buildDevPortalPublicBaseUrl", () => {
     );
   });
 
+  it("maps a non-local marketing host to a canonical sibling portal host", () => {
+    assert.equal(
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "denali.shenski.com:23002",
+        rootDomain: "shenski.com",
+        portalPort: "23003",
+      }),
+      "http://portal.denali.shenski.com:23003"
+    );
+  });
+
   it("honors PORTAL_PUBLIC_BASE_URL override via configuredBaseUrl", () => {
     assert.equal(
       buildDevPortalPublicBaseUrl({
@@ -68,6 +79,17 @@ describe("buildDevPortalPublicBaseUrl", () => {
         portalPort: "3003",
       }),
       "http://portal.alpine.club:3003"
+    );
+  });
+
+  it("keeps raw IPv4 staging host and changes only the portal port", () => {
+    assert.equal(
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "89.42.210.252:23002",
+        rootDomain: "localhost",
+        portalPort: "23003",
+      }),
+      "http://89.42.210.252:23003"
     );
   });
 });

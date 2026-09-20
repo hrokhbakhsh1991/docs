@@ -10,7 +10,7 @@ test("DG-6 clone ratchet passes for audited workspace shapes", () => {
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /harbor adapters=10\/15/);
+  assert.match(result.stdout, /harbor adapters=12\/15/);
   assert.match(result.stdout, /harbor\/guest-club product overlap=0/);
   assert.match(result.stdout, /urban unclassified=0, infrastructure=4, thin-adapter=8, domain=3/);
 });

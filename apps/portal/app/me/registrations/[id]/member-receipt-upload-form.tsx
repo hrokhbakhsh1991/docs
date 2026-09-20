@@ -29,6 +29,7 @@ type Props = {
   readonly tripsListHref: string;
   readonly tourHref: string | null;
   readonly catalogDue: MemberReceiptDue | null;
+  readonly paymentDueAt?: string | null;
   readonly cancelSource?: string | null;
 };
 
@@ -47,7 +48,7 @@ function formatMinorAmount(amountMinor: string, currency: string): string {
     return amountMinor;
   }
   const formatted = n.toLocaleString("fa-IR");
-  return currency.toUpperCase() === "IRR" ? `${formatted} ریال` : `${formatted} ${currency}`;
+  return currency.toUpperCase() === "IRR" ? `${formatted} تومان` : `${formatted} ${currency}`;
 }
 
 function isPositiveMinor(value: string | null): boolean {
@@ -119,14 +120,73 @@ export function MemberReceiptUploadForm({
   tripsListHref,
   tourHref,
   catalogDue,
+  paymentDueAt,
   cancelSource,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
+  const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(null);
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
+
+  useEffect(() => {
+    if (
+      registrationStatus !== "approved" ||
+      initialPanel.status === "paid" ||
+      initialPanel.status === "waived" ||
+      typeof paymentDueAt !== "string" ||
+      paymentDueAt.trim().length === 0
+    ) {
+      return;
+    }
+
+    const dueAtMs = Date.parse(paymentDueAt);
+    if (!Number.isFinite(dueAtMs)) {
+      return;
+    }
+
+    let retryTimer: number | undefined;
+    let disposed = false;
+    const checkRegistrationState = async () => {
+      try {
+        const response = await fetch(
+          `/api/me/registrations/${encodeURIComponent(registrationId)}`,
+          { cache: "no-store" }
+        );
+        const payload = (await response.json().catch(() => ({}))) as {
+          data?: { paymentStatus?: unknown; status?: unknown };
+        };
+        if (
+          response.ok &&
+          payload.data?.status === "approved" &&
+          payload.data?.paymentStatus !== "paid" &&
+          !disposed
+        ) {
+          retryTimer = window.setTimeout(checkRegistrationState, 1_000);
+          return;
+        }
+        if (!disposed) {
+          window.location.reload();
+        }
+      } catch {
+        if (!disposed) {
+          retryTimer = window.setTimeout(checkRegistrationState, 1_000);
+        }
+      }
+    };
+
+    const initialDelay = Math.max(0, dueAtMs - Date.now()) + 50;
+    const timer = window.setTimeout(checkRegistrationState, initialDelay);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      if (retryTimer !== undefined) {
+        window.clearTimeout(retryTimer);
+      }
+    };
+  }, [initialPanel.status, paymentDueAt, registrationId, registrationStatus]);
 
   useEffect(() => {
     return () => {
@@ -147,11 +207,28 @@ export function MemberReceiptUploadForm({
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    replaceLocalPreview(event.target.files?.[0]);
+    const file = event.target.files?.[0];
+    setSelectedFile(file);
+    replaceLocalPreview(file);
+  }
+
+  function resolveSelectedReceiptFile(): File | undefined {
+    if (selectedFile !== undefined) {
+      return selectedFile;
+    }
+    const fromRef = fileInputRef.current?.files?.[0];
+    if (fromRef !== undefined) {
+      return fromRef;
+    }
+    const fromDom = document.getElementById("receipt-file");
+    if (fromDom instanceof HTMLInputElement) {
+      return fromDom.files?.[0];
+    }
+    return undefined;
   }
 
   async function uploadReceipt() {
-    const file = fileInputRef.current?.files?.[0];
+    const file = resolveSelectedReceiptFile();
     if (file === undefined) {
       return;
     }
@@ -361,7 +438,14 @@ export function MemberReceiptUploadForm({
       ) : null}
       {previewBlock}
       <div data-portal-member-receipt-upload-field>
-        <label htmlFor="receipt-file">{t("label")}</label>
+        <label htmlFor="receipt-file" data-portal-member-receipt-file-picker>
+          <span data-portal-member-receipt-file-name>
+            {selectedFile?.name ?? t("noFileSelected")}
+          </span>
+          <span data-portal-member-receipt-file-picker-action>
+            {selectedFile === undefined ? t("chooseFile") : t("changeFile")}
+          </span>
+        </label>
         <input
           ref={fileInputRef}
           id="receipt-file"
@@ -378,7 +462,7 @@ export function MemberReceiptUploadForm({
         <button
           type="button"
           data-portal-member-receipt-submit
-          disabled={uploadPhase === "uploading"}
+          disabled={uploadPhase === "uploading" || selectedFile === undefined}
           onClick={() => void uploadReceipt()}
         >
           {uploadPhase === "uploading" ? t("uploading") : t("submit")}

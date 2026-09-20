@@ -13,6 +13,7 @@ export type PortalCatalogTour = {
   readonly fatherNameRequired?: boolean;
   readonly birthDateRequired?: boolean;
   readonly priceAmount?: number | null;
+  readonly socialMediaLink?: string | null;
   readonly transport?: PublicCatalogTransportSnapshot;
 };
 
@@ -26,6 +27,7 @@ type CatalogDetailResponse = {
     readonly fatherNameRequired?: boolean;
     readonly birthDateRequired?: boolean;
     readonly priceAmount?: number | null;
+    readonly socialMediaLink?: string | null;
     readonly transport?: PublicCatalogTransportSnapshot;
   };
 };
@@ -60,6 +62,7 @@ export async function fetchCatalogTour(input: {
     fatherNameRequired: data.fatherNameRequired === true,
     birthDateRequired: data.birthDateRequired === true,
     priceAmount: typeof data.priceAmount === "number" ? data.priceAmount : null,
+    socialMediaLink: data.socialMediaLink ?? null,
     transport: data.transport,
   };
 }

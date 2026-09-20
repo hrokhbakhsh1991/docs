@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
@@ -11,9 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TourWorkspaceFinanceControls } from "@/features/tours/tour-workspace-finance-controls";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
-import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
-import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
-import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
 import { type OutstandingBalanceListItem } from "@/finance/finance-outstanding-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
@@ -42,7 +40,6 @@ import { TourWorkspacePaymentFollowUpRow } from "@/features/tours/tour-workspace
 import {
   filterPaymentFollowUpParticipants,
   findPaymentFollowUpParticipant,
-  type PaymentFollowUpPrimaryActionKind,
   type TourWorkspacePaymentFollowUpParticipantRow,
 } from "@/features/tours/tour-workspace-payment-follow-up-logic";
 import { useTourWorkspacePaymentFollowUpList } from "@/features/tours/use-tour-workspace-payment-follow-up-list";
@@ -68,6 +65,7 @@ import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTextDirection } from "@/i18n/routing";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { cn } from "@/lib/utils";
 
 type TourWorkspaceFinanceClientProps = {
@@ -90,9 +88,6 @@ function followUpListKindBadgeClass(
   if (kind === "settled") {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
   }
-  if (kind === "pending") {
-    return "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300";
-  }
   return "border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-300";
 }
 
@@ -105,9 +100,6 @@ function followUpListKindLabel(
   }
   if (kind === "settled") {
     return t("rowSettled");
-  }
-  if (kind === "pending") {
-    return t("rowPending");
   }
   return t("statusUnpaid");
 }
@@ -161,7 +153,7 @@ function buildDetailAmountRows(
 
 function degradedSectionLabel(
   t: ReturnType<typeof useTranslations>,
-  section: TourWorkspaceFinanceSection
+  section: TourWorkspaceFinanceSection | "roster"
 ): string {
   if (section === "outstanding") {
     return t("degradedOutstanding");
@@ -169,7 +161,10 @@ function degradedSectionLabel(
   if (section === "tours") {
     return t("degradedTours");
   }
-  return t("degradedReceipts");
+  if (section === "receipts") {
+    return t("degradedReceipts");
+  }
+  return t("degradedRoster");
 }
 
 function formatDetailDate(locale: AppLocale, value: string | null): string | null {
@@ -188,11 +183,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const t = useTranslations("tours.workspace.finance");
   const tPayments = useTranslations("finance.payments");
   const tErrors = useTranslations("finance.errors");
+  const tTourErrors = useTranslations("tours.workspace.errors");
   const tValidation = useTranslations("finance.validation");
   const dir = resolveTextDirection(locale);
   const router = useRouter();
-  const pathname = usePathname() ?? workspaceBasePath(tourId);
-  const searchParams = useSearchParams();
+  const pathname = useAppPathname() || workspaceBasePath(tourId);
+  const searchParams = useAppSearchParams();
   const { reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const focusFromUrl = parseWorkspaceFocusRegistrationId(
     searchParams.get(WORKSPACE_FOCUS_REGISTRATION_QUERY_KEY)
@@ -209,7 +205,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     useState<TourWorkspacePaymentActionEvent | null>(null);
   const [financeMutationRefreshKey, setFinanceMutationRefreshKey] = useState(0);
   const [followUpListRefreshKey, setFollowUpListRefreshKey] = useState(0);
-  const [rowActionBusy, setRowActionBusy] = useState(false);
   const [workspaceExitNotice, setWorkspaceExitNotice] = useState<string | null>(null);
   const [receiptReviewNotice, setReceiptReviewNotice] = useState<string | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
@@ -231,6 +226,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   } = useTourWorkspaceFinanceData(tourId);
   const followUpList = useTourWorkspacePaymentFollowUpList(tourId, followUpListRefreshKey);
 
+  const financeDegradedSections = useMemo(() => {
+    const sections: Array<TourWorkspaceFinanceSection | "roster"> = [...degradedSections];
+    if (followUpList.rosterDegraded) {
+      sections.push("roster");
+    }
+    return sections;
+  }, [degradedSections, followUpList.rosterDegraded]);
+
   useEffect(() => {
     setPendingFocusId(focusFromUrl);
   }, [focusFromUrl]);
@@ -248,6 +251,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     };
   }, []);
 
+  const degradedSeparator = locale === "fa" ? "، " : ", ";
   const rollup = useMemo(() => pickTourCollectionRollup(tours, tourId), [tourId, tours]);
   const inbox = useMemo(
     () =>
@@ -257,6 +261,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
       }),
     [outstanding, receipts]
   );
+
+  const showFinanceDegradedBanner =
+    !panelBlocking &&
+    financeDegradedSections.length > 0 &&
+    !(followUpList.rosterDegraded && followUpList.loading) &&
+    (loadSucceeded || followUpList.rosterDegraded);
 
   const clearFocusFromUrl = useCallback(() => {
     if (!searchParams.has(WORKSPACE_FOCUS_REGISTRATION_QUERY_KEY)) {
@@ -319,7 +329,8 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const showGuestTools =
     !panelBlocking &&
     !followUpList.loading &&
-    (shouldShowTourFinanceGuestTools(inbox) || followUpList.rows.length > 0);
+    (shouldShowTourFinanceGuestTools(inbox) ||
+      followUpList.rows.some((row) => row.listKind === "unpaid" || row.listKind === "partial"));
   const selectedRow = useMemo(
     () => visibleRows.find((row) => row.key === selectedRowKey) ?? null,
     [selectedRowKey, visibleRows]
@@ -366,39 +377,17 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     reloadWorkspaceChrome();
   }, [followUpList, refresh, reloadWorkspaceChrome]);
 
-  const runFollowUpRowAction = useCallback(
-    async (action: PaymentFollowUpPrimaryActionKind, registrationId: string) => {
-      if (action === "none" || action === "follow_up_payment" || action === "follow_up_partial") {
-        const row = findPaymentFollowUpParticipant(followUpList.rows, registrationId);
-        if (row !== null) {
-          setSelectedRowKey(row.key);
-          if (isNarrowViewport) {
-            setMobileSheetOpen(true);
-          }
+  const handleFollowUpRowAction = useCallback(
+    (registrationId: string) => {
+      const row = findPaymentFollowUpParticipant(followUpList.rows, registrationId);
+      if (row !== null) {
+        setSelectedRowKey(row.key);
+        if (isNarrowViewport) {
+          setMobileSheetOpen(true);
         }
-        return;
-      }
-      setRowActionBusy(true);
-      try {
-        if (action === "approve_awaiting_payment") {
-          const response = await fetch(
-            `/api/bookings/${encodeURIComponent(registrationId)}/approve`,
-            { method: "POST", headers: { "Content-Type": "application/json" } }
-          );
-          if (!response.ok) {
-            throw new Error(`BOOKINGS_APPROVE_HTTP_${response.status}`);
-          }
-          invalidateFinanceRegistrationCaches(registrationId);
-        } else if (action === "approve_without_payment") {
-          await approveBookingWithoutPayment(registrationId);
-        }
-        invalidateTourWorkspaceFinanceCache(tourId);
-        refreshWorkspaceFinanceView();
-      } finally {
-        setRowActionBusy(false);
       }
     },
-    [followUpList.rows, isNarrowViewport, refreshWorkspaceFinanceView, tourId]
+    [followUpList.rows, isNarrowViewport]
   );
 
   const handleRegistrationPaymentChanged = useCallback(
@@ -621,7 +610,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </>
         ) : null}
 
-        {selectedRow.listKind !== "pending" && selectedRow.registrationId !== null ? (
+        {selectedRow.registrationId !== null ? (
           <TourWorkspacePaymentActionsSection
             tourId={tourId}
             pluginId={session.pluginId}
@@ -857,18 +846,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                   locale={locale}
                   selected={selected}
                   highlighted={highlighted}
-                  busy={rowActionBusy}
                   onSelect={() => {
                     setSelectedRowKey(row.key);
                     if (isNarrowViewport) {
                       setMobileSheetOpen(true);
                     }
                   }}
-                  onPrimaryAction={(action, registrationId) => {
-                    void runFollowUpRowAction(action, registrationId);
-                  }}
-                  onSecondaryAction={(action, registrationId) => {
-                    void runFollowUpRowAction(action, registrationId);
+                  onPrimaryAction={(_action, registrationId) => {
+                    handleFollowUpRowAction(registrationId);
                   }}
                 />
               </li>
@@ -949,7 +934,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </p>
         ) : null}
 
-        {!panelBlocking && loadSucceeded && degradedSections.length > 0 ? (
+        {showFinanceDegradedBanner ? (
           <div
             className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm"
             role="status"
@@ -959,15 +944,20 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
             <p className="text-muted-foreground">{t("degradedDescription")}</p>
             <p className="text-xs text-muted-foreground">
               {t("degradedAffected", {
-                sections: degradedSections
+                sections: financeDegradedSections
                   .map((section) => degradedSectionLabel(t, section))
-                  .join("، "),
+                  .join(degradedSeparator),
               })}
             </p>
+            {followUpList.error !== null ? (
+              <p className="text-xs text-muted-foreground">
+                {resolveTourErrorMessage(tTourErrors, followUpList.error)}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
-        {!panelBlocking && inbox.leadSection === "settled" ? (
+        {!panelBlocking && !showGuestTools && inbox.leadSection === "settled" ? (
           <div
             className="rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled}

@@ -9,6 +9,17 @@ import {
   SMOKE_PUBLISHED_TOUR_TITLE,
 } from "./fixtures/smoke-published-tour";
 
+function createSmokeNationalId(): string {
+  const body = String(Date.now()).slice(-9).padStart(9, "0");
+  let sum = 0;
+  for (let index = 0; index < body.length; index += 1) {
+    sum += Number(body[index]) * (10 - index);
+  }
+  const remainder = sum % 11;
+  const checkDigit = remainder < 2 ? remainder : 11 - remainder;
+  return `${body}${checkDigit}`;
+}
+
 const SMOKE_PUBLISHED_TOUR_ID = resolveSmokePublishedTourId();
 const REGISTRATION_EMAIL = `smk-mkt-03-${Date.now()}@denali-smoke.local`;
 
@@ -29,9 +40,37 @@ test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context 
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });
 
-test("SMK-MKT-17 denali catalog page matches current backend catalog batch", async ({
-  page,
-}) => {
+test("SMK-MKT-01b client navigation keeps the catalog title below the header", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-home]")).toBeVisible({ timeout: 60_000 });
+
+  const toursLink = page.locator('a[data-marketing-nav-link-id="tours"]').first();
+  await expect(toursLink).toBeVisible();
+  await toursLink.click();
+
+  await expect(page).toHaveURL(/\/tours(?:\?|$)/);
+  await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
+
+  const layout = await page.locator("[data-marketing-catalog-title]").evaluate((title) => {
+    const header = document.querySelector<HTMLElement>("[data-marketing-header]");
+    if (!header) {
+      throw new Error("Marketing header is missing");
+    }
+
+    const titleTop = title.getBoundingClientRect().top;
+    const headerBottom = header.getBoundingClientRect().bottom;
+    return {
+      headerOverlay: header.hasAttribute("data-marketing-header-overlay"),
+      titleTop,
+      headerBottom,
+    };
+  });
+
+  expect(layout.headerOverlay).toBe(false);
+  expect(layout.titleTop).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+});
+
+test("SMK-MKT-17 denali catalog page matches current backend catalog batch", async ({ page }) => {
   const response = await page.request.get("/api/catalog");
   expect(response.ok()).toBe(true);
 
@@ -62,25 +101,41 @@ test("SMK-MKT-17 denali catalog page matches current backend catalog batch", asy
 
 test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({ page }) => {
   const devPhone = `+1555${String(Date.now()).slice(-7)}`;
-  await page.goto("/tours", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
+  const smokeNationalId = createSmokeNationalId();
+  const smokeGuestName = `Marketing Smoke Guest ${String(Date.now()).slice(-6)}`;
+  const catalogResponse = await page.request.get("/api/catalog?limit=50");
+  expect(catalogResponse.ok()).toBe(true);
+  const catalogPayload = (await catalogResponse.json()) as {
+    readonly data?: {
+      readonly items?: ReadonlyArray<{
+        readonly id?: string;
+        readonly spotsRemaining?: number | null;
+      }>;
+    };
+  };
+  const availableTour = catalogPayload.data?.items?.find(
+    (item) => item.id != null && (item.spotsRemaining == null || item.spotsRemaining > 0)
+  );
+  expect(availableTour?.id).toBeTruthy();
+
   // Direct goto — click-during first compile of /tours/[tourId] Fast-Refresh-reloads /tours.
-  await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`/tours/${availableTour?.id}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
 
   await completeGuestPdpRegisterModalThenOpenPortalIntake(page, {
     phone: devPhone,
-    fullName: "Marketing Smoke Guest",
+    fullName: smokeGuestName,
     email: REGISTRATION_EMAIL,
   });
 
   await completeCatalogRegistrationIntake(page, {
     email: REGISTRATION_EMAIL,
-    fullName: "Marketing Smoke Guest",
-    partySize: "2",
+    fullName: smokeGuestName,
+    partySize: "1",
     phone: devPhone,
+    nationalId: smokeNationalId,
   });
 
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
@@ -91,15 +146,17 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
 test("SMK-MKT-HEADER-01 header sign-in navigates to Portal /login (not marketing modal)", async ({
   page,
 }) => {
-  await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
+  // Keep this shell-only check off the dynamic PDP route: first-time PDP compilation
+  // can trigger a Fast Refresh navigation while the cross-origin anchor is clicked.
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-shell]")).toBeVisible({
     timeout: 60_000,
   });
 
   const headerSignIn = page.locator("a[data-marketing-header-sign-in]").first();
   await expect(headerSignIn).toBeVisible();
   await Promise.all([
-    page.waitForURL(/\/login(?:\?|$)/, { timeout: 30_000 }),
+    page.waitForURL(/\/login(?:\?|$)/, { timeout: 30_000, waitUntil: "commit" }),
     headerSignIn.click(),
   ]);
   await expect(page).not.toHaveURL(/\/catalog\//);
@@ -137,7 +194,9 @@ test("SMK-MKT-04 tour detail renders multi-day itinerary; smoke photos stay empt
   await expect(page.locator("[data-marketing-catalog-segment-photos-empty]").first()).toBeVisible();
 });
 
-test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({ page }) => {
+test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({
+  page,
+}) => {
   await page.goto("/tours?category=mountain", { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
@@ -147,4 +206,14 @@ test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", 
   await expect(page).toHaveURL(/\/tours(?:\?|$)/);
   await expect(page).not.toHaveURL(/category=/);
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
+});
+
+test("SMK-MKT-18 empty catalog filter is explicit and data-free", async ({ page }) => {
+  await page.goto("/tours?q=__definitely_no_tour__", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-catalog-grid-item]")).toHaveCount(0);
+  const empty = page.locator("[data-marketing-catalog-empty]");
+  await expect(empty).toBeVisible();
+  await expect(empty).toContainText(/فیلترها را پاک کنید|reset/i);
+  await expect(page.locator("[data-marketing-catalog-card]")).toHaveCount(0);
 });

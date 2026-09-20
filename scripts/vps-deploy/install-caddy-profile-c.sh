@@ -7,11 +7,12 @@ DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
 CADDY_CONFIG="${CADDY_CONFIG:-/etc/caddy/Caddyfile}"
 CADDY_ENV="${CADDY_ENV_FILE:-/etc/caddy/caddy.env}"
+CADDY_SOURCE_CONFIG="${CADDY_SOURCE_CONFIG:-$DEPLOY_PATH/deploy/vps/caddy/Caddyfile}"
 
 log() { printf '[install-caddy] %s\n' "$*"; }
 die() { printf '[install-caddy] ERROR: %s\n' "$*" >&2; exit 1; }
 
-[[ -f "$DEPLOY_PATH/deploy/vps/caddy/Caddyfile" ]] || die "missing $DEPLOY_PATH/deploy/vps/caddy/Caddyfile"
+[[ -f "$CADDY_SOURCE_CONFIG" ]] || die "missing $CADDY_SOURCE_CONFIG"
 
 if ! command -v caddy >/dev/null 2>&1; then
   log "installing caddy package"
@@ -30,7 +31,7 @@ ENV_DIR="$ENV_DIR" PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-}" \
 log "deploy Caddyfile"
 install -d -m 755 /etc/caddy /var/log/caddy
 chown caddy:caddy /var/log/caddy
-cp "$DEPLOY_PATH/deploy/vps/caddy/Caddyfile" "$CADDY_CONFIG"
+cp "$CADDY_SOURCE_CONFIG" "$CADDY_CONFIG"
 chmod 644 "$CADDY_CONFIG"
 
 if ! grep -q 'EnvironmentFile=-/etc/caddy/caddy.env' /lib/systemd/system/caddy.service 2>/dev/null; then

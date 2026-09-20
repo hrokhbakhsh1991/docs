@@ -41,6 +41,7 @@ export type DenaliZodFieldKind =
   | "transportMode"
   | "photos"
   | "paymentMode"
+  | "registrationApproval"
   | "fitnessLevel"
   | "minRequiredPeaks"
   | "adminCapacityApproval";
@@ -584,6 +585,16 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "booleanOptional",
     tags: ["core", "deliverable"] as const,
     ruleDefaults: { required: false, hidden: false },
+  },
+  {
+    canonicalPath: "pricing.registrationApproval",
+    stepId: "denali_pricing",
+    rhfPath: "pricingPayment.registrationApproval",
+    zodPath: "pricingPayment.registrationApproval",
+    zodKind: "registrationApproval",
+    tags: ["core", "deliverable"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    notes: "Missing or unknown persisted values fail closed to manual approval.",
   },
   {
     canonicalPath: "pricing.prepaymentEnabled",

@@ -7,27 +7,35 @@ const URBAN_DENYLIST = ["کوهنوردی", "طبیعت‌گردی"];
 test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator("[data-marketing-home-hero] h1[data-marketing-home-title]")).toHaveCount(1);
+  await expect(
+    page.locator("[data-marketing-home-hero] h1[data-marketing-home-title]")
+  ).toHaveCount(1);
   await expect(page.locator("[data-marketing-home-title]")).toHaveText("بیا به کوه");
   await expect(page.locator("[data-marketing-home-hero-support]")).toHaveText(
     "برنامه‌های طبیعت‌گردی برای پیوستن."
   );
-  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-search]")).toHaveCount(0);
-  await expect(page.locator("[data-marketing-home-hero-selector]")).toHaveCount(0);
-  await expect(page.locator("[data-marketing-home-hero] [role='radiogroup']")).toHaveCount(0);
-  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-hero-destination]")).toHaveCount(
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-search]")).toHaveCount(
     0
   );
+  await expect(page.locator("[data-marketing-home-hero-selector]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero] [role='radiogroup']")).toHaveCount(0);
+  await expect(
+    page.locator("[data-marketing-home-hero] [data-marketing-home-hero-destination]")
+  ).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-cta]").first()).toBeVisible();
   await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveCount(1);
-  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveAttribute(
-    "href",
-    /\/tours/
-  );
+  await expect(
+    page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")
+  ).toHaveAttribute("href", /\/tours/);
   await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveText(
     "دیدن برنامه‌ها"
   );
-  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta-secondary]")).toHaveCount(0);
+  const consultationCta = page.locator(
+    "[data-marketing-home-hero] [data-marketing-home-cta-secondary]"
+  );
+  await expect(consultationCta).toHaveCount(1);
+  await expect(consultationCta).toHaveAttribute("href", /\/me\/tickets/);
+  await expect(consultationCta).toHaveText("مشاوره سفر");
   await expect(page.locator("[data-marketing-home-hero] a[href='#why-us']")).toHaveCount(0);
   await expect(page.locator("section[data-marketing-home-trust]")).toHaveCount(0);
   const why = page.locator("[data-marketing-home-why]#why-us");
@@ -37,6 +45,7 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(why.locator("[data-marketing-home-why-item]")).toHaveCount(4);
   await expect(why.locator("a")).toHaveCount(0);
   await expect(why.locator("[data-marketing-home-cta]")).toHaveCount(0);
+  await expect(why.locator("[data-marketing-home-why-support]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-journey]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-testimonials]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-equipment]")).toHaveCount(0);
@@ -50,9 +59,11 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
     .evaluateAll((links) =>
       links.map((node) => (node as HTMLAnchorElement).getAttribute("href") ?? "")
     );
-  expect(destinationHrefs.every((href) => href.includes("q="))).toBe(true);
+  expect(destinationHrefs.every((href) => href.endsWith("/tours"))).toBe(true);
   expect(destinationHrefs.some((href) => href.includes("destination="))).toBe(false);
-  await expect(destinations.locator("[data-marketing-home-destination-link]").first()).toBeVisible();
+  await expect(
+    destinations.locator("[data-marketing-home-destination-link]").first()
+  ).toBeVisible();
   await expect(
     destinations.locator("[data-marketing-home-destination-card]").first()
   ).not.toHaveAttribute("tabindex");
@@ -93,9 +104,11 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(gallery.locator("a[href*='/tours']")).toHaveCount(0);
   await expect(gallery.getByRole("link", { name: /همه تورها|All tours/i })).toHaveCount(0);
   await expect(gallery.locator("[data-marketing-catalog-detail-photo-trigger]")).toHaveCount(1);
-  await gallery.locator("[data-marketing-catalog-detail-photo-trigger]").click();
+  const trigger = gallery.locator("[data-marketing-catalog-detail-photo-trigger]");
+  await expect(trigger).toBeVisible();
+  await trigger.click();
   const lightbox = page.locator("[data-marketing-catalog-detail-photo-lightbox]");
-  await expect(lightbox).toBeVisible();
+  await expect(lightbox).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await expect(lightbox).not.toBeVisible();
 
@@ -205,7 +218,9 @@ test("SMK-MKT-HOME-08 mobile drawer opens nav panel", async ({ page }) => {
   await expect(drawer).not.toHaveAttribute("open", "");
   await page.locator("[data-marketing-nav-drawer-toggle]").click();
   await expect(drawer).toHaveAttribute("open", "");
-  await expect(page.locator("[data-marketing-nav-drawer-panel] a[href='/tours']").first()).toBeVisible();
+  await expect(
+    page.locator("[data-marketing-nav-drawer-panel] a[href='/tours']").first()
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(drawer).not.toHaveAttribute("open", "");
 });
@@ -217,10 +232,41 @@ test("SMK-MKT-HOME-09 English home CTA keeps locale on tours navigation", async 
   await expect(page).toHaveURL(/\/en\/tours(?:\?|$|\/)/);
 });
 
-test("SMK-MKT-HOME-10 hero has no Why link; Why section keeps manifest anchor", async ({ page }) => {
+test("SMK-MKT-HOME-10 hero consultation CTA; Why section keeps manifest anchor", async ({
+  page,
+}) => {
   await page.goto("/");
   await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta-secondary]")).toHaveCount(0);
+  await expect(
+    page.locator("[data-marketing-home-hero] [data-marketing-home-cta-secondary]")
+  ).toHaveAttribute("href", /\/me\/tickets/);
   await expect(page.locator("[data-marketing-home-hero] a[href='#why-us']")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-why]#why-us")).toBeVisible();
+});
+
+test("SMK-MKT-HOME-11 theme and reduced-motion contracts", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+
+  const state = await page.evaluate(() => {
+    document.documentElement.classList.add("theme-dark");
+    const animations = [...document.querySelectorAll("[data-marketing-home] *")].filter(
+      (element) => {
+        const animationName = getComputedStyle(element).animationName;
+        return animationName !== "none";
+      }
+    );
+    return {
+      pageBackground: getComputedStyle(document.body).backgroundColor,
+      colorScheme: getComputedStyle(document.body).colorScheme,
+      animatedElements: animations.length,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+
+  expect(state.pageBackground).toBe("rgb(13, 17, 23)");
+  expect(state.colorScheme).toContain("dark");
+  expect(state.animatedElements).toBe(0);
+  expect(state.overflow).toBe(false);
 });

@@ -24,7 +24,7 @@ closed_on:
       token: P6_HOST_BIND_SMOKE_OK
       where: local dev API
   vps_staging_infra:
-    host: 89.45.89.206
+    host: 89.42.210.252
     path: /opt/app-tour-staging
     ports: [23000, 23001, 23002, 23003]
     db: tour_db_staging

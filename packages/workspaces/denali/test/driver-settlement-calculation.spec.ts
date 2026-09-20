@@ -43,7 +43,12 @@ function passenger(id: string): RosterParticipant {
 }
 
 function participantsForScenario(): RosterParticipant[] {
-  return [driverParticipant(), passenger(PASSENGER_A), passenger(PASSENGER_B), passenger(PASSENGER_C)];
+  return [
+    driverParticipant(),
+    passenger(PASSENGER_A),
+    passenger(PASSENGER_B),
+    passenger(PASSENGER_C),
+  ];
 }
 
 describe("DP-5 driver settlement calculation", () => {
@@ -69,6 +74,17 @@ describe("DP-5 driver settlement calculation", () => {
     assert.equal(result.totalMinor, "0");
   });
 
+  it("offered 0 → no passenger compensation even if an assignment is attempted", () => {
+    const result = calculateDriverSettlement({
+      offeredSeats: 0,
+      assignedPassengers: 1,
+      unitAmountMinor: "50000",
+      currency: "IRR",
+    });
+    assert.equal(result.billableQuantity, 0);
+    assert.equal(result.totalMinor, "0");
+  });
+
   it("assigned exceeds offered → capped at offered", () => {
     const result = calculateDriverSettlement({
       offeredSeats: 2,
@@ -83,6 +99,17 @@ describe("DP-5 driver settlement calculation", () => {
 
 describe("DP-5 transport allocation validation", () => {
   const tourId = "tour-1";
+
+  it("rejects assigning a passenger to a driver who selected driver only", () => {
+    const result = validateTransportAllocations({
+      tourId,
+      allocations: [{ driverRegistrationId: DRIVER_ID, passengerRegistrationId: PASSENGER_A }],
+      participants: [driverParticipant({ personalCarOccupants: 0 }), passenger(PASSENGER_A)],
+      rosterFrozen: false,
+    });
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.code, "CAPACITY_EXCEEDED");
+  });
 
   it("rejects capacity exceeded", () => {
     const allocations: TransportAllocationInput[] = [

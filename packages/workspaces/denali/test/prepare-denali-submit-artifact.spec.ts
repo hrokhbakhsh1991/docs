@@ -14,6 +14,24 @@ import { buildDenaliWizardRoots } from "../src/denali-plugin-adapter";
 import { buildDenaliTourCreateDefaultValues } from "../src/schemas/denaliCore.schema";
 
 describe("prepare-denali-submit-artifact.spec.ts — Phase 11.10", () => {
+  it("DENALI-BOOKING-APPROVAL-01 defaults to manual and persists the explicit mode", () => {
+    const manualForm = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
+    const manualPricing = manualForm.pricingPayment as Record<string, unknown>;
+    assert.equal(manualPricing.registrationApproval, "manual");
+    assert.equal(
+      (prepareDenaliSubmitArtifact(manualForm).pricing as Record<string, unknown>)
+        .registrationApproval,
+      "manual"
+    );
+
+    manualPricing.registrationApproval = "auto";
+    assert.equal(
+      (prepareDenaliSubmitArtifact(manualForm).pricing as Record<string, unknown>)
+        .registrationApproval,
+      "auto"
+    );
+  });
+
   it("DENALI-P11-10-01 retains gearItems and themeIds in canonical ingress", () => {
     const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
     form.participantRequirements = {

@@ -94,7 +94,7 @@ describe("POST /api/revalidate (P4-A RR)", () => {
     assert.match(String(caught), new RegExp(TENANT_ID));
   });
 
-  it("RR-05 revalidate route purges catalog and seo tags", async () => {
+  it("RR-05 revalidate route purges catalog, seo, and marketing-pages tags", async () => {
     const { readFileSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
     const source = readFileSync(
@@ -103,5 +103,7 @@ describe("POST /api/revalidate (P4-A RR)", () => {
     );
     assert.match(source, /buildMarketingSeoCacheTag/);
     assert.match(source, /revalidateTag\(seoTag\)/);
+    assert.match(source, /buildMarketingPagesCacheTag/);
+    assert.match(source, /revalidateTag\(pagesTag\)/);
   });
 });

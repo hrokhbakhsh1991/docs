@@ -9,6 +9,27 @@ import {
   type WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
 
+type IntegrationErrorPayload = {
+  readonly code?: unknown;
+  readonly error?: unknown;
+};
+
+function readIntegrationHttpErrorCode(payload: IntegrationErrorPayload, fallback: string): string {
+  if (typeof payload.code === "string" && payload.code.length > 0) {
+    return payload.code;
+  }
+  if (
+    typeof payload.error === "object" &&
+    payload.error !== null &&
+    "code" in payload.error &&
+    typeof payload.error.code === "string" &&
+    payload.error.code.length > 0
+  ) {
+    return payload.error.code;
+  }
+  return fallback;
+}
+
 export async function fetchWorkspaceIntegrations(
   workspaceId: string
 ): Promise<WorkspaceIntegrationsListResponse> {
@@ -17,8 +38,7 @@ export async function fetchWorkspaceIntegrations(
   });
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string" ? payload.code : `INTEGRATIONS_LIST_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(payload, `INTEGRATIONS_LIST_HTTP_${res.status}`);
     throw new Error(code);
   }
   return parseWorkspaceIntegrationsListResponse(payload);
@@ -32,8 +52,7 @@ export async function fetchWorkspaceIntegrationMeta(
   });
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string" ? payload.code : `INTEGRATION_META_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(payload, `INTEGRATION_META_HTTP_${res.status}`);
     throw new Error(code);
   }
   return parseWorkspaceIntegrationSurfaceMetaResponse(payload);
@@ -56,8 +75,32 @@ export async function createWorkspaceIntegration(
   });
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string" ? payload.code : `INTEGRATION_CREATE_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(payload, `INTEGRATION_CREATE_HTTP_${res.status}`);
+    throw new Error(code);
+  }
+  return parseIntegrationConnectionPublic(payload);
+}
+
+export type ProvisionTelegramIntegrationInput = {
+  readonly chatId: string;
+  readonly groupName?: string;
+};
+
+export async function provisionTelegramIntegration(
+  integrationId: string,
+  input: ProvisionTelegramIntegrationInput
+): Promise<IntegrationConnectionPublic> {
+  const res = await fetch(
+    `/api/integrations/${encodeURIComponent(integrationId)}/telegram/provision`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    }
+  );
+  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const code = readIntegrationHttpErrorCode(payload, `INTEGRATION_PROVISION_HTTP_${res.status}`);
     throw new Error(code);
   }
   return parseIntegrationConnectionPublic(payload);
@@ -79,8 +122,7 @@ export async function patchIntegration(
   });
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string" ? payload.code : `INTEGRATION_PATCH_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(payload, `INTEGRATION_PATCH_HTTP_${res.status}`);
     throw new Error(code);
   }
   return parseIntegrationConnectionPublic(payload);
@@ -103,7 +145,7 @@ export type PatchExposureIntentInput = {
 export async function patchIntegrationEventPolicy(
   integrationId: string,
   eventType: string,
-  input: PatchIntegrationEventPolicyInput,
+  input: PatchIntegrationEventPolicyInput
 ): Promise<IntegrationConnectionPublic> {
   const eventPolicyPath =
     `/api/integrations/${encodeURIComponent(integrationId)}` +
@@ -115,10 +157,10 @@ export async function patchIntegrationEventPolicy(
   });
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string"
-        ? payload.code
-        : `INTEGRATION_EVENT_POLICY_PATCH_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(
+      payload,
+      `INTEGRATION_EVENT_POLICY_PATCH_HTTP_${res.status}`
+    );
     throw new Error(code);
   }
   return parseIntegrationConnectionPublic(payload);
@@ -127,7 +169,7 @@ export async function patchIntegrationEventPolicy(
 export async function patchExposureIntent(
   integrationId: string,
   eventType: string,
-  input: PatchExposureIntentInput,
+  input: PatchExposureIntentInput
 ): Promise<IntegrationConnectionPublic> {
   const exposureIntentPath =
     `/api/integrations/${encodeURIComponent(integrationId)}` +
@@ -139,10 +181,7 @@ export async function patchExposureIntent(
   });
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string"
-        ? payload.code
-        : `EXPOSURE_INTENT_PATCH_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(payload, `EXPOSURE_INTENT_PATCH_HTTP_${res.status}`);
     throw new Error(code);
   }
   return parseIntegrationConnectionPublic(payload);
@@ -155,7 +194,8 @@ export async function fetchIntegrationDetail(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`INTEGRATION_DETAIL_HTTP_${res.status}`);
+    const payload = (await res.json().catch(() => ({}))) as IntegrationErrorPayload;
+    throw new Error(readIntegrationHttpErrorCode(payload, `INTEGRATION_DETAIL_HTTP_${res.status}`));
   }
   return parseIntegrationConnectionPublic(await res.json());
 }
@@ -167,7 +207,8 @@ export async function enableIntegration(
     method: "POST",
   });
   if (!res.ok) {
-    throw new Error(`INTEGRATION_ENABLE_HTTP_${res.status}`);
+    const payload = (await res.json().catch(() => ({}))) as IntegrationErrorPayload;
+    throw new Error(readIntegrationHttpErrorCode(payload, `INTEGRATION_ENABLE_HTTP_${res.status}`));
   }
   return parseIntegrationConnectionPublic(await res.json());
 }
@@ -179,7 +220,10 @@ export async function disableIntegration(
     method: "POST",
   });
   if (!res.ok) {
-    throw new Error(`INTEGRATION_DISABLE_HTTP_${res.status}`);
+    const payload = (await res.json().catch(() => ({}))) as IntegrationErrorPayload;
+    throw new Error(
+      readIntegrationHttpErrorCode(payload, `INTEGRATION_DISABLE_HTTP_${res.status}`)
+    );
   }
   return parseIntegrationConnectionPublic(await res.json());
 }
@@ -193,8 +237,7 @@ export async function testIntegrationConnection(
   );
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    const code =
-      typeof payload.code === "string" ? payload.code : `INTEGRATION_TEST_HTTP_${res.status}`;
+    const code = readIntegrationHttpErrorCode(payload, `INTEGRATION_TEST_HTTP_${res.status}`);
     throw new Error(code);
   }
   return parseIntegrationTestConnectionResult(payload);

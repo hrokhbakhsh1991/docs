@@ -22,12 +22,17 @@ export type TourOperationalRosterRow = {
   readonly registrationId: string;
   readonly tourId: string;
   readonly guestLabel: string;
+  /** Ops-only contact/timeline scalars; never the registration intake blob. */
+  readonly guestPhone?: string | null;
+  readonly approvedAt?: string | null;
+  readonly finalizedAt?: string | null;
   /** Ops list projection — submitter user id for avatar parity. */
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
   readonly memberAvatarUrl?: string | null;
   readonly partySize: number;
   readonly registrationStatus: OperationalRosterLifecycleStatus;
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly financialDisplayState: OperationalRosterFinancialDisplayState;
   readonly remainingMinor: string | null;
   readonly paidMinor: string | null;
@@ -35,7 +40,7 @@ export type TourOperationalRosterRow = {
   readonly paymentDueAt: string | null;
   readonly holdStatus: string | null;
   readonly transportKind: BookingTransportKind | null;
-  readonly personalCarOccupants: 1 | 2 | 3 | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly isDriverOffer: boolean;
   readonly passengerAssignmentStatus: OperationalRosterPassengerAssignmentStatus;
   readonly refundDisplayState: OperationalRosterRefundDisplayState;

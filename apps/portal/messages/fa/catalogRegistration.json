@@ -70,14 +70,19 @@
     "inTour": "من هم در این تور شرکت می‌کنم",
     "addGuestShort": "+ افزودن همراه",
     "removeGuestShort": "حذف",
+    "removeGuestAriaLabel": "حذف مهمان {index}",
+    "guestRemoved": "همراه حذف شد.",
+    "undoGuest": "بازگردانی",
     "partyCount": "{count} نفر",
     "myselfTag": "خودم",
     "unnamedPerson": "بدون نام",
     "priceAmount": "{amount} تومان",
-    "pricingPreviewLoading": "در حال دریافت قیمت نهایی…",
+    "pricingPreviewLoading": "در حال به‌روزرسانی جزئیات قیمت…",
     "originalTourPrice": "قیمت تور",
     "pricePerPerson": "قیمت هر نفر",
     "payableAmount": "مبلغ قابل پرداخت",
+    "pricePerRegistration": "مبلغ هر ثبت‌نام",
+    "separateRegistrationPrice": "پرداخت هر نفر جداگانه انجام می‌شود.",
     "membershipDiscount": "تخفیف عضویت {percentage}٪",
     "discountAmount": "−{amount} تومان",
     "yourPrice": "قیمت برای شما",
@@ -136,8 +141,9 @@
     "hasPersonalCarQuestion": "ماشین شخصی داری؟",
     "hasPersonalCarYes": "بله",
     "hasPersonalCarNo": "خیر",
-    "personalCarOccupantsLabel": "چند نفر (شامل خودت)؟",
+    "personalCarOccupantsLabel": "چند همراه را می‌توانی سوار کنی؟",
     "personalCarOccupants": {
+      "0": "فقط خودم می‌آیم (بدون همراه)",
       "1": "۱ نفر",
       "2": "۲ نفر",
       "3": "۳ نفر"
@@ -145,6 +151,7 @@
     "paysDongQuestion": "دونگ (سهم بنزین) می‌دهی؟",
     "paysDongYes": "بله، دونگ می‌دهم",
     "paysDongNo": "خیر — با ماشین آشنا می‌آیم",
+    "nonPersonalCarAcknowledgement": "تأیید می‌کنم با ماشین شخصی نمی‌آیم و این گزینه برای ثبت‌نام من ثبت می‌شود.",
     "submit": "ثبت درخواست",
     "submitting": "در حال ارسال…",
     "partySizeInvalid": "تعداد نفرات معتبر وارد کنید.",
@@ -152,7 +159,7 @@
     "nationalIdChecksumInvalid": "این کد ملی از نظر رقم کنترل معتبر نیست. ارقام را بررسی کنید.",
     "fatherNameInvalid": "نام پدر الزامی است.",
     "birthDateInvalid": "تاریخ تولد معتبر وارد کنید.",
-    "transportIncomplete": "گزینه‌های حمل‌ونقل را کامل کنید."
+    "transportIncomplete": "لطفاً گزینهٔ حمل‌ونقل را انتخاب کنید؛ اگر ماشین شخصی دارید، تعداد همراهان را هم مشخص کنید."
   },
   "success": {
     "eyebrow": "ثبت شد",

@@ -4,7 +4,7 @@ import {
   resolveMemberPortalModuleRoutePath,
 } from "@app-tour/workspace-sdk";
 
-import { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
+import { resolveIngressPluginId } from "./resolve-ingress-plugin-id";
 import { resolvePortalPublicBaseUrl } from "./resolve-portal-public-base-url";
 
 function resolveMemberRoutePath(pluginId: string | null, moduleId?: string): string | null {
@@ -26,8 +26,12 @@ function resolveMemberRoutePath(pluginId: string | null, moduleId?: string): str
  * Registry-aware cross-host member module URL (DL-22).
  * Returns null when member portal is disabled for the workspace.
  */
-export function resolvePortalMemberModuleUrl(host: string, moduleId?: string): string | null {
-  const pluginId = resolvePluginIdFromIngressHost(host);
+export function resolvePortalMemberModuleUrl(
+  host: string,
+  moduleId?: string,
+  pluginIdOverride?: string | null
+): string | null {
+  const pluginId = resolveIngressPluginId(host, pluginIdOverride);
   const routePath = resolveMemberRoutePath(pluginId, moduleId);
   if (routePath === null) {
     return null;

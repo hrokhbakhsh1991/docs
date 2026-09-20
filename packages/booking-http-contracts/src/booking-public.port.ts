@@ -15,6 +15,13 @@ export type BookingPublicCreateInput = {
   readonly partySize: number;
   readonly departureAt: string;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  readonly outboxEvent?: BookingPublicOutboxEvent;
+};
+
+export type BookingPublicOutboxEvent = {
+  readonly eventType: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly correlationId?: string;
 };
 
 export type BookingPublicCreateResult = {

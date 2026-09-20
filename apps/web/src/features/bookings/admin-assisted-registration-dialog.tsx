@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
+import { formatTourDeparture } from "@/features/tours/tour-list-formatters";
 import type { UsersDirectoryRow } from "@/features/users/users-directory-types";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
@@ -59,9 +60,11 @@ function readErrorCode(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-function formatContactSummary(phone: string | null | undefined, email: string | null | undefined): string {
-  const phoneLabel =
-    (phone ?? "").trim().length > 0 ? formatIranMobileForDisplay(phone ?? "") : "";
+function formatContactSummary(
+  phone: string | null | undefined,
+  email: string | null | undefined
+): string {
+  const phoneLabel = (phone ?? "").trim().length > 0 ? formatIranMobileForDisplay(phone ?? "") : "";
   const emailLabel = (email ?? "").trim();
   return [phoneLabel, emailLabel].filter((value) => value.length > 0).join(" · ");
 }
@@ -189,6 +192,8 @@ export function AdminAssistedRegistrationDialog({
     requirements?.basePricePerPerson !== null && requirements?.basePricePerPerson !== undefined
       ? formatAdminAssistedMoneyLabel(requirements.basePricePerPerson)
       : null;
+  const departureLabel =
+    requirements === null ? null : formatTourDeparture(requirements.departureAt, locale);
 
   const updateField = <K extends keyof AdminAssistedRegistrationFormState>(
     key: K,
@@ -313,6 +318,7 @@ export function AdminAssistedRegistrationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         id="operator-admin-registration-dialog"
+        closeLabel={t("actions.cancel")}
         className="flex max-h-[92vh] max-w-3xl flex-col overflow-hidden p-0"
         data-testid="operator-admin-registration-dialog"
       >
@@ -329,7 +335,7 @@ export function AdminAssistedRegistrationDialog({
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>{requirements.title}</span>
                 <span aria-hidden="true">·</span>
-                <span>{requirements.departureAt ?? t("unknownDeparture")}</span>
+                <span>{departureLabel ?? t("unknownDeparture")}</span>
                 {basePriceLabel !== null ? (
                   <>
                     <span aria-hidden="true">·</span>
@@ -362,6 +368,7 @@ export function AdminAssistedRegistrationDialog({
                       type="button"
                       size="sm"
                       variant={form.registrantMode === mode ? "default" : "outline"}
+                      aria-pressed={form.registrantMode === mode}
                       onClick={() => {
                         updateField("registrantMode", mode);
                         if (mode === "guest") {
@@ -569,7 +576,7 @@ export function AdminAssistedRegistrationDialog({
                   <div className="space-y-2">
                     <Label>{t("fields.personalCarOccupants")}</Label>
                     <div className="flex gap-2">
-                      {(["1", "2", "3"] as const).map((count) => (
+                      {(["0", "1", "2", "3"] as const).map((count) => (
                         <Button
                           key={count}
                           type="button"
@@ -577,7 +584,9 @@ export function AdminAssistedRegistrationDialog({
                           variant={form.personalCarOccupants === count ? "default" : "outline"}
                           onClick={() => updateField("personalCarOccupants", count)}
                         >
-                          {t("transport.occupants", { count: Number(count) })}
+                          {count === "0"
+                            ? t("transport.noCompanion")
+                            : t("transport.occupants", { count: Number(count) })}
                         </Button>
                       ))}
                     </div>

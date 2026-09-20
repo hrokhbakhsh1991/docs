@@ -68,7 +68,10 @@ describe("home-faq.spec.ts", () => {
     assert.match(faq, /home\.full\.equipment\.lead/);
     assert.match(faq, /home\.full\.equipment\.\$\{id\}\.label/);
     assert.match(faq, /data-marketing-home-faq-answer-equipment/);
-    assert.equal(en.home.full.equipment.lead, "Common minimums — each tour page lists full requirements.");
+    assert.equal(
+      en.home.full.equipment.lead,
+      "Common minimums — each tour page lists full requirements."
+    );
     for (const id of HOME_EQUIPMENT_ITEM_IDS) {
       const enEntry = en.home.full.equipment[id];
       const faEntry = fa.home.full.equipment[id];

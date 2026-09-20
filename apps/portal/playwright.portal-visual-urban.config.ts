@@ -8,7 +8,10 @@ const portalBaseUrl = process.env.SMOKE_PORTAL_BASE_URL ?? "http://urban.portal.
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["portal-shell-visual-urban.spec.ts"],
+  testMatch: [
+    "portal-shell-visual-urban.spec.ts",
+    "portal-member-notifications-urban.browser.spec.ts",
+  ],
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,

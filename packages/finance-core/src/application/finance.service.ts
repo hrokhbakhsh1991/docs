@@ -196,6 +196,11 @@ function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
 }
 
 export class FinanceService {
+  private readonly outstandingBalanceItemsInFlight = new Map<
+    string,
+    Promise<readonly OutstandingBalanceItem[]>
+  >();
+
   constructor(
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
     private readonly repository: FinanceRepositoryPort,
@@ -232,6 +237,23 @@ export class FinanceService {
     assertCompositionDep("arObservation", arObservation);
   }
 
+  /** Coalesce concurrent report reads without retaining stale financial data. */
+  private loadOutstandingBalanceItemsCoalesced(
+    tenantId: string
+  ): Promise<readonly OutstandingBalanceItem[]> {
+    const existing = this.outstandingBalanceItemsInFlight.get(tenantId);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const load = loadOutstandingBalanceItems(this.outstandingOperatorDeps(), tenantId).finally(
+      () => {
+        this.outstandingBalanceItemsInFlight.delete(tenantId);
+      }
+    );
+    this.outstandingBalanceItemsInFlight.set(tenantId, load);
+    return load;
+  }
+
   private async ensureQuoteFrozenForMoneyPath(
     tenantId: string,
     registrationId: string
@@ -256,28 +278,30 @@ export class FinanceService {
     }
   }
 
-  private async resolveInvoiceObligationMinor(
+  private async resolveInvoiceObligation(
     tenantId: string,
     registrationId: string
-  ): Promise<string | undefined> {
+  ): Promise<{ readonly obligationMinor: string; readonly currency: string } | undefined> {
     if (this.commercialQuotes !== null) {
       const quote = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
       if (quote !== null) {
-        return quote.payableMinor;
+        return { obligationMinor: quote.payableMinor, currency: quote.currency };
       }
       const preview = await this.commercialQuotes.resolveCommercialQuotePreview(
         tenantId,
         registrationId
       );
       if (preview !== null) {
-        return preview.payableMinor;
+        return { obligationMinor: preview.payableMinor, currency: preview.currency };
       }
     }
     const obligation = await this.obligation.resolveRegistrationObligation({
       tenantId,
       registrationId,
     });
-    return obligation?.obligationMinor;
+    return obligation === null || obligation === undefined
+      ? undefined
+      : { obligationMinor: obligation.obligationMinor, currency: obligation.currency };
   }
 
   private async gate(auth: FinanceActorContext): Promise<FinanceWorkspaceGateResult> {
@@ -533,7 +557,7 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const loaded = await loadOutstandingBalanceItems(this.outstandingOperatorDeps(), auth.tenantId);
+    const loaded = await this.loadOutstandingBalanceItemsCoalesced(auth.tenantId);
     const tourId = normalizeOptionalTourId(query.tourId);
     const items =
       tourId !== undefined ? loaded.filter((row) => row.identity.tourId === tourId) : loaded;
@@ -564,10 +588,7 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const outstanding = await loadOutstandingBalanceItems(
-      this.outstandingOperatorDeps(),
-      auth.tenantId
-    );
+    const outstanding = await this.loadOutstandingBalanceItemsCoalesced(auth.tenantId);
     const aggregated = aggregateTourCollectionFromOutstanding(outstanding);
     const tourId = normalizeOptionalTourId(query.tourId);
     const tours =
@@ -821,11 +842,46 @@ export class FinanceService {
         throw new Error("BOOKINGS_FORBIDDEN");
       }
     }
+    const previewKind = previewKindFromFileKey(body.fileKey);
+    const submittedAt = new Date().toISOString();
+    let proofUrl: string | undefined;
+    try {
+      proofUrl = await this.receiptProofStorage.getSignedReadUrl({
+        tenantId: auth.tenantId,
+        storageKey: body.fileKey,
+      });
+    } catch (error: unknown) {
+      this.logger.warn({
+        event: "finance.receipt_proof.telegram_media_unavailable",
+        tenantId: auth.tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
       fileKey: body.fileKey,
       note: body.note,
+      outboxEvent: {
+        eventType: "receipt.submitted",
+        payload: {
+          topicKey: "receipts",
+          paymentId: payment.id,
+          registrationId: payment.registrationId,
+          amount: payment.amount,
+          currency: payment.currency,
+          fileKey: body.fileKey,
+          submittedAt,
+          ...(proofUrl === undefined || previewKind === "unknown"
+            ? {}
+            : {
+                telegramMediaUrl: proofUrl,
+                telegramMediaKind: previewKind === "image" ? "photo" : "document",
+              }),
+          ...(body.note === undefined ? {} : { note: body.note }),
+          submittedByUserId: auth.userId,
+        },
+      },
       ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
     });
     this.metrics.increment(
@@ -1066,19 +1122,23 @@ export class FinanceService {
       throw new Error("BOOKINGS_FORBIDDEN");
     }
 
-    const latestPromise = this.repository.findLatestReceiptForRegistration(
+    // Keep these registration-scoped reads serial. Production adapters may
+    // open multiple tenant-RLS transactions (booking + tour + invoice); fanning
+    // them out can exceed the per-tenant DB budget and reject sibling promises
+    // after the response path has already failed.
+    const latest = await this.repository.findLatestReceiptForRegistration(
       auth.tenantId,
       registrationId
     );
-    const collectionPromise = this.obligation.resolveRegistrationPaymentCollection({
+    const collection = await this.obligation.resolveRegistrationPaymentCollection({
       tenantId: auth.tenantId,
       registrationId,
     });
-    const obligationPromise = this.obligation.resolveRegistrationObligation({
+    const obligation = await this.obligation.resolveRegistrationObligation({
       tenantId: auth.tenantId,
       registrationId,
     });
-    const invoicePromise = this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
+    const invoice = await this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
       .then((invoice) => ({
         remainingMinor: invoice.balanceDueMinor,
         paidMinor: invoice.paidAmountMinor,
@@ -1092,13 +1152,7 @@ export class FinanceService {
         remainingPositive: false,
       }));
 
-    const latest = await latestPromise;
-    const [collection, obligation, invoice, preview] = await Promise.all([
-      collectionPromise,
-      obligationPromise,
-      invoicePromise,
-      this.resolveMemberReceiptPreview(auth.tenantId, latest),
-    ]);
+    const preview = await this.resolveMemberReceiptPreview(auth.tenantId, latest);
     const zeroObligation =
       collection === "free" ||
       (obligation !== null && isZeroObligationMinor(obligation.obligationMinor));
@@ -1239,6 +1293,29 @@ export class FinanceService {
             toleranceMinor: this.obligationToleranceMinor,
           })
         ) {
+          // A concurrent approval can commit after this request read the
+          // pending receipt but before the balance check. Re-read only in
+          // that case, so a genuine excess manual payment remains a 422.
+          const latest = await this.repository.findReceiptById(auth.tenantId, receiptId);
+          if (
+            latest !== null &&
+            latest.status === "Approved" &&
+            latest.payment !== null &&
+            latest.payment.status === "Paid"
+          ) {
+            this.recordApprove(auth, gate.workspaceType, "replay");
+            return {
+              id: latest.id,
+              status: latest.status,
+              reviewNote: latest.reviewNote,
+              reviewedAt: latest.reviewedAt?.toISOString() ?? null,
+              ledgerJournalId: latest.ledgerJournalId ?? "",
+              bookingPaymentStatus: await this.resolveApproveReplayBookingStatus(
+                auth.tenantId,
+                latest.payment.registrationId
+              ),
+            };
+          }
           throw new Error("FINANCE_OBLIGATION_OVERPAY");
         }
       }
@@ -1583,22 +1660,32 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const normalizedRegistrationId = registrationId.trim();
+    const lifecycle = await this.bookingPayments.getRegistrationLifecycleStatus({
+      tenantId: auth.tenantId,
+      registrationId: normalizedRegistrationId,
+    });
+    if (lifecycle === null) {
+      // An invoice is registration-scoped. Never synthesize a zero invoice for
+      // a missing or foreign-tenant booking; that masks an IDOR boundary.
+      throw new Error("BOOKING_NOT_FOUND");
+    }
     return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
   }
 
   private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {
     const facts = await this.repository.getRegistrationInvoiceFacts(tenantId, registrationId);
     const scheduleItems = await this.schedules.getSchedule(tenantId, registrationId);
-    const obligationMinor = await this.resolveInvoiceObligationMinor(tenantId, registrationId);
+    const obligation = await this.resolveInvoiceObligation(tenantId, registrationId);
     return compileRegistrationInvoice({
       registrationId,
-      currency: facts.currency,
+      // Fresh unpaid registrations have no payment row; preserve the obligation currency.
+      currency: facts.currency || obligation?.currency || "",
       prepaymentMinor: facts.prepaymentMinor,
       paidPaymentsMinor: facts.paidPaymentsMinor,
       paymentAmountsMinor: facts.paymentAmountsMinor,
       scheduleAmountsMinor: scheduleItems.map((item) => item.amountMinor),
       refundedCompletedMinor: facts.refundedCompletedMinor,
-      ...(obligationMinor !== undefined ? { obligationMinor } : {}),
+      ...(obligation !== undefined ? { obligationMinor: obligation.obligationMinor } : {}),
     });
   }
 

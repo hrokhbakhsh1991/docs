@@ -8,6 +8,7 @@ import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import {
   buildOperatorTourOrderBy,
   buildOperatorTourWhere,
+  compareOperatorTourPrices,
   OPERATOR_TOUR_LIST_SELECT,
 } from "../tours/operator-tour-list-db-query";
 import { readTourCapLimits } from "../db/tour-cap-config";
@@ -113,9 +114,7 @@ export class PrismaTourRepository implements TourStorageRepository {
 
   async getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]> {
     assertTenantId(tenantId);
-    const unique = [
-      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
-    ];
+    const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
     if (unique.length === 0) {
       return [];
     }
@@ -282,7 +281,9 @@ export class PrismaTourRepository implements TourStorageRepository {
     });
   }
 
-  async listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput> {
+  async listOperatorToursPage(
+    input: TourOperatorListPageInput
+  ): Promise<TourOperatorListPageOutput> {
     assertTenantId(input.tenantId);
     const { query } = input;
     return withTenantRls(input.tenantId, async (tx) => {
@@ -290,8 +291,38 @@ export class PrismaTourRepository implements TourStorageRepository {
         tenantId: input.tenantId,
         search: query.search,
         status: query.status,
+        category: query.category,
       });
       const total = query.includeTotal ? await tx.tour.count({ where }) : 0;
+      if (query.sortBy === "price") {
+        // Prisma cannot order a Json field by a nested numeric path. Fetch the
+        // already tenant/filter-scoped rows, then apply the canonical comparator
+        // before slicing so the API contract is correct for every page.
+        const rows = await tx.tour.findMany({
+          where,
+          select: OPERATOR_TOUR_LIST_SELECT,
+          orderBy: [{ id: "asc" }],
+        });
+        const sorted = [...rows].sort((left, right) =>
+          compareOperatorTourPrices(
+            left.canonical,
+            right.canonical,
+            left.id,
+            right.id,
+            query.sortDir
+          )
+        );
+        const pageRows = sorted.slice(
+          (input.query.page - 1) * input.query.limit,
+          input.query.page * input.query.limit
+        );
+        return {
+          items: pageRows.map(toTour),
+          total: query.includeTotal ? total : pageRows.length,
+          page: query.page,
+          limit: query.limit,
+        };
+      }
       const rows = await tx.tour.findMany({
         where,
         select: OPERATOR_TOUR_LIST_SELECT,

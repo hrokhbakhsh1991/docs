@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function readSrc(rel: string): string {
@@ -42,14 +44,14 @@ describe("home-gallery.spec.ts", () => {
 
   it("owns Gallery CSS as a named landing partial and does not restyle locked sections", () => {
     const aggregator = readSrc("packages/workspaces/denali/theme/marketing/home-landing.css");
-    const css = readSrc("packages/workspaces/denali/theme/marketing/home/gallery.css");
+    const css = readMarketingSkinBundle(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/gallery.css")
+    );
     const why = readSrc("packages/workspaces/denali/theme/marketing/home/why.css");
     const destinations = readSrc(
       "packages/workspaces/denali/theme/marketing/home/destinations.css"
     );
-    const lightbox = readSrc(
-      "apps/marketing/src/catalog/catalog-tour-detail-photo-lightbox.tsx"
-    );
+    const lightbox = readSrc("apps/marketing/src/catalog/catalog-tour-detail-photo-lightbox.tsx");
 
     assert.match(aggregator, /@import "\.\/home\/hero\.css"/);
     assert.match(aggregator, /@import "\.\/home\/programs\.css"/);
@@ -62,7 +64,8 @@ describe("home-gallery.spec.ts", () => {
     assert.match(css, /figure\[data-marketing-home-gallery-item\]:first-child/);
     assert.match(css, /grid-column: auto/);
     assert.match(css, /--denali-mist-100/);
-    assert.doesNotMatch(css, /scale\(1\./);
+    assert.match(css, /scale\(1\.025\)/);
+    assert.match(css, /prefers-reduced-motion: reduce/);
     assert.doesNotMatch(why, /data-marketing-home-gallery/);
     assert.doesNotMatch(destinations, /data-marketing-home-gallery/);
     assert.match(lightbox, /data-marketing-catalog-detail-photo-lightbox/);

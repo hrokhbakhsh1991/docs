@@ -29,7 +29,7 @@ type Props = AnchorHTMLAttributes<HTMLAnchorElement> & {
  *
  * `data-marketing-register-ready="true"` means onClick is hydrated and the
  * provider is present — Playwright must wait for this or the href navigates
- * to portal (SMK-MKT-03).
+ * to marketing `?auth=login` (not portal) and auto-opens the modal (SMK-MKT-03).
  */
 export function MarketingLoginModalTrigger({
   href,
@@ -49,6 +49,19 @@ export function MarketingLoginModalTrigger({
   function handleClick(event: MouseEvent<HTMLAnchorElement>): void {
     onClick?.(event);
     if (event.defaultPrevented) {
+      return;
+    }
+    // PDP guests must never follow the portal registration href — that route
+    // auto-opens a full-page portal login shell (PCMS-UX-MODAL-04).
+    if (host === "pdp") {
+      event.preventDefault();
+      if (modal !== null) {
+        modal.openLoginModal({ host, tourId, tourTitle });
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.location.assign(href);
+      }
       return;
     }
     if (modal === null) {

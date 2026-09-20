@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { Prisma } from "@prisma/client";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
@@ -8,7 +8,7 @@ import { resolveStorageDriver } from "../../storage/production-storage-driver-as
 import { logger } from "../../observability/logger";
 import { mapLatestExposureIntentsToConnectionPublic } from "../../exposure/exposure-intent-public";
 import { normalizeFieldDecorations } from "../../exposure/field-decorations";
-import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
+import { createExposureIntentRepository } from "../../exposure/create-exposure-intent-repository";
 import {
   buildConnectionExposureIntentUpsert,
   exposureSelectableCatalogFieldIds,
@@ -68,12 +68,32 @@ import {
   type LegacyTelegramBotInspection,
 } from "../infrastructure/resolve-legacy-telegram-connection";
 import {
+  createTelegramApiClient,
+  TelegramApiError,
+} from "../providers/telegram/telegram-api.client";
+import {
+  provisionTelegramForum,
+  TelegramForumOnboardingError,
+} from "../providers/telegram/telegram-forum.onboarding";
+import { createTelegramForumConfig } from "../providers/telegram/telegram-forum.config";
+import {
+  parseTelegramConnectCommand,
+  parseTelegramReceiptAction,
+  parseTelegramWebhookUpdate,
+} from "../providers/telegram/telegram-webhook.update";
+import {
   annotateActiveDeliverySource,
   computeWorkspaceIntegrationsSummary,
   integrationConnectionActionsAllowed,
   legacyIntegrationActionsAllowed,
+  resolveTelegramProviderTestThreadId,
   testConnectionMessageForCode,
 } from "./integrations-verification";
+import {
+  ensureTelegramProviderTestRegistrationTopic,
+  readTelegramTopicConfig,
+  selectTelegramTopicRecoveryJobIds,
+} from "./telegram-provider-test-provisioning";
 
 export class IntegrationNotFoundError extends Error {
   readonly code = "INTEGRATION_NOT_FOUND";
@@ -664,6 +684,13 @@ export async function createWorkspaceIntegration(
   const capabilities = parseCapabilities(record.capabilities, normalized.defaultCapabilities);
   const config = normalized.config;
   const secretPayload = normalized.credentials;
+  if (
+    provider === "telegram" &&
+    typeof config.channelId !== "string" &&
+    typeof config.groupName !== "string"
+  ) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED");
+  }
   const connectionId = randomUUID();
   const secretRef =
     Object.keys(secretPayload).length > 0 ? buildIntegrationSecretRef(connectionId) : null;
@@ -1271,16 +1298,586 @@ export async function testIntegrationConnection(
   const { resolveIntegrationConnectionCredentials } =
     await import("../application/resolve-integration-connection-credentials");
   const credentials = await resolveIntegrationConnectionCredentials(connection);
-  return runProviderTest({
+  const shouldRefreshTelegramWebhook =
+    connection.provider === "telegram" && connection.secretRef !== null;
+  let testConfig = connection.config;
+  if (connection.provider === "telegram") {
+    const topicProvisioning = await ensureTelegramProviderTestRegistrationTopic({
+      config: connection.config,
+      credentials,
+    });
+    if (!topicProvisioning.ok) {
+      await withTenantRls(auth.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: connection.id },
+          data: { status: "error" },
+        });
+      });
+      return {
+        ok: false,
+        code: topicProvisioning.code,
+        message: testConnectionMessageForCode(topicProvisioning.code),
+        testedAt,
+        backingSource: "integration_connection",
+      };
+    }
+    testConfig = topicProvisioning.config;
+    if (topicProvisioning.provisioned) {
+      await withTenantRls(auth.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: connection.id },
+          data: { config: topicProvisioning.config as Prisma.InputJsonValue },
+        });
+      });
+    }
+  }
+  const result = await runProviderTest({
     testedAt,
     backingSource: "integration_connection",
     provider: connection.provider,
     tenantId: connection.tenantId,
     workspaceType: connection.workspaceType,
-    config: connection.config,
+    config: testConfig,
     credentials,
-    persistStatusForConnectionId: connection.id,
+    persistStatusForConnectionId: shouldRefreshTelegramWebhook ? null : connection.id,
   });
+  if (result.ok && connection.provider === "telegram") {
+    await requeueTelegramTopicRecoveryJobs({
+      tenantId: connection.tenantId,
+      connectionId: connection.id,
+      config: testConfig,
+    });
+  }
+  const secretRef = connection.secretRef;
+  if (shouldRefreshTelegramWebhook && !result.ok) {
+    await withTenantRls(auth.tenantId, async (tx) => {
+      await tx.integrationConnection.update({
+        where: { id: connection.id },
+        data: { status: "error" },
+      });
+    });
+  }
+  if (shouldRefreshTelegramWebhook && result.ok && secretRef !== null) {
+    const botToken = credentials.botToken;
+    if (typeof botToken === "string" && botToken.trim().length > 0) {
+      const webhook = prepareTelegramWebhookRegistration({
+        tenantId: auth.tenantId,
+        integrationId: connection.id,
+      });
+      await withTenantRls(auth.tenantId, async (tx) => {
+        await putIntegrationSecretInTransaction(tx, auth.tenantId, secretRef, {
+          ...credentials,
+          webhookSecret: webhook.webhookSecret,
+        });
+      });
+      try {
+        await setTelegramWebhook(botToken, webhook);
+        await withTenantRls(auth.tenantId, async (tx) => {
+          await tx.integrationConnection.update({
+            where: { id: connection.id },
+            data: { status: "enabled" },
+          });
+        });
+      } catch (error: unknown) {
+        await withTenantRls(auth.tenantId, async (tx) => {
+          await tx.integrationConnection.update({
+            where: { id: connection.id },
+            data: { status: "error" },
+          });
+        });
+        throw error;
+      }
+    }
+  }
+  return result;
+}
+
+export async function provisionTelegramIntegration(
+  auth: TenantAuthContext,
+  integrationId: string,
+  body: unknown
+): Promise<IntegrationConnectionPublicDto> {
+  assertIntegrationSystemReady();
+  if (typeof body !== "object" || body === null) {
+    throw new IntegrationInvalidBodyError();
+  }
+  const record = body as Record<string, unknown>;
+  const chatId = typeof record.chatId === "string" ? record.chatId.trim() : "";
+  if (chatId.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_REQUIRED");
+  }
+
+  const repository = createIntegrationConnectionRepository();
+  const connection = await repository.findByTenantAndId(auth.tenantId, integrationId);
+  if (connection === null) {
+    throw new IntegrationNotFoundError();
+  }
+  if (connection.provider !== "telegram") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_PROVIDER_MUST_BE_TELEGRAM");
+  }
+
+  const credentials = await resolveIntegrationCredentialsForConnection(connection);
+  const botToken = credentials.botToken;
+  if (typeof botToken !== "string" || botToken.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
+  }
+  if (connection.secretRef === null || connection.secretRef.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_SECRET_STORE_REQUIRED");
+  }
+  const secretRef = connection.secretRef;
+
+  const groupName =
+    typeof record.groupName === "string" && record.groupName.trim().length > 0
+      ? record.groupName.trim()
+      : typeof connection.config.groupName === "string"
+        ? connection.config.groupName.trim()
+        : "";
+  if (groupName.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_REQUIRED");
+  }
+
+  try {
+    const currentConfig = createTelegramForumConfig({
+      groupName,
+      chatId: connection.config.chatId,
+      topics: readTelegramTopicConfig(connection.config),
+    });
+    const provisioned = await provisionTelegramForum({
+      api: createTelegramApiClient(botToken),
+      config: currentConfig,
+      chatId,
+    });
+    const webhook = prepareTelegramWebhookRegistration({
+      tenantId: auth.tenantId,
+      integrationId: connection.id,
+    });
+    const topicThreadIds = Object.fromEntries(
+      Object.entries(provisioned.config.topics)
+        .filter(([, topic]) => topic.threadId !== undefined)
+        .map(([key, topic]) => [key, topic.threadId])
+    );
+    const topicNames = Object.fromEntries(
+      Object.entries(provisioned.config.topics).map(([key, topic]) => [key, topic.name])
+    );
+    const updated = await withTenantRls(auth.tenantId, async (tx) => {
+      const updatedConnection = await tx.integrationConnection.update({
+        where: { id: connection.id },
+        data: {
+          config: {
+            ...connection.config,
+            groupName,
+            chatId,
+            topicThreadIds,
+            topicNames,
+            botId: provisioned.bot.id,
+            ...(provisioned.bot.username === undefined
+              ? {}
+              : { botUsername: provisioned.bot.username }),
+          } as Prisma.InputJsonValue,
+          status: "disabled",
+          enabled: false,
+        },
+      });
+      await putIntegrationSecretInTransaction(tx, auth.tenantId, secretRef, {
+        ...credentials,
+        webhookSecret: webhook.webhookSecret,
+      });
+      return updatedConnection;
+    });
+    await setTelegramWebhook(botToken, webhook);
+    return await toPublicDto(auth.tenantId, {
+      ...mapRow(updated),
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    });
+  } catch (error) {
+    if (error instanceof TelegramForumOnboardingError) {
+      throw new IntegrationInvalidBodyError(error.code);
+    }
+    if (error instanceof TelegramApiError) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_API_REQUEST_FAILED");
+    }
+    throw error;
+  }
+}
+
+export async function startTelegramForumConnect(
+  auth: TenantAuthContext,
+  integrationId: string,
+  body: unknown
+): Promise<{ readonly code: string; readonly expiresAt: string; readonly webhookUrl: string }> {
+  assertIntegrationSystemReady();
+  const connection = await createIntegrationConnectionRepository().findByTenantAndId(
+    auth.tenantId,
+    integrationId
+  );
+  if (connection === null) throw new IntegrationNotFoundError();
+  if (connection.provider !== "telegram") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_PROVIDER_MUST_BE_TELEGRAM");
+  }
+
+  const groupNameFromBody =
+    typeof body === "object" &&
+    body !== null &&
+    typeof (body as Record<string, unknown>).groupName === "string"
+      ? ((body as Record<string, unknown>).groupName as string).trim()
+      : "";
+  const groupName =
+    groupNameFromBody.length > 0
+      ? groupNameFromBody
+      : typeof connection.config.groupName === "string"
+        ? connection.config.groupName.trim()
+        : "";
+  if (groupName.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_REQUIRED");
+  }
+
+  const credentials = await resolveIntegrationCredentialsForConnection(connection);
+  const botToken = credentials.botToken;
+  if (typeof botToken !== "string" || botToken.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
+  }
+
+  const webhook = prepareTelegramWebhookRegistration({
+    tenantId: auth.tenantId,
+    integrationId: connection.id,
+  });
+  const code = randomBytes(18).toString("base64url");
+  const codeHash = createHash("sha256").update(code).digest("hex");
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+  await withTenantRls(auth.tenantId, async (tx) => {
+    await tx.integrationConnection.update({
+      where: { id: connection.id },
+      data: {
+        config: {
+          ...connection.config,
+          groupName,
+          telegramConnectCodeHash: codeHash,
+          telegramConnectExpiresAt: expiresAt,
+          telegramConnectClaimedAt: null,
+        } as Prisma.InputJsonValue,
+      },
+    });
+    if (connection.secretRef !== null) {
+      await putIntegrationSecretInTransaction(tx, auth.tenantId, connection.secretRef, {
+        ...credentials,
+        webhookSecret: webhook.webhookSecret,
+      });
+    }
+  });
+  await setTelegramWebhook(botToken, webhook);
+
+  return { code, expiresAt, webhookUrl: webhook.webhookUrl };
+}
+
+function prepareTelegramWebhookRegistration(input: {
+  readonly tenantId: string;
+  readonly integrationId: string;
+}): { readonly webhookSecret: string; readonly webhookUrl: string } {
+  const webhookBaseUrl = process.env.TELEGRAM_WEBHOOK_BASE_URL?.trim() ?? "";
+  let parsedBaseUrl: URL;
+  try {
+    parsedBaseUrl = new URL(webhookBaseUrl);
+  } catch {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_BASE_URL_REQUIRED");
+  }
+  if (parsedBaseUrl.protocol !== "https:") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_MUST_USE_HTTPS");
+  }
+
+  const webhookSecret = randomBytes(32).toString("base64url");
+  const webhookUrl = new URL(
+    `/webhooks/telegram/${encodeURIComponent(input.tenantId)}/${encodeURIComponent(input.integrationId)}`,
+    parsedBaseUrl
+  );
+  return { webhookSecret, webhookUrl: webhookUrl.toString() };
+}
+
+async function setTelegramWebhook(
+  botToken: string,
+  webhook: { readonly webhookSecret: string; readonly webhookUrl: string }
+): Promise<void> {
+  await createTelegramApiClient(botToken).setWebhook(webhook.webhookUrl, webhook.webhookSecret);
+}
+
+export async function processTelegramWebhook(
+  tenantId: string,
+  integrationId: string,
+  secretHeader: string | undefined,
+  body: unknown
+): Promise<{ readonly accepted: boolean; readonly connected: boolean }> {
+  const connection = await createIntegrationConnectionRepository().findByTenantAndId(
+    tenantId,
+    integrationId
+  );
+  if (connection === null || connection.provider !== "telegram" || connection.secretRef === null) {
+    throw new IntegrationNotFoundError();
+  }
+  const credentials = await resolveIntegrationCredentialsForConnection(connection);
+  const configuredSecret = credentials.webhookSecret;
+  if (typeof configuredSecret !== "string" || !safeSecretEquals(configuredSecret, secretHeader)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_SECRET_INVALID");
+  }
+
+  const update = parseTelegramWebhookUpdate(body);
+  if (update === null) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_WEBHOOK_PAYLOAD_INVALID");
+  }
+  const command = parseTelegramConnectCommand(update);
+  if (command !== null) {
+    return processTelegramConnectCommand({
+      tenantId,
+      integrationId,
+      connection,
+      credentials,
+      command,
+    });
+  }
+
+  const receiptAction = parseTelegramReceiptAction(update);
+  if (receiptAction !== null) {
+    try {
+      await processTelegramReceiptAction({
+        tenantId,
+        connection,
+        credentials,
+        action: receiptAction,
+      });
+    } catch (error: unknown) {
+      const botToken = credentials.botToken;
+      if (typeof botToken === "string" && botToken.trim().length > 0) {
+        const api = createTelegramApiClient(botToken);
+        await safelyAnswerTelegramCallback(api, receiptAction.callbackQueryId, "عملیات انجام نشد");
+        await safelySendTelegramCallbackMessage(api, {
+          chatId: receiptAction.chatId,
+          text: "این فیش قابل بررسی نیست یا قبلاً بررسی شده است.",
+          ...(receiptAction.messageThreadId === undefined
+            ? {}
+            : { messageThreadId: receiptAction.messageThreadId }),
+        });
+      }
+      logger.warn({
+        event: "integrations.telegram.callback_failed",
+        tenantId,
+        integrationId,
+        receiptId: receiptAction.receiptId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return { accepted: true, connected: false };
+}
+
+async function processTelegramConnectCommand(input: {
+  readonly tenantId: string;
+  readonly integrationId: string;
+  readonly connection: IntegrationConnectionRecord;
+  readonly credentials: Record<string, unknown>;
+  readonly command: NonNullable<ReturnType<typeof parseTelegramConnectCommand>>;
+}): Promise<{ readonly accepted: boolean; readonly connected: boolean }> {
+  const { tenantId, integrationId, connection, credentials, command } = input;
+
+  const expectedHash = connection.config.telegramConnectCodeHash;
+  const expiresAt = connection.config.telegramConnectExpiresAt;
+  if (typeof expectedHash !== "string" || typeof expiresAt !== "string") {
+    return { accepted: true, connected: false };
+  }
+  if (Date.parse(expiresAt) <= Date.now() || hashConnectCode(command.code) !== expectedHash) {
+    return { accepted: true, connected: false };
+  }
+
+  // Telegram may retry the same update, and multiple API instances may receive
+  // it concurrently. Claim the one-time code with a compare-and-set update
+  // before any external Telegram calls, so only one request provisions topics.
+  const connectClaimed = await claimTelegramConnectCode({
+    tenantId,
+    integrationId,
+    config: connection.config,
+    expectedHash,
+  });
+  if (!connectClaimed) {
+    return { accepted: true, connected: false };
+  }
+
+  const groupName =
+    typeof connection.config.groupName === "string" ? connection.config.groupName.trim() : "";
+  if (groupName.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_REQUIRED");
+  }
+  const botToken = credentials.botToken;
+  if (typeof botToken !== "string" || botToken.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
+  }
+
+  const provisioned = await provisionTelegramForum({
+    api: createTelegramApiClient(botToken),
+    config: createTelegramForumConfig({
+      groupName,
+      chatId: connection.config.chatId,
+      topics: readTelegramTopicConfig(connection.config),
+    }),
+    chatId: command.chatId,
+  });
+  const topicThreadIds = Object.fromEntries(
+    Object.entries(provisioned.config.topics)
+      .filter(([, topic]) => topic.threadId !== undefined)
+      .map(([key, topic]) => [key, topic.threadId])
+  );
+  const topicNames = Object.fromEntries(
+    Object.entries(provisioned.config.topics).map(([key, topic]) => [key, topic.name])
+  );
+  await withTenantRls(tenantId, async (tx) => {
+    await tx.integrationConnection.update({
+      where: { id: integrationId },
+      data: {
+        config: {
+          ...connection.config,
+          chatId: command.chatId,
+          topicThreadIds,
+          topicNames,
+          botId: provisioned.bot.id,
+          ...(provisioned.bot.username === undefined
+            ? {}
+            : { botUsername: provisioned.bot.username }),
+          telegramConnectCodeHash: null,
+          telegramConnectExpiresAt: null,
+        } as Prisma.InputJsonValue,
+      },
+    });
+  });
+  return { accepted: true, connected: true };
+}
+
+async function claimTelegramConnectCode(input: {
+  readonly tenantId: string;
+  readonly integrationId: string;
+  readonly config: Record<string, unknown>;
+  readonly expectedHash: string;
+}): Promise<boolean> {
+  const claimedAt = new Date().toISOString();
+  const result = await withTenantRls(input.tenantId, async (tx) =>
+    tx.integrationConnection.updateMany({
+      where: {
+        AND: [
+          { id: input.integrationId },
+          { config: { path: ["telegramConnectCodeHash"], equals: input.expectedHash } },
+          {
+            config: {
+              path: ["telegramConnectClaimedAt"],
+              equals: Prisma.JsonNull,
+            },
+          },
+        ],
+      },
+      data: {
+        config: {
+          ...input.config,
+          telegramConnectClaimedAt: claimedAt,
+        } as Prisma.InputJsonValue,
+      },
+    })
+  );
+  return result.count === 1;
+}
+
+async function processTelegramReceiptAction(input: {
+  readonly tenantId: string;
+  readonly connection: IntegrationConnectionRecord;
+  readonly credentials: Record<string, unknown>;
+  readonly action: NonNullable<ReturnType<typeof parseTelegramReceiptAction>>;
+}): Promise<void> {
+  const { tenantId, connection, credentials, action } = input;
+  const configuredChatId = connection.config.chatId;
+  if (typeof configuredChatId !== "string" || configuredChatId !== action.chatId) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_NOT_CONNECTED");
+  }
+  const botToken = credentials.botToken;
+  if (typeof botToken !== "string" || botToken.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
+  }
+  const api = createTelegramApiClient(botToken);
+  const member = await api.getChatMember(action.chatId, Number(action.userId));
+  if (!["member", "administrator", "creator"].includes(member.status)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_MEMBER_REQUIRED");
+  }
+
+  const { resolveFinanceServiceForTenant } = await import("../../boot/lazy-finance-service");
+  const finance = await resolveFinanceServiceForTenant(tenantId);
+  await finance.reviewReceipt(
+    {
+      tenantId,
+      userId: `telegram:${action.userId}`,
+      role: "admin",
+      status: "ACTIVE",
+    },
+    action.receiptId,
+    { decision: action.action }
+  );
+  await safelyAnswerTelegramCallback(
+    api,
+    action.callbackQueryId,
+    action.action === "approve" ? "فیش تأیید شد" : "فیش رد شد"
+  );
+  await safelySendTelegramCallbackMessage(api, {
+    chatId: action.chatId,
+    text:
+      action.action === "approve"
+        ? `فیش ${action.receiptId} تأیید شد.`
+        : `فیش ${action.receiptId} رد شد.`,
+    ...(action.messageThreadId === undefined ? {} : { messageThreadId: action.messageThreadId }),
+  });
+}
+
+async function safelyAnswerTelegramCallback(
+  api: ReturnType<typeof createTelegramApiClient>,
+  callbackQueryId: string,
+  text: string
+): Promise<void> {
+  try {
+    await api.answerCallbackQuery(callbackQueryId, text);
+  } catch (error: unknown) {
+    logger.warn({
+      event: "integrations.telegram.callback_ack_failed",
+      callbackQueryId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function safelySendTelegramCallbackMessage(
+  api: ReturnType<typeof createTelegramApiClient>,
+  input: Parameters<ReturnType<typeof createTelegramApiClient>["sendMessage"]>[0]
+): Promise<void> {
+  try {
+    await api.sendMessage(input);
+  } catch (error: unknown) {
+    logger.warn({
+      event: "integrations.telegram.callback_message_failed",
+      chatId: input.chatId,
+      messageThreadId: input.messageThreadId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+function hashConnectCode(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+function safeSecretEquals(expected: string, received: string | undefined): boolean {
+  if (received === undefined) return false;
+  const left = Buffer.from(expected);
+  const right = Buffer.from(received);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+async function resolveIntegrationCredentialsForConnection(
+  connection: IntegrationConnectionRecord
+): Promise<Record<string, unknown>> {
+  const { resolveIntegrationConnectionCredentials } =
+    await import("../application/resolve-integration-connection-credentials");
+  return resolveIntegrationConnectionCredentials(connection);
 }
 
 async function runProviderTest(input: {
@@ -1304,12 +1901,42 @@ async function runProviderTest(input: {
     };
   }
 
-  const channelId = typeof input.config.channelId === "string" ? input.config.channelId : null;
+  const channelId =
+    typeof input.config.channelId === "string"
+      ? input.config.channelId
+      : typeof input.config.chatId === "string"
+        ? input.config.chatId
+        : null;
   if (channelId === null) {
     return {
       ok: false,
       code: "INTEGRATION_CONFIG_INCOMPLETE",
       message: testConnectionMessageForCode("INTEGRATION_CONFIG_INCOMPLETE"),
+      testedAt: input.testedAt,
+      backingSource: input.backingSource,
+    };
+  }
+
+  const threadResolution =
+    input.provider === "telegram"
+      ? resolveTelegramProviderTestThreadId({
+          config: input.config,
+          requireRegistrationTopic: input.backingSource === "integration_connection",
+        })
+      : ({ ok: true, threadId: undefined } as const);
+  if (!threadResolution.ok) {
+    if (input.persistStatusForConnectionId !== null) {
+      await withTenantRls(input.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: input.persistStatusForConnectionId! },
+          data: { status: "error" },
+        });
+      });
+    }
+    return {
+      ok: false,
+      code: threadResolution.code,
+      message: testConnectionMessageForCode(threadResolution.code),
       testedAt: input.testedAt,
       backingSource: input.backingSource,
     };
@@ -1324,7 +1951,13 @@ async function runProviderTest(input: {
       config: input.config,
       credentials: input.credentials,
     },
-    { channelId, text: "🔔 اطلاع‌رسانی دنالی با موفقیت فعال شد. ✅\n🏔️ دنالی همیشه همراه شماست." }
+    {
+      channelId,
+      text: "🔔 اطلاع‌رسانی دنالی با موفقیت فعال شد. ✅\n🏔️ دنالی همیشه همراه شماست.",
+      ...(threadResolution.threadId === undefined
+        ? {}
+        : { messageThreadId: threadResolution.threadId }),
+    }
   );
 
   if (!result.ok) {
@@ -1356,10 +1989,53 @@ async function runProviderTest(input: {
 
   return {
     ok: true,
-    message: "Test message delivered successfully.",
+    code: "INTEGRATION_TEST_SUCCEEDED",
     testedAt: input.testedAt,
     backingSource: input.backingSource,
   };
+}
+
+async function requeueTelegramTopicRecoveryJobs(input: {
+  readonly tenantId: string;
+  readonly connectionId: string;
+  readonly config: Record<string, unknown>;
+}): Promise<void> {
+  await withTenantRls(input.tenantId, async (tx) => {
+    const deadJobs = await tx.integrationDeliveryJob.findMany({
+      where: {
+        tenantId: input.tenantId,
+        provider: "telegram",
+        capability: "message.send",
+        status: "dead",
+      },
+      select: { id: true, payload: true, lastError: true },
+    });
+    const recoverableJobIds = selectTelegramTopicRecoveryJobIds({
+      connectionId: input.connectionId,
+      config: input.config,
+      jobs: deadJobs,
+    });
+    if (recoverableJobIds.length === 0) {
+      return;
+    }
+
+    await tx.integrationDeliveryJob.updateMany({
+      where: { tenantId: input.tenantId, id: { in: [...recoverableJobIds] } },
+      data: {
+        status: "pending",
+        attemptCount: 0,
+        nextAttemptAt: null,
+        lastError: Prisma.JsonNull,
+        processedAt: null,
+      },
+    });
+    logger.info({
+      event: "integration.telegram.topic_recovery.requeued",
+      tenantId: input.tenantId,
+      connectionId: input.connectionId,
+      jobCount: recoverableJobIds.length,
+    });
+  });
 }
 
 function mapRow(row: {

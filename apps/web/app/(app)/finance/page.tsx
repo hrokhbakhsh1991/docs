@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -7,7 +6,7 @@ import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.ser
 import { ensureFinanceRouteAllowed } from "@/finance/finance-nav-enablement";
 import { isFinanceCaseCommandUiEnabledForTenant } from "@/finance/finance-case-command-ui-rollout";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
-import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { resolveRequestBootstrapAppSession } from "@/tenant/tenant-kernel";
 
 import { FinanceCommandCenter } from "./finance-command-center";
 
@@ -23,9 +22,7 @@ export default async function FinancePage() {
     return null;
   }
 
-  const headerList = await headers();
-  const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = await resolveBootstrapAppSessionForHost(host);
+  const resolved = await resolveRequestBootstrapAppSession();
   if (!(await ensureFinanceRouteAllowed(resolved.session.pluginId))) {
     notFound();
   }

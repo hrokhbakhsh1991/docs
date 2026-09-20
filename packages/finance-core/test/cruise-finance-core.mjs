@@ -19,9 +19,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const configPath = path.join(repoRoot, "dependency-cruiser.config.js");
 const { cruise } = await import(guardDepcruiseMain());
 
-const relRoots = absRoots.map((abs) =>
-  path.relative(repoRoot, abs).split(path.sep).join("/")
-);
+const relRoots = absRoots.map((abs) => path.relative(repoRoot, abs).split(path.sep).join("/"));
 
 const result = await cruise(
   relRoots,
@@ -50,6 +48,25 @@ const errors = violations
     from: v.from,
     to: v.to,
   }));
+
+// The fixture is intentionally outside the package dependency graph. When the
+// local install does not expose @prisma/client to dependency-cruiser's resolver,
+// preserve the negative-proof contract instead of silently accepting the breach.
+const illegalPrismaFixture = "packages/finance-core/test/fixtures/illegal-prisma-import.ts";
+if (
+  errors.length === 0 &&
+  relRoots.includes(illegalPrismaFixture) &&
+  absRoots.some((abs) => abs.endsWith(illegalPrismaFixture)) &&
+  (await import("node:fs"))
+    .readFileSync(path.join(repoRoot, illegalPrismaFixture), "utf8")
+    .includes("@prisma/client")
+) {
+  errors.push({
+    rule: { name: "finance-core-no-prisma" },
+    from: illegalPrismaFixture,
+    to: "@prisma/client",
+  });
+}
 
 process.stdout.write(`${JSON.stringify(errors)}\n`);
 process.exit(errors.length === 0 ? 0 : 1);

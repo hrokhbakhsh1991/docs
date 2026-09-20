@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -32,7 +33,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const [headerList, localeRaw, messages] = await Promise.all([headers(), getLocale(), getMessages()]);
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const host = headerList.get("host") ?? "localhost:3000";
-  let resolved = await resolveBootstrapAppSessionForHostAsync(host);
+  let resolved;
+  try {
+    resolved = await resolveBootstrapAppSessionForHostAsync(host);
+  } catch (error: unknown) {
+    // An unknown ingress cannot safely render the Admin shell. Convert only the explicit
+    // tenant-resolution miss to a real 404; preserve all other failures for observability.
+    if (error instanceof Error && error.message === "ADMIN_TENANT_UNRESOLVED") {
+      notFound();
+    }
+    throw error;
+  }
 
   const cookieStore = await cookies();
   const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);

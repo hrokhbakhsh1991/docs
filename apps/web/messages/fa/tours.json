@@ -50,6 +50,17 @@
   "emptyFilter": "توری با این فیلترها پیدا نشد. جستجو یا وضعیت را تغییر دهید.",
   "createdNotice": "تور با موفقیت ساخته شد.",
   "pagination": "صفحه {page, number} از {totalPages, number} · {total, number} تور",
+  "table": {
+    "tour": "تور",
+    "status": "وضعیت",
+    "departure": "حرکت",
+    "capacity": "ظرفیت",
+    "price": "هزینه",
+    "updated": "به‌روزرسانی",
+    "actions": "عملیات",
+    "noDeparture": "—",
+    "noPrice": "—"
+  },
   "card": {
     "noDescription": "بدون توضیحات",
     "noCover": "بدون تصویر کاور",
@@ -131,6 +142,12 @@
     "warmErrorBack": "بازگشت به تور",
     "saving": "در حال ذخیره…",
     "saved": "تغییرات ذخیره شد.",
+    "legacyDraft": {
+      "title": "پیش‌نویس قدیمی پیدا شد",
+      "description": "این پیش‌نویس به نسخهٔ ذخیره‌شدهٔ تور متصل نیست. برای جلوگیری از نمایش اطلاعات قدیمی، یکی از گزینه‌ها را انتخاب کنید. اگر با نسخهٔ ذخیره‌شده ادامه دهید، با اولین ویرایش پیش‌نویس قدیمی جایگزین می‌شود.",
+      "recover": "بازیابی پیش‌نویس قدیمی",
+      "useSavedTour": "ادامه با نسخهٔ ذخیره‌شدهٔ تور"
+    },
     "errors": {
       "TOUR_NOT_FOUND": "تور پیدا نشد.",
       "TOUR_EDIT_LOAD_FAILED": "بارگذاری تور ناموفق بود.",
@@ -179,6 +196,7 @@
   "workspace": {
     "title": "مدیریت تور",
     "subnavAria": "بخش‌های مدیریت تور",
+    "subnavScrollHint": "برای دیدن بخش‌های دیگر، نوار را به چپ یا راست بکشید.",
     "openCommandCenter": "باز کردن مرکز رزروها",
     "openFinance": "باز کردن پیگیری پرداخت",
     "openWorkspace": "باز کردن مدیریت تور",
@@ -197,16 +215,22 @@
       "opsCountsUnavailable": "بارگذاری شمارنده‌های ثبت‌نام ممکن نشد."
     },
     "tabs": {
-      "registrations": "ثبت‌نام‌ها",
+      "registrations": "درخواست‌های ثبت‌نام",
       "waitlist": "لیست انتظار",
-      "transport": "لیست شرکت‌کنندگان",
-      "finance": "پیگیری پرداخت"
+      "transport": "لیست عملیاتی",
+      "finance": "وضعیت پرداخت"
     },
     "tabsHint": {
-      "registrations": "بررسی و تأیید ثبت‌نام‌های جدید",
+      "registrations": "بررسی و تأیید درخواست‌های جدید",
       "waitlist": "صف ظرفیت — تأیید پس از آزاد شدن جا",
-      "transport": "افراد حاضر در تور و وضعیت حمل‌ونقل",
-      "finance": "پیگیری پرداخت، مهلت و رسید"
+      "transport": "افراد تأییدشده را ببینید؛ پرداخت و حمل‌ونقل را تا نهایی‌شدن پیگیری کنید",
+      "finance": "مشاهده بدهکارها و رسیدهای نیازمند بررسی"
+    },
+    "operationsSummary": {
+      "ariaLabel": "خلاصه صف عملیات تور",
+      "pending": "نیازمند بررسی",
+      "paymentDue": "منتظر پرداخت",
+      "final": "نهایی‌شده برای حضور"
     },
     "approvedQuickAccess": {
       "title": "لیست نهایی اعضای تاییدشده",
@@ -266,8 +290,7 @@
       "statusUnpaid": "هنوز پرداخت نشده",
       "statusPartial": "پرداخت ناقص",
       "statusUnknown": "مبلغ باقی‌مانده",
-      "ctaFollowUpPayment": "پیگیری پرداخت",
-      "ctaFollowUpPartialPayment": "پیگیری مانده پرداخت",
+      "ctaReviewPayment": "بررسی پرداخت",
       "ctaReviewPartial": "بررسی پرداخت ناقص",
       "ctaOpenCase": "جزئیات پرداخت",
       "refreshQueue": "بروزرسانی پیگیری پرداخت",
@@ -276,6 +299,7 @@
       "rowCompleted": "تسویه‌شده",
       "rowSettled": "بدون مانده",
       "rowPending": "در انتظار تأیید",
+      "rowActionFailed": "انجام این اقدام ممکن نشد. فهرست مهمان‌ها به‌روزرسانی شد؛ پیش از تلاش دوباره وضعیت فعلی را بررسی کنید.",
       "rowFinalParticipant": "عضو نهایی",
       "rowPaidReceived": "وجه دریافت شد",
       "rowWaivedNoPayment": "بدون نیاز به پرداخت",
@@ -405,6 +429,7 @@
       "degradedOutstanding": "بدهی‌های باز",
       "degradedTours": "جمع تور",
       "degradedReceipts": "صف رسیدها",
+      "degradedRoster": "لیست مهمان‌های تأییدشده",
       "filter": {
         "all": "همه موارد",
         "unpaid": "پرداخت‌نشده",
@@ -420,7 +445,7 @@
       "guest": "مهمان",
       "party": "نفرات",
       "payment": "پرداخت",
-      "transportIntake": "انتخاب حمل",
+      "transportIntake": "وضعیت حمل",
       "departure": "حرکت",
       "submitted": "ثبت",
       "actions": "عملیات",
@@ -428,8 +453,8 @@
       "openDetails": "جزئیات"
     },
     "registrations": {
-      "title": "ثبت‌نام‌ها",
-      "description": "تأیید، رد و بررسی ثبت‌نام‌های مهمان برای این تور.",
+      "title": "درخواست‌های ثبت‌نام",
+      "description": "تأیید، رد و بررسی درخواست‌های مهمان برای این تور.",
       "capacityFullBanner": "ظرفیت پر است — ثبت‌نام جدید خودکار به لیست انتظار نمی‌رود. از «لیست انتظار» یا تأیید با تجاوز از ظرفیت استفاده کنید.",
       "capacityFullWaitlistLink": "رفتن به لیست انتظار",
       "adminCreateCta": "ثبت‌نام دستی",
@@ -448,12 +473,29 @@
       "capacityFullWarn": "ظرفیت این تور پر است. باز هم تأیید شود؟"
     },
     "transport": {
-      "title": "لیست شرکت‌کنندگان",
-      "description": "فهرست عملیاتی مهمان‌هایی که قرار است در تور شرکت کنند؛ اول حضور و حمل‌ونقل، سپس وضعیت پرداخت.",
+      "title": "لیست عملیاتی",
+      "description": "افراد تأییدشدهٔ تور؛ وضعیت پرداخت، نهایی‌شدن، حضور و حمل‌ونقل را از اینجا پیگیری کنید.",
+      "exportFinalRoster": "خروجی Excel لیست نهایی",
+      "exporting": "در حال ساخت فایل…",
+      "exportSucceeded": "فایل Excel آماده و دانلود شد.",
+      "exportFailed": "ساخت فایل Excel انجام نشد.",
+      "exportFinalRosterScope": "خروجی شامل همه افراد نهایی‌شدهٔ تور است؛ افراد تسویه‌شده و نیازمند تسویه در شیت‌های جدا می‌آیند.",
+      "tableCaption": "فهرست عملیاتی و وضعیت پرداخت و حمل‌ونقل",
       "empty": "مهمانی با این فیلتر یافت نشد.",
       "unknownIntake": "انتخاب نامشخص",
       "finalParticipant": "نهایی",
-      "notFinalParticipant": "نیازمند پیگیری",
+      "notFinalParticipant": "هنوز نهایی نشده",
+      "approvedParticipant": "تأییدشده",
+      "addToFinalRoster": "افزودن به فهرست نهایی",
+      "followPayment": "پیگیری پرداخت",
+      "finalizeParticipantSuccess": "شرکت‌کننده نهایی شد؛ وضعیت پرداخت جداگانه باقی می‌ماند.",
+      "finalizeParticipantFailed": "نهایی‌کردن شرکت‌کننده انجام نشد.",
+      "stages": {
+        "approved_payment_required": "تاییدشده؛ پرداخت لازم است",
+        "approved_ready_to_finalize": "تاییدشده؛ آماده افزودن به فهرست نهایی",
+        "final_payment_required": "نهایی؛ پرداخت لازم است",
+        "final_ready": "نهایی؛ آماده حضور"
+      },
       "driverOffer": "راننده",
       "noOperationalDebt": "بدون مبلغ قابل پیگیری",
       "filters": {
@@ -488,7 +530,32 @@
         "ready": "آماده حضور",
         "driver": "راننده پیشنهادی؛ ظرفیت خودرو را بررسی کنید",
         "notFinal": "هنوز شرکت‌کننده نهایی نیست",
+        "paymentRequiredForFinal": "برای نهایی‌شدن، پرداخت باقی‌مانده را پیگیری کنید",
         "paymentDeadline": "پیگیری پرداخت تا {date}"
+      },
+      "settlement": {
+        "unitPerSeat": "مبلغ هر صندلی (تومان)",
+        "unitAmountHint": "یک مبلغ صحیح و بزرگ‌تر از صفر وارد کنید.",
+        "unitAmountInvalid": "پیش از نهایی‌سازی فهرست خودرو، یک مبلغ صحیح و بزرگ‌تر از صفر وارد کنید.",
+        "finalizeRoster": "نهایی‌سازی فهرست خودرو",
+        "allocationFailed": "ذخیره تخصیص مسافر ناموفق بود؛ نهایی‌سازی انجام نشد.",
+        "freezeFailed": "نهایی‌سازی فهرست خودرو ناموفق بود.",
+        "rosterFrozen": "فهرست خودرو نهایی شد و تسویه‌ها ساخته شدند.",
+        "rosterFrozenLoadFailed": "فهرست خودرو نهایی شد، اما بارگذاری وضعیت تسویه‌ها ممکن نشد.",
+        "payableFailed": "تأیید پرداخت راننده ناموفق بود.",
+        "financePayableOpened": "پرداخت راننده برای مالی باز شد.",
+        "billableSeats": "قابل پرداخت: {billable} / ظرفیت پیشنهادی: {offered}",
+        "total": "مجموع: {amount}",
+        "status": {
+          "draft": "پیش‌نویس",
+          "confirmed": "تأییدشده",
+          "approved": "تأیید پرداخت‌شده",
+          "paid": "پرداخت‌شده",
+          "unknown": "وضعیت نامشخص"
+        },
+        "approvePayable": "تأیید پرداخت راننده",
+        "noSettlement": "هنوز تسویه‌ای ساخته نشده؛ پس از تخصیص مسافران، فهرست خودرو را نهایی کنید.",
+        "loadFailed": "بارگذاری وضعیت تسویه‌ها ناموفق بود؛ دوباره تلاش کنید."
       }
     },
     "errors": {
@@ -509,6 +576,8 @@
       "TOUR_TRANSPORT_FETCH_FAILED": "بارگذاری حمل‌ونقل ناموفق بود.",
       "TOUR_TRANSPORT_TOUR_HTTP_404": "تور برای roster حمل‌ونقل پیدا نشد.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "رزروهای حمل‌ونقل پیدا نشد.",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_503": "سرویس رزروهای حمل‌ونقل موقتاً در دسترس نیست. لطفاً دوباره تلاش کنید.",
+      "TOUR_ROSTER_HTTP_503": "لیست مهمان‌های تأییدشده موقتاً در دسترس نیست. ثبت‌نام‌های در انتظار هنوز در پایین نمایش داده می‌شوند.",
       "TOUR_TRANSPORT_TOUR_HTTP_500": "بارگذاری تور حمل‌ونقل ناموفق بود (خطای سرور).",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "بارگذاری رزروهای حمل‌ونقل ناموفق بود (خطای سرور)."
     }

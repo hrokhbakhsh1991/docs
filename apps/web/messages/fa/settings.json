@@ -147,6 +147,10 @@
       "title": "برند workspace",
       "description": "لوگوی سازمان و نام نمایشی برای ورود و پنل اپراتور."
     },
+    "marketing_pages": {
+      "title": "صفحات مارکتینگ",
+      "description": "متن هیرو و محتوای صفحه اصلی سایت عمومی باشگاه."
+    },
     "integrations": {
       "title": "اتصال‌ها",
       "description": "اتصال تلگرام (بات و کانال)، فعال‌سازی و آزمایش سلامت ارسال."
@@ -155,6 +159,29 @@
       "title": "نمایش فیلدها (تلگرام و سطح‌ها)",
       "description": "انتخاب فیلدهای تور برای پیام تلگرام، کاتالوگ عمومی، داشبورد و یادآورها."
     }
+  },
+  "marketingPages": {
+    "title": "صفحات مارکتینگ",
+    "description": "متن هیرو صفحه اصلی سایت عمومی را ویرایش و منتشر کنید.",
+    "homeHeroTitle": "هیرو صفحه اصلی",
+    "homeHeroDescription": "این متن‌ها روی denali.localhost (سایت مارکتینگ) نمایش داده می‌شوند.",
+    "leadLabel": "تیتر اصلی",
+    "supportLabel": "متن پشتیبان",
+    "ctaLabel": "دکمه اقدام",
+    "saveDraft": "ذخیره پیش‌نویس",
+    "publish": "انتشار",
+    "saving": "در حال ذخیره…",
+    "publishing": "در حال انتشار…",
+    "publishedAt": "آخرین انتشار: {date}",
+    "notPublishedYet": "هنوز منتشر نشده — بازدیدکنندگان متن پیش‌فرض i18n را می‌بینند.",
+    "actorHint": "نقش فعلی: {role}",
+    "readOnlyBanner": "می‌توانید صفحات مارکتینگ را ببینید؛ فقط مالک و مدیر می‌توانند ویرایش و انتشار کنند.",
+    "localeTabsLabel": "زبان محتوا",
+    "localeFa": "فارسی",
+    "localeEn": "English",
+    "draftSaved": "پیش‌نویس ذخیره شد.",
+    "publishedSuccess": "محتوا منتشر شد و روی سایت عمومی نمایش داده می‌شود.",
+    "validationRequired": "تیتر اصلی و دکمه اقدام الزامی هستند."
   },
   "branding": {
     "title": "برند workspace",
@@ -610,7 +637,10 @@
     },
     "create": {
       "title": "افزودن ربات تلگرام",
-      "description": "ربات و چنل تلگرام ورک‌اسپیس خود را وصل کنید. توکن ربات به‌صورت امن ذخیره می‌شود و پس از ذخیره دیگر نمایش داده نمی‌شود.",
+      "description": "ربات و گروه Forum تلگرام ورک‌اسپیس خود را وصل کنید. توکن ربات به‌صورت امن ذخیره می‌شود و پس از ذخیره دیگر نمایش داده نمی‌شود.",
+      "groupNameLabel": "نام دقیق گروه",
+      "groupNamePlaceholder": "denaliAdmins",
+      "groupNameHint": "نام باید دقیقاً با عنوان گروه تلگرام یکی باشد و گزینه Topics/Forum در گروه فعال باشد.",
       "channelIdLabel": "شناسه چنل",
       "channelIdPlaceholder": "@your_channel یا -1001234567890",
       "channelIdHint": "نام کاربری عمومی @ یا شناسه عددی چنلی که اعلان تورها باید در آن ارسال شود.",
@@ -625,7 +655,10 @@
     },
     "edit": {
       "title": "ویرایش اتصال",
-      "description": "چنل را به‌روز کنید یا توکن ربات را عوض کنید. برای نگه‌داشتن توکن فعلی، فیلد توکن را خالی بگذارید.",
+      "description": "گروه Forum، شناسه گروه یا توکن ربات را به‌روز کنید. برای نگه‌داشتن توکن فعلی، فیلد توکن را خالی بگذارید.",
+      "groupNameLabel": "نام دقیق گروه",
+      "groupNamePlaceholder": "denaliAdmins",
+      "groupNameHint": "نام باید دقیقاً با عنوان گروه تلگرام یکی باشد و گزینه Topics/Forum در گروه فعال باشد.",
       "channelIdLabel": "شناسه چنل",
       "channelIdPlaceholder": "@your_channel یا -1001234567890",
       "channelIdHint": "نام کاربری عمومی @ یا شناسه عددی چنلی که اعلان تورها باید در آن ارسال شود.",
@@ -640,6 +673,7 @@
     },
     "test": {
       "successTitle": "آزمایش موفق بود",
+      "successMessage": "پیام آزمایشی با موفقیت ارسال شد.",
       "failureTitle": "آزمایش ناموفق بود",
       "meta": "منبع: {backing} · زمان آزمایش {testedAt}"
     },
@@ -730,6 +764,15 @@
       "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "این provider در پلاگین ورک‌اسپیس فعلی فعال نیست.",
       "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "شناسه چنل تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "توکن ربات تلگرام الزامی است.",
+      "INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED": "نام دقیق گروه و شناسه عددی گروه تلگرام الزامی است.",
+      "INTEGRATION_TELEGRAM_GROUP_MUST_BE_SUPERGROUP": "شناسه واردشده مربوط به سوپرگروه تلگرام نیست.",
+      "INTEGRATION_TELEGRAM_GROUP_MUST_BE_FORUM": "در گروه تلگرام ابتدا گزینه Topics/Forum را فعال کنید.",
+      "INTEGRATION_TELEGRAM_GROUP_NAME_MISMATCH": "نام گروه واردشده با عنوان واقعی گروه تلگرام یکی نیست.",
+      "INTEGRATION_TELEGRAM_BOT_MANAGE_TOPICS_REQUIRED": "ربات باید ادمین گروه باشد و مجوز مدیریت Topicها را داشته باشد.",
+      "INTEGRATION_TELEGRAM_TOPIC_CREATE_FAILED": "ساخت Topicهای گروه ناموفق بود. Forum بودن گروه و مجوز مدیریت Topic ربات را بررسی کنید.",
+      "INTEGRATION_TELEGRAM_API_REQUEST_FAILED": "ارتباط با API تلگرام ناموفق بود. اتصال سرور به تلگرام و توکن ربات را بررسی کنید.",
+      "TELEGRAM_NETWORK_ERROR": "اتصال سرور به تلگرام برقرار نشد. مسیر رله یا دسترسی شبکه را بررسی کنید.",
+      "TELEGRAM_HTTP_ERROR": "تلگرام پیام آزمایشی را نپذیرفت. توکن، گروه و مجوز ربات را بررسی کنید.",
       "INTEGRATION_CONNECTION_ALREADY_EXISTS": "برای این ورک‌اسپیس قبلاً اتصال تلگرام ثبت شده است. اتصال موجود را مدیریت کنید.",
       "INTEGRATION_EVENT_POLICY_PATCH_FAILED": "به‌روزرسانی سیاست انتشار ناموفق بود.",
       "INTEGRATION_EVENT_POLICY_ENABLED_INVALID": "مقدار کلید انتشار نامعتبر است.",

@@ -22,6 +22,7 @@ import {
 } from "@/exposure/exposure-catalog-client";
 import {
   createWorkspaceIntegration,
+  provisionTelegramIntegration,
   disableIntegration,
   enableIntegration,
   fetchIntegrationDetail,
@@ -92,10 +93,11 @@ export function IntegrationsSettingsClient({
 
   const [list, setList] = useState<WorkspaceIntegrationsListResponse | null>(initialList);
   const [meta, setMeta] = useState<WorkspaceIntegrationSurfaceMetaResponse | null>(initialMeta);
-  const [exposureCatalog, setExposureCatalog] =
-    useState<WorkspaceExposureCatalogResponse | null>(initialCatalog);
+  const [exposureCatalog, setExposureCatalog] = useState<WorkspaceExposureCatalogResponse | null>(
+    initialCatalog
+  );
   const [catalogError, setCatalogError] = useState<string | null>(
-    initialCatalog === null ? "pending" : null,
+    initialCatalog === null ? "pending" : null
   );
   const [catalogRetrying, setCatalogRetrying] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(initialList?.items[0]?.id ?? null);
@@ -339,6 +341,10 @@ export function IntegrationsSettingsClient({
     setExposureCatalog(nextCatalog);
     if (preferredId !== undefined) {
       setSelectedId(preferredId);
+      const refreshedItem = payload.items.find((item) => item.id === preferredId);
+      if (refreshedItem !== undefined) {
+        setDetail(refreshedItem);
+      }
     }
   }
 
@@ -362,6 +368,7 @@ export function IntegrationsSettingsClient({
   }
 
   function createFieldLabel(field: IntegrationSurfaceFieldMeta): string {
+    if (field.id === "groupName") return t("create.groupNameLabel");
     if (field.id === "channelId") {
       return t("create.channelIdLabel");
     }
@@ -372,6 +379,7 @@ export function IntegrationsSettingsClient({
   }
 
   function createFieldPlaceholder(field: IntegrationSurfaceFieldMeta): string | undefined {
+    if (field.id === "groupName") return t("create.groupNamePlaceholder");
     if (field.id === "channelId") {
       return t("create.channelIdPlaceholder");
     }
@@ -382,6 +390,7 @@ export function IntegrationsSettingsClient({
   }
 
   function createFieldHint(field: IntegrationSurfaceFieldMeta): string | null {
+    if (field.id === "groupName") return t("create.groupNameHint");
     if (field.id === "channelId") {
       return t("create.channelIdHint");
     }
@@ -408,6 +417,7 @@ export function IntegrationsSettingsClient({
   }
 
   function editFieldLabel(field: IntegrationSurfaceFieldMeta): string {
+    if (field.id === "groupName") return t("edit.groupNameLabel");
     if (field.id === "channelId") {
       return t("edit.channelIdLabel");
     }
@@ -418,6 +428,7 @@ export function IntegrationsSettingsClient({
   }
 
   function editFieldPlaceholder(field: IntegrationSurfaceFieldMeta): string | undefined {
+    if (field.id === "groupName") return t("edit.groupNamePlaceholder");
     if (field.id === "channelId") {
       return t("edit.channelIdPlaceholder");
     }
@@ -428,6 +439,7 @@ export function IntegrationsSettingsClient({
   }
 
   function editFieldHint(field: IntegrationSurfaceFieldMeta): string | null {
+    if (field.id === "groupName") return t("edit.groupNameHint");
     if (field.id === "channelId") {
       return t("edit.channelIdHint");
     }
@@ -475,6 +487,17 @@ export function IntegrationsSettingsClient({
         config,
         credentials,
       });
+      if (providerToCreate.id === "telegram") {
+        const chatId = config.channelId?.trim() ?? "";
+        const groupName = config.groupName?.trim() ?? "";
+        if (chatId.length === 0 || groupName.length === 0) {
+          throw new Error("INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED");
+        }
+        created = await provisionTelegramIntegration(created.id, {
+          chatId,
+          groupName,
+        });
+      }
       if (enableAfterSave && created.actionsAllowed.enable && !created.enabled) {
         created = await enableIntegration(created.id);
       }
@@ -514,7 +537,22 @@ export function IntegrationsSettingsClient({
     setPatchError(null);
     setPatchSuccess(false);
     try {
-      const updated = await patchIntegration(activeItem.id, patchInput);
+      let updated = await patchIntegration(activeItem.id, patchInput);
+      if (activeItem.provider === "telegram") {
+        const chatId = editFieldValue("config", "channelId").trim();
+        const groupName = editFieldValue("config", "groupName").trim();
+        if (chatId.length === 0 || groupName.length === 0) {
+          throw new Error("INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED");
+        }
+
+        // Telegram forum topics belong to the configured group. Re-run the
+        // idempotent provisioning flow after an edit so changing the group
+        // cannot leave the connection without its registration/receipts/tickets topics.
+        updated = await provisionTelegramIntegration(updated.id, { chatId, groupName });
+        if (activeItem.enabled && updated.actionsAllowed.enable && !updated.enabled) {
+          updated = await enableIntegration(updated.id);
+        }
+      }
       setDetail(updated);
       setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
       setPatchSuccess(true);
@@ -582,8 +620,11 @@ export function IntegrationsSettingsClient({
         await refreshList(activeItem.id);
       }
     } catch (actionError: unknown) {
+      const errorCode = actionError instanceof Error ? actionError.message : "";
       setDetailError(
-        actionError instanceof Error ? actionError.message : "INTEGRATION_TEST_FAILED"
+        errorCode === "Failed to fetch"
+          ? "TELEGRAM_NETWORK_ERROR"
+          : errorCode || "INTEGRATION_TEST_FAILED"
       );
     } finally {
       setActionLoading(false);
@@ -959,9 +1000,7 @@ export function IntegrationsSettingsClient({
                       {t("detail.exposureMovedDescription")}
                     </p>
                     <Button asChild className="mt-3" size="sm">
-                      <Link href="/settings/exposure">
-                        {t("detail.openExposureSettings")}
-                      </Link>
+                      <Link href="/settings/exposure">{t("detail.openExposureSettings")}</Link>
                     </Button>
                   </div>
 
@@ -991,9 +1030,7 @@ export function IntegrationsSettingsClient({
                     </dl>
                     {testResult !== null ? (
                       <p className="mt-3 text-xs text-muted-foreground">
-                        {testResult.ok
-                          ? t("detail.lastTestSuccess")
-                          : t("detail.lastTestFailure")}
+                        {testResult.ok ? t("detail.lastTestSuccess") : t("detail.lastTestFailure")}
                       </p>
                     ) : null}
                   </div>
@@ -1168,7 +1205,11 @@ export function IntegrationsSettingsClient({
                       <p className="font-medium">
                         {testResult.ok ? t("test.successTitle") : t("test.failureTitle")}
                       </p>
-                      {testResult.message !== undefined ? <p>{testResult.message}</p> : null}
+                      {testResult.ok ? (
+                        <p>{t("test.successMessage")}</p>
+                      ) : testResult.message !== undefined ? (
+                        <p>{testResult.message}</p>
+                      ) : null}
                       {testResult.code !== undefined ? (
                         <p className="text-xs text-muted-foreground">{testResult.code}</p>
                       ) : null}

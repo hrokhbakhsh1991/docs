@@ -1,6 +1,7 @@
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
 import type { MarketingCatalogCard, MarketingCatalogListResult } from "@/catalog/catalog-types";
+import { isPublicCatalogItemAllowed } from "@/catalog/filter-marketing-catalog-items";
 
 import {
   resolveHomeCatalogFetchLimit,
@@ -32,7 +33,7 @@ export async function fetchHomeCatalogItems(input: {
       pluginId: input.pluginId,
       limit,
     });
-    return result.items;
+    return result.items.filter(isPublicCatalogItemAllowed);
   } catch (err) {
     console.warn("marketing.home.catalog_fetch_failed", err);
     return [];

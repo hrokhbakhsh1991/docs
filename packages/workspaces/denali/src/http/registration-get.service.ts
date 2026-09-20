@@ -19,7 +19,7 @@ const OWNED_TRANSPORT_KINDS = new Set<string>([
 
 export type DenaliOwnedTransportScalars = {
   readonly transportKind?: DenaliOwnedTransportKind;
-  readonly personalCarOccupants?: 1 | 2 | 3;
+  readonly personalCarOccupants?: 0 | 1 | 2 | 3;
 };
 
 /**
@@ -44,7 +44,7 @@ export function readDenaliOwnedTransport(intake: unknown): DenaliOwnedTransportS
     return { transportKind };
   }
   const occupants = rec.personalCarOccupants;
-  if (occupants === 1 || occupants === 2 || occupants === 3) {
+  if (occupants === 0 || occupants === 1 || occupants === 2 || occupants === 3) {
     return { transportKind, personalCarOccupants: occupants };
   }
   return { transportKind };
@@ -62,7 +62,7 @@ export type DenaliRegistrationOwnedDetail = {
   readonly submittedAt: string;
   readonly partySize: number;
   readonly transportKind?: DenaliOwnedTransportKind;
-  readonly personalCarOccupants?: 1 | 2 | 3;
+  readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   readonly dueCurrency?: string;
   readonly dueTotalMinor?: string;
   readonly dueLines?: readonly DenaliRegistrationDueLine[];

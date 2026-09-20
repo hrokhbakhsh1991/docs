@@ -4,6 +4,10 @@ import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
 
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
+import {
+  resolveGuestChromeDisplayName,
+  resolvePortalMemberModuleUrl,
+} from "@app-tour/guest-surface-host";
 
 import { deriveHomeCategories } from "./derive-home-categories";
 import { deriveHomeGalleryPhotos } from "./derive-home-gallery-photos";
@@ -24,6 +28,7 @@ import { HomeTrust } from "./home-trust";
 import { HomeWhy } from "./home-why";
 import { resolveHomeWhySectionAnchor } from "./resolve-home-why-section-anchor";
 import { resolveMarketingHomeHeroMedia } from "./resolve-marketing-home-hero-media";
+import type { HomeHeroCopyOverride } from "./home-hero";
 
 export type GuestHomeFullProps = {
   readonly landing: GuestLandingFeatures;
@@ -31,6 +36,7 @@ export type GuestHomeFullProps = {
   readonly catalogItems: readonly MarketingCatalogCard[];
   readonly pluginId: string;
   readonly host: string;
+  readonly homeHeroCopyOverride?: HomeHeroCopyOverride | null;
 };
 
 export async function GuestHomeFull({
@@ -39,8 +45,10 @@ export async function GuestHomeFull({
   catalogItems,
   pluginId,
   host,
+  homeHeroCopyOverride = null,
 }: GuestHomeFullProps) {
   const t = await getTranslations("catalog");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const categories = deriveHomeCategories(catalogItems);
   const galleryPhotos = deriveHomeGalleryPhotos((key) => t(key));
   const sections = resolveHomeSectionVisibility(
@@ -62,6 +70,7 @@ export async function GuestHomeFull({
   const heroMedia = resolveMarketingHomeHeroMedia(branding);
   const heroImageUrl = heroMedia.desktopSrc;
   const whySectionAnchor = resolveHomeWhySectionAnchor(landing);
+  const consultationHref = resolvePortalMemberModuleUrl(host, "tickets");
   const nestTrustInWhy = sections.whySection && sections.trust;
   const jsonLdItems = programsItems.map((item) => ({
     tourId: item.id,
@@ -74,8 +83,13 @@ export async function GuestHomeFull({
         <HomeHero
           heroImageUrl={heroImageUrl}
           heroImageMobileUrl={heroMedia.mobileSrc}
+          heroImageMobileSrcSet={heroMedia.mobileSrcSet}
           heroImageWidth={heroMedia.desktopWidth}
           heroImageHeight={heroMedia.desktopHeight}
+          whySectionAnchor={whySectionAnchor}
+          consultationHref={consultationHref}
+          siteName={siteName}
+          copyOverride={homeHeroCopyOverride}
         />
       ) : null}
       {showPrograms ? (

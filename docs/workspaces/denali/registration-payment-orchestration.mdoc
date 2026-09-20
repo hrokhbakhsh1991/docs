@@ -103,6 +103,12 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 **Logic:** outstanding candidates are operator registrations (Prisma `operatorRegistration` / memory bookings page scan). Invoice compile uses obligation even when `getRegistrationInvoiceFacts` returns empty payment arrays. Scanning payment rows as the candidate universe drops the guest until they upload — that is PAY-FIN-02 and is forbidden.
 
+The API coalesces concurrent outstanding-AR and tour-collection reads per tenant for the duration of the shared load. It does not retain the result after completion; both reports therefore continue to read the same invoice-based source without multiplying the expensive scan.
+
+### Registration finalization is independent from payment
+
+`approved` is the registration decision and `finalized` is the operator's decision to include the guest in the final roster. They must not be inferred from one another or from `paymentStatus`. Therefore an approved guest may be either not-final, finalized and unpaid/partially paid, or finalized and settled/waived. Free registrations may transition to finalized automatically after approval; paid registrations require the configured operator finalization rule. The API contract must expose these dimensions separately so the four primary flows cannot collapse into one ambiguous badge.
+
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
 ## Operator hint (phase 1C)
@@ -201,6 +207,18 @@ Canonical path (Denali tour document):
 | ------------------------------ | ------------------ | ------------------------------------- |
 | `pricing.registrationApproval` | `manual` \| `auto` | `manual` (missing / unknown → manual) |
 
+## Phase 4 — Transport acknowledgement and money display policy (2026-09-13)
+
+The public registration flow must collect an explicit acknowledgement whenever the
+registrant is not using a personal car. This acknowledgement is UI state only; the
+server remains authoritative and still normalizes the submitted transport kind.
+
+Denali catalog prices continue to use the existing product policy: the canonical
+integer is displayed as تومان while the financial ISO currency remains `IRR`; no
+implicit ×10 conversion is introduced without a separate product/migration decision.
+Finance-facing Denali displays must consume the same display policy so the member,
+operator, and finance surfaces do not label the same stored digits as different units.
+
 ```text
 manual (default): create → pending → operator approve → receipt
 auto:             create → pending → host autoApprove (capacity OK) → approved → receipt
@@ -233,7 +251,7 @@ Rules:
 
 - Pure Denali resolver reads `pricing.paymentCollection` (also accepts `pricingPayment.paymentCollection`).
 - When `free`, commercial obligation resolves to `obligationMinor: "0"` (no offline default amount).
-- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition calls Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved.
+- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition runs the same post-approval finance orchestration: schedule/refresh the payment hold for payable registrations, then call Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved. Bulk approval must not skip the payment-hold step.
 - Free paid is a **booking payment projection only** (`IBookingPaymentPort.syncStatus` → `paid`). No `PaymentIntent`, no receipt, no double-entry journal (zero money).
 - Member receipt submit: blocked when remaining is already 0 or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
 - Member receipt status GET: remaining = 0 and free/zero-obligation → `{ status: "waived" }`. Remaining = 0 after capture → `{ status: "paid" }`. Remaining > 0 never returns `paid`.
@@ -241,6 +259,18 @@ Rules:
 - PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
 
 Portal: list/detail KPI still show booking `paymentStatus`; the receipt **panel** uses remaining + `waived`/`paid` from `GET /bookings/{id}/receipts`, never the booking ratchet alone.
+
+## Phase 6 — Member completion surfaces after receipt approval (2026-09-13)
+
+Receipt review is a finance-owned state transition, but it must also publish a
+durable member-facing completion event in the same transaction as the payment,
+booking projection, receipt approval, and ledger outbox write. The event carries
+the registration, member user, tour, and validated social link. The portal then
+shows the link in both the approved registration detail and the notification
+inbox. Missing or invalid links are omitted without blocking payment approval.
+
+The notification renderer resolves event keys through the portal locale catalog;
+raw keys or legacy English bodies must never be displayed as user-facing Persian.
 
 ## Phase 5 — Personal obligation override / discount (2026-08-06)
 

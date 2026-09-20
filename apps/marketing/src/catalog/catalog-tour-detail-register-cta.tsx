@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { MarketingLoginModalTrigger } from "@/auth/marketing-login-modal-trigger";
+import {
+  isAppLocale,
+  resolveMarketingTourDetailAuthModalHref,
+  routing,
+} from "@/i18n/routing";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 
@@ -23,14 +28,16 @@ export async function CatalogTourDetailRegisterCta({
   tourTitle,
 }: CatalogTourDetailRegisterCtaProps) {
   const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const pdpAuthModalHref =
+    tourId != null && tourId.trim().length > 0
+      ? resolveMarketingTourDetailAuthModalHref(tourId, locale)
+      : null;
   const showViewSelf = cta.primaryKind === "view-self" && cta.primaryHref != null;
 
   if (registration.isSoldOut && !showViewSelf) {
-    return (
-      <p data-marketing-catalog-detail-sold-out>
-        {t("detail.soldOut")}
-      </p>
-    );
+    return <p data-marketing-catalog-detail-sold-out>{t("detail.soldOut")}</p>;
   }
 
   if (cta.primaryHref == null || cta.primaryKind == null) {
@@ -49,13 +56,14 @@ export async function CatalogTourDetailRegisterCta({
       <a href={cta.primaryHref} data-marketing-view-registration>
         {primaryLabel}
       </a>
-    ) : cta.primaryKind === "register" ? (
+    ) : cta.primaryKind === "register" && pdpAuthModalHref !== null ? (
       <MarketingLoginModalTrigger
-        href={cta.primaryHref}
+        href={pdpAuthModalHref}
         host="pdp"
         tourId={tourId}
         tourTitle={tourTitle}
         data-marketing-register
+        data-marketing-cta-action="register"
       >
         {primaryLabel}
       </MarketingLoginModalTrigger>
@@ -66,14 +74,15 @@ export async function CatalogTourDetailRegisterCta({
     );
 
   let secondary: ReactNode = null;
-  if (cta.secondaryKind === "sign-in" && cta.secondaryHref != null) {
+  if (cta.secondaryKind === "sign-in" && pdpAuthModalHref !== null) {
     secondary = (
       <MarketingLoginModalTrigger
-        href={cta.secondaryHref}
+        href={pdpAuthModalHref}
         host="pdp"
         tourId={tourId}
         tourTitle={tourTitle}
         data-marketing-tour-sign-in
+        data-marketing-cta-action="sign-in"
       >
         {t("detail.signInToRegister")}
       </MarketingLoginModalTrigger>
@@ -84,6 +93,7 @@ export async function CatalogTourDetailRegisterCta({
         href={cta.secondaryHref}
         data-marketing-register
         data-marketing-register-another
+        data-marketing-cta-action="register-another"
       >
         {t("detail.registerAnotherGuest")}
       </a>
@@ -102,6 +112,7 @@ export async function CatalogTourDetailRegisterCta({
       return (
         <div
           data-marketing-catalog-detail-cta-primary
+          data-marketing-cta-surface="primary"
           data-marketing-tour-detail-cta-mode={cta.mode}
           {...(assignRegisterAnchor ? { id: "catalog-detail-register" } : {})}
         >
@@ -112,6 +123,7 @@ export async function CatalogTourDetailRegisterCta({
       return (
         <footer
           data-marketing-catalog-detail-actions
+          data-marketing-cta-surface="secondary"
           data-marketing-tour-detail-cta-mode={cta.mode}
         >
           {body}
@@ -121,6 +133,7 @@ export async function CatalogTourDetailRegisterCta({
       return (
         <div
           data-marketing-catalog-detail-booking-rail-cta
+          data-marketing-cta-surface="rail"
           data-marketing-tour-detail-cta-mode={cta.mode}
         >
           {body}
@@ -130,6 +143,7 @@ export async function CatalogTourDetailRegisterCta({
       return (
         <div
           data-marketing-catalog-detail-sticky-cta
+          data-marketing-cta-surface="sticky"
           data-marketing-tour-detail-cta-mode={cta.mode}
         >
           {body}

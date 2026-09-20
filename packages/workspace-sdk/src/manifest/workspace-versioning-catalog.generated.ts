@@ -29,10 +29,15 @@ export const WORKSPACE_CAPABILITY_VERSION_CATALOG = Object.freeze({
       "workspaceFinance": Object.freeze([1]),
       "workspaceItinerary": Object.freeze([1]),
       "workspacePricing": Object.freeze([1]),
+      "workspaceTicketing": Object.freeze([1]),
       "workspaceTransport": Object.freeze([1]),
+      "workspaceWallet": Object.freeze([1]),
     }),
     "finance-ws5": Object.freeze({
       "workspaceFinance": Object.freeze([1]),
+    }),
+    "wallet-ws1": Object.freeze({
+      "workspaceWallet": Object.freeze([1]),
     }),
 });
 

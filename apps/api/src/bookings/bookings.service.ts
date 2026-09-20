@@ -17,12 +17,14 @@ import type {
   BookingsSummaryQuery,
   BookingsSummaryResponse,
   BookingPublicCapabilityPort,
+  BookingPublicOutboxEvent,
   BookingValidationPolicyPort,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
@@ -115,11 +117,15 @@ function toListItem(
     personalCarOccupants,
     partySize: record.partySize,
     status: record.status,
+    finalizationStatus: record.finalizationStatus ?? "not_final",
     paymentStatus: record.paymentStatus,
     ...(financialDisplayState !== undefined ? { financialDisplayState } : {}),
     departureAt: record.departureAt,
     submittedAt: record.submittedAt,
     ...(approvedAt !== undefined ? { approvedAt } : {}),
+    ...(record.finalizedAt !== undefined && record.finalizedAt !== null
+      ? { finalizedAt: record.finalizedAt }
+      : {}),
     ...(includeIntake && record.registrationIntake !== undefined
       ? { registrationIntake: record.registrationIntake }
       : {}),
@@ -488,11 +494,12 @@ export class BookingsService {
    */
   async createPublicGuestBooking(
     auth: BookingActorContext,
-    body: CreateBookingRequest
+    body: CreateBookingRequest,
+    outboxEvent?: BookingPublicOutboxEvent
   ): Promise<CreateBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.assertPublicCreateCapability();
-    return this.executeCreatePipeline(auth, body, auth.userId);
+    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent);
   }
 
   private async resolveSubmittedByUserIdForOperatorCreate(
@@ -551,7 +558,8 @@ export class BookingsService {
   private async executeCreatePipeline(
     auth: BookingActorContext,
     body: CreateBookingRequest,
-    submittedByUserId: string
+    submittedByUserId: string,
+    outboxEvent?: BookingPublicOutboxEvent
   ): Promise<CreateBookingResponse> {
     const started = performance.now();
     try {
@@ -597,6 +605,7 @@ export class BookingsService {
             occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
           });
         },
+        ...(outboxEvent === undefined ? {} : { outboxEvent }),
       });
       this.registrationSlo.record({
         workspaceType: this.workspaceType,
@@ -714,6 +723,25 @@ export class BookingsService {
       id: updated.id,
       status: updated.status,
       approvedAt: updated.approvedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
+  async finalizeBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<FinalizeBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.finalizeBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      finalizedByUserId: auth.userId,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      finalizationStatus: updated.finalizationStatus ?? "not_final",
+      finalizedAt: updated.finalizedAt ?? this.clock.now().toISOString(),
     };
   }
 

@@ -131,6 +131,12 @@ export type CreateReceiptInput = {
   readonly note?: string;
   /** SHA-256 hex of HTTP Idempotency-Key; omit for non-HTTP submits. */
   readonly idempotencyKeyHash?: string;
+  /** Optional domain event to enqueue atomically with the receipt row. */
+  readonly outboxEvent?: {
+    readonly eventType: string;
+    readonly payload: Record<string, unknown>;
+    readonly correlationId?: string;
+  };
 };
 
 export type ApproveManualReceiptAtomicInput = {

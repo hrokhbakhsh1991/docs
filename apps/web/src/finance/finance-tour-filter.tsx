@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
 import { useTranslations } from "next-intl";
 
 import { OperatorTourSelect } from "@/admin/patterns/operator-tour-select";
@@ -55,8 +56,8 @@ function parseBookingsSummary(raw: unknown): BookingsSummaryResponse | null {
 
 export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
   const t = useTranslations("finance.commandCenter");
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const searchParams = useAppSearchParams();
+  const pathname = useAppPathname();
   const router = useRouter();
   const activeTourId = searchParams.get("tourId")?.trim() ?? "";
   const [loading, setLoading] = useState(true);

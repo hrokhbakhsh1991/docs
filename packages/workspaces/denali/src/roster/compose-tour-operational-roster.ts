@@ -96,11 +96,20 @@ export function composeTourOperationalRosterRow(
     waived,
   });
   const holdStatus = input.hold?.status ?? null;
+  // Older booking projections may not carry the independent finalization field
+  // yet. Keep the established settled=>final compatibility rule until those
+  // records are backfilled instead of converting them to an explicit
+  // not_final state here.
+  const finalizationStatus =
+    input.booking.finalizationStatus ?? (financiallySettled ? "finalized" : "not_final");
 
   return {
     registrationId: input.booking.id,
     tourId: input.booking.tourId,
     guestLabel: input.booking.guestLabel,
+    guestPhone: input.booking.guestPhone ?? null,
+    approvedAt: input.booking.approvedAt ?? null,
+    finalizedAt: input.booking.finalizedAt ?? null,
     ...(input.booking.memberUserId !== undefined
       ? { memberUserId: input.booking.memberUserId }
       : {}),
@@ -109,6 +118,7 @@ export function composeTourOperationalRosterRow(
       : {}),
     partySize: input.booking.partySize,
     registrationStatus,
+    finalizationStatus,
     financialDisplayState,
     remainingMinor,
     paidMinor,
@@ -126,7 +136,11 @@ export function composeTourOperationalRosterRow(
     isDriverOffer: isDriverOffer(input.booking.transportKind),
     passengerAssignmentStatus: passengerAssignmentStatus(),
     refundDisplayState: deriveRefundDisplayState(input.refundStatuses),
-    isFinalParticipant: isFinalParticipant({ status: registrationStatus, remainingMinor }),
+    isFinalParticipant: isFinalParticipant({
+      status: registrationStatus,
+      remainingMinor,
+      finalizationStatus,
+    }),
     isOperationalParticipant: isOperationalParticipant(registrationStatus),
     isFinanciallySettled: financiallySettled,
     occupiesCapacity: occupiesCapacity(registrationStatus),

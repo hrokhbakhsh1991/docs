@@ -119,7 +119,9 @@ export function parseBookingsCommandCenterQuery(
       : DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.layout;
   const pageRaw = Number(params.get("page") ?? "1");
   const page =
-    Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.page;
+    Number.isFinite(pageRaw) && pageRaw >= 1
+      ? Math.floor(pageRaw)
+      : DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.page;
   const listCursor = params.get("listCursor")?.trim() ?? "";
 
   return {
@@ -407,7 +409,7 @@ export type BookingRowTransportLabels = {
   readonly personalCar: string;
   readonly noCarDong: string;
   readonly noCarAcquaintance: string;
-  readonly occupants: (count: 1 | 2 | 3) => string;
+  readonly occupants: (count: 0 | 1 | 2 | 3) => string;
 };
 
 /**

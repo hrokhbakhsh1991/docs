@@ -15,8 +15,10 @@ describe("catalog-tour-detail-register-cta — PCMS tour sign-in + Phase 3", () 
     assert.match(cta, /primaryKind === "register"/);
     assert.match(
       cta,
-      /cta\.primaryKind === "register" \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/
+      /cta\.primaryKind === "register" && pdpAuthModalHref !== null \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/
     );
+    assert.match(cta, /resolveMarketingTourDetailAuthModalHref/);
+    assert.match(cta, /href=\{pdpAuthModalHref\}/);
     assert.match(cta, /<a href=\{cta\.primaryHref\} data-marketing-register>/);
     assert.match(cta, /data-marketing-view-registration/);
     assert.doesNotMatch(cta, /data-marketing-header-sign-in/);

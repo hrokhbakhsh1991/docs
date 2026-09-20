@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 import type { MemberRegistrationItem } from "@/me/fetch-member-registrations.server";
 
 type BookingsMineResponse = {
@@ -9,7 +10,7 @@ type BookingsMineResponse = {
 };
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const host = req.headers.get("host") ?? "localhost:3003";
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
 
   if (headers.Authorization === undefined) {
@@ -22,7 +23,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     cache: "no-store",
   });
   if (!res.ok) {
-    return NextResponse.json({ ok: true, data: { items: [] } }, { status: 200 });
+    return NextResponse.json(
+      { ok: false, code: "UPSTREAM_BOOKINGS_ERROR" },
+      { status: res.status >= 500 ? 502 : res.status }
+    );
   }
 
   const payload = (await res.json()) as BookingsMineResponse;

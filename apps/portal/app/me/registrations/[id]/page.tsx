@@ -6,8 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { formatMemberRegistrationDeparture,
-  localizeMemberPaymentStatus,
+import {
+  formatMemberRegistrationDeparture,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
@@ -44,9 +44,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   }
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
-  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
+  const [statusLabel, departureLabel, receiptPanel] = await Promise.all([
     localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
-    localizeMemberPaymentStatus(row.paymentStatus),
     formatMemberRegistrationDeparture(row.departureAt),
     fetchMemberReceiptPanel(host, row.id),
   ]);
@@ -59,14 +58,17 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     intakeFeatures.memberPendingIntakeAmend === true &&
     (lifecycleStatus === "pending" || lifecycleStatus === "waitlisted");
 
-  const tour =
-    showIntakeAmend && typeof row.tourId === "string" && row.tourId.trim().length > 0
-      ? await fetchCatalogTour({
-          tenantId: bootstrap.tenantId,
-          pluginId: bootstrap.pluginId,
-          tourId: row.tourId,
-        })
-      : null;
+  const shouldLoadTour =
+    (showIntakeAmend || lifecycleStatus === "approved") &&
+    typeof row.tourId === "string" &&
+    row.tourId.trim().length > 0;
+  const tour = shouldLoadTour
+    ? await fetchCatalogTour({
+        tenantId: bootstrap.tenantId,
+        pluginId: bootstrap.pluginId,
+        tourId: row.tourId,
+      })
+    : null;
 
   const tripsListHref = resolveMemberPortalTripsListPath(bootstrap.pluginId);
   const tourHref =
@@ -92,6 +94,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ? tAmend("noCarAcquaintance")
             : null;
   const personalCarOccupants =
+    row.personalCarOccupants === 0 ||
     row.personalCarOccupants === 1 ||
     row.personalCarOccupants === 2 ||
     row.personalCarOccupants === 3
@@ -101,6 +104,42 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     typeof row.guestLabel === "string" && row.guestLabel.trim().length > 0
       ? row.guestLabel.trim()
       : null;
+  const detailStatus =
+    lifecycleStatus === "pending" || lifecycleStatus === "waitlisted"
+      ? {
+          tone: "waiting",
+          title: "statusPendingTitle",
+          body: "statusPendingBody",
+        }
+      : lifecycleStatus === "rejected" || lifecycleStatus === "cancelled"
+        ? {
+            tone: "closed",
+            title: lifecycleStatus === "rejected" ? "statusRejectedTitle" : "statusCancelledTitle",
+            body: lifecycleStatus === "rejected" ? "statusRejectedBody" : "statusCancelledBody",
+          }
+        : receiptPanel.status === "pending"
+          ? {
+              tone: "review",
+              title: "statusReceiptPendingTitle",
+              body: "statusReceiptPendingBody",
+            }
+          : receiptPanel.status === "paid" || receiptPanel.status === "waived"
+            ? {
+                tone: "complete",
+                title: receiptPanel.status === "paid" ? "statusPaidTitle" : "statusWaivedTitle",
+                body: receiptPanel.status === "paid" ? "statusPaidBody" : "statusWaivedBody",
+              }
+            : receiptPanel.status === "rejected"
+              ? {
+                  tone: "action",
+                  title: "statusReceiptRejectedTitle",
+                  body: "statusReceiptRejectedBody",
+                }
+              : {
+                  tone: "action",
+                  title: "statusApprovedTitle",
+                  body: "statusApprovedBody",
+                };
 
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
@@ -132,13 +171,15 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               </p>
             ) : null}
           </div>
-          <div data-portal-member-detail-kpis>
-            <div data-portal-member-detail-kpi data-kpi="status">
-              <p data-portal-member-detail-kpi-label>{t("statusLabel")}</p>
-              <p data-portal-member-registration-status>
-                {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
-              </p>
+          <section data-portal-member-detail-status-card data-status-tone={detailStatus.tone}>
+            <div data-portal-member-detail-status-copy>
+              <p data-portal-member-detail-status-eyebrow>{t("statusLabel")}</p>
+              <h2>{t(detailStatus.title)}</h2>
+              <p>{t(detailStatus.body)}</p>
             </div>
+            <span data-portal-member-detail-status-badge>{statusLabel}</span>
+          </section>
+          <div data-portal-member-detail-kpis>
             <div data-portal-member-detail-kpi data-kpi="departure">
               <p data-portal-member-detail-kpi-label>{t("departureLabel")}</p>
               <p data-portal-member-registration-departure>
@@ -148,15 +189,14 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {transportKind !== null && transportKindLabel !== null ? (
               <div data-portal-member-detail-kpi data-kpi="transport">
                 <p data-portal-member-detail-kpi-label>{t("transportLabel")}</p>
-                <p
-                  data-portal-member-registration-transport
-                  data-transport-kind={transportKind}
-                >
+                <p data-portal-member-registration-transport data-transport-kind={transportKind}>
                   {transportKind === "personal_car" && personalCarOccupants !== null
-                    ? t("transportLineOccupants", {
-                        kind: transportKindLabel,
-                        occupants: personalCarOccupants,
-                      })
+                    ? personalCarOccupants === 0
+                      ? t("transportLineDriverOnly", { kind: transportKindLabel })
+                      : t("transportLineOccupants", {
+                          kind: transportKindLabel,
+                          occupants: personalCarOccupants,
+                        })
                     : transportKindLabel}
                 </p>
               </div>
@@ -171,6 +211,18 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </section>
+        {lifecycleStatus === "approved" && tour?.socialMediaLink ? (
+          <section data-portal-member-registration-social-link>
+            <a
+              href={tour.socialMediaLink}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-portal-member-registration-social-link-anchor
+            >
+              {t("socialMediaLink")}
+            </a>
+          </section>
+        ) : null}
         {showIntakeAmend && tour !== null ? (
           <MemberIntakeAmendForm
             registrationId={row.id}
@@ -183,10 +235,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
-        <MemberCancellationPanel
-          registrationId={row.id}
-          registrationStatus={lifecycleStatus}
-        />
+        <MemberCancellationPanel registrationId={row.id} registrationStatus={lifecycleStatus} />
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
@@ -205,6 +254,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
+          paymentDueAt={row.paymentDueAt ?? null}
           cancelSource={row.cancelSource ?? null}
         />
       </main>

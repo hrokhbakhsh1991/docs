@@ -23,4 +23,14 @@ if [[ -d "${PNPM_ROOT}" ]]; then
   NODE_PATH="$(/usr/bin/find "${PNPM_ROOT}" -mindepth 2 -maxdepth 2 -type d -name node_modules 2>/dev/null | /usr/bin/tr '\n' ':' | /usr/bin/sed 's/:$//')"
   export NODE_PATH
 fi
-exec node "${RELEASE_ROOT}/bin/seed-staging.cjs"
+node "${RELEASE_ROOT}/bin/seed-staging.cjs"
+
+if [[ -f "${RELEASE_ROOT}/bin/seed-operator-smoke-pending-booking.cjs" ]]; then
+  node "${RELEASE_ROOT}/bin/seed-operator-smoke-pending-booking.cjs" \
+    | tee /tmp/seed-operator-smoke-pending-booking.log
+  grep -q OPERATOR_SMOKE_PENDING_BOOKING_SEED_OK /tmp/seed-operator-smoke-pending-booking.log
+fi
+
+if [[ -f "${RELEASE_ROOT}/bin/seed-wrs-denali-club-domains.cjs" ]]; then
+  node "${RELEASE_ROOT}/bin/seed-wrs-denali-club-domains.cjs"
+fi

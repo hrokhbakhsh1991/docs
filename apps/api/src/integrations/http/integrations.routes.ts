@@ -21,6 +21,8 @@ import {
   patchIntegrationEventPolicy,
   patchConnectionExposureIntentForIntegration,
   patchIntegration,
+  provisionTelegramIntegration,
+  startTelegramForumConnect,
   testIntegrationConnection,
 } from "./integrations.service";
 import {
@@ -216,7 +218,7 @@ export async function handlePatchConnectionExposureIntent(
           auth,
           integrationId,
           eventType,
-          body,
+          body
         );
         sendJson(res, 200, updated);
       },
@@ -302,6 +304,50 @@ export async function handleTestIntegrationConnection(
       auth,
       async () => {
         const result = await testIntegrationConnection(auth, integrationId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handleProvisionTelegramIntegration(
+  req: IncomingMessage,
+  res: ServerResponse,
+  integrationId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = await readJsonBody(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await provisionTelegramIntegration(auth, integrationId, body);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handleStartTelegramForumConnect(
+  req: IncomingMessage,
+  res: ServerResponse,
+  integrationId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = await readJsonBody(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await startTelegramForumConnect(auth, integrationId, body);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }

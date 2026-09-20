@@ -97,76 +97,106 @@ function enforceProfileArchitectureOrRespond(
 
 export async function GET(req: Request): Promise<NextResponse> {
   const traceId = resolveMemberProfileTraceId(req);
-  runMemberProfileRuntimeTruthCheck(traceId);
-  const host = resolveIngressHost(req);
-  const headers = await buildMemberApiHeaders(host);
-  if (headers.Authorization === undefined) {
-    return jsonMemberProfileError("AUTH_UNAUTHENTICATED", 401, traceId);
-  }
+  try {
+    runMemberProfileRuntimeTruthCheck(traceId);
+    const host = resolveIngressHost(req);
+    const headers = await buildMemberApiHeaders(host);
+    if (headers.Authorization === undefined) {
+      return jsonMemberProfileError("AUTH_UNAUTHENTICATED", 401, traceId);
+    }
 
-  const bootstrap = await resolvePortalBootstrapForHost(host);
-  const sessionUserId = readSessionUserId(headers);
-  if (sessionUserId !== null) {
-    const cacheKey = resolveCacheKey(bootstrap.tenantId, sessionUserId, bootstrap.pluginId);
-    const cached = readMemberProfileCache(cacheKey);
-    if (cached !== null) {
+    const bootstrap = await resolvePortalBootstrapForHost(host);
+    const sessionUserId = readSessionUserId(headers);
+    if (sessionUserId !== null) {
+      const cacheKey = resolveCacheKey(bootstrap.tenantId, sessionUserId, bootstrap.pluginId);
+      const cached = readMemberProfileCache(cacheKey);
+      if (cached !== null) {
+        logMemberProfileEvent({
+          traceId,
+          kind: "profile_get",
+          pluginId: bootstrap.pluginId,
+          tenantId: bootstrap.tenantId,
+          cache: "hit",
+        });
+        const enforcementResponse = enforceProfileArchitectureOrRespond(cached, traceId);
+        if (enforcementResponse !== null) {
+          return enforcementResponse;
+        }
+        return jsonMemberProfileSuccess(cached, traceId);
+      }
       logMemberProfileEvent({
         traceId,
         kind: "profile_get",
         pluginId: bootstrap.pluginId,
         tenantId: bootstrap.tenantId,
-        cache: "hit",
+        cache: "miss",
       });
-      const enforcementResponse = enforceProfileArchitectureOrRespond(cached, traceId);
-      if (enforcementResponse !== null) {
-        return enforcementResponse;
-      }
-      return jsonMemberProfileSuccess(cached, traceId);
     }
-    logMemberProfileEvent({
-      traceId,
-      kind: "profile_get",
-      pluginId: bootstrap.pluginId,
-      tenantId: bootstrap.tenantId,
-      cache: "miss",
-    });
-  }
 
-  let backendRes: Response;
-  try {
-    backendRes = await fetchIdentityMe(host, headers);
-  } catch {
-    return jsonMemberProfileError("BACKEND_UNREACHABLE", 502, traceId);
-  }
+    let backendRes: Response;
+    try {
+      backendRes = await fetchIdentityMe(host, headers);
+    } catch {
+      return jsonMemberProfileError("BACKEND_UNREACHABLE", 502, traceId);
+    }
 
-  const payload = (await backendRes.json().catch(() => ({}))) as IdentityMeUpstream & {
-    code?: unknown;
-  };
-  if (!backendRes.ok) {
-    const code = typeof payload.code === "string" ? payload.code : "PROFILE_FETCH_FAILED";
-    return jsonMemberProfileError(code, backendRes.status, traceId);
-  }
+    const payload = (await backendRes.json().catch(() => ({}))) as IdentityMeUpstream & {
+      code?: unknown;
+    };
+    if (!backendRes.ok) {
+      const code = typeof payload.code === "string" ? payload.code : "PROFILE_FETCH_FAILED";
+      return jsonMemberProfileError(code, backendRes.status, traceId);
+    }
 
-  const view = buildMemberProfileView(payload, bootstrap.pluginId, { traceId });
-  if (!("ok" in view)) {
-    return jsonMemberProfileError(view.code, view.status, traceId, view.fieldErrors);
-  }
+    const view = buildMemberProfileView(payload, bootstrap.pluginId, { traceId });
+    if (!("ok" in view)) {
+      return jsonMemberProfileError(view.code, view.status, traceId, view.fieldErrors);
+    }
 
-  if (sessionUserId !== null) {
-    const cacheKey = resolveCacheKey(view.profile.tenantId, view.profile.userId, bootstrap.pluginId);
-    writeMemberProfileCache(cacheKey, view);
-  }
+    if (sessionUserId !== null) {
+      const cacheKey = resolveCacheKey(view.profile.tenantId, view.profile.userId, bootstrap.pluginId);
+      writeMemberProfileCache(cacheKey, view);
+    }
 
-  const enforcementResponse = enforceProfileArchitectureOrRespond(view, traceId);
-  if (enforcementResponse !== null) {
-    return enforcementResponse;
-  }
+    const enforcementResponse = enforceProfileArchitectureOrRespond(view, traceId);
+    if (enforcementResponse !== null) {
+      return enforcementResponse;
+    }
 
-  return jsonMemberProfileSuccess(view, traceId);
+    return jsonMemberProfileSuccess(view, traceId);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        scope: "portal.member-profile.route",
+        level: "ERROR",
+        method: "GET",
+        traceId,
+        message: error instanceof Error ? error.message : "Unhandled profile GET failure",
+      })
+    );
+    return jsonMemberProfileError("PROFILE_FETCH_FAILED", 500, traceId);
+  }
 }
 
 export async function PATCH(req: Request): Promise<NextResponse> {
   const traceId = resolveMemberProfileTraceId(req);
+  try {
+    return await patchMemberProfile(req, traceId);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        scope: "portal.member-profile.route",
+        level: "ERROR",
+        method: "PATCH",
+        traceId,
+        message: error instanceof Error ? error.message : "Unhandled profile PATCH failure",
+      })
+    );
+    return jsonMemberProfileError("PROFILE_PATCH_FAILED", 500, traceId);
+  }
+}
+
+async function patchMemberProfile(req: Request, traceId: string): Promise<NextResponse> {
   runMemberProfileRuntimeTruthCheck(traceId);
   const host = resolveIngressHost(req);
   const headers = await buildMemberApiHeaders(host);

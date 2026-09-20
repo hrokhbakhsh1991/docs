@@ -142,10 +142,104 @@ export const WorkspaceItineraryBlockSchema = z.object({
     .object({
       wizardTourField: z.boolean().optional(),
       catalogDetailSection: z.boolean().optional(),
+      maxDayCount: z.number().int().positive().optional(),
     })
     .optional(),
   fieldModule: workspaceModuleBindingSchema.optional(),
   wizardComposite: workspaceModuleBindingSchema.optional(),
+});
+
+/** WALLET-P1 — member wallet capability block (top-level manifest extension). */
+const workspaceWalletOpsManifestBindingSchema = z.object({
+  module: z.string().min(1),
+  defaultExport: z.string().min(1),
+  resolveFromThemeExport: z.string().min(1).optional(),
+});
+
+export const WorkspaceWalletBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      memberAccounts: z.boolean(),
+      ops: z.boolean(),
+      gatewayTopUp: z.boolean().optional(),
+      withdrawals: z.boolean().optional(),
+    })
+    .optional(),
+  ledgerPolicy: workspaceModuleBindingSchema.optional(),
+  operatorPolicy: workspaceModuleBindingSchema.optional(),
+  opsManifest: workspaceWalletOpsManifestBindingSchema.optional(),
+});
+
+const workspaceTicketingCategorySchema = z.object({
+  code: z
+    .string()
+    .regex(/^[a-z][a-z0-9_-]*$/, "workspaceTicketing.categories[].code must be a lowercase slug"),
+  labelKey: z.string().min(1),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  defaultPriority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+});
+
+/** TKT-001 Phase D1 — ticketing capability block (top-level manifest extension). */
+export const WorkspaceTicketingBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      memberCreate: z.boolean(),
+      operatorInbox: z.boolean(),
+      tags: z.boolean(),
+      queues: z.boolean(),
+      teams: z.boolean(),
+      attachments: z.boolean().optional(),
+    })
+    .optional(),
+  categories: z.array(workspaceTicketingCategorySchema).optional(),
+  defaultCategoryCode: z.string().min(1).optional(),
+  allowedPriorities: z.array(z.enum(["low", "normal", "high", "urgent"])).optional(),
+  maxAttachmentSizeBytes: z.number().int().positive().optional(),
+  queueDefaults: z
+    .object({
+      unassigned: z
+        .object({
+          code: z.string().min(1),
+          nameKey: z.string().min(1),
+          sortOrder: z.number().int().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
+/** MEG-001 — member engagement capability block. */
+export const WorkspaceEngagementBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      memberDashboard: z.boolean(),
+      operatorOverview: z.boolean(),
+    })
+    .optional(),
+});
+
+/** MKP-001 — marketing pages management capability block. */
+export const WorkspaceMarketingPagesBlockSchema = z.object({
+  supported: z.boolean(),
+  ...capabilityRevisionField,
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  allowedPageKeys: z.array(z.string().min(1)).optional(),
+  capabilities: z
+    .object({
+      operatorEditor: z.boolean(),
+    })
+    .optional(),
 });
 
 /** CW7-02 — equipment capability block (top-level manifest extension). */
@@ -280,6 +374,10 @@ export const WorkspaceManifestCiSchema = z
     workspaceItinerary: WorkspaceItineraryBlockSchema.optional(),
     workspacePricing: WorkspacePricingBlockSchema.optional(),
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
+    workspaceWallet: WorkspaceWalletBlockSchema.optional(),
+    workspaceTicketing: WorkspaceTicketingBlockSchema.optional(),
+    workspaceEngagement: WorkspaceEngagementBlockSchema.optional(),
+    workspaceMarketingPages: WorkspaceMarketingPagesBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     wizardResume: WorkspaceWizardResumeBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),
@@ -293,10 +391,7 @@ export type WorkspaceManifestValidationResult =
   | { readonly ok: true; readonly manifest: WorkspaceManifestCiRecord }
   | { readonly ok: false; readonly errors: readonly string[] };
 
-export function formatWorkspaceManifestZodIssues(
-  issues: z.ZodIssue[],
-  context: string,
-): string[] {
+export function formatWorkspaceManifestZodIssues(issues: z.ZodIssue[], context: string): string[] {
   return issues.map((issue) => {
     const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
     return `${context}: ${path}: ${issue.message}`;
@@ -312,7 +407,7 @@ export function assertWorkspaceManifestSemantics(manifest: WorkspaceManifestCiRe
 
 export function validateWorkspaceManifestRecord(
   raw: unknown,
-  context: string,
+  context: string
 ): WorkspaceManifestValidationResult {
   const parsed = WorkspaceManifestCiSchema.safeParse(raw);
   if (!parsed.success) {
@@ -332,7 +427,10 @@ export function validateWorkspaceManifestRecord(
   return { ok: true, manifest: parsed.data };
 }
 
-export function parseWorkspaceManifestForCi(raw: unknown, context: string): WorkspaceManifestCiRecord {
+export function parseWorkspaceManifestForCi(
+  raw: unknown,
+  context: string
+): WorkspaceManifestCiRecord {
   const result = validateWorkspaceManifestRecord(raw, context);
   if (!result.ok) {
     throw new Error(result.errors.join("; "));

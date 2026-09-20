@@ -32,17 +32,17 @@ API resolves tenant from:
 ### API — `/etc/app-tour/api.env`
 
 ```bash
-PUBLIC_TENANT_FALLBACK_LABEL=operator
-PUBLIC_TENANT_FALLBACK_HOSTS=89.45.89.206,127.0.0.1
+PUBLIC_TENANT_FALLBACK_LABEL=denali
+PUBLIC_TENANT_FALLBACK_HOSTS=89.42.210.252,127.0.0.1
 ```
 
-Maps bare IP requests to workspace label `operator` → smoke tenant `00000000-0000-4000-8000-000000000014` until customer fixture replaces it.
+Maps bare IP requests to workspace label `denali` → tenant `00000000-0000-4000-8000-000000000003` on Denali staging VPS.
 
 ### BFF apps — marketing.env · portal.env · web.env
 
 ```bash
 TOUR_OPS_API_URL=http://127.0.0.1:3001
-TOUR_OPS_PUBLIC_FALLBACK_HOSTS=89.45.89.206
+TOUR_OPS_PUBLIC_FALLBACK_HOSTS=89.42.210.252
 ```
 
 Marketing catalog fetch and portal BFF must forward a host the API can resolve.
@@ -52,7 +52,7 @@ Marketing catalog fetch and portal BFF must forward a host the API can resolve.
 ## Verify
 
 ```bash
-export VPS_IP=89.45.89.206
+export VPS_IP=89.42.210.252
 export TOUR_OPS_API_URL=http://${VPS_IP}:3001
 
 # API host bind (same tenantId contract)

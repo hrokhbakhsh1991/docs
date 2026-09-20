@@ -59,7 +59,10 @@ describe("home-final-cta.spec.ts", () => {
     assert.doesNotMatch(source, /#why-us/);
     assert.doesNotMatch(source, /Limited spots|Book now|Join thousands/i);
     assert.equal(en.home.full.finalCta.title, "Ready for your next trip?");
-    assert.equal(en.home.full.finalCta.lead, "Take the next step — choose a program that fits you.");
+    assert.equal(
+      en.home.full.finalCta.lead,
+      "Take the next step — choose a program that fits you."
+    );
     assert.equal(en.home.full.finalCta.cta, "Browse tours");
   });
 
