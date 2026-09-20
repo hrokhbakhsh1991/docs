@@ -161,6 +161,7 @@ export const SETTINGS_MODULE_LABEL_KEYS: Record<string, string> = {
   marketing_pages: "modules.marketing_pages.title",
   integrations: "modules.integrations.title",
   exposure: "modules.exposure.title",
+  payment_destination: "modules.payment_destination.title",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_LABEL_KEYS` — kept for stable imports in tests. */
@@ -182,6 +183,7 @@ export const SETTINGS_MODULE_DESCRIPTION_KEYS: Partial<Record<string, string>> =
   marketing_pages: "modules.marketing_pages.description",
   integrations: "modules.integrations.description",
   exposure: "modules.exposure.description",
+  payment_destination: "modules.payment_destination.description",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_DESCRIPTION_KEYS`. */

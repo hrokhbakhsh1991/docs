@@ -66,6 +66,7 @@ import {
   type UsersDirectoryListFilters,
 } from "./users-directory-list-projection";
 import type { UsersListQuery } from "./users.types";
+import { allocateMembershipCode } from "./membership-code";
 
 function normalizeMobile(mobile: string): string {
   return canonicalizeLoginMobile(mobile);
@@ -78,6 +79,7 @@ function membershipKey(userId: string, tenantId: string): string {
 function toMembershipRecord(row: {
   userId: string;
   tenantId: string;
+  membershipCode?: string | null;
   role: string;
   status: string;
   sessionVersion: number;
@@ -92,6 +94,9 @@ function toMembershipRecord(row: {
     status: row.status as IdentityMembershipRecord["status"],
     sessionVersion: row.sessionVersion,
     ...(row.workspaceId !== null ? { workspaceId: row.workspaceId } : {}),
+    ...(row.membershipCode !== null && row.membershipCode !== undefined
+      ? { membershipCode: row.membershipCode }
+      : {}),
     ...(metadata.displayName !== undefined ? { displayName: metadata.displayName } : {}),
     ...(metadata.email !== undefined ? { email: metadata.email } : {}),
     ...(metadata.nationalId !== undefined ? { nationalId: metadata.nationalId } : {}),
@@ -153,6 +158,7 @@ function toDirectoryPairFromRawRow(row: {
   status: string;
   session_version: number;
   workspace_id: string | null;
+  membership_code: string | null;
   membership_metadata: Prisma.JsonValue;
   mobile: string;
 }): MembershipWithUserRecord {
@@ -164,6 +170,7 @@ function toDirectoryPairFromRawRow(row: {
       status: row.status,
       sessionVersion: row.session_version,
       workspaceId: row.workspace_id,
+      membershipCode: row.membership_code,
       membershipMetadata: row.membership_metadata,
     }),
     user: { id: row.user_id, mobile: row.mobile },
@@ -192,12 +199,12 @@ function buildDirectorySqlConditions(
         Prisma.sql`(${Prisma.join(
           mobilePatterns.map((pattern) => Prisma.sql`u.mobile ILIKE ${pattern}`),
           " OR "
-        )} OR ut.membership_metadata->>'displayName' ILIKE ${namePattern})`
+        )} OR ut.membership_metadata->>'displayName' ILIKE ${namePattern} OR ut.membership_code ILIKE ${namePattern})`
       );
     } else {
       const pattern = `%${search}%`;
       conditions.push(
-        Prisma.sql`(u.mobile ILIKE ${pattern} OR ut.membership_metadata->>'displayName' ILIKE ${pattern})`
+        Prisma.sql`(u.mobile ILIKE ${pattern} OR ut.membership_metadata->>'displayName' ILIKE ${pattern} OR ut.membership_code ILIKE ${pattern})`
       );
     }
   }
@@ -324,11 +331,12 @@ export class PrismaIdentityRepository implements IdentityRepository {
             session_version: number;
             workspace_id: string | null;
             membership_metadata: Prisma.JsonValue;
+            membership_code: string | null;
             mobile: string;
           }[]
         >(Prisma.sql`
           SELECT ut.user_id, ut.tenant_id, ut.role, ut.status, ut.session_version,
-                 ut.workspace_id, ut.membership_metadata, u.mobile
+                 ut.workspace_id, ut.membership_metadata, ut.membership_code, u.mobile
           FROM user_tenants ut
           INNER JOIN users u ON u.id = ut.user_id
           WHERE ${whereClause}
@@ -607,6 +615,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       const membership: IdentityMembershipRecord = {
         userId,
         tenantId: invite.tenantId,
+        membershipCode: await allocateMembershipCode(tx, invite.tenantId),
         role: invite.role,
         status: "ACTIVE",
         sessionVersion: 1,
@@ -617,6 +626,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
         data: {
           userId,
           tenantId: invite.tenantId,
+          membershipCode: membership.membershipCode,
           role: membership.role,
           status: membership.status,
           sessionVersion: membership.sessionVersion,
@@ -955,12 +965,15 @@ export class PrismaIdentityRepository implements IdentityRepository {
         existing !== null && (existing.role === "owner" || existing.role === "admin")
           ? existing.role
           : "member";
+      const membershipCode =
+        existing?.membershipCode ?? (await allocateMembershipCode(tx, input.tenantId));
 
       const row = await tx.userTenant.upsert({
         where: { userId_tenantId: { userId: user.id, tenantId: input.tenantId } },
         create: {
           userId: user.id,
           tenantId: input.tenantId,
+          membershipCode,
           role,
           status: "ACTIVE",
           sessionVersion: 1,
@@ -970,6 +983,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
         update: {
           status: "ACTIVE",
           sessionVersion: (existing?.sessionVersion ?? 0) + 1,
+          membershipCode,
           membershipMetadata: metadata,
         },
       });

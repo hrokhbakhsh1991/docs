@@ -34,7 +34,8 @@ export type WalletServicePort = {
   readonly lookupOperatorAccounts: (
     auth: TenantAuthContext,
     query: {
-      readonly userId: string;
+      readonly userId?: string;
+      readonly search?: string;
       readonly currency?: string;
       readonly workspaceId?: string;
     },

@@ -99,6 +99,17 @@ export function parseOperatorAccountLookupUserId(raw: string | null): string {
   return result.data;
 }
 
+export function parseOptionalOperatorAccountLookupSearch(raw: string | null): string | undefined {
+  if (raw === null || raw.trim() === "") {
+    return undefined;
+  }
+  const value = raw.trim();
+  if (value.length > 120) {
+    throw new Error("ZOD_VALIDATION_FAILED: search length exceeded");
+  }
+  return value;
+}
+
 export function parseOptionalCurrencyFilter(raw: string | null): string | undefined {
   if (raw === null || raw.trim() === "") {
     return undefined;

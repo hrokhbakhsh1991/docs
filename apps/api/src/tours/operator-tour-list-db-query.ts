@@ -11,6 +11,7 @@ export const OPERATOR_TOUR_LIST_SELECT = {
   tenantId: true,
   canonical: true,
   createdAt: true,
+  updatedAt: true,
   rowVersion: true,
   title: true,
   publishStatus: true,

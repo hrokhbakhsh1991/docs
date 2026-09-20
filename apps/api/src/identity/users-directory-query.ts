@@ -36,6 +36,7 @@ export function matchesDirectoryPair(
       displayNameForPair(pair),
       pair.user.mobile,
       pair.membership.email ?? "",
+      pair.membership.membershipCode ?? "",
     ];
     if (!haystacks.some((value) => value.toLocaleLowerCase().includes(needle))) {
       return false;

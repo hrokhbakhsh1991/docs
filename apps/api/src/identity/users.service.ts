@@ -186,6 +186,7 @@ function buildDirectoryRow(
   return {
     userId: user.id,
     tenantId: membership.tenantId,
+    membershipCode: membership.membershipCode ?? null,
     role: normalizeMembershipRole(membership.role),
     status: membership.status,
     displayName: displayNameForUser(user, membership),
