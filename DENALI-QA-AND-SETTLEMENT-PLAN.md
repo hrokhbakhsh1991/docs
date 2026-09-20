@@ -206,7 +206,7 @@ SHA/PR:
 | ---------: | ------------------------------------------------------------- | ------ | --------------------------------------- | ------------------ | ---------------------------------------------------------- |
 |          1 | T00 — ثبت baseline و دادهٔ تست                                | Gate   | ندارد                                   | `CLOSED`           | مرجع مقایسهٔ source/runtime و جلوگیری از نتیجه‌گیری اشتباه |
 |          2 | T01 — قرارداد جستجو، فیلتر و مرتب‌سازی                        | P0     | T00                                     | `VERIFIED_LOCALLY` | همهٔ لیست‌های مدیریت تور به آن وابسته‌اند                  |
-|          3 | T13 — سازگاری marketing/portal/admin و routing/session/assets | P0     | T00                                     | `IN_PROGRESS`      | خطای host، session یا tenant کل فلو را بی‌اعتبار می‌کند    |
+|          3 | T13 — سازگاری marketing/portal/admin و routing/session/assets | P0     | T00                                     | `VERIFIED_LOCALLY` | خطای host، session یا tenant کل فلو را بی‌اعتبار می‌کند    |
 |          4 | T03 — یکسان‌سازی summary و فهرست مالی                         | P1     | T00                                     | `VERIFIED_LOCALLY` | منبع اعداد پرداخت، بدهی و وضعیت settlement باید یکی باشد   |
 |          5 | T05-CARD — تنظیم مقصد پرداخت کارت‌به‌کارت و نمایش پورتال      | P0     | T00, T03                                | `VERIFIED_LOCALLY` | پرداخت بدون مقصد معتبر یا snapshot امن قابل قبول نیست      |
 |          6 | T02 — یکسان‌سازی ظرفیت و عنوان تور                            | P1     | T01                                     | `VERIFIED_LOCALLY` | ظرفیت/عنوان نادرست مستقیماً روی ثبت‌نام اثر می‌گذارد       |
@@ -1466,6 +1466,9 @@ pnpm run guard:pcms-authority
 - **STATUS:** `IN_PROGRESS`؛ source contract/guards اصلاح و سبز شده‌اند، اما P0 تا اثبات browser/runtime و تطبیق SHA بسته نمی‌شود.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** `@app-tour/guest-surface-host` با `71/71` و `@app-tour/tenant-kernel` با `80/80` دوباره PASS شدند؛ `guard:wrs-routing`، `guard:wrs-stale-docs` و `guard:pcms-authority` نیز PASS شدند. این pass فقط canonical host/cookie/egress contract را اثبات می‌کند؛ matrix واقعی سه host و تصاویر همچنان runtime evidence لازم دارد.
 - **RUNTIME HOST SMOKE — 2026-09-19 (deploy فعلی، read-only):** marketing روی `denali.shenski.com/tours` فهرست منتشرشده و linkهای canonical به portal را render کرد؛ مسیر registration پورتال روی `portal.denali.shenski.com/catalog/:tourId/register` tenant درست و session عضو را نگه داشت؛ admin روی `denali.admin.shenski.com/tours` به پنل اپراتور همان workspace رسید. این فقط smoke سه host است؛ login/logout، open-redirect منفی و تطبیق SHA اصلاحات T13 هنوز باقی است.
+- **FINAL LOCAL BROWSER PROOF — 2026-09-20:** اجرای واقعی Chromium با runtimeهای محلی تازه‌شده، هر سه surface را سبز کرد: marketing `/tours` با host canonical، portal `/login?portalReturn=%2Fme%2Fregistrations` با status `200` و حفظ return URL، و admin `/dashboard` با redirect صحیح به `/auth/login`. نتیجه `1 passed` و screenshot نهایی در `apps/marketing/test-results/` ثبت شد.
+- **FINAL GUARDS — 2026-09-20:** `guard:pcms-authority`، `guard:surface-cohesion`، `guard:surface-cohesion-smoke`، `guard:wrs-routing` و `guard:wrs-stale-docs` همگی PASS شدند. guardها برای مسیر canonical provider در PDP، helper upstream پروفایل SSR و parser واقعی YAML matrix اصلاح شدند؛ رفتار محصول تغییر نکرد.
+- **STATUS:** `VERIFIED_LOCALLY`؛ T13 با source contracts، guardها و browser proof Chromium روی runtime محلی تأیید شد. تطبیق deploy SHA همچنان خارج از این تأیید محلی است.
 
 ---
 
