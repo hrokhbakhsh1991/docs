@@ -255,6 +255,10 @@
     "paymentCollection": {
       "module": "./finance",
       "export": "resolveDenaliPaymentCollectionMode"
+    },
+    "registrationPaymentPlan": {
+      "module": "./finance",
+      "export": "resolveDenaliRegistrationPaymentPlan"
     }
   },
   "workspaceWallet": {

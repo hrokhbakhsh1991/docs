@@ -5,7 +5,7 @@
  */
 
 export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {
-  denali: {
+  "denali": {
     loadResolve: async () => {
       const mod = await import("@app-tour/workspace-denali/host/finance");
       return mod.resolveDenaliRegistrationObligationMinor;
