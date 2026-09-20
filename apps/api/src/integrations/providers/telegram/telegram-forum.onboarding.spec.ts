@@ -49,6 +49,34 @@ describe("Telegram forum onboarding", () => {
     assert.equal(result.config.topics.registration.threadId, 11);
   });
 
+  it("persists the mapping inside the provisioning lock", async () => {
+    let creates = 0;
+    let persisted = createTelegramForumConfig({ groupName: "denaliadmins" });
+    const config = () =>
+      provisionTelegramForum({
+        api: fakeApi({
+          createForumTopic: async (_chatId, name) => {
+            creates += 1;
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            return { message_thread_id: 100 + creates, name };
+          },
+        }),
+        chatId: "-1001",
+        config: persisted,
+        loadConfig: async () => persisted,
+        saveConfig: async (next) => {
+          persisted = next;
+        },
+      });
+
+    await Promise.all([config(), config()]);
+
+    assert.equal(creates, 3);
+    assert.equal(persisted.topics.registration.threadId, 101);
+    assert.equal(persisted.topics.receipts.threadId, 102);
+    assert.equal(persisted.topics.tickets.threadId, 103);
+  });
+
   it("fails closed when the bot lacks topic-management permission", async () => {
     await assert.rejects(
       provisionTelegramForum({

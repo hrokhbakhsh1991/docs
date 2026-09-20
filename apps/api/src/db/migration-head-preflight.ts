@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260913120000_registration_finalization_status";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260920100000_payment_destination_revision_history";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
@@ -25,8 +25,7 @@ export const REQUIRED_PRISMA_MIGRATION_NAMES = [
 ] as const;
 
 export const PRODUCTION_MIGRATION_HEAD_MISMATCH = "PRODUCTION_MIGRATION_HEAD_MISMATCH";
-export const PRODUCTION_MIGRATION_CHECKSUM_MISMATCH =
-  "PRODUCTION_MIGRATION_CHECKSUM_MISMATCH";
+export const PRODUCTION_MIGRATION_CHECKSUM_MISMATCH = "PRODUCTION_MIGRATION_CHECKSUM_MISMATCH";
 
 export type MigrationHeadRow = {
   readonly migration_name: string;

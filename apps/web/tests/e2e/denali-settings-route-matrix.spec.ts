@@ -7,8 +7,6 @@
  */
 import { expect, test, type BrowserContext } from "@playwright/test";
 
-import { DENALI_WORKSPACE_SURFACES_TEST_IDS } from "@app-tour/workspace-denali/host/exposure";
-
 import { AUDIT_TRAIL_TEST_IDS } from "../../src/features/settings/audit-trail-types";
 import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-module-types";
 import { WIZARD_TEMPLATE_TEST_IDS } from "../../src/features/settings/wizard-template-types";
@@ -21,7 +19,6 @@ import {
 
 const SETTINGS_ROUTES = [
   ["settings hub", "/settings", SETTINGS_HUB_TEST_IDS.page],
-  ["workspace owner", "/settings/workspace-owner", DENALI_WORKSPACE_SURFACES_TEST_IDS.panel],
   ["profile", "/settings/me", SETTINGS_HUB_TEST_IDS.profilePage],
   ["branding", "/settings/branding", SETTINGS_HUB_TEST_IDS.brandingPage],
   ["equipment", "/settings/equipment", SETTINGS_HUB_TEST_IDS.equipmentPage],
@@ -77,6 +74,24 @@ test.describe("Denali settings route matrix", () => {
       });
       expect(response?.status(), `${path} response`).toBe(200);
       await expect(page.getByTestId(marker), `${path} marker`).toBeVisible({ timeout: 30_000 });
+      if (path === "/settings/integrations") {
+        await page.screenshot({
+          path: "test-results/t07-integrations-settings.png",
+          fullPage: true,
+        });
+      }
     });
   }
+
+  test("workspace-owner stays access-denied for Denali", async ({ page }) => {
+    await page.context().addCookies(ownerSessionCookies);
+    const response = await page.goto("/settings/workspace-owner", {
+      waitUntil: "domcontentloaded",
+      timeout: 300_000,
+    });
+    expect(response?.status(), "/settings/workspace-owner response").toBe(200);
+    await expect(page.locator("[data-workspace-wizard-forbidden]")).toBeVisible({
+      timeout: 30_000,
+    });
+  });
 });

@@ -10,10 +10,10 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (registration_finalization_status)", () => {
+  it("expected head matches tip migration folder (payment_destination_revision_history)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260913120000_registration_finalization_status"
+      "20260920100000_payment_destination_revision_history"
     );
   });
 

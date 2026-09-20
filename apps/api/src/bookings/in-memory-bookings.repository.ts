@@ -169,7 +169,7 @@ function seedOperatorSmokeDevBookingsFixture(): void {
     id: "00000000-0000-4000-8000-000000000312",
     tenantId: OPERATOR_SMOKE_TENANT_ID,
     tourId: OPERATOR_SMOKE_SEED_TOUR_ID,
-    tourTitle: "Coastal Walk",
+    tourTitle: "North Ridge Trek",
     guestLabel: "Jamal Hosseini",
     guestEmail: null,
     guestPhone: "+15550002003",

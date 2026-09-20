@@ -34,6 +34,16 @@ function starterTourBody(
   };
 }
 
+function pricedTourBody(title: string, price: number): { data: Record<string, unknown> } {
+  return {
+    data: {
+      basics: { title },
+      details: { summary: title },
+      pricing: { basePricePerPerson: price },
+    },
+  };
+}
+
 installMemoryStorageDriverForDescribe();
 
 type OperatorListResponse = {
@@ -192,6 +202,32 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     await client.requestJson<OperatorListResponse>("POST", "/tours", {
       headers: operatorAuthHeaders(),
       body: starterTourBody("Zulu tour"),
+    });
+
+    it("BUG-002 sort_by=price orders numeric prices and leaves missing prices last", async () => {
+      await client.requestJson<OperatorListResponse>("POST", "/tours", {
+        headers: operatorAuthHeaders(),
+        body: pricedTourBody("Price high", 2_500_000),
+      });
+      await client.requestJson<OperatorListResponse>("POST", "/tours", {
+        headers: operatorAuthHeaders(),
+        body: pricedTourBody("Price low", 123_333),
+      });
+      await client.requestJson<OperatorListResponse>("POST", "/tours", {
+        headers: operatorAuthHeaders(),
+        body: starterTourBody("Price missing"),
+      });
+
+      const list = await client.requestJson<OperatorListResponse>(
+        "GET",
+        "/tours?view=operator&search=Price&sort_by=price&sort_dir=asc",
+        { headers: operatorAuthHeaders() }
+      );
+      assert.equal(list.status, 200);
+      assert.deepEqual(
+        list.body.items!.map((row) => row.title),
+        ["Price low", "Price high", "Price missing"]
+      );
     });
     await client.requestJson<OperatorListResponse>("POST", "/tours", {
       headers: operatorAuthHeaders(),

@@ -240,6 +240,10 @@ export function MemberReceiptUploadForm({
         `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
         {
           method: "POST",
+          headers:
+            panel.paymentDestination?.revision !== undefined
+              ? { "x-payment-destination-revision": panel.paymentDestination.revision }
+              : undefined,
           body,
         }
       );
@@ -271,6 +275,23 @@ export function MemberReceiptUploadForm({
       ) : null}
     </div>
   );
+
+  const paymentDestinationBlock =
+    panel.paymentDestination?.enabled === true ? (
+      <section data-portal-member-payment-destination aria-label="Payment destination">
+        <h3>Card-to-card payment</h3>
+        <p data-payment-destination-card-number>{panel.paymentDestination.cardNumber}</p>
+        <p>{panel.paymentDestination.cardHolderName}</p>
+        {panel.paymentDestination.bankName ? <p>{panel.paymentDestination.bankName}</p> : null}
+        {panel.paymentDestination.instructions ? (
+          <p>{panel.paymentDestination.instructions}</p>
+        ) : null}
+      </section>
+    ) : (
+      <p role="status" data-portal-member-payment-destination-unavailable>
+        Card-to-card payment is currently unavailable.
+      </p>
+    );
 
   const remainingMinor = panel.remainingMinor;
   const remainingDue =
@@ -417,6 +438,7 @@ export function MemberReceiptUploadForm({
         body={t("waitingBody")}
       >
         {dueBlock}
+        {paymentDestinationBlock}
         {previewBlock}
         {actionLinks}
       </ReceiptStateCard>
@@ -462,7 +484,11 @@ export function MemberReceiptUploadForm({
         <button
           type="button"
           data-portal-member-receipt-submit
-          disabled={uploadPhase === "uploading" || selectedFile === undefined}
+          disabled={
+            uploadPhase === "uploading" ||
+            selectedFile === undefined ||
+            panel.paymentDestination?.enabled !== true
+          }
           onClick={() => void uploadReceipt()}
         >
           {uploadPhase === "uploading" ? t("uploading") : t("submit")}

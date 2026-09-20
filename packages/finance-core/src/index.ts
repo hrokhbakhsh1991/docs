@@ -88,6 +88,8 @@ export type {
   FinanceReceiptDefaultsPort,
   FinanceRegistrationObligation,
   FinanceReceiptRow,
+  PaymentDestinationRevision,
+  PaymentReceiptDestinationSnapshot,
   FinanceRegistrationDisplay,
   FinanceRepositoryPort,
   FinanceSchedulePort,

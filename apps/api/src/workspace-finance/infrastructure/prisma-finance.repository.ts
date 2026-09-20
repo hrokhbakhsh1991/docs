@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import crypto from "node:crypto";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
 import {
@@ -34,6 +35,8 @@ import type {
   FinanceTourPaymentAggregateRow,
   FinanceTransactionPort,
   IBookingPaymentPort,
+  PaymentDestinationRevision,
+  PaymentReceiptDestinationSnapshot,
   ListFinanceExceptionSourcesResult,
   ListOutstandingBalanceCandidatesResult,
   ListPendingReceiptsPage,
@@ -602,6 +605,20 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
             ...(input.idempotencyKeyHash !== undefined
               ? { idempotencyKeyHash: input.idempotencyKeyHash }
               : {}),
+            ...(input.destinationSnapshot === undefined
+              ? {}
+              : {
+                  destinationSnapshot: {
+                    create: {
+                      tenantId: input.tenantId,
+                      revision: input.destinationSnapshot.revision,
+                      cardNumber: input.destinationSnapshot.cardNumber,
+                      cardHolderName: input.destinationSnapshot.cardHolderName,
+                      bankName: input.destinationSnapshot.bankName,
+                      instructions: input.destinationSnapshot.instructions,
+                    },
+                  },
+                }),
           },
           include: {
             payment: {
@@ -636,6 +653,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
               : { correlationId: input.outboxEvent.correlationId }),
           });
         }
+
         return toFinanceReceiptRow(row);
       } catch (error) {
         if (
@@ -678,6 +696,63 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         }
         throw error;
       }
+    });
+  }
+
+  async putPaymentDestinationRevision(input: {
+    readonly tenantId: string;
+    readonly cardNumber: string;
+    readonly cardHolderName: string;
+    readonly bankName?: string | null;
+    readonly instructions?: string | null;
+    readonly actorUserId?: string | null;
+  }): Promise<PaymentDestinationRevision> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      const row = await tx.paymentDestinationRevision.create({
+        data: {
+          tenantId: input.tenantId,
+          revision: crypto.randomUUID(),
+          cardNumber: input.cardNumber,
+          cardHolderName: input.cardHolderName,
+          bankName: input.bankName ?? null,
+          instructions: input.instructions ?? null,
+          actorUserId: input.actorUserId ?? null,
+        },
+      });
+      return row;
+    });
+  }
+
+  async findPaymentDestinationRevision(
+    tenantId: string,
+    revision?: string
+  ): Promise<PaymentDestinationRevision | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.paymentDestinationRevision.findFirst({
+        where: { tenantId, ...(revision === undefined ? {} : { revision }) },
+        orderBy: revision === undefined ? { createdAt: "desc" } : undefined,
+      });
+      return row;
+    });
+  }
+
+  async findPaymentReceiptDestinationSnapshot(
+    tenantId: string,
+    receiptId: string
+  ): Promise<PaymentReceiptDestinationSnapshot | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.paymentReceiptDestinationSnapshot.findFirst({
+        where: { tenantId, paymentReceiptId: receiptId },
+      });
+      return row === null
+        ? null
+        : {
+            revision: row.revision,
+            cardNumber: row.cardNumber,
+            cardHolderName: row.cardHolderName,
+            bankName: row.bankName,
+            instructions: row.instructions,
+          };
     });
   }
 

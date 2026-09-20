@@ -35,17 +35,30 @@ function read(rel) {
  * @param {"static" | "e2e"} section
  */
 function parseMatrixSection(raw, section) {
-  const marker = `${section}:`;
-  const start = raw.indexOf(marker);
-  if (start === -1) {
+  const lines = raw.split(/\r?\n/);
+  const sectionIndex = lines.findIndex((line) => line.trim() === `${section}:`);
+  if (sectionIndex === -1) {
     return [];
   }
-  const after = raw.slice(start + marker.length);
-  const nextSection = after.search(/^[a-z][a-z0-9_-]*:/m);
-  const block = nextSection === -1 ? after : after.slice(0, nextSection);
-  return [...block.matchAll(/- id: ([^\n]+)\n(?:.*\n)*?    spec: ([^\n]+)/g)].map(
-    ([, id, specRel]) => ({ id: id.trim(), specRel: specRel.trim() })
-  );
+
+  const hooks = [];
+  let current = null;
+  for (const line of lines.slice(sectionIndex + 1)) {
+    if (/^[a-z][a-z0-9_-]*:\s*$/.test(line)) {
+      break;
+    }
+    const idMatch = line.match(/^\s+- id:\s*(.+)$/);
+    if (idMatch) {
+      current = { id: idMatch[1].trim(), specRel: null };
+      hooks.push(current);
+      continue;
+    }
+    const specMatch = line.match(/^\s+spec:\s*(.+)$/);
+    if (specMatch && current) {
+      current.specRel = specMatch[1].trim();
+    }
+  }
+  return hooks.filter((hook) => hook.specRel);
 }
 
 if (!fs.existsSync(MATRIX_PATH)) {

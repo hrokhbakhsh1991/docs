@@ -18,6 +18,8 @@ import type {
   FinancePaymentRow,
   FinancePrepaymentListRow,
   FinanceReceiptRow,
+  PaymentDestinationRevision,
+  PaymentReceiptDestinationSnapshot,
   FinanceRefundRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
@@ -60,6 +62,9 @@ let receiptsById = new Map<string, StoredReceipt>();
 let ledgerEvents: StoredLedgerEvent[] = [];
 let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
 let refundsById = new Map<string, FinanceRefundRow>();
+let destinationRevisionsByTenant = new Map<string, Map<string, PaymentDestinationRevision>>();
+let currentDestinationRevisionByTenant = new Map<string, string>();
+let receiptDestinationSnapshots = new Map<string, PaymentReceiptDestinationSnapshot & { tenantId: string }>();
 let registrationCandidateClocksById = new Map<
   string,
   { readonly tenantId: string; readonly occurredAt: Date }
@@ -82,6 +87,9 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   ledgerEvents = [];
   prepaymentsByDomainEventId = new Map();
   refundsById = new Map();
+  destinationRevisionsByTenant = new Map();
+  currentDestinationRevisionByTenant = new Map();
+  receiptDestinationSnapshots = new Map();
   registrationCandidateClocksById = new Map();
 }
 
@@ -324,7 +332,74 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         : {}),
     };
     receiptsById.set(receipt.id, receipt);
+    if (input.destinationSnapshot !== undefined) {
+      const revision = await this.findPaymentDestinationRevision(
+        input.tenantId,
+        input.destinationSnapshot.revision
+      );
+      if (revision === null) {
+        throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
+      }
+      receiptDestinationSnapshots.set(receipt.id, {
+        tenantId: input.tenantId,
+        revision: revision.revision,
+        cardNumber: revision.cardNumber,
+        cardHolderName: revision.cardHolderName,
+        bankName: revision.bankName,
+        instructions: revision.instructions,
+      });
+    }
     return receipt;
+  }
+
+  async putPaymentDestinationRevision(input: {
+    readonly tenantId: string;
+    readonly cardNumber: string;
+    readonly cardHolderName: string;
+    readonly bankName?: string | null;
+    readonly instructions?: string | null;
+    readonly actorUserId?: string | null;
+  }): Promise<PaymentDestinationRevision> {
+    const revision: PaymentDestinationRevision = {
+      tenantId: input.tenantId,
+      revision: randomUUID(),
+      cardNumber: input.cardNumber,
+      cardHolderName: input.cardHolderName,
+      bankName: input.bankName ?? null,
+      instructions: input.instructions ?? null,
+      actorUserId: input.actorUserId ?? null,
+      createdAt: new Date(),
+    };
+    const history = destinationRevisionsByTenant.get(input.tenantId) ?? new Map();
+    history.set(revision.revision, revision);
+    destinationRevisionsByTenant.set(input.tenantId, history);
+    currentDestinationRevisionByTenant.set(input.tenantId, revision.revision);
+    return revision;
+  }
+
+  async findPaymentDestinationRevision(
+    tenantId: string,
+    revision?: string
+  ): Promise<PaymentDestinationRevision | null> {
+    const key = revision ?? currentDestinationRevisionByTenant.get(tenantId);
+    if (key === undefined) return null;
+    return destinationRevisionsByTenant.get(tenantId)?.get(key) ?? null;
+  }
+
+  async findPaymentReceiptDestinationSnapshot(
+    tenantId: string,
+    receiptId: string
+  ): Promise<PaymentReceiptDestinationSnapshot | null> {
+    const snapshot = receiptDestinationSnapshots.get(receiptId);
+    return snapshot === undefined || snapshot.tenantId !== tenantId
+      ? null
+      : {
+          revision: snapshot.revision,
+          cardNumber: snapshot.cardNumber,
+          cardHolderName: snapshot.cardHolderName,
+          bankName: snapshot.bankName,
+          instructions: snapshot.instructions,
+        };
   }
 
   async findReceiptById(tenantId: string, receiptId: string): Promise<FinanceReceiptRow | null> {

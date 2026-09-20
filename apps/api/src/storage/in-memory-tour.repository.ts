@@ -74,13 +74,7 @@ function compareInMemoryOperatorTours(
     }
     delta = (leftDate ?? "").localeCompare(rightDate ?? "");
   } else if (sortBy === "price") {
-    return compareOperatorTourPrices(
-      left.canonical,
-      right.canonical,
-      left.id,
-      right.id,
-      sortDir
-    );
+    return compareOperatorTourPrices(left.canonical, right.canonical, left.id, right.id, sortDir);
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
   }

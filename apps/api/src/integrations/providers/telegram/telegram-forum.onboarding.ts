@@ -18,11 +18,51 @@ export type ProvisionedTelegramForum = {
   readonly config: TelegramForumConfig;
 };
 
+const provisioningLocks = new Map<string, Promise<void>>();
+
+async function withProvisioningLock<T>(key: string, operation: () => Promise<T>): Promise<T> {
+  const previous = provisioningLocks.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const queued = previous.then(() => current);
+  provisioningLocks.set(key, queued);
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (provisioningLocks.get(key) === queued) {
+      provisioningLocks.delete(key);
+    }
+  }
+}
+
 /** Binds one Workspace connection to one Telegram Forum supergroup. */
 export async function provisionTelegramForum(input: {
   readonly api: TelegramApiClient;
   readonly config: TelegramForumConfig;
   readonly chatId: string;
+  /**
+   * Persistence seams make the idempotency boundary include the database
+   * write, not only the Telegram API call. Callers backed by a connection
+   * should reload and save inside this lock.
+   */
+  readonly loadConfig?: () => Promise<TelegramForumConfig>;
+  readonly saveConfig?: (config: TelegramForumConfig) => Promise<void>;
+}): Promise<ProvisionedTelegramForum> {
+  return withProvisioningLock(input.chatId, async () => {
+    const config = input.loadConfig === undefined ? input.config : await input.loadConfig();
+    return provisionTelegramForumLocked({ ...input, config });
+  });
+}
+
+async function provisionTelegramForumLocked(input: {
+  readonly api: TelegramApiClient;
+  readonly config: TelegramForumConfig;
+  readonly chatId: string;
+  readonly saveConfig?: (config: TelegramForumConfig) => Promise<void>;
 }): Promise<ProvisionedTelegramForum> {
   const bot = await input.api.getMe();
   const chat = await input.api.getChat(input.chatId);
@@ -58,7 +98,7 @@ export async function provisionTelegramForum(input: {
     }
   }
 
-  return {
+  const result = {
     bot,
     chat,
     config: createTelegramForumConfig({
@@ -67,4 +107,6 @@ export async function provisionTelegramForum(input: {
       topics: Object.fromEntries(topicEntries) as TelegramForumConfig["topics"],
     }),
   };
+  await input.saveConfig?.(result.config);
+  return result;
 }

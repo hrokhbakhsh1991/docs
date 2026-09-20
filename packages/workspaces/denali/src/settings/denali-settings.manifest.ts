@@ -9,7 +9,7 @@ import {
 } from "@app-tour/workspace-sdk";
 import { isKnownEquipmentIconKey } from "./equipment-icon-registry";
 
-const DENALI_SETTINGS_MODULES = Object.freeze([
+const DENALI_SETTINGS_MODULES: readonly SettingsModuleManifest[] = Object.freeze([
   Object.freeze({
     id: "workspace_branding",
     kind: "readonly_explorer",
@@ -110,7 +110,16 @@ const DENALI_SETTINGS_MODULES = Object.freeze([
     ability: "operator.settings.audit_trail",
     nav: Object.freeze({ group: "finance_ops", labelKey: "settings.audit_trail" }),
   }),
-] as const satisfies readonly SettingsModuleManifest[]);
+  Object.freeze({
+    id: "payment_destination",
+    kind: "tenant_config",
+    route: "settings/payment-destination",
+    ability: "operator.settings.payment_destination",
+    nav: Object.freeze({ group: "finance_ops", labelKey: "settings.payment_destination" }),
+    configKey: "payment_destination",
+    configVersion: 1,
+  }),
+] as const);
 
 validateSettingsManifest(DENALI_SETTINGS_MODULES);
 
