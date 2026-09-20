@@ -327,6 +327,10 @@
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
     },
+    "./host/settings/owner-panel": {
+      "types": "./dist/settings/denali-owner-settings-panel.d.ts",
+      "default": "./dist/settings/denali-owner-settings-panel.js"
+    },
     "./errors/tour-mutation": {
       "types": "./dist/http/errors/denali-tour-mutation.error.d.ts",
       "default": "./dist/http/errors/denali-tour-mutation.error.js"

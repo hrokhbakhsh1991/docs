@@ -295,4 +295,5 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
     assert.equal(rules[0]?.id, "rule-1");
     assert.equal(wasTenantConfigInvalidated(OPERATOR_SMOKE.tenantId, "presets_advanced"), true);
   });
+
 });

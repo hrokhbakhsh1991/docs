@@ -207,7 +207,7 @@ SHA/PR:
 |          2 | T01 — قرارداد جستجو، فیلتر و مرتب‌سازی                   | P0     | T00                                     | `VERIFIED_LOCALLY`             | همهٔ لیست‌های مدیریت تور به آن وابسته‌اند |
 |          3 | T13 — سازگاری marketing/portal/admin و routing/session/assets | P0 | T00                                  | `IN_PROGRESS`                  | خطای host، session یا tenant کل فلو را بی‌اعتبار می‌کند |
 |          4 | T03 — یکسان‌سازی summary و فهرست مالی                   | P1     | T00                                     | `VERIFIED_LOCALLY`             | منبع اعداد پرداخت، بدهی و وضعیت settlement باید یکی باشد |
-|          5 | T05-CARD — تنظیم مقصد پرداخت کارت‌به‌کارت و نمایش پورتال | P0     | T00, T03                                | `SOURCE_FIXED_RETEST_REQUIRED` | پرداخت بدون مقصد معتبر یا snapshot امن قابل قبول نیست |
+|          5 | T05-CARD — تنظیم مقصد پرداخت کارت‌به‌کارت و نمایش پورتال | P0     | T00, T03                                | `VERIFIED_LOCALLY`             | پرداخت بدون مقصد معتبر یا snapshot امن قابل قبول نیست |
 |          6 | T02 — یکسان‌سازی ظرفیت و عنوان تور                      | P1     | T01                                     | `VERIFIED_LOCALLY`             | ظرفیت/عنوان نادرست مستقیماً روی ثبت‌نام اثر می‌گذارد |
 |          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                   | P1     | T02, T03                                | `VERIFIED_LOCALLY`             | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد |
 |          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`                  | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه |
@@ -792,6 +792,7 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 - `settings-config-version.spec.ts` — 12/12 PASS؛ normalization، read-after-write، checksum و منع خواندن config کامل برای نقش غیرمجاز بررسی شد.
 - `payment-destination-member-projection.spec.ts` — 2/2 PASS؛ شرط approved/payable و tenant isolation بررسی شد.
 - `payment-destination-revision.spec.ts` — 1/1 PASS؛ revision روی receipt مستقل از config فعلی ذخیره و tenant-isolated است.
+- **BROWSER RETEST — 2026-09-20:** اجرای رسمی `t05-card-settings-browser.spec.ts` روی runtime محلی Denali با owner login، بازکردن `/settings/payment-destination`، فعال‌سازی مقصد و ذخیرهٔ شماره کارت/دارنده/بانک — **1/1 PASS**؛ پیام موفقیت `مقصد پرداخت با موفقیت ذخیره شد.` نمایش داده شد و خطای UI وجود نداشت. Screenshot نهایی در artifact مرورگر `apps/web/test-results/t05-card-payment-destination.png` ثبت شد.
 - `p6-offline-receipt-gate.spec.ts` — 4/4 PASS؛ unavailable gate و header revision در زنجیرهٔ receipt ثبت شد.
 - portal receipt BFF/registrations tests — 18/18 PASS؛ ارسال revision، copy و unavailable marker بررسی شد.
 - **REVALIDATION — 2026-09-19:** API suites در processهای مستقل دوباره PASS شدند: settings/card `12/12`، member receipt `7/7`، offline gate `4/4`، member projection `2/2` و revision persistence `1/1`. Portal receipt BFF و registrationها نیز `18/18 PASS` شدند. warning رسانهٔ Telegram در receipt test، fail-safe مربوط به media test fixture است و failure test یا افشای card data نیست.
@@ -801,6 +802,11 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 - **ROOT CAUSE / INTEGRITY GAP — 2026-09-19:** `readPaymentDestinationRevision` در route فقط regex/طول header را می‌سنجد و `assertMemberManualPaymentDestination` فقط وجود config جاری را بررسی می‌کند. هیچ lookup tenant-scoped برای اثبات تعلق revision به مقصد A/B وجود ندارد؛ در نتیجه revision معتبر از نظر syntax اما ساختگی قابل persist شدن است، و revision A پس از جایگزینی config با B قابل validate/retrieve نیست. تست `payment-destination-revision.spec.ts` صرفاً ذخیره‌سازی opaque value را پوشش می‌دهد، نه ownership/race. این یک P0 data-integrity gap است؛ snapshot/lookup اتمیک باید آن را ببندد.
 
 #### زیرتسک T05-CARD-RACE — snapshot غیرقابل‌تغییر مقصد پرداخت
+
+> **Implementation update (2026-09-20):** immutable tenant-scoped destination revision history,
+> one-to-one receipt snapshots, server-side revision resolution, fail-closed unknown/cross-tenant
+> handling, and idempotent A→B race coverage are now wired for the finance memory and Prisma
+> repositories. Card fields remain server-only and are excluded from receipt DTOs/outbox payloads.
 
 **گیت عدم تکرار:** پیش از تغییر، migration موجود `20260918193000_payment_receipt_destination_revision`، contract `CreateReceiptInput`، repositoryهای memory/Prisma و مسیر submit را trace کن؛ table/history موازی یا cache دوم نساز.
 

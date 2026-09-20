@@ -44,6 +44,7 @@ import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancella
 import { cancelTourRegistrations } from "./tour-cancellation.service.ts";
 import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
+import { getPaymentDestinationMemberProjection } from "../settings/settings-config.service";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -316,6 +317,9 @@ export async function handlePostBookingReceipt(
             registrationId: bookingId,
             fileKey: body.fileKey,
             ...(body.note !== undefined ? { note: body.note } : {}),
+            ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
+              ? { destinationRevision: readHeader(req, "x-payment-destination-revision").trim() }
+              : {}),
           });
           sendJson(res, 201, receipt);
         },
@@ -351,6 +355,9 @@ export async function handlePostBookingReceipt(
             financeService.submitMemberReceiptForRegistration(auth, {
               registrationId: bookingId,
               fileKey,
+              ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
+                ? { destinationRevision: readHeader(req, "x-payment-destination-revision").trim() }
+                : {}),
             }),
         });
         sendJson(res, 201, receipt);
@@ -378,7 +385,8 @@ export async function handleGetBookingReceiptStatus(
       async () => {
         const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
         const status = await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
-        sendJson(res, 200, status);
+        const destination = await getPaymentDestinationMemberProjection(auth.tenantId);
+        sendJson(res, 200, { ...status, paymentDestination: destination });
       },
       { rateLimit: "read" }
     );

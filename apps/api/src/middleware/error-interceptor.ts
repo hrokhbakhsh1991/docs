@@ -355,6 +355,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
   if (message === "FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING") return 409;
   if (message === "FINANCE_RECEIPT_NOT_REQUIRED") return 409;
+  if (message === "PAYMENT_DESTINATION_REVISION_UNAVAILABLE") return 409;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") return 409;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_FAILED") return 409;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") return 500;

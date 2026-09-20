@@ -23,6 +23,7 @@ export const submitReceiptBodySchema = z
     paymentId: uuidSchema,
     fileKey: z.string().min(1).max(512),
     note: z.string().max(2000).optional(),
+    destinationRevision: z.string().min(1).max(128).optional(),
   })
   .strict();
 

@@ -25,6 +25,8 @@ model Tenant {
   tenantRoute                 TenantRoute?
   payments                    Payment[]
   paymentReceipts             PaymentReceipt[]
+  paymentDestinationRevisions PaymentDestinationRevision[]
+  paymentReceiptDestinationSnapshots PaymentReceiptDestinationSnapshot[]
   financeSchedules            FinanceSchedule[]
   financeCommercialQuotes     FinanceCommercialQuote[]
   financePaymentHolds         FinancePaymentHold[]
@@ -433,11 +435,50 @@ model PaymentReceipt {
   updatedAt          DateTime  @updatedAt @map("updated_at")
   tenant             Tenant    @relation(fields: [tenantId], references: [id])
   payment            Payment   @relation(fields: [paymentId], references: [id])
+  destinationSnapshot PaymentReceiptDestinationSnapshot?
 
   @@unique([tenantId, idempotencyKeyHash])
   @@index([tenantId, status])
   @@index([tenantId, paymentId])
   @@map("payment_receipts")
+}
+
+/// Immutable, tenant-scoped payment destination history.
+model PaymentDestinationRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  revision        String   @unique
+  cardNumber      String   @map("card_number")
+  cardHolderName  String   @map("card_holder_name")
+  bankName        String?  @map("bank_name")
+  instructions    String?
+  actorUserId     String?  @map("actor_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  snapshots       PaymentReceiptDestinationSnapshot[]
+
+  @@unique([tenantId, revision])
+  @@index([tenantId, createdAt])
+  @@map("payment_destination_revisions")
+}
+
+/// One-to-one server-only destination snapshot captured with a receipt.
+model PaymentReceiptDestinationSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  paymentReceiptId String @unique @map("payment_receipt_id") @db.Uuid
+  revision       String
+  cardNumber     String   @map("card_number")
+  cardHolderName String   @map("card_holder_name")
+  bankName       String?  @map("bank_name")
+  instructions   String?
+  tenant         Tenant  @relation(fields: [tenantId], references: [id])
+  receipt        PaymentReceipt @relation(fields: [paymentReceiptId], references: [id], onDelete: Cascade)
+  destinationRevisionRecord PaymentDestinationRevision @relation(fields: [tenantId, revision], references: [tenantId, revision])
+
+  @@unique([tenantId, paymentReceiptId])
+  @@index([tenantId, revision])
+  @@map("payment_receipt_destination_snapshots")
 }
 
 /// Phase 9.7 R3 — installment / deposit schedule rows (one per sequence slot).
