@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
+
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import { SettingsPageShell } from "@/admin/patterns/settings-page-shell";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -134,9 +136,8 @@ export function PaymentDestinationSettingsClient({ session }: Props) {
         </CardHeader>
         <CardContent className="space-y-5">
           {loading ? <p role="status">در حال بارگذاری…</p> : null}
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-2 text-sm">
+            <Checkbox
               data-testid={PAYMENT_DESTINATION_SETTINGS_TEST_IDS.enabled}
               checked={payload.enabled}
               disabled={!canManage || loading || saving}
@@ -145,7 +146,7 @@ export function PaymentDestinationSettingsClient({ session }: Props) {
               }
             />
             مقصد پرداخت فعال است
-          </label>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={PAYMENT_DESTINATION_SETTINGS_TEST_IDS.cardNumber}>شماره کارت</Label>
