@@ -25,7 +25,7 @@
 
 | ID | اولویت | وضعیت | یافته | معیار بسته‌شدن |
 |---|---|---|---|---|
-| DENALI-001 | P1 | OPEN | تب transport roster پیام unavailable می‌دهد؛ علت API هنوز ثبت نشده. | status پاسخ، log علت، fixture سالم و دو load موفق. |
+| DENALI-001 | P1 | BLOCKED | تب transport roster پیام unavailable می‌دهد؛ علت API هنوز ثبت نشده. | status پاسخ، log علت، fixture سالم و دو load موفق. |
 | DENALI-002 | P2 | OPEN | React hydration error `#418` در transport route. | build تمیز و دو navigation بدون console error. |
 | DENALI-003 | P2 | OPEN | `bookings.status.actionable` در fa ناقص و در UI خام نمایش داده می‌شود. | fa/en label معتبر و تست locale completeness سبز. |
 | DENALI-004 | P2 | OPEN | route ناشناخته Admin به generic 500 می‌رسد، نه 404. | 404 استاندارد، بدون stack داخلی. |
@@ -34,6 +34,19 @@
 | DENALI-007 | P1 | OPEN | unknown Portal route/API به generic 500 می‌رسد. | 404/400 قراردادشده و بدون stack. |
 | DENALI-008 | P0 | OPEN | tenant resolution به forwarded-host قابل‌دسترس از client اعتماد می‌کند. | spoof دو tenant رد شود و proxy trusted اثبات شود. |
 | DENALI-AUTH-001 | P2 | BLOCKED | fixture رسمی login محلی با فرم پذیرفته نشد؛ bypass ممنوع است. | identity رسمی پذیرفته یا قرارداد fixture اصلاح شود. |
+
+### DENALI-001 evidence
+
+- **blocker:** fixture رسمی Denali برای browser و PostgreSQL در این محیط قابل اجرا نیست؛ Docker Desktop در دسترس نیست و `127.0.0.1:5434` پاسخ نمی‌دهد.
+- **attempted_proof:** اجرای `node .\apps\web\scripts\th1-e2e-servers.mjs` با exit code `1`؛ بررسی healthهای `http://127.0.0.1:3000/` و `http://127.0.0.1:3001/health` ناموفق؛ اجرای `docker ps` با خطای عدم اتصال به Docker API.
+- **browser_url:** قابل ثبت نیست؛ surface محلی قبل از login و route transport بالا نیامد.
+- **visible_result:** قابل مشاهده نیست؛ browser proof انجام نشد.
+- **console_error_count:** قابل اندازه‌گیری نیست؛ صفحه/fixture اجرا نشد.
+- **network_result:** قابل اندازه‌گیری نیست؛ درخواست roster با fixture معتبر ارسال نشد.
+- **screenshot_or_dom_assertion:** موجود نیست؛ به‌دلیل blocker هیچ DOM assertion معتبر ثبت نشد.
+- **next_action:** اجرای fixture PostgreSQL رسمی و سپس بازتولید route `/tours/00000000-0000-0000-0000-000000000220/workspace?tab=transport` با دو load متوالی.
+- **owner:** QA/infra owner محیط Denali staging.
+- **source_sha:** `ed98bf5c22116835c607699fc9af2a37ed494a7b`.
 
 ## 2. تسک‌های قابل‌اجرا
 
