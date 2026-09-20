@@ -482,6 +482,7 @@ export function MemberReceiptUploadForm({
         <p>{t("uploadLede")}</p>
       </div>
       {dueBlock}
+      {paymentDestinationBlock}
       {receiptStatus === "rejected" ? (
         <p role="status" data-portal-member-receipt-rejected-hint>
           {t("rejectedHint")}
