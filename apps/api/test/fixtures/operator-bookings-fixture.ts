@@ -56,7 +56,7 @@ export function seedOperatorBookingsFixture(): void {
     id: "00000000-0000-4000-8000-000000000312",
     tenantId: OPERATOR_SMOKE.tenantId,
     tourId: OPERATOR_SMOKE.seedTourId,
-    tourTitle: "Coastal Walk",
+    tourTitle: "North Ridge Trek",
     guestLabel: "Jamal Hosseini",
     guestEmail: null,
     guestPhone: "+15550002003",
