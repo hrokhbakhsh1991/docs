@@ -57,11 +57,6 @@ function compareInMemoryOperatorTours(
   let delta = 0;
   if (sortBy === "title") {
     delta = (leftProj.title ?? "").localeCompare(rightProj.title ?? "");
-  } else if (sortBy === "price") {
-    delta = compareOperatorTourPrices(left.canonical, right.canonical, sortDir);
-    if (delta !== 0) {
-      return delta;
-    }
   } else if (sortBy === "departure_at") {
     const leftDate =
       typeof left.canonical.data?.startDateTime === "string"

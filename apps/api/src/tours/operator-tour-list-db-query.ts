@@ -1,7 +1,5 @@
 import type { Prisma } from "@prisma/client";
 
-import type { CanonicalDocument } from "@app-tour/workspace-sdk";
-
 import type {
   OperatorListSortBy,
   OperatorListSortDir,
@@ -18,42 +16,6 @@ export const OPERATOR_TOUR_LIST_SELECT = {
   publishStatus: true,
   startDate: true,
 } as const satisfies Prisma.TourSelect;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object";
-}
-
-export function readOperatorTourPrice(canonical: unknown): number | null {
-  if (!isRecord(canonical) || !isRecord(canonical.data)) {
-    return null;
-  }
-  const pricing =
-    canonical.data.pricing ?? (isRecord(canonical.data.tour) ? canonical.data.tour.pricing : null);
-  if (!isRecord(pricing) || typeof pricing.basePricePerPerson !== "number") {
-    return null;
-  }
-  return Number.isFinite(pricing.basePricePerPerson) && pricing.basePricePerPerson >= 0
-    ? pricing.basePricePerPerson
-    : null;
-}
-
-export function compareOperatorTourPrices(
-  left: CanonicalDocument,
-  right: CanonicalDocument,
-  sortDir: OperatorListSortDir
-): number {
-  const leftPrice = readOperatorTourPrice(left);
-  const rightPrice = readOperatorTourPrice(right);
-  let delta = 0;
-  if (leftPrice === null && rightPrice !== null) {
-    delta = 1;
-  } else if (leftPrice !== null && rightPrice === null) {
-    delta = -1;
-  } else if (leftPrice !== null && rightPrice !== null) {
-    delta = leftPrice - rightPrice;
-  }
-  return sortDir === "asc" ? delta : -delta;
-}
 
 export function publishStatusesForOperatorFilter(
   status: OperatorListStatusFilter
