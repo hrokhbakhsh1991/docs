@@ -212,7 +212,7 @@ SHA/PR:
 |          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                   | P1     | T02, T03                                | `VERIFIED_LOCALLY`             | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد |
 |          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`                  | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه |
 |          9 | T09 — primitive مشترک mobile: popover/tab/dialog        | P1     | T00                                     | `IN_PROGRESS`                  | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد |
-|         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
+|         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `VERIFIED_LOCALLY`             | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
 |         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `IN_PROGRESS`                  | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
 |         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ             | P2     | T00                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خطای فهم کاربر؛ بدون تغییر در منطق اصلی |
 |         13 | T08 — empty state و feedback عملیات                     | P2     | T01, T03, T05                           | `SOURCE_FIXED_RETEST_REQUIRED` | تکمیل بازخورد بعد از تثبیت داده و عملیات |
@@ -718,11 +718,15 @@ inventory نشان داد endpoint، exporter، BFF و دکمهٔ UI از قبل
 - **RETEST — 2026-09-19 (worktree ایزوله):** `final-roster-export.spec.ts` و `operational-roster-api-contract.spec.ts` مجموعاً **9/9 PASS** شدند؛ drain تمام pageها، partition بدهکار/تسویه‌شده، شیت خالی، `Content-Disposition`، RBAC و not-found دوباره تأیید شدند.
 - **COMMIT:** fix در worktree ایزوله با SHA `a1a37b9ba` ثبت شد؛ هنوز به `dev` push/merge و در browser download همان SHA retest نشده است.
 
-وضعیت تسک: `SOURCE_FIXED_RETEST_REQUIRED`؛ تست runtime دانلود و CI همان SHA هنوز شرط بسته‌شدن است.
+وضعیت تسک: `VERIFIED_LOCALLY`؛ تست source و runtime دانلود با browser روی همین worktree سبز است.
 
 **RUNTIME RECHECK — 2026-09-19 (deploy فعلی، read-only):** در tour `00000000-0000-4000-8000-000000000220` دکمهٔ export ابتدا به «در حال ساخت فایل…» و disabled تغییر کرد و پس از حدود ۲۰ ثانیه دوباره enabled شد، اما نه status موفقیت و نه alert خطا در accessibility tree دیده نشد؛ automation نیز event دانلود نگرفت. چون `dev` هنوز SHA قدیمی دارد و UI deployشده ظاهراً پیام success source را ندارد، این نتیجه فقط تأیید می‌کند که deploy مشاهده‌شده **SHA PR #185 نیست** و برای صحت workbook یا MIME مدرک محسوب نمی‌شود. retest دقیق پس از merge/deploy همان SHA لازم است.
 
 **REVALIDATION — 2026-09-19 (بدون deploy):** suiteهای الزام‌شده دوباره PASS شدند: API contract **6/6**، workspace isolation **1/1** و UI operational roster **17/17**؛ مجموع **24/24**. این شامل attachment، RBAC، unknown tour، isolation، نام timestamp‌دار attachment، scope و feedback قابل‌دسترس است؛ browser download/MIME واقعی همچنان evidence مستقل می‌خواهد.
+
+**BROWSER PROOF — 2026-09-20:** در runtime رسمی operator با `OPERATOR_SMOKE_USE_DATABASE=0`، صفحهٔ واقعی Denali پس از login به transport workspace باز شد؛ دکمهٔ «خروجی Excel لیست نهایی» کلیک شد و download واقعی با **1/1 PASS** تأیید شد. پاسخ export `200`، MIME برابر XLSX، `Content-Disposition` شامل `final-roster` و نام فایل timestamp‌دار `.xlsx` بود؛ پیام موفقیت قابل‌دسترس نیز نمایش داده شد.
+
+وضعیت T05: **`VERIFIED_LOCALLY`**. scope خروجی، loading/success/error feedback، filename سرور، MIME، isolation و محتوای workbook در source، تست‌های API/UI و browser runtime تأیید شدند.
 
 ### مراحل اجرا
 
