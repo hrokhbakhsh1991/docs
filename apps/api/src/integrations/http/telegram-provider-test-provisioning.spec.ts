@@ -44,7 +44,7 @@ describe("Telegram provider test topic provisioning", () => {
     });
   });
 
-  it("does not call Telegram when the registration topic is already persisted", async () => {
+  it("repairs missing receipts and tickets topics even when registration is already persisted", async () => {
     let getMeCalls = 0;
     const result = await ensureTelegramProviderTestRegistrationTopic({
       config: { chatId: "-1001", groupName: "denaliAdmins", topicThreadIds: { registration: 101 } },
@@ -58,12 +58,38 @@ describe("Telegram provider test topic provisioning", () => {
         }),
     });
 
-    assert.deepEqual(result, {
-      ok: true,
-      config: { chatId: "-1001", groupName: "denaliAdmins", topicThreadIds: { registration: 101 } },
-      threadId: 101,
-      provisioned: false,
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.threadId, 101);
+    assert.equal(result.provisioned, true);
+    assert.equal(getMeCalls, 1);
+    assert.deepEqual(result.config.topicThreadIds, {
+      registration: 101,
+      receipts: "بررسی فیش‌ها".length,
+      tickets: "تیکت‌ها".length,
     });
+  });
+
+  it("does not call Telegram when all forum topics are already persisted", async () => {
+    let getMeCalls = 0;
+    const config = {
+      chatId: "-1001",
+      groupName: "denaliAdmins",
+      topicThreadIds: { registration: 101, receipts: 202, tickets: 303 },
+    };
+    const result = await ensureTelegramProviderTestRegistrationTopic({
+      config,
+      credentials: { botToken: "test-token" },
+      createApiClient: () =>
+        fakeApi({
+          getMe: async () => {
+            getMeCalls += 1;
+            return { id: 9, is_bot: true, first_name: "Test" };
+          },
+        }),
+    });
+
+    assert.deepEqual(result, { ok: true, config, threadId: 101, provisioned: false });
     assert.equal(getMeCalls, 0);
   });
 

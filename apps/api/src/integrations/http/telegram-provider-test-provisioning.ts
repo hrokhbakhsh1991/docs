@@ -3,7 +3,10 @@ import {
   TelegramApiError,
   type TelegramApiClient,
 } from "../providers/telegram/telegram-api.client";
-import { createTelegramForumConfig } from "../providers/telegram/telegram-forum.config";
+import {
+  createTelegramForumConfig,
+  TELEGRAM_FORUM_TOPIC_KEYS,
+} from "../providers/telegram/telegram-forum.config";
 import {
   provisionTelegramForum,
   TelegramForumOnboardingError,
@@ -24,6 +27,17 @@ export type DeadTelegramDeliveryJobCandidate = {
   readonly payload: unknown;
   readonly lastError: unknown;
 };
+
+function hasAllTelegramForumTopics(config: Record<string, unknown>): boolean {
+  const topicThreadIds =
+    typeof config.topicThreadIds === "object" && config.topicThreadIds !== null
+      ? (config.topicThreadIds as Record<string, unknown>)
+      : {};
+  return TELEGRAM_FORUM_TOPIC_KEYS.every((key) => {
+    const threadId = topicThreadIds[key];
+    return typeof threadId === "number" && Number.isSafeInteger(threadId) && threadId > 0;
+  });
+}
 
 /**
  * Select only notifications that became dead because forum topics were not
@@ -73,7 +87,7 @@ export async function ensureTelegramProviderTestRegistrationTopic(input: {
     config: input.config,
     requireRegistrationTopic: true,
   });
-  if (existing.ok && existing.threadId !== undefined) {
+  if (existing.ok && existing.threadId !== undefined && hasAllTelegramForumTopics(input.config)) {
     return { ok: true, config: input.config, threadId: existing.threadId, provisioned: false };
   }
 
