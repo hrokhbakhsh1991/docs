@@ -105,13 +105,24 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const token = request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
   const validation = await validateSessionTokenAsync(token);
+  const resolvedPortalTenantId = await resolvePortalTenantIdForHost(host);
+
+  if (resolvedPortalTenantId === null) {
+    if (pathname.startsWith("/api/")) {
+      return jsonAuthError(
+        404,
+        "TENANT_HOST_UNKNOWN",
+        "Portal tenant could not be resolved for this host."
+      );
+    }
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   let response: NextResponse;
 
   if (!isProtectedMemberPath(pathname)) {
     response = forwardPathname(request, pathname);
   } else {
-    const resolvedPortalTenantId = await resolvePortalTenantIdForHost(host);
     const failClosedWhenUnresolved = !isDevWebSessionAllowed();
 
     if (validation.status === "valid") {
