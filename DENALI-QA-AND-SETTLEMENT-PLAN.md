@@ -211,7 +211,7 @@ SHA/PR:
 |          6 | T02 — یکسان‌سازی ظرفیت و عنوان تور                      | P1     | T01                                     | `VERIFIED_LOCALLY`             | ظرفیت/عنوان نادرست مستقیماً روی ثبت‌نام اثر می‌گذارد |
 |          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                   | P1     | T02, T03                                | `VERIFIED_LOCALLY`             | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد |
 |          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`                  | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه |
-|          9 | T09 — primitive مشترک mobile: popover/tab/dialog        | P1     | T00                                     | `IN_PROGRESS`                  | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد |
+|          9 | T09 — primitive مشترک mobile: popover/tab/dialog        | P1     | T00                                     | `VERIFIED_LOCALLY`             | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد |
 |         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `VERIFIED_LOCALLY`             | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
 |         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `VERIFIED_LOCALLY`             | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
 |         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ             | P2     | T00                                     | `SOURCE_FIXED_RETEST_REQUIRED` | خطای فهم کاربر؛ بدون تغییر در منطق اصلی |
@@ -1196,6 +1196,7 @@ clipping و overflow در tab، popover، dialog، select و navigation یک‌�
 - **WORKSPACE BROWSER RETEST — 2026-09-20:** `denali-workspace-gap-coverage.spec.ts` روی runtime محلی **4/4 PASS** شد: تب waitlist، فیلترهای roster حمل‌ونقل، رد ثبت‌نام تا خروج از صف و بنر degraded مالی. assertion قدیمی `aria-current` با قرارداد واقعی tab (`aria-selected`) همسان شد و رد موفق با حذف row از صف تأیید می‌شود. Screenshot رد نهایی در `apps/web/test-results/t09-workspace-reject-terminal.png` ثبت شد؛ matrix کامل عرض‌های `320/360/390/412` و dialog/popover همچنان باز است.
 - **WORKSPACE MOBILE RETEST — 2026-09-20:** همان سناریوی workspace در Chromium واقعی با viewportهای `320×568`، `360×800`، `390×844` و `412×915` هرکدام **4/4 PASS** شدند. تست رد ثبت‌نام برای پنل mobile sheet به selector قراردادی همان دکمهٔ قابل مشاهده محدود شد؛ مسیرهای waitlist، transport filters، reject terminal و finance degraded در هر چهار عرض سبز هستند. بررسی مستقل dialog/popover همچنان باقی است.
 - **RESPONSIVE CONTROLS RETEST — 2026-09-20:** suite مرورگر `bookings-directory-controls-responsive.spec.ts` با config رسمی runtime برابر **1/1 PASS** شد. selector صفحه‌بندی به خود پنل محدود شد تا دکمهٔ Next.js Dev Tools با دکمهٔ «بعدی» اشتباه نشود؛ فیلتر پرداخت، active filter، pagination و عدم overflow در breakpointهای suite تأیید شدند.
+- **STATUS:** `VERIFIED_LOCALLY`؛ primitiveهای dialog/popover، workspace actionها و کنترل‌های responsive در Chromium واقعی با matrix چهار عرض `320/360/390/412` تأیید شدند. تأیید staging با SHA نهایی جداگانه است.
 
 ---
 
