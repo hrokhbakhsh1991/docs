@@ -62,8 +62,7 @@ describe("public-tenant-context", () => {
 
   it("PTC-01 GET /public/tenant-context resolves operator host", async () => {
     const response = await requestPublic(listener, "/public/tenant-context", {
-      host: "127.0.0.1",
-      "x-forwarded-host": "operator.localhost",
+      host: "operator.localhost",
     });
     assert.equal(response.status, 200);
     const data = (
@@ -84,8 +83,7 @@ describe("public-tenant-context", () => {
 
   it("PTC-02 GET /public/tenant-context resolves urban host", async () => {
     const response = await requestPublic(listener, "/public/tenant-context", {
-      host: "127.0.0.1",
-      "x-forwarded-host": "urban.localhost",
+      host: "urban.localhost",
     });
     assert.equal(response.status, 200);
     const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
@@ -95,8 +93,7 @@ describe("public-tenant-context", () => {
 
   it("PTC-02b GET /public/tenant-context resolves club admin host", async () => {
     const response = await requestPublic(listener, "/public/tenant-context", {
-      host: "127.0.0.1",
-      "x-forwarded-host": "operator.admin.localhost",
+      host: "operator.admin.localhost",
     });
     assert.equal(response.status, 200);
     const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
@@ -106,8 +103,7 @@ describe("public-tenant-context", () => {
 
   it("PTC-02c GET /public/tenant-context resolves club portal host", async () => {
     const response = await requestPublic(listener, "/public/tenant-context", {
-      host: "127.0.0.1",
-      "x-forwarded-host": "operator.portal.localhost",
+      host: "operator.portal.localhost",
     });
     assert.equal(response.status, 200);
     const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
@@ -117,8 +113,7 @@ describe("public-tenant-context", () => {
 
   it("PTC-03 unknown host returns 404", async () => {
     const response = await requestPublic(listener, "/public/tenant-context", {
-      host: "127.0.0.1",
-      "x-forwarded-host": "unknown-label.localhost",
+      host: "unknown-label.localhost",
     });
     assert.equal(response.status, 404);
   });
@@ -131,7 +126,6 @@ describe("public-tenant-context", () => {
     try {
       const response = await requestPublic(listener, "/public/tenant-context", {
         host: "89.45.89.206",
-        "x-forwarded-host": "89.45.89.206:23001",
       });
       assert.equal(response.status, 200);
       const data = (response.body as { data?: { tenantId?: string } }).data;
