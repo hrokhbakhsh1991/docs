@@ -208,6 +208,10 @@ export function MemberReceiptUploadForm({
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
+    // Keep the File object in React state so choosing the same file can retry
+    // after an upload error; clearing the input also guarantees a new change
+    // event when the browser selects that same file again.
+    event.currentTarget.value = "";
     setSelectedFile(file);
     setUploadPhase("idle");
     replaceLocalPreview(file);
