@@ -62,7 +62,6 @@ const PUBLIC_BFF_API_PATHS = [
   "/api/auth/login-team-web-session",
   "/api/auth/logout",
   "/api/public/tenant-branding",
-  "/api/debug/host",
 ] as const;
 
 function isPublicBffApiPath(pathname: string): boolean {
