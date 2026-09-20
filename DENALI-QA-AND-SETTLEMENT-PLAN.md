@@ -777,7 +777,7 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 - **موجود:** مسیر پورتال فیش از `GET /api/me/registrations/:id` و receipt panel استفاده می‌کند و محل طبیعی افزودن projection حداقلی مقصد پرداخت همان پاسخ registration/payment جاری است، نه تنظیمات عمومی.
 - **فقدان قطعی در baseline:** در source اولیه هیچ persistence، endpoint، ability، UI ادمین یا projection پورتال برای مقصد کارت‌به‌کارت وجود نداشت؛ patch تکراری پیدا نشد.
 - **اصلاح source در worktree ایزوله:** config versioned با کلید `payment_destination` روی `TenantConfig`، ability/manifest تنظیمات، نرمال‌سازی و checksum شماره کارت، projection محدود به ثبت‌نام approved با مانده مثبت، کپی شماره کارت، حالت unavailable، جلوگیری API از آپلود بدون مقصد معتبر و ثبت `destinationRevision` روی PaymentReceipt اضافه شد. در بازبینی تکمیلی، خواندن config کامل هم به policy ادمین/مالک محدود شد تا نقش غیرمجاز نتواند شماره کارت را از endpoint تنظیمات بخواند.
-- **تصمیم ادامه:** مسیر واحد settings → member registration projection → receipt upload حفظ شده است؛ شماره کارت در outbox/Telegram، export یا config عمومی قرار نمی‌گیرد. تا قبل از runtime staging، CI همان SHA و browser matrix، وضعیت این بخش `SOURCE_FIXED_RETEST_REQUIRED` باقی می‌ماند.
+- **تصمیم ادامه:** مسیر واحد settings → member registration projection → receipt upload حفظ شده است؛ شماره کارت در outbox/Telegram، export یا config عمومی قرار نمی‌گیرد. browser matrix محلی سبز است و وضعیت این بخش `VERIFIED_LOCALLY` است؛ runtime staging و CI همان SHA هنوز برای `CLOSED` لازم‌اند.
 
 ### گزارش اجرای source و تست‌های فعلی
 
