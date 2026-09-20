@@ -45,8 +45,15 @@
 - **network_result:** درخواست‌های `/api/tours/00000000-0000-4000-8000-000000000220/operational-roster` با status `200`؛ دو درخواست مستقیم fixture و درخواست‌های viewهای `operational`, `unpaid`, `final` نیز `200`.
 - **screenshot_or_dom_assertion:** assertionهای DOM برای `tour-workspace` و `transportPanel` در هر دو load سبز؛ screenshot در `apps/web/test-results/denali-001-transport-proof.png`.
 - **prove:** تست Playwright اختصاصی `denali-001-proof.spec.ts` با دو load موفق (`1 passed`, `6.2s`) و تست canonical `GAP-TRANSPORT-01` نیز سبز (`1 passed`, `16.6s`).
+- **task_id:** `DENALI-001`.
+- **acceptance_criteria:** fixture رسمی seed شود؛ همان route دو بار load شود؛ roster status `200` بدهد؛ پنل transport بدون پیام unavailable و بدون خطای console نمایش داده شود.
+- **test_command:** `pnpm exec playwright test --config=playwright.denali.config.ts tests/e2e/denali-001-proof.spec.ts --reporter=line`.
+- **test_result:** exit code `0`; `1 passed (6.2s)`. Canonical `GAP-TRANSPORT-01`: exit code `0`; `1 passed (16.6s)`.
+- **runtime_environment:** `local`.
+- **verifier:** QA browser verifier.
+- **verified_at:** `2026-09-20T18:40:00+03:30`.
 - **owner:** QA.
-- **source_sha:** پس از evidence: `26f3f12e8`.
+- **source_sha:** `26f3f12e801443aafefee3a0bebd550191f6176a`.
 
 ## 2. تسک‌های قابل‌اجرا
 
