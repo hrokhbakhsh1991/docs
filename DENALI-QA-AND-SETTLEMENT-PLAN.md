@@ -3,6 +3,7 @@
 > سند نهایی ادغام‌شدهٔ دو فایل موقت؛ جزئیات هر دو سند در ادامه حفظ شده است.
 
 ## بخش اول — QA تور و مدیریت محصول
+
 # Denali Tour QA — دفترچه اجرای رفع باگ‌ها
 
 > آخرین بازبینی: 2026-09-19
@@ -98,16 +99,16 @@
 
 ## 2. وضعیت‌های مجاز
 
-| وضعیت                          | معنی                                                      |
-| ------------------------------ | --------------------------------------------------------- |
-| `TODO`                         | هنوز بررسی تازه انجام نشده است.                           |
-| `IN_PROGRESS`                  | در حال ریشه‌یابی یا اصلاح است.                            |
-| `BLOCKED`                      | مانع بیرونی دقیق و ثبت‌شده دارد.                          |
-| `SOURCE_FIXED_RETEST_REQUIRED` | کد اصلاح شده، ولی runtime همان سناریو تأیید نشده است.     |
-| `NEEDS_DECISION`               | قرارداد محصول یا رفتار مورد انتظار هنوز تصمیم صریح ندارد. |
+| وضعیت                          | معنی                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `TODO`                         | هنوز بررسی تازه انجام نشده است.                                                    |
+| `IN_PROGRESS`                  | در حال ریشه‌یابی یا اصلاح است.                                                     |
+| `BLOCKED`                      | مانع بیرونی دقیق و ثبت‌شده دارد.                                                   |
+| `SOURCE_FIXED_RETEST_REQUIRED` | کد اصلاح شده، ولی runtime همان سناریو تأیید نشده است.                              |
+| `NEEDS_DECISION`               | قرارداد محصول یا رفتار مورد انتظار هنوز تصمیم صریح ندارد.                          |
 | `CLOSED`                       | هر چهار گیت اجباری سبز است؛ برای موارد وابسته، staging همان SHA نیز تأیید شده است. |
-| `DATA_ENV`                     | مشکل داده/seed/محیط است، نه الزاماً کد محصول.             |
-| `NOT_A_BUG`                    | رفتار مطابق قرارداد تأیید شده است.                        |
+| `DATA_ENV`                     | مشکل داده/seed/محیط است، نه الزاماً کد محصول.                                      |
+| `NOT_A_BUG`                    | رفتار مطابق قرارداد تأیید شده است.                                                 |
 
 ## 3. قوانین غیرقابل مذاکره
 
@@ -201,25 +202,25 @@ SHA/PR:
 6. پس از بسته‌شدن مسیر اصلی، mobile primitives، صفحات فرعی و دادهٔ staging را بررسی کن.
 7. در پایان فقط با source، test، runtime و CI همان SHA سند را ببند.
 
-| ترتیب اجرا | تسک                                                     | اولویت | وابستگی                                 | وضعیت فعلی                     | دلیل جایگاه |
-| ---------: | ------------------------------------------------------- | ------ | --------------------------------------- | ------------------------------ | ------------ |
-|          1 | T00 — ثبت baseline و دادهٔ تست                          | Gate   | ندارد                                   | `CLOSED`                       | مرجع مقایسهٔ source/runtime و جلوگیری از نتیجه‌گیری اشتباه |
-|          2 | T01 — قرارداد جستجو، فیلتر و مرتب‌سازی                   | P0     | T00                                     | `VERIFIED_LOCALLY`             | همهٔ لیست‌های مدیریت تور به آن وابسته‌اند |
-|          3 | T13 — سازگاری marketing/portal/admin و routing/session/assets | P0 | T00                                  | `IN_PROGRESS`                  | خطای host، session یا tenant کل فلو را بی‌اعتبار می‌کند |
-|          4 | T03 — یکسان‌سازی summary و فهرست مالی                   | P1     | T00                                     | `VERIFIED_LOCALLY`             | منبع اعداد پرداخت، بدهی و وضعیت settlement باید یکی باشد |
-|          5 | T05-CARD — تنظیم مقصد پرداخت کارت‌به‌کارت و نمایش پورتال | P0     | T00, T03                                | `VERIFIED_LOCALLY`             | پرداخت بدون مقصد معتبر یا snapshot امن قابل قبول نیست |
-|          6 | T02 — یکسان‌سازی ظرفیت و عنوان تور                      | P1     | T01                                     | `VERIFIED_LOCALLY`             | ظرفیت/عنوان نادرست مستقیماً روی ثبت‌نام اثر می‌گذارد |
-|          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                   | P1     | T02, T03                                | `VERIFIED_LOCALLY`             | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد |
-|          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`                  | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه |
-|          9 | T09 — primitive مشترک mobile: popover/tab/dialog        | P1     | T00                                     | `VERIFIED_LOCALLY`             | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد |
-|         10 | T05 — تکمیل UX خروجی Excel                              | P1     | T03                                     | `VERIFIED_LOCALLY`             | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد |
-|         11 | T11 — تیکت‌ها در desktop/mobile                         | P1     | T09                                     | `VERIFIED_LOCALLY`             | قابلیت عملیاتی مهم بعد از تثبیت primitiveها |
-|         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ             | P2     | T00                                     | `VERIFIED_LOCALLY`             | خطای فهم کاربر؛ بدون تغییر در منطق اصلی |
-|         13 | T08 — empty state و feedback عملیات                     | P2     | T01, T03, T05                           | `VERIFIED_LOCALLY`             | تکمیل بازخورد بعد از تثبیت داده و عملیات |
-|         14 | T10 — ویزارد ساخت تور و draft                           | P2     | T09                                     | `VERIFIED_LOCALLY`             | به primitive مشترک و قراردادهای wizard وابسته است |
-|         15 | T12 — کاربران در desktop/mobile                         | P2     | T09                                     | `IN_PROGRESS`                  | مشکل مهم UX است، اما مسیر خرید را متوقف نمی‌کند |
-|         16 | T14 — ممیزی و پاک‌سازی کنترل‌شدهٔ داده/seed staging     | P2     | T00؛ پاک‌سازی بعد از T01-T13 و T05-CARD | `IN_PROGRESS`                  | ابتدا کد/قرارداد ثابت شود؛ حذف داده بدون target ممنوع است |
-|         17 | T15 — regression نهایی و بسته‌شدن سند                   | Gate   | همه                                     | `TODO`                         | فقط این مرحله اجازهٔ اعلام بسته‌شدن کل برنامه را می‌دهد |
+| ترتیب اجرا | تسک                                                           | اولویت | وابستگی                                 | وضعیت فعلی         | دلیل جایگاه                                                |
+| ---------: | ------------------------------------------------------------- | ------ | --------------------------------------- | ------------------ | ---------------------------------------------------------- |
+|          1 | T00 — ثبت baseline و دادهٔ تست                                | Gate   | ندارد                                   | `CLOSED`           | مرجع مقایسهٔ source/runtime و جلوگیری از نتیجه‌گیری اشتباه |
+|          2 | T01 — قرارداد جستجو، فیلتر و مرتب‌سازی                        | P0     | T00                                     | `VERIFIED_LOCALLY` | همهٔ لیست‌های مدیریت تور به آن وابسته‌اند                  |
+|          3 | T13 — سازگاری marketing/portal/admin و routing/session/assets | P0     | T00                                     | `IN_PROGRESS`      | خطای host، session یا tenant کل فلو را بی‌اعتبار می‌کند    |
+|          4 | T03 — یکسان‌سازی summary و فهرست مالی                         | P1     | T00                                     | `VERIFIED_LOCALLY` | منبع اعداد پرداخت، بدهی و وضعیت settlement باید یکی باشد   |
+|          5 | T05-CARD — تنظیم مقصد پرداخت کارت‌به‌کارت و نمایش پورتال      | P0     | T00, T03                                | `VERIFIED_LOCALLY` | پرداخت بدون مقصد معتبر یا snapshot امن قابل قبول نیست      |
+|          6 | T02 — یکسان‌سازی ظرفیت و عنوان تور                            | P1     | T01                                     | `VERIFIED_LOCALLY` | ظرفیت/عنوان نادرست مستقیماً روی ثبت‌نام اثر می‌گذارد       |
+|          7 | T04 — حمل‌ونقل ثبت‌نام و لیست عملیاتی                         | P1     | T02, T03                                | `VERIFIED_LOCALLY` | roster باید همان transport و ظرفیت ثبت‌نام را نشان دهد     |
+|          8 | T06 — ثبت‌نام، فیش و Telegram end-to-end                      | P0     | T03, T04, T05-CARD                      | `IN_PROGRESS`      | تست نهایی مسیر خرید پس از آماده‌شدن همهٔ قراردادهای پایه   |
+|          9 | T09 — primitive مشترک mobile: popover/tab/dialog              | P1     | T00                                     | `VERIFIED_LOCALLY` | یک اصلاح مشترک چند باگ موبایل را هم‌زمان پوشش می‌دهد       |
+|         10 | T05 — تکمیل UX خروجی Excel                                    | P1     | T03                                     | `VERIFIED_LOCALLY` | خروجی عملیاتی باید کامل، امن و قابل استفاده باشد           |
+|         11 | T11 — تیکت‌ها در desktop/mobile                               | P1     | T09                                     | `VERIFIED_LOCALLY` | قابلیت عملیاتی مهم بعد از تثبیت primitiveها                |
+|         12 | T07 — پیام‌های فنی، ترجمه و فرمت تاریخ/مبلغ                   | P2     | T00                                     | `VERIFIED_LOCALLY` | خطای فهم کاربر؛ بدون تغییر در منطق اصلی                    |
+|         13 | T08 — empty state و feedback عملیات                           | P2     | T01, T03, T05                           | `VERIFIED_LOCALLY` | تکمیل بازخورد بعد از تثبیت داده و عملیات                   |
+|         14 | T10 — ویزارد ساخت تور و draft                                 | P2     | T09                                     | `VERIFIED_LOCALLY` | به primitive مشترک و قراردادهای wizard وابسته است          |
+|         15 | T12 — کاربران در desktop/mobile                               | P2     | T09                                     | `VERIFIED_LOCALLY` | مشکل مهم UX است، اما مسیر خرید را متوقف نمی‌کند            |
+|         16 | T14 — ممیزی و پاک‌سازی کنترل‌شدهٔ داده/seed staging           | P2     | T00؛ پاک‌سازی بعد از T01-T13 و T05-CARD | `IN_PROGRESS`      | ابتدا کد/قرارداد ثابت شود؛ حذف داده بدون target ممنوع است  |
+|         17 | T15 — regression نهایی و بسته‌شدن سند                         | Gate   | همه                                     | `TODO`             | فقط این مرحله اجازهٔ اعلام بسته‌شدن کل برنامه را می‌دهد    |
 
 ### مسیر بحرانی
 
@@ -357,6 +358,7 @@ pnpm --filter @apps/web run test:file -- test/bookings-list-server-prefetch.spec
 pnpm --filter @apps/web run test:file -- test/users-directory.spec.ts
 pnpm --filter @apps/web run test:file -- test/users-list-server-prefetch.spec.ts
 ```
+
 ### سناریوهای browser
 
 - عبارت موجود؛ فقط نتیجهٔ منطبق.
@@ -668,6 +670,7 @@ pnpm --filter @apps/web run test:file -- test/tour-workspace-operational-roster.
 - مقدار مرحلهٔ review بعد از submit در roster همان باشد.
 
 ### گزارش بازبینی اول — 2026-09-18
+
 #### گیت عدم تکرار: نتیجهٔ inventory
 
 - `resolveDenaliRegistrationTransport` قرارداد مرحلهٔ ثبت‌نام را تعیین می‌کند؛ برای `primary`/حمل سازمان‌یافته، `personal_car` و حالت‌های `no_car_*` منبع جدیدی ساخته نشده است.
@@ -1373,6 +1376,8 @@ pnpm --filter @apps/api run test:file -- test/users-directory-sort.spec.ts
 - **RETEST — 2026-09-19 (worktree ایزوله):** `users-directory.spec.ts` و `users-directory-sort.spec.ts` مجموعاً **36/36 PASS** شدند. spec ریسپانسیو عمداً با `node:test` اجرا نمی‌شود و runner آن خطا را صریحاً گزارش داد؛ اجرای درست آن Playwright با Chrome سیستم و server ایزوله است، نه تغییر کد یا fail محصول.
 - **REVALIDATION — 2026-09-19 (بدون deploy):** اجرای رسمی `users-directory.spec.ts` برابر **30/30 PASS** و `users-directory-sort.spec.ts` برابر **3/3 PASS** شد. `users-directory-controls-responsive.spec.ts` دوباره توسط runner به‌درستی `PLAYWRIGHT_RUNTIME` تشخیص داده شد؛ config رسمی `apps/web/playwright.runtime-sweep.config.ts` آن را در `test:runtime-sweep` شامل می‌کند. پس هیچ test/middleware موازی لازم نیست؛ browser matrix فقط با server ایزوله و Chromium اجرا خواهد شد.
 - **RUNTIME RECHECK — 2026-09-19 (deploy فعلی، read-only):** dialog دعوت در viewport `320×568` با `top=-88`، `bottom=656` و ارتفاع `744` بیرون viewport بود و dismiss control خام `Close` نمایش داد؛ `scrollWidth=320` بود، پس مشکل overflow افقی نیست. source فعلی در contrast از Dialog مشترک `top-4/bottom-4/overflow-y-auto` و `closeLabel={tCommon("cancel")}` استفاده می‌کند. تست‌های تازهٔ source `users-directory + denali-confirm-dialog` نیز **33/33 PASS** شدند. بنابراین باگ runtime قدیمی بازتولید شد، اما patch موازی یا موضعی لازم نیست؛ retest همان dialog پس از deploy SHA PR شرط بسته‌شدن T12 است.
+- **BROWSER FINAL — 2026-09-20:** با runtime محلی همین SHA، Chromium matrix کنترل‌های users در viewportهای `1440×900`، `1024×768`، `768×1024` و `390×844` برابر **1/1 PASS** شد؛ بدون overflow افقی، filters toggle فعال و pagination در breakpointهای لازم قابل مشاهده بود. تست مستقل dialog دعوت در `320×568` نیز **1/1 PASS** شد: dialog داخل viewport (`top >= 0` و `bottom <= 568`)، فیلد تلفن و دکمهٔ ارسال قابل دسترسی، دکمهٔ انصراف قابل استفاده و بستن dialog موفق بود. Screenshot در `apps/web/test-results/t12-users-invite-320.png` ثبت شد.
+- **STATUS:** `VERIFIED_LOCALLY`; تست browser proof برای dialog به `playwright.operator.config.ts` اضافه شد تا regression موبایل در اجرای بعدی حفظ شود.
 
 ---
 
@@ -1858,7 +1863,9 @@ pnpm run pre-commit:fast
 - `BUG-REQUESTS-MOBILE-003`: close control shared dialog اکنون `closeLabel={t("actions.cancel")}` می‌گیرد؛ در فارسی screen-reader label انگلیسی `Close` نمایش/اعلام نمی‌شود. وجود دکمهٔ footer «انصراف» همچنان action روشن و مستقل برای بستن dialog است.
 - `UX-REQUESTS-004`: دکمه‌های عضو/مهمان اکنون `aria-pressed` متناسب با mode فعال دارند؛ semantic state بدون تغییر در state machine موجود اضافه شد.
 - تست UI-contract جدید و تست logic موجود، مجموعاً **8/8 سبز** هستند؛ `@apps/web lint` نیز سبز است. تست مرورگری 320px بعد از deploy برای بستن runtime این سه مورد باقی است.
+
 ## بخش دوم — مسیر کیف پول و تسویهٔ راننده
+
 # مسیر موقت اجرای راننده، تسویه، کیف پول و برداشت
 
 > وضعیت: فاز صفر در حال تحلیل — هنوز مجوز تغییر منطق مالی یا واریز واقعی نیست.
@@ -1871,14 +1878,14 @@ pnpm run pre-commit:fast
 
 این مسیر از صفر شروع نمی‌شود. پیاده‌سازی فعلی DP-5 وجود دارد، ولی برای هدف این سند کافی نیست:
 
-| بخش | وضعیت فعلی | فاصله تا هدف این سند |
-| --- | --- | --- |
-| مبنای مبلغ | `min(offeredSeats, assignedPassengers)` در زمان freeze | باید با تعداد **واقعیِ ثبت‌شده** در اجرای تور جایگزین شود. |
-| زمان payable | freeze → تأیید اپراتور → پرداخت دستی | باید بعد از پایان واقعی تور و تأیید تسویه باشد. |
-| نگه‌داری داده | allocation و settlement در حافظه | باید با دیتابیس، RLS، version و audit پایدار شود. |
-| ذی‌نفع پرداخت | `driverRegistrationId` | باید به `memberUserId` پایدار وصل شود؛ راننده مهمان نباید بستانکار شود. |
-| مقصد پول | Finance payable و ثبت مدرک پرداخت دستی | ابتدا wallet credit اتمیک، سپس withdrawal مستقل. |
-| کیف پول عضو | در جهت محصول قبلی deferred/hidden بوده است | باید به یک bounded context صریح با ledger و رزرو موجودی تبدیل شود. |
+| بخش           | وضعیت فعلی                                             | فاصله تا هدف این سند                                                    |
+| ------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| مبنای مبلغ    | `min(offeredSeats, assignedPassengers)` در زمان freeze | باید با تعداد **واقعیِ ثبت‌شده** در اجرای تور جایگزین شود.              |
+| زمان payable  | freeze → تأیید اپراتور → پرداخت دستی                   | باید بعد از پایان واقعی تور و تأیید تسویه باشد.                         |
+| نگه‌داری داده | allocation و settlement در حافظه                       | باید با دیتابیس، RLS، version و audit پایدار شود.                       |
+| ذی‌نفع پرداخت | `driverRegistrationId`                                 | باید به `memberUserId` پایدار وصل شود؛ راننده مهمان نباید بستانکار شود. |
+| مقصد پول      | Finance payable و ثبت مدرک پرداخت دستی                 | ابتدا wallet credit اتمیک، سپس withdrawal مستقل.                        |
+| کیف پول عضو   | در جهت محصول قبلی deferred/hidden بوده است             | باید به یک bounded context صریح با ledger و رزرو موجودی تبدیل شود.      |
 
 منبع فعلی: `docs/workspaces/denali/driver-settlement.mdoc` و `docs/dev/dp-5-execution-plan.md`.
 
@@ -1886,13 +1893,13 @@ pnpm run pre-commit:fast
 
 این سند یک **تغییر محصول** نسبت به تصمیم‌های فعلی DP-5 است، نه صرفاً تکمیل UI. تا زمانی که موارد زیر امضا نشده‌اند، هیچ migration، endpoint پولی یا دکمه واریز ساخته نمی‌شود:
 
-| شناسه | تصمیم لازم | پیشنهاد این سند | تصمیم فعلی که جایگزین می‌شود |
-| --- | --- | --- | --- |
-| DW-01 | مبنای پرداخت راننده | `min(actualPassengers, offeredPassengerCapacity)` | assignment در roster freeze |
-| DW-02 | زمان قابل‌واریز شدن | فقط پس از `tour.completed` و تأیید ادمین | operator confirm بعد از freeze |
-| DW-03 | مقصد اولیه سهم راننده | کیف پول عضو با credit اتمیک | Finance manual payable |
-| DW-04 | سیاست راننده مهمان | تا اتصال به `memberUserId` فقط «نیازمند اتصال حساب»؛ بدون credit | registration ID به‌تنهایی |
-| DW-05 | مدل برداشت | reserve → approve/reject → paid با snapshot مقصد پرداخت | در مدل فعلی وجود ندارد |
+| شناسه | تصمیم لازم            | پیشنهاد این سند                                                  | تصمیم فعلی که جایگزین می‌شود   |
+| ----- | --------------------- | ---------------------------------------------------------------- | ------------------------------ |
+| DW-01 | مبنای پرداخت راننده   | `min(actualPassengers, offeredPassengerCapacity)`                | assignment در roster freeze    |
+| DW-02 | زمان قابل‌واریز شدن   | فقط پس از `tour.completed` و تأیید ادمین                         | operator confirm بعد از freeze |
+| DW-03 | مقصد اولیه سهم راننده | کیف پول عضو با credit اتمیک                                      | Finance manual payable         |
+| DW-04 | سیاست راننده مهمان    | تا اتصال به `memberUserId` فقط «نیازمند اتصال حساب»؛ بدون credit | registration ID به‌تنهایی      |
+| DW-05 | مدل برداشت            | reserve → approve/reject → paid با snapshot مقصد پرداخت          | در مدل فعلی وجود ندارد         |
 
 **قانون جلوگیری از دوباره‌کاری:** تا قبل از تصویب DW-01 تا DW-05، فقط قرارداد، طراحی تست و discovery انجام می‌شود. پیاده‌سازی DP-5 قبلی نباید برای رسیدن به کیف پول به‌صورت وصله‌ای گسترش یابد.
 
@@ -1935,35 +1942,35 @@ pnpm run pre-commit:fast
 
 ### 0.6 ماتریس نقش پیشنهادی — نیازمند تأیید محصول
 
-| عمل | نقش پیشنهادی | حق مالی |
-| --- | --- | --- |
-| ثبت/اصلاح تعداد واقعی و وضعیت حضور | `tour_operator` | ندارد |
-| ثبت پایان واقعی تور | `tour_manager` | ندارد |
-| تأیید مبلغ سهم راننده | `tour_manager` | فقط تأیید، نه پرداخت بانکی |
-| credit به کیف پول پس از تأیید | `finance_operator` یا فرمان سرویس با مجوز صریح | ایجاد credit append-only |
-| تأیید/رد درخواست برداشت | `finance_operator` | رزرو را نهایی/آزاد می‌کند |
-| ثبت پرداخت بانکی | `finance_operator` دوم یا نقش `finance_payer` | تکمیل payout با مدرک |
-| مشاهده موجودی خود | راننده/عضو صاحب حساب | فقط خواندن حساب خودش |
+| عمل                                | نقش پیشنهادی                                   | حق مالی                    |
+| ---------------------------------- | ---------------------------------------------- | -------------------------- |
+| ثبت/اصلاح تعداد واقعی و وضعیت حضور | `tour_operator`                                | ندارد                      |
+| ثبت پایان واقعی تور                | `tour_manager`                                 | ندارد                      |
+| تأیید مبلغ سهم راننده              | `tour_manager`                                 | فقط تأیید، نه پرداخت بانکی |
+| credit به کیف پول پس از تأیید      | `finance_operator` یا فرمان سرویس با مجوز صریح | ایجاد credit append-only   |
+| تأیید/رد درخواست برداشت            | `finance_operator`                             | رزرو را نهایی/آزاد می‌کند  |
+| ثبت پرداخت بانکی                   | `finance_operator` دوم یا نقش `finance_payer`  | تکمیل payout با مدرک       |
+| مشاهده موجودی خود                  | راننده/عضو صاحب حساب                           | فقط خواندن حساب خودش       |
 
 **پیشنهاد کنترل داخلی:** فردی که مبلغ settlement را تأیید می‌کند، نباید بتواند همان درخواست withdrawal را `paid` کند؛ اگر تیم کوچک است، این جداسازی حداقل به‌صورت audit و هشدار اعمال شود. تصمیم نهایی با محصول/عملیات است.
 
 ### 0.7 ماتریس تست اجباری برای طراحی بعدی
 
-| دسته | سناریوی حداقلی | نتیجه غیرقابل‌قبول |
-| --- | --- | --- |
-| ظرفیت | ظرفیت ۲، واقعی ۱ | credit برای ۲ نفر |
-| حضور | راننده غایب/لغوشده | امکان تأیید مبلغ مثبت |
-| زمان | قبل از پایان واقعی تور | نمایش یا اجرای credit |
-| اصلاح | تغییر تعداد قبل از credit | باقی‌ماندن مبلغ preview قدیمی |
-| retry | دوبار کلیک/timeout بعد از credit | دو WalletTransaction |
-| هم‌زمانی | دو تأیید هم‌زمان settlement | بیش از یک credit یا وضعیت متناقض |
-| restart | restart بین ثبت حضور و تأیید | گم‌شدن execution facts/audit |
-| tenant | تلاش workspace دیگر با settlementId معتبر | مشاهده یا تغییر داده |
-| مهمان | راننده بدون `memberUserId` | ایجاد حساب یا credit ناشناس |
-| برداشت | مبلغ بیش از available balance | reserve یا پرداخت منفی |
-| برداشت | رد/لغو درخواست | آزاد نشدن reserve |
-| snapshot | تغییر کارت پس از درخواست | تغییر مقصد درخواست قبلی |
-| امنیت | portal/UI/Telegram/Excel/log | نمایش کارت کامل یا کلید داخلی |
+| دسته     | سناریوی حداقلی                            | نتیجه غیرقابل‌قبول               |
+| -------- | ----------------------------------------- | -------------------------------- |
+| ظرفیت    | ظرفیت ۲، واقعی ۱                          | credit برای ۲ نفر                |
+| حضور     | راننده غایب/لغوشده                        | امکان تأیید مبلغ مثبت            |
+| زمان     | قبل از پایان واقعی تور                    | نمایش یا اجرای credit            |
+| اصلاح    | تغییر تعداد قبل از credit                 | باقی‌ماندن مبلغ preview قدیمی    |
+| retry    | دوبار کلیک/timeout بعد از credit          | دو WalletTransaction             |
+| هم‌زمانی | دو تأیید هم‌زمان settlement               | بیش از یک credit یا وضعیت متناقض |
+| restart  | restart بین ثبت حضور و تأیید              | گم‌شدن execution facts/audit     |
+| tenant   | تلاش workspace دیگر با settlementId معتبر | مشاهده یا تغییر داده             |
+| مهمان    | راننده بدون `memberUserId`                | ایجاد حساب یا credit ناشناس      |
+| برداشت   | مبلغ بیش از available balance             | reserve یا پرداخت منفی           |
+| برداشت   | رد/لغو درخواست                            | آزاد نشدن reserve                |
+| snapshot | تغییر کارت پس از درخواست                  | تغییر مقصد درخواست قبلی          |
+| امنیت    | portal/UI/Telegram/Excel/log              | نمایش کارت کامل یا کلید داخلی    |
 
 ### 0.8 ترتیب PRها پس از تأیید تصمیم‌ها
 
@@ -2030,17 +2037,17 @@ WalletWithdrawalRequest
 
 ### 0.10 قرارداد HTTP پیشنهادی — برای طراحی تست، نه پیاده‌سازی
 
-| روش | مسیر | مسئول | قاعده کلیدی |
-| --- | --- | --- | --- |
-| GET | `/tours/:tourId/execution` | tour operator | فقط همان tenant |
-| POST | `/tours/:tourId/execution/start` | tour manager | idempotent؛ فقط در زمان مجاز |
-| PATCH | `/tours/:tourId/execution/drivers/:registrationId` | tour operator | `If-Match`/version؛ بدون اثر مالی |
-| POST | `/tours/:tourId/execution/complete` | tour manager | close زمان اجرا، نه publish lifecycle |
-| POST | `/tours/:tourId/driver-settlements/:id/confirm` | tour manager | فقط execution completed |
-| POST | `/tours/:tourId/driver-settlements/:id/credit-wallet` | finance operator | transaction اتمیک و idempotent |
-| POST | `/me/wallet/withdrawals` | account owner | reserve balance و snapshot مقصد |
-| POST | `/finance/wallet-withdrawals/:id/approve` | finance operator | تصمیم immutable audit شده |
-| POST | `/finance/wallet-withdrawals/:id/pay` | finance payer | مدرک پرداخت لازم؛ idempotent |
+| روش   | مسیر                                                  | مسئول            | قاعده کلیدی                           |
+| ----- | ----------------------------------------------------- | ---------------- | ------------------------------------- |
+| GET   | `/tours/:tourId/execution`                            | tour operator    | فقط همان tenant                       |
+| POST  | `/tours/:tourId/execution/start`                      | tour manager     | idempotent؛ فقط در زمان مجاز          |
+| PATCH | `/tours/:tourId/execution/drivers/:registrationId`    | tour operator    | `If-Match`/version؛ بدون اثر مالی     |
+| POST  | `/tours/:tourId/execution/complete`                   | tour manager     | close زمان اجرا، نه publish lifecycle |
+| POST  | `/tours/:tourId/driver-settlements/:id/confirm`       | tour manager     | فقط execution completed               |
+| POST  | `/tours/:tourId/driver-settlements/:id/credit-wallet` | finance operator | transaction اتمیک و idempotent        |
+| POST  | `/me/wallet/withdrawals`                              | account owner    | reserve balance و snapshot مقصد       |
+| POST  | `/finance/wallet-withdrawals/:id/approve`             | finance operator | تصمیم immutable audit شده             |
+| POST  | `/finance/wallet-withdrawals/:id/pay`                 | finance payer    | مدرک پرداخت لازم؛ idempotent          |
 
 نام نهایی routeها باید با قراردادهای HTTP موجود هماهنگ شود؛ اصل مهم جداسازی commandهای اجرایی از commandهای پولی است.
 
@@ -2048,37 +2055,37 @@ WalletWithdrawalRequest
 
 #### اجرای تور
 
-| از | به | فرمان مجاز | قاعده |
-| --- | --- | --- | --- |
-| `scheduled` | `in_progress` | شروع اجرا | فقط role اجرایی؛ قبل از زمان شروع فقط با دلیل ثبت‌شده |
-| `in_progress` | `completed` | ثبت پایان واقعی | زمان پایان و actor اجباری؛ اگر پایان دستی زودتر از زمان برنامه است، دلیل اجباری |
-| `scheduled` یا `in_progress` | `cancelled` | لغو اجرای تور | settlement مثبت جدید ممنوع؛ credit نشده‌ها void می‌شوند |
-| `completed` | — | — | پایان اجرا immutable است؛ فقط settlement correction مجاز است |
+| از                           | به            | فرمان مجاز      | قاعده                                                                           |
+| ---------------------------- | ------------- | --------------- | ------------------------------------------------------------------------------- |
+| `scheduled`                  | `in_progress` | شروع اجرا       | فقط role اجرایی؛ قبل از زمان شروع فقط با دلیل ثبت‌شده                           |
+| `in_progress`                | `completed`   | ثبت پایان واقعی | زمان پایان و actor اجباری؛ اگر پایان دستی زودتر از زمان برنامه است، دلیل اجباری |
+| `scheduled` یا `in_progress` | `cancelled`   | لغو اجرای تور   | settlement مثبت جدید ممنوع؛ credit نشده‌ها void می‌شوند                         |
+| `completed`                  | —             | —               | پایان اجرا immutable است؛ فقط settlement correction مجاز است                    |
 
 #### تسویه راننده
 
-| از | به | پیش‌شرط |
-| --- | --- | --- |
-| `draft` | `attendance_recorded` | count و attendance معتبر ذخیره شده است؛ count صفر هم مقدار معتبر است |
-| `attendance_recorded` | `confirmed` | اجرای تور `completed` و راننده `departed` است |
-| `confirmed` | `wallet_credited` | `memberUserId` فعال، حساب IRR، role مالی، transaction idempotent |
-| `draft` / `attendance_recorded` / `confirmed` | `voided` | راننده/تور لغو شده یا مبلغ صفر با تصمیم صریح |
-| `wallet_credited` | `corrected` | فقط با reversal/adjustment و settlement جایگزین |
+| از                                            | به                    | پیش‌شرط                                                              |
+| --------------------------------------------- | --------------------- | -------------------------------------------------------------------- |
+| `draft`                                       | `attendance_recorded` | count و attendance معتبر ذخیره شده است؛ count صفر هم مقدار معتبر است |
+| `attendance_recorded`                         | `confirmed`           | اجرای تور `completed` و راننده `departed` است                        |
+| `confirmed`                                   | `wallet_credited`     | `memberUserId` فعال، حساب IRR، role مالی، transaction idempotent     |
+| `draft` / `attendance_recorded` / `confirmed` | `voided`              | راننده/تور لغو شده یا مبلغ صفر با تصمیم صریح                         |
+| `wallet_credited`                             | `corrected`           | فقط با reversal/adjustment و settlement جایگزین                      |
 
 **قاعده صفر:** `actualPassengerCount = 0` به‌خودی‌خود خطا نیست؛ فقط credit مثبت را ناممکن می‌کند. UI باید آن را «۰ مسافر ثبت شده» نشان دهد، نه «داده ناقص».
 
 #### پاسخ‌های استانداردی که UI باید نشان دهد
 
-| کد پیشنهادی | HTTP | متن قابل‌فهم |
-| --- | --- | --- |
-| `EXECUTION_NOT_STARTED` | 409 | «ثبت تعداد مسافر از زمان شروع تور فعال می‌شود.» |
-| `EXECUTION_NOT_COMPLETED` | 409 | «ابتدا پایان واقعی تور را ثبت کنید.» |
-| `DRIVER_MEMBER_REQUIRED` | 422 | «این راننده به حساب عضو متصل نیست؛ واریز کیف پول ممکن نیست.» |
-| `ATTENDANCE_CAPACITY_EXCEEDED` | 422 | «تعداد واقعی از ظرفیت اعلام‌شده بیشتر است؛ ابتدا ظرفیت را با دلیل اصلاح کنید.» |
-| `STALE_EXECUTION_VERSION` | 409 | «اطلاعات توسط شخص دیگری تغییر کرده است؛ صفحه را تازه کنید.» |
-| `SETTLEMENT_ALREADY_CREDITED` | 200/409 | replay امن با نمایش شناسه و زمان credit قبلی، نه credit جدید |
-| `INSUFFICIENT_WITHDRAWABLE_BALANCE` | 422 | «موجودی قابل برداشت برای این مبلغ کافی نیست.» |
-| `WITHDRAWAL_ALREADY_FINALIZED` | 409 | «این درخواست قبلاً نهایی شده و قابل تغییر نیست.» |
+| کد پیشنهادی                         | HTTP    | متن قابل‌فهم                                                                   |
+| ----------------------------------- | ------- | ------------------------------------------------------------------------------ |
+| `EXECUTION_NOT_STARTED`             | 409     | «ثبت تعداد مسافر از زمان شروع تور فعال می‌شود.»                                |
+| `EXECUTION_NOT_COMPLETED`           | 409     | «ابتدا پایان واقعی تور را ثبت کنید.»                                           |
+| `DRIVER_MEMBER_REQUIRED`            | 422     | «این راننده به حساب عضو متصل نیست؛ واریز کیف پول ممکن نیست.»                   |
+| `ATTENDANCE_CAPACITY_EXCEEDED`      | 422     | «تعداد واقعی از ظرفیت اعلام‌شده بیشتر است؛ ابتدا ظرفیت را با دلیل اصلاح کنید.» |
+| `STALE_EXECUTION_VERSION`           | 409     | «اطلاعات توسط شخص دیگری تغییر کرده است؛ صفحه را تازه کنید.»                    |
+| `SETTLEMENT_ALREADY_CREDITED`       | 200/409 | replay امن با نمایش شناسه و زمان credit قبلی، نه credit جدید                   |
+| `INSUFFICIENT_WITHDRAWABLE_BALANCE` | 422     | «موجودی قابل برداشت برای این مبلغ کافی نیست.»                                  |
+| `WITHDRAWAL_ALREADY_FINALIZED`      | 409     | «این درخواست قبلاً نهایی شده و قابل تغییر نیست.»                               |
 
 ### 0.12 cutover، rollback و مشاهده‌پذیری
 
@@ -2106,12 +2113,12 @@ WalletWithdrawalRequest
 
 #### شواهد لازم برای پذیرش هر PR
 
-| PR | شواهد حداقلی |
-| --- | --- |
-| PR-A | migration/RLS integration test، restart persistence، tenant-isolation test |
-| PR-B | mobile browser E2E برای ثبت count، conflict و completion |
-| PR-C | transaction/retry/concurrency test، ledger/wallet reconciliation، reversal test |
-| PR-D | authorization test، جست‌وجوی انسانی، عدم افشای UUID یا داده حساس |
+| PR   | شواهد حداقلی                                                                               |
+| ---- | ------------------------------------------------------------------------------------------ |
+| PR-A | migration/RLS integration test، restart persistence، tenant-isolation test                 |
+| PR-B | mobile browser E2E برای ثبت count، conflict و completion                                   |
+| PR-C | transaction/retry/concurrency test، ledger/wallet reconciliation، reversal test            |
+| PR-D | authorization test، جست‌وجوی انسانی، عدم افشای UUID یا داده حساس                           |
 | PR-E | encryption-at-rest test، reserve race، snapshot destination، approval/payment evidence E2E |
 
 ## 1. هدف
@@ -2472,18 +2479,18 @@ wallet_credited → corrected (با تراکنش برگشت و تسویه جای
 
 هیچ موردی در این جدول با حدس توسعه‌دهنده یا تنظیم مخفی فعال نمی‌شود. «پیش‌فرض امن» فقط رفتار سیستم تا زمان تصمیم است، نه تصمیم محصول.
 
-| شناسه | تصمیم | گزینه‌ها و اثر | پیشنهاد برای MVP | پیش‌فرض امن تا تأیید | مالک تصمیم |
-| --- | --- | --- | --- | --- | --- |
-| DW-01 | مبنای مبلغ راننده | assignment freeze در برابر تعداد واقعی | تعداد واقعیِ ثبت‌شده، با سقف ظرفیت | credit غیرفعال | محصول/عملیات |
-| DW-02 | زمان credit | قبل/بعد از پایان واقعی تور | فقط پس از completion و تأیید settlement | credit غیرفعال | محصول/مالی |
-| DW-03 | مقصد سهم راننده | پرداخت دستی یا member wallet | member wallet سپس withdrawal | مسیر دستی DP-5 قدیمی فقط برای تورهای legacy | محصول/مالی |
-| DW-04 | راننده مهمان | credit به registration یا فقط عضو | فقط عضو با `memberUserId` پایدار | blocked با پیام واضح | محصول/عضویت |
-| DW-05 | چرخه برداشت | کارت، شبا یا هر دو؛ reserve و approval | کارت رمزگذاری‌شده + reserve + approval | withdrawal غیرفعال، wallet read-only | محصول/مالی/حقوقی |
-| DW-06 | تفکیک نقش‌ها | یک operator یا نقش‌های جدا | execution و finance جدا؛ ثبت پرداخت بانکی مستقل | فقط read-only برای فرمان مالی جدید | مالک workspace |
-| DW-07 | نرخ و منبع دونگ | ثابت در تور، editable پس از تور، یا بودجه مسافر | snapshot نرخ در زمان confirm؛ تغییر بعدی correction | preview بدون credit | محصول/مالی |
-| DW-08 | کنترل مجموع واقعی | تعداد ثبت‌نام، افراد تأییدشده یا headcount حاضر | headcount حاضرِ مستقل از allocation؛ ثبت‌نام چندنفره باید تعداد واقعی نفر را بدهد | اگر denominator معتبر نیست، confirm مسدود | عملیات/محصول |
-| DW-09 | تطبیق مالک مقصد برداشت | آزاد، شماره کارت با کد ملی، یا بررسی دستی | MVP بررسی دستی و audit؛ اتوماسیون فقط پس از منبع معتبر | payment نهایی نیازمند تأیید مالی | مالی/حقوقی |
-| DW-10 | حداقل/حداکثر برداشت و SLA | سقف روزانه/ماهانه و زمان پرداخت | تنظیم tenant-scoped با مقدار اولیه صریح | request خارج از policy رد می‌شود | مالی/مالک workspace |
+| شناسه | تصمیم                     | گزینه‌ها و اثر                                  | پیشنهاد برای MVP                                                                  | پیش‌فرض امن تا تأیید                        | مالک تصمیم          |
+| ----- | ------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------- | ------------------- |
+| DW-01 | مبنای مبلغ راننده         | assignment freeze در برابر تعداد واقعی          | تعداد واقعیِ ثبت‌شده، با سقف ظرفیت                                                | credit غیرفعال                              | محصول/عملیات        |
+| DW-02 | زمان credit               | قبل/بعد از پایان واقعی تور                      | فقط پس از completion و تأیید settlement                                           | credit غیرفعال                              | محصول/مالی          |
+| DW-03 | مقصد سهم راننده           | پرداخت دستی یا member wallet                    | member wallet سپس withdrawal                                                      | مسیر دستی DP-5 قدیمی فقط برای تورهای legacy | محصول/مالی          |
+| DW-04 | راننده مهمان              | credit به registration یا فقط عضو               | فقط عضو با `memberUserId` پایدار                                                  | blocked با پیام واضح                        | محصول/عضویت         |
+| DW-05 | چرخه برداشت               | کارت، شبا یا هر دو؛ reserve و approval          | کارت رمزگذاری‌شده + reserve + approval                                            | withdrawal غیرفعال، wallet read-only        | محصول/مالی/حقوقی    |
+| DW-06 | تفکیک نقش‌ها              | یک operator یا نقش‌های جدا                      | execution و finance جدا؛ ثبت پرداخت بانکی مستقل                                   | فقط read-only برای فرمان مالی جدید          | مالک workspace      |
+| DW-07 | نرخ و منبع دونگ           | ثابت در تور، editable پس از تور، یا بودجه مسافر | snapshot نرخ در زمان confirm؛ تغییر بعدی correction                               | preview بدون credit                         | محصول/مالی          |
+| DW-08 | کنترل مجموع واقعی         | تعداد ثبت‌نام، افراد تأییدشده یا headcount حاضر | headcount حاضرِ مستقل از allocation؛ ثبت‌نام چندنفره باید تعداد واقعی نفر را بدهد | اگر denominator معتبر نیست، confirm مسدود   | عملیات/محصول        |
+| DW-09 | تطبیق مالک مقصد برداشت    | آزاد، شماره کارت با کد ملی، یا بررسی دستی       | MVP بررسی دستی و audit؛ اتوماسیون فقط پس از منبع معتبر                            | payment نهایی نیازمند تأیید مالی            | مالی/حقوقی          |
+| DW-10 | حداقل/حداکثر برداشت و SLA | سقف روزانه/ماهانه و زمان پرداخت                 | تنظیم tenant-scoped با مقدار اولیه صریح                                           | request خارج از policy رد می‌شود            | مالی/مالک workspace |
 
 ### پاسخ‌هایی که قبل از فاز یک لازم‌اند
 
@@ -2493,14 +2500,14 @@ wallet_credited → corrected (با تراکنش برگشت و تسویه جای
 
 ## 14. ثبت وضعیت پیشرفت این سند
 
-| بخش | وضعیت | توضیح |
-| --- | --- | --- |
-| تحلیل وضعیت فعلی و تضاد با DP-5 | کامل | مسیر in-memory/manual در برابر مسیر پایدار/wallet مستند شد. |
-| قرارداد data/state/API پیشنهادی | کاملِ پیشنهادی | تا تأیید DWها، authority اجرا نیست. |
-| نقش‌ها، امنیت، cutover و rollback | کاملِ پیشنهادی | نقش‌های واقعی باید در policy مجوزها نگاشت شوند. |
-| طراحی تست و معیار پذیرش | کامل برای planning | تست‌ها هنگام هر PR به spec و E2E واقعی تبدیل می‌شوند. |
-| migration و implementation | شروع نشده | منتظر تصمیم‌های لازم و PR مستقل. |
-| واریز یا برداشت واقعی | شروع نشده | عمداً تا گذر از PRهای پایه ممنوع است. |
+| بخش                               | وضعیت              | توضیح                                                       |
+| --------------------------------- | ------------------ | ----------------------------------------------------------- |
+| تحلیل وضعیت فعلی و تضاد با DP-5   | کامل               | مسیر in-memory/manual در برابر مسیر پایدار/wallet مستند شد. |
+| قرارداد data/state/API پیشنهادی   | کاملِ پیشنهادی     | تا تأیید DWها، authority اجرا نیست.                         |
+| نقش‌ها، امنیت، cutover و rollback | کاملِ پیشنهادی     | نقش‌های واقعی باید در policy مجوزها نگاشت شوند.             |
+| طراحی تست و معیار پذیرش           | کامل برای planning | تست‌ها هنگام هر PR به spec و E2E واقعی تبدیل می‌شوند.       |
+| migration و implementation        | شروع نشده          | منتظر تصمیم‌های لازم و PR مستقل.                            |
+| واریز یا برداشت واقعی             | شروع نشده          | عمداً تا گذر از PRهای پایه ممنوع است.                       |
 
 ---
 
