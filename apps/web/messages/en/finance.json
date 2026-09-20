@@ -420,6 +420,7 @@
     "invoiceTotal": "Invoice total",
     "paid": "Paid",
     "balanceDue": "Balance due",
+    "amountDueNow": "Amount due now",
     "recordTitle": "Record prepayment",
     "method": "Method",
     "recording": "Recording…",

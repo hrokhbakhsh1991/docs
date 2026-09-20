@@ -24,6 +24,7 @@ import {
 
 export type ComposeTourOperationalRosterInvoice = {
   readonly remainingMinor: string;
+  readonly amountDueNowMinor?: string | null;
   readonly paidAmountMinor: string;
   readonly invoiceTotalMinor: string;
   readonly currency: string;
@@ -112,6 +113,9 @@ export function composeTourOperationalRosterRow(
     finalizationStatus: input.booking.finalizationStatus ?? "not_final",
     financialDisplayState,
     remainingMinor,
+    ...(input.invoice?.amountDueNowMinor !== undefined
+      ? { amountDueNowMinor: input.invoice.amountDueNowMinor }
+      : {}),
     paidMinor,
     currency,
     paymentDueAt: resolveActionablePaymentDueAt({

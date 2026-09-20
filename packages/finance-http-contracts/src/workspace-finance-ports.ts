@@ -98,6 +98,12 @@ export type FinanceRegistrationObligation = {
 /** How payment is collected after booking approval (Denali phase 4). */
 export type FinancePaymentCollectionMode = "offline" | "free";
 
+/** First payment-stage policy exposed by a workspace pricing bind. */
+export type FinanceRegistrationPaymentPlan = {
+  readonly enabled: boolean;
+  readonly percent: number | null;
+};
+
 /** Ops write — personal registration obligation override (phase 5). */
 export type FinanceRegistrationObligationOverrideInput = {
   readonly tenantId: string;
@@ -122,6 +128,12 @@ export interface FinanceObligationPort {
     readonly tenantId: string;
     readonly registrationId: string;
   }): Promise<FinancePaymentCollectionMode>;
+
+  /** Optional staged-payment policy; absent means regular full-payment flow. */
+  resolveRegistrationPaymentPlan?(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<FinanceRegistrationPaymentPlan | null>;
 
   /**
    * Persist per-registration commercial override (Finance-owned).

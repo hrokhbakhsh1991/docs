@@ -40,6 +40,11 @@ export type PublicCatalogGatheringPoint = {
   readonly longitude?: number | null;
 };
 
+/** Public payment-plan hint. The exact payable amount is resolved after registration. */
+export type PublicCatalogPaymentPlan = {
+  readonly prepaymentPercent?: number | null;
+};
+
 /** Egress-safe list card — workspaces extend via additional fields at API layer. */
 export type PublicCatalogCard = {
   readonly id: string;
@@ -99,6 +104,8 @@ export type PublicCatalogCard = {
   readonly excludedServices?: readonly string[];
   readonly includesTourInsurance?: boolean;
   readonly paymentMode?: string | null;
+  /** Optional public hint for staged offline payment; never a payment authorization. */
+  readonly paymentPlan?: PublicCatalogPaymentPlan;
   /** Public organizer/group link, exposed only through published catalog egress. */
   readonly socialMediaLink?: string | null;
   readonly photoUrls?: readonly string[];

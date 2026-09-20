@@ -57,7 +57,6 @@ function approvedBookingPort(): IBookingPaymentPort {
     async getRegistrationLifecycleStatus() {
       return "approved";
     },
-
   };
 }
 
@@ -142,5 +141,33 @@ describe("FIN-RECEIPT-OBL member receipt payment amount", () => {
     assert.ok(payment !== null);
     assert.equal(payment.amount, "1000000");
     assert.equal(payment.currency, "IRR");
+  });
+
+  it("uses the configured first payment stage before the first receipt", async () => {
+    const registrationId = randomUUID();
+    const obligation: FinanceObligationPort = {
+      async resolveRegistrationObligation() {
+        return { currency: "IRR", obligationMinor: "1000000", source: "tour_canonical" };
+      },
+      async resolveRegistrationPaymentCollection() {
+        return "offline";
+      },
+      async resolveRegistrationPaymentPlan() {
+        return { enabled: true, percent: 30 };
+      },
+      async setRegistrationObligationOverride() {
+        return false;
+      },
+    };
+    const { finance, repo } = createService(obligation);
+
+    await finance.submitMemberReceiptForRegistration(memberAuth(), {
+      registrationId,
+      fileKey: `receipts/${TENANT}/${registrationId}/prepayment.pdf`,
+    });
+
+    const payment = await repo.findFirstPendingManualPayment(TENANT, registrationId);
+    assert.ok(payment !== null);
+    assert.equal(payment.amount, "300000");
   });
 });

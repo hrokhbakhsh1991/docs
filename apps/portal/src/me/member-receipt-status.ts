@@ -4,6 +4,9 @@ export type MemberReceiptPreviewKind = "image" | "pdf" | "unknown";
 
 export type MemberReceiptPanel = {
   readonly status: MemberReceiptStatus;
+  readonly invoiceTotalMinor: string | null;
+  readonly initialPaymentDueMinor: string | null;
+  readonly amountDueNowMinor: string | null;
   readonly remainingMinor: string | null;
   readonly obligationMinor: string | null;
   readonly paidMinor: string | null;
@@ -14,6 +17,9 @@ export type MemberReceiptPanel = {
 
 const EMPTY_PANEL: MemberReceiptPanel = Object.freeze({
   status: "none",
+  invoiceTotalMinor: null,
+  initialPaymentDueMinor: null,
+  amountDueNowMinor: null,
   remainingMinor: null,
   obligationMinor: null,
   paidMinor: null,
@@ -55,6 +61,9 @@ export function parseMemberReceiptPanel(payload: unknown): MemberReceiptPanel {
   const previewUrl = parseNonEmptyString(rec.previewUrl);
   return {
     status: parseMemberReceiptStatus(rec.status),
+    invoiceTotalMinor: parseNonEmptyString(rec.invoiceTotalMinor),
+    initialPaymentDueMinor: parseNonEmptyString(rec.initialPaymentDueMinor),
+    amountDueNowMinor: parseNonEmptyString(rec.amountDueNowMinor),
     remainingMinor: parseNonEmptyString(rec.remainingMinor),
     obligationMinor: parseNonEmptyString(rec.obligationMinor),
     paidMinor: parseNonEmptyString(rec.paidMinor),

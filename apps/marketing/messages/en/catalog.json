@@ -221,6 +221,7 @@
       "maximumAge": "Maximum age: {years, number} years",
       "transportIntake": "Transport preference or vehicle details",
       "payment": "Payment method: {mode}",
+      "prepayment": "Prepayment: {percent, number}% of the final amount after approval",
       "paymentModes": {
         "offlineReceipt": "Offline receipt / bank transfer",
         "gateway": "Online payment"

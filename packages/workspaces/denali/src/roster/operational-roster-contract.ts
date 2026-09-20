@@ -31,6 +31,8 @@ export type TourOperationalRosterRow = {
   readonly finalizationStatus: "not_final" | "finalized";
   readonly financialDisplayState: OperationalRosterFinancialDisplayState;
   readonly remainingMinor: string | null;
+  /** Current staged amount to request; falls back to remainingMinor for full-payment tours. */
+  readonly amountDueNowMinor?: string | null;
   readonly paidMinor: string | null;
   readonly currency: string | null;
   readonly paymentDueAt: string | null;

@@ -420,6 +420,7 @@
     "invoiceTotal": "جمع فاکتور",
     "paid": "پرداخت‌شده",
     "balanceDue": "مانده بدهی",
+    "amountDueNow": "مبلغ قابل پرداخت اکنون",
     "recordTitle": "ثبت پیش‌پرداخت",
     "method": "روش",
     "recording": "در حال ثبت…",

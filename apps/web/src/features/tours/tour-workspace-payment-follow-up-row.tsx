@@ -61,12 +61,13 @@ export function TourWorkspacePaymentFollowUpRow({
   const tFinance = useTranslations("tours.workspace.finance");
   const tBookings = useTranslations("bookings");
   const tTransport = useTranslations("tours.workspace.transport");
+  const amountDueNowMinor = row.amountDueNowMinor ?? row.remainingMinor;
   const amountLabel =
-    row.remainingMinor !== null &&
+    amountDueNowMinor !== null &&
     row.currency !== null &&
-    row.remainingMinor.trim() !== "" &&
-    row.remainingMinor !== "0"
-      ? formatMinorAmount(row.remainingMinor, row.currency, locale)
+    amountDueNowMinor.trim() !== "" &&
+    amountDueNowMinor !== "0"
+      ? formatMinorAmount(amountDueNowMinor, row.currency, locale)
       : null;
   const paymentStatus = row.bookingPaymentStatus ?? "unpaid";
   const showDeadline = shouldShowPaymentFollowUpDeadline(row);

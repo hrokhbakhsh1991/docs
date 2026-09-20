@@ -50,6 +50,7 @@ export async function enrichOperationalRosterRowsBudgetSafe(
       );
       invoice = {
         remainingMinor: compiled.remainingMinor,
+        amountDueNowMinor: compiled.amountDueNowMinor,
         paidAmountMinor: compiled.paidAmountMinor,
         invoiceTotalMinor: compiled.invoiceTotalMinor,
         currency: compiled.currency,

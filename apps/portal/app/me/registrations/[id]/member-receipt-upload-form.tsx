@@ -233,14 +233,16 @@ export function MemberReceiptUploadForm({
       return;
     }
     setUploadPhase("uploading");
-    const body = new FormData();
-    body.append("file", file);
     try {
       const res = await fetch(
         `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
         {
           method: "POST",
-          body,
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "x-receipt-file-name": file.name,
+          },
+          body: file,
         }
       );
       if (!res.ok) {
@@ -273,12 +275,20 @@ export function MemberReceiptUploadForm({
   );
 
   const remainingMinor = panel.remainingMinor;
+  const amountDueNow = panel.amountDueNowMinor ?? remainingMinor;
   const remainingDue =
-    remainingMinor !== null &&
-    isPositiveMinor(remainingMinor) &&
+    amountDueNow !== null &&
+    isPositiveMinor(amountDueNow) &&
     typeof panel.currency === "string" &&
     panel.currency.length > 0
-      ? remainingMinor
+      ? amountDueNow
+      : null;
+  const totalDue =
+    panel.invoiceTotalMinor !== null &&
+    isPositiveMinor(panel.invoiceTotalMinor) &&
+    typeof panel.currency === "string" &&
+    panel.currency.length > 0
+      ? panel.invoiceTotalMinor
       : null;
   const showCatalogLines =
     catalogDue !== null &&
@@ -300,9 +310,29 @@ export function MemberReceiptUploadForm({
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-remaining>
           <strong>
-            {t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}
+            {t(
+              panel.amountDueNowMinor !== null && panel.amountDueNowMinor !== panel.remainingMinor
+                ? "dueNow"
+                : "dueRemaining",
+              { amount: formatMinorAmount(remainingDue, dueCurrency) }
+            )}
           </strong>
         </p>
+        {totalDue !== null ? (
+          <p data-portal-member-receipt-total>
+            {t("dueTotal", { amount: formatMinorAmount(totalDue, dueCurrency) })}
+          </p>
+        ) : null}
+        {panel.amountDueNowMinor !== null && panel.amountDueNowMinor !== panel.remainingMinor ? (
+          <p data-portal-member-receipt-balance>
+            {t("dueBalanceAfterPayment", {
+              amount:
+                panel.remainingMinor !== null
+                  ? formatMinorAmount(panel.remainingMinor, dueCurrency)
+                  : "—",
+            })}
+          </p>
+        ) : null}
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
             {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}

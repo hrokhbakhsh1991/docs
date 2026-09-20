@@ -221,6 +221,7 @@
       "maximumAge": "حداکثر سن: {years, number} سال",
       "transportIntake": "ترجیح حمل‌ونقل یا جزئیات خودرو",
       "payment": "روش پرداخت: {mode}",
+      "prepayment": "پیش‌پرداخت: {percent, number}٪ از مبلغ نهایی پس از تأیید",
       "paymentModes": {
         "offlineReceipt": "رسید / پرداخت آفلاین",
         "gateway": "پرداخت آنلاین"
