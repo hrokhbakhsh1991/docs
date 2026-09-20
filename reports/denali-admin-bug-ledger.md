@@ -30,7 +30,7 @@
 | DENALI-003 | P2 | CLOSED | کلیدهای `bookings.status.actionable` در fa/en موجود و در browser با label معتبر render شدند؛ raw key مشاهده نشد. | fa/en label معتبر و تست locale completeness سبز. |
 | DENALI-004 | P2 | CLOSED | route ناشناخته Admin در browser و HTTP به 404 استاندارد می‌رسد و صفحهٔ فارسی not-found بدون stack داخلی render می‌شود. | 404 استاندارد، بدون stack داخلی. |
 | DENALI-005 | P1 | CLOSED | debug host endpoint از middleware عمومی حذف شد؛ anonymous اکنون `401 AUTH_UNAUTHENTICATED` می‌گیرد و دادهٔ host افشا نمی‌شود. | حذف یا auth/allowlist و تست anonymous. |
-| DENALI-006 | P1 | OPEN | unknown Marketing host به catalog API پاسخ 500 کنترل‌نشده می‌دهد. | 4xx کنترل‌شده و بدون tenant fallback. |
+| DENALI-006 | P1 | CLOSED | unknown Marketing host در catalog API با `404 TENANT_HOST_UNKNOWN` fail-closed می‌شود و tenant fallback یا 500 ندارد. | 4xx کنترل‌شده و بدون tenant fallback. |
 | DENALI-007 | P1 | OPEN | unknown Portal route/API به generic 500 می‌رسد. | 404/400 قراردادشده و بدون stack. |
 | DENALI-008 | P0 | OPEN | tenant resolution به forwarded-host قابل‌دسترس از client اعتماد می‌کند. | spoof دو tenant رد شود و proxy trusted اثبات شود. |
 | DENALI-AUTH-001 | P2 | BLOCKED | fixture رسمی login محلی با فرم پذیرفته نشد؛ bypass ممنوع است. | identity رسمی پذیرفته یا قرارداد fixture اصلاح شود. |
@@ -149,6 +149,24 @@
 - **verifier:** browser canvas `denali-proof` و targeted web tests.
 - **verified_at:** `2026-09-20T19:45:13.203+03:30`.
 - **source_sha:** `c1ca8509fa0f`.
+
+### DENALI-006 evidence
+
+- **task_id:** `DENALI-006`.
+- **reproduce:** در browser/HTTP اولیه Marketing روی پورت 3002 اجرا نبود و probe با connection refusal متوقف شد؛ پس از بالا آوردن سرویس، request به `http://unknown.localhost:3002/api/catalog` در runtime جاری 500 بازتولید نکرد و پاسخ کنترل‌شدهٔ 404 داد.
+- **diagnose:** root cause تاریخی در resolver tenant ناشناخته بود؛ commit `56d82da1d` با map کردن `MARKETING_TENANT_UNRESOLVED` به `TENANT_HOST_UNKNOWN`/404 آن را fail-closed کرده است. routeهای catalog فقط پس از `resolveMarketingBootstrapForApi(host)` به upstream می‌روند.
+- **fix:** fix موجود commit `56d82da1d` در source جاری حاضر است؛ تغییر جدید لازم نبود.
+- **browser_url:** `http://unknown.localhost:3002/api/catalog`.
+- **visible_result:** body فقط خطای کنترل‌شدهٔ `TENANT_HOST_UNKNOWN` را نمایش داد؛ هیچ catalog، tenant fallback یا stack داخلی نمایش داده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** request با `credentials: "omit"` status `404` و payload `{error:{code:"TENANT_HOST_UNKNOWN",message:"Marketing tenant could not be resolved for this host."}}` برگرداند.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ DOM body شامل `TENANT_HOST_UNKNOWN` بود و دادهٔ catalog نداشت.
+- **test_command:** `pnpm --filter @apps/marketing exec tsx --test test/resolve-marketing-bootstrap-api.spec.ts`.
+- **test_result:** exit code `0`; `1 passed, 0 failed`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted Marketing test.
+- **verified_at:** `2026-09-20T19:50:04.836+03:30`.
+- **source_sha:** `a891fb74e`.
 
 ## 2. تسک‌های قابل‌اجرا
 
