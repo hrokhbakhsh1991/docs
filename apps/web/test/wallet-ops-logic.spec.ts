@@ -164,6 +164,8 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
     );
     const proxy = readFileSync(resolve(WEB_ROOT, "src/wallet/proxy-wallet-api.server.ts"), "utf8");
     assert.match(accountsRoute, /proxyWalletApiGet/);
+    assert.match(accountsRoute, /search/);
+    assert.match(accountsRoute, /userId or search is required/);
     assert.doesNotMatch(accountsRoute, /workspaceId/);
     assert.match(proxy, /Idempotency-Key/);
   });
