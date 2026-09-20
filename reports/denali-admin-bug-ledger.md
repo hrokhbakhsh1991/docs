@@ -38,7 +38,7 @@
 ### DENALI-001 evidence
 
 - **blocker:** fixture رسمی Denali برای browser و PostgreSQL در این محیط قابل اجرا نیست؛ Docker Desktop در دسترس نیست و `127.0.0.1:5434` پاسخ نمی‌دهد.
-- **attempted_proof:** اجرای `node .\apps\web\scripts\th1-e2e-servers.mjs` با exit code `1`؛ بررسی healthهای `http://127.0.0.1:3000/` و `http://127.0.0.1:3001/health` ناموفق؛ اجرای `docker ps` با خطای عدم اتصال به Docker API.
+- **attempted_proof:** تلاش مجدد در `2026-09-20T18:20:44+03:30`: اجرای `node .\apps\web\scripts\th1-e2e-servers.mjs` با exit code `1`؛ `docker ps` با خطای `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`; اتصال به `127.0.0.1:5434` نیز ناموفق بود؛ healthهای `http://127.0.0.1:3000/` و `http://127.0.0.1:3001/health` قابل دسترسی نیستند.
 - **browser_url:** قابل ثبت نیست؛ surface محلی قبل از login و route transport بالا نیامد.
 - **visible_result:** قابل مشاهده نیست؛ browser proof انجام نشد.
 - **console_error_count:** قابل اندازه‌گیری نیست؛ صفحه/fixture اجرا نشد.
@@ -46,7 +46,7 @@
 - **screenshot_or_dom_assertion:** موجود نیست؛ به‌دلیل blocker هیچ DOM assertion معتبر ثبت نشد.
 - **next_action:** اجرای fixture PostgreSQL رسمی و سپس بازتولید route `/tours/00000000-0000-0000-0000-000000000220/workspace?tab=transport` با دو load متوالی.
 - **owner:** QA/infra owner محیط Denali staging.
-- **source_sha:** `ed98bf5c22116835c607699fc9af2a37ed494a7b`.
+- **source_sha:** `ed96e0088a21a856be3cedea86b56f50e92d07d6`.
 
 ## 2. تسک‌های قابل‌اجرا
 
