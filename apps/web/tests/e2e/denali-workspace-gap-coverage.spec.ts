@@ -117,7 +117,10 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
     });
 
     await openWorkspaceGuestRow(page, guestName);
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton)).toBeVisible({
+    const rejectButton = page
+      .getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.mobileInspectionSheet)
+      .getByRole("button", { name: /^رد ثبت‌نام$|^reject registration$/i });
+    await expect(rejectButton).toBeVisible({
       timeout: 15_000,
     });
 
@@ -127,7 +130,7 @@ test.describe("denali-workspace-gap-coverage.spec.ts", () => {
         response.request().method() === "POST" &&
         response.ok()
     );
-    await page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton).click();
+    await rejectButton.click();
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectDialog)).toBeVisible({
       timeout: 10_000,
     });
