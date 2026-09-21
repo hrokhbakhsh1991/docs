@@ -512,10 +512,19 @@
       "paymentScheduled": "پرداخت زمان‌بندی شد",
       "paymentExpired": "مهلت پرداخت به پایان رسید",
       "receiptApproved": "فیش پرداخت تأیید شد",
+      "engagementBadgeEarned": "نشان جدید: {badge}",
       "walletUpdated": "کیف پول به‌روزرسانی شد"
     },
     "eventBodies": {
-      "receiptApproved": "فیش پرداخت شما تأیید شد؛ ثبت‌نام این سفر تکمیل شد."
+      "receiptApproved": "فیش پرداخت شما تأیید شد؛ ثبت‌نام این سفر تکمیل شد.",
+      "engagementBadgeEarned": "نشان {badge} را کسب کردید."
+    },
+    "engagementBadges": {
+      "trailheadReady": "آماده مسیر",
+      "firstExpedition": "اولین برنامه",
+      "summitRookie": "تازه‌کار قله",
+      "ridgePartner": "هم‌مسیر یال",
+      "unknown": "جدید"
     },
     "openTourSocialLink": "ورود به گروه یا شبکه اجتماعی تور",
     "sources": {

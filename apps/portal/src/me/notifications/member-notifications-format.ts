@@ -84,6 +84,17 @@ export function isRawTranslationKey(value: string): boolean {
   );
 }
 
+/** Reads a badge code from persisted localized/raw notification fields. */
+export function readEngagementBadgeCode(values: readonly string[]): string | null {
+  for (const value of values) {
+    const match = /^engagement\.badge\.([a-z0-9_]+)\.(?:label|description)$/u.exec(value.trim());
+    if (match?.[1] !== undefined) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
 export function resolveNotificationBodyForLocale(input: {
   readonly title: string;
   readonly body: string;

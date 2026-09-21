@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   isRawTranslationKey,
+  readEngagementBadgeCode,
   resolveNotificationBodyForLocale,
 } from "../src/me/notifications/member-notifications-format";
 
@@ -24,5 +25,17 @@ describe("member notification translation safety", () => {
       }),
       "به‌روزرسانی جدیدی دارید."
     );
+  });
+
+  it("extracts badge codes from persisted label or description keys", () => {
+    assert.equal(
+      readEngagementBadgeCode(["engagement.badge.summit_rookie.label"]),
+      "summit_rookie"
+    );
+    assert.equal(
+      readEngagementBadgeCode(["engagement.badge.first_expedition.description"]),
+      "first_expedition"
+    );
+    assert.equal(readEngagementBadgeCode(["به‌روزرسانی جدیدی دارید."]), null);
   });
 });

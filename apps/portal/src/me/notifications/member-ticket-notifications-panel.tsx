@@ -7,6 +7,7 @@ import {
   formatMemberNotificationDateTime,
   formatMemberNotificationRelativeTime,
   isRawTranslationKey,
+  readEngagementBadgeCode,
   resolveNotificationBodyForLocale,
   resolveNotificationSourceIcon,
   sanitizeNotificationTitle,
@@ -50,6 +51,14 @@ function resolveNotificationTitle(
   locale: string,
   t: ReturnType<typeof useTranslations<"portalMember.notifications">>
 ): string {
+  if (item.eventType === "engagement.badge.earned") {
+    const badgeCode = resolveEngagementBadgeCode(item);
+    if (badgeCode !== null) {
+      return t("eventTitles.engagementBadgeEarned", {
+        badge: resolveEngagementBadgeLabel(badgeCode, t),
+      });
+    }
+  }
   const localizedTitle = locale.startsWith("fa") ? item.payload?.titleFa : undefined;
   if (
     typeof localizedTitle === "string" &&
@@ -84,6 +93,46 @@ function resolveNotificationTitle(
   };
   const key = eventTitleKeys[item.eventType];
   return key === undefined ? t("genericTitle") : t(key);
+}
+
+function resolveEngagementBadgeLabel(
+  badgeCode: string,
+  t: ReturnType<typeof useTranslations<"portalMember.notifications">>
+): string {
+  switch (badgeCode) {
+    case "trailhead_ready":
+      return t("engagementBadges.trailheadReady");
+    case "first_expedition":
+      return t("engagementBadges.firstExpedition");
+    case "summit_rookie":
+      return t("engagementBadges.summitRookie");
+    case "ridge_partner":
+      return t("engagementBadges.ridgePartner");
+    default:
+      return t("engagementBadges.unknown");
+  }
+}
+
+function resolveEngagementBadgeCode(item: NotificationItem): string | null {
+  return readEngagementBadgeCode([
+    typeof item.payload?.titleFa === "string" ? item.payload.titleFa : "",
+    item.title,
+    typeof item.payload?.bodyFa === "string" ? item.payload.bodyFa : "",
+    item.body,
+  ]);
+}
+
+function resolveEngagementBadgeBody(
+  item: NotificationItem,
+  fallback: string,
+  t: ReturnType<typeof useTranslations<"portalMember.notifications">>
+): string {
+  const badgeCode = resolveEngagementBadgeCode(item);
+  return badgeCode === null
+    ? fallback
+    : t("eventBodies.engagementBadgeEarned", {
+        badge: resolveEngagementBadgeLabel(badgeCode, t),
+      });
 }
 
 function resolveNotificationHref(item: NotificationItem): string {
@@ -297,9 +346,11 @@ export function MemberNotificationsPanel() {
               genericFallback: t("genericUpdateBody"),
             });
             const displayBody =
-              item.eventType === "finance.receipt.approved" && isRawTranslationKey(copy.body)
-                ? t("eventBodies.receiptApproved")
-                : body;
+              item.eventType === "engagement.badge.earned"
+                ? resolveEngagementBadgeBody(item, body, t)
+                : item.eventType === "finance.receipt.approved" && isRawTranslationKey(copy.body)
+                  ? t("eventBodies.receiptApproved")
+                  : body;
             const unread = item.readAt === null;
             const Icon = resolveNotificationSourceIcon(item.sourceModule, item.eventType);
             const href = resolveNotificationHref(item);

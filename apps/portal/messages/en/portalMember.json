@@ -512,10 +512,19 @@
       "paymentScheduled": "Payment scheduled",
       "paymentExpired": "Payment deadline passed",
       "receiptApproved": "Payment receipt approved",
+      "engagementBadgeEarned": "New badge: {badge}",
       "walletUpdated": "Wallet updated"
     },
     "eventBodies": {
-      "receiptApproved": "Your payment receipt was approved; your registration is complete."
+      "receiptApproved": "Your payment receipt was approved; your registration is complete.",
+      "engagementBadgeEarned": "You earned the {badge} badge."
+    },
+    "engagementBadges": {
+      "trailheadReady": "Trailhead ready",
+      "firstExpedition": "First expedition",
+      "summitRookie": "Summit rookie",
+      "ridgePartner": "Ridge partner",
+      "unknown": "New"
     },
     "openTourSocialLink": "Open the tour group or social channel",
     "sources": {
