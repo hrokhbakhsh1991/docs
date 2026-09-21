@@ -20,7 +20,9 @@ import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 import { resolveDenaliCatalogPhotoEnrichment } from "../catalog/enrich-denali-catalog-photo-urls";
 import {
   filterDenaliCatalogTourAvailability,
+  filterDenaliCatalogTourDepartureWindow,
   filterDenaliCatalogTourRecords,
+  isDenaliCatalogTourUpcoming,
   sortDenaliCatalogTourRecords,
   type DenaliCatalogListQuery,
 } from "../catalog/filter-denali-catalog-list";
@@ -36,7 +38,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
 }
 
-function collectDestinationIdsFromTours(tours: readonly PublicCatalogTourInput[]): readonly string[] {
+function collectDestinationIdsFromTours(
+  tours: readonly PublicCatalogTourInput[]
+): readonly string[] {
   const ids = new Set<string>();
   for (const tour of tours) {
     const data = tour.canonical.data;
@@ -135,9 +139,7 @@ async function enrichCatalogCardsWithSpots(params: {
           params.tenantId,
           params.cards.map((card) => card.id)
         );
-  return params.cards.map((card) =>
-    withSpotsRemaining(card, approvedByTour[card.id] ?? 0)
-  );
+  return params.cards.map((card) => withSpotsRemaining(card, approvedByTour[card.id] ?? 0));
 }
 
 export type DenaliCatalogListResult = {
@@ -159,7 +161,7 @@ export async function listDenaliCatalog(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
 
   const limit = clampWorkspaceCatalogPageLimit({ limit: params.limit });
@@ -173,6 +175,7 @@ export async function listDenaliCatalog(params: {
     isPublished: isDenaliTourPublished,
     getCanonical: (tour) => tour.canonical,
   });
+  published = [...filterDenaliCatalogTourDepartureWindow(published)];
   published = [...filterDenaliCatalogTourRecords(published, listQuery)];
   published = [
     ...(await filterDenaliCatalogTourAvailability(published, {
@@ -199,7 +202,7 @@ export async function listDenaliCatalog(params: {
       destinationNameById,
       surface: DENALI_EXPOSURE_SURFACE.publicList,
       exposurePort: params.exposurePort,
-    }),
+    })
   );
   const items = await enrichCatalogCardsWithSpots({
     tenantId: params.tenantId,
@@ -224,14 +227,14 @@ export async function getDenaliCatalogTour(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
   const tour = await loadWorkspaceTourIfPublished({
     findFirst: () => params.store.findFirst({ tenantId: params.tenantId, id: params.tourId }),
     isPublished: isDenaliTourPublished,
     getCanonical: (row) => row.canonical,
   });
-  if (tour === null) {
+  if (tour === null || !isDenaliCatalogTourUpcoming(tour)) {
     return null;
   }
   const destinationNameById = await resolveDestinationNameById({
