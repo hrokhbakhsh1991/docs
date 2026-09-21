@@ -42,6 +42,17 @@ describe("settings-integrations.spec.ts — Denali wiring", () => {
     assert.equal(SETTINGS_HUB_TEST_IDS.integrationsPage, "operator-settings-integrations-page");
   });
 
+  it("WEB-INT-I18N-01 does not re-parse preformatted Persian integration counts", () => {
+    const messages = JSON.parse(
+      readFileSync(join(REPO_ROOT, "apps/web/messages/fa/settings.json"), "utf8")
+    ) as { integrations: { summary: { description: string } } };
+    assert.equal(
+      messages.integrations.summary.description,
+      "{integrationCount} اتصال جدید و {legacyCount} اتصال قدیمی برای این ورک‌اسپیس پیدا شد."
+    );
+    assert.doesNotMatch(messages.integrations.summary.description, /, number}/);
+  });
+
   it("WEB-INT-LAYOUT-01 integrations uses shared shell + equal master-detail grid", () => {
     const client = readFileSync(
       join(import.meta.dirname, "../app/(app)/settings/integrations/integrations-settings-client.tsx"),

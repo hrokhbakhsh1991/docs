@@ -566,7 +566,7 @@
     "listTitle": "اتصال‌ها ({count, number})",
     "summary": {
       "title": "نمای کلی ارسال تلگرام",
-      "description": "{integrationCount, number} اتصال جدید و {legacyCount, number} اتصال قدیمی برای این ورک‌اسپیس پیدا شد.",
+      "description": "{integrationCount} اتصال جدید و {legacyCount} اتصال قدیمی برای این ورک‌اسپیس پیدا شد.",
       "noActiveSource": "هیچ منبع ارسال فعالی برای این ورک‌اسپیس وجود ندارد.",
       "legacyFallbackSuppressed": "بات تلگرام قدیمی وجود دارد اما چون اتصال جدید ثبت شده، مسیر قدیمی دیگر استفاده نمی‌شود.",
       "activeSource": {
