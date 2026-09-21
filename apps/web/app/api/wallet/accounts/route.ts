@@ -17,5 +17,7 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
-  return proxyWalletApiGet(req, "/wallet/accounts");
+  const query = incoming.searchParams.toString();
+  const path = query.length > 0 ? `/wallet/accounts?${query}` : "/wallet/accounts";
+  return proxyWalletApiGet(req, path);
 }

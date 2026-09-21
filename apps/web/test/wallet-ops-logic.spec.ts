@@ -166,6 +166,8 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
     assert.match(accountsRoute, /proxyWalletApiGet/);
     assert.match(accountsRoute, /search/);
     assert.match(accountsRoute, /userId or search is required/);
+    assert.match(accountsRoute, /incoming\.searchParams\.toString\(\)/);
+    assert.match(accountsRoute, /`\/wallet\/accounts\?\$\{query\}`/);
     assert.doesNotMatch(accountsRoute, /workspaceId/);
     assert.match(proxy, /Idempotency-Key/);
   });
