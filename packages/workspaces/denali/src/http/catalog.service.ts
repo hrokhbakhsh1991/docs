@@ -38,6 +38,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isTourId(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
 function collectDestinationIdsFromTours(
   tours: readonly PublicCatalogTourInput[]
 ): readonly string[] {
@@ -229,6 +236,11 @@ export async function getDenaliCatalogTour(params: {
     DENALI_WORKSPACE_TYPE,
     () => new DenaliWorkspaceRequiredError()
   );
+  // Tour ids are UUIDs in the Denali persistence model. Treat malformed public
+  // route params as a catalog miss before Prisma can turn them into a 500.
+  if (!isTourId(params.tourId)) {
+    return null;
+  }
   const tour = await loadWorkspaceTourIfPublished({
     findFirst: () => params.store.findFirst({ tenantId: params.tenantId, id: params.tourId }),
     isPublished: isDenaliTourPublished,

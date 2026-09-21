@@ -63,6 +63,29 @@ function canonical(extra: Record<string, unknown> = {}) {
 }
 
 describe("denali-catalog-itinerary.spec.ts", () => {
+  it("DN-CAT-13 treats malformed public tour ids as a catalog miss", async () => {
+    let storeRead = false;
+    const store: DenaliTourStorePort = {
+      async listPage() {
+        return { items: [] };
+      },
+      async findFirst() {
+        storeRead = true;
+        throw new Error("malformed id reached persistence");
+      },
+    };
+
+    const card = await getDenaliCatalogTour({
+      tenantId: "tenant",
+      workspaceType: "denali",
+      store,
+      tourId: "not-a-real-tour",
+    });
+
+    assert.equal(card, null);
+    assert.equal(storeRead, false);
+  });
+
   it("DN-CAT-04 projects egress-safe itinerary days without internal ids", () => {
     const projected = projectDenaliCatalogItinerary(canonical().data);
     assert.equal(projected?.length, 1);
