@@ -305,6 +305,12 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"waitingTitle"/);
     assert.match(fa, /"dueRemaining"/);
     assert.match(en, /"dueRemaining"/);
+    assert.match(fa, /"dueTotal"/);
+    assert.match(en, /"dueTotal"/);
+    assert.match(fa, /"dueNow"/);
+    assert.match(en, /"dueNow"/);
+    assert.match(fa, /"dueBalanceAfterPayment"/);
+    assert.match(en, /"dueBalanceAfterPayment"/);
     assert.match(fa, /"previewLabel"/);
     assert.match(en, /"previewLabel"/);
     assert.match(fa, /"waivedTitle"/);
