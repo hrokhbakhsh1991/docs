@@ -13,12 +13,12 @@ function sanitizeReceiptFileName(name: string): string {
   return cleaned.length > 0 ? cleaned : "receipt";
 }
 
-function resolveReceiptContentType(file: File): string {
-  const typed = file.type.trim().toLowerCase();
+function resolveReceiptContentType(contentType: string | null, fileName: string | null): string {
+  const typed = contentType?.trim().toLowerCase() ?? "";
   if (typed.length > 0) {
     return typed;
   }
-  const lower = file.name.toLowerCase();
+  const lower = fileName?.toLowerCase() ?? "";
   if (lower.endsWith(".pdf")) {
     return "application/pdf";
   }
@@ -76,15 +76,16 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
   }
 
-  const form = await req.formData();
-  const file = form.get("file");
-  if (!(file instanceof File)) {
+  const body = Buffer.from(await req.arrayBuffer());
+  if (body.byteLength === 0) {
     return NextResponse.json({ ok: false, code: "FILE_REQUIRED" }, { status: 400 });
   }
 
-  const contentType = resolveReceiptContentType(file);
-  const fileName = sanitizeReceiptFileName(file.name);
-  const body = Buffer.from(await file.arrayBuffer());
+  const contentType = resolveReceiptContentType(
+    req.headers.get("content-type"),
+    req.headers.get("x-receipt-file-name")
+  );
+  const fileName = sanitizeReceiptFileName(req.headers.get("x-receipt-file-name") ?? "receipt");
   const ingressHost = host.split(":")[0] ?? host;
 
   const apiBase = resolveTourOpsApiBaseUrl();

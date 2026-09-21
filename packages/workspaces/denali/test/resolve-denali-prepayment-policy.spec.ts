@@ -41,6 +41,21 @@ describe("resolve-denali-prepayment-policy.spec.ts", () => {
     );
   });
 
+  it("fails closed for decimal percentages instead of truncating them", () => {
+    assert.deepEqual(
+      resolveDenaliPrepaymentPolicy({
+        pricing: { prepaymentEnabled: true, prepaymentPercent: 30.9 },
+      }),
+      { enabled: false, percent: null }
+    );
+    assert.deepEqual(
+      resolveDenaliPrepaymentPolicy({
+        pricing: { prepaymentEnabled: true, prepaymentPercent: "30.9" },
+      }),
+      { enabled: false, percent: null }
+    );
+  });
+
   it("suggests a prepayment amount from invoice total and caps at remaining balance", () => {
     assert.equal(
       resolveDenaliSuggestedPrepaymentMinor({

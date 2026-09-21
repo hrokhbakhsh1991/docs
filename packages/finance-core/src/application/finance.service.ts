@@ -11,6 +11,7 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
+import { resolveStagedPaymentProjection } from "../domain/staged-payment-projection";
 import { assertCancelPendingManualPaymentReason } from "../domain/cancel-pending-manual-payment";
 import {
   assertPositiveRefundAmountMinor,
@@ -176,6 +177,9 @@ export type MemberReceiptPreviewKind = "image" | "pdf" | "unknown";
 
 export type MemberReceiptStatusView = {
   readonly status: MemberReceiptPanelStatus;
+  readonly invoiceTotalMinor: string | null;
+  readonly initialPaymentDueMinor: string | null;
+  readonly amountDueNowMinor: string | null;
   readonly remainingMinor: string | null;
   readonly obligationMinor: string | null;
   readonly paidMinor: string | null;
@@ -997,7 +1001,19 @@ export class FinanceService {
         registrationId: input.registrationId,
       });
       const offlineDefaults = this.receiptDefaults.offlineReceiptPaymentDefaults();
-      const remainingMinor = invoice.balanceDueMinor;
+      const plan = this.obligation.resolveRegistrationPaymentPlan
+        ? await this.obligation.resolveRegistrationPaymentPlan({
+            tenantId: auth.tenantId,
+            registrationId: input.registrationId,
+          })
+        : null;
+      const staged = resolveStagedPaymentProjection({
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
+        paidAmountMinor: invoice.paidAmountMinor,
+        balanceDueMinor: invoice.balanceDueMinor,
+        plan,
+      });
+      const remainingMinor = staged.amountDueNowMinor;
       const amount =
         parseMinorDigits(remainingMinor) > BigInt(0)
           ? remainingMinor
@@ -1173,13 +1189,33 @@ export class FinanceService {
       registrationId,
     });
     const invoice = await this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
-      .then((invoice) => ({
-        remainingMinor: invoice.balanceDueMinor,
-        paidMinor: invoice.paidAmountMinor,
-        currency: invoice.currency,
-        remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
-      }))
+      .then(async (invoice) => {
+        const plan = this.obligation.resolveRegistrationPaymentPlan
+          ? await this.obligation.resolveRegistrationPaymentPlan({
+              tenantId: auth.tenantId,
+              registrationId,
+            })
+          : null;
+        const staged = resolveStagedPaymentProjection({
+          invoiceTotalMinor: invoice.invoiceTotalMinor,
+          paidAmountMinor: invoice.paidAmountMinor,
+          balanceDueMinor: invoice.balanceDueMinor,
+          plan,
+        });
+        return {
+          invoiceTotalMinor: invoice.invoiceTotalMinor,
+          initialPaymentDueMinor: staged.initialPaymentDueMinor,
+          amountDueNowMinor: staged.amountDueNowMinor,
+          remainingMinor: invoice.balanceDueMinor,
+          paidMinor: invoice.paidAmountMinor,
+          currency: invoice.currency,
+          remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
+        };
+      })
       .catch(() => ({
+        invoiceTotalMinor: null as string | null,
+        initialPaymentDueMinor: null as string | null,
+        amountDueNowMinor: null as string | null,
         remainingMinor: null as string | null,
         paidMinor: null as string | null,
         currency: null as string | null,
@@ -1196,6 +1232,9 @@ export class FinanceService {
     const remainingPositive = invoice.remainingPositive;
 
     const base = {
+      invoiceTotalMinor: invoice.invoiceTotalMinor,
+      initialPaymentDueMinor: invoice.initialPaymentDueMinor,
+      amountDueNowMinor: invoice.amountDueNowMinor,
       remainingMinor,
       obligationMinor: obligation?.obligationMinor ?? null,
       paidMinor,
@@ -1703,7 +1742,25 @@ export class FinanceService {
       // a missing or foreign-tenant booking; that masks an IDOR boundary.
       throw new Error("BOOKING_NOT_FOUND");
     }
-    return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
+    const invoice = await this.compileRegistrationInvoiceInternal(
+      auth.tenantId,
+      normalizedRegistrationId
+    );
+    const plan = this.obligation.resolveRegistrationPaymentPlan
+      ? await this.obligation.resolveRegistrationPaymentPlan({
+          tenantId: auth.tenantId,
+          registrationId: normalizedRegistrationId,
+        })
+      : null;
+    return {
+      ...invoice,
+      ...resolveStagedPaymentProjection({
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
+        paidAmountMinor: invoice.paidAmountMinor,
+        balanceDueMinor: invoice.balanceDueMinor,
+        plan,
+      }),
+    };
   }
 
   private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {

@@ -1,4 +1,8 @@
-import type { PublicCatalogGatheringPoint, PublicCatalogGearItem } from "@app-tour/workspace-sdk";
+import type {
+  PublicCatalogGatheringPoint,
+  PublicCatalogGearItem,
+  PublicCatalogPaymentPlan,
+} from "@app-tour/workspace-sdk";
 
 import {
   readDenaliCanonicalPhotoRows,
@@ -11,6 +15,7 @@ import {
   parseDenaliLocationData,
 } from "../ui/logic/denali-location-types";
 import { normalizeSocialMediaLink } from "../ui/logic/denali-social-media-link-logic";
+import { resolveDenaliPrepaymentPolicy } from "../bookings/resolve-denali-prepayment-policy";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
@@ -129,6 +134,7 @@ export type DenaliCatalogDetailEgress = {
   readonly excludedServices?: readonly string[];
   readonly includesTourInsurance?: boolean;
   readonly paymentMode?: string | null;
+  readonly paymentPlan?: PublicCatalogPaymentPlan;
   readonly socialMediaLink?: string | null;
   readonly photoUrls?: readonly string[];
 };
@@ -212,6 +218,7 @@ export function readDenaliCatalogDetailEgress(
   const paymentMode =
     readString(readCanonicalPath(data, "pricing.paymentMode")) ??
     readString(readCanonicalPath(data, "pricingPayment.paymentMode"));
+  const prepaymentPolicy = resolveDenaliPrepaymentPolicy(data);
   const socialMediaLinkRaw =
     readString(data.socialMediaLink) ??
     readString(readCanonicalPath(data, "basicInfo.socialMediaLink"));
@@ -246,6 +253,9 @@ export function readDenaliCatalogDetailEgress(
     ...(excludedServices.length > 0 ? { excludedServices } : {}),
     ...(includesTourInsurance ? { includesTourInsurance: true } : {}),
     ...(paymentMode != null ? { paymentMode } : {}),
+    ...(prepaymentPolicy.enabled && prepaymentPolicy.percent != null
+      ? { paymentPlan: { prepaymentPercent: prepaymentPolicy.percent } }
+      : {}),
     ...(socialMediaLink != null ? { socialMediaLink } : {}),
     ...(photoUrls != null ? { photoUrls } : {}),
   });

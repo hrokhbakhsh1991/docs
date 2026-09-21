@@ -25,7 +25,7 @@ function canonical(extra: Record<string, unknown> = {}) {
     data: {
       title: "Festival Trek",
       publishStatus: "active",
-      startDateTime: "2026-07-01T08:00:00.000Z",
+      startDateTime: "2031-07-01T08:00:00.000Z",
       endDateTime: "2026-07-03T18:00:00.000Z",
       category: "mountain_multi",
       capacityMax: 12,
@@ -63,6 +63,29 @@ function canonical(extra: Record<string, unknown> = {}) {
 }
 
 describe("denali-catalog-itinerary.spec.ts", () => {
+  it("DN-CAT-13 treats malformed public tour ids as a catalog miss", async () => {
+    let storeRead = false;
+    const store: DenaliTourStorePort = {
+      async listPage() {
+        return { items: [] };
+      },
+      async findFirst() {
+        storeRead = true;
+        throw new Error("malformed id reached persistence");
+      },
+    };
+
+    const card = await getDenaliCatalogTour({
+      tenantId: "tenant",
+      workspaceType: "denali",
+      store,
+      tourId: "not-a-real-tour",
+    });
+
+    assert.equal(card, null);
+    assert.equal(storeRead, false);
+  });
+
   it("DN-CAT-04 projects egress-safe itinerary days without internal ids", () => {
     const projected = projectDenaliCatalogItinerary(canonical().data);
     assert.equal(projected?.length, 1);
@@ -76,8 +99,7 @@ describe("denali-catalog-itinerary.spec.ts", () => {
   });
 
   it("DN-CAT-04b projects data:image smoke fixture URLs onto segment photoUrls", () => {
-    const dataUri =
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E";
+    const dataUri = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E";
     const projected = projectDenaliCatalogItinerary(
       canonical({
         photos: [{ id: "p1", url: dataUri }],
@@ -125,7 +147,7 @@ describe("denali-catalog-itinerary.spec.ts", () => {
           },
         },
       },
-      { destinationNameById: new Map([["dest-root", "Tochal"]]) },
+      { destinationNameById: new Map([["dest-root", "Tochal"]]) }
     );
     assert.equal(card.destinationLabel, "Tochal");
   });
@@ -137,10 +159,7 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     const projected = projectDenaliCatalogItinerary(data, {
       photoUrlById: new Map([["p1", "https://minio.example/signed-p1"]]),
     });
-    assert.equal(
-      projected?.[0]?.segments[0]?.photoUrls?.[0],
-      "https://minio.example/signed-p1"
-    );
+    assert.equal(projected?.[0]?.segments[0]?.photoUrls?.[0], "https://minio.example/signed-p1");
   });
 
   it("DN-CAT-05 toDenaliCatalogCard attaches itineraryDays difficulty fitness and structuredData", () => {
@@ -194,7 +213,9 @@ describe("denali-catalog-itinerary.spec.ts", () => {
       },
       ["dest-1"]
     );
-    const itinerary = sanitized.data.program as { itinerary: Array<{ segments: Array<{ destinationId?: string }> }> };
+    const itinerary = sanitized.data.program as {
+      itinerary: Array<{ segments: Array<{ destinationId?: string }> }>;
+    };
     assert.equal(itinerary.itinerary[0]?.segments[0]?.destinationId, "dest-1");
 
     const pruned = sanitizeItineraryDestinationIdsOnDraft(

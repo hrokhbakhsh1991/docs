@@ -21,6 +21,7 @@ export type TourWorkspacePaymentFollowUpParticipantRow = {
   readonly financialDisplayState: string | null;
   readonly bookingPaymentStatus: "unpaid" | "partial" | "paid" | null;
   readonly remainingMinor: string | null;
+  readonly amountDueNowMinor: string | null;
   readonly currency: string | null;
   readonly paymentDueAt: string | null;
   readonly isFinalParticipant: boolean;
@@ -87,6 +88,7 @@ export function mapRosterRowToFollowUpParticipant(
     financialDisplayState: row.financialDisplayState,
     bookingPaymentStatus,
     remainingMinor: row.remainingMinor,
+    amountDueNowMinor: row.amountDueNowMinor ?? null,
     currency: row.currency,
     paymentDueAt: row.paymentDueAt,
     isFinalParticipant: row.isFinalParticipant,

@@ -24,7 +24,7 @@ async function loadOperationalRosterForFollowUp(
   tourId: string,
   signal: AbortSignal
 ): Promise<TourOperationalRosterResponse["items"]> {
-  const response = await fetch(buildTourOperationalRosterHref(tourId, "operational"), {
+  const response = await fetch(buildTourOperationalRosterHref(tourId, "unpaid"), {
     cache: "no-store",
     signal,
   });

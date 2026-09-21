@@ -452,7 +452,9 @@ export function BookingsPageClient({
   const bodyState = resolveBookingsPageBodyState({
     canManageOps,
     view: query.view,
-    loading: loading && listData === null,
+    // A changed filter must not present the previous response as the new result.
+    // Keep the loading state authoritative while the filtered request is pending.
+    loading,
     error,
     itemsLength: listData?.items.length ?? 0,
     hasActiveFilters: bookingsCommandCenterHasActiveFilters(query),

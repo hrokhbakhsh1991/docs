@@ -25,7 +25,7 @@ function publishedParticipantTourStore(): DenaliTourStorePort {
             title: "Participant Fields Tour",
             publishStatus: "active",
             capacityMax: 12,
-            startDateTime: "2026-06-01T08:00:00.000Z",
+            startDateTime: "2031-06-01T08:00:00.000Z",
             participantRequirements: {
               nationalIdRequired: true,
               fatherNameRequired: true,

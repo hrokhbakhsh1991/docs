@@ -140,6 +140,13 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-paid/);
     assert.match(form, /data-portal-member-receipt-waived/);
     assert.match(form, /data-portal-member-receipt-preview/);
+    assert.match(form, /paymentDestinationLabel/);
+    assert.match(form, /paymentDestinationUnavailable/);
+    assert.match(form, /setSelectedFile\(file\);[\s\S]*setUploadPhase\("idle"\)/);
+    assert.match(form, /event\.currentTarget\.value = "";/);
+    const uploadAt = form.indexOf("<div data-portal-member-receipt-upload>");
+    const uploadDestinationAt = form.indexOf("{paymentDestinationBlock}", uploadAt);
+    assert.ok(uploadAt > 0 && uploadDestinationAt > uploadAt);
     assert.match(form, /selectedFile === undefined/);
     assert.match(form, /data-portal-member-receipt-file-picker/);
     assert.match(form, /t\("noFileSelected"\)/);
