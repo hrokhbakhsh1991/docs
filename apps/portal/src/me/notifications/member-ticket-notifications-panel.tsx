@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   formatMemberNotificationDateTime,
   formatMemberNotificationRelativeTime,
+  isRawTranslationKey,
   resolveNotificationBodyForLocale,
   resolveNotificationSourceIcon,
   sanitizeNotificationTitle,
@@ -30,11 +31,6 @@ type ListResponse = {
   readonly hasMore?: boolean;
   readonly nextCursor?: string | null;
 };
-
-function isRawTranslationKey(value: string): boolean {
-  const trimmed = value.trim();
-  return /^(?:notification|portalMember|tickets|settings|nav|common)(?:[._]|$)/u.test(trimmed);
-}
 
 function resolveLocalizedCopy(
   item: NotificationItem,

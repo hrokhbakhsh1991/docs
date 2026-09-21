@@ -78,8 +78,10 @@ export function sanitizeNotificationTitle(title: string): string {
   return title.replace(/\s*\([^)]*\)\s*$/u, "").trim();
 }
 
-function isRawTranslationKey(value: string): boolean {
-  return /^(?:notification|portalMember|tickets|settings|nav|common)(?:[._]|$)/u.test(value.trim());
+export function isRawTranslationKey(value: string): boolean {
+  return /^(?:notification|portalMember|tickets|settings|nav|common|engagement)(?:[._]|$)/u.test(
+    value.trim()
+  );
 }
 
 export function resolveNotificationBodyForLocale(input: {
