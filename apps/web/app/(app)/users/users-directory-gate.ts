@@ -6,6 +6,7 @@ export type UsersDirectoryBodyState =
   | { readonly type: "loading" }
   | { readonly type: "error"; readonly message: string }
   | { readonly type: "empty" }
+  | { readonly type: "empty-filtered" }
   | { readonly type: "directory" };
 
 export type UsersDirectoryGateInput = {
@@ -28,8 +29,8 @@ export function resolveUsersDirectoryBodyState(
   if (input.error !== null) {
     return { type: "error", message: input.error };
   }
-  if (input.usersLength === 0 && !input.hasActiveFilters) {
-    return { type: "empty" };
+  if (input.usersLength === 0) {
+    return { type: input.hasActiveFilters ? "empty-filtered" : "empty" };
   }
   return { type: "directory" };
 }

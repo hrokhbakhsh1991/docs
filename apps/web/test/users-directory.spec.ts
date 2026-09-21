@@ -348,6 +348,22 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(state.type, "loading");
   });
 
+  it("WEB-9.4-05c filtered directory shows a no-results state", () => {
+    const state = resolveUsersDirectoryBodyState({
+      session: {
+        userId: "u1",
+        tenantId: "t1",
+        role: "owner",
+        workspaceType: "denali",
+      },
+      loading: false,
+      error: null,
+      usersLength: 0,
+      hasActiveFilters: true,
+    });
+    assert.equal(state.type, "empty-filtered");
+  });
+
   it("WEB-9.4-17 R4 list fetch query includes sort, limit, and page cursor", async () => {
     const {
       buildUsersListFetchQuery,
