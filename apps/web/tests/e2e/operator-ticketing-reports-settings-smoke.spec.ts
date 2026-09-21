@@ -56,7 +56,9 @@ test.describe("TKT-K1 operator reports and settings", () => {
     });
 
     await page.goto("/settings/ticketing", { waitUntil: "load" });
-    await expect(page.getByRole("alert")).toContainText("Ticketing settings could not be loaded");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Ticketing settings could not be loaded" })
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(page.getByText("Loading…")).toHaveCount(0);
   });
@@ -72,7 +74,9 @@ test.describe("TKT-K1 operator reports and settings", () => {
     });
 
     await page.goto("/reports/ticketing", { waitUntil: "load" });
-    await expect(page.getByRole("alert")).toContainText("Ticketing report could not be loaded");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Ticketing report could not be loaded" })
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(page.getByText("Loading…")).toHaveCount(0);
   });
