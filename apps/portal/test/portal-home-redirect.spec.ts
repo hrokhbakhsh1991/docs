@@ -21,6 +21,8 @@ describe("portal-home-redirect — PS-5", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/me/home/page.tsx"), "utf8");
     assert.match(page, /data-portal-member-home/);
     assert.match(page, /buildMemberHomePayload/);
+    assert.match(page, /formatMemberRegistrationDeparture/);
+    assert.match(page, /nextTourDepartureAt/);
   });
 
   it("PS5-HOME-03 optional dashboard sources cannot turn home into a global error", () => {

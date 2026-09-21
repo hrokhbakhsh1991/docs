@@ -299,12 +299,18 @@ describe("portal-member-registrations", () => {
     assert.match(loadMessages, /portalMember\.json/);
     const fa = readFileSync(join(repoRoot, "apps/portal/messages/fa/portalMember.json"), "utf8");
     const en = readFileSync(join(repoRoot, "apps/portal/messages/en/portalMember.json"), "utf8");
+    const faReceipt = JSON.parse(fa).receipt as Record<string, string>;
+    const enReceipt = JSON.parse(en).receipt as Record<string, string>;
     assert.match(fa, /"trips"/);
     assert.match(en, /"trips"/);
     assert.match(fa, /"waitingTitle"/);
     assert.match(en, /"waitingTitle"/);
-    assert.match(fa, /"dueRemaining"/);
-    assert.match(en, /"dueRemaining"/);
+    for (const key of ["dueRemaining", "dueTotal", "dueNow", "dueBalanceAfterPayment"] as const) {
+      assert.equal(typeof faReceipt[key], "string", `missing fa receipt.${key}`);
+      assert.equal(typeof enReceipt[key], "string", `missing en receipt.${key}`);
+      assert.match(faReceipt[key], /\{amount\}/, `fa receipt.${key} must expose amount placeholder`);
+      assert.match(enReceipt[key], /\{amount\}/, `en receipt.${key} must expose amount placeholder`);
+    }
     assert.match(fa, /"previewLabel"/);
     assert.match(en, /"previewLabel"/);
     assert.match(fa, /"waivedTitle"/);
