@@ -122,7 +122,18 @@ export function buildOperatorTourWhere(input: {
   return {
     tenantId: input.tenantId,
     ...(search !== undefined && search.length > 0
-      ? { title: { contains: search, mode: "insensitive" } }
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" } },
+            {
+              canonical: {
+                path: ["data", "basics", "title"],
+                string_contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        }
       : {}),
     ...(input.status !== undefined
       ? { publishStatus: { in: [...publishStatusesForOperatorFilter(input.status)] } }

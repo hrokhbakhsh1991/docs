@@ -28,6 +28,24 @@ describe("operator-tour-list-db-query", () => {
     assert.equal("canonical" in where, false);
   });
 
+  it("searches both the projection and canonical basics title", () => {
+    const where = buildOperatorTourWhere({
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      search: "پیش",
+    });
+
+    assert.deepEqual(where.OR, [
+      { title: { contains: "پیش", mode: "insensitive" } },
+      {
+        canonical: {
+          path: ["data", "basics", "title"],
+          string_contains: "پیش",
+          mode: "insensitive",
+        },
+      },
+    ]);
+  });
+
   it("sorts canonical prices numerically and keeps missing prices last", () => {
     const cheap = { data: { pricing: { basePricePerPerson: 123_333 } } };
     const expensive = { data: { pricing: { basePricePerPerson: 2_500_000 } } };
