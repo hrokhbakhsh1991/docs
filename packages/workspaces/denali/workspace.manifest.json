@@ -743,6 +743,11 @@
       "status": 409
     },
     {
+      "isErrorExport": "isDenaliRegistrationClosedError",
+      "codeExport": "DENALI_REGISTRATION_CLOSED",
+      "status": 409
+    },
+    {
       "isErrorExport": "isDenaliRegistrationNotAmendableError",
       "codeExport": "DENALI_REGISTRATION_NOT_AMENDABLE",
       "status": 409

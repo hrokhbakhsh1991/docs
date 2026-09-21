@@ -26,6 +26,8 @@ import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 import type { DenaliRegistrationPostBody } from "./schemas/denali-registration-post.schema";
 import { normalizeDenaliRegistrationTransportIntake } from "./resolve-denali-registration-transport";
+import { isDenaliCatalogTourUpcoming } from "../catalog/filter-denali-catalog-list";
+import { DenaliRegistrationClosedError } from "./errors/denali-registration-closed.error";
 
 export type DenaliGuestMembershipSnapshot = {
   readonly displayName?: string | null;
@@ -75,6 +77,9 @@ export async function createDenaliRegistration(params: {
     isPublished: resolveDenaliRegistrationTourPublishVisibility,
     getCanonical: (row) => row.canonical,
   });
+  if (!isDenaliCatalogTourUpcoming(tour)) {
+    throw new DenaliRegistrationClosedError();
+  }
 
   const capacityRaw = readWorkspaceCanonicalCapacityByPath(tour.canonical, ["capacityMax"]);
   const capacity = capacityRaw === null ? null : Math.trunc(capacityRaw);
