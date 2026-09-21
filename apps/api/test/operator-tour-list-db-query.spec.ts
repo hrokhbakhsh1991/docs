@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildOperatorTourWhere,
   compareOperatorTourPrices,
+  publishStatusesForOperatorFilter,
   readOperatorTourPrice,
 } from "../src/tours/operator-tour-list-db-query";
 
@@ -43,6 +44,17 @@ describe("operator-tour-list-db-query", () => {
           mode: "insensitive",
         },
       },
+    ]);
+  });
+
+  it("maps the UI draft and active filters to the correct stored statuses", () => {
+    // The query contract keeps legacy names: `active` means the UI draft filter,
+    // while `completed` means the UI active/published filter.
+    assert.deepEqual(publishStatusesForOperatorFilter("active"), ["draft"]);
+    assert.deepEqual(publishStatusesForOperatorFilter("completed"), [
+      "active",
+      "published",
+      "open",
     ]);
   });
 
