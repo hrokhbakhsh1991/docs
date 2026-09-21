@@ -10,6 +10,7 @@ import {
 } from "@/me/wallet/member-dashboard-wallet-summary.server";
 import { fetchMemberProfileFromSession } from "@/me/fetch-member-profile-from-session.server";
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
+import { formatMemberRegistrationDeparture } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import {
   memberPortalIncludesHomeModule,
@@ -102,6 +103,9 @@ export default async function MeHomePage() {
       : { enabled: false as const };
 
   const nextTour = resolveNextTour(registrations);
+  const nextTourDepartureAt = nextTour.departureAt
+    ? await formatMemberRegistrationDeparture(nextTour.departureAt)
+    : null;
   const profileComplete =
     profile !== null &&
     Boolean(profile.profile.fields.displayName?.trim()) &&
@@ -124,7 +128,7 @@ export default async function MeHomePage() {
           wallet={walletSummary}
           openTicketsCount={null}
           nextTourTitle={nextTour.title}
-          nextTourDepartureAt={nextTour.departureAt}
+          nextTourDepartureAt={nextTourDepartureAt}
           profileComplete={profileComplete}
           engagementHref={engagementHref}
           registrationsHref={registrationsHref}
