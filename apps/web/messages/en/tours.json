@@ -2,6 +2,7 @@
   "pageTitle": "Tours",
   "pageSubtitle": "Manage and publish club tours",
   "newTour": "New tour",
+  "searchLabel": "Search tours",
   "searchPlaceholder": "Search tours…",
   "sortLabel": "Sort:",
   "sortOption": {

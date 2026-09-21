@@ -70,6 +70,18 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(TOURS_LIST_TEST_IDS.pagination, "operator-tours-pagination");
   });
 
+  it("WEB-TL-A11Y-01 labels the tour search field", async () => {
+    const controls = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-controls.tsx"),
+      "utf8"
+    );
+    const { loadAppMessages } = await import("../src/i18n/load-messages");
+    const messages = await loadAppMessages("fa");
+    assert.match(controls, /htmlFor="tours-search"/);
+    assert.match(controls, /id="tours-search"/);
+    assert.equal(messages.tours.searchLabel, "جستجوی تورها");
+  });
+
   it("WEB-9.3-03 URL query model round-trips search and status (CP-9.3-L07)", () => {
     const serialized = serializeTourListQuery({
       ...DEFAULT_TOUR_LIST_QUERY,
