@@ -15,6 +15,7 @@ import {
   SETTINGS_MODULE_LABEL_KEYS,
 } from "../src/features/settings/settings-module-types";
 import { parseWorkspaceIntegrationsListResponse } from "../src/integrations/integrations-types";
+import { normalizeIntegrationSummaryCount } from "../src/integrations/integrations-settings-logic";
 
 const REPO_ROOT = join(import.meta.dirname, "../../..");
 
@@ -53,9 +54,20 @@ describe("settings-integrations.spec.ts — Denali wiring", () => {
     assert.doesNotMatch(messages.integrations.summary.description, /, number}/);
   });
 
+  it("WEB-INT-I18N-02 never renders invalid integration summary counts as NaN", () => {
+    assert.equal(normalizeIntegrationSummaryCount(undefined), 0);
+    assert.equal(normalizeIntegrationSummaryCount(Number.NaN), 0);
+    assert.equal(normalizeIntegrationSummaryCount("2"), 2);
+    assert.equal(normalizeIntegrationSummaryCount(2.9), 2);
+    assert.equal(normalizeIntegrationSummaryCount(-1), 0);
+  });
+
   it("WEB-INT-LAYOUT-01 integrations uses shared shell + equal master-detail grid", () => {
     const client = readFileSync(
-      join(import.meta.dirname, "../app/(app)/settings/integrations/integrations-settings-client.tsx"),
+      join(
+        import.meta.dirname,
+        "../app/(app)/settings/integrations/integrations-settings-client.tsx"
+      ),
       "utf8"
     );
     assert.match(client, /SettingsPageShell/);

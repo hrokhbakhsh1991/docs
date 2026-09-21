@@ -40,6 +40,7 @@ import {
   integrationEditFieldKey,
   integrationStatusBadgeKey,
   isLegacyBackedIntegration,
+  normalizeIntegrationSummaryCount,
   resolveIntegrationFallbackLabel,
   resolveIntegrationsWorkspaceScenario,
   seedEditValuesFromConnection,
@@ -777,10 +778,13 @@ export function IntegrationsSettingsClient({
             <CardDescription>
               {t("summary.description", {
                 integrationCount: formatLocalizedNumber(
-                  list.summary.integrationConnectionCount,
+                  normalizeIntegrationSummaryCount(list.summary.integrationConnectionCount),
                   locale
                 ),
-                legacyCount: formatLocalizedNumber(list.summary.legacyConnectionCount, locale),
+                legacyCount: formatLocalizedNumber(
+                  normalizeIntegrationSummaryCount(list.summary.legacyConnectionCount),
+                  locale
+                ),
               })}
             </CardDescription>
           </CardHeader>
