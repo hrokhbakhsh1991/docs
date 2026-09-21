@@ -60,4 +60,20 @@ test.describe("TKT-K1 operator reports and settings", () => {
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(page.getByText("Loading…")).toHaveCount(0);
   });
+
+  test("reports shows a retry state when the summary API is unavailable", async ({ page }) => {
+    await loginOperatorOwner(page);
+    await page.route("**/api/ticket-reports/summary", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "TICKET_REPORTS_UNAVAILABLE" }),
+      });
+    });
+
+    await page.goto("/reports/ticketing", { waitUntil: "load" });
+    await expect(page.getByRole("alert")).toContainText("Ticketing report could not be loaded");
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page.getByText("Loading…")).toHaveCount(0);
+  });
 });
