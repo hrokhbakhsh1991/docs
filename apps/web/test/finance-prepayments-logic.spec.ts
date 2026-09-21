@@ -10,6 +10,7 @@ import {
   formatMinorAmount,
   formatPrepaymentRecordedAt,
   parsePrepaymentsListResponse,
+  resolveFinanceAmountUnitLabel,
   validateRecordPrepaymentForm,
 } from "../src/finance/finance-prepayments-logic";
 
@@ -87,6 +88,13 @@ describe("finance-prepayments-logic.spec.ts — Phase 9.7 R2", () => {
   it("WEB-9.7-R2-04 formatMinorAmount groups digits", () => {
     assert.equal(formatMinorAmount("5000000", "IRR"), "5,000,000 toman");
     assert.match(formatMinorAmount("5000000", "IRR", "fa"), /۵/);
+  });
+
+  it("WEB-9.7-R2-04a keeps input labels aligned with the display unit", () => {
+    assert.equal(resolveFinanceAmountUnitLabel("IRR", "fa"), "تومان");
+    assert.equal(resolveFinanceAmountUnitLabel("IRR", "en"), "toman");
+    assert.equal(resolveFinanceAmountUnitLabel("USD", "fa"), "USD");
+    assert.equal(resolveFinanceAmountUnitLabel("", "fa"), "واحد نمایش");
   });
 
   it("WEB-9.7-R2-05 formatPrepaymentRecordedAt localizes timestamp", () => {

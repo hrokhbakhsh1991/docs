@@ -31,7 +31,10 @@ import {
   type SubmitReceiptFormState,
 } from "@/finance/finance-payments-logic";
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
-import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
+import {
+  formatMinorAmount,
+  resolveFinanceAmountUnitLabel,
+} from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
 import {
   localizeFinanceMessage,
@@ -335,7 +338,9 @@ export function FinanceRegistrationPaymentActions({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor={`workspace-payment-amount-${normalizedRegistrationId}`}>
-                  {tCommon("amountDisplay")}
+                  {tCommon("amountDisplay", {
+                    unit: resolveFinanceAmountUnitLabel(currency, locale),
+                  })}
                 </Label>
                 <LocalizedNumericInput
                   id={`workspace-payment-amount-${normalizedRegistrationId}`}
