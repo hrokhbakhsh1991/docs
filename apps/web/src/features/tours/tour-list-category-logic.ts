@@ -69,10 +69,11 @@ export function resolveTourKindCategoryGroup(
   category: string | null
 ): string | null {
   const surface = resolveTourListCategorySurface(pluginId);
-  if (surface == null || !surface.isTourKindSlug(category)) {
+  const categorySlug = category?.trim();
+  if (surface == null || categorySlug == null || !surface.isTourKindSlug(categorySlug)) {
     return null;
   }
-  const configuredGroup = surface.filterGroups.find((group) => group.slugs.includes(category))?.id;
+  const configuredGroup = surface.filterGroups.find((group) => group.slugs.includes(categorySlug))?.id;
   if (configuredGroup != null) {
     return configuredGroup;
   }
@@ -80,7 +81,7 @@ export function resolveTourKindCategoryGroup(
   // A workspace may hide a valid group from the launch filter surface while
   // still exposing its kind values (for example, event variants). Preserve
   // the non-composite label for those kinds as well.
-  const inferredGroup = category.split("_", 1)[0];
+  const inferredGroup = categorySlug.split("_", 1)[0];
   return surface.isTourCategoryGroup(inferredGroup) ? inferredGroup : null;
 }
 
