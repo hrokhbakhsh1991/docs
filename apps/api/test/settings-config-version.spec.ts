@@ -53,10 +53,7 @@ const DENALI_PUBLISHED_FROZEN_STEPS = [
     stepId: "denali_photos",
     label: "Photos",
     enabled: true,
-    fields: [
-      { canonicalPath: "program.themeIds" },
-      { canonicalPath: "photos" },
-    ],
+    fields: [{ canonicalPath: "program.themeIds" }, { canonicalPath: "photos" }],
   },
   {
     stepId: "denali_logistics",
@@ -135,6 +132,34 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
     const payload = response.body.payload as Record<string, unknown>;
     assert.equal(payload.seedLabel, "SMK-P9-SEED");
     assert.equal(wasTenantConfigInvalidated(OPERATOR_SMOKE.tenantId, "wizard_template"), true);
+  });
+
+  it("API-9.6-CFG-03c PUT payment destination preserves the card payload", async () => {
+    const response = await client.requestJson<ConfigResponse>(
+      "PUT",
+      "/settings/config/payment_destination",
+      {
+        headers: operatorAuthHeaders(),
+        body: {
+          configVersion: 1,
+          payload: {
+            enabled: true,
+            cardNumber: "6037997512345678",
+            cardHolderName: "Denali QA",
+            bankName: "QA Bank",
+            instructions: "Upload the receipt after transfer.",
+          },
+        },
+      }
+    );
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body.payload, {
+      enabled: true,
+      cardNumber: "6037997512345678",
+      cardHolderName: "Denali QA",
+      bankName: "QA Bank",
+      instructions: "Upload the receipt after transfer.",
+    });
   });
 
   it("API-9.6-CFG-03b PUT wizard template persists fieldRulesOverlay", async () => {
@@ -295,5 +320,4 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
     assert.equal(rules[0]?.id, "rule-1");
     assert.equal(wasTenantConfigInvalidated(OPERATOR_SMOKE.tenantId, "presets_advanced"), true);
   });
-
 });

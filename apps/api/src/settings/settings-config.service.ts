@@ -15,6 +15,7 @@ import {
 import type {
   PresetsAdvancedMatchRule,
   PresetsAdvancedPayloadV1,
+  PaymentDestinationPayloadV1,
   PutSettingsConfigRequest,
   SettingsConfigResponse,
   WizardTemplatePayloadV1,
@@ -48,14 +49,6 @@ const PRESETS_ADVANCED_WORKSPACE_DEFAULT: PresetsAdvancedPayloadV1 = {
   autoMatchEnabled: false,
   defaultPresetId: null,
   matchRules: [],
-};
-
-type PaymentDestinationPayloadV1 = {
-  enabled: boolean;
-  cardNumber: string;
-  cardHolderName: string;
-  bankName: string | null;
-  instructions: string | null;
 };
 
 const PAYMENT_DESTINATION_WORKSPACE_DEFAULT: PaymentDestinationPayloadV1 = {
