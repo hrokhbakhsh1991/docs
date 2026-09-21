@@ -497,7 +497,7 @@
         "final_ready": "نهایی؛ آماده حضور"
       },
       "driverOffer": "راننده",
-      "noOperationalDebt": "بدون مبلغ قابل پیگیری",
+      "noOperationalDebt": "بدون مانده قابل پیگیری",
       "filters": {
         "operational": "همه عملیاتی",
         "final": "نهایی",
