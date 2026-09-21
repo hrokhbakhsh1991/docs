@@ -118,16 +118,29 @@ export function buildOperatorTourWhere(input: {
   readonly category?: string;
 }): Prisma.TourWhereInput {
   const search = input.search?.trim();
+  const conditions: Prisma.TourWhereInput[] = [];
+
+  if (search !== undefined && search.length > 0) {
+    conditions.push({ title: { contains: search, mode: "insensitive" } });
+  }
+  if (input.status !== undefined) {
+    conditions.push({
+      OR: publishStatusesForOperatorFilter(input.status).map((publishStatus) => ({
+        canonical: {
+          path: ["data", "publishStatus"],
+          equals: publishStatus,
+        },
+      })),
+    });
+  }
+  if (input.category !== undefined && input.category.length > 0) {
+    conditions.push({
+      canonical: { path: ["data", "category"], equals: input.category },
+    });
+  }
+
   return {
     tenantId: input.tenantId,
-    ...(search !== undefined && search.length > 0
-      ? { title: { contains: search, mode: "insensitive" } }
-      : {}),
-    ...(input.status !== undefined
-      ? { publishStatus: { in: [...publishStatusesForOperatorFilter(input.status)] } }
-      : {}),
-    ...(input.category !== undefined && input.category.length > 0
-      ? { canonical: { path: ["data", "category"], equals: input.category } }
-      : {}),
+    ...(conditions.length > 0 ? { AND: conditions } : {}),
   };
 }
