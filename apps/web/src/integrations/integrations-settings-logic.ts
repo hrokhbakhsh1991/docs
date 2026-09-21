@@ -4,6 +4,7 @@ import type {
   WorkspaceIntegrationSurfaceMetaResponse,
   WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
+import type { AppLocale } from "@/i18n/routing";
 
 export type IntegrationPatchInput = {
   readonly config?: Record<string, string>;
@@ -17,6 +18,23 @@ export type IntegrationsWorkspaceScenario =
   | "active_new_system";
 
 export type IntegrationFallbackLabel = "active" | "suppressed" | "inactive" | "not_applicable";
+
+const INTEGRATION_TEST_TIME_ZONE = "Asia/Tehran";
+
+export function formatIntegrationTestedAt(value: string, locale: AppLocale): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat(
+    locale === "fa" ? "fa-IR-u-ca-persian-nu-arabext" : "en-US",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: INTEGRATION_TEST_TIME_ZONE,
+    }
+  ).format(new Date(timestamp));
+}
 
 export function resolveIntegrationsWorkspaceScenario(
   list: WorkspaceIntegrationsListResponse

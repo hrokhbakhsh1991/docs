@@ -14,6 +14,11 @@ describe("operator-breadcrumb-logic.spec.ts", () => {
     assert.equal(segments[0]?.key, "tours");
   });
 
+  it("resolves the operator tickets inbox as support", () => {
+    const segments = resolveOperatorBreadcrumbSegments("/tickets");
+    assert.deepEqual(segments, [{ namespace: "nav", key: "tickets" }]);
+  });
+
   it("resolves nested settings modules", () => {
     const segments = resolveOperatorBreadcrumbSegments("/settings/equipment");
     assert.equal(segments.length, 2);
