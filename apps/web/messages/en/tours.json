@@ -498,7 +498,7 @@
         "final_ready": "Final; ready to join"
       },
       "driverOffer": "Driver",
-      "noOperationalDebt": "No payment follow-up",
+      "noOperationalDebt": "No balance to follow up",
       "filters": {
         "operational": "All operational",
         "final": "Final",

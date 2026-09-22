@@ -4,6 +4,7 @@ import type {
   WorkspaceIntegrationSurfaceMetaResponse,
   WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
+import type { AppLocale } from "@/i18n/routing";
 
 export type IntegrationPatchInput = {
   readonly config?: Record<string, string>;
@@ -18,6 +19,23 @@ export type IntegrationsWorkspaceScenario =
 
 export type IntegrationFallbackLabel = "active" | "suppressed" | "inactive" | "not_applicable";
 
+const INTEGRATION_TEST_TIME_ZONE = "Asia/Tehran";
+
+export function formatIntegrationTestedAt(value: string, locale: AppLocale): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat(
+    locale === "fa" ? "fa-IR-u-ca-persian-nu-arabext" : "en-US",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: INTEGRATION_TEST_TIME_ZONE,
+    }
+  ).format(new Date(timestamp));
+}
+
 /** Initial server data can be older than the current DTO; never render NaN in operator summaries. */
 export function normalizeIntegrationSummaryCount(value: unknown): number {
   const numericValue = typeof value === "number" ? value : Number(value);
@@ -26,7 +44,6 @@ export function normalizeIntegrationSummaryCount(value: unknown): number {
   }
   return Math.trunc(numericValue);
 }
-
 export function resolveIntegrationsWorkspaceScenario(
   list: WorkspaceIntegrationsListResponse
 ): IntegrationsWorkspaceScenario {

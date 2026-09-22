@@ -15,10 +15,9 @@ describe("operator-tour-list-db-query", () => {
       category: "mountain_day",
     });
 
-    assert.deepEqual(where.canonical, {
-      path: ["data", "category"],
-      equals: "mountain_day",
-    });
+    assert.deepEqual(where.AND, [
+      { canonical: { path: ["data", "category"], equals: "mountain_day" } },
+    ]);
   });
 
   it("does not add a category predicate when no category is selected", () => {
@@ -26,7 +25,48 @@ describe("operator-tour-list-db-query", () => {
       tenantId: "00000000-0000-4000-8000-000000000014",
     });
 
-    assert.equal("canonical" in where, false);
+    assert.equal("AND" in where, false);
+  });
+
+  it("keeps the legacy operator status mapping exact", () => {
+    assert.deepEqual(publishStatusesForOperatorFilter("active"), ["draft"]);
+    assert.deepEqual(publishStatusesForOperatorFilter("completed"), [
+      "active",
+      "published",
+      "open",
+    ]);
+
+    const where = buildOperatorTourWhere({
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      status: "active",
+    });
+
+    assert.deepEqual(where.AND, [
+      {
+        OR: [
+          { canonical: { path: ["data", "publishStatus"], equals: "draft" } },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps status and category predicates aligned with the canonical projection", () => {
+    const where = buildOperatorTourWhere({
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      status: "completed",
+      category: "mountain_multi",
+    });
+
+    assert.deepEqual(where.AND, [
+      {
+        OR: [
+          { canonical: { path: ["data", "publishStatus"], equals: "active" } },
+          { canonical: { path: ["data", "publishStatus"], equals: "published" } },
+          { canonical: { path: ["data", "publishStatus"], equals: "open" } },
+        ],
+      },
+      { canonical: { path: ["data", "category"], equals: "mountain_multi" } },
+    ]);
   });
 
   it("searches both the projection and canonical basics title", () => {

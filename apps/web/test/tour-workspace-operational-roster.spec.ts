@@ -178,6 +178,17 @@ describe("DP-2 tour workspace operational roster contract", () => {
     );
   });
 
+  it("uses balance wording when a settled row has no actionable debt", () => {
+    const fa = JSON.parse(readFileSync(join(webRoot, "messages/fa/tours.json"), "utf8")) as {
+      workspace?: { transport?: { noOperationalDebt?: string } };
+    };
+    const en = JSON.parse(readFileSync(join(webRoot, "messages/en/tours.json"), "utf8")) as {
+      workspace?: { transport?: { noOperationalDebt?: string } };
+    };
+    assert.equal(fa.workspace?.transport?.noOperationalDebt, "بدون مانده قابل پیگیری");
+    assert.equal(en.workspace?.transport?.noOperationalDebt, "No balance to follow up");
+  });
+
   it("deadline is actionable only while payment follow-up remains open", () => {
     assert.equal(
       resolveOperationalRosterActionablePaymentDueAt({
