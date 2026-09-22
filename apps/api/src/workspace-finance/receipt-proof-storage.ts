@@ -12,6 +12,16 @@ const RECEIPT_PROOF_READ_URL_TTL_SECONDS = 300;
 /** Dev memory-driver receipt bytes — not shared across processes. */
 const memoryReceiptProofStore = new Map<string, Buffer>();
 
+/**
+ * Dev-only accessor so the local HTTP server can actually serve the bytes that
+ * `getMemberReceiptProofSignedReadUrl` points at when STORAGE_DRIVER=memory.
+ * Without this, the returned `memory://...` URL is not loadable by a browser
+ * <img> tag and reviewers can never see the uploaded receipt locally.
+ */
+export function readMemoryReceiptProof(storageKey: string): Buffer | null {
+  return memoryReceiptProofStore.get(storageKey) ?? null;
+}
+
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -139,7 +149,8 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
       process.env.NODE_ENV === "development" &&
       memoryReceiptProofStore.has(input.storageKey)
     ) {
-      return `memory://receipt-proof/${input.storageKey}`;
+      const port = process.env.PORT?.trim() || "3001";
+      return `http://127.0.0.1:${port}/internal/dev/receipt-proof/${encodeURIComponent(input.storageKey)}`;
     }
     throw new Error("MINIO_NOT_CONFIGURED");
   }
