@@ -18,8 +18,6 @@ export type PublicCatalogTransportIntakeState = {
   readonly hasPersonalCar: boolean | null;
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
-  /** Explicit acknowledgement that the registrant will not use a personal car. */
-  readonly nonPersonalCarAcknowledged: boolean;
 };
 
 /** Workspace-owned transport intake helpers (optional on catalogIntake). */

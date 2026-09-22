@@ -40,7 +40,7 @@ Denali remains the reference adapter. **Dong amount semantics, personal-car opt-
 | List/roster projection | `transportKind` scalar (`primary` \| `personal_car` \| `no_car_dong` \| `no_car_acquaintance`) | Host bookings repository + SDK contract |
 | SDK transport types | `PublicCatalogTransportMode`, `PublicCatalogTransportSnapshot`, `PublicCatalogRegistrationTransportKind`, `WorkspaceCatalogIntakeTransportSurface` | `workspace-sdk` (shape only — no product rules) |
 
-**Gap:** transport capability scattered across `catalogRegistrationFlow.transportInitializerExport`, plugin `catalogIntake.transport`, field registry, and Denali HTTP modules; workspaces without transport have no formal “off” contract; SDK intake state types embed Denali-shaped fields (`paysDong`, `optInPersonalCar`) without manifest gating.
+**Gap:** transport capability scattered across `catalogRegistrationFlow.transportInitializerExport`, plugin `catalogIntake.transport`, field registry, and Denali HTTP modules; workspaces without transport have no formal “off” contract; SDK intake state types embed Denali-shaped fields (`paysDong`, `optInPersonalCar`) without manifest gating. The catalog flow treats organized transport as the default `primary` path and must not require a redundant non-personal-car acknowledgement before submission.
 
 ---
 
