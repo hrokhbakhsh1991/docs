@@ -48,4 +48,25 @@ describe("operator-breadcrumb-logic.spec.ts", () => {
     assert.equal(segments[0]?.href, "/tours");
     assert.equal(segments[1]?.key, "newTour");
   });
+
+  it("resolves tour edit trail", () => {
+    const segments = resolveOperatorBreadcrumbSegments("/tours/abc-123/edit");
+    assert.equal(segments.length, 2);
+    assert.equal(segments[0]?.href, "/tours");
+    assert.equal(segments[1]?.key, "nav.editTour");
+  });
+
+  it("resolves tour workspace (detail) trail — not just the tours root", () => {
+    const segments = resolveOperatorBreadcrumbSegments("/tours/abc-123/workspace");
+    assert.equal(segments.length, 2);
+    assert.equal(segments[0]?.href, "/tours");
+    assert.equal(segments[1]?.namespace, "tours");
+    assert.equal(segments[1]?.key, "nav.workspace");
+  });
+
+  it("resolves legacy tour workspace sub-routes the same way", () => {
+    const segments = resolveOperatorBreadcrumbSegments("/tours/abc-123/workspace/finance");
+    assert.equal(segments.length, 2);
+    assert.equal(segments[1]?.key, "nav.workspace");
+  });
 });

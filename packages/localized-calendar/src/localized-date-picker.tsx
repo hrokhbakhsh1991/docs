@@ -8,7 +8,10 @@ import { formatIsoDateLabel } from "./calendar-format";
 import { type AppLocale } from "./i18n-format";
 import { cn } from "./cn";
 import { SolarHijriCalendar } from "./solar-hijri-calendar";
-import { useCalendarPopoverPlacement } from "./use-calendar-popover-placement";
+import {
+  useCalendarPopoverAlign,
+  useCalendarPopoverPlacement,
+} from "./use-calendar-popover-placement";
 
 function CalendarIcon({ className }: { readonly className?: string }) {
   return (
@@ -73,6 +76,7 @@ export function LocalizedDatePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerId = useId();
   const placement = useCalendarPopoverPlacement(open, rootRef, collisionSelectors);
+  const align = useCalendarPopoverAlign(open, rootRef);
   const displayLabel = value.trim().length > 0 ? formatIsoDateLabel(value, locale) : null;
 
   useEffect(() => {
@@ -129,6 +133,7 @@ export function LocalizedDatePicker({
         <div
           data-operator-wizard-calendar-popover
           data-operator-wizard-calendar-placement={placement}
+          data-operator-wizard-calendar-align={align}
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}

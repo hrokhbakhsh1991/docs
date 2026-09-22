@@ -153,7 +153,7 @@
     },
     "integrations": {
       "title": "اتصال‌ها",
-      "description": "اتصال تلگرام (بات و کانال)، فعال‌سازی و آزمایش سلامت ارسال."
+      "description": "اتصال تلگرام (بات و گروه)، فعال‌سازی و آزمایش سلامت ارسال."
     },
     "exposure": {
       "title": "نمایش فیلدها (تلگرام و سطح‌ها)",
@@ -553,7 +553,7 @@
   "integrations": {
     "forbidden": "تنظیمات یکپارچه‌سازی فقط برای ادمین یا مالک در دسترس است.",
     "title": "اتصال‌ها",
-    "subtitle": "اتصال تلگرام، کانال مقصد و سلامت ارسال پیام‌های ورک‌اسپیس را مدیریت کنید.",
+    "subtitle": "اتصال تلگرام، گروه مقصد و سلامت ارسال پیام‌های ورک‌اسپیس را مدیریت کنید.",
     "workspaceScope": "محدوده API ورک‌اسپیس: {workspaceId}",
     "refresh": "بروزرسانی",
     "catalogLoadFailed": "بارگذاری فهرست فیلدهای ورک‌اسپیس ناموفق بود.",
@@ -596,21 +596,21 @@
       "title": "یکپارچه‌سازی پیکربندی نشده",
       "description": "برای این ورک‌اسپیس هنوز اتصال تلگرام جدید یا بات قدیمی وجود ندارد."
     },
-    "rowMeta": "کانال {channelId}",
+    "rowMeta": "گروه {channelId}",
     "detail": {
       "title": "اتصال تلگرام",
       "overviewTitle": "وضعیت اتصال تلگرام",
       "statusDescriptions": {
-        "enabled": "تلگرام فعال است و پیام‌های مجاز می‌توانند به کانال مقصد ارسال شوند.",
+        "enabled": "تلگرام فعال است و پیام‌های مجاز می‌توانند به گروه مقصد ارسال شوند.",
         "disabled": "تلگرام ذخیره شده اما ارسال خودکار فعلاً غیرفعال است.",
-        "error": "اتصال تلگرام خطا دارد. کانال، توکن یا دسترسی ربات را بررسی و دوباره آزمایش کنید."
+        "error": "اتصال تلگرام خطا دارد. گروه، توکن یا دسترسی ربات را بررسی و دوباره آزمایش کنید."
       },
       "lastTestSuccess": "آخرین آزمایش اتصال موفق بود.",
       "lastTestFailure": "آخرین آزمایش اتصال ناموفق بود.",
       "technicalDetails": "جزئیات فنی",
       "connectionId": "شناسه اتصال",
       "status": "وضعیت",
-      "channelId": "کانال مقصد",
+      "channelId": "گروه مقصد",
       "hasSecret": "توکن ربات ذخیره شده",
       "yes": "بله",
       "no": "خیر",
@@ -645,17 +645,17 @@
       "groupNameLabel": "نام دقیق گروه",
       "groupNamePlaceholder": "denaliAdmins",
       "groupNameHint": "نام باید دقیقاً با عنوان گروه تلگرام یکی باشد و گزینه Topics/Forum در گروه فعال باشد.",
-      "channelIdLabel": "شناسه چنل",
-      "channelIdPlaceholder": "@your_channel یا -1001234567890",
-      "channelIdHint": "نام کاربری عمومی @ یا شناسه عددی چنلی که اعلان تورها باید در آن ارسال شود.",
+      "channelIdLabel": "شناسه گروه (Chat ID)",
+      "channelIdPlaceholder": "-1001234567890 یا @your_group",
+      "channelIdHint": "شناسه عددی همین گروه Forum (مثل -1001234567890)، حتی اگر گروه خصوصی باشد. اگر گروه نام‌کاربری عمومی @ دارد می‌توانید آن را هم وارد کنید. برای دریافت شناسه عددی گروه خصوصی، پیامی از گروه را به رباتی مثل @userinfobot فوروارد کنید.",
       "botTokenLabel": "توکن ربات",
       "botTokenPlaceholder": "123456789:ABCdef...",
-      "botTokenHint": "از @BotFather. ربات باید ادمین چنل باشد و اجازه ارسال پیام داشته باشد.",
+      "botTokenHint": "از @BotFather. ربات باید ادمین گروه باشد و اجازه ارسال پیام داشته باشد.",
       "enableAfterSave": "پس از ذخیره، یکپارچه‌سازی فعال شود",
       "submit": "ذخیره اتصال تلگرام",
       "submitting": "در حال ذخیره…",
       "success": "اتصال تلگرام ذخیره شد. در صورت نیاز فعال‌سازی یا آزمایش اتصال را انجام دهید.",
-      "validationRequired": "شناسه چنل و توکن ربات الزامی است."
+      "validationRequired": "شناسه گروه و توکن ربات الزامی است."
     },
     "edit": {
       "title": "ویرایش اتصال",
@@ -663,16 +663,16 @@
       "groupNameLabel": "نام دقیق گروه",
       "groupNamePlaceholder": "denaliAdmins",
       "groupNameHint": "نام باید دقیقاً با عنوان گروه تلگرام یکی باشد و گزینه Topics/Forum در گروه فعال باشد.",
-      "channelIdLabel": "شناسه چنل",
-      "channelIdPlaceholder": "@your_channel یا -1001234567890",
-      "channelIdHint": "نام کاربری عمومی @ یا شناسه عددی چنلی که اعلان تورها باید در آن ارسال شود.",
+      "channelIdLabel": "شناسه گروه (Chat ID)",
+      "channelIdPlaceholder": "-1001234567890 یا @your_group",
+      "channelIdHint": "شناسه عددی همین گروه Forum (مثل -1001234567890)، حتی اگر گروه خصوصی باشد. اگر گروه نام‌کاربری عمومی @ دارد می‌توانید آن را هم وارد کنید. برای دریافت شناسه عددی گروه خصوصی، پیامی از گروه را به رباتی مثل @userinfobot فوروارد کنید.",
       "botTokenLabel": "توکن جدید ربات (اختیاری)",
       "botTokenPlaceholder": "برای نگه‌داشتن توکن فعلی خالی بگذارید",
       "botTokenHint": "فقط هنگام تعویض ربات، توکن جدید از @BotFather وارد کنید. توکن ذخیره‌شده هرگز نمایش داده نمی‌شود.",
       "submit": "ذخیره تغییرات",
       "submitting": "در حال ذخیره…",
       "success": "اتصال به‌روز شد. برای تأیید تنظیمات جدید، آزمایش اتصال را اجرا کنید.",
-      "validationRequired": "شناسه چنل الزامی است.",
+      "validationRequired": "شناسه گروه الزامی است.",
       "noChanges": "تغییری برای ذخیره وجود ندارد."
     },
     "test": {
@@ -745,6 +745,7 @@
       "advancedSummary": "عیب‌یابی فنی"
     },
     "errors": {
+      "DATABASE_UNAVAILABLE": "سرویس پایگاه‌داده در دسترس نیست. لطفاً بعداً تلاش کنید.",
       "INTEGRATION_SYSTEM_NOT_READY": "سامانه یکپارچه‌سازی آماده نیست. ممکن است مهاجرت‌های پایگاه داده در انتظار باشند — با اپراتور تماس بگیرید.",
       "INTEGRATIONS_LIST_HTTP_ERROR": "بارگذاری یکپارچه‌سازی‌ها ناموفق بود (HTTP {status}).",
       "INTEGRATIONS_FETCH_FAILED": "بارگذاری یکپارچه‌سازی‌ها ناموفق بود.",
@@ -760,13 +761,15 @@
       "INTEGRATION_CREATE_FAILED": "افزودن ربات تلگرام ناموفق بود.",
       "INTEGRATION_PATCH_HTTP_ERROR": "به‌روزرسانی یکپارچه‌سازی ناموفق بود (HTTP {status}).",
       "INTEGRATION_PATCH_FAILED": "به‌روزرسانی یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_PROVISION_HTTP_ERROR": "اتصال به گروه تلگرام و ساخت زیرگروه‌ها ناموفق بود (HTTP {status}).",
+      "INTEGRATION_PROVISION_FAILED": "اتصال به گروه تلگرام و ساخت زیرگروه‌ها ناموفق بود.",
       "INTEGRATION_META_FAILED": "بارگذاری متادیتای فرم یکپارچه‌سازی ناموفق بود.",
-      "INTEGRATION_INVALID_BODY": "اطلاعات ربات یا چنل نامعتبر است.",
+      "INTEGRATION_INVALID_BODY": "اطلاعات ربات یا گروه نامعتبر است.",
       "INTEGRATION_CAPABILITIES_INVALID": "قابلیت‌های انتخاب‌شده برای یکپارچه‌سازی معتبر نیستند.",
       "INTEGRATION_PROVIDER_INVALID": "این provider برای یکپارچه‌سازی پشتیبانی نمی‌شود.",
       "INTEGRATION_PROVIDER_NOT_REGISTERED": "این provider در runtime فعلی در دسترس نیست.",
       "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "این provider در پلاگین ورک‌اسپیس فعلی فعال نیست.",
-      "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "شناسه چنل تلگرام الزامی است.",
+      "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "شناسه گروه تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "توکن ربات تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED": "نام دقیق گروه و شناسه عددی گروه تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_GROUP_MUST_BE_SUPERGROUP": "شناسه واردشده مربوط به سوپرگروه تلگرام نیست.",

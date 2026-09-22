@@ -71,6 +71,13 @@ export function resolveOperatorBreadcrumbSegments(
     ];
   }
 
+  if (path.startsWith("/tours/") && path.includes("/workspace")) {
+    return [
+      { namespace: "nav", key: "tours", href: "/tours" },
+      { namespace: "tours", key: "nav.workspace" },
+    ];
+  }
+
   if (path.startsWith("/bookings/new")) {
     return [
       { namespace: "nav", key: "bookings", href: "/bookings" },

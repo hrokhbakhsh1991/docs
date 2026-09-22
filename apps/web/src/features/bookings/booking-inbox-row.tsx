@@ -39,6 +39,8 @@ type BookingInboxRowProps = {
   readonly showInlineApprove?: boolean;
   /** UX-BKG-52 — first click armed; second confirms. */
   readonly inlineApproveArmed?: boolean;
+  /** UX-BKG-52 follow-up — seconds left before the arm auto-expires (0 when not armed). */
+  readonly inlineApproveRemainingSeconds?: number;
   readonly inlineApproveBusy?: boolean;
   readonly onInlineApprove?: () => void;
   readonly onInlineApproveDisarm?: () => void;
@@ -115,6 +117,7 @@ export function BookingInboxRow({
   onSelect,
   showInlineApprove = false,
   inlineApproveArmed = false,
+  inlineApproveRemainingSeconds = 0,
   inlineApproveBusy = false,
   onInlineApprove,
   onInlineApproveDisarm,
@@ -245,7 +248,10 @@ export function BookingInboxRow({
             data-armed={inlineApproveArmed ? "true" : "false"}
             aria-label={
               inlineApproveArmed
-                ? t("inlineApproveConfirmAria", { guest: item.guestLabel })
+                ? t("inlineApproveConfirmAria", {
+                    guest: item.guestLabel,
+                    seconds: inlineApproveRemainingSeconds,
+                  })
                 : t("inlineApproveHintAria", { guest: item.guestLabel })
             }
             onBlur={() => {
@@ -266,7 +272,11 @@ export function BookingInboxRow({
           >
             <Check className="size-3.5" aria-hidden />
             <span className="ms-1 text-xs">
-              {inlineApproveArmed ? t("inlineApproveConfirm") : t("approve")}
+              {inlineApproveArmed
+                ? inlineApproveRemainingSeconds > 0
+                  ? t("inlineApproveConfirmCountdown", { seconds: inlineApproveRemainingSeconds })
+                  : t("inlineApproveConfirm")
+                : t("approve")}
             </span>
           </Button>
         </div>

@@ -29,7 +29,7 @@ describe("format integration delivery message", () => {
           registeredAt: "2026-09-14T10:00:00.000Z",
         },
       }),
-      "عضو جدید دنالی\nنام: Ali Test\nشماره تماس: +989121234567\nتاریخ ثبت‌نام: 2026-09-14T10:00:00.000Z"
+      "عضو جدید دنالی\nنام: Ali Test\nشماره تماس: +989121234567\nتاریخ ثبت‌نام: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
     );
     assert.equal(
       await formatIntegrationDeliveryMessage({
@@ -57,7 +57,34 @@ describe("format integration delivery message", () => {
           submittedAt: "2026-09-14T10:00:00.000Z",
         },
       }),
-      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: 2026-09-14T10:00:00.000Z"
+      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
+    );
+  });
+
+  it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {
+    const payload = {
+      ticketCode: "TKT-000010",
+      subject: "تست قالب تلگرام",
+      status: "open",
+      createdAt: "2026-09-14T10:00:00.000Z",
+      body: "متن کامل تیکت",
+    };
+
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "ticket.created",
+        payload,
+      }),
+      "🎫 تیکت جدید برای بررسی\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن تیکت:\nمتن کامل تیکت"
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "ticket.message.posted",
+        payload,
+      }),
+      "💬 پیام جدید در تیکت\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nوضعیت: open\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن پیام:\nمتن کامل تیکت"
     );
   });
 
