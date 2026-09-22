@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
 
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
@@ -48,8 +48,15 @@ export function FinanceOutstandingPanel() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+  /**
+   * Bumped by every load()/loadMore() call so a late-resolving response from a
+   * superseded request (e.g. loadMore in flight when the tour filter changes
+   * or Refresh is clicked) is discarded instead of overwriting newer state.
+   */
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -76,18 +83,26 @@ export function FinanceOutstandingPanel() {
       const toursPage = toursRes.ok
         ? parseTourCollectionsResponse(await toursRes.json())
         : { items: [], nextCursor: null, hasMore: false };
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setItems(balancesPage.items);
       setNextCursor(balancesPage.nextCursor);
       setHasMore(balancesPage.hasMore);
       setTours(toursPage.items);
     } catch (fetchError: unknown) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setError(toFinanceClientErrorCode(fetchError, "OUTSTANDING_FETCH_FAILED"));
       setItems([]);
       setTours([]);
       setNextCursor(null);
       setHasMore(false);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [tourFilter]);
 
@@ -99,6 +114,7 @@ export function FinanceOutstandingPanel() {
     if (!hasMore || nextCursor === null || loadingMore || loading) {
       return;
     }
+    const requestId = requestIdRef.current;
     setLoadingMore(true);
     const path = withFinanceTourQuery(
       `/api/finance/reports/outstanding-balances?limit=50&cursor=${encodeURIComponent(nextCursor)}`,
@@ -112,6 +128,11 @@ export function FinanceOutstandingPanel() {
         return parseOutstandingBalancesResponse(await response.json());
       })
       .then((page) => {
+        if (requestId !== requestIdRef.current) {
+          // A newer load() (filter change / refresh) started while this was
+          // in flight — discard the stale page instead of corrupting state.
+          return;
+        }
         setItems((prev) => {
           const seen = new Set(prev.map((row) => row.registrationId));
           const appended = page.items.filter((row) => !seen.has(row.registrationId));
@@ -121,10 +142,15 @@ export function FinanceOutstandingPanel() {
         setHasMore(page.hasMore);
       })
       .catch((fetchError: unknown) => {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
         setError(toFinanceClientErrorCode(fetchError, "OUTSTANDING_FETCH_FAILED"));
       })
       .finally(() => {
-        setLoadingMore(false);
+        if (requestId === requestIdRef.current) {
+          setLoadingMore(false);
+        }
       });
   }, [hasMore, nextCursor, loadingMore, loading, tourFilter]);
 
