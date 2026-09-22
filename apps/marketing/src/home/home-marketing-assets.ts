@@ -1,8 +1,7 @@
 /** Default tour card cover when catalog has no photos (PR-9). */
 export const MARKETING_FALLBACK_TOUR_COVER_PATH = "/home/fallback-tour-cover.webp";
-/** Smaller cover fallback for repeated card surfaces; detail/hero keeps the full asset. */
-export const MARKETING_FALLBACK_TOUR_CARD_COVER_PATH =
-  "/home/fallback-tour-cover-640.webp";
+/** Card fallback must point to an asset shipped in the production artifact. */
+export const MARKETING_FALLBACK_TOUR_CARD_COVER_PATH = MARKETING_FALLBACK_TOUR_COVER_PATH;
 
 /** Static landing gallery — operator upload deferred; marketing-only showcase (PR-23). */
 export const MARKETING_GALLERY_STATIC_ITEMS = [
