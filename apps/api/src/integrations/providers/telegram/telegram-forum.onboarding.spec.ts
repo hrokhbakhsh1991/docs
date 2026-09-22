@@ -77,6 +77,24 @@ describe("Telegram forum onboarding", () => {
     assert.equal(persisted.topics.tickets.threadId, 103);
   });
 
+  it("checkpoints each newly created topic before continuing", async () => {
+    const checkpoints: string[] = [];
+    await provisionTelegramForum({
+      api: fakeApi(),
+      chatId: "-1001",
+      config: createTelegramForumConfig({ groupName: "denaliadmins" }),
+      onTopicCreated: async (key, topic) => {
+        checkpoints.push(`${key}:${topic.threadId}`);
+      },
+    });
+
+    assert.deepEqual(checkpoints, [
+      `registration:${"ثبت‌نام‌های جدید".length}`,
+      `receipts:${"بررسی فیش‌ها".length}`,
+      `tickets:${"تیکت‌ها".length}`,
+    ]);
+  });
+
   it("fails closed when the bot lacks topic-management permission", async () => {
     await assert.rejects(
       provisionTelegramForum({

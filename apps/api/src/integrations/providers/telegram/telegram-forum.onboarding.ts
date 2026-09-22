@@ -51,6 +51,11 @@ export async function provisionTelegramForum(input: {
    */
   readonly loadConfig?: () => Promise<TelegramForumConfig>;
   readonly saveConfig?: (config: TelegramForumConfig) => Promise<void>;
+  /** Persist each newly created topic before continuing to the next one. */
+  readonly onTopicCreated?: (
+    key: string,
+    topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]]
+  ) => Promise<void>;
 }): Promise<ProvisionedTelegramForum> {
   return withProvisioningLock(input.chatId, async () => {
     const config = input.loadConfig === undefined ? input.config : await input.loadConfig();
@@ -63,6 +68,10 @@ async function provisionTelegramForumLocked(input: {
   readonly config: TelegramForumConfig;
   readonly chatId: string;
   readonly saveConfig?: (config: TelegramForumConfig) => Promise<void>;
+  readonly onTopicCreated?: (
+    key: string,
+    topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]]
+  ) => Promise<void>;
 }): Promise<ProvisionedTelegramForum> {
   const bot = await input.api.getMe();
   const chat = await input.api.getChat(input.chatId);
@@ -92,7 +101,9 @@ async function provisionTelegramForumLocked(input: {
     }
     try {
       const created = await input.api.createForumTopic(input.chatId, topic.name);
-      topicEntries.push([key, { ...topic, threadId: created.message_thread_id }]);
+      const createdTopic = { ...topic, threadId: created.message_thread_id };
+      topicEntries.push([key, createdTopic]);
+      await input.onTopicCreated?.(key, createdTopic);
     } catch {
       throw new TelegramForumOnboardingError("INTEGRATION_TELEGRAM_TOPIC_CREATE_FAILED");
     }
