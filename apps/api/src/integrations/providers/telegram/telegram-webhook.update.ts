@@ -10,6 +10,8 @@ export type TelegramWebhookMessage = {
   readonly chat: TelegramWebhookChat;
   readonly text?: string;
   readonly message_thread_id?: number;
+  readonly from?: TelegramWebhookUser;
+  readonly reply_to_message?: TelegramWebhookMessage;
 };
 
 export type TelegramWebhookUser = {
@@ -45,6 +47,48 @@ export type TelegramReceiptAction = {
   readonly userId: string;
   readonly messageThreadId?: number;
 };
+
+export type TelegramTicketReply = {
+  readonly updateId: number;
+  readonly messageId: number;
+  readonly ticketCode: string;
+  readonly body: string;
+  readonly chatId: string;
+  readonly userId: string;
+  readonly messageThreadId: number;
+};
+
+export function parseTelegramTicketReply(
+  update: TelegramWebhookUpdate
+): TelegramTicketReply | null {
+  const message = update.message;
+  const repliedMessage = message?.reply_to_message;
+  const body = message?.text?.trim() ?? "";
+  if (
+    message === undefined ||
+    repliedMessage === undefined ||
+    message.from === undefined ||
+    message.chat.type !== "supergroup" ||
+    message.message_thread_id === undefined ||
+    body.length === 0 ||
+    typeof repliedMessage.text !== "string"
+  ) {
+    return null;
+  }
+  const ticketCode = repliedMessage.text.match(/\bTKT-\d{6}\b/i)?.[0]?.toUpperCase();
+  if (ticketCode === undefined) {
+    return null;
+  }
+  return {
+    updateId: update.update_id,
+    messageId: message.message_id,
+    ticketCode,
+    body,
+    chatId: String(message.chat.id),
+    userId: String(message.from.id),
+    messageThreadId: message.message_thread_id,
+  };
+}
 
 export function parseTelegramReceiptAction(
   update: TelegramWebhookUpdate

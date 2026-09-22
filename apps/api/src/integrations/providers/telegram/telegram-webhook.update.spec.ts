@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   parseTelegramConnectCommand,
   parseTelegramReceiptAction,
+  parseTelegramTicketReply,
   parseTelegramWebhookUpdate,
 } from "./telegram-webhook.update";
 
@@ -54,6 +55,48 @@ describe("Telegram webhook update parsing", () => {
     assert.equal(parseTelegramWebhookUpdate({ update_id: "1" }), null);
     assert.equal(parseTelegramWebhookUpdate(null), null);
     assert.deepEqual(parseTelegramWebhookUpdate({ update_id: 5 }), { update_id: 5 });
+  });
+
+  it("extracts a ticket reply only from a native reply in a forum topic", () => {
+    assert.deepEqual(
+      parseTelegramTicketReply({
+        update_id: 77,
+        message: {
+          message_id: 501,
+          message_thread_id: 103,
+          chat: { id: -1001, type: "supergroup", is_forum: true },
+          from: { id: 42, username: "operator" },
+          text: "پاسخ اپراتور",
+          reply_to_message: {
+            message_id: 500,
+            chat: { id: -1001, type: "supergroup" },
+            text: "🎫 تیکت جدید\nشناسه: TKT-000011\nموضوع: تست",
+          },
+        },
+      }),
+      {
+        updateId: 77,
+        messageId: 501,
+        ticketCode: "TKT-000011",
+        body: "پاسخ اپراتور",
+        chatId: "-1001",
+        userId: "42",
+        messageThreadId: 103,
+      }
+    );
+    assert.equal(
+      parseTelegramTicketReply({
+        update_id: 78,
+        message: {
+          message_id: 502,
+          message_thread_id: 103,
+          chat: { id: -1001, type: "supergroup" },
+          from: { id: 42 },
+          text: "پیام بدون Reply",
+        },
+      }),
+      null
+    );
   });
 
   it("extracts receipt actions only from a supergroup callback", () => {

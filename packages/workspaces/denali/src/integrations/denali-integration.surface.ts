@@ -141,7 +141,7 @@ export const denaliIntegrationSurface = Object.freeze({
     "receipt.rejected":
       "فیش رد شد\nشناسه فیش: {{receiptId}}\nشناسه ثبت‌نام: {{registrationId}}\nتاریخ بررسی: {{reviewedAt}}\nیادداشت: {{reviewNote}}",
     "ticket.created":
-      "🎫 تیکت جدید برای بررسی\nشناسه: {{ticketCode}}\nموضوع: {{subject}}\nتاریخ ارسال: {{createdAt}}\n\nمتن تیکت:\n{{body}}",
+      "🎫 تیکت جدید برای بررسی\nشناسه: {{ticketCode}}\nموضوع: {{subject}}\nتاریخ ارسال: {{createdAt}}\n\nمتن تیکت:\n{{body}}\n\n↩️ برای پاسخ به کاربر، روی همین پیام Reply کنید.",
     "ticket.message.posted":
       "💬 پیام جدید در تیکت\nشناسه: {{ticketCode}}\nموضوع: {{subject}}\nوضعیت: {{status}}\nتاریخ ارسال: {{createdAt}}\n\nمتن پیام:\n{{body}}",
     "ticket.internal_note.created":
