@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   parseTelegramConnectCommand,
+  parseTelegramRegistrationAction,
   parseTelegramReceiptAction,
   parseTelegramTicketReply,
   parseTelegramWebhookUpdate,
@@ -130,6 +131,32 @@ describe("Telegram webhook update parsing", () => {
         },
       }),
       null
+    );
+  });
+
+  it("extracts registration decisions only from a supergroup callback", () => {
+    assert.deepEqual(
+      parseTelegramRegistrationAction({
+        update_id: 6,
+        callback_query: {
+          id: "callback-registration",
+          data: "registration:apr_np:registration_123456",
+          from: { id: 77 },
+          message: {
+            message_id: 9,
+            message_thread_id: 101,
+            chat: { id: -1001, type: "supergroup" },
+          },
+        },
+      }),
+      {
+        callbackQueryId: "callback-registration",
+        action: "approve_without_payment",
+        registrationId: "registration_123456",
+        chatId: "-1001",
+        userId: "77",
+        messageThreadId: 101,
+      }
     );
   });
 });

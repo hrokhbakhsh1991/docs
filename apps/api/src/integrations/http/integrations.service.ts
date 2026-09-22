@@ -79,6 +79,7 @@ import {
 import { createTelegramForumConfig } from "../providers/telegram/telegram-forum.config";
 import {
   parseTelegramConnectCommand,
+  parseTelegramRegistrationAction,
   parseTelegramReceiptAction,
   parseTelegramTicketReply,
   parseTelegramWebhookUpdate,
@@ -1717,6 +1718,41 @@ export async function processTelegramWebhook(
       });
     }
   }
+  const registrationAction = parseTelegramRegistrationAction(update);
+  if (registrationAction !== null) {
+    try {
+      await processTelegramRegistrationAction({
+        tenantId,
+        connection,
+        credentials,
+        action: registrationAction,
+      });
+    } catch (error: unknown) {
+      const botToken = credentials.botToken;
+      if (typeof botToken === "string" && botToken.trim().length > 0) {
+        const api = createTelegramApiClient(botToken);
+        await safelyAnswerTelegramCallback(
+          api,
+          registrationAction.callbackQueryId,
+          "عملیات انجام نشد"
+        );
+        await safelySendTelegramCallbackMessage(api, {
+          chatId: registrationAction.chatId,
+          text: "این ثبت‌نام قابل پردازش نیست یا قبلاً پردازش شده است.",
+          ...(registrationAction.messageThreadId === undefined
+            ? {}
+            : { messageThreadId: registrationAction.messageThreadId }),
+        });
+      }
+      logger.warn({
+        event: "integrations.telegram.registration_callback_failed",
+        tenantId,
+        integrationId,
+        registrationId: registrationAction.registrationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   const ticketReply = parseTelegramTicketReply(update);
   if (ticketReply !== null) {
@@ -1899,6 +1935,98 @@ async function processTelegramReceiptAction(input: {
       action.action === "approve"
         ? `فیش ${action.receiptId} تأیید شد.`
         : `فیش ${action.receiptId} رد شد.`,
+    ...(action.messageThreadId === undefined ? {} : { messageThreadId: action.messageThreadId }),
+  });
+}
+
+async function processTelegramRegistrationAction(input: {
+  readonly tenantId: string;
+  readonly connection: IntegrationConnectionRecord;
+  readonly credentials: Record<string, unknown>;
+  readonly action: NonNullable<ReturnType<typeof parseTelegramRegistrationAction>>;
+}): Promise<void> {
+  const { tenantId, connection, credentials, action } = input;
+  const configuredChatId = connection.config.chatId;
+  if (typeof configuredChatId !== "string" || configuredChatId !== action.chatId) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_NOT_CONNECTED");
+  }
+  const botToken = credentials.botToken;
+  if (typeof botToken !== "string" || botToken.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
+  }
+  const api = createTelegramApiClient(botToken);
+  const member = await api.getChatMember(action.chatId, Number(action.userId));
+  if (!["administrator", "creator"].includes(member.status)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_MEMBER_REQUIRED");
+  }
+
+  const actor = {
+    tenantId,
+    userId: `telegram:${action.userId}`,
+    role: "admin" as const,
+    status: "ACTIVE" as const,
+  };
+  const { getBookingsRepository } = await import("../../bookings/create-bookings-repository");
+  const booking = await getBookingsRepository().getById(action.registrationId, tenantId);
+  if (booking === null) {
+    throw new IntegrationInvalidBodyError("REGISTRATION_NOT_FOUND");
+  }
+
+  const { approveBooking, waitlistBooking } =
+    await import("../../bookings/create-bookings-service");
+  if (action.action === "waitlist") {
+    if (booking.status === "waitlisted") {
+      await acknowledgeTelegramRegistrationAction(api, action);
+      return;
+    }
+    if (booking.status !== "pending") {
+      throw new IntegrationInvalidBodyError("REGISTRATION_STATUS_CONFLICT");
+    }
+    await waitlistBooking(actor, action.registrationId);
+  } else if (action.action === "approve_without_payment") {
+    if (
+      booking.status !== "approved" &&
+      booking.status !== "pending" &&
+      booking.status !== "waitlisted"
+    ) {
+      throw new IntegrationInvalidBodyError("REGISTRATION_STATUS_CONFLICT");
+    }
+    const { resolveFinanceServiceForTenant } = await import("../../boot/lazy-finance-service");
+    const finance = await resolveFinanceServiceForTenant(tenantId);
+    await finance.setRegistrationObligationOverride(actor, {
+      registrationId: action.registrationId,
+      obligationMinor: "0",
+      reason: "telegram_registration_approved_without_payment",
+    });
+    if (booking.status !== "approved") {
+      await approveBooking(actor, action.registrationId);
+    }
+  } else {
+    if (booking.status !== "approved") {
+      if (booking.status !== "pending" && booking.status !== "waitlisted") {
+        throw new IntegrationInvalidBodyError("REGISTRATION_STATUS_CONFLICT");
+      }
+      await approveBooking(actor, action.registrationId);
+    }
+  }
+
+  await acknowledgeTelegramRegistrationAction(api, action);
+}
+
+async function acknowledgeTelegramRegistrationAction(
+  api: ReturnType<typeof createTelegramApiClient>,
+  action: NonNullable<ReturnType<typeof parseTelegramRegistrationAction>>
+): Promise<void> {
+  const labels = {
+    approve_without_payment: "تأیید نهایی بدون نیاز به پرداخت",
+    approve_with_payment: "تأیید نهایی با نیاز به پرداخت",
+    approve: "تأیید",
+    waitlist: "انتقال به لیست انتظار",
+  } as const;
+  await safelyAnswerTelegramCallback(api, action.callbackQueryId, labels[action.action]);
+  await safelySendTelegramCallbackMessage(api, {
+    chatId: action.chatId,
+    text: `ثبت‌نام ${action.registrationId}: ${labels[action.action]}.`,
     ...(action.messageThreadId === undefined ? {} : { messageThreadId: action.messageThreadId }),
   });
 }

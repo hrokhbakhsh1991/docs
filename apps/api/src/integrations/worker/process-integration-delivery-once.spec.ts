@@ -297,7 +297,11 @@ describe("Telegram worker delivery", () => {
   });
 
   it("sends a registration.created event only to the registration forum topic", async () => {
-    const sent: Array<{ channelId: string; messageThreadId?: number }> = [];
+    const sent: Array<{
+      channelId: string;
+      messageThreadId?: number;
+      replyMarkup?: unknown;
+    }> = [];
     const result = await executeIntegrationDeliveryJob(
       deliveryJob({
         domainEventId: "registration.created:registration-1",
@@ -306,11 +310,14 @@ describe("Telegram worker delivery", () => {
           workspaceType: "denali",
           integrationConnectionId: "connection-1",
           telegramTopicKey: "registration",
-          registrationId: "registration-1",
+          bookingId: "registration-1",
           tourTitle: "صعود یک‌روزه توچال با تأیید ادمین",
-          participantName: "ali",
-          participantPhone: "09000000000",
-          createdAt: "2026-09-19T11:00:00.000Z",
+          guestLabel: "علی رضایی",
+          departureAt: "2026-09-20",
+          partySize: 2,
+          approvalRequired: true,
+          approvalPrompt: "⏳ این تور نیاز به تأیید ادمین دارد.",
+          approvalStatus: "awaiting_approval",
         },
       }),
       {
@@ -332,7 +339,11 @@ describe("Telegram worker delivery", () => {
           id: "telegram",
           supportedCapabilities: ["message.send"],
           async sendMessage(_ctx, input) {
-            sent.push({ channelId: input.channelId, messageThreadId: input.messageThreadId });
+            sent.push({
+              channelId: input.channelId,
+              messageThreadId: input.messageThreadId,
+              replyMarkup: input.replyMarkup,
+            });
             return { ok: true };
           },
         }),
@@ -340,7 +351,35 @@ describe("Telegram worker delivery", () => {
     );
 
     assert.deepEqual(result, { ok: true });
-    assert.deepEqual(sent, [{ channelId: "-1004292581496", messageThreadId: 101 }]);
+    assert.deepEqual(sent, [
+      {
+        channelId: "-1004292581496",
+        messageThreadId: 101,
+        replyMarkup: {
+          inline_keyboard: [
+            [
+              {
+                text: "تأیید نهایی بدون نیاز به پرداخت",
+                callback_data: "registration:apr_np:registration-1",
+              },
+            ],
+            [
+              {
+                text: "تأیید نهایی با نیاز به پرداخت",
+                callback_data: "registration:apr_wp:registration-1",
+              },
+            ],
+            [{ text: "تأیید", callback_data: "registration:apr:registration-1" }],
+            [
+              {
+                text: "انتقال به لیست انتظار",
+                callback_data: "registration:wl:registration-1",
+              },
+            ],
+          ],
+        },
+      },
+    ]);
   });
 });
 

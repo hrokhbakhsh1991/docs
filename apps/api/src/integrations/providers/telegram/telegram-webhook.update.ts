@@ -48,6 +48,61 @@ export type TelegramReceiptAction = {
   readonly messageThreadId?: number;
 };
 
+export type TelegramRegistrationAction = {
+  readonly callbackQueryId: string;
+  readonly action: "approve_without_payment" | "approve_with_payment" | "approve" | "waitlist";
+  readonly registrationId: string;
+  readonly chatId: string;
+  readonly userId: string;
+  readonly messageThreadId?: number;
+};
+
+/** Short wire codes for Telegram callback_data (64-byte limit) → full action names. */
+const REGISTRATION_ACTION_WIRE_CODES: Record<
+  string,
+  TelegramRegistrationAction["action"]
+> = {
+  apr_np: "approve_without_payment",
+  apr_wp: "approve_with_payment",
+  apr: "approve",
+  wl: "waitlist",
+};
+
+export function parseTelegramRegistrationAction(
+  update: TelegramWebhookUpdate
+): TelegramRegistrationAction | null {
+  const callback = update.callback_query;
+  const message = callback?.message;
+  const from = callback?.from;
+  if (
+    callback === undefined ||
+    message === undefined ||
+    from === undefined ||
+    message.chat.type !== "supergroup" ||
+    typeof callback.data !== "string"
+  ) {
+    return null;
+  }
+  // Wire codes are short — Telegram caps callback_data at 64 bytes, which the
+  // full action names (e.g. "approve_without_payment") plus a uuid would exceed.
+  const match = callback.data.match(
+    /^registration:(apr_np|apr_wp|apr|wl):([A-Za-z0-9_-]{8,128})$/i
+  );
+  if (match === null) return null;
+  const action = REGISTRATION_ACTION_WIRE_CODES[match[1]!.toLowerCase()];
+  if (action === undefined) return null;
+  return {
+    callbackQueryId: callback.id,
+    action,
+    registrationId: match[2]!,
+    chatId: String(message.chat.id),
+    userId: String(from.id),
+    ...(message.message_thread_id === undefined
+      ? {}
+      : { messageThreadId: message.message_thread_id }),
+  };
+}
+
 export type TelegramTicketReply = {
   readonly updateId: number;
   readonly messageId: number;
