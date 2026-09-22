@@ -153,7 +153,7 @@
     },
     "integrations": {
       "title": "Connections",
-      "description": "Telegram bot and channel setup, enablement, and delivery health checks."
+      "description": "Telegram bot and group setup, enablement, and delivery health checks."
     },
     "exposure": {
       "title": "Field exposure",
@@ -553,7 +553,7 @@
   "integrations": {
     "forbidden": "Integration settings require admin or owner access.",
     "title": "Connections",
-    "subtitle": "Manage the Telegram connection, destination channel, and delivery health for this workspace.",
+    "subtitle": "Manage the Telegram connection, destination group, and delivery health for this workspace.",
     "workspaceScope": "Workspace API scope: {workspaceId}",
     "refresh": "Refresh",
     "catalogLoadFailed": "Could not load the field catalog for this workspace.",
@@ -596,21 +596,21 @@
       "title": "No integrations configured",
       "description": "No new Telegram connection or legacy Telegram bot exists for this workspace."
     },
-    "rowMeta": "Channel {channelId}",
+    "rowMeta": "Group {channelId}",
     "detail": {
       "title": "Telegram connection",
       "overviewTitle": "Telegram connection status",
       "statusDescriptions": {
-        "enabled": "Telegram is enabled and eligible messages can be sent to the destination channel.",
+        "enabled": "Telegram is enabled and eligible messages can be sent to the destination group.",
         "disabled": "Telegram is saved, but automatic sending is currently disabled.",
-        "error": "The Telegram connection has an error. Check the channel, token, or bot permissions and test again."
+        "error": "The Telegram connection has an error. Check the group, token, or bot permissions and test again."
       },
       "lastTestSuccess": "The latest connection test succeeded.",
       "lastTestFailure": "The latest connection test failed.",
       "technicalDetails": "Technical details",
       "connectionId": "Connection ID",
       "status": "Status",
-      "channelId": "Destination channel",
+      "channelId": "Destination group",
       "hasSecret": "Bot token saved",
       "yes": "Yes",
       "no": "No",
@@ -645,17 +645,17 @@
       "groupNameLabel": "Exact group name",
       "groupNamePlaceholder": "denaliAdmins",
       "groupNameHint": "It must exactly match the Telegram group title, and Topics/Forum must be enabled.",
-      "channelIdLabel": "Channel ID",
-      "channelIdPlaceholder": "@your_channel or -1001234567890",
-      "channelIdHint": "Public @username or numeric chat id for the channel where tour notifications should be posted.",
+      "channelIdLabel": "Group ID (Chat ID)",
+      "channelIdPlaceholder": "-1001234567890 or @your_group",
+      "channelIdHint": "Numeric chat id of this same Forum group (e.g. -1001234567890), even if the group is private. You can also enter its public @username if it has one. To get the numeric id of a private group, forward a message from it to a bot like @userinfobot.",
       "botTokenLabel": "Bot token",
       "botTokenPlaceholder": "123456789:ABCdef...",
-      "botTokenHint": "From @BotFather. The bot must be an admin of the channel with permission to post messages.",
+      "botTokenHint": "From @BotFather. The bot must be an admin of the group with permission to post messages.",
       "enableAfterSave": "Enable integration after saving",
       "submit": "Save Telegram connection",
       "submitting": "Saving…",
       "success": "Telegram connection saved. Enable it or run a test connection when ready.",
-      "validationRequired": "Channel ID and bot token are required."
+      "validationRequired": "Group ID and bot token are required."
     },
     "edit": {
       "title": "Edit connection",
@@ -663,16 +663,16 @@
       "groupNameLabel": "Exact group name",
       "groupNamePlaceholder": "denaliAdmins",
       "groupNameHint": "It must exactly match the Telegram group title, and Topics/Forum must be enabled.",
-      "channelIdLabel": "Channel ID",
-      "channelIdPlaceholder": "@your_channel or -1001234567890",
-      "channelIdHint": "Public @username or numeric chat id for the channel where tour notifications should be posted.",
+      "channelIdLabel": "Group ID (Chat ID)",
+      "channelIdPlaceholder": "-1001234567890 or @your_group",
+      "channelIdHint": "Numeric chat id of this same Forum group (e.g. -1001234567890), even if the group is private. You can also enter its public @username if it has one. To get the numeric id of a private group, forward a message from it to a bot like @userinfobot.",
       "botTokenLabel": "New bot token (optional)",
       "botTokenPlaceholder": "Leave blank to keep current token",
       "botTokenHint": "Enter a new token from @BotFather only when rotating the bot. The stored token is never shown.",
       "submit": "Save changes",
       "submitting": "Saving…",
       "success": "Connection updated. Run a test connection to verify the new settings.",
-      "validationRequired": "Channel ID is required.",
+      "validationRequired": "Group ID is required.",
       "noChanges": "No changes to save."
     },
     "test": {
@@ -762,12 +762,12 @@
       "INTEGRATION_PATCH_HTTP_ERROR": "Failed to update integration (HTTP {status}).",
       "INTEGRATION_PATCH_FAILED": "Failed to update integration.",
       "INTEGRATION_META_FAILED": "Failed to load integration form metadata.",
-      "INTEGRATION_INVALID_BODY": "Invalid bot or channel details.",
+      "INTEGRATION_INVALID_BODY": "Invalid bot or group details.",
       "INTEGRATION_CAPABILITIES_INVALID": "Selected integration capabilities are not valid.",
       "INTEGRATION_PROVIDER_INVALID": "This integration provider is not supported.",
       "INTEGRATION_PROVIDER_NOT_REGISTERED": "This integration provider is not available in the current runtime.",
       "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "This provider is not enabled for the current workspace plugin.",
-      "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "Telegram channel ID is required.",
+      "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "Telegram group ID is required.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "Telegram bot token is required.",
       "INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED": "The exact Telegram group name and numeric group ID are required.",
       "INTEGRATION_TELEGRAM_GROUP_MUST_BE_SUPERGROUP": "The supplied ID is not a Telegram supergroup.",
