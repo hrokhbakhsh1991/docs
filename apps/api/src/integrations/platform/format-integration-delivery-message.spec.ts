@@ -76,7 +76,7 @@ describe("format integration delivery message", () => {
         eventType: "ticket.created",
         payload,
       }),
-      "🎫 تیکت جدید برای بررسی\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن تیکت:\nمتن کامل تیکت"
+      "🎫 تیکت جدید برای بررسی\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن تیکت:\nمتن کامل تیکت\n\n↩️ برای پاسخ به کاربر، روی همین پیام Reply کنید."
     );
     assert.equal(
       await formatIntegrationDeliveryMessage({
