@@ -31,10 +31,7 @@ export type ProcessIntegrationDeliveryDeps = {
 };
 
 export type TelegramTopicAutoCreateApi = {
-  createForumTopic(
-    chatId: string,
-    name: string
-  ): Promise<{ readonly message_thread_id: number }>;
+  createForumTopic(chatId: string, name: string): Promise<{ readonly message_thread_id: number }>;
 };
 
 export type ExecuteIntegrationDeliveryDeps = {
@@ -140,7 +137,9 @@ export function resolveTelegramTopicName(input: {
     : input.topicKey;
 }
 
-async function defaultCreateTelegramTopicApi(botToken: string): Promise<TelegramTopicAutoCreateApi> {
+async function defaultCreateTelegramTopicApi(
+  botToken: string
+): Promise<TelegramTopicAutoCreateApi> {
   const { createTelegramApiClient } = await import("../providers/telegram/telegram-api.client");
   return createTelegramApiClient(botToken);
 }
@@ -152,9 +151,8 @@ async function defaultPersistTelegramTopicThreadId(input: {
   readonly topicName: string;
   readonly threadId: number;
 }): Promise<void> {
-  const { createIntegrationConnectionRepository } = await import(
-    "../infrastructure/prisma-integration-connection.repository"
-  );
+  const { createIntegrationConnectionRepository } =
+    await import("../infrastructure/prisma-integration-connection.repository");
   await createIntegrationConnectionRepository().upsertTelegramTopicThreadId(input);
 }
 
@@ -166,13 +164,20 @@ async function defaultPersistTelegramTopicThreadId(input: {
  */
 async function autoCreateTelegramTopic(input: {
   readonly job: IntegrationDeliveryJobRecord;
-  readonly connection: IntegrationConnectionRecord & { readonly credentials: Record<string, unknown> };
+  readonly connection: IntegrationConnectionRecord & {
+    readonly credentials: Record<string, unknown>;
+  };
   readonly connectionId: string;
   readonly chatId: string;
   readonly topicKey: string;
   readonly deps: ExecuteIntegrationDeliveryDeps;
 }): Promise<number | null> {
-  if (!isTelegramTopicAutoCreateEligible({ connectionId: input.connectionId, config: input.connection.config })) {
+  if (
+    !isTelegramTopicAutoCreateEligible({
+      connectionId: input.connectionId,
+      config: input.connection.config,
+    })
+  ) {
     return null;
   }
   const botToken = input.connection.credentials.botToken;
@@ -186,7 +191,9 @@ async function autoCreateTelegramTopic(input: {
   });
 
   try {
-    const api = await (input.deps.createTelegramTopicApi ?? defaultCreateTelegramTopicApi)(botToken);
+    const api = await (input.deps.createTelegramTopicApi ?? defaultCreateTelegramTopicApi)(
+      botToken
+    );
     const created = await api.createForumTopic(input.chatId, topicName);
     await (input.deps.persistTelegramTopicThreadId ?? defaultPersistTelegramTopicThreadId)({
       tenantId: input.job.tenantId,
@@ -312,11 +319,50 @@ export async function executeIntegrationDeliveryJob(
               ],
             ],
           }
-        : undefined;
+        : job.eventType === "registration.created" &&
+            typeof job.payload.bookingId === "string" &&
+            typeof job.payload.approvalRequired === "boolean"
+          ? {
+              inline_keyboard: [
+                [
+                  {
+                    text: "تأیید نهایی بدون نیاز به پرداخت",
+                    // Wire code kept short — Telegram caps callback_data at 64 bytes;
+                    // "registration:approve_without_payment:<uuid>" would overflow it.
+                    callback_data: `registration:apr_np:${job.payload.bookingId}`,
+                  },
+                ],
+                [
+                  {
+                    text: "تأیید نهایی با نیاز به پرداخت",
+                    callback_data: `registration:apr_wp:${job.payload.bookingId}`,
+                  },
+                ],
+                ...(job.payload.approvalRequired
+                  ? [
+                      [
+                        {
+                          text: "تأیید",
+                          callback_data: `registration:apr:${job.payload.bookingId}`,
+                        },
+                      ],
+                      [
+                        {
+                          text: "انتقال به لیست انتظار",
+                          callback_data: `registration:wl:${job.payload.bookingId}`,
+                        },
+                      ],
+                    ]
+                  : []),
+              ],
+            }
+          : undefined;
 
     const result = await adapter.sendMessage(ctx, {
       channelId,
-      ...(topicResolution.threadId === undefined ? {} : { messageThreadId: topicResolution.threadId }),
+      ...(topicResolution.threadId === undefined
+        ? {}
+        : { messageThreadId: topicResolution.threadId }),
       text,
       ...(media === undefined ? {} : { media }),
       ...(replyMarkup === undefined ? {} : { replyMarkup }),
@@ -349,7 +395,10 @@ export async function executeIntegrationDeliveryJob(
         });
         return retryResult.ok
           ? { ok: true }
-          : { ok: false, error: { code: retryResult.errorCode, message: retryResult.errorMessage } };
+          : {
+              ok: false,
+              error: { code: retryResult.errorCode, message: retryResult.errorMessage },
+            };
       }
     }
 

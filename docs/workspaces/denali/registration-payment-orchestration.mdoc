@@ -111,6 +111,27 @@ The API coalesces concurrent outstanding-AR and tour-collection reads per tenant
 
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
+### Telegram registration decision message
+
+The Telegram `registration` topic receives an actionable `registration.created`
+message. Receipt review remains a separate flow in the `receipts` topic.
+
+The message must show the guest, tour, departure, party size, and registration
+identifier, then state whether the tour requires operator approval. Its inline
+actions are:
+
+| Tour approval mode | Actions                                                                     |
+| ------------------ | --------------------------------------------------------------------------- |
+| `auto`             | `تأیید نهایی بدون نیاز به پرداخت` · `تأیید نهایی با نیاز به پرداخت`         |
+| `manual`           | The same two finalization actions, plus `تأیید` and `انتقال به لیست انتظار` |
+
+Callbacks are typed as `registration:<action>:<registrationId>`, are accepted
+only from an administrator or creator in the configured Telegram supergroup, and are
+tenant-scoped and idempotent. `approve` uses the existing Bookings approval
+operation; `waitlist` uses the existing waitlist operation. The two payment
+variants are represented in the registration decision payload so they must not
+be confused with receipt approval.
+
 ## Operator hint (phase 1C)
 
 After approve on `/bookings`, when `paymentStatus` is unpaid/partial, inspection panel may hint that the next step is Finance receipt review (`/finance?tab=receipts`). **No** receipt approve button inside Bookings. The tour finance tab must already list the guest (see money inbox after approve) — operators should not wait for an upload before the name appears.

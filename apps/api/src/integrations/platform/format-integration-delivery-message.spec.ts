@@ -40,10 +40,12 @@ describe("format integration delivery message", () => {
           tourTitle: "Damavand",
           departureAt: "2026-09-20",
           partySize: 2,
+          bookingId: "registration-123",
           approvalStatus: "awaiting_approval",
+          approvalPrompt: "⏳ این تور نیاز به تأیید ادمین دارد.",
         },
       }),
-      "ثبت‌نام جدید: Ali Test\nتور: Damavand\nتاریخ حرکت: 2026-09-20\nتعداد نفرات: 2\nوضعیت تأیید: awaiting_approval"
+      "📝 ثبت‌نام جدید\n\n👤 نام: Ali Test\n🏕 تور: Damavand\n📅 تاریخ حرکت: 2026-09-20\n👥 تعداد نفرات: 2\n🆔 شناسه ثبت‌نام: registration-123\n\n⏳ این تور نیاز به تأیید ادمین دارد."
     );
     assert.equal(
       await formatIntegrationDeliveryMessage({

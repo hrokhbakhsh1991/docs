@@ -306,6 +306,9 @@ export async function createDenaliRegistration(params: {
         departureAt,
         approvalRequired,
         approvalStatus: approvalRequired ? "awaiting_approval" : "approved",
+        approvalPrompt: approvalRequired
+          ? "⏳ این تور نیاز به تأیید ادمین دارد."
+          : "ℹ️ این تور نیاز به تأیید ادمین ندارد.",
       },
     },
   });

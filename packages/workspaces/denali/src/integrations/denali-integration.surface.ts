@@ -131,7 +131,7 @@ export const denaliIntegrationSurface = Object.freeze({
     "member.registered":
       "عضو جدید دنالی\nنام: {{displayName}}\nشماره تماس: {{mobile}}\nتاریخ ثبت‌نام: {{registeredAt}}",
     "registration.created":
-      "ثبت‌نام جدید: {{guestLabel}}\nتور: {{tourTitle}}\nتاریخ حرکت: {{departureAt}}\nتعداد نفرات: {{partySize}}\nوضعیت تأیید: {{approvalStatus}}",
+      "📝 ثبت‌نام جدید\n\n👤 نام: {{guestLabel}}\n🏕 تور: {{tourTitle}}\n📅 تاریخ حرکت: {{departureAt}}\n👥 تعداد نفرات: {{partySize}}\n🆔 شناسه ثبت‌نام: {{bookingId}}\n\n{{approvalPrompt}}",
     "registration.approved":
       "ثبت‌نام تأیید شد\nشناسه ثبت‌نام: {{bookingId}}\nتاریخ تأیید: {{approvedAt}}",
     "receipt.submitted":
