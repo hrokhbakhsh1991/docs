@@ -27,7 +27,7 @@ function guessContentType(storageKey: string): string {
  * "receipt not available" placeholder.
  */
 export async function handleDevReceiptProof(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
   storageKeyParam: string
 ): Promise<void> {
