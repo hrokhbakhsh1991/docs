@@ -89,6 +89,7 @@ async function writeEventsAndAudit(
   events: readonly TicketEvent[],
   actorUserId: string | null,
   message?: TicketMessage,
+  messageIdempotencyKey?: string,
 ): Promise<void> {
   for (const event of events) {
     await tx.ticketEvent.create({
@@ -104,7 +105,7 @@ async function writeEventsAndAudit(
     });
   }
   await appendTicketingAuditEvents(tx, ticket, events, actorUserId);
-  await enqueueTicketingOutboxEvents(tx, ticket, events, message);
+  await enqueueTicketingOutboxEvents(tx, ticket, events, message, messageIdempotencyKey);
 }
 
 export class PrismaTicketingRepository implements TicketingRepositoryPort {
@@ -357,6 +358,7 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
         input.events,
         input.events[0]?.actorUserId ?? null,
         input.message,
+        input.messageIdempotencyKey,
       );
       const detail = await loadDetail(tx, input.ticket.tenantId, input.ticket.id);
       if (detail === null) {
@@ -463,6 +465,7 @@ export class PrismaTicketingRepository implements TicketingRepositoryPort {
         input.events,
         input.events[0]?.actorUserId ?? null,
         input.message,
+        input.messageIdempotencyKey,
       );
       const detail = await loadDetail(tx, input.ticket.tenantId, input.ticket.id);
       if (detail === null) {

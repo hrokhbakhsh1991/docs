@@ -83,8 +83,12 @@ export async function enqueueTicketingOutboxEvents(
   ticket: Ticket,
   events: readonly TicketEvent[],
   message?: TicketMessage,
+  messageIdempotencyKey?: string,
 ): Promise<void> {
   const isTicketCreationBatch = events.some((event) => event.eventType === "ticket.created");
+  const telegramSourceParts = messageIdempotencyKey?.match(
+    /^telegram:([^:]+):update:\d+$/,
+  );
 
   for (const event of events) {
     if (isTicketCreationBatch && event.eventType === "ticket.message.created") {
@@ -119,6 +123,12 @@ export async function enqueueTicketingOutboxEvents(
         status: ticket.status,
         priority: ticket.priority,
         actorUserId: event.actorUserId,
+        ...(telegramSourceParts === null || telegramSourceParts === undefined
+          ? {}
+          : {
+              sourceChannel: "telegram",
+              sourceIntegrationId: telegramSourceParts[1],
+            }),
         sourceEventType: event.eventType,
         eventPayload: event.payload as Prisma.InputJsonValue,
         ...(body === undefined ? {} : { body }),
