@@ -745,6 +745,7 @@
       "advancedSummary": "Technical diagnostics"
     },
     "errors": {
+      "DATABASE_UNAVAILABLE": "The database service is unavailable. Please try again later.",
       "INTEGRATION_SYSTEM_NOT_READY": "Integration system is not ready. Database migrations may be pending — contact your operator.",
       "INTEGRATIONS_LIST_HTTP_ERROR": "Failed to load integrations (HTTP {status}).",
       "INTEGRATIONS_FETCH_FAILED": "Failed to load integrations.",
