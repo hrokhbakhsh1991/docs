@@ -31,6 +31,12 @@ body[data-workspace-plugin="denali"]
   bottom: calc(100% + var(--space-1, 0.25rem));
 }
 
+body[data-workspace-plugin="denali"]
+  [data-operator-wizard-calendar-popover][data-operator-wizard-calendar-align="end"] {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
 body[data-workspace-plugin="denali"] .operator-date-picker {
   position: relative;
   display: flex;
@@ -102,6 +108,7 @@ body[data-workspace-plugin="denali"] .operator-wizard-calendar__title-group {
   justify-content: center;
   gap: var(--space-1, 0.25rem);
   min-width: 0;
+  overflow: hidden;
 }
 
 body[data-workspace-plugin="denali"] .operator-wizard-calendar__title-btn {
@@ -116,6 +123,11 @@ body[data-workspace-plugin="denali"] .operator-wizard-calendar__title-btn {
   cursor: pointer;
   border-radius: var(--radius-sm, 0.25rem);
   transition: background-color 0.12s ease;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body[data-workspace-plugin="denali"] .operator-wizard-calendar__title-btn:hover {
@@ -138,9 +150,12 @@ body[data-workspace-plugin="denali"] .operator-wizard-calendar__nav {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  flex-basis: 2rem;
   width: 2rem;
   height: 2rem;
   min-height: 2rem;
+  position: relative;
+  z-index: 1;
   padding: 0 !important;
   border: 1px solid var(--color-border-subtle) !important;
   border-radius: var(--radius-md, 0.375rem) !important;
