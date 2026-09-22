@@ -44,7 +44,9 @@ export function FinanceOutstandingPanel() {
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<readonly OutstandingBalanceListItem[]>([]);
   const [tours, setTours] = useState<readonly TourCollectionListItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
 
   const load = useCallback(async () => {
@@ -75,12 +77,14 @@ export function FinanceOutstandingPanel() {
         ? parseTourCollectionsResponse(await toursRes.json())
         : { items: [], nextCursor: null, hasMore: false };
       setItems(balancesPage.items);
+      setNextCursor(balancesPage.nextCursor);
       setHasMore(balancesPage.hasMore);
       setTours(toursPage.items);
     } catch (fetchError: unknown) {
       setError(toFinanceClientErrorCode(fetchError, "OUTSTANDING_FETCH_FAILED"));
       setItems([]);
       setTours([]);
+      setNextCursor(null);
       setHasMore(false);
     } finally {
       setLoading(false);
@@ -90,6 +94,39 @@ export function FinanceOutstandingPanel() {
   useEffect(() => {
     void load();
   }, [load, fetchNonce]);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || nextCursor === null || loadingMore || loading) {
+      return;
+    }
+    setLoadingMore(true);
+    const path = withFinanceTourQuery(
+      `/api/finance/reports/outstanding-balances?limit=50&cursor=${encodeURIComponent(nextCursor)}`,
+      tourFilter
+    );
+    void fetch(path, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`OUTSTANDING_HTTP_${response.status}`);
+        }
+        return parseOutstandingBalancesResponse(await response.json());
+      })
+      .then((page) => {
+        setItems((prev) => {
+          const seen = new Set(prev.map((row) => row.registrationId));
+          const appended = page.items.filter((row) => !seen.has(row.registrationId));
+          return [...prev, ...appended];
+        });
+        setNextCursor(page.nextCursor);
+        setHasMore(page.hasMore);
+      })
+      .catch((fetchError: unknown) => {
+        setError(toFinanceClientErrorCode(fetchError, "OUTSTANDING_FETCH_FAILED"));
+      })
+      .finally(() => {
+        setLoadingMore(false);
+      });
+  }, [hasMore, nextCursor, loadingMore, loading, tourFilter]);
 
   const visibleItems = useMemo(() => {
     let rows = filterOutstandingByTourId(items, tourFilter);
@@ -242,8 +279,20 @@ export function FinanceOutstandingPanel() {
             )
           ) : null}
 
-          {!loading && !error && hasMore ? (
-            <p className="text-xs text-muted-foreground">{t("hasMoreHint")}</p>
+          {!loading && !error && hasMore && nextCursor !== null ? (
+            <div className="flex flex-col items-start gap-1">
+              <p className="text-xs text-muted-foreground">{t("hasMoreHint")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={loadingMore}
+                onClick={loadMore}
+                data-testid={FINANCE_OUTSTANDING_TEST_IDS.loadMore}
+              >
+                {loadingMore ? t("loadingMore") : t("loadMore")}
+              </Button>
+            </div>
           ) : null}
         </CardContent>
       </Card>

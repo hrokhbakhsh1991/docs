@@ -633,6 +633,8 @@
     "openedAt": "Opened",
     "openPayments": "Open Payments",
     "hasMoreHint": "More rows available — refresh or narrow filters on a later page.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more…",
     "agingUnavailable": "Age buckets (Current / 1–30 / 31–60 / 61+ days) are not available yet. Dates below are when the obligation opened on the server — not a collection deadline or SLA.",
     "bookingStatus": {
       "unpaid": "Booking unpaid",
