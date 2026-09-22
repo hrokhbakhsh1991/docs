@@ -59,14 +59,24 @@ export function createWalletIdempotencyKey(prefix: string): string {
   return createClientSafeId(prefix);
 }
 
+export function validateMemberSearch(
+  value: string,
+): { ok: true; value: string } | { ok: false; error: string } {
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 120) {
+    return { ok: false, error: "MEMBER_USER_ID_INVALID" };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/** @deprecated Kept for callers that still require strict UUID validation. */
 export function validateMemberUserIdSearch(
   value: string,
 ): { ok: true; value: string } | { ok: false; error: string } {
   const trimmed = value.trim();
-  if (!UUID_PATTERN.test(trimmed)) {
-    return { ok: false, error: "MEMBER_USER_ID_INVALID" };
-  }
-  return { ok: true, value: trimmed };
+  return UUID_PATTERN.test(trimmed)
+    ? { ok: true, value: trimmed }
+    : { ok: false, error: "MEMBER_USER_ID_INVALID" };
 }
 
 export function validateWalletMutationForm(
@@ -241,8 +251,11 @@ export function walletTransactionKindLabelKey(kind: WalletTransactionRow["kind"]
   return `kind.${kind}`;
 }
 
-export function buildWalletAccountsSearchPath(userId: string, currency?: string): string {
-  const params = new URLSearchParams({ userId });
+export function buildWalletAccountsSearchPath(search: string, currency?: string): string {
+  const trimmed = search.trim();
+  const params = UUID_PATTERN.test(trimmed)
+    ? new URLSearchParams({ userId: trimmed })
+    : new URLSearchParams({ search: trimmed });
   if (currency !== undefined && currency.trim().length > 0) {
     params.set("currency", currency.trim().toUpperCase());
   }

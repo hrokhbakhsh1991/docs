@@ -9,6 +9,8 @@ export type Tour = {
   readonly tenantId: string;
   readonly canonical: CanonicalDocument;
   readonly createdAt: string;
+  /** Persisted mutation timestamp; legacy in-memory fixtures may omit it. */
+  readonly updatedAt?: string;
   readonly rowVersion: number;
 };
 

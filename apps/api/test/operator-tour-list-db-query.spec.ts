@@ -69,6 +69,35 @@ describe("operator-tour-list-db-query", () => {
     ]);
   });
 
+  it("searches both the projection and canonical basics title", () => {
+    const where = buildOperatorTourWhere({
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      search: "پیش",
+    });
+
+    assert.deepEqual(where.OR, [
+      { title: { contains: "پیش", mode: "insensitive" } },
+      {
+        canonical: {
+          path: ["data", "basics", "title"],
+          string_contains: "پیش",
+          mode: "insensitive",
+        },
+      },
+    ]);
+  });
+
+  it("maps the UI draft and active filters to the correct stored statuses", () => {
+    // The query contract keeps legacy names: `active` means the UI draft filter,
+    // while `completed` means the UI active/published filter.
+    assert.deepEqual(publishStatusesForOperatorFilter("active"), ["draft"]);
+    assert.deepEqual(publishStatusesForOperatorFilter("completed"), [
+      "active",
+      "published",
+      "open",
+    ]);
+  });
+
   it("sorts canonical prices numerically and keeps missing prices last", () => {
     const cheap = { data: { pricing: { basePricePerPerson: 123_333 } } };
     const expensive = { data: { pricing: { basePricePerPerson: 2_500_000 } } };

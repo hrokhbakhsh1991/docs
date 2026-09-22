@@ -775,10 +775,14 @@ export function UsersPageClient({
         </Card>
       ) : null}
 
-      {bodyState.type === "empty" ? (
+      {bodyState.type === "empty" || bodyState.type === "empty-filtered" ? (
         <Card data-testid={USERS_DIRECTORY_TEST_IDS.empty}>
           <CardContent className="py-10 text-center text-muted-foreground">
-            {isPendingTab ? t("empty.pending") : t("empty.active")}
+            {isPendingTab
+              ? t("empty.pending")
+              : bodyState.type === "empty-filtered"
+                ? t("empty.filtered")
+                : t("empty.active")}
           </CardContent>
         </Card>
       ) : null}

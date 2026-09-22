@@ -29,6 +29,7 @@ import {
   formatMinorAmount,
   formatPrepaymentRecordedAt,
   parsePrepaymentsListResponse,
+  resolveFinanceAmountUnitLabel,
   validateRecordPrepaymentForm,
   type PrepaymentRecord,
   type PrepaymentsListResponse,
@@ -232,7 +233,11 @@ export function FinancePrepaymentsPanel({
                 <FinanceInvoiceBalanceCard registrationId={form.registrationId} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="prepay-amount">{tCommon("amountDisplay")}</Label>
+                <Label htmlFor="prepay-amount">
+                  {tCommon("amountDisplay", {
+                    unit: resolveFinanceAmountUnitLabel(form.currency, locale),
+                  })}
+                </Label>
                 <LocalizedNumericInput
                   id="prepay-amount"
                   mode="digits"

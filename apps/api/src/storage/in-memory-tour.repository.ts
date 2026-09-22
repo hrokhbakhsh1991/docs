@@ -74,13 +74,7 @@ function compareInMemoryOperatorTours(
     }
     delta = (leftDate ?? "").localeCompare(rightDate ?? "");
   } else if (sortBy === "price") {
-    return compareOperatorTourPrices(
-      left.canonical,
-      right.canonical,
-      left.id,
-      right.id,
-      sortDir
-    );
+    return compareOperatorTourPrices(left.canonical, right.canonical, left.id, right.id, sortDir);
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
   }
@@ -609,11 +603,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
 
   /** Create helper for db adapter (assigns id + createdAt). */
   async createTour(input: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour> {
+    const now = new Date().toISOString();
     const tour: Tour = {
       id: randomUUID(),
       tenantId: input.tenantId,
       canonical: input.canonical,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       rowVersion: 1,
     };
     await this.save(tour);
@@ -638,6 +634,7 @@ export class InMemoryTourRepository implements TourStorageRepository {
     const updated: Tour = {
       ...existing,
       canonical: input.canonical,
+      updatedAt: new Date().toISOString(),
       rowVersion: existing.rowVersion + 1,
     };
     this.indexTour(updated);

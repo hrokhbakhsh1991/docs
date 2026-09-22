@@ -160,6 +160,44 @@ Dev OTP operator paths (not `/auth/otp/*`): `POST /auth/request-otp` → `POST /
 
 ## Phase 2 — Offline receipt amount from tour obligation (2026-08-06)
 
+## Phase 2A — Denali prepayment as a staged member payment (2026-09-21)
+
+`pricing.prepaymentEnabled` and `pricing.prepaymentPercent` define the first
+payment stage for a paid Denali registration. They must not replace the Finance
+invoice total and must not be treated as an already-collected wallet amount.
+
+The Finance read model exposes both values explicitly:
+
+- `invoiceTotalMinor`: the frozen payable total for the registration;
+- `paidAmountMinor`: completed payment/prepayment credit already collected;
+- `balanceDueMinor`: `invoiceTotalMinor - paidAmountMinor` (the full remaining
+  balance, never the configured deposit by itself);
+- `initialPaymentDueMinor`: the configured percentage of the total, capped at
+  the current balance and zero when the tour has no valid prepayment policy;
+- `amountDueNowMinor`: `min(initialPaymentDueMinor, balanceDueMinor)` while
+  the first stage is still unpaid, otherwise `balanceDueMinor`.
+
+The member receipt endpoint and portal must show `amountDueNowMinor` as the
+amount to transfer, while also showing the total and remaining balance. After a
+successful first capture, the next receipt uses the remaining balance. Manual
+and automatic approval use the same projection. Invalid percentages (missing,
+zero, fractional, or above 100) fail closed to the regular full-payment path.
+
+This contract is display/projection logic only: a configured prepayment is not
+collection. Receipt review and ledger capture remain the only source of paid
+money, and all amount transitions must remain idempotent and tenant-scoped.
+
+Cross-surface display rules are explicit:
+
+- Public marketing exposes the configured percentage as a registration hint; it
+  must not invent an exact amount before party size, transport, and discounts are
+  resolved in the portal.
+- The member portal is authoritative for the exact `amountDueNowMinor`, total,
+  and post-payment balance.
+- The operator tour finance inbox reads the approved `unpaid` roster projection,
+  not the transport `operational` filter, and displays `amountDueNowMinor` with
+  `remainingMinor` retained for the total outstanding balance.
+
 When a member uploads a receipt and no pending manual payment exists yet, Finance creates one:
 
 | Source                                                     | When                                                                                 |
@@ -367,3 +405,9 @@ PC-07 remains: Denali paid ingress is `offline_receipt` only.
 - [platform-portal-member.mdoc](../../phase-19/platform-portal-member.mdoc)
 - [BOOKING_LIFECYCLE_OWNERSHIP.md](../../phase-20/p7/appendices/BOOKING_LIFECYCLE_OWNERSHIP.md)
 - [PAYMENT-LEDGER-BOUNDARY.md](../../phase-20/p7/appendices/PAYMENT-LEDGER-BOUNDARY.md)
+
+## Auth and notification resilience addendum (2026-09-17)
+
+- OTP verification must remain single-use and additionally enforce bounded attempts per challenge plus a phone/IP failure window. Static OTP `1234` is permitted only in development/test or with the explicit staging profile flag; ordinary production must fail closed.
+- Registration and receipt notifications are emitted through the durable outbox. `registration.created`, `receipt.submitted`, `receipt.approved`, and `receipt.rejected` are delivery inputs; Telegram delivery is best effort and must never roll back the financial mutation.
+- Anonymous registration keeps the modal-first experience as progressive enhancement, with a server-rendered login/retry escape path. CTA variants must not leave hidden rail/sticky controls keyboard-focusable.

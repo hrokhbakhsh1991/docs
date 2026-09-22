@@ -11,6 +11,7 @@ export const OPERATOR_TOUR_LIST_SELECT = {
   tenantId: true,
   canonical: true,
   createdAt: true,
+  updatedAt: true,
   rowVersion: true,
   title: true,
   publishStatus: true,
@@ -121,7 +122,18 @@ export function buildOperatorTourWhere(input: {
   const conditions: Prisma.TourWhereInput[] = [];
 
   if (search !== undefined && search.length > 0) {
-    conditions.push({ title: { contains: search, mode: "insensitive" } });
+    conditions.push({
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        {
+          canonical: {
+            path: ["data", "basics", "title"],
+            string_contains: search,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
   }
   if (input.status !== undefined) {
     conditions.push({

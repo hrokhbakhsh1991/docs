@@ -140,6 +140,53 @@ describe("Telegram worker delivery", () => {
     });
     assert.equal(sendCount, 0);
   });
+
+  it("sends a registration.created event only to the registration forum topic", async () => {
+    const sent: Array<{ channelId: string; messageThreadId?: number }> = [];
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        domainEventId: "registration.created:registration-1",
+        eventType: "registration.created",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "connection-1",
+          telegramTopicKey: "registration",
+          registrationId: "registration-1",
+          tourTitle: "صعود یک‌روزه توچال با تأیید ادمین",
+          participantName: "ali",
+          participantPhone: "09000000000",
+          createdAt: "2026-09-19T11:00:00.000Z",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "connection-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: { registration: 101 } },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage(_ctx, input) {
+            sent.push({ channelId: input.channelId, messageThreadId: input.messageThreadId });
+            return { ok: true };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sent, [{ channelId: "-1004292581496", messageThreadId: 101 }]);
+  });
 });
 
 describe("Telegram forum delivery routing", () => {

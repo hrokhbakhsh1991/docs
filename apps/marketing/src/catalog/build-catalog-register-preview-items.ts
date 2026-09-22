@@ -17,13 +17,14 @@ export type BuildCatalogRegisterPreviewItemsInput = {
     readonly maximumAge: (years: number) => string;
     readonly transportIntake: string;
     readonly payment: (modeLabel: string) => string;
+    readonly prepayment: (percent: number) => string;
   };
   readonly paymentModeLabel: string | null;
 };
 
 /** PR-D5 intake preview lines — card flags only; no admin/API changes. */
 export function buildCatalogRegisterPreviewItems(
-  input: BuildCatalogRegisterPreviewItemsInput,
+  input: BuildCatalogRegisterPreviewItemsInput
 ): readonly CatalogRegisterPreviewItem[] {
   const { tour, labels } = input;
   const items: CatalogRegisterPreviewItem[] = [];
@@ -63,21 +64,37 @@ export function buildCatalogRegisterPreviewItems(
     });
   }
 
+  const prepaymentPercent = tour.paymentPlan?.prepaymentPercent;
+  if (
+    prepaymentPercent != null &&
+    Number.isInteger(prepaymentPercent) &&
+    prepaymentPercent >= 1 &&
+    prepaymentPercent <= 100
+  ) {
+    items.push({
+      id: "prepayment",
+      text: labels.prepayment(prepaymentPercent),
+    });
+  }
+
   return Object.freeze(items);
 }
 
 export function tourHasRegisterPreviewData(tour: MarketingCatalogCard): boolean {
-  return buildCatalogRegisterPreviewItems({
-    tour,
-    labels: {
-      nationalId: "",
-      fatherName: "",
-      birthDate: "",
-      minimumAge: () => "",
-      maximumAge: () => "",
-      transportIntake: "",
-      payment: () => "",
-    },
-    paymentModeLabel: tour.paymentMode?.trim() ? tour.paymentMode.trim() : null,
-  }).length > 0;
+  return (
+    buildCatalogRegisterPreviewItems({
+      tour,
+      labels: {
+        nationalId: "",
+        fatherName: "",
+        birthDate: "",
+        minimumAge: () => "",
+        maximumAge: () => "",
+        transportIntake: "",
+        payment: () => "",
+        prepayment: () => "",
+      },
+      paymentModeLabel: tour.paymentMode?.trim() ? tour.paymentMode.trim() : null,
+    }).length > 0
+  );
 }

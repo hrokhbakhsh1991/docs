@@ -208,7 +208,12 @@ export function MemberReceiptUploadForm({
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
+    // Keep the File object in React state so choosing the same file can retry
+    // after an upload error; clearing the input also guarantees a new change
+    // event when the browser selects that same file again.
+    event.currentTarget.value = "";
     setSelectedFile(file);
+    setUploadPhase("idle");
     replaceLocalPreview(file);
   }
 
@@ -233,14 +238,19 @@ export function MemberReceiptUploadForm({
       return;
     }
     setUploadPhase("uploading");
-    const body = new FormData();
-    body.append("file", file);
     try {
       const res = await fetch(
         `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
         {
           method: "POST",
-          body,
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "x-receipt-file-name": file.name,
+            ...(panel.paymentDestination?.revision !== undefined
+              ? { "x-payment-destination-revision": panel.paymentDestination.revision }
+              : {}),
+          },
+          body: file,
         }
       );
       if (!res.ok) {
@@ -272,13 +282,38 @@ export function MemberReceiptUploadForm({
     </div>
   );
 
+  const paymentDestinationBlock =
+    panel.paymentDestination?.enabled === true ? (
+      <section data-portal-member-payment-destination aria-label={t("paymentDestinationLabel")}>
+        <h3>{t("paymentDestinationTitle")}</h3>
+        <p data-payment-destination-card-number>{panel.paymentDestination.cardNumber}</p>
+        <p>{panel.paymentDestination.cardHolderName}</p>
+        {panel.paymentDestination.bankName ? <p>{panel.paymentDestination.bankName}</p> : null}
+        {panel.paymentDestination.instructions ? (
+          <p>{panel.paymentDestination.instructions}</p>
+        ) : null}
+      </section>
+    ) : (
+      <p role="status" data-portal-member-payment-destination-unavailable>
+        {t("paymentDestinationUnavailable")}
+      </p>
+    );
+
   const remainingMinor = panel.remainingMinor;
+  const amountDueNow = panel.amountDueNowMinor ?? remainingMinor;
   const remainingDue =
-    remainingMinor !== null &&
-    isPositiveMinor(remainingMinor) &&
+    amountDueNow !== null &&
+    isPositiveMinor(amountDueNow) &&
     typeof panel.currency === "string" &&
     panel.currency.length > 0
-      ? remainingMinor
+      ? amountDueNow
+      : null;
+  const totalDue =
+    panel.invoiceTotalMinor !== null &&
+    isPositiveMinor(panel.invoiceTotalMinor) &&
+    typeof panel.currency === "string" &&
+    panel.currency.length > 0
+      ? panel.invoiceTotalMinor
       : null;
   const showCatalogLines =
     catalogDue !== null &&
@@ -300,9 +335,29 @@ export function MemberReceiptUploadForm({
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-remaining>
           <strong>
-            {t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}
+            {t(
+              panel.amountDueNowMinor !== null && panel.amountDueNowMinor !== panel.remainingMinor
+                ? "dueNow"
+                : "dueRemaining",
+              { amount: formatMinorAmount(remainingDue, dueCurrency) }
+            )}
           </strong>
         </p>
+        {totalDue !== null ? (
+          <p data-portal-member-receipt-total>
+            {t("dueTotal", { amount: formatMinorAmount(totalDue, dueCurrency) })}
+          </p>
+        ) : null}
+        {panel.amountDueNowMinor !== null && panel.amountDueNowMinor !== panel.remainingMinor ? (
+          <p data-portal-member-receipt-balance>
+            {t("dueBalanceAfterPayment", {
+              amount:
+                panel.remainingMinor !== null
+                  ? formatMinorAmount(panel.remainingMinor, dueCurrency)
+                  : "—",
+            })}
+          </p>
+        ) : null}
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
             {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}
@@ -417,6 +472,7 @@ export function MemberReceiptUploadForm({
         body={t("waitingBody")}
       >
         {dueBlock}
+        {paymentDestinationBlock}
         {previewBlock}
         {actionLinks}
       </ReceiptStateCard>
@@ -431,6 +487,7 @@ export function MemberReceiptUploadForm({
         <p>{t("uploadLede")}</p>
       </div>
       {dueBlock}
+      {paymentDestinationBlock}
       {receiptStatus === "rejected" ? (
         <p role="status" data-portal-member-receipt-rejected-hint>
           {t("rejectedHint")}
@@ -462,7 +519,11 @@ export function MemberReceiptUploadForm({
         <button
           type="button"
           data-portal-member-receipt-submit
-          disabled={uploadPhase === "uploading" || selectedFile === undefined}
+          disabled={
+            uploadPhase === "uploading" ||
+            selectedFile === undefined ||
+            panel.paymentDestination?.enabled !== true
+          }
           onClick={() => void uploadReceipt()}
         >
           {uploadPhase === "uploading" ? t("uploading") : t("submit")}

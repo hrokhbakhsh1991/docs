@@ -32,6 +32,7 @@ export type TourOperationalRosterRow = {
   readonly registrationStatus: string;
   readonly financialDisplayState: string;
   readonly remainingMinor: string | null;
+  readonly amountDueNowMinor?: string | null;
   readonly paidMinor: string | null;
   readonly currency: string | null;
   readonly paymentDueAt: string | null;

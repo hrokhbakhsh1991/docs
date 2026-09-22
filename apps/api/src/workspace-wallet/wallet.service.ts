@@ -285,7 +285,8 @@ export function createWalletService(deps: WalletServiceDeps): WalletServicePort 
 
       const result = await repository.lookupOperatorAccounts({
         tenantId: auth.tenantId,
-        userId: query.userId,
+        ...(query.userId !== undefined ? { userId: query.userId } : {}),
+        ...(query.search !== undefined ? { search: query.search } : {}),
         ...(query.currency !== undefined ? { currency: query.currency } : {}),
         ...(query.workspaceId !== undefined ? { workspaceId: query.workspaceId } : {}),
       });

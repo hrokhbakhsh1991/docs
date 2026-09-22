@@ -5,6 +5,7 @@
  */
 
 import { isDenaliOwnerRequiredError, DENALI_OWNER_REQUIRED } from "@app-tour/workspace-denali/host/http";
+import { isDenaliRegistrationClosedError, DENALI_REGISTRATION_CLOSED } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationInvalidError, DENALI_REGISTRATION_INVALID } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationNotAmendableError, DENALI_REGISTRATION_NOT_AMENDABLE } from "@app-tour/workspace-denali/host/http";
@@ -37,6 +38,12 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
     status: 409,
     isError: isDenaliRegistrationDuplicateError,
     code: DENALI_REGISTRATION_DUPLICATE,
+  },
+  {
+    workspaceId: "denali",
+    status: 409,
+    isError: isDenaliRegistrationClosedError,
+    code: DENALI_REGISTRATION_CLOSED,
   },
   {
     workspaceId: "denali",
@@ -109,6 +116,7 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
 export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {
   [DENALI_OWNER_REQUIRED]: 403,
   [DENALI_REGISTRATION_DUPLICATE]: 409,
+  [DENALI_REGISTRATION_CLOSED]: 409,
   [DENALI_REGISTRATION_NOT_AMENDABLE]: 409,
   [DENALI_REGISTRATION_INVALID]: 400,
   [DENALI_REGISTRATION_NOT_FOUND]: 404,

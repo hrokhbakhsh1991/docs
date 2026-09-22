@@ -308,6 +308,7 @@ export {
   type PublicCatalogCard,
   type PublicCatalogGearItem,
   type PublicCatalogGatheringPoint,
+  type PublicCatalogPaymentPlan,
   type PublicCatalogItineraryDay,
   type PublicCatalogItinerarySegment,
   type PublicCatalogSurface,
@@ -424,17 +425,13 @@ export {
   getWorkspaceDifficultyFitnessCapabilities,
   type WorkspaceDifficultyFitnessCapabilities,
 } from "./catalog/workspace-difficulty-fitness-capabilities.generated";
-export {
-  resolveWorkspaceDifficultyFitnessFilterPresentation,
-} from "./catalog/workspace-difficulty-fitness-filter-presentation.generated";
+export { resolveWorkspaceDifficultyFitnessFilterPresentation } from "./catalog/workspace-difficulty-fitness-filter-presentation.generated";
 export {
   resolveCatalogTransportSnapshotReader,
   type CatalogTransportSnapshotReaderBinding,
   CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES,
 } from "./catalog/catalog-transport-snapshot-readers.generated";
-export {
-  resolveCatalogIntakeTransportSurface,
-} from "./catalog/catalog-intake-transport-surfaces.generated";
+export { resolveCatalogIntakeTransportSurface } from "./catalog/catalog-intake-transport-surfaces.generated";
 export {
   defineWorkspaceEquipmentFieldFragment,
   listWorkspaceEquipmentCanonicalPaths,
@@ -497,7 +494,10 @@ export {
   type WorkspaceGuestSeoMarketing,
 } from "./catalog/resolve-guest-seo-for-plugin";
 export { WORKSPACE_GUEST_SEO } from "./catalog/workspace-guest-seo.generated";
-export { validateStructuredData, type StructuredDataValidationResult } from "./seo/validate-structured-data";
+export {
+  validateStructuredData,
+  type StructuredDataValidationResult,
+} from "./seo/validate-structured-data";
 export { supportsCatalogRegistration } from "./catalog/resolve-catalog-registration-support";
 export {
   resolveCatalogRegistrationApiPath,
@@ -516,12 +516,8 @@ export {
   type IntakeSchemaValidationIssue,
   type WorkspaceCatalogIntakeSchemaProvider,
 } from "./catalog/intake-schema";
-export {
-  type WorkspaceCatalogIntakeSurface,
-} from "./catalog/workspace-catalog-intake-surface";
-export {
-  type WorkspaceCatalogIntakeTransportSurface,
-} from "./catalog/catalog-intake-transport-surface";
+export { type WorkspaceCatalogIntakeSurface } from "./catalog/workspace-catalog-intake-surface";
+export { type WorkspaceCatalogIntakeTransportSurface } from "./catalog/catalog-intake-transport-surface";
 export {
   clearWorkspaceIntakePluginRegistryForTests,
   getWorkspaceIntakePlugin,

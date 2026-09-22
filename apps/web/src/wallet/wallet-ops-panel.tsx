@@ -42,7 +42,7 @@ import {
   parseWalletMutationResponse,
   parseWalletTransactionHistoryResponse,
   readWalletErrorCode,
-  validateMemberUserIdSearch,
+  validateMemberSearch,
   validateWalletMutationForm,
   validateWalletReversalForm,
   walletTransactionKindLabelKey,
@@ -197,7 +197,7 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
     setSearchError(null);
     setLoadError(null);
     setMutationFeedback(null);
-    const validated = validateMemberUserIdSearch(searchInput);
+    const validated = validateMemberSearch(searchInput);
     if (!validated.ok) {
       setSearchError(resolveErrorMessage(validated.error));
       return;

@@ -14,7 +14,7 @@ const TOUR_ID = "00000000-0000-4000-8000-000000000312";
 const TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const GUEST_USER_ID = "00000000-0000-4000-8000-000000000199";
 
-function publishedTourStore(): DenaliTourStorePort {
+function publishedTourStore(startDateTime = "2031-06-01T08:00:00.000Z"): DenaliTourStorePort {
   return {
     async listPage() {
       return { items: [] };
@@ -30,7 +30,7 @@ function publishedTourStore(): DenaliTourStorePort {
             title: "Capacity Gate Tour",
             publishStatus: "active",
             capacityMax: 12,
-            startDateTime: "2026-06-01T08:00:00.000Z",
+            startDateTime,
           },
         },
       };
@@ -51,9 +51,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async findDuplicateByTourGuestNationalId() {
         return null;
       },
-    async findDuplicateByTourGuestPhone() {
-      return null;
-    },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
       async findDuplicateByTourEmail() {
         return null;
       },
@@ -63,9 +63,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async mergeOwnedRegistrationIntake() {
         return null;
       },
-    async reclassifyOwnedOtherToSelf() {
-      return null;
-    },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
       async createPendingBooking() {
         createCalls += 1;
         return { id: "should-not-create", status: "pending" };
@@ -110,9 +110,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async findDuplicateByTourGuestNationalId() {
         return null;
       },
-    async findDuplicateByTourGuestPhone() {
-      return null;
-    },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
       async findDuplicateByTourEmail() {
         return null;
       },
@@ -122,9 +122,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async mergeOwnedRegistrationIntake() {
         return null;
       },
-    async reclassifyOwnedOtherToSelf() {
-      return null;
-    },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
       async createPendingBooking(input) {
         createCalls += 1;
         assert.equal(input.partySize, 2);
@@ -169,9 +169,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async findDuplicateByTourGuestNationalId() {
         return null;
       },
-    async findDuplicateByTourGuestPhone() {
-      return null;
-    },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
       async findDuplicateByTourEmail() {
         return null;
       },
@@ -181,9 +181,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async mergeOwnedRegistrationIntake() {
         return null;
       },
-    async reclassifyOwnedOtherToSelf() {
-      return null;
-    },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
       async createPendingBooking() {
         createCalls += 1;
         return { id: "should-not-create", status: "pending" };
@@ -211,6 +211,64 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
           bookingPort,
         }),
       /DENALI_REGISTRATION_INVALID|BOOKING_VALIDATION_REJECTED/
+    );
+    assert.equal(createCalls, 0);
+  });
+
+  it("DN-B1-R04 past published tours reject registration before booking creation", async () => {
+    let createCalls = 0;
+    const bookingPort: BookingPublicPort = {
+      async findDuplicateByTourGuest() {
+        return null;
+      },
+      async findDuplicateByTourGuestLabel() {
+        return null;
+      },
+      async findDuplicateByTourGuestNationalId() {
+        return null;
+      },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
+      async findDuplicateByTourEmail() {
+        return null;
+      },
+      async findOwnedBooking() {
+        return null;
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
+      async createPendingBooking() {
+        createCalls += 1;
+        return { id: "must-not-create", status: "pending" };
+      },
+      async autoApprovePublicBooking() {
+        throw new Error("autoApprove should not run");
+      },
+      async sumApprovedPartySizeByTourIds() {
+        return {};
+      },
+    };
+
+    await assert.rejects(
+      () =>
+        createDenaliRegistration({
+          tenantId: TENANT_ID,
+          workspaceType: "denali",
+          guestUserId: GUEST_USER_ID,
+          body: {
+            tourId: TOUR_ID,
+            contact: { fullName: "Past Guest" },
+            partySize: 1,
+          },
+          store: publishedTourStore("2026-06-01T08:00:00.000Z"),
+          bookingPort,
+        }),
+      (error: unknown) => error instanceof Error && error.message === "DENALI_REGISTRATION_CLOSED"
     );
     assert.equal(createCalls, 0);
   });

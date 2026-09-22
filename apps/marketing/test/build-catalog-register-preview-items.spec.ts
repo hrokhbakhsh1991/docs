@@ -16,6 +16,7 @@ describe("buildCatalogRegisterPreviewItems", () => {
     maximumAge: (years: number) => `Max age ${years}`,
     transportIntake: "Transport details",
     payment: (mode: string) => `Pay via ${mode}`,
+    prepayment: (percent: number) => `Prepayment ${percent}%`,
   };
 
   it("PR-D-RPV-01 lists intake flags and payment mode from card", () => {
@@ -34,6 +35,7 @@ describe("buildCatalogRegisterPreviewItems", () => {
       birthDateRequired: true,
       minimumAge: 18,
       paymentMode: "offline_receipt",
+      paymentPlan: { prepaymentPercent: 30 },
       transport: { mode: "bus" },
     } satisfies MarketingCatalogCard;
 
@@ -45,7 +47,7 @@ describe("buildCatalogRegisterPreviewItems", () => {
 
     assert.deepEqual(
       items.map((item) => item.id),
-      ["national-id", "birth-date", "minimum-age", "transport-intake", "payment-mode"],
+      ["national-id", "birth-date", "minimum-age", "transport-intake", "payment-mode", "prepayment"]
     );
   });
 
@@ -64,6 +66,9 @@ describe("buildCatalogRegisterPreviewItems", () => {
     } satisfies MarketingCatalogCard;
 
     assert.equal(tourHasRegisterPreviewData(tour), false);
-    assert.equal(buildCatalogRegisterPreviewItems({ tour, labels, paymentModeLabel: null }).length, 0);
+    assert.equal(
+      buildCatalogRegisterPreviewItems({ tour, labels, paymentModeLabel: null }).length,
+      0
+    );
   });
 });

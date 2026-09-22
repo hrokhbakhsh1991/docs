@@ -1,7 +1,4 @@
-export {
-  configureDenaliFinanceHttpHost,
-  resetDenaliFinanceHttpHostForTests,
-} from "./host-runtime";
+export { configureDenaliFinanceHttpHost, resetDenaliFinanceHttpHostForTests } from "./host-runtime";
 export {
   configureDenaliProductHttpHost,
   resetDenaliProductHttpHostForTests,
@@ -30,6 +27,11 @@ export {
   DENALI_REGISTRATION_DUPLICATE,
   isDenaliRegistrationDuplicateError,
 } from "./errors/denali-registration-conflict.error";
+export {
+  DenaliRegistrationClosedError,
+  DENALI_REGISTRATION_CLOSED,
+  isDenaliRegistrationClosedError,
+} from "./errors/denali-registration-closed.error";
 export {
   DenaliRegistrationNotFoundError,
   DENALI_REGISTRATION_NOT_FOUND,

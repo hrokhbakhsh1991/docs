@@ -36,6 +36,14 @@ export function formatIntegrationTestedAt(value: string, locale: AppLocale): str
   ).format(new Date(timestamp));
 }
 
+/** Initial server data can be older than the current DTO; never render NaN in operator summaries. */
+export function normalizeIntegrationSummaryCount(value: unknown): number {
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return 0;
+  }
+  return Math.trunc(numericValue);
+}
 export function resolveIntegrationsWorkspaceScenario(
   list: WorkspaceIntegrationsListResponse
 ): IntegrationsWorkspaceScenario {

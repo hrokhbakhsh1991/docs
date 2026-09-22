@@ -16,6 +16,7 @@ export type WorkspaceRewardBadgeId = (typeof WORKSPACE_REWARD_BADGE_IDS)[number]
 export type UsersDirectoryRow = {
   readonly userId: string;
   readonly tenantId: string;
+  readonly membershipCode: string | null;
   readonly role: ActorRole;
   readonly status: "ACTIVE" | "INVITED" | "SUSPENDED";
   readonly displayName: string;

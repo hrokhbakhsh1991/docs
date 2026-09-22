@@ -22,6 +22,7 @@ const REQUIRED_FILES = [
   "apps/portal/src/me/classify-member-profile-bff-error.ts",
   "apps/portal/src/me/redirect-dead-member-session.server.ts",
   "apps/portal/src/me/fetch-member-profile.server.ts",
+  "apps/portal/src/me/fetch-member-profile-from-session.server.ts",
   "packages/guest-surface-host/src/resolve-public-auth-cors-allow-origin.ts",
   "apps/marketing/src/auth/marketing-login-modal.tsx",
   "apps/marketing/src/auth/marketing-login-auth-flow.tsx",
@@ -96,14 +97,17 @@ if (marketingShell.includes("resolvePortalMemberAreaUrl")) {
 }
 
 const marketingLayout = readRepo("apps/marketing/app/layout.tsx");
+const marketingTourDetailPage = readRepo("apps/marketing/app/tours/[tourId]/page.tsx");
 if (!marketingLayout.includes("resolvePortalMemberLoginUrl")) {
   violations.push("marketing/app/layout.tsx: missing resolvePortalMemberLoginUrl");
 }
-if (!marketingLayout.includes("resolvePortalPublicBaseUrl")) {
-  violations.push("marketing/app/layout.tsx: missing resolvePortalPublicBaseUrl (Phase 5 origin adapter)");
+if (!marketingTourDetailPage.includes("resolvePortalPublicBaseUrl")) {
+  violations.push("marketing/app/tours/[tourId]/page.tsx: missing resolvePortalPublicBaseUrl (Phase 5 origin adapter)");
 }
-if (!marketingLayout.includes("MarketingLoginModalProvider")) {
-  violations.push("marketing/app/layout.tsx: missing MarketingLoginModalProvider (PCMS-MKT-AUTH-04)");
+if (!marketingTourDetailPage.includes("MarketingLoginModalProvider")) {
+  violations.push(
+    "marketing/app/tours/[tourId]/page.tsx: missing MarketingLoginModalProvider (PCMS-MKT-AUTH-04)"
+  );
 }
 if (!marketingLayout.includes("resolveMarketingMemberHeader")) {
   violations.push("marketing/app/layout.tsx: missing resolveMarketingMemberHeader");
@@ -184,7 +188,7 @@ const forbiddenMarketingPatterns = [
 for (const root of ["apps/marketing/src", "apps/marketing/app"]) {
   const absRoot = path.join(REPO_ROOT, root);
   for (const file of walkTsFiles(absRoot)) {
-    const rel = path.relative(REPO_ROOT, file);
+    const rel = path.relative(REPO_ROOT, file).replaceAll(path.sep, "/");
     const content = readFileSync(file, "utf8");
     for (const { re, label } of forbiddenMarketingPatterns) {
       if (re.test(content)) {
@@ -252,7 +256,7 @@ if (!marketingPdpCta.includes('cta.primaryKind === "register"')) {
   );
 }
 if (
-  !/cta\.primaryKind === "register" \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/.test(
+  !/cta\.primaryKind === "register" &&[\s\S]*?<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/.test(
     marketingPdpCta
   )
 ) {
@@ -351,14 +355,16 @@ if (meProfilePage.includes("identity/me") || meProfilePage.includes("fetchMember
 }
 
 const fetchProfile = readRepo("apps/portal/src/me/fetch-member-profile.server.ts");
-if (!fetchProfile.includes("classifyMemberProfileBffFailure")) {
-  violations.push("fetch-member-profile.server.ts: missing classifyMemberProfileBffFailure");
+const fetchProfileFromSession = readRepo("apps/portal/src/me/fetch-member-profile-from-session.server.ts");
+const fetchProfileSources = `${fetchProfile}\n${fetchProfileFromSession}`;
+if (!fetchProfileSources.includes("classifyMemberProfileBffFailure")) {
+  violations.push("member profile fetch helpers: missing classifyMemberProfileBffFailure");
 }
-if (!fetchProfile.includes("readMemberBffErrorCode")) {
-  violations.push("fetch-member-profile.server.ts: missing readMemberBffErrorCode");
+if (!fetchProfileSources.includes("readMemberBffErrorCode")) {
+  violations.push("member profile fetch helpers: missing readMemberBffErrorCode");
 }
-if (!fetchProfile.includes("/api/me/profile")) {
-  violations.push("fetch-member-profile.server.ts: must self-fetch /api/me/profile");
+if (!fetchProfileSources.includes("/identity/me")) {
+  violations.push("member profile fetch helpers: must use the authenticated identity upstream");
 }
 
 const memberApiHeaders = readRepo("apps/portal/src/me/build-member-api-headers.server.ts");
@@ -405,7 +411,7 @@ for (const root of ["apps/portal/src", "apps/portal/app", "apps/portal"]) {
     continue;
   }
   for (const file of walkTsFiles(absRoot)) {
-    const rel = path.relative(REPO_ROOT, file);
+    const rel = path.relative(REPO_ROOT, file).replaceAll(path.sep, "/");
     const content = readFileSync(file, "utf8");
     if (!content.includes("Access-Control-Allow-Origin")) {
       continue;

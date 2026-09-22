@@ -21,6 +21,7 @@ import {
 } from "@/finance/finance-outstanding-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
+import { withFinanceTourQuery } from "@/finance/finance-registration-context";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
@@ -51,8 +52,20 @@ export function FinanceOutstandingPanel() {
     setError(null);
     try {
       const [balancesRes, toursRes] = await Promise.all([
-        fetch("/api/finance/reports/outstanding-balances?limit=50", { cache: "no-store" }),
-        fetch("/api/finance/reports/tour-collections?limit=20", { cache: "no-store" }),
+        fetch(
+          withFinanceTourQuery(
+            "/api/finance/reports/outstanding-balances?limit=50",
+            tourFilter
+          ),
+          { cache: "no-store" }
+        ),
+        fetch(
+          withFinanceTourQuery(
+            "/api/finance/reports/tour-collections?limit=20",
+            tourFilter
+          ),
+          { cache: "no-store" }
+        ),
       ]);
       if (!balancesRes.ok) {
         throw new Error(`OUTSTANDING_HTTP_${balancesRes.status}`);
@@ -72,7 +85,7 @@ export function FinanceOutstandingPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tourFilter]);
 
   useEffect(() => {
     void load();

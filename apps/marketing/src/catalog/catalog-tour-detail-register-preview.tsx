@@ -16,7 +16,11 @@ export async function CatalogTourDetailRegisterPreview({
   const paymentModeLabelKey =
     paymentMode.length > 0 ? resolveCatalogPaymentModeLabelKey(paymentMode) : null;
   const paymentModeLabel =
-    paymentModeLabelKey != null ? t(paymentModeLabelKey) : paymentMode.length > 0 ? paymentMode : null;
+    paymentModeLabelKey != null
+      ? t(paymentModeLabelKey)
+      : paymentMode.length > 0
+        ? paymentMode
+        : null;
 
   const items = buildCatalogRegisterPreviewItems({
     tour,
@@ -29,6 +33,7 @@ export async function CatalogTourDetailRegisterPreview({
       maximumAge: (years) => t("detail.registerPreview.maximumAge", { years }),
       transportIntake: t("detail.registerPreview.transportIntake"),
       payment: (modeLabel) => t("detail.registerPreview.payment", { mode: modeLabel }),
+      prepayment: (percent) => t("detail.registerPreview.prepayment", { percent }),
     },
   });
 
@@ -37,10 +42,7 @@ export async function CatalogTourDetailRegisterPreview({
   }
 
   return (
-    <section
-      data-marketing-catalog-detail-register-preview
-      id="catalog-detail-register-preview"
-    >
+    <section data-marketing-catalog-detail-register-preview id="catalog-detail-register-preview">
       <h2>{t("detail.registerPreview.heading")}</h2>
       <p>{t("detail.registerPreview.lead")}</p>
       <ul data-marketing-catalog-detail-register-preview-list>

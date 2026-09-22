@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 import {
   assertWalletIdempotencyKeyPresent,
   parseOperatorAccountLookupUserId,
+  parseOptionalOperatorAccountLookupSearch,
   parseOperatorCreditBody,
   parseOperatorDebitBody,
   parseOperatorReversalBody,
@@ -69,6 +70,12 @@ describe("wallet-http-contracts", () => {
       accountId: "00000000-0000-4000-8000-000000000002",
     });
     assert.equal(reversal.accountId, "00000000-0000-4000-8000-000000000002");
+  });
+
+  it("accepts bounded operator account lookup search text", () => {
+    assert.equal(parseOptionalOperatorAccountLookupSearch("Ali"), "Ali");
+    assert.equal(parseOptionalOperatorAccountLookupSearch(null), undefined);
+    assert.throws(() => parseOptionalOperatorAccountLookupSearch("x".repeat(121)));
   });
 
   it("exposes stable wallet HTTP error code inventory", () => {

@@ -140,6 +140,13 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-paid/);
     assert.match(form, /data-portal-member-receipt-waived/);
     assert.match(form, /data-portal-member-receipt-preview/);
+    assert.match(form, /paymentDestinationLabel/);
+    assert.match(form, /paymentDestinationUnavailable/);
+    assert.match(form, /setSelectedFile\(file\);[\s\S]*setUploadPhase\("idle"\)/);
+    assert.match(form, /event\.currentTarget\.value = "";/);
+    const uploadAt = form.indexOf("<div data-portal-member-receipt-upload>");
+    const uploadDestinationAt = form.indexOf("{paymentDestinationBlock}", uploadAt);
+    assert.ok(uploadAt > 0 && uploadDestinationAt > uploadAt);
     assert.match(form, /selectedFile === undefined/);
     assert.match(form, /data-portal-member-receipt-file-picker/);
     assert.match(form, /t\("noFileSelected"\)/);
@@ -292,12 +299,18 @@ describe("portal-member-registrations", () => {
     assert.match(loadMessages, /portalMember\.json/);
     const fa = readFileSync(join(repoRoot, "apps/portal/messages/fa/portalMember.json"), "utf8");
     const en = readFileSync(join(repoRoot, "apps/portal/messages/en/portalMember.json"), "utf8");
+    const faReceipt = JSON.parse(fa).receipt as Record<string, string>;
+    const enReceipt = JSON.parse(en).receipt as Record<string, string>;
     assert.match(fa, /"trips"/);
     assert.match(en, /"trips"/);
     assert.match(fa, /"waitingTitle"/);
     assert.match(en, /"waitingTitle"/);
-    assert.match(fa, /"dueRemaining"/);
-    assert.match(en, /"dueRemaining"/);
+    for (const key of ["dueRemaining", "dueTotal", "dueNow", "dueBalanceAfterPayment"] as const) {
+      assert.equal(typeof faReceipt[key], "string", `missing fa receipt.${key}`);
+      assert.equal(typeof enReceipt[key], "string", `missing en receipt.${key}`);
+      assert.match(faReceipt[key], /\{amount\}/, `fa receipt.${key} must expose amount placeholder`);
+      assert.match(enReceipt[key], /\{amount\}/, `en receipt.${key} must expose amount placeholder`);
+    }
     assert.match(fa, /"previewLabel"/);
     assert.match(en, /"previewLabel"/);
     assert.match(fa, /"waivedTitle"/);

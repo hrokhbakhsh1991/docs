@@ -78,7 +78,7 @@ function getPlatformBookingPayments(): IBookingPaymentPort {
   return platformBookingPayments;
 }
 
-function getPlatformFinanceRepository(): FinanceRepositoryPort {
+export function getPlatformFinanceRepository(): FinanceRepositoryPort {
   if (platformFinanceRepository === null) {
     platformFinanceRepository = createFinanceRepository(getPlatformBookingPayments());
   }

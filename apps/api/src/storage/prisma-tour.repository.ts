@@ -29,6 +29,7 @@ export const TOUR_LIST_PAGE_SELECT = {
   tenantId: true,
   canonical: true,
   createdAt: true,
+  updatedAt: true,
   rowVersion: true,
 } as const satisfies Prisma.TourSelect;
 
@@ -57,6 +58,7 @@ function toTour(row: {
   tenantId: string;
   canonical: Prisma.JsonValue;
   createdAt: Date;
+  updatedAt: Date;
   rowVersion: number;
 }): Tour {
   return {
@@ -64,6 +66,7 @@ function toTour(row: {
     tenantId: row.tenantId,
     canonical: row.canonical as unknown as CanonicalDocument,
     createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
     rowVersion: row.rowVersion,
   };
 }

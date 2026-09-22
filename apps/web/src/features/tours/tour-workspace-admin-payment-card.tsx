@@ -20,6 +20,7 @@ import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registrat
 import {
   buildRecordPrepaymentRequestBody,
   formatMinorAmount,
+  resolveFinanceAmountUnitLabel,
   validateRecordPrepaymentForm,
 } from "@/finance/finance-prepayments-logic";
 import { resolveTourSuggestedPrepaymentMinor } from "@/features/tours/resolve-tour-suggested-prepayment-minor";
@@ -307,7 +308,9 @@ export function TourWorkspaceAdminPaymentCard({
             <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <div className="space-y-2">
                 <Label htmlFor={`workspace-payment-amount-${normalizedRegistrationId}`}>
-                  {tCommon("amountDisplay")}
+                  {tCommon("amountDisplay", {
+                    unit: resolveFinanceAmountUnitLabel(currency, locale),
+                  })}
                 </Label>
                 <LocalizedNumericInput
                   id={`workspace-payment-amount-${normalizedRegistrationId}`}

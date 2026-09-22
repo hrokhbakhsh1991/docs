@@ -10,7 +10,10 @@ export {
   resolveFinanceOpsManifestFromTheme,
 } from "./finance-ops-manifest";
 export type { FinanceOpsManifest } from "./finance-ops-manifest";
-export { createDenaliFinanceOutboxConsumer, consumeDenaliTourCreatedFinanceOutbox } from "./finance-outbox-consumer";
+export {
+  createDenaliFinanceOutboxConsumer,
+  consumeDenaliTourCreatedFinanceOutbox,
+} from "./finance-outbox-consumer";
 export type {
   DenaliFinanceOutboxConsumer,
   FinanceOutboxConsumerResult,
@@ -37,7 +40,10 @@ export {
 } from "./ledger-tenant-scope";
 export type { DenaliOutboxDomainEvent, OutboxReader } from "./outbox-reader.port";
 export type { FinanceLedgerOutboxEnqueueInput, OutboxWriter } from "./outbox-writer.port";
-export { postDoubleEntryJournal, stableLedgerIdentifiersFromSeed } from "./post-double-entry-journal";
+export {
+  postDoubleEntryJournal,
+  stableLedgerIdentifiersFromSeed,
+} from "./post-double-entry-journal";
 export {
   handleTourCreatedLedgerEvent,
   type TourCreatedLedgerPayload,
@@ -52,13 +58,12 @@ export type {
   DenaliRegistrationDueLine,
   DenaliRegistrationDueLineCode,
 } from "./resolve-denali-registration-obligation";
-export {
-  resolveDenaliAllowMembershipDiscount,
-} from "./resolve-denali-allow-membership-discount";
+export { resolveDenaliAllowMembershipDiscount } from "./resolve-denali-allow-membership-discount";
 export {
   resolveDenaliPaymentCollectionMode,
   type DenaliPaymentCollectionMode,
 } from "./resolve-denali-payment-collection-mode";
+export { resolveDenaliRegistrationPaymentPlan } from "./resolve-denali-registration-payment-plan";
 export {
   computeDenaliPaymentDueAt,
   resolveDenaliPaymentDeadlineHours,

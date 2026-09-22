@@ -436,12 +436,18 @@
     "viewTour": "مشاهده تور",
     "backToTrips": "بازگشت به سفرها",
     "dueTitle": "مبلغ قابل پرداخت با فیش",
+    "dueTotal": "مبلغ کل فاکتور: {amount}",
+    "dueNow": "مبلغ قابل پرداخت اکنون: {amount}",
+    "dueBalanceAfterPayment": "مانده پس از این پرداخت: {amount}",
     "dueRemaining": "مانده بدهی: {amount}",
     "duePaid": "تا اینجا پرداخت شده: {amount}",
     "dueLineTrip": "هزینه سفر",
     "dueLineDong": "دونگ",
     "dueLineTransport": "هزینه حمل‌ونقل",
     "dueHint": "فیش باید مانده بدهی را پوشش دهد (سفر + دونگ/حمل‌ونقل در صورت اعمال).",
+    "paymentDestinationLabel": "مقصد پرداخت",
+    "paymentDestinationTitle": "پرداخت کارت‌به‌کارت",
+    "paymentDestinationUnavailable": "مقصد پرداخت کارت‌به‌کارت هنوز فعال نشده است.",
     "previewLabel": "پیش‌نمایش فیش شما",
     "waivedTitle": "نیازی به پرداخت نیست",
     "waivedBody": "باشگاه این ثبت‌نام را بدون واریز تأیید کرده است. فیش لازم نیست.",
@@ -509,10 +515,19 @@
       "paymentScheduled": "پرداخت زمان‌بندی شد",
       "paymentExpired": "مهلت پرداخت به پایان رسید",
       "receiptApproved": "فیش پرداخت تأیید شد",
+      "engagementBadgeEarned": "نشان جدید: {badge}",
       "walletUpdated": "کیف پول به‌روزرسانی شد"
     },
     "eventBodies": {
-      "receiptApproved": "فیش پرداخت شما تأیید شد؛ ثبت‌نام این سفر تکمیل شد."
+      "receiptApproved": "فیش پرداخت شما تأیید شد؛ ثبت‌نام این سفر تکمیل شد.",
+      "engagementBadgeEarned": "نشان {badge} را کسب کردید."
+    },
+    "engagementBadges": {
+      "trailheadReady": "آماده مسیر",
+      "firstExpedition": "اولین برنامه",
+      "summitRookie": "تازه‌کار قله",
+      "ridgePartner": "هم‌مسیر یال",
+      "unknown": "جدید"
     },
     "openTourSocialLink": "ورود به گروه یا شبکه اجتماعی تور",
     "sources": {
