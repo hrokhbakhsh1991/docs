@@ -117,33 +117,46 @@ export async function ensureDefaultTicketTemplatesForTenant(tenantId: string): P
   const seeds = resolveTicketingDefaultTemplates(workspace.workspaceType);
   if (seeds.length === 0) return;
 
-  await withTenantRls(tenantId, async (tx) => {
-    for (const seed of seeds) {
-      await tx.ticketTemplate.upsert({
-        where: {
-          tenantId_code_channel_locale: {
+  // Each seed runs in its own transaction (rather than one shared transaction
+  // for the whole loop). Postgres aborts an entire transaction after any
+  // statement error, so a unique-constraint race on seed N would otherwise
+  // poison every subsequent statement in the same transaction with 25P02
+  // ("current transaction is aborted"), even though we catch it in JS.
+  for (const seed of seeds) {
+    try {
+      await withTenantRls(tenantId, async (tx) => {
+        await tx.ticketTemplate.upsert({
+          where: {
+            tenantId_code_channel_locale: {
+              tenantId,
+              code: seed.code,
+              channel: seed.channel,
+              locale: seed.locale,
+            },
+          },
+          create: {
             tenantId,
             code: seed.code,
+            title: seed.title,
+            body: sanitizeTicketTemplateBody(seed.body),
             channel: seed.channel,
             locale: seed.locale,
+            enabled: seed.enabled ?? true,
+            workspaceType: workspace.workspaceType,
+            isSystemDefault: true,
+            version: 1,
           },
-        },
-        create: {
-          tenantId,
-          code: seed.code,
-          title: seed.title,
-          body: sanitizeTicketTemplateBody(seed.body),
-          channel: seed.channel,
-          locale: seed.locale,
-          enabled: seed.enabled ?? true,
-          workspaceType: workspace.workspaceType,
-          isSystemDefault: true,
-          version: 1,
-        },
-        update: {},
+          update: {},
+        });
       });
+    } catch (error: unknown) {
+      // A concurrent caller (e.g. another outbox consumer racing on the same
+      // first-time seed) may have already inserted this row between our
+      // upsert's internal existence check and insert. Treat that as success:
+      // the desired row now exists either way.
+      if (!isPrismaUniqueConstraintError(error)) throw error;
     }
-  });
+  }
 }
 
 export async function listTicketTemplates(

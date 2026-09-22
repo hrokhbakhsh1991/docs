@@ -761,6 +761,8 @@
       "INTEGRATION_CREATE_FAILED": "افزودن ربات تلگرام ناموفق بود.",
       "INTEGRATION_PATCH_HTTP_ERROR": "به‌روزرسانی یکپارچه‌سازی ناموفق بود (HTTP {status}).",
       "INTEGRATION_PATCH_FAILED": "به‌روزرسانی یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_PROVISION_HTTP_ERROR": "اتصال به گروه تلگرام و ساخت زیرگروه‌ها ناموفق بود (HTTP {status}).",
+      "INTEGRATION_PROVISION_FAILED": "اتصال به گروه تلگرام و ساخت زیرگروه‌ها ناموفق بود.",
       "INTEGRATION_META_FAILED": "بارگذاری متادیتای فرم یکپارچه‌سازی ناموفق بود.",
       "INTEGRATION_INVALID_BODY": "اطلاعات ربات یا گروه نامعتبر است.",
       "INTEGRATION_CAPABILITIES_INVALID": "قابلیت‌های انتخاب‌شده برای یکپارچه‌سازی معتبر نیستند.",

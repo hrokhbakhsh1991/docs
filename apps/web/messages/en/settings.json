@@ -761,6 +761,8 @@
       "INTEGRATION_CREATE_FAILED": "Failed to add Telegram bot.",
       "INTEGRATION_PATCH_HTTP_ERROR": "Failed to update integration (HTTP {status}).",
       "INTEGRATION_PATCH_FAILED": "Failed to update integration.",
+      "INTEGRATION_PROVISION_HTTP_ERROR": "Failed to connect the Telegram group and create its topics (HTTP {status}).",
+      "INTEGRATION_PROVISION_FAILED": "Failed to connect the Telegram group and create its topics.",
       "INTEGRATION_META_FAILED": "Failed to load integration form metadata.",
       "INTEGRATION_INVALID_BODY": "Invalid bot or group details.",
       "INTEGRATION_CAPABILITIES_INVALID": "Selected integration capabilities are not valid.",
