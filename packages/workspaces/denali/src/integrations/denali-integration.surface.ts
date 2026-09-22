@@ -73,7 +73,7 @@ export const denaliIntegrationSurface = Object.freeze({
         { eventType: "ticket.closed", enabled: true },
       ],
       eventMappings: [
-        { eventType: "TourPublished", capability: "message.send" },
+        { eventType: "TourPublished", capability: "message.send", topicKey: "registration" },
         {
           eventType: "member.registered",
           capability: "message.send",

@@ -99,4 +99,59 @@ describe("Telegram provider adapter", () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it("maps Telegram's stale-thread error to a distinct errorCode for auto-recreate handling", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ ok: false, description: "Bad Request: message thread not found" }),
+        { status: 400 }
+      )) as typeof fetch;
+
+    try {
+      const result = await new TelegramProviderAdapter().sendMessage(
+        {
+          tenantId: "tenant-1",
+          workspaceType: "denali",
+          domainEventId: "TourPublished:1",
+          eventType: "TourPublished",
+          config: {},
+          credentials: { botToken: "test-token" },
+        },
+        { channelId: "-1001", messageThreadId: 99, text: "تور جدید منتشر شد" }
+      );
+
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok ? result.errorCode : undefined, "TELEGRAM_TOPIC_THREAD_NOT_FOUND");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("keeps other Telegram HTTP failures on the generic errorCode", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ ok: false, description: "Bad Request: chat not found" }), {
+        status: 400,
+      })) as typeof fetch;
+
+    try {
+      const result = await new TelegramProviderAdapter().sendMessage(
+        {
+          tenantId: "tenant-1",
+          workspaceType: "denali",
+          domainEventId: "TourPublished:2",
+          eventType: "TourPublished",
+          config: {},
+          credentials: { botToken: "test-token" },
+        },
+        { channelId: "-1001", text: "تور جدید منتشر شد" }
+      );
+
+      assert.equal(result.ok, false);
+      assert.equal(!result.ok ? result.errorCode : undefined, "TELEGRAM_SEND_FAILED");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

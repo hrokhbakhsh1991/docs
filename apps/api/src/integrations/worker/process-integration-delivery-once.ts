@@ -14,6 +14,12 @@ import {
   recordIntegrationDeliverySuccess,
 } from "../../observability/metrics";
 import { reclaimStaleProcessingIntegrationDeliveryJobs } from "./integration-delivery-processing-reclaim";
+import {
+  DEFAULT_TELEGRAM_FORUM_TOPIC_NAMES,
+  TELEGRAM_FORUM_TOPIC_KEYS,
+  type TelegramForumTopicKey,
+} from "../providers/telegram/telegram-forum.config";
+import { LEGACY_TELEGRAM_ID_PREFIX } from "../infrastructure/resolve-legacy-telegram-connection";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
 
@@ -24,11 +30,28 @@ export type ProcessIntegrationDeliveryDeps = {
   readonly reclaimStaleProcessingJobs?: typeof reclaimStaleProcessingIntegrationDeliveryJobs;
 };
 
+export type TelegramTopicAutoCreateApi = {
+  createForumTopic(
+    chatId: string,
+    name: string
+  ): Promise<{ readonly message_thread_id: number }>;
+};
+
 export type ExecuteIntegrationDeliveryDeps = {
   readonly resolveConnection?: typeof resolveDeliveryConnection;
   readonly getProvider?: (
     provider: IntegrationDeliveryJobRecord["provider"]
   ) => IntegrationProviderAdapter | undefined;
+  /** Injectable seam for the raw Telegram Bot API client used to auto-create a missing/stale topic. */
+  readonly createTelegramTopicApi?: (botToken: string) => TelegramTopicAutoCreateApi;
+  /** Injectable seam for persisting a newly (re)created topic's threadId. */
+  readonly persistTelegramTopicThreadId?: (input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly topicName: string;
+    readonly threadId: number;
+  }) => Promise<void>;
 };
 
 /**
@@ -75,6 +98,109 @@ export function resolveIntegrationDeliveryChannelId(input: {
   return null;
 }
 
+/**
+ * Auto-create is only safe for genuine Telegram forum connections (real
+ * `integration_connections` rows with a Telegram `chatId`). Legacy
+ * `WorkspaceTelegramBot`-backed connections predate forum topics entirely and
+ * must keep failing closed rather than have topics silently invented for them.
+ */
+export function isTelegramTopicAutoCreateEligible(input: {
+  readonly connectionId: string;
+  readonly config: Record<string, unknown>;
+}): boolean {
+  if (input.connectionId.startsWith(LEGACY_TELEGRAM_ID_PREFIX)) {
+    return false;
+  }
+  return typeof input.config.chatId === "string" && input.config.chatId.trim().length > 0;
+}
+
+function isKnownTelegramTopicKey(topicKey: string): topicKey is TelegramForumTopicKey {
+  return (TELEGRAM_FORUM_TOPIC_KEYS as readonly string[]).includes(topicKey);
+}
+
+/**
+ * The topic's name must remain stable once created. Prefer the name already
+ * on record for this key; fall back to the workspace default only the first
+ * time a topic is provisioned.
+ */
+export function resolveTelegramTopicName(input: {
+  readonly config: Record<string, unknown>;
+  readonly topicKey: string;
+}): string {
+  const topicNames =
+    typeof input.config.topicNames === "object" && input.config.topicNames !== null
+      ? (input.config.topicNames as Record<string, unknown>)
+      : {};
+  const stored = topicNames[input.topicKey];
+  if (typeof stored === "string" && stored.trim().length > 0) {
+    return stored;
+  }
+  return isKnownTelegramTopicKey(input.topicKey)
+    ? DEFAULT_TELEGRAM_FORUM_TOPIC_NAMES[input.topicKey]
+    : input.topicKey;
+}
+
+async function defaultCreateTelegramTopicApi(botToken: string): Promise<TelegramTopicAutoCreateApi> {
+  const { createTelegramApiClient } = await import("../providers/telegram/telegram-api.client");
+  return createTelegramApiClient(botToken);
+}
+
+async function defaultPersistTelegramTopicThreadId(input: {
+  readonly tenantId: string;
+  readonly connectionId: string;
+  readonly topicKey: string;
+  readonly topicName: string;
+  readonly threadId: number;
+}): Promise<void> {
+  const { createIntegrationConnectionRepository } = await import(
+    "../infrastructure/prisma-integration-connection.repository"
+  );
+  await createIntegrationConnectionRepository().upsertTelegramTopicThreadId(input);
+}
+
+/**
+ * Creates (or recreates, when Telegram reports the stored threadId is stale)
+ * the forum topic for `topicKey` and persists the new threadId. Returns the
+ * new threadId, or null when auto-create is not possible/eligible so callers
+ * can fall back to the existing fail-closed behavior.
+ */
+async function autoCreateTelegramTopic(input: {
+  readonly job: IntegrationDeliveryJobRecord;
+  readonly connection: IntegrationConnectionRecord & { readonly credentials: Record<string, unknown> };
+  readonly connectionId: string;
+  readonly chatId: string;
+  readonly topicKey: string;
+  readonly deps: ExecuteIntegrationDeliveryDeps;
+}): Promise<number | null> {
+  if (!isTelegramTopicAutoCreateEligible({ connectionId: input.connectionId, config: input.connection.config })) {
+    return null;
+  }
+  const botToken = input.connection.credentials.botToken;
+  if (typeof botToken !== "string" || botToken.trim().length === 0) {
+    return null;
+  }
+
+  const topicName = resolveTelegramTopicName({
+    config: input.connection.config,
+    topicKey: input.topicKey,
+  });
+
+  try {
+    const api = await (input.deps.createTelegramTopicApi ?? defaultCreateTelegramTopicApi)(botToken);
+    const created = await api.createForumTopic(input.chatId, topicName);
+    await (input.deps.persistTelegramTopicThreadId ?? defaultPersistTelegramTopicThreadId)({
+      tenantId: input.job.tenantId,
+      connectionId: input.connectionId,
+      topicKey: input.topicKey,
+      topicName,
+      threadId: created.message_thread_id,
+    });
+    return created.message_thread_id;
+  } catch {
+    return null;
+  }
+}
+
 function deliveryFailureReason(error: Record<string, unknown> | undefined): string {
   return typeof error?.code === "string" && error.code.trim().length > 0
     ? error.code
@@ -114,6 +240,11 @@ export async function executeIntegrationDeliveryJob(
   if (connection === null) {
     return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
   }
+  if (connectionId === null) {
+    // Unreachable in practice (connection resolution requires a connectionId),
+    // but narrows the type for the auto-create path below.
+    return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
+  }
 
   const ctx: IntegrationDeliveryContext = {
     tenantId: job.tenantId,
@@ -135,10 +266,23 @@ export async function executeIntegrationDeliveryJob(
     }
     const topicKey =
       typeof job.payload.telegramTopicKey === "string" ? job.payload.telegramTopicKey : null;
-    const topicResolution = resolveTelegramDeliveryThreadId({
+    let topicResolution = resolveTelegramDeliveryThreadId({
       config: connection.config,
       topicKey,
     });
+    if (!topicResolution.ok && topicKey !== null && job.provider === "telegram") {
+      const createdThreadId = await autoCreateTelegramTopic({
+        job,
+        connection,
+        connectionId,
+        chatId: channelId,
+        topicKey,
+        deps,
+      });
+      if (createdThreadId !== null) {
+        topicResolution = { ok: true, threadId: createdThreadId };
+      }
+    }
     if (!topicResolution.ok) {
       return {
         ok: false,
@@ -148,37 +292,67 @@ export async function executeIntegrationDeliveryJob(
         },
       };
     }
-    const messageThreadId = topicResolution.threadId;
+    const text = await formatIntegrationDeliveryMessage({
+      workspaceType,
+      eventType: job.eventType,
+      payload: job.payload,
+    });
+    const media: { readonly kind: "photo" | "document"; readonly url: string } | undefined =
+      typeof job.payload.telegramMediaUrl === "string" &&
+      (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
+        ? { kind: job.payload.telegramMediaKind, url: job.payload.telegramMediaUrl }
+        : undefined;
+    const replyMarkup =
+      job.eventType === "receipt.submitted" && typeof job.payload.receiptId === "string"
+        ? {
+            inline_keyboard: [
+              [
+                { text: "تأیید فیش", callback_data: `receipt:approve:${job.payload.receiptId}` },
+                { text: "رد فیش", callback_data: `receipt:reject:${job.payload.receiptId}` },
+              ],
+            ],
+          }
+        : undefined;
+
     const result = await adapter.sendMessage(ctx, {
       channelId,
-      ...(messageThreadId === undefined ? {} : { messageThreadId }),
-      text: await formatIntegrationDeliveryMessage({
-        workspaceType,
-        eventType: job.eventType,
-        payload: job.payload,
-      }),
-      ...(typeof job.payload.telegramMediaUrl === "string" &&
-      (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
-        ? {
-            media: {
-              kind: job.payload.telegramMediaKind,
-              url: job.payload.telegramMediaUrl,
-            },
-          }
-        : {}),
-      ...(job.eventType === "receipt.submitted" && typeof job.payload.receiptId === "string"
-        ? {
-            replyMarkup: {
-              inline_keyboard: [
-                [
-                  { text: "تأیید فیش", callback_data: `receipt:approve:${job.payload.receiptId}` },
-                  { text: "رد فیش", callback_data: `receipt:reject:${job.payload.receiptId}` },
-                ],
-              ],
-            },
-          }
-        : {}),
+      ...(topicResolution.threadId === undefined ? {} : { messageThreadId: topicResolution.threadId }),
+      text,
+      ...(media === undefined ? {} : { media }),
+      ...(replyMarkup === undefined ? {} : { replyMarkup }),
     });
+
+    if (
+      !result.ok &&
+      result.errorCode === "TELEGRAM_TOPIC_THREAD_NOT_FOUND" &&
+      topicKey !== null &&
+      job.provider === "telegram"
+    ) {
+      // The stored threadId no longer resolves on Telegram's side (topic
+      // deleted/invalidated) — recreate it under the same stable name and
+      // retry exactly once with the fresh threadId.
+      const recreatedThreadId = await autoCreateTelegramTopic({
+        job,
+        connection,
+        connectionId,
+        chatId: channelId,
+        topicKey,
+        deps,
+      });
+      if (recreatedThreadId !== null) {
+        const retryResult = await adapter.sendMessage(ctx, {
+          channelId,
+          messageThreadId: recreatedThreadId,
+          text,
+          ...(media === undefined ? {} : { media }),
+          ...(replyMarkup === undefined ? {} : { replyMarkup }),
+        });
+        return retryResult.ok
+          ? { ok: true }
+          : { ok: false, error: { code: retryResult.errorCode, message: retryResult.errorMessage } };
+      }
+    }
+
     return result.ok
       ? { ok: true }
       : { ok: false, error: { code: result.errorCode, message: result.errorMessage } };

@@ -21,6 +21,20 @@ function readBotToken(ctx: IntegrationDeliveryContext): string | null {
   return typeof token === "string" && token.trim().length > 0 ? token.trim() : null;
 }
 
+/**
+ * Telegram returns a distinct, stable error description when a stored
+ * message_thread_id no longer resolves to a real topic (deleted/never
+ * created/stale). Callers use this specific code to trigger auto-create +
+ * retry instead of treating it as a generic transient send failure.
+ */
+function isTelegramTopicThreadNotFoundDescription(description: string | undefined): boolean {
+  if (typeof description !== "string") {
+    return false;
+  }
+  const normalized = description.toLowerCase();
+  return normalized.includes("thread not found") || normalized.includes("topic_deleted");
+}
+
 function canTelegramFetchMedia(url: string): boolean {
   try {
     const parsed = assertSafeOutboundUrl(url);
@@ -93,7 +107,9 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
     if (!response.ok) {
       return {
         ok: false,
-        errorCode: "TELEGRAM_SEND_FAILED",
+        errorCode: isTelegramTopicThreadNotFoundDescription(body.description)
+          ? "TELEGRAM_TOPIC_THREAD_NOT_FOUND"
+          : "TELEGRAM_SEND_FAILED",
         errorMessage:
           typeof body.description === "string"
             ? `HTTP ${response.status}: ${body.description}`

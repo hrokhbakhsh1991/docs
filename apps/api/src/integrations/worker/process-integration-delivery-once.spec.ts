@@ -104,8 +104,9 @@ describe("Telegram worker delivery", () => {
     assert.deepEqual(sent, [{ channelId: "-1004292581496", messageThreadId: 202 }]);
   });
 
-  it("does not send a mapped event when its forum topic is missing", async () => {
+  it("does not send a mapped event when its forum topic is missing and auto-create fails", async () => {
     let sendCount = 0;
+    let autoCreateAttempted = false;
     const result = await executeIntegrationDeliveryJob(deliveryJob(), {
       resolveConnection: async () => ({
         id: "connection-1",
@@ -129,6 +130,12 @@ describe("Telegram worker delivery", () => {
           return { ok: true };
         },
       }),
+      createTelegramTopicApi: () => ({
+        async createForumTopic() {
+          autoCreateAttempted = true;
+          throw new Error("telegram unavailable");
+        },
+      }),
     });
 
     assert.deepEqual(result, {
@@ -139,6 +146,154 @@ describe("Telegram worker delivery", () => {
       },
     });
     assert.equal(sendCount, 0);
+    assert.equal(autoCreateAttempted, true);
+  });
+
+  it("auto-creates a missing forum topic, persists it, and delivers the message", async () => {
+    const sent: Array<{ channelId: string; messageThreadId?: number }> = [];
+    const persisted: Array<{ topicKey: string; topicName: string; threadId: number }> = [];
+    const result = await executeIntegrationDeliveryJob(deliveryJob(), {
+      resolveConnection: async () => ({
+        id: "connection-1",
+        tenantId: "tenant-denali",
+        workspaceType: "denali",
+        provider: "telegram",
+        status: "enabled",
+        enabled: true,
+        capabilities: ["message.send"],
+        config: { chatId: "-1004292581496", topicThreadIds: {} },
+        secretRef: "secret-1",
+        credentials: { botToken: "test-token" },
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
+      getProvider: () => ({
+        id: "telegram",
+        supportedCapabilities: ["message.send"],
+        async sendMessage(_ctx, input) {
+          sent.push({ channelId: input.channelId, messageThreadId: input.messageThreadId });
+          return { ok: true };
+        },
+      }),
+      createTelegramTopicApi: () => ({
+        async createForumTopic() {
+          return { message_thread_id: 909 };
+        },
+      }),
+      persistTelegramTopicThreadId: async (input) => {
+        persisted.push({
+          topicKey: input.topicKey,
+          topicName: input.topicName,
+          threadId: input.threadId,
+        });
+      },
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sent, [{ channelId: "-1004292581496", messageThreadId: 909 }]);
+    assert.deepEqual(persisted, [
+      { topicKey: "receipts", topicName: "بررسی فیش‌ها", threadId: 909 },
+    ]);
+  });
+
+  it("recreates a stale forum topic and retries once after Telegram reports it missing", async () => {
+    const sendAttempts: Array<{ messageThreadId?: number }> = [];
+    const result = await executeIntegrationDeliveryJob(deliveryJob(), {
+      resolveConnection: async () => ({
+        id: "connection-1",
+        tenantId: "tenant-denali",
+        workspaceType: "denali",
+        provider: "telegram",
+        status: "enabled",
+        enabled: true,
+        capabilities: ["message.send"],
+        config: { chatId: "-1004292581496", topicThreadIds: { receipts: 202 } },
+        secretRef: "secret-1",
+        credentials: { botToken: "test-token" },
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
+      getProvider: () => ({
+        id: "telegram",
+        supportedCapabilities: ["message.send"],
+        async sendMessage(_ctx, input) {
+          sendAttempts.push({ messageThreadId: input.messageThreadId });
+          if (input.messageThreadId === 202) {
+            return { ok: false, errorCode: "TELEGRAM_TOPIC_THREAD_NOT_FOUND" };
+          }
+          return { ok: true };
+        },
+      }),
+      createTelegramTopicApi: () => ({
+        async createForumTopic() {
+          return { message_thread_id: 303 };
+        },
+      }),
+      persistTelegramTopicThreadId: async () => undefined,
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sendAttempts, [{ messageThreadId: 202 }, { messageThreadId: 303 }]);
+  });
+
+  it("never auto-creates topics for legacy WorkspaceTelegramBot-backed connections", async () => {
+    let sendCount = 0;
+    let autoCreateAttempted = false;
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "legacy-telegram:workspace-1",
+          telegramTopicKey: "receipts",
+          receiptId: "receipt-1",
+          registrationId: "registration-1",
+          paymentId: "payment-1",
+          amount: "2500000",
+          currency: "IRR",
+          submittedAt: "2026-09-18T20:00:00.000Z",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "legacy-telegram:workspace-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: {} },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage() {
+            sendCount += 1;
+            return { ok: true };
+          },
+        }),
+        createTelegramTopicApi: () => ({
+          async createForumTopic() {
+            autoCreateAttempted = true;
+            return { message_thread_id: 909 };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, {
+      ok: false,
+      error: {
+        code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING",
+        message: "No Telegram forum topic is configured for receipts",
+      },
+    });
+    assert.equal(sendCount, 0);
+    assert.equal(autoCreateAttempted, false);
   });
 
   it("sends a registration.created event only to the registration forum topic", async () => {
