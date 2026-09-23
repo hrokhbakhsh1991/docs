@@ -84,12 +84,15 @@ describe("p6-member-receipt-flow", () => {
       `/bookings/${registrationId}/receipts`,
       {
         headers: memberHeaders(memberUserId, memberWorkspaceId),
-        body: { fileKey: `receipts/${registrationId}/proof.jpg` },
+        body: { fileKey: `receipts/${OPERATOR_SMOKE.tenantId}/${registrationId}/proof.jpg` },
       }
     );
     assert.equal(response.status, 201);
     assert.equal(response.body.status, "Pending");
-    assert.equal(response.body.fileKey, `receipts/${registrationId}/proof.jpg`);
+    assert.equal(
+      response.body.fileKey,
+      `receipts/${OPERATOR_SMOKE.tenantId}/${registrationId}/proof.jpg`
+    );
   });
 
   it("P6-MR-01b GET /bookings/{id}/receipts returns pending after upload", async () => {
@@ -222,7 +225,7 @@ describe("p6-member-receipt-flow", () => {
       `/bookings/${bookingId}/receipts`,
       {
         headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
-        body: { fileKey: `receipts/${bookingId}/approve-proof.jpg` },
+        body: { fileKey: `receipts/${OPERATOR_SMOKE.tenantId}/${bookingId}/approve-proof.jpg` },
       }
     );
     assert.equal(upload.status, 201);
