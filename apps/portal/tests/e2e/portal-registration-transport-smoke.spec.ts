@@ -8,6 +8,8 @@ import {
 } from "./fixtures/catalog-registration-otp";
 import {
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
 } from "./fixtures/complete-portal-registration";
 
@@ -18,6 +20,11 @@ function uniqueTransportPhone(): string {
 
 type RegistrationBody = {
   readonly transport?: { readonly kind?: string; readonly personalCarOccupants?: number };
+};
+
+type RegistrationSubmission = {
+  readonly body: RegistrationBody;
+  readonly registrationId: string;
 };
 
 async function reachTransportIntake(page: Page, tourId: string, phone: string): Promise<void> {
@@ -38,7 +45,7 @@ async function reachTransportIntake(page: Page, tourId: string, phone: string): 
   });
 }
 
-async function submitAndReadBody(page: Page): Promise<RegistrationBody> {
+async function submitAndReadBody(page: Page): Promise<RegistrationSubmission> {
   const [response] = await Promise.all([
     page.waitForResponse(
       (res) =>
@@ -53,42 +60,69 @@ async function submitAndReadBody(page: Page): Promise<RegistrationBody> {
     `catalog registration failed (${response.status()}): ${responseText.slice(0, 240)}`
   ).toBeTruthy();
   const request = response.request();
-  return JSON.parse(request.postData() ?? "{}") as RegistrationBody;
+  const responseBody = JSON.parse(responseText) as { registrationId?: unknown };
+  const registrationId =
+    typeof responseBody.registrationId === "string" ? responseBody.registrationId.trim() : "";
+  expect(registrationId, "catalog registration must return its id for cleanup").not.toBe("");
+  return {
+    body: JSON.parse(request.postData() ?? "{}") as RegistrationBody,
+    registrationId,
+  };
 }
 
-test("DEN-TRANS-01 bus tour hides transport UI and omits transport payload", async ({ page }) => {
-  await reachTransportIntake(page, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, uniqueTransportPhone());
+async function cancelSubmittedRegistration(page: Page, registrationId: string): Promise<void> {
+  const response = await page.request.post(
+    `/api/me/registrations/${encodeURIComponent(registrationId)}/cancellation`
+  );
+  expect(response.ok(), `smoke cleanup cancellation failed (${response.status()})`).toBeTruthy();
+}
 
-  await expect(page.locator("[data-public-registration-personal-car-opt-in]")).toBeVisible();
-  await expect(page.locator("[data-public-registration-transport]")).toHaveCount(0);
+test("DEN-TRANS-01 bus tour shows direct personal-car choices without an opt-in checkbox", async ({
+  page,
+}) => {
+  await reachTransportIntake(
+    page,
+    OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+    uniqueTransportPhone()
+  );
 
-  const body = await submitAndReadBody(page);
-  expect(body.transport, "bus default must not send a transport payload").toBeUndefined();
+  await expect(page.locator("[data-public-registration-personal-car-opt-in]")).toHaveCount(0);
+  const transportFieldset = page.locator("[data-public-registration-transport]");
+  await expect(transportFieldset).toBeVisible();
+  await expect(transportFieldset.locator('input[name^="hasPersonalCar-"]')).toHaveCount(2);
+  await expect(transportFieldset.locator('input[name^="hasPersonalCar-"]:checked')).toHaveCount(0);
 });
 
-test("DEN-TRANS-02 personal-car opt-in persists personal_car with occupants", async ({ page }) => {
-  await reachTransportIntake(page, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, uniqueTransportPhone());
+test("DEN-TRANS-02 personal-car choice persists personal_car with occupants", async ({ page }) => {
+  await reachTransportIntake(
+    page,
+    OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID,
+    uniqueTransportPhone()
+  );
 
-  await page.locator("[data-public-registration-personal-car-opt-in] input[type=checkbox]").check();
   const transportFieldset = page.locator("[data-public-registration-transport]");
   await expect(transportFieldset).toBeVisible();
   await transportFieldset.locator('input[name^="hasPersonalCar-"]').first().check();
   await page
     .locator('[data-public-registration-transport-occupants] input[name^="personalCarOccupants-"]')
-    .nth(1)
+    .nth(2)
     .check();
 
-  const body = await submitAndReadBody(page);
-  expect(body.transport?.kind).toBe("personal_car");
-  expect(body.transport?.personalCarOccupants).toBe(2);
+  const submission = await submitAndReadBody(page);
+  expect(submission.body.transport?.kind).toBe("personal_car");
+  expect(submission.body.transport?.personalCarOccupants).toBe(2);
+  await cancelSubmittedRegistration(page, submission.registrationId);
 });
 
-test("DEN-TRANS-02b personal-car opt-in persists driver-only with zero companions", async ({
+test("DEN-TRANS-02b personal-car choice persists driver-only with zero companions", async ({
   page,
 }) => {
-  await reachTransportIntake(page, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, uniqueTransportPhone());
+  await reachTransportIntake(
+    page,
+    OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID,
+    uniqueTransportPhone()
+  );
 
-  await page.locator("[data-public-registration-personal-car-opt-in] input[type=checkbox]").check();
   const transportFieldset = page.locator("[data-public-registration-transport]");
   await expect(transportFieldset).toBeVisible();
   await transportFieldset.locator('input[name^="hasPersonalCar-"]').first().check();
@@ -97,9 +131,10 @@ test("DEN-TRANS-02b personal-car opt-in persists driver-only with zero companion
     .first()
     .check();
 
-  const body = await submitAndReadBody(page);
-  expect(body.transport?.kind).toBe("personal_car");
-  expect(body.transport?.personalCarOccupants).toBe(0);
+  const submission = await submitAndReadBody(page);
+  expect(submission.body.transport?.kind).toBe("personal_car");
+  expect(submission.body.transport?.personalCarOccupants).toBe(0);
+  await cancelSubmittedRegistration(page, submission.registrationId);
 });
 
 test("DEN-TRANS-02c incomplete transport explains the blocker and focuses its control", async ({
@@ -107,7 +142,6 @@ test("DEN-TRANS-02c incomplete transport explains the blocker and focuses its co
 }) => {
   await reachTransportIntake(page, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, uniqueTransportPhone());
 
-  await page.locator("[data-public-registration-personal-car-opt-in] input[type=checkbox]").check();
   const transportFieldset = page.locator("[data-public-registration-transport]");
   await expect(transportFieldset).toBeVisible();
   await transportFieldset.locator('input[name^="hasPersonalCar-"]').first().check();
@@ -127,12 +161,13 @@ test("DEN-TRANS-03 shared_cars tour forces dong follow-up and persists no_car_do
   const transportFieldset = page.locator("[data-public-registration-transport]");
   await expect(transportFieldset).toBeVisible();
   await expect(page.locator("[data-registration-price-hint]")).toBeVisible();
-  await transportFieldset.locator('input[name="hasPersonalCar"]').nth(1).check();
+  await transportFieldset.locator('input[name^="hasPersonalCar-"]').nth(1).check();
   await page
-    .locator('[data-public-registration-transport-dong] input[name="paysDong"]')
+    .locator('[data-public-registration-transport-dong] input[name="paysDong-self"]')
     .first()
     .check();
 
-  const body = await submitAndReadBody(page);
-  expect(body.transport?.kind).toBe("no_car_dong");
+  const submission = await submitAndReadBody(page);
+  expect(submission.body.transport?.kind).toBe("no_car_dong");
+  await cancelSubmittedRegistration(page, submission.registrationId);
 });

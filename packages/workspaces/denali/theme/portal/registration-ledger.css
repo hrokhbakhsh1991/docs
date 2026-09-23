@@ -605,17 +605,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
-  [data-public-registration-personal-car-opt-in] {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 44px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-public-registration-transport] {
   border: 0;
   margin: 0;

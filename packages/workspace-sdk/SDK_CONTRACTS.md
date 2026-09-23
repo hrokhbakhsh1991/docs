@@ -240,9 +240,9 @@ type CatalogRegistrationUpstreamRequest = {
 | `initialState` | `PublicCatalogTransportSnapshot \| undefined` | `PublicCatalogTransportIntakeState` |
 
 Organized transport is the default `primary` path and requires no acknowledgement from the
-registrant. The state only tracks an optional personal-car choice and its follow-up details; the
-server remains authoritative for the final transport kind.
-| `showPersonalCarOptIn` | transport snapshot | `boolean` |
+registrant. When a tour allows personal cars, the transport follow-up is shown directly with no
+extra opt-in checkbox; the two personal-car choices start unselected. The state only tracks the
+choice and its follow-up details; the server remains authoritative for the final transport kind.
 | `showTransportFollowUp` | snapshot + state | `boolean` |
 | `buildPayload` | snapshot + state | `{ kind: PublicCatalogRegistrationTransportKind; personalCarOccupants?: 0\|1\|2\|3 } \| undefined` (0 = driver only) |
 | `isComplete` | snapshot + state | `boolean` |

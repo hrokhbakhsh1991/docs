@@ -426,14 +426,28 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
   BookingMemberReceiptJsonBody: {
     type: "object",
     description: "At least one of fileKey or note is required.",
-    anyOf: [{ required: ["fileKey"] }, { required: ["note"] }],
+    anyOf: [
+      {
+        required: ["fileKey"],
+        properties: { fileKey: { type: "string", minLength: 1 } },
+      },
+      {
+        required: ["note"],
+        properties: { note: { type: "string", minLength: 1, maxLength: 2000 } },
+      },
+    ],
     properties: {
       fileKey: {
-        type: "string",
+        type: ["string", "null"],
         minLength: 1,
         examples: ["tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"],
       },
-      note: { type: "string", minLength: 1, maxLength: 2000, examples: ["bank transfer"] },
+      note: {
+        type: ["string", "null"],
+        minLength: 1,
+        maxLength: 2000,
+        examples: ["bank transfer", null],
+      },
     },
     examples: [
       {
@@ -871,6 +885,10 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
         code: "RECEIPT_EVIDENCE_REQUIRED",
       }),
       ...authErrorResponses,
+      409: errorResponse("Receipt idempotency conflict", {
+        error: "conflict",
+        code: "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT",
+      }),
       503: errorResponse("Object storage unavailable", {
         error: "service_unavailable",
         code: "MINIO_NOT_CONFIGURED",

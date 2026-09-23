@@ -882,6 +882,9 @@ export class FinanceService {
           storageKey: fileKey,
         });
       } catch (error: unknown) {
+        if (error instanceof Error && error.message === "RECEIPT_PROOF_KEY_SCOPE_INVALID") {
+          throw error;
+        }
         this.logger.warn({
           event: "finance.receipt_proof.telegram_media_unavailable",
           tenantId: auth.tenantId,

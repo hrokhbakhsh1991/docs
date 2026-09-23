@@ -252,7 +252,7 @@
         "payment": "پرداخت: {value}",
         "sort": "مرتب‌سازی: {value}",
         "search": "جستجو: {value}",
-        "roster": "حمل‌ونقل: {value}"
+        "roster": "نمای لیست: {value}"
       }
     },
     "finance": {

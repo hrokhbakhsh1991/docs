@@ -5,10 +5,14 @@ import { logger } from "../observability/logger";
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
 import { getSettingsResourcesRepository } from "./create-settings-resources-repository";
-import { seedOperatorSmokeCatalog } from "./seed-operator-smoke-catalog";
+import {
+  OPERATOR_SMOKE_TENANT_ID,
+  seedOperatorSmokeCatalog,
+} from "./seed-operator-smoke-catalog";
 import {
   ensureOperatorSmokePublishedTourEditReady,
   seedDenaliBookingScenarioTours,
+  ensureDenaliSmokePaymentDestination,
   seedDenaliClubDevDraftTour,
   seedOperatorSmokePublishedTour,
 } from "./seed-operator-smoke-published-tour";
@@ -96,6 +100,12 @@ export async function bootstrapDenaliDevSmokeFixturesIfNeeded(): Promise<void> {
       async () => {
         const repo = getSettingsResourcesRepository();
         await seedOperatorSmokeCatalog(repo, { tenantId });
+        await ensureDenaliSmokePaymentDestination(tenantId);
+        // In-memory smoke serves both operator.localhost and denali.club hosts;
+        // keep the shared booking fixtures actionable on both tenant scopes.
+        if (resolveStorageDriver() === "memory") {
+          await ensureDenaliSmokePaymentDestination(OPERATOR_SMOKE_TENANT_ID);
+        }
 
         if (resolveStorageDriver() === "prisma") {
           await ensureDenaliDevBookingMember();

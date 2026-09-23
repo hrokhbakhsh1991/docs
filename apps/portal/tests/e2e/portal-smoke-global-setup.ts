@@ -10,6 +10,8 @@ const OPERATOR_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const DENALI_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000220";
 const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
+const TRANSPORT_BUS_OCCUPANCY_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000215";
+const TRANSPORT_BUS_DRIVER_ONLY_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000216";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
 /** PW_EXTERNAL_SERVERS + VPS_IP: .localhost/.club hosts resolve to remote staging, not loopback. */
@@ -35,11 +37,11 @@ async function warmPortalBffRoute(
   path: string,
   method: "GET" | "POST" | "PATCH",
   body?: object
-): Promise<void> {
+): Promise<Record<string, unknown> | null> {
   let lastError: unknown = new Error(`warm-up failed for ${method} ${path}`);
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      await new Promise<void>((resolve, reject) => {
+      const responseBody = await new Promise<Record<string, unknown> | null>((resolve, reject) => {
         const url = new URL(`${base}${path}`);
         const payload = body === undefined ? undefined : JSON.stringify(body);
         const headers: Record<string, string> = { host: url.host };
@@ -56,8 +58,18 @@ async function warmPortalBffRoute(
             headers,
           },
           (res) => {
-            res.resume();
-            resolve();
+            const chunks: Buffer[] = [];
+            res.on("data", (chunk: Buffer | string) => {
+              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+            });
+            res.on("end", () => {
+              try {
+                const text = Buffer.concat(chunks).toString("utf8").trim();
+                resolve(text.length === 0 ? null : (JSON.parse(text) as Record<string, unknown>));
+              } catch {
+                resolve(null);
+              }
+            });
           }
         );
         req.on("error", reject);
@@ -69,7 +81,7 @@ async function warmPortalBffRoute(
         }
         req.end();
       });
-      return;
+      return responseBody;
     } catch (error) {
       lastError = error;
       if (attempt < 2) {
@@ -80,15 +92,17 @@ async function warmPortalBffRoute(
   throw lastError;
 }
 
-async function warmPortalBffPostRoute(base: string, path: string, body: object): Promise<void> {
-  await warmPortalBffRoute(base, path, "POST", body);
+async function warmPortalBffPostRoute(
+  base: string,
+  path: string,
+  body: object
+): Promise<Record<string, unknown> | null> {
+  return warmPortalBffRoute(base, path, "POST", body);
 }
 
 async function warmPublicAuthBffRoutes(base: string): Promise<void> {
   const routes = [
     ["/api/public-auth/phone-preflight", { phone: "+15550009999" }],
-    ["/api/public-auth/request-otp", { phone: "+15550009999" }],
-    ["/api/public-auth/verify-otp", { phone: "+15550009999", otp: "1234", challenge_id: "warmup" }],
     ["/api/public-auth/register-complete", { phone: "+15550009999" }],
     ["/api/public-auth/logout", {}],
     ["/api/catalog/registrations", { phone: "+15550009999" }],
@@ -98,6 +112,20 @@ async function warmPublicAuthBffRoutes(base: string): Promise<void> {
   ] as const;
   for (const [path, body] of routes) {
     await warmPortalBffPostRoute(base, path, body);
+  }
+
+  // Verify the route with the challenge issued by request-otp. A fabricated
+  // challenge only creates a misleading 400 in the smoke logs and does not
+  // warm the real success path.
+  const requestOtp = await warmPortalBffPostRoute(base, "/api/public-auth/request-otp", {
+    phone: "+15550009999",
+  });
+  if (typeof requestOtp?.challenge_id === "string") {
+    await warmPortalBffPostRoute(base, "/api/public-auth/verify-otp", {
+      phone: "+15550009999",
+      otp: "1234",
+      challenge_id: requestOtp.challenge_id,
+    });
   }
 }
 
@@ -163,6 +191,8 @@ export default async function globalSetup(): Promise<void> {
   await waitForUrl(`${base}/catalog/${defaultSmokeTourId}/register`);
   await waitForUrl(`${base}/catalog/${PARTICIPANT_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${TRANSPORT_BUS_SMOKE_TOUR_ID}/register`);
+  await waitForUrl(`${base}/catalog/${TRANSPORT_BUS_OCCUPANCY_SMOKE_TOUR_ID}/register`);
+  await waitForUrl(`${base}/catalog/${TRANSPORT_BUS_DRIVER_ONLY_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${TRANSPORT_SHARED_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/me/profile`);
   await waitForUrl(`${base}/me/registrations`);

@@ -8,7 +8,7 @@ import {
 
 function showTransportFollowUp(
   transport: PublicCatalogTransportSnapshot | undefined,
-  state: PublicCatalogTransportIntakeState
+  _state: PublicCatalogTransportIntakeState
 ): boolean {
   if (transport === undefined) {
     return false;
@@ -16,7 +16,7 @@ function showTransportFollowUp(
   if (transport.mode === "shared_cars") {
     return true;
   }
-  return state.optInPersonalCar;
+  return transport.allowPersonalCar === true;
 }
 
 export function isDenaliIntakeDongOffered(
@@ -99,18 +99,11 @@ function computePricePerPerson(input: {
 
 export const denaliCatalogTransportIntakeSurface: WorkspaceCatalogIntakeTransportSurface =
   Object.freeze({
-    initialState: (transport) => ({
-      optInPersonalCar: transport?.mode === "shared_cars",
-      hasPersonalCar: transport?.mode === "shared_cars" ? null : null,
+    initialState: () => ({
+      hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
     }),
-    showPersonalCarOptIn: (transport) => {
-      if (transport === undefined) {
-        return false;
-      }
-      return transport.mode !== "shared_cars" && transport.allowPersonalCar === true;
-    },
     showTransportFollowUp: showTransportFollowUp,
     buildPayload,
     isComplete: (transport, state) => {

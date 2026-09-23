@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   OutstandingBalanceListItem,
@@ -179,9 +179,7 @@ export function resolveTourWorkspaceFinanceLoadOutcome(input: {
   };
 }
 
-export function useTourWorkspaceFinanceData(
-  tourId: string
-): TourWorkspaceFinanceDataState {
+export function useTourWorkspaceFinanceData(tourId: string): TourWorkspaceFinanceDataState {
   const [initialSeed] = useState(() => readCachedFinanceSeed(tourId));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,11 +201,12 @@ export function useTourWorkspaceFinanceData(
     () => initialSeed.receiptsNextCursor
   );
   const [loadingMore, setLoadingMore] = useState(false);
-  const [degradedSections, setDegradedSections] = useState<
-    readonly TourWorkspaceFinanceSection[]
-  >([]);
+  const [degradedSections, setDegradedSections] = useState<readonly TourWorkspaceFinanceSection[]>(
+    []
+  );
   const [loadSucceeded, setLoadSucceeded] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const requestIdRef = useRef(0);
 
   const refresh = useCallback(() => {
     setFetchNonce((n) => n + 1);
@@ -215,6 +214,7 @@ export function useTourWorkspaceFinanceData(
 
   const load = useCallback(
     async (force = false) => {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
       if (force) {
@@ -251,6 +251,9 @@ export function useTourWorkspaceFinanceData(
           tours: toursRead,
           receipts: receiptsRead,
         });
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
         setOutstanding(outcome.outstanding);
         setTours(outcome.tours);
         setReceipts(outcome.receipts);
@@ -261,8 +264,16 @@ export function useTourWorkspaceFinanceData(
         setDegradedSections(outcome.degradedSections);
         setError(outcome.error);
         setLoadSucceeded(outcome.loadSucceeded);
+      } catch (loadError: unknown) {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        setError(toFinanceClientErrorCode(loadError, "FINANCE_WORKSPACE_LOAD_FAILED"));
+        setLoadSucceeded(false);
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [tourId]
@@ -272,6 +283,7 @@ export function useTourWorkspaceFinanceData(
     if (loading || loadingMore || (!outstandingHasMore && !receiptsHasMore)) {
       return;
     }
+    const requestId = ++requestIdRef.current;
     setLoadingMore(true);
     void Promise.all([
       outstandingHasMore && outstandingNextCursor !== null
@@ -288,6 +300,9 @@ export function useTourWorkspaceFinanceData(
         : Promise.resolve(EMPTY_PENDING_RECEIPTS_PAGE),
     ])
       .then(([outstandingPage, receiptsPage]) => {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
         setOutstanding((current) => {
           const seen = new Set(current.map((row) => row.registrationId));
           const appended = outstandingPage.items.filter((row) => !seen.has(row.registrationId));
@@ -303,8 +318,15 @@ export function useTourWorkspaceFinanceData(
         setReceiptsNextCursor(receiptsPage.nextCursor);
         setReceiptsHasMore(receiptsPage.hasMore);
       })
+      .catch((loadError: unknown) => {
+        if (requestId === requestIdRef.current) {
+          setError(toFinanceClientErrorCode(loadError, "FINANCE_WORKSPACE_LOAD_MORE_FAILED"));
+        }
+      })
       .finally(() => {
-        setLoadingMore(false);
+        if (requestId === requestIdRef.current) {
+          setLoadingMore(false);
+        }
       });
   }, [
     loading,
@@ -318,6 +340,9 @@ export function useTourWorkspaceFinanceData(
 
   useEffect(() => {
     void load(fetchNonce > 0);
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [fetchNonce, load]);
 
   const panelBlocking = shouldBlockTourFinancePanelSkeleton({

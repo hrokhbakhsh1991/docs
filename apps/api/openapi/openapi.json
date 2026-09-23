@@ -4193,7 +4193,23 @@
             "description": "Not found"
           },
           "409": {
-            "description": "Conflict"
+            "description": "Receipt idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
             "description": "Rate limited"
@@ -6156,28 +6172,48 @@
           {
             "required": [
               "fileKey"
-            ]
+            ],
+            "properties": {
+              "fileKey": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
           },
           {
             "required": [
               "note"
-            ]
+            ],
+            "properties": {
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
           }
         ],
         "properties": {
           "fileKey": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "minLength": 1,
             "examples": [
               "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
             ]
           },
           "note": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "minLength": 1,
             "maxLength": 2000,
             "examples": [
-              "bank transfer"
+              "bank transfer",
+              null
             ]
           }
         },

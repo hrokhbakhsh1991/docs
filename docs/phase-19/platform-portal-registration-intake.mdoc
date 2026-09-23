@@ -133,7 +133,7 @@ Smoke fixture tours (operator tenant `…000014`):
 | `…000210` | North Ridge Trek | Default registration smoke (SMK-PTL-01) — no participant flags, no transport |
 | `…000211` | Denali draft fixture | Draft 404 probes |
 | `…000212` | Alpine Identity Check | DEN-INTAKE / DEN-PROF — `nationalIdRequired` + `fatherNameRequired` + `birthDateRequired` |
-| `…000213` | Ridge Bus Shuttle | DEN-TRANS-01/02 — `transport.mode=bus` · `allowPersonalCar=true` · `transportCost` (organized default + personal-car opt-in) |
+| `…000213` | Ridge Bus Shuttle | DEN-TRANS-01/02 — `transport.mode=bus` · `allowPersonalCar=true` · `transportCost` (organized default + direct personal-car choice) |
 | `…000214` | Carpool Pass | DEN-TRANS-03 — `transport.mode=shared_cars` · `dongAmount` (mandatory transport follow-up) |
 
 API catalog list returns **four** published tours (`210` + `212` + `213` + `214`) when `ensureOperatorSmokeSeedTour()` runs. Tours `213`/`214` carry canonical `transport.*` so the portal renders transport intake without any workspace import (card-driven via `PublicCatalogCard.transport`).
