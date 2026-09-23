@@ -349,6 +349,7 @@
       "detailEvidenceReceiptNote": "Note",
       "detailEvidenceShowProof": "Show proof",
       "detailEvidenceHideProof": "Hide proof",
+      "detailEvidenceTextOnly": "Text-only evidence",
       "detailEvidenceUnknownValue": "—",
       "detailActivityTitle": "Payment history summary",
       "detailManualPendingCount": "{count} manual payments still awaiting resolution",

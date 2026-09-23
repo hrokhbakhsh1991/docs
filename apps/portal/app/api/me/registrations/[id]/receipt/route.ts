@@ -63,10 +63,7 @@ export async function GET(req: Request, context: RouteContext): Promise<NextResp
   return NextResponse.json({ ok: true, ...panel }, { status: 200 });
 }
 
-/**
- * Forwards member receipt proof bytes to API (MinIO put + pending receipt).
- * JSON fileKey-only path is API-only (memory smoke); portal always sends the file body.
- */
+/** Forwards member receipt evidence to API (file bytes or a JSON note). */
 export async function POST(req: Request, context: RouteContext): Promise<NextResponse> {
   const { id: registrationId } = await context.params;
   const host = resolvePortalIngressHost(req);
@@ -76,15 +73,22 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
   }
 
+  const requestContentType = req.headers.get("content-type")?.trim().toLowerCase() ?? "";
+  const isJson = requestContentType.includes("application/json");
   const body = Buffer.from(await req.arrayBuffer());
   if (body.byteLength === 0) {
-    return NextResponse.json({ ok: false, code: "FILE_REQUIRED" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, code: isJson ? "RECEIPT_EVIDENCE_REQUIRED" : "FILE_REQUIRED" },
+      { status: 400 }
+    );
   }
 
-  const contentType = resolveReceiptContentType(
-    req.headers.get("content-type"),
-    req.headers.get("x-receipt-file-name")
-  );
+  const contentType = isJson
+    ? "application/json"
+    : resolveReceiptContentType(
+        req.headers.get("content-type"),
+        req.headers.get("x-receipt-file-name")
+      );
   const fileName = sanitizeReceiptFileName(req.headers.get("x-receipt-file-name") ?? "receipt");
   const ingressHost = host.split(":")[0] ?? host;
 
@@ -97,7 +101,13 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
         host: ingressHost,
         "Content-Type": contentType,
         "Content-Length": String(body.byteLength),
-        "x-receipt-file-name": fileName,
+        ...(isJson ? {} : { "x-receipt-file-name": fileName }),
+        ...(req.headers.get("x-receipt-note") !== null
+          ? { "x-receipt-note": req.headers.get("x-receipt-note") as string }
+          : {}),
+        ...(req.headers.get("idempotency-key") !== null
+          ? { "idempotency-key": req.headers.get("idempotency-key") as string }
+          : {}),
         ...(req.headers.get("x-payment-destination-revision") !== null
           ? {
               "x-payment-destination-revision": req.headers.get(
@@ -119,7 +129,10 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
         { status: res.status }
       );
     }
-    return NextResponse.json({ ok: true, data: payload, status: "pending" as const }, { status: 201 });
+    return NextResponse.json(
+      { ok: true, data: payload, status: "pending" as const },
+      { status: 201 }
+    );
   } catch {
     return NextResponse.json({ ok: false, code: "BACKEND_UNREACHABLE" }, { status: 502 });
   }

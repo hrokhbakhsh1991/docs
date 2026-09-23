@@ -349,6 +349,7 @@
       "detailEvidenceReceiptNote": "یادداشت",
       "detailEvidenceShowProof": "نمایش فیش",
       "detailEvidenceHideProof": "بستن فیش",
+      "detailEvidenceTextOnly": "مدرک متنی",
       "detailEvidenceUnknownValue": "—",
       "detailActivityTitle": "خلاصه سابقه پرداخت",
       "detailManualPendingCount": "{count} پرداخت دستی هنوز در انتظار تعیین تکلیف است",

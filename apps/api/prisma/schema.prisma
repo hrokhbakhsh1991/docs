@@ -423,7 +423,7 @@ model PaymentReceipt {
   id                 String    @id @default(uuid()) @db.Uuid
   tenantId           String    @map("tenant_id") @db.Uuid
   paymentId          String    @map("payment_id") @db.Uuid
-  fileKey            String    @map("file_key")
+  fileKey            String?   @map("file_key")
   status             String    @default("Pending")
   note               String?
   reviewedByUserId   String?   @map("reviewed_by_user_id")

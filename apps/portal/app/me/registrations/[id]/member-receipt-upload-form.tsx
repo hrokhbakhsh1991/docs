@@ -125,8 +125,10 @@ export function MemberReceiptUploadForm({
 }: Props) {
   const t = useTranslations("portalMember.receipt");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
   const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
+  const [receiptNote, setReceiptNote] = useState("");
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(null);
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
@@ -234,24 +236,38 @@ export function MemberReceiptUploadForm({
 
   async function uploadReceipt() {
     const file = resolveSelectedReceiptFile();
-    if (file === undefined) {
+    const note = receiptNote.trim();
+    if (file === undefined && note.length === 0) {
       return;
     }
+    const idempotencyKey = (idempotencyKeyRef.current ??= globalThis.crypto.randomUUID());
     setUploadPhase("uploading");
     try {
+      const destinationRevision = panel.paymentDestination?.revision;
+      const commonHeaders = {
+        "Idempotency-Key": idempotencyKey,
+        ...(destinationRevision !== undefined
+          ? { "x-payment-destination-revision": destinationRevision }
+          : {}),
+      };
       const res = await fetch(
         `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": file.type || "application/octet-stream",
-            "x-receipt-file-name": file.name,
-            ...(panel.paymentDestination?.revision !== undefined
-              ? { "x-payment-destination-revision": panel.paymentDestination.revision }
-              : {}),
-          },
-          body: file,
-        }
+        file === undefined
+          ? {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...commonHeaders },
+              body: JSON.stringify({ note }),
+            }
+          : {
+              method: "POST",
+              headers: {
+                "Content-Type": file.type || "application/octet-stream",
+                "x-receipt-file-name": file.name,
+                ...(note.length > 0 ? { "x-receipt-note": note } : {}),
+                ...commonHeaders,
+              },
+              body: file,
+            }
       );
       if (!res.ok) {
         setUploadPhase("error");
@@ -509,11 +525,25 @@ export function MemberReceiptUploadForm({
           name="file"
           type="file"
           accept="image/*,.pdf"
-          required
           disabled={uploadPhase === "uploading"}
           onChange={onFileChange}
         />
         <p data-portal-member-receipt-upload-hint>{t("uploadHint")}</p>
+        <label htmlFor="receipt-note" data-portal-member-receipt-note-label>
+          {t("noteLabel")}
+        </label>
+        <textarea
+          id="receipt-note"
+          name="note"
+          value={receiptNote}
+          maxLength={2000}
+          rows={4}
+          placeholder={t("notePlaceholder")}
+          disabled={uploadPhase === "uploading"}
+          onChange={(event) => setReceiptNote(event.target.value)}
+          data-portal-member-receipt-note
+        />
+        <p data-portal-member-receipt-note-hint>{t("noteHint")}</p>
       </div>
       <div data-portal-member-receipt-upload-actions>
         <button
@@ -521,7 +551,7 @@ export function MemberReceiptUploadForm({
           data-portal-member-receipt-submit
           disabled={
             uploadPhase === "uploading" ||
-            selectedFile === undefined ||
+            (selectedFile === undefined && receiptNote.trim().length === 0) ||
             panel.paymentDestination?.enabled !== true
           }
           onClick={() => void uploadReceipt()}

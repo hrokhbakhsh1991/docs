@@ -93,7 +93,7 @@ export type FinancePaymentRow = FinanceOpenPaymentRow & {
 export type FinanceReceiptRow = {
   readonly id: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly status: string;
   readonly note: string | null;
   readonly reviewNote: string | null;
@@ -144,7 +144,7 @@ export type CreatePaymentInput = {
 export type CreateReceiptInput = {
   readonly tenantId: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly note?: string;
   /** SHA-256 hex of HTTP Idempotency-Key; omit for non-HTTP submits. */
   readonly idempotencyKeyHash?: string;

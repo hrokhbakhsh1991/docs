@@ -19,6 +19,7 @@ import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service";
 import {
   MEMBER_RECEIPT_PROOF_MAX_BYTES,
+  deleteMemberReceiptProof,
   putMemberReceiptProof,
   sanitizeReceiptProofFileName,
 } from "../workspace-finance/receipt-proof-storage";
@@ -109,7 +110,10 @@ export async function handleGetBookingsSummary(
   }
 }
 
-export async function handleCreateBooking(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleCreateBooking(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
     const body = await readIdentityRequestBody(req);
@@ -280,11 +284,18 @@ function mapMemberReceiptUploadError(res: ServerResponse, error: unknown): boole
     sendHttpError(res, 503, { error: "service_unavailable", code: "MINIO_NOT_CONFIGURED" });
     return true;
   }
+  if (message === "RECEIPT_STORAGE_FULL" || message === "RECEIPT_STORAGE_UNAVAILABLE") {
+    sendHttpError(res, 503, { error: "service_unavailable", code: message });
+    return true;
+  }
   if (
     message === "RECEIPT_PROOF_EMPTY" ||
     message === "RECEIPT_PROOF_TOO_LARGE" ||
     message === "RECEIPT_PROOF_CONTENT_TYPE_INVALID" ||
-    message === "RECEIPT_PROOF_KEY_SCOPE_INVALID"
+    message === "RECEIPT_PROOF_KEY_SCOPE_INVALID" ||
+    message === "RECEIPT_EVIDENCE_REQUIRED" ||
+    message === "RECEIPT_NOTE_MAX" ||
+    message === "RECEIPT_FILE_KEY_MAX"
   ) {
     sendHttpError(res, 400, { error: "invalid_body", code: message });
     return true;
@@ -300,11 +311,17 @@ export async function handlePostBookingReceipt(
   try {
     const auth = await requireOperatorSession(req);
     const contentType = readHeader(req, "content-type");
+    const idempotencyKey = readHeader(req, "idempotency-key");
+    const receiptNote = readHeader(req, "x-receipt-note");
+    if (receiptNote.length > 2000) {
+      sendHttpError(res, 400, { error: "invalid_body", code: "RECEIPT_NOTE_MAX" });
+      return;
+    }
 
     if (isBookingJsonReceiptContentType(contentType)) {
       const body = parseBookingMemberReceiptJsonBody(await readIdentityRequestBody(req));
       if (body === null) {
-        sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
+        sendHttpError(res, 400, { error: "invalid_payload", code: "RECEIPT_EVIDENCE_REQUIRED" });
         return;
       }
 
@@ -313,14 +330,18 @@ export async function handlePostBookingReceipt(
         auth,
         async () => {
           const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
-          const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
-            registrationId: bookingId,
-            fileKey: body.fileKey,
-            ...(body.note !== undefined ? { note: body.note } : {}),
-            ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
-              ? { destinationRevision: readHeader(req, "x-payment-destination-revision").trim() }
-              : {}),
-          });
+          const receipt = await financeService.submitMemberReceiptForRegistration(
+            auth,
+            {
+              registrationId: bookingId,
+              fileKey: body.fileKey,
+              ...(body.note !== undefined ? { note: body.note } : {}),
+              ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
+                ? { destinationRevision: readHeader(req, "x-payment-destination-revision").trim() }
+                : {}),
+            },
+            idempotencyKey || undefined
+          );
           sendJson(res, 201, receipt);
         },
         { rateLimit: "write" }
@@ -351,14 +372,23 @@ export async function handlePostBookingReceipt(
               contentType,
               fileName,
             }),
+          cleanup: async (fileKey) =>
+            deleteMemberReceiptProof({ tenantId: auth.tenantId, storageKey: fileKey }),
           submit: async (fileKey) =>
-            financeService.submitMemberReceiptForRegistration(auth, {
-              registrationId: bookingId,
-              fileKey,
-              ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
-                ? { destinationRevision: readHeader(req, "x-payment-destination-revision").trim() }
-                : {}),
-            }),
+            financeService.submitMemberReceiptForRegistration(
+              auth,
+              {
+                registrationId: bookingId,
+                fileKey,
+                ...(receiptNote.length > 0 ? { note: receiptNote } : {}),
+                ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
+                  ? {
+                      destinationRevision: readHeader(req, "x-payment-destination-revision").trim(),
+                    }
+                  : {}),
+              },
+              idempotencyKey || undefined
+            ),
         });
         sendJson(res, 201, receipt);
       },
