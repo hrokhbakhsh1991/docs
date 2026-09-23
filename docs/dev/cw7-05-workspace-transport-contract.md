@@ -21,7 +21,7 @@
 
 Transport becomes the **second reusable Tour capability** with a formal manifest block `workspaceTransport`, following the `workspaceEquipment` / `workspaceBooking` pattern. Unlike equipment, transport has **no host reference table** — operator-authored transport configuration lives on the **tour canonical document**; member registration choices persist on the **registration intake payload** and project to list scalars (`transportKind`).
 
-Denali remains the reference adapter. **Dong amount semantics, personal-car opt-in rules, Denali transport mode vocabulary, and customer vehicle policies stay Denali-owned** (composable plan non-goal #6; TRUTH §24 MUST-NOT).
+Denali remains the reference adapter. **Dong amount semantics, personal-car choice rules, Denali transport mode vocabulary, and customer vehicle policies stay Denali-owned** (composable plan non-goal #6; TRUTH §24 MUST-NOT).
 
 **Persistence:** tour canonical paths + registration intake + roster projection scalars remain **host/API-owned storage** with workspace adapters supplying read/normalize/intake bindings. The capability declares seams; it does not move Denali transport rules into tour-core or workspace-sdk defaults.
 
@@ -40,7 +40,7 @@ Denali remains the reference adapter. **Dong amount semantics, personal-car opt-
 | List/roster projection | `transportKind` scalar (`primary` \| `personal_car` \| `no_car_dong` \| `no_car_acquaintance`) | Host bookings repository + SDK contract |
 | SDK transport types | `PublicCatalogTransportMode`, `PublicCatalogTransportSnapshot`, `PublicCatalogRegistrationTransportKind`, `WorkspaceCatalogIntakeTransportSurface` | `workspace-sdk` (shape only — no product rules) |
 
-**Gap:** transport capability scattered across `catalogRegistrationFlow.transportInitializerExport`, plugin `catalogIntake.transport`, field registry, and Denali HTTP modules; workspaces without transport have no formal “off” contract; SDK intake state types embed Denali-shaped fields (`paysDong`, `optInPersonalCar`) without manifest gating. The catalog flow treats organized transport as the default `primary` path and must not require a redundant non-personal-car acknowledgement before submission.
+**Gap:** transport capability scattered across `catalogRegistrationFlow.transportInitializerExport`, plugin `catalogIntake.transport`, field registry, and Denali HTTP modules; workspaces without transport have no formal “off” contract. The catalog flow treats organized transport as the default `primary` path and must not require a redundant non-personal-car acknowledgement before submission. When personal cars are enabled, the intake presents direct mutually exclusive choices for the member's own car or another person's car; there is no separate opt-in checkbox.
 
 ---
 
@@ -176,7 +176,7 @@ When a workspace declares `workspaceTransport.supported: true`, the **platform**
 **Explicit non-goals (generic layer MUST NOT — TRUTH §24; plan non-goal #6):**
 
 - Ship platform default transport mode vocabulary (`bus`, `shared_cars`, dong, personal-car) as tour-core rules
-- Encode Denali dong amount visibility (`transportDongVisible`) or personal-car opt-in (`allowPersonalCar`) in neutral core
+- Encode Denali dong amount visibility (`transportDongVisible`) or personal-car choice policy (`allowPersonalCar`) in neutral core
 - Copy `normalizeDenaliRegistrationTransportIntake` logic into tour-core / workspace-sdk
 - Define customer vehicle policies or default `primary` vs `personal_car` semantics in host `if (workspaceType)` branches
 - Auto-enable transport intake for all outdoor-profile workspaces
@@ -193,10 +193,10 @@ When a workspace declares `workspaceTransport.supported: true`, the **platform**
 | Contextual visibility/required | Field-policy engine dispatch | `transportDongVisible`, `transportPersonalCarOptionVisible`, `transportTrainSeatVisible`, … |
 | Wizard composite UX | Composite registry dispatch | `denali.transport-mode` + dependents (`dongAmount`, `seatPreference`, …) |
 | Catalog egress snapshot | `PublicCatalogTransportSnapshot` **shape** in SDK | `readDenaliCatalogTransportSnapshot` — which canonical paths populate snapshot |
-| Portal intake UI/state machine | `WorkspaceCatalogIntakeTransportSurface` **hook shape** | `denaliCatalogTransportIntakeSurface` — personal-car opt-in, dong radios, price hints |
+| Portal intake UI/state machine | `WorkspaceCatalogIntakeTransportSurface` **hook shape** | `denaliCatalogTransportIntakeSurface` — direct personal-car choices, dong radios, price hints |
 | Registration transport kinds | `PublicCatalogRegistrationTransportKind` wire enum in SDK | When each kind applies; `normalizeDenaliRegistrationTransportIntake` rules |
 | Dong semantics | Normalizer **dispatch** only | `isDenaliIntakeDongOffered`, `no_car_dong` only when `dongAmount > 0` |
-| Personal-car rules | Intake surface **dispatch** | `showPersonalCarOptIn`, occupants 1–3, `allowPersonalCar` gating |
+| Personal-car rules | Intake surface **dispatch** | direct own/other-car choice, occupants 0–3, `allowPersonalCar` gating |
 | Publish readiness (transport leaves) | CW8 `workspacePolicyValidation` stage | Denali publish matrix / contextual required rules |
 | Marketing logistics presentation | `catalogDetailSection` gate | Denali catalog UI copy, IRR/toman display (workspace config) |
 | List `transportKind` scalar | Host projection + OpenAPI | Denali intake kinds map 1:1 to roster vocabulary today |

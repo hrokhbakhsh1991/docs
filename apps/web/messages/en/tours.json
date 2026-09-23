@@ -252,7 +252,7 @@
         "payment": "Payment: {value}",
         "sort": "Sort: {value}",
         "search": "Search: {value}",
-        "roster": "Transport: {value}"
+        "roster": "Roster view: {value}"
       }
     },
     "finance": {

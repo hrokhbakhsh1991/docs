@@ -209,7 +209,6 @@ export function DenaliIntakeStep({
 
   function emptyTransportState(): TransportState {
     return {
-      optInPersonalCar: false,
       hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
@@ -337,8 +336,6 @@ export function DenaliIntakeStep({
   const showKnownNameHintSelf = !effectiveSchemaSelf.fields.some(
     (field) => field.id === "fullName"
   );
-  const personalCarOptInVisible = transportSurface.showPersonalCarOptIn(context.tourTransport);
-
   const estimatedPrice = useMemo(() => {
     const candidateTransportState = selfSelected
       ? selfDraft.transportState
@@ -966,31 +963,6 @@ export function DenaliIntakeStep({
                   invalidFieldId={invalidField?.scope === "self" ? invalidField.fieldId : undefined}
                 />
 
-                {personalCarOptInVisible ? (
-                  <label
-                    className="portal-registration-transport-opt-in"
-                    data-public-registration-personal-car-opt-in
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selfDraft.transportState.optInPersonalCar}
-                      onChange={(event) =>
-                        setSelfDraft((prev) => ({
-                          ...prev,
-                          transportState: {
-                            ...prev.transportState,
-                            optInPersonalCar: event.target.checked,
-                            hasPersonalCar: null,
-                            personalCarOccupants: null,
-                            paysDong: null,
-                          },
-                        }))
-                      }
-                    />
-                    <span>{t("intake.personalCarOptIn")}</span>
-                  </label>
-                ) : null}
-
                 {transportSurface.showTransportFollowUp(
                   context.tourTransport,
                   selfDraft.transportState
@@ -1222,38 +1194,6 @@ export function DenaliIntakeStep({
                             : undefined
                         }
                       />
-
-                      {personalCarOptInVisible ? (
-                        <label
-                          className="portal-registration-transport-opt-in"
-                          data-public-registration-personal-car-opt-in
-                          data-denali-guest-transport={guestIdx}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={guest.transportState.optInPersonalCar}
-                            onChange={(event) => {
-                              const checked = event.target.checked;
-                              setOtherGuests((prev) =>
-                                prev.map((g, idx) => {
-                                  if (idx !== guestIdx) return g;
-                                  return {
-                                    ...g,
-                                    transportState: {
-                                      ...g.transportState,
-                                      optInPersonalCar: checked,
-                                      hasPersonalCar: null,
-                                      personalCarOccupants: null,
-                                      paysDong: null,
-                                    },
-                                  };
-                                })
-                              );
-                            }}
-                          />
-                          <span>{t("intake.personalCarOptIn")}</span>
-                        </label>
-                      ) : null}
 
                       {transportFollowUpVisible ? (
                         <fieldset

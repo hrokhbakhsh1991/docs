@@ -16,7 +16,6 @@ import { sessionMemberMatchesPortalGuestSurface } from "@/tenant/session-host-bi
 
 function emptyTransportState(): PublicCatalogTransportIntakeState {
   return {
-    optInPersonalCar: false,
     hasPersonalCar: null,
     personalCarOccupants: null,
     paysDong: null,

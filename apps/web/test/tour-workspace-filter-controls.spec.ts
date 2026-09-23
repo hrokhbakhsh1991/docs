@@ -75,6 +75,6 @@ describe("tour-workspace-filter-controls.spec.ts", () => {
     };
     assert.match(fa.workspace.controls.filtersToggle, /فیلتر/);
     assert.match(fa.workspace.controls.activeFilters.payment, /پرداخت/);
-    assert.match(en.workspace.controls.activeFilters.roster, /Transport/);
+    assert.match(en.workspace.controls.activeFilters.roster, /Roster view/);
   });
 });

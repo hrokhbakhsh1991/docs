@@ -14,7 +14,6 @@ export const PUBLIC_CATALOG_REGISTRATION_TRANSPORT_KINDS = [
 ] as const;
 
 export type PublicCatalogTransportIntakeState = {
-  readonly optInPersonalCar: boolean;
   readonly hasPersonalCar: boolean | null;
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
@@ -25,7 +24,6 @@ export type WorkspaceCatalogIntakeTransportSurface = {
   readonly initialState: (
     transport: PublicCatalogTransportSnapshot | undefined
   ) => PublicCatalogTransportIntakeState;
-  readonly showPersonalCarOptIn: (transport: PublicCatalogTransportSnapshot | undefined) => boolean;
   readonly showTransportFollowUp: (
     transport: PublicCatalogTransportSnapshot | undefined,
     state: PublicCatalogTransportIntakeState

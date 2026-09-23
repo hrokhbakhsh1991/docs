@@ -18,6 +18,7 @@ export async function gotoPortalRegistration(page: Page, tourId: string): Promis
   const loginPhone = page.locator(
     "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready]"
   );
+  const openLoginDialog = page.locator("dialog[open][data-portal-login-modal-open='true']");
   const registrationIntake = page.locator(
     "[data-public-registration-intake][data-registration-ready]"
   );
@@ -27,8 +28,13 @@ export async function gotoPortalRegistration(page: Page, tourId: string): Promis
       .waitFor({ state: "visible", timeout: 5_000 })
       .then(() => true)
       .catch(() => false);
-    if (!modalOpened && (await continueRegistration.isVisible().catch(() => false))) {
-      await continueRegistration.click();
+    // A cold Next compile can expose the dialog before its phone step is ready.
+    // Never click the underlying CTA while that dialog is already open.
+    const dialogIsOpen = (await openLoginDialog.count()) > 0;
+    if (!modalOpened && !dialogIsOpen && (await continueRegistration.isVisible().catch(() => false))) {
+      // The dialog may open between the count check and the click. The CTA only
+      // opens the same modal, so force the event to make this transition race-safe.
+      await continueRegistration.click({ force: true });
     }
   }
   // Guest path: OTP phone inside dialog[open] (PCMS-UX-MODAL-04). Resume: intake.
@@ -232,8 +238,8 @@ export async function completeCatalogRegistrationIntake(
   };
 
   const selectNoPersonalCarAndPayDong = async (cardRoot: Locator): Promise<void> => {
-    // Prefer radios inside `[data-public-registration-transport]` when the opt-in
-    // already revealed the follow-up fieldset; otherwise fall back to name prefix.
+    // Prefer radios inside `[data-public-registration-transport]`; otherwise fall back
+    // to the card root for older fixture surfaces.
     const transportRoot = cardRoot.locator("[data-public-registration-transport]");
     const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
     const hasPersonalCarRadios = scope.locator('input[type="radio"][name^="hasPersonalCar-"]');

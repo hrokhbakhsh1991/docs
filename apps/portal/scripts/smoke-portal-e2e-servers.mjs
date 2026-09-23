@@ -17,14 +17,46 @@ const webDir = path.join(repoRoot, "apps/web");
 const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
 
-function waitForUrl(url, timeoutMs = 600_000) {
+function waitForUrl(url, timeoutMs = 600_000, childProcess) {
   const deadline = Date.now() + timeoutMs;
+  let settled = false;
+  let onChildExit;
+
+  const cleanup = () => {
+    if (childProcess !== undefined && onChildExit !== undefined) {
+      childProcess.off("exit", onChildExit);
+    }
+  };
+
   return new Promise((resolve, reject) => {
+    const resolveOnce = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const rejectOnce = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    onChildExit = (code, signal) => {
+      rejectOnce(
+        new Error(
+          `smoke-portal-e2e-servers: child exited before ready (${url}); ` +
+            `code=${code ?? "null"} signal=${signal ?? "null"}`
+        )
+      );
+    };
+    childProcess?.once("exit", onChildExit);
+
     const tick = () => {
+      if (settled) return;
       const req = http.get(url, (res) => {
         res.resume();
         if (res.statusCode && res.statusCode < 500) {
-          resolve();
+          resolveOnce();
           return;
         }
         retry();
@@ -36,8 +68,9 @@ function waitForUrl(url, timeoutMs = 600_000) {
       });
     };
     const retry = () => {
+      if (settled) return;
       if (Date.now() > deadline) {
-        reject(new Error(`smoke-portal-e2e-servers: timeout waiting for ${url}`));
+        rejectOnce(new Error(`smoke-portal-e2e-servers: timeout waiting for ${url}`));
         return;
       }
       setTimeout(tick, 500);
@@ -58,7 +91,13 @@ async function waitForPortFree(port, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      execSync(`lsof -ti tcp:${port}`, { stdio: "ignore" });
+      const listeners = execSync(`lsof -nP -tiTCP:${port} -sTCP:LISTEN`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (listeners.length === 0) {
+        return;
+      }
       await new Promise((resolve) => setTimeout(resolve, 250));
     } catch {
       return;
@@ -153,7 +192,7 @@ void waitForUrl("http://127.0.0.1:3001/health")
         env: webEnv,
         stdio: "inherit",
       });
-      return waitForUrl("http://127.0.0.1:3000/bookings");
+      return waitForUrl("http://127.0.0.1:3000/bookings", 600_000, web);
     }
     return undefined;
   })
@@ -183,7 +222,7 @@ void waitForUrl("http://127.0.0.1:3001/health")
         stdio: "inherit",
       }
     );
-    return waitForUrl("http://127.0.0.1:3003/health");
+    return waitForUrl("http://127.0.0.1:3003/health", 600_000, portal);
   })
   .then(async () => {
     console.log("smoke-portal-e2e-servers: API + portal ready");

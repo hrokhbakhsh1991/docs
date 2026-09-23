@@ -214,6 +214,9 @@ export function MemberReceiptUploadForm({
     // after an upload error; clearing the input also guarantees a new change
     // event when the browser selects that same file again.
     event.currentTarget.value = "";
+    // A changed file is a new payload. Keep the previous key only for an
+    // exact retry of the failed request.
+    idempotencyKeyRef.current = null;
     setSelectedFile(file);
     setUploadPhase("idle");
     replaceLocalPreview(file);
@@ -540,7 +543,10 @@ export function MemberReceiptUploadForm({
           rows={4}
           placeholder={t("notePlaceholder")}
           disabled={uploadPhase === "uploading"}
-          onChange={(event) => setReceiptNote(event.target.value)}
+          onChange={(event) => {
+            idempotencyKeyRef.current = null;
+            setReceiptNote(event.target.value);
+          }}
           data-portal-member-receipt-note
         />
         <p data-portal-member-receipt-note-hint>{t("noteHint")}</p>

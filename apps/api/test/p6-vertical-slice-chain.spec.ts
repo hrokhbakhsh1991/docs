@@ -75,7 +75,7 @@ describe("p6-vertical-slice-chain", () => {
     assert.ok(outboxRows.some((row) => row.eventType === "registration.created"));
     assert.ok(outboxRows.some((row) => row.eventType === "registration.approved"));
 
-    const fileKey = `receipts/${bookingId}/chain-proof.jpg`;
+    const fileKey = `receipts/${OPERATOR_SMOKE.tenantId}/${bookingId}/chain-proof.jpg`;
     const upload = await client.requestJson<{ id?: string; status?: string }>(
       "POST",
       `/bookings/${bookingId}/receipts`,
