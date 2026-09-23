@@ -17,6 +17,10 @@ export type BookingActionAvailabilityInput = {
   readonly capacityFull: boolean;
 };
 
+function requiresPaymentFollowUp(booking: BookingListItem | null): boolean {
+  return booking?.paymentStatus !== "paid" && booking?.financialDisplayState !== "WAIVED";
+}
+
 export type BookingActionAvailability = {
   readonly canApprove: boolean;
   readonly canApproveWithoutPayment: boolean;
@@ -54,7 +58,7 @@ export function resolveBookingActionAvailability(
       canReject: false,
       canWaitlist: false,
       canCancel: input.isCancellable,
-      unavailableReason: input.isCancellable ? "approved_use_finance" : "approved_use_finance",
+      unavailableReason: requiresPaymentFollowUp(input.booking) ? "approved_use_finance" : null,
       showCapacityFullHint: false,
     };
   }
