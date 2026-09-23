@@ -136,7 +136,7 @@ export function TourWorkspaceTransportClient({
       anchor.href = url;
       anchor.download =
         readAttachmentFilename(response.headers.get("Content-Disposition")) ??
-        `denali-tour-${tourId}-final-roster.xlsx`;
+        "denali-final-roster.xlsx";
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();

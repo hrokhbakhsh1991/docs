@@ -85,6 +85,14 @@ describe("final roster Excel export", () => {
           isFinalParticipant: false,
           finalizationStatus: "not_final",
         }),
+        row({
+          registrationId: "waived-1",
+          guestLabel: "Waived guest",
+          financialDisplayState: "WAIVED",
+          transportKind: "personal_car",
+          personalCarOccupants: 3,
+          isFinanciallySettled: true,
+        }),
       ],
     });
 
@@ -92,16 +100,23 @@ describe("final roster Excel export", () => {
     await loaded.xlsx.load(workbook);
     assert.deepEqual(
       loaded.worksheets.map((sheet) => sheet.name),
-      ["خلاصه گزارش", "لیست نهایی", "نیازمند تسویه", "تسویه‌شده"]
+      ["خلاصه گزارش", "لیست نهایی", "منتظر پرداخت", "پرداخت‌شده", "بدون دریافت وجه"]
     );
 
     const finalSheet = loaded.getWorksheet("لیست نهایی")!;
-    const unpaidSheet = loaded.getWorksheet("نیازمند تسویه")!;
-    const paidSheet = loaded.getWorksheet("تسویه‌شده")!;
-    assert.equal(finalSheet.rowCount, 3);
+    const unpaidSheet = loaded.getWorksheet("منتظر پرداخت")!;
+    const paidSheet = loaded.getWorksheet("پرداخت‌شده")!;
+    const waivedSheet = loaded.getWorksheet("بدون دریافت وجه")!;
+    assert.equal(finalSheet.rowCount, 4);
     assert.equal(unpaidSheet.rowCount, 2);
     assert.equal(paidSheet.rowCount, 2);
-    assert.equal(finalSheet.getCell("A3").text.startsWith("'="), true);
+    assert.equal(waivedSheet.rowCount, 2);
+    assert.equal(finalSheet.getCell("A1").text, "ردیف");
+    assert.equal(finalSheet.getCell("B2").text, "Paid guest");
+    assert.match(finalSheet.getCell("G2").text, /ریال|تومان/);
+    assert.match(finalSheet.getCell("M2").text, /۱۴۰۵|2026/);
+    assert.equal(finalSheet.getCell("B3").text.startsWith("'="), true);
+    assert.equal(finalSheet.getCell("L4").text, "۳ نفر");
     assert.equal(finalSheet.tables["RosterFinal"]?.name, "RosterFinal");
   });
 
@@ -113,7 +128,7 @@ describe("final roster Excel export", () => {
     });
     const loaded = new ExcelJS.Workbook();
     await loaded.xlsx.load(workbook);
-    for (const name of ["لیست نهایی", "نیازمند تسویه", "تسویه‌شده"]) {
+    for (const name of ["لیست نهایی", "منتظر پرداخت", "پرداخت‌شده", "بدون دریافت وجه"]) {
       const sheet = loaded.getWorksheet(name)!;
       assert.equal(sheet.rowCount, 1);
       assert.ok(Object.keys(sheet.tables).length > 0);

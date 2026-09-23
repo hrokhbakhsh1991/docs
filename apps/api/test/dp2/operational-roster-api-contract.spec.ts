@@ -101,7 +101,7 @@ describe("DP-2 operational roster API contract", () => {
     );
     assert.match(
       String(response.headers["content-disposition"]),
-      /denali-tour-.*-final-roster-.*\.xlsx/
+      /denali-final-roster-.*\.xlsx/
     );
     assert.equal(response.body.subarray(0, 2).toString("hex"), "504b");
   });

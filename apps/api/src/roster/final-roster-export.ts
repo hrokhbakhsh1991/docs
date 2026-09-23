@@ -12,17 +12,18 @@ import { parseMinorUnits } from "@app-tour/workspace-denali/roster";
 const EXPORT_PAGE_SIZE = 100;
 
 const DATA_COLUMNS = [
+  { header: "ردیف", key: "rowNumber", width: 8 },
   { header: "نام و نام خانوادگی", key: "guestLabel", width: 28 },
   { header: "شماره تماس", key: "phone", width: 18 },
-  { header: "شناسه ثبت‌نام", key: "registrationId", width: 38 },
   { header: "تعداد نفرات", key: "partySize", width: 12 },
-  { header: "وضعیت نهایی‌شدن", key: "finalizationStatus", width: 18 },
-  { header: "وضعیت پرداخت", key: "paymentStatus", width: 18 },
-  { header: "مبلغ کل", key: "totalMinor", width: 18 },
-  { header: "مبلغ پرداخت‌شده", key: "paidMinor", width: 18 },
-  { header: "مانده", key: "remainingMinor", width: 18 },
+  { header: "وضعیت نهایی", key: "finalizationStatus", width: 18 },
+  { header: "وضعیت مالی", key: "paymentStatus", width: 20 },
+  { header: "مبلغ کل", key: "totalAmount", width: 22 },
+  { header: "مبلغ پرداخت‌شده", key: "paidAmount", width: 22 },
+  { header: "مانده", key: "remainingAmount", width: 22 },
   { header: "مهلت پرداخت", key: "paymentDueAt", width: 24 },
-  { header: "نوع حمل‌ونقل", key: "transportKind", width: 22 },
+  { header: "نوع حمل‌ونقل", key: "transportKind", width: 28 },
+  { header: "ظرفیت قابل سوارکردن", key: "personalCarOccupants", width: 24 },
   { header: "تاریخ ثبت‌نام", key: "submittedAt", width: 24 },
   { header: "تاریخ نهایی‌شدن", key: "finalizedAt", width: 24 },
 ] as const;
@@ -74,7 +75,10 @@ export async function buildFinalRosterWorkbook(input: {
 
   const finalRows = input.rows.filter((row) => row.isFinalParticipant);
   const unpaidRows = finalRows.filter((row) => !row.isFinanciallySettled);
-  const paidRows = finalRows.filter((row) => row.isFinanciallySettled);
+  const paidRows = finalRows.filter(
+    (row) => row.isFinanciallySettled && row.financialDisplayState === "PAID"
+  );
+  const waivedRows = finalRows.filter((row) => row.financialDisplayState === "WAIVED");
   const totalMinor = sumMinor(finalRows.map((row) => totalForRow(row)));
   const paidMinor = sumMinor(finalRows.map((row) => row.paidMinor));
   const remainingMinor = sumMinor(finalRows.map((row) => row.remainingMinor));
@@ -87,21 +91,22 @@ export async function buildFinalRosterWorkbook(input: {
   ];
   summary.addRows([
     ["نام تور", safeCell(input.tourTitle ?? input.tourId)],
-    ["شناسه تور", safeCell(input.tourId)],
-    ["زمان تولید", generatedAt.toISOString()],
+    ["زمان تولید", formatAdminDate(generatedAt.toISOString())],
     ["تعداد کل نهایی‌شده", finalRows.length],
-    ["تعداد تسویه‌شده", paidRows.length],
+    ["تعداد پرداخت‌شده", paidRows.length],
+    ["تعداد بدون دریافت وجه", waivedRows.length],
     ["تعداد بدهکار یا پرداخت ناقص", unpaidRows.length],
-    ["مبلغ کل", totalMinor],
-    ["مبلغ پرداخت‌شده", paidMinor],
-    ["مبلغ مانده", remainingMinor],
+    ["مبلغ کل", formatAmount(totalMinor, finalRows[0]?.currency ?? null)],
+    ["مبلغ پرداخت‌شده", formatAmount(paidMinor, finalRows[0]?.currency ?? null)],
+    ["مبلغ مانده", formatAmount(remainingMinor, finalRows[0]?.currency ?? null)],
   ]);
   summary.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   summary.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
 
   addDataSheet(workbook, "لیست نهایی", finalRows);
-  addDataSheet(workbook, "نیازمند تسویه", unpaidRows);
-  addDataSheet(workbook, "تسویه‌شده", paidRows);
+  addDataSheet(workbook, "منتظر پرداخت", unpaidRows);
+  addDataSheet(workbook, "پرداخت‌شده", paidRows);
+  addDataSheet(workbook, "بدون دریافت وجه", waivedRows);
 
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
@@ -122,7 +127,7 @@ export async function createFinalRosterExport(
     .replace(/[-:TZ.]/g, "")
     .slice(0, 14);
   return {
-    filename: `denali-tour-${normalizedTourId}-final-roster-${timestamp}.xlsx`,
+    filename: `denali-final-roster-${timestamp}.xlsx`,
     contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     body: await buildFinalRosterWorkbook({
       tourId: normalizedTourId,
@@ -141,37 +146,44 @@ function addDataSheet(
   const sheet = workbook.addWorksheet(name);
   sheet.views = [{ rightToLeft: true }];
   sheet.columns = [...DATA_COLUMNS];
-  sheet.addRows(rows.map(toExportRow));
+  sheet.addRows(rows.map((row, index) => toExportRow(row, index + 1)));
   const tableEnd = Math.max(2, rows.length + 1);
   sheet.addTable({
     name: `Roster${tableNameSuffix(name)}`,
-    ref: `A1:M${tableEnd}`,
+    ref: `A1:N${tableEnd}`,
     headerRow: true,
     totalsRow: false,
     style: { theme: "TableStyleMedium2", showRowStripes: true },
     columns: DATA_COLUMNS.map((column) => ({ name: column.header })),
-    rows: rows.map((row) => DATA_COLUMNS.map((column) => toExportRow(row)[column.key])),
+    rows: rows.map((row, index) =>
+      DATA_COLUMNS.map((column) => toExportRow(row, index + 1)[column.key])
+    ),
   });
-  sheet.autoFilter = { from: "A1", to: `M${tableEnd}` };
+  sheet.autoFilter = { from: "A1", to: `N${tableEnd}` };
 }
 
-function toExportRow(row: TourOperationalRosterRow): Record<string, string | number> {
+function toExportRow(
+  row: TourOperationalRosterRow,
+  rowNumber: number
+): Record<string, string | number> {
   const paid = parseMinorUnits(row.paidMinor) ?? BigInt(0);
   const remaining = parseMinorUnits(row.remainingMinor) ?? BigInt(0);
   return {
+    rowNumber,
     guestLabel: safeCell(row.guestLabel),
     phone: safeCell(row.guestPhone ?? "—"),
-    registrationId: safeCell(row.registrationId),
     partySize: row.partySize,
-    finalizationStatus: row.finalizationStatus,
-    paymentStatus: row.financialDisplayState,
-    totalMinor: (paid + remaining).toString(),
-    paidMinor: paid.toString(),
-    remainingMinor: remaining.toString(),
-    paymentDueAt: row.paymentDueAt ?? "—",
-    transportKind: row.transportKind ?? "—",
-    submittedAt: row.submittedAt,
-    finalizedAt: row.finalizationStatus === "finalized" ? (row.finalizedAt ?? "—") : "—",
+    finalizationStatus:
+      row.finalizationStatus === "finalized" ? "نهایی‌شده" : "در انتظار نهایی‌سازی",
+    paymentStatus: paymentStatusLabel(row.financialDisplayState),
+    totalAmount: formatAmount((paid + remaining).toString(), row.currency),
+    paidAmount: formatAmount(paid.toString(), row.currency),
+    remainingAmount: formatAmount(remaining.toString(), row.currency),
+    paymentDueAt: formatAdminDate(row.paymentDueAt),
+    transportKind: transportKindLabel(row.transportKind),
+    personalCarOccupants: formatOccupants(row),
+    submittedAt: formatAdminDate(row.submittedAt),
+    finalizedAt: row.finalizationStatus === "finalized" ? formatAdminDate(row.finalizedAt) : "—",
   };
 }
 
@@ -194,6 +206,63 @@ function safeCell(value: string): string {
 
 function tableNameSuffix(name: string): string {
   if (name === "لیست نهایی") return "Final";
-  if (name === "نیازمند تسویه") return "Unpaid";
-  return "Paid";
+  if (name === "منتظر پرداخت") return "Unpaid";
+  if (name === "پرداخت‌شده") return "Paid";
+  return "Waived";
+}
+
+function paymentStatusLabel(status: TourOperationalRosterRow["financialDisplayState"]): string {
+  switch (status) {
+    case "PAID":
+      return "پرداخت کامل";
+    case "PARTIALLY_PAID":
+      return "پرداخت ناقص";
+    case "UNPAID":
+      return "پرداخت‌نشده";
+    case "WAIVED":
+      return "بدون دریافت وجه";
+    default:
+      return "قابل اعمال نیست";
+  }
+}
+
+function transportKindLabel(kind: TourOperationalRosterRow["transportKind"]): string {
+  switch (kind) {
+    case "primary":
+      return "حمل‌ونقل اصلی تور";
+    case "personal_car":
+      return "ماشین شخصی خودش";
+    case "no_car_dong":
+      return "ماشین شخصی دیگران — با هزینه دونگ";
+    case "no_car_acquaintance":
+      return "ماشین شخصی دیگران — آشنا";
+    default:
+      return "ثبت نشده";
+  }
+}
+
+function formatOccupants(row: TourOperationalRosterRow): string {
+  if (row.transportKind !== "personal_car" || row.personalCarOccupants === null) {
+    return "—";
+  }
+  return `${new Intl.NumberFormat("fa-IR").format(row.personalCarOccupants)} نفر`;
+}
+
+function formatAmount(value: string | null, currency: string | null): string {
+  const parsed = parseMinorUnits(value);
+  if (parsed === null) return "—";
+  const unit = currency === "IRT" ? "تومان" : currency === "IRR" ? "ریال" : (currency ?? "");
+  const formatted = new Intl.NumberFormat("fa-IR").format(parsed);
+  return unit.length > 0 ? `${formatted} ${unit}` : formatted;
+}
+
+function formatAdminDate(value: string | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Asia/Tehran",
+  }).format(date);
 }
