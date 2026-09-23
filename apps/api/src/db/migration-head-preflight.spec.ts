@@ -7,6 +7,7 @@ import {
   assertMigrationHeadMatches,
   formatMigrationChecksumMismatch,
   formatMigrationHeadMismatch,
+  selectLatestMigrationName,
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
@@ -34,6 +35,16 @@ describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
     assert.equal(
       formatMigrationHeadMismatch("expected", undefined),
       "PRODUCTION_MIGRATION_HEAD_MISMATCH:expected:none"
+    );
+  });
+
+  it("orders the head by migration name, not execution timestamp", () => {
+    assert.equal(
+      selectLatestMigrationName([
+        { migration_name: "20260923120000_payment_gated_finalization" },
+        { migration_name: "20260917120000_otp_verify_attempt_limits" },
+      ]),
+      "20260923120000_payment_gated_finalization"
     );
   });
 

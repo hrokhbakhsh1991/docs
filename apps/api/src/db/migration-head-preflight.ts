@@ -40,6 +40,20 @@ export type MigrationFileChecksum = {
   readonly checksum: string;
 };
 
+/**
+ * Prisma's finished_at is an execution timestamp, not the migration order.
+ * A restored database can therefore have a newer migration with an older
+ * finished_at value. Migration names are timestamp-prefixed and are the
+ * canonical ordering key.
+ */
+export function selectLatestMigrationName(
+  rows: readonly MigrationHeadRow[]
+): string | undefined {
+  return rows
+    .map((row) => row.migration_name)
+    .sort((left, right) => right.localeCompare(left))[0];
+}
+
 function resolveDefaultMigrationsDir(): string {
   return (
     process.env.PRISMA_MIGRATIONS_DIR?.trim() ||
@@ -122,10 +136,10 @@ export async function assertProductionMigrationHead(
       SELECT migration_name
       FROM "_prisma_migrations"
       WHERE finished_at IS NOT NULL
-      ORDER BY finished_at DESC
+      ORDER BY migration_name DESC
       LIMIT 1
     `;
-    assertMigrationHeadMatches(rows[0]?.migration_name);
+    assertMigrationHeadMatches(selectLatestMigrationName(rows));
 
     const requiredRows = await probe.$queryRaw<MigrationChecksumRow[]>`
       SELECT migration_name, checksum
