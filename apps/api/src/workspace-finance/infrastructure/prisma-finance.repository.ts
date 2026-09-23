@@ -99,7 +99,7 @@ type OpenPaymentSelectShape = {
 type ReceiptSelectShape = {
   readonly id: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly status: string;
   readonly note: string | null;
   readonly reviewNote: string | null;
@@ -575,7 +575,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           if (
             byHash.paymentId !== input.paymentId ||
             byHash.fileKey !== input.fileKey ||
-            (input.note !== undefined && byHash.note !== (input.note ?? null))
+            (byHash.note ?? null) !== (input.note ?? null)
           ) {
             throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
           }
@@ -688,7 +688,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           if (
             existing.paymentId !== input.paymentId ||
             existing.fileKey !== input.fileKey ||
-            (input.note !== undefined && existing.note !== (input.note ?? null))
+            (existing.note ?? null) !== (input.note ?? null)
           ) {
             throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
           }

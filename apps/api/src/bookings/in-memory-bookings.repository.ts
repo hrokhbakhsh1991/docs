@@ -40,6 +40,7 @@ import {
 import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
+  BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
@@ -585,6 +586,11 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...row,
       paymentStatus: next,
       ...(finalizationStatus !== undefined ? { finalizationStatus } : {}),
+      ...(row.status === "approved" &&
+      next === "paid" &&
+      finalizationStatus !== row.finalizationStatus
+        ? { finalizedAt: new Date().toISOString() }
+        : {}),
     };
     bookingsStore.set(input.bookingId, updated);
     return cloneBooking(updated);
@@ -601,6 +607,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     }
     if (row.status !== "approved") {
       throw new BookingStatusConflictError(row.status);
+    }
+    if (row.paymentStatus !== "paid") {
+      throw new BookingFinalizationRequiresSettlementError();
     }
     if (row.finalizationStatus === "finalized") {
       return cloneBooking(row);

@@ -34,7 +34,7 @@ export type FinalRosterExportResult = {
   readonly body: Buffer;
 };
 
-export async function listAllFinalRosterRows(
+export async function listAllOperationalRosterRowsForExport(
   auth: BookingActorContext,
   tourId: string,
   loadPage: (
@@ -49,7 +49,7 @@ export async function listAllFinalRosterRows(
   do {
     const query: OperationalRosterListQuery = {
       view: "ops",
-      filter: "final",
+      filter: "operational",
       limit: EXPORT_PAGE_SIZE,
       ...(cursor === undefined ? {} : { cursor }),
     };
@@ -73,8 +73,15 @@ export async function buildFinalRosterWorkbook(input: {
   workbook.created = generatedAt;
   workbook.modified = generatedAt;
 
-  const finalRows = input.rows.filter((row) => row.isFinalParticipant);
-  const unpaidRows = finalRows.filter((row) => !row.isFinanciallySettled);
+  const finalRows = input.rows.filter(
+    (row) =>
+      row.isFinalParticipant &&
+      row.isFinanciallySettled &&
+      (row.financialDisplayState === "PAID" || row.financialDisplayState === "WAIVED")
+  );
+  const unpaidRows = input.rows.filter(
+    (row) => row.isOperationalParticipant && !row.isFinanciallySettled
+  );
   const paidRows = finalRows.filter(
     (row) => row.isFinanciallySettled && row.financialDisplayState === "PAID"
   );
@@ -120,7 +127,7 @@ export async function createFinalRosterExport(
   if (normalizedTourId.length === 0) {
     throw new Error("TOUR_NOT_FOUND");
   }
-  const rows = await listAllFinalRosterRows(auth, normalizedTourId);
+  const rows = await listAllOperationalRosterRowsForExport(auth, normalizedTourId);
   const generatedAt = new Date();
   const timestamp = generatedAt
     .toISOString()

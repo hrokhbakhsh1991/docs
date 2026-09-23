@@ -388,6 +388,7 @@
     "afterApprovePaid": "پس از تأیید — تسویه کامل",
     "invoiceUnavailable": "مانده در دسترس نیست — قوانین بیش‌پرداخت همچنان در سرور اعمال می‌شود.",
     "showProof": "نمایش فیش",
+    "textOnlyEvidence": "این رسید به‌صورت متنی ارسال شده است.",
     "hideProof": "بستن فیش",
     "previewTitle": "تصویر فیش",
     "fileName": "فایل",

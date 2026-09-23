@@ -105,9 +105,9 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 The API coalesces concurrent outstanding-AR and tour-collection reads per tenant for the duration of the shared load. It does not retain the result after completion; both reports therefore continue to read the same invoice-based source without multiplying the expensive scan.
 
-### Registration finalization is independent from payment
+### Registration finalization is payment-gated
 
-`approved` is the registration decision and `finalized` is the operator's decision to include the guest in the final roster. They must not be inferred from one another or from `paymentStatus`. Therefore an approved guest may be either not-final, finalized and unpaid/partially paid, or finalized and settled/waived. Free registrations may transition to finalized automatically after approval; paid registrations require the configured operator finalization rule. When free collection resolves to `paid`, the approval flow must update the booking projection through the canonical booking payment-status transition so `finalizationStatus` and the finance projection cannot diverge. The API contract must expose these dimensions separately so the four primary flows cannot collapse into one ambiguous badge.
+`approved` is the registration decision and `finalized` is the decision to include the guest in the final roster. Approval and financial proof remain separate axes, but an approved guest cannot be final while an amount remains due. The final-roster invariant is `approved` plus a financially settled `PAID` or `WAIVED` projection. Approved unpaid or partially paid guests remain operational and visible in payment follow-up, but never in the final roster or final-roster export. Free registrations may transition to finalized automatically after approval; paid registrations may be finalized only after the canonical Finance payment-status transition reaches zero remaining balance. The Finance approval transaction must persist the paid booking projection and its finalization marker together, so raw Booking state and the operational roster cannot diverge. The API contract must expose lifecycle, finalization, and financial dimensions separately so payment follow-up cannot be mistaken for final participation.
 
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
@@ -120,17 +120,19 @@ The message must show the guest, tour, departure, party size, and registration
 identifier, then state whether the tour requires operator approval. Its inline
 actions are:
 
-| Tour approval mode | Actions                                                                     |
-| ------------------ | --------------------------------------------------------------------------- |
-| `auto`             | `تأیید نهایی بدون نیاز به پرداخت` · `تأیید نهایی با نیاز به پرداخت`         |
-| `manual`           | The same two finalization actions, plus `تأیید` and `انتقال به لیست انتظار` |
+| Tour approval mode | Actions                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `auto`             | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
+| `manual`           | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
 
 Callbacks are typed as `registration:<action>:<registrationId>`, are accepted
 only from an administrator or creator in the configured Telegram supergroup, and are
 tenant-scoped and idempotent. `approve` uses the existing Bookings approval
-operation; `waitlist` uses the existing waitlist operation. The two payment
-variants are represented in the registration decision payload so they must not
-be confused with receipt approval.
+operation; `waitlist` uses the existing waitlist operation. Any action that marks a
+guest final must re-read the financial projection and reject unpaid or partially paid
+registrations. Telegram must show payment follow-up for those rows and final
+participation only for `PAID` or `WAIVED` rows; this must not be confused with receipt
+approval.
 
 ## Operator hint (phase 1C)
 

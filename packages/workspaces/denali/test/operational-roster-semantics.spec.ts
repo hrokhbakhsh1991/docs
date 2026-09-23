@@ -25,18 +25,18 @@ describe("DP-2 operational roster semantics", () => {
     assert.equal(occupiesCapacity("approved"), true);
   });
 
-  it("finalized unpaid remains final without requiring settlement", () => {
+  it("finalized unpaid is not final without settlement", () => {
     assert.equal(
       isFinalParticipant({
         status: "approved",
         remainingMinor: "1000",
         finalizationStatus: "finalized",
       }),
-      true
+      false
     );
   });
 
-  it("keeps finalization independent but bounded by lifecycle and explicit state", () => {
+  it("keeps final roster membership bounded by lifecycle and settlement", () => {
     const cases = [
       {
         name: "explicit not_final",
@@ -45,7 +45,7 @@ describe("DP-2 operational roster semantics", () => {
           remainingMinor: "0",
           finalizationStatus: "not_final",
         },
-        expected: false,
+        expected: true,
       },
       {
         name: "legacy settled row",

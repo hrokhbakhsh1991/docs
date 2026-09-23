@@ -54,12 +54,10 @@ export function isFinalParticipant(input: {
   if (!isOperationalParticipant(input.status)) {
     return false;
   }
-  if (input.finalizationStatus === "finalized") {
-    return true;
-  }
-  // Legacy rows predate the independent finalization field. Preserve their old
-  // settled=>final projection until the database migration has backfilled them.
-  return input.finalizationStatus === undefined && isFinanciallySettled(input.remainingMinor);
+  // Final roster membership is payment-gated. A stale explicit `finalized`
+  // marker must never promote an unpaid or partially paid registration.
+  // Settled legacy rows remain final while their audit field is backfilled.
+  return isFinanciallySettled(input.remainingMinor);
 }
 
 export function occupiesCapacity(status: OperationalRosterLifecycleStatus): boolean {

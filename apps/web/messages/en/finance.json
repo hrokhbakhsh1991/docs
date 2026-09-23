@@ -388,6 +388,7 @@
     "afterApprovePaid": "After approve → paid in full",
     "invoiceUnavailable": "Balance unavailable — backend still enforces overpay rules.",
     "showProof": "Show proof",
+    "textOnlyEvidence": "This receipt was submitted as text evidence.",
     "hideProof": "Hide proof",
     "previewTitle": "Receipt proof",
     "fileName": "File",

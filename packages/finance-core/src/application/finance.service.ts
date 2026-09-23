@@ -196,8 +196,8 @@ export type MemberReceiptStatusView = {
   };
 };
 
-function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
-  const lower = fileKey.trim().toLowerCase();
+function previewKindFromFileKey(fileKey: string | null | undefined): MemberReceiptPreviewKind {
+  const lower = fileKey?.trim().toLowerCase() ?? "";
   if (lower.endsWith(".pdf")) {
     return "pdf";
   }
@@ -827,6 +827,17 @@ export class FinanceService {
   async submitReceipt(auth: FinanceActorContext, body: SubmitReceiptBody, idempotencyKey?: string) {
     const gate = await this.gate(auth);
     this.authorization.assertReceiptSubmitAccess(auth);
+    const fileKey = body.fileKey?.trim() || null;
+    const note = body.note?.trim() || undefined;
+    if (fileKey !== null && fileKey.length > 512) {
+      throw new Error("RECEIPT_FILE_KEY_MAX");
+    }
+    if (note !== undefined && note.length > 2000) {
+      throw new Error("RECEIPT_NOTE_MAX");
+    }
+    if (fileKey === null && note === undefined) {
+      throw new Error("RECEIPT_EVIDENCE_REQUIRED");
+    }
     const trimmedKey = idempotencyKey?.trim() ?? "";
     const idempotencyKeyHash =
       trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : undefined;
@@ -861,26 +872,28 @@ export class FinanceService {
     if (destination === null && body.destinationRevision !== undefined) {
       throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
     }
-    const previewKind = previewKindFromFileKey(body.fileKey);
+    const previewKind = previewKindFromFileKey(fileKey);
     const submittedAt = new Date().toISOString();
     let proofUrl: string | undefined;
-    try {
-      proofUrl = await this.receiptProofStorage.getSignedReadUrl({
-        tenantId: auth.tenantId,
-        storageKey: body.fileKey,
-      });
-    } catch (error: unknown) {
-      this.logger.warn({
-        event: "finance.receipt_proof.telegram_media_unavailable",
-        tenantId: auth.tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    if (fileKey !== null) {
+      try {
+        proofUrl = await this.receiptProofStorage.getSignedReadUrl({
+          tenantId: auth.tenantId,
+          storageKey: fileKey,
+        });
+      } catch (error: unknown) {
+        this.logger.warn({
+          event: "finance.receipt_proof.telegram_media_unavailable",
+          tenantId: auth.tenantId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
-      fileKey: body.fileKey,
-      note: body.note,
+      fileKey,
+      note,
       ...(destination === null
         ? {}
         : {
@@ -900,7 +913,8 @@ export class FinanceService {
           registrationId: payment.registrationId,
           amount: payment.amount,
           currency: payment.currency,
-          fileKey: body.fileKey,
+          ...(fileKey === null ? {} : { fileKey }),
+          evidenceKind: fileKey === null ? "text" : "file",
           submittedAt,
           ...(proofUrl === undefined || previewKind === "unknown"
             ? {}
@@ -908,7 +922,7 @@ export class FinanceService {
                 telegramMediaUrl: proofUrl,
                 telegramMediaKind: previewKind === "image" ? "photo" : "document",
               }),
-          ...(body.note === undefined ? {} : { note: body.note }),
+          ...(note === undefined ? {} : { note }),
           submittedByUserId: auth.userId,
         },
       },
@@ -932,11 +946,23 @@ export class FinanceService {
     auth: FinanceActorContext,
     input: {
       readonly registrationId: string;
-      readonly fileKey: string;
+      readonly fileKey?: string | null;
       readonly note?: string;
       readonly destinationRevision?: string;
-    }
+    },
+    idempotencyKey?: string
   ) {
+    const fileKey = input.fileKey?.trim() || null;
+    const note = input.note?.trim() || undefined;
+    if (fileKey !== null && fileKey.length > 512) {
+      throw new Error("RECEIPT_FILE_KEY_MAX");
+    }
+    if (note !== undefined && note.length > 2000) {
+      throw new Error("RECEIPT_NOTE_MAX");
+    }
+    if (fileKey === null && note === undefined) {
+      throw new Error("RECEIPT_EVIDENCE_REQUIRED");
+    }
     const owns = await this.bookingPayments.memberOwnsRegistration({
       tenantId: auth.tenantId,
       registrationId: input.registrationId,
@@ -1032,14 +1058,18 @@ export class FinanceService {
       });
     }
 
-    return this.submitReceipt(auth, {
-      paymentId: payment.id,
-      fileKey: input.fileKey,
-      ...(input.destinationRevision !== undefined
-        ? { destinationRevision: input.destinationRevision }
-        : {}),
-      ...(input.note !== undefined ? { note: input.note } : {}),
-    });
+    return this.submitReceipt(
+      auth,
+      {
+        paymentId: payment.id,
+        fileKey,
+        ...(input.destinationRevision !== undefined
+          ? { destinationRevision: input.destinationRevision }
+          : {}),
+        ...(note !== undefined ? { note } : {}),
+      },
+      idempotencyKey
+    );
   }
 
   /**
@@ -1280,12 +1310,15 @@ export class FinanceService {
 
   private async resolveMemberReceiptPreview(
     tenantId: string,
-    latest: { readonly fileKey: string } | null
+    latest: { readonly fileKey: string | null } | null
   ): Promise<{
     readonly url: string | null;
     readonly kind: MemberReceiptPreviewKind | null;
   }> {
     if (latest === null) {
+      return { url: null, kind: null };
+    }
+    if (latest.fileKey === null) {
       return { url: null, kind: null };
     }
     const kind = previewKindFromFileKey(latest.fileKey);
@@ -1507,6 +1540,13 @@ export class FinanceService {
     const receipt = await this.repository.findReceiptById(auth.tenantId, receiptId);
     if (receipt === null) {
       throw new Error("FINANCE_RECEIPT_NOT_FOUND");
+    }
+    if (receipt.fileKey === null) {
+      return {
+        receiptId: receipt.id,
+        fileKey: null,
+        url: null,
+      };
     }
     try {
       const url = await this.receiptProofStorage.getSignedReadUrl({

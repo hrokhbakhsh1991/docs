@@ -67,7 +67,10 @@ let prepaymentsByDomainEventId = new Map<
 let refundsById = new Map<string, FinanceRefundRow>();
 let destinationRevisionsByTenant = new Map<string, Map<string, PaymentDestinationRevision>>();
 let currentDestinationRevisionByTenant = new Map<string, string>();
-let receiptDestinationSnapshots = new Map<string, PaymentReceiptDestinationSnapshot & { tenantId: string }>();
+let receiptDestinationSnapshots = new Map<
+  string,
+  PaymentReceiptDestinationSnapshot & { tenantId: string }
+>();
 
 export function resetInMemoryFinanceRepositoryForTests(): void {
   paymentsById = new Map();
@@ -308,7 +311,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
           if (
             existing.paymentId !== input.paymentId ||
             existing.fileKey !== input.fileKey ||
-            (input.note !== undefined && existing.note !== (input.note ?? null))
+            (existing.note ?? null) !== (input.note ?? null)
           ) {
             throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
           }

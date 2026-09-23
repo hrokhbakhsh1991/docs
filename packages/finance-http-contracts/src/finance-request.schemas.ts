@@ -21,11 +21,17 @@ export type CreateManualPaymentBody = z.infer<typeof createManualPaymentBodySche
 export const submitReceiptBodySchema = z
   .object({
     paymentId: uuidSchema,
-    fileKey: z.string().min(1).max(512),
-    note: z.string().max(2000).optional(),
+    fileKey: z.string().min(1).max(512).nullable().optional(),
+    note: z.string().trim().max(2000).optional(),
     destinationRevision: z.string().min(1).max(128).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (body) =>
+      (typeof body.fileKey === "string" && body.fileKey.trim().length > 0) ||
+      (typeof body.note === "string" && body.note.trim().length > 0),
+    { message: "at least one of fileKey or note is required" }
+  );
 
 export type SubmitReceiptBody = z.infer<typeof submitReceiptBodySchema>;
 
@@ -46,9 +52,7 @@ export const cancelPendingManualPaymentBodySchema = z
   })
   .strict();
 
-export type CancelPendingManualPaymentBody = z.infer<
-  typeof cancelPendingManualPaymentBodySchema
->;
+export type CancelPendingManualPaymentBody = z.infer<typeof cancelPendingManualPaymentBodySchema>;
 
 /** PR23-E3 — request offline refund. */
 export const requestRefundBodySchema = z
@@ -112,9 +116,7 @@ export function parseReviewReceiptBody(raw: unknown): ReviewReceiptBody {
   return result.data;
 }
 
-export function parseCancelPendingManualPaymentBody(
-  raw: unknown
-): CancelPendingManualPaymentBody {
+export function parseCancelPendingManualPaymentBody(raw: unknown): CancelPendingManualPaymentBody {
   const result = cancelPendingManualPaymentBodySchema.safeParse(raw);
   if (!result.success) {
     throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
@@ -194,7 +196,9 @@ export function parseOptionalRegistrationId(raw: string | null): string | undefi
   }
   const result = uuidSchema.safeParse(raw.trim());
   if (!result.success) {
-    throw new Error(`ZOD_VALIDATION_FAILED: registrationId: ${result.error.issues[0]?.message ?? "invalid"}`);
+    throw new Error(
+      `ZOD_VALIDATION_FAILED: registrationId: ${result.error.issues[0]?.message ?? "invalid"}`
+    );
   }
   return result.data;
 }
@@ -206,7 +210,9 @@ export function parseOptionalTourId(raw: string | null): string | undefined {
   }
   const result = uuidSchema.safeParse(raw.trim());
   if (!result.success) {
-    throw new Error(`ZOD_VALIDATION_FAILED: tourId: ${result.error.issues[0]?.message ?? "invalid"}`);
+    throw new Error(
+      `ZOD_VALIDATION_FAILED: tourId: ${result.error.issues[0]?.message ?? "invalid"}`
+    );
   }
   return result.data;
 }
@@ -268,21 +274,20 @@ export const generateScheduleBodySchema = z
 
 export type GenerateScheduleBody = z.infer<typeof generateScheduleBodySchema>;
 
-export const patchScheduleItemBodySchema = z
-  .discriminatedUnion("action", [
-    z
-      .object({
-        action: z.literal("waive"),
-        reason: z.string().min(1).max(2000),
-      })
-      .strict(),
-    z
-      .object({
-        action: z.literal("reschedule"),
-        dueAt: z.string().datetime(),
-      })
-      .strict(),
-  ]);
+export const patchScheduleItemBodySchema = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("waive"),
+      reason: z.string().min(1).max(2000),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("reschedule"),
+      dueAt: z.string().datetime(),
+    })
+    .strict(),
+]);
 
 export type PatchScheduleItemBody = z.infer<typeof patchScheduleItemBodySchema>;
 

@@ -184,6 +184,18 @@ export async function formatIntegrationDeliveryMessage(input: {
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
 }): Promise<string> {
+  const appendReceiptEvidenceDetails = (message: string): string => {
+    if (input.eventType !== "receipt.submitted") {
+      return message;
+    }
+    const evidenceKind =
+      typeof input.payload.evidenceKind === "string" ? input.payload.evidenceKind.trim() : "";
+    const note = typeof input.payload.note === "string" ? input.payload.note.trim() : "";
+    if (evidenceKind.length === 0 && note.length === 0) {
+      return message;
+    }
+    return `${message}\nنوع مدرک: ${evidenceKind || "فایل"}\nتوضیحات: ${note || "بدون توضیحات"}`;
+  };
   const overrideTemplate =
     typeof input.payload.integrationDeliveryMessageTemplate === "string" &&
     input.payload.integrationDeliveryMessageTemplate.trim().length > 0
@@ -192,18 +204,21 @@ export async function formatIntegrationDeliveryMessage(input: {
 
   if (overrideTemplate !== null) {
     const resolved = await applyFieldPolicyPlaceholders(overrideTemplate, input.payload);
-    return applyPayloadPlaceholders(resolved, input.payload, input.eventType);
+    return appendReceiptEvidenceDetails(
+      applyPayloadPlaceholders(resolved, input.payload, input.eventType)
+    );
   }
 
   const automaticFieldLines = renderAutomaticDeliveryFieldLines(input.payload);
   if (automaticFieldLines !== null) {
     const header = await renderSurfaceHeaderTemplate(input);
-    return `${header}\n${automaticFieldLines}`;
+    return appendReceiptEvidenceDetails(`${header}\n${automaticFieldLines}`);
   }
 
   const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
   const template = surface?.messageTemplates?.[input.eventType] ?? "{{eventType}}: {{title}}";
 
   const resolved = await applyFieldPolicyPlaceholders(template, input.payload);
-  return applyPayloadPlaceholders(resolved, input.payload, input.eventType);
+  const message = applyPayloadPlaceholders(resolved, input.payload, input.eventType);
+  return appendReceiptEvidenceDetails(message);
 }

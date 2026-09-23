@@ -149,6 +149,9 @@ describe("portal-member-registrations", () => {
     assert.ok(uploadAt > 0 && uploadDestinationAt > uploadAt);
     assert.match(form, /selectedFile === undefined/);
     assert.match(form, /data-portal-member-receipt-file-picker/);
+    assert.match(form, /data-portal-member-receipt-note/);
+    assert.match(form, /Content-Type.*application\/json/);
+    assert.doesNotMatch(form, /\brequired\b/);
     assert.match(form, /t\("noFileSelected"\)/);
     assert.match(form, /t\("chooseFile"\)/);
     assert.match(form, /data-closed-reason/);
@@ -308,8 +311,16 @@ describe("portal-member-registrations", () => {
     for (const key of ["dueRemaining", "dueTotal", "dueNow", "dueBalanceAfterPayment"] as const) {
       assert.equal(typeof faReceipt[key], "string", `missing fa receipt.${key}`);
       assert.equal(typeof enReceipt[key], "string", `missing en receipt.${key}`);
-      assert.match(faReceipt[key], /\{amount\}/, `fa receipt.${key} must expose amount placeholder`);
-      assert.match(enReceipt[key], /\{amount\}/, `en receipt.${key} must expose amount placeholder`);
+      assert.match(
+        faReceipt[key],
+        /\{amount\}/,
+        `fa receipt.${key} must expose amount placeholder`
+      );
+      assert.match(
+        enReceipt[key],
+        /\{amount\}/,
+        `en receipt.${key} must expose amount placeholder`
+      );
     }
     assert.match(fa, /"previewLabel"/);
     assert.match(en, /"previewLabel"/);

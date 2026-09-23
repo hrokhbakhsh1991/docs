@@ -85,7 +85,7 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
     assert.equal(typeof tourChips[0]?.pendingCount, "number");
   });
 
-  it("API-9.5-02b finalize approved unpaid booking independently of payment", async () => {
+  it("API-9.5-02b finalization requires settled payment", async () => {
     const bookingId = "00000000-0000-4000-8000-000000000399";
     getBookingsRepository().seedBooking({
       id: bookingId,
@@ -111,10 +111,24 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
       `/bookings/${bookingId}/finalize`,
       { headers: operatorAuthHeaders() }
     );
-    assert.equal(response.status, 200);
-    assert.equal(response.body.status, "approved");
-    assert.equal(response.body.finalizationStatus, "finalized");
-    assert.equal(typeof response.body.finalizedAt, "string");
+    assert.equal(response.status, 409);
+    assert.equal(response.body.code, "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT");
+
+    await getBookingsRepository().updatePaymentStatus({
+      bookingId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentStatus: "paid",
+    });
+
+    const settled = await client.requestJson<BookingsApiResponse>(
+      "POST",
+      `/bookings/${bookingId}/finalize`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(settled.status, 200);
+    assert.equal(settled.body.status, "approved");
+    assert.equal(settled.body.finalizationStatus, "finalized");
+    assert.equal(typeof settled.body.finalizedAt, "string");
 
     const repeat = await client.requestJson<BookingsApiResponse>(
       "POST",

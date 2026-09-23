@@ -61,6 +61,22 @@ describe("format integration delivery message", () => {
       }),
       "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
     );
+    assert.match(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: {
+          registrationId: "reg-2",
+          paymentId: "pay-2",
+          amount: "2500000",
+          currency: "IRR",
+          submittedAt: "2026-09-14T10:00:00.000Z",
+          evidenceKind: "text",
+          note: "پرداخت از طریق کارت به کارت انجام شد",
+        },
+      }),
+      /نوع مدرک: text\nتوضیحات: پرداخت از طریق کارت به کارت انجام شد/
+    );
   });
 
   it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {

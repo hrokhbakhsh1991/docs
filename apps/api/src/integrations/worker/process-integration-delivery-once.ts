@@ -326,7 +326,7 @@ export async function executeIntegrationDeliveryJob(
               inline_keyboard: [
                 [
                   {
-                    text: "تأیید نهایی بدون نیاز به پرداخت",
+                    text: "تأیید ثبت‌نام بدون نیاز به پرداخت",
                     // Wire code kept short — Telegram caps callback_data at 64 bytes;
                     // "registration:approve_without_payment:<uuid>" would overflow it.
                     callback_data: `registration:apr_np:${job.payload.bookingId}`,
@@ -334,7 +334,7 @@ export async function executeIntegrationDeliveryJob(
                 ],
                 [
                   {
-                    text: "تأیید نهایی با نیاز به پرداخت",
+                    text: "تأیید ثبت‌نام؛ پرداخت لازم است",
                     callback_data: `registration:apr_wp:${job.payload.bookingId}`,
                   },
                 ],

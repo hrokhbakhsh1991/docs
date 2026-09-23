@@ -26,7 +26,7 @@ describe("portal-member-receipt-bff", () => {
     assert.doesNotMatch(route, /\/finance\/receipts/);
   });
 
-  it("MEM-BFF-03b POST route requires a non-empty raw file body", () => {
+  it("MEM-BFF-03b POST route requires a non-empty evidence body", () => {
     const route = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/[id]/receipt/route.ts"),
       "utf8"
@@ -34,6 +34,10 @@ describe("portal-member-receipt-bff", () => {
     assert.match(route, /FILE_REQUIRED/);
     assert.match(route, /status: 400/);
     assert.match(route, /req\.arrayBuffer\(\)/);
+    assert.match(route, /RECEIPT_EVIDENCE_REQUIRED/);
+    assert.match(route, /application\/json/);
+    assert.match(route, /x-receipt-note/);
+    assert.match(route, /idempotency-key/);
     assert.doesNotMatch(route, /req\.formData\(\)/);
   });
 
