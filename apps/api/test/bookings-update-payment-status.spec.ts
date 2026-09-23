@@ -46,4 +46,36 @@ describe("bookings-update-payment-status.spec.ts", () => {
       null
     );
   });
+
+  it("BPAY-03 finalizes an approved booking when free collection syncs paid", async () => {
+    const repo = resetBookingsRepositoryForTests();
+    repo.seedBooking({
+      id: "b-approved",
+      tenantId: "t1",
+      tourId: "tour-1",
+      tourTitle: "Alborz",
+      guestLabel: "Ada",
+      guestEmail: null,
+      guestPhone: null,
+      partySize: 1,
+      status: "approved",
+      paymentStatus: "unpaid",
+      departureAt: "2026-08-01T00:00:00.000Z",
+      submittedAt: "2026-07-01T00:00:00.000Z",
+      submittedByUserId: "u1",
+      approvedAt: "2026-07-01T01:00:00.000Z",
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
+    });
+
+    const paid = await repo.updatePaymentStatus({
+      bookingId: "b-approved",
+      tenantId: "t1",
+      paymentStatus: "paid",
+    });
+
+    assert.equal(paid?.paymentStatus, "paid");
+    assert.equal(paid?.finalizationStatus, "finalized");
+  });
 });

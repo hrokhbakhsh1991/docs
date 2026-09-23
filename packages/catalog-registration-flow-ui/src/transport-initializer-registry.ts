@@ -26,7 +26,6 @@ export function resolveCatalogRegistrationTransportInitialState(
       hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
-      nonPersonalCarAcknowledged: false,
     };
   }
   return initializer(context);

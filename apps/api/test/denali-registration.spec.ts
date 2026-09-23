@@ -373,9 +373,17 @@ describe("denali-registration (M16)", () => {
         headers: operatorOwnerHeaders(),
       });
       assert.equal(detail.status, 200);
-      const data = detail.body as { status?: string; paymentStatus?: string };
+      const data = detail.body as {
+        status?: string;
+        paymentStatus?: string;
+        finalizationStatus?: string;
+      };
       assert.equal(data.status, "approved");
       assert.equal(data.paymentStatus, scenario.expectedPaymentStatus);
+      assert.equal(
+        data.finalizationStatus,
+        scenario.expectedPaymentStatus === "paid" ? "finalized" : "not_final"
+      );
 
       const memberList = await requestDenali(listener, "GET", "/bookings?view=mine&limit=50", {
         headers: {

@@ -20,7 +20,6 @@ function emptyTransportState(): PublicCatalogTransportIntakeState {
     hasPersonalCar: null,
     personalCarOccupants: null,
     paysDong: null,
-    nonPersonalCarAcknowledged: false,
   };
 }
 

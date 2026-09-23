@@ -9,7 +9,6 @@ export type CatalogRegistrationTransportIntakeState = Readonly<{
   readonly hasPersonalCar: boolean | null;
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
-  readonly nonPersonalCarAcknowledged: boolean;
 }>;
 
 export type CatalogRegistrationSavedSelfIntakeDefaults = Readonly<{
@@ -83,7 +82,6 @@ function emptyTransportState(): CatalogRegistrationTransportIntakeState {
     hasPersonalCar: null,
     personalCarOccupants: null,
     paysDong: null,
-    nonPersonalCarAcknowledged: false,
   };
 }
 
@@ -141,8 +139,7 @@ function isTransportState(value: unknown): value is CatalogRegistrationTransport
       row.personalCarOccupants === 1 ||
       row.personalCarOccupants === 2 ||
       row.personalCarOccupants === 3) &&
-    (row.paysDong === null || typeof row.paysDong === "boolean") &&
-    typeof row.nonPersonalCarAcknowledged === "boolean"
+    (row.paysDong === null || typeof row.paysDong === "boolean")
   );
 }
 
