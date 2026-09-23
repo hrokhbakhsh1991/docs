@@ -3,7 +3,10 @@ import { describe, it } from "node:test";
 
 import ExcelJS from "exceljs";
 
-import { buildFinalRosterWorkbook, listAllFinalRosterRows } from "./final-roster-export";
+import {
+  buildFinalRosterWorkbook,
+  listAllOperationalRosterRowsForExport,
+} from "./final-roster-export";
 import type { TourOperationalRosterRow } from "@app-tour/workspace-denali/roster";
 
 function row(input: Partial<TourOperationalRosterRow>): TourOperationalRosterRow {
@@ -43,14 +46,26 @@ describe("final roster Excel export", () => {
     const calls: Array<string | undefined> = [];
     const first = row({ registrationId: "first" });
     const second = row({ registrationId: "second" });
-    const rows = await listAllFinalRosterRows(
+    const rows = await listAllOperationalRosterRowsForExport(
       { tenantId: "tenant-1", userId: "user-1", role: "owner", status: "ACTIVE" },
       "tour-1",
       async (_auth, _tourId, query) => {
         calls.push(query.cursor);
         return query.cursor === undefined
-          ? { tourId: "tour-1", filter: "final", items: [first], total: 101, nextCursor: "next" }
-          : { tourId: "tour-1", filter: "final", items: [second], total: 101, nextCursor: null };
+          ? {
+              tourId: "tour-1",
+              filter: "operational",
+              items: [first],
+              total: 101,
+              nextCursor: "next",
+            }
+          : {
+              tourId: "tour-1",
+              filter: "operational",
+              items: [second],
+              total: 101,
+              nextCursor: null,
+            };
       }
     );
     assert.deepEqual(calls, [undefined, "next"]);
@@ -60,7 +75,7 @@ describe("final roster Excel export", () => {
     );
   });
 
-  it("keeps final debtors in the main sheet and partitions payment state", async () => {
+  it("keeps payment-follow-up rows out of the final sheet and partitions payment state", async () => {
     const workbook = await buildFinalRosterWorkbook({
       tourId: "tour-1",
       tourTitle: "Denali test tour",
@@ -75,6 +90,7 @@ describe("final roster Excel export", () => {
         row({
           registrationId: "debt-1",
           guestLabel: '=HYPERLINK("https://evil.example")',
+          isFinalParticipant: false,
           isFinanciallySettled: false,
           financialDisplayState: "PARTIALLY_PAID",
           remainingMinor: "50000",
@@ -107,7 +123,7 @@ describe("final roster Excel export", () => {
     const unpaidSheet = loaded.getWorksheet("منتظر پرداخت")!;
     const paidSheet = loaded.getWorksheet("پرداخت‌شده")!;
     const waivedSheet = loaded.getWorksheet("بدون دریافت وجه")!;
-    assert.equal(finalSheet.rowCount, 4);
+    assert.equal(finalSheet.rowCount, 3);
     assert.equal(unpaidSheet.rowCount, 2);
     assert.equal(paidSheet.rowCount, 2);
     assert.equal(waivedSheet.rowCount, 2);
@@ -115,8 +131,8 @@ describe("final roster Excel export", () => {
     assert.equal(finalSheet.getCell("B2").text, "Paid guest");
     assert.match(finalSheet.getCell("G2").text, /ریال|تومان/);
     assert.match(finalSheet.getCell("M2").text, /۱۴۰۵|2026/);
-    assert.equal(finalSheet.getCell("B3").text.startsWith("'="), true);
-    assert.equal(finalSheet.getCell("L4").text, "۳ نفر");
+    assert.equal(unpaidSheet.getCell("B2").text.startsWith("'="), true);
+    assert.equal(finalSheet.getCell("L3").text, "۳ نفر");
     assert.equal(finalSheet.tables["RosterFinal"]?.name, "RosterFinal");
   });
 

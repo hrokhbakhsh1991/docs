@@ -11,10 +11,7 @@ import {
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
   it("expected head matches the current tip migration folder", () => {
-    assert.equal(
-      EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260920143000_membership_codes"
-    );
+    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260923120000_payment_gated_finalization");
   });
 
   it("throws on mismatch with structured message", () => {

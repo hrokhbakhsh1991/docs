@@ -15,12 +15,12 @@ Operator cannot answer from one surface who holds a seat, who has paid, who owes
 
 ## Semantics (DEN-PROD-03 — approved)
 
-| Predicate                  | Definition                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `isOperationalParticipant` | `booking.status === "approved"`                                                                                          |
-| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                 |
-| `isFinalParticipant`       | `approved` ∧ (`finalizationStatus === "finalized"`); legacy rows without the field remain final when financially settled |
-| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                         |
+| Predicate                  | Definition                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                  |
+| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                         |
+| `isFinalParticipant`       | `approved` ∧ financially settled (`PAID` or `WAIVED`); `finalizationStatus` records the decision/audit state but cannot make an unpaid row final |
+| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                 |
 
 Financial display states (projection only — not persisted on Bookings):
 
@@ -59,7 +59,7 @@ GET /tours/:tourId/operational-roster?view=ops&filter=&transportKind=&limit=&cur
 | `filter=operational` (default) | Approved seat holders                     |
 | `filter=final`                 | `isFinalParticipant`                      |
 | `filter=unpaid`                | Approved with `remainingMinor > 0`        |
-| `filter=paid`                  | Financially settled approved              |
+| `filter=paid`                  | Approved with `PAID` financial state      |
 | `filter=expiring`              | Approved with `paymentDueAt <= now + 24h` |
 | `filter=waitlist`              | `status=waitlisted`                       |
 | `transportKind`                | Narrow to intake kind                     |
@@ -98,12 +98,12 @@ Tour workspace **transport** tab consumes the roster endpoint and renders paymen
 
 ## Final roster Excel export
 
-The final roster export is an operator-facing report, not a database dump. It reads the composed `filter=final` projection and keeps final participants awaiting payment, fully paid participants, and waived/free participants.
+The final roster export is an operator-facing report, not a database dump. It reads the composed operational projection, puts only fully paid or waived/free participants in `لیست نهایی`, and keeps approved participants awaiting or partially completing payment in the separate `منتظر پرداخت` sheet. Payment-follow-up rows must not contaminate the final sheet.
 
 The workbook uses readable Persian labels and four data sheets:
 
 - `لیست نهایی` — all final participants
-- `منتظر پرداخت` — final participants with an outstanding balance
+- `منتظر پرداخت` — approved operational participants with an outstanding balance
 - `پرداخت‌شده` — final participants with a paid invoice
 - `بدون دریافت وجه` — final participants with the `WAIVED` financial state
 
@@ -111,4 +111,4 @@ Data sheets must not expose internal UUIDs or database keys. Dates are rendered 
 
 ## Events
 
-Read-only projection — no new outbox types in DP-2.
+Finalization is payment-gated. Any booking-finalized event or Telegram notification must be emitted only after the approved registration is `PAID` or `WAIVED`; unpaid and partially paid rows use payment-follow-up messaging. The canonical Finance approval transaction persists the paid booking projection and finalization marker atomically; the roster may normalize legacy projections only as a defensive read model. Event delivery is outbox-backed and idempotent, and Telegram retries must not create duplicate topics or messages.

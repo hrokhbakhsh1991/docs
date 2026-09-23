@@ -359,13 +359,13 @@ describe("Telegram worker delivery", () => {
           inline_keyboard: [
             [
               {
-                text: "تأیید نهایی بدون نیاز به پرداخت",
+                text: "تأیید ثبت‌نام بدون نیاز به پرداخت",
                 callback_data: "registration:apr_np:registration-1",
               },
             ],
             [
               {
-                text: "تأیید نهایی با نیاز به پرداخت",
+                text: "تأیید ثبت‌نام؛ پرداخت لازم است",
                 callback_data: "registration:apr_wp:registration-1",
               },
             ],

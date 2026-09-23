@@ -13,6 +13,7 @@ import {
 } from "./booking-http-error-map.ts";
 import {
   BookingCapabilityViolationError,
+  BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
@@ -32,6 +33,7 @@ describe("booking HTTP error map", () => {
       "BOOKING_ALREADY_APPROVED",
       "BOOKING_ALREADY_CANCELLED",
       "BOOKING_NOT_FOUND",
+      "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
       "BOOKING_FORBIDDEN",
       "BOOKING_VALIDATION_FAILED",
       "BOOKING_WORKSPACE_UNSUPPORTED",
@@ -39,10 +41,7 @@ describe("booking HTTP error map", () => {
       "BULK_APPROVE_BATCH_LIMIT",
     ];
     for (const code of required) {
-      assert.ok(
-        BOOKING_KNOWN_ERROR_CODES.includes(code),
-        `matrix missing ${code}`
-      );
+      assert.ok(BOOKING_KNOWN_ERROR_CODES.includes(code), `matrix missing ${code}`);
     }
   });
 
@@ -101,6 +100,11 @@ describe("booking HTTP error map", () => {
         error: new BookingNotFoundError(),
         status: 404,
         code: "BOOKING_NOT_FOUND",
+      },
+      {
+        error: new BookingFinalizationRequiresSettlementError(),
+        status: 409,
+        code: "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
       },
       {
         error: new BookingsOpsForbiddenError(),
@@ -164,9 +168,7 @@ describe("booking HTTP error map", () => {
   it("prints matrix for audit report", () => {
     console.log("Domain Error | HTTP Status | Reason | Client Action");
     for (const row of BOOKING_HTTP_ERROR_MATRIX) {
-      console.log(
-        `${row.domainError} | ${row.status} | ${row.reason} | ${row.clientAction}`
-      );
+      console.log(`${row.domainError} | ${row.status} | ${row.reason} | ${row.clientAction}`);
     }
   });
 });

@@ -772,6 +772,10 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       },
       ...authErrorResponses,
       ...notFoundConflictResponses,
+      409: errorResponse("Finalization requires settled payment", {
+        error: "conflict",
+        code: "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
+      }),
     },
   },
   rejectBooking: {

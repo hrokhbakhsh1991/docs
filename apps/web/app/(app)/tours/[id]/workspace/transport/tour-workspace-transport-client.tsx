@@ -219,17 +219,21 @@ export function TourWorkspaceTransportClient({
   function renderParticipationState(row: TourOperationalRosterRow) {
     const paymentRequired =
       row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID";
+    const finalForDisplay = row.isFinalParticipant && !paymentRequired;
     return (
       <div className="flex flex-wrap items-center gap-2" data-testid="operator-roster-state">
         <Badge
-          variant={row.isFinalParticipant ? "default" : "outline"}
+          variant={finalForDisplay ? "default" : "outline"}
           data-testid={
-            row.isFinalParticipant ? TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalBadge : undefined
+            finalForDisplay ? TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalBadge : undefined
           }
         >
-          {t(row.isFinalParticipant ? "finalParticipant" : "approvedParticipant")}
+          {t(finalForDisplay ? "finalParticipant" : "approvedParticipant")}
         </Badge>
-        {canManage && row.isOperationalParticipant && !row.isFinalParticipant ? (
+        {canManage &&
+        row.isOperationalParticipant &&
+        !row.isFinalParticipant &&
+        !paymentRequired ? (
           <Button
             type="button"
             size="sm"
@@ -241,7 +245,7 @@ export function TourWorkspaceTransportClient({
             {t("addToFinalRoster")}
           </Button>
         ) : null}
-        {canManage && row.isFinalParticipant && paymentRequired ? (
+        {canManage && row.isOperationalParticipant && paymentRequired ? (
           <Button asChild type="button" size="sm" variant="ghost">
             <OperatorInternalLink
               href={`/tours/${encodeURIComponent(tourId)}/workspace?tab=finance`}

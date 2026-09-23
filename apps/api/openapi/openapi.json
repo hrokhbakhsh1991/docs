@@ -3607,7 +3607,7 @@
             }
           },
           "409": {
-            "description": "Status conflict",
+            "description": "Finalization requires settled payment",
             "content": {
               "application/json": {
                 "schema": {
@@ -3618,7 +3618,7 @@
                     "summary": "BookingHttpError",
                     "value": {
                       "error": "conflict",
-                      "code": "BOOKING_STATUS_CONFLICT"
+                      "code": "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT"
                     }
                   }
                 }

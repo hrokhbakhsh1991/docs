@@ -59,7 +59,7 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.holdStatus, "open");
   });
 
-  it("finalized unpaid row is visible in final roster and still shows balance", () => {
+  it("finalized unpaid row is excluded from final roster and still shows balance", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({ status: "approved", finalizationStatus: "finalized" }),
       invoice: {
@@ -72,7 +72,7 @@ describe("DP-2 compose tour operational roster", () => {
       refundStatuses: [],
       nowIso: NOW,
     });
-    assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.isFinalParticipant, false);
     assert.equal(row.isFinanciallySettled, false);
     assert.equal(row.financialDisplayState, "UNPAID");
   });

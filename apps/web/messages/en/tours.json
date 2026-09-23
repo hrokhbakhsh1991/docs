@@ -495,7 +495,6 @@
       "stages": {
         "approved_payment_required": "Approved; payment required",
         "approved_ready_to_finalize": "Approved; ready for final roster",
-        "final_payment_required": "Final; payment required",
         "final_ready": "Final; ready to join"
       },
       "driverOffer": "Driver",
@@ -532,7 +531,7 @@
         "ready": "Ready to join",
         "driver": "Driver offer; check available seats",
         "notFinal": "Not final yet",
-        "paymentRequiredForFinal": "Follow up the remaining payment to finalize participation",
+        "paymentRequiredForFinal": "Follow up the remaining payment before final participation",
         "paymentDeadline": "Payment follow-up by {date}"
       },
       "settlement": {

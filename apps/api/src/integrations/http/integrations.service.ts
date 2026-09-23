@@ -2103,9 +2103,9 @@ async function acknowledgeTelegramRegistrationAction(
   action: NonNullable<ReturnType<typeof parseTelegramRegistrationAction>>
 ): Promise<void> {
   const labels = {
-    approve_without_payment: "تأیید نهایی بدون نیاز به پرداخت",
-    approve_with_payment: "تأیید نهایی با نیاز به پرداخت",
-    approve: "تأیید",
+    approve_without_payment: "تأیید ثبت‌نام بدون نیاز به پرداخت",
+    approve_with_payment: "تأیید ثبت‌نام؛ پرداخت لازم است",
+    approve: "تأیید ثبت‌نام",
     waitlist: "انتقال به لیست انتظار",
   } as const;
   await safelyAnswerTelegramCallback(api, action.callbackQueryId, labels[action.action]);
