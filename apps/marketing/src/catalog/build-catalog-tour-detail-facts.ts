@@ -14,6 +14,8 @@ export type BuildCatalogTourDetailFactsInput = {
   readonly sections: CatalogDetailSections;
   readonly factLabels: {
     readonly price: string;
+    readonly transport: string;
+    readonly transportCost: string;
     readonly capacity: string;
     readonly dates: string;
     readonly difficulty: string;
@@ -21,6 +23,8 @@ export type BuildCatalogTourDetailFactsInput = {
     readonly category: string;
   };
   readonly priceValue: string | null;
+  readonly transportValue?: string | null;
+  readonly transportCostValue?: string | null;
   readonly capacityValue: string | null;
   readonly datesValue: string;
   readonly difficultyValue: string | null;
@@ -33,7 +37,7 @@ export type BuildCatalogTourDetailFactsInput = {
 
 /** PR-D2 bento cells — price, capacity, dates, difficulty, fitness, category (data-gated). */
 export function buildCatalogTourDetailFacts(
-  input: BuildCatalogTourDetailFactsInput,
+  input: BuildCatalogTourDetailFactsInput
 ): readonly CatalogTourDetailFact[] {
   const facts: CatalogTourDetailFact[] = [];
 
@@ -42,6 +46,22 @@ export function buildCatalogTourDetailFacts(
       id: "price",
       label: input.factLabels.price,
       value: input.priceValue,
+    });
+  }
+
+  if (input.transportValue != null) {
+    facts.push({
+      id: "transport",
+      label: input.factLabels.transport,
+      value: input.transportValue,
+    });
+  }
+
+  if (input.transportCostValue != null) {
+    facts.push({
+      id: "transport-cost",
+      label: input.factLabels.transportCost,
+      value: input.transportCostValue,
     });
   }
 

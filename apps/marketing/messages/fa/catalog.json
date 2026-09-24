@@ -147,6 +147,8 @@
     "difficultyShort": "{level, number} از {max, number}",
     "facts": {
       "price": "قیمت",
+      "transport": "حمل‌ونقل",
+      "transportCost": "هزینه حمل‌ونقل",
       "capacity": "ظرفیت",
       "dates": "تاریخ",
       "difficulty": "سختی",

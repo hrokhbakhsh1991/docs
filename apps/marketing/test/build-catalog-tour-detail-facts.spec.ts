@@ -56,6 +56,8 @@ describe("build-catalog-tour-detail-facts", () => {
 
   const labels = {
     price: "Price",
+    transport: "Transport",
+    transportCost: "Transport cost",
     capacity: "Capacity",
     dates: "Dates",
     difficulty: "Difficulty",
@@ -69,6 +71,8 @@ describe("build-catalog-tour-detail-facts", () => {
       sections,
       factLabels: labels,
       priceValue: "IRR 2,500,000",
+      transportValue: null,
+      transportCostValue: null,
       capacityValue: "12 spots",
       datesValue: "Aug 1",
       difficultyValue: "6 of 10",
@@ -89,6 +93,8 @@ describe("build-catalog-tour-detail-facts", () => {
       sections,
       factLabels: labels,
       priceValue: "IRR 2,500,000",
+      transportValue: null,
+      transportCostValue: null,
       capacityValue: "12 spots",
       datesValue: "Aug 1",
       difficultyValue: "6 of 10",
@@ -108,6 +114,8 @@ describe("build-catalog-tour-detail-facts", () => {
       sections,
       factLabels: labels,
       priceValue: "IRR 2,500,000",
+      transportValue: null,
+      transportCostValue: null,
       capacityValue: "0 spots",
       datesValue: "Aug 1",
       difficultyValue: null,
@@ -116,5 +124,28 @@ describe("build-catalog-tour-detail-facts", () => {
       isSoldOut: true,
     });
     assert.equal(facts.find((fact) => fact.id === "capacity")?.soldOut, true);
+  });
+
+  it("PR-D-FACTS-03 puts transport and its cost beside the primary facts", () => {
+    const facts = buildCatalogTourDetailFacts({
+      tour: { ...baseTour, transport: { mode: "bus" } },
+      sections,
+      factLabels: labels,
+      priceValue: "IRR 2,500,000",
+      transportValue: "Bus",
+      transportCostValue: "IRR 500,000",
+      capacityValue: "12 spots",
+      datesValue: "Aug 1",
+      difficultyValue: null,
+      fitnessValue: null,
+      categoryValue: null,
+      isSoldOut: false,
+      omitMetaLineDuplicates: true,
+    });
+
+    assert.deepEqual(
+      facts.map((fact) => fact.id),
+      ["price", "transport", "transport-cost", "capacity"],
+    );
   });
 });

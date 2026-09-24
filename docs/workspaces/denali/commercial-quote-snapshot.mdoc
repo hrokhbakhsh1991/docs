@@ -228,6 +228,10 @@ Catalog field **`pricing.allowMembershipDiscount`** (wizard `pricingPayment.allo
 
 **Discount MVP 2B (flow verification):** Full journey proven via CQ-E2E-01..05 + CQ-DISC-FLOW-01..07 + CQ-DISC-PERSIST-04 + GATE-01..05 + Postgres CQ persist. Eligible 20% → `member_discount`; gate false → `tour_canonical`; cross-tenant isolation; freeze snapshot stable under live price and Identity % change; override wins.
 
+### Discount base versus transport add-ons
+
+The Denali obligation exposes `discountableBaseMinor` as the scaled `trip` line. Membership discounts apply only to this base amount; `dong` and organized `transport` lines remain payable at their full value. The catalog pricing preview and the persisted money path must receive the same obligation field. A preview must not infer the discount base from the gross total when the obligation contains add-on lines.
+
 ### Reducer precedence at freeze
 
 When multiple facts exist, **one primary `source`** per version:

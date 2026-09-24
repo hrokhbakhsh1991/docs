@@ -22,6 +22,7 @@ describe("resolveDenaliRegistrationDueBreakdown", () => {
     });
     assert.ok(due !== null);
     assert.equal(due!.obligationMinor, "2500000");
+    assert.equal(due!.discountableBaseMinor, "2500000");
     assert.deepEqual(due!.lines, [{ code: "trip", amountMinor: "2500000" }]);
   });
 
@@ -36,6 +37,7 @@ describe("resolveDenaliRegistrationDueBreakdown", () => {
     });
     assert.ok(due !== null);
     assert.equal(due!.obligationMinor, "5160000");
+    assert.equal(due!.discountableBaseMinor, "5000000");
     assert.deepEqual(due!.lines, [
       { code: "trip", amountMinor: "5000000" },
       { code: "dong", amountMinor: "160000" },
@@ -53,6 +55,7 @@ describe("resolveDenaliRegistrationDueBreakdown", () => {
     });
     assert.ok(due !== null);
     assert.equal(due!.obligationMinor, "2650000");
+    assert.equal(due!.discountableBaseMinor, "2500000");
     assert.deepEqual(due!.lines, [
       { code: "trip", amountMinor: "2500000" },
       { code: "transport", amountMinor: "150000" },

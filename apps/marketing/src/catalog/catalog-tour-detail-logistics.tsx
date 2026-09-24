@@ -5,6 +5,7 @@ import { isPublicCatalogOrganizedTransportMode } from "@app-tour/workspace-sdk";
 import { buildCatalogMapLink } from "./build-catalog-map-link";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogPrice } from "./format-catalog-display";
+import { resolveCatalogTransportCostAmount } from "./format-catalog-transport";
 import { resolveCatalogTransportLabelKey } from "./resolve-catalog-transport-label-key";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
@@ -35,12 +36,13 @@ export async function CatalogTourDetailLogistics({
     transportMode != null && transportMode !== "none"
       ? t(resolveCatalogTransportLabelKey(transportMode))
       : null;
+  const transportCostAmount = resolveCatalogTransportCostAmount(transport);
   const transportCost =
+    transportCostAmount != null &&
     transport != null &&
-    transport.transportCostAmount != null &&
     isPublicCatalogOrganizedTransportMode(transport.mode)
       ? formatCatalogPrice(
-          transport.transportCostAmount,
+          transportCostAmount,
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),

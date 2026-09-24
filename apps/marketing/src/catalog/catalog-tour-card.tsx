@@ -5,6 +5,7 @@ import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 import { MARKETING_FALLBACK_TOUR_CARD_COVER_PATH } from "@/home/home-marketing-assets";
 
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
+import { formatCatalogTransportMode } from "./format-catalog-transport";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { hasMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
@@ -51,6 +52,7 @@ export async function CatalogTourCard({
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
   const categorySlug = tour.category?.trim();
   const categoryLabel = await resolveMarketingCatalogCardCategoryLabel(categorySlug, t);
+  const transportLabel = formatCatalogTransportMode(tour.transport, t);
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
     ? formatCatalogPrice(
@@ -102,6 +104,11 @@ export async function CatalogTourCard({
         </h2>
         {categoryLabel ? <p data-marketing-catalog-card-category>{categoryLabel}</p> : null}
         {datesLine ? <p data-marketing-catalog-card-dates>{datesLine}</p> : null}
+        {transportLabel ? (
+          <p data-marketing-catalog-card-transport>
+            <span>{t("detail.logistics.transport")}:</span> {transportLabel}
+          </p>
+        ) : null}
         {summaryLine ? (
           <p data-marketing-catalog-card-summary>{summaryLine}</p>
         ) : description ? (

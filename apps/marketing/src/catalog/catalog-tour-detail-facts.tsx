@@ -14,6 +14,10 @@ import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
+import {
+  formatCatalogTransportMode,
+  resolveCatalogTransportCostAmount,
+} from "./format-catalog-transport";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 
 export type CatalogTourDetailFactsProps = {
@@ -69,12 +73,26 @@ export async function CatalogTourDetailFacts({
       : null;
 
   const categoryValue = await resolveMarketingCatalogCardCategoryLabel(tour.category, t, pluginId);
+  const transportValue = formatCatalogTransportMode(tour.transport, t);
+  const transportCostAmount = resolveCatalogTransportCostAmount(tour.transport);
+  const transportCostValue =
+    transportCostAmount != null
+      ? formatCatalogPrice(
+          transportCostAmount,
+          tour.priceCurrency,
+          dateLocale,
+          t("detail.priceOnRequest"),
+          priceDisplayPolicy
+        )
+      : null;
 
   const facts = buildCatalogTourDetailFacts({
     tour,
     sections,
     factLabels: {
       price: t("detail.facts.price"),
+      transport: t("detail.facts.transport"),
+      transportCost: t("detail.facts.transportCost"),
       capacity: t("detail.facts.capacity"),
       dates: t("detail.facts.dates"),
       difficulty: t("detail.facts.difficulty"),
@@ -82,6 +100,8 @@ export async function CatalogTourDetailFacts({
       category: t("detail.facts.category"),
     },
     priceValue,
+    transportValue,
+    transportCostValue,
     capacityValue,
     datesValue: formatCatalogCardDates(tour, dateLocale, t("detail.datesTba")),
     difficultyValue,

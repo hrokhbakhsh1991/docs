@@ -147,6 +147,8 @@
     "difficultyShort": "{level, number} of {max, number}",
     "facts": {
       "price": "Price",
+      "transport": "Transport",
+      "transportCost": "Transport cost",
       "capacity": "Capacity",
       "dates": "Dates",
       "difficulty": "Difficulty",
