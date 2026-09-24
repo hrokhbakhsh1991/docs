@@ -4,6 +4,64 @@ import { describe, it } from "node:test";
 import { TelegramProviderAdapter } from "./telegram-provider.adapter";
 
 describe("Telegram provider adapter", () => {
+  it("sends an inline URL button with a text message", async () => {
+    const originalFetch = globalThis.fetch;
+    let body: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response(JSON.stringify({ ok: true, result: { message_id: 11 } }), {
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    try {
+      const result = await new TelegramProviderAdapter().sendMessage(
+        {
+          tenantId: "tenant-1",
+          workspaceType: "denali",
+          domainEventId: "TourPublished:tour-1:2",
+          eventType: "TourPublished",
+          config: {},
+          credentials: { botToken: "test-token" },
+        },
+        {
+          channelId: "-1001",
+          messageThreadId: 404,
+          text: "🆕 تور جدید منتشر شد",
+          replyMarkup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "مشاهده تور و ثبت‌نام",
+                  url: "https://denali.shenski.com/tours/tour-1",
+                },
+              ],
+            ],
+          },
+        }
+      );
+
+      assert.deepEqual(result, { ok: true, providerMessageId: "11" });
+      assert.deepEqual(body, {
+        chat_id: "-1001",
+        message_thread_id: 404,
+        text: "🆕 تور جدید منتشر شد",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "مشاهده تور و ثبت‌نام",
+                url: "https://denali.shenski.com/tours/tour-1",
+              },
+            ],
+          ],
+        },
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("sends receipt media and topic controls through Telegram", async () => {
     const originalFetch = globalThis.fetch;
     const calls: Array<{ url: string; body: Record<string, unknown> }> = [];

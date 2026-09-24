@@ -36,7 +36,7 @@ function tourPublishedIntent() {
 }
 
 function buildPolicyEngine(
-  exposureIntent: ReturnType<typeof tourPublishedIntent>,
+  exposureIntent: ReturnType<typeof tourPublishedIntent>
 ): IntegrationPolicyEngine {
   return {
     evaluate: async () => [
@@ -112,7 +112,7 @@ describe("TourPublished telegram delivery message contract", () => {
           async markFailedForRetry() {},
           async markDead() {},
         } as never,
-      },
+      }
     );
 
     assert.equal(enqueued.length, 1);
@@ -126,7 +126,8 @@ describe("TourPublished telegram delivery message contract", () => {
       payload,
     });
 
-    assert.match(rendered, /Tour published: تور جدید/);
+    assert.match(rendered, /🆕 تور جدید منتشر شد/);
+    assert.match(rendered, /🏕 عنوان تور: تور جدید/);
     assert.match(rendered, /Destination: دماوند|مقصد: دماوند/);
     assert.doesNotMatch(rendered, /00000000-0000-4000/);
     assert.doesNotMatch(rendered, /2026-06-30T22:30:00\.000Z/);

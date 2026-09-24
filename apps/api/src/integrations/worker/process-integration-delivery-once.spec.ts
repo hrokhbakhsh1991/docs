@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { IntegrationDeliveryJobRecord } from "../platform/integration-delivery.types";
+import { putMemberReceiptProof } from "../../workspace-finance/receipt-proof-storage";
 import {
   executeIntegrationDeliveryJob,
   processIntegrationDeliveryOnce,
@@ -73,6 +74,73 @@ describe("integration delivery destination resolution", () => {
 });
 
 describe("Telegram worker delivery", () => {
+  it("attaches an uploaded image when the event only carries fileKey", async () => {
+    const previousStorageDriver = process.env.STORAGE_DRIVER;
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.STORAGE_DRIVER = "memory";
+    process.env.NODE_ENV = "test";
+
+    try {
+      const { storageKey } = await putMemberReceiptProof({
+        tenantId: "tenant-denali",
+        registrationId: "registration-1",
+        body: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+        contentType: "image/jpeg",
+        fileName: "payment-proof.jpg",
+      });
+      let capturedMedia:
+        | {
+            readonly kind: "photo" | "document";
+            readonly body?: Uint8Array;
+            readonly contentType?: string;
+            readonly fileName?: string;
+          }
+        | undefined;
+
+      const result = await executeIntegrationDeliveryJob(
+        deliveryJob({ payload: { ...deliveryJob().payload, fileKey: storageKey } }),
+        {
+          resolveConnection: async () => ({
+            id: "connection-1",
+            tenantId: "tenant-denali",
+            workspaceType: "denali",
+            provider: "telegram",
+            status: "enabled",
+            enabled: true,
+            capabilities: ["message.send"],
+            config: { chatId: "-1004292581496", topicThreadIds: { receipts: 202 } },
+            secretRef: "secret-1",
+            credentials: { botToken: "test-token" },
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          }),
+          getProvider: () => ({
+            id: "telegram",
+            supportedCapabilities: ["message.send"],
+            async sendMessage(_ctx, input) {
+              capturedMedia = input.media;
+              return { ok: true };
+            },
+          }),
+        }
+      );
+
+      assert.deepEqual(result, { ok: true });
+      assert.equal(capturedMedia?.kind, "photo");
+      assert.equal(capturedMedia?.contentType, "image/jpeg");
+      assert.match(capturedMedia?.fileName ?? "", /^payment-proof\.jpg-[a-f0-9]{32}$/);
+      assert.deepEqual(
+        [...((capturedMedia?.body ?? new Uint8Array()) as Uint8Array)],
+        [0xff, 0xd8, 0xff, 0xd9]
+      );
+    } finally {
+      if (previousStorageDriver === undefined) delete process.env.STORAGE_DRIVER;
+      else process.env.STORAGE_DRIVER = previousStorageDriver;
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
+
   it("sends a receipt to the persisted forum topic when the connection stores chatId", async () => {
     const sent: Array<{ channelId: string; messageThreadId?: number }> = [];
     const result = await executeIntegrationDeliveryJob(deliveryJob(), {
@@ -445,6 +513,116 @@ describe("Telegram worker delivery", () => {
         replyMarkup: undefined,
       },
     ]);
+  });
+
+  it("attaches a public PDP URL button to TourPublished in the tours topic", async () => {
+    const sent: Array<{
+      messageThreadId?: number;
+      text: string;
+      replyMarkup?: unknown;
+    }> = [];
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        domainEventId: "TourPublished:tour-1:2",
+        eventType: "TourPublished",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "connection-1",
+          telegramTopicKey: "tours",
+          tourId: "tour-1",
+          title: "تور شمال",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "connection-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: { tours: 404 } },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        resolveTourPublishedPdpUrl: async () => "https://denali.shenski.com/tours/tour-1",
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage(_ctx, input) {
+            sent.push({
+              messageThreadId: input.messageThreadId,
+              text: input.text,
+              replyMarkup: input.replyMarkup,
+            });
+            return { ok: true };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sent, [
+      {
+        messageThreadId: 404,
+        text: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: تور شمال",
+        replyMarkup: {
+          inline_keyboard: [
+            [{ text: "مشاهده تور و ثبت‌نام", url: "https://denali.shenski.com/tours/tour-1" }],
+          ],
+        },
+      },
+    ]);
+  });
+
+  it("fails closed when a TourPublished PDP URL cannot be resolved", async () => {
+    let sends = 0;
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        domainEventId: "TourPublished:tour-2:3",
+        eventType: "TourPublished",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "connection-1",
+          telegramTopicKey: "tours",
+          tourId: "tour-2",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "connection-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: { tours: 404 } },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        resolveTourPublishedPdpUrl: async () => null,
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage() {
+            sends += 1;
+            return { ok: true };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, {
+      ok: false,
+      error: { code: "INTEGRATION_TOUR_PDP_URL_UNAVAILABLE" },
+    });
+    assert.equal(sends, 0);
   });
 });
 

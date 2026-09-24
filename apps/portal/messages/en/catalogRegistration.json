@@ -68,7 +68,7 @@
     "backToTourDetails": "Back to tour details",
     "participantLead": "Who are you registering?",
     "inTour": "I am joining this tour",
-    "addGuestShort": "+ Add companion",
+    "addGuestShort": "Add companion",
     "removeGuestShort": "Remove",
     "removeGuestAriaLabel": "Remove guest {index}",
     "guestRemoved": "Companion removed.",

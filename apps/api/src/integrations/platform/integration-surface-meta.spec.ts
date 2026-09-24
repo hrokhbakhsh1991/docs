@@ -17,6 +17,10 @@ describe("integration surface meta", () => {
       { id: "botToken", kind: "secret", requiredOnCreate: true },
     ]);
     assert.deepEqual(telegram.defaultCapabilities, ["message.send"]);
+    assert.equal(
+      telegram.messageTemplates.TourPublished,
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
+    );
     assert.deepEqual(telegram.defaultEventPolicies, [
       { eventType: "TourPublished", enabled: true },
       { eventType: "member.registered", enabled: true },

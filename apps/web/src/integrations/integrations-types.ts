@@ -98,6 +98,7 @@ export type IntegrationProviderSurfaceMeta = {
   readonly credentialFields: readonly IntegrationSurfaceFieldMeta[];
   readonly defaultCapabilities: readonly string[];
   readonly defaultEventPolicies: readonly IntegrationEventPolicySurfaceMeta[];
+  readonly messageTemplates?: Readonly<Record<string, string>>;
 };
 
 export type IntegrationDeliveryCandidateFieldMeta = {
@@ -154,9 +155,7 @@ function parseExposureIntentPublic(payload: unknown): ExposureIntentPublic | nul
               }
               return [fieldId, { prefix: prefix.trim() }] as const;
             })
-            .filter(
-              (entry): entry is readonly [string, ExposureFieldDecoration] => entry !== null,
-            ),
+            .filter((entry): entry is readonly [string, ExposureFieldDecoration] => entry !== null)
         )
       : {};
   return {
@@ -261,7 +260,7 @@ export function parseIntegrationConnectionPublic(payload: unknown): IntegrationC
         : []
     )
       .filter(
-        (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null,
+        (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
       )
       .map(parseExposureIntentPublic)
       .filter((intent): intent is ExposureIntentPublic => intent !== null),
@@ -285,7 +284,7 @@ export function parseIntegrationConnectionPublic(payload: unknown): IntegrationC
       ? {
           loadWarnings: record.loadWarnings.filter(
             (entry): entry is IntegrationConnectionLoadWarning =>
-              entry === "POLICIES_UNAVAILABLE" || entry === "EXPOSURE_INTENTS_UNAVAILABLE",
+              entry === "POLICIES_UNAVAILABLE" || entry === "EXPOSURE_INTENTS_UNAVAILABLE"
           ),
         }
       : {}),
@@ -348,6 +347,18 @@ function parseIntegrationProviderSurfaceMeta(payload: unknown): IntegrationProvi
           }))
           .filter((entry) => entry.eventType !== "")
       : [],
+    ...(typeof record.messageTemplates === "object" &&
+    record.messageTemplates !== null &&
+    !Array.isArray(record.messageTemplates)
+      ? {
+          messageTemplates: Object.fromEntries(
+            Object.entries(record.messageTemplates as Record<string, unknown>).filter(
+              (entry): entry is [string, string] =>
+                typeof entry[0] === "string" && typeof entry[1] === "string"
+            )
+          ),
+        }
+      : {}),
   };
 }
 

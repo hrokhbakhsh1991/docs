@@ -199,10 +199,11 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
 
 function receiptProofContentTypeFromKey(storageKey: string): string {
   const normalized = storageKey.toLowerCase().split("?")[0] ?? storageKey.toLowerCase();
-  if (normalized.endsWith(".pdf")) return "application/pdf";
-  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
-  if (normalized.endsWith(".webp")) return "image/webp";
-  if (normalized.endsWith(".gif")) return "image/gif";
+  const extension = normalized.match(/\.(pdf|jpe?g|png|webp|gif)(?:-[a-f0-9]{16,64})?$/)?.[1];
+  if (extension === "pdf") return "application/pdf";
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+  if (extension === "webp") return "image/webp";
+  if (extension === "gif") return "image/gif";
   return "image/png";
 }
 

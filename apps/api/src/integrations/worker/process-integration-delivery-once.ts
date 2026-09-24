@@ -21,6 +21,8 @@ import {
 } from "../providers/telegram/telegram-forum.config";
 import { LEGACY_TELEGRAM_ID_PREFIX } from "../infrastructure/resolve-legacy-telegram-connection";
 import { readMemberReceiptProof } from "../../workspace-finance/receipt-proof-storage";
+import { resolveIntegrationMediaKindFromStorageKey } from "../application/resolve-integration-media";
+import { resolveTourPublishedPdpUrl } from "../application/resolve-tour-published-pdp-url";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
 
@@ -50,6 +52,8 @@ export type ExecuteIntegrationDeliveryDeps = {
     readonly topicName: string;
     readonly threadId: number;
   }) => Promise<void>;
+  /** Injectable seam for resolving the anonymous public PDP URL in TourPublished messages. */
+  readonly resolveTourPublishedPdpUrl?: typeof resolveTourPublishedPdpUrl;
 };
 
 /**
@@ -318,15 +322,19 @@ export async function executeIntegrationDeliveryJob(
       job.provider === "telegram" &&
       job.eventType === "receipt.submitted" &&
       typeof job.payload.fileKey === "string" &&
-      (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
+      job.payload.fileKey.trim().length > 0
     ) {
       try {
+        const mediaKind =
+          job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document"
+            ? job.payload.telegramMediaKind
+            : resolveIntegrationMediaKindFromStorageKey(job.payload.fileKey);
         const proof = await readMemberReceiptProof({
           tenantId: job.tenantId,
           storageKey: job.payload.fileKey,
         });
         media = {
-          kind: job.payload.telegramMediaKind,
+          kind: mediaKind,
           body: proof.body,
           contentType: proof.contentType,
           fileName: proof.fileName,
@@ -340,54 +348,71 @@ export async function executeIntegrationDeliveryJob(
     ) {
       media = { kind: job.payload.telegramMediaKind, url: job.payload.telegramMediaUrl };
     }
+    const tourPdpUrl =
+      job.provider === "telegram" && job.eventType === "TourPublished"
+        ? await (deps.resolveTourPublishedPdpUrl ?? resolveTourPublishedPdpUrl)({
+            tenantId: job.tenantId,
+            tourId:
+              typeof job.payload.tourId === "string"
+                ? job.payload.tourId
+                : String(job.payload.aggregateId ?? ""),
+          })
+        : null;
+    if (job.provider === "telegram" && job.eventType === "TourPublished" && tourPdpUrl === null) {
+      return { ok: false, error: { code: "INTEGRATION_TOUR_PDP_URL_UNAVAILABLE" } };
+    }
     const replyMarkup =
-      job.eventType === "receipt.submitted" && typeof job.payload.receiptId === "string"
+      tourPdpUrl !== null
         ? {
-            inline_keyboard: [
-              [
-                { text: "تأیید فیش", callback_data: `receipt:approve:${job.payload.receiptId}` },
-                { text: "رد فیش", callback_data: `receipt:reject:${job.payload.receiptId}` },
-              ],
-            ],
+            inline_keyboard: [[{ text: "مشاهده تور و ثبت‌نام", url: tourPdpUrl }]],
           }
-        : job.eventType === "registration.created" &&
-            typeof job.payload.bookingId === "string" &&
-            typeof job.payload.approvalRequired === "boolean"
+        : job.eventType === "receipt.submitted" && typeof job.payload.receiptId === "string"
           ? {
               inline_keyboard: [
                 [
-                  {
-                    text: "تأیید ثبت‌نام بدون نیاز به پرداخت",
-                    // Wire code kept short — Telegram caps callback_data at 64 bytes;
-                    // "registration:approve_without_payment:<uuid>" would overflow it.
-                    callback_data: `registration:apr_np:${job.payload.bookingId}`,
-                  },
+                  { text: "تأیید فیش", callback_data: `receipt:approve:${job.payload.receiptId}` },
+                  { text: "رد فیش", callback_data: `receipt:reject:${job.payload.receiptId}` },
                 ],
-                [
-                  {
-                    text: "تأیید ثبت‌نام؛ پرداخت لازم است",
-                    callback_data: `registration:apr_wp:${job.payload.bookingId}`,
-                  },
-                ],
-                ...(job.payload.approvalRequired
-                  ? [
-                      [
-                        {
-                          text: "تأیید",
-                          callback_data: `registration:apr:${job.payload.bookingId}`,
-                        },
-                      ],
-                      [
-                        {
-                          text: "انتقال به لیست انتظار",
-                          callback_data: `registration:wl:${job.payload.bookingId}`,
-                        },
-                      ],
-                    ]
-                  : []),
               ],
             }
-          : undefined;
+          : job.eventType === "registration.created" &&
+              typeof job.payload.bookingId === "string" &&
+              typeof job.payload.approvalRequired === "boolean"
+            ? {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "تأیید ثبت‌نام بدون نیاز به پرداخت",
+                      // Wire code kept short — Telegram caps callback_data at 64 bytes;
+                      // "registration:approve_without_payment:<uuid>" would overflow it.
+                      callback_data: `registration:apr_np:${job.payload.bookingId}`,
+                    },
+                  ],
+                  [
+                    {
+                      text: "تأیید ثبت‌نام؛ پرداخت لازم است",
+                      callback_data: `registration:apr_wp:${job.payload.bookingId}`,
+                    },
+                  ],
+                  ...(job.payload.approvalRequired
+                    ? [
+                        [
+                          {
+                            text: "تأیید",
+                            callback_data: `registration:apr:${job.payload.bookingId}`,
+                          },
+                        ],
+                        [
+                          {
+                            text: "انتقال به لیست انتظار",
+                            callback_data: `registration:wl:${job.payload.bookingId}`,
+                          },
+                        ],
+                      ]
+                    : []),
+                ],
+              }
+            : undefined;
 
     const result = await adapter.sendMessage(ctx, {
       channelId,

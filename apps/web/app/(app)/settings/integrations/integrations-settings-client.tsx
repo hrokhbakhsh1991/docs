@@ -549,7 +549,7 @@ export function IntegrationsSettingsClient({
 
         // Telegram forum topics belong to the configured group. Re-run the
         // idempotent provisioning flow after an edit so changing the group
-        // cannot leave the connection without its registration/receipts/tickets topics.
+        // cannot leave the connection without its registration/receipts/tickets/tours topics.
         updated = await provisionTelegramIntegration(updated.id, { chatId, groupName });
         if (activeItem.enabled && updated.actionsAllowed.enable && !updated.enabled) {
           updated = await enableIntegration(updated.id);
