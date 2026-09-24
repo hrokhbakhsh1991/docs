@@ -25,7 +25,7 @@ export async function CatalogTourDetailBookingRail({
   cta,
   pricingPreview = null,
 }: CatalogTourDetailBookingRailProps) {
-  if (cta.primaryHref == null && !registration.isSoldOut) {
+  if (cta.primaryHref == null && registration.state !== "past" && registration.state !== "closed") {
     return null;
   }
 

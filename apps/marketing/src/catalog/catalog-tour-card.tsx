@@ -65,11 +65,16 @@ export async function CatalogTourCard({
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const soldOut = tour.spotsRemaining === 0;
+  const registrationState =
+    tour.registrationState ??
+    (soldOut ? (tour.waitlistEnabled === true ? "waitlist" : "closed") : "open");
+  const isPast = registrationState === "past";
 
   return (
     <article
       data-marketing-catalog-card
       {...(soldOut ? { "data-marketing-catalog-card-sold-out": true } : {})}
+      {...(isPast ? { "data-marketing-catalog-card-past": true } : {})}
     >
       <figure data-marketing-catalog-card-media>
         <Link href={detailHref} data-marketing-catalog-card-cover>
@@ -90,7 +95,11 @@ export async function CatalogTourCard({
           priceDisplayPolicy={priceDisplayPolicy}
           t={t}
         />
-        {soldOut ? (
+        {isPast ? (
+          <span data-marketing-catalog-card-spots>{t("list.card.past")}</span>
+        ) : registrationState === "waitlist" ? (
+          <span data-marketing-catalog-card-spots>{t("list.card.waitlist")}</span>
+        ) : soldOut ? (
           <span data-marketing-catalog-card-spots>{t("list.card.soldOut")}</span>
         ) : tour.spotsRemaining != null && tour.spotsRemaining <= 5 ? (
           <span data-marketing-catalog-card-spots>

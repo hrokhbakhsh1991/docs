@@ -101,7 +101,8 @@ export async function CatalogTourDetail({
     categoryLabel,
   });
   const registration = resolveCatalogTourRegistrationState(tour, registrationUrl);
-  const showCtaBlock = cta.primaryHref != null || registration.isSoldOut;
+  const showCtaBlock =
+    cta.primaryHref != null || registration.state === "past" || registration.state === "closed";
   const showItinerary =
     sections.itinerary && tour.itineraryDays != null && tour.itineraryDays.length > 0;
   const showPolicies = sections.policies && tourHasPolicies(tour);

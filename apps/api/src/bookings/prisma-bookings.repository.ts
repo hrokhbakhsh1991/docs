@@ -987,6 +987,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly payload: Readonly<Record<string, unknown>>;
       readonly correlationId?: string;
     };
+    initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       await acquireTourCapacityLock(tx, input.tenantId, input.body.tourId);
@@ -1014,7 +1015,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             guestEmail: input.body.guestEmail ?? null,
             guestPhone: input.body.guestPhone ?? null,
             partySize: input.body.partySize,
-            status: "pending",
+            status: input.initialStatus ?? "pending",
             paymentStatus: input.body.paymentStatus ?? "unpaid",
             departureAt: new Date(input.body.departureAt),
             submittedByUserId: input.submittedByUserId,

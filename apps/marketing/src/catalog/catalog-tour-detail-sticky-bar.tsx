@@ -25,7 +25,7 @@ export async function CatalogTourDetailStickyBar({
   cta,
   pricingPreview = null,
 }: CatalogTourDetailStickyBarProps) {
-  if (cta.primaryHref == null && !registration.isSoldOut) {
+  if (cta.primaryHref == null && registration.state !== "past" && registration.state !== "closed") {
     return null;
   }
 
@@ -54,7 +54,7 @@ export async function CatalogTourDetailStickyBar({
         t={t}
         compact
       />
-      {registration.isSoldOut && cta.primaryKind !== "view-self" ? (
+      {registration.state === "closed" && cta.primaryKind !== "view-self" ? (
         <p data-marketing-catalog-detail-sold-out>{t("detail.soldOut")}</p>
       ) : (
         <CatalogTourDetailRegisterCta

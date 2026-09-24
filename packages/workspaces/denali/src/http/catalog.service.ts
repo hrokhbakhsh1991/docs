@@ -1,4 +1,7 @@
-import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
+import type {
+  PublicCatalogRegistrationState,
+  PublicCatalogTourInput,
+} from "@app-tour/workspace-sdk";
 import {
   applyWorkspaceCatalogCardExposure,
   assertWorkspaceTypeOrThrow,
@@ -20,9 +23,7 @@ import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 import { resolveDenaliCatalogPhotoEnrichment } from "../catalog/enrich-denali-catalog-photo-urls";
 import {
   filterDenaliCatalogTourAvailability,
-  filterDenaliCatalogTourDepartureWindow,
   filterDenaliCatalogTourRecords,
-  isDenaliCatalogTourUpcoming,
   sortDenaliCatalogTourRecords,
   type DenaliCatalogListQuery,
 } from "../catalog/filter-denali-catalog-list";
@@ -38,8 +39,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
 }
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isTourId(value: string): boolean {
   return UUID_PATTERN.test(value);
@@ -146,7 +146,28 @@ async function enrichCatalogCardsWithSpots(params: {
           params.tenantId,
           params.cards.map((card) => card.id)
         );
-  return params.cards.map((card) => withSpotsRemaining(card, approvedByTour[card.id] ?? 0));
+  return params.cards.map((card) => {
+    const withSpots = withSpotsRemaining(card, approvedByTour[card.id] ?? 0);
+    return withDenaliRegistrationState(withSpots);
+  });
+}
+
+function withDenaliRegistrationState<T extends ReturnType<typeof toDenaliCatalogCard>>(card: T): T {
+  const departureAt = card.departureAt == null ? null : Date.parse(card.departureAt);
+  const hasDeparture = departureAt != null && Number.isFinite(departureAt);
+  let registrationState: PublicCatalogRegistrationState = "open";
+  if (!hasDeparture) {
+    registrationState = "closed";
+  } else if (departureAt <= Date.now()) {
+    registrationState = "past";
+  } else if (card.spotsRemaining === 0) {
+    registrationState = "waitlist";
+  }
+  return Object.freeze({
+    ...card,
+    registrationState,
+    waitlistEnabled: true,
+  });
 }
 
 export type DenaliCatalogListResult = {
@@ -182,7 +203,6 @@ export async function listDenaliCatalog(params: {
     isPublished: isDenaliTourPublished,
     getCanonical: (tour) => tour.canonical,
   });
-  published = [...filterDenaliCatalogTourDepartureWindow(published)];
   published = [...filterDenaliCatalogTourRecords(published, listQuery)];
   published = [
     ...(await filterDenaliCatalogTourAvailability(published, {
@@ -246,7 +266,7 @@ export async function getDenaliCatalogTour(params: {
     isPublished: isDenaliTourPublished,
     getCanonical: (row) => row.canonical,
   });
-  if (tour === null || !isDenaliCatalogTourUpcoming(tour)) {
+  if (tour === null) {
     return null;
   }
   const destinationNameById = await resolveDestinationNameById({

@@ -100,6 +100,8 @@
     },
     "card": {
       "soldOut": "تکمیل ظرفیت",
+      "waitlist": "لیست انتظار",
+      "past": "پایان‌یافته",
       "summary": {
         "singleDay": "تک‌روزه",
         "multiDay": "{days, number} روز",
@@ -144,6 +146,8 @@
     "priceOnRequest": "قیمت پس از استعلام",
     "datesTba": "تاریخ اعلام می‌شود",
     "soldOut": "ظرفیت تکمیل شده",
+    "joinWaitlist": "عضویت در لیست انتظار",
+    "past": "این تور به پایان رسیده است",
     "difficultyShort": "{level, number} از {max, number}",
     "facts": {
       "price": "قیمت",

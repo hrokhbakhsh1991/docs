@@ -58,6 +58,7 @@ export const denaliIntegrationSurface = Object.freeze({
         { eventType: "TourPublished", enabled: true },
         { eventType: "member.registered", enabled: true },
         { eventType: "registration.created", enabled: true },
+        { eventType: "registration.waitlisted", enabled: true },
         { eventType: "registration.approved", enabled: true },
         { eventType: "receipt.submitted", enabled: true },
         { eventType: "receipt.approved", enabled: true },
@@ -81,6 +82,11 @@ export const denaliIntegrationSurface = Object.freeze({
         },
         {
           eventType: "registration.created",
+          capability: "message.send",
+          topicKey: "registration",
+        },
+        {
+          eventType: "registration.waitlisted",
           capability: "message.send",
           topicKey: "registration",
         },
@@ -132,6 +138,8 @@ export const denaliIntegrationSurface = Object.freeze({
       "عضو جدید دنالی\nنام: {{displayName}}\nشماره تماس: {{mobile}}\nتاریخ ثبت‌نام: {{registeredAt}}",
     "registration.created":
       "📝 ثبت‌نام جدید\n\n👤 نام: {{guestLabel}}\n🏕 تور: {{tourTitle}}\n📅 تاریخ حرکت: {{departureAt}}\n👥 تعداد نفرات: {{partySize}}\n🆔 شناسه ثبت‌نام: {{bookingId}}\n\n{{approvalPrompt}}",
+    "registration.waitlisted":
+      "⏳ ثبت‌نام در لیست انتظار\n\n👤 نام: {{guestLabel}}\n🏕 تور: {{tourTitle}}\n📅 تاریخ حرکت: {{departureAt}}\n👥 تعداد نفرات: {{partySize}}\n🆔 شناسه ثبت‌نام: {{bookingId}}\n\n{{approvalPrompt}}",
     "registration.approved":
       "ثبت‌نام تأیید شد\nشناسه ثبت‌نام: {{bookingId}}\nتاریخ تأیید: {{approvedAt}}",
     "receipt.submitted":

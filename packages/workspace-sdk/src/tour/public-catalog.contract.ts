@@ -45,6 +45,9 @@ export type PublicCatalogPaymentPlan = {
   readonly prepaymentPercent?: number | null;
 };
 
+/** Server-derived action state for a published public tour. */
+export type PublicCatalogRegistrationState = "open" | "waitlist" | "past" | "closed";
+
 /** Egress-safe list card — workspaces extend via additional fields at API layer. */
 export type PublicCatalogCard = {
   readonly id: string;
@@ -59,6 +62,10 @@ export type PublicCatalogCard = {
   readonly totalCapacity: number | null;
   /** Remaining seats when host enriches from approved booking occupancy (DEC-P11-013). */
   readonly spotsRemaining?: number | null;
+  /** Server-derived registration state; publishStatus remains a separate concern. */
+  readonly registrationState?: PublicCatalogRegistrationState;
+  /** Whether a full tour accepts new public waitlist entries. */
+  readonly waitlistEnabled?: boolean;
   readonly difficultyLevel?: number | null;
   readonly fitnessLevel?: string | null;
   readonly itineraryDays?: readonly PublicCatalogItineraryDay[];

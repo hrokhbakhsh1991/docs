@@ -157,6 +157,69 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
     assert.equal(created.status, "pending");
   });
 
+  it("DN-B1-R03 full tour creates a waitlisted booking without auto-approval", async () => {
+    let pendingCalls = 0;
+    let waitlistCalls = 0;
+    const bookingPort: BookingPublicPort = {
+      async findDuplicateByTourGuest() {
+        return null;
+      },
+      async findDuplicateByTourGuestLabel() {
+        return null;
+      },
+      async findDuplicateByTourGuestNationalId() {
+        return null;
+      },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
+      async findDuplicateByTourEmail() {
+        return null;
+      },
+      async findOwnedBooking() {
+        return null;
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
+      async createPendingBooking() {
+        pendingCalls += 1;
+        return { id: "unexpected-pending", status: "pending" };
+      },
+      async createWaitlistedBooking(input) {
+        waitlistCalls += 1;
+        assert.equal(input.outboxEvent?.eventType, "registration.waitlisted");
+        return { id: "waitlisted-1", status: "waitlisted" };
+      },
+      async autoApprovePublicBooking() {
+        throw new Error("waitlisted booking must not auto-approve");
+      },
+      async sumApprovedPartySizeByTourIds() {
+        return { [TOUR_ID]: 12 };
+      },
+    };
+
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: {
+        tourId: TOUR_ID,
+        contact: { fullName: "Waitlist Guest" },
+        partySize: 1,
+      },
+      store: publishedTourStore(),
+      bookingPort,
+    });
+
+    assert.deepEqual(created, { id: "waitlisted-1", status: "waitlisted" });
+    assert.equal(waitlistCalls, 1);
+    assert.equal(pendingCalls, 0);
+  });
+
   it("DN-B1-R03 empty guestLabel never reaches host createPendingBooking", async () => {
     let createCalls = 0;
     const bookingPort: BookingPublicPort = {

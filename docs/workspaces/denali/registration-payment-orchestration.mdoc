@@ -114,7 +114,8 @@ Bookings still owns approve. Finance still owns receipt review. The inbox is a *
 ### Telegram registration decision message
 
 The Telegram `registration` topic receives an actionable `registration.created`
-message. Receipt review remains a separate flow in the `receipts` topic.
+message and a non-actionable `registration.waitlisted` message. Receipt review
+remains a separate flow in the `receipts` topic.
 
 The message must show the guest, tour, departure, party size, and registration
 identifier, then state whether the tour requires operator approval. Its inline
@@ -180,18 +181,18 @@ Dev OTP operator paths (not `/auth/otp/*`): `POST /auth/request-otp` → `POST /
 
 ### Path verification closure (2026-08-07)
 
-| Item                                | Result                                                                                                                      |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Fresh create from catalog           | OK — `POST /api/catalog/registrations` → booking `pending`/`unpaid` (tour `capacityMax` must leave approved-party headroom) |
-| Admin Approve on `/bookings`        | OK — UI `تأیید` → `approved`/`unpaid`                                                                                       |
-| Member receipt upload               | OK — portal BFF `POST …/receipt` → Finance receipt `Pending`                                                                |
-| Finance receipt approve             | OK — `PATCH …/review` + `Idempotency-Key` → `bookingPaymentStatus=paid` (portal paid panel)                                 |
-| E rejected receipt re-upload        | OK — upload form + prior-reject status copy                                                                                 |
-| G rejected / H cancelled            | OK — closed panel, no upload                                                                                                |
-| Logout                              | OK — lands on `/login` (may include `portalReturn`)                                                                         |
-| P2 false 404                        | Fixed — wrong method → **405** `METHOD_NOT_ALLOWED` + `Allow`                                                               |
-| Catalog submit Idempotency + Bearer | Fixed — Denali intake sends/forwards `Idempotency-Key`; BFF uses `buildMemberApiHeaders`                                    |
-| P3 admin Next hang                  | **Ops** — intermittent `next dev` stall; restart process; no product-code defect found                                      |
+| Item                                | Result                                                                                                                                                                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh create from catalog           | OK — `POST /api/catalog/registrations` → booking `pending`/`unpaid` while approved capacity remains; when the published tour is full and waitlist is enabled, booking is `waitlisted` (no payment hold or auto-approve) |
+| Admin Approve on `/bookings`        | OK — UI `تأیید` → `approved`/`unpaid`                                                                                                                                                                                   |
+| Member receipt upload               | OK — portal BFF `POST …/receipt` → Finance receipt `Pending`                                                                                                                                                            |
+| Finance receipt approve             | OK — `PATCH …/review` + `Idempotency-Key` → `bookingPaymentStatus=paid` (portal paid panel)                                                                                                                             |
+| E rejected receipt re-upload        | OK — upload form + prior-reject status copy                                                                                                                                                                             |
+| G rejected / H cancelled            | OK — closed panel, no upload                                                                                                                                                                                            |
+| Logout                              | OK — lands on `/login` (may include `portalReturn`)                                                                                                                                                                     |
+| P2 false 404                        | Fixed — wrong method → **405** `METHOD_NOT_ALLOWED` + `Allow`                                                                                                                                                           |
+| Catalog submit Idempotency + Bearer | Fixed — Denali intake sends/forwards `Idempotency-Key`; BFF uses `buildMemberApiHeaders`                                                                                                                                |
+| P3 admin Next hang                  | **Ops** — intermittent `next dev` stall; restart process; no product-code defect found                                                                                                                                  |
 
 ## Phase 2 — Offline receipt amount from tour obligation (2026-08-06)
 
@@ -444,5 +445,5 @@ PC-07 remains: Denali paid ingress is `offline_receipt` only.
 ## Auth and notification resilience addendum (2026-09-17)
 
 - OTP verification must remain single-use and additionally enforce bounded attempts per challenge plus a phone/IP failure window. Static OTP `1234` is permitted only in development/test or with the explicit staging profile flag; ordinary production must fail closed.
-- Registration and receipt notifications are emitted through the durable outbox. `registration.created`, `receipt.submitted`, `receipt.approved`, and `receipt.rejected` are delivery inputs; Telegram delivery is best effort and must never roll back the financial mutation.
+- Registration and receipt notifications are emitted through the durable outbox. `registration.created`, `registration.waitlisted`, `receipt.submitted`, `receipt.approved`, and `receipt.rejected` are delivery inputs; Telegram delivery is best effort and must never roll back the financial mutation.
 - Anonymous registration keeps the modal-first experience as progressive enhancement, with a server-rendered login/retry escape path. CTA variants must not leave hidden rail/sticky controls keyboard-focusable.
