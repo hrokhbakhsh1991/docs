@@ -21,6 +21,7 @@ describe("integration surface meta", () => {
       { eventType: "TourPublished", enabled: true },
       { eventType: "member.registered", enabled: true },
       { eventType: "registration.created", enabled: true },
+      { eventType: "registration.waitlisted", enabled: true },
       { eventType: "registration.approved", enabled: true },
       { eventType: "receipt.submitted", enabled: true },
       { eventType: "receipt.approved", enabled: true },

@@ -50,6 +50,21 @@ describe("format integration delivery message", () => {
     assert.equal(
       await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
+        eventType: "registration.waitlisted",
+        payload: {
+          guestLabel: "Ali Test",
+          tourTitle: "Damavand",
+          departureAt: "2026-09-20",
+          partySize: 2,
+          bookingId: "registration-123",
+          approvalPrompt: "⏳ ظرفیت تکمیل است؛ ثبت‌نام در لیست انتظار قرار گرفت.",
+        },
+      }),
+      "⏳ ثبت‌نام در لیست انتظار\n\n👤 نام: Ali Test\n🏕 تور: Damavand\n📅 تاریخ حرکت: 2026-09-20\n👥 تعداد نفرات: 2\n🆔 شناسه ثبت‌نام: registration-123\n\n⏳ ظرفیت تکمیل است؛ ثبت‌نام در لیست انتظار قرار گرفت."
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
         eventType: "receipt.submitted",
         payload: {
           registrationId: "reg-1",

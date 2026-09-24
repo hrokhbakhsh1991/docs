@@ -1,6 +1,6 @@
 export type MarketingTourDetailCtaMode = "guest" | "member-continue" | "member-self";
 
-export type MarketingTourDetailCtaPrimaryKind = "register" | "continue" | "view-self";
+export type MarketingTourDetailCtaPrimaryKind = "register" | "waitlist" | "continue" | "view-self";
 
 export type MarketingTourDetailCtaSecondaryKind = "sign-in" | "register-another";
 
@@ -27,6 +27,7 @@ export function resolveMarketingTourDetailCtaModel(input: {
   readonly registrationUrl: string | null;
   readonly tourSignInUrl: string | null;
   readonly canRegister: boolean;
+  readonly canJoinWaitlist?: boolean;
   readonly memberSessionReadable: boolean;
   readonly selfRegistrationDetailUrl: string | null;
 }): MarketingTourDetailCtaModel {
@@ -35,7 +36,8 @@ export function resolveMarketingTourDetailCtaModel(input: {
   const selfUrl = trimOrNull(input.selfRegistrationDetailUrl);
 
   if (input.memberSessionReadable && selfUrl !== null) {
-    const canAddAnother = input.canRegister && registrationUrl !== null;
+    const canAddAnother =
+      (input.canRegister || input.canJoinWaitlist === true) && registrationUrl !== null;
     return Object.freeze({
       mode: "member-self",
       primaryHref: selfUrl,
@@ -46,7 +48,7 @@ export function resolveMarketingTourDetailCtaModel(input: {
   }
 
   if (input.memberSessionReadable) {
-    if (!input.canRegister || registrationUrl === null) {
+    if ((!input.canRegister && input.canJoinWaitlist !== true) || registrationUrl === null) {
       return Object.freeze({
         mode: "member-continue",
         primaryHref: null,
@@ -58,13 +60,13 @@ export function resolveMarketingTourDetailCtaModel(input: {
     return Object.freeze({
       mode: "member-continue",
       primaryHref: registrationUrl,
-      primaryKind: "continue",
+      primaryKind: input.canJoinWaitlist === true ? "waitlist" : "continue",
       secondaryHref: null,
       secondaryKind: null,
     });
   }
 
-  if (!input.canRegister || registrationUrl === null) {
+  if ((!input.canRegister && input.canJoinWaitlist !== true) || registrationUrl === null) {
     return Object.freeze({
       mode: "guest",
       primaryHref: null,
@@ -77,7 +79,7 @@ export function resolveMarketingTourDetailCtaModel(input: {
   return Object.freeze({
     mode: "guest",
     primaryHref: registrationUrl,
-    primaryKind: "register",
+    primaryKind: input.canJoinWaitlist === true ? "waitlist" : "register",
     secondaryHref: tourSignInUrl,
     secondaryKind: tourSignInUrl !== null ? "sign-in" : null,
   });

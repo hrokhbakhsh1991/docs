@@ -33,6 +33,14 @@ describe("integration event mappings", () => {
         topicKey: "registration",
       },
     ]);
+    assert.deepEqual(await integrationMappingsForEvent("registration.waitlisted", "denali"), [
+      {
+        eventType: "registration.waitlisted",
+        capability: "message.send",
+        providers: ["telegram"],
+        topicKey: "registration",
+      },
+    ]);
     assert.deepEqual(await integrationMappingsForEvent("registration.approved", "denali"), [
       {
         eventType: "registration.approved",

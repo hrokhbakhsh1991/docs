@@ -93,6 +93,8 @@ export interface BookingPublicPort {
     email: string
   ): Promise<{ readonly id: string } | null>;
   createPendingBooking(input: BookingPublicCreateInput): Promise<BookingPublicCreateResult>;
+  /** Create a validated waitlisted booking without consuming approved capacity. */
+  createWaitlistedBooking?: (input: BookingPublicCreateInput) => Promise<BookingPublicCreateResult>;
   /**
    * Tour-policy auto-approve after public create (no ops CASL).
    * Capacity failure → leave pending and return current status.

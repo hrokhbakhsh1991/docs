@@ -85,6 +85,7 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
     registrationUrl,
     tourSignInUrl,
     canRegister: registration.canRegister,
+    canJoinWaitlist: registration.canJoinWaitlist,
   });
   const pricingPreviews = await fetchCommercialPricingPreviews({
     host,

@@ -134,6 +134,7 @@ export interface BookingRepositoryPort {
       readonly occupiedApprovedPartySize: number;
     }) => void;
     outboxEvent?: BookingOutboxEventInput;
+    initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord>;
   /**
    * Approve in one tenant TX: load → occupancy sum → optional capacity assert → status + outbox.

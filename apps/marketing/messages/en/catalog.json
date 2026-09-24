@@ -100,6 +100,8 @@
     },
     "card": {
       "soldOut": "Sold out",
+      "waitlist": "Waitlist",
+      "past": "Past",
       "summary": {
         "singleDay": "Single day",
         "multiDay": "{days, number} days",
@@ -144,9 +146,13 @@
     "priceOnRequest": "Price on request",
     "datesTba": "Dates TBA",
     "soldOut": "Fully booked",
+    "joinWaitlist": "Join waitlist",
+    "past": "This tour has ended",
     "difficultyShort": "{level, number} of {max, number}",
     "facts": {
       "price": "Price",
+      "transport": "Transport",
+      "transportCost": "Transport cost",
       "capacity": "Capacity",
       "dates": "Dates",
       "difficulty": "Difficulty",

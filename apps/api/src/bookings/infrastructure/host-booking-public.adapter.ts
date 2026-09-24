@@ -8,6 +8,7 @@ import { getBookingsRepository } from "../create-bookings-repository";
 import {
   autoApprovePublicBooking as autoApprovePublicBookingService,
   createPublicGuestBooking,
+  createPublicWaitlistedBooking,
   findGuestBookingDuplicateMatch,
   sumApprovedPartySizeByTourIds as sumApprovedPartySizeByTourIdsService,
 } from "../create-bookings-service";
@@ -99,6 +100,30 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
     },
     async createPendingBooking(input) {
       const created = await createPublicGuestBooking(
+        {
+          tenantId: input.tenantId,
+          userId: input.guestUserId,
+          role: "none",
+          status: "ACTIVE",
+        },
+        {
+          tourId: input.tourId,
+          tourTitle: input.tourTitle,
+          guestLabel: input.guestLabel,
+          guestEmail: input.guestEmail,
+          guestPhone: input.guestPhone,
+          partySize: input.partySize,
+          departureAt: input.departureAt,
+          ...(input.registrationIntake !== undefined
+            ? { registrationIntake: input.registrationIntake }
+            : {}),
+        },
+        input.outboxEvent
+      );
+      return { id: created.id, status: created.status };
+    },
+    async createWaitlistedBooking(input) {
+      const created = await createPublicWaitlistedBooking(
         {
           tenantId: input.tenantId,
           userId: input.guestUserId,

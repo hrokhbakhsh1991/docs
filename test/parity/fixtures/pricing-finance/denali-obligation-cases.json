@@ -72,6 +72,7 @@
         "label": "offline-receipt-party-2",
         "resolved": {
           "currency": "IRR",
+          "discountableBaseMinor": "5000000",
           "obligationMinor": "5000000",
           "source": "tour_canonical",
           "lines": [{ "code": "trip", "amountMinor": "5000000" }]
@@ -83,6 +84,7 @@
         "label": "wrapped-canonical",
         "resolved": {
           "currency": "IRR",
+          "discountableBaseMinor": "2500000",
           "obligationMinor": "2500000",
           "source": "tour_canonical",
           "lines": [{ "code": "trip", "amountMinor": "2500000" }]
@@ -92,6 +94,7 @@
         "label": "currency-usd",
         "resolved": {
           "currency": "USD",
+          "discountableBaseMinor": "3000",
           "obligationMinor": "3000",
           "source": "tour_canonical",
           "lines": [{ "code": "trip", "amountMinor": "3000" }]

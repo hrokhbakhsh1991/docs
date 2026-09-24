@@ -724,6 +724,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       readonly payload: Readonly<Record<string, unknown>>;
       readonly correlationId?: string;
     };
+    initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord> {
     let occupiedApprovedPartySize = 0;
     for (const row of bookingsStore.values()) {
@@ -754,7 +755,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       guestEmail: input.body.guestEmail ?? null,
       guestPhone: input.body.guestPhone ?? null,
       partySize: input.body.partySize,
-      status: "pending",
+      status: input.initialStatus ?? "pending",
       paymentStatus: input.body.paymentStatus ?? "unpaid",
       departureAt: input.body.departureAt,
       submittedAt: now,

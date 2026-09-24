@@ -306,6 +306,7 @@ export {
 } from "./tour/tour-list-projection.contract";
 export {
   type PublicCatalogCard,
+  type PublicCatalogRegistrationState,
   type PublicCatalogGearItem,
   type PublicCatalogGatheringPoint,
   type PublicCatalogPaymentPlan,

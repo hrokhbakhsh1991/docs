@@ -255,6 +255,18 @@ export async function createPublicGuestBooking(
   );
 }
 
+export async function createPublicWaitlistedBooking(
+  auth: BookingActorContext,
+  body: CreateBookingRequest,
+  outboxEvent?: BookingPublicOutboxEvent
+): Promise<CreateBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).createPublicWaitlistedBooking(
+    auth,
+    body,
+    outboxEvent
+  );
+}
+
 export async function approveBooking(
   auth: BookingActorContext,
   bookingId: string

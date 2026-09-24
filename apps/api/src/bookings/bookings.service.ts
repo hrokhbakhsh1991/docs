@@ -502,6 +502,17 @@ export class BookingsService {
     return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent);
   }
 
+  /** Public waitlist create: same validation boundary, without claiming approved capacity. */
+  async createPublicWaitlistedBooking(
+    auth: BookingActorContext,
+    body: CreateBookingRequest,
+    outboxEvent?: BookingPublicOutboxEvent
+  ): Promise<CreateBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.assertPublicCreateCapability();
+    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent, "waitlisted");
+  }
+
   private async resolveSubmittedByUserIdForOperatorCreate(
     auth: BookingActorContext,
     body: CreateBookingRequest
@@ -559,7 +570,8 @@ export class BookingsService {
     auth: BookingActorContext,
     body: CreateBookingRequest,
     submittedByUserId: string,
-    outboxEvent?: BookingPublicOutboxEvent
+    outboxEvent?: BookingPublicOutboxEvent,
+    initialStatus: "pending" | "waitlisted" = "pending"
   ): Promise<CreateBookingResponse> {
     const started = performance.now();
     try {
@@ -599,12 +611,21 @@ export class BookingsService {
         tenantId: auth.tenantId,
         submittedByUserId,
         body: securedBody,
-        assertCapacityInTx: (ctx) => {
-          this.capacityPolicy.assertCreateCapacity({
-            ...baseCtx,
-            occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
-          });
-        },
+        ...(initialStatus === "pending"
+          ? {
+              assertCapacityInTx: (ctx: {
+                readonly tourId: string;
+                readonly partySize: number;
+                readonly occupiedApprovedPartySize: number;
+              }) => {
+                this.capacityPolicy.assertCreateCapacity({
+                  ...baseCtx,
+                  occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
+                });
+              },
+            }
+          : {}),
+        initialStatus,
         ...(outboxEvent === undefined ? {} : { outboxEvent }),
       });
       this.registrationSlo.record({

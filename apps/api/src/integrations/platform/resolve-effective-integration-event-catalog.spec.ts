@@ -14,6 +14,7 @@ const DENALI_TELEGRAM_EVENT_TYPES = [
   "receipt.submitted",
   "registration.approved",
   "registration.created",
+  "registration.waitlisted",
   "ticket.assigned",
   "ticket.closed",
   "ticket.created",
@@ -36,7 +37,7 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
 
     assert.deepEqual(
       catalog.map((entry) => entry.eventType),
-      DENALI_TELEGRAM_EVENT_TYPES,
+      DENALI_TELEGRAM_EVENT_TYPES
     );
     assert.equal(catalog[0]?.enabled, true);
     assert.equal(catalog[0]?.declaredOnSurface, true);
@@ -83,12 +84,15 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
     });
 
     const policies = mapEffectiveCatalogToPublicEventPolicies(catalog);
-    assert.deepEqual(policies.find((p) => p.eventType === "TourCreated"), {
-      eventType: "TourCreated",
-      enabled: true,
-      deprecated: true,
-      supersededBy: "TourPublished",
-    });
+    assert.deepEqual(
+      policies.find((p) => p.eventType === "TourCreated"),
+      {
+        eventType: "TourCreated",
+        enabled: true,
+        deprecated: true,
+        supersededBy: "TourPublished",
+      }
+    );
   });
 
   it("lists active event types for admin UI without deprecated routes", async () => {
@@ -98,9 +102,6 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
       persistedPolicies: [{ eventType: "TourCreated", enabled: true }],
     });
 
-    assert.deepEqual(
-      listActiveIntegrationEventTypes(catalog),
-      DENALI_TELEGRAM_EVENT_TYPES,
-    );
+    assert.deepEqual(listActiveIntegrationEventTypes(catalog), DENALI_TELEGRAM_EVENT_TYPES);
   });
 });

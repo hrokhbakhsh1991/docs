@@ -31,6 +31,8 @@ export type DenaliRegistrationDueLine = {
 export type DenaliRegistrationObligation = {
   readonly currency: string;
   readonly obligationMinor: string;
+  /** Base trip amount eligible for membership discounts; transport add-ons stay outside it. */
+  readonly discountableBaseMinor: string;
   readonly source: "tour_canonical" | "unknown";
   readonly lines: readonly DenaliRegistrationDueLine[];
 };
@@ -128,13 +130,11 @@ export function resolveDenaliRegistrationDueBreakdown(
 
   const currency = (input.currency ?? "IRR").toUpperCase();
 
-  if (
-    waiveFreeCollection &&
-    resolveDenaliPaymentCollectionMode(input.tourCanonical) === "free"
-  ) {
+  if (waiveFreeCollection && resolveDenaliPaymentCollectionMode(input.tourCanonical) === "free") {
     return {
       currency,
       obligationMinor: "0",
+      discountableBaseMinor: "0",
       source: "tour_canonical",
       lines: [],
     };
@@ -181,6 +181,7 @@ export function resolveDenaliRegistrationDueBreakdown(
   return {
     currency,
     obligationMinor: scaleMinor(perPerson, input.partySize),
+    discountableBaseMinor: scaleMinor(basePerPerson, input.partySize),
     source: "tour_canonical",
     lines,
   };

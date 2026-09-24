@@ -21,19 +21,19 @@
 
 ## 1. Package entry points
 
-| Import | Purpose |
-|--------|---------|
-| `@app-tour/workspace-sdk` | Root barrel — plugin contract, catalog, portal, theme, auth, ingress |
-| `@app-tour/workspace-sdk/plugin` | `WorkspacePlugin` validation and lifecycle |
-| `@app-tour/workspace-sdk/plugin-types` | Type-only re-exports for consumers |
+| Import                                       | Purpose                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| `@app-tour/workspace-sdk`                    | Root barrel — plugin contract, catalog, portal, theme, auth, ingress  |
+| `@app-tour/workspace-sdk/plugin`             | `WorkspacePlugin` validation and lifecycle                            |
+| `@app-tour/workspace-sdk/plugin-types`       | Type-only re-exports for consumers                                    |
 | `@app-tour/workspace-sdk/workspace-registry` | Runtime manifest discovery (`WorkspaceRegistry`, `workspaceRegistry`) |
-| `@app-tour/workspace-sdk/registry` | Field registry, rule set, field policy |
-| `@app-tour/workspace-sdk/canonical` | `CanonicalDocument` helpers |
-| `@app-tour/workspace-sdk/ingress` | Storage ingress parsers |
-| `@app-tour/workspace-sdk/auth` | Tenant auth context and CASL ability builders |
-| `@app-tour/workspace-sdk/auth/casl` | CASL-specific ability wiring |
-| `@app-tour/workspace-sdk/theme` | Theme sealing and tenant branding |
-| `@app-tour/workspace-sdk/metadata` | DB definition payload, commerce config, renderer IDs |
+| `@app-tour/workspace-sdk/registry`           | Field registry, rule set, field policy                                |
+| `@app-tour/workspace-sdk/canonical`          | `CanonicalDocument` helpers                                           |
+| `@app-tour/workspace-sdk/ingress`            | Storage ingress parsers                                               |
+| `@app-tour/workspace-sdk/auth`               | Tenant auth context and CASL ability builders                         |
+| `@app-tour/workspace-sdk/auth/casl`          | CASL-specific ability wiring                                          |
+| `@app-tour/workspace-sdk/theme`              | Theme sealing and tenant branding                                     |
+| `@app-tour/workspace-sdk/metadata`           | DB definition payload, commerce config, renderer IDs                  |
 
 Root also exports `WORKSPACE_SDK_VERSION` (`1`) and tour client types (`TourClient`, `CreateTourPayload`, `UpdateTourPayload`, `buildTourAuthHeaders`).
 
@@ -46,14 +46,14 @@ Every workspace package implements this interface. Platform code depends on it; 
 ```typescript
 interface WorkspacePlugin {
   // ── Required (persisted in definition payload) ──
-  readonly id: WorkspacePluginId;           // string, e.g. "denali"
+  readonly id: WorkspacePluginId; // string, e.g. "denali"
   readonly version: number;
-  readonly contractVersion: 1;               // bump SDK major on shape breaks
+  readonly contractVersion: 1; // bump SDK major on shape breaks
   readonly supportedWorkspaceTypes: readonly WorkspaceTypeId[];
   readonly fieldRegistry: WorkspaceFieldRegistry;
   readonly ruleSet: WorkspaceRuleSet;
   readonly wizard: WorkspaceWizardSurface;
-  readonly validation: WorkspaceValidationHooks;  // runtime-only
+  readonly validation: WorkspaceValidationHooks; // runtime-only
   readonly lifecycle: WorkspaceLifecycleContract;
 
   // ── Optional surfaces ──
@@ -78,61 +78,61 @@ interface WorkspacePlugin {
 
 #### `WorkspaceWizardSurface`
 
-| Field | Type | Semantics |
-|-------|------|-----------|
-| `wizardMode` | `"classic" \| "schema"` | Engine mode |
-| `railId` | `string` | Wizard rail identifier |
-| `roots` | `readonly string[]` | Top-level canonical roots |
-| `inactiveFieldGroups` | `readonly string[]` | Groups hidden from wizard |
-| `wizardCapacityStepRedundant` | `boolean` | Skip capacity step when redundant |
+| Field                         | Type                    | Semantics                         |
+| ----------------------------- | ----------------------- | --------------------------------- |
+| `wizardMode`                  | `"classic" \| "schema"` | Engine mode                       |
+| `railId`                      | `string`                | Wizard rail identifier            |
+| `roots`                       | `readonly string[]`     | Top-level canonical roots         |
+| `inactiveFieldGroups`         | `readonly string[]`     | Groups hidden from wizard         |
+| `wizardCapacityStepRedundant` | `boolean`               | Skip capacity step when redundant |
 
 #### `WorkspaceLifecycleContract`
 
-| Field | Type | Semantics |
-|-------|------|-----------|
-| `initialStatus` | `string` | Status on create |
-| `publishStatus` | `string` | Status after publish |
+| Field                | Type                                      | Semantics                 |
+| -------------------- | ----------------------------------------- | ------------------------- |
+| `initialStatus`      | `string`                                  | Status on create          |
+| `publishStatus`      | `string`                                  | Status after publish      |
 | `allowedTransitions` | `readonly { from: string; to: string }[]` | Valid state machine edges |
 
 Helpers: `isWorkspaceLifecycleTransitionAllowed(from, to, lifecycle)`, `isWorkspaceUnpublishTransitionAllowed(from, lifecycle)`.
 
 #### `WorkspaceFieldRegistry` / `WorkspaceFieldRegistryEntry`
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `version` | `number` | Registry schema version |
-| `fields` | `readonly WorkspaceFieldRegistryEntry[]` | |
-| `id` | `string` | Stable field id |
-| `canonicalPath` | `string` | Dot-path in canonical document |
-| `stepId` | `string` | Wizard step |
-| `kind` | `"text" \| "number" \| "date" \| "enum" \| "boolean" \| "composite"` | |
-| `required` | `boolean` | |
-| `groupSlug?` | `string` | |
-| `tags?` | `readonly string[]` | |
-| `adminLabel?` / `adminDescription?` | `string` | Operator UI |
-| `group?` / `icon?` | `string` | Integration picker grouping |
-| `enumOptions?` | `readonly string[]` | Required when `kind === "enum"` |
+| Field                               | Type                                                                 | Notes                           |
+| ----------------------------------- | -------------------------------------------------------------------- | ------------------------------- |
+| `version`                           | `number`                                                             | Registry schema version         |
+| `fields`                            | `readonly WorkspaceFieldRegistryEntry[]`                             |                                 |
+| `id`                                | `string`                                                             | Stable field id                 |
+| `canonicalPath`                     | `string`                                                             | Dot-path in canonical document  |
+| `stepId`                            | `string`                                                             | Wizard step                     |
+| `kind`                              | `"text" \| "number" \| "date" \| "enum" \| "boolean" \| "composite"` |                                 |
+| `required`                          | `boolean`                                                            |                                 |
+| `groupSlug?`                        | `string`                                                             |                                 |
+| `tags?`                             | `readonly string[]`                                                  |                                 |
+| `adminLabel?` / `adminDescription?` | `string`                                                             | Operator UI                     |
+| `group?` / `icon?`                  | `string`                                                             | Integration picker grouping     |
+| `enumOptions?`                      | `readonly string[]`                                                  | Required when `kind === "enum"` |
 
 #### `WorkspaceRuleSet` / `WorkspaceRuleCell`
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `version` | `number` | |
-| `matrixDimensions` | `readonly string[]` | e.g. `["category", "duration"]` |
-| `cells` | `readonly WorkspaceRuleCell[]` | |
-| `defaultCellId` | `string` | Fallback cell |
-| `cellId` | `string` | |
-| `dimensions` | `Readonly<Record<string, string>>` | Matrix coordinates |
-| `priority?` | `number` | Higher wins on collision |
-| `fieldOverrides` | `readonly { fieldId; hidden?; required? }[]` | |
+| Field              | Type                                         | Notes                           |
+| ------------------ | -------------------------------------------- | ------------------------------- |
+| `version`          | `number`                                     |                                 |
+| `matrixDimensions` | `readonly string[]`                          | e.g. `["category", "duration"]` |
+| `cells`            | `readonly WorkspaceRuleCell[]`               |                                 |
+| `defaultCellId`    | `string`                                     | Fallback cell                   |
+| `cellId`           | `string`                                     |                                 |
+| `dimensions`       | `Readonly<Record<string, string>>`           | Matrix coordinates              |
+| `priority?`        | `number`                                     | Higher wins on collision        |
+| `fieldOverrides`   | `readonly { fieldId; hidden?; required? }[]` |                                 |
 
 ### Runtime-only vs persisted
 
-| Surface | In DB definition payload? | Attached after ingress? |
-|---------|---------------------------|-------------------------|
-| `fieldRegistry`, `ruleSet`, `wizard`, `lifecycle` | Yes | — |
-| `validation` | **No** | Yes (`noopWorkspaceValidationHooks` or real hooks) |
-| `wizardHost`, `capabilities`, `tourClone`, `publicCatalog`, `catalogIntake`, `draftTombstone` | **No** | Yes (package plugin factory) |
+| Surface                                                                                       | In DB definition payload? | Attached after ingress?                            |
+| --------------------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------------- |
+| `fieldRegistry`, `ruleSet`, `wizard`, `lifecycle`                                             | Yes                       | —                                                  |
+| `validation`                                                                                  | **No**                    | Yes (`noopWorkspaceValidationHooks` or real hooks) |
+| `wizardHost`, `capabilities`, `tourClone`, `publicCatalog`, `catalogIntake`, `draftTombstone` | **No**                    | Yes (package plugin factory)                       |
 
 #### `WorkspaceWizardHostHooks.ensureReady` (Thin Shell Phase 2a)
 
@@ -158,14 +158,14 @@ Optional async warm hook. Shell calls `await ensureWizardHostReady(plugin)` (Pha
 **Plugin property:** `plugin.catalogIntake`  
 **Also registered at runtime:** `registerWorkspaceIntakePlugin({ id, catalogIntake })` for portal BFF resolution.
 
-| Hook | Input | Output | Contract |
-|------|-------|--------|----------|
-| `registrationApiPath` | — | `string` | BFF/API path for registration POST |
-| `schema` | — | `IntakeSchema` | Default static field list |
-| `resolveEffectiveSchema` | `IntakeSchemaContext` | `IntakeSchema` | Session-aware field visibility |
-| `resolveSubmitValues` | `{ context, formValues: Record<string, string> }` | `Record<string, string>` | Merge session fallbacks into submit map |
-| `buildUpstreamRequest` | `CatalogRegistrationPortalPayload`, `{ idempotencyKey? }?` | `CatalogRegistrationUpstreamRequest` | Portal → API wire format |
-| `transport?` | See [3.1a](#31a-catalogintaketransport--workspacecatalogintaketransportsurface) | | Optional transport intake helpers |
+| Hook                     | Input                                                                           | Output                               | Contract                                |
+| ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------- |
+| `registrationApiPath`    | —                                                                               | `string`                             | BFF/API path for registration POST      |
+| `schema`                 | —                                                                               | `IntakeSchema`                       | Default static field list               |
+| `resolveEffectiveSchema` | `IntakeSchemaContext`                                                           | `IntakeSchema`                       | Session-aware field visibility          |
+| `resolveSubmitValues`    | `{ context, formValues: Record<string, string> }`                               | `Record<string, string>`             | Merge session fallbacks into submit map |
+| `buildUpstreamRequest`   | `CatalogRegistrationPortalPayload`, `{ idempotencyKey? }?`                      | `CatalogRegistrationUpstreamRequest` | Portal → API wire format                |
+| `transport?`             | See [3.1a](#31a-catalogintaketransport--workspacecatalogintaketransportsurface) |                                      | Optional transport intake helpers       |
 
 #### `IntakeSchema` / `IntakeSchemaContext`
 
@@ -179,7 +179,7 @@ type IntakeField = {
   readonly id: string;
   readonly type: "text" | "date" | "email" | "number" | "boolean";
   readonly required: boolean;
-  readonly labelKey: string;          // next-intl key under catalogRegistration
+  readonly labelKey: string; // next-intl key under catalogRegistration
   readonly rules?: { pattern?; minLength?; maxLength? };
   readonly widget?: "numeric-text" | "localized-digits";
 };
@@ -201,10 +201,16 @@ type IntakeSchemaFeatures = {
 type IntakeSchemaContext = {
   readonly registrantTarget: "self" | "other";
   readonly session: {
-    fullName?; nationalId?; fatherName?; birthDate?; email?;
+    fullName?;
+    nationalId?;
+    fatherName?;
+    birthDate?;
+    email?;
   };
   readonly tourRequirements?: {
-    nationalIdRequired?; fatherNameRequired?; birthDateRequired?;
+    nationalIdRequired?;
+    fatherNameRequired?;
+    birthDateRequired?;
   };
 };
 ```
@@ -223,20 +229,20 @@ type CatalogRegistrationPortalPayload = {
   readonly fatherName: string;
   readonly birthDate: string;
   readonly registrantTarget?: "self" | "other";
-  readonly transport?: unknown;   // ⚠ poorly typed — see §8
+  readonly transport?: unknown; // ⚠ poorly typed — see §8
 };
 
 type CatalogRegistrationUpstreamRequest = {
   readonly path: string;
-  readonly body: unknown;           // ⚠ poorly typed — see §8
+  readonly body: unknown; // ⚠ poorly typed — see §8
   readonly extraHeaders?: Record<string, string>;
 };
 ```
 
 #### 3.1a `catalogIntake.transport` — `WorkspaceCatalogIntakeTransportSurface`
 
-| Hook | Input | Output |
-|------|-------|--------|
+| Hook           | Input                                         | Output                              |
+| -------------- | --------------------------------------------- | ----------------------------------- |
 | `initialState` | `PublicCatalogTransportSnapshot \| undefined` | `PublicCatalogTransportIntakeState` |
 
 Organized transport is the default `primary` path and requires no acknowledgement from the
@@ -258,14 +264,14 @@ Transport kinds: `"primary" | "personal_car" | "no_car_dong" | "no_car_acquainta
 
 Use `defineCatalogRegistrationFlowSurface(input)` to inject canonical `createInitialState`.
 
-| Hook | Input | Output | Required? |
-|------|-------|--------|-----------|
-| `definition` | — | `IntakeFlowDefinition` | Yes |
-| `createInitialState` | `RegistrationFlowContext` | `FlowRuntimeState` | Yes (injected by helper) |
-| `resolveNextStep` | `state`, `FlowEvent`, `context` | `FlowRuntimeState` | Yes |
-| `validateStep` | `stepId`, `state`, `context` | `readonly FlowValidationIssue[]` | Optional |
-| `submitTransform` | `state`, `context` | `FlowSubmitPayload` | Optional |
-| `successDataAttributes` | `state`, `context` | `Record<string, boolean>` | Optional |
+| Hook                    | Input                           | Output                           | Required?                |
+| ----------------------- | ------------------------------- | -------------------------------- | ------------------------ |
+| `definition`            | —                               | `IntakeFlowDefinition`           | Yes                      |
+| `createInitialState`    | `RegistrationFlowContext`       | `FlowRuntimeState`               | Yes (injected by helper) |
+| `resolveNextStep`       | `state`, `FlowEvent`, `context` | `FlowRuntimeState`               | Yes                      |
+| `validateStep`          | `stepId`, `state`, `context`    | `readonly FlowValidationIssue[]` | Optional                 |
+| `submitTransform`       | `state`, `context`              | `FlowSubmitPayload`              | Optional                 |
+| `successDataAttributes` | `state`, `context`              | `Record<string, boolean>`        | Optional                 |
 
 #### Flow types
 
@@ -280,8 +286,8 @@ type RegistrationFlowContext = {
   readonly tourTransport?: PublicCatalogTransportSnapshot;
   readonly tourRequirements?: RegistrationFlowTourRequirements;
   readonly backHref: string;
-  readonly memberModuleHref: string | null;  // GSH-resolved — use for done steps
-  readonly memberLoginEgress?: boolean;  // SSR-stable — portal login host / modal (PCMS-UX-HYDRATE)
+  readonly memberModuleHref: string | null; // GSH-resolved — use for done steps
+  readonly memberLoginEgress?: boolean; // SSR-stable — portal login host / modal (PCMS-UX-HYDRATE)
   readonly memberLoginStayOnPage?: boolean; // register-host modal: probe cookie then callback (PCMS-UX-MODAL-03)
   readonly onMemberLoginSessionReady?: () => void | Promise<void>;
 };
@@ -293,7 +299,7 @@ type IntakeFlowDefinition = {
 
 type FlowRuntimeState = {
   readonly currentStep: string;
-  readonly data: CatalogRegistrationFlowState;  // from @app-tour/catalog-registration-auth
+  readonly data: CatalogRegistrationFlowState; // from @app-tour/catalog-registration-auth
 };
 
 type FlowEvent =
@@ -301,7 +307,7 @@ type FlowEvent =
   | { type: "merge"; patch: Partial<CatalogRegistrationFlowState> };
 
 type FlowValidationIssue = { readonly stepId: string; readonly code: string };
-type FlowSubmitPayload = Readonly<Record<string, unknown>>;  // ⚠ see §8
+type FlowSubmitPayload = Readonly<Record<string, unknown>>; // ⚠ see §8
 ```
 
 Platform reducers (do not reimplement): `mergeFlowState`, `transitionFlowStep`, `applyCatalogRegistrationFlowEvent`.
@@ -312,9 +318,9 @@ Platform reducers (do not reimplement): `mergeFlowState`, `transitionFlowStep`, 
 
 Runtime-only. Stripped from storage ingress.
 
-| Hook | Input | Output |
-|------|-------|--------|
-| `checkCapacity` | `capacity: number` | `WorkspaceViolation \| null` |
+| Hook               | Input                                                                | Output                       |
+| ------------------ | -------------------------------------------------------------------- | ---------------------------- |
+| `checkCapacity`    | `capacity: number`                                                   | `WorkspaceViolation \| null` |
 | `checkTripDetails` | `tripDetails: unknown`, `transportModes?: readonly string[] \| null` | `WorkspaceViolation \| null` |
 
 ```typescript
@@ -327,9 +333,9 @@ Default: `noopWorkspaceValidationHooks` / `createNoopWorkspaceValidationHooks()`
 
 ### 3.4 `publicCatalog` — `PublicCatalogSurface`
 
-| Hook | Input | Output |
-|------|-------|--------|
-| `isPublished` | `CanonicalDocument` | `boolean` |
+| Hook            | Input                    | Output              |
+| --------------- | ------------------------ | ------------------- |
+| `isPublished`   | `CanonicalDocument`      | `boolean`           |
 | `toCatalogCard` | `PublicCatalogTourInput` | `PublicCatalogCard` |
 
 ```typescript
@@ -340,22 +346,22 @@ type PublicCatalogTourInput = {
 };
 ```
 
-`PublicCatalogCard` is the egress-safe marketing DTO (id, title, pricing, itinerary, transport, SEO fields, etc.). See `src/tour/public-catalog.contract.ts` for the full field list.
+`PublicCatalogCard` is the egress-safe marketing DTO (id, title, pricing, itinerary, transport, SEO fields, etc.). See `src/tour/public-catalog.contract.ts` for the full field list. When present, `registrationState` is the canonical public action state: `open` permits registration, `waitlist` routes to the waitlist flow, `past` keeps a published tour visible but blocks registration, and `closed` is non-actionable. `waitlistEnabled` is an explicit policy flag and must not be inferred from `spotsRemaining` alone.
 
 ---
 
 ### 3.5 `tourList` — `OperatorTourListSurface`
 
-| Hook | Input | Output |
-|------|-------|--------|
+| Hook                        | Input               | Output                     |
+| --------------------------- | ------------------- | -------------------------- |
 | `extractTourListProjection` | `CanonicalDocument` | `TourListProjectionFields` |
 
 ```typescript
 type TourListProjectionFields = {
   readonly title: string;
   readonly shortDescription: string | null;
-  readonly listStatus: TourListStatus;   // draft|open|published|closed|cancelled|archived
-  readonly uiStatus: TourUiStatus;       // draft|active|archived
+  readonly listStatus: TourListStatus; // draft|open|published|closed|cancelled|archived
+  readonly uiStatus: TourUiStatus; // draft|active|archived
   readonly priceAmount: number | null;
   readonly priceCurrency: string | null;
   readonly totalCapacity: number | null;
@@ -373,9 +379,9 @@ Helper: `buildTourListProjection(rowMeta, canonical, extract)`.
 
 ### 3.6 `tourClone` — `TourCloneHydrator`
 
-| Hook | Input | Output |
-|------|-------|--------|
-| `hydrateWizardDraft` | `TourCloneHydrationInput` | `TourCloneHydrationResult` |
+| Hook                            | Input                     | Output                     |
+| ------------------------------- | ------------------------- | -------------------------- |
+| `hydrateWizardDraft`            | `TourCloneHydrationInput` | `TourCloneHydrationResult` |
 | `prepareServerCloneCreateData?` | `TourCloneHydrationInput` | `TourCloneHydrationResult` |
 
 ```typescript
@@ -405,46 +411,45 @@ type WizardPhotoRemintPlanEntry = {
 
 ### 3.7 `draftTombstone` — `WorkspaceDraftTombstoneBinding`
 
-| Hook | Input | Output |
-|------|-------|--------|
+| Hook                    | Input                                              | Output              |
+| ----------------------- | -------------------------------------------------- | ------------------- |
 | `resolveTombstoneRoots` | `baselineForm`, `incomingForm` (top-level records) | `readonly string[]` |
 
 Helpers: `topLevelRootsRemoved(baseline, incoming, roots)`, `isNonEmptyRootValue(value)`, `noopWorkspaceDraftTombstoneBinding`.
 
 ---
 
-
 ### 3.8-pre `capabilities` — `WorkspacePluginCapabilities` (Thin Shell Phase 4r)
 
 Host-facing capability bag. **Optional** and additive: do not remove top-level `wizardHost` in this phase.
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `wizardHost?` | `WorkspaceWizardHostHooks` | First migrated surface; same type as top-level `wizardHost` |
-| `hostProbe?` | `WorkspaceHostProbeCapability` | Phase 4s — data-only Next boot stub (`title` / `body`) |
-| `draftShell?` | `WorkspaceDraftShellCapability` | Phase 4v–4aa / 4al–4am — identity + session id + fresh-start/merge + create prefill + schema-gate + empty-draft check + field-read/tombstone-shadow log; Phase 4al/4am deleted draft-shell + draft-unification binders |
-| `createChrome?` | `WorkspaceCreateChromeCapability` | Phase 4ab — package-owned `ensureReady` publishes create-chrome surface (no React on frozen plugin) |
-| `flatEditChrome?` | `WorkspaceFlatEditChromeCapability` | Phase 4ac — package-owned `ensureReady` publishes flat-edit chrome surface (no React on frozen plugin) |
-| `createView?` | `WorkspaceCreateViewCapability` | Phase 4ad — package-owned `ensureReady` publishes create-view surface (no React on frozen plugin) |
-| `flatEditForm?` | `WorkspaceFlatEditFormCapability` | Phase 4ae — package-owned `ensureReady` publishes flat-edit form surface (no React on frozen plugin) |
-| `flatEditPage?` | `WorkspaceFlatEditPageCapability` | Phase 4af — package-owned `ensureReady` publishes flat-edit page surface (no React on frozen plugin) |
-| `templateGate?` | `WorkspaceTemplateGateCapability` | Phase 4an — default published step id + optional prefill/augment helpers (no React; binder deleted) |
-| `templatePreset?` | `WorkspaceTemplatePresetCapability` | Phase 4au — pure `buildFullTemplatePreset` (no React; binder deleted) |
-| `settingsHubFallback?` | `WorkspaceSettingsHubFallbackCapability` | Phase 4av — pure required-module ids + fallback module map (no React; binder deleted) |
-| `templateEditor?` | `WorkspaceTemplateEditorCapability` | Phase 4aw — pure wizard-template editor surface (no React; binder deleted) |
-| `tourListCategory?` | `WorkspaceTourListCategoryCapability` | Phase 4ax — pure tour-list category/filter surface (no React; binder deleted) |
-| `settingsDestination?` | `WorkspaceSettingsDestinationCapability` | Phase 4az — pure destination settings surface (no React; binder deleted) |
-| `settingsEquipmentUi?` | `WorkspaceSettingsEquipmentUiCapability` | Phase 4ba — package-owned `ensureReady` publishes equipment settings UI (no React on frozen plugin; binder deleted) |
-| `settingsExposureSurfacesUi?` | `WorkspaceSettingsExposureSurfacesUiCapability` | Phase 4bb — package-owned `ensureReady` publishes exposure surfaces panel UI (no React on frozen plugin; binder deleted) |
-| `operatorShellNav?` | `WorkspaceOperatorShellNavCapability` | Phase 4bc — pure Phase 3 AppShell nav links (no React; binder deleted) |
-| `financeNav?` | `WorkspaceFinanceNavCapability` | Phase 4bd — pure finance hub enablement (`supported`; no React; binder deleted) |
-| `financeOps?` | `WorkspaceFinanceOpsCapability` | Phase 4be — pure `resolveManifest(theme?)` for ops panels (no React; binder deleted) |
-| `bookingOps?` | `WorkspaceBookingOpsCapability` | Phase 4bf — pure `resolveManifest(theme?)` → `RegistrationOpsManifest` (no React; binder deleted) |
-| `wizardCreate?` | `WorkspaceWizardCreateCapability` | Phase 4bg — `{ extendedChrome: true; customBrandFallbackMark?: string }` (no React; binder deleted; warm+seed) |
-| `operatorUi?` | `WorkspaceOperatorUiCapability` | Phase 4ao — package-owned `ensureReady` publishes operator UI surface (no React on frozen plugin; binder deleted) |
-| `tourActionSubmit?` | `WorkspaceTourActionSubmitCapability` | Phase 4ap — pure encode/decode for submit error wire tokens (no React; binder deleted) |
-| `labels?` | `WorkspaceLabelsCapability` | Phase 4aq — package-owned `ensureReady` publishes label resolver (no React on frozen plugin; binder deleted) |
-| `wizardSurfaces?` | `WorkspaceWizardSurfacesCapability` | Phase 4as — package-owned `ensureReady` publishes composite + review surfaces (no React on frozen plugin; binder deleted) |
+| Property                      | Type                                            | Notes                                                                                                                                                                                                                  |
+| ----------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wizardHost?`                 | `WorkspaceWizardHostHooks`                      | First migrated surface; same type as top-level `wizardHost`                                                                                                                                                            |
+| `hostProbe?`                  | `WorkspaceHostProbeCapability`                  | Phase 4s — data-only Next boot stub (`title` / `body`)                                                                                                                                                                 |
+| `draftShell?`                 | `WorkspaceDraftShellCapability`                 | Phase 4v–4aa / 4al–4am — identity + session id + fresh-start/merge + create prefill + schema-gate + empty-draft check + field-read/tombstone-shadow log; Phase 4al/4am deleted draft-shell + draft-unification binders |
+| `createChrome?`               | `WorkspaceCreateChromeCapability`               | Phase 4ab — package-owned `ensureReady` publishes create-chrome surface (no React on frozen plugin)                                                                                                                    |
+| `flatEditChrome?`             | `WorkspaceFlatEditChromeCapability`             | Phase 4ac — package-owned `ensureReady` publishes flat-edit chrome surface (no React on frozen plugin)                                                                                                                 |
+| `createView?`                 | `WorkspaceCreateViewCapability`                 | Phase 4ad — package-owned `ensureReady` publishes create-view surface (no React on frozen plugin)                                                                                                                      |
+| `flatEditForm?`               | `WorkspaceFlatEditFormCapability`               | Phase 4ae — package-owned `ensureReady` publishes flat-edit form surface (no React on frozen plugin)                                                                                                                   |
+| `flatEditPage?`               | `WorkspaceFlatEditPageCapability`               | Phase 4af — package-owned `ensureReady` publishes flat-edit page surface (no React on frozen plugin)                                                                                                                   |
+| `templateGate?`               | `WorkspaceTemplateGateCapability`               | Phase 4an — default published step id + optional prefill/augment helpers (no React; binder deleted)                                                                                                                    |
+| `templatePreset?`             | `WorkspaceTemplatePresetCapability`             | Phase 4au — pure `buildFullTemplatePreset` (no React; binder deleted)                                                                                                                                                  |
+| `settingsHubFallback?`        | `WorkspaceSettingsHubFallbackCapability`        | Phase 4av — pure required-module ids + fallback module map (no React; binder deleted)                                                                                                                                  |
+| `templateEditor?`             | `WorkspaceTemplateEditorCapability`             | Phase 4aw — pure wizard-template editor surface (no React; binder deleted)                                                                                                                                             |
+| `tourListCategory?`           | `WorkspaceTourListCategoryCapability`           | Phase 4ax — pure tour-list category/filter surface (no React; binder deleted)                                                                                                                                          |
+| `settingsDestination?`        | `WorkspaceSettingsDestinationCapability`        | Phase 4az — pure destination settings surface (no React; binder deleted)                                                                                                                                               |
+| `settingsEquipmentUi?`        | `WorkspaceSettingsEquipmentUiCapability`        | Phase 4ba — package-owned `ensureReady` publishes equipment settings UI (no React on frozen plugin; binder deleted)                                                                                                    |
+| `settingsExposureSurfacesUi?` | `WorkspaceSettingsExposureSurfacesUiCapability` | Phase 4bb — package-owned `ensureReady` publishes exposure surfaces panel UI (no React on frozen plugin; binder deleted)                                                                                               |
+| `operatorShellNav?`           | `WorkspaceOperatorShellNavCapability`           | Phase 4bc — pure Phase 3 AppShell nav links (no React; binder deleted)                                                                                                                                                 |
+| `financeNav?`                 | `WorkspaceFinanceNavCapability`                 | Phase 4bd — pure finance hub enablement (`supported`; no React; binder deleted)                                                                                                                                        |
+| `financeOps?`                 | `WorkspaceFinanceOpsCapability`                 | Phase 4be — pure `resolveManifest(theme?)` for ops panels (no React; binder deleted)                                                                                                                                   |
+| `bookingOps?`                 | `WorkspaceBookingOpsCapability`                 | Phase 4bf — pure `resolveManifest(theme?)` → `RegistrationOpsManifest` (no React; binder deleted)                                                                                                                      |
+| `wizardCreate?`               | `WorkspaceWizardCreateCapability`               | Phase 4bg — `{ extendedChrome: true; customBrandFallbackMark?: string }` (no React; binder deleted; warm+seed)                                                                                                         |
+| `operatorUi?`                 | `WorkspaceOperatorUiCapability`                 | Phase 4ao — package-owned `ensureReady` publishes operator UI surface (no React on frozen plugin; binder deleted)                                                                                                      |
+| `tourActionSubmit?`           | `WorkspaceTourActionSubmitCapability`           | Phase 4ap — pure encode/decode for submit error wire tokens (no React; binder deleted)                                                                                                                                 |
+| `labels?`                     | `WorkspaceLabelsCapability`                     | Phase 4aq — package-owned `ensureReady` publishes label resolver (no React on frozen plugin; binder deleted)                                                                                                           |
+| `wizardSurfaces?`             | `WorkspaceWizardSurfacesCapability`             | Phase 4as — package-owned `ensureReady` publishes composite + review surfaces (no React on frozen plugin; binder deleted)                                                                                              |
 
 **Resolve rule:** `resolveWizardHostCapability(plugin)` → `plugin.capabilities?.wizardHost ?? plugin.wizardHost`.  
 **Warm rule:** `ensureWizardHostReady(plugin)` awaits that slice’s `ensureReady` when present.
@@ -457,12 +462,12 @@ Host-facing capability bag. **Optional** and additive: do not remove top-level `
 
 Pattern B = capability exposes only `ensureReady`; package publishes React/UI on a product-blind `globalThis` key; shell registry peeks.
 
-| Rule | Detail |
-| --- | --- |
-| **Preferred** | `globalThis[KEY] = Map<pluginId, Surface>`; publish/peek with **`plugin.id`** (workspace packages use identity constants e.g. `DENALI_WORKSPACE_PLUGIN_ID`) |
-| **Forbidden (new work)** | Singleton overwrite of `globalThis[KEY] = Surface` without a plugin id |
-| **Closed debt** | Pattern B **singleton** debt closed in 4bs; host-adapter **active-pluginId** debt closed in 4bt (sync helpers take `pluginId`). Inventory: `apps/web/test/thin-shell-pattern-b-registry.spec.ts` |
-| **Already Map** | labels, wizardSurfaces (composite/review), wizardCreate membership, template editor (where applicable) |
+| Rule                     | Detail                                                                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Preferred**            | `globalThis[KEY] = Map<pluginId, Surface>`; publish/peek with **`plugin.id`** (workspace packages use identity constants e.g. `DENALI_WORKSPACE_PLUGIN_ID`)                                      |
+| **Forbidden (new work)** | Singleton overwrite of `globalThis[KEY] = Surface` without a plugin id                                                                                                                           |
+| **Closed debt**          | Pattern B **singleton** debt closed in 4bs; host-adapter **active-pluginId** debt closed in 4bt (sync helpers take `pluginId`). Inventory: `apps/web/test/thin-shell-pattern-b-registry.spec.ts` |
+| **Already Map**          | labels, wizardSurfaces (composite/review), wizardCreate membership, template editor (where applicable)                                                                                           |
 
 **Flat-edit chrome (Phase 4ac / 4ag warm / 4ah / 4bm):** `resolveFlatEditChromeCapability(plugin)` → `plugin.capabilities?.flatEditChrome`. Same pattern on `app-cloud.wizardFlatEditChromeSurface`; shell registry peeks for `useFlatEditPageCore` / submit-catalog loader. Phase 4ah: generated flat-edit chrome binder **deleted**; hook + catalog loader are registry-only (cold fails closed). Phase **4bm:** global is a **`Map<pluginId, surface>`**; shell peeks by `plugin.id` (submit-catalog bound at call site).
 
@@ -526,44 +531,44 @@ Largest hook surface. Platform web host reads these instead of hardcoding plugin
 
 #### Configuration flags (no I/O)
 
-| Property | Type | Purpose |
-|----------|------|---------|
-| `reviewStepId?` | `string` | Review step id |
-| `showCompletionHeader?` | `boolean` | Quality header above stepper |
-| `usesContextualFieldRules?` | `boolean` | Post-matrix contextual rules |
-| `usesStepValidation?` | `boolean` | Block Next until valid |
-| `usesReviewStep?` | `boolean` | Review chrome |
-| `reviewFieldCanonicalPath?` | `string` | Field lifted onto review step |
-| `hostRootDataAttributes?` | `Record<string, string>` | `data-*` on host root |
-| `reviewSurfaceId?` | `string` | React registry key |
-| `validationSurfaceId?` | `string` | Validation summary UI key |
-| `compositeSurfaceId?` | `string` | Composite widget key |
-| `wizardMessageNamespace?` | `string` | next-intl namespace |
-| `fieldLabelSurfaceId?` | `string` | Label resolver key |
-| `media?` | `WorkspaceWizardMediaHooks` | See [3.8a](#38a-wizardhostmedia--workspacewizardmediahooks) |
+| Property                    | Type                        | Purpose                                                     |
+| --------------------------- | --------------------------- | ----------------------------------------------------------- |
+| `reviewStepId?`             | `string`                    | Review step id                                              |
+| `showCompletionHeader?`     | `boolean`                   | Quality header above stepper                                |
+| `usesContextualFieldRules?` | `boolean`                   | Post-matrix contextual rules                                |
+| `usesStepValidation?`       | `boolean`                   | Block Next until valid                                      |
+| `usesReviewStep?`           | `boolean`                   | Review chrome                                               |
+| `reviewFieldCanonicalPath?` | `string`                    | Field lifted onto review step                               |
+| `hostRootDataAttributes?`   | `Record<string, string>`    | `data-*` on host root                                       |
+| `reviewSurfaceId?`          | `string`                    | React registry key                                          |
+| `validationSurfaceId?`      | `string`                    | Validation summary UI key                                   |
+| `compositeSurfaceId?`       | `string`                    | Composite widget key                                        |
+| `wizardMessageNamespace?`   | `string`                    | next-intl namespace                                         |
+| `fieldLabelSurfaceId?`      | `string`                    | Label resolver key                                          |
+| `media?`                    | `WorkspaceWizardMediaHooks` | See [3.8a](#38a-wizardhostmedia--workspacewizardmediahooks) |
 
 #### Function hooks
 
-| Hook | Input | Output | Notes |
-|------|-------|--------|-------|
-| `loadRulesModule?` | — | `Promise<unknown>` | ⚠ opaque — **Phase 4at:** shell must use this hook; web `workspace-wizard-rules-bindings` deleted (orphaned). API still has a separate codegen binder until an API capability slice. |
-| `resolveMatrixDimensionsFromDraft?` | `draft`, `rulesModule: unknown` | `Record<string, string>` | |
-| `applyContextualFieldRules?` | `{ steps: unknown; draft; rulesModule; evalContext: unknown }` | `unknown` | ⚠ opaque |
-| `prepareDraftEnvelope?` | `<TForm> form, meta` | `WorkspaceWizardDraftEnvelope<TForm>` | |
-| `hydrateDraftEnvelope?` | `{ remote, fallbackForm, fallbackMeta? }` | `WorkspaceWizardDraftEnvelope<TForm>` | |
-| `normalizeRemoteEnvelope?` | `envelope` | `envelope` | Strip server tombstones |
-| `mergeDraftEnvelope?` | `local, server` | `envelope` | Conflict merge |
-| `normalizeWizardTemplateGate?` | `WorkspaceWizardTemplateGateNormalizeInput` | `WorkspaceWizardTemplateGateNormalizeResult` | |
-| `resolveInitialStepIndex?` | `{ draft; visibleSteps: unknown[]; savedStepIndex; skipFieldInference? }` | `number` | |
-| `validateDraftSync?` | `{ plugin; draft; rulesModule; tenantId; evalContext?; scope? }` | `WizardDraftValidationResult` | |
-| `validatePublishReadiness?` | `{ plugin; draft; rulesModule; evalContext; scope? }` | `WizardDraftValidationResult` | |
-| `buildRuleEvalContext?` | `{ workspaceFormProfile?; mainThemeFormProfile?; fieldRulesOverlay? }` | `unknown` | ⚠ opaque |
-| `sanitizeWizardDraft?` | `{ draft; rulesModule; evalContext }` | `Record<string, unknown>` | |
-| `prepareSubmitPayload?` | `{ plugin; draft; rulesModule; evalContext; catalog? }` | `unknown` | ⚠ should be `CreateTourPayload` |
-| `hydrateEditDraft?` | `{ canonicalData; activeEquipmentIds?; activeDestinationIds? }` | `Record<string, unknown>` | |
-| `prepareTourPatchPayload?` | `{ plugin; draft; rulesModule; evalContext; rowVersion; patchIntent?; catalog? }` | `unknown` | ⚠ should be `UpdateTourPayload` |
-| `filterEngineValidationResult?` | `result`, `data` | filtered `result` | |
-| `normalizeCanonicalForPersist?` | `{ data; destinations?: readonly Record<string, unknown>[] }` | `Record<string, unknown>` | Optional persist rewrite (ED-PEAK-LOCK-01). API enrich on the main thread only; worker must not call settings. Hosts that omit the hook skip `listDestinations`. |
+| Hook                                | Input                                                                             | Output                                       | Notes                                                                                                                                                                                |
+| ----------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `loadRulesModule?`                  | —                                                                                 | `Promise<unknown>`                           | ⚠ opaque — **Phase 4at:** shell must use this hook; web `workspace-wizard-rules-bindings` deleted (orphaned). API still has a separate codegen binder until an API capability slice. |
+| `resolveMatrixDimensionsFromDraft?` | `draft`, `rulesModule: unknown`                                                   | `Record<string, string>`                     |                                                                                                                                                                                      |
+| `applyContextualFieldRules?`        | `{ steps: unknown; draft; rulesModule; evalContext: unknown }`                    | `unknown`                                    | ⚠ opaque                                                                                                                                                                             |
+| `prepareDraftEnvelope?`             | `<TForm> form, meta`                                                              | `WorkspaceWizardDraftEnvelope<TForm>`        |                                                                                                                                                                                      |
+| `hydrateDraftEnvelope?`             | `{ remote, fallbackForm, fallbackMeta? }`                                         | `WorkspaceWizardDraftEnvelope<TForm>`        |                                                                                                                                                                                      |
+| `normalizeRemoteEnvelope?`          | `envelope`                                                                        | `envelope`                                   | Strip server tombstones                                                                                                                                                              |
+| `mergeDraftEnvelope?`               | `local, server`                                                                   | `envelope`                                   | Conflict merge                                                                                                                                                                       |
+| `normalizeWizardTemplateGate?`      | `WorkspaceWizardTemplateGateNormalizeInput`                                       | `WorkspaceWizardTemplateGateNormalizeResult` |                                                                                                                                                                                      |
+| `resolveInitialStepIndex?`          | `{ draft; visibleSteps: unknown[]; savedStepIndex; skipFieldInference? }`         | `number`                                     |                                                                                                                                                                                      |
+| `validateDraftSync?`                | `{ plugin; draft; rulesModule; tenantId; evalContext?; scope? }`                  | `WizardDraftValidationResult`                |                                                                                                                                                                                      |
+| `validatePublishReadiness?`         | `{ plugin; draft; rulesModule; evalContext; scope? }`                             | `WizardDraftValidationResult`                |                                                                                                                                                                                      |
+| `buildRuleEvalContext?`             | `{ workspaceFormProfile?; mainThemeFormProfile?; fieldRulesOverlay? }`            | `unknown`                                    | ⚠ opaque                                                                                                                                                                             |
+| `sanitizeWizardDraft?`              | `{ draft; rulesModule; evalContext }`                                             | `Record<string, unknown>`                    |                                                                                                                                                                                      |
+| `prepareSubmitPayload?`             | `{ plugin; draft; rulesModule; evalContext; catalog? }`                           | `unknown`                                    | ⚠ should be `CreateTourPayload`                                                                                                                                                      |
+| `hydrateEditDraft?`                 | `{ canonicalData; activeEquipmentIds?; activeDestinationIds? }`                   | `Record<string, unknown>`                    |                                                                                                                                                                                      |
+| `prepareTourPatchPayload?`          | `{ plugin; draft; rulesModule; evalContext; rowVersion; patchIntent?; catalog? }` | `unknown`                                    | ⚠ should be `UpdateTourPayload`                                                                                                                                                      |
+| `filterEngineValidationResult?`     | `result`, `data`                                                                  | filtered `result`                            |                                                                                                                                                                                      |
+| `normalizeCanonicalForPersist?`     | `{ data; destinations?: readonly Record<string, unknown>[] }`                     | `Record<string, unknown>`                    | Optional persist rewrite (ED-PEAK-LOCK-01). API enrich on the main thread only; worker must not call settings. Hosts that omit the hook skip `listDestinations`.                     |
 
 ```typescript
 type WizardDraftValidationResult = {
@@ -573,17 +578,17 @@ type WizardDraftValidationResult = {
 
 type WorkspaceWizardDraftEnvelope<TForm = unknown> = {
   readonly form: TForm;
-  readonly meta: Readonly<Record<string, unknown>>;  // ⚠ workspace-owned semantics
+  readonly meta: Readonly<Record<string, unknown>>; // ⚠ workspace-owned semantics
 };
 ```
 
 #### 3.8a `wizardHost.media` — `WorkspaceWizardMediaHooks`
 
-| Hook | Input | Output |
-|------|-------|--------|
-| `createAssetSessionId` | — | `string` (UUID v4) |
-| `isAssetSessionId` | `value: string` | `boolean` |
-| `mediaRouteKey` | — | `string` (BFF route key, e.g. `"wizard-photos"`) |
+| Hook                   | Input           | Output                                           |
+| ---------------------- | --------------- | ------------------------------------------------ |
+| `createAssetSessionId` | —               | `string` (UUID v4)                               |
+| `isAssetSessionId`     | `value: string` | `boolean`                                        |
+| `mediaRouteKey`        | —               | `string` (BFF route key, e.g. `"wizard-photos"`) |
 
 ---
 
@@ -591,21 +596,21 @@ type WorkspaceWizardDraftEnvelope<TForm = unknown> = {
 
 These are **not** function hooks on the plugin object but manifest-driven capability tables regenerated into SDK:
 
-| Manifest key | Generated constant | Resolver |
-|--------------|-------------------|----------|
-| `workspaceTypes` | `WORKSPACE_MANIFEST_BINDINGS` | `resolveWorkspacePluginIdForType` |
-| `guestConformance` | `WORKSPACE_GUEST_CONFORMANCE_LEVELS` | `resolveGuestConformanceLevelForPlugin` |
-| `guestLanding` | `WORKSPACE_GUEST_LANDING` | `resolveGuestLandingFeatures` — includes `whySectionAnchor`, `destinationSlugs`, `destinationImageStems`, and section gates |
-| `guestSeo` | `WORKSPACE_GUEST_SEO` | `resolveGuestSeoForPlugin` |
-| `catalogListFeatures` | `WORKSPACE_CATALOG_LIST_FEATURES` | `resolveCatalogListFeatures` |
-| `catalogDetailSections` | `WORKSPACE_CATALOG_DETAIL_SECTIONS` | `resolveCatalogDetailSections` |
-| `catalogPaths` | `WORKSPACE_CATALOG_LIST_PATHS` | `resolveCatalogListApiPath`, `resolveCatalogTourApiPath` |
-| `registrationForTourPaths` | `WORKSPACE_REGISTRATION_FOR_TOUR_API_PATHS` | `tryResolveCatalogRegistrationForTourApiPath` — manifest for-tour only; `null` when absent |
-| `productionTier` | `WORKSPACE_PRODUCTION_CERTIFICATION` | `resolveProductionCertificationForPlugin` |
-| `operatorCapabilities` | `WORKSPACE_OPERATOR_CAPABILITIES` | `operatorCapabilitySupportsUsersDirectory`, etc. |
-| `memberPortal` | `WORKSPACE_MEMBER_PORTAL_CONTRACTS` | `resolveMemberPortalContract` |
-| `memberProfile` | `WORKSPACE_MEMBER_PROFILE_CAPABILITIES` | `resolveMemberProfileCapabilities` |
-| `guestCrossSurfaceNav` | `WORKSPACE_GUEST_CROSS_SURFACE_NAV` | `resolveGuestCrossSurfaceNav` |
+| Manifest key               | Generated constant                          | Resolver                                                                                                                    |
+| -------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `workspaceTypes`           | `WORKSPACE_MANIFEST_BINDINGS`               | `resolveWorkspacePluginIdForType`                                                                                           |
+| `guestConformance`         | `WORKSPACE_GUEST_CONFORMANCE_LEVELS`        | `resolveGuestConformanceLevelForPlugin`                                                                                     |
+| `guestLanding`             | `WORKSPACE_GUEST_LANDING`                   | `resolveGuestLandingFeatures` — includes `whySectionAnchor`, `destinationSlugs`, `destinationImageStems`, and section gates |
+| `guestSeo`                 | `WORKSPACE_GUEST_SEO`                       | `resolveGuestSeoForPlugin`                                                                                                  |
+| `catalogListFeatures`      | `WORKSPACE_CATALOG_LIST_FEATURES`           | `resolveCatalogListFeatures`                                                                                                |
+| `catalogDetailSections`    | `WORKSPACE_CATALOG_DETAIL_SECTIONS`         | `resolveCatalogDetailSections`                                                                                              |
+| `catalogPaths`             | `WORKSPACE_CATALOG_LIST_PATHS`              | `resolveCatalogListApiPath`, `resolveCatalogTourApiPath`                                                                    |
+| `registrationForTourPaths` | `WORKSPACE_REGISTRATION_FOR_TOUR_API_PATHS` | `tryResolveCatalogRegistrationForTourApiPath` — manifest for-tour only; `null` when absent                                  |
+| `productionTier`           | `WORKSPACE_PRODUCTION_CERTIFICATION`        | `resolveProductionCertificationForPlugin`                                                                                   |
+| `operatorCapabilities`     | `WORKSPACE_OPERATOR_CAPABILITIES`           | `operatorCapabilitySupportsUsersDirectory`, etc.                                                                            |
+| `memberPortal`             | `WORKSPACE_MEMBER_PORTAL_CONTRACTS`         | `resolveMemberPortalContract`                                                                                               |
+| `memberProfile`            | `WORKSPACE_MEMBER_PROFILE_CAPABILITIES`     | `resolveMemberProfileCapabilities`                                                                                          |
+| `guestCrossSurfaceNav`     | `WORKSPACE_GUEST_CROSS_SURFACE_NAV`         | `resolveGuestCrossSurfaceNav`                                                                                               |
 
 Conformance levels: `L0`–`L4`. Registration CTA requires **L2+** (`supportsCatalogRegistration`).
 
@@ -619,7 +624,7 @@ Conformance levels: `L0`–`L4`. Registration CTA requires **L2+** (`supportsCat
 type WorkspaceThemeContract = {
   readonly id: string;
   readonly version: number;
-  readonly cssVariables: Readonly<Record<string, string>>;  // keys must be --ws-*
+  readonly cssVariables: Readonly<Record<string, string>>; // keys must be --ws-*
   readonly optionalStylesheet?: string;
 };
 ```
@@ -645,8 +650,8 @@ type MemberPortalSurface = {
 };
 
 type MemberModuleManifest = {
-  readonly id: string;           // must not be home|more|api|catalog
-  readonly routePath: string;      // must start with /me/
+  readonly id: string; // must not be home|more|api|catalog
+  readonly routePath: string; // must start with /me/
   readonly nav: { tier: MemberNavTier; labelKey: string };
 };
 ```
@@ -674,9 +679,9 @@ type GuestCrossSurfaceNavLink = {
   readonly id: string;
   readonly labelKey: string;
   readonly surface: "marketing" | "portal_egress";
-  readonly path?: string;              // marketing only
+  readonly path?: string; // marketing only
   readonly egress?: "member_module" | "marketing_home" | "marketing_tours";
-  readonly memberModuleId?: string;    // required when egress=member_module
+  readonly memberModuleId?: string; // required when egress=member_module
   readonly visibleWhen?: "always" | "club" | "platform_mother";
 };
 ```
@@ -724,24 +729,24 @@ interface TourClient {
 
 Functions workspace authors **call** (not implement):
 
-| Function | Returns | Throws |
-|----------|---------|--------|
-| `resolveIntakeSchema(pluginId)` | `IntakeSchema` | `IntakePluginNotRegisteredError` |
-| `resolveEffectiveIntakeSchema(pluginId, context)` | `IntakeSchema` |同上 |
-| `resolveIntakeSubmitValues({ pluginId, context, formValues })` | `Record<string, string>` |同上 |
-| `validateIntakeSchemaValues(schema, values)` | `IntakeSchemaValidationIssue[]` | — |
-| `buildCatalogRegistrationUpstreamRequest(pluginId, payload, options?)` | `CatalogRegistrationUpstreamRequest` |同上 |
-| `resolveMemberPortalContract(pluginId)` | `MemberPortalContract` | — |
-| `resolveMemberPortalModules(pluginId)` | `MemberPortalSurface` | `MemberPortalNotConfiguredError` |
-| `resolveMemberProfileCapabilities(pluginId)` | `MemberProfileCapabilities` | `MemberProfileNotConfiguredError` |
-| `resolveCatalogListFeatures(pluginId)` | `CatalogListFeatures` | `UnknownCatalogPresentationPluginError` |
-| `resolveCatalogDetailSections(pluginId)` | `CatalogDetailSections` |同上 |
-| `resolveGuestLandingFeatures(pluginId)` | `GuestLandingFeatures` | `UnknownGuestLandingPluginError` |
-| `resolveGuestSeoForPlugin(pluginId)` | `WorkspaceGuestSeoConfig` | `GuestSeoNotConfiguredError` |
-| `resolveGuestConformanceLevelForPlugin(pluginId)` | `WorkspaceGuestConformanceLevel` | `GuestConformanceNotConfiguredError` |
-| `supportsCatalogRegistration(pluginId)` | `boolean` | — |
-| `tryResolveCatalogRegistrationForTourApiPath(pluginId, tourId)` | `string \| null` | — |
-| `validateStructuredData(json)` | `StructuredDataValidationResult` | — |
+| Function                                                               | Returns                              | Throws                                  |
+| ---------------------------------------------------------------------- | ------------------------------------ | --------------------------------------- |
+| `resolveIntakeSchema(pluginId)`                                        | `IntakeSchema`                       | `IntakePluginNotRegisteredError`        |
+| `resolveEffectiveIntakeSchema(pluginId, context)`                      | `IntakeSchema`                       | 同上                                    |
+| `resolveIntakeSubmitValues({ pluginId, context, formValues })`         | `Record<string, string>`             | 同上                                    |
+| `validateIntakeSchemaValues(schema, values)`                           | `IntakeSchemaValidationIssue[]`      | —                                       |
+| `buildCatalogRegistrationUpstreamRequest(pluginId, payload, options?)` | `CatalogRegistrationUpstreamRequest` | 同上                                    |
+| `resolveMemberPortalContract(pluginId)`                                | `MemberPortalContract`               | —                                       |
+| `resolveMemberPortalModules(pluginId)`                                 | `MemberPortalSurface`                | `MemberPortalNotConfiguredError`        |
+| `resolveMemberProfileCapabilities(pluginId)`                           | `MemberProfileCapabilities`          | `MemberProfileNotConfiguredError`       |
+| `resolveCatalogListFeatures(pluginId)`                                 | `CatalogListFeatures`                | `UnknownCatalogPresentationPluginError` |
+| `resolveCatalogDetailSections(pluginId)`                               | `CatalogDetailSections`              | 同上                                    |
+| `resolveGuestLandingFeatures(pluginId)`                                | `GuestLandingFeatures`               | `UnknownGuestLandingPluginError`        |
+| `resolveGuestSeoForPlugin(pluginId)`                                   | `WorkspaceGuestSeoConfig`            | `GuestSeoNotConfiguredError`            |
+| `resolveGuestConformanceLevelForPlugin(pluginId)`                      | `WorkspaceGuestConformanceLevel`     | `GuestConformanceNotConfiguredError`    |
+| `supportsCatalogRegistration(pluginId)`                                | `boolean`                            | —                                       |
+| `tryResolveCatalogRegistrationForTourApiPath(pluginId, tourId)`        | `string \| null`                     | —                                       |
+| `validateStructuredData(json)`                                         | `StructuredDataValidationResult`     | —                                       |
 
 ---
 
@@ -755,21 +760,27 @@ type SdkResult<T, C extends string> =
   | { ok: false; error: { code: C; message: string; path?; cause? } };
 ```
 
-| API | Success | Error codes |
-|-----|---------|-------------|
-| `tryParseWorkspacePluginFromStorage(raw)` | `WorkspacePlugin` (functions stripped) | `WorkspacePluginIngressErrorCode` |
-| `validateWorkspacePlugin(value)` | `WorkspacePlugin` | `WorkspaceSdkValidationErrorCode` |
-| `tryParseCanonicalDocumentFromStorage(raw)` | `CanonicalDocument` | `CanonicalIngressErrorCode` |
-| `tryParseTenantAuthContext(input)` | `TenantAuthContext` | `AuthContextErrorCode` |
+| API                                         | Success                                | Error codes                       |
+| ------------------------------------------- | -------------------------------------- | --------------------------------- |
+| `tryParseWorkspacePluginFromStorage(raw)`   | `WorkspacePlugin` (functions stripped) | `WorkspacePluginIngressErrorCode` |
+| `validateWorkspacePlugin(value)`            | `WorkspacePlugin`                      | `WorkspaceSdkValidationErrorCode` |
+| `tryParseCanonicalDocumentFromStorage(raw)` | `CanonicalDocument`                    | `CanonicalIngressErrorCode`       |
+| `tryParseTenantAuthContext(input)`          | `TenantAuthContext`                    | `AuthContextErrorCode`            |
 
 Runtime hooks (`validation`, `wizardHost`, etc.) are **not** in stored JSON. Ingress attaches `noopWorkspaceValidationHooks` by default.
 
 ### `WorkspaceDefinitionPayload` (DB-persisted)
 
 ```typescript
-type WorkspaceDefinitionPayload = Pick<WorkspacePlugin,
-  "id" | "version" | "contractVersion" | "supportedWorkspaceTypes" |
-  "fieldRegistry" | "ruleSet" | "wizard"
+type WorkspaceDefinitionPayload = Pick<
+  WorkspacePlugin,
+  | "id"
+  | "version"
+  | "contractVersion"
+  | "supportedWorkspaceTypes"
+  | "fieldRegistry"
+  | "ruleSet"
+  | "wizard"
 > & {
   readonly theme?: { readonly tokens?: Record<string, string> };
   readonly commerce?: WorkspaceCommerceConfig;
@@ -782,11 +793,11 @@ type WorkspaceDefinitionPayload = Pick<WorkspacePlugin,
 
 Subpaths not re-exported from root (import explicitly):
 
-| Subpath | Key exports |
-|---------|-------------|
-| `metadata` | `stripWorkspacePluginToDefinitionPayload`, `WorkspaceDefinitionPayload`, `parseWorkspaceCommerceConfig`, `assertAllowedPlatformRendererId` |
-| `registry` | `validateWorkspaceFieldRegistry`, `assertWorkspaceFieldRegistry`, `getWorkspaceRuleCell` |
-| `plugin-types` | Type-only: `WorkspacePlugin`, field registry, rule set, canonical |
+| Subpath        | Key exports                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `metadata`     | `stripWorkspacePluginToDefinitionPayload`, `WorkspaceDefinitionPayload`, `parseWorkspaceCommerceConfig`, `assertAllowedPlatformRendererId` |
+| `registry`     | `validateWorkspaceFieldRegistry`, `assertWorkspaceFieldRegistry`, `getWorkspaceRuleCell`                                                   |
+| `plugin-types` | Type-only: `WorkspacePlugin`, field registry, rule set, canonical                                                                          |
 
 ---
 
@@ -796,58 +807,58 @@ These exports use `unknown`, open records, or stringly-typed ids where stricter 
 
 ### High impact (workspace implementers)
 
-| Export / field | Current type | Gap | Recommended direction |
-|----------------|--------------|-----|----------------------|
-| `WorkspacePluginId` | `string` | No closed union of registered plugins | Generate `type WorkspacePluginId = "denali" \| "urban" \| …` from registry |
-| `WorkspaceTypeId` | `string` | Same | Generate from `WORKSPACE_MANIFEST_BINDINGS` |
-| `WorkspaceWizardHostHooks.loadRulesModule` | `() => Promise<unknown>` | Opaque rules bundle | Workspace-specific branded type or generic param |
-| `applyContextualFieldRules` | returns `unknown` | Render plan shape undocumented | Export `WizardRenderPlan` from platform-core or SDK |
-| `prepareSubmitPayload` | returns `unknown` | Should be `CreateTourPayload` | Narrow return type |
-| `prepareTourPatchPayload` | returns `unknown` | Should be `UpdateTourPayload` | Narrow return type |
-| `buildRuleEvalContext` | returns `unknown` | Eval context opaque | Document minimum shape or export `RuleEvalContext` |
-| `FlowSubmitPayload` | `Readonly<Record<string, unknown>>` | Submit body unchecked | Per-workspace Zod schema or generic on flow surface |
-| `CatalogRegistrationPortalPayload.transport` | `unknown` | Transport blob | `RegistrationIntakeTransport \| undefined` |
-| `CatalogRegistrationUpstreamRequest.body` | `unknown` | API body unchecked | Workspace-specific upstream body type |
-| `WorkspaceValidationHooks.checkTripDetails` | `tripDetails: unknown` | Trip shape undefined | Export `TripDetails` or workspace-specific interface |
-| `WorkspaceWizardDraftMeta` | `Readonly<Record<string, unknown>>` | Intentionally workspace-owned | Document per-workspace meta keys in workspace docs |
-| `WorkspaceWizardTemplateGateNormalizeInput.templateSteps` | `readonly unknown[]` | Template step shape unknown | Export template step type from wizard engine |
-| `CanonicalDocument.data` | `Readonly<Record<string, unknown>>` | Intentionally generic | Workspace canonical schemas live in workspace packages |
-| `TourCloneHydrationInput/Result.data` | `Record<string, unknown>` | Draft shape opaque | Generic `TourCloneHydrator<TDraft>` |
-| `lifecycle.initialStatus` / `publishStatus` | `string` | Not enum-constrained | Workspace-specific status unions |
-| `WorkspaceLifecycleTransition.from/to` | `string` | Same | |
+| Export / field                                            | Current type                        | Gap                                   | Recommended direction                                                      |
+| --------------------------------------------------------- | ----------------------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
+| `WorkspacePluginId`                                       | `string`                            | No closed union of registered plugins | Generate `type WorkspacePluginId = "denali" \| "urban" \| …` from registry |
+| `WorkspaceTypeId`                                         | `string`                            | Same                                  | Generate from `WORKSPACE_MANIFEST_BINDINGS`                                |
+| `WorkspaceWizardHostHooks.loadRulesModule`                | `() => Promise<unknown>`            | Opaque rules bundle                   | Workspace-specific branded type or generic param                           |
+| `applyContextualFieldRules`                               | returns `unknown`                   | Render plan shape undocumented        | Export `WizardRenderPlan` from platform-core or SDK                        |
+| `prepareSubmitPayload`                                    | returns `unknown`                   | Should be `CreateTourPayload`         | Narrow return type                                                         |
+| `prepareTourPatchPayload`                                 | returns `unknown`                   | Should be `UpdateTourPayload`         | Narrow return type                                                         |
+| `buildRuleEvalContext`                                    | returns `unknown`                   | Eval context opaque                   | Document minimum shape or export `RuleEvalContext`                         |
+| `FlowSubmitPayload`                                       | `Readonly<Record<string, unknown>>` | Submit body unchecked                 | Per-workspace Zod schema or generic on flow surface                        |
+| `CatalogRegistrationPortalPayload.transport`              | `unknown`                           | Transport blob                        | `RegistrationIntakeTransport \| undefined`                                 |
+| `CatalogRegistrationUpstreamRequest.body`                 | `unknown`                           | API body unchecked                    | Workspace-specific upstream body type                                      |
+| `WorkspaceValidationHooks.checkTripDetails`               | `tripDetails: unknown`              | Trip shape undefined                  | Export `TripDetails` or workspace-specific interface                       |
+| `WorkspaceWizardDraftMeta`                                | `Readonly<Record<string, unknown>>` | Intentionally workspace-owned         | Document per-workspace meta keys in workspace docs                         |
+| `WorkspaceWizardTemplateGateNormalizeInput.templateSteps` | `readonly unknown[]`                | Template step shape unknown           | Export template step type from wizard engine                               |
+| `CanonicalDocument.data`                                  | `Readonly<Record<string, unknown>>` | Intentionally generic                 | Workspace canonical schemas live in workspace packages                     |
+| `TourCloneHydrationInput/Result.data`                     | `Record<string, unknown>`           | Draft shape opaque                    | Generic `TourCloneHydrator<TDraft>`                                        |
+| `lifecycle.initialStatus` / `publishStatus`               | `string`                            | Not enum-constrained                  | Workspace-specific status unions                                           |
+| `WorkspaceLifecycleTransition.from/to`                    | `string`                            | Same                                  |                                                                            |
 
 ### Medium impact (manifest / policy)
 
-| Export / field | Current type | Gap |
-|----------------|--------------|-----|
-| `WorkspaceFieldPolicyDefinition.validation` | `Readonly<Record<string, unknown>>` | Validation rule DSL undocumented in SDK |
-| `WorkspaceThemeContract.cssVariables` | `Record<string, string>` | Keys validated at runtime (`--ws-*`) but not as TS union |
-| `WorkspaceDefinitionThemePayload.tokens` | `Record<string, string>` | Same |
-| `PublicCatalogCard.structuredData` | `Readonly<Record<string, unknown>>` | JSON-LD shape not validated here (use `validateStructuredData`) |
-| `RegistrationOpsManifest.statusPipeline` | `readonly string[]` | Status values not enum'd |
-| `RegistrationOpsManifest.columns.*` | `readonly string[]` | Column ids not enum'd |
-| `WorkspaceIntegrationSurface.messageTemplates` | `Record<string, string>` | Event types not enum'd |
-| `WorkspaceExposureSurfaceDefinition.surface` | `string` | Surface ids not enum'd |
-| `SettingsModuleManifest.ability` | `string` | Ability keys not enum'd |
-| `MemberModuleManifest.id` | `string` | Only reserved ids blocked, not a closed union |
+| Export / field                                 | Current type                        | Gap                                                             |
+| ---------------------------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+| `WorkspaceFieldPolicyDefinition.validation`    | `Readonly<Record<string, unknown>>` | Validation rule DSL undocumented in SDK                         |
+| `WorkspaceThemeContract.cssVariables`          | `Record<string, string>`            | Keys validated at runtime (`--ws-*`) but not as TS union        |
+| `WorkspaceDefinitionThemePayload.tokens`       | `Record<string, string>`            | Same                                                            |
+| `PublicCatalogCard.structuredData`             | `Readonly<Record<string, unknown>>` | JSON-LD shape not validated here (use `validateStructuredData`) |
+| `RegistrationOpsManifest.statusPipeline`       | `readonly string[]`                 | Status values not enum'd                                        |
+| `RegistrationOpsManifest.columns.*`            | `readonly string[]`                 | Column ids not enum'd                                           |
+| `WorkspaceIntegrationSurface.messageTemplates` | `Record<string, string>`            | Event types not enum'd                                          |
+| `WorkspaceExposureSurfaceDefinition.surface`   | `string`                            | Surface ids not enum'd                                          |
+| `SettingsModuleManifest.ability`               | `string`                            | Ability keys not enum'd                                         |
+| `MemberModuleManifest.id`                      | `string`                            | Only reserved ids blocked, not a closed union                   |
 
 ### Low impact (intentional ingress boundaries)
 
-| Export | Notes |
-|--------|-------|
-| `validateWorkspacePlugin(value: unknown)` | Ingress boundary — OK |
-| `validateWorkspaceFieldRegistry(registry: unknown)` | Ingress boundary — OK |
-| `validateStructuredData(json: unknown)` | Ingress boundary — OK |
-| `parseWorkspaceCommerceConfig(input: unknown)` | Zod-validated at runtime — OK |
+| Export                                              | Notes                         |
+| --------------------------------------------------- | ----------------------------- |
+| `validateWorkspacePlugin(value: unknown)`           | Ingress boundary — OK         |
+| `validateWorkspaceFieldRegistry(registry: unknown)` | Ingress boundary — OK         |
+| `validateStructuredData(json: unknown)`             | Ingress boundary — OK         |
+| `parseWorkspaceCommerceConfig(input: unknown)`      | Zod-validated at runtime — OK |
 
 ### Documentation gaps (not type gaps)
 
-| Topic | Status |
-|-------|--------|
+| Topic                                                               | Status                                                                   |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `catalogRegistrationFlow` registration vs `catalogIntake` on plugin | Flow is registry + manifest; intake is plugin property — easy to confuse |
-| Which surfaces require `registerWorkspace*Plugin` at app bootstrap | Documented in code comments only |
-| `WorkspaceCatalogIntakeSchemaProvider` | Legacy/alternate surface; prefer `WorkspaceCatalogIntakeSurface` |
-| Denali-specific examples in hook JSDoc | Other workspaces must infer from Denali references |
+| Which surfaces require `registerWorkspace*Plugin` at app bootstrap  | Documented in code comments only                                         |
+| `WorkspaceCatalogIntakeSchemaProvider`                              | Legacy/alternate surface; prefer `WorkspaceCatalogIntakeSurface`         |
+| Denali-specific examples in hook JSDoc                              | Other workspaces must infer from Denali references                       |
 
 ---
 
@@ -861,4 +872,4 @@ These exports use `unknown`, open records, or stringly-typed ids where stricter 
 
 ---
 
-*Generated from `@app-tour/workspace-sdk` source scan. For Phase 0 covenant and commands see [`README.md`](./README.md) and [`docs/phase-0-foundation.md`](../../docs/phase-0-foundation.md).*
+_Generated from `@app-tour/workspace-sdk` source scan. For Phase 0 covenant and commands see [`README.md`](./README.md) and [`docs/phase-0-foundation.md`](../../docs/phase-0-foundation.md)._

@@ -381,6 +381,71 @@ describe("Telegram worker delivery", () => {
       },
     ]);
   });
+
+  it("sends a registration.waitlisted event to the registration topic without approval buttons", async () => {
+    const sent: Array<{
+      channelId: string;
+      messageThreadId?: number;
+      text?: string;
+      replyMarkup?: unknown;
+    }> = [];
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        domainEventId: "registration.waitlisted:registration-2",
+        eventType: "registration.waitlisted",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "connection-1",
+          telegramTopicKey: "registration",
+          bookingId: "registration-2",
+          guestLabel: "مریم رضایی",
+          tourTitle: "تور تکمیل‌ظرفیت",
+          departureAt: "2026-09-20",
+          partySize: 1,
+          approvalPrompt: "⏳ ظرفیت تکمیل است؛ ثبت‌نام در لیست انتظار قرار گرفت.",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "connection-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: { registration: 101 } },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage(_ctx, input) {
+            sent.push({
+              channelId: input.channelId,
+              messageThreadId: input.messageThreadId,
+              text: input.text,
+              replyMarkup: input.replyMarkup,
+            });
+            return { ok: true };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sent, [
+      {
+        channelId: "-1004292581496",
+        messageThreadId: 101,
+        text: "⏳ ثبت‌نام در لیست انتظار\n\n👤 نام: مریم رضایی\n🏕 تور: تور تکمیل‌ظرفیت\n📅 تاریخ حرکت: 2026-09-20\n👥 تعداد نفرات: 1\n🆔 شناسه ثبت‌نام: registration-2\n\n⏳ ظرفیت تکمیل است؛ ثبت‌نام در لیست انتظار قرار گرفت.",
+        replyMarkup: undefined,
+      },
+    ]);
+  });
 });
 
 describe("Telegram forum delivery routing", () => {

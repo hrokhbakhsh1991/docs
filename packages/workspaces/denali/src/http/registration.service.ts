@@ -9,6 +9,7 @@ import {
 import {
   assertDenaliCreateValid,
   buildDenaliBookingCreatePolicyContext,
+  denaliWaitlistAllowed,
   resolveDenaliRegistrationApprovalMode,
 } from "../booking";
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
@@ -227,6 +228,21 @@ export async function createDenaliRegistration(params: {
   };
   const approvalRequired = resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto";
 
+  const approvedOccupancy =
+    capacity !== null
+      ? ((
+          await params.bookingPort.sumApprovedPartySizeByTourIds(params.tenantId, [
+            params.body.tourId,
+          ])
+        )[params.body.tourId] ?? 0)
+      : null;
+  const shouldWaitlist =
+    params.bookingPort.createWaitlistedBooking !== undefined &&
+    denaliWaitlistAllowed() &&
+    capacity !== null &&
+    approvedOccupancy !== null &&
+    approvedOccupancy + params.body.partySize > capacity;
+
   // Own-other identity collision → reclassify same row to self (tour-global guest uniques).
   if (registrantTarget === "self" && params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID) {
     let identityHit: { readonly id: string } | null = null;
@@ -281,7 +297,7 @@ export async function createDenaliRegistration(params: {
     }
   }
 
-  const created = await params.bookingPort.createPendingBooking({
+  const createInput = {
     tenantId: params.tenantId,
     guestUserId: params.guestUserId,
     tourId: params.body.tourId,
@@ -293,7 +309,7 @@ export async function createDenaliRegistration(params: {
     departureAt,
     registrationIntake,
     outboxEvent: {
-      eventType: "registration.created",
+      eventType: shouldWaitlist ? "registration.waitlisted" : "registration.created",
       payload: {
         topicKey: "registration",
         guestUserId: params.guestUserId,
@@ -304,14 +320,26 @@ export async function createDenaliRegistration(params: {
         ...(guestPhone !== undefined ? { guestPhone } : {}),
         partySize: params.body.partySize,
         departureAt,
-        approvalRequired,
-        approvalStatus: approvalRequired ? "awaiting_approval" : "approved",
-        approvalPrompt: approvalRequired
-          ? "⏳ این تور نیاز به تأیید ادمین دارد."
-          : "ℹ️ این تور نیاز به تأیید ادمین ندارد.",
+        approvalRequired: shouldWaitlist ? false : approvalRequired,
+        approvalStatus: shouldWaitlist
+          ? "waitlisted"
+          : approvalRequired
+            ? "awaiting_approval"
+            : "approved",
+        approvalPrompt: shouldWaitlist
+          ? "🕒 ظرفیت این تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شد."
+          : approvalRequired
+            ? "⏳ این تور نیاز به تأیید ادمین دارد."
+            : "ℹ️ این تور نیاز به تأیید ادمین ندارد.",
       },
     },
-  });
+  };
+
+  if (shouldWaitlist) {
+    return params.bookingPort.createWaitlistedBooking!(createInput);
+  }
+
+  const created = await params.bookingPort.createPendingBooking(createInput);
 
   // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).
   // Never trust client intake; mode comes only from loaded tour SoT.
