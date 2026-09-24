@@ -25,15 +25,208 @@
 
 | ID | اولویت | وضعیت | یافته | معیار بسته‌شدن |
 |---|---|---|---|---|
-| DENALI-001 | P1 | OPEN | تب transport roster پیام unavailable می‌دهد؛ علت API هنوز ثبت نشده. | status پاسخ، log علت، fixture سالم و دو load موفق. |
-| DENALI-002 | P2 | OPEN | React hydration error `#418` در transport route. | build تمیز و دو navigation بدون console error. |
-| DENALI-003 | P2 | OPEN | `bookings.status.actionable` در fa ناقص و در UI خام نمایش داده می‌شود. | fa/en label معتبر و تست locale completeness سبز. |
-| DENALI-004 | P2 | OPEN | route ناشناخته Admin به generic 500 می‌رسد، نه 404. | 404 استاندارد، بدون stack داخلی. |
-| DENALI-005 | P1 | OPEN | debug host endpoint برای anonymous قابل‌مشاهده است. | حذف یا auth/allowlist و تست anonymous. |
-| DENALI-006 | P1 | OPEN | unknown Marketing host به catalog API پاسخ 500 کنترل‌نشده می‌دهد. | 4xx کنترل‌شده و بدون tenant fallback. |
-| DENALI-007 | P1 | OPEN | unknown Portal route/API به generic 500 می‌رسد. | 404/400 قراردادشده و بدون stack. |
-| DENALI-008 | P0 | OPEN | tenant resolution به forwarded-host قابل‌دسترس از client اعتماد می‌کند. | spoof دو tenant رد شود و proxy trusted اثبات شود. |
-| DENALI-AUTH-001 | P2 | BLOCKED | fixture رسمی login محلی با فرم پذیرفته نشد؛ bypass ممنوع است. | identity رسمی پذیرفته یا قرارداد fixture اصلاح شود. |
+| DENALI-001 | P1 | CLOSED | پس از deploy migrationهای عقب‌مانده، operational roster با fixture رسمی سالم است و پیام unavailable بازتولید نشد. | status پاسخ، log علت، fixture سالم و دو load موفق. |
+| DENALI-002 | P2 | CLOSED | دو load در مرورگر واقعی با session معتبر، status `200` برای APIهای اصلی، payload ثبت‌شده، DOM سالم و بدون console error/warning مشاهده‌شده تکمیل شد. | build تمیز و دو navigation بدون console error. |
+| DENALI-003 | P2 | CLOSED | کلیدهای `bookings.status.actionable` در fa/en موجود و در browser با label معتبر render شدند؛ raw key مشاهده نشد. | fa/en label معتبر و تست locale completeness سبز. |
+| DENALI-004 | P2 | CLOSED | route ناشناخته Admin در browser و HTTP به 404 استاندارد می‌رسد و صفحهٔ فارسی not-found بدون stack داخلی render می‌شود. | 404 استاندارد، بدون stack داخلی. |
+| DENALI-005 | P1 | CLOSED | debug host endpoint از middleware عمومی حذف شد؛ anonymous اکنون `401 AUTH_UNAUTHENTICATED` می‌گیرد و دادهٔ host افشا نمی‌شود. | حذف یا auth/allowlist و تست anonymous. |
+| DENALI-006 | P1 | CLOSED | unknown Marketing host در catalog API با `404 TENANT_HOST_UNKNOWN` fail-closed می‌شود و tenant fallback یا 500 ندارد. | 4xx کنترل‌شده و بدون tenant fallback. |
+| DENALI-007 | P1 | CLOSED | unknown Portal route/API اکنون fail-closed است؛ page status `404 Not Found` و API status `404 TENANT_HOST_UNKNOWN` بدون stack داخلی. | 404/400 قراردادشده و بدون stack. |
+| DENALI-008 | P0 | CLOSED | tenant resolution دیگر forwarded-host ارسالی مستقیم از client را trusted نمی‌کند؛ فقط proxy صریحاً پیکربندی‌شده مجاز است. | spoof دو tenant رد شد و trusted-proxy contract با تست و browser proof ثبت شد. |
+| DENALI-AUTH-001 | P2 | CLOSED | علت runtime، نبود کلیدهای signing برای ساخت session بود؛ پس از bootstrap کلیدهای dev JWT، OTP معتبر پذیرفته و session ساخته شد؛ screenshot authenticated پایدار ثبت شد. | identity رسمی و OTP معتبر پذیرفته شود و session ساخته شود. |
+
+### DENALI-001 evidence
+
+- **diagnose:** blocker قبلی از نبود migration در دیتابیس محلی بود؛ `tours.updated_at` و `membership_codes` در source موجود بودند اما deploy نشده بودند و seed رسمی پیش از browser proof متوقف می‌شد.
+- **fix:** migration deploy رسمی با owner URL انجام شد؛ سپس fixture رسمی Denali seed شد و API/Web با JWT dev و OTP fixture بالا آمدند. تغییر کد محصول برای این مورد لازم نشد؛ خطای مشاهده‌شده محیطی بود.
+- **browser_url:** `http://admin.denali.localhost:3000/tours/00000000-0000-4000-8000-000000000220/workspace?tab=transport` (دو load متوالی).
+- **visible_result:** پنل `لیست عملیاتی` و کنترل‌های transport قابل مشاهده بودند؛ متن `unavailable` یا `در دسترس نیست` مشاهده نشد.
+- **console_error_count:** `0` در هر دو load.
+- **network_result:** درخواست‌های `/api/tours/00000000-0000-4000-8000-000000000220/operational-roster` با status `200`؛ دو درخواست مستقیم fixture و درخواست‌های viewهای `operational`, `unpaid`, `final` نیز `200`.
+- **screenshot_or_dom_assertion:** assertionهای DOM برای `tour-workspace` و `transportPanel` در هر دو load سبز؛ screenshot در `apps/web/test-results/denali-001-transport-proof.png`.
+- **prove:** تست Playwright اختصاصی `denali-001-proof.spec.ts` با دو load موفق (`1 passed`, `6.2s`) و تست canonical `GAP-TRANSPORT-01` نیز سبز (`1 passed`, `16.6s`).
+- **task_id:** `DENALI-001`.
+- **acceptance_criteria:** fixture رسمی seed شود؛ همان route دو بار load شود؛ roster status `200` بدهد؛ پنل transport بدون پیام unavailable و بدون خطای console نمایش داده شود.
+- **test_command:** `pnpm exec playwright test --config=playwright.denali.config.ts tests/e2e/denali-001-proof.spec.ts --reporter=line`.
+- **test_result:** exit code `0`; `1 passed (6.2s)`. Canonical `GAP-TRANSPORT-01`: exit code `0`; `1 passed (16.6s)`.
+- **runtime_environment:** `local`.
+- **verifier:** QA browser verifier.
+- **verified_at:** `2026-09-20T18:40:00+03:30`.
+- **owner:** QA.
+- **source_sha:** `26f3f12e801443aafefee3a0bebd550191f6176a`.
+
+### DENALI-002 evidence
+
+- **reproduce:** fixture رسمی owner با همان tour منتشرشده اجرا شد و route transport دو بار متوالی باز شد.
+- **diagnose:** در هر دو navigation هیچ `console.error`، `pageerror` یا پیام hydration شامل `#418` ثبت نشد؛ بنابراین finding با runtime و SHA جاری قابل بازتولید نیست.
+- **fix:** تغییر کد لازم نشد؛ counter-evidence نشان داد مشکل در source/runtime فعلی وجود ندارد.
+- **browser_url:** `http://admin.denali.localhost:3000/tours/00000000-0000-4000-8000-000000000220/workspace?tab=transport`.
+- **visible_result:** صفحه workspace و پنل transport در هر دو navigation قابل مشاهده بود.
+- **console_error_count:** `0` در هر دو navigation؛ `pageerror` نیز `0`.
+- **network_result:** route با session fixture معتبر load شد و صفحه بدون خطای browser تکمیل شد.
+- **screenshot_or_dom_assertion:** assertionهای DOM برای `tour-workspace` و `transportPanel` در هر دو navigation سبز؛ screenshot در `apps/web/test-results/denali-002-hydration-proof.png`.
+- **task_id:** `DENALI-002`.
+- **acceptance_criteria:** build/runtime جاری و دو navigation همان route بدون console یا hydration error.
+- **test_command:** `pnpm exec playwright test --config=playwright.denali.config.ts tests/e2e/denali-002-proof.spec.ts --reporter=line`.
+- **test_result:** exit code `0`; `1 passed (1.3m)`.
+- **runtime_environment:** `local`.
+- **verifier:** QA browser verifier.
+- **verified_at:** `2026-09-20T18:59:00+03:30`.
+- **owner:** QA.
+- **source_sha:** `f0e84093433e3fbabd7d3ee1df19de2116ad8e30`.
+
+### DENALI-002 live-browser recheck
+
+- **status_change:** `OPEN -> CLOSED` پس از تکمیل instrumentation داخل browser واقعی برای APIهای اصلی و ثبت دو screenshot.
+- **load_1_browser_url:** `http://admin.denali.localhost:3000/tours/00000000-0000-4000-8000-000000000220/workspace?tab=transport`.
+- **load_1_session:** authenticated؛ redirect به `/auth/login` رخ نداد.
+- **load_1_dom:** `operator-tour-workspace-page` و `operator-tour-workspace-transport-panel` موجود؛ پنل `لیست عملیاتی`، تب‌ها، فیلترها و export render شدند.
+- **load_1_network_observed:** با `fetch(..., { credentials: "include" })` در همان browser context، تمام APIهای اصلی با status `200` و payload ثبت شدند: tour detail، branding، operational roster برای `operational/unpaid/final` و bookings برای `pending/waitlisted/approved`; payload rosterها `items:[]`, `total:0`, `nextCursor:null` و payload bookingها نیز خالی و موفق بود.
+- **load_1_console:** instrumentation مرورگر `errors: []`, `warnings: []` گزارش کرد؛ هیچ موردی در جریان load و بررسی صفحه مشاهده نشد.
+- **load_1_screenshot:** screenshot کامل صفحه با browser canvas ثبت شد.
+- **load_2_browser_url:** همان URL دقیق.
+- **load_2_session:** authenticated؛ redirect رخ نداد.
+- **load_2_dom:** همان workspace/transport panel و کامپوننت‌ها render شدند؛ empty roster message قابل مشاهده بود و error state نبود.
+- **load_2_network_observed:** همان مجموعه APIها با status `200` و payload موفق و همسان با load اول ثبت شد؛ roster و booking پاسخ خالی معتبر داشتند.
+- **load_2_console:** instrumentation مرورگر `errors: []`, `warnings: []` گزارش کرد.
+- **load_2_screenshot:** screenshot کامل صفحه با browser canvas ثبت شد.
+- **network_payload_note:** payloadهای اصلی در خروجی instrumentation browser ثبت شدند؛ screenshotها با action `screenshot_page` برای هر load ثبت شدند.
+- **next_action:** ندارد؛ evidence لازم برای این task کامل شد.
+- **owner:** QA/browser tooling.
+
+### DENALI-003 evidence
+
+- **task_id:** `DENALI-003`.
+- **reproduce:** route `http://admin.denali.localhost:3000/bookings?status=actionable` در browser واقعی باز شد؛ در runtime جاری finding بازتولید نشد و به‌جای raw key، label فارسی `نیازمند اقدام` نمایش داده شد.
+- **diagnose:** علت تاریخی، نبودن کلید `status.actionable` در localeهای bookings بود؛ `git show 8834e353d` نشان می‌دهد fix دقیقاً با افزودن کلید به هر دو فایل locale انجام شده است. در source جاری هر دو کلید معتبر هستند و component `booking-inbox-row.tsx` از `t(\`status.${item.status}\`)` در namespace `bookings` استفاده می‌کند.
+- **fix:** fix موجود commit `8834e353d` در SHA جاری حاضر است؛ تغییر جدید لازم نبود.
+- **browser_url:** `http://admin.denali.localhost:3000/bookings?status=actionable`.
+- **session:** authenticated؛ redirect به `/auth/login` رخ نداد.
+- **visible_result:** صفحه `مرکز رزروها` و queue status با متن `نیازمند اقدام` render شدند؛ `bookings.status.actionable` در DOM دیده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** `/api/bookings/summary?view=ops` و `/api/bookings?view=ops&status=pending,waitlisted&limit=25` هر دو `200`; payloadها به‌ترتیب summary معتبر با شمارنده‌های صفر و `{items:[],total:0,nextCursor:null}` بودند.
+- **screenshot_or_dom_assertion:** screenshot کامل با browser canvas ثبت شد؛ DOM assertionهای `operator-bookings-page` و `operator-bookings-queue-status` سبز بودند و تنها label معتبر `نیازمند اقدام` پیدا شد.
+- **test_command:** `pnpm --filter @apps/web test:file test/bookings-command-center.spec.ts` و locale-key check با Node.
+- **test_result:** command تست `13 passed, 0 failed`; locale check خروجی `{"en":"Needs action","fa":"نیازمند اقدام"}` با exit code `0`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted web tests.
+- **verified_at:** `2026-09-20T19:29:05.524+03:30`.
+- **source_sha:** `ec66f9638`.
+
+### DENALI-004 evidence
+
+- **task_id:** `DENALI-004`.
+- **reproduce:** route ناشناخته `http://admin.denali.localhost:3000/does-not-exist` در browser واقعی باز شد؛ در runtime جاری generic 500 بازتولید نشد و صفحهٔ not-found استاندارد نمایش داده شد.
+- **diagnose:** `apps/web/app/not-found.tsx` صفحهٔ App Router با `data-web-page-not-found` و متن localized را فراهم می‌کند؛ runtime جاری همین surface را استفاده کرد. `apps/web/app/layout.tsx` نیز فقط خطای صریح `ADMIN_TENANT_UNRESOLVED` را به `notFound()` تبدیل می‌کند و سایر خطاها را پنهان نمی‌کند.
+- **fix:** fix لازم از قبل در source جاری وجود داشت؛ تغییر جدیدی لازم نبود.
+- **browser_url:** `http://admin.denali.localhost:3000/does-not-exist`.
+- **visible_result:** عنوان `صفحه یافت نشد`، توضیح مسیر ناموجود و لینک `بازگشت به صفحه اصلی` نمایش داده شد؛ stack یا متن خطای داخلی در visible DOM نبود.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** fetch همان route با `credentials: "include"` status `404` و `content-type: text/html; charset=utf-8` برگرداند؛ body visible شامل stack نبود.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ `data-web-page-not-found` و `data-web-not-found` موجود بودند و `visibleHasStack: false` بود.
+- **test_command:** `pnpm --filter @apps/web test:file test/app-not-found.spec.ts`.
+- **test_result:** exit code `0`; `3 passed, 0 failed`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted web tests.
+- **verified_at:** `2026-09-20T19:41:06.764+03:30`.
+- **source_sha:** `dba8d565c`.
+
+### DENALI-005 evidence
+
+- **task_id:** `DENALI-005`.
+- **reproduce:** پیش از fix، browser واقعی روی `http://admin.denali.localhost:3000/api/debug/host` بدون نیاز به session JSON شامل `headers`, `detectedHost`, `parseOutcome` و `operatorAdminRootRedirect` را نمایش داد؛ endpoint در `PUBLIC_BFF_API_PATHS` allowlisted بود.
+- **diagnose:** route در `apps/web/app/api/debug/host/route.ts` در development دادهٔ host و classification را برمی‌گرداند و middleware آن را public کرده بود؛ این باعث دسترسی anonymous شد.
+- **fix:** `/api/debug/host` از `PUBLIC_BFF_API_PATHS` حذف شد تا middleware آن را به‌عنوان protected BFF route بررسی کند؛ تست regression برای anonymous با انتظار `401 AUTH_UNAUTHENTICATED` اضافه شد.
+- **prove_browser_url:** `http://admin.denali.localhost:3000/api/debug/host`.
+- **prove_session:** anonymous؛ پس از logout، browser بدون session به endpoint دسترسی گرفت اما دادهٔ debug دریافت نکرد.
+- **prove_visible_result:** body فقط `{"ok":false,"error":{"code":"AUTH_UNAUTHENTICATED","message":"Authentication required"}}` بود؛ host headers و tenant classification نمایش داده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** request با `credentials: "omit"` status `401` و payload دقیق `AUTH_UNAUTHENTICATED` برگرداند.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ DOM body شامل `AUTH_UNAUTHENTICATED` بود و هیچ field debug وجود نداشت.
+- **test_command:** `pnpm --filter @apps/web test:file test/auth-login-flow.spec.ts`.
+- **test_result:** exit code `0`; `9 passed, 0 failed`، شامل تست `DENALI-005 middleware blocks anonymous debug host endpoint with 401`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted web tests.
+- **verified_at:** `2026-09-20T19:45:13.203+03:30`.
+- **source_sha:** `c1ca8509fa0f`.
+
+### DENALI-006 evidence
+
+- **task_id:** `DENALI-006`.
+- **reproduce:** در browser/HTTP اولیه Marketing روی پورت 3002 اجرا نبود و probe با connection refusal متوقف شد؛ پس از بالا آوردن سرویس، request به `http://unknown.localhost:3002/api/catalog` در runtime جاری 500 بازتولید نکرد و پاسخ کنترل‌شدهٔ 404 داد.
+- **diagnose:** root cause تاریخی در resolver tenant ناشناخته بود؛ commit `56d82da1d` با map کردن `MARKETING_TENANT_UNRESOLVED` به `TENANT_HOST_UNKNOWN`/404 آن را fail-closed کرده است. routeهای catalog فقط پس از `resolveMarketingBootstrapForApi(host)` به upstream می‌روند.
+- **fix:** fix موجود commit `56d82da1d` در source جاری حاضر است؛ تغییر جدید لازم نبود.
+- **browser_url:** `http://unknown.localhost:3002/api/catalog`.
+- **visible_result:** body فقط خطای کنترل‌شدهٔ `TENANT_HOST_UNKNOWN` را نمایش داد؛ هیچ catalog، tenant fallback یا stack داخلی نمایش داده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** request با `credentials: "omit"` status `404` و payload `{error:{code:"TENANT_HOST_UNKNOWN",message:"Marketing tenant could not be resolved for this host."}}` برگرداند.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ DOM body شامل `TENANT_HOST_UNKNOWN` بود و دادهٔ catalog نداشت.
+- **test_command:** `pnpm --filter @apps/marketing exec tsx --test test/resolve-marketing-bootstrap-api.spec.ts`.
+- **test_result:** exit code `0`; `1 passed, 0 failed`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted Marketing test.
+- **verified_at:** `2026-09-20T19:50:04.836+03:30`.
+- **source_sha:** `a891fb74e`.
+
+### DENALI-007 evidence
+
+- **task_id:** `DENALI-007`.
+- **reproduce:** پیش از fix، browser واقعی روی `http://unknown.localhost:3003/does-not-exist` صفحهٔ `Something went wrong` نشان داد و fetch همان route status `500` داشت؛ `/api/me/home` در همان host status `401` کنترل‌شده داشت اما APIهای public ناشناخته می‌توانستند layout را به 500 برسانند.
+- **diagnose:** `apps/portal/app/layout.tsx` قبل از render، bootstrap tenant را بدون تبدیل `PORTAL_TENANT_UNRESOLVED` انجام می‌داد و middleware برای host ناشناخته فقط مسیرهای protected را بررسی می‌کرد؛ بنابراین route صفحه‌ای به global error/500 می‌رسید.
+- **fix:** middleware اکنون bootstrap host را پیش از dispatch بررسی می‌کند و برای host ناشناخته page را با `404 Not Found` و API را با `404 TENANT_HOST_UNKNOWN` متوقف می‌کند. layout نیز unresolved bootstrap را به `notFound()` تبدیل می‌کند تا مسیرهای خارج از middleware fail-open نشوند.
+- **browser_url:** `http://unknown.localhost:3003/does-not-exist`.
+- **visible_result:** body دقیقاً `Not Found` بود؛ `Something went wrong`، stack و tenant data نمایش داده نشد.
+- **console_error_count:** `0`; instrumentation browser برای warnings نیز `[]` گزارش کرد.
+- **network_result:** page status `404`, content-type `text/plain`; `/api/public-auth/session` و `/api/me/home` هر دو status `404` با payload `TENANT_HOST_UNKNOWN` برگشتند.
+- **screenshot_or_dom_assertion:** screenshot کامل browser canvas ثبت شد؛ `genericError: false`, `notFound: true` و body برابر `Not Found` بود.
+- **test_command:** `pnpm --filter @apps/portal exec tsx --test test/portal-middleware.spec.ts test/resolve-portal-bootstrap.spec.ts`.
+- **test_result:** exit code `0`; `6 passed, 0 failed`.
+- **runtime_environment:** `local`.
+- **verifier:** browser canvas `denali-proof` و targeted Portal tests.
+- **verified_at:** `2026-09-20T19:56:41.613+03:30`.
+- **source_sha:** `002b0dc5b5f4`.
+
+### DENALI-008 evidence
+
+- **task_id:** `DENALI-008`.
+- **reproduce:** browser واقعی روی `http://127.0.0.1:3001/public/tenant-context` با `Host` پایه و `x-forwarded-host` متناقض اجرا شد؛ پیش از fix، `host-denali-forwarded-urban` پاسخ `200` با `workspaceType:"urban"` و `host-urban-forwarded-denali` پاسخ `200` با `workspaceType:"denali"` داد. این بازتولید قطعی tenant spoof بود.
+- **diagnose:** `apps/api/src/http/read-ingress-host.ts` پیش از fix همیشه `x-forwarded-host` را بر `Host` مقدم می‌کرد. هیچ شرط trusted-proxy یا network-boundary وجود نداشت.
+- **fix:** forwarded host اکنون فقط وقتی پذیرفته می‌شود که `TRUST_PROXY_HOPS > 0` و `remoteAddress` در `TRUSTED_PROXY_IPS` باشد؛ در حالت پیش‌فرض، API از `Host` استفاده می‌کند. قرارداد در WRS-001 مستند و تنظیم dev proxy در `scripts/cloud/agent-start.sh` اضافه شد. regression test برای rejection پیش‌فرض و propagation از proxy مجاز اضافه شد.
+- **browser_url:** `http://127.0.0.1:3001/public/tenant-context`، دو load متوالی واقعی.
+- **session:** anonymous API route؛ هیچ login، cookie یا redirect وجود نداشت.
+- **load_1:** URL کامل همان مقدار؛ DOM body فقط JSON خطای کنترل‌شده با `code:"TENANT_HOST_UNKNOWN"`؛ screenshot کامل ثبت شد؛ console error/warning مشاهده نشد. درخواست spoof با `x-forwarded-host: urban.localhost:3001` status `404` و payload کنترل‌شده برگشت.
+- **load_2:** URL کامل همان مقدار؛ DOM body فقط JSON خطای کنترل‌شده؛ screenshot کامل ثبت شد؛ console error/warning مشاهده نشد. درخواست‌های `spoof-denali-to-urban` و `spoof-urban-to-denali` هر دو status `404` و payload `{error:"not_found",code:"TENANT_HOST_UNKNOWN"}` داشتند؛ هیچ tenant دیگری انتخاب نشد.
+- **screenshot_or_dom_assertion:** browser canvas دو screenshot کامل ثبت کرد؛ DOM هر دو load فقط `TENANT_HOST_UNKNOWN` بود و tenant data render نشد.
+- **test_command:** `pnpm --filter @apps/api exec node --import tsx --test src/http/read-ingress-host.spec.ts`.
+- **test_result:** exit code `0`; `2 passed, 0 failed`.
+- **runtime_environment:** `local`, API روی `127.0.0.1:3001` با `TRUST_PROXY_HOPS=0`.
+- **verifier:** browser canvas `denali-008-browser` و targeted API regression test.
+- **verified_at:** `2026-09-20T20:20:00+03:30`.
+- **source_sha:** `f01b63f3e4f6170498df5f5fe0608d8e527af39f`.
+
+### DENALI-AUTH-001 evidence
+
+- **task_id:** `DENALI-AUTH-001`.
+- **reproduce:** در browser واقعی روی `http://admin.denali.localhost:3000/auth/login?returnUrl=%2Ftours` identity رسمی `09174070937` ارسال شد و فرم به مرحله OTP رسید؛ کد توسعهٔ نمایش‌داده‌شده `۱۲۳۴` با submit فرم رد شد.
+- **diagnose:** صفحهٔ login بعد از submit پیام دقیق `رمز منقضی شده. رمز جدید بگیرید.` را render کرد و URL/session در login باقی ماند؛ session cookie اپلیکیشن ساخته نشد. درخواست BFF برای گرفتن challenge status `200` و `challenge_id` معتبر داشت، اما verify با status `500` و payload `{ok:false,error:{code:"LOGIN_FAILED"}}` برگشت. تماس مستقیم API بدون BFF نیز `UNAUTHORIZED_MISSING_AUTHENTICATED_TENANT` داد؛ بنابراین fixture/tenant context رسمی برای login کامل نیست و علت محصولی قابل اثبات نیست.
+- **fix:** هیچ bypass یا تغییر محصولی اعمال نشد؛ تنظیم runtime لازم (`ALLOW_DEV_WEB_SESSION=true`، `AUTH_ALLOW_DEV_STATIC_OTP=true` و `OPERATOR_OWNER_MOBILE=09174070937`) فعال شد، اما verify همچنان `OTP_EXPIRED`/`LOGIN_FAILED` ماند.
+- **browser_url:** `http://admin.denali.localhost:3000/auth/login?returnUrl=%2Ftours`.
+- **visible_result:** صفحهٔ OTP با پیام `رمز منقضی شده. رمز جدید بگیرید.`؛ redirect انجام نشد و authenticated session ایجاد نشد.
+- **network_result:** `POST /api/auth/request-otp` status `200` با `challenge_id`; `POST /api/auth/login-web-session` status `500` با `LOGIN_FAILED`; تماس مستقیم API status `401` با `UNAUTHORIZED_MISSING_AUTHENTICATED_TENANT`.
+- **console_and_dom:** DOM پیام خطای OTP را نشان داد؛ console error/warning جدیدی در browser مشاهده نشد.
+- **fix:** لاگ API علت دقیق را `AUTH_JWT_SIGNING_NOT_CONFIGURED` ثبت کرد. کلیدهای رسمی dev JWT با `apps/api/scripts/bootstrap-dev-jwt-keys.mjs` تولید و runtime با `AUTH_ALLOW_DEV_STATIC_OTP=true` و کلیدها restart شد؛ تغییر bypass یا تغییر قرارداد auth انجام نشد.
+- **prove_network:** browser واقعی `POST /api/auth/request-otp` را با status `200` و challenge معتبر گرفت؛ سپس `POST /api/auth/login-web-session` را با status `200` و session token/tenant رسمی دریافت کرد. تماس مستقیم browser با API و headerهای trusted tenant نیز `/auth/request-otp` و `/auth/verify-otp` را هر دو با status `200` برگرداند.
+- **prove_session_and_dom:** پس از login واقعی در browser، URL به `http://admin.denali.localhost:3000/tours` redirect شد؛ DOM شامل shell اپراتور، نام کاربر، منوی اصلی و فهرست تورها بود و redirect به login رخ نداد.
+- **prove_console:** در load موفق، console error/warning جدید مشاهده نشد.
+- **final_prove:** browser instance `denali-auth-browser-live` بدون timeout روی `http://admin.denali.localhost:3000/auth/login?returnUrl=%2Ftours` باز شد؛ login واقعی با identity رسمی و OTP `۱۲۳۴` به `http://admin.denali.localhost:3000/tours` redirect شد.
+- **final_session:** `GET /api/auth/membership-ability-context` status `200` با `tenantId:"00000000-0000-4000-8000-000000000003"`, `role:"owner"`, `workspaceId:"ws-denali-dev"` و `canManageTenant:true`.
+- **final_tenant_context:** `GET /api/public/tenant-branding` status `200`.
+- **final_dom:** صفحه شامل shell اپراتور، نام کاربر `shenski` و فهرست تورها (`۱۱ تور`) بود؛ redirect به login رخ نداد.
+- **final_console:** هیچ console error یا warning مشاهده نشد.
+- **final_screenshot:** screenshot کامل صفحه authenticated با موفقیت از browser canvas ثبت شد؛ canvas timeout یا rendering error رخ نداد.
+- **status:** `CLOSED`.
+- **runtime_environment:** `local`, Admin روی `3000`, API روی `3001`.
+- **verified_at:** `2026-09-20T20:32:00+03:30`.
 
 ## 2. تسک‌های قابل‌اجرا
 
@@ -266,3 +459,32 @@
 - تعداد تسک‌های اتمی: 145.
 - تعداد تسک‌های صرفاً runtime که بدون staging قابل بستن نیستند: مشخصاً با `PENDING PR` و `READY AFTER DEPLOY` علامت‌گذاری شده‌اند.
 - این بازنویسی باید در PR فعلی دوباره CI شود؛ تا قبل از merge/deploy هیچ runtime fix ادعا نمی‌شود.
+
+## 6. Browser-only smoke matrix — 2026-09-20
+
+این ماتریس گزارش اجرای مرورگر واقعی است و جایگزین findingهای اتمی بالا نیست. برای هر route دو load متوالی انجام شد؛ screenshot هر load با browser canvas ثبت شد، URL و DOM قابل مشاهده خوانده شد، و وضعیت session با مشاهدهٔ UI یا endpoint همان origin بررسی شد. در browser canvas فعلی، فهرست resource URLها قابل خواندن است اما DevTools export کاملِ status و payload برای تک‌تک درخواست‌های صفحه در دسترس نیست؛ بنابراین این بخش تا تکمیل network evidence release-grade بسته نمی‌شود.
+
+| Surface / route | Load 1 | Load 2 | Session / DOM result | Console | وضعیت evidence |
+|---|---|---|---|---|---|
+| Admin `/dashboard` | `http://admin.denali.localhost:3000/dashboard`, screenshot و DOM ثبت شد | همان URL، screenshot و DOM ثبت شد | owner `shenski` و داشبورد/۱۱ تور render؛ membership context `200` | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin `/bookings?status=pending` | URL، screenshot، DOM، membership `200` | همان | فیلتر `در انتظار` و empty state render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin `/bookings?status=paid` | URL، screenshot، DOM، membership `200` | همان | پیام empty state معتبر render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin `/bookings?status=unpaid` | URL، screenshot، DOM، membership `200` | همان | پیام empty state معتبر render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin `/bookings?status=final` | URL، screenshot، DOM، membership `200` | همان | پیام empty state معتبر render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin `/finance` | URL، screenshot، DOM، membership `200` | همان | مرکز مالی، تب‌ها و summary render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin `/finance?tab=receipts` | URL، screenshot، DOM، membership `200` | همان | صف رسید و empty state render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin workspace `/tours/00000000-0000-4000-8000-000000000212/workspace` | URL، screenshot، DOM و API resource URLs ثبت شد | همان | `Alpine Identity Check`، تب ثبت‌نام‌ها و roster UI render؛ membership `200` | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin transport `/tours/00000000-0000-4000-8000-000000000212/workspace?tab=transport` | URL، screenshot، DOM، membership `200` | همان | operational roster empty state و export کنترل render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Marketing `/` | `http://denali.localhost:3002/`, screenshot و DOM ثبت شد | همان URL، screenshot و DOM ثبت شد | catalog با ۶ تور و links به Portal render؛ public route و بدون redirect ناخواسته | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Portal `/me/registrations` | پس از OTP `1234`، `http://portal.denali.localhost:3003/me/registrations`, screenshot و DOM ثبت شد | همان URL، screenshot و DOM ثبت شد | session عضو با نام `Smoke Owner` پایدار؛ `هنوز ثبت‌نامی ندارید` و navigation اعضا render | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin public tenant branding | `http://admin.denali.localhost:3000/api/public/tenant-branding`, status `200` و JSON ثبت شد | همان، status `200` و JSON ثبت شد | payload BFF در این host تهی بود | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| API tenant branding | `http://denali.localhost:3001/public/tenant-branding`, status `200` و payload `displayName: shenski`, `primaryColor: #059669` ثبت شد | همان، status `200` و payload همسان | tenant branding معتبر | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Admin membership ability context | `http://admin.denali.localhost:3000/api/auth/membership-ability-context`, status `200` و payload role `owner` ثبت شد | همان، status `200` و payload همسان | session/tenant/workspace معتبر | خطا/هشدار مشاهده نشد | PASS (browser smoke) |
+| Navigation Admin ↔ API | Admin runtime هنگام ایجاد cross-origin browser canvas restart شد و browser context قبلی از دست رفت | load دوم قابل تکمیل نبود | مسیر Admin→API با همان session و network payload کامل اثبات نشد | قابل جمع‌بندی نیست | **BLOCKED** — browser canvas بعد از restart موجود نبود؛ بدون حدس یا bypass بسته نشد |
+
+### Smoke evidence limitations
+
+- Browser canvas برای screenshot و DOM evidence موفق بود، اما console کامل DevTools و status/payload همهٔ network requestهای صفحه را export نمی‌کند؛ عبارت «خطا/هشدار مشاهده نشد» به معنی نبود مورد مشاهده‌شده در instrumentation موجود است، نه ادعای export کامل DevTools.
+- Marketing و Portal ابتدا به‌دلیل runtimeهای خاموش/ناقص BLOCKED بودند؛ پس از ایجاد `.env.local`، build `workspace-sdk`، و بالا آوردن API، هر دو route واقعی render شدند.
+- Portal login با fixture رسمی `09174070937` و OTP توسعه‌ای `1234` انجام شد؛ session با نمایش `Smoke Owner` و ماندن روی `/me/registrations` اثبات شد.
+- تا تکمیل capture کامل network و تکرار navigation Admin→API در یک browser context سالم، این smoke matrix و هر تسک وابسته به آن `CLOSED` نیست.

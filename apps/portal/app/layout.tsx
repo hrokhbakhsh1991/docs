@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { registerWorkspacePluginSafe } from "@app-tour/workspace-plugin-host/register-safe";
 import { bindWorkspacePluginRegisterInvokers } from "@app-tour/guest-workspace-runtime/bind-register-invokers";
 import { NextIntlClientProvider } from "next-intl";
@@ -20,8 +21,24 @@ import "./globals.css";
 
 export const dynamic = "force-dynamic";
 
+function isPortalTenantUnresolvedError(error: unknown): boolean {
+  return error instanceof Error && error.message === "PORTAL_TENANT_UNRESOLVED";
+}
+
+async function resolvePortalBootstrapOrNotFound(host: string) {
+  try {
+    return await resolvePortalBootstrapForHost(host);
+  } catch (error: unknown) {
+    if (isPortalTenantUnresolvedError(error)) {
+      notFound();
+    }
+    throw error;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const host = await readPortalIngressHost();
+  await resolvePortalBootstrapOrNotFound(host);
   const branding = await fetchPublicTenantBrandingForHost(host);
   const t = await getTranslations("catalogRegistration");
   const siteName = resolveGuestChromeDisplayName(
@@ -44,7 +61,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const [localeRaw, messages] = await Promise.all([getLocale(), getMessages()]);
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const host = await readPortalIngressHost();
-  const bootstrap = await resolvePortalBootstrapForHost(host);
+  const bootstrap = await resolvePortalBootstrapOrNotFound(host);
   bindWorkspacePluginRegisterInvokers();
   await registerWorkspacePluginSafe(bootstrap.pluginId);
   ensureMemberWalletRendererRegistered(bootstrap.pluginId);

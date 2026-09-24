@@ -106,6 +106,16 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     assert.equal(body.error?.code, "AUTH_UNAUTHENTICATED");
   });
 
+  it("DENALI-005 middleware blocks anonymous debug host endpoint with 401", async () => {
+    const { NextRequest } = await import("next/server");
+    const { middleware } = await import("../middleware");
+    const req = new NextRequest("http://admin.denali.localhost:3000/api/debug/host");
+    const res = await middleware(req);
+    assert.equal(res.status, 401);
+    const body = (await res.json()) as { error?: { code?: string } };
+    assert.equal(body.error?.code, "AUTH_UNAUTHENTICATED");
+  });
+
   it("BFF-9.1-05 logout BFF clears HttpOnly session cookie", async () => {
     const { POST } = await import("../app/api/auth/logout/route");
     const res = await POST();

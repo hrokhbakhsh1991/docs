@@ -19,6 +19,8 @@ describe("portal middleware — P8-1-N-003", () => {
     assert.match(source, /export const config/);
     assert.match(source, /matcher:/);
     assert.match(source, /resolvePortalBootstrapForHost/);
+    assert.match(source, /TENANT_HOST_UNKNOWN/);
+    assert.match(source, /pathname\.startsWith\("\/api\/"\)/);
     assert.match(source, /validateSessionTokenAsync/);
     assert.match(source, /resolvePortalIngressHost/);
     assert.match(source, /failClosedWhenUnresolved/);

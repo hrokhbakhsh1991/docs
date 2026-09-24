@@ -14,7 +14,7 @@ installMemoryStorageDriverForDescribe();
 
 async function requestPublic(
   listener: ReturnType<typeof createRequestListener>,
-  forwardedHost: string
+  host: string
 ): Promise<string | undefined> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -32,8 +32,7 @@ async function requestPublic(
           path: "/public/tenant-context",
           method: "GET",
           headers: {
-            host: "127.0.0.1",
-            "x-forwarded-host": forwardedHost,
+            host,
           },
         },
         (res) => {
