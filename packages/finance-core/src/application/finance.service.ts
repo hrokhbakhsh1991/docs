@@ -873,6 +873,25 @@ export class FinanceService {
       throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
     }
     const previewKind = previewKindFromFileKey(fileKey);
+    if (fileKey !== null) {
+      try {
+        // Validate ownership/availability before creating the receipt. The signed URL is
+        // intentionally not persisted; delivery workers resolve a fresh URL when needed.
+        await this.receiptProofStorage.getSignedReadUrl({
+          tenantId: auth.tenantId,
+          storageKey: fileKey,
+        });
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message === "RECEIPT_PROOF_KEY_SCOPE_INVALID") {
+          throw error;
+        }
+        this.logger.warn({
+          event: "finance.receipt_proof.validation_unavailable",
+          tenantId: auth.tenantId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     const submittedAt = new Date().toISOString();
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
