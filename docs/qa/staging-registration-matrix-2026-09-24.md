@@ -733,6 +733,12 @@
 - تنظیمات ادمین همان تور صریحاً `تور پولی=خاموش` و `روش تأیید ثبت‌نام=تأیید دستی توسط ادمین` را نشان می‌دهد؛ PDP و فرم هیچ نشانه‌ای از «تأیید دستی» یا وضعیت انتظار تأیید ندارند. این شاهد، `BUG-STG-008` را در حالت رایگان/تأیید دستی نیز تأیید می‌کند و نشان می‌دهد مشکل فقط نمایش روش پرداخت نیست.
 - ریشهٔ source برای مبلغ حمل هم مشخص شد: `readDenaliCatalogTransportSnapshot` در `packages/workspaces/denali/src/catalog/read-denali-catalog-transport.ts:64-78` مقدار `transportCostAmount`/`dongAmount` را داخل کارت عمومی می‌سازد؛ اما `CatalogTourCard` در `apps/marketing/src/catalog/catalog-tour-card.tsx:35-116` فقط `formatCatalogTransportMode(tour.transport)` را render می‌کند و هیچ مقدار هزینه‌ای را مصرف نمی‌کند. بنابراین `BUG-STG-005/006` حذف داده از API یا exposure نیست؛ gap واقعی renderer/قرارداد نمایش کارت است.
 
+### ریشه‌یابی source برای قرارداد رایگان، فیلتر و sort قیمت
+
+- در `apps/marketing/src/catalog/filter-marketing-catalog-items.ts:96-107`، وقتی `minPrice` یا `maxPrice` وجود دارد، هر کارت با `priceAmount == null` صریحاً `false` می‌شود. چون تور رایگان قرارداداً `priceAmount=null` دارد، حذف آن از `maxPrice` یک رفتار deterministic در source است و باید با تصمیم محصول دربارهٔ «رایگان در فیلتر قیمت» اصلاح یا مستند شود؛ این مورد صرفاً مشکل دادهٔ staging نیست (`BUG-STG-026`).
+- در `apps/marketing/src/catalog/sort-marketing-catalog-items.ts:49-56`، `price_asc`/`price_desc` مقدار `priceAmount` را به `compareNullableNumbers` می‌دهند؛ اما چون کارت رایگان پیش از sort در فیلتر قیمت حذف شده، در query دارای `maxPrice` هرگز وارد ترتیب نمی‌شود (`BUG-STG-027`). قرارداد sort باید صریحاً مشخص کند رایگان قبل از قیمت‌های عددی بیاید یا بعد از آن، و تست null باید اضافه شود.
+- در `apps/marketing/src/catalog/format-catalog-display.ts:139-144`، `shouldShowCatalogPrice` برای `priceAmount == null` مقدار `false` می‌دهد و fallback نمایشی `رایگان/بدون نیاز به پرداخت` ندارد؛ بنابراین نبود label در PLP/PDP/فرم با source فعلی هم‌خوان است و `BUG-STG-025` یک gap واقعی presentation/contract است، نه نقص snapshot.
+
 ## وضعیت شواهد و checkout
 
 - در زمان این بازبینی، branch محلی `codex/payment-follow-up-receipt-telegram` روی `6c6d63f1940a63b0a8841998079101982550c14a` بود و `origin/dev` روی `6f7b0ce5073b23cc896e5077d97724352a7d86bc` قرار داشت.
