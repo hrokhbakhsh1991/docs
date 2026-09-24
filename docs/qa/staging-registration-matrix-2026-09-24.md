@@ -2726,6 +2726,12 @@
 - تور رایگان `QA-STG-20260924-FREE-MANUAL` با `priceAmount=null` در انتهای همان فهرست قرار گرفت و کارت هیچ مبلغ یا label `رایگان` نشان نداد. در نتیجه، کاربر با مرتب‌سازی کم‌به‌زیاد، مورد رایگان را بعد از گران‌ترین تور می‌بیند.
 - این مشاهده با `BUG-STG-025/026/027` هم‌راستا است و باگ مستقل تکراری ثبت نشد. معیار اصلاح باید قرارداد `null price` را صریح کند: label رایگان در کارت/PDP و جایگاه مشخص در sort صعودی/نزولی.
 
+### TEST-GAP-STG-006 — تست source برای price ascending و قرارداد null price ناقص است
+
+- تست‌های focused Marketing برای sort/filter/display در این checkout `۲۳ pass، ۰ fail، ۰ skip` شدند؛ sort suite فقط newest، departure، price descending و difficulty را assert می‌کند و برای `price_asc` و `priceAmount=null` assertion مستقیم ندارد.
+- source فعلی `compareNullableNumbers` را طوری پیاده کرده که مقدار `null` همیشه بعد از عدد قرار گیرد؛ این با runtime فعلی سازگار است، اما تستی برای تصمیم محصولِ جایگاه تور رایگان و label آن وجود ندارد.
+- بنابراین سبز بودن این suiteها، رفتار مشاهده‌شدهٔ رایگان در sort صعودی یا نمایش label رایگان را پوشش نمی‌دهد. این مورد شکاف تست است و failure جدید مستقلی از `BUG-STG-026` نیست.
+
 ### PASS-STG-AUTO-GUEST-TEXT-RECEIPT-2026-09-25 — مهمان پرداخت خودکار تا نهایی‌شدن
 
 - مهمان `QA Matrix Auto Guest 20260925-B` در تور `QA-STG-20260924-PAID-AUTO` با registration `c508f22e-77bc-4e8f-8ce0-2ceab3c67fd7` ثبت شد و پورتال آن را `تأیید شده` و `برای نهایی‌شدن، پرداخت لازم است` نمایش داد.
