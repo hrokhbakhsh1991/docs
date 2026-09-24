@@ -2686,3 +2686,8 @@
 - **کنترل تفکیکی:** `p6-member-receipt-flow.spec.ts` با `NODE_ENV=test` هر `۷/۷` سبز شد؛ `401` اجرای قبلی ناشی از اجرای suite بدون محیط تست بود و باگ محصول محسوب نشد.
 - **بازاجرای کامل (2026-09-24 23:34:11 UTC):** همان دستور با `NODE_ENV=test` دوباره `۱۹۹ تست، ۱۹۵ pass، ۴ fail، ۰ cancel، ۰ skip` داد. هر چهار failure همچنان در همان فایل formatter و فقط به‌علت تفاوت `Tour published: Alpine Day` با قالب فعلی فارسی رخ داد؛ مسیرهای `Telegram Provider Adapter`، multipart media، worker/topic، retry، receipt و PDP URL در همین اجرا سبز بودند.
 - **معیار اصلاح:** expectationهای چهار تست formatter باید به قرارداد فعلی surface Denali منتقل شوند یا اگر قالب انگلیسی عمداً canonical است، source/template باید برگردانده شود؛ تا تعیین تکلیف، گیت branch قرمز است و این مورد بسته نمی‌شود.
+
+### PASS-CI-BOOKING-GATE-2026-09-25 — گیت Booking روی HEAD فعلی
+
+- اجرای GitHub Actions run `36073446490` روی SHA `e678d66866a46984e0124fa2ab1db8aec1f2410a` با نتیجهٔ `success` تمام شد؛ سه job فعال `Booking relevance`، `Booking PostgreSQL capacity` و `Booking HTTP PostgreSQL` سبز شدند و variantهای skip‌شده نیز صریحاً skipped بودند.
+- این PASS فقط گیت Booking را پوشش می‌دهد؛ تا پایان همهٔ checks PR، سبز بودن merge یا سلامت کامل branch ادعا نمی‌شود.
