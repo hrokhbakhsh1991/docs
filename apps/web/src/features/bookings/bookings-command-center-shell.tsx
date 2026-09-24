@@ -130,7 +130,7 @@ type BookingsPageClientProps = {
    * HARDENING H-03 — Tour Workspace chrome reload after approve/reject/waitlist/cancel/bulk.
    * Invoked only after a successful mutation (not list soft-refresh).
    */
-  readonly onOpsMutationSuccess?: () => void;
+  readonly onOpsMutationSuccess?: (outcome?: "payment_required" | "finalized" | "other") => void;
   /**
    * H-08 / H2-T2 — when set and at capacity, approve requires overbook confirm (waitlist embed).
    */
@@ -619,7 +619,7 @@ export function BookingsPageClient({
         setActionNotice(t("bulkApproveSuccess", { count: result.approvedIds.length }));
       }
       refreshData();
-      onOpsMutationSuccess?.();
+      onOpsMutationSuccess?.("other");
     } catch (bulkError: unknown) {
       setActionError(
         bulkError instanceof Error ? bulkError.message : "BOOKINGS_BULK_APPROVE_FAILED"
@@ -761,7 +761,7 @@ export function BookingsPageClient({
         }
       }
       refreshData();
-      onOpsMutationSuccess?.();
+      onOpsMutationSuccess?.(action === "approve" ? "payment_required" : "other");
     } catch (actionErr: unknown) {
       setActionError(actionErr instanceof Error ? actionErr.message : "BOOKINGS_ACTION_FAILED");
     } finally {
@@ -809,7 +809,7 @@ export function BookingsPageClient({
         setActionNotice(t("approveWithoutPaymentSuccess", { guest: snapshot.guestLabel }));
       }
       refreshData();
-      onOpsMutationSuccess?.();
+      onOpsMutationSuccess?.("finalized");
     } catch (actionErr: unknown) {
       setActionError(
         actionErr instanceof Error ? actionErr.message : "BOOKINGS_APPROVE_WITHOUT_PAYMENT_FAILED"

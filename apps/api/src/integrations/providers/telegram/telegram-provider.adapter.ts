@@ -1,4 +1,3 @@
-import { assertSafeOutboundUrl } from "../../egress/assert-safe-outbound-url";
 import type { IntegrationCapability } from "../../platform/integration-capability";
 import type {
   IntegrationCreateChannelLinkInput,
@@ -7,7 +6,10 @@ import type {
   IntegrationProviderAdapter,
   IntegrationSendMessageInput,
 } from "../../platform/integration-provider.types";
-import { buildTelegramApiRequest } from "./telegram-api.transport";
+import {
+  buildTelegramApiMultipartRequest,
+  buildTelegramApiRequest,
+} from "./telegram-api.transport";
 
 const TELEGRAM_API_TIMEOUT_MS = 15_000;
 
@@ -35,16 +37,6 @@ function isTelegramTopicThreadNotFoundDescription(description: string | undefine
   return normalized.includes("thread not found") || normalized.includes("topic_deleted");
 }
 
-function canTelegramFetchMedia(url: string): boolean {
-  try {
-    const parsed = assertSafeOutboundUrl(url);
-    const host = parsed.hostname.trim().toLowerCase();
-    return host !== "minio" && host !== "app-tour-minio" && host !== "host.docker.internal";
-  } catch {
-    return false;
-  }
-}
-
 /** Telegram provider plugin — HTTP mapping only. */
 export class TelegramProviderAdapter implements IntegrationProviderAdapter {
   readonly id = "telegram" as const;
@@ -59,9 +51,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
       return { ok: false, errorCode: "TELEGRAM_BOT_TOKEN_MISSING" };
     }
 
-    const media =
-      input.media !== undefined && canTelegramFetchMedia(input.media.url) ? input.media : undefined;
-    const mediaUnavailable = input.media !== undefined && media === undefined;
+    const media = input.media;
     const method =
       media === undefined ? "sendMessage" : media.kind === "photo" ? "sendPhoto" : "sendDocument";
     const common = {
@@ -70,31 +60,57 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
     };
     let response: Response;
     try {
-      const request = buildTelegramApiRequest(botToken, method, {
-        ...common,
-        ...(media === undefined
-          ? {
-              text: mediaUnavailable
-                ? `${input.text}\nفایل فیش در سامانه ذخیره شد؛ لینک عمومی فایل برای اتصال Telegram تنظیم نشده است.`
-                : input.text,
-              ...(input.parseMode !== undefined ? { parse_mode: input.parseMode } : {}),
-            }
-          : {
-              [media.kind]: media.url,
-              caption: media.caption ?? input.text,
-              ...(input.parseMode !== undefined ? { parse_mode: input.parseMode } : {}),
-              ...(input.replyMarkup === undefined ? {} : { reply_markup: input.replyMarkup }),
-            }),
-        ...(media === undefined && input.replyMarkup !== undefined
-          ? { reply_markup: input.replyMarkup }
-          : {}),
-      });
-      response = await fetch(request.url, {
-        method: "POST",
-        headers: request.headers,
-        body: request.body,
-        signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
-      });
+      if (media?.body !== undefined) {
+        const form = new FormData();
+        form.set("chat_id", input.channelId);
+        if (input.messageThreadId !== undefined) {
+          form.set("message_thread_id", String(input.messageThreadId));
+        }
+        form.set(
+          media.kind,
+          new Blob([media.body], { type: media.contentType ?? "application/octet-stream" }),
+          media.fileName ?? "receipt"
+        );
+        form.set("caption", media.caption ?? input.text);
+        if (input.parseMode !== undefined) form.set("parse_mode", input.parseMode);
+        if (input.replyMarkup !== undefined) {
+          form.set("reply_markup", JSON.stringify(input.replyMarkup));
+        }
+        const request = buildTelegramApiMultipartRequest(botToken, method, form);
+        response = await fetch(request.url, {
+          method: "POST",
+          headers: request.headers,
+          body: request.body,
+          signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
+        });
+      } else {
+        if (media !== undefined && typeof media.url !== "string") {
+          return { ok: false, errorCode: "TELEGRAM_MEDIA_PAYLOAD_INVALID" };
+        }
+        const request = buildTelegramApiRequest(botToken, method, {
+          ...common,
+          ...(media === undefined
+            ? {
+                text: input.text,
+                ...(input.parseMode !== undefined ? { parse_mode: input.parseMode } : {}),
+              }
+            : {
+                [media.kind]: media.url,
+                caption: media.caption ?? input.text,
+                ...(input.parseMode !== undefined ? { parse_mode: input.parseMode } : {}),
+                ...(input.replyMarkup === undefined ? {} : { reply_markup: input.replyMarkup }),
+              }),
+          ...(media === undefined && input.replyMarkup !== undefined
+            ? { reply_markup: input.replyMarkup }
+            : {}),
+        });
+        response = await fetch(request.url, {
+          method: "POST",
+          headers: request.headers,
+          body: request.body,
+          signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
+        });
+      }
     } catch {
       return { ok: false, errorCode: "TELEGRAM_NETWORK_ERROR" };
     }

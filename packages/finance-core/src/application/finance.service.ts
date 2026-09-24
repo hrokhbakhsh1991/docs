@@ -874,24 +874,6 @@ export class FinanceService {
     }
     const previewKind = previewKindFromFileKey(fileKey);
     const submittedAt = new Date().toISOString();
-    let proofUrl: string | undefined;
-    if (fileKey !== null) {
-      try {
-        proofUrl = await this.receiptProofStorage.getSignedReadUrl({
-          tenantId: auth.tenantId,
-          storageKey: fileKey,
-        });
-      } catch (error: unknown) {
-        if (error instanceof Error && error.message === "RECEIPT_PROOF_KEY_SCOPE_INVALID") {
-          throw error;
-        }
-        this.logger.warn({
-          event: "finance.receipt_proof.telegram_media_unavailable",
-          tenantId: auth.tenantId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
@@ -919,10 +901,9 @@ export class FinanceService {
           ...(fileKey === null ? {} : { fileKey }),
           evidenceKind: fileKey === null ? "text" : "file",
           submittedAt,
-          ...(proofUrl === undefined || previewKind === "unknown"
+          ...(fileKey === null || previewKind === "unknown"
             ? {}
             : {
-                telegramMediaUrl: proofUrl,
                 telegramMediaKind: previewKind === "image" ? "photo" : "document",
               }),
           ...(note === undefined ? {} : { note }),

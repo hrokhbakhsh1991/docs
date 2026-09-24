@@ -54,13 +54,13 @@ describe("Telegram provider adapter", () => {
     }
   });
 
-  it("falls back to a threaded text receipt when media URL is internal-only", async () => {
+  it("uploads receipt bytes as multipart media without a public storage URL", async () => {
     const originalFetch = globalThis.fetch;
-    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const calls: Array<{ url: string; body: BodyInit | null | undefined }> = [];
     globalThis.fetch = (async (url, init) => {
       calls.push({
         url: String(url),
-        body: JSON.parse(String(init?.body)) as Record<string, unknown>,
+        body: init?.body,
       });
       return new Response(JSON.stringify({ ok: true, result: { message_id: 13 } }), {
         status: 200,
@@ -81,7 +81,12 @@ describe("Telegram provider adapter", () => {
           channelId: "-1001",
           messageThreadId: 8,
           text: "فیش جدید\nمبلغ قابل پرداخت: 2500000 IRR",
-          media: { kind: "document", url: "http://minio:9000/app-tour-dev/proof.png" },
+          media: {
+            kind: "document",
+            body: new Uint8Array([1, 2, 3]),
+            contentType: "application/pdf",
+            fileName: "proof.pdf",
+          },
           replyMarkup: {
             inline_keyboard: [[{ text: "تأیید", callback_data: "receipt:approve:r2" }]],
           },
@@ -90,9 +95,13 @@ describe("Telegram provider adapter", () => {
 
       assert.deepEqual(result, { ok: true, providerMessageId: "13" });
       assert.equal(calls.length, 1);
-      assert.equal(calls[0]?.url, "https://api.telegram.org/bottest-token/sendMessage");
-      assert.match(String(calls[0]?.body.text), /لینک عمومی فایل/);
-      assert.deepEqual(calls[0]?.body.reply_markup, {
+      assert.equal(calls[0]?.url, "https://api.telegram.org/bottest-token/sendDocument");
+      assert.ok(calls[0]?.body instanceof FormData);
+      const form = calls[0]?.body as FormData;
+      assert.equal(form.get("chat_id"), "-1001");
+      assert.equal(form.get("message_thread_id"), "8");
+      assert.equal(form.get("caption"), "فیش جدید\nمبلغ قابل پرداخت: 2500000 IRR");
+      assert.deepEqual(JSON.parse(String(form.get("reply_markup"))), {
         inline_keyboard: [[{ text: "تأیید", callback_data: "receipt:approve:r2" }]],
       });
     } finally {

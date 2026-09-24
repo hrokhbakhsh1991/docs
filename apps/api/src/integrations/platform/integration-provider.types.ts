@@ -19,7 +19,10 @@ export type IntegrationSendMessageInput = {
   readonly parseMode?: "HTML" | "Markdown" | "MarkdownV2";
   readonly media?: {
     readonly kind: "photo" | "document";
-    readonly url: string;
+    readonly url?: string;
+    readonly body?: Uint8Array;
+    readonly contentType?: string;
+    readonly fileName?: string;
     readonly caption?: string;
   };
   readonly replyMarkup?: Readonly<Record<string, unknown>>;

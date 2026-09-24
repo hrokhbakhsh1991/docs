@@ -128,8 +128,14 @@ operator review and Telegram approval/rejection path as file-backed evidence.
 
 The Telegram delivery for `receipt.submitted` must preserve the finance topic
 route and review buttons. When no file exists it sends the text evidence as a
-message; when a file exists it sends the media and includes the text as
-context. Approval side effects remain unchanged: the receipt becomes approved,
+message; when a file exists the delivery worker reads the tenant-scoped object
+from receipt storage and uploads it to Telegram with `sendPhoto` or
+`sendDocument` as multipart media. It must not depend on Telegram reaching an
+internal MinIO hostname or silently downgrade a file receipt to text. Storage
+read or Telegram upload failures remain failed outbox deliveries and are
+retryable; a successful outbox delivery is the only path that records the
+Telegram provider message id. The media upload includes the text evidence as
+the caption when present. Approval side effects remain unchanged: the receipt becomes approved,
 the payment becomes paid, booking payment projection and ledger capture run,
 and the member notification path is emitted. Rejection never marks payment
 paid. Submission, outbox delivery, and review actions remain retry-safe and
