@@ -2712,6 +2712,8 @@
 - `?availability=past` نیز هر `۱۷` آیتم را برگرداند (`۶ open`، `۱۰ past`، `۱ waitlist`) و `?availability=waitlist` نیز همین هر ۱۷ آیتم را برگرداند؛ بنابراین مشکل فقط UI نیست و در قرارداد API/filter رخ می‌دهد.
 - این شاهد جدید همان `BUG-STG-067` را تأیید می‌کند؛ باگ تکراری مستقل ثبت نشد. معیار اصلاح: `open` فقط open، `past` فقط past و `waitlist` فقط waitlist را برگرداند و PLP همان قرارداد را مصرف کند.
 
+- **شاهد UI تازه:** `https://denali.shenski.com/tours?availability=open` با فیلتر ظرفیت باز، `۱۳ برنامه` نشان داد و در همان لیست تورهای پایان‌یافته مثل `QA پیش‌پرداخت خودکار استیجینگ` را با badge `پایان‌یافته` نگه داشت. `?availability=past` نیز `۱۴ برنامه` شامل تورهای آینده و North Ridge صف‌انتظار نشان داد؛ `?availability=waitlist` هم همان `۱۴ برنامه` را نشان داد. بنابراین mismatch در PLP قابل مشاهده است و فقط اختلاف شمارندهٔ API نیست.
+
 ### BUG-STG-008-RECHECK-2026-09-25 — فیلدهای پرداخت و تأیید از detail API خارج نمی‌شوند
 
 - چهار detail endpoint با همان headerهای cache-bypass بازخوانی شدند. برای تور پولی بدون تخفیف `b595933d...`، تور تخفیف‌دار `a4f227fb...`، تور پولی تأیید دستی `4a475c5e...` و North Ridge، مقدارهای `paymentMode`، `approvalMode`، `minimumCapacity` و `guides` همگی `null`/غایب بودند.
