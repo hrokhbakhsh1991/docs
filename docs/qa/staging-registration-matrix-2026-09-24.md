@@ -2705,3 +2705,15 @@
 - در زمان این checkpoint، `HEAD` و remote feature branch هر دو روی `c49ec4f0385794cef0f47aca36bc358df238c3ae` هستند؛ شاخهٔ مبنا `dev` روی `6f7b0ce5073b23cc896e5077d97724352a7d86bc` است.
 - PR #209 به `dev` متصل است و checks جدید هنوز در حال اجرا هستند؛ چند check اصلی قبلاً سبز شده‌اند، اما وضعیت `UNSTABLE`/درحال‌اجرا به‌معنای تأیید نهایی merge نیست.
 - staging همچنان با deploy run `35995727843` روی SHA شاخهٔ `dev` شناخته می‌شود؛ بنابراین نتیجهٔ source branch برای media/Telegram را به staging نسبت نمی‌دهم.
+
+### BUG-STG-067-RECHECK-2026-09-25 — فیلترهای availability در API هنوز state نادرست برمی‌گردانند
+
+- با headerهای `cache-control: no-cache` و `x-debug-bypass-cache: 1`، `GET https://denali.shenski.com/api/catalog?availability=open` تعداد `۱۶` آیتم برگرداند: فقط `۶ open` و `۱۰ past`. وجود هر ۱۰ آیتم `past` در نتیجهٔ `open` بازتولید شد.
+- `?availability=past` نیز هر `۱۷` آیتم را برگرداند (`۶ open`، `۱۰ past`، `۱ waitlist`) و `?availability=waitlist` نیز همین هر ۱۷ آیتم را برگرداند؛ بنابراین مشکل فقط UI نیست و در قرارداد API/filter رخ می‌دهد.
+- این شاهد جدید همان `BUG-STG-067` را تأیید می‌کند؛ باگ تکراری مستقل ثبت نشد. معیار اصلاح: `open` فقط open، `past` فقط past و `waitlist` فقط waitlist را برگرداند و PLP همان قرارداد را مصرف کند.
+
+### BUG-STG-008-RECHECK-2026-09-25 — فیلدهای پرداخت و تأیید از detail API خارج نمی‌شوند
+
+- چهار detail endpoint با همان headerهای cache-bypass بازخوانی شدند. برای تور پولی بدون تخفیف `b595933d...`، تور تخفیف‌دار `a4f227fb...`، تور پولی تأیید دستی `4a475c5e...` و North Ridge، مقدارهای `paymentMode`، `approvalMode`، `minimumCapacity` و `guides` همگی `null`/غایب بودند.
+- در همان پاسخ‌ها price، spots، totalCapacity، departure و transport حاضر بودند؛ بنابراین پاسخ خالی یا شکست عمومی API نیست و شکاف مشخصاً در egress/قرارداد فیلدهای Exposure است.
+- این وضعیت با UI تنظیمات Exposure و PDPهای بازشده تطبیق دارد: روش پرداخت و نوع تأیید برای کاربر قابل مشاهده نیست. باگ اصلی باز می‌ماند و باگ جدید تکراری ثبت نشد.
