@@ -100,6 +100,47 @@ test("forwards authenticated outbound Telegram API requests without exposing tok
   }
 });
 
+test("forwards authenticated multipart media without exposing relay fields upstream", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = { url: String(url), init };
+    return new Response(JSON.stringify({ ok: true, result: { message_id: 8 } }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  try {
+    const form = new FormData();
+    form.set("token", "test-token");
+    form.set("method", "sendPhoto");
+    form.set("chat_id", "-1001");
+    form.set("message_thread_id", "42");
+    form.set("caption", "فیش جدید");
+    form.set("photo", new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }), "proof.png");
+
+    const response = await worker.fetch(
+      new Request("https://relay.example/telegram-api", {
+        method: "POST",
+        headers: { authorization: "Bearer relay-secret" },
+        body: form,
+      }),
+      { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(captured.url, "https://api.telegram.org/bottest-token/sendPhoto");
+    const upstreamForm = captured.init.body;
+    assert.equal(upstreamForm.get("chat_id"), "-1001");
+    assert.equal(upstreamForm.get("message_thread_id"), "42");
+    assert.equal(upstreamForm.get("caption"), "فیش جدید");
+    assert.equal(upstreamForm.get("token"), null);
+    assert.equal(upstreamForm.get("method"), null);
+    assert.equal(upstreamForm.get("photo").name, "proof.png");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("rejects unauthenticated and non-allowlisted outbound requests", async () => {
   const unauthorized = await worker.fetch(
     new Request("https://relay.example/telegram-api", { method: "POST" }),

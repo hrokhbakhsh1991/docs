@@ -873,11 +873,11 @@ export class FinanceService {
       throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
     }
     const previewKind = previewKindFromFileKey(fileKey);
-    const submittedAt = new Date().toISOString();
-    let proofUrl: string | undefined;
     if (fileKey !== null) {
       try {
-        proofUrl = await this.receiptProofStorage.getSignedReadUrl({
+        // Validate ownership/availability before creating the receipt. The signed URL is
+        // intentionally not persisted; delivery workers resolve a fresh URL when needed.
+        await this.receiptProofStorage.getSignedReadUrl({
           tenantId: auth.tenantId,
           storageKey: fileKey,
         });
@@ -886,12 +886,13 @@ export class FinanceService {
           throw error;
         }
         this.logger.warn({
-          event: "finance.receipt_proof.telegram_media_unavailable",
+          event: "finance.receipt_proof.validation_unavailable",
           tenantId: auth.tenantId,
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
+    const submittedAt = new Date().toISOString();
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
@@ -919,10 +920,9 @@ export class FinanceService {
           ...(fileKey === null ? {} : { fileKey }),
           evidenceKind: fileKey === null ? "text" : "file",
           submittedAt,
-          ...(proofUrl === undefined || previewKind === "unknown"
+          ...(fileKey === null || previewKind === "unknown"
             ? {}
             : {
-                telegramMediaUrl: proofUrl,
                 telegramMediaKind: previewKind === "image" ? "photo" : "document",
               }),
           ...(note === undefined ? {} : { note }),

@@ -219,13 +219,13 @@
       "registrations": "Registration requests",
       "waitlist": "Waitlist",
       "transport": "Operations roster",
-      "finance": "Payment status"
+      "finance": "Payment follow-up"
     },
     "tabsHint": {
       "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
       "transport": "Track approved guests through payment, finalization, attendance, and transport",
-      "finance": "See outstanding balances and receipts to review"
+      "finance": "Payment actions and receipt review"
     },
     "operationsSummary": {
       "ariaLabel": "Tour operations summary",

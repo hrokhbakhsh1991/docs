@@ -20,6 +20,7 @@ import {
   type TelegramForumTopicKey,
 } from "../providers/telegram/telegram-forum.config";
 import { LEGACY_TELEGRAM_ID_PREFIX } from "../infrastructure/resolve-legacy-telegram-connection";
+import { readMemberReceiptProof } from "../../workspace-finance/receipt-proof-storage";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
 
@@ -304,11 +305,41 @@ export async function executeIntegrationDeliveryJob(
       eventType: job.eventType,
       payload: job.payload,
     });
-    const media: { readonly kind: "photo" | "document"; readonly url: string } | undefined =
+    let media:
+      | {
+          readonly kind: "photo" | "document";
+          readonly url?: string;
+          readonly body?: Uint8Array;
+          readonly contentType?: string;
+          readonly fileName?: string;
+        }
+      | undefined;
+    if (
+      job.provider === "telegram" &&
+      job.eventType === "receipt.submitted" &&
+      typeof job.payload.fileKey === "string" &&
+      (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
+    ) {
+      try {
+        const proof = await readMemberReceiptProof({
+          tenantId: job.tenantId,
+          storageKey: job.payload.fileKey,
+        });
+        media = {
+          kind: job.payload.telegramMediaKind,
+          body: proof.body,
+          contentType: proof.contentType,
+          fileName: proof.fileName,
+        };
+      } catch {
+        return { ok: false, error: { code: "INTEGRATION_MEDIA_READ_FAILED" } };
+      }
+    } else if (
       typeof job.payload.telegramMediaUrl === "string" &&
       (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
-        ? { kind: job.payload.telegramMediaKind, url: job.payload.telegramMediaUrl }
-        : undefined;
+    ) {
+      media = { kind: job.payload.telegramMediaKind, url: job.payload.telegramMediaUrl };
+    }
     const replyMarkup =
       job.eventType === "receipt.submitted" && typeof job.payload.receiptId === "string"
         ? {

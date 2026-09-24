@@ -134,6 +134,18 @@ registrations. Telegram must show payment follow-up for those rows and final
 participation only for `PAID` or `WAIVED` rows; this must not be confused with receipt
 approval.
 
+## Operator queue transitions (phase 1C)
+
+The tour workspace separates work by the operator's next action. The
+`درخواست‌های ثبت‌نام` tab is the pending-registration queue only. Approving a
+registration that requires payment is a state transition, not a second approval action: the
+row leaves that queue and the workspace opens `پیگیری مالی`, where the
+approved guest remains visible until the balance is zero. Approving without
+payment follows the waiver path and moves the guest directly to the final
+roster. Rejecting or waitlisting removes the row from the pending queue after
+the successful mutation. Refreshing the workspace counters is part of every
+transition so the four surfaces cannot display stale queue membership.
+
 ## Operator hint (phase 1C)
 
 After approve on `/bookings`, when `paymentStatus` is unpaid/partial, inspection panel may hint that the next step is Finance receipt review (`/finance?tab=receipts`). **No** receipt approve button inside Bookings. The tour finance tab must already list the guest (see money inbox after approve) — operators should not wait for an upload before the name appears.

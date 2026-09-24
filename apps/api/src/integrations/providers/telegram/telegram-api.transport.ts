@@ -16,7 +16,7 @@ const TELEGRAM_API_METHODS = new Set([
 export type TelegramApiRequest = {
   readonly url: URL;
   readonly headers: Record<string, string>;
-  readonly body: string;
+  readonly body: string | FormData;
 };
 
 function readRelayUrl(): URL | null {
@@ -64,4 +64,38 @@ export function buildTelegramApiRequest(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   };
+}
+
+export function buildTelegramApiMultipartRequest(
+  botToken: string,
+  method: string,
+  form: FormData
+): TelegramApiRequest {
+  if (!TELEGRAM_API_METHODS.has(method)) {
+    throw new Error("Unsupported Telegram API method");
+  }
+
+  const token = botToken.trim();
+  if (token.length === 0) throw new Error("Telegram bot token is required");
+
+  const relayUrl = readRelayUrl();
+  if (relayUrl !== null) {
+    const sharedSecret = process.env.TELEGRAM_API_RELAY_SHARED_SECRET?.trim() ?? "";
+    if (sharedSecret.length === 0) {
+      throw new Error("Telegram API relay shared secret is required");
+    }
+    form.set("token", token);
+    form.set("method", method);
+    return {
+      url: relayUrl,
+      headers: { authorization: `Bearer ${sharedSecret}` },
+      body: form,
+    };
+  }
+
+  const url = assertSafeOutboundUrl({
+    url: `https://${TELEGRAM_API_HOST}/bot${token}/${method}`,
+    allowedHosts: [TELEGRAM_API_HOST],
+  });
+  return { url, headers: {}, body: form };
 }

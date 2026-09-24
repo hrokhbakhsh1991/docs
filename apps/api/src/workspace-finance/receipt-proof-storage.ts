@@ -196,3 +196,45 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
     input.expiresInSeconds ?? RECEIPT_PROOF_READ_URL_TTL_SECONDS
   );
 }
+
+function receiptProofContentTypeFromKey(storageKey: string): string {
+  const normalized = storageKey.toLowerCase().split("?")[0] ?? storageKey.toLowerCase();
+  if (normalized.endsWith(".pdf")) return "application/pdf";
+  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".gif")) return "image/gif";
+  return "image/png";
+}
+
+/** Read receipt bytes inside the API so Telegram never has to reach private MinIO. */
+export async function readMemberReceiptProof(input: {
+  readonly tenantId: string;
+  readonly storageKey: string;
+}): Promise<{ readonly body: Buffer; readonly contentType: string; readonly fileName: string }> {
+  assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
+  const fileName = input.storageKey.split("/").pop() || "receipt";
+  const contentType = receiptProofContentTypeFromKey(input.storageKey);
+
+  const config = readTenantBrandLogoMinioConfigFromEnv();
+  if (config === null) {
+    if (isMemoryReceiptProofStoreEnabled()) {
+      const body = memoryReceiptProofStore.get(input.storageKey);
+      if (body !== undefined) return { body: Buffer.from(body), contentType, fileName };
+    }
+    throw new Error("RECEIPT_STORAGE_UNAVAILABLE");
+  }
+
+  const client = createTenantBrandLogoMinioClient(config);
+  try {
+    const stream = await client.getObject(config.bucket, input.storageKey);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const body = Buffer.concat(chunks);
+    if (body.length === 0) throw new Error("RECEIPT_PROOF_EMPTY");
+    return { body, contentType, fileName };
+  } catch (error: unknown) {
+    rethrowMemberReceiptProofStorageError(error);
+  }
+}

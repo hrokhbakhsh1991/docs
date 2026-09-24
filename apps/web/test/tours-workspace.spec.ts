@@ -344,6 +344,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       join(root, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
       "utf8"
     );
+    const bookingsShell = readFileSync(
+      join(root, "src/features/bookings/bookings-command-center-shell.tsx"),
+      "utf8"
+    );
     assert.match(layout, /ensureFinanceNavSupported/);
     assert.match(layout, /includeFinance=\{includeFinance\}/);
     assert.match(client, /readonly includeFinance: boolean/);
@@ -351,6 +355,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.doesNotMatch(client, /void ensureFinanceNavSupported/);
     assert.doesNotMatch(client, /approvedQuickAccess/);
     assert.match(registrations, /lockedStatus="pending"/);
+    assert.match(registrations, /outcome === "payment_required"/);
+    assert.match(registrations, /navigateWorkspaceTab\?\.\("finance"\)/);
+    assert.match(bookingsShell, /onOpsMutationSuccess\?\.\("finalized"\)/);
+    assert.match(bookingsShell, /action === "approve" \? "payment_required" : "other"/);
     assert.match(client, /navigateWorkspaceTab\("registrations"\)/);
     assert.equal(
       pickTourCollectionRollup(

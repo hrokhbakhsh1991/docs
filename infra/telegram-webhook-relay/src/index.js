@@ -11,7 +11,9 @@ const TELEGRAM_API_METHODS = new Set([
   "sendPhoto",
   "sendDocument",
 ]);
-const MAX_BODY_BYTES = 1_000_000;
+// Receipt uploads are capped at 8 MiB in the API; leave room for multipart
+// boundaries and fields while keeping the relay bounded.
+const MAX_BODY_BYTES = 10_000_000;
 
 function jsonResponse(body, status) {
   return new Response(JSON.stringify(body), {
@@ -47,6 +49,48 @@ export default {
       const authorization = request.headers.get("authorization") ?? "";
       if (sharedSecret.length === 0 || authorization !== `Bearer ${sharedSecret}`) {
         return jsonResponse({ error: "unauthorized" }, 401);
+      }
+
+      const contentType = request.headers.get("content-type") ?? "";
+      if (contentType.toLowerCase().startsWith("multipart/form-data")) {
+        try {
+          const declaredLength = Number(request.headers.get("content-length"));
+          if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+            return jsonResponse({ error: "payload_too_large" }, 413);
+          }
+          const incoming = await request.formData();
+          let approximateBytes = 0;
+          for (const value of incoming.values()) {
+            approximateBytes +=
+              typeof value === "string"
+                ? new TextEncoder().encode(value).byteLength
+                : typeof value === "object" && value !== null && "size" in value
+                  ? Number(value.size)
+                  : 0;
+          }
+          if (approximateBytes > MAX_BODY_BYTES) {
+            return jsonResponse({ error: "payload_too_large" }, 413);
+          }
+          const token = typeof incoming.get("token") === "string" ? incoming.get("token").trim() : "";
+          const method = typeof incoming.get("method") === "string" ? incoming.get("method").trim() : "";
+          if (token.length === 0 || !TELEGRAM_API_METHODS.has(method)) {
+            return jsonResponse({ error: "invalid_telegram_request" }, 400);
+          }
+          incoming.delete("token");
+          incoming.delete("method");
+          const upstream = await fetch(buildTelegramApiUrl(token, method), {
+            method: "POST",
+            body: incoming,
+          });
+          return new Response(upstream.body, {
+            status: upstream.status,
+            headers: {
+              "content-type": upstream.headers.get("content-type") ?? "application/json",
+            },
+          });
+        } catch {
+          return jsonResponse({ error: "telegram_unavailable" }, 502);
+        }
       }
 
       const body = await request.arrayBuffer();
