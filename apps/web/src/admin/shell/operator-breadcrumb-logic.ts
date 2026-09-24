@@ -1,4 +1,9 @@
-export type OperatorBreadcrumbNamespace = "nav" | "app" | "settings" | "tours" | "bookings";
+export type OperatorBreadcrumbNamespace =
+  | "nav"
+  | "app"
+  | "settings"
+  | "tours"
+  | "bookings";
 
 export type OperatorBreadcrumbSegment = {
   readonly namespace: OperatorBreadcrumbNamespace;
@@ -10,6 +15,7 @@ const NAV_ROOTS: Record<string, OperatorBreadcrumbSegment> = {
   "/dashboard": { namespace: "nav", key: "dashboard" },
   "/tours": { namespace: "nav", key: "tours" },
   "/bookings": { namespace: "nav", key: "bookings" },
+  "/tickets": { namespace: "nav", key: "tickets" },
   "/users": { namespace: "nav", key: "users" },
   "/settings": { namespace: "nav", key: "settings" },
   "/finance": { namespace: "nav", key: "finance" },
@@ -62,6 +68,13 @@ export function resolveOperatorBreadcrumbSegments(
     return [
       { namespace: "nav", key: "tours", href: "/tours" },
       { namespace: "tours", key: "nav.editTour" },
+    ];
+  }
+
+  if (path.startsWith("/tours/") && path.includes("/workspace")) {
+    return [
+      { namespace: "nav", key: "tours", href: "/tours" },
+      { namespace: "tours", key: "nav.workspace" },
     ];
   }
 

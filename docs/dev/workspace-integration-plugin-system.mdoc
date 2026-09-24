@@ -376,6 +376,11 @@ test messages but never call back into the API. The one-time `/connect <code>`
 flow remains available as a recovery path for deployments where direct
 provisioning cannot resolve the target chat. The API receives callbacks at
 `/webhooks/telegram/:tenantId/:integrationId`.
+The first successful chat/group binding is immutable: later provision, connect,
+or settings updates cannot silently redirect the integration to another chat or
+group with the same-looking name. Each newly created forum topic is checkpointed
+before the next topic is created, and a short database-backed provisioning lease
+serializes concurrent replicas; an expired lease can be reclaimed safely.
 Testing an existing native Telegram connection also refreshes the webhook secret
 after the outbound test message succeeds, so older rows can be repaired without
 recreating the connection.

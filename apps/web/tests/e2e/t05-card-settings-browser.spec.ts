@@ -23,18 +23,23 @@ test("T05-CARD Denali owner can save payment destination", async ({ page }) => {
   await expect(page.getByTestId(ids.page)).toBeVisible({
     timeout: 90_000,
   });
-  await expect(
-    page.getByTestId(ids.cardNumber)
-  ).toBeVisible();
+  await expect(page.getByTestId(ids.cardNumber)).toBeVisible();
   await page.getByTestId(ids.enabled).check();
   await page.getByTestId(ids.cardNumber).fill("6037997512345678");
-  await page
-    .getByTestId(ids.cardHolderName)
-    .fill("Denali Workspace");
+  await page.getByTestId(ids.cardHolderName).fill("Denali Workspace");
   await page.getByTestId(ids.bankName).fill("Test Bank");
   await page.getByTestId(ids.save).click();
   await expect(page.getByTestId(ids.success)).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId(ids.error)).toHaveCount(0);
+
+  // A success toast alone is insufficient: prove the API/database round-trip
+  // by reloading the page and asserting every persisted field and enabled flag.
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId(ids.page)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId(ids.enabled)).toBeChecked();
+  await expect(page.getByTestId(ids.cardNumber)).toHaveValue("6037997512345678");
+  await expect(page.getByTestId(ids.cardHolderName)).toHaveValue("Denali Workspace");
+  await expect(page.getByTestId(ids.bankName)).toHaveValue("Test Bank");
 });

@@ -120,7 +120,7 @@ export function FinanceInvoiceBalanceCard({
         </p>
       ) : null}
       {invoice !== null ? (
-        <div className="grid gap-3 rounded-md border bg-muted/30 p-4 sm:grid-cols-3">
+        <div className="grid gap-3 rounded-md border bg-muted/30 p-4 sm:grid-cols-4">
           <div>
             <p className="text-xs text-muted-foreground">{t("invoiceTotal")}</p>
             <p className="font-medium">
@@ -137,6 +137,16 @@ export function FinanceInvoiceBalanceCard({
             <p className="text-xs text-muted-foreground">{t("balanceDue")}</p>
             <p className="font-medium">
               {formatMinorAmount(invoice.balanceDueMinor, invoice.currency, locale)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{t("amountDueNow")}</p>
+            <p className="font-medium">
+              {formatMinorAmount(
+                invoice.amountDueNowMinor ?? invoice.balanceDueMinor,
+                invoice.currency,
+                locale
+              )}
             </p>
           </div>
         </div>

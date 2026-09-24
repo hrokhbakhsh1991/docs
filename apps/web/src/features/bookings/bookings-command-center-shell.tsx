@@ -235,8 +235,11 @@ export function BookingsPageClient({
     "approve" | "approve_without_payment"
   >("approve");
   const [armedInlineApproveId, setArmedInlineApproveId] = useState<string | null>(null);
+  /** UX-BKG-52 follow-up — visible countdown while the confirm arm window is open. */
+  const [armedInlineApproveRemainingSeconds, setArmedInlineApproveRemainingSeconds] = useState(0);
   const [inspectionBooking, setInspectionBooking] = useState<BookingListItem | null>(null);
   const inlineApproveArmTimeoutRef = useRef<number | null>(null);
+  const inlineApproveCountdownIntervalRef = useRef<number | null>(null);
 
   const replaceQuery = (
     next: BookingsCommandCenterQuery,
@@ -320,6 +323,9 @@ export function BookingsPageClient({
     return () => {
       if (inlineApproveArmTimeoutRef.current !== null) {
         window.clearTimeout(inlineApproveArmTimeoutRef.current);
+      }
+      if (inlineApproveCountdownIntervalRef.current !== null) {
+        window.clearInterval(inlineApproveCountdownIntervalRef.current);
       }
     };
   }, []);
@@ -452,7 +458,9 @@ export function BookingsPageClient({
   const bodyState = resolveBookingsPageBodyState({
     canManageOps,
     view: query.view,
-    loading: loading && listData === null,
+    // A changed filter must not present the previous response as the new result.
+    // Keep the loading state authoritative while the filtered request is pending.
+    loading,
     error,
     itemsLength: listData?.items.length ?? 0,
     hasActiveFilters: bookingsCommandCenterHasActiveFilters(query),
@@ -632,7 +640,12 @@ export function BookingsPageClient({
       window.clearTimeout(inlineApproveArmTimeoutRef.current);
       inlineApproveArmTimeoutRef.current = null;
     }
+    if (inlineApproveCountdownIntervalRef.current !== null) {
+      window.clearInterval(inlineApproveCountdownIntervalRef.current);
+      inlineApproveCountdownIntervalRef.current = null;
+    }
     setArmedInlineApproveId(null);
+    setArmedInlineApproveRemainingSeconds(0);
   };
 
   const handleInlineApproveClick = (bookingId: string) => {
@@ -649,10 +662,25 @@ export function BookingsPageClient({
     if (inlineApproveArmTimeoutRef.current !== null) {
       window.clearTimeout(inlineApproveArmTimeoutRef.current);
     }
+    if (inlineApproveCountdownIntervalRef.current !== null) {
+      window.clearInterval(inlineApproveCountdownIntervalRef.current);
+    }
+    const armMs = BOOKINGS_INLINE_APPROVE_ARM_MS;
+    const armedAt = Date.now();
+    setArmedInlineApproveRemainingSeconds(Math.ceil(armMs / 1000));
+    inlineApproveCountdownIntervalRef.current = window.setInterval(() => {
+      const remainingMs = armedAt + armMs - Date.now();
+      setArmedInlineApproveRemainingSeconds(Math.max(0, Math.ceil(remainingMs / 1000)));
+    }, 250);
     inlineApproveArmTimeoutRef.current = window.setTimeout(() => {
       setArmedInlineApproveId(null);
+      setArmedInlineApproveRemainingSeconds(0);
       inlineApproveArmTimeoutRef.current = null;
-    }, BOOKINGS_INLINE_APPROVE_ARM_MS);
+      if (inlineApproveCountdownIntervalRef.current !== null) {
+        window.clearInterval(inlineApproveCountdownIntervalRef.current);
+        inlineApproveCountdownIntervalRef.current = null;
+      }
+    }, armMs);
   };
 
   const openCancelDialog = (bookingId: string) => {
@@ -883,6 +911,9 @@ export function BookingsPageClient({
           })}
           inlineApproveBusy={actionBusy}
           inlineApproveArmed={armedInlineApproveId === item.id}
+          inlineApproveRemainingSeconds={
+            armedInlineApproveId === item.id ? armedInlineApproveRemainingSeconds : 0
+          }
           onInlineApprove={() => handleInlineApproveClick(item.id)}
           onInlineApproveDisarm={clearInlineApproveArm}
           showTourTitle={!isWorkspaceEmbed}

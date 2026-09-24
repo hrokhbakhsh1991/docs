@@ -175,6 +175,46 @@ describe("dispatch-integration-domain-event", () => {
     );
   });
 
+  it("does not echo a Telegram-originated ticket reply back to its connection", async () => {
+    const enqueued: unknown[] = [];
+    const policyEngine: IntegrationPolicyEngine = {
+      evaluate: async () => [
+        {
+          connectionId: "conn-1",
+          tenantId: "tenant-a",
+          provider: "telegram",
+          capability: "message.send",
+          topicKey: "tickets",
+          workspaceType: "denali",
+          exposureIntent: null,
+        },
+      ],
+    };
+
+    const count = await dispatchIntegrationDomainEvent(
+      {
+        tenantId: "tenant-a",
+        domainEventId: "evt-telegram-reply-1",
+        eventType: "ticket.message.posted",
+        aggregateType: "ticket",
+        aggregateId: "ticket-1",
+        payload: {
+          sourceChannel: "telegram",
+          sourceIntegrationId: "conn-1",
+          body: "Operator reply",
+        },
+      },
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository: emptyDeliveryRepository(enqueued),
+        resolveWorkspaceType: async () => "denali",
+      })
+    );
+
+    assert.equal(count, 0);
+    assert.deepEqual(enqueued, []);
+  });
+
   it("keeps integration delivery payload unchanged when forward shadow is enabled", async () => {
     const policyEngine: IntegrationPolicyEngine = {
       evaluate: async () => [

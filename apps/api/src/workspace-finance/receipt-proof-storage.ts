@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { resolveMinioPhotoPresignConfig } from "@app-tour/workspace-denali";
 
 import {
@@ -12,6 +14,16 @@ const RECEIPT_PROOF_READ_URL_TTL_SECONDS = 300;
 /** Dev memory-driver receipt bytes — not shared across processes. */
 const memoryReceiptProofStore = new Map<string, Buffer>();
 
+/**
+ * Dev-only accessor so the local HTTP server can actually serve the bytes that
+ * `getMemberReceiptProofSignedReadUrl` points at when STORAGE_DRIVER=memory.
+ * Without this, the returned `memory://...` URL is not loadable by a browser
+ * <img> tag and reviewers can never see the uploaded receipt locally.
+ */
+export function readMemoryReceiptProof(storageKey: string): Buffer | null {
+  return memoryReceiptProofStore.get(storageKey) ?? null;
+}
+
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -20,6 +32,10 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "image/gif",
   "application/pdf",
 ]);
+
+function isMemoryReceiptProofStoreEnabled(): boolean {
+  return process.env.STORAGE_DRIVER === "memory" && process.env.NODE_ENV !== "production";
+}
 
 export function sanitizeReceiptProofFileName(name: string): string {
   const base = name.split(/[/\\]/).pop() ?? "receipt";
@@ -31,15 +47,14 @@ export function buildMemberReceiptProofObjectKey(input: {
   readonly tenantId: string;
   readonly registrationId: string;
   readonly fileName: string;
+  readonly contentHash?: string;
 }): string {
   const safeName = sanitizeReceiptProofFileName(input.fileName);
-  return `receipts/${input.tenantId}/${input.registrationId}/${safeName}`;
+  const suffix = input.contentHash === undefined ? "" : `-${input.contentHash.slice(0, 32)}`;
+  return `receipts/${input.tenantId}/${input.registrationId}/${safeName}${suffix}`;
 }
 
-export function assertMemberReceiptProofKeyScope(
-  storageKey: string,
-  tenantId: string
-): void {
+export function assertMemberReceiptProofKeyScope(storageKey: string, tenantId: string): void {
   const prefix = `receipts/${tenantId}/`;
   if (!storageKey.startsWith(prefix)) {
     throw new Error("RECEIPT_PROOF_KEY_SCOPE_INVALID");
@@ -70,12 +85,16 @@ export function rethrowMemberReceiptProofStorageError(error: unknown): never {
   if (
     minioCode === "NoSuchBucket" ||
     minioCode === "NoSuchKey" ||
+    minioCode === "NotFound" ||
     minioCode === "InvalidBucketName" ||
     minioCode === "AccessDenied"
   ) {
     throw new Error("RECEIPT_STORAGE_UNAVAILABLE");
   }
-  if (error instanceof Error && /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(error.message)) {
+  if (
+    error instanceof Error &&
+    /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(error.message)
+  ) {
     throw new Error("RECEIPT_STORAGE_UNAVAILABLE");
   }
   throw error;
@@ -101,12 +120,15 @@ export async function putMemberReceiptProof(input: {
     tenantId: input.tenantId,
     registrationId: input.registrationId,
     fileName: input.fileName,
+    contentHash: createHash("sha256").update(input.body).digest("hex"),
   });
   assertMemberReceiptProofKeyScope(storageKey, input.tenantId);
 
   if (config === null) {
-    if (process.env.STORAGE_DRIVER === "memory" && process.env.NODE_ENV === "development") {
-      memoryReceiptProofStore.set(storageKey, Buffer.from(input.body));
+    if (isMemoryReceiptProofStoreEnabled()) {
+      if (!memoryReceiptProofStore.has(storageKey)) {
+        memoryReceiptProofStore.set(storageKey, Buffer.from(input.body));
+      }
       return { storageKey };
     }
     throw new Error("MINIO_NOT_CONFIGURED");
@@ -117,6 +139,15 @@ export async function putMemberReceiptProof(input: {
   const contentType =
     input.contentType.trim().toLowerCase().split(";")[0]?.trim() ?? "application/octet-stream";
   try {
+    try {
+      await client.statObject(config.bucket, storageKey);
+      return { storageKey };
+    } catch (error) {
+      const code = readMinioSdkErrorCode(error);
+      if (code !== "NoSuchKey" && code !== "NotFound") {
+        rethrowMemberReceiptProofStorageError(error);
+      }
+    }
     await client.putObject(config.bucket, storageKey, input.body, input.body.length, {
       "Content-Type": contentType,
     });
@@ -124,6 +155,23 @@ export async function putMemberReceiptProof(input: {
     rethrowMemberReceiptProofStorageError(error);
   }
   return { storageKey };
+}
+
+export async function deleteMemberReceiptProof(input: {
+  readonly tenantId: string;
+  readonly storageKey: string;
+}): Promise<void> {
+  assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
+  const config = readTenantBrandLogoMinioConfigFromEnv();
+  if (config === null) {
+    if (isMemoryReceiptProofStoreEnabled()) {
+      memoryReceiptProofStore.delete(input.storageKey);
+    }
+    return;
+  }
+  const presignConfig = resolveMinioPhotoPresignConfig(config);
+  const client = createTenantBrandLogoMinioClient(presignConfig);
+  await client.removeObject(presignConfig.bucket, input.storageKey);
 }
 
 export async function getMemberReceiptProofSignedReadUrl(input: {
@@ -134,12 +182,9 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
   assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
   const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
-    if (
-      process.env.STORAGE_DRIVER === "memory" &&
-      process.env.NODE_ENV === "development" &&
-      memoryReceiptProofStore.has(input.storageKey)
-    ) {
-      return `memory://receipt-proof/${input.storageKey}`;
+    if (isMemoryReceiptProofStoreEnabled() && memoryReceiptProofStore.has(input.storageKey)) {
+      const port = process.env.PORT?.trim() || "3001";
+      return `http://127.0.0.1:${port}/internal/dev/receipt-proof/${encodeURIComponent(input.storageKey)}`;
     }
     throw new Error("MINIO_NOT_CONFIGURED");
   }

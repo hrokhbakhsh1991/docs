@@ -394,6 +394,13 @@ export async function dispatchIntegrationDomainEvent(
   let enqueued = 0;
 
   for (const decision of decisions) {
+    if (
+      payload.sourceChannel === "telegram" &&
+      payload.sourceIntegrationId === decision.connectionId &&
+      decision.provider === "telegram"
+    ) {
+      continue;
+    }
     const profileContext = resolveDeliveryExposureProfileContext(row.eventType);
     const profile =
       workspaceType === null

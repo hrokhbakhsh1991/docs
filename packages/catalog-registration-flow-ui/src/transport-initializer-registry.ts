@@ -22,11 +22,9 @@ export function resolveCatalogRegistrationTransportInitialState(
   const initializer = initializers.get(context.pluginId);
   if (initializer === undefined) {
     return {
-      optInPersonalCar: false,
       hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
-      nonPersonalCarAcknowledged: false,
     };
   }
   return initializer(context);

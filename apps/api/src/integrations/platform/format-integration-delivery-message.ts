@@ -2,6 +2,31 @@ import { resolveIntegrationSurfaceForWorkspaceType } from "./resolve-integration
 
 const FIELD_PLACEHOLDER_PATTERN = /\{\{field:([^}]+)\}\}/g;
 
+// Same locale/timezone convention as enrich-canonical-delivery-payload.ts, applied
+// here so raw ISO timestamps in {{...}} placeholders (createdAt, submittedAt, etc.)
+// render as readable Tehran-local Persian dates instead of literal ISO strings.
+const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})/;
+const DELIVERY_DATE_TIME_LOCALE = "fa-IR";
+const DELIVERY_DATE_TIME_TIME_ZONE = "Asia/Tehran";
+
+function formatPlaceholderDateValue(value: string): string {
+  const trimmed = value.trim();
+  if (!ISO_DATE_TIME_PATTERN.test(trimmed)) {
+    return value;
+  }
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+  return new Intl.DateTimeFormat(DELIVERY_DATE_TIME_LOCALE, {
+    timeZone: DELIVERY_DATE_TIME_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(trimmed.includes("T") ? { hour: "2-digit", minute: "2-digit" } : {}),
+  }).format(new Date(parsed));
+}
+
 function readDeliveryFieldIds(payload: Record<string, unknown>): ReadonlySet<string> | null {
   const raw = payload.integrationDeliveryFieldIds;
   if (!Array.isArray(raw)) {
@@ -63,9 +88,10 @@ function applyPayloadPlaceholders(
     if (key === "aggregateId") return resolveDeliveryAggregateId(payload);
     if (key === "eventType") return eventType;
     const value = payload[key];
-    return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-      ? String(value)
-      : match;
+    if (typeof value === "string") {
+      return formatPlaceholderDateValue(value);
+    }
+    return typeof value === "number" || typeof value === "boolean" ? String(value) : match;
   });
 }
 
@@ -158,6 +184,18 @@ export async function formatIntegrationDeliveryMessage(input: {
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
 }): Promise<string> {
+  const appendReceiptEvidenceDetails = (message: string): string => {
+    if (input.eventType !== "receipt.submitted") {
+      return message;
+    }
+    const evidenceKind =
+      typeof input.payload.evidenceKind === "string" ? input.payload.evidenceKind.trim() : "";
+    const note = typeof input.payload.note === "string" ? input.payload.note.trim() : "";
+    if (evidenceKind.length === 0 && note.length === 0) {
+      return message;
+    }
+    return `${message}\nنوع مدرک: ${evidenceKind || "فایل"}\nتوضیحات: ${note || "بدون توضیحات"}`;
+  };
   const overrideTemplate =
     typeof input.payload.integrationDeliveryMessageTemplate === "string" &&
     input.payload.integrationDeliveryMessageTemplate.trim().length > 0
@@ -166,18 +204,21 @@ export async function formatIntegrationDeliveryMessage(input: {
 
   if (overrideTemplate !== null) {
     const resolved = await applyFieldPolicyPlaceholders(overrideTemplate, input.payload);
-    return applyPayloadPlaceholders(resolved, input.payload, input.eventType);
+    return appendReceiptEvidenceDetails(
+      applyPayloadPlaceholders(resolved, input.payload, input.eventType)
+    );
   }
 
   const automaticFieldLines = renderAutomaticDeliveryFieldLines(input.payload);
   if (automaticFieldLines !== null) {
     const header = await renderSurfaceHeaderTemplate(input);
-    return `${header}\n${automaticFieldLines}`;
+    return appendReceiptEvidenceDetails(`${header}\n${automaticFieldLines}`);
   }
 
   const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
   const template = surface?.messageTemplates?.[input.eventType] ?? "{{eventType}}: {{title}}";
 
   const resolved = await applyFieldPolicyPlaceholders(template, input.payload);
-  return applyPayloadPlaceholders(resolved, input.payload, input.eventType);
+  const message = applyPayloadPlaceholders(resolved, input.payload, input.eventType);
+  return appendReceiptEvidenceDetails(message);
 }

@@ -419,6 +419,9 @@
     "label": "Upload payment receipt",
     "uploadLede": "Upload the bank slip or PDF receipt so the Denali team can review your payment.",
     "uploadHint": "Image files and PDF are supported. Check that the uploaded file is clear before submitting.",
+    "noteLabel": "Payment note or tracking code (optional with a file)",
+    "notePlaceholder": "Enter the tracking code, payment date, or payment details",
+    "noteHint": "An image or PDF is not required; you can submit payment details as text.",
     "noFileSelected": "No file selected yet",
     "chooseFile": "Choose file",
     "changeFile": "Change file",
@@ -436,12 +439,18 @@
     "viewTour": "View tour",
     "backToTrips": "Back to my trips",
     "dueTitle": "Amount due with receipt",
+    "dueTotal": "Total invoice: {amount}",
+    "dueNow": "Amount due now: {amount}",
+    "dueBalanceAfterPayment": "Remaining after this payment: {amount}",
     "dueRemaining": "Remaining: {amount}",
     "duePaid": "Already paid: {amount}",
     "dueLineTrip": "Trip fee",
     "dueLineDong": "Dong",
     "dueLineTransport": "Transport",
     "dueHint": "Your receipt should cover the remaining amount (trip plus dong/transport when applicable).",
+    "paymentDestinationLabel": "Payment destination",
+    "paymentDestinationTitle": "Card-to-card payment",
+    "paymentDestinationUnavailable": "Card-to-card payment is not available yet.",
     "previewLabel": "Preview of your receipt",
     "waivedTitle": "No payment needed",
     "waivedBody": "The club confirmed this registration without a transfer. You do not need to upload a receipt.",
@@ -509,10 +518,19 @@
       "paymentScheduled": "Payment scheduled",
       "paymentExpired": "Payment deadline passed",
       "receiptApproved": "Payment receipt approved",
+      "engagementBadgeEarned": "New badge: {badge}",
       "walletUpdated": "Wallet updated"
     },
     "eventBodies": {
-      "receiptApproved": "Your payment receipt was approved; your registration is complete."
+      "receiptApproved": "Your payment receipt was approved; your registration is complete.",
+      "engagementBadgeEarned": "You earned the {badge} badge."
+    },
+    "engagementBadges": {
+      "trailheadReady": "Trailhead ready",
+      "firstExpedition": "First expedition",
+      "summitRookie": "Summit rookie",
+      "ridgePartner": "Ridge partner",
+      "unknown": "New"
     },
     "openTourSocialLink": "Open the tour group or social channel",
     "sources": {

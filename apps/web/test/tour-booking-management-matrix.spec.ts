@@ -76,6 +76,24 @@ describe("tour-booking-management-matrix (admin surface)", () => {
           },
           status
         );
+
+        const paidResult = resolveBookingActionAvailability({
+          canManageOps: true,
+          booking: booking("approved", "paid"),
+          isWaitlistable: true,
+          isCancellable: true,
+          capacityFull: false,
+        });
+        assert.equal(paidResult.unavailableReason, null, "approved:paid");
+
+        const waivedResult = resolveBookingActionAvailability({
+          canManageOps: true,
+          booking: { ...booking("approved", "paid"), financialDisplayState: "WAIVED" },
+          isWaitlistable: true,
+          isCancellable: true,
+          capacityFull: false,
+        });
+        assert.equal(waivedResult.unavailableReason, null, "approved:waived");
       } else {
         assert.deepEqual(
           result,

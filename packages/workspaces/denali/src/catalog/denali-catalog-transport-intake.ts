@@ -8,7 +8,7 @@ import {
 
 function showTransportFollowUp(
   transport: PublicCatalogTransportSnapshot | undefined,
-  state: PublicCatalogTransportIntakeState
+  _state: PublicCatalogTransportIntakeState
 ): boolean {
   if (transport === undefined) {
     return false;
@@ -16,14 +16,7 @@ function showTransportFollowUp(
   if (transport.mode === "shared_cars") {
     return true;
   }
-  return state.optInPersonalCar;
-}
-
-/** Organized transport requires an explicit acknowledgement when personal-car details are not selected. */
-export function requiresDenaliNonPersonalCarAcknowledgement(
-  transport: PublicCatalogTransportSnapshot | undefined
-): boolean {
-  return transport !== undefined && isPublicCatalogOrganizedTransportMode(transport.mode);
+  return transport.allowPersonalCar === true;
 }
 
 export function isDenaliIntakeDongOffered(
@@ -42,19 +35,10 @@ function buildPayload(
       readonly personalCarOccupants?: 0 | 1 | 2 | 3;
     }
   | undefined {
-  const nonPersonalCarAcknowledgementRequired =
-    requiresDenaliNonPersonalCarAcknowledgement(transport) && !state.optInPersonalCar;
-
-  if (nonPersonalCarAcknowledgementRequired && !state.nonPersonalCarAcknowledged) {
-    return undefined;
-  }
-
   if (!showTransportFollowUp(transport, state)) {
-    return nonPersonalCarAcknowledgementRequired ? { kind: "primary" } : undefined;
-  }
-
-  if (state.hasPersonalCar === null && nonPersonalCarAcknowledgementRequired) {
-    return { kind: "primary" };
+    return transport !== undefined && isPublicCatalogOrganizedTransportMode(transport.mode)
+      ? { kind: "primary" }
+      : undefined;
   }
 
   if (state.hasPersonalCar === true) {
@@ -70,9 +54,6 @@ function buildPayload(
   }
 
   if (state.hasPersonalCar === false) {
-    if (!state.nonPersonalCarAcknowledged) {
-      return undefined;
-    }
     if (!isDenaliIntakeDongOffered(transport)) {
       return { kind: "no_car_acquaintance" };
     }
@@ -118,29 +99,14 @@ function computePricePerPerson(input: {
 
 export const denaliCatalogTransportIntakeSurface: WorkspaceCatalogIntakeTransportSurface =
   Object.freeze({
-    initialState: (transport) => ({
-      optInPersonalCar: transport?.mode === "shared_cars",
-      hasPersonalCar: transport?.mode === "shared_cars" ? null : null,
+    initialState: () => ({
+      hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
-      nonPersonalCarAcknowledged: false,
     }),
-    showPersonalCarOptIn: (transport) => {
-      if (transport === undefined) {
-        return false;
-      }
-      return transport.mode !== "shared_cars" && transport.allowPersonalCar === true;
-    },
     showTransportFollowUp: showTransportFollowUp,
     buildPayload,
     isComplete: (transport, state) => {
-      if (
-        requiresDenaliNonPersonalCarAcknowledgement(transport) &&
-        !state.optInPersonalCar &&
-        !state.nonPersonalCarAcknowledged
-      ) {
-        return false;
-      }
       if (!showTransportFollowUp(transport, state)) {
         return true;
       }

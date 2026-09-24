@@ -44,4 +44,40 @@ test.describe("TKT-K1 operator reports and settings", () => {
     });
     expect(viewerPatch.status()).toBe(403);
   });
+
+  test("settings shows a retry state when the settings API is unavailable", async ({ page }) => {
+    await loginOperatorOwner(page);
+    await page.route("**/api/ticket-settings", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "TICKET_SETTINGS_UNAVAILABLE" }),
+      });
+    });
+
+    await page.goto("/settings/ticketing", { waitUntil: "load" });
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Ticketing settings could not be loaded" })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page.getByText("Loading…")).toHaveCount(0);
+  });
+
+  test("reports shows a retry state when the summary API is unavailable", async ({ page }) => {
+    await loginOperatorOwner(page);
+    await page.route("**/api/ticket-reports/summary", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "TICKET_REPORTS_UNAVAILABLE" }),
+      });
+    });
+
+    await page.goto("/reports/ticketing", { waitUntil: "load" });
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Ticketing report could not be loaded" })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page.getByText("Loading…")).toHaveCount(0);
+  });
 });

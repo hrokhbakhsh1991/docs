@@ -2,6 +2,7 @@
   "pageTitle": "تورها",
   "pageSubtitle": "مدیریت و انتشار تورهای باشگاه",
   "newTour": "تور جدید",
+  "searchLabel": "جستجوی تورها",
   "searchPlaceholder": "جستجوی تور…",
   "sortLabel": "مرتب‌سازی:",
   "sortOption": {
@@ -251,7 +252,7 @@
         "payment": "پرداخت: {value}",
         "sort": "مرتب‌سازی: {value}",
         "search": "جستجو: {value}",
-        "roster": "حمل‌ونقل: {value}"
+        "roster": "نمای لیست: {value}"
       }
     },
     "finance": {
@@ -348,6 +349,7 @@
       "detailEvidenceReceiptNote": "یادداشت",
       "detailEvidenceShowProof": "نمایش فیش",
       "detailEvidenceHideProof": "بستن فیش",
+      "detailEvidenceTextOnly": "مدرک متنی",
       "detailEvidenceUnknownValue": "—",
       "detailActivityTitle": "خلاصه سابقه پرداخت",
       "detailManualPendingCount": "{count} پرداخت دستی هنوز در انتظار تعیین تکلیف است",
@@ -493,11 +495,10 @@
       "stages": {
         "approved_payment_required": "تاییدشده؛ پرداخت لازم است",
         "approved_ready_to_finalize": "تاییدشده؛ آماده افزودن به فهرست نهایی",
-        "final_payment_required": "نهایی؛ پرداخت لازم است",
         "final_ready": "نهایی؛ آماده حضور"
       },
       "driverOffer": "راننده",
-      "noOperationalDebt": "بدون مبلغ قابل پیگیری",
+      "noOperationalDebt": "بدون مانده قابل پیگیری",
       "filters": {
         "operational": "همه عملیاتی",
         "final": "نهایی",
@@ -530,7 +531,7 @@
         "ready": "آماده حضور",
         "driver": "راننده پیشنهادی؛ ظرفیت خودرو را بررسی کنید",
         "notFinal": "هنوز شرکت‌کننده نهایی نیست",
-        "paymentRequiredForFinal": "برای نهایی‌شدن، پرداخت باقی‌مانده را پیگیری کنید",
+        "paymentRequiredForFinal": "برای ورود به فهرست نهایی، پرداخت باقی‌مانده را پیگیری کنید",
         "paymentDeadline": "پیگیری پرداخت تا {date}"
       },
       "settlement": {

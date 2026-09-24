@@ -230,6 +230,13 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "GET" && url.pathname.startsWith("/internal/dev/receipt-proof/")) {
+    const { handleDevReceiptProof } = await import("./routes/internal/dev-receipt-proof");
+    const storageKeyParam = url.pathname.slice("/internal/dev/receipt-proof/".length);
+    await handleDevReceiptProof(req, res, storageKeyParam);
+    return;
+  }
+
   if (
     method === "POST" &&
     (url.pathname === "/internal/portal-member-entitlements/plans/upsert" ||

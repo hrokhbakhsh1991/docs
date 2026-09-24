@@ -539,11 +539,10 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
-  await page.locator("#receipt-file").setInputFiles({
-    name: "denali-paid-auto-receipt.png",
-    mimeType: "image/png",
-    buffer: Buffer.from("denali-smoke-receipt"),
-  });
+  await page
+    .locator("[data-portal-member-receipt-note]")
+    .fill("پرداخت از طریق انتقال بانکی انجام شد.");
+  await expect(page.locator("#receipt-file")).toHaveValue("");
   const receiptResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&

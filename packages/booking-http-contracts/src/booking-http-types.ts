@@ -215,8 +215,8 @@ export type CancelBookingResponse = {
   readonly status: BookingStatus;
 };
 
-/** Member receipt JSON body on POST /bookings/:id/receipts (fileKey path). */
+/** Member receipt JSON body on POST /bookings/:id/receipts (file and/or text evidence). */
 export type BookingMemberReceiptJsonBody = {
-  readonly fileKey: string;
+  readonly fileKey?: string;
   readonly note?: string;
 };

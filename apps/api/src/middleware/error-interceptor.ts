@@ -310,6 +310,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("BOOKING_ALREADY_APPROVED")) return 409;
   if (message.startsWith("BOOKING_ALREADY_CANCELLED")) return 409;
   if (message.startsWith("BOOKING_STATUS_CONFLICT")) return 409;
+  if (message === "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT") return 409;
   if (message === "BOOKING_NOT_FOUND" || message.startsWith("BOOKING_NOT_FOUND:")) return 404;
   if (
     message === "BOOKING_FORBIDDEN" ||

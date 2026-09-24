@@ -24,6 +24,7 @@ import {
 
 export type ComposeTourOperationalRosterInvoice = {
   readonly remainingMinor: string;
+  readonly amountDueNowMinor?: string | null;
   readonly paidAmountMinor: string;
   readonly invoiceTotalMinor: string;
   readonly currency: string;
@@ -96,12 +97,10 @@ export function composeTourOperationalRosterRow(
     waived,
   });
   const holdStatus = input.hold?.status ?? null;
-  // Older booking projections may not carry the independent finalization field
-  // yet. Keep the established settled=>final compatibility rule until those
-  // records are backfilled instead of converting them to an explicit
-  // not_final state here.
-  const finalizationStatus =
-    input.booking.finalizationStatus ?? (financiallySettled ? "finalized" : "not_final");
+  // The financial projection is authoritative for final-roster membership.
+  // Normalize stale booking metadata so an unpaid finalized row cannot leak into
+  // the final roster, and a settled legacy/free row is not blocked by not_final.
+  const finalizationStatus = financiallySettled ? "finalized" : "not_final";
 
   return {
     registrationId: input.booking.id,
@@ -121,6 +120,9 @@ export function composeTourOperationalRosterRow(
     finalizationStatus,
     financialDisplayState,
     remainingMinor,
+    ...(input.invoice?.amountDueNowMinor !== undefined
+      ? { amountDueNowMinor: input.invoice.amountDueNowMinor }
+      : {}),
     paidMinor,
     currency,
     paymentDueAt: resolveActionablePaymentDueAt({

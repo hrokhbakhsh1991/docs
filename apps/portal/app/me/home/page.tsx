@@ -4,9 +4,13 @@ import { getTranslations } from "next-intl/server";
 
 import { buildMemberHomePayload } from "@/me/member-home-bff.server";
 import { fetchMemberEngagementSummary } from "@/me/engagement/member-engagement-bff.server";
-import { resolveMemberDashboardWalletSummary } from "@/me/wallet/member-dashboard-wallet-summary.server";
+import {
+  resolveMemberDashboardWalletSummary,
+  type MemberDashboardWalletSummary,
+} from "@/me/wallet/member-dashboard-wallet-summary.server";
 import { fetchMemberProfileFromSession } from "@/me/fetch-member-profile-from-session.server";
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
+import { formatMemberRegistrationDeparture } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import {
   memberPortalIncludesHomeModule,
@@ -27,9 +31,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-function resolveNextTour(
-  registrations: Awaited<ReturnType<typeof fetchMemberRegistrations>>,
-): { readonly title: string | null; readonly departureAt: string | null } {
+function resolveNextTour(registrations: Awaited<ReturnType<typeof fetchMemberRegistrations>>): {
+  readonly title: string | null;
+  readonly departureAt: string | null;
+} {
   const upcoming = registrations
     .filter((item) => item.status === "approved" || item.status === "pending")
     .sort((a, b) => a.departureAt.localeCompare(b.departureAt));
@@ -52,7 +57,15 @@ export default async function MeHomePage() {
     const fallback = resolveMemberPortalBackTargetPath(bootstrap.pluginId);
     redirect(fallback ?? "/");
   }
-  const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
+  // Home is a shell: an optional member module must not take the whole page down.
+  // Keep entitlement resolution best-effort so a temporary upstream failure still
+  // leaves the member with navigation and the stable parts of the dashboard.
+  let entitlements: Awaited<ReturnType<typeof resolveMemberEntitlementsForShell>> = null;
+  try {
+    entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
+  } catch {
+    entitlements = null;
+  }
   const homePayload = buildMemberHomePayload({
     tenantId: bootstrap.tenantId,
     pluginId: bootstrap.pluginId,
@@ -60,18 +73,29 @@ export default async function MeHomePage() {
   });
 
   const quickLinks = homePayload.modules.filter(
-    (module) => module.entitled && module.id !== "home",
+    (module) => module.entitled && module.id !== "home"
   );
 
-  const [engagementResult, registrations, profile, walletSummary] = await Promise.all([
-    fetchMemberEngagementSummary(host),
-    fetchMemberRegistrations(host),
-    fetchMemberProfileFromSession(host, bootstrap.tenantId),
-    resolveMemberDashboardWalletSummary({
-      host,
-      grantedEntitlementKeys: entitlements?.payload.granted ?? [],
-    }),
-  ]);
+  const [engagementOutcome, registrationsOutcome, profileOutcome, walletOutcome] =
+    await Promise.allSettled([
+      fetchMemberEngagementSummary(host),
+      fetchMemberRegistrations(host),
+      fetchMemberProfileFromSession(host, bootstrap.tenantId),
+      resolveMemberDashboardWalletSummary({
+        host,
+        grantedEntitlementKeys: entitlements?.payload.granted ?? [],
+      }),
+    ]);
+
+  const engagementResult =
+    engagementOutcome.status === "fulfilled"
+      ? engagementOutcome.value
+      : { ok: false as const, code: "ENGAGEMENT_FETCH_FAILED", status: 503 };
+  const registrations =
+    registrationsOutcome.status === "fulfilled" ? registrationsOutcome.value : [];
+  const profile = profileOutcome.status === "fulfilled" ? profileOutcome.value : null;
+  const walletSummary: MemberDashboardWalletSummary =
+    walletOutcome.status === "fulfilled" ? walletOutcome.value : { state: "error" };
 
   const engagementView =
     engagementResult.ok && "enabled" in engagementResult.view && engagementResult.view.enabled
@@ -79,6 +103,9 @@ export default async function MeHomePage() {
       : { enabled: false as const };
 
   const nextTour = resolveNextTour(registrations);
+  const nextTourDepartureAt = nextTour.departureAt
+    ? await formatMemberRegistrationDeparture(nextTour.departureAt)
+    : null;
   const profileComplete =
     profile !== null &&
     Boolean(profile.profile.fields.displayName?.trim()) &&
@@ -101,7 +128,7 @@ export default async function MeHomePage() {
           wallet={walletSummary}
           openTicketsCount={null}
           nextTourTitle={nextTour.title}
-          nextTourDepartureAt={nextTour.departureAt}
+          nextTourDepartureAt={nextTourDepartureAt}
           profileComplete={profileComplete}
           engagementHref={engagementHref}
           registrationsHref={registrationsHref}

@@ -73,7 +73,7 @@ export const denaliIntegrationSurface = Object.freeze({
         { eventType: "ticket.closed", enabled: true },
       ],
       eventMappings: [
-        { eventType: "TourPublished", capability: "message.send" },
+        { eventType: "TourPublished", capability: "message.send", topicKey: "registration" },
         {
           eventType: "member.registered",
           capability: "message.send",
@@ -131,7 +131,7 @@ export const denaliIntegrationSurface = Object.freeze({
     "member.registered":
       "عضو جدید دنالی\nنام: {{displayName}}\nشماره تماس: {{mobile}}\nتاریخ ثبت‌نام: {{registeredAt}}",
     "registration.created":
-      "ثبت‌نام جدید: {{guestLabel}}\nتور: {{tourTitle}}\nتاریخ حرکت: {{departureAt}}\nتعداد نفرات: {{partySize}}\nوضعیت تأیید: {{approvalStatus}}",
+      "📝 ثبت‌نام جدید\n\n👤 نام: {{guestLabel}}\n🏕 تور: {{tourTitle}}\n📅 تاریخ حرکت: {{departureAt}}\n👥 تعداد نفرات: {{partySize}}\n🆔 شناسه ثبت‌نام: {{bookingId}}\n\n{{approvalPrompt}}",
     "registration.approved":
       "ثبت‌نام تأیید شد\nشناسه ثبت‌نام: {{bookingId}}\nتاریخ تأیید: {{approvedAt}}",
     "receipt.submitted":
@@ -141,11 +141,11 @@ export const denaliIntegrationSurface = Object.freeze({
     "receipt.rejected":
       "فیش رد شد\nشناسه فیش: {{receiptId}}\nشناسه ثبت‌نام: {{registrationId}}\nتاریخ بررسی: {{reviewedAt}}\nیادداشت: {{reviewNote}}",
     "ticket.created":
-      "تیکت جدید برای بررسی\nشناسه: {{ticketId}}\nتاریخ ارسال: {{createdAt}}\nموضوع: {{subject}}",
+      "🎫 تیکت جدید برای بررسی\nشناسه: {{ticketCode}}\nموضوع: {{subject}}\nتاریخ ارسال: {{createdAt}}\n\nمتن تیکت:\n{{body}}\n\n↩️ برای پاسخ به کاربر، روی همین پیام Reply کنید.",
     "ticket.message.posted":
-      "پیام جدید در تیکت\nشناسه: {{ticketId}}\nموضوع: {{subject}}\nوضعیت: {{status}}",
+      "💬 پیام جدید در تیکت\nشناسه: {{ticketCode}}\nموضوع: {{subject}}\nوضعیت: {{status}}\nتاریخ ارسال: {{createdAt}}\n\nمتن پیام:\n{{body}}",
     "ticket.internal_note.created":
-      "یادداشت داخلی جدید در تیکت\nشناسه: {{ticketId}}\nموضوع: {{subject}}",
+      "📝 یادداشت داخلی جدید در تیکت\nشناسه: {{ticketCode}}\nموضوع: {{subject}}\nتاریخ ارسال: {{createdAt}}\n\nمتن یادداشت:\n{{body}}",
     "ticket.status.changed":
       "وضعیت تیکت تغییر کرد\nشناسه: {{ticketId}}\nموضوع: {{subject}}\nوضعیت: {{status}}",
     "ticket.resolved": "تیکت حل شد\nشناسه: {{ticketId}}\nموضوع: {{subject}}",

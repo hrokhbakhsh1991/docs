@@ -4,6 +4,8 @@ import {
   OPERATOR_SMOKE_SEED_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
   applyOperatorSmokePublishedTourEditReadyPatch,
   buildDenaliClubDevDraftTour,
@@ -13,6 +15,7 @@ import {
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
   buildOperatorSmokeTransportBusTour,
+  buildOperatorSmokeTransportBusTourVariant,
   buildOperatorSmokeTransportSharedCarsTour,
   DENALI_CLUB_DEV_DRAFT_TOUR_ID,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG,
@@ -28,10 +31,55 @@ import {
 } from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_SMOKE_TENANT_ID } from "./seed-operator-smoke-catalog";
 import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
+import { getSettingsConfigRepository } from "./create-settings-config-repository";
 import { getPrismaAdmin } from "../db/prisma";
 import { logger } from "../observability/logger";
 import { PrismaTourRepository } from "../storage/prisma-tour.repository";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
+
+const DENALI_SMOKE_PAYMENT_DESTINATION = {
+  enabled: true,
+  cardNumber: "6037997512345678",
+  cardHolderName: "Denali Smoke",
+  bankName: "بانک تست دنالی",
+  instructions: "برای تست محلی؛ پس از پرداخت رسید را ارسال کنید.",
+} as const;
+
+/** Keep receipt E2E fixtures actionable without weakening the member UI gate. */
+export async function ensureDenaliSmokePaymentDestination(tenantId: string): Promise<void> {
+  const settings = getSettingsConfigRepository();
+  const stored = await settings.get(tenantId, "payment_destination");
+  const payload = stored?.payload;
+  const payloadRecord =
+    payload !== null && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : null;
+  const isExpectedConfig =
+    payloadRecord !== null &&
+    payloadRecord.enabled === true &&
+    payloadRecord.cardNumber === DENALI_SMOKE_PAYMENT_DESTINATION.cardNumber &&
+    payloadRecord.cardHolderName === DENALI_SMOKE_PAYMENT_DESTINATION.cardHolderName;
+
+  if (!isExpectedConfig) {
+    await settings.put(tenantId, "payment_destination", {
+      configVersion: 1,
+      payload: DENALI_SMOKE_PAYMENT_DESTINATION,
+    });
+  }
+
+  const { getPlatformFinanceRepository } = await import("../boot/lazy-finance-service");
+  const finance = getPlatformFinanceRepository();
+  if ((await finance.findPaymentDestinationRevision(tenantId)) === null) {
+    await finance.putPaymentDestinationRevision({
+      tenantId,
+      cardNumber: DENALI_SMOKE_PAYMENT_DESTINATION.cardNumber,
+      cardHolderName: DENALI_SMOKE_PAYMENT_DESTINATION.cardHolderName,
+      bankName: DENALI_SMOKE_PAYMENT_DESTINATION.bankName,
+      instructions: DENALI_SMOKE_PAYMENT_DESTINATION.instructions,
+      actorUserId: null,
+    });
+  }
+}
 
 /** Idempotent Prisma seed — published tour for denali.club dev tenant (…000003). */
 export async function seedDenaliClubDevPublishedTour(tenantId: string): Promise<void> {
@@ -84,6 +132,8 @@ export async function seedDenaliBookingScenarioTours(tenantId: string): Promise<
   if (tenantId !== DENALI_SMOKE_TENANT_ID) {
     throw new Error("DENALI_CLUB_DEV_TOUR_SEED_TENANT_MISMATCH");
   }
+
+  await ensureDenaliSmokePaymentDestination(tenantId);
 
   const repo = new PrismaTourRepository();
   const fixtures = [
@@ -340,9 +390,26 @@ export async function seedOperatorSmokeTransportTours(tenantId: string): Promise
       } else {
         const canonical = structuredClone(bus.canonical);
         const data = canonical.data as Record<string, unknown>;
-        if (data.capacityMax !== 100) {
-          data.capacityMax = 100;
+        if (data.capacityMax !== 1000) {
+          data.capacityMax = 1000;
           await repo.save({ ...bus, rowVersion: bus.rowVersion + 1, canonical });
+        }
+      }
+
+      for (const [tourId, createdAt] of [
+        [OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID, new Date(5).toISOString()],
+        [OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID, new Date(6).toISOString()],
+      ] as const) {
+        const variant = await repo.getById(tourId, tenantId);
+        if (variant === null) {
+          await repo.save(buildOperatorSmokeTransportBusTourVariant({ tenantId, tourId, createdAt }));
+          continue;
+        }
+        const canonical = structuredClone(variant.canonical);
+        const data = canonical.data as Record<string, unknown>;
+        if (data.capacityMax !== 1000) {
+          data.capacityMax = 1000;
+          await repo.save({ ...variant, rowVersion: variant.rowVersion + 1, canonical });
         }
       }
 

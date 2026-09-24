@@ -56,14 +56,14 @@ Each applicable combination must verify all of these outputs:
 
 ### Finalization overlay
 
-These rows are independent of payment settlement and must be asserted at the
-roster projection boundary:
+Final-roster membership is gated by payment settlement and must be asserted at
+the roster projection boundary:
 
 | ID   | Lifecycle                     | Finalization input                       | Expected final roster          | Expected payment view                     |
 | ---- | ----------------------------- | ---------------------------------------- | ------------------------------ | ----------------------------------------- |
-| B-09 | `approved`                    | explicit `finalized`, balance > 0        | included                       | remains unpaid/debtor                     |
-| B-10 | `approved`                    | explicit `not_final`, balance = 0        | excluded                       | paid state is not sufficient for finality |
-| B-11 | `approved`                    | legacy missing finalization, balance = 0 | included by compatibility rule | paid                                      |
+| B-09 | `approved`                    | explicit `finalized`, balance > 0        | excluded                       | remains unpaid/debtor                     |
+| B-10 | `approved`                    | explicit `not_final`, balance = 0        | included                       | settled state is sufficient for finality  |
+| B-11 | `approved`                    | legacy missing finalization, balance = 0 | included                       | paid                                      |
 | B-12 | waitlisted/rejected/cancelled | stale `finalized` metadata               | excluded                       | non-operational                           |
 
 ## Discount cross-product

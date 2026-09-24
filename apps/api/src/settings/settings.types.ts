@@ -93,7 +93,18 @@ export type PresetsAdvancedPayloadV1 = {
   readonly matchRules: readonly PresetsAdvancedMatchRule[];
 };
 
-export type TenantConfigPayload = WizardTemplatePayloadV1 | PresetsAdvancedPayloadV1;
+export type PaymentDestinationPayloadV1 = {
+  readonly enabled: boolean;
+  readonly cardNumber: string;
+  readonly cardHolderName: string;
+  readonly bankName: string | null;
+  readonly instructions: string | null;
+};
+
+export type TenantConfigPayload =
+  | WizardTemplatePayloadV1
+  | PresetsAdvancedPayloadV1
+  | PaymentDestinationPayloadV1;
 
 export type TenantConfigRecord = {
   readonly tenantId: string;

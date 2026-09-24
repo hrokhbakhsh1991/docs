@@ -41,6 +41,7 @@ describe("DP-2 compose tour operational roster", () => {
       booking: booking(),
       invoice: {
         remainingMinor: "2500000",
+        amountDueNowMinor: "750000",
         paidAmountMinor: "0",
         invoiceTotalMinor: "2500000",
         currency: "IRR",
@@ -53,11 +54,12 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.isFinalParticipant, false);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.equal(row.remainingMinor, "2500000");
+    assert.equal(row.amountDueNowMinor, "750000");
     assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
     assert.equal(row.holdStatus, "open");
   });
 
-  it("finalized unpaid row is visible in final roster and still shows balance", () => {
+  it("finalized unpaid row is excluded from final roster and still shows balance", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({ status: "approved", finalizationStatus: "finalized" }),
       invoice: {
@@ -70,7 +72,7 @@ describe("DP-2 compose tour operational roster", () => {
       refundStatuses: [],
       nowIso: NOW,
     });
-    assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.isFinalParticipant, false);
     assert.equal(row.isFinanciallySettled, false);
     assert.equal(row.financialDisplayState, "UNPAID");
   });

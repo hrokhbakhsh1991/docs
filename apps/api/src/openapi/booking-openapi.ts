@@ -425,19 +425,33 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
   },
   BookingMemberReceiptJsonBody: {
     type: "object",
-    required: ["fileKey"],
+    description: "At least one of fileKey or note is required.",
+    anyOf: [
+      {
+        required: ["fileKey"],
+        properties: { fileKey: { type: "string", minLength: 1 } },
+      },
+      {
+        required: ["note"],
+        properties: { note: { type: "string", minLength: 1, maxLength: 2000 } },
+      },
+    ],
     properties: {
       fileKey: {
-        type: "string",
+        type: ["string", "null"],
         minLength: 1,
         examples: ["tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"],
       },
-      note: { type: "string", examples: ["bank transfer"] },
+      note: {
+        type: ["string", "null"],
+        minLength: 1,
+        maxLength: 2000,
+        examples: ["bank transfer", null],
+      },
     },
     examples: [
       {
-        fileKey: "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
-        note: "bank transfer",
+        note: "کد پیگیری ۱۲۳۴۵؛ واریز در تاریخ ۱۴۰۵/۰۶/۲۳",
       },
     ],
   },
@@ -453,6 +467,9 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         examples: ["pending"],
       },
       remainingMinor: { type: "string", examples: ["1500000"] },
+      invoiceTotalMinor: { type: "string", examples: ["2500000"] },
+      initialPaymentDueMinor: { type: "string", examples: ["750000"] },
+      amountDueNowMinor: { type: "string", examples: ["750000"] },
       obligationMinor: { type: "string", examples: ["2500000"] },
       paidMinor: { type: "string", examples: ["1000000"] },
       currency: { type: "string", examples: ["IRR"] },
@@ -495,7 +512,8 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         examples: ["00000000-0000-4000-8000-000000000702"],
       },
       status: { type: "string", examples: ["Pending"] },
-      fileKey: { type: "string", examples: ["tenants/…/receipts/proof.bin"] },
+      fileKey: { type: ["string", "null"], examples: ["tenants/…/receipts/proof.bin", null] },
+      note: { type: ["string", "null"], examples: ["bank transfer", "کد پیگیری ۱۲۳۴۵", null] },
     },
     examples: [
       {
@@ -503,6 +521,7 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         paymentId: "00000000-0000-4000-8000-000000000702",
         status: "Pending",
         fileKey: "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
+        note: "bank transfer",
       },
     ],
   },
@@ -767,6 +786,10 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       },
       ...authErrorResponses,
       ...notFoundConflictResponses,
+      409: errorResponse("Finalization requires settled payment", {
+        error: "conflict",
+        code: "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
+      }),
     },
   },
   rejectBooking: {
@@ -859,9 +882,13 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       },
       400: errorResponse("Invalid receipt payload", {
         error: "invalid_payload",
-        code: "FILE_KEY_REQUIRED",
+        code: "RECEIPT_EVIDENCE_REQUIRED",
       }),
       ...authErrorResponses,
+      409: errorResponse("Receipt idempotency conflict", {
+        error: "conflict",
+        code: "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT",
+      }),
       503: errorResponse("Object storage unavailable", {
         error: "service_unavailable",
         code: "MINIO_NOT_CONFIGURED",

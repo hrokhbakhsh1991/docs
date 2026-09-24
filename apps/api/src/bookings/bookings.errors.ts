@@ -96,6 +96,16 @@ export class BookingNotFoundError extends Error {
   }
 }
 
+/** Final roster membership requires a settled or waived financial projection. */
+export class BookingFinalizationRequiresSettlementError extends Error {
+  readonly code = "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT" as const;
+
+  constructor() {
+    super("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT");
+    this.name = "BookingFinalizationRequiresSettlementError";
+  }
+}
+
 export class BulkApproveBatchLimitError extends Error {
   readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
 

@@ -49,6 +49,19 @@ const emptyPayload: PaymentDestinationPayload = {
   instructions: null,
 };
 
+function samePaymentDestinationPayload(
+  left: PaymentDestinationPayload,
+  right: PaymentDestinationPayload
+): boolean {
+  return (
+    left.enabled === right.enabled &&
+    left.cardNumber === right.cardNumber &&
+    left.cardHolderName === right.cardHolderName &&
+    left.bankName === right.bankName &&
+    left.instructions === right.instructions
+  );
+}
+
 export function PaymentDestinationSettingsClient({ session }: Props) {
   const canManage = isAdminOrOwnerRole(session.role);
   const [configVersion, setConfigVersion] = useState(1);
@@ -102,8 +115,22 @@ export function PaymentDestinationSettingsClient({ session }: Props) {
         throw new Error(`PAYMENT_DESTINATION_PUT_${response.status}`);
       }
       const result = (await response.json()) as SettingsResponse;
+      if (!samePaymentDestinationPayload(result.payload, payload)) {
+        throw new Error("PAYMENT_DESTINATION_PERSISTENCE_MISMATCH");
+      }
       setConfigVersion(result.configVersion);
       setPayload({ ...emptyPayload, ...result.payload });
+
+      const persistedResponse = await fetch("/api/settings/config/payment_destination", {
+        cache: "no-store",
+      });
+      if (!persistedResponse.ok) {
+        throw new Error(`PAYMENT_DESTINATION_VERIFY_${persistedResponse.status}`);
+      }
+      const persisted = (await persistedResponse.json()) as SettingsResponse;
+      if (!samePaymentDestinationPayload(persisted.payload, payload)) {
+        throw new Error("PAYMENT_DESTINATION_PERSISTENCE_MISMATCH");
+      }
       setSuccess(true);
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : "PAYMENT_DESTINATION_SAVE_FAILED");

@@ -105,11 +105,34 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 The API coalesces concurrent outstanding-AR and tour-collection reads per tenant for the duration of the shared load. It does not retain the result after completion; both reports therefore continue to read the same invoice-based source without multiplying the expensive scan.
 
-### Registration finalization is independent from payment
+### Registration finalization is payment-gated
 
-`approved` is the registration decision and `finalized` is the operator's decision to include the guest in the final roster. They must not be inferred from one another or from `paymentStatus`. Therefore an approved guest may be either not-final, finalized and unpaid/partially paid, or finalized and settled/waived. Free registrations may transition to finalized automatically after approval; paid registrations require the configured operator finalization rule. The API contract must expose these dimensions separately so the four primary flows cannot collapse into one ambiguous badge.
+`approved` is the registration decision and `finalized` is the decision to include the guest in the final roster. Approval and financial proof remain separate axes, but an approved guest cannot be final while an amount remains due. The final-roster invariant is `approved` plus a financially settled `PAID` or `WAIVED` projection. Approved unpaid or partially paid guests remain operational and visible in payment follow-up, but never in the final roster or final-roster export. Free registrations may transition to finalized automatically after approval; paid registrations may be finalized only after the canonical Finance payment-status transition reaches zero remaining balance. The Finance approval transaction must persist the paid booking projection and its finalization marker together, so raw Booking state and the operational roster cannot diverge. The API contract must expose lifecycle, finalization, and financial dimensions separately so payment follow-up cannot be mistaken for final participation.
 
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
+
+### Telegram registration decision message
+
+The Telegram `registration` topic receives an actionable `registration.created`
+message. Receipt review remains a separate flow in the `receipts` topic.
+
+The message must show the guest, tour, departure, party size, and registration
+identifier, then state whether the tour requires operator approval. Its inline
+actions are:
+
+| Tour approval mode | Actions                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `auto`             | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
+| `manual`           | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
+
+Callbacks are typed as `registration:<action>:<registrationId>`, are accepted
+only from an administrator or creator in the configured Telegram supergroup, and are
+tenant-scoped and idempotent. `approve` uses the existing Bookings approval
+operation; `waitlist` uses the existing waitlist operation. Any action that marks a
+guest final must re-read the financial projection and reject unpaid or partially paid
+registrations. Telegram must show payment follow-up for those rows and final
+participation only for `PAID` or `WAIVED` rows; this must not be confused with receipt
+approval.
 
 ## Operator hint (phase 1C)
 
@@ -159,6 +182,44 @@ Dev OTP operator paths (not `/auth/otp/*`): `POST /auth/request-otp` → `POST /
 | P3 admin Next hang                  | **Ops** — intermittent `next dev` stall; restart process; no product-code defect found                                      |
 
 ## Phase 2 — Offline receipt amount from tour obligation (2026-08-06)
+
+## Phase 2A — Denali prepayment as a staged member payment (2026-09-21)
+
+`pricing.prepaymentEnabled` and `pricing.prepaymentPercent` define the first
+payment stage for a paid Denali registration. They must not replace the Finance
+invoice total and must not be treated as an already-collected wallet amount.
+
+The Finance read model exposes both values explicitly:
+
+- `invoiceTotalMinor`: the frozen payable total for the registration;
+- `paidAmountMinor`: completed payment/prepayment credit already collected;
+- `balanceDueMinor`: `invoiceTotalMinor - paidAmountMinor` (the full remaining
+  balance, never the configured deposit by itself);
+- `initialPaymentDueMinor`: the configured percentage of the total, capped at
+  the current balance and zero when the tour has no valid prepayment policy;
+- `amountDueNowMinor`: `min(initialPaymentDueMinor, balanceDueMinor)` while
+  the first stage is still unpaid, otherwise `balanceDueMinor`.
+
+The member receipt endpoint and portal must show `amountDueNowMinor` as the
+amount to transfer, while also showing the total and remaining balance. After a
+successful first capture, the next receipt uses the remaining balance. Manual
+and automatic approval use the same projection. Invalid percentages (missing,
+zero, fractional, or above 100) fail closed to the regular full-payment path.
+
+This contract is display/projection logic only: a configured prepayment is not
+collection. Receipt review and ledger capture remain the only source of paid
+money, and all amount transitions must remain idempotent and tenant-scoped.
+
+Cross-surface display rules are explicit:
+
+- Public marketing exposes the configured percentage as a registration hint; it
+  must not invent an exact amount before party size, transport, and discounts are
+  resolved in the portal.
+- The member portal is authoritative for the exact `amountDueNowMinor`, total,
+  and post-payment balance.
+- The operator tour finance inbox reads the approved `unpaid` roster projection,
+  not the transport `operational` filter, and displays `amountDueNowMinor` with
+  `remainingMinor` retained for the total outstanding balance.
 
 When a member uploads a receipt and no pending manual payment exists yet, Finance creates one:
 
@@ -367,3 +428,9 @@ PC-07 remains: Denali paid ingress is `offline_receipt` only.
 - [platform-portal-member.mdoc](../../phase-19/platform-portal-member.mdoc)
 - [BOOKING_LIFECYCLE_OWNERSHIP.md](../../phase-20/p7/appendices/BOOKING_LIFECYCLE_OWNERSHIP.md)
 - [PAYMENT-LEDGER-BOUNDARY.md](../../phase-20/p7/appendices/PAYMENT-LEDGER-BOUNDARY.md)
+
+## Auth and notification resilience addendum (2026-09-17)
+
+- OTP verification must remain single-use and additionally enforce bounded attempts per challenge plus a phone/IP failure window. Static OTP `1234` is permitted only in development/test or with the explicit staging profile flag; ordinary production must fail closed.
+- Registration and receipt notifications are emitted through the durable outbox. `registration.created`, `receipt.submitted`, `receipt.approved`, and `receipt.rejected` are delivery inputs; Telegram delivery is best effort and must never roll back the financial mutation.
+- Anonymous registration keeps the modal-first experience as progressive enhancement, with a server-rendered login/retry escape path. CTA variants must not leave hidden rail/sticky controls keyboard-focusable.

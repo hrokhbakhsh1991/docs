@@ -29,7 +29,7 @@ describe("format integration delivery message", () => {
           registeredAt: "2026-09-14T10:00:00.000Z",
         },
       }),
-      "عضو جدید دنالی\nنام: Ali Test\nشماره تماس: +989121234567\nتاریخ ثبت‌نام: 2026-09-14T10:00:00.000Z"
+      "عضو جدید دنالی\nنام: Ali Test\nشماره تماس: +989121234567\nتاریخ ثبت‌نام: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
     );
     assert.equal(
       await formatIntegrationDeliveryMessage({
@@ -40,10 +40,12 @@ describe("format integration delivery message", () => {
           tourTitle: "Damavand",
           departureAt: "2026-09-20",
           partySize: 2,
+          bookingId: "registration-123",
           approvalStatus: "awaiting_approval",
+          approvalPrompt: "⏳ این تور نیاز به تأیید ادمین دارد.",
         },
       }),
-      "ثبت‌نام جدید: Ali Test\nتور: Damavand\nتاریخ حرکت: 2026-09-20\nتعداد نفرات: 2\nوضعیت تأیید: awaiting_approval"
+      "📝 ثبت‌نام جدید\n\n👤 نام: Ali Test\n🏕 تور: Damavand\n📅 تاریخ حرکت: 2026-09-20\n👥 تعداد نفرات: 2\n🆔 شناسه ثبت‌نام: registration-123\n\n⏳ این تور نیاز به تأیید ادمین دارد."
     );
     assert.equal(
       await formatIntegrationDeliveryMessage({
@@ -57,7 +59,50 @@ describe("format integration delivery message", () => {
           submittedAt: "2026-09-14T10:00:00.000Z",
         },
       }),
-      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: 2026-09-14T10:00:00.000Z"
+      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
+    );
+    assert.match(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: {
+          registrationId: "reg-2",
+          paymentId: "pay-2",
+          amount: "2500000",
+          currency: "IRR",
+          submittedAt: "2026-09-14T10:00:00.000Z",
+          evidenceKind: "text",
+          note: "پرداخت از طریق کارت به کارت انجام شد",
+        },
+      }),
+      /نوع مدرک: text\nتوضیحات: پرداخت از طریق کارت به کارت انجام شد/
+    );
+  });
+
+  it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {
+    const payload = {
+      ticketCode: "TKT-000010",
+      subject: "تست قالب تلگرام",
+      status: "open",
+      createdAt: "2026-09-14T10:00:00.000Z",
+      body: "متن کامل تیکت",
+    };
+
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "ticket.created",
+        payload,
+      }),
+      "🎫 تیکت جدید برای بررسی\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن تیکت:\nمتن کامل تیکت\n\n↩️ برای پاسخ به کاربر، روی همین پیام Reply کنید."
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "ticket.message.posted",
+        payload,
+      }),
+      "💬 پیام جدید در تیکت\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nوضعیت: open\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن پیام:\nمتن کامل تیکت"
     );
   });
 

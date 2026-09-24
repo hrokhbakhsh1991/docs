@@ -23,11 +23,15 @@ function readBoolean(value: unknown): boolean {
 
 function readInteger(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return Number.isInteger(value) ? value : Math.trunc(value);
+    return Number.isInteger(value) ? value : null;
   }
   if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number.parseInt(value.trim(), 10);
-    return Number.isFinite(parsed) ? parsed : null;
+    const normalized = value.trim();
+    if (!/^-?\d+$/.test(normalized)) {
+      return null;
+    }
+    const parsed = Number(normalized);
+    return Number.isSafeInteger(parsed) ? parsed : null;
   }
   return null;
 }

@@ -27,6 +27,7 @@ import {
 } from "./bookings-member-summary-projection";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
+  BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
@@ -796,6 +797,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (existing.status !== "approved") {
         throw new BookingStatusConflictError(existing.status as BookingStatus);
       }
+      if (existing.paymentStatus !== "paid") {
+        throw new BookingFinalizationRequiresSettlementError();
+      }
       if (existing.finalizationStatus !== "finalized") {
         const finalizedAt = new Date();
         const changed = await tx.operatorRegistration.updateMany({
@@ -803,6 +807,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             id: input.bookingId,
             tenantId: input.tenantId,
             status: "approved",
+            paymentStatus: "paid",
             finalizationStatus: { not: "finalized" },
           },
           data: {

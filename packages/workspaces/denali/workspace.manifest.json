@@ -255,6 +255,10 @@
     "paymentCollection": {
       "module": "./finance",
       "export": "resolveDenaliPaymentCollectionMode"
+    },
+    "registrationPaymentPlan": {
+      "module": "./finance",
+      "export": "resolveDenaliRegistrationPaymentPlan"
     }
   },
   "workspaceWallet": {
@@ -736,6 +740,11 @@
     {
       "isErrorExport": "isDenaliRegistrationDuplicateError",
       "codeExport": "DENALI_REGISTRATION_DUPLICATE",
+      "status": 409
+    },
+    {
+      "isErrorExport": "isDenaliRegistrationClosedError",
+      "codeExport": "DENALI_REGISTRATION_CLOSED",
       "status": 409
     },
     {

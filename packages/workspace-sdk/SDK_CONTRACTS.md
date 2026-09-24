@@ -239,10 +239,10 @@ type CatalogRegistrationUpstreamRequest = {
 |------|-------|--------|
 | `initialState` | `PublicCatalogTransportSnapshot \| undefined` | `PublicCatalogTransportIntakeState` |
 
-`PublicCatalogTransportIntakeState.nonPersonalCarAcknowledged` is required and defaults to
-`false`. Denali registration requires it when the registrant selects anything other than a
-personal car; the server remains authoritative for the final transport kind.
-| `showPersonalCarOptIn` | transport snapshot | `boolean` |
+Organized transport is the default `primary` path and requires no acknowledgement from the
+registrant. When a tour allows personal cars, the transport follow-up is shown directly with no
+extra opt-in checkbox; the two personal-car choices start unselected. The state only tracks the
+choice and its follow-up details; the server remains authoritative for the final transport kind.
 | `showTransportFollowUp` | snapshot + state | `boolean` |
 | `buildPayload` | snapshot + state | `{ kind: PublicCatalogRegistrationTransportKind; personalCarOccupants?: 0\|1\|2\|3 } \| undefined` (0 = driver only) |
 | `isComplete` | snapshot + state | `boolean` |

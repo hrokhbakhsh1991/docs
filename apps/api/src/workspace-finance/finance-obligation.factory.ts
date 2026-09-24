@@ -40,10 +40,17 @@ export async function createFinanceObligationPort(
     ];
   const resolve = await binding.loadResolve();
 
-  let resolvePaymentCollection: (tourCanonical: unknown) => "offline" | "free" = () =>
-    "offline";
+  let resolvePaymentCollection: (tourCanonical: unknown) => "offline" | "free" = () => "offline";
   if ("loadPaymentCollection" in binding && typeof binding.loadPaymentCollection === "function") {
     resolvePaymentCollection = await binding.loadPaymentCollection();
+  }
+
+  let resolvePaymentPlan: (tourCanonical: unknown) => {
+    readonly enabled: boolean;
+    readonly percent: number | null;
+  } = () => ({ enabled: false, percent: null });
+  if ("loadPaymentPlan" in binding && typeof binding.loadPaymentPlan === "function") {
+    resolvePaymentPlan = await binding.loadPaymentPlan();
   }
 
   let resolveGrossObligation:
@@ -71,6 +78,7 @@ export async function createFinanceObligationPort(
     resolve,
     resolveDefaultCurrency,
     resolvePaymentCollection,
-    resolveGrossObligation
+    resolveGrossObligation,
+    resolvePaymentPlan
   );
 }

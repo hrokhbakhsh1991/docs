@@ -455,8 +455,14 @@ export function buildOperatorSmokeParticipantRequirementsTour(input: {
   };
 }
 
-/** Transport smoke — bus with personal-car opt-in (DEN-TRANS-01/02). */
+/** Transport smoke — bus with direct personal-car choices (DEN-TRANS-01/02). */
 export const OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID = "00000000-0000-4000-8000-000000000213" as const;
+
+/** Isolated bus fixtures for self-registration transport payload cases. */
+export const OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID =
+  "00000000-0000-4000-8000-000000000215" as const;
+export const OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID =
+  "00000000-0000-4000-8000-000000000216" as const;
 
 export const OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE = "Ridge Bus Shuttle" as const;
 
@@ -474,7 +480,7 @@ export function buildOperatorSmokeTransportBusTourCanonical(): CanonicalDocument
     basics: { title: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE },
     // Keep browser transport/finance chains repeatable without consuming the small catalog
     // capacity used by the general operator smoke tour.
-    capacityMax: 100,
+    capacityMax: 1000,
     transport: {
       mode: "bus",
       allowPersonalCar: true,
@@ -487,8 +493,20 @@ export function buildOperatorSmokeTransportBusTour(input: {
   readonly tenantId: string;
   readonly createdAt?: string;
 }): Tour {
+  return buildOperatorSmokeTransportBusTourVariant({
+    tenantId: input.tenantId,
+    tourId: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+    createdAt: input.createdAt ?? new Date(3).toISOString(),
+  });
+}
+
+export function buildOperatorSmokeTransportBusTourVariant(input: {
+  readonly tenantId: string;
+  readonly tourId: string;
+  readonly createdAt?: string;
+}): Tour {
   return {
-    id: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+    id: input.tourId,
     tenantId: input.tenantId,
     rowVersion: 1,
     createdAt: input.createdAt ?? new Date(3).toISOString(),

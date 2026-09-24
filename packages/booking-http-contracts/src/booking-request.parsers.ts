@@ -185,11 +185,14 @@ export function parseBookingMemberReceiptJsonBody(
   }
   const record = body as Record<string, unknown>;
   const fileKey = typeof record.fileKey === "string" ? record.fileKey.trim() : "";
-  if (fileKey.length === 0) {
+  const note = typeof record.note === "string" ? record.note.trim() : undefined;
+  if (fileKey.length === 0 && (note === undefined || note.length === 0)) {
     return null;
   }
-  const note = typeof record.note === "string" ? record.note.trim() : undefined;
-  return note !== undefined && note.length > 0 ? { fileKey, note } : { fileKey };
+  return {
+    ...(fileKey.length > 0 ? { fileKey } : {}),
+    ...(note !== undefined && note.length > 0 ? { note } : {}),
+  };
 }
 
 /**

@@ -206,7 +206,7 @@ export type FinanceReceiptPayment = {
 export type FinancePendingReceipt = {
   readonly id: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly status: string;
   readonly note: string | null;
   readonly createdAt: string;
@@ -254,7 +254,10 @@ export function parseFinancePendingReceiptsResponse(raw: unknown): FinancePendin
       return {
         id: String(entry.id ?? ""),
         paymentId: String(entry.paymentId ?? ""),
-        fileKey: String(entry.fileKey ?? ""),
+        fileKey:
+          typeof entry.fileKey === "string" && entry.fileKey.trim().length > 0
+            ? entry.fileKey
+            : null,
         status: String(entry.status ?? ""),
         note: typeof entry.note === "string" ? entry.note : null,
         createdAt: String(entry.createdAt ?? ""),
@@ -339,7 +342,10 @@ export function parseFinanceReceiptReviewResponse(
   };
 }
 
-export function receiptFileLabel(fileKey: string): string {
+export function receiptFileLabel(fileKey: string | null): string {
+  if (fileKey === null) {
+    return "";
+  }
   const segments = fileKey.split("/");
   const last = segments[segments.length - 1];
   return last && last.length > 0 ? last : fileKey;
@@ -348,11 +354,13 @@ export function receiptFileLabel(fileKey: string): string {
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
 const PDF_EXT = /\.pdf$/i;
 
-export function isReceiptImageFileKey(fileKey: string): boolean {
+export function isReceiptImageFileKey(fileKey: string | null): boolean {
+  if (fileKey === null) return false;
   return IMAGE_EXT.test(receiptFileLabel(fileKey));
 }
 
-export function isReceiptPdfFileKey(fileKey: string): boolean {
+export function isReceiptPdfFileKey(fileKey: string | null): boolean {
+  if (fileKey === null) return false;
   return PDF_EXT.test(receiptFileLabel(fileKey));
 }
 
@@ -364,7 +372,7 @@ export function isBrowserReachableReceiptUrl(url: string): boolean {
 
 export type FinanceReceiptUrlPayload = {
   readonly receiptId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly url: string;
 };
 
@@ -374,9 +382,10 @@ export function parseFinanceReceiptUrlPayload(raw: unknown): FinanceReceiptUrlPa
   }
   const record = raw as Record<string, unknown>;
   const receiptId = typeof record.receiptId === "string" ? record.receiptId : "";
-  const fileKey = typeof record.fileKey === "string" ? record.fileKey : "";
+  const fileKey =
+    typeof record.fileKey === "string" && record.fileKey.trim().length > 0 ? record.fileKey : null;
   const url = typeof record.url === "string" ? record.url : "";
-  if (receiptId.length === 0 || fileKey.length === 0 || url.length === 0) {
+  if (receiptId.length === 0 || url.length === 0) {
     return null;
   }
   return { receiptId, fileKey, url };

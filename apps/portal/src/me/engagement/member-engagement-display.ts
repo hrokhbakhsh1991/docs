@@ -19,7 +19,7 @@ export function resolveMemberLevelProgressPercent(input: {
   }
   return Math.min(
     100,
-    Math.round(((input.totalPoints - currentMin) / (nextMin - currentMin)) * 100),
+    Math.round(((input.totalPoints - currentMin) / (nextMin - currentMin)) * 100)
   );
 }
 
@@ -35,5 +35,8 @@ export function formatMemberEngagementTimestamp(iso: string, locale: string): st
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    // This value is rendered during SSR and hydrated in the browser. Keep the
+    // timezone deterministic so the two renders cannot disagree by locale.
+    timeZone: "UTC",
   }).format(date);
 }

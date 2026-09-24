@@ -11,6 +11,7 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
+import { resolveStagedPaymentProjection } from "../domain/staged-payment-projection";
 import { assertCancelPendingManualPaymentReason } from "../domain/cancel-pending-manual-payment";
 import {
   assertPositiveRefundAmountMinor,
@@ -176,6 +177,9 @@ export type MemberReceiptPreviewKind = "image" | "pdf" | "unknown";
 
 export type MemberReceiptStatusView = {
   readonly status: MemberReceiptPanelStatus;
+  readonly invoiceTotalMinor: string | null;
+  readonly initialPaymentDueMinor: string | null;
+  readonly amountDueNowMinor: string | null;
   readonly remainingMinor: string | null;
   readonly obligationMinor: string | null;
   readonly paidMinor: string | null;
@@ -192,8 +196,8 @@ export type MemberReceiptStatusView = {
   };
 };
 
-function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
-  const lower = fileKey.trim().toLowerCase();
+function previewKindFromFileKey(fileKey: string | null | undefined): MemberReceiptPreviewKind {
+  const lower = fileKey?.trim().toLowerCase() ?? "";
   if (lower.endsWith(".pdf")) {
     return "pdf";
   }
@@ -823,6 +827,17 @@ export class FinanceService {
   async submitReceipt(auth: FinanceActorContext, body: SubmitReceiptBody, idempotencyKey?: string) {
     const gate = await this.gate(auth);
     this.authorization.assertReceiptSubmitAccess(auth);
+    const fileKey = body.fileKey?.trim() || null;
+    const note = body.note?.trim() || undefined;
+    if (fileKey !== null && fileKey.length > 512) {
+      throw new Error("RECEIPT_FILE_KEY_MAX");
+    }
+    if (note !== undefined && note.length > 2000) {
+      throw new Error("RECEIPT_NOTE_MAX");
+    }
+    if (fileKey === null && note === undefined) {
+      throw new Error("RECEIPT_EVIDENCE_REQUIRED");
+    }
     const trimmedKey = idempotencyKey?.trim() ?? "";
     const idempotencyKeyHash =
       trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : undefined;
@@ -857,26 +872,31 @@ export class FinanceService {
     if (destination === null && body.destinationRevision !== undefined) {
       throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
     }
-    const previewKind = previewKindFromFileKey(body.fileKey);
+    const previewKind = previewKindFromFileKey(fileKey);
     const submittedAt = new Date().toISOString();
     let proofUrl: string | undefined;
-    try {
-      proofUrl = await this.receiptProofStorage.getSignedReadUrl({
-        tenantId: auth.tenantId,
-        storageKey: body.fileKey,
-      });
-    } catch (error: unknown) {
-      this.logger.warn({
-        event: "finance.receipt_proof.telegram_media_unavailable",
-        tenantId: auth.tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    if (fileKey !== null) {
+      try {
+        proofUrl = await this.receiptProofStorage.getSignedReadUrl({
+          tenantId: auth.tenantId,
+          storageKey: fileKey,
+        });
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message === "RECEIPT_PROOF_KEY_SCOPE_INVALID") {
+          throw error;
+        }
+        this.logger.warn({
+          event: "finance.receipt_proof.telegram_media_unavailable",
+          tenantId: auth.tenantId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
-      fileKey: body.fileKey,
-      note: body.note,
+      fileKey,
+      note,
       ...(destination === null
         ? {}
         : {
@@ -896,7 +916,8 @@ export class FinanceService {
           registrationId: payment.registrationId,
           amount: payment.amount,
           currency: payment.currency,
-          fileKey: body.fileKey,
+          ...(fileKey === null ? {} : { fileKey }),
+          evidenceKind: fileKey === null ? "text" : "file",
           submittedAt,
           ...(proofUrl === undefined || previewKind === "unknown"
             ? {}
@@ -904,7 +925,7 @@ export class FinanceService {
                 telegramMediaUrl: proofUrl,
                 telegramMediaKind: previewKind === "image" ? "photo" : "document",
               }),
-          ...(body.note === undefined ? {} : { note: body.note }),
+          ...(note === undefined ? {} : { note }),
           submittedByUserId: auth.userId,
         },
       },
@@ -928,11 +949,23 @@ export class FinanceService {
     auth: FinanceActorContext,
     input: {
       readonly registrationId: string;
-      readonly fileKey: string;
+      readonly fileKey?: string | null;
       readonly note?: string;
       readonly destinationRevision?: string;
-    }
+    },
+    idempotencyKey?: string
   ) {
+    const fileKey = input.fileKey?.trim() || null;
+    const note = input.note?.trim() || undefined;
+    if (fileKey !== null && fileKey.length > 512) {
+      throw new Error("RECEIPT_FILE_KEY_MAX");
+    }
+    if (note !== undefined && note.length > 2000) {
+      throw new Error("RECEIPT_NOTE_MAX");
+    }
+    if (fileKey === null && note === undefined) {
+      throw new Error("RECEIPT_EVIDENCE_REQUIRED");
+    }
     const owns = await this.bookingPayments.memberOwnsRegistration({
       tenantId: auth.tenantId,
       registrationId: input.registrationId,
@@ -997,7 +1030,19 @@ export class FinanceService {
         registrationId: input.registrationId,
       });
       const offlineDefaults = this.receiptDefaults.offlineReceiptPaymentDefaults();
-      const remainingMinor = invoice.balanceDueMinor;
+      const plan = this.obligation.resolveRegistrationPaymentPlan
+        ? await this.obligation.resolveRegistrationPaymentPlan({
+            tenantId: auth.tenantId,
+            registrationId: input.registrationId,
+          })
+        : null;
+      const staged = resolveStagedPaymentProjection({
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
+        paidAmountMinor: invoice.paidAmountMinor,
+        balanceDueMinor: invoice.balanceDueMinor,
+        plan,
+      });
+      const remainingMinor = staged.amountDueNowMinor;
       const amount =
         parseMinorDigits(remainingMinor) > BigInt(0)
           ? remainingMinor
@@ -1016,14 +1061,18 @@ export class FinanceService {
       });
     }
 
-    return this.submitReceipt(auth, {
-      paymentId: payment.id,
-      fileKey: input.fileKey,
-      ...(input.destinationRevision !== undefined
-        ? { destinationRevision: input.destinationRevision }
-        : {}),
-      ...(input.note !== undefined ? { note: input.note } : {}),
-    });
+    return this.submitReceipt(
+      auth,
+      {
+        paymentId: payment.id,
+        fileKey,
+        ...(input.destinationRevision !== undefined
+          ? { destinationRevision: input.destinationRevision }
+          : {}),
+        ...(note !== undefined ? { note } : {}),
+      },
+      idempotencyKey
+    );
   }
 
   /**
@@ -1173,13 +1222,33 @@ export class FinanceService {
       registrationId,
     });
     const invoice = await this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
-      .then((invoice) => ({
-        remainingMinor: invoice.balanceDueMinor,
-        paidMinor: invoice.paidAmountMinor,
-        currency: invoice.currency,
-        remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
-      }))
+      .then(async (invoice) => {
+        const plan = this.obligation.resolveRegistrationPaymentPlan
+          ? await this.obligation.resolveRegistrationPaymentPlan({
+              tenantId: auth.tenantId,
+              registrationId,
+            })
+          : null;
+        const staged = resolveStagedPaymentProjection({
+          invoiceTotalMinor: invoice.invoiceTotalMinor,
+          paidAmountMinor: invoice.paidAmountMinor,
+          balanceDueMinor: invoice.balanceDueMinor,
+          plan,
+        });
+        return {
+          invoiceTotalMinor: invoice.invoiceTotalMinor,
+          initialPaymentDueMinor: staged.initialPaymentDueMinor,
+          amountDueNowMinor: staged.amountDueNowMinor,
+          remainingMinor: invoice.balanceDueMinor,
+          paidMinor: invoice.paidAmountMinor,
+          currency: invoice.currency,
+          remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
+        };
+      })
       .catch(() => ({
+        invoiceTotalMinor: null as string | null,
+        initialPaymentDueMinor: null as string | null,
+        amountDueNowMinor: null as string | null,
         remainingMinor: null as string | null,
         paidMinor: null as string | null,
         currency: null as string | null,
@@ -1196,6 +1265,9 @@ export class FinanceService {
     const remainingPositive = invoice.remainingPositive;
 
     const base = {
+      invoiceTotalMinor: invoice.invoiceTotalMinor,
+      initialPaymentDueMinor: invoice.initialPaymentDueMinor,
+      amountDueNowMinor: invoice.amountDueNowMinor,
       remainingMinor,
       obligationMinor: obligation?.obligationMinor ?? null,
       paidMinor,
@@ -1241,12 +1313,15 @@ export class FinanceService {
 
   private async resolveMemberReceiptPreview(
     tenantId: string,
-    latest: { readonly fileKey: string } | null
+    latest: { readonly fileKey: string | null } | null
   ): Promise<{
     readonly url: string | null;
     readonly kind: MemberReceiptPreviewKind | null;
   }> {
     if (latest === null) {
+      return { url: null, kind: null };
+    }
+    if (latest.fileKey === null) {
       return { url: null, kind: null };
     }
     const kind = previewKindFromFileKey(latest.fileKey);
@@ -1468,6 +1543,13 @@ export class FinanceService {
     const receipt = await this.repository.findReceiptById(auth.tenantId, receiptId);
     if (receipt === null) {
       throw new Error("FINANCE_RECEIPT_NOT_FOUND");
+    }
+    if (receipt.fileKey === null) {
+      return {
+        receiptId: receipt.id,
+        fileKey: null,
+        url: null,
+      };
     }
     try {
       const url = await this.receiptProofStorage.getSignedReadUrl({
@@ -1703,7 +1785,25 @@ export class FinanceService {
       // a missing or foreign-tenant booking; that masks an IDOR boundary.
       throw new Error("BOOKING_NOT_FOUND");
     }
-    return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
+    const invoice = await this.compileRegistrationInvoiceInternal(
+      auth.tenantId,
+      normalizedRegistrationId
+    );
+    const plan = this.obligation.resolveRegistrationPaymentPlan
+      ? await this.obligation.resolveRegistrationPaymentPlan({
+          tenantId: auth.tenantId,
+          registrationId: normalizedRegistrationId,
+        })
+      : null;
+    return {
+      ...invoice,
+      ...resolveStagedPaymentProjection({
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
+        paidAmountMinor: invoice.paidAmountMinor,
+        balanceDueMinor: invoice.balanceDueMinor,
+        plan,
+      }),
+    };
   }
 
   private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {

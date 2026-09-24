@@ -38,6 +38,19 @@ export type RecordPrepaymentFormState = {
   readonly note: string;
 };
 
+/** Keep operator input labels aligned with the amount display policy. */
+export function resolveFinanceAmountUnitLabel(currency: string, locale: AppLocale = "en"): string {
+  const normalizedCurrency = currency.trim().toUpperCase();
+  if (normalizedCurrency === "IRR") {
+    return locale === "fa" ? "تومان" : "toman";
+  }
+  return normalizedCurrency.length > 0
+    ? normalizedCurrency
+    : locale === "fa"
+      ? "واحد نمایش"
+      : "display unit";
+}
+
 export type RecordPrepaymentValidation =
   | { readonly ok: true; readonly value: RecordPrepaymentFormState }
   | { readonly ok: false; readonly error: string };

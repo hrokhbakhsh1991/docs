@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { normalizeDenaliRegistrationTransportIntake } from "../src/http/resolve-denali-registration-transport";
 
 describe("resolve-denali-registration-transport", () => {
-  it("DN-TR-01 defaults to primary for bus without opt-in", () => {
+  it("DN-TR-01 defaults to primary when no personal-car selection is provided", () => {
     const result = normalizeDenaliRegistrationTransportIntake(undefined, {
       transport: { mode: "bus", transportCostAmount: 100000 },
     });

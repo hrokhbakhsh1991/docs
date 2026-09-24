@@ -3607,7 +3607,7 @@
             }
           },
           "409": {
-            "description": "Status conflict",
+            "description": "Finalization requires settled payment",
             "content": {
               "application/json": {
                 "schema": {
@@ -3618,7 +3618,7 @@
                     "summary": "BookingHttpError",
                     "value": {
                       "error": "conflict",
-                      "code": "BOOKING_STATUS_CONFLICT"
+                      "code": "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT"
                     }
                   }
                 }
@@ -4144,7 +4144,7 @@
                     "summary": "BookingHttpError",
                     "value": {
                       "error": "invalid_payload",
-                      "code": "FILE_KEY_REQUIRED"
+                      "code": "RECEIPT_EVIDENCE_REQUIRED"
                     }
                   }
                 }
@@ -4193,7 +4193,23 @@
             "description": "Not found"
           },
           "409": {
-            "description": "Conflict"
+            "description": "Receipt idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
             "description": "Rate limited"
@@ -6151,28 +6167,59 @@
       },
       "BookingMemberReceiptJsonBody": {
         "type": "object",
-        "required": [
-          "fileKey"
+        "description": "At least one of fileKey or note is required.",
+        "anyOf": [
+          {
+            "required": [
+              "fileKey"
+            ],
+            "properties": {
+              "fileKey": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "note"
+            ],
+            "properties": {
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          }
         ],
         "properties": {
           "fileKey": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "minLength": 1,
             "examples": [
               "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
             ]
           },
           "note": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 2000,
             "examples": [
-              "bank transfer"
+              "bank transfer",
+              null
             ]
           }
         },
         "examples": [
           {
-            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
-            "note": "bank transfer"
+            "note": "کد پیگیری ۱۲۳۴۵؛ واریز در تاریخ ۱۴۰۵/۰۶/۲۳"
           }
         ]
       },
@@ -6200,6 +6247,24 @@
             "type": "string",
             "examples": [
               "1500000"
+            ]
+          },
+          "invoiceTotalMinor": {
+            "type": "string",
+            "examples": [
+              "2500000"
+            ]
+          },
+          "initialPaymentDueMinor": {
+            "type": "string",
+            "examples": [
+              "750000"
+            ]
+          },
+          "amountDueNowMinor": {
+            "type": "string",
+            "examples": [
+              "750000"
             ]
           },
           "obligationMinor": {
@@ -6296,9 +6361,24 @@
             ]
           },
           "fileKey": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "examples": [
-              "tenants/…/receipts/proof.bin"
+              "tenants/…/receipts/proof.bin",
+              null
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "examples": [
+              "bank transfer",
+              "کد پیگیری ۱۲۳۴۵",
+              null
             ]
           }
         },
@@ -6307,7 +6387,8 @@
             "id": "00000000-0000-4000-8000-000000000701",
             "paymentId": "00000000-0000-4000-8000-000000000702",
             "status": "Pending",
-            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
+            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
+            "note": "bank transfer"
           }
         ]
       },

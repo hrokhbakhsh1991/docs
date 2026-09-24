@@ -7,6 +7,7 @@
  */
 import {
   BookingCapabilityViolationError,
+  BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
@@ -81,6 +82,12 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     status: 404,
     reason: "Booking registration not found for tenant",
     clientAction: "Verify booking id and tenant",
+  },
+  {
+    domainError: "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
+    status: 409,
+    reason: "Approved registration still has an outstanding financial balance",
+    clientAction: "Complete or waive payment before adding the registration to the final roster",
   },
   {
     domainError: "BOOKING_FORBIDDEN",
@@ -207,6 +214,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (error instanceof BookingNotFoundError) {
     return resolutionFromCode(error.code, error.message);
   }
+  if (error instanceof BookingFinalizationRequiresSettlementError) {
+    return resolutionFromCode(error.code, error.message);
+  }
   if (error instanceof BulkApproveBatchLimitError) {
     return resolutionFromCode(error.code, error.message, { maxBatch: error.maxBatch });
   }
@@ -251,6 +261,12 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   }
   if (message === "BOOKING_NOT_FOUND" || message.startsWith("BOOKING_NOT_FOUND:")) {
     return resolutionFromCode("BOOKING_NOT_FOUND", message);
+  }
+  if (
+    message === "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT" ||
+    message.startsWith("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT:")
+  ) {
+    return resolutionFromCode("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT", message);
   }
   if (message === "BOOKING_FORBIDDEN" || message.startsWith("BOOKING_FORBIDDEN:")) {
     return resolutionFromCode("BOOKING_FORBIDDEN", message);

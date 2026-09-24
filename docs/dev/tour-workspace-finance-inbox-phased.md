@@ -22,24 +22,24 @@ If the operator cannot answer “what do I do now?” in about three seconds, th
 
 ### Detail modes (mutually exclusive)
 
-| Mode | When | Surface |
-|------|------|---------|
-| Review receipt | `payment_under_review` | Inline approve/reject. Collection form hidden. |
-| Collect | `needs_payment` / `overdue`, no pending receipt | One “record received amount” form. Suggested amount = remaining. |
-| Read-only | settled / no payment required / no access | One sentence + optional history. No collection form. |
+| Mode           | When                                            | Surface                                                          |
+| -------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| Review receipt | `payment_under_review`                          | Inline approve/reject. Collection form hidden.                   |
+| Collect        | `needs_payment` / `overdue`, no pending receipt | One “record received amount” form. Suggested amount = remaining. |
+| Read-only      | settled / no payment required / no access       | One sentence + optional history. No collection form.             |
 
 Exception tools (obligation override, operator-uploaded receipt, full payment history, Finance hub) live behind **More**. They are not the default view.
 
 ### Copy ceiling
 
-| Surface | Max |
-|---------|-----|
-| Tab title | 3–4 words |
-| Card description | counts, not a product paragraph |
-| Action title | a verb |
-| Action help | one sentence |
-| Empty state | one sentence |
-| Recommendation essays | **none** — the visible mode *is* the recommendation |
+| Surface               | Max                                                 |
+| --------------------- | --------------------------------------------------- |
+| Tab title             | 3–4 words                                           |
+| Card description      | counts, not a product paragraph                     |
+| Action title          | a verb                                              |
+| Action help           | one sentence                                        |
+| Empty state           | one sentence                                        |
+| Recommendation essays | **none** — the visible mode _is_ the recommendation |
 
 ---
 
@@ -92,17 +92,17 @@ Approve/reject does **not** happen in the workspace. That is the only missing ca
 
 ## Gap matrix
 
-| # | Current | Target | Phase | Risk |
-|---|---------|--------|-------|------|
-| G1 | List rows have duplicated instructional copy | Name + one badge + remaining | 1 | Low |
-| G2 | Header/status strip are prose | One line of queue counts | 1 | Low |
-| G3 | Recommendation essays on every detail | Delete; mode is the cue | 2 | Low |
-| G4 | Override + advanced receipt always visible in `active` | Behind **More** | 2 | Low |
-| G5 | `review_receipt` is a hub link | Inline `FinanceReceiptReviewContent` | 3 | Medium |
-| G6 | After operator receipt submit, banner links to hub | Stay in panel; review appears in-tab | 3 | Medium |
-| G7 | Three `DetailSection`s + three amount cards | Remaining-first strip; history collapsed | 4 | Medium |
-| G8 | Filter `all / unpaid / partial` | Keep; optional later `pending receipt` | 5 | Low |
-| G9 | Mobile sheet dumps the same long detail | Amount + primary action first | 5 | Low |
+| #   | Current                                                | Target                                   | Phase | Risk   |
+| --- | ------------------------------------------------------ | ---------------------------------------- | ----- | ------ |
+| G1  | List rows have duplicated instructional copy           | Name + one badge + remaining             | 1     | Low    |
+| G2  | Header/status strip are prose                          | One line of queue counts                 | 1     | Low    |
+| G3  | Recommendation essays on every detail                  | Delete; mode is the cue                  | 2     | Low    |
+| G4  | Override + advanced receipt always visible in `active` | Behind **More**                          | 2     | Low    |
+| G5  | `review_receipt` is a hub link                         | Inline `FinanceReceiptReviewContent`     | 3     | Medium |
+| G6  | After operator receipt submit, banner links to hub     | Stay in panel; review appears in-tab     | 3     | Medium |
+| G7  | Three `DetailSection`s + three amount cards            | Remaining-first strip; history collapsed | 4     | Medium |
+| G8  | Filter `all / unpaid / partial`                        | Keep; optional later `pending receipt`   | 5     | Low    |
+| G9  | Mobile sheet dumps the same long detail                | Amount + primary action first            | 5     | Low    |
 
 Out of scope for this program (already owned elsewhere):
 
@@ -118,6 +118,22 @@ Out of scope for this program (already owned elsewhere):
 It stacked new chrome (hero, history `<details>`, inline review) **on top of** the old sections instead of deleting them. The screen stayed a report. Phases below are **subtractive first**, then one behavior add.
 
 The older audit’s “Section A–D always visible” is the wrong presentation contract for a daily queue. Keep its **state precedence** and **list inclusion** rules; drop the four always-on sections.
+
+## Member receipt evidence contract
+
+Member payment evidence may contain an image, a PDF, free-text context, or both
+file and text. At least one of `fileKey` or `note` is required; neither is a
+valid submission. Text-only evidence remains `Pending` and follows the same
+operator review and Telegram approval/rejection path as file-backed evidence.
+
+The Telegram delivery for `receipt.submitted` must preserve the finance topic
+route and review buttons. When no file exists it sends the text evidence as a
+message; when a file exists it sends the media and includes the text as
+context. Approval side effects remain unchanged: the receipt becomes approved,
+the payment becomes paid, booking payment projection and ledger capture run,
+and the member notification path is emitted. Rejection never marks payment
+paid. Submission, outbox delivery, and review actions remain retry-safe and
+tenant-scoped.
 
 ---
 

@@ -5,11 +5,9 @@ import {
 
 /** Mirrors workspace-sdk PublicCatalogTransportIntakeState (kept local to avoid SDK cycle). */
 export type CatalogRegistrationTransportIntakeState = Readonly<{
-  readonly optInPersonalCar: boolean;
   readonly hasPersonalCar: boolean | null;
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
-  readonly nonPersonalCarAcknowledged: boolean;
 }>;
 
 export type CatalogRegistrationSavedSelfIntakeDefaults = Readonly<{
@@ -79,11 +77,9 @@ export const CATALOG_REGISTRATION_FLOW_STATE_KEYS = [
 
 function emptyTransportState(): CatalogRegistrationTransportIntakeState {
   return {
-    optInPersonalCar: false,
     hasPersonalCar: null,
     personalCarOccupants: null,
     paysDong: null,
-    nonPersonalCarAcknowledged: false,
   };
 }
 
@@ -134,15 +130,13 @@ function isTransportState(value: unknown): value is CatalogRegistrationTransport
   }
   const row = value as Record<string, unknown>;
   return (
-    typeof row.optInPersonalCar === "boolean" &&
     (row.hasPersonalCar === null || typeof row.hasPersonalCar === "boolean") &&
     (row.personalCarOccupants === null ||
       row.personalCarOccupants === 0 ||
       row.personalCarOccupants === 1 ||
       row.personalCarOccupants === 2 ||
       row.personalCarOccupants === 3) &&
-    (row.paysDong === null || typeof row.paysDong === "boolean") &&
-    typeof row.nonPersonalCarAcknowledged === "boolean"
+    (row.paysDong === null || typeof row.paysDong === "boolean")
   );
 }
 

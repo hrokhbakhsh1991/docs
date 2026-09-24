@@ -35,11 +35,13 @@ import {
   buildIntegrationPatchInput,
   channelIdFromConfig,
   findProviderSurfaceMeta,
+  formatIntegrationTestedAt,
   hasPlatformIntegrationConnection,
   hasRequiredEditConfigFields,
   integrationEditFieldKey,
   integrationStatusBadgeKey,
   isLegacyBackedIntegration,
+  normalizeIntegrationSummaryCount,
   resolveIntegrationFallbackLabel,
   resolveIntegrationsWorkspaceScenario,
   seedEditValuesFromConnection,
@@ -777,10 +779,13 @@ export function IntegrationsSettingsClient({
             <CardDescription>
               {t("summary.description", {
                 integrationCount: formatLocalizedNumber(
-                  list.summary.integrationConnectionCount,
+                  normalizeIntegrationSummaryCount(list.summary.integrationConnectionCount),
                   locale
                 ),
-                legacyCount: formatLocalizedNumber(list.summary.legacyConnectionCount, locale),
+                legacyCount: formatLocalizedNumber(
+                  normalizeIntegrationSummaryCount(list.summary.legacyConnectionCount),
+                  locale
+                ),
               })}
             </CardDescription>
           </CardHeader>
@@ -1210,15 +1215,12 @@ export function IntegrationsSettingsClient({
                       ) : testResult.message !== undefined ? (
                         <p>{testResult.message}</p>
                       ) : null}
-                      {testResult.code !== undefined ? (
-                        <p className="text-xs text-muted-foreground">{testResult.code}</p>
-                      ) : null}
                       <p className="mt-1 text-xs text-muted-foreground">
                         {t("test.meta", {
                           backing: isLegacyBackedIntegration(activeItem)
                             ? t("badges.legacy")
                             : t("badges.integrationConnection"),
-                          testedAt: testResult.testedAt,
+                          testedAt: formatIntegrationTestedAt(testResult.testedAt, locale),
                         })}
                       </p>
                     </div>

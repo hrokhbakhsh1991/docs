@@ -131,6 +131,11 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
 
     const cancelCandidate = await createBooking(opsAuth(TENANT_DENALI), body("Final Then Cancel"));
     await approveBooking(opsAuth(TENANT_DENALI), cancelCandidate.id);
+    await getBookingsRepository().updatePaymentStatus({
+      bookingId: cancelCandidate.id,
+      tenantId: TENANT_DENALI,
+      paymentStatus: "paid",
+    });
     await getBookingsRepository().finalizeBooking({
       bookingId: cancelCandidate.id,
       tenantId: TENANT_DENALI,
