@@ -18,6 +18,7 @@
 - تغییرات محلیِ هنوز commit‌نشده فقط `docs/qa/staging-registration-matrix-2026-09-24.md` و timestamp فایل `docs/phase-19/architecture-truth-drift-report.json` هستند؛ هیچ کد application در working tree محلی تغییر نکرده است.
 - health endpointهای staging در این گزارش SHA artifact را اعلام نمی‌کنند؛ بنابراین نتیجهٔ runtime staging را به‌صورت قطعی به `6227a2f15` نسبت نمی‌دهم. برای بستن این شکاف باید deploy SHA از CI/سرویس انتشار ثبت شود.
 - کنترل read-only تازه در `2026-09-24 20:57:18 UTC`: هر سه endpoint `admin.denali.shenski.com/health`، `denali.shenski.com/health` و `portal.denali.shenski.com/health` با HTTP 200 و `{"ok":true}` پاسخ دادند؛ headerها فقط `x-sid` داشتند (`2071`، `2062`، `2071`) و هیچ commit/deploy SHA ارائه نکردند. این نتیجه سلامت سرویس را تأیید می‌کند، نه همسانی artifact با branch.
+- **کنترل شاخهٔ فعلی (2026-09-24 23:34 UTC):** پس از ثبت rerun formatter، `HEAD` و remote feature هر دو `de77bc6a1` هستند و working tree clean است؛ این commit فقط مستندات QA را تغییر می‌دهد. `origin/dev` همچنان `6f7b0ce5073b23cc896e5077d97724352a7d86bc` است و تطبیق staging با feature application هنوز اثبات نشده است.
 
 ## مرز تست این نوبت
 
