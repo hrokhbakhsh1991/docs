@@ -2800,3 +2800,9 @@
 - `HEAD` و remote شاخهٔ تست `codex/payment-follow-up-receipt-telegram` هر دو روی `9621fb4110befd4bca3970e72d2852c1d2159ac0` هستند؛ working tree تمیز است.
 - `origin/dev` روی `6f7b0ce5073b23cc896e5077d97724352a7d86bc` است و PR #209 هنوز `OPEN` با base=`dev` و head همین شاخه است؛ merge یا سبز بودن کامل PR ادعا نمی‌شود.
 - آخرین stagingِ شناخته‌شده همچنان با deploy run `35995727843` روی `dev@6f7b0ce5073b23cc896e5077d97724352a7d86bc` است؛ بنابراین شکست formatter روی feature branch و تغییرات Telegram/media هنوز شاهد staging محسوب نمی‌شوند.
+
+### PASS-SRC-CATALOG-EXPOSURE-FOCUSED-2026-09-25 — گیت focused قراردادهای Catalog/Exposure
+
+- روی HEAD فعلی، suiteهای Marketing مربوط به detail facts، register preview/CTA، filter و sort در مجموع `۳۴ pass، ۰ fail، ۰ skip` شدند.
+- suiteهای API مربوط به `denali-catalog` و قرارداد redaction/Exposure در مجموع `۱۶ pass، ۰ fail، ۰ skip` شدند؛ شامل published-only، detail، ظرفیت مشتق‌شده، itinerary، participant flags و اتصال resolver به HTTP service.
+- این PASS فقط source contract را اثبات می‌کند. هیچ‌کدام نبود `paymentMode`/`approvalMode` در پاسخ staging را به‌صورت مستقیم assert نمی‌کنند؛ بنابراین `BUG-STG-008` و gapهای Exposure باز می‌مانند و سبز بودن این گیت‌ها به‌عنوان سلامت کامل PDP تلقی نمی‌شود.
