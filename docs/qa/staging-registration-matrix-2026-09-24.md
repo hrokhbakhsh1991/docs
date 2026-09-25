@@ -2771,6 +2771,13 @@
 - فرم کامل ثبت‌نام نمایش داده شد: مالک، checkbox «من هم در این تور شرکت می‌کنم»، `+ افزودن همراه`، مبلغ `۸۰۰٬۰۰۰ تومان` و دکمهٔ عمومی `ثبت درخواست`؛ هیچ پیام «تور پایان‌یافته/ثبت‌نام بسته است» پیش از submit دیده نشد.
 - هیچ submit یا mutation انجام نشد. این شاهد تازه شکاف route/UI قبل از render را دوباره تأیید می‌کند؛ تست backend که submit را رد می‌کند، این failure قابل مشاهده برای کاربر را پوشش نمی‌دهد.
 
+### PASS-REPO-VERSION-AUDIT-2026-09-25-03 — تفکیک قطعی staging، feature branch و CI
+
+- `origin/dev` و آخرین اجرای موفق `Deploy staging (dev)` با run `35995727843` هر دو روی SHA `6f7b0ce5073b23cc896e5077d97724352a7d86bc` هستند؛ بنابراین تمام شواهد runtime این گزارش مربوط به همین artifact staging است.
+- feature branch و remote آن روی `6974f7043ad3a113d091f0bc004197f289968adc` هستند و نسبت به `dev` تغییرات application در Telegram/media، receipt storage، event policy و URL پیام PDP دارند؛ این تغییرات هنوز روی staging deploy نشده‌اند.
+- اجرای focused free-collection روی feature branch سبز بود: تست API `۱/۱` و تست Finance Core `۴/۴`، اما این نتیجه فقط source branch را اثبات می‌کند.
+- در زمان این checkpoint، checks مربوط به PR روی SHA feature شامل `pending` و `in_progress` هستند؛ merge یا سبز کامل بودن PR ادعا نمی‌شود.
+
 ### PASS-STG-PRICE-RANGE-2026-09-25 — فیلتر بازه قیمت در مسیر واقعی PLP
 
 - قرارداد source برای فیلتر قیمت از `minPrice` و `maxPrice` استفاده می‌کند؛ parser فقط مقدار عددی نامنفی را می‌پذیرد و pipeline برای وجود هر بازه، تورهای بدون `priceAmount` را کنار می‌گذارد و شرط‌های حداقل/حداکثر را اعمال می‌کند (`apps/marketing/src/catalog/catalog-list-query.ts` و `filter-marketing-catalog-items.ts`).
