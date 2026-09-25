@@ -6889,3 +6889,27 @@
 - **اجرای focused:** `NODE_ENV=test STORAGE_DRIVER=memory pnpm --filter @app-tour/workspace-denali exec node --import tsx --test --test-force-exit --test-concurrency=1 test/denali-catalog-transport-intake.spec.ts test/denali-pricing-parity.golden.spec.ts test/denali-transport-seat-preference-contract.spec.ts`
 - **نتیجه:** `۱۴ pass، ۰ fail`. تست‌ها bus transport cost، حالت‌های no-car/acquaintance، shared-car dong، ظرفیت خودروی شخصی، parity فیلد قیمت و contract ظرفیت صندلی را پوشش دادند.
 - **مرزبندی:** این PASS فقط منطق source را اثبات می‌کند؛ آن را جایگزین تست runtime label «خودرو» در Portal یا تحویل واقعی Telegram نمی‌دانم.
+
+### RECHECK-STG-REGISTRATION-LIST-DETAIL-FINANCE-MATRIX-CURRENT-2026-09-25-1128 — شمارندهٔ فیلترها درست است، اما detail بعد از تسویه هنوز کپی مالی کهنه دارد
+
+- **شاهد فهرست:** `https://portal.denali.shenski.com/me/registrations` در snapshot تازه `همه=20`، `برای خودم=7` و `برای دیگران=13` نشان داد. مسیرهای `?target=self` و `?target=other` نیز به‌ترتیب دقیقاً ۷ و ۱۳ لینک ثبت‌نام داشتند؛ پس این کنترل، باگ شمارنده/فیلتر نیست.
+- **شاهد جزئیات paid/final:** ثبت‌نام‌های `a2d49536-8566-4c10-a908-8371006f93b2`، `98202973-9d76-43c2-99ab-46d8cb06c30e`، `c508f22e-77bc-4e8f-8ce0-2ceab3c67fd7` و `f2144510-bc47-4d1f-b6ad-42002a6ac51a` همگی در Portal با heading `سفر شما نهایی شده است` و متن `پرداخت شما تأیید شده` نمایش داده شدند، اما همان detail هنوز `مهلت پرداخت` و متن لغو را نشان می‌دهد؛ مبلغ قابل‌استرداد نیز به‌شکل خام `2500000 IRR` render می‌شود.
+- **شاهد free/waived:** ثبت‌نام مهمان رایگان `74fcff3c-d046-4835-a26d-596bd4a9dcb7` صریحاً `نیازی به پرداخت نیست` و `مبلغ قابل‌استرداد: 0 IRR` را نشان داد، ولی همان صفحه متن `ثبت‌نام‌های پرداخت‌شده نیاز به بررسی باشگاه دارند` و دکمهٔ `درخواست لغو` را نمایش می‌دهد؛ این copy برای وضعیت بدون تعهد مالی نامتناسب است.
+- **نتیجه:** شمارنده و تفکیک target سالم است؛ شواهد تازه، `BUG-STG-085` (باقی‌ماندن مهلت پس از paid)، `BUG-STG-024` (نمایش واحد خام IRR) و `BUG-STG-039/072` (کپی/eligibility لغو ناسازگار با lifecycle) را در چند وضعیت نهایی و رایگان دوباره تأیید می‌کند. مورد جدید جداگانه‌ای نساز تا یک مشکل lifecycle در چند سطح دو بار شمرده نشود.
+- **معیار پذیرش:** پس از paid یا waived، detail نباید deadline پرداخت داشته باشد؛ واحد مبلغ باید با formatter تومانِ محصول نمایش داده شود؛ متن و action لغو باید بر اساس paid/waived/pending انتخاب شود و برای waived نباید کپی «ثبت‌نام‌های پرداخت‌شده» بیاید.
+- **مرزبندی:** فقط list/detail و فیلترهای خواندنی staging بررسی شدند؛ هیچ ثبت‌نام، پرداخت، لغو، receipt، Telegram یا فایل ایجاد/تغییر نشد. `HEAD` فعلی workspace برای مرزبندی این snapshot `6e387b42c2b7af953bc9a30029214edd566e0b3a` است.
+
+### RECHECK-STG-ADMIN-QUEUE-STATE-MATRIX-CURRENT-2026-09-25-1130 — تفکیک شمارندهٔ صف درست است، اما pendingهای گذشته هنوز اقدام‌پذیرند
+
+- **شاهد runtime:** `https://admin.denali.shenski.com/bookings` در حالت پیش‌فرض `وضعیت صف: نیازمند اقدام`، شمارنده‌های `در انتظار=4`، `تأییدشده امروز=1`، `حرکت تا ۷ روز=20` و `در لیست انتظار=8` را نشان داد. فهرست `۱۲ کل` از ۸ رکورد waitlisted و ۴ رکورد pending تشکیل شده بود؛ این بخش از شمارنده/تفکیک state درست است.
+- **کنترل مثبت waitlist:** رکورد `QA Waitlist Fresh 20260925` با ظرفیت `۱۲/۱۲` صریحاً `در لیست انتظار` و `پرداخت‌نشده (رزرو)` بود و پنل بررسی نیز اقدامات promotion (`تأیید بدون نیاز به پرداخت`، `تأیید و منتظر پرداخت`) و `رد ثبت‌نام` را نشان می‌داد؛ هیچ اقدامی اجرا نشد.
+- **شاهد باگ قبلی در همان snapshot:** در همان صف، رکوردهای `ali`، `4321sdad`، `ASDF` و `ali` برای تورهای گذشته با برچسب‌های `سررسید گذشته` و `در انتظار` همچنان دکمهٔ `تأیید ...` داشتند. این بازتولید تازهٔ `BUG-STG-ADMIN-PAST-PENDING-ACTIONABLE-CURRENT` است؛ مشکل از شمارندهٔ waitlist نیست، از واردشدن pendingهای منقضی به صف اقدام و ارائهٔ confirmation action است.
+- **معیار پذیرش:** pending پس از پایان مهلت/تور باید فقط در نمای تاریخی یا cleanup قابل مشاهده باشد و در صف اقدام دکمهٔ تأیید/تغییر وضعیت نداشته باشد؛ waitlistِ ظرفیت‌پر باید promotion/reject مستقل خود را حفظ کند.
+- **مرزبندی:** فقط صف و پنل انتخاب‌شده خوانده شد؛ هیچ checkbox، تأیید، رد، promotion، پرداخت، receipt، Telegram یا فایل تغییر نکرد.
+
+### BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE-CURRENT-2026-09-25-1132 — یک label انگلیسی در صفحهٔ فارسی Exposure باقی مانده است
+
+- **شاهد runtime:** در `https://admin.denali.shenski.com/settings/exposure`، بخش `جزئیات کاتالوگ عمومی` با `۳۷ از ۳۹ فیلد انتخاب شده` باز شد. تقریباً همهٔ labelها فارسی بودند، اما فیلد لجستیک `Start, summit, camp and end location zones.` بدون ترجمه و عیناً انگلیسی نمایش داده شد.
+- **اثر:** اپراتور فارسی‌زبان برای انتخاب فیلد عمومی معنای این گزینه را از داخل پنل نمی‌فهمد و ممکن است در تصمیم Exposure آن را اشتباه فعال/غیرفعال کند. این مورد با labelهای انگلیسی رویدادهای Telegram هم‌ریشه نیست؛ این یک field label در گروه لجستیک است.
+- **معیار پذیرش:** برای locale فارسی، این گزینه باید label فارسی پایدار داشته باشد؛ locale انگلیسی می‌تواند متن انگلیسی فعلی را نگه دارد. تست locale باید نبود label انگلیسی خام را در فهرست fieldهای فارسی assert کند.
+- **مرزبندی:** فقط کارت Exposure و متن labelها خوانده شد؛ هیچ checkbox یا سیاستی ذخیره نشد و هیچ PDP، ثبت‌نام، مالی، receipt، Telegram یا فایل تغییر نکرد.
