@@ -2794,3 +2794,9 @@
 - قرارداد source برای فیلتر قیمت از `minPrice` و `maxPrice` استفاده می‌کند؛ parser فقط مقدار عددی نامنفی را می‌پذیرد و pipeline برای وجود هر بازه، تورهای بدون `priceAmount` را کنار می‌گذارد و شرط‌های حداقل/حداکثر را اعمال می‌کند (`apps/marketing/src/catalog/catalog-list-query.ts` و `filter-marketing-catalog-items.ts`).
 - درخواست واقعی `https://denali.shenski.com/tours?minPrice=2000000&maxPrice=3000000&sort=newest` با پاسخ `HTTP 200` و `cache-control: no-cache` بازخوانی شد. دادهٔ ساختاریافتهٔ صفحه چهار نتیجهٔ یکتا برگرداند: دو `QA-STG-20260924-PAID-AUTO`، `QA-STG-20260924-PAID-MANUAL` و `North Ridge Trek`؛ همه در بازهٔ ۲ تا ۳ میلیون هستند.
 - هیچ تور رایگان/null یا تور ۱۰ میلیون تومانی در نتیجهٔ بازهٔ محدود دیده نشد؛ بنابراین مسیر مثبت min/max در staging با قرارداد source هم‌خوان است. این checkpoint فقط رفتار بازهٔ معتبر را پوشش می‌دهد؛ بازهٔ معکوس، ورودی منفی/غیرعددی و سیاست نمایش رایگان همچنان باید جداگانه تست شوند.
+
+### PASS-REPO-VERSION-AUDIT-2026-09-25-04 — مرز نسخهٔ فعلی بعد از آخرین تست
+
+- `HEAD` و remote شاخهٔ تست `codex/payment-follow-up-receipt-telegram` هر دو روی `9621fb4110befd4bca3970e72d2852c1d2159ac0` هستند؛ working tree تمیز است.
+- `origin/dev` روی `6f7b0ce5073b23cc896e5077d97724352a7d86bc` است و PR #209 هنوز `OPEN` با base=`dev` و head همین شاخه است؛ merge یا سبز بودن کامل PR ادعا نمی‌شود.
+- آخرین stagingِ شناخته‌شده همچنان با deploy run `35995727843` روی `dev@6f7b0ce5073b23cc896e5077d97724352a7d86bc` است؛ بنابراین شکست formatter روی feature branch و تغییرات Telegram/media هنوز شاهد staging محسوب نمی‌شوند.
