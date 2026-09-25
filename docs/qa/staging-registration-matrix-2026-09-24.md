@@ -2698,6 +2698,7 @@
 - **کنترل تفکیکی:** `p6-member-receipt-flow.spec.ts` با `NODE_ENV=test` هر `۷/۷` سبز شد؛ `401` اجرای قبلی ناشی از اجرای suite بدون محیط تست بود و باگ محصول محسوب نشد.
 - **بازاجرای کامل (2026-09-24 23:34:11 UTC):** همان دستور با `NODE_ENV=test` دوباره `۱۹۹ تست، ۱۹۵ pass، ۴ fail، ۰ cancel، ۰ skip` داد. هر چهار failure همچنان در همان فایل formatter و فقط به‌علت تفاوت `Tour published: Alpine Day` با قالب فعلی فارسی رخ داد؛ مسیرهای `Telegram Provider Adapter`، multipart media، worker/topic، retry، receipt و PDP URL در همین اجرا سبز بودند.
 - **معیار اصلاح:** expectationهای چهار تست formatter باید به قرارداد فعلی surface Denali منتقل شوند یا اگر قالب انگلیسی عمداً canonical است، source/template باید برگردانده شود؛ تا تعیین تکلیف، گیت branch قرمز است و این مورد بسته نمی‌شود.
+- **بازاجرای تازه روی HEAD `764b0a5b4` (2026-09-25):** suite مستقیم `format-integration-delivery-message.spec.ts` با `NODE_ENV=test` نتیجهٔ `۱۳ تست، ۹ pass، ۴ fail، ۰ skip` داد. هر چهار failure همان اختلاف `Tour published: Alpine Day` با خروجی فعلی `🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day` بودند؛ هیچ failure دیگری در این suite دیده نشد و این مورد همچنان blocker گیت source است.
 
 ### PASS-CI-BOOKING-GATE-2026-09-25 — گیت Booking روی HEAD فعلی
 
