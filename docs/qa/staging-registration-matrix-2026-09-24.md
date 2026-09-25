@@ -2778,6 +2778,12 @@
 - اجرای focused free-collection روی feature branch سبز بود: تست API `۱/۱` و تست Finance Core `۴/۴`، اما این نتیجه فقط source branch را اثبات می‌کند.
 - در زمان این checkpoint، checks مربوط به PR روی SHA feature شامل `pending` و `in_progress` هستند؛ merge یا سبز کامل بودن PR ادعا نمی‌شود.
 
+### PASS-SRC-TELEGRAM-CURRENT-2026-09-25 — گیت focused تغییرات Telegram/media روی branch فعلی
+
+- روی feature branch فعلی، ۱۰ suite مرتبط با URL عمومی PDP، provisioning topic، mapping event، metadata، adapter رسانه، worker، routing و retry اجرا شد؛ نتیجه `۳۸ pass، ۰ fail، ۰ skip` بود.
+- این اجرا به‌صورت مشخص ارسال media رسید از bytes/fileKey، قرارگرفتن در topic ذخیره‌شده، auto-create/recreate topic، جلوگیری از fallback به General، دکمهٔ لینک PDP و retry یک‌باره را پوشش داد.
+- این PASS فقط source branch با SHA `6974f7043...` را اثبات می‌کند؛ چون staging روی `dev@6f7b0ce5...` است، موفقیت آن به‌عنوان تست runtime staging/Telegram تلقی نمی‌شود.
+
 ### PASS-STG-PRICE-RANGE-2026-09-25 — فیلتر بازه قیمت در مسیر واقعی PLP
 
 - قرارداد source برای فیلتر قیمت از `minPrice` و `maxPrice` استفاده می‌کند؛ parser فقط مقدار عددی نامنفی را می‌پذیرد و pipeline برای وجود هر بازه، تورهای بدون `priceAmount` را کنار می‌گذارد و شرط‌های حداقل/حداکثر را اعمال می‌کند (`apps/marketing/src/catalog/catalog-list-query.ts` و `filter-marketing-catalog-items.ts`).
