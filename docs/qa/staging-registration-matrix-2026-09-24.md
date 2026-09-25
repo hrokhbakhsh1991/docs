@@ -2826,3 +2826,9 @@
 
 - همهٔ ۱۷ آیتم list و detail از نظر کلیدهای non-null قابل‌مشاهده/عملیاتی مقایسه شدند؛ برای قیمت، تاریخ، وضعیت ثبت‌نام، ظرفیت کل، spots، حمل‌ونقل، پرداخت، حداقل ظرفیت، راهنما و فیلدهای اصلی جز `gatheringPoint` اختلاف دیگری پیدا نشد.
 - `gatheringPoint` تنها شکاف تکرارشونده بود: در ۸ آیتم list مقدار داشت و detail همان آیتم‌ها `null` بود؛ این مورد قبلاً زیر `TEST-GAP-STG-005` ثبت شده است. metadata و envelopeهای داخلی در این کنترل وارد شمارش نشدند.
+
+### PASS-REPO-VERSION-AUDIT-2026-09-25-05 — راستی‌آزمایی آخرین artifactهای staging و source
+
+- آخرین اجرای موفق workflow `Deploy staging (dev)`، run `35995727843`، روی SHA `6f7b0ce5073b23cc896e5077d97724352a7d86bc` است؛ staging هنوز از `origin/dev` سرو می‌شود.
+- شاخهٔ تست و remote آن اکنون روی `2ff269ccb01628bfcd931978c7d686cac92ccafc` هستند و نسبت به staging تغییرات application/Telegram و receipt دارند؛ بنابراین PASSهای source branch و failureهای CI آن‌ها به runtime staging نسبت داده نمی‌شوند.
+- این تفکیک در تمام باگ‌های Exposure، receipt و Telegram حفظ شد؛ هیچ ادعای merge/deploy برای SHA feature ثبت نمی‌کنم.
