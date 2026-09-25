@@ -2806,3 +2806,9 @@
 - روی HEAD فعلی، suiteهای Marketing مربوط به detail facts، register preview/CTA، filter و sort در مجموع `۳۴ pass، ۰ fail، ۰ skip` شدند.
 - suiteهای API مربوط به `denali-catalog` و قرارداد redaction/Exposure در مجموع `۱۶ pass، ۰ fail، ۰ skip` شدند؛ شامل published-only، detail، ظرفیت مشتق‌شده، itinerary، participant flags و اتصال resolver به HTTP service.
 - این PASS فقط source contract را اثبات می‌کند. هیچ‌کدام نبود `paymentMode`/`approvalMode` در پاسخ staging را به‌صورت مستقیم assert نمی‌کنند؛ بنابراین `BUG-STG-008` و gapهای Exposure باز می‌مانند و سبز بودن این گیت‌ها به‌عنوان سلامت کامل PDP تلقی نمی‌شود.
+
+### PASS-STG-FREE-EXPOSURE-CONTROL-2026-09-25 — کنترل مثبت تنظیمات تور رایگان
+
+- در Edit تور `QA-STG-20260924-FREE-MANUAL`، checkbox `تور پولی (ثبت‌نام با پرداخت)` خاموش، checkbox `نیاز به تأیید ادمین برای نهایی‌سازی رزرو` خاموش، ظرفیت `۲۰` و حمل‌ونقل `بدون حمل‌ونقل سازمان‌یافته` بود.
+- همین fixture در PDP مبلغی نشان نمی‌دهد و CTA ثبت‌نام دارد؛ رفتار ثبت‌نام/نهایی‌سازی رایگان قبلاً با رکورد واقعی و Workspace نیز تأیید شده است. بنابراین در این کنترل، ناسازگاری جدیدی بین تنظیمات و منطق مالی پیدا نشد.
+- نبود label روشن `رایگان/بدون نیاز به پرداخت` در PLP/PDP همچنان همان `BUG-STG-025` است؛ این checkpoint آن را تکراری ثبت نمی‌کند.
