@@ -2723,6 +2723,7 @@
 - این شاهد جدید همان `BUG-STG-067` را تأیید می‌کند؛ باگ تکراری مستقل ثبت نشد. معیار اصلاح: `open` فقط open، `past` فقط past و `waitlist` فقط waitlist را برگرداند و PLP همان قرارداد را مصرف کند.
 
 - **شاهد UI تازه:** `https://denali.shenski.com/tours?availability=open` با فیلتر ظرفیت باز، `۱۳ برنامه` نشان داد و در همان لیست تورهای پایان‌یافته مثل `QA پیش‌پرداخت خودکار استیجینگ` را با badge `پایان‌یافته` نگه داشت. `?availability=past` نیز `۱۴ برنامه` شامل تورهای آینده و North Ridge صف‌انتظار نشان داد؛ `?availability=waitlist` هم همان `۱۴ برنامه` را نشان داد. بنابراین mismatch در PLP قابل مشاهده است و فقط اختلاف شمارندهٔ API نیست.
+- ریشهٔ source نیز با runtime منطبق است: `packages/workspaces/denali/src/catalog/filter-denali-catalog-list.ts:201-233` فقط وقتی `availability === "open"` وارد فیلتر می‌شود و برای `past` و `waitlist` بدون هیچ شرطی همان کل مجموعه را برمی‌گرداند. بنابراین اصلاح باید قرارداد هر سه مقدار را در همین لایه کامل کند، نه فقط کارت یا query-string رابط کاربری.
 
 ### BUG-STG-008-RECHECK-2026-09-25 — فیلدهای پرداخت و تأیید از detail API خارج نمی‌شوند
 
