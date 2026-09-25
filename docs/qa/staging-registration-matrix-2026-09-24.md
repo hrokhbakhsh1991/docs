@@ -12,10 +12,14 @@
 | `BUG-STG-013`                                 | باز و بازتولیدشده        | `شروع برنامه` در Exposure فعال و در API موجود است، اما PDP فقط زمان برگشت را نشان می‌دهد                                           | egress و renderer و تست end-to-end                                             |
 | `BUG-STG-062/047`                             | باز و بازتولیدشده        | PLP ظرفیت‌پر را waitlist می‌زند، PDP/فرم مهمان اقدام waitlist صریح ندارند                                                          | CTA و copy مستقل waitlist                                                      |
 | `BUG-STG-080`                                 | باز و بازتولیدشده        | free self در Portal جزئیات پرداخت/رسید نشان می‌دهد، درحالی‌که Admin آن را بدون پرداخت می‌داند                                      | قرارداد واحد zero-obligation و projection                                      |
+| `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH-CURRENT-2026-09-25` | باز و بازتولیدشده | ثبت‌نام رایگانِ در انتظار تأیید، متن فعال‌شدن پرداخت و بارگذاری فیش نشان می‌دهد | شرط payment policy در pending و projection مشترک                             |
 | `BUG-STG-081`                                 | باز و بازتولیدشده        | قیمت عضو در PLP با PDP تخفیف‌دار یکسان نیست                                                                                        | منبع قیمت کارت و label تخفیف                                                   |
 | `BUG-STG-082`                                 | باز و بازتولیدشده        | PLP نوع حمل را نشان می‌دهد ولی مبلغ دُنگ را نه؛ PDP/API مبلغ دارند                                                                 | binding/renderer کارت PLP                                                      |
+| `BUG-STG-REGISTRATION-TRANSPORT-COST-LABEL-CURRENT-2026-09-25` | باز و بازتولیدشده | هزینهٔ اتوبوس در خلاصهٔ ثبت‌نام با label «خودرو» نمایش داده می‌شود | mapping label حمل بر اساس نوع واقعی transport                                  |
+| `BUG-STG-EXPOSURE-PDP-START-PAYMENT-CURRENT-2026-09-25` | باز و بازتولیدشده | `شروع برنامه` و وضعیت پرداخت در Exposure فعال‌اند اما در PDP حاضر نیستند | تکمیل egress/API/renderer و contract test                                      |
 | `BUG-STG-ADMIN-WAITLIST`                      | باز                      | Admin علت waitlist را به‌صورت `actionReason.capacityFull` خام نشان می‌دهد                                                          | هم‌ترازسازی کلید locale                                                        |
 | `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`         | باز                      | پنل تنظیمات نام رویدادهای Telegram را انگلیسی نمایش می‌دهد                                                                         | ترجمهٔ labelهای event                                                          |
+| `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE-CURRENT-2026-09-25-1132` | باز و بازتولیدشده | صفحهٔ فارسی Exposure توضیح انگلیسی `Start, summit, camp and end location zones.` را نمایش می‌دهد | locale کامل field registry و assertion فارسی                                   |
 | `BUG-SOURCE-TEST-TELEGRAM-FORMAT`             | قرمز CI                  | ۳۳ pass، ۴ fail؛ چهار fail فقط assertion قالب فارسی/انگلیسی هستند                                                                  | تصمیم قرارداد قالب و اصلاح تست/formatter                                       |
 | `BUG-STG-022`                                 | باز                      | محاسبهٔ حمل/دُنگ در فرم چندنفره فقط participant اول و `partySize=1` را به preview می‌دهد                                           | قرارداد محاسبهٔ چندنفره و فاکتور server-side                                   |
 | `BUG-STG-021`                                 | باز، ناسازگاری staging   | ثبت مهمان برای بعضی حساب‌ها duplicate رد می‌شود، اما با حساب کنترل همان سناریو موفق است                                            | مقایسهٔ payload/409 و fixture دادهٔ duplicate                                  |
@@ -24,6 +28,11 @@
 | `BUG-STG-036`                                 | باز و source/contract    | Exposure فهرست فیلدهای بیشتری از binding واقعی دارد؛ بعضی detail fieldها redaction قابل‌اثبات ندارند                               | هم‌ترازی registry، binding و تست hidden                                        |
 | `BUG-STG-039/072`                             | باز و runtime/source     | متن لغو ثبت‌نام با policy وضعیت‌های approved/unpaid هم‌خوان نیست                                                                   | copy و eligibility وابسته به lifecycle/finance                                 |
 | `BUG-STG-040`                                 | باز و contract           | پیام receipt فایل‌دار بدون توضیح، متن جعلی/اضافی اضافه می‌کند                                                                      | render فقط دادهٔ واقعی receipt                                                 |
+| `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS-CURRENT-2026-09-25` | باز و بازتولیدشده | بعد از ارسال مجدد رسید، کارت رسید pending می‌شود اما heading صفحه همچنان «اصلاح فیش لازم است» می‌ماند | refresh/revalidation وضعیت والد پس از submit                                  |
+| `BUG-STG-RECEIPT-STATUS-LABEL-MIXED-FRESH-2026-09-25-1135` | باز و بازتولیدشده | کنار پیام رد فیش، badge کلی «تأیید شده» وضعیت ثبت‌نام را بدون تفکیک نشان می‌دهد | تفکیک label ثبت‌نام و receipt                                                  |
+| `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE-FRESH-2026-09-25-1150` | باز و بازتولیدشده | Portal detail پرداخت‌شده است اما list هنوز «برای نهایی‌شدن، پرداخت باید تکمیل شود» می‌گوید | همسان‌سازی projection list/detail                                                |
+| `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE-FRESH-2026-09-25-1205` | باز و بازتولیدشده | Finance و Portal مانده صفر دارند اما Admin هنوز «پرداخت جزئی» و deadline نشان می‌دهد | همسان‌سازی projection ادمین با Finance                                          |
+| `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL-FRESH-2026-09-25-1220` | باز و بازتولیدشده | ردیف‌های فیلتر waitlist در ستون حضور «تأییدشده» دیده می‌شوند | label مستقل waitlist در renderer                                               |
 | `BUG-STG-037`                                 | باز                      | شمارندهٔ نهایی و دامنهٔ تب «لیست عملیاتی» از دو filter متفاوت می‌آیند                                                              | تفکیک label/count و فیلتر operational/final                                    |
 | `BUG-STG-EXPORT-SUMMARY`                      | باز و source/runtime     | خلاصهٔ Excel تعداد بدهکار را نشان می‌دهد، اما «مبلغ مانده» را فقط از نهایی‌ها جمع می‌کند و برای همان فایل صفر می‌نویسد             | تفکیک صریح totals نهایی/کل عملیات یا جمع‌کردن بدهی pending                     |
 | `BUG-STG-063`                                 | باز، source/harness قطعی | promotion صف بدون guard `partySize` می‌تواند گروه بزرگ‌تر از ظرفیت آزاد را تأیید کند                                               | تست staging با گروه چندنفره و guard promotion                                  |
@@ -120,8 +129,8 @@
 - بنابراین نبود label تأیید ادمین در PDP با این snapshot به‌تنهایی باگ نیست؛ آن فیلد خاموش است. اما حذف ساعت شروع و نبود توضیح policy پرداخت برای تورهای پولی با checkboxهای فعال ناسازگار است و findings `BUG-STG-013` و `BUG-STG-008` را تقویت می‌کند.
 - هیچ checkbox ذخیره یا تغییر داده نشد؛ این فقط خواندن تنظیمات و تطبیق با PDPهای همان محیط بود.
 
-- آخرین کنترل authoritative repository: `HEAD=5b62823461478c1f841168de07250d0b4ed86462` و `origin/codex/payment-follow-up-receipt-telegram` روی همین SHA هستند؛ `origin/dev=6f7b0ce5073b23cc896e5077d97724352a7d86bc` است.
-- feature نسبت به `origin/dev` برابر `۰ عقب / ۴۴ جلو` است؛ بنابراین feature application هنوز در `dev` merge نشده است.
+- آخرین کنترل authoritative repository: `HEAD=ed8ec8f479095bc99269a6ee333eee1fe6d25068` و `origin/codex/payment-follow-up-receipt-telegram` روی همین SHA هستند؛ `origin/dev=6f7b0ce5073b23cc896e5077d97724352a7d86bc` است. SHAهای قدیمی‌تر در بخش‌های پایین‌تر، snapshot تاریخی‌اند.
+- feature نسبت به `origin/dev` برابر `۰ عقب / ۴۶ جلو` است؛ بنابراین feature application هنوز در `dev` merge نشده است.
 - worktree فقط همین فایل گزارش را تغییر داده و `git diff --check` سبز است؛ هیچ application code، تنظیم staging یا دادهٔ runtime در این نوبت تغییر نکرده است.
 - checkpointهای قدیمی‌ترِ همین فایل عمداً به‌عنوان تاریخچه نگه داشته شده‌اند؛ برای نسبت‌دادن رفتار فعلی به کد، فقط این بخش و آخرین checkpoint هر مورد ملاک است.
 
@@ -139,7 +148,7 @@
 
 عدد `۷۴` شناسهٔ `BUG-*` در کل تاریخچهٔ فایل، معیار تعداد باگ فعال نیست؛ بخشی از آن‌ها false positive، correction یا checkpoint تکراری‌اند. برای وضعیت فعلی فقط آخرین checkpoint هر شناسه و بخش‌های `PASS/CORRECTION/DECISION` ملاک است. در این نوبت `BUG-STG-081` به‌عنوان اختلاف قطعی PLP/PDP و یک بازبینی تازه زیر ریشهٔ waitlist ثبت شد.
 
-- **وضعیت تغییرات فعلی:** آخرین مشاهدهٔ source روی `HEAD=5b62823461478c1f841168de07250d0b4ed86462` است؛ تنها فایل تغییرکرده و هنوز commit‌نشده همین گزارش است. هیچ application code یا دادهٔ staging در این نوبت تغییر نکرده است.
+- **وضعیت تغییرات فعلی:** آخرین مشاهدهٔ source روی `HEAD=ed8ec8f479095bc99269a6ee333eee1fe6d25068` است؛ تنها فایل تغییرکرده و هنوز commit‌نشده همین گزارش است. هیچ application code یا دادهٔ staging در این نوبت تغییر نکرده است.
 
 ## آخرین checkpoint اجرایی — ۲۰۲۶-۰۹-۲۵
 
@@ -6910,6 +6919,157 @@
 ### BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE-CURRENT-2026-09-25-1132 — یک label انگلیسی در صفحهٔ فارسی Exposure باقی مانده است
 
 - **شاهد runtime:** در `https://admin.denali.shenski.com/settings/exposure`، بخش `جزئیات کاتالوگ عمومی` با `۳۷ از ۳۹ فیلد انتخاب شده` باز شد. تقریباً همهٔ labelها فارسی بودند، اما فیلد لجستیک `Start, summit, camp and end location zones.` بدون ترجمه و عیناً انگلیسی نمایش داده شد.
+- **شاهد source:** `packages/workspaces/denali/src/field-registry/denali-integration-field-presentation.ts:20-25` مقدار `adminDescription` این فیلد را فقط به انگلیسی تعریف می‌کند؛ در locale فارسی برای این description کلید/ترجمهٔ معادل وجود ندارد و مسیر `apps/web` همان fallback را به اپراتور می‌دهد.
 - **اثر:** اپراتور فارسی‌زبان برای انتخاب فیلد عمومی معنای این گزینه را از داخل پنل نمی‌فهمد و ممکن است در تصمیم Exposure آن را اشتباه فعال/غیرفعال کند. این مورد با labelهای انگلیسی رویدادهای Telegram هم‌ریشه نیست؛ این یک field label در گروه لجستیک است.
 - **معیار پذیرش:** برای locale فارسی، این گزینه باید label فارسی پایدار داشته باشد؛ locale انگلیسی می‌تواند متن انگلیسی فعلی را نگه دارد. تست locale باید نبود label انگلیسی خام را در فهرست fieldهای فارسی assert کند.
 - **مرزبندی:** فقط کارت Exposure و متن labelها خوانده شد؛ هیچ checkbox یا سیاستی ذخیره نشد و هیچ PDP، ثبت‌نام، مالی، receipt، Telegram یا فایل تغییر نکرد.
+
+### RECHECK-STG-MATRIX-PDP-FORM-STATES-CURRENT-2026-09-25 — کنترل هم‌زمان وضعیت‌های فهرست، PDP و فرم ثبت‌نام
+
+- **شاهد PLP:** در `https://denali.shenski.com/tours`، fixtureهای `QA-STG-20260924-PAID-AUTO`، `QA-STG-20260924-FREE-MANUAL`، `QA-STG-20260924-PAID-MANUAL`، `تخفیف با تور` و `North Ridge Trek` هم‌زمان قابل تفکیک بودند؛ کارت گذشته برچسب `پایان‌یافته` و کارت ظرفیت‌پر برچسب `لیست انتظار` داشت.
+- **شاهد PDP پولی:** در `QA-STG-20260924-PAID-AUTO` مبلغ `۲٬۵۰۰٬۰۰۰ تومان`، ظرفیت و حمل‌ونقل نمایش داده شد؛ در PDP روش پرداخت یا نیاز به تأیید نهایی صریح نبود. این بازتولید همان باگ policy مالی قبلی است و finding جدید نیست.
+- **شاهد PDP رایگان:** در `QA-STG-20260924-FREE-MANUAL` قیمت نمایش داده نشد و متن صریح `رایگان` یا `بدون نیاز به پرداخت` نیز در بخش ثبت‌نام نبود؛ این ادامهٔ همان gap policy مالی در `BUG-STG-025` است.
+- **شاهد PDP تخفیف‌دار:** در `تخفیف با تور` قیمت پایه `۱٬۰۰۰٬۰۰۰ تومان`، تخفیف عضویت `۵۰٪`، قیمت برای عضو `۵۰۰٬۰۰۰ تومان` و هزینهٔ حمل/دونگ `۳۴۴٬۴۴۴ تومان` جداگانه و خوانا نمایش داده شد. این بخش کنترل مثبتِ تفکیک تخفیف از دونگ است.
+- **شاهد فرم:** فرم‌های پولی خودکار و تخفیف‌دار برای هویت تست فعلی پیام `مرحله نهایی قبلاً برای خودتان در این تور ثبت‌نام کرده‌اید` و لینک مشاهده/ویرایش ثبت‌نام قبلی را نشان دادند؛ بنابراین این snapshot برای کنترل rendering و guard تکرار ثبت‌نام معتبر است، اما آزمون submit ثبت‌نام تازه محسوب نمی‌شود. دکمهٔ `+ افزودن همراه` نیز فقط یک علامت `+` داشت.
+- **نتیجه:** در این مرحله باگ تازه‌ای جدا از موارد ثبت‌شده پیدا نشد. policy مالی و ثبت‌نام تازه باید با هویت/fixture پاکِ مستقل در مرحلهٔ بعد آزموده شود؛ وجود booking قبلی نباید به‌عنوان pass ثبت‌نام جدید تفسیر شود.
+- **مرزبندی:** فقط PLP، PDP و فرم‌ها خوانده شدند؛ هیچ ثبت‌نام، پرداخت، receipt، Telegram، upload یا تغییر تنظیمات انجام نشد. این snapshot با workspace HEAD `ed8ec8f479095bc99269a6ee333eee1fe6d25068` و یک تغییر مستندنشدهٔ صرفاً گزارشی در همان فایل ثبت شد.
+
+### RECHECK-STG-EXPOSURE-TO-PDP-FIELD-MATRIX-CURRENT-2026-09-25 — تطبیق مستقیم تنظیمات Exposure با PDP
+
+- **شاهد تنظیمات:** در `https://admin.denali.shenski.com/settings/exposure`، سطح `public_details` سفارشی و فعال بود (`۳۷ از ۳۹ فیلد`). سه گزینهٔ مرتبط با این کنترل، یعنی `شروع برنامه`، `تور پولی (ثبت‌نام با پرداخت)` و `نحوه حمل‌ونقل`، checked بودند؛ گزینهٔ `نیاز به تأیید ادمین برای نهایی‌سازی رزرو` unchecked بود و نباید از این مسیر به‌عنوان policy فعال انتظار نمایش داشت.
+- **شاهد PDP تور پولی:** در `https://denali.shenski.com/tours/0a93a3fc-3ac6-4543-a1ea-29e3fe5d5e5f`، `حمل‌ونقل: بدون حمل‌ونقل` و `ساعت بازگشت تقریبی: ۱۸:۰۰` render شدند، اما زمان شروع دقیق و نشانهٔ `تور پولی/پرداخت لازم` در PDP دیده نشد؛ بنابراین این مورد با تنظیمات فعال `شروع برنامه` و `تور پولی` هم‌خوان نیست.
+- **کنترل مثبت تخفیف‌دار:** در `https://denali.shenski.com/tours/a4f227fb-bc72-40ed-bf23-2c1d6fb35fb9`، `حمل‌ونقل: خودروهای مشترک` و `هزینه حمل‌ونقل/هزینه دونگی: ۳۴۴٬۴۴۴ تومان` و تفکیک تخفیف ۵۰٪ از قیمت تور نمایش داده شد؛ پس binding حمل و قیمت ancillary در این fixture کار می‌کند.
+- **شاهد source:** `packages/workspaces/denali/src/exposure/denali-exposure-surfaces.ts:81-110` فیلدهای زمان و `denali.pricing-payment` را در مدل سطح‌های عمومی تعریف می‌کند؛ `packages/workspaces/denali/src/catalog/denali-catalog-exposure-bindings.ts:38-58` نیز binding زمان و payment را دارد. در عین حال، `DENALI_PUBLIC_DETAILS_FIELD_IDS` در خط‌های 81 تا 94 از payment field پیش‌فرض استفاده نمی‌کند و runtime سفارشیِ checked نیز آن را در PDP نشان نداد؛ این اختلاف باید در مسیر renderer/egress یا mapping exposure ریشه‌یابی شود.
+- **نتیجه:** این snapshot یک بازتولید دقیق‌تر از `BUG-STG-EXPOSURE-PDP-START-PAYMENT-CURRENT-2026-09-25` است، نه باگ جدید. معیار رفع: برای هر دو fixture، هر فیلد checked در public details که مقدار معتبر دارد باید در PDP با label فارسی قابل‌فهم render شود؛ فیلد approval که unchecked است نباید به‌زور نمایش داده شود.
+- **مرزبندی:** فقط تنظیمات و PDP خوانده شدند؛ هیچ checkbox ذخیره نشد و هیچ ثبت‌نام، پرداخت، receipt، Telegram یا فایل تغییر نکرد. این نتیجه به workspace HEAD `ed8ec8f479095bc99269a6ee333eee1fe6d25068` مربوط است.
+
+### BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH-CURRENT-2026-09-25 — ثبت‌نام رایگانِ در انتظار تأیید، کاربر را به پرداخت و فیش هدایت می‌کند
+
+- **مدرک تنظیمات ادمین:** در `https://admin.denali.shenski.com/tours/c3a3c778-99ab-4750-8dc6-3172fa5ce034/edit` برای `QA-STG-20260924-FREE-MANUAL`، checkbox `تور پولی (ثبت‌نام با پرداخت)` خاموش بود؛ Wizard هیچ مبلغی نشان نداد و select `روش تأیید ثبت‌نام` مقدار `manual` داشت. یعنی قرارداد این fixture: تأیید دستی، بدون پرداخت.
+- **مدرک ثبت‌نام واقعی:** در پورتال با هویت تست، مهمان جدید `QA Matrix Guest Free 20260925` با شمارهٔ `09174656599` ثبت شد. ثبت موفق بود و در فهرست با شناسهٔ `c26e18b7-bf20-4fce-a186-b874b0af9872` و وضعیت `در انتظار بررسی` ظاهر شد.
+- **مدرک runtime با URL مستقیم:** `https://portal.denali.shenski.com/me/registrations/c26e18b7-bf20-4fce-a186-b874b0af9872` متن‌های `درخواست شما در حال بررسی است`، `پس از تأیید باشگاه، مرحله‌ی پرداخت برای شما فعال می‌شود` و `پس از تأیید ثبت‌نام توسط باشگاه، می‌توانید فیش واریز را بارگذاری کنید` را render کرد. این با `requiresPayment=false` ناسازگار است؛ بعد از تأیید باید مسیر نهاییِ بدون پرداخت/بدون فیش فعال شود.
+- **مدرک source:** `apps/portal/app/me/registrations/[id]/page.tsx:109-115` برای همهٔ lifecycleهای `pending` و `waitlisted` کلید ثابت `statusPendingBody` را انتخاب می‌کند؛ `apps/portal/messages/fa/portalMember.json:391-392` همین body را بدون توجه به payment policy «مرحلهٔ پرداخت فعال می‌شود» تعریف می‌کند. مسیر receipt نیز `apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx:446-455` برای هر pending متن عمومی آپلود فیش را آماده می‌کند و شاخهٔ `requiresPayment=false` ندارد.
+- **اثر:** کاربر تور رایگان تصور می‌کند باید پول و رسید ارسال کند؛ ممکن است بی‌دلیل وارد مالی شود و از مسیر نهایی بدون پرداخت خارج شود. این باگ از `BUG-STG-025` (نبود label رایگان در PDP) جداست: اینجا ثبت‌نام ساخته شده و مسیر lifecycle اشتباه است. همچنین با `BUG-STG-053` فرق دارد که دربارهٔ پنل لغو/استرداد پس از نهایی‌شدن رایگان است.
+- **معیار پذیرش:** pendingِ تور پولی همچنان پیام پرداخت/فیش بگیرد؛ pendingِ تور بدون پرداخت فقط پیام انتظار تأیید نشان دهد و پس از approve به وضعیت `waived`/نهایی برود، بدون CTA یا متن receipt. تست E2E باید هر دو fixture paid-manual و free-manual را با assertهای متضاد پوشش دهد.
+- **مرزبندی:** ثبت‌نام staging عمداً ایجاد شد تا فلو واقعی کنترل شود؛ هیچ approve، پرداخت، receipt، upload، Telegram یا لغو انجام نشد. این نتیجه مربوط به workspace HEAD `ed8ec8f479095bc99269a6ee333eee1fe6d25068` است و فقط گزارش محلی تغییر کرده است.
+
+### PASS-STG-MATRIX-PAID-MANUAL-PENDING-CURRENT-2026-09-25 — مسیر pending تور پولی با policy پرداخت هم‌خوان است
+
+- **شاهد runtime:** ثبت‌نام مستقل `QA Matrix Guest Paid Manual 20260925` با شناسهٔ `15d238e2-8355-48ab-872c-2be4885f0a44` در تور `QA-STG-20260924-PAID-MANUAL` ایجاد شد و در فهرست با وضعیت `در انتظار بررسی` ظاهر شد.
+- **کنترل مثبت:** جزئیات همان ثبت‌نام می‌گوید `پس از تأیید باشگاه، مرحله‌ی پرداخت برای شما فعال می‌شود` و `پس از تأیید ثبت‌نام توسط باشگاه، می‌توانید فیش واریز را بارگذاری کنید`. این متن برای fixture پولیِ تأیید دستی درست است و در مقابل مدرک `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH-CURRENT-2026-09-25` نشان می‌دهد مشکل به شرط payment policy در pending برمی‌گردد، نه به خود مسیر approval.
+- **مرزبندی:** ثبت‌نام staging ایجاد شد، اما approve، پرداخت، receipt، upload، Telegram یا لغو انجام نشد. این کنترل فقط برای مقایسهٔ رفتار paid/free است.
+
+### PASS-STG-FREE-MANUAL-APPROVE-WAIVED-CURRENT-2026-09-25 — تأیید رایگان به وضعیت نهایی بدون پرداخت می‌رسد
+
+- **شاهد ادمین:** برای `QA Matrix Guest Free 20260925` با شناسهٔ `c26e18b7-bf20-4fce-a186-b874b0af9872` اقدام `تأیید بدون نیاز به پرداخت` اجرا شد. ردیف ادمین به `تأییدشده` و `بدون نیاز به پرداخت` تغییر کرد و ظرفیت از `۶/۲۰` به `۷/۲۰` رسید.
+- **شاهد Portal پس از reload:** همان URL جزئیات، heading `ثبت‌نام شما نهایی شده است`، متن `برای این ثبت‌نام نیازی به پرداخت ندارید` و کارت `فیش لازم نیست` را نشان داد؛ هیچ CTA رسید، مبلغ یا مهلت پرداختی render نشد.
+- **نتیجه:** side effect اصلی approve/waive درست است؛ باگ فقط متن و مسیر مرحلهٔ pending پیش از approve است که کاربر رایگان را موقتاً به پرداخت هدایت می‌کند. این کنترل همچنین نشان داد اصلاح نباید lifecycle نهایی `waived` را تغییر دهد.
+- **مرزبندی:** فقط ثبت‌نام آزمایشی تازهٔ همین گزارش approve شد؛ هیچ پرداخت، receipt، upload، Telegram یا لغو انجام نشد.
+
+### PASS-STG-PAID-MANUAL-TEXT-RECEIPT-FRESH-CURRENT-2026-09-25 — فلو کامل پولی با رسید متنی بدون فایل
+
+- **ثبت‌نام:** مهمان `QA Matrix Guest Paid Manual 20260925` با شمارهٔ تست `09174656600` در `QA-STG-20260924-PAID-MANUAL` ثبت شد؛ شناسهٔ ثبت‌نام `15d238e2-8355-48ab-872c-2be4885f0a44` و وضعیت اولیه `در انتظار بررسی` بود.
+- **تأیید اولیه:** از ادمین اقدام `تأیید و منتظر پرداخت` اجرا شد؛ ردیف به `تأییدشده / پرداخت‌نشده (رزرو)` منتقل شد و جزئیات Portal بخش `بارگذاری رسید پرداخت` را فعال کرد.
+- **ارسال receipt:** در Portal فقط textarea با متن `QA text-only receipt matrix 20260925` پر شد؛ input فایل خالی ماند. دکمهٔ ارسال فعال شد و نتیجهٔ `فیش ارسال شد`/`منتظر تأیید ادمین` نمایش داده شد.
+- **بررسی مالی:** در `https://admin.denali.shenski.com/finance?tab=receipts` همان متن دقیق، `در انتظار بررسی (فیش)`, مبلغ `۲٬۵۰۰٬۰۰۰ تومان` و `این رسید به‌صورت متنی ارسال شده است` دیده شد. پس از کلیک `تأیید`، سیستم `تأیید شد — پرداخت‌شده. مانده ۰.` و صف خالی را نشان داد.
+- **نتیجهٔ نهایی:** Portal پس از reload، `سفر شما نهایی شده است` و `پرداخت شما تأیید شده` را render کرد. مسیر متن تنها → approve receipt → payment paid → final roster در staging سبز است و برای این کنترل فایل لازم نبود.
+- **مرزبندی:** این فلو روی یک fixture و مهمان تازه اجرا شد؛ Telegram photo، فایل تصویر/PDF، رد receipt و retry در این checkpoint اجرا نشدند.
+
+### RECHECK-BUG-STG-085-PAID-DEADLINE-FRESH-2026-09-25 — مهلت پرداخت بعد از تأیید نهایی هنوز در Portal دیده می‌شود
+
+- **مدرک runtime:** همان ثبت‌نام نهایی‌شدهٔ `15d238e2-8355-48ab-872c-2be4885f0a44` در Portal پس از تأیید receipt، heading `سفر شما نهایی شده است` و متن `پرداخت شما تأیید شده` داشت، اما کارت زمان حرکت همچنان `مهلت پرداخت ۱۴۰۵/۷/۴, ۸:۱۳:۳۴` را نمایش داد.
+- **نتیجه:** payment lifecycle اصلی درست به `paid/final` رسید، اما deadline پرداخت از projection/detail حذف نشده است؛ این بازتولید تازهٔ `BUG-STG-085` است و finding جداگانه‌ای ایجاد نمی‌کنم.
+- **معیار پذیرش:** برای `paid` و `waived` هیچ مهلت پرداخت، CTA پرداخت یا متن انتظار پرداخت نباید در detail باقی بماند؛ این فیلد فقط برای pending/unpaid نمایش داده شود.
+- **مرزبندی:** هیچ اقدام اصلاحی یا mutation دیگری انجام نشد؛ فقط detail نهایی خوانده شد.
+
+### BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS-CURRENT-2026-09-25 — بعد از ارسال مجدد رسید، heading صفحه هنوز «اصلاح فیش لازم است» است
+
+- **مدرک runtime:** در ثبت‌نام `b254c01f-e5ce-4a27-b7d4-202b9a4fd432`، رسید متنی اول با note `QA bad receipt first pass 20260925` ارسال و در پنل مالی رد شد. Portal سپس درست متن `اصلاح فیش لازم است` و امکان ارسال مجدد را نشان داد.
+- **بازتولید:** همان ثبت‌نام با note جدید `QA corrected text-only receipt 20260925` دوباره ارسال شد. کارت receipt به‌درستی `فیش ارسال شد` و `منتظر تأیید ادمین برای رسید پرداخت هستید` را نشان داد، اما در همان render، heading بالای بخش وضعیت هنوز `اصلاح فیش لازم است` و body `فیش قبلی تأیید نشد؛ رسید درست را دوباره ارسال کنید` باقی ماند. یعنی دو وضعیت متناقض هم‌زمان به کاربر نمایش داده شد.
+- **مدرک source:** `apps/portal/app/me/registrations/[id]/page.tsx:109-135` heading اصلی را از `fetchMemberReceiptPanel` در server render می‌سازد؛ در مقابل `apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx:279-286` پس از submit فقط state محلی فرم (`setPanel(...status: "pending")`) را تغییر می‌دهد و parent status card را refresh نمی‌کند.
+- **اثر:** کاربر نمی‌داند رسید جدید واقعاً در انتظار بررسی است یا هنوز باید اصلاح کند؛ این ابهام مخصوصاً پس از رد receipt باعث ارسال تکراری یا اقدام اشتباه می‌شود. این مورد از `BUG-STG-030` stale شدن پنل مالی جداست و مالک آن هماهنگی status card و receipt form در Portal است.
+- **معیار پذیرش:** بلافاصله پس از submit مجدد، heading اصلی و کارت receipt باید هر دو `فیش در حال بررسی` را نشان دهند؛ پس از reject دوباره، هر دو `اصلاح فیش لازم است` و پس از approve هر دو final/paid باشند. تست E2E باید هر سه transition را assert کند.
+- **مرزبندی:** رسید دوم نیز متنی بود؛ بعد از مشاهدهٔ ناسازگاری، همان رسید دوم در Finance تأیید شد و Portal پس از reload به `سفر شما نهایی شده است` رسید. فایل، Telegram و کد محصول تغییر نکرد.
+
+### PASS-STG-RECEIPT-REJECT-RESUBMIT-APPROVE-CURRENT-2026-09-25 — مسیر رد، اصلاح و تأیید مجدد از نظر backend کامل شد
+
+- **شاهد Finance:** رسید اول رد شد و پیام `رد شد. رزرو پرداخت‌نشده می‌ماند. عضو می‌تواند روی همان پرداخت در انتظار دوباره فیش بفرستد` نمایش داده شد؛ receipt از صف pending حذف شد.
+- **شاهد resubmit:** note دوم در صف مالی با وضعیت `در انتظار بررسی (فیش)` و متن واقعی جدید دیده شد؛ receipt قبلی overwrite نشد و رکورد جدید قابل بررسی بود.
+- **شاهد approve نهایی:** پس از تأیید receipt دوم، Finance پیام `تأیید شد — پرداخت‌شده. مانده ۰.` داد و Portal heading `سفر شما نهایی شده است` و `پرداخت شما تأیید شده` را نشان داد.
+- **نتیجه:** state transitionهای backend و مسیر idempotency/رسید متنی کار کردند؛ ایراد باقی‌مانده فقط stale بودن heading در فاصلهٔ submit مجدد تا reload است.
+
+### RECHECK-STG-TELEGRAM-CONNECTION-CURRENT-2026-09-25 — مقصد اتصال Telegram صحیح است، اما تحویل media هنوز اثبات‌نشده است
+
+- **شاهد runtime:** در `https://admin.denali.shenski.com/settings/integrations` یک اتصال جدید و فعال برای workspace `denali` دیده شد؛ گروه مقصد `-1004292581496`، نام دقیق گروه `denaliAdmins` و وضعیت `توکن ربات ذخیره شده: بله` بود. پنل می‌گوید ارسال فعال از همین اتصال جدید انجام می‌شود.
+- **کنترل تنظیمات:** صفحهٔ اتصال صراحتاً انتخاب فیلدهای پیام را به `/settings/exposure` ارجاع می‌دهد؛ هیچ اتصال قدیمی یا fallback مقصد دیگری در snapshot وجود نداشت.
+- **مرزبندی تست:** دکمهٔ `آزمایش اتصال` عمداً کلیک نشد، چون side effect خارجی و ارسال پیام واقعی ایجاد می‌کند. Telegram Web نیز در این محیط قابل مشاهدهٔ پایدار نبود؛ بنابراین نه تحویل عکس/PDF، نه `message_id`، نه `message_thread_id` و نه صحت media واقعی را pass اعلام نمی‌کنم.
+- **نتیجه:** این snapshot باگ routing جدید نشان نمی‌دهد؛ فقط proof gap برای تحویل واقعی Telegram باقی است. برای closure باید با دسترسی مشاهدهٔ گروه یا log/trace معتبر، یک receipt متنی و یک receipt تصویری را به topic صحیح تطبیق داد و عدم ارسال به General را ثبت کرد.
+
+### PASS-SOURCE-RECEIPT-REVIEW-REGRESSION-CURRENT-2026-09-25 — قراردادهای source receipt سبز هستند، اما stale UI را پوشش نمی‌دهند
+
+- **Portal BFF:** `pnpm --filter @apps/portal exec node --import tsx --test --test-force-exit --test-concurrency=1 test/portal-member-receipt-bff.spec.ts` → `۶ pass، ۰ fail، ۰ skip`.
+- **Finance/receipt:** `member-receipt-reject-status.spec.ts`، `finance-receipt-approve-gate.spec.ts` و `finance-receipt-submit-authz.spec.ts` → `۲۱ pass، ۰ fail، ۰ skip`؛ شامل text-only approve/reject، file+note contract، ownership، tenant isolation و idempotency payload conflict.
+- **مرزبندی:** این سبزی قرارداد backend و BFF را تأیید می‌کند، اما assertionی برای heading سرور-render شده بعد از `setPanel(status=pending)` ندارد؛ بنابراین `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS-CURRENT-2026-09-25` با این تست‌ها رد نمی‌شود.
+
+### RECHECK-STG-FREE-PROJECTION-AND-CANCELLATION-CURRENT-2026-09-25 — ناسازگاری ثبت‌نام رایگان و کپی لغو دوباره در دادهٔ زنده دیده شد
+
+- **شاهد تنظیمات تور:** در `https://admin.denali.shenski.com/tours/c3a3c778-99ab-4750-8dc6-3172fa5ce034/edit`، تور `QA-STG-20260924-FREE-MANUAL` مقدار `تور پولی (ثبت‌نام با پرداخت)=خاموش` و `روش تأیید ثبت‌نام=تأیید دستی توسط ادمین` داشت؛ بنابراین fixture فعلی واقعاً بدون پرداخت است، نه صرفاً نام‌گذاری رایگان.
+- **شاهد فهرست و detail یک رکورد:** در فهرست Portal، ثبت‌نام `4190860a-9948-4c62-b29b-85d3e494e765` برای خودم با همین تور به‌صورت `برای نهایی‌شدن، پرداخت لازم است` نمایش داده شد. با بازکردن همان URL جزئیات، heading `سفر شما نهایی شده است`، متن `پرداخت شما تأیید شده` و کارت `پرداخت تأیید شد` دیده شد. این snapshot تازه، اختلاف projection فهرست و detail را برای یک تور بدون پرداخت دوباره تأیید می‌کند و زیر `BUG-STG-080`/باگ‌های parity مالی قرار می‌گیرد؛ finding مستقل جدید نمی‌سازم.
+- **شاهد lifecycle/copy:** همان detail نهایی هنوز متن `پیش از تأیید باشگاه می‌توانید این ثبت‌نام را پس بگیرید` و دکمهٔ `پس‌گرفتن ثبت‌نام` داشت، درحالی‌که heading نهایی و پرداخت تأییدشده بود. این بازتولید تازهٔ `BUG-STG-039/072` است: copy اقدام لغو از lifecycle نهایی/waived تبعیت نمی‌کند.
+- **معیار پذیرش:** برای یک رکورد واحد، list/detail باید هر دو `ثبت‌نام نهایی و بدون پرداخت` را نشان دهند؛ پس از نهایی‌شدن، copy پیش از تأیید و action لغو باید بر اساس policy لغو واقعی انتخاب شود و متن pending نمایش داده نشود.
+- **مرزبندی:** فقط تنظیمات تور و صفحات خواندنی Portal بررسی شدند؛ هیچ پرداخت، receipt، approve/reject، لغو، Telegram یا فایل تغییر نکرد.
+
+### RECHECK-STG-PDP-DOM-CURRENT-2026-09-25 — نبود فیلدهای مالی/زمان شروع در DOM دو PDP دوباره تأیید شد
+
+- **PDP پولی:** `https://denali.shenski.com/tours/4a475c5e-b14f-4ee2-a4d4-54779777622b` در snapshot تازه قیمت `۲٬۵۰۰٬۰۰۰ تومان`، ظرفیت `۱۱ جای خالی`، حمل‌ونقل `بدون حمل‌ونقل` و فقط `ساعت بازگشت تقریبی: ۱۸:۰۰` را render کرد؛ هیچ `شروع برنامه` یا label صریح «تور پولی/پرداخت لازم» در accessibility tree/متن صفحه نبود.
+- **PDP رایگان:** `https://denali.shenski.com/tours/c3a3c778-99ab-4750-8dc6-3172fa5ce034` در snapshot تازه اصلاً قیمت یا label `رایگان/بدون نیاز به پرداخت` نداشت و در بخش زمان و مکان فقط `ساعت بازگشت تقریبی: ۱۸:۰۰` حاضر بود؛ زمان شروع نیز در DOM نبود.
+- **نتیجه:** این بازخوانی runtime، بدون اتکا به snapshot قبلی، `BUG-STG-EXPOSURE-PDP-START-PAYMENT-CURRENT-2026-09-25` و gap رایگان `BUG-STG-025` را دوباره تأیید می‌کند. مورد جدید جداگانه ایجاد نمی‌شود.
+- **مرزبندی:** فقط DOM/accessibility tree دو PDP و صفحهٔ تنظیمات Exposure خوانده شد؛ هیچ checkbox، انتشار تور، ثبت‌نام، پرداخت، receipt، Telegram یا فایل تغییر نکرد.
+
+### RECHECK-SHA-AUTHORITATIVE-CURRENT-2026-09-25 — مرز نهایی source، remote و staging
+
+- **Git فعلی:** `HEAD=ed8ec8f479095bc99269a6ee333eee1fe6d25068` و `origin/codex/payment-follow-up-receipt-telegram` دقیقاً روی همین SHA هستند؛ `origin/dev=6f7b0ce5073b23cc896e5077d97724352a7d86bc` است.
+- **فاصلهٔ branch:** خروجی `git rev-list --left-right --count origin/dev...HEAD` برابر `0 46` است؛ یعنی feature branch صفر commit عقب و ۴۶ commit جلوتر از `dev` است. پس source تغییرات feature روی remote خودش پوش است، اما روی `dev` نیست.
+- **working tree:** فقط `docs/qa/staging-registration-matrix-2026-09-24.md` modified است؛ هیچ application code تغییر unstaged ندارد و `git diff --check` سبز است.
+- **مرزبندی artifact:** staging با header/build marker قابل‌اتکا به `ed8ec8f47` وصل نشده است؛ بنابراین runtime findings این فایل را به‌عنوان رفتار artifact مستقر ثبت می‌کنم و source tests را به‌عنوان proof همان deploy ادعا نمی‌کنم. بخش‌های قدیمی فایل که SHA `5b628...` یا شمارش `44` دارند، snapshot تاریخی‌اند و این checkpoint مرجع فعلی است.
+
+### RECHECK-STG-WAITLIST-PDP-DOM-CURRENT-2026-09-25 — ظرفیت صفر است اما PDP/form اقدام لیست انتظار را روشن نمی‌کنند
+
+- **شاهد PDP زنده:** `https://denali.shenski.com/tours/00000000-0000-4000-8000-000000000220` برای `North Ridge Trek` مقدار `۰ جای خالی` را در definition list نشان داد، اما در بخش ثبت‌نام همچنان لینک عادی `ثبت‌نام مهمان دیگر` و `مشاهده ثبت‌نام من` حاضر بود؛ هیچ متن `لیست انتظار` یا CTA مستقل waitlist در DOM/accessibility tree دیده نشد.
+- **شاهد فرم زنده:** `https://portal.denali.shenski.com/catalog/00000000-0000-4000-8000-000000000220/register` در همان snapshot فقط پیام ثبت‌نام قبلی کاربر و دکمهٔ عمومی `ثبت درخواست` را نشان داد؛ هیچ توضیحی دربارهٔ «درخواست لیست انتظار» وجود نداشت. به‌دلیل ثبت‌نام قبلی کاربر، دکمه disabled بود و submit انجام نشد؛ بنابراین این snapshot ادعای موفق/ناموفق بودن promotion یا ثبت waitlist نیست.
+- **نتیجه:** این بازخوانی مستقل، `BUG-STG-062/064` و `BUG-STG-WAITLIST-GUEST-FORM-COPY-CURRENT` را تقویت می‌کند: ظرفیت صفر به‌تنهایی کافی نیست و مسیر اقدام کاربر باید صریحاً waitlist باشد. finding جدید جداگانه ایجاد نمی‌شود.
+- **مرزبندی:** فقط PDP و فرم read-only مشاهده شدند؛ هیچ ثبت‌نام، promotion، پرداخت، receipt، Telegram یا فایل تغییر نکرد.
+
+### RECHECK-SOURCE-TELEGRAM-FORMAT-CURRENT-2026-09-25 — گیت formatter روی SHA فعلی هنوز قرمز است
+
+- **اجرا:** روی `HEAD=ed8ec8f479095bc99269a6ee333eee1fe6d25068` دستور `NODE_ENV=test STORAGE_DRIVER=memory pnpm --filter @apps/api exec node --import tsx --test --test-force-exit --test-concurrency=1 src/integrations/platform/format-integration-delivery-message.spec.ts` اجرا شد.
+- **نتیجه:** تست با exit code `1` تمام شد؛ چهار assertion شکست خورد و خروجی واقعی formatter با `🆕 تور جدید منتشر شد` و `🏕 عنوان تور: Alpine Day` شروع می‌شود، درحالی‌که expectation تست هنوز `Tour published: Alpine Day` است. failureها مربوط به template پایه، field lineهای خودکار، decoration و `fieldExposureShadow` هستند.
+- **طبقه‌بندی:** این یک blocker source/CI قطعی است، نه باگ runtime staging؛ قرارداد template فارسی و expectation تست با هم هماهنگ نیستند. تا تصمیم قرارداد و اصلاح تست/formatter انجام نشود، گیت سبز اعلام نمی‌شود.
+- **مرزبندی:** فقط تست source اجرا شد؛ هیچ کد، تنظیم staging، ثبت‌نام، پرداخت، receipt، Telegram یا فایل تغییر نکرد.
+
+### RECHECK-SOURCE-PDP-EXPOSURE-TEST-COVERAGE-CURRENT-2026-09-25 — سبزی تست‌های PDP gap policy را نمی‌بندد
+
+- **اجرا:** `NODE_ENV=test STORAGE_DRIVER=memory pnpm --filter @app-tour/workspace-denali exec node --import tsx --test --test-force-exit --test-concurrency=1 test/denali-catalog-detail-egress.spec.ts test/denali-catalog-exposure-prd.spec.ts test/denali-catalog-exposure.spec.ts test/marketing-catalog-detail-pdp-gates.spec.ts`
+- **نتیجه:** `۱۲ pass، ۰ fail، ۰ skip`. این suiteها mapping جزئیات موجود، redaction فیلدهای مخفی، گالری/structured data و gateهای عمومی PDP را پوشش می‌دهند.
+- **گپ coverage:** هیچ assertionی برای عبور `startDateTime`، `requiresPayment` یا `registrationApproval` از public-details exposure تا DOM نهایی PDP ندارد؛ بنابراین سبزی این اجرا با `BUG-STG-EXPOSURE-PDP-START-PAYMENT-CURRENT-2026-09-25` و `BUG-STG-025` تناقض ندارد و آن‌ها را نمی‌بندد.
+- **مرزبندی:** فقط تست source اجرا شد؛ هیچ کد، تنظیم staging، ثبت‌نام، پرداخت، receipt، Telegram یا فایل تغییر نکرد.
+
+### RECHECK-SOURCE-TELEGRAM-RUNTIME-PROOF-CURRENT-2026-09-25 — پنل فعلی proof تحویل واقعی Telegram ندارد
+
+- **بررسی source/UI:** جست‌وجوی مسیرهای integration در `apps/web` و `apps/api` نشان داد worker و provider مقدار `message_id`/`message_thread_id` را در قرارداد داخلی و تست fake client پوشش می‌دهند، اما پنل ادمین فقط اتصال، مقصد و سیاست ارسال را نمایش می‌دهد و صفحهٔ delivery log یا شناسهٔ پیام تحویل‌شده ندارد.
+- **نتیجه:** حتی با سبز بودن تست source worker، از داخل staging فعلی نمی‌توان تحویل واقعی عکس/PDF یا topic را اثبات کرد؛ `message_id`، `message_thread_id` و نتیجهٔ ارسال به گروه در UI/API قابل مشاهدهٔ QA نیستند. این مورد به `TEST-GAP-STG-009`/proof gap تلگرام متصل است، نه به‌عنوان باگ جدید محصولی.
+- **معیار closure:** یا باید event واقعی receipt با log/trace معتبر و شناسهٔ پیام/تاپیک مشاهده شود، یا endpoint/پنل read-only برای delivery evidence فراهم شود؛ بدون آن، عکس/PDF و عدم ارسال به General نباید pass اعلام شود.
+- **مرزبندی:** فقط source و مسیرهای read-only بررسی شدند؛ هیچ اتصال، تست ارسال، پیام واقعی، فایل، receipt یا تنظیم staging تغییر نکرد.
+
+### ROOT-SOURCE-TELEGRAM-FORMAT-CONTRACT-CURRENT-2026-09-25 — ریشهٔ قرمزی formatter مشخص شد
+
+- **کد تولید:** `apps/api/src/integrations/platform/format-integration-delivery-message.ts:147-155` template رویداد را از `resolveIntegrationSurfaceForWorkspaceType` می‌گیرد؛ در `apps/api/src/integrations/platform/integration-surface-meta.ts:20-25` قالب `TourPublished` فعلی Denali فارسی و با header `🆕 تور جدید منتشر شد`/`🏕 عنوان تور` تعریف شده است.
+- **تست قرمز:** `apps/api/src/integrations/platform/format-integration-delivery-message.spec.ts:10-18,124-173,274-291` هنوز خروجی قدیمی `Tour published: Alpine Day` را expected می‌کند. این اختلاف علت مستقیم چهار failure است؛ failure مربوط به ارسال واقعی Telegram یا media نیست.
+- **نتیجه:** finding `BUG-SOURCE-TEST-TELEGRAM-FORMAT` به ناسازگاری قرارداد test/formatter محدود شد. قبل از هر fix باید قرارداد canonical انتخاب شود: اگر قالب فارسی فعلی محصول canonical است، expectationهای تست باید با همان قالب و placeholder/decorationها هم‌تراز شوند؛ اگر قالب انگلیسی canonical است، template source و تنظیمات ذخیره‌شده باید برگردانده شوند. در این دور هیچ‌کدام تغییر داده نشد.
+- **مرزبندی:** فقط source و تست read-only بررسی شدند؛ هیچ کد، تنظیم staging، اتصال Telegram یا پیام واقعی تغییر نکرد.
+
+### RECHECK-STG-VERSION-MARKER-CURRENT-2026-09-25 — سرویس‌های staging هنوز marker قابل‌اتکای SHA ندارند
+
+- **اجرا:** headerهای HTTPS برای PDP، Portal و Admin با `curl -L` خوانده شدند؛ هر سه سرویس پس از redirect پاسخ `HTTP/2 200` دادند و `x-powered-by: Next.js`/`server: ArvanCloud` داشتند.
+- **نتیجه:** هیچ header قابل‌اتکایی مانند `x-commit`، `x-revision`، `x-build` یا `x-version` برنگشت؛ بنابراین هنوز نمی‌توان ثابت کرد runtime روی `ed8ec8f47` یا حتی دقیقاً روی `origin/dev` اجرا می‌شود. این همان deployment observability gap قبلی است، نه باگ محصولی جدید.
+- **مرزبندی:** فقط GET/header خوانده شد؛ هیچ deploy، push، تنظیم، ثبت‌نام، پرداخت، receipt، Telegram یا فایل تغییر نکرد.

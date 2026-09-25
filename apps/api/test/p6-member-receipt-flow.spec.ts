@@ -9,7 +9,10 @@ import { getBookingsRepository } from "../src/bookings/create-bookings-repositor
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { installHttpTestClient } from "./http-test-client";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
-import { operatorAuthHeaders, seedOperatorIdentityFixture } from "./fixtures/operator-identity-fixture";
+import {
+  operatorAuthHeaders,
+  seedOperatorIdentityFixture,
+} from "./fixtures/operator-identity-fixture";
 import {
   createSharedMemoryTourStoreForHttpTests,
   createTestToursService,
@@ -101,13 +104,9 @@ describe("p6-member-receipt-flow", () => {
       remainingMinor?: string | null;
       previewKind?: string | null;
       previewUrl?: string | null;
-    }>(
-      "GET",
-      `/bookings/${registrationId}/receipts`,
-      {
-        headers: memberHeaders(memberUserId, memberWorkspaceId),
-      }
-    );
+    }>("GET", `/bookings/${registrationId}/receipts`, {
+      headers: memberHeaders(memberUserId, memberWorkspaceId),
+    });
     assert.equal(response.status, 200);
     assert.equal(response.body.status, "pending");
     assert.equal(response.body.previewKind, "image");
@@ -205,7 +204,10 @@ describe("p6-member-receipt-flow", () => {
         headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
         body: {
           tourId: OPERATOR_SMOKE.seedTourId,
-          contact: { email: "p6-receipt-approve@denali-smoke.local", fullName: "P6 Receipt Approve" },
+          contact: {
+            email: "p6-receipt-approve@denali-smoke.local",
+            fullName: "P6 Receipt Approve",
+          },
           partySize: 1,
         },
       }
@@ -247,13 +249,19 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(review.status, 200);
     assert.equal(review.body.status, "Approved");
     assert.ok(typeof review.body.ledgerJournalId === "string");
-    assert.equal(
-      (review.body as { bookingPaymentStatus?: string }).bookingPaymentStatus,
-      "paid"
-    );
+    assert.equal((review.body as { bookingPaymentStatus?: string }).bookingPaymentStatus, "paid");
 
     const booking = await getBookingsRepository().getById(bookingId, OPERATOR_SMOKE.tenantId);
     assert.equal(booking?.paymentStatus, "paid");
+
+    const list = await client.requestJson<{
+      items?: readonly { id?: string; paymentStatus?: string }[];
+    }>("GET", "/bookings?view=mine&limit=50", {
+      headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
+    });
+    assert.equal(list.status, 200);
+    const listed = list.body.items?.find((item) => item.id === bookingId);
+    assert.equal(listed?.paymentStatus, "paid");
 
     const status = await client.requestJson<{ status?: string }>(
       "GET",

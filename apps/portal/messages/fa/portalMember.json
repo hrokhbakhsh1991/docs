@@ -388,8 +388,15 @@
     "summaryEyebrow": "خلاصه ثبت‌نام",
     "lede": "وضعیت، زمان حرکت و قدم بعدی همین سفر.",
     "statusLabel": "وضعیت ثبت‌نام",
+    "registrationStatusBadge": "ثبت‌نام: {status}",
+    "receiptStatusNone": "رسید: ارسال نشده",
+    "receiptStatusPending": "رسید: در انتظار بررسی",
+    "receiptStatusRejected": "رسید: رد شده؛ اصلاح لازم است",
+    "receiptStatusPaid": "رسید: تأیید شده",
+    "receiptStatusWaived": "رسید: لازم نیست",
     "statusPendingTitle": "درخواست شما در حال بررسی است",
     "statusPendingBody": "پس از تأیید باشگاه، مرحله‌ی پرداخت برای شما فعال می‌شود.",
+    "statusPendingFreeBody": "درخواست شما در انتظار تأیید باشگاه است.",
     "statusApprovedTitle": "ثبت‌نام شما تأیید شده است",
     "statusApprovedBody": "برای نهایی شدن سفر، رسید پرداخت را ارسال کنید.",
     "statusReceiptPendingTitle": "فیش شما در حال بررسی است",
@@ -431,6 +438,7 @@
     "failed": "بارگذاری ناموفق بود.",
     "awaitingApprovalTitle": "منتظر تأیید باشگاه",
     "awaitingApprovalBody": "پس از تأیید ثبت‌نام توسط باشگاه، می‌توانید فیش واریز را بارگذاری کنید.",
+    "awaitingFreeApprovalBody": "درخواست شما در انتظار تأیید باشگاه است.",
     "waitingTitle": "فیش ارسال شد",
     "waitingBody": "منتظر تأیید ادمین برای رسید پرداخت هستید.",
     "rejectedHint": "رسید قبلی رد شد. لطفاً رسید جدید بارگذاری کنید.",
@@ -466,7 +474,7 @@
     "requestAction": "درخواست لغو",
     "blocked": "امکان لغو وجود ندارد ({reason}).",
     "error": "ثبت درخواست لغو ممکن نشد ({code}).",
-    "refundEligible": "مبلغ قابل‌استرداد: {amount} {currency}"
+    "refundEligible": "مبلغ قابل‌استرداد: {amount}"
   },
   "intakeAmend": {
     "eyebrow": "پیش از تأیید",

@@ -1,5 +1,6 @@
 import { resolveDenaliRegistrationDueBreakdown } from "../finance/resolve-denali-registration-obligation";
 import type { DenaliRegistrationDueLine } from "../finance/resolve-denali-registration-obligation";
+import { resolveDenaliPaymentCollectionMode } from "../finance/resolve-denali-payment-collection-mode";
 import { DenaliRegistrationNotFoundError } from "./errors/denali-registration-not-found.error";
 import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
@@ -58,6 +59,8 @@ export type DenaliRegistrationOwnedDetail = {
   readonly guestLabel: string;
   readonly registrantTarget: "self" | "other";
   readonly paymentStatus: string;
+  /** Canonical tour policy; the member UI must not infer this from paymentStatus. */
+  readonly paymentCollection: "offline" | "free";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize: number;
@@ -101,6 +104,7 @@ export async function getDenaliRegistrationOwned(params: {
     guestLabel: owned.guestLabel,
     registrantTarget: owned.registrantTarget,
     paymentStatus: owned.paymentStatus,
+    paymentCollection: "offline",
     departureAt: owned.departureAt,
     submittedAt: owned.submittedAt,
     partySize: owned.partySize,
@@ -117,6 +121,9 @@ export async function getDenaliRegistrationOwned(params: {
     return base;
   }
 
+  const paymentCollection = resolveDenaliPaymentCollectionMode(tour.canonical);
+  const withPaymentCollection = { ...base, paymentCollection };
+
   const due = resolveDenaliRegistrationDueBreakdown({
     tourCanonical: tour.canonical,
     partySize: owned.partySize,
@@ -125,11 +132,11 @@ export async function getDenaliRegistrationOwned(params: {
       : {}),
   });
   if (due === null || due.obligationMinor === "0") {
-    return base;
+    return withPaymentCollection;
   }
 
   return {
-    ...base,
+    ...withPaymentCollection,
     dueCurrency: due.currency,
     dueTotalMinor: due.obligationMinor,
     dueLines: due.lines,

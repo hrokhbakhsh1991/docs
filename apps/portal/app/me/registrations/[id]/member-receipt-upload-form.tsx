@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import type {
   MemberReceiptPanel,
@@ -10,6 +11,7 @@ import type {
   MemberReceiptStatus,
 } from "@/me/member-receipt-status";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
+import { formatMemberMoney } from "@/me/format-member-money";
 
 export type MemberReceiptDueLine = {
   readonly code: "trip" | "dong" | "transport";
@@ -29,6 +31,7 @@ type Props = {
   readonly tripsListHref: string;
   readonly tourHref: string | null;
   readonly catalogDue: MemberReceiptDue | null;
+  readonly paymentCollection?: "offline" | "free";
   readonly paymentDueAt?: string | null;
   readonly cancelSource?: string | null;
 };
@@ -40,16 +43,6 @@ type ReceiptStateCardProps = {
   readonly rootProps: Record<string, string>;
   readonly title: string;
 };
-
-function formatMinorAmount(amountMinor: string, currency: string): string {
-  const digits = amountMinor.replace(/\D/g, "");
-  const n = digits.length > 0 ? Number.parseInt(digits, 10) : NaN;
-  if (!Number.isFinite(n)) {
-    return amountMinor;
-  }
-  const formatted = n.toLocaleString("fa-IR");
-  return currency.toUpperCase() === "IRR" ? `${formatted} تومان` : `${formatted} ${currency}`;
-}
 
 function isPositiveMinor(value: string | null): boolean {
   if (value === null) {
@@ -120,10 +113,12 @@ export function MemberReceiptUploadForm({
   tripsListHref,
   tourHref,
   catalogDue,
+  paymentCollection = "offline",
   paymentDueAt,
   cancelSource,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
@@ -282,6 +277,7 @@ export function MemberReceiptUploadForm({
         previewUrl: localPreviewUrl ?? current.previewUrl,
         previewKind: localPreviewKind ?? current.previewKind,
       }));
+      router.refresh();
       setUploadPhase("idle");
     } catch {
       setUploadPhase("error");
@@ -358,13 +354,13 @@ export function MemberReceiptUploadForm({
               panel.amountDueNowMinor !== null && panel.amountDueNowMinor !== panel.remainingMinor
                 ? "dueNow"
                 : "dueRemaining",
-              { amount: formatMinorAmount(remainingDue, dueCurrency) }
+              { amount: formatMemberMoney(remainingDue, dueCurrency) }
             )}
           </strong>
         </p>
         {totalDue !== null ? (
           <p data-portal-member-receipt-total>
-            {t("dueTotal", { amount: formatMinorAmount(totalDue, dueCurrency) })}
+            {t("dueTotal", { amount: formatMemberMoney(totalDue, dueCurrency) })}
           </p>
         ) : null}
         {panel.amountDueNowMinor !== null && panel.amountDueNowMinor !== panel.remainingMinor ? (
@@ -372,14 +368,14 @@ export function MemberReceiptUploadForm({
             {t("dueBalanceAfterPayment", {
               amount:
                 panel.remainingMinor !== null
-                  ? formatMinorAmount(panel.remainingMinor, dueCurrency)
+                  ? formatMemberMoney(panel.remainingMinor, dueCurrency)
                   : "—",
             })}
           </p>
         ) : null}
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
-            {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}
+            {t("duePaid", { amount: formatMemberMoney(panel.paidMinor, dueCurrency) })}
           </p>
         ) : null}
         {showCatalogLines && catalogDue !== null && catalogDue.lines.length > 0 ? (
@@ -393,7 +389,7 @@ export function MemberReceiptUploadForm({
                     : t("dueLineTransport");
               return (
                 <li key={line.code} data-portal-member-receipt-due-line data-due-code={line.code}>
-                  {label}: {formatMinorAmount(line.amountMinor, dueCurrency)}
+                  {label}: {formatMemberMoney(line.amountMinor, dueCurrency)}
                 </li>
               );
             })}
@@ -448,7 +444,9 @@ export function MemberReceiptUploadForm({
         eyebrow={eyebrow}
         rootProps={{ "data-portal-member-receipt-awaiting-approval": "" }}
         title={t("awaitingApprovalTitle")}
-        body={t("awaitingApprovalBody")}
+        body={
+          paymentCollection === "free" ? t("awaitingFreeApprovalBody") : t("awaitingApprovalBody")
+        }
       >
         {actionLinks}
       </ReceiptStateCard>

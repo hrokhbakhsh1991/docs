@@ -92,6 +92,26 @@ describe("format integration delivery message", () => {
       }),
       /نوع مدرک: text\nتوضیحات: پرداخت از طریق کارت به کارت انجام شد/
     );
+    assert.match(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: { registrationId: "reg-3", note: "رسید متنی" },
+      }),
+      /نوع مدرک: متن\nتوضیحات: رسید متنی/
+    );
+    const fileWithoutNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-4",
+        evidenceKind: "photo",
+        fileKey: "proof/a.jpg",
+        note: "",
+      },
+    });
+    assert.match(fileWithoutNote, /نوع مدرک: photo/);
+    assert.doesNotMatch(fileWithoutNote, /بدون توضیحات|توضیحات:/);
   });
 
   it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {

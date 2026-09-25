@@ -388,8 +388,15 @@
     "summaryEyebrow": "Registration overview",
     "lede": "Status, departure, and the next action for this trip.",
     "statusLabel": "Registration status",
+    "registrationStatusBadge": "Registration: {status}",
+    "receiptStatusNone": "Receipt: not submitted",
+    "receiptStatusPending": "Receipt: under review",
+    "receiptStatusRejected": "Receipt: rejected; update required",
+    "receiptStatusPaid": "Receipt: approved",
+    "receiptStatusWaived": "Receipt: not required",
     "statusPendingTitle": "Your request is being reviewed",
     "statusPendingBody": "Payment becomes available after the club approves your registration.",
+    "statusPendingFreeBody": "Your request is waiting for club approval.",
     "statusApprovedTitle": "Your registration is approved",
     "statusApprovedBody": "Send your payment receipt to finalize the trip.",
     "statusReceiptPendingTitle": "Your receipt is under review",
@@ -431,6 +438,7 @@
     "failed": "Upload failed.",
     "awaitingApprovalTitle": "Waiting for club approval",
     "awaitingApprovalBody": "After the club approves your registration, you can upload your payment receipt.",
+    "awaitingFreeApprovalBody": "Your request is waiting for club approval.",
     "waitingTitle": "Receipt submitted",
     "waitingBody": "Waiting for admin approval of your payment receipt.",
     "rejectedHint": "Your previous receipt was rejected. Please upload a new one.",
@@ -466,7 +474,7 @@
     "requestAction": "Request cancellation",
     "blocked": "Cancellation is not available ({reason}).",
     "error": "Could not submit cancellation ({code}).",
-    "refundEligible": "Eligible refund: {amount} {currency}"
+    "refundEligible": "Eligible refund: {amount}"
   },
   "intakeAmend": {
     "eyebrow": "Before approval",

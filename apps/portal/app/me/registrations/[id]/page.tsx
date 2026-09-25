@@ -109,7 +109,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
       ? {
           tone: "waiting",
           title: "statusPendingTitle",
-          body: "statusPendingBody",
+          body: row.paymentCollection === "free" ? "statusPendingFreeBody" : "statusPendingBody",
         }
       : lifecycleStatus === "rejected" || lifecycleStatus === "cancelled"
         ? {
@@ -140,6 +140,18 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                   title: "statusApprovedTitle",
                   body: "statusApprovedBody",
                 };
+  const receiptStatusLabelKey =
+    receiptPanel.status === "pending"
+      ? "receiptStatusPending"
+      : receiptPanel.status === "rejected"
+        ? "receiptStatusRejected"
+        : receiptPanel.status === "paid"
+          ? "receiptStatusPaid"
+          : receiptPanel.status === "waived"
+            ? "receiptStatusWaived"
+            : "receiptStatusNone";
+  const shouldShowReceiptStatusBadge =
+    lifecycleStatus === "approved" || receiptPanel.status !== "none";
 
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
@@ -177,7 +189,16 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               <h2>{t(detailStatus.title)}</h2>
               <p>{t(detailStatus.body)}</p>
             </div>
-            <span data-portal-member-detail-status-badge>{statusLabel}</span>
+            <div data-portal-member-detail-status-badges>
+              <span data-portal-member-detail-status-badge>
+                {t("registrationStatusBadge", { status: statusLabel })}
+              </span>
+              {shouldShowReceiptStatusBadge ? (
+                <span data-portal-member-detail-receipt-status-badge>
+                  {t(receiptStatusLabelKey)}
+                </span>
+              ) : null}
+            </div>
           </section>
           <div data-portal-member-detail-kpis>
             <div data-portal-member-detail-kpi data-kpi="departure">
@@ -201,7 +222,9 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 </p>
               </div>
             ) : null}
-            {typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0 ? (
+            {row.paymentCollection !== "free" &&
+            typeof row.paymentDueAt === "string" &&
+            row.paymentDueAt.length > 0 ? (
               <div data-portal-member-detail-kpi data-kpi="payment-due">
                 <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
                 <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
@@ -254,6 +277,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
+          paymentCollection={row.paymentCollection}
           paymentDueAt={row.paymentDueAt ?? null}
           cancelSource={row.cancelSource ?? null}
         />

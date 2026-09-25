@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
+import { formatMemberMoney } from "@/me/format-member-money";
+
 type CancellationEligibility = {
   readonly eligible: boolean;
   readonly mode: string;
@@ -80,8 +82,10 @@ export function MemberCancellationPanel({ registrationId, registrationStatus }: 
       {eligibility.refund !== undefined ? (
         <p data-portal-member-refund-eligible={eligibility.refund.eligibleRefundMinor}>
           {t("refundEligible", {
-            amount: eligibility.refund.eligibleRefundMinor,
-            currency: eligibility.refund.currency,
+            amount: formatMemberMoney(
+              eligibility.refund.eligibleRefundMinor,
+              eligibility.refund.currency
+            ),
           })}
         </p>
       ) : null}

@@ -8,6 +8,7 @@ export type MemberRegistrationItem = {
   readonly tourTitle: string;
   readonly status: string;
   readonly paymentStatus: string;
+  readonly paymentCollection?: "offline" | "free";
   /** Distinguishes a waived obligation from money actually received. */
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
