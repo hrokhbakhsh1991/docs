@@ -111,6 +111,7 @@
 - `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: در صفحه فارسی Admin نام eventهای `Member registered`، `Receipt approved/rejected/submitted` و `Registration approved/created/waitlisted` هنوز انگلیسی است.
 - `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE`: در فهرست فیلدهای «جزئیات کاتالوگ عمومی»، description فیلد «نقطه شروع» هنوز `Start, summit, camp and end location zones.` است.
 - `BUG-STG-035`: Portal ثبت‌نام `98202973-9d76-43c2-99ab-46d8cb06c30e` زمان حرکت `۲۱ مهر ۱۴۰۵، ۸:۰۰` را نشان می‌دهد که با timezone تهران سازگار است؛ raw API/Admin و SHA واقعی deploy برای closure نهایی هنوز لازم است.
+- `BUG-STG-037` و `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL`: در Admin، فیلتر «در لیست انتظار» مقدار `۸` و جدول `۸ از ۸` دارد و هر ردیف label «در لیست انتظار» و ظرفیت `۱۲/۱۲` دارد؛ حالت «نیازمند اقدام» `۱۲` ردیف دارد که شامل ۸ waitlist و ۴ pending است. این صفحه internally consistent است، اما fixture قبلیِ اختلاف «لیست عملیاتی ۳» و ۱۲ ردیف دوباره بازتولید نشد؛ closure نهایی به SHA واقعی و همان fixture نیاز دارد.
 
 این چهار مشاهده، failure runtime artifact فعلی هستند و تا deploy شدن SHA اصلاحی به‌عنوان failure source جدید تفسیر نمی‌شوند؛ پس از deploy باید با API response، SHA واقعی و screenshot/AX دوباره بسته شوند.
 
