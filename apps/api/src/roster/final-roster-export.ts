@@ -152,7 +152,7 @@ function addDataSheet(
   workbook: ExcelJS.Workbook,
   name: string,
   rows: readonly TourOperationalRosterRow[],
-  fallbackCurrency: string
+  fallbackCurrency: string | null
 ): void {
   const sheet = workbook.addWorksheet(name);
   sheet.views = [{ rightToLeft: true }];
@@ -176,7 +176,7 @@ function addDataSheet(
 function toExportRow(
   row: TourOperationalRosterRow,
   rowNumber: number,
-  fallbackCurrency: string
+  fallbackCurrency: string | null
 ): Record<string, string | number> {
   const paid = parseMinorUnits(row.paidMinor) ?? BigInt(0);
   const remaining = parseMinorUnits(row.remainingMinor) ?? BigInt(0);
@@ -199,10 +199,8 @@ function toExportRow(
   };
 }
 
-function resolveExportCurrency(rows: readonly TourOperationalRosterRow[]): string {
-  return (
-    rows.find((row) => row.currency !== null && row.currency.trim().length > 0)?.currency ?? "IRR"
-  );
+function resolveExportCurrency(rows: readonly TourOperationalRosterRow[]): string | null {
+  return rows.find((row) => row.currency !== null && row.currency.trim().length > 0)?.currency ?? null;
 }
 
 function totalForRow(row: TourOperationalRosterRow): string | null {

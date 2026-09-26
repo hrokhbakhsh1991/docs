@@ -148,8 +148,7 @@
           "kind": "number",
           "required": false,
           "tags": [
-            "optional_basic",
-            "deliverable"
+            "optional_basic"
           ],
           "adminLabel": "Minimum Capacity",
           "group": "General"
@@ -352,7 +351,8 @@
           "kind": "enum",
           "required": true,
           "tags": [
-            "core"
+            "core",
+            "deliverable"
           ],
           "group": "General",
           "enumOptions": [
@@ -2393,5 +2393,5 @@
       "wizardCapacityStepRedundant": false
     }
   },
-  "checksum": "91330beaebef9169fe6b9389e6428d83898a7ad72a3a17cfefd99a98f92e4a28"
+  "checksum": "004938c7f188f60d491a914a2389621c60080e889ec270fe8b599051f33f0cb2"
 }
