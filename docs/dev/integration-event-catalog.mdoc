@@ -85,6 +85,12 @@ it must be retried/dead-lettered without failing the originating business action
 The connection's `groupName` and `chatId` are verified during Telegram forum
 onboarding, and the bot must be an administrator with topic-management permission.
 
+Admin locale files must represent dotted event types such as
+`registration.approved` and `receipt.rejected` as nested message objects under
+`eventNames`. The domain event type remains dotted; only the message-tree
+representation changes because `next-intl` reserves `.` for namespace paths and
+rejects dotted leaf keys at runtime.
+
 Each delivery is idempotent by `(tenantId, provider, capability, domainEventId)`.
 Staging and production must use separate Telegram connections (bot token, chat ID,
 and topic IDs); no environment may reuse the other's secret or destination.
