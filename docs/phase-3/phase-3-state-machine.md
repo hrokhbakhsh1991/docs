@@ -54,7 +54,7 @@ state_variables:
     type: enum
     allowed: ["3.0", "3.1", "3.2", "3.3", "3.3.x", "3.4", "3.5", "DONE"]
     initial: "3.0"
-    closed_state: "DONE — document claims Closed: Zero-Debt Verified 2026-06-03"
+    closed_state: "DONE — only after runtime backlog closure and current-SHA phase-3:gate evidence"
   phase_3_mode:
     type: enum
     allowed: ["app_integration_consumer"]
@@ -151,4 +151,3 @@ barrel_import_law:
 ```
 
 ---
-

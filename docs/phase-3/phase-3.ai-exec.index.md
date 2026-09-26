@@ -11,7 +11,7 @@ document_meta:
   doc_revision: "2026-06-03-phase-3-ai-exec"
   forensic_audit: docs/audits/phase-3-zero-debt-forensic-audit.mdoc
   integrity_audit: docs/audits/phase-3-documentation-integrity-2026-06-03.mdoc
-  document_status_claim: "Closed: Zero-Debt Verified (2026-06-03)"
+  document_status_claim: "Scaffold / In Progress — runtime backlog active; do not close on gate-only evidence"
   ai_exec_index: docs/phase-3/phase-3.ai-exec.index.md
   ai_exec_modules: docs/phase-3/
   modular_split_version: "2026-06-04"
@@ -21,7 +21,7 @@ document_meta:
   phase_id: "3"
   phase_name: "Design System & App Integration"
   subphases: ["3.0", "3.1", "3.2", "3.3", "3.3.x", "3.4", "3.5"]
-  phase_detection_blocker: null
+  phase_detection_blocker: "Phase 3 runtime backlog remains open; execute 3.0 control-plane work first"
   prerequisite_hubs:
     - docs/phase-2/phase-2.ai-exec.index.md
   backlog_soft:
@@ -39,7 +39,7 @@ phase_name: "Design System & App Integration"
 prerequisite_phase: "2"
 prerequisite_gate: pnpm run phase-2:gate
 closure_command: pnpm run phase-3:gate
-phase_detection_blocker: null
+  phase_detection_blocker: "Phase 2 current-SHA gate and runtime backlog evidence must be closed before Phase 3 runtime work"
 detected_from: phase-3-overview.md STEP 1
 ```
 
@@ -126,9 +126,9 @@ algorithm:
 ```yaml
 doc_drift:
   - id: DRIFT-P3-01
-    source: "md §13.4 phase-3:gate JSON omits pnpm run doc-gate"
-    repo: "package.json phase-3:gate includes doc-gate before phase-3:guard"
-    resolution: "Execute package.json 9-step chain — DRIFT-P3-01"
+    source: "legacy documentation listed doc-gate as a separate outer step"
+    repo: "phase-3-guard owns p3_doc_gate and phase-3:gate invokes that guard once"
+    resolution: "Single owner selected: phase-3-guard; no duplicate outer doc-gate"
   - id: DRIFT-P3-02
     source: "md §13.5 guard table numbered 1-9 without p3_* enforcement binding"
     repo: "scripts/guards/phase-3-guard.mjs emits p3_doc_gate … p3_no_denali"
@@ -146,9 +146,9 @@ doc_drift:
     repo: "scripts/ci-integrity-check.sh phase-0 + phase-1 only"
     resolution: "Phase 3 CI = .github/workflows/phase-3-gate.yml — not pre-commit ci:integrity"
   - id: DRIFT-P3-06
-    source: "md §13.4 does not list phase-2:gate position relative to doc-gate"
-    repo: "phase-2:gate step 7 then doc-gate step 8 then phase-3:guard step 9"
-    resolution: "Frozen baseline before doc-gate then p3 guard"
+    source: "legacy documentation described doc-gate as step 8"
+    repo: "phase-2:gate is followed by phase-3-guard, whose p3_doc_gate runs once"
+    resolution: "Frozen baseline before phase-3-guard; doc-gate ownership is unambiguous"
   - id: DRIFT-P3-07
     source: "md §8.2 task 1 ability.ts defineAbilityFor"
     repo: "defineAbilityFor exported from packages/workspace-sdk/src/auth/casl/index.ts; ability.ts re-exports TenantAuthz"
@@ -162,9 +162,9 @@ doc_drift:
     repo: "phase-3-guard has no Playwright check — soft backlog"
     resolution: "W-3 W-4 non-blocking per document_status backlog"
   - id: DRIFT-P3-10
-    source: "md treats doc-gate as phase-3:gate step 8 only"
-    repo: "p3_doc_gate also runs inside phase-3-guard.mjs as first check"
-    resolution: "Intentional duplicate — both must PASS; do not skip p3_doc_gate when guard runs"
+    source: "legacy documentation treated doc-gate as a separate outer step"
+    repo: "p3_doc_gate is the first check inside phase-3-guard.mjs"
+    resolution: "Single owner — run phase-3:guard through phase-3:gate; do not add a second doc-gate call"
 ```
 
 ---
@@ -179,7 +179,7 @@ fail_assessment:
   actionable_steps: PASS with DOC_DRIFT register DRIFT-P3-01 through DRIFT-P3-10
 
 hard_fail_triggers:
-  - condition: "Agent runs stale §13.4 phase-3:gate JSON without doc-gate"
+  - condition: "Agent bypasses phase-3-guard or p3_doc_gate"
     result: FAIL — misses P3-E-DOC-GATE and MAP §19 scaffold
   - condition: "Agent binds guards to §13.5 numbered table instead of p3_* ids"
     result: FAIL — DRIFT-P3-02

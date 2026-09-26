@@ -14,7 +14,7 @@ describe("format integration delivery message", () => {
         eventType: "TourPublished",
         payload: { title: "Alpine Day", aggregateId: "tour-1" },
       }),
-      "Tour published: Alpine Day"
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day"
     );
   });
 
@@ -158,7 +158,7 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour published: Alpine Day",
+        "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day",
         "Destination: Kerman",
         "Title: Alpine Day",
         "Start Date Time: 2026-06-28",
@@ -186,7 +186,7 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour published: Alpine Day",
+        "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day",
         "✅ 📍 Meeting Point: Jamshidiyeh Park",
         "✅ 🎒 Gear Items: Breakfast, water, baton",
       ].join("\n")
@@ -306,7 +306,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "Tour published: Alpine Day\nTitle: Alpine Day"
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day\nTitle: Alpine Day"
     );
   });
 });

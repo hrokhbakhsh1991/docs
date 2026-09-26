@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { freezeCanonicalDocumentData } from "@app-tour/workspace-sdk";
+
 import {
   buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
@@ -477,14 +479,28 @@ export class InMemoryTourRepository implements TourStorageRepository {
     return this.byId.has(tourStorageKey(tenantId, id));
   }
 
-  private indexTour(tour: Tour): void {
-    this.byId.set(tourStorageKey(tour.tenantId, tour.id), tour);
+  private normalizeTour(tour: Tour): Tour {
+    const canonical = tour.canonical;
+    return Object.freeze({
+      ...tour,
+      canonical: Object.freeze({
+        ...canonical,
+        roots: Object.freeze([...(canonical.roots ?? [])]),
+        data: freezeCanonicalDocumentData(canonical.data ?? {}),
+      }),
+    });
+  }
+
+  private indexTour(tour: Tour): Tour {
+    const stored = this.normalizeTour(tour);
+    this.byId.set(tourStorageKey(stored.tenantId, stored.id), stored);
     let ids = this.idsByTenant.get(tour.tenantId);
     if (ids === undefined) {
       ids = new Set();
       this.idsByTenant.set(tour.tenantId, ids);
     }
-    ids.add(tour.id);
+    ids.add(stored.id);
+    return stored;
   }
 
   async getById(id: string, tenantId: string): Promise<Tour | null> {
@@ -613,7 +629,7 @@ export class InMemoryTourRepository implements TourStorageRepository {
       rowVersion: 1,
     };
     await this.save(tour);
-    return tour;
+    return this.byId.get(tourStorageKey(tour.tenantId, tour.id)) as Tour;
   }
 
   async updateIfRowVersion(input: {
@@ -637,7 +653,6 @@ export class InMemoryTourRepository implements TourStorageRepository {
       updatedAt: new Date().toISOString(),
       rowVersion: existing.rowVersion + 1,
     };
-    this.indexTour(updated);
-    return updated;
+    return this.indexTour(updated);
   }
 }

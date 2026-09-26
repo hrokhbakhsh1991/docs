@@ -1,6 +1,6 @@
 # Phase 5 — Chaos transaction integrity report
 
-report_date: 2026-06-06
+report_date: 2026-09-25
 iterations: 5
 partial_write_count: 0
 verdict: **PASS**
@@ -16,13 +16,13 @@ Cross-link: [HARDENED-GATE-REPORT.md](./HARDENED-GATE-REPORT.md)
 
 ## Iteration table
 
-| #   | mode          | exit | signal  | orphan_tours | orphan_outbox | orphan_audit | partial | pass |
-| --- | ------------- | ---- | ------- | ------------ | ------------- | ------------ | ------- | ---- |
-| 1   | outbox        | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 2   | pre_commit    | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 3   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 4   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 5   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
+| # | mode | exit | signal | orphan_tours | orphan_outbox | orphan_audit | partial | pass |
+|---|------|------|--------|--------------|---------------|--------------|---------|------|
+| 1 | outbox | 1 | — | 0 | 0 | 0 | 0 | PASS |
+| 2 | sigkill | null | SIGKILL | 0 | 0 | 0 | 0 | PASS |
+| 3 | before_outbox | 1 | — | 0 | 0 | 0 | 0 | PASS |
+| 4 | pre_commit | 1 | — | 0 | 0 | 0 | 0 | PASS |
+| 5 | pre_commit | 1 | — | 0 | 0 | 0 | 0 | PASS |
 
 ## Atomicity verdict
 
