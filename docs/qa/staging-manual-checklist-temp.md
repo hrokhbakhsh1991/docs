@@ -117,6 +117,7 @@
 - GitHub deploy evidence: آخرین اجرای موفق workflow `Deploy staging (dev)` با run `36273529557` روی SHA `a37f38cd89576b17b07808c45279788eab63b3a1` است؛ head فعلی PR #211 و commit‌های بعدی روی staging deploy نشده‌اند. بنابراین failureهای runtime این دور به artifact قدیمی نسبت داده می‌شوند، نه به source head فعلی.
 - `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS` و Telegram واقعی: تب «رسیدها» در `admin.denali.shenski.com/finance?tab=receipts` باز شد، اما صف «صف بررسی فیش» هیچ ردیف receipt ندارد؛ fixture rejected/pending برای اجرای reject→resubmit، تطبیق `fileKey` و ارسال واقعی photo/PDF موجود نیست. ساخت receipt یا تغییر وضعیت در staging انجام نشد.
 - source retest این دسته با runner رسمی سبز است: Portal lifecycle/status `۱۸/۱۸`، API receipt flow `۷/۷` و Telegram API/adapter/worker/topic/retry/file routing `۵۰/۵۰`. در receipt flow فقط هشدار محیطی `MINIO_NOT_CONFIGURED` ثبت شد؛ بنابراین این نتایج قرارداد/source هستند و جایگزین ارسال واقعی فایل روی staging نمی‌شوند.
+- source retest PDP/فرم نیز سبز است: Marketing policy/preview `۱۲/۱۲`، Portal registration/pricing/waitlist `۱۱/۱۱` و API registration matrix `۱۸/۱۸`. این نتایج `BUG-STG-008/013` و `BUG-STG-022` را در source پوشش می‌دهند؛ مقایسهٔ دو حساب واقعی روی staging بعد از deploy هنوز لازم است.
 
 این چهار مشاهده، failure runtime artifact فعلی هستند و تا deploy شدن SHA اصلاحی به‌عنوان failure source جدید تفسیر نمی‌شوند؛ پس از deploy باید با API response، SHA واقعی و screenshot/AX دوباره بسته شوند.
 
