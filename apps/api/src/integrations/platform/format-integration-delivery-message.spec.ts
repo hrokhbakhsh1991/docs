@@ -14,7 +14,7 @@ describe("format integration delivery message", () => {
         eventType: "TourPublished",
         payload: { title: "Alpine Day", aggregateId: "tour-1" },
       }),
-      "Tour published: Alpine Day"
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day"
     );
   });
 
@@ -92,6 +92,26 @@ describe("format integration delivery message", () => {
       }),
       /نوع مدرک: text\nتوضیحات: پرداخت از طریق کارت به کارت انجام شد/
     );
+    assert.match(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: { registrationId: "reg-3", note: "رسید متنی" },
+      }),
+      /نوع مدرک: متن\nتوضیحات: رسید متنی/
+    );
+    const fileWithoutNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-4",
+        evidenceKind: "photo",
+        fileKey: "proof/a.jpg",
+        note: "",
+      },
+    });
+    assert.match(fileWithoutNote, /نوع مدرک: photo/);
+    assert.doesNotMatch(fileWithoutNote, /بدون توضیحات|توضیحات:/);
   });
 
   it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {
@@ -138,7 +158,7 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour published: Alpine Day",
+        "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day",
         "Destination: Kerman",
         "Title: Alpine Day",
         "Start Date Time: 2026-06-28",
@@ -166,7 +186,7 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour published: Alpine Day",
+        "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day",
         "✅ 📍 Meeting Point: Jamshidiyeh Park",
         "✅ 🎒 Gear Items: Breakfast, water, baton",
       ].join("\n")
@@ -286,7 +306,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "Tour published: Alpine Day\nTitle: Alpine Day"
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day\nTitle: Alpine Day"
     );
   });
 });

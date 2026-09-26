@@ -5,9 +5,11 @@ export type ResolvedIntegrationMedia = {
   readonly url: string;
 };
 
-function mediaKindFromStorageKey(storageKey: string): "photo" | "document" {
+export function resolveIntegrationMediaKindFromStorageKey(
+  storageKey: string
+): "photo" | "document" {
   const lower = storageKey.trim().toLowerCase();
-  return /\.(png|jpe?g|webp|gif)$/.test(lower) ? "photo" : "document";
+  return /\.(png|jpe?g|webp|gif)(?:-[a-f0-9]{16,64})?$/.test(lower) ? "photo" : "document";
 }
 
 /** Resolve private receipt media only at delivery time, never in the durable event. */
@@ -21,7 +23,7 @@ export async function resolveIntegrationMedia(input: {
   }
 
   return {
-    kind: mediaKindFromStorageKey(storageKey),
+    kind: resolveIntegrationMediaKindFromStorageKey(storageKey),
     url: await getMemberReceiptProofSignedReadUrl({
       tenantId: input.tenantId,
       storageKey,

@@ -1,7 +1,7 @@
 # Phase 3 — Design System & App Integration Plan
 
 > **AI-execution (agents):** [`phase-3-design-system.ai-exec.md`](phase-3-design-system.ai-exec.md) · [`phase-3/phase-3.ai-exec.index.md`](phase-3/phase-3.ai-exec.index.md) · hub [`phase-3/README.md`](phase-3/README.md)  
-> **Gate (repo):** `pnpm run phase-3:gate` (9 steps + `p3_*`) — includes `doc-gate` + nested `phase-2:gate` — not §13.4 JSON · body may lag `.mdoc`  
+> **Gate (repo):** `pnpm run phase-3:gate` — `doc-gate` یک‌بار در `phase-3:guard` و سپس `p3_*` اجرا می‌شود؛ اجرای جداگانه یا موازی مستندات مجاز نیست.
 > **Canonical (Markdoc):** [`phase-3-design-system.mdoc`](phase-3-design-system.mdoc) · §19 · `pnpm run guard:doc-sync`  
 > **Forensic (permanent):** [`audits/phase-3-zero-debt-forensic-audit.mdoc`](audits/phase-3-zero-debt-forensic-audit.mdoc) · [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)  
 > **Integrity:** [`audits/phase-3-documentation-integrity-2026-06-03.mdoc`](audits/phase-3-documentation-integrity-2026-06-03.mdoc)
@@ -14,7 +14,7 @@
 > **Docs-as-Code (§19):** Markdoc canonical — [`phase-3-design-system.mdoc`](phase-3-design-system.mdoc) · `pnpm run guard:doc-sync`  
 > **Forensic (permanent):** [`audits/phase-3-zero-debt-forensic-audit.mdoc`](audits/phase-3-zero-debt-forensic-audit.mdoc) · legacy [`.md`](audits/phase-3-zero-debt-forensic-audit.md)  
 > **Integrity report:** [`audits/phase-3-documentation-integrity-2026-06-03.mdoc`](audits/phase-3-documentation-integrity-2026-06-03.mdoc)  
-> **وضعیت:** **Closed: Zero-Debt Verified** (platform scaffold 3.0–3.5) — `pnpm run phase-3:gate` · backlog: Playwright (soft), Select/Checkbox (3.3.x optional)
+> **وضعیت:** **Scaffold / In Progress** — فاز ۳ تا بسته‌شدن backlogهای runtime و تأیید DoD کامل، Closed نیست. `pnpm run phase-3:gate` فقط gateهای تعریف‌شده را اعتبارسنجی می‌کند.
 
 ---
 
@@ -521,7 +521,7 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 {
   "scripts": {
     "phase-3:guard": "node scripts/guards/phase-3-guard.mjs",
-    "phase-3:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:artifact-surface && pnpm run audit-boundary && pnpm run phase-2:gate && pnpm run phase-3:guard"
+    "phase-3:gate": "pnpm build && pnpm test && pnpm --filter @app-tour/platform-core run test:phase-2 && pnpm run phase-2:guard && pnpm run phase-3:guard && pnpm run phase-3:apps-cert"
   }
 }
 ```
@@ -588,11 +588,11 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 | 3.4 | `P3-E-CANONICAL-34` | ✅ Enforced | `CanonicalTourService` + `validateCanonicalLegacySync` |
 | 3.5 | `P3-E-GATE` | ✅ Enforced | `phase-3:gate` + `reports/phase-3-gate-*.json` |
 
-**Whole Phase 3 row in MAP:** **Closed: Zero-Debt Verified** (2026-06-03) — forensic [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md) · `pnpm run phase-3:gate` exit 0.
+**Whole Phase 3 row in MAP:** **Scaffold / In Progress** — `MIGRATION-MAP.md` هنوز backlogهای runtime را باز می‌داند؛ خروجی gate به‌تنهایی مجوز بستن کل فاز نیست.
 
 ---
 
-**Security Seal (MAP §18):** **Closed: Zero-Debt Verified** — only after:
+**Security Seal (MAP §18):** **باز است** — فقط پس از بسته‌شدن backlogهای runtime، audit جاری و DoD کامل قابل بسته‌شدن است:
 
 | Metric | Required |
 |--------|----------|
@@ -611,7 +611,7 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 - [ ] 3.3.x Select + Checkbox (P3-UI-01/02) — optional; non-blocking per gate
 - [x] 3.4 canonical-only (`P3-E-CANONICAL-34`)
 - [x] 3.5 phase-3-gate + report
-- [x] Phase Gate Audit Table row 3 → **Closed: Zero-Debt Verified**
+- [ ] Phase Gate Audit Table row 3 → **Scaffold / In Progress** تا تکمیل backlogهای runtime
 - [x] §13 enforcement IDs verified (`reports/phase-3-gate-2026-06-03.json`)
 
 ### 15.2 Phase 2 items — وضعیت نهایی در فاز ۳

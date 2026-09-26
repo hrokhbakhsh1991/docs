@@ -68,7 +68,7 @@
     "backToTourDetails": "بازگشت به جزئیات تور",
     "participantLead": "چه کسانی را ثبت‌نام می‌کنید؟",
     "inTour": "من هم در این تور شرکت می‌کنم",
-    "addGuestShort": "+ افزودن همراه",
+    "addGuestShort": "افزودن همراه",
     "removeGuestShort": "حذف",
     "removeGuestAriaLabel": "حذف مهمان {index}",
     "guestRemoved": "همراه حذف شد.",

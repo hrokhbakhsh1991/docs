@@ -32,17 +32,22 @@ phase_3_gate:
       note: "frozen baseline — phase 3 must not regress phase 2"
       includes: [validate-design-tokens, phase-2:guard, ...]
     - step: 8
-      run: pnpm run doc-gate
-      guard_id: p3_doc_gate
-      note: "REPO TRUTH — stale md §13.4 JSON block OMITS this step"
-    - step: 9
       run: pnpm run phase-3:guard
       expands_to: node scripts/guards/phase-3-guard.mjs
+      owns: [p3_doc_gate]
+    - step: 9
+      run: node scripts/guards/write-phase-3-gate-report.mjs
+      condition: "PHASE_3_GATE_CHAIN_REACHED=1 after steps 1-8 succeed"
+      owns: [phase_3_gate_report]
       writes: reports/phase-3-gate-YYYY-MM-DD.json
 
-phase_3_gate_NOT_in_stale_md_13_4:
-  - doc-gate
-  note: "Execute package.json — not §13.4 stale JSON"
+phase_3_gate_doc_contract:
+  owner: phase-3-guard
+  rule: "doc-gate runs once as p3_doc_gate inside phase-3:guard; package.json must not add a second invocation"
+
+phase_3_gate_report_contract:
+  owner: phase-3:gate post-step
+  rule: "the aggregate report is written only after the canonical chain succeeds; guard and apps-cert reports remain check-level evidence"
 
 github_workflow:
   file: .github/workflows/phase-3-gate.yml
@@ -77,20 +82,18 @@ appendix_G_repo_truth:
     phase-3:gate: |
       pnpm build &&
       pnpm test &&
-      pnpm run guard:architecture &&
-      pnpm run guard:import-boundary &&
-      pnpm run guard:artifact-surface &&
-      pnpm run audit-boundary &&
-      pnpm run phase-2:gate &&
-      pnpm run doc-gate &&
-      pnpm run phase-3:guard
+      pnpm --filter @app-tour/platform-core run test:phase-2 &&
+      pnpm run phase-2:guard &&
+      pnpm run phase-3:guard &&
+      pnpm run phase-3:apps-cert &&
+      PHASE_3_GATE_CHAIN_REACHED=1 node scripts/guards/write-phase-3-gate-report.mjs
     doc-gate: node scripts/guards/doc-gate.mjs
     ci_integrity: bash scripts/ci-integrity-check.sh
 
   stale_md_section_13_4_json:
     claimed_chain: "build + test + guard:architecture + guard:import-boundary + guard:artifact-surface + audit-boundary + phase-2:gate + phase-3:guard"
-    missing_in_stale: [doc-gate]
-    resolution: "REPO adds doc-gate step 8 before phase-3:guard"
+    missing_in_stale: [guard:architecture, guard:import-boundary, guard:artifact-surface, audit-boundary]
+    resolution: "doc-gate is intentionally owned by phase-3:guard as p3_doc_gate; the outer chain does not duplicate it"
 
   stale_md_section_13_5_table:
     claimed_checks: "numbered 1-9 without p3_* ids; lint-only; missing doc-gate api-gate web-gate"
@@ -114,4 +117,3 @@ appendix_G_repo_truth:
 ```
 
 ---
-

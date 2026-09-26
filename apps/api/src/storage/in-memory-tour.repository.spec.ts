@@ -115,6 +115,20 @@ describe("InMemoryTourRepository (tenant-scoped storage)", () => {
     assert.equal(loaded?.canonical.data.basics.title, "updated");
   });
 
+  it("keeps the stored canonical document immutable across returned records", async () => {
+    const repo = new InMemoryTourRepository();
+    const created = await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
+
+    (created as { canonical: unknown }).canonical = sampleCanonical;
+    {
+      const data = created.canonical.data as { basics: { title: string } };
+      data.basics.title = "mutated";
+    }
+
+    const loaded = await repo.getById(created.id, "t1");
+    assert.equal(loaded?.canonical.data.basics.title, "t");
+  });
+
   it("rejects save when tenant cap exceeded", async () => {
     process.env.MAX_TOURS_PER_TENANT = "1";
     process.env.MAX_TOURS_GLOBAL = "100";

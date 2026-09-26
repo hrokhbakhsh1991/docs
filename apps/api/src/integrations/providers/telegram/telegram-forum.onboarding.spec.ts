@@ -45,7 +45,7 @@ describe("Telegram forum onboarding", () => {
       }),
     });
 
-    assert.equal(creates, 2);
+    assert.equal(creates, 3);
     assert.equal(result.config.topics.registration.threadId, 11);
   });
 
@@ -71,10 +71,11 @@ describe("Telegram forum onboarding", () => {
 
     await Promise.all([config(), config()]);
 
-    assert.equal(creates, 3);
+    assert.equal(creates, 4);
     assert.equal(persisted.topics.registration.threadId, 101);
     assert.equal(persisted.topics.receipts.threadId, 102);
     assert.equal(persisted.topics.tickets.threadId, 103);
+    assert.equal(persisted.topics.tours.threadId, 104);
   });
 
   it("checkpoints each newly created topic before continuing", async () => {
@@ -92,6 +93,7 @@ describe("Telegram forum onboarding", () => {
       `registration:${"ثبت‌نام‌های جدید".length}`,
       `receipts:${"بررسی فیش‌ها".length}`,
       `tickets:${"تیکت‌ها".length}`,
+      `tours:${"تورهای جدید".length}`,
     ]);
   });
 

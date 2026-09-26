@@ -85,7 +85,7 @@ enforcement_table:
     ci_command: pnpm run doc-gate
     fail_if: "registry missing; broken links; markdoc fail; audit-boundary fail"
     guard_id: p3_doc_gate
-    note: "REPO includes doc-gate in phase-3:gate AND phase-3-guard — stale md §13.4 omits doc-gate"
+    note: "doc-gate is owned by phase-3-guard and is executed once through phase-3:gate; no duplicate outer invocation"
   - enforcement_id: P3-E-GATE
     sub_task: "Full phase gate"
     ci_command: pnpm run phase-3:gate
@@ -158,7 +158,7 @@ forbidden_actions:
 
 ```yaml
 dod_security_seal:
-  status: "Closed: Zero-Debt Verified"
+  status: "Scaffold / In Progress — runtime backlog active"
   date: "2026-06-03"
   map_ref: MIGRATION-MAP Phase Gate Audit Table §18
   forensic: docs/audits/phase-3-zero-debt-forensic-audit.mdoc
@@ -301,8 +301,7 @@ phase_3_complete_when_ALL:
   - forbidden_actions_§14: none violated
   - test_matrix_G3: PASS
   - forensic: docs/audits/phase-3-zero-debt-forensic-audit.mdoc archived
-  - document_status: "Closed: Zero-Debt Verified 2026-06-03"
+  - document_status: "Scaffold / In Progress — runtime backlog active"
 ```
 
 ---
-

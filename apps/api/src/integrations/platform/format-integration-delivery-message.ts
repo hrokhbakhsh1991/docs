@@ -191,10 +191,12 @@ export async function formatIntegrationDeliveryMessage(input: {
     const evidenceKind =
       typeof input.payload.evidenceKind === "string" ? input.payload.evidenceKind.trim() : "";
     const note = typeof input.payload.note === "string" ? input.payload.note.trim() : "";
+    const fileKey = typeof input.payload.fileKey === "string" ? input.payload.fileKey.trim() : "";
     if (evidenceKind.length === 0 && note.length === 0) {
       return message;
     }
-    return `${message}\nنوع مدرک: ${evidenceKind || "فایل"}\nتوضیحات: ${note || "بدون توضیحات"}`;
+    const kind = evidenceKind || (fileKey.length > 0 ? "فایل" : "متن");
+    return `${message}\nنوع مدرک: ${kind}${note.length > 0 ? `\nتوضیحات: ${note}` : ""}`;
   };
   const overrideTemplate =
     typeof input.payload.integrationDeliveryMessageTemplate === "string" &&

@@ -152,8 +152,81 @@ describe("registration-read-services", () => {
     assert.equal(detail.dueTotalMinor, "2650000");
     assert.equal(detail.dueCurrency, "IRR");
     assert.equal(detail.dueLines?.length, 2);
+    assert.equal(detail.paymentCollection, "offline");
     assert.equal(detail.transportKind, "primary");
     assert.equal(detail.personalCarOccupants, undefined);
+  });
+
+  it("DN-READ-07 owned free detail exposes canonical free collection without a due amount", async () => {
+    const bookingPort: BookingPublicPort = {
+      async findDuplicateByTourGuest() {
+        return null;
+      },
+      async findDuplicateByTourGuestLabel() {
+        return null;
+      },
+      async findDuplicateByTourGuestNationalId() {
+        return null;
+      },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
+      async findDuplicateByTourEmail() {
+        return null;
+      },
+      async findOwnedBooking() {
+        return {
+          id: REG_ID,
+          status: "pending",
+          tourId: TOUR_ID,
+          tourTitle: "Read Services Tour",
+          guestLabel: "Member",
+          registrantTarget: "self",
+          paymentStatus: "unpaid",
+          departureAt: "2026-06-01T08:00:00.000Z",
+          submittedAt: "2026-05-01T08:00:00.000Z",
+          partySize: 1,
+        };
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
+      async createPendingBooking() {
+        return { id: REG_ID, status: "pending" };
+      },
+      async autoApprovePublicBooking() {
+        return { id: REG_ID, status: "approved" };
+      },
+      async sumApprovedPartySizeByTourIds() {
+        return {};
+      },
+    };
+    const detail = await getDenaliRegistrationOwned({
+      tenantId: TENANT,
+      guestUserId: GUEST,
+      registrationId: REG_ID,
+      bookingPort,
+      store: {
+        ...pricedTourStore(),
+        async findFirst() {
+          const tour = await pricedTourStore().findFirst({ tenantId: TENANT, id: TOUR_ID });
+          return tour === null
+            ? null
+            : {
+                ...tour,
+                canonical: {
+                  ...tour.canonical,
+                  data: { ...tour.canonical.data, pricing: { paymentCollection: "free" } },
+                },
+              };
+        },
+      },
+    });
+    assert.equal(detail.paymentCollection, "free");
+    assert.equal(detail.dueTotalMinor, undefined);
   });
 
   it("DN-READ-06 owned detail exposes personal_car occupants without registrationIntake blob", async () => {

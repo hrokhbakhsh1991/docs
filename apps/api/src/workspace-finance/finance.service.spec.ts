@@ -202,6 +202,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     });
 
     assert.equal(reviewed.status, "Approved");
+    assert.equal(reviewed.registrationId, registrationId);
     assert.equal(reviewed.bookingPaymentStatus, "paid");
     assert.deepEqual(
       (await financeRepo.listLedgerEvents(OPERATOR_SMOKE.tenantId, 20))

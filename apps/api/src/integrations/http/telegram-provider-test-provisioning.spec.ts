@@ -36,11 +36,13 @@ describe("Telegram provider test topic provisioning", () => {
       registration: "ثبت‌نام‌های جدید".length,
       receipts: "بررسی فیش‌ها".length,
       tickets: "تیکت‌ها".length,
+      tours: "تورهای جدید".length,
     });
     assert.deepEqual(result.config.topicNames, {
       registration: "ثبت‌نام‌های جدید",
       receipts: "بررسی فیش‌ها",
       tickets: "تیکت‌ها",
+      tours: "تورهای جدید",
     });
   });
 
@@ -67,6 +69,7 @@ describe("Telegram provider test topic provisioning", () => {
       registration: 101,
       receipts: "بررسی فیش‌ها".length,
       tickets: "تیکت‌ها".length,
+      tours: "تورهای جدید".length,
     });
   });
 
@@ -75,7 +78,7 @@ describe("Telegram provider test topic provisioning", () => {
     const config = {
       chatId: "-1001",
       groupName: "denaliAdmins",
-      topicThreadIds: { registration: 101, receipts: 202, tickets: 303 },
+      topicThreadIds: { registration: 101, receipts: 202, tickets: 303, tours: 404 },
     };
     const result = await ensureTelegramProviderTestRegistrationTopic({
       config,

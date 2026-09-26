@@ -43,7 +43,10 @@ describe("resolveRegistrySeededExposureProfile", () => {
     assert.deepEqual(profile?.defaultFieldIds, selectableIds);
     assert.ok(profile?.defaultFieldIds.includes("title"));
     assert.ok(profile?.defaultFieldIds.includes("denali.destination"));
-    assert.equal(profile?.defaultTemplateId, "Tour published: {{title}}");
+    assert.equal(
+      profile?.defaultTemplateId,
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
+    );
     assert.equal(
       `${profile?.workspaceType}.${profile?.surface}.${profile?.trigger}`,
       "denali.telegram.TourPublished"

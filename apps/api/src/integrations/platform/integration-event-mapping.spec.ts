@@ -10,7 +10,7 @@ describe("integration event mappings", () => {
         eventType: "TourPublished",
         capability: "message.send",
         providers: ["telegram"],
-        topicKey: "registration",
+        topicKey: "tours",
       },
     ]);
     assert.deepEqual(await integrationMappingsForEvent("TourCreated", "denali"), []);

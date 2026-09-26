@@ -8,10 +8,15 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-registration-headers.server";
+import { formatMemberMoney } from "../src/me/format-member-money";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal-member-registrations", () => {
+  it("MEM-FIN-01 formats IRR with the member-facing toman label", () => {
+    assert.equal(formatMemberMoney("1344444", "IRR"), "۱٬۳۴۴٬۴۴۴ تومان");
+  });
+
   it("MEM-BFF-01 fetchMemberRegistrations uses same-origin registrations BFF", () => {
     const fetchModule = readFileSync(
       join(repoRoot, "apps/portal/src/me/fetch-member-registrations.server.ts"),
@@ -121,6 +126,7 @@ describe("portal-member-registrations", () => {
     assert.match(page, /data-portal-member-registration-detail/);
     assert.match(page, /data-portal-member-detail-status-card/);
     assert.match(page, /statusPendingTitle/);
+    assert.match(page, /statusPendingFreeBody/);
     assert.match(page, /statusReceiptPendingTitle/);
     assert.match(page, /statusReceiptRejectedTitle/);
     assert.match(page, /data-portal-member-registrant-target/);
@@ -135,6 +141,8 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-upload/);
     assert.match(form, /data-portal-member-receipt-submit/);
     assert.match(form, /data-portal-member-receipt-awaiting-approval/);
+    assert.match(form, /awaitingFreeApprovalBody/);
+    assert.match(form, /router\.refresh\(\)/);
     assert.match(form, /data-portal-member-receipt-closed/);
     assert.match(form, /data-portal-member-receipt-waiting/);
     assert.match(form, /data-portal-member-receipt-paid/);
@@ -179,6 +187,9 @@ describe("portal-member-registrations", () => {
     assert.match(lifecycle, /parseRegistrationLifecycleStatus/);
     assert.doesNotMatch(lifecycle, /\|\s*string/);
     assert.match(page, /parseRegistrationLifecycleStatus/);
+    assert.match(page, /registrationStatusBadge/);
+    assert.match(page, /data-portal-member-detail-receipt-status-badge/);
+    assert.match(page, /shouldShowReceiptStatusBadge/);
     assert.doesNotMatch(form, /parseRegistrationLifecycleStatus/);
     assert.match(form, /disabled=\{uploadPhase === "uploading"\}/);
     assert.match(page, /MemberIntakeAmendForm/);

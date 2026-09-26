@@ -1,4 +1,4 @@
-export const TELEGRAM_FORUM_TOPIC_KEYS = ["registration", "receipts", "tickets"] as const;
+export const TELEGRAM_FORUM_TOPIC_KEYS = ["registration", "receipts", "tickets", "tours"] as const;
 
 export type TelegramForumTopicKey = (typeof TELEGRAM_FORUM_TOPIC_KEYS)[number];
 
@@ -20,6 +20,7 @@ export const DEFAULT_TELEGRAM_FORUM_TOPIC_NAMES: Readonly<Record<TelegramForumTo
     registration: "ثبت‌نام‌های جدید",
     receipts: "بررسی فیش‌ها",
     tickets: "تیکت‌ها",
+    tours: "تورهای جدید",
   });
 
 export function createTelegramForumConfig(input: {

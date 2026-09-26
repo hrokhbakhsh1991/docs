@@ -170,7 +170,7 @@ export function readTelegramTopicConfig(config: Record<string, unknown>): Record
       ? (config.topicThreadIds as Record<string, unknown>)
       : {};
   return Object.fromEntries(
-    ["registration", "receipts", "tickets"].map((key) => [
+    TELEGRAM_FORUM_TOPIC_KEYS.map((key) => [
       key,
       {
         ...(typeof names[key] === "string" ? { name: names[key] } : {}),

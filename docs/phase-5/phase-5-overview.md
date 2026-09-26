@@ -186,9 +186,9 @@ ADR-005 chosen stack: validate → Postgres TX (canonical_data + projections + o
 | 5.0      | VERIFIED_SCAFFOLD   | entry yaml + phase-4 gate report                |
 | 5.1      | VERIFIED (scaffold) | guard + DEL-P5-001 artifacts                    |
 | 5.2      | **VERIFIED**        | validate-before-persist — schema §4.1           |
-| 5.3      | SPEC_ONLY           | projection columns exist; sync on write pending |
-| 5.4      | SPEC_ONLY           | outbox model; relay + same-TX pending           |
-| 5.5      | SPEC_ONLY           | audit model; append API pending                 |
+| 5.3      | VERIFIED_BEHAVIORAL | projection sync on write verified on Postgres   |
+| 5.4      | VERIFIED_BEHAVIORAL | atomic outbox, relay, idempotency, chaos green  |
+| 5.5      | VERIFIED_BEHAVIORAL | append-only audit + RLS + rollback green        |
 | 5.6      | PARTIAL             | scaffold guard ok                               |
 
 ```yaml

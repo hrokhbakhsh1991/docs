@@ -20,6 +20,13 @@ Operators expect a Telegram channel message when a Denali tour becomes public. T
 2. Map **Telegram** integration to `TourPublished` only (not `TourCreated`).
 3. Include **v1 payload envelope** with `deliverySnapshot` (frozen `canonical.data`) at emit time.
 4. Use deterministic `domainEventId`: `TourPublished:{tourId}:{rowVersion}`.
+5. Deliver the public tour link as Telegram `InlineKeyboardMarkup` URL metadata,
+   not as a raw URL in the editable message template. The button is kept
+   independent from the template so operator edits cannot accidentally remove
+   the primary CTA.
+6. The URL button targets the tenant's public marketing PDP
+   (`/tours/{tourId}`), is resolved for the active environment, and must not
+   contain admin, portal-session, or signed credentials.
 
 ## Consequences
 
@@ -27,6 +34,10 @@ Operators expect a Telegram channel message when a Denali tour becomes public. T
 - Existing connections with only `TourCreated` policy need **INT-002 rollout** (policy backfill + optional intent remap) — not manual-only fixes.
 - Dispatcher prefers `deliverySnapshot` for enrichment; legacy thin payloads still supported.
 - Each republish transition emits a new `TourPublished` delivery (by design).
+- The `TourPublished` message may be customized in Settings, while the public
+  PDP button remains attached to text, photo, and document deliveries.
+- Forwarding remains allowed; `protect_content` must not be enabled for this
+  notification.
 
 ## Rollout (INT-002)
 

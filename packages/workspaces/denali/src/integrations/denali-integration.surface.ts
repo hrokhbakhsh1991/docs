@@ -74,7 +74,7 @@ export const denaliIntegrationSurface = Object.freeze({
         { eventType: "ticket.closed", enabled: true },
       ],
       eventMappings: [
-        { eventType: "TourPublished", capability: "message.send", topicKey: "registration" },
+        { eventType: "TourPublished", capability: "message.send", topicKey: "tours" },
         {
           eventType: "member.registered",
           capability: "message.send",
@@ -133,7 +133,7 @@ export const denaliIntegrationSurface = Object.freeze({
     },
   ],
   messageTemplates: {
-    TourPublished: "Tour published: {{title}}",
+    TourPublished: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
     "member.registered":
       "عضو جدید دنالی\nنام: {{displayName}}\nشماره تماس: {{mobile}}\nتاریخ ثبت‌نام: {{registeredAt}}",
     "registration.created":

@@ -1415,6 +1415,7 @@ export class FinanceService {
             this.recordApprove(auth, gate.workspaceType, "replay");
             return {
               id: latest.id,
+              registrationId: latest.payment.registrationId,
               status: latest.status,
               reviewNote: latest.reviewNote,
               reviewedAt: latest.reviewedAt?.toISOString() ?? null,
@@ -1499,7 +1500,10 @@ export class FinanceService {
       }
       this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
       await this.lockQuoteAfterCapture(auth.tenantId, payment.registrationId);
-      return approved;
+      return {
+        ...approved,
+        registrationId: payment.registrationId,
+      };
     } catch (error: unknown) {
       // Concurrent approve: loser may lose Pending guards; if winner already committed, replay.
       if (!(error instanceof Error) || error.message !== "FINANCE_APPROVE_CONFLICT") {
@@ -1520,6 +1524,7 @@ export class FinanceService {
         await this.lockQuoteAfterCapture(auth.tenantId, latest.payment.registrationId);
         return {
           id: latest.id,
+          registrationId: latest.payment.registrationId,
           status: latest.status,
           reviewNote: latest.reviewNote,
           reviewedAt: latest.reviewedAt?.toISOString() ?? null,

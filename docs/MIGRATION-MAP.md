@@ -682,11 +682,11 @@ Barrel `@app-tour/ui-primitives` is **deprecated** (not in `exports`). Apps must
 
 ---
 
-### فاز ۳ — Starter workspace + apps minimal — **Gate-passed (integration complete)**
+### فاز ۳ — Starter workspace + apps minimal — **Scaffold / In Progress**
 
-> **Status:** **`pnpm run phase-3:gate` PASS** — subphases 3.0–3.5 + P0 remediation (storage, auth, wizard binding, 3.3.x primitives).  
-> **Locked label:** Use **Gate-passed** until fresh gate SHA after gap-closure commit; full MAP **“Zero-Debt Verified”** still requires signed waiver for soft items (Playwright EC-33-3/4) and Phase 4 tenant/RLS items — see [`final-phase-3-audit-report.md`](archive/root-forensics/final-phase-3-audit-report.md).  
-> **Red-flag backlog:** P0/P1 tracks R0–R3 marked closed in [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md); forensic: [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md).  
+> **Status:** **Scaffold / In Progress** — static guard is green, but runtime backlog and current-SHA prerequisite validation remain open.
+> **Gate evidence:** `phase-3:guard` is not equivalent to the full `phase-3:gate`; Phase 2 current-SHA gate must pass before Phase 3 runtime work is treated as closed.
+> **Red-flag backlog:** implementation evidence is being revalidated item-by-item in [`reports/phase-3-0-validation-2026-09-25.md`](../reports/phase-3-0-validation-2026-09-25.md); forensic source: [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md).
 > **راهنمای اجرایی:** [`phase-3-design-system.md`](phase-3-design-system.md) — DAG 3.0–3.5، **PHASE 3 ENFORCEMENT**
 
 **هدف:** اثبات end-to-end plugin (قبل از Denali) با **access control و DB guardrails** قبل از هر مسیر production.
