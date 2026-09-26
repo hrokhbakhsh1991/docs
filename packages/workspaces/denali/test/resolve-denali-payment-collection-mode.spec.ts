@@ -24,6 +24,21 @@ describe("resolveDenaliPaymentCollectionMode", () => {
       "free"
     );
   });
+
+  it("derives free collection from the wizard requiresPayment flag", () => {
+    assert.equal(
+      resolveDenaliPaymentCollectionMode({
+        pricingPayment: { requiresPayment: false },
+      }),
+      "free"
+    );
+    assert.equal(
+      resolveDenaliPaymentCollectionMode({
+        data: { pricingPayment: { requiresPayment: true } },
+      }),
+      "offline"
+    );
+  });
 });
 
 describe("resolveDenaliRegistrationObligationMinor — free collection", () => {
