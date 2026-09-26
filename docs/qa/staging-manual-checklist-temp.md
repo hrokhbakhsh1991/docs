@@ -133,3 +133,21 @@
 - `BUG-STG-080`: **FAIL runtime**. Portal detail رکورد رایگان `4190860a-9948-4c62-b29b-85d3e494e765` هنوز `برای نهایی شدن سفر، رسید پرداخت را ارسال کنید`، `پرداخت تأیید شد` و `رسید شما تأیید شد` را نشان می‌دهد.
 
 موارد `BUG-STG-001`، `BUG-STG-067` و `OBS-STG-FINANCE-BUSINESS-MEANING-ROLLOUT` نیز فعلاً باگ قطعی نیستند.
+
+## Source verification after remediation — ۲۰۲۶-۰۹-۲۷
+
+در HEAD فعلی branch اصلاحی، ریشه‌های source برای failureهای runtime دوباره‌دیده‌شده پوشش داده شدند؛ اجرای artifact قدیمی staging هنوز معیار closure نیست:
+
+- Marketing catalog/display/pricing/filter/sort contract: `۳۷/۳۷` پاس.
+- Portal pricing/receipt/status contract: `۲۴/۲۴` پاس.
+- API registration و receipt flow رسمی: `۲۵/۲۵` پاس.
+- کل suite workspace Denali: `۸۳۴/۸۳۴` پاس.
+
+نتیجهٔ تفکیکی source:
+
+- `BUG-STG-025/026/027`: free marker در PLP/PDP و قیمت صفر در filter/sort در source پوشش دارند.
+- `BUG-STG-080`: free collection از canonical `paymentCollection` و legacy `requiresPayment=false` resolve می‌شود و مسیر receipt/payment برای free بسته است.
+- `BUG-STG-081/082`: preview قیمت authoritative عضو و ancillary transport/dong برای list/detail از API خوانده می‌شوند و تست parity دارند.
+- labelهای Telegram و description فارسی location-zones در source و contractها اصلاح شده‌اند.
+
+پس از این اجرای source، باگ قطعی جدیدی برای patch باقی نماند. موارد runtime بالا فقط پس از deploy همین HEAD با SHA واقعی staging باید دوباره بررسی و بسته شوند؛ health بدون SHA و hash فایل‌های Next برای closure کافی نیستند. فایل نامرتبط `docs/phase-19/architecture-truth-drift-report.json` عمداً تغییر داده نشد.
