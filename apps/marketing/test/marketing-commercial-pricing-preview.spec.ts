@@ -75,6 +75,10 @@ describe("marketing-commercial-pricing-preview", () => {
     assert.match(ui, /preview\.memberDiscountMinor/);
     assert.match(ui, /preview\.payableMinor/);
     assert.match(ui, /preview\.memberDiscountPercentage/);
+    assert.match(
+      ui,
+      /data-marketing-catalog-card-price-unavailable[\s\S]*ancillaryLines\.map/
+    );
     assert.doesNotMatch(ui, /0\.8|80 \/ 100|memberDiscountPercentage \*|\/ 100/);
   });
 

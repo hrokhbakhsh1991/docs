@@ -54,7 +54,18 @@ export function CatalogCommercialPricingCompact({
   readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
   if (preview == null && pricingPreviewStatus !== "anonymous") {
-    return <span data-marketing-catalog-card-price-unavailable>{t("pricing.unavailable")}</span>;
+    return (
+      <span data-marketing-catalog-card-price-unavailable>
+        {t("pricing.unavailable")}
+        {ancillaryLines.map((line) =>
+          line.value != null ? (
+            <small key={line.label}>
+              {line.label}: {line.value}
+            </small>
+          ) : null
+        )}
+      </span>
+    );
   }
   if (!hasMarketingMembershipDiscount(preview)) {
     return canonicalPrice != null || ancillaryLines.length > 0 ? (

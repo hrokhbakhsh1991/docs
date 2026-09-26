@@ -97,4 +97,14 @@
 - `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH` — اصلاح شد: Portal برای `paymentCollection === "free"`، پس از عبور از وضعیت pending/waitlisted، دیگر به فرم upload فیش، مقصد پرداخت یا دکمهٔ ارسال نمی‌رسد و کارت «نیازی به پرداخت نیست» نمایش می‌دهد؛ suite متمرکز Portal/BFF/deadline در این sweep `۲۸/۲۸` پاس شد. پس از deploy با SHA جدید، یک free registration در وضعیت approved و یک free pending را با API response، Portal detail و screenshot/AX بررسی کن؛ pending باید فقط پیام انتظار مناسب free را داشته باشد و هیچ upload/payment control نداشته باشد.
 - `BUG-STG-080` — source fix برقرار است: علاوه بر حذف مسیر receipt upload برای `paymentCollection === "free"`، status resolver نیز برای free approved مستقل از projection ناسازگار `paid/unpaid` کارت «بدون نیاز به پرداخت» را برمی‌گرداند؛ تست resolver، Portal registration، receipt BFF و deadline contract در این sweep `۲۸/۲۸` پاس شد. **Runtime staging fail است:** free registration `4190860a-9948-4c62-b29b-85d3e494e765` در detail هنوز «پرداخت شما تأیید شد» و «رسید: تأیید شده» و در Portal list نیز «برای نهایی‌شدن، پرداخت لازم است» نشان می‌دهد؛ در همان list، free fixtureهای دیگر متن درست «پرداخت لازم نیست» دارند. بعد از deploy با SHA واقعی، free approved/pending باید در list و detail بدون payment status، مبلغ، مقصد کارت‌به‌کارت یا upload نمایش داده شود.
 
+## Retest بعد از deploy واقعی `a37f38cd89576b17b07808c45279788eab63b3a1`
+
+- Artifact: `app-tour-staging-a37f38cd89576b17b07808c45279788eab63b3a1.tar.zst`; digest: `7245def80b7ff8fdf253aee2fd2824d50e96ef8cf57e7d2732862fe55520d198`; health هر سه host با `200` پاس شد.
+- `BUG-STG-025`: **FAIL runtime**. PDP رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در AX هیچ `رایگان`/`بدون نیاز به پرداخت`/`۰ تومان` ندارد؛ بخش قبل از ثبت‌نام هنوز `روش پرداخت: رسید / پرداخت آفلاین` را نشان می‌دهد. PLP همان fixture نیز label رایگان ندارد.
+- `BUG-STG-026`: **FAIL runtime**. `https://denali.shenski.com/tours?maxPrice=0` مقدار `۰ مورد در این صفحه` و پیام نبود تور دارد، درحالی‌که fixture رایگان منتشر و قابل ثبت‌نام است.
+- `BUG-STG-027`: **FAIL runtime**. `https://denali.shenski.com/tours?minPrice=0&sort=price_asc` مقدار `۱۳ مورد` دارد و fixture رایگان در نتایج نیست؛ sort قیمت صعودی آن را به‌عنوان قیمت صفر وارد نکرده است.
+- `BUG-STG-081`: **FAIL runtime**. در PDP `ec171184-1877-4501-9a92-857f712838e2` همان نشست عضو، قیمت پایه `۲٬۰۰۰٬۰۰۰`، تخفیف `۵۰٪` و قیمت نهایی `۱٬۰۰۰٬۰۰۰ تومان` است؛ کارت PLP همان تور `قیمت برای این عضو در دسترس نیست` نشان می‌دهد.
+- `BUG-STG-082`: **FAIL runtime**. PDP همان تور `خودروهای مشترک` و `هزینه دونگی ۳۰۰٬۰۰۰ تومان` دارد؛ کارت PLP نوع حمل را نشان می‌دهد اما مبلغ دُنگ را ندارد.
+- `BUG-STG-080`: **FAIL runtime**. Portal detail رکورد رایگان `4190860a-9948-4c62-b29b-85d3e494e765` هنوز `برای نهایی شدن سفر، رسید پرداخت را ارسال کنید`، `پرداخت تأیید شد` و `رسید شما تأیید شد` را نشان می‌دهد.
+
 موارد `BUG-STG-001`، `BUG-STG-067` و `OBS-STG-FINANCE-BUSINESS-MEANING-ROLLOUT` نیز فعلاً باگ قطعی نیستند.
