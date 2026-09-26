@@ -150,6 +150,9 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
         if (record.status !== "approved" || record.paymentStatus !== "paid") {
           return undefined;
         }
+        if (record.registrationIntake?.freeCollectionApplied === true) {
+          return "WAIVED";
+        }
         const override = readObligationOverrideFromIntake(record.registrationIntake);
         return override !== null && isZeroObligationMinor(override.obligationMinor)
           ? "WAIVED"

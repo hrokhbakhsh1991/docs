@@ -111,6 +111,8 @@ The API coalesces concurrent outstanding-AR and tour-collection reads per tenant
 
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
+For free collection, `freeCollectionApplied` is the canonical zero-collection marker. Booking list and detail projections must both resolve this marker to `financialDisplayState: "WAIVED"` before Portal derives payment copy; receipt status remains a separate axis.
+
 ### Telegram registration decision message
 
 The Telegram `registration` topic receives an actionable `registration.created`
