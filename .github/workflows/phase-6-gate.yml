@@ -196,22 +196,22 @@ jobs:
       - name: Build denali workspace (minio-photo imports dist)
         run: bash scripts/ci/build-api-workspace-deps.sh
 
-      - name: Start MinIO
+      - name: Start S3-compatible object store
         run: |
-          docker run -d --name minio -p 9002:9000 \
-            -e MINIO_ROOT_USER=minioadmin \
-            -e MINIO_ROOT_PASSWORD=minioadmin \
-            docker.io/minio/minio:latest server /data
+          docker run -d --name seaweedfs -p 9002:8333 \
+            docker.io/chrislusf/seaweedfs@sha256:f83509b0721dfd8e2e07faf76c0a899f67a8a889c89abe2fa0a5227ba1320362 \
+            server -s3 -dir=/data
           for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:9002/minio/health/live; then exit 0; fi
+            if curl -sf http://127.0.0.1:9002/ >/dev/null; then exit 0; fi
             sleep 2
           done
-          echo "MinIO failed to become healthy" >&2
-          docker logs minio
+          echo "S3-compatible object store failed to become healthy" >&2
+          docker logs seaweedfs
           exit 1
 
       - name: Ensure bucket
-        run: pnpm run infra:minio:ensure-bucket
+        run: |
+          curl -fsS -X PUT http://127.0.0.1:9002/app-tour-dev >/dev/null
 
       - name: MinIO photo spec (REQ-P6-016)
         env:
