@@ -3,6 +3,17 @@ import { resolveTourOpsApiBaseUrl } from "@/env";
 
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 
+export type MarketingCommercialPricingPreviewStatus =
+  | "anonymous"
+  | "available"
+  | "partial"
+  | "unavailable";
+
+export type MarketingCommercialPricingPreviewsResult = {
+  readonly previews: Readonly<Record<string, MarketingCommercialPricingPreview>>;
+  readonly status: MarketingCommercialPricingPreviewStatus;
+};
+
 export async function fetchCommercialPricingPreviews(input: {
   readonly host: string;
   readonly tenantId: string;
@@ -10,12 +21,12 @@ export async function fetchCommercialPricingPreviews(input: {
   readonly tourIds: readonly string[];
   readonly partySize?: number;
   readonly transportKind?: string;
-}): Promise<Readonly<Record<string, MarketingCommercialPricingPreview>>> {
+}): Promise<MarketingCommercialPricingPreviewsResult> {
   const uniqueTourIds = Array.from(
     new Set(input.tourIds.map((tourId) => tourId.trim()).filter((tourId) => tourId.length > 0))
   );
   if (uniqueTourIds.length === 0) {
-    return {};
+    return { previews: {}, status: "anonymous" };
   }
 
   const headers = await buildMarketingMemberApiHeaders({
@@ -23,7 +34,7 @@ export async function fetchCommercialPricingPreviews(input: {
     tenantId: input.tenantId,
   });
   if (headers.Authorization === undefined) {
-    return {};
+    return { previews: {}, status: "anonymous" };
   }
 
   const params = new URLSearchParams({
@@ -52,10 +63,14 @@ export async function fetchCommercialPricingPreviews(input: {
       readonly previews?: Readonly<Record<string, MarketingCommercialPricingPreview>>;
     };
     if (!res.ok || body.ok !== true || body.previews === undefined) {
-      return {};
+      return { previews: {}, status: "unavailable" };
     }
-    return body.previews;
+    const previewCount = Object.keys(body.previews).length;
+    return {
+      previews: body.previews,
+      status: previewCount === uniqueTourIds.length ? "available" : "partial",
+    };
   } catch {
-    return {};
+    return { previews: {}, status: "unavailable" };
   }
 }

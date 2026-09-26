@@ -143,6 +143,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           tenantId={bootstrap.tenantId}
           tourId={tourId}
           tourTitle={tourTitle}
+          registrationState={tour.registrationState}
           tourPoliciesText={tour.policiesText ?? null}
           tourPriceAmount={tour.priceAmount ?? null}
           tourTransport={tour.transport}

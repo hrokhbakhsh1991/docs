@@ -44,7 +44,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   const fatherName = typeof body.fatherName === "string" ? body.fatherName.trim() : "";
   const birthDate = typeof body.birthDate === "string" ? body.birthDate.trim() : "";
   const registrantTarget =
-    body.registrantTarget === "other" ? "other" : body.registrantTarget === "self" ? "self" : undefined;
+    body.registrantTarget === "other"
+      ? "other"
+      : body.registrantTarget === "self"
+        ? "self"
+        : undefined;
   const partySize =
     typeof body.partySize === "number"
       ? body.partySize
@@ -76,8 +80,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       },
       {
         idempotencyKey:
-          req.headers.get("idempotency-key")?.trim() ??
-          req.headers.get("Idempotency-Key")?.trim(),
+          req.headers.get("idempotency-key")?.trim() ?? req.headers.get("Idempotency-Key")?.trim(),
       }
     );
   } catch (error) {
@@ -87,7 +90,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (error instanceof IntakePluginNotRegisteredError) {
       return NextResponse.json({ ok: false, code: error.code }, { status: 503 });
     }
-    console.error("[portal/catalog/registrations] buildCatalogRegistrationUpstreamRequest failed", error);
+    console.error(
+      "[portal/catalog/registrations] buildCatalogRegistrationUpstreamRequest failed",
+      error
+    );
     return NextResponse.json(
       { ok: false, code: "REGISTRATION_UPSTREAM_BUILD_FAILED" },
       { status: 500 }
@@ -121,7 +127,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
   const payload = (await res.json().catch(() => ({}))) as {
     code?: string;
-    data?: { id?: string };
+    data?: { id?: string; status?: "pending" | "approved" | "waitlisted" };
   };
   if (!res.ok) {
     return NextResponse.json(
@@ -130,7 +136,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
   return NextResponse.json(
-    { ok: true, registrationId: payload.data?.id ?? null },
+    {
+      ok: true,
+      registrationId: payload.data?.id ?? null,
+      status: payload.data?.status ?? null,
+    },
     { status: 201 }
   );
 }

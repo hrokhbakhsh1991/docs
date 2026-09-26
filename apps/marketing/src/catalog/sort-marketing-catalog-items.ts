@@ -52,12 +52,18 @@ export function sortMarketingCatalogItems(
       break;
     case "price_asc":
       sorted.sort((left, right) =>
-        compareNullableNumbers(left.priceAmount ?? null, right.priceAmount ?? null)
+        compareNullableNumbers(
+          left.paymentCollection === "free" ? 0 : (left.priceAmount ?? null),
+          right.paymentCollection === "free" ? 0 : (right.priceAmount ?? null)
+        )
       );
       break;
     case "price_desc":
       sorted.sort((left, right) =>
-        compareNullableNumbers(right.priceAmount ?? null, left.priceAmount ?? null)
+        compareNullableNumbers(
+          right.paymentCollection === "free" ? 0 : (right.priceAmount ?? null),
+          left.paymentCollection === "free" ? 0 : (left.priceAmount ?? null)
+        )
       );
       break;
     case "difficulty_asc":

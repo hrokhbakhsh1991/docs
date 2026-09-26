@@ -6,6 +6,7 @@ import { after, before, beforeEach, describe, it } from "node:test";
 
 import {
   approveBooking,
+  cancelBooking,
   createBooking,
   waitlistBooking,
 } from "../../src/bookings/create-bookings-service.ts";
@@ -53,7 +54,10 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
 
     const quotePort = (await import("../../src/finance/commercial-quote-approve.service.ts")) as {
       createCommercialQuoteApproveServiceForTests: () => {
-        getActiveQuote(tenantId: string, registrationId: string): Promise<{
+        getActiveQuote(
+          tenantId: string,
+          registrationId: string
+        ): Promise<{
           status: string;
         } | null>;
       };
@@ -63,5 +67,46 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
       guestB.id
     );
     assert.equal(quote?.status, "FROZEN");
+  });
+
+  it("BUG-STG-063: promotion keeps a group waitlisted when released seats do not fit its partySize", async () => {
+    // Create the large candidate before occupancy exists, then fill most seats with
+    // an approved booking. Releasing that booking leaves fewer seats than the candidate needs.
+    const groupCandidate = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "DP1 Group Candidate", partySize: 12 })
+    );
+    const blockingBooking = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "DP1 Blocking Booking", partySize: 1 })
+    );
+    const retainedBooking = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "DP1 Retained Booking", partySize: 1 })
+    );
+    await approveBooking(dp1OpsAuth(), blockingBooking.id);
+    await approveBooking(dp1OpsAuth(), retainedBooking.id);
+    await waitlistBooking(dp1OpsAuth(), groupCandidate.id);
+
+    await cancelBooking(dp1OpsAuth(), blockingBooking.id);
+
+    const candidate = await dp1GetBooking(groupCandidate.id);
+    assert.equal(candidate.status, "waitlisted");
+    const holdPort = await requirePaymentHoldPort();
+    assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, groupCandidate.id), null);
+    const quotePort = (await import("../../src/finance/commercial-quote-approve.service.ts")) as {
+      createCommercialQuoteApproveServiceForTests: () => {
+        getActiveQuote(
+          tenantId: string,
+          registrationId: string
+        ): Promise<{ status: string } | null>;
+      };
+    };
+    assert.equal(
+      await quotePort
+        .createCommercialQuoteApproveServiceForTests()
+        .getActiveQuote(DP1_TENANT_DENALI, groupCandidate.id),
+      null
+    );
   });
 });

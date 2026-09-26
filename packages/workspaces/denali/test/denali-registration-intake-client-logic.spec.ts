@@ -21,6 +21,12 @@ describe("denali registration intake client logic", () => {
     assert.equal(parseCatalogRegistrationResponseBody("  "), null);
     assert.equal(parseCatalogRegistrationResponseBody("{not-json"), null);
     assert.deepEqual(parseCatalogRegistrationResponseBody('{"ok":true}'), { ok: true });
+    assert.deepEqual(
+      parseCatalogRegistrationResponseBody(
+        '{"ok":true,"registrationId":"reg-1","status":"waitlisted"}'
+      ),
+      { ok: true, registrationId: "reg-1", status: "waitlisted" }
+    );
   });
 
   it("DN-INTAKE-DUP-01 detects two guest cards with the same IR mobile", () => {

@@ -58,6 +58,10 @@ export type PublicCatalogCard = {
   readonly endAt: string | null;
   readonly priceAmount: number | null;
   readonly priceCurrency: string;
+  /** Public collection policy; free tours remain filterable and labeled. */
+  readonly paymentCollection?: "offline" | "free";
+  /** Public registration approval policy shown before registration. */
+  readonly registrationApproval?: "manual" | "auto";
   readonly coverImageUrl: string | null;
   readonly totalCapacity: number | null;
   /** Remaining seats when host enriches from approved booking occupancy (DEC-P11-013). */

@@ -30,6 +30,11 @@ export async function CatalogTourDetailLogistics({
     tour.gatheringPoint?.label?.trim() || tour.meetingPointText?.trim() || null;
   const mapLink = buildCatalogMapLink(tour.gatheringPoint);
   const returnTime = tour.approximateReturnTime?.trim() || null;
+  const startTime = tour.departureAt
+    ? new Intl.DateTimeFormat(dateLocale, { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(tour.departureAt)
+      )
+    : null;
 
   const transportMode = transport?.mode;
   const transportLabel =
@@ -63,6 +68,7 @@ export async function CatalogTourDetailLogistics({
   const hasContent =
     gatheringLabel != null ||
     mapLink != null ||
+    startTime != null ||
     returnTime != null ||
     transportLabel != null ||
     transportCost != null ||
@@ -79,6 +85,12 @@ export async function CatalogTourDetailLogistics({
     <section data-marketing-catalog-detail-logistics id="catalog-detail-logistics">
       <h2>{t("detail.logistics.heading")}</h2>
       <dl data-marketing-catalog-detail-logistics-list>
+        {startTime != null ? (
+          <div>
+            <dt>{t("detail.logistics.startTime")}</dt>
+            <dd>{localize(startTime)}</dd>
+          </div>
+        ) : null}
         {gatheringLabel != null ? (
           <div>
             <dt>{t("detail.logistics.gathering")}</dt>

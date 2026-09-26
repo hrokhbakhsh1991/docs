@@ -425,6 +425,7 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
         waitlisted: 1,
         approved: 4,
         paymentDue: 0,
+        operational: 0,
         final: 0,
       });
     }
@@ -457,11 +458,19 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       waitlistedPayload: { total: 0 },
       approvedPayload: { total: 4 },
       paymentDuePayload: { total: 2 },
+      operationalPayload: { total: 5 },
       finalPayload: { total: 2 },
     });
     assert.deepEqual(scenarioCounts, {
       ok: true,
-      counts: { pending: 1, waitlisted: 0, approved: 4, paymentDue: 2, final: 2 },
+      counts: {
+        pending: 1,
+        waitlisted: 0,
+        approved: 4,
+        paymentDue: 2,
+        operational: 5,
+        final: 2,
+      },
     });
     assert.equal(
       buildTourWorkspaceHistoryHref(TOUR_ID, "rejected"),
@@ -476,6 +485,25 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.equal(formatCountMaybeMore(50, true), "50+");
     assert.equal(formatCountMaybeMore(3, false), "3");
     assert.equal(readPendingReceiptsKpi({ itemCount: 50, hasMore: true }).label, "50+");
+  });
+
+  it("BUG-STG-064 keeps the full-capacity banner aligned with automatic waitlist behavior", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    const root = join(__dirname, "..");
+    const fa = JSON.parse(readFileSync(join(root, "messages/fa/tours.json"), "utf8")) as {
+      workspace?: { registrations?: { capacityFullBanner?: string } };
+    };
+    const en = JSON.parse(readFileSync(join(root, "messages/en/tours.json"), "utf8")) as {
+      workspace?: { registrations?: { capacityFullBanner?: string } };
+    };
+    const faBanner = fa.workspace?.registrations?.capacityFullBanner ?? "";
+    const enBanner = en.workspace?.registrations?.capacityFullBanner ?? "";
+
+    assert.match(faBanner, /لیست انتظار/);
+    assert.match(enBanner, /waitlist/i);
+    assert.doesNotMatch(faBanner, /خودکار به لیست انتظار نمی‌رود/);
+    assert.doesNotMatch(enBanner, /do not auto-waitlist/i);
   });
 
   it("H-10 Money Inbox — partition by actionability + remaining sum", () => {

@@ -1,5 +1,6 @@
 import type { CatalogRegistrationFlowState } from "@app-tour/catalog-registration-auth";
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
+import type { PublicCatalogRegistrationState } from "../tour/public-catalog.contract";
 
 export type RegistrationFlowTourRequirements = {
   readonly nationalIdRequired?: boolean;
@@ -12,6 +13,7 @@ export type RegistrationFlowContext = {
   readonly tenantId: string;
   readonly tourId: string;
   readonly tourTitle: string;
+  readonly registrationState?: PublicCatalogRegistrationState;
   readonly tourPoliciesText?: string | null;
   readonly tourPriceAmount?: number | null;
   readonly commercialPricingPreview?: {

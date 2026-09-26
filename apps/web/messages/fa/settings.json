@@ -688,7 +688,15 @@
       "enabledLabelOff": "ارسال غیرفعال",
       "eventNames": {
         "TourCreated": "ساخت تور جدید",
-        "TourPublished": "انتشار تور"
+        "TourPublished": "انتشار تور",
+        "RegistrationApproved": "تأیید ثبت‌نام",
+        "RegistrationWaitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار",
+        "ReceiptApproved": "تأیید رسید پرداخت",
+        "ReceiptRejected": "رد رسید پرداخت",
+        "registration.approved": "تأیید ثبت‌نام",
+        "registration.waitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار",
+        "receipt.approved": "تأیید رسید پرداخت",
+        "receipt.rejected": "رد رسید پرداخت"
       },
       "eventHints": {
         "TourCreated": "وقتی یک تور جدید ساخته می‌شود، یک پیام تلگرام با فیلدهایی که پایین انتخاب می‌کنید ارسال می‌شود.",

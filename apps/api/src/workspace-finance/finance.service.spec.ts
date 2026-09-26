@@ -188,7 +188,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     assert.equal(invoice.balanceDueMinor, "1000000");
   });
 
-  it("FIN-SVC-01 approve raises booking.paymentStatus to paid and returns bookingPaymentStatus", async () => {
+  it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE / FIN-SVC-01 approve updates detail and list payment projection", async () => {
     const registrationId = randomUUID();
     const { finance, financeRepo, receiptId } = await seedPendingReceipt({
       registrationId,
@@ -214,6 +214,16 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     const booking = await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId);
     assert.equal(booking?.paymentStatus, "paid");
     assert.equal(booking?.finalizationStatus, "finalized");
+    const listed = await getBookingsRepository().listByTenantPage({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      submittedByUserId: OPERATOR_SMOKE.userId,
+      statuses: ["approved"],
+      limit: 20,
+      sort: "submittedAt",
+    });
+    const listedBooking = listed.items.find((item) => item.id === registrationId);
+    assert.equal(listedBooking?.paymentStatus, "paid");
+    assert.equal(listedBooking?.finalizationStatus, "finalized");
   });
 
   it("FIN-SVC-05 reject emits exactly one receipt.rejected notification event", async () => {

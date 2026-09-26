@@ -78,6 +78,12 @@ For B-01 through B-07, repeat the applicable rows with:
 
 ## Capacity and concurrency overlay
 
+Waitlist promotion uses the same host-capacity and workspace capacity policy as normal approval. The promotion transaction must re-read approved occupancy and reject a candidate whose full `partySize` does not fit; checking only that at least one seat was released is insufficient for grouped registrations.
+
+The operational transport roster must preserve the booking lifecycle label for every filter, including `waitlisted`. A waitlist-filtered row must never render the approved participant label or expose final-roster actions until the booking is actually approved.
+
+Portal receipt resubmission must update the registration-level status card and the receipt card from the same client transition. After a successful resubmit, both surfaces show receipt pending; after a later reject or approve, both return to the corresponding server-authoritative state on refresh.
+
 For each applicable registration row, exercise:
 
 - available capacity;

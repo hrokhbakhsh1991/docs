@@ -32,15 +32,21 @@ export function denaliRequiredIntakeCopyField(fieldId: string): DenaliRequiredIn
   }
 }
 
-export function parseCatalogRegistrationResponseBody(
-  text: string
-): { readonly ok?: boolean; readonly code?: string } | null {
+export function parseCatalogRegistrationResponseBody(text: string): {
+  readonly ok?: boolean;
+  readonly code?: string;
+  readonly status?: "pending" | "approved" | "waitlisted" | null;
+} | null {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     return null;
   }
   try {
-    return JSON.parse(trimmed) as { readonly ok?: boolean; readonly code?: string };
+    return JSON.parse(trimmed) as {
+      readonly ok?: boolean;
+      readonly code?: string;
+      readonly status?: "pending" | "approved" | "waitlisted" | null;
+    };
   } catch {
     return null;
   }

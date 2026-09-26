@@ -43,6 +43,17 @@ function readRegistrationIntake(req: IncomingMessage): {
   return transportKind.length > 0 ? { transport: { kind: transportKind } } : {};
 }
 
+function readRegistrantTarget(req: IncomingMessage): "self" | "other" {
+  return readQueryString(req, "registrantTarget") === "other" ? "other" : "self";
+}
+
+export function resolveCommercialPricingMemberUserId(
+  registrantTarget: "self" | "other",
+  authenticatedUserId: string
+): string | null {
+  return registrantTarget === "self" ? authenticatedUserId : null;
+}
+
 function normalizeWorkspaceType(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -78,6 +89,7 @@ async function resolveCommercialPricingPreview(input: {
   readonly workspace: string;
   readonly tourId: string;
   readonly partySize: number;
+  readonly registrantTarget: "self" | "other";
   readonly registrationIntake: { readonly transport?: { readonly kind: string } };
 }): Promise<CommercialPricingPreviewDto | null> {
   const normalizedWorkspace = input.workspace.toLowerCase();
@@ -107,18 +119,23 @@ async function resolveCommercialPricingPreview(input: {
   }
 
   const allowMembershipDiscount = readTourAllowMembershipDiscount(tour.canonical);
-  const membershipDiscountPercentage = allowMembershipDiscount
-    ? await new IdentityMembershipDiscountReadAdapter().getMembershipDiscountPercentage(
-        input.tenantId,
-        input.memberUserId
-      )
-    : null;
+  const memberUserId = resolveCommercialPricingMemberUserId(
+    input.registrantTarget,
+    input.memberUserId
+  );
+  const membershipDiscountPercentage =
+    allowMembershipDiscount && memberUserId !== null
+      ? await new IdentityMembershipDiscountReadAdapter().getMembershipDiscountPercentage(
+          input.tenantId,
+          memberUserId
+        )
+      : null;
   const quoteInput = buildCommercialQuoteFreezeInput({
     tenantId: input.tenantId,
-    registrationId: `preview:${input.tourId}:${input.memberUserId}`,
+    registrationId: `preview:${input.tourId}:${input.registrantTarget}:${input.memberUserId}`,
     obligation,
     paymentCollection: resolvePaymentCollection(tour.canonical),
-    memberUserId: input.memberUserId,
+    memberUserId,
     allowMembershipDiscount,
     membershipDiscountPercentage,
   });
@@ -163,6 +180,7 @@ export async function handleCatalogCommercialPricingPreview(
       workspace: normalizedWorkspace,
       tourId,
       partySize: readPartySize(req),
+      registrantTarget: readRegistrantTarget(req),
       registrationIntake: readRegistrationIntake(req),
     });
     if (preview === null) {
@@ -210,6 +228,7 @@ export async function handleCatalogCommercialPricingPreviews(
           workspace: normalizedWorkspace,
           tourId,
           partySize: readPartySize(req),
+          registrantTarget: readRegistrantTarget(req),
           registrationIntake: readRegistrationIntake(req),
         });
         if (preview !== null) {

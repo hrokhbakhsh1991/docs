@@ -3,6 +3,7 @@
  */
 import { extractTransportModesFromTourPayload } from "@/features/tours/tour-canonical-transport-modes";
 import { toAsciiDigits } from "@/i18n/format-localized-digits";
+import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 
 export { extractTransportModesFromTourPayload };
 
@@ -201,7 +202,7 @@ export function formatOperationalRosterAmountDue(
   if (digits.length === 0 || digits === "0") {
     return null;
   }
-  return row.currency !== null ? `${digits} ${row.currency}` : digits;
+  return row.currency !== null ? formatMinorAmount(digits, row.currency, "fa") : digits;
 }
 
 export function resolveOperationalRosterActionablePaymentDueAt(

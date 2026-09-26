@@ -13,6 +13,7 @@ import {
 import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
+import { resolveMemberRegistrationDetailStatus } from "@/me/resolve-member-registration-detail-status";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
@@ -24,6 +25,7 @@ import { resolveIntakeSchema } from "@app-tour/workspace-sdk";
 import { MemberIntakeAmendForm } from "./member-intake-amend-form";
 import { MemberCancellationPanel } from "./member-cancellation-panel";
 import { MemberReceiptUploadForm } from "./member-receipt-upload-form";
+import { MemberRegistrationStatusCard } from "./member-registration-status-card";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -104,55 +106,13 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     typeof row.guestLabel === "string" && row.guestLabel.trim().length > 0
       ? row.guestLabel.trim()
       : null;
-  const detailStatus =
-    lifecycleStatus === "pending" || lifecycleStatus === "waitlisted"
-      ? {
-          tone: "waiting",
-          title: "statusPendingTitle",
-          body: row.paymentCollection === "free" ? "statusPendingFreeBody" : "statusPendingBody",
-        }
-      : lifecycleStatus === "rejected" || lifecycleStatus === "cancelled"
-        ? {
-            tone: "closed",
-            title: lifecycleStatus === "rejected" ? "statusRejectedTitle" : "statusCancelledTitle",
-            body: lifecycleStatus === "rejected" ? "statusRejectedBody" : "statusCancelledBody",
-          }
-        : receiptPanel.status === "pending"
-          ? {
-              tone: "review",
-              title: "statusReceiptPendingTitle",
-              body: "statusReceiptPendingBody",
-            }
-          : receiptPanel.status === "paid" || receiptPanel.status === "waived"
-            ? {
-                tone: "complete",
-                title: receiptPanel.status === "paid" ? "statusPaidTitle" : "statusWaivedTitle",
-                body: receiptPanel.status === "paid" ? "statusPaidBody" : "statusWaivedBody",
-              }
-            : receiptPanel.status === "rejected"
-              ? {
-                  tone: "action",
-                  title: "statusReceiptRejectedTitle",
-                  body: "statusReceiptRejectedBody",
-                }
-              : {
-                  tone: "action",
-                  title: "statusApprovedTitle",
-                  body: "statusApprovedBody",
-                };
-  const receiptStatusLabelKey =
-    receiptPanel.status === "pending"
-      ? "receiptStatusPending"
-      : receiptPanel.status === "rejected"
-        ? "receiptStatusRejected"
-        : receiptPanel.status === "paid"
-          ? "receiptStatusPaid"
-          : receiptPanel.status === "waived"
-            ? "receiptStatusWaived"
-            : "receiptStatusNone";
-  const shouldShowReceiptStatusBadge =
-    lifecycleStatus === "approved" || receiptPanel.status !== "none";
-
+  const detailStatus = resolveMemberRegistrationDetailStatus({
+    lifecycleStatus,
+    paymentCollection: row.paymentCollection,
+    paymentStatus: row.paymentStatus,
+    financialDisplayState: row.financialDisplayState,
+    receiptStatus: receiptPanel.status,
+  });
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main
@@ -183,23 +143,12 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               </p>
             ) : null}
           </div>
-          <section data-portal-member-detail-status-card data-status-tone={detailStatus.tone}>
-            <div data-portal-member-detail-status-copy>
-              <p data-portal-member-detail-status-eyebrow>{t("statusLabel")}</p>
-              <h2>{t(detailStatus.title)}</h2>
-              <p>{t(detailStatus.body)}</p>
-            </div>
-            <div data-portal-member-detail-status-badges>
-              <span data-portal-member-detail-status-badge>
-                {t("registrationStatusBadge", { status: statusLabel })}
-              </span>
-              {shouldShowReceiptStatusBadge ? (
-                <span data-portal-member-detail-receipt-status-badge>
-                  {t(receiptStatusLabelKey)}
-                </span>
-              ) : null}
-            </div>
-          </section>
+          <MemberRegistrationStatusCard
+            lifecycleStatus={lifecycleStatus}
+            statusLabel={statusLabel}
+            initialCopy={detailStatus}
+            initialReceiptStatus={receiptPanel.status}
+          />
           <div data-portal-member-detail-kpis>
             <div data-portal-member-detail-kpi data-kpi="departure">
               <p data-portal-member-detail-kpi-label>{t("departureLabel")}</p>

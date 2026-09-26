@@ -220,7 +220,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     rhfPath: "basicInfo.capacityMin",
     zodPath: "basicInfo.capacityMin",
     zodKind: "optionalInt",
-    tags: ["optional_basic", "deliverable"] as const,
+    tags: ["optional_basic"] as const,
     ruleDefaults: { required: false, hidden: false },
   },
   {

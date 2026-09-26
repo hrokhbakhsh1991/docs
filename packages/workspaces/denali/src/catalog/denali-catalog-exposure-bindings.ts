@@ -22,6 +22,34 @@ function clearPhotos(card: PublicCatalogCard): PublicCatalogCard {
   return omitWorkspaceCatalogCardKey(next, "photoUrls");
 }
 
+function clearParticipantPricing(card: PublicCatalogCard): PublicCatalogCard {
+  return Object.freeze({
+    ...card,
+    priceAmount: null,
+    minimumAge: null,
+    maximumAge: null,
+    fitnessLevel: null,
+    fitnessPrerequisiteText: null,
+  });
+}
+
+function clearPaymentPolicy(card: PublicCatalogCard): PublicCatalogCard {
+  let next = clearWorkspaceCatalogCardStringField(card, "paymentMode");
+  for (const key of [
+    "paymentPlan",
+    "paymentCollection",
+    "registrationApproval",
+    "includesTourInsurance",
+  ]) {
+    next = omitWorkspaceCatalogCardKey(next, key);
+  }
+  return next;
+}
+
+function clearTransport(card: PublicCatalogCard): PublicCatalogCard {
+  return omitWorkspaceCatalogCardKey(card, "transport");
+}
+
 /** Maps registry field ids to catalog card redaction steps. */
 export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardExposureBinding[] =
   Object.freeze([
@@ -48,11 +76,15 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "denali.pricing-participants",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "priceAmount"),
+      applyHidden: clearParticipantPricing,
     },
     {
       fieldId: "denali.pricing-payment",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "paymentMode"),
+      applyHidden: clearPaymentPolicy,
+    },
+    {
+      fieldId: "denali.transport-mode",
+      applyHidden: clearTransport,
     },
     {
       fieldId: "denali.social-media-link",
@@ -64,7 +96,8 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "capacityMax",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "totalCapacity"),
+      applyHidden: (card) =>
+        Object.freeze({ ...card, totalCapacity: null, spotsRemaining: null }),
     },
     {
       fieldId: "meetingPoint",
@@ -73,6 +106,10 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     {
       fieldId: "startPointLocationText",
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "meetingPointText"),
+    },
+    {
+      fieldId: "denali.location-zones",
+      applyHidden: clearGatheringFields,
     },
   ]);
 

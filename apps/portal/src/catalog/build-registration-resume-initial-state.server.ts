@@ -97,6 +97,7 @@ export async function buildRegistrationResumeInitialState(
         notes: "",
         registrantTarget: "self",
         transportState: emptyTransportState(),
+        submissionOutcome: null,
       }),
     }),
   });

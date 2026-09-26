@@ -40,6 +40,8 @@ export type CatalogRegistrationFlowState = Readonly<{
   readonly notes: string;
   readonly registrantTarget: "self" | "other";
   readonly transportState: CatalogRegistrationTransportIntakeState;
+  /** Final status returned by the registration POST, used by the success step. */
+  readonly submissionOutcome: "pending" | "approved" | "waitlisted" | null;
 }>;
 
 export class CatalogRegistrationFlowStateError extends Error {
@@ -73,6 +75,7 @@ export const CATALOG_REGISTRATION_FLOW_STATE_KEYS = [
   "notes",
   "registrantTarget",
   "transportState",
+  "submissionOutcome",
 ] as const satisfies readonly (keyof CatalogRegistrationFlowState)[];
 
 function emptyTransportState(): CatalogRegistrationTransportIntakeState {
@@ -112,6 +115,7 @@ export function createCatalogRegistrationFlowInitialData(): CatalogRegistrationF
     notes: "",
     registrantTarget: "self",
     transportState: emptyTransportState(),
+    submissionOutcome: null,
   });
 }
 
@@ -211,6 +215,14 @@ export function assertCatalogRegistrationFlowState(
   }
   if (!isTransportState(record.transportState)) {
     throw new CatalogRegistrationFlowStateError(`${label}: transportState invalid`);
+  }
+  if (
+    record.submissionOutcome !== null &&
+    record.submissionOutcome !== "pending" &&
+    record.submissionOutcome !== "approved" &&
+    record.submissionOutcome !== "waitlisted"
+  ) {
+    throw new CatalogRegistrationFlowStateError(`${label}: submissionOutcome invalid`);
   }
 }
 

@@ -2,13 +2,21 @@ import assert from "node:assert/strict";
 import type { IncomingMessage } from "node:http";
 import { describe, it } from "node:test";
 
-import { resolveCommercialPricingWorkspace } from "./commercial-pricing-preview.routes";
+import {
+  resolveCommercialPricingMemberUserId,
+  resolveCommercialPricingWorkspace,
+} from "./commercial-pricing-preview.routes";
 
 function request(url: string): IncomingMessage {
   return { url } as IncomingMessage;
 }
 
 describe("commercial pricing workspace binding", () => {
+  it("BUG-STG-022 applies membership discount only to the self participant", () => {
+    assert.equal(resolveCommercialPricingMemberUserId("self", "member-1"), "member-1");
+    assert.equal(resolveCommercialPricingMemberUserId("other", "member-1"), null);
+  });
+
   it("resolves an omitted workspace from the tenant for both route shapes", async () => {
     const resolver = async () => "denali";
 

@@ -11,8 +11,9 @@ import { denaliCatalogRegistrationFlowSurface } from "./denali-registration-flow
 export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
   const locale = useLocale();
-  const attrs =
-    denaliCatalogRegistrationFlowSurface.successDataAttributes?.(state, context) ?? {};
+  const submissionOutcome = state.data.submissionOutcome;
+  const isWaitlisted = submissionOutcome === "waitlisted";
+  const attrs = denaliCatalogRegistrationFlowSurface.successDataAttributes?.(state, context) ?? {};
 
   return (
     <div
@@ -22,9 +23,13 @@ export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
       dir={locale === "fa" ? "rtl" : "ltr"}
     >
       <p data-denali-success-kicker>{t("intake.kicker")}</p>
-      <h1 data-denali-success-title>{t("success.title")}</h1>
+      <h1 data-denali-success-title>
+        {t(isWaitlisted ? "success.waitlistTitle" : "success.title")}
+      </h1>
       <p data-denali-success-tour role="status">
-        {t("success.message", { tourTitle: context.tourTitle })}
+        {t(isWaitlisted ? "success.waitlistMessage" : "success.message", {
+          tourTitle: context.tourTitle,
+        })}
       </p>
       <div data-denali-success-actions>
         {context.memberModuleHref !== null ? (
@@ -43,4 +48,3 @@ export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
     </div>
   );
 }
-

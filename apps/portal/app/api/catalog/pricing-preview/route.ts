@@ -31,6 +31,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (transportKind.length > 0) {
     params.set("transportKind", transportKind);
   }
+  const registrantTarget = readSearch(req, "registrantTarget");
+  if (registrantTarget.length > 0) {
+    params.set("registrantTarget", registrantTarget);
+  }
 
   const res = await fetch(`${resolveTourOpsApiBaseUrl()}/catalog/pricing-preview?${params}`, {
     method: "GET",

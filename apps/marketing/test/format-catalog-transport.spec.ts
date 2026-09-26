@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { join } from "node:path";
 
 import {
   formatCatalogTransportMode,
@@ -9,6 +11,19 @@ import {
 const translate = (key: string) => key;
 
 describe("catalog transport display", () => {
+  it("BUG-STG-082 keeps transport mode and dong amount visible on PLP/PDP", () => {
+    const card = readFileSync(join(__dirname, "../src/catalog/catalog-tour-card.tsx"), "utf8");
+    const logistics = readFileSync(
+      join(__dirname, "../src/catalog/catalog-tour-detail-logistics.tsx"),
+      "utf8"
+    );
+
+    assert.match(card, /formatCatalogTransportMode\(tour\.transport, t\)/);
+    assert.match(card, /t\("pricing\.ancillary\.dong"\)/);
+    assert.match(logistics, /resolveCatalogTransportCostAmount\(transport\)/);
+    assert.match(logistics, /detail\.logistics\.dongAmount/);
+  });
+
   it("shows the canonical mode and personal-car option on a PLP card", () => {
     assert.equal(
       formatCatalogTransportMode({ mode: "shared_cars", allowPersonalCar: true }, translate),

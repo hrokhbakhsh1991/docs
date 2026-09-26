@@ -3,10 +3,7 @@ import { describe, it } from "node:test";
 
 import { buildDenaliTenantWizardTemplatePayload } from "@app-tour/workspace-denali";
 
-import {
-  buildExposureFieldCatalog,
-  buildExposureSelectableFieldCatalog,
-} from "./exposure-field-catalog";
+import { buildExposureSelectableFieldCatalog } from "./exposure-field-catalog";
 import {
   buildWizardTemplateExposureCatalog,
   isWizardTemplatePublishedForExposure,
@@ -25,7 +22,7 @@ describe("resolve-wizard-template-exposure-catalog", () => {
     assert.ok(!paths.includes("publishStatus"));
   });
 
-  it("returns more selectable fields than deliverable-only seed for Denali", async () => {
+  it("never widens the redaction-safe deliverable catalog for Denali", async () => {
     const payload = buildDenaliTenantWizardTemplatePayload();
     const wizardCatalog = await buildWizardTemplateExposureCatalog({
       workspaceType: "denali",
@@ -33,8 +30,9 @@ describe("resolve-wizard-template-exposure-catalog", () => {
     });
     const deliverableCatalog = await buildExposureSelectableFieldCatalog("denali");
 
-    assert.ok(wizardCatalog.length > deliverableCatalog.length);
-    assert.ok(wizardCatalog.some((field) => field.canonicalPath === "program.difficultyLevel"));
+    const deliverableIds = new Set(deliverableCatalog.map((field) => field.id));
+    assert.ok(wizardCatalog.every((field) => deliverableIds.has(field.id)));
+    assert.ok(!wizardCatalog.some((field) => field.canonicalPath === "program.difficultyLevel"));
     assert.ok(wizardCatalog.some((field) => field.canonicalPath === "transport.mode"));
   });
 
@@ -44,13 +42,13 @@ describe("resolve-wizard-template-exposure-catalog", () => {
       workspaceType: "denali",
       wizardTemplatePayload: payload,
     });
-    const programStep = payload.steps?.find((step) => step.stepId === "denali_program");
-    assert.ok(programStep != null);
+    const basicStep = payload.steps?.find((step) => step.stepId === "denali_basic");
+    assert.ok(basicStep != null);
 
-    const difficulty = wizardCatalog.find(
-      (field) => field.canonicalPath === "program.difficultyLevel"
+    const title = wizardCatalog.find(
+      (field) => field.canonicalPath === "title"
     );
-    assert.equal(difficulty?.group, programStep.label);
+    assert.equal(title?.group, basicStep.label);
   });
 
   it("returns empty catalog for unpublished templates", async () => {
@@ -70,7 +68,7 @@ describe("resolve-wizard-template-exposure-catalog", () => {
   it("only includes registry-backed fields", async () => {
     const payload = buildDenaliTenantWizardTemplatePayload();
     const registryIds = new Set(
-      (await buildExposureFieldCatalog("denali")).map((field) => field.id)
+      (await buildExposureSelectableFieldCatalog("denali")).map((field) => field.id)
     );
     const wizardCatalog = await buildWizardTemplateExposureCatalog({
       workspaceType: "denali",

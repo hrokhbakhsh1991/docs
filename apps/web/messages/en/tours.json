@@ -457,7 +457,7 @@
     "registrations": {
       "title": "Registration requests",
       "description": "Approve, reject, and inspect guest requests for this tour.",
-      "capacityFullBanner": "At capacity — new registrations do not auto-waitlist. Use Waitlist or approve to overbook.",
+      "capacityFullBanner": "At capacity — new public registrations are recorded on the waitlist. Open Waitlist to review and approve them.",
       "capacityFullWaitlistLink": "Open waitlist",
       "adminCreateCta": "Manual registration",
       "empty": "No registrations for this tour yet.",
@@ -488,6 +488,7 @@
       "finalParticipant": "Final",
       "notFinalParticipant": "Not final yet",
       "approvedParticipant": "Approved",
+      "waitlistedParticipant": "Waitlisted",
       "addToFinalRoster": "Add to final roster",
       "followPayment": "Follow up payment",
       "finalizeParticipantSuccess": "Participant finalized; payment state remains separate.",

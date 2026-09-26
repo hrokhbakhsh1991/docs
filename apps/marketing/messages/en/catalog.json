@@ -117,6 +117,7 @@
     "membershipDiscount": "Membership discount {percent}%",
     "membershipDiscountCompact": "{percent}% membership discount",
     "yourPrice": "Your price",
+    "unavailable": "Member price is temporarily unavailable",
     "ancillary": {
       "transport": "Vehicle",
       "dong": "Shared ride"
@@ -191,6 +192,7 @@
       "gathering": "Meeting point",
       "map": "Map",
       "openMap": "View on map",
+      "startTime": "Start time",
       "returnTime": "Approx. return time",
       "transport": "Transport",
       "transportCost": "Transport cost",
@@ -241,6 +243,11 @@
       "transportIntake": "Transport preference or vehicle details",
       "payment": "Payment method: {mode}",
       "prepayment": "Prepayment: {percent, number}% of the final amount after approval",
+      "freeCollection": "Free / no payment required",
+      "registrationApproval": {
+        "manual": "Registration approval: manual",
+        "auto": "Registration approval: automatic"
+      },
       "paymentModes": {
         "offlineReceipt": "Offline receipt / bank transfer",
         "gateway": "Online payment"

@@ -189,7 +189,7 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(response.body.code, "BOOKINGS_FORBIDDEN");
   });
 
-  it("P6-MR-03 operator approves member receipt (VS-07 memory path)", async () => {
+  it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE / P6-MR-03 operator approval updates booking and member list projection", async () => {
     const idRepo = getIdentityRepository();
     const { user, membership } = await idRepo.registerPublicGuest({
       tenantId: OPERATOR_SMOKE.tenantId,
