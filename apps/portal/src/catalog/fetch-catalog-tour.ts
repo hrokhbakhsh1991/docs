@@ -1,5 +1,6 @@
 import {
   resolveCatalogTourApiPath,
+  type PublicCatalogRegistrationState,
   type PublicCatalogTransportSnapshot,
 } from "@app-tour/workspace-sdk";
 
@@ -8,6 +9,8 @@ import { resolveTourOpsApiBaseUrl } from "../env";
 export type PortalCatalogTour = {
   readonly id: string;
   readonly title: string;
+  readonly registrationState?: PublicCatalogRegistrationState;
+  readonly waitlistEnabled?: boolean;
   readonly policiesText?: string | null;
   readonly nationalIdRequired?: boolean;
   readonly fatherNameRequired?: boolean;
@@ -22,6 +25,8 @@ type CatalogDetailResponse = {
   readonly data?: {
     readonly id?: string;
     readonly title?: string;
+    readonly registrationState?: PublicCatalogRegistrationState;
+    readonly waitlistEnabled?: boolean;
     readonly policiesText?: string | null;
     readonly nationalIdRequired?: boolean;
     readonly fatherNameRequired?: boolean;
@@ -36,9 +41,11 @@ export async function fetchCatalogTour(input: {
   readonly tenantId: string;
   readonly pluginId: string;
   readonly tourId: string;
+  readonly fetchImpl?: typeof fetch;
 }): Promise<PortalCatalogTour | null> {
   const path = resolveCatalogTourApiPath(input.pluginId, input.tourId);
-  const res = await fetch(`${resolveTourOpsApiBaseUrl()}${path}`, {
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const res = await fetchImpl(`${resolveTourOpsApiBaseUrl()}${path}`, {
     method: "GET",
     headers: { "x-tenant-id": input.tenantId },
     cache: "no-store",
@@ -57,6 +64,8 @@ export async function fetchCatalogTour(input: {
   return {
     id: data.id,
     title: data.title ?? "Tour",
+    registrationState: data.registrationState,
+    waitlistEnabled: data.waitlistEnabled === true,
     policiesText: data.policiesText ?? null,
     nationalIdRequired: data.nationalIdRequired === true,
     fatherNameRequired: data.fatherNameRequired === true,

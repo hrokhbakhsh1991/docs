@@ -13,6 +13,7 @@ const BOOKING_STATUSES = [
 
 const PAYMENT_STATUSES = ["unpaid", "partial", "paid"] as const;
 const MEMBER_PAYMENT_DISPLAY_STATUSES = [...PAYMENT_STATUSES, "waived"] as const;
+export const MEMBER_REGISTRATION_DISPLAY_TIME_ZONE = "Asia/Tehran" as const;
 
 function translateKnownKey(
   translate: (key: string) => string,
@@ -22,8 +23,11 @@ function translateKnownKey(
   return known.includes(value) ? translate(value) : value;
 }
 
-export async function formatMemberRegistrationDeparture(iso: string): Promise<string> {
-  const locale = await getLocale();
+export function formatMemberRegistrationDepartureLabel(
+  iso: string,
+  locale: string,
+  timeZone: string = MEMBER_REGISTRATION_DISPLAY_TIME_ZONE,
+): string {
   const parsed = Date.parse(iso);
   if (Number.isNaN(parsed)) {
     return iso;
@@ -31,7 +35,12 @@ export async function formatMemberRegistrationDeparture(iso: string): Promise<st
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone,
   }).format(new Date(parsed));
+}
+
+export async function formatMemberRegistrationDeparture(iso: string): Promise<string> {
+  return formatMemberRegistrationDepartureLabel(iso, await getLocale());
 }
 
 export async function localizeMemberRegistrationStatus(

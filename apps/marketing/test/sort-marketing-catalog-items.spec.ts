@@ -49,6 +49,41 @@ describe("sort-marketing-catalog-items.spec.ts — PR-21", () => {
     );
   });
 
+  it("BUG-STG-027 sorts free collection as price zero", () => {
+    const result = sortMarketingCatalogItems(
+      [
+        ...items,
+        {
+          id: "free",
+          title: "Free walk",
+          paymentCollection: "free",
+          priceAmount: null,
+        },
+      ],
+      "price_asc"
+    );
+
+    assert.deepEqual(
+      result.map((item) => item.id),
+      ["free", "b", "a", "c"]
+    );
+    assert.deepEqual(
+      sortMarketingCatalogItems(
+        [
+          ...items,
+          {
+            id: "free",
+            title: "Free walk",
+            paymentCollection: "free",
+            priceAmount: null,
+          },
+        ],
+        "price_desc"
+      ).map((item) => item.id),
+      ["c", "a", "b", "free"]
+    );
+  });
+
   it("sorts by difficulty ascending", () => {
     assert.deepEqual(
       sortMarketingCatalogItems(items, "difficulty_asc").map((item) => item.id),

@@ -12,6 +12,7 @@ import type {
 } from "@/me/member-receipt-status";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { formatMemberMoney } from "@/me/format-member-money";
+import { dispatchMemberReceiptStatusChanged } from "./member-receipt-status-events";
 
 export type MemberReceiptDueLine = {
   readonly code: "trip" | "dong" | "transport";
@@ -277,6 +278,7 @@ export function MemberReceiptUploadForm({
         previewUrl: localPreviewUrl ?? current.previewUrl,
         previewKind: localPreviewKind ?? current.previewKind,
       }));
+      dispatchMemberReceiptStatusChanged("pending");
       router.refresh();
       setUploadPhase("idle");
     } catch {
@@ -447,6 +449,19 @@ export function MemberReceiptUploadForm({
         body={
           paymentCollection === "free" ? t("awaitingFreeApprovalBody") : t("awaitingApprovalBody")
         }
+      >
+        {actionLinks}
+      </ReceiptStateCard>
+    );
+  }
+
+  if (paymentCollection === "free") {
+    return (
+      <ReceiptStateCard
+        eyebrow={eyebrow}
+        rootProps={{ "data-portal-member-receipt-waived": "" }}
+        title={t("waivedTitle")}
+        body={t("waivedBody")}
       >
         {actionLinks}
       </ReceiptStateCard>

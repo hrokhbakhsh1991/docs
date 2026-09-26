@@ -33,6 +33,8 @@ export async function CatalogTourDetailRegisterPreview({
       maximumAge: (years) => t("detail.registerPreview.maximumAge", { years }),
       transportIntake: t("detail.registerPreview.transportIntake"),
       payment: (modeLabel) => t("detail.registerPreview.payment", { mode: modeLabel }),
+      paymentCollection: () => t("detail.registerPreview.freeCollection"),
+      registrationApproval: (mode) => t(`detail.registerPreview.registrationApproval.${mode}`),
       prepayment: (percent) => t("detail.registerPreview.prepayment", { percent }),
     },
   });

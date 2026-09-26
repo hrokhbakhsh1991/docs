@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { CatalogCommercialPricingBreakdown } from "./catalog-commercial-pricing";
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
@@ -16,6 +17,7 @@ export type CatalogTourDetailBookingRailProps = {
   readonly registration: CatalogTourRegistrationState;
   readonly cta: MarketingTourDetailCtaModel;
   readonly pricingPreview?: MarketingCommercialPricingPreview | null;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 };
 
 export async function CatalogTourDetailBookingRail({
@@ -24,6 +26,7 @@ export async function CatalogTourDetailBookingRail({
   registration,
   cta,
   pricingPreview = null,
+  pricingPreviewStatus = "anonymous",
 }: CatalogTourDetailBookingRailProps) {
   if (cta.primaryHref == null && registration.state !== "past" && registration.state !== "closed") {
     return null;
@@ -64,7 +67,11 @@ export async function CatalogTourDetailBookingRail({
         dateLocale={dateLocale}
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}
+        pricingPreviewStatus={pricingPreviewStatus}
       />
+      {tour.paymentCollection === "free" ? (
+        <p data-marketing-catalog-detail-free>{t("detail.freeCollection")}</p>
+      ) : null}
       {capacityLine != null ? (
         <p data-marketing-catalog-detail-rail-capacity>{capacityLine}</p>
       ) : null}

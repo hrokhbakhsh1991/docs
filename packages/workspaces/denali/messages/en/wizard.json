@@ -104,6 +104,9 @@
     },
     "publishStatus": "Publish status"
   },
+  "fieldDescriptions": {
+    "locationZones": "Start, summit, camp, and end route zones."
+  },
   "fieldKinds": {
     "text": "Text",
     "enum": "Choice",

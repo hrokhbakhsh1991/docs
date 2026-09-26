@@ -4,6 +4,10 @@ import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
+const BOOKING_LIST_NO_STORE_HEADERS = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+} as const;
+
 export async function GET(req: Request): Promise<NextResponse> {
   const sessionToken = readSessionTokenFromRequest(req);
   if (sessionToken === null) {
@@ -36,7 +40,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
-  return NextResponse.json(payload, { status: backendRes.status });
+  return NextResponse.json(payload, {
+    status: backendRes.status,
+    headers: BOOKING_LIST_NO_STORE_HEADERS,
+  });
 }
 
 export async function POST(req: Request): Promise<NextResponse> {

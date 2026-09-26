@@ -4,6 +4,7 @@ import {
   getWorkspaceRegistrationFlowPlugin,
   type FlowEvent,
   type FlowRuntimeState,
+  type PublicCatalogRegistrationState,
   type PublicCatalogTransportSnapshot,
   type RegistrationFlowContext,
 } from "@app-tour/workspace-sdk";
@@ -32,6 +33,7 @@ export type PublicCatalogRegistrationFlowProps = {
   readonly tenantId: string;
   readonly tourId: string;
   readonly tourTitle: string;
+  readonly registrationState?: PublicCatalogRegistrationState;
   readonly tourPoliciesText?: string | null;
   readonly tourPriceAmount?: number | null;
   readonly commercialPricingPreview?: PortalCommercialPricingPreview | null;
@@ -105,6 +107,7 @@ function PublicCatalogRegistrationFlowReady({
   tenantId,
   tourId,
   tourTitle,
+  registrationState,
   tourPoliciesText,
   tourPriceAmount = null,
   commercialPricingPreview = null,
@@ -132,6 +135,7 @@ function PublicCatalogRegistrationFlowReady({
       tenantId,
       tourId,
       tourTitle,
+      registrationState,
       tourPoliciesText,
       tourPriceAmount,
       commercialPricingPreview,
@@ -160,6 +164,7 @@ function PublicCatalogRegistrationFlowReady({
       tourFatherNameRequired,
       tourId,
       tourNationalIdRequired,
+      registrationState,
       tourPoliciesText,
       tourPriceAmount,
       commercialPricingPreview,

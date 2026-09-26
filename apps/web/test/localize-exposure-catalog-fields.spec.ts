@@ -65,4 +65,21 @@ describe("localize-exposure-catalog-fields.spec.ts", () => {
     assert.equal(localized?.canonicalPath, "totallyUnknownPath");
     assert.ok((localized?.adminLabel ?? "").length > 0);
   });
+
+  it("WEB-EXP-LOCALIZE-04 localizes location-zones description in Persian", async () => {
+    const translate = await namespacedTranslator("fa", "denali");
+    const [localized] = localizeExposureCatalogFields(
+      DENALI_WORKSPACE_PLUGIN_ID,
+      [{
+        id: "denali.location-zones",
+        canonicalPath: "denali.location-zones",
+        adminLabel: "Location Zones",
+        adminDescription: "Start, summit, camp and end location zones.",
+      }],
+      translate,
+    );
+
+    assert.equal(localized?.adminDescription, "ناحیه‌های شروع، قله، اردوگاه و پایان مسیر.");
+    assert.doesNotMatch(localized?.adminDescription ?? "", /Start|summit|camp|end/);
+  });
 });

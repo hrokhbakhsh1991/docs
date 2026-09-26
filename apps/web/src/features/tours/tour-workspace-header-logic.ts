@@ -13,6 +13,8 @@ export type TourWorkspaceOpsCounts = {
   readonly approved: number;
   /** Approved registrations that still have an outstanding balance. */
   readonly paymentDue: number;
+  /** Rows rendered by the default Transport operational roster. */
+  readonly operational: number;
   /** Operational roster rows that are financially settled and truly final. */
   readonly final: number;
 };
@@ -45,7 +47,7 @@ export function buildTourWorkspaceOpsCountsQuery(tourId: string, status: string)
 
 export function buildTourWorkspaceRosterCountsHref(
   tourId: string,
-  filter: "unpaid" | "final"
+  filter: "unpaid" | "operational" | "final"
 ): string {
   const params = new URLSearchParams();
   params.set("view", "ops");
@@ -111,6 +113,7 @@ export function resolveTourWorkspaceOpsCountsFromListPayloads(input: {
   readonly waitlistedPayload: unknown;
   readonly approvedPayload: unknown;
   readonly paymentDuePayload?: unknown;
+  readonly operationalPayload?: unknown;
   readonly finalPayload?: unknown;
 }): TourWorkspaceOpsCountsLoadResult {
   const pending = readBookingsListTotal(input.pendingPayload);
@@ -118,18 +121,21 @@ export function resolveTourWorkspaceOpsCountsFromListPayloads(input: {
   const approved = readBookingsListTotal(input.approvedPayload);
   const paymentDue =
     input.paymentDuePayload === undefined ? 0 : readBookingsListTotal(input.paymentDuePayload);
+  const operational =
+    input.operationalPayload === undefined ? 0 : readBookingsListTotal(input.operationalPayload);
   const final = input.finalPayload === undefined ? 0 : readBookingsListTotal(input.finalPayload);
   if (
     pending === null ||
     waitlisted === null ||
     approved === null ||
     paymentDue === null ||
+    operational === null ||
     final === null
   ) {
     return { ok: false, errorCode: "TOUR_WORKSPACE_OPS_COUNTS_INVALID" };
   }
   return {
     ok: true,
-    counts: { pending, waitlisted, approved, paymentDue, final },
+    counts: { pending, waitlisted, approved, paymentDue, operational, final },
   };
 }

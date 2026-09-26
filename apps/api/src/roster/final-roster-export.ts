@@ -89,6 +89,8 @@ export async function buildFinalRosterWorkbook(input: {
   const totalMinor = sumMinor(finalRows.map((row) => totalForRow(row)));
   const paidMinor = sumMinor(finalRows.map((row) => row.paidMinor));
   const remainingMinor = sumMinor(finalRows.map((row) => row.remainingMinor));
+  const unpaidRemainingMinor = sumMinor(unpaidRows.map((row) => row.remainingMinor));
+  const exportCurrency = resolveExportCurrency(input.rows);
 
   const summary = workbook.addWorksheet("خلاصه گزارش");
   summary.views = [{ rightToLeft: true }];
@@ -103,17 +105,18 @@ export async function buildFinalRosterWorkbook(input: {
     ["تعداد پرداخت‌شده", paidRows.length],
     ["تعداد بدون دریافت وجه", waivedRows.length],
     ["تعداد بدهکار یا پرداخت ناقص", unpaidRows.length],
-    ["مبلغ کل", formatAmount(totalMinor, finalRows[0]?.currency ?? null)],
-    ["مبلغ پرداخت‌شده", formatAmount(paidMinor, finalRows[0]?.currency ?? null)],
-    ["مبلغ مانده", formatAmount(remainingMinor, finalRows[0]?.currency ?? null)],
+    ["مبلغ کل نهایی‌شده", formatAmount(totalMinor, exportCurrency)],
+    ["مبلغ پرداخت‌شده نهایی‌شده", formatAmount(paidMinor, exportCurrency)],
+    ["مبلغ مانده نهایی‌شده", formatAmount(remainingMinor, exportCurrency)],
+    ["مبلغ مانده بدهکار یا پرداخت ناقص", formatAmount(unpaidRemainingMinor, exportCurrency)],
   ]);
   summary.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   summary.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
 
-  addDataSheet(workbook, "لیست نهایی", finalRows);
-  addDataSheet(workbook, "منتظر پرداخت", unpaidRows);
-  addDataSheet(workbook, "پرداخت‌شده", paidRows);
-  addDataSheet(workbook, "بدون دریافت وجه", waivedRows);
+  addDataSheet(workbook, "لیست نهایی", finalRows, exportCurrency);
+  addDataSheet(workbook, "منتظر پرداخت", unpaidRows, exportCurrency);
+  addDataSheet(workbook, "پرداخت‌شده", paidRows, exportCurrency);
+  addDataSheet(workbook, "بدون دریافت وجه", waivedRows, exportCurrency);
 
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
@@ -148,12 +151,13 @@ export async function createFinalRosterExport(
 function addDataSheet(
   workbook: ExcelJS.Workbook,
   name: string,
-  rows: readonly TourOperationalRosterRow[]
+  rows: readonly TourOperationalRosterRow[],
+  fallbackCurrency: string | null
 ): void {
   const sheet = workbook.addWorksheet(name);
   sheet.views = [{ rightToLeft: true }];
   sheet.columns = [...DATA_COLUMNS];
-  sheet.addRows(rows.map((row, index) => toExportRow(row, index + 1)));
+  sheet.addRows(rows.map((row, index) => toExportRow(row, index + 1, fallbackCurrency)));
   const tableEnd = Math.max(2, rows.length + 1);
   sheet.addTable({
     name: `Roster${tableNameSuffix(name)}`,
@@ -163,7 +167,7 @@ function addDataSheet(
     style: { theme: "TableStyleMedium2", showRowStripes: true },
     columns: DATA_COLUMNS.map((column) => ({ name: column.header })),
     rows: rows.map((row, index) =>
-      DATA_COLUMNS.map((column) => toExportRow(row, index + 1)[column.key])
+      DATA_COLUMNS.map((column) => toExportRow(row, index + 1, fallbackCurrency)[column.key])
     ),
   });
   sheet.autoFilter = { from: "A1", to: `N${tableEnd}` };
@@ -171,7 +175,8 @@ function addDataSheet(
 
 function toExportRow(
   row: TourOperationalRosterRow,
-  rowNumber: number
+  rowNumber: number,
+  fallbackCurrency: string | null
 ): Record<string, string | number> {
   const paid = parseMinorUnits(row.paidMinor) ?? BigInt(0);
   const remaining = parseMinorUnits(row.remainingMinor) ?? BigInt(0);
@@ -183,15 +188,19 @@ function toExportRow(
     finalizationStatus:
       row.finalizationStatus === "finalized" ? "نهایی‌شده" : "در انتظار نهایی‌سازی",
     paymentStatus: paymentStatusLabel(row.financialDisplayState),
-    totalAmount: formatAmount((paid + remaining).toString(), row.currency),
-    paidAmount: formatAmount(paid.toString(), row.currency),
-    remainingAmount: formatAmount(remaining.toString(), row.currency),
+    totalAmount: formatAmount((paid + remaining).toString(), row.currency ?? fallbackCurrency),
+    paidAmount: formatAmount(paid.toString(), row.currency ?? fallbackCurrency),
+    remainingAmount: formatAmount(remaining.toString(), row.currency ?? fallbackCurrency),
     paymentDueAt: formatAdminDate(row.paymentDueAt),
     transportKind: transportKindLabel(row.transportKind),
     personalCarOccupants: formatOccupants(row),
     submittedAt: formatAdminDate(row.submittedAt),
-    finalizedAt: row.finalizationStatus === "finalized" ? formatAdminDate(row.finalizedAt) : "—",
+    finalizedAt: row.finalizationStatus === "finalized" ? formatFinalizedAt(row.finalizedAt) : "—",
   };
+}
+
+function resolveExportCurrency(rows: readonly TourOperationalRosterRow[]): string | null {
+  return rows.find((row) => row.currency !== null && row.currency.trim().length > 0)?.currency ?? null;
 }
 
 function totalForRow(row: TourOperationalRosterRow): string | null {
@@ -236,7 +245,7 @@ function paymentStatusLabel(status: TourOperationalRosterRow["financialDisplaySt
 function transportKindLabel(kind: TourOperationalRosterRow["transportKind"]): string {
   switch (kind) {
     case "primary":
-      return "حمل‌ونقل اصلی تور";
+      return "حمل سازمان‌یافته";
     case "personal_car":
       return "ماشین شخصی خودش";
     case "no_car_dong":
@@ -258,9 +267,16 @@ function formatOccupants(row: TourOperationalRosterRow): string {
 function formatAmount(value: string | null, currency: string | null): string {
   const parsed = parseMinorUnits(value);
   if (parsed === null) return "—";
-  const unit = currency === "IRT" ? "تومان" : currency === "IRR" ? "ریال" : (currency ?? "");
+  const unit = currency === "IRT" || currency === "IRR" ? "تومان" : (currency ?? "");
   const formatted = new Intl.NumberFormat("fa-IR").format(parsed);
   return unit.length > 0 ? `${formatted} ${unit}` : formatted;
+}
+
+function formatFinalizedAt(value: string | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(new Date(value).getTime())) {
+    return "تاریخ در دسترس نیست";
+  }
+  return formatAdminDate(value);
 }
 
 function formatAdminDate(value: string | null | undefined): string {

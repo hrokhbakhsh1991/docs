@@ -16,7 +16,18 @@ describe("denali intake submit → done", () => {
       "utf8"
     );
     assert.match(steps, /transitionFlowStep\(dispatch, "done"\)/);
+    assert.match(steps, /submissionOutcome/);
     assert.doesNotMatch(steps, /router\.refresh/);
     assert.doesNotMatch(steps, /register\?_rsc/);
+  });
+
+  it("BUG-STG-065 preserves waitlisted status for the success copy", () => {
+    const done = readFileSync(
+      join(denaliRoot, "src/catalog/registration-flow/denali-registration-flow.done-step.tsx"),
+      "utf8"
+    );
+    assert.match(done, /success\.waitlistTitle/);
+    assert.match(done, /success\.waitlistMessage/);
+    assert.match(done, /submissionOutcome === "waitlisted"/);
   });
 });

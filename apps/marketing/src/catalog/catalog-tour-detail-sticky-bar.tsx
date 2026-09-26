@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { CatalogCommercialPricingBreakdown } from "./catalog-commercial-pricing";
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta";
 import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
@@ -16,6 +17,7 @@ export type CatalogTourDetailStickyBarProps = {
   readonly registration: CatalogTourRegistrationState;
   readonly cta: MarketingTourDetailCtaModel;
   readonly pricingPreview?: MarketingCommercialPricingPreview | null;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 };
 
 export async function CatalogTourDetailStickyBar({
@@ -24,6 +26,7 @@ export async function CatalogTourDetailStickyBar({
   registration,
   cta,
   pricingPreview = null,
+  pricingPreviewStatus = "anonymous",
 }: CatalogTourDetailStickyBarProps) {
   if (cta.primaryHref == null && registration.state !== "past" && registration.state !== "closed") {
     return null;
@@ -53,6 +56,7 @@ export async function CatalogTourDetailStickyBar({
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}
         compact
+        pricingPreviewStatus={pricingPreviewStatus}
       />
       {registration.state === "closed" && cta.primaryKind !== "view-self" ? (
         <p data-marketing-catalog-detail-sold-out>{t("detail.soldOut")}</p>

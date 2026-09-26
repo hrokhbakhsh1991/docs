@@ -146,8 +146,8 @@ function TourWorkspaceLayoutInner({
     let cancelled = false;
     const loadOps = async () => {
       try {
-        const [pendingRes, waitlistedRes, approvedRes, paymentDueRes, finalRes] = await Promise.all(
-          [
+        const [pendingRes, waitlistedRes, approvedRes, paymentDueRes, operationalRes, finalRes] =
+          await Promise.all([
             fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "pending")}`, {
               cache: "no-store",
             }),
@@ -158,14 +158,17 @@ function TourWorkspaceLayoutInner({
               cache: "no-store",
             }),
             fetch(buildTourWorkspaceRosterCountsHref(tourId, "unpaid"), { cache: "no-store" }),
+            fetch(buildTourWorkspaceRosterCountsHref(tourId, "operational"), {
+              cache: "no-store",
+            }),
             fetch(buildTourWorkspaceRosterCountsHref(tourId, "final"), { cache: "no-store" }),
-          ]
-        );
+          ]);
         if (
           !pendingRes.ok ||
           !waitlistedRes.ok ||
           !approvedRes.ok ||
           !paymentDueRes.ok ||
+          !operationalRes.ok ||
           !finalRes.ok
         ) {
           throw new Error("TOUR_WORKSPACE_OPS_COUNTS_FAILED");
@@ -175,6 +178,7 @@ function TourWorkspaceLayoutInner({
           waitlistedPayload: await waitlistedRes.json(),
           approvedPayload: await approvedRes.json(),
           paymentDuePayload: await paymentDueRes.json(),
+          operationalPayload: await operationalRes.json(),
           finalPayload: await finalRes.json(),
         });
         if (!cancelled) {
@@ -227,7 +231,7 @@ function TourWorkspaceLayoutInner({
     if (opsCounts !== null) {
       map.registrations = opsCounts.pending;
       map.waitlist = opsCounts.waitlisted;
-      map.transport = opsCounts.final;
+      map.transport = opsCounts.operational;
     }
     return map;
   }, [opsCounts, subnavTabs]);
@@ -457,7 +461,10 @@ function TourWorkspaceLayoutInner({
         })}
       </nav>
 
-      <p className="sm:hidden text-xs text-muted-foreground" data-testid="tour-workspace-subnav-scroll-hint">
+      <p
+        className="sm:hidden text-xs text-muted-foreground"
+        data-testid="tour-workspace-subnav-scroll-hint"
+      >
         {t("subnavScrollHint")}
       </p>
 

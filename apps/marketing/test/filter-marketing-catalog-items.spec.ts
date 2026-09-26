@@ -55,14 +55,16 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
 
   it("filters by denali category family", async () => {
     assert.deepEqual(
-      (await filterMarketingCatalogItems(
-        [
-          { id: "1", title: "Alpine", category: "mountain_multi" },
-          { id: "2", title: "Woods", category: "nature_day" },
-        ],
-        { category: "mountain" },
-        "denali"
-      )).map((item) => item.id),
+      (
+        await filterMarketingCatalogItems(
+          [
+            { id: "1", title: "Alpine", category: "mountain_multi" },
+            { id: "2", title: "Woods", category: "nature_day" },
+          ],
+          { category: "mountain" },
+          "denali"
+        )
+      ).map((item) => item.id),
       ["1"]
     );
   });
@@ -117,9 +119,31 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
     );
   });
 
+  it("BUG-STG-026 treats free collection as price zero", async () => {
+    const result = await filterMarketingCatalogItems(
+      [
+        ...items,
+        {
+          id: "free",
+          title: "Free walk",
+          paymentCollection: "free",
+          priceAmount: null,
+        },
+      ],
+      { minPrice: 0, maxPrice: 0 }
+    );
+
+    assert.deepEqual(
+      result.map((item) => item.id),
+      ["free"]
+    );
+  });
+
   it("applies category then q", async () => {
     assert.deepEqual(
-      (await filterMarketingCatalogItems(items, { category: "Peak", q: "north" })).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { category: "Peak", q: "north" })).map(
+        (item) => item.id
+      ),
       ["1"]
     );
   });
@@ -138,6 +162,9 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
       ],
       {}
     );
-    assert.deepEqual(result.map((item) => item.id), ["1", "2", "3"]);
+    assert.deepEqual(
+      result.map((item) => item.id),
+      ["1", "2", "3"]
+    );
   });
 });

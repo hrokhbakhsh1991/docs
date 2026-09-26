@@ -1,10 +1,6 @@
 import { resolveCatalogTourApiPath } from "@app-tour/workspace-sdk";
 
 import type { MarketingCatalogCard } from "./catalog-types";
-import {
-  resolveCatalogFetchCache,
-  resolveCatalogFetchNext,
-} from "./catalog-fetch-options";
 import { resolveTourOpsApiBaseUrl } from "../env";
 
 type MarketingCatalogDetailResponse = {
@@ -21,8 +17,8 @@ export async function fetchCatalogTour(input: {
   const res = await fetch(`${resolveTourOpsApiBaseUrl()}${path}`, {
     method: "GET",
     headers: { "x-tenant-id": input.tenantId },
-    cache: resolveCatalogFetchCache(),
-    next: resolveCatalogFetchNext(input.tenantId),
+    // registrationState/spotsRemaining are booking-backed and must agree with PLP.
+    cache: "no-store",
   });
   if (res.status === 404) {
     return null;

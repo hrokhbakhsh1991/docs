@@ -22,21 +22,21 @@ Workspace-agnostic **presentation shell** for public tour catalog in `apps/marke
 
 ### Admin required → list card (Denali)
 
-| Wizard / publish gate | Canonical path               | `PublicCatalogCard`                   | Card UI (PR-21)             |
-| --------------------- | ---------------------------- | ------------------------------------- | --------------------------- |
-| Tour kind             | `category`                   | `category`, `listSubtitle`            | Category badge on cover     |
-| Title                 | `title`                      | `title`                               | H2                          |
-| Destination           | `destinationId`              | — (detail-only today)                 | —                           |
-| Start                 | `startDateTime`              | `departureAt`                         | Dates row                   |
-| End (multi-day)       | `endDateTime`                | `endAt`                               | Date range                  |
-| Capacity              | `capacityMax`                | `totalCapacity`, `spotsRemaining`     | Spots pill / sold-out badge |
-| Short description     | `program.shortDescription`   | `listDescription`, `shortDescription` | Body copy (clamp)           |
+| Wizard / publish gate | Canonical path               | `PublicCatalogCard`                   | Card UI (PR-21)                                                                                                                                      |
+| --------------------- | ---------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tour kind             | `category`                   | `category`, `listSubtitle`            | Category badge on cover                                                                                                                              |
+| Title                 | `title`                      | `title`                               | H2                                                                                                                                                   |
+| Destination           | `destinationId`              | — (detail-only today)                 | —                                                                                                                                                    |
+| Start                 | `startDateTime`              | `departureAt`                         | Dates row                                                                                                                                            |
+| End (multi-day)       | `endDateTime`                | `endAt`                               | Date range                                                                                                                                           |
+| Capacity              | `capacityMax`                | `totalCapacity`, `spotsRemaining`     | Spots pill / sold-out badge                                                                                                                          |
+| Short description     | `program.shortDescription`   | `listDescription`, `shortDescription` | Body copy (clamp)                                                                                                                                    |
 | Cover                 | `photos[0]`                  | `coverImageUrl`                       | 16:9 media + fallback (`/home/fallback-tour-cover.webp`; smoke `cdn.example` URLs ignored — [public-catalog.md](./public-catalog.md) § Photo egress) |
-| Price                 | `pricing.basePricePerPerson` | `priceAmount`, `showListPrice`        | Price chip on cover         |
-| Difficulty            | `program.difficultyLevel`    | `difficultyLevel`                     | Stat pill + filter          |
-| Fitness               | `participants.fitnessLevel`  | `fitnessLevel`                        | Stat pill + filter          |
-| Transport             | `transport.mode`             | `transport`                           | Detail / registration only  |
-| Policies              | `policies.*`                 | `policiesText`, cancellation fields   | Detail only                 |
+| Price                 | `pricing.basePricePerPerson` | `priceAmount`, `showListPrice`        | Price chip on cover                                                                                                                                  |
+| Difficulty            | `program.difficultyLevel`    | `difficultyLevel`                     | Stat pill + filter                                                                                                                                   |
+| Fitness               | `participants.fitnessLevel`  | `fitnessLevel`                        | Stat pill + filter                                                                                                                                   |
+| Transport             | `transport.mode`             | `transport`                           | Detail / registration only                                                                                                                           |
+| Policies              | `policies.*`                 | `policiesText`, cancellation fields   | Detail only                                                                                                                                          |
 
 Exposure redaction (`denali-catalog-exposure-bindings`) may hide mapped fields — card omits empty rows (fail-soft).
 
@@ -116,13 +116,48 @@ app/tours/[tourId]/page.tsx           → CatalogTourDetail (PR-D — see § PR-
 
 ### Pure logic (no JSX)
 
-| Module                                            | Role                                                                                                      |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `format-catalog-display.ts`                       | subtitle, description, dates, price formatting. **ED-CURR-MKT-01:** Denali `pluginId` + `IRR` display is تومان/toman (same integer; no ×10). Other workspaces / ISO codes stay `Intl` currency style. JSON-LD `offers.priceCurrency` remains `IRR`. |
-| `format-catalog-cancellation.ts`                  | cancellation template helpers (unit tests); detail UI uses `next-intl` ICU in `CatalogTourDetailPolicies` |
-| `catalog-itinerary-display-logic.ts`              | segment labels, photo list shaping                                                                        |
-| `fetch-catalog-list.ts` / `fetch-catalog-tour.ts` | server upstream fetch                                                                                     |
-| `catalog-fetch-options.ts`                        | Next.js cache + revalidate tags                                                                           |
+| Module                      | Role                                                                                                                                                                                                                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format-catalog-display.ts` | subtitle, description, dates, price formatting. **ED-CURR-MKT-01:** Denali `pluginId` + `IRR` display is تومان/toman (same integer; no ×10). Other workspaces / ISO codes stay `Intl` currency style. JSON-LD `offers.priceCurrency` remains `IRR`. |
+
+## Registration and free-collection egress
+
+Published Denali catalog cards must expose the public-safe registration/payment hints
+used by the PDP and list surfaces:
+
+- `paymentCollection`: `free` or `offline` — free tours render an explicit
+  «رایگان / بدون نیاز به پرداخت» label and participate in price filtering as zero.
+- `registrationApproval`: `manual` or `auto` — the PDP renders the configured
+  approval behavior next to the payment method.
+
+These fields are presentation hints only; registration and payment authorization
+remain owned by the Portal/API flow. A missing field must not be silently rendered
+as a paid tour or as an unknown approval policy.
+
+Personalized member pricing uses one server-generated preview contract for both PLP
+and PDP. For an authenticated member, a failed or partial batch preview must not
+silently fall back to the canonical/base price; the UI receives an explicit preview
+status and shows an unavailable state until the member preview is valid. Anonymous
+visitors may continue to use the canonical catalog price.
+
+| `format-catalog-cancellation.ts` | cancellation template helpers (unit tests); detail UI uses `next-intl` ICU in `CatalogTourDetailPolicies` |
+| `catalog-itinerary-display-logic.ts` | segment labels, photo list shaping |
+| `fetch-catalog-list.ts` / `fetch-catalog-tour.ts` | server upstream fetch |
+| `catalog-fetch-options.ts` | Next.js cache + revalidate tags |
+
+## Exposure redaction contract
+
+The published wizard template may narrow the public Exposure catalog but cannot
+add fields outside the redaction-safe deliverable registry. Denali applies
+composite bindings for participant pricing, payment policy, and location zones;
+the payment binding clears `paymentMode`, `paymentPlan`, collection/approval
+metadata, and insurance hints together; the transport binding removes the
+whole transport snapshot when `denali.transport-mode` is hidden. Capacity remains hidden by
+product decision, so `capacityMin` is not a public deliverable and capacity
+redaction also clears the derived `spotsRemaining` value.
+
+Registration departure instants are rendered in the Denali business timezone
+(`Asia/Tehran`) in Portal; formatting must not depend on the SSR process timezone.
 
 ### Types
 
@@ -134,13 +169,13 @@ Pure meta line: `build-catalog-tour-meta-line.ts` (shared list card + detail).
 
 Marketing calls workspace-sdk resolvers — **no** `if (pluginId === …)` in `apps/marketing`:
 
-| Resolver                          | Module                                    | Marketing use                                                                                                                             |
-| --------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolveGuestLandingFeatures`     | `resolve-guest-landing-features.ts`       | Home `/` variant (full vs minimal) + section gates                                                                                        |
-| `resolveCatalogListFeatures`      | `resolve-catalog-list-features.ts`        | Urban city filter; Denali `serverListFilters` + marketing fetch query                                                                     |
-| `catalogListSupportsServerFilter` | `resolve-catalog-list-features.ts`        | Gate upstream query params in `build-catalog-list-fetch-query.ts`                                                                         |
-| `resolveCatalogDetailSections`    | `resolve-catalog-detail-sections.ts`      | Itinerary / policies visibility                                                                                                           |
-| `supportsCatalogRegistration`     | `resolve-catalog-registration-support.ts` | Register CTA (`data-marketing-register`) — manifest **L2+** (`catalogRegistrationFlow`); no runtime intake registry required in marketing |
+| Resolver                                      | Module                                              | Marketing use                                                                                                                                                                                            |
+| --------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveGuestLandingFeatures`                 | `resolve-guest-landing-features.ts`                 | Home `/` variant (full vs minimal) + section gates                                                                                                                                                       |
+| `resolveCatalogListFeatures`                  | `resolve-catalog-list-features.ts`                  | Urban city filter; Denali `serverListFilters` + marketing fetch query                                                                                                                                    |
+| `catalogListSupportsServerFilter`             | `resolve-catalog-list-features.ts`                  | Gate upstream query params in `build-catalog-list-fetch-query.ts`                                                                                                                                        |
+| `resolveCatalogDetailSections`                | `resolve-catalog-detail-sections.ts`                | Itinerary / policies visibility                                                                                                                                                                          |
+| `supportsCatalogRegistration`                 | `resolve-catalog-registration-support.ts`           | Register CTA (`data-marketing-register`) — manifest **L2+** (`catalogRegistrationFlow`); no runtime intake registry required in marketing                                                                |
 | `tryResolveCatalogRegistrationForTourApiPath` | `resolve-catalog-registration-for-tour-api-path.ts` | Phase 3 PDP self-gate — manifest `GET /{ws}/registrations/for-tour/:tourId` only (Denali on trunk). Returns `null` when the workspace has no for-tour route — marketing must not register intake plugins |
 
 Unit tests: `packages/workspace-sdk/test/resolve-catalog-*.spec.ts` (SDK-CAT-\*) · registration intake (`catalog-registration-dispatch`, `public-catalog-transport-intake`, `registration-intake.contract`) · enforced in `p6:gate` + `p4:gate` + `guard:public-catalog-m17`.
@@ -153,11 +188,11 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 
 **Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add cookie write or `app/api/me/*` / `app/api/public-auth/*`. Phase 5 hosts OTP on marketing via Portal-origin transport ([PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc)). Phase 6: guest `[data-marketing-register]` opens that modal; member continue still navigates to portal register.
 
-| Mode | When | Primary | Secondary | i18n |
-| ---- | ---- | ------- | --------- | ---- |
-| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → **marketing modal** (href fallback `resolveWebRegistrationUrl`) | `data-marketing-tour-sign-in` → same modal (href fallback `resolveWebRegistrationLoginUrl`) | `detail.register` / `detail.signInToRegister` |
-| `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login` | none | `detail.continueRegister` |
-| `member-self` | Session readable; for-tour returns `self.id`; GSH builds detail URL | `data-marketing-view-registration` → `/me/registrations/{id}` | `data-marketing-register` + `data-marketing-register-another` when `canRegister` | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
+| Mode              | When                                                                 | Primary                                                                                     | Secondary                                                                                   | i18n                                                        |
+| ----------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `guest`           | Cookie missing / invalid / tenant bind fail                          | `data-marketing-register` → **marketing modal** (href fallback `resolveWebRegistrationUrl`) | `data-marketing-tour-sign-in` → same modal (href fallback `resolveWebRegistrationLoginUrl`) | `detail.register` / `detail.signInToRegister`               |
+| `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login`                           | none                                                                                        | `detail.continueRegister`                                   |
+| `member-self`     | Session readable; for-tour returns `self.id`; GSH builds detail URL  | `data-marketing-view-registration` → `/me/registrations/{id}`                               | `data-marketing-register` + `data-marketing-register-another` when `canRegister`            | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
 
 **Skin (Denali):** `[data-marketing-view-registration]` uses the same accent primary button as `[data-marketing-register]`. `[data-marketing-register-another]` is excluded from that button (`:not([data-marketing-register-another])`) and shares the underlined secondary stack with `[data-marketing-tour-sign-in]` (`36-mkt-tour-sign-in-cta.css`). Sticky wraps both in `[data-marketing-catalog-detail-sticky-cta]`. Login modal chrome is `37-mkt-login-modal.css` (imported last).
 
@@ -179,12 +214,12 @@ Authority: [PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc
 
 Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-modal]`. Transport `fetch`es the GSH portal public origin `/api/public-auth/*` with credentials. Cookie write stays Portal. After success, marketing reloads so SSR header + PDP CTA can see the member.
 
-| Surface | Phase 5 / 6 | Fallback (no-JS / no portal origin) |
-| ------- | ------- | ----------------------------------- |
-| Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (page OTP). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
-| PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on `/tours/{id}` after reload | `href` = portal `register?auth=login` |
-| Guest `[data-marketing-register]` (primaryKind `register`) | Same PDP trigger as «ورود» — stay on `/tours/{id}` (Phase 6 / DL-49). Client sets `data-marketing-register-ready="true"` only after hydrate + provider. Playwright SMK-MKT-03 must wait for that attr; clicking the SSR `<a href>` before hydrate navigates to `portal.{club}.localhost:3003/catalog/{id}/register`. | `href` = portal `/catalog/{id}/register` |
-| Member `[data-marketing-register]` (continue / register-another) | **Navigate** to portal `/catalog/{id}/register` (intake) | Same `href` |
+| Surface                                                          | Phase 5 / 6                                                                                                                                                                                                                                                                                                          | Fallback (no-JS / no portal origin)      |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Header `[data-marketing-header-sign-in]`                         | **Navigate** to Portal `/login?portalReturn=/me/registrations` (page OTP). Not `MarketingLoginModalTrigger`.                                                                                                                                                                                                         | Same `href` — no client intercept        |
+| PDP `[data-marketing-tour-sign-in]`                              | Client trigger opens marketing modal; stay on `/tours/{id}` after reload                                                                                                                                                                                                                                             | `href` = portal `register?auth=login`    |
+| Guest `[data-marketing-register]` (primaryKind `register`)       | Same PDP trigger as «ورود» — stay on `/tours/{id}` (Phase 6 / DL-49). Client sets `data-marketing-register-ready="true"` only after hydrate + provider. Playwright SMK-MKT-03 must wait for that attr; clicking the SSR `<a href>` before hydrate navigates to `portal.{club}.localhost:3003/catalog/{id}/register`. | `href` = portal `/catalog/{id}/register` |
+| Member `[data-marketing-register]` (continue / register-another) | **Navigate** to portal `/catalog/{id}/register` (intake)                                                                                                                                                                                                                                                             | Same `href`                              |
 
 `MarketingLoginModalProvider` remains in `app/layout.tsx` so PDP (and a **future** marketing login host) can open `[data-marketing-login-modal]` without a second provider. `host="header"` on that dialog is reserved — do not attach it to chrome Sign in until product asks.
 
@@ -192,14 +227,14 @@ Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-mod
 
 **Quiet Ledger (auth-bridge visual, 2026-08-19):** Marketing PDP modal is a presentation wrapper only. Auth method, Portal-origin transport, cookie probe, `onAuthenticated` reload, and error codes stay unchanged. Portal `/login` and `data-portal-login-modal` are out of scope.
 
-| Concern | Contract |
-| ------- | -------- |
-| Copy | Header is the only title: phone/profile `loginPageTitle` (ورود / Sign in); OTP `stepper.otp` (کد / Code). No intro eyebrow, lede, or hint cards. OTP meta is the phone (`otp.sentTo` = `{phone}`). Close visible string is `loginModalCancel` (انصراف / Cancel), 44×44 text control — not ×. |
-| Desktop / tablet | `@media (min-width: 48rem)` centered dialog, panel **372px**, 12px radius, 1px `--color-border-subtle`, forest primary CTA. Layout comes from CSS; JS may mirror `matchMedia` onto `data-marketing-login-modal-presentation` for tests — never `window.innerWidth`. |
-| Mobile | Below 48rem: bottom sheet, 16px top radius, hug content. Phone `max-height: min(58svh, 28rem)`; OTP `min(72svh, 36rem)`. Padding `12px + env(safe-area-inset-bottom)`. `--kb-inset` from `visualViewport` keeps the sheet above the IME. No drag handle. No swipe-dismiss. |
-| Dismiss | Escape and Cancel close. Backdrop click does **not** close (prevents losing in-progress phone/OTP). |
-| Focus | After `showModal`, focus `#phone` or `[data-otp-cell="0"]` — never Close first. On close, restore focus to the trigger. |
-| Shared steps | `catalogRegistrationAuthFlowSteps` stay Portal-default in the DOM. Marketing CSS hides `[data-portal-otp-orbit]`, `[data-portal-otp-copy]`, autofill hint, and the extra OTP `<label>`. Secondary OTP actions (`[data-portal-otp-secondary-actions] button`) are muted text links, not primary bars. Field errors are inline (`role=alert`) — no error card. |
+| Concern          | Contract                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Copy             | Header is the only title: phone/profile `loginPageTitle` (ورود / Sign in); OTP `stepper.otp` (کد / Code). No intro eyebrow, lede, or hint cards. OTP meta is the phone (`otp.sentTo` = `{phone}`). Close visible string is `loginModalCancel` (انصراف / Cancel), 44×44 text control — not ×.                                                                 |
+| Desktop / tablet | `@media (min-width: 48rem)` centered dialog, panel **372px**, 12px radius, 1px `--color-border-subtle`, forest primary CTA. Layout comes from CSS; JS may mirror `matchMedia` onto `data-marketing-login-modal-presentation` for tests — never `window.innerWidth`.                                                                                          |
+| Mobile           | Below 48rem: bottom sheet, 16px top radius, hug content. Phone `max-height: min(58svh, 28rem)`; OTP `min(72svh, 36rem)`. Padding `12px + env(safe-area-inset-bottom)`. `--kb-inset` from `visualViewport` keeps the sheet above the IME. No drag handle. No swipe-dismiss.                                                                                   |
+| Dismiss          | Escape and Cancel close. Backdrop click does **not** close (prevents losing in-progress phone/OTP).                                                                                                                                                                                                                                                          |
+| Focus            | After `showModal`, focus `#phone` or `[data-otp-cell="0"]` — never Close first. On close, restore focus to the trigger.                                                                                                                                                                                                                                      |
+| Shared steps     | `catalogRegistrationAuthFlowSteps` stay Portal-default in the DOM. Marketing CSS hides `[data-portal-otp-orbit]`, `[data-portal-otp-copy]`, autofill hint, and the extra OTP `<label>`. Secondary OTP actions (`[data-portal-otp-secondary-actions] button`) are muted text links, not primary bars. Field errors are inline (`role=alert`) — no error card. |
 
 **Import budget:** `scripts/guards/guard-marketing-skin-import-integrity.mjs` allows at most **37** CSS partials under `theme/marketing/components/` (current tree uses 36 files through `37-mkt-login-modal.css`). Every partial must be `@import`ed from `denali-marketing.css` — orphans fail the guard (CTL-CORE / marketing-guard).
 
@@ -231,108 +266,108 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 
 ### Shell
 
-| Hook                             | Location              |
-| -------------------------------- | --------------------- |
-| `data-marketing-header`          | `marketing-shell.tsx` |
-| `data-marketing-brand`           | brand link → `/`      |
-| `data-marketing-logo`            | tenant logo img       |
-| `data-marketing-locale-switcher` | header locale toggle (only when `guestLanding.shellChrome.localeSwitcher === true`) |
-| `data-marketing-header-sign-in`  | guest Sign in — navigates to Portal `/login` (`href={portalMemberLoginUrl}`; not the marketing modal) |
-| `data-marketing-header-member`   | authenticated profile chip → portal `/me/profile` |
-| `data-marketing-header-member-meta` | name + account hint stack |
-| `data-marketing-header-member-avatar-wrap` | avatar ring container |
-| `data-marketing-member-authenticated` | shell root when member session matches tenant |
-| `data-marketing-header-cta`      | sticky header tours CTA (only when `shellChrome.headerToursCta` and nav has no `tours` link) |
+| Hook                                       | Location                                                                                              |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `data-marketing-header`                    | `marketing-shell.tsx`                                                                                 |
+| `data-marketing-brand`                     | brand link → `/`                                                                                      |
+| `data-marketing-logo`                      | tenant logo img                                                                                       |
+| `data-marketing-locale-switcher`           | header locale toggle (only when `guestLanding.shellChrome.localeSwitcher === true`)                   |
+| `data-marketing-header-sign-in`            | guest Sign in — navigates to Portal `/login` (`href={portalMemberLoginUrl}`; not the marketing modal) |
+| `data-marketing-header-member`             | authenticated profile chip → portal `/me/profile`                                                     |
+| `data-marketing-header-member-meta`        | name + account hint stack                                                                             |
+| `data-marketing-header-member-avatar-wrap` | avatar ring container                                                                                 |
+| `data-marketing-member-authenticated`      | shell root when member session matches tenant                                                         |
+| `data-marketing-header-cta`                | sticky header tours CTA (only when `shellChrome.headerToursCta` and nav has no `tours` link)          |
 
 **Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` as a Portal `/login` link (`resolvePortalMemberLoginUrl`). The marketing OTP modal is PDP-only (`data-marketing-tour-sign-in`).
 
 ### Home (`/`)
 
-| Hook                                            | Location                                               |
-| ----------------------------------------------- | ------------------------------------------------------ |
-| `data-marketing-home`                           | `app/page.tsx` main                                    |
-| `data-marketing-home-hero`                      | hero section                                           |
-| `data-marketing-home-title`                     | hero h1                                                |
-| `data-marketing-home-lead`                      | hero lead                                              |
-| `data-marketing-home-cta`                       | primary CTA → `/tours`                                 |
-| `data-marketing-home-search`                    | hero GET search form → `/tours?q=`                     |
-| `data-marketing-home-featured`                  | featured bento (same catalog sort as latest)           |
+| Hook                                            | Location                                                         |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `data-marketing-home`                           | `app/page.tsx` main                                              |
+| `data-marketing-home-hero`                      | hero section                                                     |
+| `data-marketing-home-title`                     | hero h1                                                          |
+| `data-marketing-home-lead`                      | hero lead                                                        |
+| `data-marketing-home-cta`                       | primary CTA → `/tours`                                           |
+| `data-marketing-home-search`                    | hero GET search form → `/tours?q=`                               |
+| `data-marketing-home-featured`                  | featured bento (same catalog sort as latest)                     |
 | `data-marketing-home-section-header-row`        | shared PR-25 title + view-all grid row (featured/latest/gallery) |
-| `data-marketing-home-section-view-all`          | shared «همه تورها» pill (`HomeSectionViewAllLink`)     |
-| `data-marketing-home-featured-header-row`       | title + view-all row (PR-20N; also `section-header-row`) |
-| `data-marketing-home-featured-view-all`         | «همه تورها» link (also `section-view-all`)             |
-| `data-marketing-home-featured-lead`             | section lead under header                              |
-| `data-marketing-home-featured-bento`            | bento grid container (card sheet)                      |
-| `data-marketing-home-featured-card`             | per-tour card in featured bento                        |
-| `data-marketing-home-featured-card-body`        | caption stack / pick text column                       |
-| `data-marketing-home-featured-cta`              | flagship «مشاهده برنامه»                               |
-| `data-marketing-home-featured-picks-list`       | supporting picks stack                                 |
-| `data-marketing-home-latest`                    | latest published tours block                           |
-| `data-marketing-home-latest-header-row`       | title + view-all row (PR-25)                           |
-| `data-marketing-home-latest-view-all`         | «همه تورها» link                                       |
-| `data-marketing-home-latest-lead`             | section lead under header row                          |
-| `data-marketing-home-latest-row`                | horizontal scroll (mobile) / grid (≥640px) container   |
-| `data-marketing-home-latest-card`               | per-tour card in latest row                            |
-| `data-marketing-home-latest-cover`              | 16:9 cover figure (`CatalogCoverImage` or placeholder) |
-| `data-marketing-home-latest-meta`               | tour date/location meta line                           |
-| `data-marketing-home-latest-price`              | formatted price line                                   |
-| `data-marketing-home-categories`                | category explorer from catalog `category`              |
-| `data-marketing-home-category-chip`             | link → `/tours?category=`                              |
-| `data-marketing-home-destinations`              | static destination cards (i18n seed)                   |
-| `data-marketing-home-destination-card`          | per-destination article                                |
-| `data-marketing-brand-title`                    | shell brand display name                               |
-| `data-marketing-home-trust`                     | trust / branding block                                 |
-| `data-marketing-home-why`                       | Why Denali bento (4 tiles)                             |
-| `data-marketing-home-journey`                   | tour journey timeline                                  |
-| `data-marketing-home-testimonials`              | participant quote cards                                |
-| `data-marketing-home-testimonial-card-featured` | first quote — hero pull-quote span (PR-20K)            |
-| `data-marketing-home-gallery`                   | cinematic bento mosaic (PR-20L)                        |
-| `data-marketing-home-gallery-header-row`        | title + view-all row (PR-25)                           |
-| `data-marketing-home-gallery-view-all`          | «همه تورها» link                                       |
-| `data-marketing-home-gallery-lead`              | section lead under header row                          |
-| `data-marketing-home-gallery-item-primary`      | dominant hero tile                                     |
-| `data-marketing-home-gallery-support`           | supporting bento cluster                               |
-| `data-marketing-home-gallery-link` / `-caption` | overlay link + title/CTA                               |
-| `data-marketing-home-equipment`                 | static gear checklist                                  |
-| `data-marketing-home-blog`                      | blog teaser stub (CMS-gated)                           |
-| `data-marketing-home-jsonld`                    | ItemList JSON-LD on `/`                                |
-| `data-marketing-home-faq`                       | FAQ accordion (`#faq`) + FAQPage JSON-LD               |
-| `data-marketing-home-final-cta`                 | bottom CTA band                                        |
-| `data-marketing-nav-drawer`                     | mobile nav `<details>` (shell)                         |
-| `data-marketing-nav-drawer-toggle`              | drawer summary control                                 |
-| `data-marketing-nav-drawer-panel`               | drawer link panel                                      |
-| `data-marketing-header-cta`                     | sticky header CTA (full landing, mobile)               |
-| `data-marketing-skip-link`                      | skip to `#main-content` (full landing)                 |
-| `data-marketing-footer`                         | site footer (4 columns + newsletter stub)              |
+| `data-marketing-home-section-view-all`          | shared «همه تورها» pill (`HomeSectionViewAllLink`)               |
+| `data-marketing-home-featured-header-row`       | title + view-all row (PR-20N; also `section-header-row`)         |
+| `data-marketing-home-featured-view-all`         | «همه تورها» link (also `section-view-all`)                       |
+| `data-marketing-home-featured-lead`             | section lead under header                                        |
+| `data-marketing-home-featured-bento`            | bento grid container (card sheet)                                |
+| `data-marketing-home-featured-card`             | per-tour card in featured bento                                  |
+| `data-marketing-home-featured-card-body`        | caption stack / pick text column                                 |
+| `data-marketing-home-featured-cta`              | flagship «مشاهده برنامه»                                         |
+| `data-marketing-home-featured-picks-list`       | supporting picks stack                                           |
+| `data-marketing-home-latest`                    | latest published tours block                                     |
+| `data-marketing-home-latest-header-row`         | title + view-all row (PR-25)                                     |
+| `data-marketing-home-latest-view-all`           | «همه تورها» link                                                 |
+| `data-marketing-home-latest-lead`               | section lead under header row                                    |
+| `data-marketing-home-latest-row`                | horizontal scroll (mobile) / grid (≥640px) container             |
+| `data-marketing-home-latest-card`               | per-tour card in latest row                                      |
+| `data-marketing-home-latest-cover`              | 16:9 cover figure (`CatalogCoverImage` or placeholder)           |
+| `data-marketing-home-latest-meta`               | tour date/location meta line                                     |
+| `data-marketing-home-latest-price`              | formatted price line                                             |
+| `data-marketing-home-categories`                | category explorer from catalog `category`                        |
+| `data-marketing-home-category-chip`             | link → `/tours?category=`                                        |
+| `data-marketing-home-destinations`              | static destination cards (i18n seed)                             |
+| `data-marketing-home-destination-card`          | per-destination article                                          |
+| `data-marketing-brand-title`                    | shell brand display name                                         |
+| `data-marketing-home-trust`                     | trust / branding block                                           |
+| `data-marketing-home-why`                       | Why Denali bento (4 tiles)                                       |
+| `data-marketing-home-journey`                   | tour journey timeline                                            |
+| `data-marketing-home-testimonials`              | participant quote cards                                          |
+| `data-marketing-home-testimonial-card-featured` | first quote — hero pull-quote span (PR-20K)                      |
+| `data-marketing-home-gallery`                   | cinematic bento mosaic (PR-20L)                                  |
+| `data-marketing-home-gallery-header-row`        | title + view-all row (PR-25)                                     |
+| `data-marketing-home-gallery-view-all`          | «همه تورها» link                                                 |
+| `data-marketing-home-gallery-lead`              | section lead under header row                                    |
+| `data-marketing-home-gallery-item-primary`      | dominant hero tile                                               |
+| `data-marketing-home-gallery-support`           | supporting bento cluster                                         |
+| `data-marketing-home-gallery-link` / `-caption` | overlay link + title/CTA                                         |
+| `data-marketing-home-equipment`                 | static gear checklist                                            |
+| `data-marketing-home-blog`                      | blog teaser stub (CMS-gated)                                     |
+| `data-marketing-home-jsonld`                    | ItemList JSON-LD on `/`                                          |
+| `data-marketing-home-faq`                       | FAQ accordion (`#faq`) + FAQPage JSON-LD                         |
+| `data-marketing-home-final-cta`                 | bottom CTA band                                                  |
+| `data-marketing-nav-drawer`                     | mobile nav `<details>` (shell)                                   |
+| `data-marketing-nav-drawer-toggle`              | drawer summary control                                           |
+| `data-marketing-nav-drawer-panel`               | drawer link panel                                                |
+| `data-marketing-header-cta`                     | sticky header CTA (full landing, mobile)                         |
+| `data-marketing-skip-link`                      | skip to `#main-content` (full landing)                           |
+| `data-marketing-footer`                         | site footer (4 columns + newsletter stub)                        |
 
 Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-HOME-01..03,05,06 · unit: HOME-UNIT-01..08 · SDK: SDK-HOME-01..03
 
 ### List (`/tours`)
 
-| Hook                                      | Location                                                     |
-| ----------------------------------------- | ------------------------------------------------------------ |
+| Hook                                      | Location                                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
 | `data-marketing-catalog`                  | `<main>` list page root (`/tours`) — `--catalog-page-padding-*`, max-width 72rem |
-| `data-marketing-catalog-header`           | list header                                                  |
-| `data-marketing-catalog-title`            | h1                                                           |
-| `data-marketing-catalog-lead`             | list lead (PR-21)                                            |
-| `data-marketing-catalog-toolbar`          | filter bar wrapper (PR-21)                                   |
-| `data-marketing-catalog-filters`          | GET filter form (PR-21)                                      |
-| `data-marketing-catalog-category-chips`   | category chip row (PR-21)                                    |
-| `data-marketing-catalog-category-chip`    | per-category link (PR-21)                                    |
-| `data-marketing-catalog-results`          | filtered count (PR-21)                                       |
-| `data-marketing-catalog-filter-notice`    | page-local filter scope warning (PR-21.1; Urban/client-only) |
-| `data-marketing-catalog-active-filters`   | dismissible active filter pills (PR-22.1)                    |
-| `data-marketing-catalog-active-filter`    | per-filter pill link (`-id=` slug)                           |
-| `data-marketing-catalog-clear-filters`    | reset all filters (PR-21)                                    |
-| `data-marketing-catalog-grid`             | `catalog-tour-list.tsx` ul                                   |
-| `data-marketing-catalog-grid-item`        | li per tour                                                  |
-| `data-marketing-catalog-empty`            | empty state                                                  |
-| `data-marketing-catalog-pagination`       | load-more / first-page nav (PR-24)                           |
-| `data-marketing-catalog-pagination-next`  | load-more link                                               |
-| `data-marketing-catalog-pagination-first` | back to first page (when `cursor` set)                       |
-| `data-marketing-city-filter`              | Urban city filter form                                       |
-| `data-marketing-city-clear`               | clear city filter link                                       |
-| `data-marketing-catalog-filter-active`    | active q/category filter label on list                       |
+| `data-marketing-catalog-header`           | list header                                                                      |
+| `data-marketing-catalog-title`            | h1                                                                               |
+| `data-marketing-catalog-lead`             | list lead (PR-21)                                                                |
+| `data-marketing-catalog-toolbar`          | filter bar wrapper (PR-21)                                                       |
+| `data-marketing-catalog-filters`          | GET filter form (PR-21)                                                          |
+| `data-marketing-catalog-category-chips`   | category chip row (PR-21)                                                        |
+| `data-marketing-catalog-category-chip`    | per-category link (PR-21)                                                        |
+| `data-marketing-catalog-results`          | filtered count (PR-21)                                                           |
+| `data-marketing-catalog-filter-notice`    | page-local filter scope warning (PR-21.1; Urban/client-only)                     |
+| `data-marketing-catalog-active-filters`   | dismissible active filter pills (PR-22.1)                                        |
+| `data-marketing-catalog-active-filter`    | per-filter pill link (`-id=` slug)                                               |
+| `data-marketing-catalog-clear-filters`    | reset all filters (PR-21)                                                        |
+| `data-marketing-catalog-grid`             | `catalog-tour-list.tsx` ul                                                       |
+| `data-marketing-catalog-grid-item`        | li per tour                                                                      |
+| `data-marketing-catalog-empty`            | empty state                                                                      |
+| `data-marketing-catalog-pagination`       | load-more / first-page nav (PR-24)                                               |
+| `data-marketing-catalog-pagination-next`  | load-more link                                                                   |
+| `data-marketing-catalog-pagination-first` | back to first page (when `cursor` set)                                           |
+| `data-marketing-city-filter`              | Urban city filter form                                                           |
+| `data-marketing-city-clear`               | clear city filter link                                                           |
+| `data-marketing-catalog-filter-active`    | active q/category filter label on list                                           |
 
 ### List card
 
@@ -355,42 +390,42 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 
 ### Detail (`/tours/[tourId]`)
 
-| Hook                                         | Location                                                                                              |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `data-marketing-catalog-detail-page`         | `<main>` detail page root — `--catalog-page-padding-*`, max-width 64rem |
-| `data-marketing-catalog-tour-detail`         | detail article                                                                                        |
-| `data-marketing-catalog-breadcrumb-nav`      | breadcrumb `<nav>` (`catalog-tour-breadcrumb.tsx`)                                                    |
-| `data-marketing-catalog-breadcrumb-list`     | breadcrumb `<ol>`                                                                                     |
-| `data-marketing-catalog-breadcrumb-home`     | home crumb link                                                                                       |
-| `data-marketing-catalog-breadcrumb-tours`    | list crumb link                                                                                       |
-| `data-marketing-catalog-breadcrumb-current`  | current tour title (`aria-current="page"`)                                                            |
-| `data-marketing-catalog-detail-back`         | back to list (hidden ≤767px — breadcrumb + shell nav cover exit)                                      |
-| `data-marketing-catalog-detail-title`        | h1                                                                                                    |
-| `data-marketing-catalog-detail-cover`        | cover figure                                                                                          |
-| `data-marketing-catalog-detail-description`  | body description                                                                                      |
-| `data-marketing-catalog-detail-meta`         | subtitle + dates                                                                                      |
-| `data-marketing-catalog-detail-stats`        | stats ul (detail)                                                                                     |
-| `data-marketing-catalog-itinerary`           | itinerary section                                                                                     |
-| `data-marketing-catalog-itinerary-day`       | per-day article (`={dayNumber}`)                                                                      |
-| `data-marketing-catalog-segment-photos`      | segment photo list (reachable https only — smoke `cdn.example` omitted, BUG-3)                      |
-| `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no reachable `photoUrls` (day still renders) |
-| `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
-| `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
-| `data-marketing-register`                    | guest: **PDP marketing login modal** (SMK-MKT-03; href fallback portal register). member continue / register-another: portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
-| `data-marketing-tour-sign-in`                | guest-only secondary — **PDP marketing login modal** (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable) |
-| `data-marketing-view-registration`           | member-self primary → portal `/me/registrations/{id}` |
-| `data-marketing-register-another`            | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`) |
-| `data-marketing-tour-detail-cta-mode`        | `guest` \| `member-continue` \| `member-self` on CTA wrappers |
+| Hook                                          | Location                                                                                                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-marketing-catalog-detail-page`          | `<main>` detail page root — `--catalog-page-padding-*`, max-width 64rem                                                                                                                 |
+| `data-marketing-catalog-tour-detail`          | detail article                                                                                                                                                                          |
+| `data-marketing-catalog-breadcrumb-nav`       | breadcrumb `<nav>` (`catalog-tour-breadcrumb.tsx`)                                                                                                                                      |
+| `data-marketing-catalog-breadcrumb-list`      | breadcrumb `<ol>`                                                                                                                                                                       |
+| `data-marketing-catalog-breadcrumb-home`      | home crumb link                                                                                                                                                                         |
+| `data-marketing-catalog-breadcrumb-tours`     | list crumb link                                                                                                                                                                         |
+| `data-marketing-catalog-breadcrumb-current`   | current tour title (`aria-current="page"`)                                                                                                                                              |
+| `data-marketing-catalog-detail-back`          | back to list (hidden ≤767px — breadcrumb + shell nav cover exit)                                                                                                                        |
+| `data-marketing-catalog-detail-title`         | h1                                                                                                                                                                                      |
+| `data-marketing-catalog-detail-cover`         | cover figure                                                                                                                                                                            |
+| `data-marketing-catalog-detail-description`   | body description                                                                                                                                                                        |
+| `data-marketing-catalog-detail-meta`          | subtitle + dates                                                                                                                                                                        |
+| `data-marketing-catalog-detail-stats`         | stats ul (detail)                                                                                                                                                                       |
+| `data-marketing-catalog-itinerary`            | itinerary section                                                                                                                                                                       |
+| `data-marketing-catalog-itinerary-day`        | per-day article (`={dayNumber}`)                                                                                                                                                        |
+| `data-marketing-catalog-segment-photos`       | segment photo list (reachable https only — smoke `cdn.example` omitted, BUG-3)                                                                                                          |
+| `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no reachable `photoUrls` (day still renders)                                                                                    |
+| `data-marketing-catalog-detail-policies`      | policies section                                                                                                                                                                        |
+| `data-marketing-catalog-detail-cancellation`  | cancellation bullets                                                                                                                                                                    |
+| `data-marketing-register`                     | guest: **PDP marketing login modal** (SMK-MKT-03; href fallback portal register). member continue / register-another: portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
+| `data-marketing-tour-sign-in`                 | guest-only secondary — **PDP marketing login modal** (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable)                                     |
+| `data-marketing-view-registration`            | member-self primary → portal `/me/registrations/{id}`                                                                                                                                   |
+| `data-marketing-register-another`             | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`)                                                                                                               |
+| `data-marketing-tour-detail-cta-mode`         | `guest` \| `member-continue` \| `member-self` on CTA wrappers                                                                                                                           |
 
 ### Errors
 
-| Hook                              | Location                                      | Copy |
-| --------------------------------- | --------------------------------------------- | ---- |
-| `data-marketing-error`            | `app/error.tsx`                               | generic error |
-| `data-marketing-catalog-error`    | `app/tours/error.tsx`                         | catalog load failure |
-| `data-marketing-not-found`        | both 404 trees (shared smoke hook)            | — |
-| `data-marketing-page-not-found`   | `app/not-found.tsx`                           | `catalog.pageNotFound` — **page** missing |
-| `data-marketing-tour-not-found`   | `app/tours/[tourId]/not-found.tsx`            | `catalog.notFound` — **tour** unpublished / missing |
+| Hook                            | Location                           | Copy                                                |
+| ------------------------------- | ---------------------------------- | --------------------------------------------------- |
+| `data-marketing-error`          | `app/error.tsx`                    | generic error                                       |
+| `data-marketing-catalog-error`  | `app/tours/error.tsx`              | catalog load failure                                |
+| `data-marketing-not-found`      | both 404 trees (shared smoke hook) | —                                                   |
+| `data-marketing-page-not-found` | `app/not-found.tsx`                | `catalog.pageNotFound` — **page** missing           |
+| `data-marketing-tour-not-found` | `app/tours/[tourId]/not-found.tsx` | `catalog.notFound` — **tour** unpublished / missing |
 
 **404 split (BUG-16):** Club hosts call `notFound()` on `/about`, `/pricing`, `/contact` (WRS platform-mother-only; do **not** publish club stubs). Those routes have no nested `not-found.tsx`, so the **root** tree runs: heading «صفحه یافت نشد», body that the page does not exist on this club, CTA home (`/`), document-title segment `catalog.pageNotFound.metadataTitle` → layout template `صفحه یافت نشد — {siteName}`. `/tours/{id}` still calls `notFound()` when `fetchCatalogTour` is null; the **segment** tree keeps tour copy («تور یافت نشد» / unpublished) and CTA `/tours`. SMK-MKT-14 continues to assert `[data-marketing-not-found]` on draft PDP. Mother host of the three informational routes still renders `MaintenancePage` — unchanged.
 
@@ -452,22 +487,21 @@ Linear stack: breadcrumb → back → title → cover → shortDescription → m
 
 **PR-D mobile closure (`32-pr-d-mobile-detail-closure.css`, ≤767px):**
 
-| Rule | Behavior |
-| ---- | -------- |
-| Gutter parity | Same tokens as `/tours`: `--catalog-page-padding-x` (16px + safe-area), `--catalog-page-padding-y: var(--space-4)` on mobile; **no** negative-margin full-bleed (hero stays inset with `border-radius`) |
-| Hero-first | CSS `order` on intro: gallery/cover `1`, title `2`, breadcrumb `3`; `data-marketing-catalog-detail-back` hidden (breadcrumb + shell nav) |
-| Vertical rhythm | `detail-layout` / `detail-main` / `detail-body` gaps tightened to `--space-3`–`4`; section cards `--space-3` inner padding |
-| Breadcrumb | Compact flex trail with `›` separators; current title ellipsis on one line |
-| Jump nav | In-gutter horizontal scroll (`flex-wrap: nowrap`); first pill aligns with title/facts |
-| Sticky bar | `padding-inline: max(--catalog-page-padding-x, safe-area insets)` — matches header inner gutter |
-| Typography | Detail `h1` clamp `1.375rem–2rem` on mobile |
+| Rule            | Behavior                                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gutter parity   | Same tokens as `/tours`: `--catalog-page-padding-x` (16px + safe-area), `--catalog-page-padding-y: var(--space-4)` on mobile; **no** negative-margin full-bleed (hero stays inset with `border-radius`) |
+| Hero-first      | CSS `order` on intro: gallery/cover `1`, title `2`, breadcrumb `3`; `data-marketing-catalog-detail-back` hidden (breadcrumb + shell nav)                                                                |
+| Vertical rhythm | `detail-layout` / `detail-main` / `detail-body` gaps tightened to `--space-3`–`4`; section cards `--space-3` inner padding                                                                              |
+| Breadcrumb      | Compact flex trail with `›` separators; current title ellipsis on one line                                                                                                                              |
+| Jump nav        | In-gutter horizontal scroll (`flex-wrap: nowrap`); first pill aligns with title/facts                                                                                                                   |
+| Sticky bar      | `padding-inline: max(--catalog-page-padding-x, safe-area insets)` — matches header inner gutter                                                                                                         |
+| Typography      | Detail `h1` clamp `1.375rem–2rem` on mobile                                                                                                                                                             |
 
 Detail `<main>` base (all viewports): `padding-block-end: max(--catalog-page-padding-y, safe-area-inset-bottom)` — mirrors list page (`01-block-p2.css`).
 
 Desktop (≥768px) keeps doc target order: breadcrumb → back → hero → title.
 
 **Desktop (≥1024px):** two-column grid — main column (§1–13) + sticky booking rail (price, capacity, CTA duplicate of §5).
-
 
 ---
 
@@ -654,20 +688,20 @@ Pure logic modules (no JSX): extend `build-catalog-tour-meta-line.ts`, add `buil
 
 When locale is `fa`, numeric copy on `/tours/[tourId]` uses Eastern Arabic (Persian) numerals:
 
-| Surface                                    | Mechanism                                                                                                                                                                                                       |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Itinerary day label                        | ICU `{day, number}` + `formats.number.default.numberingSystem: arabext` in `src/i18n/request.ts`                                                                                                                |
-| Segment lines (time, inline digits)        | `formatCatalogItinerarySegmentLine` → `toLocalizedDigits` (`src/i18n/format-localized-digits.ts`)                                                                                                               |
-| Day title / summary (API text with digits) | `CatalogItinerarySection` localizes visible strings                                                                                                                                                             |
-| Stats capacity / spots                     | ICU `{count, number}` in `messages/fa/catalog.json`                                                                                                                                                             |
-| Cancellation hours / penalty               | ICU `{hours, number}` / `{percent, number}`                                                                                                                                                                     |
+| Surface                                    | Mechanism                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Itinerary day label                        | ICU `{day, number}` + `formats.number.default.numberingSystem: arabext` in `src/i18n/request.ts`                                                                                                                                                                                                                                                                                                       |
+| Segment lines (time, inline digits)        | `formatCatalogItinerarySegmentLine` → `toLocalizedDigits` (`src/i18n/format-localized-digits.ts`)                                                                                                                                                                                                                                                                                                      |
+| Day title / summary (API text with digits) | `CatalogItinerarySection` localizes visible strings                                                                                                                                                                                                                                                                                                                                                    |
+| Stats capacity / spots                     | ICU `{count, number}` in `messages/fa/catalog.json`                                                                                                                                                                                                                                                                                                                                                    |
+| Cancellation hours / penalty               | ICU `{hours, number}` / `{percent, number}`                                                                                                                                                                                                                                                                                                                                                            |
 | Meta dates + price                         | `formatCatalogDateRange` / `formatCatalogPrice`. Dates: `numberingSystem: arabext` when `fa-IR`. **Price (ED-CURR-MKT-01):** Denali `pluginId` + `IRR` is grouped digits + تومان/toman — **not** `Intl` `style: currency` (that painted ریال/`IRR`). Same stored integer; **no ×10**. Other plugin ids and non-`IRR` codes keep `Intl` currency style. JSON-LD `offers.priceCurrency` stays ISO `IRR`. |
-| **PR-D readiness**                         | peak, trail km, elevation, hiking hours, min/max age — `buildCatalogReadinessCells` + ICU `{hours,meters,km,years, number}` with `toLocalizedDigits` on prerequisite text (`catalog-tour-detail-readiness.tsx`) |
-| **PR-D logistics**                         | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (same Denali-only IRR→toman rule as list/detail price)                                                                                    |
-| **PR-D register preview**                  | min/max age via ICU `{years, number}` in `detail.registerPreview.*`                                                                                                                                             |
-| **PR-D gallery alt**                       | ICU `{index, number}` in `detail.gallery.photoAlt`                                                                                                                                                              |
-| **PR-D6b lightbox**                        | Click/tap hero mosaic + overflow grid → `<dialog>` fullscreen; arrow keys; `detail.gallery.lightbox*` i18n; one client boundary in `@apps/marketing`                                                            |
-| **PR-D facts / sticky / rail**             | capacity, spots, difficulty — same ICU paths as list stats (`detail.facts`, `detail.capacity`, `detail.spotsRemaining`)                                                                                         |
+| **PR-D readiness**                         | peak, trail km, elevation, hiking hours, min/max age — `buildCatalogReadinessCells` + ICU `{hours,meters,km,years, number}` with `toLocalizedDigits` on prerequisite text (`catalog-tour-detail-readiness.tsx`)                                                                                                                                                                                        |
+| **PR-D logistics**                         | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (same Denali-only IRR→toman rule as list/detail price)                                                                                                                                                                                                                                                               |
+| **PR-D register preview**                  | min/max age via ICU `{years, number}` in `detail.registerPreview.*`                                                                                                                                                                                                                                                                                                                                    |
+| **PR-D gallery alt**                       | ICU `{index, number}` in `detail.gallery.photoAlt`                                                                                                                                                                                                                                                                                                                                                     |
+| **PR-D6b lightbox**                        | Click/tap hero mosaic + overflow grid → `<dialog>` fullscreen; arrow keys; `detail.gallery.lightbox*` i18n; one client boundary in `@apps/marketing`                                                                                                                                                                                                                                                   |
+| **PR-D facts / sticky / rail**             | capacity, spots, difficulty — same ICU paths as list stats (`detail.facts`, `detail.capacity`, `detail.spotsRemaining`)                                                                                                                                                                                                                                                                                |
 
 English locale keeps Latin digits (`latn`).
 
@@ -711,6 +745,22 @@ Deferred (non-blocker): Track B `catalogUi` manifest · shared CSS partial until
 ---
 
 ## Verify
+
+### Waitlist registration copy contract
+
+When the public catalog detail returns `registrationState: "waitlist"`, the Portal registration flow must carry that state into the workspace flow context. Denali intake must then show explicit waitlist copy and use a waitlist-specific submit label; it must never reuse the normal registration copy for a capacity-full tour. The PDP CTA and the guest form are separate acceptance surfaces and both require assertions.
+
+### Multi-participant pricing preview contract
+
+The Denali registration form submits one participant per request. Its pricing preview must therefore be resolved per participant transport selection, not from self or the first guest only. When a group mixes organized transport, personal car, no-car acquaintance, or dong payment, the UI must show the corresponding gross, membership discount, ancillary transport/dong amount, and payable amount for each participant. A preview for one participant must never be presented as the price for the whole group or reused for another participant with a different transport kind.
+
+### Waitlist submit outcome contract
+
+The public registration endpoint must preserve the API's final registration `status` (`pending`, `approved`, or `waitlisted`) together with the registration id. The Portal success step must render waitlist-specific copy whenever the submitted registration is actually `waitlisted`; a successful HTTP response alone is not sufficient evidence for the normal-registration message. The operator capacity banner must describe the real public behavior and link to the waitlist view without contradicting the persisted status.
+
+### Live capacity state contract
+
+`registrationState` and `spotsRemaining` are booking-backed runtime facts, not static tour content. Marketing list and detail fetches must use the same live/no-store policy so an approval, cancellation, or waitlist transition cannot leave the list and PDP on different cached capacity states. The list and detail endpoints must both calculate the state from the same approved occupancy source.
 
 ### Local dev (Denali catalog from Postgres)
 

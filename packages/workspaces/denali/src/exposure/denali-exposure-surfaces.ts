@@ -10,11 +10,11 @@ export const DENALI_DELIVERABLE_FIELD_IDS = Object.freeze([
   "meetingPoint",
   "startPointLocationText",
   "capacityMax",
-  "capacityMin",
   "denali.pricing-participants",
   "denali.pricing-payment",
   "denali.photos",
   "denali.social-media-link",
+  "denali.transport-mode",
 ] as const);
 
 export const DENALI_EXPOSURE_SURFACE = Object.freeze({
@@ -83,6 +83,7 @@ export const DENALI_PUBLIC_LIST_FIELD_IDS = Object.freeze([
   "capacityMax",
   "denali.pricing-participants",
   "denali.photos",
+  "denali.transport-mode",
 ] as const);
 
 export const DENALI_PUBLIC_DETAILS_FIELD_IDS = Object.freeze([
@@ -91,6 +92,7 @@ export const DENALI_PUBLIC_DETAILS_FIELD_IDS = Object.freeze([
   "startPointLocationText",
   "denali.approximate-return-time",
   "denali.social-media-link",
+  "denali.pricing-payment",
 ] as const);
 
 export const DENALI_USER_DASHBOARD_FIELD_IDS = Object.freeze([
@@ -119,7 +121,9 @@ export const DENALI_REMINDER_FEED_FIELD_IDS = Object.freeze([
 export const DENALI_REMINDER_OFFSETS = Object.freeze(["-48h", "-24h"] as const);
 export type DenaliReminderOffset = (typeof DENALI_REMINDER_OFFSETS)[number];
 
-export function buildDenaliRelativeTimeTrigger(offset: DenaliReminderOffset): NormalizedExposureTrigger {
+export function buildDenaliRelativeTimeTrigger(
+  offset: DenaliReminderOffset
+): NormalizedExposureTrigger {
   return Object.freeze({
     kind: "relative_time",
     anchor: "startDateTime",

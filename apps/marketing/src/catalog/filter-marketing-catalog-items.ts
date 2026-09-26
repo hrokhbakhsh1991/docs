@@ -95,12 +95,13 @@ export async function filterMarketingCatalogItems(
 
   if (filters.minPrice != null || filters.maxPrice != null) {
     filtered = filtered.filter((item) => {
-      if (item.priceAmount == null || !Number.isFinite(item.priceAmount)) {
+      const price = item.paymentCollection === "free" ? 0 : item.priceAmount;
+      if (price == null || !Number.isFinite(price)) {
         return false;
       }
       return (
-        (filters.minPrice == null || item.priceAmount >= filters.minPrice) &&
-        (filters.maxPrice == null || item.priceAmount <= filters.maxPrice)
+        (filters.minPrice == null || price >= filters.minPrice) &&
+        (filters.maxPrice == null || price <= filters.maxPrice)
       );
     });
   }

@@ -27,7 +27,13 @@ describe("portal-commercial-pricing-preview", () => {
     assert.match(source, /data-registration-pricing-gross/);
     assert.match(source, /data-registration-pricing-discount/);
     assert.match(source, /data-registration-pricing-payable/);
-    assert.match(source, /commercialPricingPreview\?\.memberDiscountMinor/);
+    assert.match(
+      source,
+      /commercialPricingPreviews\[pricingPreviewKey\(input\.target, input\.transportKind\)\]/
+    );
+    assert.match(source, /registrantTarget: input\.target/);
+    assert.match(source, /preview\.memberDiscountMinor/);
+    assert.match(source, /participantPricingInputs/);
     assert.doesNotMatch(source, /0\.8|80 \/ 100|memberDiscountPercentage \*|\/ 100/);
   });
 
@@ -40,6 +46,8 @@ describe("portal-commercial-pricing-preview", () => {
       route,
       /financeCommercialQuote\.create|createVersion|ensureFrozenForMoneyPath/
     );
+    assert.match(route, /readRegistrantTarget/);
+    assert.match(route, /registrantTarget === "self"/);
   });
 
   it("PREVIEW-UX-04 localized copy includes discount, payable, and ancillary labels", () => {

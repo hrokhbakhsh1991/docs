@@ -87,7 +87,7 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
     canRegister: registration.canRegister,
     canJoinWaitlist: registration.canJoinWaitlist,
   });
-  const pricingPreviews = await fetchCommercialPricingPreviews({
+  const pricingPreviewResult = await fetchCommercialPricingPreviews({
     host,
     tenantId: bootstrap.tenantId,
     workspace: bootstrap.pluginId,
@@ -113,7 +113,8 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
           registrationUrl={registrationUrl}
           cta={cta}
           pluginId={bootstrap.pluginId}
-          pricingPreview={pricingPreviews[tourId] ?? null}
+          pricingPreview={pricingPreviewResult.previews[tourId] ?? null}
+          pricingPreviewStatus={pricingPreviewResult.status}
         />
       </div>
     </MarketingLoginModalProvider>

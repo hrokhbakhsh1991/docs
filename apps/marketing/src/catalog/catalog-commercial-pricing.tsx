@@ -1,6 +1,7 @@
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import { hasMarketingMembershipDiscount } from "./commercial-pricing-preview";
 import { formatCatalogPrice, type CatalogPriceDisplayPolicy } from "./format-catalog-display";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 
 type CatalogTranslation = (key: string, values?: Record<string, string | number>) => string;
 
@@ -38,16 +39,35 @@ export function CatalogCommercialPricingCompact({
   dateLocale,
   priceDisplayPolicy,
   t,
+  ancillaryLines = [],
+  pricingPreviewStatus = "anonymous",
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
   readonly dateLocale: string;
   readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
+  readonly ancillaryLines?: readonly {
+    readonly label: string;
+    readonly value: string | null;
+  }[];
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
+  if (preview == null && pricingPreviewStatus !== "anonymous") {
+    return <span data-marketing-catalog-card-price-unavailable>{t("pricing.unavailable")}</span>;
+  }
   if (!hasMarketingMembershipDiscount(preview)) {
-    return canonicalPrice != null ? (
-      <span data-marketing-catalog-card-price>{canonicalPrice}</span>
+    return canonicalPrice != null || ancillaryLines.length > 0 ? (
+      <span data-marketing-catalog-card-price>
+        {canonicalPrice}
+        {ancillaryLines.map((line) =>
+          line.value != null ? (
+            <small key={line.label}>
+              {line.label}: {line.value}
+            </small>
+          ) : null
+        )}
+      </span>
     ) : null;
   }
 
@@ -80,6 +100,13 @@ export function CatalogCommercialPricingCompact({
           percent: preview.memberDiscountPercentage,
         })}
       </span>
+      {ancillaryLines.map((line) =>
+        line.value != null ? (
+          <small key={line.label}>
+            {line.label}: {line.value}
+          </small>
+        ) : null
+      )}
     </span>
   );
 }
@@ -91,6 +118,7 @@ export function CatalogCommercialPricingBreakdown({
   priceDisplayPolicy,
   t,
   compact = false,
+  pricingPreviewStatus = "anonymous",
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
@@ -98,7 +126,15 @@ export function CatalogCommercialPricingBreakdown({
   readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
   readonly compact?: boolean;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
+  if (preview == null && pricingPreviewStatus !== "anonymous") {
+    return compact ? (
+      <span data-marketing-catalog-detail-price-unavailable>{t("pricing.unavailable")}</span>
+    ) : (
+      <p data-marketing-catalog-detail-rail-price-unavailable>{t("pricing.unavailable")}</p>
+    );
+  }
   if (!hasMarketingMembershipDiscount(preview)) {
     if (compact) {
       return canonicalPrice != null ? (

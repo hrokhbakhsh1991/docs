@@ -688,7 +688,15 @@
       "enabledLabelOff": "Sending off",
       "eventNames": {
         "TourCreated": "New tour created",
-        "TourPublished": "Tour published"
+        "TourPublished": "Tour published",
+        "RegistrationApproved": "Registration approved",
+        "RegistrationWaitlisted": "Registration waitlisted",
+        "ReceiptApproved": "Receipt approved",
+        "ReceiptRejected": "Receipt rejected",
+        "registration.approved": "Registration approved",
+        "registration.waitlisted": "Registration waitlisted",
+        "receipt.approved": "Receipt approved",
+        "receipt.rejected": "Receipt rejected"
       },
       "eventHints": {
         "TourCreated": "When a new tour is created, a Telegram message is sent using the fields you select below.",

@@ -2,6 +2,8 @@ import type { PublicCatalogCard } from "@app-tour/workspace-sdk";
 
 /** Optional presentation egress fields on marketing JSON across workspace adapters. */
 export type MarketingCatalogPresentationExtensions = {
+  readonly paymentCollection?: "offline" | "free";
+  readonly registrationApproval?: "manual" | "auto";
   readonly city?: string | null;
   readonly venueName?: string | null;
   readonly catalogSummary?: string | null;

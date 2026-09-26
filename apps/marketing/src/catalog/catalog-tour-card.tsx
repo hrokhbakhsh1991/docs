@@ -14,6 +14,7 @@ import { CatalogCoverImage } from "./catalog-cover-image";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { CatalogCommercialPricingCompact } from "./catalog-commercial-pricing";
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import {
   formatCatalogCardDates,
   formatCatalogCardDescription,
@@ -31,12 +32,14 @@ export type CatalogTourCardProps = {
   readonly tour: MarketingCatalogCard;
   readonly pluginId: string;
   readonly pricingPreview?: MarketingCommercialPricingPreview | null;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 };
 
 export async function CatalogTourCard({
   tour,
   pluginId,
   pricingPreview = null,
+  pricingPreviewStatus = "anonymous",
 }: CatalogTourCardProps) {
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
@@ -63,6 +66,7 @@ export async function CatalogTourCard({
         priceDisplayPolicy
       )
     : null;
+  const freeCollection = tour.paymentCollection === "free";
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const soldOut = tour.spotsRemaining === 0;
   const registrationState =
@@ -94,7 +98,27 @@ export async function CatalogTourCard({
           dateLocale={dateLocale}
           priceDisplayPolicy={priceDisplayPolicy}
           t={t}
+          pricingPreviewStatus={pricingPreviewStatus}
+          ancillaryLines={
+            tour.transport?.dongAmount != null
+              ? [
+                  {
+                    label: t("pricing.ancillary.dong"),
+                    value: formatCatalogPrice(
+                      tour.transport.dongAmount,
+                      tour.priceCurrency,
+                      dateLocale,
+                      t("detail.priceOnRequest"),
+                      priceDisplayPolicy
+                    ),
+                  },
+                ]
+              : []
+          }
         />
+        {freeCollection ? (
+          <span data-marketing-catalog-card-free>{t("detail.freeCollection")}</span>
+        ) : null}
         {isPast ? (
           <span data-marketing-catalog-card-spots>{t("list.card.past")}</span>
         ) : registrationState === "waitlist" ? (

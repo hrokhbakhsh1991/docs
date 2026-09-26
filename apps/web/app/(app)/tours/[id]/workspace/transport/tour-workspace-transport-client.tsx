@@ -217,20 +217,30 @@ export function TourWorkspaceTransportClient({
   }
 
   function renderParticipationState(row: TourOperationalRosterRow) {
+    const isWaitlisted = row.registrationStatus.trim().toLowerCase() === "waitlisted";
     const paymentRequired =
       row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID";
     const finalForDisplay = row.isFinalParticipant && !paymentRequired;
     return (
       <div className="flex flex-wrap items-center gap-2" data-testid="operator-roster-state">
         <Badge
-          variant={finalForDisplay ? "default" : "outline"}
+          variant={isWaitlisted ? "outline" : finalForDisplay ? "default" : "outline"}
           data-testid={
-            finalForDisplay ? TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalBadge : undefined
+            finalForDisplay && !isWaitlisted
+              ? TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalBadge
+              : undefined
           }
         >
-          {t(finalForDisplay ? "finalParticipant" : "approvedParticipant")}
+          {t(
+            isWaitlisted
+              ? "waitlistedParticipant"
+              : finalForDisplay
+                ? "finalParticipant"
+                : "approvedParticipant"
+          )}
         </Badge>
         {canManage &&
+        !isWaitlisted &&
         row.isOperationalParticipant &&
         !row.isFinalParticipant &&
         !paymentRequired ? (

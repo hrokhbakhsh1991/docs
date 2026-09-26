@@ -111,7 +111,7 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     serverListFilters,
     bootstrap.pluginId
   );
-  const pricingPreviews = await fetchCommercialPricingPreviews({
+  const pricingPreviewResult = await fetchCommercialPricingPreviews({
     host,
     tenantId: bootstrap.tenantId,
     workspace: bootstrap.pluginId,
@@ -171,7 +171,8 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
         <CatalogTourList
           items={items}
           pluginId={bootstrap.pluginId}
-          pricingPreviews={pricingPreviews}
+          pricingPreviews={pricingPreviewResult.previews}
+          pricingPreviewStatus={pricingPreviewResult.status}
         />
       )}
       {loadMoreHref != null || firstPageHref != null ? (

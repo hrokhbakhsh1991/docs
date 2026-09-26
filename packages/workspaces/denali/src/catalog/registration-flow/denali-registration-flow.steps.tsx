@@ -46,6 +46,12 @@ export {
 
 type CommercialPricingPreview = NonNullable<RegistrationFlowContext["commercialPricingPreview"]>;
 
+type PricingParticipantTarget = "self" | "other";
+
+function pricingPreviewKey(target: PricingParticipantTarget, transportKind: string): string {
+  return `${target}:${transportKind}`;
+}
+
 function parseMinorToNumber(minor: string): number | null {
   const digits = minor.replace(/\D/g, "");
   if (digits.length === 0) {
@@ -375,8 +381,50 @@ export function DenaliIntakeStep({
     context.tourTransport,
     transportSurface,
   ]);
-  const [commercialPricingPreview, setCommercialPricingPreview] =
-    useState<CommercialPricingPreview | null>(context.commercialPricingPreview ?? null);
+  const participantPricingInputs = useMemo(() => {
+    const inputs: Array<{
+      readonly key: string;
+      readonly label: string;
+      readonly target: PricingParticipantTarget;
+      readonly transportKind: string;
+    }> = [];
+    const resolveKind = (transportState: typeof selfDraft.transportState): string => {
+      const payload = transportSurface.buildPayload(context.tourTransport, transportState);
+      return payload?.kind ?? "primary";
+    };
+    if (selfSelected) {
+      inputs.push({
+        key: "self-0",
+        label: (selfDraft.intakeName || data.intakeName).trim() || t("intake.selfParticipant"),
+        target: "self",
+        transportKind: resolveKind(selfDraft.transportState),
+      });
+    }
+    otherGuests.forEach((guest, idx) => {
+      inputs.push({
+        key: `other-${idx}`,
+        label: guest.intakeName.trim() || t("intake.guestParticipant", { index: idx + 1 }),
+        target: "other",
+        transportKind: resolveKind(guest.transportState),
+      });
+    });
+    return inputs;
+  }, [
+    context.tourTransport,
+    data.intakeName,
+    otherGuests,
+    selfDraft,
+    selfSelected,
+    t,
+    transportSurface,
+  ]);
+  const [commercialPricingPreviews, setCommercialPricingPreviews] = useState<
+    Record<string, CommercialPricingPreview>
+  >(() =>
+    context.commercialPricingPreview !== null && context.commercialPricingPreview !== undefined
+      ? { [pricingPreviewKey("self", previewTransportKind)]: context.commercialPricingPreview }
+      : {}
+  );
   const [commercialPricingPreviewLoading, setCommercialPricingPreviewLoading] = useState(false);
 
   useEffect(() => {
@@ -384,26 +432,48 @@ export function DenaliIntakeStep({
     setCommercialPricingPreviewLoading(true);
     void (async () => {
       try {
-        const params = new URLSearchParams({
-          tourId: context.tourId,
-          partySize: "1",
-          transportKind: previewTransportKind,
-        });
-        const res = await fetch(`/api/catalog/pricing-preview?${params}`, {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        const body = (await res.json()) as {
-          readonly ok?: boolean;
-          readonly preview?: CommercialPricingPreview;
-        };
+        const entries = await Promise.all(
+          participantPricingInputs
+            .filter(
+              (input, index, inputs) =>
+                inputs.findIndex(
+                  (candidate) =>
+                    pricingPreviewKey(candidate.target, candidate.transportKind) ===
+                    pricingPreviewKey(input.target, input.transportKind)
+                ) === index
+            )
+            .map(async (input) => {
+              const params = new URLSearchParams({
+                tourId: context.tourId,
+                partySize: "1",
+                transportKind: input.transportKind,
+                registrantTarget: input.target,
+              });
+              const res = await fetch(`/api/catalog/pricing-preview?${params}`, {
+                credentials: "same-origin",
+                cache: "no-store",
+              });
+              const body = (await res.json()) as {
+                readonly ok?: boolean;
+                readonly preview?: CommercialPricingPreview;
+              };
+              return res.ok && body.ok === true && body.preview !== undefined
+                ? ([pricingPreviewKey(input.target, input.transportKind), body.preview] as const)
+                : null;
+            })
+        );
         if (cancelled) {
           return;
         }
-        setCommercialPricingPreview(res.ok && body.ok === true ? (body.preview ?? null) : null);
+        const nextPreviews = Object.fromEntries(
+          entries.filter(
+            (entry): entry is readonly [string, CommercialPricingPreview] => entry !== null
+          )
+        ) as Record<string, CommercialPricingPreview>;
+        setCommercialPricingPreviews(nextPreviews);
       } catch {
         if (!cancelled) {
-          setCommercialPricingPreview(null);
+          setCommercialPricingPreviews({});
         }
       } finally {
         if (!cancelled) {
@@ -414,7 +484,7 @@ export function DenaliIntakeStep({
     return () => {
       cancelled = true;
     };
-  }, [context.tourId, previewTransportKind]);
+  }, [context.tourId, participantPricingInputs, previewTransportKind]);
 
   const travelerDraftCount = (selfSelected ? 1 : 0) + otherGuests.length;
   const canAddGuest = !loading && otherGuests.length < DENALI_MAX_OTHER_GUESTS;
@@ -529,6 +599,7 @@ export function DenaliIntakeStep({
       readonly idx: number;
       readonly ok: boolean;
       readonly error?: string;
+      readonly status?: "pending" | "approved" | "waitlisted";
       readonly kind?: "self_already";
     }[] = [];
 
@@ -678,7 +749,12 @@ export function DenaliIntakeStep({
           continue;
         }
 
-        results.push({ target, idx: p.idx, ok: true });
+        results.push({
+          target,
+          idx: p.idx,
+          ok: true,
+          status: result.status ?? "pending",
+        });
       }
     } catch {
       setError(resolveError("network"));
@@ -694,6 +770,12 @@ export function DenaliIntakeStep({
       }
       return;
     }
+    const submissionOutcome = results.some((result) => result.status === "waitlisted")
+      ? "waitlisted"
+      : results.some((result) => result.status === "approved")
+        ? "approved"
+        : "pending";
+    dispatch({ type: "merge", patch: { submissionOutcome } });
     transitionFlowStep(dispatch, "done");
   }
 
@@ -709,23 +791,24 @@ export function DenaliIntakeStep({
   const priceLocale = locale === "fa" ? "fa-IR" : "en-US";
   const formattedPrice =
     estimatedPrice !== null ? estimatedPrice.toLocaleString(priceLocale) : null;
-  const previewDiscountMinor = commercialPricingPreview?.memberDiscountMinor ?? "0";
-  const hasMembershipDiscount =
-    commercialPricingPreview?.source === "member_discount" &&
-    (parseMinorToNumber(previewDiscountMinor) ?? 0) > 0;
-  const formattedPreviewGross =
-    commercialPricingPreview !== null
-      ? formatMinor(commercialPricingPreview.grossMinor, priceLocale)
+  const hasMembershipDiscount = participantPricingInputs.some((input) => {
+    const preview = commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)];
+    return (
+      preview?.source === "member_discount" &&
+      (parseMinorToNumber(preview.memberDiscountMinor) ?? 0) > 0
+    );
+  });
+  const formattedPreviewPayable = (() => {
+    const input = participantPricingInputs[0];
+    return participantPricingInputs.length === 1 && input !== undefined
+      ? formatMinor(
+          commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)]
+            ?.payableMinor ?? "",
+          priceLocale
+        )
       : null;
-  const formattedPreviewDiscount = hasMembershipDiscount
-    ? formatMinor(previewDiscountMinor, priceLocale)
-    : null;
-  const formattedPreviewPayable =
-    commercialPricingPreview !== null
-      ? formatMinor(commercialPricingPreview.payableMinor, priceLocale)
-      : null;
-  const previewAncillaryLines =
-    commercialPricingPreview?.lines.filter((line) => line.code !== "trip") ?? [];
+  })();
+  const isWaitlistRegistration = context.registrationState === "waitlist";
   const submitDisabled = loading || !clientReady || (!selfSelected && otherGuests.length === 0);
   const ctaAlert =
     error !== null && invalidField === null ? (
@@ -768,6 +851,11 @@ export function DenaliIntakeStep({
           <> · {t("intake.partyCount", { count: travelerDraftCount })}</>
         ) : null}
       </p>
+      {isWaitlistRegistration ? (
+        <p data-denali-waitlist-notice role="status">
+          {t("intake.waitlistNotice")}
+        </p>
+      ) : null}
       {selfTabLocked ? (
         <p data-registration-self-already role="status">
           {t("intake.selfAlreadyRegistered")}{" "}
@@ -806,48 +894,73 @@ export function DenaliIntakeStep({
           {t("intake.pricingPreviewLoading")}
         </p>
       ) : null}
-      {formattedPreviewPayable !== null ? (
+      {participantPricingInputs.length > 0 ? (
         <div data-registration-pricing-preview>
-          <div data-registration-pricing-row="gross">
-            <span>{t("intake.pricePerPerson")}</span>
-            <strong data-registration-pricing-gross>
-              {t("intake.priceAmount", {
-                amount: formattedPreviewGross ?? formattedPreviewPayable,
-              })}
-            </strong>
-          </div>
-          {hasMembershipDiscount && formattedPreviewDiscount !== null ? (
-            <div data-registration-pricing-row="membership-discount">
-              <span>
-                {t("intake.membershipDiscount", {
-                  percentage: commercialPricingPreview?.memberDiscountPercentage ?? 0,
-                })}
-              </span>
-              <strong data-registration-pricing-discount>
-                {t("intake.discountAmount", { amount: formattedPreviewDiscount })}
-              </strong>
-            </div>
-          ) : null}
-          {previewAncillaryLines.map((line) => {
-            const amount = formatMinor(line.amountMinor, priceLocale);
-            if (amount === null) {
+          {participantPricingInputs.map((input) => {
+            const preview =
+              commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)];
+            if (preview === undefined) {
               return null;
             }
+            const gross = formatMinor(preview.grossMinor, priceLocale);
+            const discount = formatMinor(preview.memberDiscountMinor, priceLocale);
+            const payable = formatMinor(preview.payableMinor, priceLocale);
+            if (gross === null && payable === null) {
+              return null;
+            }
+            const displayAmount = gross ?? payable;
+            if (displayAmount === null) return null;
+            const participantHasDiscount =
+              preview.source === "member_discount" &&
+              (parseMinorToNumber(preview.memberDiscountMinor) ?? 0) > 0;
             return (
-              <div key={line.code} data-registration-pricing-row={`ancillary-${line.code}`}>
-                <span>{t(`intake.ancillary.${line.code}`)}</span>
-                <strong>{t("intake.priceAmount", { amount })}</strong>
+              <div key={input.key} data-registration-pricing-participant={input.key}>
+                <div data-registration-pricing-row="gross">
+                  <span>
+                    {input.label} · {t("intake.pricePerPerson")}
+                  </span>
+                  <strong data-registration-pricing-gross>
+                    {t("intake.priceAmount", { amount: displayAmount })}
+                  </strong>
+                </div>
+                {participantHasDiscount && discount !== null ? (
+                  <div data-registration-pricing-row="membership-discount">
+                    <span>
+                      {t("intake.membershipDiscount", {
+                        percentage: preview.memberDiscountPercentage,
+                      })}
+                    </span>
+                    <strong data-registration-pricing-discount>
+                      {t("intake.discountAmount", { amount: discount })}
+                    </strong>
+                  </div>
+                ) : null}
+                {preview.lines
+                  .filter((line) => line.code !== "trip")
+                  .map((line) => {
+                    const amount = formatMinor(line.amountMinor, priceLocale);
+                    if (amount === null) return null;
+                    return (
+                      <div
+                        key={`${input.key}-${line.code}`}
+                        data-registration-pricing-row={`ancillary-${line.code}`}
+                      >
+                        <span>{t(`intake.ancillary.${line.code}`)}</span>
+                        <strong>{t("intake.priceAmount", { amount })}</strong>
+                      </div>
+                    );
+                  })}
+                {participantHasDiscount && payable !== null ? (
+                  <div data-registration-pricing-row="payable">
+                    <span>{t("intake.payableAmount")}</span>
+                    <strong data-registration-pricing-payable>
+                      {t("intake.priceAmount", { amount: payable })}
+                    </strong>
+                  </div>
+                ) : null}
               </div>
             );
           })}
-          {hasMembershipDiscount ? (
-            <div data-registration-pricing-row="payable">
-              <span>{t("intake.payableAmount")}</span>
-              <strong data-registration-pricing-payable>
-                {t("intake.priceAmount", { amount: formattedPreviewPayable })}
-              </strong>
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -1416,7 +1529,11 @@ export function DenaliIntakeStep({
                 data-action="intake-submit"
                 onClick={() => void handleSubmit()}
               >
-                {loading ? t("intake.submitting") : t("intake.submit")}
+                {loading
+                  ? t("intake.submitting")
+                  : isWaitlistRegistration
+                    ? t("intake.submitWaitlist")
+                    : t("intake.submit")}
               </button>
             </div>
           </div>

@@ -114,7 +114,7 @@ describe("portal-member-registrations", () => {
     assert.match(panel, /data-portal-member-notification-social-link-anchor/);
   });
 
-  it("MEM-BFF-04 /me/registrations detail page markers", () => {
+  it("BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS /me/registrations detail page markers", () => {
     const page = readFileSync(
       join(repoRoot, "apps/portal/app/me/registrations/[id]/page.tsx"),
       "utf8"
@@ -123,12 +123,25 @@ describe("portal-member-registrations", () => {
       join(repoRoot, "apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx"),
       "utf8"
     );
+    const statusCard = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-registration-status-card.tsx"),
+      "utf8"
+    );
+    const detailStatus = readFileSync(
+      join(repoRoot, "apps/portal/src/me/resolve-member-registration-detail-status.ts"),
+      "utf8"
+    );
+    const faMessages = readFileSync(
+      join(repoRoot, "apps/portal/messages/fa/portalMember.json"),
+      "utf8"
+    );
     assert.match(page, /data-portal-member-registration-detail/);
-    assert.match(page, /data-portal-member-detail-status-card/);
-    assert.match(page, /statusPendingTitle/);
-    assert.match(page, /statusPendingFreeBody/);
-    assert.match(page, /statusReceiptPendingTitle/);
-    assert.match(page, /statusReceiptRejectedTitle/);
+    assert.match(page, /MemberRegistrationStatusCard/);
+    assert.match(page, /resolveMemberRegistrationDetailStatus/);
+    assert.match(detailStatus, /statusPendingTitle/);
+    assert.match(detailStatus, /statusPendingFreeBody/);
+    assert.match(detailStatus, /statusReceiptPendingTitle/);
+    assert.match(detailStatus, /statusReceiptRejectedTitle/);
     assert.match(page, /data-portal-member-registrant-target/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(page, /fetchMemberReceiptPanel/);
@@ -143,6 +156,10 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-awaiting-approval/);
     assert.match(form, /awaitingFreeApprovalBody/);
     assert.match(form, /router\.refresh\(\)/);
+    assert.match(form, /dispatchMemberReceiptStatusChanged\("pending"\)/);
+    assert.match(statusCard, /data-portal-member-detail-status-card/);
+    assert.match(statusCard, /statusReceiptPendingTitle/);
+    assert.match(statusCard, /MEMBER_RECEIPT_STATUS_CHANGED_EVENT/);
     assert.match(form, /data-portal-member-receipt-closed/);
     assert.match(form, /data-portal-member-receipt-waiting/);
     assert.match(form, /data-portal-member-receipt-paid/);
@@ -171,11 +188,16 @@ describe("portal-member-registrations", () => {
     assert.match(form, /createObjectURL/);
     const closedAt = form.indexOf('registrationStatus === "rejected"');
     const awaitingAt = form.indexOf('registrationStatus === "pending"');
+    const freeAt = form.indexOf('paymentCollection === "free"');
     const paidAt = form.indexOf('receiptStatus === "paid"');
-    assert.ok(closedAt > 0 && awaitingAt > 0 && paidAt > 0);
+    assert.ok(closedAt > 0 && awaitingAt > 0 && freeAt > 0 && paidAt > 0);
     assert.ok(
       closedAt < paidAt && awaitingAt < paidAt,
       "lifecycle closed/awaiting cards must win over paid/waived"
+    );
+    assert.ok(
+      freeAt < paidAt && freeAt < uploadAt,
+      "free registrations must never reach paid or receipt-upload branches"
     );
     assert.match(form, /data-portal-member-receipt-view-tour/);
     assert.match(form, /data-portal-member-receipt-back-trips/);
@@ -187,9 +209,11 @@ describe("portal-member-registrations", () => {
     assert.match(lifecycle, /parseRegistrationLifecycleStatus/);
     assert.doesNotMatch(lifecycle, /\|\s*string/);
     assert.match(page, /parseRegistrationLifecycleStatus/);
-    assert.match(page, /registrationStatusBadge/);
-    assert.match(page, /data-portal-member-detail-receipt-status-badge/);
-    assert.match(page, /shouldShowReceiptStatusBadge/);
+    assert.match(statusCard, /registrationStatusBadge/);
+    assert.match(statusCard, /data-portal-member-detail-receipt-status-badge/);
+    assert.match(statusCard, /showReceiptBadge/);
+    assert.match(faMessages, /"registrationStatusBadge": "ثبت‌نام: \{status\}"/);
+    assert.match(faMessages, /"receiptStatusRejected": "رسید: رد شده؛ اصلاح لازم است"/);
     assert.doesNotMatch(form, /parseRegistrationLifecycleStatus/);
     assert.match(form, /disabled=\{uploadPhase === "uploading"\}/);
     assert.match(page, /MemberIntakeAmendForm/);

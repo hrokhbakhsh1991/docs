@@ -30,7 +30,7 @@ function preview(
 }
 
 describe("marketing-commercial-pricing-preview", () => {
-  it("MKT-MEMBER-PRICE-01 shows personalized benefit only for authoritative member discount", () => {
+  it("BUG-STG-081 shows personalized benefit only for authoritative member discount", () => {
     assert.equal(hasMarketingMembershipDiscount(preview()), true);
     assert.equal(
       hasMarketingMembershipDiscount(
@@ -66,7 +66,7 @@ describe("marketing-commercial-pricing-preview", () => {
       "apps/marketing/src/catalog/fetch-commercial-pricing-previews.server.ts"
     );
     assert.match(fetcher, /headers\.Authorization === undefined/);
-    assert.match(fetcher, /return \{\}/);
+    assert.match(fetcher, /status: "anonymous"/);
   });
 
   it("MKT-MEMBER-PRICE-04 UI renders server fields without client discount arithmetic", () => {
@@ -78,16 +78,22 @@ describe("marketing-commercial-pricing-preview", () => {
     assert.doesNotMatch(ui, /0\.8|80 \/ 100|memberDiscountPercentage \*|\/ 100/);
   });
 
-  it("MKT-MEMBER-PRICE-05 detail and sticky surfaces receive the same preview as the list", () => {
+  it("BUG-STG-081 detail and sticky surfaces receive the same preview as the list", () => {
     const detailPage = readRepo("apps/marketing/app/tours/[tourId]/page.tsx");
     const detail = readRepo("apps/marketing/src/catalog/catalog-tour-detail.tsx");
     const rail = readRepo("apps/marketing/src/catalog/catalog-tour-detail-booking-rail.tsx");
     const sticky = readRepo("apps/marketing/src/catalog/catalog-tour-detail-sticky-bar.tsx");
 
-    assert.match(detailPage, /pricingPreview=\{pricingPreviews\[tourId\] \?\? null\}/);
+    assert.match(
+      detailPage,
+      /pricingPreview=\{pricingPreviewResult\.previews\[tourId\] \?\? null\}/
+    );
     assert.match(detail, /pricingPreview=\{pricingPreview\}/);
     assert.match(rail, /CatalogCommercialPricingBreakdown/);
     assert.match(sticky, /CatalogCommercialPricingBreakdown/);
+    assert.match(detail, /pricingPreviewStatus/);
+    assert.match(rail, /pricingPreviewStatus/);
+    assert.match(sticky, /pricingPreviewStatus/);
   });
 
   it("MKT-MEMBER-PRICE-06 API batch preview remains read-only and shares Finance reducer", () => {

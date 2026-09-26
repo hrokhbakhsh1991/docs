@@ -37,6 +37,16 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.doesNotMatch(client, /fetch\(`\/api\/bookings\?/);
   });
 
+  it("BUG-STG-037 keeps the Transport badge in the same scope as its default rows", () => {
+    const layout = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx"),
+      "utf8"
+    );
+    assert.match(layout, /buildTourWorkspaceRosterCountsHref\(tourId, "operational"\)/);
+    assert.match(layout, /map\.transport = opsCounts\.operational/);
+    assert.match(layout, /operationalPayload: await operationalRes\.json\(\)/);
+  });
+
   it("registrations tab is scoped to pending requests while final roster stays in transport", () => {
     const client = readFileSync(
       join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-registrations-client.tsx"),
@@ -140,6 +150,16 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.match(client, /TourWorkspaceTransportControls/);
   });
 
+  it("BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL keeps waitlist rows out of approved/final state", () => {
+    const client = readFileSync(
+      join(webRoot, "app/(app)/tours/[id]/workspace/transport/tour-workspace-transport-client.tsx"),
+      "utf8"
+    );
+    assert.match(client, /registrationStatus\.trim\(\)\.toLowerCase\(\) === "waitlisted"/);
+    assert.match(client, /"waitlistedParticipant"/);
+    assert.match(client, /!isWaitlisted/);
+  });
+
   it("exposes approved DP-2 roster filters", () => {
     assert.deepEqual(OPERATIONAL_ROSTER_FILTERS, [
       "operational",
@@ -158,7 +178,7 @@ describe("DP-2 tour workspace operational roster contract", () => {
         currency: "IRR",
         financialDisplayState: "UNPAID",
       }),
-      "1000 IRR"
+      "۱٬۰۰۰ تومان"
     );
     assert.equal(
       formatOperationalRosterAmountDue({

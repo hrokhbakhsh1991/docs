@@ -18,7 +18,7 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("renders operational registration and receipt payload fields", async () => {
+  it("BUG-STG-040 renders operational registration and truthful receipt evidence fields", async () => {
     assert.equal(
       await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
@@ -112,6 +112,31 @@ describe("format integration delivery message", () => {
     });
     assert.match(fileWithoutNote, /نوع مدرک: photo/);
     assert.doesNotMatch(fileWithoutNote, /بدون توضیحات|توضیحات:/);
+
+    const documentWithoutNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-5",
+        evidenceKind: "document",
+        fileKey: "proof/a.pdf",
+        note: "   ",
+      },
+    });
+    assert.match(documentWithoutNote, /نوع مدرک: document/);
+    assert.doesNotMatch(documentWithoutNote, /بدون توضیحات|توضیحات:/);
+
+    const fileWithNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-6",
+        evidenceKind: "photo",
+        fileKey: "proof/a.jpg",
+        note: "توضیح واقعی رسید",
+      },
+    });
+    assert.match(fileWithNote, /نوع مدرک: photo\nتوضیحات: توضیح واقعی رسید/);
   });
 
   it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {

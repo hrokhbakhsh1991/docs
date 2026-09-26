@@ -117,6 +117,7 @@
     "membershipDiscount": "تخفیف عضویت {percent}٪",
     "membershipDiscountCompact": "{percent}٪ تخفیف عضویت",
     "yourPrice": "قیمت برای شما",
+    "unavailable": "قیمت برای این عضو در دسترس نیست",
     "ancillary": {
       "transport": "خودرو",
       "dong": "دونگی"
@@ -191,6 +192,7 @@
       "gathering": "محل تجمع",
       "map": "نقشه",
       "openMap": "مشاهده روی نقشه",
+      "startTime": "ساعت شروع",
       "returnTime": "ساعت بازگشت تقریبی",
       "transport": "حمل‌ونقل",
       "transportCost": "هزینه حمل‌ونقل",
@@ -241,6 +243,11 @@
       "transportIntake": "ترجیح حمل‌ونقل یا جزئیات خودرو",
       "payment": "روش پرداخت: {mode}",
       "prepayment": "پیش‌پرداخت: {percent, number}٪ از مبلغ نهایی پس از تأیید",
+      "freeCollection": "رایگان / بدون نیاز به پرداخت",
+      "registrationApproval": {
+        "manual": "تأیید ثبت‌نام: دستی",
+        "auto": "تأیید ثبت‌نام: خودکار"
+      },
       "paymentModes": {
         "offlineReceipt": "رسید / پرداخت آفلاین",
         "gateway": "پرداخت آنلاین"

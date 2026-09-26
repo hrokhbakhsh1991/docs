@@ -73,7 +73,10 @@ describe("resolveTenantExposureSelectableCatalog", () => {
     });
 
     assert.equal(catalog.source, PUBLISHED_WIZARD_TEMPLATE_EXPOSURE_CATALOG_SOURCE);
-    assert.ok(catalog.fields.length > (await buildExposureSelectableFieldCatalog("denali")).length);
+    const deliverableIds = new Set(
+      (await buildExposureSelectableFieldCatalog("denali")).map((field) => field.id)
+    );
+    assert.ok(catalog.fields.every((field) => deliverableIds.has(field.id)));
     assert.ok(catalog.fields.some((field) => field.canonicalPath === "transport.mode"));
   });
 

@@ -457,7 +457,7 @@
     "registrations": {
       "title": "درخواست‌های ثبت‌نام",
       "description": "تأیید، رد و بررسی درخواست‌های مهمان برای این تور.",
-      "capacityFullBanner": "ظرفیت پر است — ثبت‌نام جدید خودکار به لیست انتظار نمی‌رود. از «لیست انتظار» یا تأیید با تجاوز از ظرفیت استفاده کنید.",
+      "capacityFullBanner": "ظرفیت پر است — ثبت‌نام جدید فرم عمومی در لیست انتظار ثبت می‌شود. برای بررسی و تأیید، «لیست انتظار» را باز کنید.",
       "capacityFullWaitlistLink": "رفتن به لیست انتظار",
       "adminCreateCta": "ثبت‌نام دستی",
       "empty": "هنوز ثبت‌نامی برای این تور نیست.",
@@ -488,6 +488,7 @@
       "finalParticipant": "نهایی",
       "notFinalParticipant": "هنوز نهایی نشده",
       "approvedParticipant": "تأییدشده",
+      "waitlistedParticipant": "در لیست انتظار",
       "addToFinalRoster": "افزودن به فهرست نهایی",
       "followPayment": "پیگیری پرداخت",
       "finalizeParticipantSuccess": "شرکت‌کننده نهایی شد؛ وضعیت پرداخت جداگانه باقی می‌ماند.",

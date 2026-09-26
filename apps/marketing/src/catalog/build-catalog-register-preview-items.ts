@@ -17,6 +17,8 @@ export type BuildCatalogRegisterPreviewItemsInput = {
     readonly maximumAge: (years: number) => string;
     readonly transportIntake: string;
     readonly payment: (modeLabel: string) => string;
+    readonly paymentCollection: () => string;
+    readonly registrationApproval: (mode: "manual" | "auto") => string;
     readonly prepayment: (percent: number) => string;
   };
   readonly paymentModeLabel: string | null;
@@ -63,6 +65,15 @@ export function buildCatalogRegisterPreviewItems(
       text: labels.payment(input.paymentModeLabel),
     });
   }
+  if (tour.paymentCollection === "free") {
+    items.push({ id: "payment-collection", text: labels.paymentCollection() });
+  }
+  if (tour.registrationApproval != null) {
+    items.push({
+      id: "registration-approval",
+      text: labels.registrationApproval(tour.registrationApproval),
+    });
+  }
 
   const prepaymentPercent = tour.paymentPlan?.prepaymentPercent;
   if (
@@ -92,6 +103,8 @@ export function tourHasRegisterPreviewData(tour: MarketingCatalogCard): boolean 
         maximumAge: () => "",
         transportIntake: "",
         payment: () => "",
+        paymentCollection: () => "",
+        registrationApproval: () => "",
         prepayment: () => "",
       },
       paymentModeLabel: tour.paymentMode?.trim() ? tour.paymentMode.trim() : null,
