@@ -100,6 +100,17 @@
 - `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH` — اصلاح شد: Portal برای `paymentCollection === "free"`، پس از عبور از وضعیت pending/waitlisted، دیگر به فرم upload فیش، مقصد پرداخت یا دکمهٔ ارسال نمی‌رسد و کارت «نیازی به پرداخت نیست» نمایش می‌دهد؛ suite متمرکز Portal/BFF/deadline در این sweep `۲۸/۲۸` پاس شد. پس از deploy با SHA جدید، یک free registration در وضعیت approved و یک free pending را با API response، Portal detail و screenshot/AX بررسی کن؛ pending باید فقط پیام انتظار مناسب free را داشته باشد و هیچ upload/payment control نداشته باشد.
 - `BUG-STG-080` — source fix برقرار است: علاوه بر حذف مسیر receipt upload برای `paymentCollection === "free"`، status resolver نیز برای free approved مستقل از projection ناسازگار `paid/unpaid` کارت «بدون نیاز به پرداخت» را برمی‌گرداند؛ تست resolver، Portal registration، receipt BFF و deadline contract در این sweep `۲۸/۲۸` پاس شد. **Runtime staging fail است:** free registration `4190860a-9948-4c62-b29b-85d3e494e765` در detail هنوز «پرداخت شما تأیید شد» و «رسید: تأیید شده» و در Portal list نیز «برای نهایی‌شدن، پرداخت لازم است» نشان می‌دهد؛ در همان list، free fixtureهای دیگر متن درست «پرداخت لازم نیست» دارند. بعد از deploy با SHA واقعی، free approved/pending باید در list و detail بدون payment status، مبلغ، مقصد کارت‌به‌کارت یا upload نمایش داده شود.
 
+## Follow-up runtime verification — ۲۰۲۶-۰۹-۲۷
+
+با وجود باز بودن PR و نبودن deploy از SHA اصلاحی، چهار مورد روی artifact فعلی staging دوباره مشاهده شدند:
+
+- `BUG-STG-025`: PDP `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در AX هیچ label «رایگان/بدون نیاز به پرداخت» ندارد و در بخش «پیش از ثبت‌نام» هنوز «روش پرداخت: رسید / پرداخت آفلاین» دیده می‌شود.
+- `BUG-STG-026/027`: آدرس `/tours?minPrice=0&sort=price_asc` تعداد `۱۳ مورد` نشان می‌دهد، اما تور رایگان `QA-STG-20260924-FREE-MANUAL` در نتایج نیست.
+- `BUG-STG-081/082`: PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان` و دُنگ `۳۰۰٬۰۰۰ تومان` را نشان می‌دهد؛ کارت PLP همان تور «قیمت برای این عضو در دسترس نیست» دارد و مبلغ دُنگ ندارد.
+- `BUG-STG-080`: Portal detail ثبت‌نام رایگان `4190860a-9948-4c62-b29b-85d3e494e765` هنوز متن ارسال رسید و وضعیت‌های پرداخت/رسید تأییدشده را نمایش می‌دهد.
+
+این چهار مشاهده، failure runtime artifact فعلی هستند و تا deploy شدن SHA اصلاحی به‌عنوان failure source جدید تفسیر نمی‌شوند؛ پس از deploy باید با API response، SHA واقعی و screenshot/AX دوباره بسته شوند.
+
 ## Retest بعد از deploy واقعی `a37f38cd89576b17b07808c45279788eab63b3a1`
 
 - Artifact: `app-tour-staging-a37f38cd89576b17b07808c45279788eab63b3a1.tar.zst`; digest: `7245def80b7ff8fdf253aee2fd2824d50e96ef8cf57e7d2732862fe55520d198`; health هر سه host با `200` پاس شد.
