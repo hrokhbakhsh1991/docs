@@ -162,3 +162,10 @@
 - آخرین workflow deploy staging همچنان run `36273529557` روی SHA `a37f38cd89576b17b07808c45279788eab63b3a1` است؛ PR head `e8a15c965e4bf619e7776b5cdc0de00b919f0595` deploy نشده است.
 
 نتیجه: sweep read-only ادامه یافت و failure فعلی دوباره ثبت شد؛ این failure همچنان به artifact قدیمی نسبت داده می‌شود، نه به source HEAD اصلاحی. ریتست با SHA اصلاحی بعد از deploy باقی است.
+
+## CI stale-run follow-up — ۲۰۲۶-۰۹-۲۷
+
+- runهای PR روی HEAD `49fa7c14dc22bffedc1e33a22904f5477db84043` از `۲۳:۱۳` در stepهای build بدون تغییر مانده‌اند؛ checkهای پاس‌شده جداگانه سبز هستند و failure source ثبت نشده است.
+- تلاش برای cancel همان runها با GitHub API به `403 Resource not accessible by personal access token` خورد.
+- تلاش برای rerun همان runها نیز با پیام `workflow file may be broken` پذیرفته نشد.
+- این مورد CI/permission است و به source bug یا staging artifact نسبت داده نمی‌شود. پس از اجرای تازهٔ workflowها، نتیجهٔ هر check باید دوباره ثبت شود.
