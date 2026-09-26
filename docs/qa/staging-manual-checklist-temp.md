@@ -108,6 +108,9 @@
 - `BUG-STG-026/027`: آدرس `/tours?minPrice=0&sort=price_asc` تعداد `۱۳ مورد` نشان می‌دهد، اما تور رایگان `QA-STG-20260924-FREE-MANUAL` در نتایج نیست.
 - `BUG-STG-081/082`: PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان` و دُنگ `۳۰۰٬۰۰۰ تومان` را نشان می‌دهد؛ کارت PLP همان تور «قیمت برای این عضو در دسترس نیست» دارد و مبلغ دُنگ ندارد.
 - `BUG-STG-080`: Portal detail ثبت‌نام رایگان `4190860a-9948-4c62-b29b-85d3e494e765` هنوز متن ارسال رسید و وضعیت‌های پرداخت/رسید تأییدشده را نمایش می‌دهد.
+- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: در صفحه فارسی Admin نام eventهای `Member registered`، `Receipt approved/rejected/submitted` و `Registration approved/created/waitlisted` هنوز انگلیسی است.
+- `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE`: در فهرست فیلدهای «جزئیات کاتالوگ عمومی»، description فیلد «نقطه شروع» هنوز `Start, summit, camp and end location zones.` است.
+- `BUG-STG-035`: Portal ثبت‌نام `98202973-9d76-43c2-99ab-46d8cb06c30e` زمان حرکت `۲۱ مهر ۱۴۰۵، ۸:۰۰` را نشان می‌دهد که با timezone تهران سازگار است؛ raw API/Admin و SHA واقعی deploy برای closure نهایی هنوز لازم است.
 
 این چهار مشاهده، failure runtime artifact فعلی هستند و تا deploy شدن SHA اصلاحی به‌عنوان failure source جدید تفسیر نمی‌شوند؛ پس از deploy باید با API response، SHA واقعی و screenshot/AX دوباره بسته شوند.
 
