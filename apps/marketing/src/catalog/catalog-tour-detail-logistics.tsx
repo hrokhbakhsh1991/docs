@@ -4,7 +4,10 @@ import { isPublicCatalogOrganizedTransportMode } from "@app-tour/workspace-sdk";
 
 import { buildCatalogMapLink } from "./build-catalog-map-link";
 import type { MarketingCatalogCard } from "./catalog-types";
-import { formatCatalogPrice } from "./format-catalog-display";
+import {
+  CATALOG_DISPLAY_TIME_ZONE,
+  formatCatalogPrice,
+} from "./format-catalog-display";
 import { resolveCatalogTransportCostAmount } from "./format-catalog-transport";
 import { resolveCatalogTransportLabelKey } from "./resolve-catalog-transport-label-key";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
@@ -31,9 +34,11 @@ export async function CatalogTourDetailLogistics({
   const mapLink = buildCatalogMapLink(tour.gatheringPoint);
   const returnTime = tour.approximateReturnTime?.trim() || null;
   const startTime = tour.departureAt
-    ? new Intl.DateTimeFormat(dateLocale, { dateStyle: "medium", timeStyle: "short" }).format(
-        new Date(tour.departureAt)
-      )
+    ? new Intl.DateTimeFormat(dateLocale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: CATALOG_DISPLAY_TIME_ZONE,
+      }).format(new Date(tour.departureAt))
     : null;
 
   const transportMode = transport?.mode;

@@ -35,7 +35,10 @@ function clearParticipantPricing(card: PublicCatalogCard): PublicCatalogCard {
 
 function clearPaymentPolicy(card: PublicCatalogCard): PublicCatalogCard {
   const publicFreeCollection = card.paymentCollection === "free" ? "free" : undefined;
-  let next = clearWorkspaceCatalogCardStringField(card, "paymentMode");
+  // Payment policy and money display form one public financial surface. Keeping
+  // the base/member price after hiding payment policy leaks the same financial
+  // contract through a different field (especially on personalized PDPs).
+  let next = clearWorkspaceCatalogCardStringField(clearParticipantPricing(card), "paymentMode");
   for (const key of [
     "paymentPlan",
     "paymentCollection",
@@ -62,6 +65,9 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       applyHidden: (card) =>
         Object.freeze({
           ...clearWorkspaceCatalogCardStringField(card, "category"),
+          // `listSubtitle` is populated from the same canonical category and
+          // must not remain as an alternate egress when destination is hidden.
+          listSubtitle: null,
           destinationLabel: null,
         }),
     },

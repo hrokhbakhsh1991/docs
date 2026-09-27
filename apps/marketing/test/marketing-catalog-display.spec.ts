@@ -55,6 +55,18 @@ describe("marketing catalog display", () => {
     assert.match(label, /[\u06F0-\u06F9]/);
   });
 
+  it("BUG-STG-035 formats catalog dates in the canonical Tehran wall clock", () => {
+    const label = formatCatalogCardDates(
+      {
+        id: "1",
+        departureAt: "2026-09-25T23:30:00.000Z",
+      },
+      "en-US",
+      "Dates TBA"
+    );
+    assert.match(label, /Sep 26/);
+  });
+
   it("MKT-04 urban cards hide price row via showListPrice", () => {
     assert.equal(shouldShowCatalogPrice({ showListPrice: false, priceAmount: 1000 }), false);
     assert.equal(shouldShowCatalogPrice({ showListPrice: true, priceAmount: 1000 }), true);

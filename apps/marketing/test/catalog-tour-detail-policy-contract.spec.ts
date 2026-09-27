@@ -14,6 +14,7 @@ describe("BUG-STG-008/013 PDP policy and start-time contract", () => {
     );
 
     assert.match(logistics, /const startTime = tour\.departureAt/);
+    assert.match(logistics, /timeZone: CATALOG_DISPLAY_TIME_ZONE/);
     assert.match(logistics, /detail\.logistics\.startTime/);
     assert.match(preview, /paymentCollection: \(\) =>/);
     assert.match(preview, /registrationApproval: \(mode\) =>/);
