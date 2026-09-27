@@ -28,9 +28,9 @@ describe("BUG-STG-025 free collection labels", () => {
     assert.match(card, /const freeCollection = tour\.paymentCollection === "free"/);
     assert.match(card, /freeCollection \? \(/);
     assert.match(card, /data-marketing-catalog-card-free/);
-    assert.match(card, /t\("detail\.freeCollection"\)/);
+    assert.match(card, /resolveCatalogFreeCollectionLabel/);
     assert.match(rail, /tour\.paymentCollection === "free" \? \(/);
     assert.match(rail, /data-marketing-catalog-detail-free/);
-    assert.match(rail, /t\("detail\.freeCollection"\)/);
+    assert.match(rail, /resolveCatalogFreeCollectionLabel/);
   });
 });
