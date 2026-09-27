@@ -51,6 +51,22 @@ type ExposureSimulationConsoleProps = {
   readonly exposureCandidateFields: readonly ExposureCatalogField[];
 };
 
+const TELEGRAM_EVENT_LABEL_KEYS: Readonly<Record<string, string>> = {
+  "Member registered": "memberRegistered",
+  "Receipt submitted": "receiptSubmitted",
+  "Registration created": "registrationCreated",
+  "Registration waitlisted": "registrationWaitlisted",
+  "Ticket assigned": "ticketAssigned",
+  "Ticket closed": "ticketClosed",
+  "Ticket created": "ticketCreated",
+  "Ticket internal note created": "ticketInternalNoteCreated",
+  "Ticket message posted": "ticketMessagePosted",
+  "Ticket priority changed": "ticketPriorityChanged",
+  "Ticket reopened": "ticketReopened",
+  "Ticket resolved": "ticketResolved",
+  "Ticket status changed": "ticketStatusChanged",
+};
+
 function initialEventState(
   connection: IntegrationConnectionPublic,
   _providerSurface: IntegrationProviderSurfaceMeta | null,
@@ -113,6 +129,12 @@ export function ExposureSimulationConsole({
   exposureCandidateFields,
 }: ExposureSimulationConsoleProps) {
   const t = useTranslations("settings.exposure.simulation");
+  const eventLabel = (eventType: string): string => {
+    const key = TELEGRAM_EVENT_LABEL_KEYS[eventType];
+    return key !== undefined && t.has(`eventLabels.${key}`)
+      ? t(`eventLabels.${key}`)
+      : eventType;
+  };
   const eventTypes = useMemo(
     () => buildExposureEventTypeList(connection, providerSurface),
     [connection, providerSurface],
@@ -217,7 +239,7 @@ export function ExposureSimulationConsole({
               setError(null);
             }}
           >
-            {eventType}
+            {eventLabel(eventType)}
           </Button>
         ))}
       </div>
