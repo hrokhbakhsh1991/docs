@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   formatMemberRegistrationDepartureLabel,
   MEMBER_REGISTRATION_DISPLAY_TIME_ZONE,
+  resolveMemberFinalizationStatusKey,
 } from "../src/me/format-member-registration-display.server";
 import { resolveMemberRegistrationDetailStatus } from "../src/me/resolve-member-registration-detail-status";
 
@@ -70,6 +71,14 @@ describe("member registration departure display", () => {
         title: "statusWaivedTitle",
         body: "statusWaivedBody",
       }
+    );
+    assert.equal(
+      resolveMemberFinalizationStatusKey({
+        registrationStatus: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "free",
+      }),
+      "waived"
     );
   });
 });

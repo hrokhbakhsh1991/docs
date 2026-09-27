@@ -61,6 +61,7 @@ export default async function MeRegistrationsPage({
         finalizationStatusLabel: await localizeMemberFinalizationStatus(
           item.status,
           item.paymentStatus,
+          item.paymentCollection,
           item.financialDisplayState
         ),
         departureLabel: await formatMemberRegistrationDeparture(item.departureAt),

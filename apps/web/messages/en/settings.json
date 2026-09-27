@@ -519,10 +519,15 @@
     },
     "simulation": {
       "eventLabels": {
+        "tourCreated": "Tour created",
+        "tourPublished": "Tour published",
         "memberRegistered": "Member registered",
         "receiptSubmitted": "Receipt submitted",
         "registrationCreated": "Registration created",
         "registrationWaitlisted": "Registration waitlisted",
+        "registrationApproved": "Registration approved",
+        "receiptApproved": "Receipt approved",
+        "receiptRejected": "Receipt rejected",
         "ticketAssigned": "Ticket assigned",
         "ticketClosed": "Ticket closed",
         "ticketCreated": "Ticket created",

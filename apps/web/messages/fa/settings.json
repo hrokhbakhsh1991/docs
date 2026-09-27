@@ -519,10 +519,15 @@
     },
     "simulation": {
       "eventLabels": {
+        "tourCreated": "ساخت تور جدید",
+        "tourPublished": "انتشار تور",
         "memberRegistered": "ثبت‌نام عضو",
         "receiptSubmitted": "ارسال رسید پرداخت",
         "registrationCreated": "ایجاد ثبت‌نام",
         "registrationWaitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار",
+        "registrationApproved": "تأیید ثبت‌نام",
+        "receiptApproved": "تأیید رسید پرداخت",
+        "receiptRejected": "رد رسید پرداخت",
         "ticketAssigned": "ارجاع تیکت",
         "ticketClosed": "بسته‌شدن تیکت",
         "ticketCreated": "ایجاد تیکت",

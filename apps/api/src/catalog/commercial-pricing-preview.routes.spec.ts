@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   resolveCommercialPricingMemberUserId,
   resolveCommercialPricingWorkspace,
+  settleWithConcurrency,
 } from "./commercial-pricing-preview.routes";
 
 function request(url: string): IncomingMessage {
@@ -135,5 +136,31 @@ describe("commercial pricing workspace binding", () => {
     assert.match(source, /getById\(input\.tourId, input\.tenantId\)/);
     assert.match(source, /tenantId: auth\.tenantId/);
     assert.doesNotMatch(source, /(?:\|\||\?\?)\s*["']denali["']/);
+  });
+
+  it("BUG-STG-081 bounds batch pricing resolution to avoid order-dependent preview loss", async () => {
+    let active = 0;
+    let peak = 0;
+    const settled = await settleWithConcurrency(["a", "b", "c", "d", "e"], async (value) => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      active -= 1;
+      return value.toUpperCase();
+    }, 2);
+
+    assert.equal(peak, 2);
+    assert.deepEqual(
+      settled.map((result) => (result.status === "fulfilled" ? result.value : result.reason)),
+      ["A", "B", "C", "D", "E"]
+    );
+
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("./commercial-pricing-preview.routes.ts", import.meta.url), "utf8")
+    );
+
+    assert.match(source, /settleWithConcurrency/);
+    assert.match(source, /concurrency = 4/);
+    assert.match(source, /settleWithConcurrency\(tourIds/);
   });
 });

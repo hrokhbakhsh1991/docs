@@ -30,6 +30,7 @@ import type {
   IntegrationProviderSurfaceMeta,
 } from "@/integrations/integrations-types";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
+import { telegramEventLabelKey } from "@/exposure/telegram-event-label-key";
 
 export const EXPOSURE_SIMULATION_CONSOLE_TEST_IDS = {
   root: "exposure-simulation-console",
@@ -49,22 +50,6 @@ type ExposureSimulationConsoleProps = {
   readonly connection: IntegrationConnectionPublic;
   readonly providerSurface: IntegrationProviderSurfaceMeta | null;
   readonly exposureCandidateFields: readonly ExposureCatalogField[];
-};
-
-const TELEGRAM_EVENT_LABEL_KEYS: Readonly<Record<string, string>> = {
-  "Member registered": "memberRegistered",
-  "Receipt submitted": "receiptSubmitted",
-  "Registration created": "registrationCreated",
-  "Registration waitlisted": "registrationWaitlisted",
-  "Ticket assigned": "ticketAssigned",
-  "Ticket closed": "ticketClosed",
-  "Ticket created": "ticketCreated",
-  "Ticket internal note created": "ticketInternalNoteCreated",
-  "Ticket message posted": "ticketMessagePosted",
-  "Ticket priority changed": "ticketPriorityChanged",
-  "Ticket reopened": "ticketReopened",
-  "Ticket resolved": "ticketResolved",
-  "Ticket status changed": "ticketStatusChanged",
 };
 
 function initialEventState(
@@ -130,7 +115,7 @@ export function ExposureSimulationConsole({
 }: ExposureSimulationConsoleProps) {
   const t = useTranslations("settings.exposure.simulation");
   const eventLabel = (eventType: string): string => {
-    const key = TELEGRAM_EVENT_LABEL_KEYS[eventType];
+    const key = telegramEventLabelKey(eventType);
     return key !== undefined && t.has(`eventLabels.${key}`)
       ? t(`eventLabels.${key}`)
       : eventType;

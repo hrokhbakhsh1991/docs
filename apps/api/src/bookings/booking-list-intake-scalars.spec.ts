@@ -130,4 +130,15 @@ describe("booking-list-intake-scalars.spec.ts", () => {
     assert.equal(record.registrationIntake, undefined);
     assert.equal(record.financialDisplayState, "WAIVED");
   });
+
+  it("BUG-STG-080 projects approved free rows as WAIVED before payment status", () => {
+    assert.equal(
+      resolveFinancialDisplayStateForListRecord(
+        { status: "approved", paymentStatus: "unpaid" },
+        null,
+        true
+      ),
+      "WAIVED"
+    );
+  });
 });

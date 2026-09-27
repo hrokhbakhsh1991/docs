@@ -52,6 +52,7 @@ export async function CatalogTourDetailStickyBar({
       <CatalogCommercialPricingBreakdown
         preview={pricingPreview}
         canonicalPrice={priceLine}
+        isFreeCollection={tour.paymentCollection === "free"}
         dateLocale={dateLocale}
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}
