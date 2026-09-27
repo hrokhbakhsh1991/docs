@@ -518,6 +518,21 @@
       }
     },
     "simulation": {
+      "eventLabels": {
+        "memberRegistered": "Member registered",
+        "receiptSubmitted": "Receipt submitted",
+        "registrationCreated": "Registration created",
+        "registrationWaitlisted": "Registration waitlisted",
+        "ticketAssigned": "Ticket assigned",
+        "ticketClosed": "Ticket closed",
+        "ticketCreated": "Ticket created",
+        "ticketInternalNoteCreated": "Ticket internal note created",
+        "ticketMessagePosted": "Ticket message posted",
+        "ticketPriorityChanged": "Ticket priority changed",
+        "ticketReopened": "Ticket reopened",
+        "ticketResolved": "Ticket resolved",
+        "ticketStatusChanged": "Ticket status changed"
+      },
       "title": "Exposure simulation",
       "description": "Draft field-selection changes and compare engine outcomes against current runtime without saving.",
       "backToExposure": "Back to field exposure",

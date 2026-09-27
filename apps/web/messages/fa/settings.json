@@ -518,6 +518,21 @@
       }
     },
     "simulation": {
+      "eventLabels": {
+        "memberRegistered": "ثبت‌نام عضو",
+        "receiptSubmitted": "ارسال رسید پرداخت",
+        "registrationCreated": "ایجاد ثبت‌نام",
+        "registrationWaitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار",
+        "ticketAssigned": "ارجاع تیکت",
+        "ticketClosed": "بسته‌شدن تیکت",
+        "ticketCreated": "ایجاد تیکت",
+        "ticketInternalNoteCreated": "ثبت یادداشت داخلی تیکت",
+        "ticketMessagePosted": "ارسال پیام تیکت",
+        "ticketPriorityChanged": "تغییر اولویت تیکت",
+        "ticketReopened": "بازگشایی تیکت",
+        "ticketResolved": "حل‌شدن تیکت",
+        "ticketStatusChanged": "تغییر وضعیت تیکت"
+      },
       "title": "شبیه‌سازی exposure",
       "description": "تغییرات انتخاب فیلد را پیش‌نویس کنید و نتیجه فنی را بدون ذخیره با وضعیت فعلی مقایسه کنید.",
       "backToExposure": "بازگشت به نمایش فیلد",
