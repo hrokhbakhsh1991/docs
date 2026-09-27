@@ -25,11 +25,14 @@ export function resolveFinancialDisplayStateForListRecord(
   if (record.financialDisplayState !== undefined) {
     return record.financialDisplayState;
   }
-  if (record.status !== "approved" || record.paymentStatus !== "paid") {
+  if (record.status !== "approved") {
     return undefined;
   }
   if (freeCollectionApplied) {
     return "WAIVED";
+  }
+  if (record.paymentStatus !== "paid") {
+    return undefined;
   }
   const override = readObligationOverrideFromIntake(
     obligationOverride === null || obligationOverride === undefined

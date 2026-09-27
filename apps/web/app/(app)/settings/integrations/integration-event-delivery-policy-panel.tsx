@@ -42,6 +42,7 @@ import type {
 import { listDeprecatedEventPolicies } from "@/integrations/integration-connection-load-warnings";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import { telegramEventLabelKey } from "@/exposure/telegram-event-label-key";
 
 export const INTEGRATION_DELIVERY_POLICY_TEST_IDS = {
   panel: "integration-delivery-policy-panel",
@@ -50,22 +51,6 @@ export const INTEGRATION_DELIVERY_POLICY_TEST_IDS = {
   surface: "integration-delivery-policy-surface",
   messageTemplate: "integration-delivery-policy-message-template",
 } as const;
-
-const TELEGRAM_EVENT_LABEL_KEYS: Readonly<Record<string, string>> = {
-  "Member registered": "memberRegistered",
-  "Receipt submitted": "receiptSubmitted",
-  "Registration created": "registrationCreated",
-  "Registration waitlisted": "registrationWaitlisted",
-  "Ticket assigned": "ticketAssigned",
-  "Ticket closed": "ticketClosed",
-  "Ticket created": "ticketCreated",
-  "Ticket internal note created": "ticketInternalNoteCreated",
-  "Ticket message posted": "ticketMessagePosted",
-  "Ticket priority changed": "ticketPriorityChanged",
-  "Ticket reopened": "ticketReopened",
-  "Ticket resolved": "ticketResolved",
-  "Ticket status changed": "ticketStatusChanged",
-};
 
 type DeliveryPolicyEventState = {
   readonly enabled: boolean;
@@ -270,7 +255,7 @@ export function IntegrationEventDeliveryPolicyPanel({
   );
 
   const eventLabel = (eventType: string): string => {
-    const localizedKey = TELEGRAM_EVENT_LABEL_KEYS[eventType];
+    const localizedKey = telegramEventLabelKey(eventType);
     if (localizedKey !== undefined && t.has(`eventNames.${localizedKey}`)) {
       return t(`eventNames.${localizedKey}`);
     }

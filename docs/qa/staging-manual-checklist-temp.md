@@ -181,3 +181,162 @@
 - `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: **FAIL confirmed current SHA**. در `admin.denali.shenski.com/settings/exposure` با locale فارسی، `Member registered`، `Receipt submitted`، `Registration created` و eventهای `Ticket ...` هنوز انگلیسی render شدند. ریشهٔ فعلی: lookup با eventType دارای فاصله به‌جای locale key پایدار؛ اصلاح در PR #215 انجام شد و deploy/retest همان PR باقی است.
 - `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE`: **UNCONFIRMED current SHA**. صفحهٔ Exposure و سطح «جزئیات کاتالوگ عمومی» باز شد، اما با تنظیم پیش‌فرض فیلدهای registry قابل مشاهده نبودند؛ تغییر تنظیم ذخیره نشد. برای اثبات نهایی باید با fixture تنظیم‌شده یا snapshot فیلدهای فعال بررسی شود.
 - ثبت‌نام واقعی مهمان، approve/reject/resubmit رسید، ارسال واقعی Telegram image/PDF، حفظ `message_thread_id`، عدم General، retry بدون duplicate، export/Excel و projectionهای post-approve هنوز mutation/دادهٔ واقعی می‌خواهند؛ بدون اجرای side effect به‌عنوان pass یا fail بسته نشدند.
+
+## Continuation source/runtime sweep — ۲۰۲۶-۰۹-۲۷
+
+- `BUG-STG-025`: **PASS read-only فعلی**. PDP تور رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` عبارت `رایگان / بدون نیاز به پرداخت` و نبود کنترل پرداخت را نشان داد؛ PLP نیز همین label را نشان داد.
+- `BUG-STG-026/027`: **PASS read-only فعلی**. `?minPrice=0&sort=price_asc` تعداد `۱۵` مورد داشت و دو تور رایگان ابتدای فهرست بودند؛ `?minPrice=0&sort=price_desc` نیز هر دو تور رایگان را در انتهای فهرست نگه داشت.
+- `BUG-STG-081`: **FAIL قطعی و order-dependent فعلی**. PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان` را نشان داد. در PLP با `sort=price_desc` همین قیمت نمایش داده شد، اما با `sort=price_asc` فقط قیمت پایه `۲٬۰۰۰٬۰۰۰ تومان` نمایش داده شد.
+- `BUG-STG-082`: **FAIL/باز فعلی**. PDP همان تور دُنگ `۳۰۰٬۰۰۰ تومان` را نشان داد، اما مقدار دُنگ در کارت PLP در AX دیده نشد.
+- `BUG-STG-080`: **FAIL قطعی فعلی**. Detail ثبت‌نام رایگان `4190860a-9948-4c62-b29b-85d3e494e765` درست و بدون پرداخت است، اما همان registration در Portal list هنوز `برای نهایی‌شدن، پرداخت لازم است` دارد؛ list و detail هم‌قرارداد نیستند.
+- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: **FAIL قطعی فعلی**. صفحهٔ فارسی Admin هنوز `Member registered`، `Receipt submitted`، `Registration created` و eventهای Ticket را انگلیسی render می‌کند.
+- `BUG-STG-037` و `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL`: **PASS read-only فعلی در Admin**. صف `نیازمند اقدام` مقدار `۱۲` و فیلتر `در لیست انتظار` مقدار `۸` دارد؛ همهٔ ردیف‌های waitlist label `در لیست انتظار` و ظرفیت `۱۲/۱۲` دارند. approve/promotion واقعی اجرا نشد.
+- receipt موجود قابل بررسی شد: booking/registration `4ae40b3e-dcdf-4b6c-bc24-30f7706d4147`، receipt `b1f05b8f-bbdd-47fb-8191-5a414273e74b`، فایل PNG با `fileKey` موجود و لینک فایل با عنوان `file (1672×941)` باز شد. reject→resubmit، PDF و ارسال واقعی Telegram هنوز اجرا نشدند.
+- `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE`: **FAIL قطعی فعلی**. Portal detail برای `f2144510-bc47-4d1f-b6ad-42002a6ac51a` هم‌زمان «رسید تأیید شده» و «رسید پرداخت را ارسال کنید» دارد؛ Portal list همان رکورد را «پرداخت باید تکمیل شود» نشان می‌دهد.
+- `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE`: **FAIL قطعی فعلی**. Admin همان booking را «پرداخت جزئی (رزرو)»، با deadline و «پیگیری پرداخت» نشان می‌دهد؛ با detail Portal هم‌خوان نیست.
+- فرم مهمان Waitlist، approve/reject/resubmit receipt، ارسال واقعی Telegram و Excel/projectionهای post-approve هنوز کامل اجرا نشدند؛ session فعلی قبلاً برای خود ثبت‌نام دارد و اجرای mutationها side effect ایجاد می‌کند.
+
+### اصلاحات source این دور
+
+- مسیر قیمت رایگان اصلاح شد تا `pricing.unavailable` برای تور `paymentCollection=free` نمایش داده نشود؛ label رایگان تنها پیام مالی کارت/جزئیات می‌ماند.
+- batch endpoint قیمت عضو با `settleWithConcurrency(..., 4)` محدود شد تا resolve هم‌زمان ۱۵ تا ۵۰ تور باعث از دست‌رفتن order-dependent preview نشود؛ fallback حدسی در UI اضافه نشد.
+- تست Marketing pricing: `۷/۷`، تست API pricing route: `۸/۸`، typecheck هر دو package و `git diff --check` پاس شدند.
+
+این اصلاحات هنوز commit، PR یا deploy نشده‌اند؛ بنابراین سه failure فعلی staging (`081`، `082` و `080`) تا بعد از deploy همین source و ریتست با SHA واقعی باز می‌مانند.
+
+## Continuation read-only sweep — ۲۰۲۶-۰۹-۲۷ (بدون mutation)
+
+- `North Ridge Trek` با شناسهٔ تور `00000000-0000-4000-8000-000000000220` به‌صورت read-only بررسی شد. Admin صف Waitlist مقدار `۸` دارد؛ هر ردیف label «در لیست انتظار»، ظرفیت `۱۲/۱۲` و وضعیت جدا از approved/final دارد. `BUG-STG-037` و `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL` در این مرز pass هستند؛ promotion اجرا نشد.
+- فرم Portal همین تور ظرفیت‌پر، با session موجودِ عضو، پیام «قبلاً برای خودتان ثبت‌نام کرده‌اید» و امکان «افزودن همراه» را نشان داد. چون submit واقعی و ایجاد guest mutation است، `BUG-STG-062/047` و `BUG-STG-WAITLIST-GUEST-FORM-COPY` با حساب تازه هنوز closure ندارند.
+- دکمهٔ `خروجی Excel لیست نهایی` در Admin Tour Workspace بدون تغییر state اجرا شد و پیام «فایل Excel آماده و دانلود شد» داد. قرارداد export source و `BUG-STG-EXPORT-SUMMARY` pass هستند؛ بررسی محتوای فایلِ همین دانلود در محیط مرورگر به artifact قابل‌خواندن دسترسی نداد و برای closure نهایی واحد مبلغ `014/015/016` باید فایل دانلودشده با شناسه/مسیر قابل‌بازخوانی بررسی شود.
+- تور ظرفیت‌پر PDP هنوز اطلاعات زمان/روش پرداخت و state عملیاتی را درست نشان می‌دهد؛ ظرفیت عمداً بخشی از قرارداد این sweep نیست و `BUG-STG-044` بررسی نمی‌شود.
+- regression source بعد از اصلاحات: API `16/16`، Portal `16/16`، Marketing `14/14`، Web `41/41`، Denali `10/10` و `git diff --check` pass شد.
+- نتیجهٔ فعلی: باگ‌های runtime باز همان `081`، `082`، `080`، labelهای Telegram و دو projection پس از approve هستند؛ بقیهٔ flowهای mutation واقعی (duplicate guest، promotion، reject→resubmit، Telegram photo/PDF/thread/retry/General) هنوز تست‌نشده‌اند. هیچ commit، PR یا deploy انجام نشد.
+- regression source مسیر Telegram/file در این ادامه `49/49` pass شد: انتخاب `sendPhoto/sendDocument` بر اساس فایل، حفظ topic/thread، fail-closed برای General، retry بدون ارسال دوم، stale-thread recovery و receipt formatter پوشش داده شدند؛ این نتیجه جایگزین ارسال واقعی روی staging نیست.
+- regression source Waitlist/ظرفیت `13/13` API، `6/6` Portal و `14/14` Denali pass شد؛ ازجمله `BUG-STG-063` برای نگه‌داشتن گروه بزرگ‌تر از صندلی آزاد در Waitlist و قرارداد CTA فرم مهمان `BUG-STG-062/047`. promotion و submit واقعی staging همچنان اجرا نشده‌اند.
+- در بازبینی source، Simulation برای eventهای approval/rejection کلید label مستقل نداشت؛ mapping مشترک eventها و labelهای فارسی/انگلیسی `tourCreated`، `tourPublished`، `registrationApproved`، `receiptApproved` و `receiptRejected` اضافه شد. تست قرارداد Web `3/3` و typecheck Web pass شد. این اصلاح هنوز deploy و در Admin staging retest نشده است.
+- ریتست runtime بعد از آخرین deploy موفق staging (`run 36297112069`, SHA `9a7df3408c9698ebb2391133cf2a42ee2a4c6d0e`) انجام شد: PLP فعلاً free label، فیلتر `minPrice=0` و sort صعودی را درست نشان می‌دهد؛ اما `BUG-STG-081` در کارت `ec171184-1877-4501-9a92-857f712838e2` هنوز فقط قیمت پایه دارد، `BUG-STG-082` مبلغ دُنگ را در PLP ندارد، `BUG-STG-080` برای registration `4190860a-9948-4c62-b29b-85d3e494e765` در list هنوز «پرداخت لازم است» دارد ولی detail «نیازی به پرداخت نیست» نشان می‌دهد، و labelهای Telegram در Admin همچنان انگلیسی‌اند.
+- receipt/projection source retest در این ادامه: رسمی API receipt flow `7/7`، Finance service `14/14`، booking-list/free projection `8/8`، Portal receipt/status `11/11` و Portal registration/resubmit markers `13/13` pass شد. هشدار `MINIO_NOT_CONFIGURED` فقط محدودیت محیط تست فایل است؛ ارسال واقعی staging هنوز انجام نشده است.
+- buildهای واقعی Web، Marketing و Portal با اصلاحات فعلی هر سه pass شدند؛ guardهای import-boundary/architecture نیز pass بودند. هشدار build فقط نبودن تشخیص Next.js در تنظیم ESLint بود و failure نبود.
+
+## Excel artifact read-only verification — ۲۰۲۶-۰۹-۲۷
+
+- آخرین فایل واقعی دانلودشده از staging: `~/Downloads/denali-final-roster-20260927060500.xlsx`؛ فقط read-only بررسی شد.
+- `BUG-STG-EXPORT-SUMMARY`: **PASS**. شیت خلاصه، مبلغ کل نهایی‌شده `۱۰٬۰۰۰٬۰۰۰ تومان`، مبلغ پرداخت‌شده نهایی‌شده، مانده نهایی‌شده `۰ تومان` و بدهی/پرداخت ناقص `۲٬۵۰۰٬۰۰۰ تومان` را جداگانه نشان می‌دهد.
+- `BUG-STG-014`: **PASS**. واحد همهٔ مبلغ‌های export‌شده `تومان` است و `ریال` خام دیده نشد.
+- `BUG-STG-015`: **PASS**. ستون نوع حمل‌ونقل وجود دارد و مقدار fixture نهایی `حمل سازمان‌یافته` است.
+- `BUG-STG-016`: **PASS**. ستون تاریخ نهایی‌شدن وجود دارد و برای ردیف‌های نهایی مقدار timestamp ثبت شده است.
+- این نتیجه فقط artifact همین دانلود را می‌بندد؛ export بعد از approve/reject جدید و projection post-approve همچنان به fixture mutation-safe و deploy با SHA مشخص نیاز دارد.
+
+## Deploy gate recheck — ۲۰۲۶-۰۹-۲۷
+
+- آخرین deploy موفق staging همچنان run `36297112069` با SHA `9a7df3408c9698ebb2391133cf2a42ee2a4c6d0e` است؛ deploy جدیدی برای اصلاحات فعلی انجام نشده است.
+- بنابراین failureهای runtime `BUG-STG-081`، `BUG-STG-082`، `BUG-STG-080` و labelهای Telegram هنوز به‌عنوان failure artifact فعلی باز می‌مانند؛ source testهای همان اصلاحات سبز هستند و برای closure باید روی deploy بعدی با SHA واقعی retest شوند.
+
+## Source quality gate recheck — ۲۰۲۶-۰۹-۲۷
+
+- lint/typecheck کامل packageهای تغییرکرده پاس شد: API، Marketing، Portal و Web؛ guardهای import-boundary و guardهای اختصاصی هر package نیز سبز بودند.
+- این gate هیچ اصلاح جدیدی لازم نکرد؛ source فعلی بدون commit یا PR قابل build/test است.
+
+## Current read-only runtime retest — ۲۰۲۶-۰۹-۲۷
+
+- Free PDP/PLP: **PASS**. تور `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در PDP و PLP برچسب `رایگان / بدون نیاز به پرداخت` دارد و کنترل پرداخت/فیش ندارد.
+- `BUG-STG-081`: **FAIL**. PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان` و تخفیف ۵۰٪ دارد، اما PLP با `sort=price_asc` فقط `۲٬۰۰۰٬۰۰۰ تومان` نشان می‌دهد.
+- `BUG-STG-082`: **FAIL**. PDP همان تور اطلاعات حمل/دُنگ دارد؛ مبلغ دُنگ در کارت PLP و AX آن دیده نمی‌شود.
+- `BUG-STG-080`: **FAIL**. برای registration `4190860a-9948-4c62-b29b-85d3e494e765`، detail می‌گوید «نیازی به پرداخت نیست / رسید: لازم نیست»، اما list هنوز «برای نهایی‌شدن، پرداخت لازم است» دارد.
+- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: **FAIL**. صفحهٔ فارسی Admin هنوز event labelهایی مانند `Member registered`، `Receipt submitted` و `Registration created` را انگلیسی render می‌کند.
+
+### Projection evidence — same staging session
+
+- Portal detail برای `f2144510-bc47-4d1f-b6ad-42002a6ac51a`: «رسید تأیید شده» و پیام «رسید پرداخت را ارسال کنید» را هم‌زمان نشان می‌دهد.
+- Admin با فیلتر `status=approved` همان booking را «پرداخت جزئی (رزرو)» با deadline و پیگیری پرداخت نشان می‌دهد.
+- Portal list همان registration را «برای نهایی‌شدن، پرداخت باید تکمیل شود» نمایش می‌دهد. بنابراین دو failure projection همچنان قطعی و reproducible هستند؛ هیچ mutation اجرا نشد.
+
+### Receipt read-only evidence — same staging session
+
+- فیلتر `registrationId=4ae40b3e-dcdf-4b6c-bc24-30f7706d4147` در Finance، یک receipt در انتظار بررسی با receipt ID `b1f05b8f-bbdd-47fb-8191-5a414273e74b` نشان داد.
+- وضعیت «در انتظار بررسی»، مبلغ این پرداخت `۸۴۴٬۴۴۴ تومان`، روش `Manual` و دکمه‌های approve/reject موجود است؛ هیچ‌کدام اجرا نشدند.
+- فایل واقعی این fixture قبلاً با `fileKey` ثبت‌شده باز شده است؛ preview/ارسال Telegram و reject→resubmit هنوز عمدی اجرا نشده‌اند چون side effect دارند.
+
+### Focused regression recheck — ۲۰۲۶-۰۹-۲۷
+
+- Marketing suite با transport/PLP/PDP: `353/353` pass؛ شامل `BUG-STG-082` transport contract و `BUG-STG-027` free-price sorting.
+- API receipt flow رسمی: `7/7` pass؛ شامل projection update بعد از operator approval.
+- Web Telegram event-label contract: `3/3` pass.
+- این نتایج source/contract هستند و failureهای artifact staging را که در بخش runtime ثبت شده‌اند، جایگزین نمی‌کنند.
+
+### Denali egress coverage hardening — ۲۰۲۶-۰۹-۲۷
+
+- برای `BUG-STG-082` assertion رفتاری به `packages/workspaces/denali/test/denali-catalog-card.spec.ts` اضافه شد تا public card egress واقعاً `transport.mode=shared_cars` و `dongAmount=300000` را حفظ کند؛ تست فقط string/regex نیست.
+- کل suite Denali بعد از این تغییر `835/835` pass شد.
+
+## Current continuation verification — ۲۰۲۶-۰۹-۲۷
+
+- Regression suites after the latest source fixes: API focused `۱۳/۱۳`، Portal `۳۸۵/۳۸۵`، Denali `۸۳۵/۸۳۵` و Web `۲۱۰۰/۲۱۰۰`؛ همه pass و `git diff --check` سبز است.
+- Runtime Admin Exposure دوباره با AX بررسی شد؛ روی artifact staging فعلی هنوز `Member registered`، `Receipt submitted`، `Registration created` و eventهای `Ticket ...` انگلیسی render می‌شوند. این failure همان `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS` است.
+- آخرین deploy موفق staging: run `36297112069`، SHA `9a7df3408c9698ebb2391133cf2a42ee2a4c6d0e`. HEAD کاری فعلی `2d4a99342c7a10e06efe4e48c311afd22c2d70c2` است و هنوز deploy نشده؛ بنابراین source contract سبز، closure runtime محسوب نمی‌شود.
+- Source quality gate در همین ادامه برای API، Marketing، Portal و Web اجرا شد؛ guardهای import/architecture و lint/typecheck هر چهار package سبز هستند. در source mapping تمام eventهای runtime دیده‌شده (`Member registered`، `Receipt submitted`، `Registration created` و `Ticket ...`) به label فارسی متصل است.
+- Receipt/Telegram focused regression در همین ادامه: API `۴۹/۴۹` و Web `۳۰/۳۰` pass؛ شامل fileKey→sendPhoto/sendDocument، حفظ `message_thread_id`، fail-closed برای General، stale-thread recovery، retry بدون ارسال دوم، receipt formatter و labelهای فارسی eventها. این نتیجه source/integration است و جایگزین ارسال واقعی روی staging نیست.
+- Registration/Waitlist focused regression در همین ادامه: Denali registration/duplicateهای معمول `۳۱/۳۱`، Waitlist expiry و promotion گروه بزرگ‌تر از ظرفیت `۲/۲` و Portal suite `۳۸۵/۳۸۵` pass. تست race هم‌زمان duplicate مهمان به‌دلیل unset بودن `DATABASE_URL` و `DATABASE_URL_ADMIN` اجرا نشد و به‌عنوان pass یا fail بسته نشد.
+
+## Finance/projection/export source verification — ۲۰۲۶-۰۹-۲۷
+
+- API finance/payment-hold suites: `۲۲/۲۲` pass؛ approve projection، reject event، partial/full/overpay و idempotency پوشش داده شد.
+- API projection/operational-roster suites: `۱۵/۱۵` pass، با یک integration تست‌شده اما `SKIP` به‌دلیل نبود دیتابیس؛ projection inconsistency و roster filterهای approved/partial/paid/waived/waitlist سبز هستند.
+- Finance-core suite: `۲۷۱/۲۷۱` pass.
+- Excel export suite: `۳/۳` pass؛ شامل summary، واحد مبلغ، نوع حمل و تاریخ نهایی‌شدن.
+- در این مرحله failure جدیدی در source testها پیدا نشد؛ warningهای `MINIO_NOT_CONFIGURED` و `BOOKINGS_DB_UNAVAILABLE` مربوط به سناریوهای عمدیِ تست خطا هستند.
+- این نتایج closure staging نیستند: post-approve/resubmit واقعی، export پس از mutation، receipt upload واقعی و Telegram delivery هنوز روی artifact جدید staging اجرا نشده‌اند.
+
+## Latest continuation runtime/source check — ۲۰۲۶-۰۹-۲۷
+
+- Deploy state دوباره از GitHub بررسی شد: آخرین Deploy staging (dev) موفق run 36297112069 با SHA 9a7df3408c9698ebb2391133cf2a42ee2a4c6d0e است؛ source working tree روی اصلاحات بعدی است و deploy نشده.
+- Headerهای read-only فعلی برای Marketing، Portal و PDP همگی x-cache: BYPASS و no-store بودند؛ cache stale از CDN به‌عنوان علت نتیجه ثبت نشد.
+- Runtime PDP تور تخفیف‌دار ec171184-1877-4501-9a92-857f712838e2 قیمت پایه ۲٬۰۰۰٬۰۰۰، تخفیف ۵۰٪ و قیمت عضو ۱٬۰۰۰٬۰۰۰ تومان را نشان داد؛ PLP همان تور در sort=price_asc فقط ۲٬۰۰۰٬۰۰۰ تومان را نشان داد. BUG-STG-081 روی artifact فعلی همچنان باز است.
+- Runtime PLP با ۱۵ نتیجه و sort قیمت صعودی باز شد؛ دو تور رایگان label «رایگان / بدون نیاز به پرداخت» داشتند. این بخش BUG-STG-025/026/027 را pass نگه می‌دارد.
+- Runtime Admin Exposure فارسی دوباره Member registered، Receipt submitted، Registration created و eventهای Ticket ... را انگلیسی render کرد. BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS روی artifact فعلی باز است.
+- Runtime Portal فرم تور ظرفیت‌پر با session موجود فقط ثبت قبلی عضو و CTA «افزودن همراه» را نشان داد؛ هیچ submit یا mutation انجام نشد. Waitlist guest form و duplicate واقعی هنوز closure ندارند.
+- Regression source بعد از این بررسی: Marketing commercial pricing ۷/۷، Web Telegram labels ۳/۳ و Denali suite ۸۳۵/۸۳۵ pass شدند. اجرای نامعتبر script test:file برای Marketing خروجی تست محسوب نشد و با command رسمی package جبران شد.
+
+## Remaining source flow verification — ۲۰۲۶-۰۹-۲۷
+
+- Postgres guest duplicate race runner رسمی: ۱/۱ pass؛ دو POST هم‌زمان دقیقاً یک 201 و یک 409 تولید کردند. BUG-STG-021 در source/backend بسته است؛ runtime staging هنوز submit واقعی ندارد.
+- Waitlist/payment-hold runner: ۲/۲ pass؛ expiry promotion و جلوگیری از promotion گروه بزرگ‌تر از ظرفیت آزاد پوشش داده شد (BUG-STG-063).
+- Telegram registration/receipt chain و Finance review: ۱۴/۱۴ pass؛ approve/reject event chain، payment projection و خطاهای sync پوشش داده شدند.
+- Portal registration/receipt: ۱۳/۱۳ pass؛ BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS، BFF، label مبلغ و تفکیک receipt/registration پوشش داده شد.
+- این اجراها هیچ اصلاح source جدیدی لازم نکردند. Warningهای engine_missing و BOOKINGS_DB_UNAVAILABLE در سناریوهای کنترل‌شدهٔ تست هستند و failure تست نیستند.
+
+## Staging reject/resubmit mutation — ۲۰۲۶-۰۹-۲۷
+
+- Fixture قبل از mutation: registration/booking 4ae40b3e-dcdf-4b6c-bc24-30f7706d4147، receipt b1f05b8f-bbdd-47fb-8191-5a414273e74b، وضعیت در انتظار بررسی و فایل PNG موجود.
+- Admin با action «رد» پاسخ موفق داد؛ Finance وضعیت را «رد شد» و Portal وضعیت را «اصلاح فیش لازم است» نشان داد. receipt قبلی جدا از registration باقی ماند.
+- Portal سپس resubmit را با توضیح QA staging resubmit 20260927 انجام داد؛ بدون upload تصویر، چون UI صراحتاً ارسال توضیح متنی را مجاز می‌داند. Portal به «فیش شما در حال بررسی است / رسید: در انتظار بررسی» تغییر کرد.
+- Finance پس از refresh یک receipt جدید 4ffb2534-70cd-4be0-b244-09e991a598ae را با وضعیت «در انتظار بررسی» و متن «این رسید به‌صورت متنی ارسال شده است» نشان داد.
+- نتیجه: BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS و تفکیک status receipt/registration در runtime فعلی **PASS**. approve عمداً انجام نشد تا side effect مالی و Telegram ایجاد نشود.
+- upload واقعی PNG/PDF، approve، بررسی projection بعد از approve و ارسال Telegram هنوز نیازمند اجرای جداگانه روی deploy اصلاح‌شده هستند.
+
+## Final source quality gate recheck — ۲۰۲۶-۰۹-۲۷
+
+- API lint/typecheck و guardهای package: PASS؛ شامل tenant isolation، import boundary، storage/forensic، outbox، concurrency، roster budget و production config guards.
+- Marketing lint/typecheck و import boundary: PASS.
+- Portal lint/typecheck، import boundary، member-profile boundary و architecture truth: PASS.
+- Web lint/typecheck، import boundary، UI boundary و no-raw-wizard-input: PASS.
+- این گیت‌ها failure جدیدی نشان ندادند؛ کد فعلی بدون commit یا PR از نظر source quality سبز است.
+
+## Receipt upload follow-up — ۲۰۲۶-۰۹-۲۷
+
+- همان fixture پس از reject دوباره با resubmit متنی به وضعیت «رسید: در انتظار بررسی» برگشت داده شد؛ receipt و registration همچنان جدا گزارش می‌شوند.
+- input واقعی Portal نوع‌های image و PDF را با accept image/*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
+- fixture در پایان در وضعیت pending باقی ماند و approve انجام نشد.
+
+## Remaining API contract verification — ۲۰۲۶-۰۹-۲۷
+
+- Operational roster/export API، registration capacity و booking-management matrix: ۱۷/۱۷ pass؛ waitlist when full، rejection when full، filterهای roster، XLSX contract و dispatcher action/status پوشش داده شدند.
+- این تست‌ها failure source جدیدی نشان ندادند. upload باینری، approve مالی و Telegram delivery همچنان فقط با runtime mutation واقعی قابل closure هستند.
+
+## Receipt binary/Telegram source gate — ۲۰۲۶-۰۹-۲۷
+
+- API receipt upload، ownership/authz، BFF binary proxy و P6 offline receipt flow: ۴۳/۴۳ pass.
+- پوشش شامل putProof بعد از authorization، cleanup در خطای submit، GET pending بعد از upload، جلوگیری از upload برای مالک دیگر و approval projection است.
+- Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
+- بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.

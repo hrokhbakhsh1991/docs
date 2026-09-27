@@ -72,12 +72,19 @@ describe("marketing-commercial-pricing-preview", () => {
 
   it("MKT-MEMBER-PRICE-04 UI renders server fields without client discount arithmetic", () => {
     const ui = readRepo("apps/marketing/src/catalog/catalog-commercial-pricing.tsx");
+    const card = readRepo("apps/marketing/src/catalog/catalog-tour-card.tsx");
+    const rail = readRepo("apps/marketing/src/catalog/catalog-tour-detail-booking-rail.tsx");
+    const sticky = readRepo("apps/marketing/src/catalog/catalog-tour-detail-sticky-bar.tsx");
     assert.match(ui, /preview\.grossMinor/);
     assert.match(ui, /preview\.memberDiscountMinor/);
     assert.match(ui, /preview\.payableMinor/);
     assert.match(ui, /preview\.memberDiscountPercentage/);
     assert.match(ui, /data-marketing-catalog-card-price-unavailable[\s\S]*ancillaryLines\.map/);
     assert.match(ui, /canonicalPrice != null \|\| ancillaryLines\.length > 0/);
+    assert.match(ui, /pricingPreviewStatus !== "anonymous" && !isFreeCollection/);
+    assert.match(card, /isFreeCollection=\{freeCollection\}/);
+    assert.match(rail, /isFreeCollection=\{tour\.paymentCollection === "free"\}/);
+    assert.match(sticky, /isFreeCollection=\{tour\.paymentCollection === "free"\}/);
     assert.doesNotMatch(ui, /0\.8|80 \/ 100|memberDiscountPercentage \*|\/ 100/);
   });
 
@@ -110,7 +117,8 @@ describe("marketing-commercial-pricing-preview", () => {
       route,
       /financeCommercialQuote\.create|createVersion|ensureFrozenForMoneyPath/
     );
-    assert.match(route, /Promise\.allSettled/);
+    assert.match(route, /settleWithConcurrency\(tourIds/);
+    assert.doesNotMatch(route, /Promise\.allSettled/);
   });
 
   it("MKT-MEMBER-PRICE-07 copy and theme cover list, detail, and ancillary rows", () => {

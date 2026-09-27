@@ -97,6 +97,7 @@ export async function CatalogTourCard({
         <CatalogCommercialPricingCompact
           preview={pricingPreview}
           canonicalPrice={priceLine}
+          isFreeCollection={freeCollection}
           dateLocale={dateLocale}
           priceDisplayPolicy={priceDisplayPolicy}
           t={t}

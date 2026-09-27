@@ -1,15 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import {
-  resolveMemberRegistrationDisplayStatus,
-} from "@app-tour/workspace-sdk";
+import { resolveMemberRegistrationDisplayStatus } from "@app-tour/workspace-sdk";
 
-const BOOKING_STATUSES = [
-  "pending",
-  "approved",
-  "waitlisted",
-  "rejected",
-  "cancelled",
-] as const;
+const BOOKING_STATUSES = ["pending", "approved", "waitlisted", "rejected", "cancelled"] as const;
 
 const PAYMENT_STATUSES = ["unpaid", "partial", "paid"] as const;
 const MEMBER_PAYMENT_DISPLAY_STATUSES = [...PAYMENT_STATUSES, "waived"] as const;
@@ -18,7 +10,7 @@ export const MEMBER_REGISTRATION_DISPLAY_TIME_ZONE = "Asia/Tehran" as const;
 function translateKnownKey(
   translate: (key: string) => string,
   value: string,
-  known: readonly string[],
+  known: readonly string[]
 ): string {
   return known.includes(value) ? translate(value) : value;
 }
@@ -26,7 +18,7 @@ function translateKnownKey(
 export function formatMemberRegistrationDepartureLabel(
   iso: string,
   locale: string,
-  timeZone: string = MEMBER_REGISTRATION_DISPLAY_TIME_ZONE,
+  timeZone: string = MEMBER_REGISTRATION_DISPLAY_TIME_ZONE
 ): string {
   const parsed = Date.parse(iso);
   if (Number.isNaN(parsed)) {
@@ -45,7 +37,7 @@ export async function formatMemberRegistrationDeparture(iso: string): Promise<st
 
 export async function localizeMemberRegistrationStatus(
   status: string,
-  workspaceId: string,
+  workspaceId: string
 ): Promise<string> {
   const semantic = resolveMemberRegistrationDisplayStatus(workspaceId, status);
   if (semantic !== undefined) {
@@ -58,7 +50,7 @@ export async function localizeMemberRegistrationStatus(
 
 export async function localizeMemberPaymentStatus(
   paymentStatus: string,
-  financialDisplayState?: string,
+  financialDisplayState?: string
 ): Promise<string> {
   const t = await getTranslations("portalMember.registrations.paymentStatusLabels");
   const displayStatus = financialDisplayState === "WAIVED" ? "waived" : paymentStatus;
@@ -68,23 +60,42 @@ export async function localizeMemberPaymentStatus(
 export async function localizeMemberFinalizationStatus(
   registrationStatus: string,
   paymentStatus: string,
-  financialDisplayState?: string,
+  paymentCollection?: "offline" | "free",
+  financialDisplayState?: string
 ): Promise<string | null> {
-  if (registrationStatus.trim().toLowerCase() !== "approved") {
-    return null;
-  }
+  const statusKey = resolveMemberFinalizationStatusKey({
+    registrationStatus,
+    paymentStatus,
+    paymentCollection,
+    financialDisplayState,
+  });
+  if (statusKey === null) return null;
   const t = await getTranslations("portalMember.registrations");
-  if (financialDisplayState === "WAIVED") {
-    return t("paymentProgress.waived");
+  return t(`paymentProgress.${statusKey}`);
+}
+
+export function resolveMemberFinalizationStatusKey(input: {
+  readonly registrationStatus: string;
+  readonly paymentStatus: string;
+  readonly paymentCollection?: "offline" | "free";
+  readonly financialDisplayState?: string;
+}): "waived" | "partial" | "unpaid" | "paid" | null {
+  if (input.registrationStatus.trim().toLowerCase() !== "approved") return null;
+  if (input.paymentCollection === "free" || input.financialDisplayState === "WAIVED") {
+    return "waived";
   }
-  if (financialDisplayState === "PARTIALLY_PAID" || paymentStatus.trim().toLowerCase() === "partial") {
-    return t("paymentProgress.partial");
+  if (
+    input.financialDisplayState === "PARTIALLY_PAID" ||
+    input.paymentStatus.trim().toLowerCase() === "partial"
+  ) {
+    return "partial";
   }
-  if (financialDisplayState === "UNPAID" || paymentStatus.trim().toLowerCase() === "unpaid") {
-    return t("paymentProgress.unpaid");
+  if (
+    input.financialDisplayState === "UNPAID" ||
+    input.paymentStatus.trim().toLowerCase() === "unpaid"
+  ) {
+    return "unpaid";
   }
-  if (paymentStatus.trim().toLowerCase() === "paid") {
-    return t("paymentProgress.paid");
-  }
+  if (input.paymentStatus.trim().toLowerCase() === "paid") return "paid";
   return null;
 }

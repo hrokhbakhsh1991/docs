@@ -69,4 +69,21 @@ describe("denali-catalog-card", () => {
     );
     assert.equal(card.coverImageUrl, signedCover);
   });
+
+  it("BUG-STG-082 keeps the shared-car dong amount in the public card egress", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        transport: {
+          mode: "shared_cars",
+          dongAmount: 300_000,
+        },
+      }),
+    });
+
+    assert.deepEqual(card.transport, {
+      mode: "shared_cars",
+      dongAmount: 300_000,
+    });
+  });
 });

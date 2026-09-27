@@ -47,6 +47,32 @@ function readRegistrantTarget(req: IncomingMessage): "self" | "other" {
   return readQueryString(req, "registrantTarget") === "other" ? "other" : "self";
 }
 
+export async function settleWithConcurrency<T, R>(
+  items: readonly T[],
+  worker: (item: T) => Promise<R>,
+  concurrency = 4
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= items.length) return;
+        try {
+          results[index] = { status: "fulfilled", value: await worker(items[index]) };
+        } catch (reason) {
+          results[index] = { status: "rejected", reason };
+        }
+      }
+    })
+  );
+
+  return results;
+}
+
 export function resolveCommercialPricingMemberUserId(
   registrantTarget: "self" | "other",
   authenticatedUserId: string
@@ -220,22 +246,20 @@ export async function handleCatalogCommercialPricingPreviews(
     }
 
     const previews: Record<string, CommercialPricingPreviewDto> = {};
-    const results = await Promise.allSettled(
-      tourIds.map(async (tourId) => {
-        return {
+    const results = await settleWithConcurrency(tourIds, async (tourId) => {
+      return {
+        tourId,
+        preview: await resolveCommercialPricingPreview({
+          tenantId: auth.tenantId,
+          memberUserId: auth.userId,
+          workspace: normalizedWorkspace,
           tourId,
-          preview: await resolveCommercialPricingPreview({
-            tenantId: auth.tenantId,
-            memberUserId: auth.userId,
-            workspace: normalizedWorkspace,
-            tourId,
-            partySize: readPartySize(req),
-            registrantTarget: readRegistrantTarget(req),
-            registrationIntake: readRegistrationIntake(req),
-          }),
-        };
-      })
-    );
+          partySize: readPartySize(req),
+          registrantTarget: readRegistrantTarget(req),
+          registrationIntake: readRegistrationIntake(req),
+        }),
+      };
+    });
     for (const result of results) {
       if (result.status === "fulfilled" && result.value.preview !== null) {
         previews[result.value.tourId] = result.value.preview;

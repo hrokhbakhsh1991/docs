@@ -66,6 +66,7 @@ export async function CatalogTourDetailBookingRail({
       <CatalogCommercialPricingBreakdown
         preview={pricingPreview}
         canonicalPrice={priceLine}
+        isFreeCollection={tour.paymentCollection === "free"}
         dateLocale={dateLocale}
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}

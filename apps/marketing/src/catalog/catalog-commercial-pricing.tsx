@@ -36,6 +36,7 @@ function ancillaryLabel(code: string, t: CatalogTranslation): string {
 export function CatalogCommercialPricingCompact({
   preview,
   canonicalPrice,
+  isFreeCollection = false,
   dateLocale,
   priceDisplayPolicy,
   t,
@@ -44,6 +45,7 @@ export function CatalogCommercialPricingCompact({
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
+  readonly isFreeCollection?: boolean;
   readonly dateLocale: string;
   readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
@@ -53,7 +55,7 @@ export function CatalogCommercialPricingCompact({
   }[];
   readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
-  if (preview == null && pricingPreviewStatus !== "anonymous") {
+  if (preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection) {
     if (canonicalPrice != null || ancillaryLines.length > 0) {
       return (
         <span data-marketing-catalog-card-price>
@@ -139,6 +141,7 @@ export function CatalogCommercialPricingCompact({
 export function CatalogCommercialPricingBreakdown({
   preview,
   canonicalPrice,
+  isFreeCollection = false,
   dateLocale,
   priceDisplayPolicy,
   t,
@@ -147,13 +150,14 @@ export function CatalogCommercialPricingBreakdown({
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
+  readonly isFreeCollection?: boolean;
   readonly dateLocale: string;
   readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
   readonly compact?: boolean;
   readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
-  if (preview == null && pricingPreviewStatus !== "anonymous") {
+  if (preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection) {
     return compact ? (
       <span data-marketing-catalog-detail-price-unavailable>{t("pricing.unavailable")}</span>
     ) : (
