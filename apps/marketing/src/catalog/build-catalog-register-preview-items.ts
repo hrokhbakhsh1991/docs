@@ -59,7 +59,11 @@ export function buildCatalogRegisterPreviewItems(
   }
 
   const paymentMode = tour.paymentMode?.trim() ?? "";
-  if (paymentMode.length > 0 && input.paymentModeLabel != null) {
+  if (
+    tour.paymentCollection !== "free" &&
+    paymentMode.length > 0 &&
+    input.paymentModeLabel != null
+  ) {
     items.push({
       id: "payment-mode",
       text: labels.payment(input.paymentModeLabel),

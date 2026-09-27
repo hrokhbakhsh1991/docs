@@ -85,6 +85,11 @@ describe("buildCatalogRegisterPreviewItems", () => {
         { id: "registration-approval", text: "Approval: auto" },
       ]
     );
+    assert.equal(
+      items.some((item) => item.id === "payment-mode"),
+      false,
+      "free tours must not advertise a receipt/payment method"
+    );
   });
 
   it("PR-D-RPV-02 returns empty when no preview data", () => {
