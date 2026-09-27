@@ -220,22 +220,27 @@ export async function handleCatalogCommercialPricingPreviews(
     }
 
     const previews: Record<string, CommercialPricingPreviewDto> = {};
-    await Promise.all(
+    const results = await Promise.allSettled(
       tourIds.map(async (tourId) => {
-        const preview = await resolveCommercialPricingPreview({
-          tenantId: auth.tenantId,
-          memberUserId: auth.userId,
-          workspace: normalizedWorkspace,
+        return {
           tourId,
-          partySize: readPartySize(req),
-          registrantTarget: readRegistrantTarget(req),
-          registrationIntake: readRegistrationIntake(req),
-        });
-        if (preview !== null) {
-          previews[tourId] = preview;
-        }
+          preview: await resolveCommercialPricingPreview({
+            tenantId: auth.tenantId,
+            memberUserId: auth.userId,
+            workspace: normalizedWorkspace,
+            tourId,
+            partySize: readPartySize(req),
+            registrantTarget: readRegistrantTarget(req),
+            registrationIntake: readRegistrationIntake(req),
+          }),
+        };
       })
     );
+    for (const result of results) {
+      if (result.status === "fulfilled" && result.value.preview !== null) {
+        previews[result.value.tourId] = result.value.preview;
+      }
+    }
 
     sendJson(res, 200, {
       ok: true,

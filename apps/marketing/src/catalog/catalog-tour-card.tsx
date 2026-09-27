@@ -8,6 +8,7 @@ import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-ca
 import { formatCatalogTransportMode } from "./format-catalog-transport";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
+import { resolveCatalogFreeCollectionLabel } from "./resolve-catalog-free-label";
 import { hasMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 
 import { CatalogCoverImage } from "./catalog-cover-image";
@@ -67,6 +68,7 @@ export async function CatalogTourCard({
       )
     : null;
   const freeCollection = tour.paymentCollection === "free";
+  const freeCollectionLabel = resolveCatalogFreeCollectionLabel(t, locale);
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const soldOut = tour.spotsRemaining === 0;
   const registrationState =
@@ -117,7 +119,7 @@ export async function CatalogTourCard({
           }
         />
         {freeCollection ? (
-          <span data-marketing-catalog-card-free>{t("detail.freeCollection")}</span>
+          <span data-marketing-catalog-card-free>{freeCollectionLabel}</span>
         ) : null}
         {isPast ? (
           <span data-marketing-catalog-card-spots>{t("list.card.past")}</span>

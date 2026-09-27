@@ -10,6 +10,7 @@ import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-regist
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
+import { resolveCatalogFreeCollectionLabel } from "./resolve-catalog-free-label";
 
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
@@ -46,6 +47,7 @@ export async function CatalogTourDetailBookingRail({
         priceDisplayPolicy
       )
     : null;
+  const freeCollectionLabel = resolveCatalogFreeCollectionLabel(t, locale);
 
   const capacityLine =
     tour.spotsRemaining != null
@@ -70,7 +72,7 @@ export async function CatalogTourDetailBookingRail({
         pricingPreviewStatus={pricingPreviewStatus}
       />
       {tour.paymentCollection === "free" ? (
-        <p data-marketing-catalog-detail-free>{t("detail.freeCollection")}</p>
+        <p data-marketing-catalog-detail-free>{freeCollectionLabel}</p>
       ) : null}
       {capacityLine != null ? (
         <p data-marketing-catalog-detail-rail-capacity>{capacityLine}</p>
