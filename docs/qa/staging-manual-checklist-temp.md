@@ -343,6 +343,13 @@
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
 
+## Final source gate — ۲۰۲۶-۰۹-۲۷
+
+- آخرین HEAD source gate شد: Marketing `356/356`، Denali `837/837`، Portal `385/385`، Web `2050/2050` و API `3147 pass / 0 fail / 7 skip`.
+- API skipها فقط به PostgreSQL یا tier شبانه نیاز داشتند؛ هیچ تست fail نشد. تست‌های مرتبط با pricing/PLP، free projection، Exposure redaction، timezone، payment/receipt projection، Waitlist، Telegram/file routing و export در همین gate سبز بودند.
+- worktree بعد از تست‌ها clean است و artifact گزارش تولیدیِ timestamp-only به مقدار قبلی برگردانده شد.
+- این checkpoint source/integration closure است؛ deploy staging، runtime SHA و ریتست نهایی staging هنوز عمداً انجام نشده‌اند.
+
 ## Source remediation checkpoint — ۲۰۲۶-۰۹-۲۷ (قبل از staging نهایی)
 
 - `BUG-STG-081/082`: PLP preview عضو را قبل از filter/sort می‌گیرد؛ قیمت payable عضو مبنای price filter/sort است و line نوع حمل/دُنگ در شاخهٔ member-price هم حفظ می‌شود. Marketing package `356/356` pass.
