@@ -343,6 +343,12 @@
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
 
+## Source remediation checkpoint — ۲۰۲۶-۰۹-۲۷ (قبل از staging نهایی)
+
+- `BUG-STG-081/082`: PLP preview عضو را قبل از filter/sort می‌گیرد؛ قیمت payable عضو مبنای price filter/sort است و line نوع حمل/دُنگ در شاخهٔ member-price هم حفظ می‌شود. Marketing package `356/356` pass.
+- Exposure/Waitlist/Finance/Portal/Admin source suites: Denali `837/837`، Portal/API/Web تست‌های هدف‌گذاری‌شده بدون failure pass شدند؛ side effectهای payment hold، free collection، capacity guard و redaction پوشش دارند.
+- این checkpoint **تأیید staging نیست** و هیچ registration/receipt mutation انجام نشده است. Deploy با SHA نهایی و sweep staging فقط بعد از تکمیل همهٔ اصلاحات انجام می‌شود.
+
 ## Staging continuation — ۲۰۲۶-۰۹-۲۷ — بدون Telegram و بدون upload
 
 - Waitlist count/filter: Admin North Ridge با فیلتر `status=waitlisted` و `tourId=00000000-0000-4000-8000-000000000220` هم در KPI و هم در heading مقدار `۷`، صفحه `۱ از ۱` و لیست `۷ از ۷` نشان داد؛ هر ۷ ردیف label «در لیست انتظار» داشتند. `BUG-STG-037` در این fixture internally consistent است؛ اختلاف قبلی ۳ در برابر ۱۲ روی این fixture تکرار نشد و برای closure نهایی همان fixture قبلی و API/SHA لازم است.

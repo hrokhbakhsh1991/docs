@@ -1,5 +1,9 @@
 import type { CatalogListSort } from "./catalog-list-query";
 import type { MarketingCatalogCard } from "./catalog-types";
+import {
+  resolveMarketingCatalogListPrice,
+  type MarketingCatalogPricingPreviews,
+} from "./resolve-marketing-catalog-list-price";
 
 function readTimestamp(value: string | null | undefined): number | null {
   if (value == null || value.trim().length === 0) {
@@ -25,7 +29,8 @@ function compareNullableNumbers(a: number | null, b: number | null): number {
 /** Client-side sort on the current fetched batch (PR-21). */
 export function sortMarketingCatalogItems(
   items: readonly MarketingCatalogCard[],
-  sort: CatalogListSort
+  sort: CatalogListSort,
+  pricingPreviews?: MarketingCatalogPricingPreviews
 ): readonly MarketingCatalogCard[] {
   if (sort === "newest") {
     return items;
@@ -53,16 +58,16 @@ export function sortMarketingCatalogItems(
     case "price_asc":
       sorted.sort((left, right) =>
         compareNullableNumbers(
-          left.paymentCollection === "free" ? 0 : (left.priceAmount ?? null),
-          right.paymentCollection === "free" ? 0 : (right.priceAmount ?? null)
+          resolveMarketingCatalogListPrice(left, pricingPreviews),
+          resolveMarketingCatalogListPrice(right, pricingPreviews)
         )
       );
       break;
     case "price_desc":
       sorted.sort((left, right) =>
         compareNullableNumbers(
-          right.paymentCollection === "free" ? 0 : (right.priceAmount ?? null),
-          left.paymentCollection === "free" ? 0 : (left.priceAmount ?? null)
+          resolveMarketingCatalogListPrice(right, pricingPreviews),
+          resolveMarketingCatalogListPrice(left, pricingPreviews)
         )
       );
       break;
