@@ -693,10 +693,14 @@
         "RegistrationWaitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار",
         "ReceiptApproved": "تأیید رسید پرداخت",
         "ReceiptRejected": "رد رسید پرداخت",
-        "registration.approved": "تأیید ثبت‌نام",
-        "registration.waitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار",
-        "receipt.approved": "تأیید رسید پرداخت",
-        "receipt.rejected": "رد رسید پرداخت"
+        "registration": {
+          "approved": "تأیید ثبت‌نام",
+          "waitlisted": "قرارگرفتن ثبت‌نام در لیست انتظار"
+        },
+        "receipt": {
+          "approved": "تأیید رسید پرداخت",
+          "rejected": "رد رسید پرداخت"
+        }
       },
       "eventHints": {
         "TourCreated": "وقتی یک تور جدید ساخته می‌شود، یک پیام تلگرام با فیلدهایی که پایین انتخاب می‌کنید ارسال می‌شود.",

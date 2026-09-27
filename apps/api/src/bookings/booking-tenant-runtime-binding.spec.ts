@@ -17,7 +17,7 @@ import {
   BookingWorkspaceUnsupportedError,
 } from "./bookings.errors.ts";
 import { resolveWorkspaceBookingEventReaction } from "./booking-event-reaction-registry.ts";
-import { resetBookingsRepositoryForTests } from "./create-bookings-repository.ts";
+import { getBookingsRepository, resetBookingsRepositoryForTests } from "./create-bookings-repository.ts";
 import {
   approveBooking,
   createBooking,
@@ -111,6 +111,24 @@ describe("BK-B2.0 tenant/workspace runtime binding", { concurrency: false }, () 
     const reaction = resolveWorkspaceBookingEventReaction(workspaceType);
     assert.equal(reaction.approveOutboxEventType, BOOKING_APPROVE_OUTBOX_EVENT_TYPE);
     assert.equal(reaction.kind, "denali-booking-event-reaction");
+  });
+
+  it("A.1) booking detail resolves free collection marker as WAIVED", async () => {
+    const denali = getOrCreateBookingRuntimeForWorkspaceType(DENALI);
+    const created = await denali.service.createPublicGuestBooking(publicAuth(TENANT_A), {
+      ...CREATE_BODY,
+      guestEmail: "b20-free-detail@example.com",
+      registrationIntake: { freeCollectionApplied: true, tourCapacityMax: 10 },
+    });
+    await denali.service.approveBooking(opsAuth(TENANT_A), created.id);
+    const bookings = getBookingsRepository();
+    await bookings.updatePaymentStatus({
+      bookingId: created.id,
+      tenantId: TENANT_A,
+      paymentStatus: "paid",
+    });
+    const detail = await denali.service.getBooking(publicAuth(TENANT_A), created.id);
+    assert.equal(detail.financialDisplayState, "WAIVED");
   });
 
   it("B) tenant A + ws2 runtime => reject", async () => {

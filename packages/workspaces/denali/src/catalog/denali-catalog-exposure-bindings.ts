@@ -34,6 +34,7 @@ function clearParticipantPricing(card: PublicCatalogCard): PublicCatalogCard {
 }
 
 function clearPaymentPolicy(card: PublicCatalogCard): PublicCatalogCard {
+  const publicFreeCollection = card.paymentCollection === "free" ? "free" : undefined;
   let next = clearWorkspaceCatalogCardStringField(card, "paymentMode");
   for (const key of [
     "paymentPlan",
@@ -43,7 +44,9 @@ function clearPaymentPolicy(card: PublicCatalogCard): PublicCatalogCard {
   ]) {
     next = omitWorkspaceCatalogCardKey(next, key);
   }
-  return next;
+  return publicFreeCollection === "free"
+    ? Object.freeze({ ...next, paymentCollection: publicFreeCollection })
+    : next;
 }
 
 function clearTransport(card: PublicCatalogCard): PublicCatalogCard {

@@ -22,7 +22,7 @@
 
 ### مالی و Free
 
-- `BUG-STG-021` — duplicate guest برای بعضی حساب‌ها نادرست رد می‌شود؛ runner رسمی API (`pnpm --filter @apps/api run test:file -- test/denali-registration.spec.ts`) در این sweep `۱۸/۱۸` پاس کرد و duplicate member/guest-name/national-id را با 409 صحیح و نام مهمان متفاوت را مجاز می‌داند. Runtime فرم staging برای `QA-STG-20260924-PAID-AUTO` باز شد و مسیر افزودن مهمان را نشان داد، اما submit duplicate با payload/409 خام انجام نشد؛ بنابراین این مورد هنوز unconfirmed است و فعلاً اصلاح source جدید لازم نیست.
+- `BUG-STG-021` — duplicate guest برای بعضی حساب‌ها نادرست رد می‌شود؛ runner رسمی API (`pnpm --filter @apps/api run test:file -- test/denali-registration.spec.ts`) `۱۸/۱۸` پاس کرد و تست race واقعی Postgres (`pnpm --filter @apps/api run test:booking-guest-duplicate-http-race`) نیز پاس شد: دو POST هم‌زمان دقیقاً یک `201` و یک `409` دادند. اجرای مستقیم `tsx --test` قبلی معتبر نبود چون bootstrap تست را فعال نمی‌کرد و 401 کاذب می‌داد. Runtime فرم staging برای `QA-STG-20260924-PAID-AUTO` باز شد و مسیر افزودن مهمان را نشان داد، اما submit duplicate با payload/409 خام انجام نشد؛ بنابراین فقط runtime staging هنوز unconfirmed است و اصلاح source جدید لازم نیست.
 
 شواهد اولیهٔ staging در همین sweep (هنوز closure نیست):
 
@@ -64,7 +64,10 @@
 
 ## C) source اصلاح‌شده؛ منتظر deploy و ریتست staging
 
+- `BUG-STG-080` — ریشهٔ parity اصلاح شد: resolver booking detail اکنون همان marker `freeCollectionApplied=true` را که list برای `WAIVED` مصرف می‌کند، به `financialDisplayState=WAIVED` تبدیل می‌کند؛ در نتیجه status مالی detail دیگر از list عقب نمی‌ماند. تست runtime-binding برای `approved + paid + freeCollectionApplied` و تست projection هر دو سبز شدند. پس از deploy با SHA واقعی، API/list/detail Portal و نبود copy پرداخت باید با همان registration دوباره ثبت شود.
+
 - `BUG-STG-040` — اصلاح شد: formatter receipt فقط وقتی note واقعی وجود دارد خط «توضیحات» را اضافه می‌کند؛ برای فایل بدون note هیچ متن جعلی تولید نمی‌شود. source فعلی و تست formatter برای متن، photo بدون note، document بدون note و فایل همراه توضیح بررسی شدند؛ ۱۳ تست pass، TypeScript، Prettier و `git diff --check` pass. delivery واقعی Telegram بعد از deploy با SHA جدید هنوز باید جداگانه retest شود.
+- receipt flow پایه نیز با runner رسمی API (`pnpm --filter @apps/api run test:file -- test/p6-member-receipt-flow.spec.ts`) `۷/۷` پاس شد: وضعیت قبل از upload، upload pending، ممنوعیت upload برای booking pending، مالکیت عضو، approve و به‌روزرسانی projection لیست. اجرای مستقیم `tsx --test` قبلی به‌علت نبودن `NODE_ENV=test`/bootstrap با 401 کاذب شکست خورده بود.
 - `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS` — اصلاح شد: status card اصلی Portal اکنون client-side به event resubmit گوش می‌دهد و هم‌زمان با کارت receipt از rejected به pending می‌رود؛ `router.refresh()` برای sync server-authoritative باقی مانده است. suite متمرکز Portal/BFF/detail/lifecycle در این sweep `۲۶/۲۶` پاس شد. **Runtime staging:** فیلتر Admin با `status=rejected` هیچ رکوردی نداشت، بنابراین receipt rejected برای اجرای reject → resubmit و تأیید تغییر heading موجود نیست؛ بعد از deploy با SHA واقعی و fixture receipt ردشده retest شود.
 - `BUG-STG-RECEIPT-STATUS-LABEL-MIXED` — اصلاح شد: badgeهای Portal اکنون صریحاً با «ثبت‌نام: ...» و «رسید: ...» جدا می‌شوند؛ برای receipt ردشده دیگر «تأیید شده» بدون صاحب کنار پیام اصلاح فیش نمایش داده نمی‌شود. suite متمرکز lifecycle/label در این sweep `۲۶/۲۶` پاس شد؛ runtime receipt rejected در staging fixture ندارد و بعد از deploy باید با screenshot/AX و API response بررسی شود.
 - `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE` — اصلاح شد: detail دیگر receipt تأییدشده را به‌تنهایی «پرداخت‌شده» فرض نمی‌کند و finality را از `paymentStatus`/`financialDisplayState` همان projection list می‌گیرد؛ receipt فقط pending/rejected بودن بررسی فیش را تعیین می‌کند. در این sweep Portal projection/label suite `۱۸/۱۸` و API Finance/booking/registration suite `۳۳/۳۳` پاس شدند. **Runtime staging هنوز fail است:** برای registration `f2144510-bc47-4d1f-b6ad-42002a6ac51a`، Portal list متن «برای نهایی‌شدن، پرداخت باید تکمیل شود» دارد، اما detail همان ID «پرداخت شما تأیید شد» و «رسید: تأیید شده» نشان می‌دهد. پس از deploy SHA جدید، list/detail/Finance/API باید برای همین projection یک وضعیت paid یکسان نشان دهند.
@@ -79,7 +82,7 @@
 - `BUG-STG-026 / 027` — source filter/sort در همین sweep همراه display/query/contract در مجموع `۳۹/۳۹` پاس است، اما **runtime staging فعلی fail است:** با `minPrice=0` URL به `/tours?minPrice=0` رفت ولی نتیجه `۱۳ مورد` شد و fixture رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در نتایج نبود؛ بنابراین sort کم‌به‌زیاد/زیادبه‌کم نیز فعلاً شامل free نیست و قابل قبول نیست. بعد از deploy باید free به‌عنوان قیمت `۰` در filter و هر دو sort وارد شود.
 - `BUG-STG-024` — source format test سبز است و runtime staging فعلی نیز پاس شد: PLP و PDP تور `QA-STG-20260924-PAID-AUTO` مبلغ `۲٬۵۰۰٬۰۰۰ تومان` را نشان دادند؛ `IRR` خام در UI دیده نشد. برای closure نهایی، API response با همان fixture و SHA واقعی deploy همچنان باید ثبت شود.
 - `BUG-STG-082` — source fix و focused transport/policy tests `۷/۷` پاس است، اما **runtime staging فعلی هنوز fail است:** در کارت PLP تور `ec171184-1877-4501-9a92-857f712838e2` نوع حمل «خودروهای مشترک» دیده شد ولی مبلغ دُنگ در کارت نمایش داده نشد؛ PDP همان session مبلغ دُنگ `۳۰۰٬۰۰۰ تومان` را نشان داد. بعد از deploy با SHA واقعی باید مبلغ دُنگ در PLP و PDP با API یکسان دیده شود.
-- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS` — اصلاح شد: labelهای eventهای Telegram در namespace فارسی Admin برای TourCreated/TourPublished/Registration/Receipt تعریف شده‌اند؛ تست label، delivery-template و Exposure UI در این sweep `۱۲/۱۲` پاس شد. **Runtime staging هنوز fail است:** در `admin.denali.shenski.com/settings/exposure` نام‌هایی مثل `Member registered`، `Receipt approved/rejected/submitted` و `Registration approved/created/waitlisted` به انگلیسی دیده شد؛ این نشان می‌دهد artifact فعلی staging fix را ندارد. بعد از deploy با SHA واقعی همان صفحه را retest کن؛ متن انگلیسی یا key خام نباید نمایش داده شود.
+- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS` — اصلاح شد: labelهای eventهای Telegram در namespace فارسی Admin برای TourCreated/TourPublished/Registration/Receipt تعریف شده‌اند؛ تست label، delivery-template و Exposure UI در این sweep `۱۲/۱۲` پاس شد. **CI root cause تکمیلی:** کلیدهای dotted مثل `registration.approved` و `receipt.rejected` در JSON locale به‌صورت leaf تعریف شده بودند و `next-intl` صفحهٔ operator را با `INVALID_KEY` می‌شکست؛ این کلیدها اکنون به‌صورت nested message tree تعریف شده‌اند و contract test، lint و build Web سبز هستند. **Runtime staging هنوز fail است:** در `admin.denali.shenski.com/settings/exposure` نام‌هایی مثل `Member registered`، `Receipt approved/rejected/submitted` و `Registration approved/created/waitlisted` به انگلیسی دیده شد؛ این نشان می‌دهد artifact فعلی staging fix را ندارد. بعد از deploy با SHA واقعی همان صفحه را retest کن؛ متن انگلیسی یا key خام نباید نمایش داده شود.
 - `BUG-STG-039 / 072` — اصلاح شد: متن وضعیت و لغو از registration status و payment projection جداگانه خوانده می‌شود؛ `approved + unpaid` دیگر متن پرداخت‌شده یا لغو نادرست نمی‌گیرد. suite متمرکز Portal/receipt lifecycle در این sweep `۲۶/۲۶` پاس شد. **Runtime فعلی:** registration `98202973-9d76-43c2-99ab-46d8cb06c30e` در حالت approved+paid دو label مستقل «ثبت‌نام: تأیید شده» و «رسید: تأیید شده» و متن لغو مخصوص پرداخت‌شده دارد. در Admin نیز fixture `QA Matrix Auto Guest 20260925` approved+unpaid با بدهی `۲٬۵۰۰٬۰۰۰ تومان`، deadline و بدون receipt upload دیده شد؛ برای closure Portal هنوز لینک/شناسه همین fixture و receipt pending لازم است.
 - `BUG-STG-081` — اصلاح شد: preview قیمت عضو بین PLP و PDP مشترک شد و در خطای preview دیگر fallback خاموش به قیمت پایه وجود ندارد؛ تست focused فعلی Marketing `۹/۹` پاس شد و قراردادهای free/policy همان suite نیز سبز هستند. **Runtime staging هنوز fail است:** برای تور `ec171184-1877-4501-9a92-857f712838e2` در همان session، PLP قیمت `۲٬۰۰۰٬۰۰۰ تومان` نشان داد اما PDP تخفیف عضویت `۵۰٪` و «قیمت برای شما» `۱٬۰۰۰٬۰۰۰ تومان` نشان داد. بعد از deploy با SHA واقعی باید PLP هم `۱٬۰۰۰٬۰۰۰ تومان` را نشان دهد و با PDP/sticky/API یکسان شود.
 - `BUG-STG-036` — اصلاح شد: Wizard دیگر نمی‌تواند فیلد خارج از deliverable/redaction-safe را وارد Exposure کند؛ redaction مرکب participant/payment/location، تصویر/structured data، زمان بازگشت و ظرفیت مشتق تست شد. suite focused Denali Exposure/Egress/Localization/PR-D در این sweep `۱۸/۱۸` پاس شد؛ staging read-only فعلی فقط تنظیمات exposure را نشان داد و برای اثبات hidden-field redaction نیاز به تغییر تنظیم و deploy SHA جدید دارد.
@@ -94,7 +97,75 @@
 - `BUG-STG-037` — اصلاح شد: badge تب Transport اکنون از شمارش واقعی `filter=operational` می‌آید؛ KPI «نهایی‌شده» همچنان جداگانه از `filter=final` نمایش داده می‌شود، پس ردیف‌های approved/unpaid در لیست عملیاتی از شمارنده جا نمی‌مانند. تست contract شمارنده/فیلتر و workspace در مجموع `۵۳/۵۳` پاس شدند؛ lint/tsc Web، Prettier و `git diff --check` نیز پاس شدند. **Runtime staging فعلی fail است:** North Ridge در header/tab مقدار `لیست عملیاتی ۳` دارد، اما پس از حذف فیلتر Waitlist، جدول همان صفحه ۱۲ ردیف operational (۳ نهایی + ۹ تأییدشده/پرداخت‌نشده) نشان می‌دهد؛ بنابراین شمارنده و جدول هم‌خوان نیستند. بعد از deploy با SHA واقعی و API response باید badge برابر تعداد واقعی operational و KPI نهایی جداگانه باشد.
 - `BUG-STG-022` — اصلاح شد: pricing preview برای هر participant با ترکیب `registrantTarget + transportKind` مستقل درخواست و نگهداری می‌شود؛ API فقط برای participant خودِ عضو (`self`) تخفیف membership اعمال می‌کند و مهمان (`other`) بدون تخفیف محاسبه می‌شود؛ مبلغ پایه، تخفیف، حمل/دُنگ و payable هر participant جداگانه رندر می‌شوند. در این sweep تست‌های API ثبت‌نام `۱۸/۱۸`، Portal pricing/registration `۱۷/۱۷` و Denali transport/settlement `۲۴/۲۴` پاس شدند. پس از deploy با SHA جدید، تور تخفیف‌دار را با self تخفیف‌دار + مهمان بدون تخفیف و تور بدون تخفیف را با هر دو participant retest کن؛ این بخش هنوز runtime staging closure ندارد.
 - `BUG-STG-063` — اصلاح شد: promotion صف اکنون داخل همان approve transaction ظرفیت canonical تور و `partySize` کامل candidate را با policy workspace بررسی می‌کند؛ گروهی که در صندلی آزاد جا نشود `waitlisted` می‌ماند و hold/quote برای آن ساخته نمی‌شود. تست رسمی API همراه approve/hold و capacity، `۵/۵` پاس شد؛ سناریوی عادی promotion، over-capacity و idempotent approve پوشش داده شدند. اجرای staging هنوز نیازمند سناریوی واقعی آزادشدن یک صندلی برای گروه چندنفره است؛ بدون انجام approve/release روی داده staging آن را بسته اعلام نمی‌کنم.
+- `BUG-STG-063` — اصلاح شد: promotion صف اکنون داخل همان approve transaction ظرفیت canonical تور و `partySize` کامل candidate را با policy workspace بررسی می‌کند؛ گروهی که در صندلی آزاد جا نشود `waitlisted` می‌ماند و hold/quote برای آن ساخته نمی‌شود. تست DP1 waitlist/idempotency `۴/۴` و تست رسمی PostgreSQL capacity `۶/۶` پاس شدند؛ lock، parallel approve، bulk approve، cancel+approve و گروه بزرگ‌تر از ظرفیت پوشش داده شدند. اجرای staging هنوز نیازمند سناریوی واقعی آزادشدن یک صندلی برای گروه چندنفره است؛ بدون انجام approve/release روی داده staging آن را بسته اعلام نمی‌کنم.
 - `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH` — اصلاح شد: Portal برای `paymentCollection === "free"`، پس از عبور از وضعیت pending/waitlisted، دیگر به فرم upload فیش، مقصد پرداخت یا دکمهٔ ارسال نمی‌رسد و کارت «نیازی به پرداخت نیست» نمایش می‌دهد؛ suite متمرکز Portal/BFF/deadline در این sweep `۲۸/۲۸` پاس شد. پس از deploy با SHA جدید، یک free registration در وضعیت approved و یک free pending را با API response، Portal detail و screenshot/AX بررسی کن؛ pending باید فقط پیام انتظار مناسب free را داشته باشد و هیچ upload/payment control نداشته باشد.
 - `BUG-STG-080` — source fix برقرار است: علاوه بر حذف مسیر receipt upload برای `paymentCollection === "free"`، status resolver نیز برای free approved مستقل از projection ناسازگار `paid/unpaid` کارت «بدون نیاز به پرداخت» را برمی‌گرداند؛ تست resolver، Portal registration، receipt BFF و deadline contract در این sweep `۲۸/۲۸` پاس شد. **Runtime staging fail است:** free registration `4190860a-9948-4c62-b29b-85d3e494e765` در detail هنوز «پرداخت شما تأیید شد» و «رسید: تأیید شده» و در Portal list نیز «برای نهایی‌شدن، پرداخت لازم است» نشان می‌دهد؛ در همان list، free fixtureهای دیگر متن درست «پرداخت لازم نیست» دارند. بعد از deploy با SHA واقعی، free approved/pending باید در list و detail بدون payment status، مبلغ، مقصد کارت‌به‌کارت یا upload نمایش داده شود.
 
+## Follow-up runtime verification — ۲۰۲۶-۰۹-۲۷
+
+با وجود باز بودن PR و نبودن deploy از SHA اصلاحی، چهار مورد روی artifact فعلی staging دوباره مشاهده شدند:
+
+- `BUG-STG-025`: PDP `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در AX هیچ label «رایگان/بدون نیاز به پرداخت» ندارد و در بخش «پیش از ثبت‌نام» هنوز «روش پرداخت: رسید / پرداخت آفلاین» دیده می‌شود.
+- `BUG-STG-026/027`: آدرس `/tours?minPrice=0&sort=price_asc` تعداد `۱۳ مورد` نشان می‌دهد، اما تور رایگان `QA-STG-20260924-FREE-MANUAL` در نتایج نیست.
+- `BUG-STG-081/082`: PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان` و دُنگ `۳۰۰٬۰۰۰ تومان` را نشان می‌دهد؛ کارت PLP همان تور «قیمت برای این عضو در دسترس نیست» دارد و مبلغ دُنگ ندارد.
+- `BUG-STG-080`: Portal detail ثبت‌نام رایگان `4190860a-9948-4c62-b29b-85d3e494e765` هنوز متن ارسال رسید و وضعیت‌های پرداخت/رسید تأییدشده را نمایش می‌دهد.
+- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: در صفحه فارسی Admin نام eventهای `Member registered`، `Receipt approved/rejected/submitted` و `Registration approved/created/waitlisted` هنوز انگلیسی است.
+- `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE`: در فهرست فیلدهای «جزئیات کاتالوگ عمومی»، description فیلد «نقطه شروع» هنوز `Start, summit, camp and end location zones.` است.
+- `BUG-STG-035`: Portal ثبت‌نام `98202973-9d76-43c2-99ab-46d8cb06c30e` زمان حرکت `۲۱ مهر ۱۴۰۵، ۸:۰۰` را نشان می‌دهد که با timezone تهران سازگار است؛ raw API/Admin و SHA واقعی deploy برای closure نهایی هنوز لازم است.
+- `BUG-STG-037` و `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL`: در Admin، فیلتر «در لیست انتظار» مقدار `۸` و جدول `۸ از ۸` دارد و هر ردیف label «در لیست انتظار» و ظرفیت `۱۲/۱۲` دارد؛ حالت «نیازمند اقدام» `۱۲` ردیف دارد که شامل ۸ waitlist و ۴ pending است. این صفحه internally consistent است، اما fixture قبلیِ اختلاف «لیست عملیاتی ۳» و ۱۲ ردیف دوباره بازتولید نشد؛ closure نهایی به SHA واقعی و همان fixture نیاز دارد.
+- گیت fingerprint: هر دو `denali.shenski.com/health` و `portal.denali.shenski.com/health` با `200 {"ok":true}` پاسخ دادند، اما header/body هیچ SHA artifactی ارائه نمی‌کند. HTML فقط hashهای Next static مانند `page-f8664cc272dd6ac5.js` دارد؛ این hashها به‌تنهایی به commit قابل انتساب نیستند، پس `staging artifact SHA = UNKNOWN` باقی می‌ماند.
+- GitHub deploy evidence: آخرین اجرای موفق workflow `Deploy staging (dev)` با run `36273529557` روی SHA `a37f38cd89576b17b07808c45279788eab63b3a1` است؛ head فعلی PR #211 و commit‌های بعدی روی staging deploy نشده‌اند. بنابراین failureهای runtime این دور به artifact قدیمی نسبت داده می‌شوند، نه به source head فعلی.
+- cache control follow-up: responseهای PDP رایگان، PDP تخفیف‌دار و PLP همگی `cache-control: private, no-cache, no-store` و `x-cache: BYPASS` دارند؛ بااین‌حال HTML/AX همان fixtureها هنوز خروجی قدیمی را render می‌کند. بنابراین mismatch فعلی از cache key/revalidation نیست و به artifact deployنشده نسبت داده می‌شود.
+- `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS` و Telegram واقعی: تب «رسیدها» در `admin.denali.shenski.com/finance?tab=receipts` باز شد، اما صف «صف بررسی فیش» هیچ ردیف receipt ندارد؛ fixture rejected/pending برای اجرای reject→resubmit، تطبیق `fileKey` و ارسال واقعی photo/PDF موجود نیست. ساخت receipt یا تغییر وضعیت در staging انجام نشد.
+- source retest این دسته با runner رسمی سبز است: Portal lifecycle/status `۱۸/۱۸`، API receipt flow `۷/۷` و Telegram API/adapter/worker/topic/retry/file routing `۵۰/۵۰`. در receipt flow فقط هشدار محیطی `MINIO_NOT_CONFIGURED` ثبت شد؛ بنابراین این نتایج قرارداد/source هستند و جایگزین ارسال واقعی فایل روی staging نمی‌شوند.
+- source retest PDP/فرم نیز سبز است: Marketing policy/preview `۱۲/۱۲`، Portal registration/pricing/waitlist `۱۱/۱۱` و API registration matrix `۱۸/۱۸`. این نتایج `BUG-STG-008/013` و `BUG-STG-022` را در source پوشش می‌دهند؛ مقایسهٔ دو حساب واقعی روی staging بعد از deploy هنوز لازم است.
+
+این چهار مشاهده، failure runtime artifact فعلی هستند و تا deploy شدن SHA اصلاحی به‌عنوان failure source جدید تفسیر نمی‌شوند؛ پس از deploy باید با API response، SHA واقعی و screenshot/AX دوباره بسته شوند.
+
+## Retest بعد از deploy واقعی `a37f38cd89576b17b07808c45279788eab63b3a1`
+
+- Artifact: `app-tour-staging-a37f38cd89576b17b07808c45279788eab63b3a1.tar.zst`; digest: `7245def80b7ff8fdf253aee2fd2824d50e96ef8cf57e7d2732862fe55520d198`; health هر سه host با `200` پاس شد.
+- `BUG-STG-025`: **FAIL runtime**. PDP رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در AX هیچ `رایگان`/`بدون نیاز به پرداخت`/`۰ تومان` ندارد؛ بخش قبل از ثبت‌نام هنوز `روش پرداخت: رسید / پرداخت آفلاین` را نشان می‌دهد. PLP همان fixture نیز label رایگان ندارد.
+- `BUG-STG-026`: **FAIL runtime**. `https://denali.shenski.com/tours?maxPrice=0` مقدار `۰ مورد در این صفحه` و پیام نبود تور دارد، درحالی‌که fixture رایگان منتشر و قابل ثبت‌نام است.
+- `BUG-STG-027`: **FAIL runtime**. `https://denali.shenski.com/tours?minPrice=0&sort=price_asc` مقدار `۱۳ مورد` دارد و fixture رایگان در نتایج نیست؛ sort قیمت صعودی آن را به‌عنوان قیمت صفر وارد نکرده است.
+- `BUG-STG-081`: **FAIL runtime**. در PDP `ec171184-1877-4501-9a92-857f712838e2` همان نشست عضو، قیمت پایه `۲٬۰۰۰٬۰۰۰`، تخفیف `۵۰٪` و قیمت نهایی `۱٬۰۰۰٬۰۰۰ تومان` است؛ کارت PLP همان تور `قیمت برای این عضو در دسترس نیست` نشان می‌دهد.
+- `BUG-STG-082`: **FAIL runtime**. PDP همان تور `خودروهای مشترک` و `هزینه دونگی ۳۰۰٬۰۰۰ تومان` دارد؛ کارت PLP نوع حمل را نشان می‌دهد اما مبلغ دُنگ را ندارد.
+- `BUG-STG-080`: **FAIL runtime**. Portal detail رکورد رایگان `4190860a-9948-4c62-b29b-85d3e494e765` هنوز `برای نهایی شدن سفر، رسید پرداخت را ارسال کنید`، `پرداخت تأیید شد` و `رسید شما تأیید شد` را نشان می‌دهد.
+
 موارد `BUG-STG-001`، `BUG-STG-067` و `OBS-STG-FINANCE-BUSINESS-MEANING-ROLLOUT` نیز فعلاً باگ قطعی نیستند.
+
+## Source verification after remediation — ۲۰۲۶-۰۹-۲۷
+
+در HEAD فعلی branch اصلاحی، ریشه‌های source برای failureهای runtime دوباره‌دیده‌شده پوشش داده شدند؛ اجرای artifact قدیمی staging هنوز معیار closure نیست:
+
+- Marketing catalog/display/pricing/filter/sort contract: `۳۷/۳۷` پاس.
+- Portal pricing/receipt/status contract: `۲۴/۲۴` پاس.
+- API registration و receipt flow رسمی: `۲۵/۲۵` پاس.
+- کل suite workspace Denali: `۸۳۴/۸۳۴` پاس.
+
+نتیجهٔ تفکیکی source:
+
+- `BUG-STG-025/026/027`: free marker در PLP/PDP و قیمت صفر در filter/sort در source پوشش دارند.
+- `BUG-STG-080`: free collection از canonical `paymentCollection` و legacy `requiresPayment=false` resolve می‌شود و مسیر receipt/payment برای free بسته است.
+- `BUG-STG-081/082`: preview قیمت authoritative عضو و ancillary transport/dong برای list/detail از API خوانده می‌شوند و تست parity دارند.
+- labelهای Telegram و description فارسی location-zones در source و contractها اصلاح شده‌اند.
+
+پس از این اجرای source، باگ قطعی جدیدی برای patch باقی نماند. موارد runtime بالا فقط پس از deploy همین HEAD با SHA واقعی staging باید دوباره بررسی و بسته شوند؛ health بدون SHA و hash فایل‌های Next برای closure کافی نیستند. فایل نامرتبط `docs/phase-19/architecture-truth-drift-report.json` عمداً تغییر داده نشد.
+
+## Continuation read-only sweep — ۲۰۲۶-۰۹-۲۷
+
+برای ادامهٔ بررسی مستقل از deploy، HTML و header خام staging دوباره خوانده شد:
+
+- PDP رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` با `HTTP 200`، `cache-control: private, no-cache, no-store` و `x-cache: BYPASS` پاسخ داد، اما register preview هنوز `روش پرداخت: رسید / پرداخت آفلاین` و `تأیید ثبت‌نام: دستی` دارد؛ marker رایگان اصلاح‌شده در خروجی واقعی detail دیده نشد.
+- PLP با `/tours?minPrice=0&sort=price_asc` نیز `HTTP 200` و `x-cache: BYPASS` داد، اما هنوز `۱۳ مورد در این صفحه` دارد و fixture رایگان در grid خروجی نبود.
+- `/health` با `HTTP 200` پاسخ داد اما SHA artifact را ارائه نکرد.
+- آخرین workflow deploy staging همچنان run `36273529557` روی SHA `a37f38cd89576b17b07808c45279788eab63b3a1` است؛ PR head `e8a15c965e4bf619e7776b5cdc0de00b919f0595` deploy نشده است.
+
+نتیجه: sweep read-only ادامه یافت و failure فعلی دوباره ثبت شد؛ این failure همچنان به artifact قدیمی نسبت داده می‌شود، نه به source HEAD اصلاحی. ریتست با SHA اصلاحی بعد از deploy باقی است.
+
+## CI stale-run follow-up — ۲۰۲۶-۰۹-۲۷
+
+- runهای PR روی HEAD `49fa7c14dc22bffedc1e33a22904f5477db84043` از `۲۳:۱۳` در stepهای build بدون تغییر مانده‌اند؛ checkهای پاس‌شده جداگانه سبز هستند و failure source ثبت نشده است.
+- تلاش برای cancel همان runها با GitHub API به `403 Resource not accessible by personal access token` خورد.
+- تلاش برای rerun همان runها نیز با پیام `workflow file may be broken` پذیرفته نشد.
+- این مورد CI/permission است و به source bug یا staging artifact نسبت داده نمی‌شود. پس از اجرای تازهٔ workflowها، نتیجهٔ هر check باید دوباره ثبت شود.

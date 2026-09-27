@@ -106,6 +106,24 @@ describe("applyDenaliCatalogCardExposure", () => {
     assert.equal("transport" in redacted, false);
   });
 
+  it("BUG-STG-025 keeps only the safe free marker when payment policy is hidden", () => {
+    const card = toDenaliCatalogCard({
+      id: "free-tour",
+      canonical: {
+        schemaVersion: 1,
+        data: {
+          title: "Free tour",
+          pricingPayment: { requiresPayment: false },
+        },
+      },
+    });
+    const redacted = applyDenaliCatalogCardExposure(card, new Set(["title"]));
+
+    assert.equal(redacted.paymentCollection, "free");
+    assert.equal(redacted.paymentMode, null);
+    assert.equal("registrationApproval" in redacted, false);
+  });
+
   it("BUG-STG-006 makes transport visibility depend on the Exposure field", () => {
     const card = toDenaliCatalogCard({
       id: "tour-transport",
