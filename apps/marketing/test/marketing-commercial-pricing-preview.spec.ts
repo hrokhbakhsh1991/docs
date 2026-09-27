@@ -58,6 +58,7 @@ describe("marketing-commercial-pricing-preview", () => {
     assert.match(list, /pricingPreviews\[tour\.id\]/);
     assert.match(fetcher, /\/catalog\/pricing-previews/);
     assert.match(fetcher, /params\.append\("tourId"/);
+    assert.match(fetcher, /requestPreviews\(\[tourId\]\)/);
     assert.doesNotMatch(list, /fetchCommercialPricingPreview|fetchCommercialPricingPreviews/);
   });
 
@@ -76,6 +77,7 @@ describe("marketing-commercial-pricing-preview", () => {
     assert.match(ui, /preview\.payableMinor/);
     assert.match(ui, /preview\.memberDiscountPercentage/);
     assert.match(ui, /data-marketing-catalog-card-price-unavailable[\s\S]*ancillaryLines\.map/);
+    assert.match(ui, /canonicalPrice != null \|\| ancillaryLines\.length > 0/);
     assert.doesNotMatch(ui, /0\.8|80 \/ 100|memberDiscountPercentage \*|\/ 100/);
   });
 

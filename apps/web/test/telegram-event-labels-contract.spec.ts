@@ -32,6 +32,19 @@ describe("BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS", () => {
     const eventNames = messages.integrations?.deliveryPolicy?.eventNames ?? {};
 
     for (const eventType of [
+      "Member registered",
+      "Receipt submitted",
+      "Registration created",
+      "Registration waitlisted",
+      "Ticket assigned",
+      "Ticket closed",
+      "Ticket created",
+      "Ticket internal note created",
+      "Ticket message posted",
+      "Ticket priority changed",
+      "Ticket reopened",
+      "Ticket resolved",
+      "Ticket status changed",
       "TourCreated",
       "TourPublished",
       "RegistrationApproved",
