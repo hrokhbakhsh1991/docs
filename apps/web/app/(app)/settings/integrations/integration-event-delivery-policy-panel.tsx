@@ -51,6 +51,22 @@ export const INTEGRATION_DELIVERY_POLICY_TEST_IDS = {
   messageTemplate: "integration-delivery-policy-message-template",
 } as const;
 
+const TELEGRAM_EVENT_LABEL_KEYS: Readonly<Record<string, string>> = {
+  "Member registered": "memberRegistered",
+  "Receipt submitted": "receiptSubmitted",
+  "Registration created": "registrationCreated",
+  "Registration waitlisted": "registrationWaitlisted",
+  "Ticket assigned": "ticketAssigned",
+  "Ticket closed": "ticketClosed",
+  "Ticket created": "ticketCreated",
+  "Ticket internal note created": "ticketInternalNoteCreated",
+  "Ticket message posted": "ticketMessagePosted",
+  "Ticket priority changed": "ticketPriorityChanged",
+  "Ticket reopened": "ticketReopened",
+  "Ticket resolved": "ticketResolved",
+  "Ticket status changed": "ticketStatusChanged",
+};
+
 type DeliveryPolicyEventState = {
   readonly enabled: boolean;
   /** When true, {@link selectedFieldIds} narrows delivery; otherwise registry defaults apply. */
@@ -254,6 +270,10 @@ export function IntegrationEventDeliveryPolicyPanel({
   );
 
   const eventLabel = (eventType: string): string => {
+    const localizedKey = TELEGRAM_EVENT_LABEL_KEYS[eventType];
+    if (localizedKey !== undefined && t.has(`eventNames.${localizedKey}`)) {
+      return t(`eventNames.${localizedKey}`);
+    }
     const key = `eventNames.${eventType}`;
     return t.has(key) ? t(key) : humanizeEventType(eventType);
   };
