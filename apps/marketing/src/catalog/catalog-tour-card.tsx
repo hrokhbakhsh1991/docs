@@ -5,7 +5,10 @@ import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 import { MARKETING_FALLBACK_TOUR_CARD_COVER_PATH } from "@/home/home-marketing-assets";
 
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
-import { formatCatalogTransportMode } from "./format-catalog-transport";
+import {
+  formatCatalogTransportMode,
+  resolveCatalogTransportCostAmount,
+} from "./format-catalog-transport";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { resolveCatalogFreeCollectionLabel } from "./resolve-catalog-free-label";
@@ -57,6 +60,11 @@ export async function CatalogTourCard({
   const categorySlug = tour.category?.trim();
   const categoryLabel = await resolveMarketingCatalogCardCategoryLabel(categorySlug, t);
   const transportLabel = formatCatalogTransportMode(tour.transport, t);
+  const transportCostAmount = resolveCatalogTransportCostAmount(tour.transport);
+  const transportCostLabel =
+    tour.transport?.mode === "shared_cars"
+      ? t("pricing.ancillary.dong")
+      : t("pricing.ancillary.transport");
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
     ? formatCatalogPrice(
@@ -103,12 +111,12 @@ export async function CatalogTourCard({
           t={t}
           pricingPreviewStatus={pricingPreviewStatus}
           ancillaryLines={
-            tour.transport?.dongAmount != null
+            transportCostAmount != null
               ? [
                   {
-                    label: t("pricing.ancillary.dong"),
+                    label: transportCostLabel,
                     value: formatCatalogPrice(
-                      tour.transport.dongAmount,
+                      transportCostAmount,
                       tour.priceCurrency,
                       dateLocale,
                       t("detail.priceOnRequest"),

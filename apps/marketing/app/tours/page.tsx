@@ -105,18 +105,19 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     items: fetchedItems,
     activeFilters: filters,
   });
-  const { items, matchedCount } = await applyMarketingCatalogListPipeline(
-    fetchedItems,
-    filters,
-    serverListFilters,
-    bootstrap.pluginId
-  );
   const pricingPreviewResult = await fetchCommercialPricingPreviews({
     host,
     tenantId: bootstrap.tenantId,
     workspace: bootstrap.pluginId,
-    tourIds: items.map((item) => item.id),
+    tourIds: fetchedItems.map((item) => item.id),
   });
+  const { items, matchedCount } = await applyMarketingCatalogListPipeline(
+    fetchedItems,
+    filters,
+    serverListFilters,
+    bootstrap.pluginId,
+    pricingPreviewResult.previews
+  );
   const listJsonLd =
     shouldEmitMarketingCatalogListJsonLd({ cursor: filters.cursor }) && items.length > 0
       ? buildMarketingCatalogListJsonLd({

@@ -55,31 +55,27 @@ export function CatalogCommercialPricingCompact({
   }[];
   readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
+  const ancillary = ancillaryLines.map((line) =>
+    line.value != null ? (
+      <small key={line.label}>
+        {line.label}: {line.value}
+      </small>
+    ) : null
+  );
+
   if (preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection) {
     if (canonicalPrice != null || ancillaryLines.length > 0) {
       return (
         <span data-marketing-catalog-card-price>
           {canonicalPrice}
-          {ancillaryLines.map((line) =>
-            line.value != null ? (
-              <small key={line.label}>
-                {line.label}: {line.value}
-              </small>
-            ) : null
-          )}
+          {ancillary}
         </span>
       );
     }
     return (
       <span data-marketing-catalog-card-price-unavailable>
         {t("pricing.unavailable")}
-        {ancillaryLines.map((line) =>
-          line.value != null ? (
-            <small key={line.label}>
-              {line.label}: {line.value}
-            </small>
-          ) : null
-        )}
+        {ancillary}
       </span>
     );
   }
@@ -87,13 +83,7 @@ export function CatalogCommercialPricingCompact({
     return canonicalPrice != null || ancillaryLines.length > 0 ? (
       <span data-marketing-catalog-card-price>
         {canonicalPrice}
-        {ancillaryLines.map((line) =>
-          line.value != null ? (
-            <small key={line.label}>
-              {line.label}: {line.value}
-            </small>
-          ) : null
-        )}
+        {ancillary}
       </span>
     ) : null;
   }
@@ -114,7 +104,10 @@ export function CatalogCommercialPricingCompact({
   );
   if (gross === null || payable === null) {
     return canonicalPrice != null ? (
-      <span data-marketing-catalog-card-price>{canonicalPrice}</span>
+      <span data-marketing-catalog-card-price>
+        {canonicalPrice}
+        {ancillary}
+      </span>
     ) : null;
   }
 
@@ -122,18 +115,12 @@ export function CatalogCommercialPricingCompact({
     <span data-marketing-catalog-card-member-price>
       <span data-marketing-catalog-card-member-price-original>{gross}</span>
       <span data-marketing-catalog-card-member-price-payable>{payable}</span>
+      {ancillary}
       <span data-marketing-catalog-card-member-price-benefit>
         {t("pricing.membershipDiscountCompact", {
           percent: preview.memberDiscountPercentage,
         })}
       </span>
-      {ancillaryLines.map((line) =>
-        line.value != null ? (
-          <small key={line.label}>
-            {line.label}: {line.value}
-          </small>
-        ) : null
-      )}
     </span>
   );
 }

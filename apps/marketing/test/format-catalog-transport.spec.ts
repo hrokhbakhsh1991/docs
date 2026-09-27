@@ -19,6 +19,9 @@ describe("catalog transport display", () => {
     );
 
     assert.match(card, /formatCatalogTransportMode\(tour\.transport, t\)/);
+    assert.match(card, /resolveCatalogTransportCostAmount\(tour\.transport\)/);
+    assert.match(card, /tour\.transport\?\.mode === "shared_cars"/);
+    assert.match(card, /t\("pricing\.ancillary\.transport"\)/);
     assert.match(card, /t\("pricing\.ancillary\.dong"\)/);
     assert.match(logistics, /resolveCatalogTransportCostAmount\(transport\)/);
     assert.match(logistics, /detail\.logistics\.dongAmount/);

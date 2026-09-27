@@ -49,6 +49,30 @@ describe("sort-marketing-catalog-items.spec.ts — PR-21", () => {
     );
   });
 
+  it("BUG-STG-081 sorts by the member payable amount when a preview exists", () => {
+    const result = sortMarketingCatalogItems(
+      [
+        { id: "base-low", title: "Base low", priceAmount: 1_500_000 },
+        { id: "member-low", title: "Member low", priceAmount: 2_000_000 },
+      ],
+      "price_asc",
+      {
+        "member-low": {
+          grossMinor: "2000000",
+          discountableBaseMinor: "2000000",
+          memberDiscountPercentage: 50,
+          memberDiscountMinor: "1000000",
+          payableMinor: "1000000",
+          currency: "IRR",
+          source: "member_discount",
+          lines: [],
+        },
+      }
+    );
+
+    assert.deepEqual(result.map((item) => item.id), ["member-low", "base-low"]);
+  });
+
   it("BUG-STG-027 sorts free collection as price zero", () => {
     const result = sortMarketingCatalogItems(
       [

@@ -9,6 +9,9 @@ type CatalogPresentationFields = Pick<
 >;
 export type { CatalogPriceDisplayPolicy };
 
+/** Public catalog wall-clock timezone; it must match the operator/member surfaces. */
+export const CATALOG_DISPLAY_TIME_ZONE = "Asia/Tehran" as const;
+
 /** Normalized subtitle from egress presentation fields (Track A). */
 export function formatCatalogCardSubtitle(card: MarketingCatalogCard): string {
   const normalized = card.listSubtitle?.trim();
@@ -114,6 +117,7 @@ export function formatCatalogDateRange(
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: CATALOG_DISPLAY_TIME_ZONE,
     ...(dateLocale.startsWith("fa") ? { calendar: "persian", numberingSystem: "arabext" } : {}),
   };
 

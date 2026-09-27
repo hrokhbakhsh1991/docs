@@ -5,6 +5,10 @@ import {
 } from "./build-catalog-list-card-summary";
 import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import type { MarketingCatalogCard } from "./catalog-types";
+import {
+  resolveMarketingCatalogListPrice,
+  type MarketingCatalogPricingPreviews,
+} from "./resolve-marketing-catalog-list-price";
 
 function readSearchHaystack(item: MarketingCatalogCard): string {
   return [
@@ -60,7 +64,8 @@ export async function filterMarketingCatalogItems(
     | "minDuration"
     | "maxDuration"
   >,
-  pluginId?: string
+  pluginId?: string,
+  pricingPreviews?: MarketingCatalogPricingPreviews
 ): Promise<readonly MarketingCatalogCard[]> {
   const surface = pluginId != null ? await resolveMarketingCatalogSurface(pluginId) : null;
   let filtered = items.filter(isPublicCatalogItemAllowed);
@@ -95,7 +100,7 @@ export async function filterMarketingCatalogItems(
 
   if (filters.minPrice != null || filters.maxPrice != null) {
     filtered = filtered.filter((item) => {
-      const price = item.paymentCollection === "free" ? 0 : item.priceAmount;
+      const price = resolveMarketingCatalogListPrice(item, pricingPreviews);
       if (price == null || !Number.isFinite(price)) {
         return false;
       }

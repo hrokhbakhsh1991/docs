@@ -124,6 +124,33 @@ describe("applyDenaliCatalogCardExposure", () => {
     assert.equal("registrationApproval" in redacted, false);
   });
 
+  it("BUG-STG-019 hides base/member pricing when payment policy is not exposed", () => {
+    const card = toDenaliCatalogCard({
+      id: "paid-tour",
+      canonical: {
+        schemaVersion: 1,
+        data: {
+          title: "Paid tour",
+          pricing: {
+            basePricePerPerson: 2_000_000,
+            paymentMode: "offline_receipt",
+            paymentCollection: "offline",
+            registrationApproval: "manual",
+          },
+        },
+      },
+    });
+    const redacted = applyDenaliCatalogCardExposure(
+      card,
+      new Set(["title", "denali.pricing-participants"])
+    );
+
+    assert.equal(redacted.priceAmount, null);
+    assert.equal(redacted.paymentMode, null);
+    assert.equal("paymentCollection" in redacted, false);
+    assert.equal("registrationApproval" in redacted, false);
+  });
+
   it("BUG-STG-006 makes transport visibility depend on the Exposure field", () => {
     const card = toDenaliCatalogCard({
       id: "tour-transport",
@@ -146,6 +173,27 @@ describe("applyDenaliCatalogCardExposure", () => {
 
     assert.equal(visible.transport?.mode, "bus");
     assert.equal("transport" in hidden, false);
+  });
+
+  it("BUG-STG-036 removes the canonical destination slug from every public card surface", () => {
+    const card = toDenaliCatalogCard({
+      id: "tour-destination-redaction",
+      canonical: {
+        schemaVersion: 1,
+        data: {
+          title: "Alpine trek",
+          category: "mountain_multi",
+          destinationId: "destination-1",
+          program: { shortDescription: "A public summary" },
+        },
+      },
+    });
+
+    const redacted = applyDenaliCatalogCardExposure(card, new Set(["title"]));
+    assert.equal(redacted.category, null);
+    assert.equal(redacted.listSubtitle, null);
+    assert.equal(redacted.destinationLabel, null);
+    assert.equal(JSON.stringify(redacted).includes("mountain_multi"), false);
   });
 
   it("excludes no-op and delivery-only fields from catalog bindings", () => {

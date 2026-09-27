@@ -54,7 +54,8 @@ describe("marketing-commercial-pricing-preview", () => {
     );
 
     assert.match(page, /fetchCommercialPricingPreviews/);
-    assert.match(page, /tourIds: items\.map/);
+    assert.match(page, /tourIds: fetchedItems\.map/);
+    assert.match(page, /pricingPreviewResult\.previews/);
     assert.match(list, /pricingPreviews\[tour\.id\]/);
     assert.match(fetcher, /\/catalog\/pricing-previews/);
     assert.match(fetcher, /params\.append\("tourId"/);
@@ -79,6 +80,10 @@ describe("marketing-commercial-pricing-preview", () => {
     assert.match(ui, /preview\.memberDiscountMinor/);
     assert.match(ui, /preview\.payableMinor/);
     assert.match(ui, /preview\.memberDiscountPercentage/);
+    assert.match(
+      ui,
+      /data-marketing-catalog-card-member-price[\s\S]*\{ancillary\}/
+    );
     assert.match(ui, /data-marketing-catalog-card-price-unavailable[\s\S]*ancillaryLines\.map/);
     assert.match(ui, /canonicalPrice != null \|\| ancillaryLines\.length > 0/);
     assert.match(ui, /pricingPreviewStatus !== "anonymous" && !isFreeCollection/);

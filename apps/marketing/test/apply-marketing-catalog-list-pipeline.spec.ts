@@ -25,4 +25,31 @@ describe("apply-marketing-catalog-list-pipeline.spec.ts — PR-21.1 / PR-22", ()
     assert.equal(result.matchedCount, 1);
     assert.deepEqual(result.items.map((item) => item.id), ["2"]);
   });
+
+  it("uses the member payable amount for price filters", async () => {
+    const filters = parseCatalogListFilters({ minPrice: "1000000", maxPrice: "1200000" });
+    const result = await applyMarketingCatalogListPipeline(
+      [
+        { id: "member", title: "Member", priceAmount: 2_000_000 },
+        { id: "outside", title: "Outside", priceAmount: 1_500_000 },
+      ],
+      filters,
+      [],
+      undefined,
+      {
+        member: {
+          grossMinor: "2000000",
+          discountableBaseMinor: "2000000",
+          memberDiscountPercentage: 50,
+          memberDiscountMinor: "1000000",
+          payableMinor: "1000000",
+          currency: "IRR",
+          source: "member_discount",
+          lines: [],
+        },
+      }
+    );
+
+    assert.deepEqual(result.items.map((item) => item.id), ["member"]);
+  });
 });

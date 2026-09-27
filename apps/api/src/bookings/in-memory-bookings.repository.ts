@@ -196,11 +196,12 @@ function cloneBooking(record: BookingRecord): BookingRecord {
     !Array.isArray(registrationIntake.obligationOverride)
       ? (registrationIntake.obligationOverride as Readonly<Record<string, unknown>>)
       : null;
+  const freeCollectionApplied = registrationIntake?.freeCollectionApplied === true;
   return {
     ...record,
     financialDisplayState:
       record.financialDisplayState ??
-      resolveFinancialDisplayStateForListRecord(record, obligationOverride),
+      resolveFinancialDisplayStateForListRecord(record, obligationOverride, freeCollectionApplied),
     registrantTarget: record.registrantTarget ?? readRegistrantTargetFromIntake(registrationIntake),
     transportKind:
       record.transportKind !== undefined
