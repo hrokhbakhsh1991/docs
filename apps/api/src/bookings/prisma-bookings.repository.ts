@@ -708,7 +708,10 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (row === null) {
         return null;
       }
-      const [record] = await attachPaymentDueAtProjection(tx, tenantId, [toBookingRecord(row)]);
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, tenantId, [
+        toBookingRecord(row),
+      ]);
+      const [record] = await attachPaymentDueAtProjection(tx, tenantId, [enriched!]);
       return record ?? null;
     });
   }
