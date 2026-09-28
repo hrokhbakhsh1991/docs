@@ -353,6 +353,17 @@ and Denali registration detail service.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
 
+## P2 merchandising implementation gate — ۲۰۲۶-۰۹-۲۸
+
+- محدودهٔ P2 شامل `BUG-STG-081`، `BUG-STG-082`، `BUG-STG-025` و `BUG-STG-026 / 027` است؛ P0/P1، Telegram، فایل، ظرفیت نمایشی و `BUG-STG-024` در این batch نیستند.
+- HEAD source فعلی `8df27fd4a15991587e6aba9bef12eb5f72495727` است. منطق canonical قیمت عضو، قیمت صفر برای free، filter/sort بر اساس همان قیمت، label رایگان و snapshot حمل مشترک بین PLP/PDP در source موجود است؛ patch تکراری ایجاد نشد.
+- تست رسمی Marketing: `38/38` pass، شامل free label، free filter/sort، member payable، transport mode/dong و organized transport.
+- تست رسمی Denali: `8/8` pass، شامل public card egress با `shared_cars` و `dongAmount=300000`.
+- runtime read-only فعلی: PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان`، نوع حمل `خودروهای مشترک` و دُنگ `۳۰۰٬۰۰۰ تومان` را نشان می‌دهد؛ HTML/AX کارت PLP همان تور هنوز قیمت پایه `۲٬۰۰۰٬۰۰۰ تومان` را بدون transport/dong می‌دهد. `BUG-STG-081 / 082` روی artifact فعلی closure نشده‌اند.
+- runtime read-only فعلی: تور رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در PLP label `رایگان / بدون نیاز به پرداخت` دارد و تست `minPrice=0`/sort قیمت صعودی نیز fixture رایگان را وارد نتایج می‌کند؛ `BUG-STG-025 / 026 / 027` فعلاً pass runtime هستند.
+- هدرهای فعلی هر سه host `cache-control: private, no-cache, no-store` و `x-cache: BYPASS` دارند؛ بنابراین این مشاهده به‌تنهایی stale CDN نیست. SHA runtime از خود host در header/HTML ارائه نشد. آخرین deploy ثبت‌شده staging `9a7df3408c9698ebb2391133cf2a42ee2a4c6d0e` است؛ تا deploy دقیق HEAD و fingerprint runtime، P2 بسته نمی‌شود.
+- گیت باقی‌مانده: deploy همین HEAD، ثبت SHA واقعی artifact از runtime، مقایسهٔ API PLP/PDP و screenshot/AX/HTML برای همان fixture، سپس recheck هر چهار BUG. اگر transport در API list هم غایب باشد، owner API/exposure است؛ اگر API حاضر و HTML غایب باشد، owner Marketing artifact است.
+
 ## P1 implementation follow-up — ۲۰۲۶-۰۹-۲۸
 
 - `BUG-STG-047`: مسیر مستقیم `/catalog/:tourId/register` باید پیش از auth/intake، `registrationState=past|closed` را gate کند؛ `waitlist` همچنان باید به فرم ادامه دهد.
