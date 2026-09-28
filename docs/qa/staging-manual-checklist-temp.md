@@ -60,6 +60,16 @@
 - cache key و زمان revalidation
 - status receipt و registration به‌صورت جداگانه
 
+### P0 canonical projection contract
+
+The member-owned registration detail must carry the same additive
+`financialDisplayState` projection as the booking list. In particular,
+`financialDisplayState=WAIVED` is authoritative for free registrations and
+must not be reconstructed from `paymentStatus` or receipt state in Portal
+detail. The P0 implementation therefore keeps the field in the neutral
+`BookingPublicOwnedDetail` contract and forwards it through the host adapter
+and Denali registration detail service.
+
 آخرین fingerprint read-only این sweep: هر سه host (`denali.shenski.com`، `portal.denali.shenski.com`، `admin.denali.shenski.com`) روی `/health` با `200` و `{"ok":true}` پاسخ دادند، اما header/body هیچ SHA artifact ارائه نکردند. SHA فعلی worktree `c215d739e704578e82d01343c00899a8d0ee4957` است و checkout `۹۸` تغییر dirty دارد؛ بنابراین این SHA را به staging نسبت نمی‌دهم. HTML staging برای free tour `c3a3c778-99ab-4750-8dc6-3172fa5ce034` هیچ‌کدام از markerهای `data-marketing-catalog-card-free` و `data-marketing-catalog-detail-free` را نداشت؛ artifact فعلی fix source را سرو نمی‌کند.
 
 ## C) source اصلاح‌شده؛ منتظر deploy و ریتست staging

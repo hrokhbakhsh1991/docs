@@ -177,12 +177,13 @@ describe("registration-read-services", () => {
       async findOwnedBooking() {
         return {
           id: REG_ID,
-          status: "pending",
+          status: "approved",
           tourId: TOUR_ID,
           tourTitle: "Read Services Tour",
           guestLabel: "Member",
           registrantTarget: "self",
-          paymentStatus: "unpaid",
+          paymentStatus: "paid",
+          financialDisplayState: "WAIVED",
           departureAt: "2026-06-01T08:00:00.000Z",
           submittedAt: "2026-05-01T08:00:00.000Z",
           partySize: 1,
@@ -226,6 +227,7 @@ describe("registration-read-services", () => {
       },
     });
     assert.equal(detail.paymentCollection, "free");
+    assert.equal(detail.financialDisplayState, "WAIVED");
     assert.equal(detail.dueTotalMinor, undefined);
   });
 
