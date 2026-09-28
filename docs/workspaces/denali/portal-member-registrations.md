@@ -18,6 +18,10 @@ authority: platform-portal-member.mdoc · portal-registration-ui.md · registrat
 
 **This doc:** Denali portal skin for `/me/registrations` list + detail + receipt upload. Business rules stay in API bookings/finance; portal **must not** static-import `@app-cloud/workspace-denali`.
 
+### Projection deployment invariant (2026-09-28)
+
+The member list and owned detail must consume the same canonical financial projection. A source fix is not considered deployed until the staging runtime fingerprint matches the commit that contains it; a previous release may legitimately show the old list projection even when the detail resolver is already fixed. For free/waived registrations, the list projection must emit `financialDisplayState=WAIVED` and must not expose a payment deadline or payment CTA. Regression evidence records the runtime SHA separately from the source HEAD.
+
 ### Mine list default (active only)
 
 `GET /api/me/registrations` → `GET /bookings?view=mine` returns **active** member rows by default: statuses ∈ `{pending, waitlisted, approved}`. Terminal `cancelled` / `rejected` are omitted unless the client explicitly passes `status` / `statuses`. Prevents cancelled probe/history rows from drowning the trips list after reclassify or abandoned attempts.
