@@ -51,6 +51,8 @@ export type BookingPublicOwnedDetail = {
   /** Who the seat is for — derived from intake; defaults to self. */
   readonly registrantTarget: "self" | "other";
   readonly paymentStatus: string;
+  /** Additive finance projection; WAIVED means no payment was required. */
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize: number;

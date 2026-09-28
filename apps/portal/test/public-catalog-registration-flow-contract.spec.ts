@@ -47,6 +47,20 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(denaliIntake, /intake\.submitWaitlist/);
   });
 
+  it("BUG-STG-047 blocks direct registration for past/closed tours but preserves waitlist", () => {
+    const page = readFileSync(
+      join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
+      "utf8"
+    );
+    assert.match(page, /tour\.registrationState === "past"/);
+    assert.match(page, /tour\.registrationState === "closed"/);
+    assert.match(page, /data-registration-unavailable/);
+    assert.match(page, /full tour \(`waitlist`\)/);
+    assert.match(page, /PortalRegisterGuestAuthGate/);
+    assert.match(page, /registrationUnavailable\.past/);
+    assert.match(page, /registrationUnavailable\.closed/);
+  });
+
   it("P8-02b portal flow wires catalog tourRequirements into registration context", () => {
     const pagePath = join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx");
     const page = readFileSync(pagePath, "utf8");

@@ -5,6 +5,11 @@
   "signInToRegister": "Sign in to continue registration",
   "backToTour": "Back to tour",
   "backToMarketing": "Back",
+  "registrationUnavailable": {
+    "kicker": "Registration unavailable",
+    "past": "This tour has already started, so new registrations are not accepted.",
+    "closed": "Registration for this tour is closed, so new requests are not accepted."
+  },
   "chrome": {
     "defaultSiteName": "Club",
     "siteDescription": "Member portal for {siteName}."

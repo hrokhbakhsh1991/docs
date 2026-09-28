@@ -60,6 +60,16 @@
 - cache key و زمان revalidation
 - status receipt و registration به‌صورت جداگانه
 
+### P0 canonical projection contract
+
+The member-owned registration detail must carry the same additive
+`financialDisplayState` projection as the booking list. In particular,
+`financialDisplayState=WAIVED` is authoritative for free registrations and
+must not be reconstructed from `paymentStatus` or receipt state in Portal
+detail. The P0 implementation therefore keeps the field in the neutral
+`BookingPublicOwnedDetail` contract and forwards it through the host adapter
+and Denali registration detail service.
+
 آخرین fingerprint read-only این sweep: هر سه host (`denali.shenski.com`، `portal.denali.shenski.com`، `admin.denali.shenski.com`) روی `/health` با `200` و `{"ok":true}` پاسخ دادند، اما header/body هیچ SHA artifact ارائه نکردند. SHA فعلی worktree `c215d739e704578e82d01343c00899a8d0ee4957` است و checkout `۹۸` تغییر dirty دارد؛ بنابراین این SHA را به staging نسبت نمی‌دهم. HTML staging برای free tour `c3a3c778-99ab-4750-8dc6-3172fa5ce034` هیچ‌کدام از markerهای `data-marketing-catalog-card-free` و `data-marketing-catalog-detail-free` را نداشت؛ artifact فعلی fix source را سرو نمی‌کند.
 
 ## C) source اصلاح‌شده؛ منتظر deploy و ریتست staging
@@ -328,7 +338,7 @@
 ## Receipt upload follow-up — ۲۰۲۶-۰۹-۲۷
 
 - همان fixture پس از reject دوباره با resubmit متنی به وضعیت «رسید: در انتظار بررسی» برگشت داده شد؛ receipt و registration همچنان جدا گزارش می‌شوند.
-- input واقعی Portal نوع‌های image و PDF را با accept image/*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
+- input واقعی Portal نوع‌های image و PDF را با accept image/\*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
 - fixture در پایان در وضعیت pending باقی ماند و approve انجام نشد.
 
 ## Remaining API contract verification — ۲۰۲۶-۰۹-۲۷
@@ -342,6 +352,30 @@
 - پوشش شامل putProof بعد از authorization، cleanup در خطای submit، GET pending بعد از upload، جلوگیری از upload برای مالک دیگر و approval projection است.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
+
+## P0 source hardening — stale payment deadline fail-closed — ۲۰۲۶-۰۹-۲۸
+
+- ریشه‌یابی: API projection و Portal Detail در صورت باقی‌ماندن `paymentDueAt` قدیمی، آن را بدون توجه به `paymentStatus=paid` یا `financialDisplayState=WAIVED` منتشر می‌کردند.
+- اصلاح: resolver مشترک `resolvePaymentDueAtForProjection` در API service و public adapter اضافه شد؛ Portal نیز فقط برای registration تأییدشده، غیررایگان و تسویه‌نشده deadline را render می‌کند.
+- تست focused API: `24/24 pass` شامل finance projection؛ تست resolver deadline: `3/3 pass`.
+- تست focused Portal: `20/20 pass`؛ Portal lint/typecheck، import boundary و architecture truth: PASS.
+- این اصلاح source-level است و جایگزین deploy با SHA جدید و recheck API/List/Detail/Admin/Finance روی staging نمی‌شود.
+
+## P2 merchandising implementation gate — ۲۰۲۶-۰۹-۲۸
+
+- محدودهٔ P2 شامل `BUG-STG-081`، `BUG-STG-082`، `BUG-STG-025` و `BUG-STG-026 / 027` است؛ P0/P1، Telegram، فایل، ظرفیت نمایشی و `BUG-STG-024` در این batch نیستند.
+- HEAD source فعلی `8df27fd4a15991587e6aba9bef12eb5f72495727` است. منطق canonical قیمت عضو، قیمت صفر برای free، filter/sort بر اساس همان قیمت، label رایگان و snapshot حمل مشترک بین PLP/PDP در source موجود است؛ patch تکراری ایجاد نشد.
+- تست رسمی Marketing: `38/38` pass، شامل free label، free filter/sort، member payable، transport mode/dong و organized transport.
+- تست رسمی Denali: `8/8` pass، شامل public card egress با `shared_cars` و `dongAmount=300000`.
+- runtime read-only فعلی: PDP تور `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان`، نوع حمل `خودروهای مشترک` و دُنگ `۳۰۰٬۰۰۰ تومان` را نشان می‌دهد؛ HTML/AX کارت PLP همان تور هنوز قیمت پایه `۲٬۰۰۰٬۰۰۰ تومان` را بدون transport/dong می‌دهد. `BUG-STG-081 / 082` روی artifact فعلی closure نشده‌اند.
+- runtime read-only فعلی: تور رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` در PLP label `رایگان / بدون نیاز به پرداخت` دارد و تست `minPrice=0`/sort قیمت صعودی نیز fixture رایگان را وارد نتایج می‌کند؛ `BUG-STG-025 / 026 / 027` فعلاً pass runtime هستند.
+- هدرهای فعلی هر سه host `cache-control: private, no-cache, no-store` و `x-cache: BYPASS` دارند؛ بنابراین این مشاهده به‌تنهایی stale CDN نیست. SHA runtime از خود host در header/HTML ارائه نشد. آخرین deploy ثبت‌شده staging `9a7df3408c9698ebb2391133cf2a42ee2a4c6d0e` است؛ تا deploy دقیق HEAD و fingerprint runtime، P2 بسته نمی‌شود.
+- گیت باقی‌مانده: deploy همین HEAD، ثبت SHA واقعی artifact از runtime، مقایسهٔ API PLP/PDP و screenshot/AX/HTML برای همان fixture، سپس recheck هر چهار BUG. اگر transport در API list هم غایب باشد، owner API/exposure است؛ اگر API حاضر و HTML غایب باشد، owner Marketing artifact است.
+
+## P1 implementation follow-up — ۲۰۲۶-۰۹-۲۸
+
+- `BUG-STG-047`: مسیر مستقیم `/catalog/:tourId/register` باید پیش از auth/intake، `registrationState=past|closed` را gate کند؛ `waitlist` همچنان باید به فرم ادامه دهد.
+- این تغییر فقط route guard و regression test است؛ ظرفیت کل، Telegram، PDF و فایل تصویری در این batch تغییر نمی‌کنند.
 
 ## Final source gate — ۲۰۲۶-۰۹-۲۷
 
@@ -1064,6 +1098,7 @@
 - `BUG-STG-022` با source contractهای participant pricing، API route، Denali obligation و Finance quote تأیید شد: تخفیف فقط برای `self`، مهمان بدون تخفیف، و lineهای `transport`/`dong` جداگانه است؛ این checkpoint `۸ + ۹ + ۱۱ + ۴` تست مرتبط را پاس کرد.
 - projection/status/waitlist source suites نیز سبز شدند: Portal `۴/۴`، API Finance `۱۵/۱۵`، Web Admin `۱۱/۱۱`، Marketing `۱۶/۱۶`، Portal Waitlist `۷/۷` و Denali Waitlist/locale `۱۳/۱۳`.
 - این checkpoint staging را نمی‌بندد؛ `BUG-STG-080/082/019/035/039/072`، دو projection، Waitlist runtime و locale runtime فقط پس از deploy نهایی با SHA واقعی قابل closure هستند.
+
 ## Continuation source/runtime sweep — ۲۰۲۶-۰۹-۲۷
 
 - `BUG-STG-025`: **PASS read-only فعلی**. PDP تور رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` عبارت `رایگان / بدون نیاز به پرداخت` و نبود کنترل پرداخت را نشان داد؛ PLP نیز همین label را نشان داد.
@@ -1208,7 +1243,7 @@
 ## Receipt upload follow-up — ۲۰۲۶-۰۹-۲۷
 
 - همان fixture پس از reject دوباره با resubmit متنی به وضعیت «رسید: در انتظار بررسی» برگشت داده شد؛ receipt و registration همچنان جدا گزارش می‌شوند.
-- input واقعی Portal نوع‌های image و PDF را با accept image/*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
+- input واقعی Portal نوع‌های image و PDF را با accept image/\*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
 - fixture در پایان در وضعیت pending باقی ماند و approve انجام نشد.
 
 ## Remaining API contract verification — ۲۰۲۶-۰۹-۲۷

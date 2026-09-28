@@ -13,6 +13,7 @@ import {
   sumApprovedPartySizeByTourIds as sumApprovedPartySizeByTourIdsService,
 } from "../create-bookings-service";
 import { readRegistrantTargetFromIntake } from "../read-registrant-target";
+import { resolvePaymentDueAtForProjection } from "../resolve-payment-due-at-projection";
 
 function toOwnedDetail(row: {
   readonly id: string;
@@ -21,6 +22,7 @@ function toOwnedDetail(row: {
   readonly tourTitle: string;
   readonly guestLabel: string;
   readonly paymentStatus: string;
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize: number;
@@ -35,6 +37,7 @@ function toOwnedDetail(row: {
   readonly guestLabel: string;
   readonly registrantTarget: "self" | "other";
   readonly paymentStatus: string;
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize: number;
@@ -50,12 +53,15 @@ function toOwnedDetail(row: {
     guestLabel: row.guestLabel,
     registrantTarget: readRegistrantTargetFromIntake(row.registrationIntake),
     paymentStatus: row.paymentStatus,
+    ...(row.financialDisplayState !== undefined
+      ? { financialDisplayState: row.financialDisplayState }
+      : {}),
     departureAt: row.departureAt,
     submittedAt: row.submittedAt,
     partySize: row.partySize,
     ...(row.registrationIntake !== undefined ? { registrationIntake: row.registrationIntake } : {}),
-    ...(row.paymentDueAt !== undefined && row.paymentDueAt !== null
-      ? { paymentDueAt: row.paymentDueAt }
+    ...(resolvePaymentDueAtForProjection(row) !== undefined
+      ? { paymentDueAt: resolvePaymentDueAtForProjection(row) }
       : {}),
     ...(row.cancelSource !== undefined ? { cancelSource: row.cancelSource } : {}),
   };
