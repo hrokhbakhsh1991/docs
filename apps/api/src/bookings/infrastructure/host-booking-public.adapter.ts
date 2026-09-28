@@ -13,6 +13,7 @@ import {
   sumApprovedPartySizeByTourIds as sumApprovedPartySizeByTourIdsService,
 } from "../create-bookings-service";
 import { readRegistrantTargetFromIntake } from "../read-registrant-target";
+import { resolvePaymentDueAtForProjection } from "../resolve-payment-due-at-projection";
 
 function toOwnedDetail(row: {
   readonly id: string;
@@ -59,8 +60,8 @@ function toOwnedDetail(row: {
     submittedAt: row.submittedAt,
     partySize: row.partySize,
     ...(row.registrationIntake !== undefined ? { registrationIntake: row.registrationIntake } : {}),
-    ...(row.paymentDueAt !== undefined && row.paymentDueAt !== null
-      ? { paymentDueAt: row.paymentDueAt }
+    ...(resolvePaymentDueAtForProjection(row) !== undefined
+      ? { paymentDueAt: resolvePaymentDueAtForProjection(row) }
       : {}),
     ...(row.cancelSource !== undefined ? { cancelSource: row.cancelSource } : {}),
   };

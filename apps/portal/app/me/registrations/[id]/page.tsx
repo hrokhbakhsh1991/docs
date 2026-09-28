@@ -14,6 +14,7 @@ import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { resolveMemberRegistrationDetailStatus } from "@/me/resolve-member-registration-detail-status";
+import { shouldShowMemberPaymentDue } from "@/me/should-show-member-payment-due";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
@@ -171,13 +172,17 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 </p>
               </div>
             ) : null}
-            {row.paymentCollection !== "free" &&
-            typeof row.paymentDueAt === "string" &&
-            row.paymentDueAt.length > 0 ? (
+            {shouldShowMemberPaymentDue({
+              registrationStatus: lifecycleStatus,
+              paymentCollection: row.paymentCollection,
+              paymentStatus: row.paymentStatus,
+              financialDisplayState: row.financialDisplayState,
+              paymentDueAt: row.paymentDueAt,
+            }) ? (
               <div data-portal-member-detail-kpi data-kpi="payment-due">
                 <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
                 <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
-                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt)}
+                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt ?? "")}
                 </p>
               </div>
             ) : null}

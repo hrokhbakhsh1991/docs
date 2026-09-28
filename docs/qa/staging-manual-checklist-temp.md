@@ -353,6 +353,14 @@ and Denali registration detail service.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
 
+## P0 source hardening — stale payment deadline fail-closed — ۲۰۲۶-۰۹-۲۸
+
+- ریشه‌یابی: API projection و Portal Detail در صورت باقی‌ماندن `paymentDueAt` قدیمی، آن را بدون توجه به `paymentStatus=paid` یا `financialDisplayState=WAIVED` منتشر می‌کردند.
+- اصلاح: resolver مشترک `resolvePaymentDueAtForProjection` در API service و public adapter اضافه شد؛ Portal نیز فقط برای registration تأییدشده، غیررایگان و تسویه‌نشده deadline را render می‌کند.
+- تست focused API: `24/24 pass` شامل finance projection؛ تست resolver deadline: `3/3 pass`.
+- تست focused Portal: `20/20 pass`؛ Portal lint/typecheck، import boundary و architecture truth: PASS.
+- این اصلاح source-level است و جایگزین deploy با SHA جدید و recheck API/List/Detail/Admin/Finance روی staging نمی‌شود.
+
 ## P2 merchandising implementation gate — ۲۰۲۶-۰۹-۲۸
 
 - محدودهٔ P2 شامل `BUG-STG-081`، `BUG-STG-082`، `BUG-STG-025` و `BUG-STG-026 / 027` است؛ P0/P1، Telegram، فایل، ظرفیت نمایشی و `BUG-STG-024` در این batch نیستند.
