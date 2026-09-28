@@ -5,6 +5,11 @@
   "signInToRegister": "ورود برای ادامه ثبت‌نام",
   "backToTour": "بازگشت به تور",
   "backToMarketing": "بازگشت",
+  "registrationUnavailable": {
+    "kicker": "ثبت‌نام در دسترس نیست",
+    "past": "زمان شروع این تور گذشته است و ثبت‌نام جدید پذیرفته نمی‌شود.",
+    "closed": "ثبت‌نام این تور بسته شده است و درخواست جدید پذیرفته نمی‌شود."
+  },
   "chrome": {
     "defaultSiteName": "باشگاه",
     "siteDescription": "پورتال اعضا برای {siteName}."

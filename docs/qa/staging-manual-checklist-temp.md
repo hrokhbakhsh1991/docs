@@ -338,7 +338,7 @@ and Denali registration detail service.
 ## Receipt upload follow-up — ۲۰۲۶-۰۹-۲۷
 
 - همان fixture پس از reject دوباره با resubmit متنی به وضعیت «رسید: در انتظار بررسی» برگشت داده شد؛ receipt و registration همچنان جدا گزارش می‌شوند.
-- input واقعی Portal نوع‌های image و PDF را با accept image/*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
+- input واقعی Portal نوع‌های image و PDF را با accept image/\*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
 - fixture در پایان در وضعیت pending باقی ماند و approve انجام نشد.
 
 ## Remaining API contract verification — ۲۰۲۶-۰۹-۲۷
@@ -352,6 +352,11 @@ and Denali registration detail service.
 - پوشش شامل putProof بعد از authorization، cleanup در خطای submit، GET pending بعد از upload، جلوگیری از upload برای مالک دیگر و approval projection است.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
+
+## P1 implementation follow-up — ۲۰۲۶-۰۹-۲۸
+
+- `BUG-STG-047`: مسیر مستقیم `/catalog/:tourId/register` باید پیش از auth/intake، `registrationState=past|closed` را gate کند؛ `waitlist` همچنان باید به فرم ادامه دهد.
+- این تغییر فقط route guard و regression test است؛ ظرفیت کل، Telegram، PDF و فایل تصویری در این batch تغییر نمی‌کنند.
 
 ## Final source gate — ۲۰۲۶-۰۹-۲۷
 
@@ -1074,6 +1079,7 @@ and Denali registration detail service.
 - `BUG-STG-022` با source contractهای participant pricing، API route، Denali obligation و Finance quote تأیید شد: تخفیف فقط برای `self`، مهمان بدون تخفیف، و lineهای `transport`/`dong` جداگانه است؛ این checkpoint `۸ + ۹ + ۱۱ + ۴` تست مرتبط را پاس کرد.
 - projection/status/waitlist source suites نیز سبز شدند: Portal `۴/۴`، API Finance `۱۵/۱۵`، Web Admin `۱۱/۱۱`، Marketing `۱۶/۱۶`، Portal Waitlist `۷/۷` و Denali Waitlist/locale `۱۳/۱۳`.
 - این checkpoint staging را نمی‌بندد؛ `BUG-STG-080/082/019/035/039/072`، دو projection، Waitlist runtime و locale runtime فقط پس از deploy نهایی با SHA واقعی قابل closure هستند.
+
 ## Continuation source/runtime sweep — ۲۰۲۶-۰۹-۲۷
 
 - `BUG-STG-025`: **PASS read-only فعلی**. PDP تور رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` عبارت `رایگان / بدون نیاز به پرداخت` و نبود کنترل پرداخت را نشان داد؛ PLP نیز همین label را نشان داد.
@@ -1218,7 +1224,7 @@ and Denali registration detail service.
 ## Receipt upload follow-up — ۲۰۲۶-۰۹-۲۷
 
 - همان fixture پس از reject دوباره با resubmit متنی به وضعیت «رسید: در انتظار بررسی» برگشت داده شد؛ receipt و registration همچنان جدا گزارش می‌شوند.
-- input واقعی Portal نوع‌های image و PDF را با accept image/*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
+- input واقعی Portal نوع‌های image و PDF را با accept image/\*,.pdf اعلام می‌کند، اما در این اجرای browser file chooser قابل set شدن نبود؛ بنابراین upload باینری PNG/PDF به‌عنوان PASS ثبت نشد.
 - fixture در پایان در وضعیت pending باقی ماند و approve انجام نشد.
 
 ## Remaining API contract verification — ۲۰۲۶-۰۹-۲۷

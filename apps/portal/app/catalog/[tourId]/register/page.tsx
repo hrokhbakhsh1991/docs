@@ -87,8 +87,36 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
   if (tour === null) {
     notFound();
   }
-
   const tourTitle = tour.title || "Tour";
+
+  // Keep direct registration links consistent with the public catalog contract.
+  // A stale/shared link must never reopen intake for a past or closed tour;
+  // a full tour (`waitlist`) intentionally continues to the waitlist flow.
+  if (tour.registrationState === "past" || tour.registrationState === "closed") {
+    const unavailableMessage =
+      tour.registrationState === "past"
+        ? t("registrationUnavailable.past")
+        : t("registrationUnavailable.closed");
+    return (
+      <PortalAuthExperienceShell
+        branding={branding}
+        backHref={backHref}
+        heroTitle={tourTitle}
+        heroKicker={t("registrationUnavailable.kicker")}
+        heroLede={unavailableMessage}
+        registrationIntakeResume={false}
+        pageKind="registration"
+        workspace={bootstrap.pluginId}
+        mainAttributes={{ "data-registration-unavailable": tour.registrationState }}
+      >
+        <div data-registration-unavailable-panel role="status">
+          <p>{unavailableMessage}</p>
+          <a href={backHref}>{t("backToTour")}</a>
+        </div>
+      </PortalAuthExperienceShell>
+    );
+  }
+
   const workspace = bootstrap.pluginId;
 
   const registrationResume = await buildRegistrationResumeInitialState(host, bootstrap.tenantId, {
