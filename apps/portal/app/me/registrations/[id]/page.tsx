@@ -14,6 +14,7 @@ import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { resolveMemberRegistrationDetailStatus } from "@/me/resolve-member-registration-detail-status";
+import { resolveMemberFinancialProjection } from "@/me/resolve-member-financial-projection";
 import { shouldShowMemberPaymentDue } from "@/me/should-show-member-payment-due";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
@@ -107,11 +108,15 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     typeof row.guestLabel === "string" && row.guestLabel.trim().length > 0
       ? row.guestLabel.trim()
       : null;
+  const financialProjection = resolveMemberFinancialProjection({
+    ...row,
+    status: lifecycleStatus,
+  });
   const detailStatus = resolveMemberRegistrationDetailStatus({
     lifecycleStatus,
-    paymentCollection: row.paymentCollection,
-    paymentStatus: row.paymentStatus,
-    financialDisplayState: row.financialDisplayState,
+    paymentCollection: financialProjection.paymentCollection,
+    paymentStatus: financialProjection.paymentStatus,
+    financialDisplayState: financialProjection.financialDisplayState,
     receiptStatus: receiptPanel.status,
   });
   return (
@@ -146,7 +151,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
           </div>
           <MemberRegistrationStatusCard
             lifecycleStatus={lifecycleStatus}
-            paymentStatus={row.paymentStatus}
+            paymentStatus={financialProjection.paymentStatus}
             statusLabel={statusLabel}
             initialCopy={detailStatus}
             initialReceiptStatus={receiptPanel.status}
@@ -175,15 +180,15 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
             {shouldShowMemberPaymentDue({
               registrationStatus: lifecycleStatus,
-              paymentCollection: row.paymentCollection,
-              paymentStatus: row.paymentStatus,
-              financialDisplayState: row.financialDisplayState,
-              paymentDueAt: row.paymentDueAt,
+              paymentCollection: financialProjection.paymentCollection,
+              paymentStatus: financialProjection.paymentStatus,
+              financialDisplayState: financialProjection.financialDisplayState,
+              paymentDueAt: financialProjection.paymentDueAt,
             }) ? (
               <div data-portal-member-detail-kpi data-kpi="payment-due">
                 <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
                 <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
-                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt ?? "")}
+                  {formatPaymentDueAtForMemberLocale(financialProjection.paymentDueAt ?? "")}
                 </p>
               </div>
             ) : null}
@@ -217,7 +222,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
-          paymentStatus={row.paymentStatus}
+          paymentStatus={financialProjection.paymentStatus}
           initialPanel={receiptPanel}
           tripsListHref={tripsListHref}
           tourHref={tourHref}
@@ -233,8 +238,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
-          paymentCollection={row.paymentCollection}
-          paymentDueAt={row.paymentDueAt ?? null}
+          paymentCollection={financialProjection.paymentCollection}
+          paymentDueAt={financialProjection.paymentDueAt ?? null}
           cancelSource={row.cancelSource ?? null}
         />
       </main>

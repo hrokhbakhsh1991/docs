@@ -48,16 +48,13 @@ export function isOperationalParticipant(status: OperationalRosterLifecycleStatu
 
 export function isFinalParticipant(input: {
   readonly status: OperationalRosterLifecycleStatus;
-  readonly remainingMinor: string | null | undefined;
-  readonly finalizationStatus?: "not_final" | "finalized" | string | null;
 }): boolean {
-  if (!isOperationalParticipant(input.status)) {
-    return false;
-  }
-  // Final roster membership is payment-gated. A stale explicit `finalized`
-  // marker must never promote an unpaid or partially paid registration.
-  // Settled legacy rows remain final while their audit field is backfilled.
-  return isFinanciallySettled(input.remainingMinor);
+  // Final-roster membership answers the operational question "who is
+  // participating?". Payment is a separate projection and must not remove
+  // an approved participant from the roster. Unpaid/partial rows remain
+  // visible there with their financial state and are also available through
+  // the dedicated financial filters.
+  return isOperationalParticipant(input.status);
 }
 
 export function occupiesCapacity(status: OperationalRosterLifecycleStatus): boolean {

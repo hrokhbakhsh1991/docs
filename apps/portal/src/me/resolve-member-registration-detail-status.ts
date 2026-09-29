@@ -26,7 +26,15 @@ export function resolveMemberRegistrationDetailStatus({
   financialDisplayState,
   receiptStatus,
 }: Input): MemberRegistrationDetailStatusCopy {
-  if (lifecycleStatus === "pending" || lifecycleStatus === "waitlisted") {
+  if (lifecycleStatus === "waitlisted") {
+    return {
+      tone: "waiting",
+      title: "statusWaitlistedTitle",
+      body: "statusWaitlistedBody",
+    };
+  }
+
+  if (lifecycleStatus === "pending") {
     return {
       tone: "waiting",
       title: "statusPendingTitle",
@@ -42,7 +50,7 @@ export function resolveMemberRegistrationDetailStatus({
     };
   }
 
-  if (paymentCollection === "free") {
+  if (paymentCollection === "free" || financialDisplayState === "WAIVED") {
     return {
       tone: "complete",
       title: "statusWaivedTitle",
@@ -82,14 +90,6 @@ export function resolveMemberRegistrationDetailStatus({
       tone: "complete",
       title: "statusReceiptApprovedTitle",
       body: "statusReceiptApprovedBody",
-    };
-  }
-
-  if (financialDisplayState === "WAIVED") {
-    return {
-      tone: "complete",
-      title: "statusWaivedTitle",
-      body: "statusWaivedBody",
     };
   }
 

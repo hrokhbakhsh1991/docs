@@ -107,7 +107,7 @@ The API coalesces concurrent outstanding-AR and tour-collection reads per tenant
 
 ### Registration finalization is payment-gated
 
-`approved` is the registration decision and `finalized` is the decision to include the guest in the final roster. Approval and financial proof remain separate axes, but an approved guest cannot be final while an amount remains due. The final-roster invariant is `approved` plus a financially settled `PAID` or `WAIVED` projection. Approved unpaid or partially paid guests remain operational and visible in payment follow-up, but never in the final roster or final-roster export. Free registrations may transition to finalized automatically after approval; paid registrations may be finalized only after the canonical Finance payment-status transition reaches zero remaining balance. The Finance approval transaction must persist the paid booking projection and its finalization marker together, so raw Booking state and the operational roster cannot diverge. The API contract must expose lifecycle, finalization, and financial dimensions separately so payment follow-up cannot be mistaken for final participation.
+`approved` is the registration decision for participation and `finalized` is an independent audit marker. The final participant roster is lifecycle-based: every approved participant is included regardless of whether payment is `PAID`, `PARTIALLY_PAID`, `UNPAID`, or `WAIVED`. Financial status remains a separate projection and payment follow-up view. Waitlisted, pending, rejected, and cancelled registrations are excluded from the participant roster. The API contract must expose lifecycle, finalization, and financial dimensions separately so payment follow-up cannot remove a real participant from the final roster.
 
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
@@ -335,6 +335,20 @@ Rules:
 - PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
 
 Portal: list/detail KPI still show booking `paymentStatus`; the receipt **panel** uses remaining + `waived`/`paid` from `GET /bookings/{id}/receipts`, never the booking ratchet alone.
+
+### Member list/detail financial projection contract
+
+Portal List and Detail must consume the same member financial projection for an
+owned registration. The projection is resolved in this order: lifecycle state,
+`paymentCollection`, `financialDisplayState`, booking `paymentStatus`, and
+`paymentDueAt`; `receiptStatus` remains an independent receipt-review axis.
+`paymentCollection=free` or `financialDisplayState=WAIVED` always clears a
+payment deadline and payment action. `paymentStatus=paid` also clears a stale
+deadline. A receipt that is approved without a settled booking payment must
+not be converted to `paid`; it may only render the independent receipt state.
+List hydration may repair an old list row from the owned Detail projection,
+but the List and Detail BFF contract must be tested together so this repair
+cannot silently regress to two different states.
 
 ## Phase 6 — Member completion surfaces after receipt approval (2026-09-13)
 

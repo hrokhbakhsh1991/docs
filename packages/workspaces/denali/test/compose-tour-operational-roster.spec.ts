@@ -36,7 +36,7 @@ function booking(over: Partial<BookingListItem> = {}): BookingListItem {
 }
 
 describe("DP-2 compose tour operational roster", () => {
-  it("approved unpaid row is operational but not final", () => {
+  it("approved unpaid row is operational and remains in the final participant roster", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking(),
       invoice: {
@@ -51,7 +51,7 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.isOperationalParticipant, true);
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.equal(row.remainingMinor, "2500000");
     assert.equal(row.amountDueNowMinor, "750000");
@@ -59,7 +59,7 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.holdStatus, "open");
   });
 
-  it("finalized unpaid row is excluded from final roster and still shows balance", () => {
+  it("approved unpaid row keeps its financial balance in the final participant roster", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({ status: "approved", finalizationStatus: "finalized" }),
       invoice: {
@@ -72,12 +72,12 @@ describe("DP-2 compose tour operational roster", () => {
       refundStatuses: [],
       nowIso: NOW,
     });
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.isFinanciallySettled, false);
     assert.equal(row.financialDisplayState, "UNPAID");
   });
 
-  it("keeps legacy settled rows in the final roster while finalization is backfilled", () => {
+  it("keeps approved settled rows in the final roster without rewriting finalization metadata", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({ status: "approved" }),
       invoice: {
@@ -90,7 +90,7 @@ describe("DP-2 compose tour operational roster", () => {
       refundStatuses: [],
       nowIso: NOW,
     });
-    assert.equal(row.finalizationStatus, "finalized");
+    assert.equal(row.finalizationStatus, "not_final");
     assert.equal(row.isFinalParticipant, true);
   });
 
@@ -108,7 +108,7 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.financialDisplayState, "PARTIALLY_PAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
   });
 
@@ -166,7 +166,7 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.financialDisplayState, "UNPAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.paymentDueAt, null);
     assert.equal(row.holdStatus, "satisfied");
   });
@@ -273,7 +273,7 @@ describe("DP-2 compose tour operational roster", () => {
 
     assert.equal(filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length, 1);
     assert.equal(filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length, 1);
-    assert.equal(filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length, 2);
     assert.equal(filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length, 1);
     assert.equal(filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length, 1);
     assert.equal(matchesOperationalRosterFilter(rows[0]!, "expiring", NOW), true);

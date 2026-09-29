@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-registration-headers.server";
 import { formatMemberMoney } from "../src/me/format-member-money";
 import { hydrateMemberRegistrationListFinancialProjection } from "../src/me/hydrate-member-registration-list-financial-projection.server";
+import { resolveMemberFinancialProjection } from "../src/me/resolve-member-financial-projection";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -59,12 +60,14 @@ describe("portal-member-registrations", () => {
         submittedAt: "2026-09-01T08:00:00.000Z",
       },
     ] as const;
-    const hydrated = await hydrateMemberRegistrationListFinancialProjection(
-      items,
-      async (id) =>
-        id === "free-partial-stale"
-          ? { ...items[0], paymentCollection: "free" as const, financialDisplayState: "WAIVED" as const }
-          : null
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async (id) =>
+      id === "free-partial-stale"
+        ? {
+            ...items[0],
+            paymentCollection: "free" as const,
+            financialDisplayState: "WAIVED" as const,
+          }
+        : null
     );
 
     assert.equal(hydrated[0]?.paymentCollection, "free");
@@ -85,12 +88,14 @@ describe("portal-member-registrations", () => {
         submittedAt: "2026-09-01T08:00:00.000Z",
       },
     ] as const;
-    const hydrated = await hydrateMemberRegistrationListFinancialProjection(
-      items,
-      async (id) =>
-        id === "free-complete-stale"
-          ? { ...items[0], paymentCollection: "free" as const, financialDisplayState: "WAIVED" as const }
-          : null
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async (id) =>
+      id === "free-complete-stale"
+        ? {
+            ...items[0],
+            paymentCollection: "free" as const,
+            financialDisplayState: "WAIVED" as const,
+          }
+        : null
     );
 
     assert.equal(hydrated[0]?.paymentCollection, "free");
@@ -111,19 +116,68 @@ describe("portal-member-registrations", () => {
         submittedAt: "2026-09-01T08:00:00.000Z",
       },
     ] as const;
-    const hydrated = await hydrateMemberRegistrationListFinancialProjection(
-      items,
-      async () => ({
-        ...items[0],
-        paymentStatus: "paid",
-        paymentDueAt: null,
-        financialDisplayState: undefined,
-      })
-    );
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async () => ({
+      ...items[0],
+      paymentStatus: "paid",
+      paymentDueAt: null,
+      financialDisplayState: undefined,
+    }));
 
     assert.equal(hydrated[0]?.paymentStatus, "paid");
     assert.equal(hydrated[0]?.paymentDueAt, null);
     assert.equal(hydrated[0]?.financialDisplayState, undefined);
+  });
+
+  it("BUG-STG-080 keeps List and Detail on the same waived projection", async () => {
+    const staleList = {
+      id: "free-contract",
+      tourId: "tour-free",
+      tourTitle: "Free",
+      status: "approved",
+      paymentStatus: "unpaid",
+      paymentCollection: "offline" as const,
+      paymentDueAt: "2026-09-28T08:00:00.000Z",
+      departureAt: "2026-09-28T08:00:00.000Z",
+      submittedAt: "2026-09-01T08:00:00.000Z",
+    };
+    const detail = {
+      ...staleList,
+      paymentCollection: "free" as const,
+      financialDisplayState: "WAIVED" as const,
+      paymentDueAt: "2026-09-28T08:00:00.000Z",
+    };
+
+    const [listProjection, detailProjection] = await Promise.all([
+      hydrateMemberRegistrationListFinancialProjection([staleList], async () => detail),
+      Promise.resolve(resolveMemberFinancialProjection(detail)),
+    ]);
+
+    assert.deepEqual(
+      {
+        paymentStatus: listProjection[0]?.paymentStatus,
+        paymentCollection: listProjection[0]?.paymentCollection,
+        financialDisplayState: listProjection[0]?.financialDisplayState,
+        paymentDueAt: listProjection[0]?.paymentDueAt,
+      },
+      detailProjection
+    );
+    assert.equal(listProjection[0]?.paymentDueAt, null);
+  });
+
+  it("clears a stale paid deadline without changing receipt state", () => {
+    assert.deepEqual(
+      resolveMemberFinancialProjection({
+        status: "approved",
+        paymentStatus: "paid",
+        paymentCollection: "offline",
+        paymentDueAt: "2026-09-28T08:00:00.000Z",
+      }),
+      {
+        paymentStatus: "paid",
+        paymentCollection: "offline",
+        paymentDueAt: null,
+      }
+    );
   });
 
   it("MEM-BFF-01 fetchMemberRegistrations uses same-origin registrations BFF", () => {
@@ -191,7 +245,8 @@ describe("portal-member-registrations", () => {
     assert.match(page, /data-portal-member-registration-status-badge/);
     assert.match(page, /localizeMemberFinalizationStatus/);
     assert.match(page, /data-portal-member-registration-payment-progress/);
-    assert.match(page, /item\.financialDisplayState/);
+    assert.match(page, /financialProjection\.financialDisplayState/);
+    assert.match(page, /resolveMemberFinancialProjection/);
     assert.match(page, /data-portal-member-registrations-empty-cta/);
     assert.match(page, /fetchMemberRegistrations/);
     assert.match(page, /RegistrantListFilter/);

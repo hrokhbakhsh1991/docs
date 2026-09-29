@@ -75,7 +75,7 @@ describe("final roster Excel export", () => {
     );
   });
 
-  it("BUG-STG-EXPORT-SUMMARY / BUG-STG-014/015/016 keeps debt out of totals and exports money, transport, and finalized date correctly", async () => {
+  it("BUG-STG-EXPORT-SUMMARY / BUG-STG-014/015/016 keeps approved debt in the participant roster and exports finance separately", async () => {
     const workbook = await buildFinalRosterWorkbook({
       tourId: "tour-1",
       tourTitle: "Denali test tour",
@@ -90,7 +90,9 @@ describe("final roster Excel export", () => {
         row({
           registrationId: "debt-1",
           guestLabel: '=HYPERLINK("https://evil.example")',
-          isFinalParticipant: false,
+          isFinalParticipant: true,
+          finalizedAt: null,
+          finalizationStatus: "not_final",
           isFinanciallySettled: false,
           financialDisplayState: "PARTIALLY_PAID",
           remainingMinor: "50000",
@@ -125,7 +127,7 @@ describe("final roster Excel export", () => {
     const unpaidSheet = loaded.getWorksheet("منتظر پرداخت")!;
     const paidSheet = loaded.getWorksheet("پرداخت‌شده")!;
     const waivedSheet = loaded.getWorksheet("بدون دریافت وجه")!;
-    assert.equal(finalSheet.rowCount, 3);
+    assert.equal(finalSheet.rowCount, 4);
     assert.equal(unpaidSheet.rowCount, 2);
     assert.equal(paidSheet.rowCount, 2);
     assert.equal(waivedSheet.rowCount, 2);
@@ -137,17 +139,17 @@ describe("final roster Excel export", () => {
       return summary.getCell(rowIndex, 2).text;
     };
     assert.equal(summaryValue("تعداد بدهکار یا پرداخت ناقص"), "1");
-    assert.match(summaryValue("مبلغ مانده نهایی‌شده"), /۰ تومان/);
+    assert.match(summaryValue("مبلغ مانده نهایی‌شده"), /۵۰٬۰۰۰ تومان/);
     assert.match(summaryValue("مبلغ مانده بدهکار یا پرداخت ناقص"), /۵۰٬۰۰۰ تومان/);
     assert.equal(finalSheet.getCell("A1").text, "ردیف");
     assert.equal(finalSheet.getCell("B2").text, "Paid guest");
     assert.match(finalSheet.getCell("G2").text, /تومان/);
     assert.match(finalSheet.getCell("M2").text, /۱۴۰۵|2026/);
     assert.match(finalSheet.getCell("G3").text, /۰ تومان/);
-    assert.equal(finalSheet.getCell("N3").text, "تاریخ در دسترس نیست");
+    assert.equal(finalSheet.getCell("N3").text, "—");
     assert.equal(finalSheet.getCell("K2").text, "حمل سازمان‌یافته");
     assert.equal(unpaidSheet.getCell("B2").text.startsWith("'="), true);
-    assert.equal(finalSheet.getCell("L3").text, "۳ نفر");
+    assert.equal(finalSheet.getCell("L4").text, "۳ نفر");
     assert.equal(finalSheet.tables["RosterFinal"]?.name, "RosterFinal");
   });
 

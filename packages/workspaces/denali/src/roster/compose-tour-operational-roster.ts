@@ -97,10 +97,10 @@ export function composeTourOperationalRosterRow(
     waived,
   });
   const holdStatus = input.hold?.status ?? null;
-  // The financial projection is authoritative for final-roster membership.
-  // Normalize stale booking metadata so an unpaid finalized row cannot leak into
-  // the final roster, and a settled legacy/free row is not blocked by not_final.
-  const finalizationStatus = financiallySettled ? "finalized" : "not_final";
+  // Final-roster membership is based on approved registration lifecycle. Keep
+  // payment/finalization metadata as independent projections so an approved
+  // participant who is still unpaid or partially paid remains visible.
+  const finalizationStatus = input.booking.finalizationStatus ?? "not_final";
 
   return {
     registrationId: input.booking.id,
@@ -138,11 +138,7 @@ export function composeTourOperationalRosterRow(
     isDriverOffer: isDriverOffer(input.booking.transportKind),
     passengerAssignmentStatus: passengerAssignmentStatus(),
     refundDisplayState: deriveRefundDisplayState(input.refundStatuses),
-    isFinalParticipant: isFinalParticipant({
-      status: registrationStatus,
-      remainingMinor,
-      finalizationStatus,
-    }),
+    isFinalParticipant: isFinalParticipant({ status: registrationStatus }),
     isOperationalParticipant: isOperationalParticipant(registrationStatus),
     isFinanciallySettled: financiallySettled,
     occupiesCapacity: occupiesCapacity(registrationStatus),

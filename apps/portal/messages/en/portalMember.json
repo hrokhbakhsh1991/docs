@@ -397,6 +397,8 @@
     "statusPendingTitle": "Your request is being reviewed",
     "statusPendingBody": "Payment becomes available after the club approves your registration.",
     "statusPendingFreeBody": "Your request is waiting for club approval.",
+    "statusWaitlistedTitle": "You are on the waitlist",
+    "statusWaitlistedBody": "The tour is full. Your request is queued on the waitlist and is not a final registration.",
     "statusApprovedTitle": "Your registration is approved",
     "statusApprovedBody": "Complete the payment to finalize the trip.",
     "statusReceiptPendingTitle": "Your receipt is under review",

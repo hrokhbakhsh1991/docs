@@ -101,7 +101,8 @@ and topic IDs); no environment may reuse the other's secret or destination.
 operator-only read. It uses the same composed roster projection and finalization
 predicate as the operational roster UI, but drains every cursor page before
 building the workbook. Payment state only partitions the workbook; it never
-removes a finalized debtor from `لیست نهایی`.
+keeps every approved participant in `لیست نهایی`; payment debt is represented in
+the financial-status column and the separate payment follow-up sheet.
 
 The workbook contains `خلاصه گزارش`, `لیست نهایی`, `نیازمند تسویه`, and
 `تسویه‌شده`. Every data sheet is a filtered Excel table. Export values are treated
