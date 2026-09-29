@@ -418,9 +418,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   span[data-marketing-catalog-card-past-badge] {
   inset-block-start: var(--space-3);
   inset-inline-end: var(--space-3);
-  color: var(--mkt-accent-deep);
-  background: color-mix(in srgb, var(--mkt-accent-mid) 18%, var(--color-bg-surface));
-  border: 1px solid color-mix(in srgb, var(--mkt-accent-mid) 42%, transparent);
+  color: var(--wiz-tone-amber-fg);
+  background: color-mix(in srgb, var(--wiz-tone-amber-source) 18%, var(--color-bg-surface));
+  border: 1px solid color-mix(in srgb, var(--wiz-tone-amber-source) 42%, transparent);
   box-shadow: 0 0.25rem 0.75rem rgb(15 23 42 / 0.16);
 }
 
