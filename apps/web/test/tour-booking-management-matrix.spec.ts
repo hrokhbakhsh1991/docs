@@ -125,8 +125,12 @@ describe("tour-booking-management-matrix (admin surface)", () => {
               capacityFull,
             });
 
-            assert.equal(result.canApprove, true, `${status}:${isWaitlistable}:${isCancellable}`);
-            assert.equal(result.canApproveWithoutPayment, true, status);
+            assert.equal(
+              result.canApprove,
+              !capacityFull,
+              `${status}:${isWaitlistable}:${isCancellable}`
+            );
+            assert.equal(result.canApproveWithoutPayment, !capacityFull, status);
             assert.equal(result.canReject, true, status);
             assert.equal(result.canWaitlist, isWaitlistable, status);
             assert.equal(result.canCancel, isCancellable, status);

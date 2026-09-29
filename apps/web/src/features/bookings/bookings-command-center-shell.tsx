@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Check, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
@@ -51,6 +51,7 @@ import {
   applyDepartureWindow,
   BOOKINGS_UPCOMING_FACET_DAYS,
   resolveBookingsKpiQueryPatch,
+  resolveBookingsKpiValue,
   resolveInboxSelectionAfterKey,
   resolveInlineApproveClick,
   serializeBookingsCommandCenterQuery,
@@ -520,6 +521,37 @@ export function BookingsPageClient({
   const inspectionTarget =
     inspectionBooking?.id === selectedId ? inspectionBooking : selectedBooking;
 
+  // The workspace injects a tour-level guard, while the global bookings page
+  // only has the canonical row snapshot. Keep the same fallback for both
+  // rendering and mutation handlers so a full waitlist row cannot expose an
+  // approval action that the API will reject (BUG-STG-063).
+  const effectiveCapacityGuard =
+    tourCapacityGuard ??
+    (inspectionTarget?.capacitySnapshot !== undefined
+      ? {
+          acceptedCount: inspectionTarget.capacitySnapshot.occupied,
+          totalCapacity: inspectionTarget.capacitySnapshot.max,
+        }
+      : undefined);
+  const capacityFull =
+    effectiveCapacityGuard !== undefined && isTourCapacityFull(effectiveCapacityGuard);
+
+  const isItemCapacityFull = useCallback(
+    (item: BookingListItem) => {
+      const itemCapacityGuard =
+        lockedTour.length > 0 && item.tourId === lockedTour && tourCapacityGuard !== undefined
+          ? tourCapacityGuard
+          : item.capacitySnapshot !== undefined
+            ? {
+                acceptedCount: item.capacitySnapshot.occupied,
+                totalCapacity: item.capacitySnapshot.max,
+              }
+            : undefined;
+      return itemCapacityGuard !== undefined && isTourCapacityFull(itemCapacityGuard);
+    },
+    [lockedTour, tourCapacityGuard]
+  );
+
   const applyKpiFilter = (kpi: BookingsKpiFilterId) => {
     if (kpi === "departures7d") {
       replaceQuery(
@@ -579,13 +611,17 @@ export function BookingsPageClient({
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [actionBusy, bulkConfirmOpen, cancelDialogOpen, loading, rejectDialogOpen]);
 
+  const capacityEligibleItems = useMemo(
+    () => (listData?.items ?? []).filter((item) => !isItemCapacityFull(item)),
+    [isItemCapacityFull, listData?.items]
+  );
   const bulkApprovableIds = useMemo(
-    () => filterBulkApprovableIds(listData?.items ?? [], bulkSelectedIds, bulkApproveMaxBatch),
-    [bulkApproveMaxBatch, bulkSelectedIds, listData?.items]
+    () => filterBulkApprovableIds(capacityEligibleItems, bulkSelectedIds, bulkApproveMaxBatch),
+    [bulkApproveMaxBatch, bulkSelectedIds, capacityEligibleItems]
   );
   const pageApprovableIds = useMemo(
-    () => listBulkApprovableIds(listData?.items ?? [], bulkApproveMaxBatch),
-    [bulkApproveMaxBatch, listData?.items]
+    () => listBulkApprovableIds(capacityEligibleItems, bulkApproveMaxBatch),
+    [bulkApproveMaxBatch, capacityEligibleItems]
   );
   const allPageApprovableSelected =
     pageApprovableIds.length > 0 && pageApprovableIds.every((id) => bulkSelectedIds.includes(id));
@@ -770,7 +806,7 @@ export function BookingsPageClient({
   };
 
   const requestApprove = (bookingId: string) => {
-    if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
+    if (capacityFull) {
       setOverbookConfirmMode("approve");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
@@ -820,7 +856,7 @@ export function BookingsPageClient({
   };
 
   const requestApproveWithoutPayment = (bookingId: string) => {
-    if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
+    if (capacityFull) {
       setOverbookConfirmMode("approve_without_payment");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
@@ -830,15 +866,10 @@ export function BookingsPageClient({
   };
 
   const showLeaderBanner = !embedded && (leaderAlias || isLeaderReviewAlias(query.scope));
-  const canActOnSelected =
-    canManageOps &&
-    inspectionTarget !== null &&
-    (inspectionTarget.status === "pending" || inspectionTarget.status === "waitlisted");
   const canWaitlistSelected =
     canManageOps && inspectionTarget !== null && isBookingWaitlistable(inspectionTarget);
   const canCancelSelected =
     canManageOps && inspectionTarget !== null && isBookingCancellable(inspectionTarget);
-  const capacityFull = tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard);
   const actionAvailability = useMemo(
     () =>
       resolveBookingActionAvailability({
@@ -850,6 +881,10 @@ export function BookingsPageClient({
       }),
     [canCancelSelected, canManageOps, canWaitlistSelected, capacityFull, inspectionTarget]
   );
+  const canRejectSelected = actionAvailability.canReject;
+  const canApproveSelected =
+    actionAvailability.canApprove || actionAvailability.canApproveWithoutPayment;
+  const canActOnSelected = canRejectSelected || canApproveSelected;
   const actionUnavailableHint = useMemo(() => {
     if (actionAvailability.unavailableReason === "approved_use_finance" && !canActOnSelected) {
       return t("actionReason.approvedUseFinance");
@@ -873,7 +908,9 @@ export function BookingsPageClient({
   ]);
   const capacityFullHint =
     actionAvailability.showCapacityFullHint && canActOnSelected
-      ? t("actionReason.capacityFull")
+      ? t.has("actionReason.capacityFull")
+        ? t("actionReason.capacityFull")
+        : null
       : null;
   const totalPages =
     listData !== null ? resolveBookingsListTotalPages(listData.total, BOOKINGS_LIST_PAGE_SIZE) : 1;
@@ -888,6 +925,7 @@ export function BookingsPageClient({
 
   const renderInboxRow = (item: (typeof displayItems)[number]) => {
     const selected = selectedBooking?.id === item.id;
+    const itemCapacityFull = isItemCapacityFull(item);
     return (
       <Fragment key={item.id}>
         {item.status === "cancelled" && item.cancelSource === "payment_deadline" ? (
@@ -899,13 +937,14 @@ export function BookingsPageClient({
           item={item}
           selected={selected}
           bulkChecked={bulkSelectedIds.includes(item.id)}
-          showBulkSelect={canManageOps && isBulkApprovable(item)}
+          showBulkSelect={canManageOps && isBulkApprovable(item) && !itemCapacityFull}
           onBulkToggle={() => toggleBulkSelection(item.id)}
           onSelect={() => selectBooking(item.id)}
           showInlineApprove={shouldShowInlineApprove({
             featureEnabled: BOOKINGS_INLINE_APPROVE_ENABLED,
             canManageOps,
             item,
+            capacityFull: itemCapacityFull,
             selected,
             narrowViewport: isNarrowViewport,
           })}
@@ -968,14 +1007,19 @@ export function BookingsPageClient({
         ) : null}
       </div>
 
-      {canManageOps && summary !== null && !embedded ? (
+      {canManageOps && summary !== null && !embedded && !loading ? (
         <div
           className="flex flex-wrap items-center gap-2"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.kpiStrip}
         >
           <BookingsKpiCard
             label={t("kpi.pending")}
-            value={summary.pending}
+            value={resolveBookingsKpiValue({
+              kpi: "pending",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.pending,
+            })}
             locale={locale}
             ariaLabel={t("kpi.pendingAria")}
             active={query.status === "pending" && query.departureWithinDays.length === 0}
@@ -983,7 +1027,12 @@ export function BookingsPageClient({
           />
           <BookingsKpiCard
             label={t("kpi.approvedToday")}
-            value={summary.approvedToday}
+            value={resolveBookingsKpiValue({
+              kpi: "approvedToday",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.approvedToday,
+            })}
             locale={locale}
             active={
               query.status === "approved" &&
@@ -994,7 +1043,12 @@ export function BookingsPageClient({
           />
           <BookingsKpiCard
             label={t("kpi.departures7d")}
-            value={summary.departures7d}
+            value={resolveBookingsKpiValue({
+              kpi: "departures7d",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.departures7d,
+            })}
             locale={locale}
             ariaLabel={t("kpi.departures7dAria")}
             active={query.departureWithinDays === "7"}
@@ -1002,7 +1056,12 @@ export function BookingsPageClient({
           />
           <BookingsKpiCard
             label={t("kpi.waitlist")}
-            value={summary.waitlist}
+            value={resolveBookingsKpiValue({
+              kpi: "waitlist",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.waitlist,
+            })}
             locale={locale}
             ariaLabel={t("kpi.waitlistAria")}
             active={query.status === "waitlisted" && query.departureWithinDays.length === 0}
@@ -1245,6 +1304,8 @@ export function BookingsPageClient({
                   locale={locale}
                   canManageOps={canManageOps}
                   canActOnSelected={canActOnSelected}
+                  canRejectSelected={canRejectSelected}
+                  canApproveSelected={canApproveSelected}
                   canWaitlistSelected={canWaitlistSelected}
                   canCancelSelected={canCancelSelected}
                   actionBusy={actionBusy}
@@ -1291,6 +1352,8 @@ export function BookingsPageClient({
                   locale={locale}
                   canManageOps={canManageOps}
                   canActOnSelected={canActOnSelected}
+                  canRejectSelected={canRejectSelected}
+                  canApproveSelected={canApproveSelected}
                   canWaitlistSelected={canWaitlistSelected}
                   canCancelSelected={canCancelSelected}
                   actionBusy={actionBusy}

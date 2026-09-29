@@ -9,12 +9,121 @@ import { fileURLToPath } from "node:url";
 
 import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-registration-headers.server";
 import { formatMemberMoney } from "../src/me/format-member-money";
+import { hydrateMemberRegistrationListFinancialProjection } from "../src/me/hydrate-member-registration-list-financial-projection.server";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal-member-registrations", () => {
   it("MEM-FIN-01 formats IRR with the member-facing toman label", () => {
     assert.equal(formatMemberMoney("1344444", "IRR"), "۱٬۳۴۴٬۴۴۴ تومان");
+  });
+
+  it("BUG-STG-080 hydrates legacy approved rows from the owned detail projection", async () => {
+    const items = [
+      {
+        id: "free-legacy",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "approved",
+        paymentStatus: "unpaid",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+      {
+        id: "pending-row",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "pending",
+        paymentStatus: "unpaid",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async (id) =>
+      id === "free-legacy" ? { ...items[0], paymentCollection: "free" as const } : null
+    );
+    assert.equal(hydrated[0]?.paymentCollection, "free");
+    assert.equal(hydrated[1]?.paymentCollection, undefined);
+  });
+
+  it("BUG-STG-080 repairs a partial stale financial projection instead of trusting offline", async () => {
+    const items = [
+      {
+        id: "free-partial-stale",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "offline",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(
+      items,
+      async (id) =>
+        id === "free-partial-stale"
+          ? { ...items[0], paymentCollection: "free" as const, financialDisplayState: "WAIVED" as const }
+          : null
+    );
+
+    assert.equal(hydrated[0]?.paymentCollection, "free");
+    assert.equal(hydrated[0]?.financialDisplayState, "WAIVED");
+  });
+
+  it("BUG-STG-080 replaces a complete but stale approved projection", async () => {
+    const items = [
+      {
+        id: "free-complete-stale",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "offline",
+        financialDisplayState: undefined,
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(
+      items,
+      async (id) =>
+        id === "free-complete-stale"
+          ? { ...items[0], paymentCollection: "free" as const, financialDisplayState: "WAIVED" as const }
+          : null
+    );
+
+    assert.equal(hydrated[0]?.paymentCollection, "free");
+    assert.equal(hydrated[0]?.financialDisplayState, "WAIVED");
+  });
+
+  it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE replaces stale payment status and deadline", async () => {
+    const items = [
+      {
+        id: "paid-stale",
+        tourId: "tour-paid",
+        tourTitle: "Paid",
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "offline" as const,
+        paymentDueAt: "2026-09-28T08:00:00.000Z",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(
+      items,
+      async () => ({
+        ...items[0],
+        paymentStatus: "paid",
+        paymentDueAt: null,
+        financialDisplayState: undefined,
+      })
+    );
+
+    assert.equal(hydrated[0]?.paymentStatus, "paid");
+    assert.equal(hydrated[0]?.paymentDueAt, null);
+    assert.equal(hydrated[0]?.financialDisplayState, undefined);
   });
 
   it("MEM-BFF-01 fetchMemberRegistrations uses same-origin registrations BFF", () => {
@@ -159,10 +268,16 @@ describe("portal-member-registrations", () => {
     assert.match(form, /dispatchMemberReceiptStatusChanged\("pending"\)/);
     assert.match(statusCard, /data-portal-member-detail-status-card/);
     assert.match(statusCard, /statusReceiptPendingTitle/);
+    assert.match(statusCard, /statusReceiptApprovedTitle/);
+    assert.match(statusCard, /paymentStatus.trim\(\).toLowerCase\(\) === "paid"/);
     assert.match(statusCard, /MEMBER_RECEIPT_STATUS_CHANGED_EVENT/);
     assert.match(form, /data-portal-member-receipt-closed/);
     assert.match(form, /data-portal-member-receipt-waiting/);
     assert.match(form, /data-portal-member-receipt-paid/);
+    assert.match(form, /data-portal-member-receipt-approved-awaiting-payment/);
+    assert.match(form, /paymentStatus.trim\(\).toLowerCase\(\) === "paid"/);
+    assert.match(form, /Payment finality wins over a stale receipt projection/);
+    assert.match(statusCard, /paymentStatus.trim\(\).toLowerCase\(\) === "paid"/);
     assert.match(form, /data-portal-member-receipt-waived/);
     assert.match(form, /data-portal-member-receipt-preview/);
     assert.match(form, /paymentDestinationLabel/);

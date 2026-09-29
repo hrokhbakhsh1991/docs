@@ -64,6 +64,30 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     assert.ok(unpaid.items.some((item) => item.registrationId === created.id));
   });
 
+  it("countOnly returns the exact filtered total beyond the requested page size", async () => {
+    const first = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: `Count-only first ${randomUUID()}` })
+    );
+    await approveBooking(dp1OpsAuth(), first.id);
+    const second = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: `Count-only second ${randomUUID()}` })
+    );
+    await approveBooking(dp1OpsAuth(), second.id);
+
+    const result = await listTourOperationalRoster(dp1OpsAuth(), DP1_TOUR_ID, {
+      view: "ops",
+      filter: "operational",
+      limit: 1,
+      countOnly: true,
+    });
+
+    assert.deepEqual(result.items, []);
+    assert.equal(result.total, 2);
+    assert.equal(result.nextCursor, null);
+  });
+
   it("matrix: partial payment stays non-final", async () => {
     const created = await createBooking(dp1OpsAuth(), dp1BookingBody());
     await approveBooking(dp1OpsAuth(), created.id);

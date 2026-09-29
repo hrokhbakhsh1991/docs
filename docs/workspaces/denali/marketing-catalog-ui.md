@@ -746,6 +746,16 @@ Deferred (non-blocker): Track B `catalogUi` manifest · shared CSS partial until
 
 ## Verify
 
+### Exposure profile compatibility during catalog reads
+
+Public list and detail cards use the same canonical transport snapshot, but an
+older registry-seeded exposure profile may predate a newly eligible field. The
+runtime resolver must merge newly seeded default field ids for registry-seeded
+profiles while preserving native persisted profiles and explicit disabled or
+override intents. This prevents a stale profile from dropping transport mode or
+dong amount from PLP while PDP still exposes them; it also keeps transport
+redaction governed by Exposure rather than bypassing the policy layer.
+
 ### Waitlist registration copy contract
 
 When the public catalog detail returns `registrationState: "waitlist"`, the Portal registration flow must carry that state into the workspace flow context. Denali intake must then show explicit waitlist copy and use a waitlist-specific submit label; it must never reuse the normal registration copy for a capacity-full tour. The PDP CTA and the guest form are separate acceptance surfaces and both require assertions.

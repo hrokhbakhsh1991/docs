@@ -31,14 +31,16 @@ export async function listTourOperationalRoster(
 ): Promise<OperationalRosterListResponse> {
   const normalizedTourId = tourId.trim();
   const status = query.filter === "waitlist" ? ("waitlisted" as const) : ("approved" as const);
-  const bookings = await listBookings(auth, {
-    view: "ops",
-    tourId: normalizedTourId,
-    status,
-    limit: query.limit,
-    ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
-    sort: "submittedAt",
-  });
+  const bookings = query.countOnly
+    ? await listAllTourBookings(auth, normalizedTourId, status)
+    : await listBookings(auth, {
+        view: "ops",
+        tourId: normalizedTourId,
+        status,
+        limit: query.limit,
+        ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
+        sort: "submittedAt",
+      });
 
   const finance = await resolveFinanceServiceForTenant(auth.tenantId);
   const financeAuth = toFinanceAuth(auth);
@@ -62,8 +64,32 @@ export async function listTourOperationalRoster(
   return {
     tourId: normalizedTourId,
     filter: query.filter,
-    items: filtered,
+    items: query.countOnly ? [] : filtered,
     total: filtered.length,
-    nextCursor: bookings.nextCursor,
+    nextCursor: query.countOnly ? null : bookings.nextCursor,
   };
+}
+
+async function listAllTourBookings(
+  auth: BookingActorContext,
+  tourId: string,
+  status: "approved" | "waitlisted"
+): Promise<Awaited<ReturnType<typeof listBookings>>> {
+  const items: Array<Awaited<ReturnType<typeof listBookings>>["items"][number]> = [];
+  let cursor: string | undefined;
+
+  do {
+    const page = await listBookings(auth, {
+      view: "ops",
+      tourId,
+      status,
+      limit: 100,
+      ...(cursor !== undefined ? { cursor } : {}),
+      sort: "submittedAt",
+    });
+    items.push(...page.items);
+    cursor = page.nextCursor ?? undefined;
+  } while (cursor !== undefined);
+
+  return { items, total: items.length, nextCursor: null };
 }

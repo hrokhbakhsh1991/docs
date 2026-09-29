@@ -19,6 +19,7 @@ type StatusCopy = {
 
 type Props = {
   readonly lifecycleStatus: RegistrationLifecycleStatus;
+  readonly paymentStatus: string;
   readonly statusLabel: string;
   readonly initialCopy: StatusCopy;
   readonly initialReceiptStatus: MemberReceiptStatus;
@@ -39,7 +40,10 @@ function receiptStatusLabelKey(status: MemberReceiptStatus): string {
   }
 }
 
-function resolveReceiptCopy(status: MemberReceiptStatus): StatusCopy {
+function resolveReceiptCopy(status: MemberReceiptStatus, paymentStatus: string): StatusCopy {
+  if (paymentStatus.trim().toLowerCase() === "paid") {
+    return { tone: "complete", title: "statusPaidTitle", body: "statusPaidBody" };
+  }
   switch (status) {
     case "pending":
       return {
@@ -48,7 +52,13 @@ function resolveReceiptCopy(status: MemberReceiptStatus): StatusCopy {
         body: "statusReceiptPendingBody",
       };
     case "paid":
-      return { tone: "complete", title: "statusPaidTitle", body: "statusPaidBody" };
+      return paymentStatus.trim().toLowerCase() === "paid"
+        ? { tone: "complete", title: "statusPaidTitle", body: "statusPaidBody" }
+        : {
+            tone: "complete",
+            title: "statusReceiptApprovedTitle",
+            body: "statusReceiptApprovedBody",
+          };
     case "waived":
       return { tone: "complete", title: "statusWaivedTitle", body: "statusWaivedBody" };
     case "rejected":
@@ -64,6 +74,7 @@ function resolveReceiptCopy(status: MemberReceiptStatus): StatusCopy {
 
 export function MemberRegistrationStatusCard({
   lifecycleStatus,
+  paymentStatus,
   statusLabel,
   initialCopy,
   initialReceiptStatus,
@@ -78,13 +89,13 @@ export function MemberRegistrationStatusCard({
       if (detail?.status === undefined) return;
       setReceiptStatus(detail.status);
       if (lifecycleStatus === "approved") {
-        setCopy(resolveReceiptCopy(detail.status));
+        setCopy(resolveReceiptCopy(detail.status, paymentStatus));
       }
     };
     window.addEventListener(MEMBER_RECEIPT_STATUS_CHANGED_EVENT, onReceiptStatusChanged);
     return () =>
       window.removeEventListener(MEMBER_RECEIPT_STATUS_CHANGED_EVENT, onReceiptStatusChanged);
-  }, [lifecycleStatus]);
+  }, [lifecycleStatus, paymentStatus]);
 
   const showReceiptBadge = lifecycleStatus === "approved" || receiptStatus !== "none";
   return (

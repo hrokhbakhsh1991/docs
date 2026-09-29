@@ -8,7 +8,10 @@ import {
   CATALOG_DISPLAY_TIME_ZONE,
   formatCatalogPrice,
 } from "./format-catalog-display";
-import { resolveCatalogTransportCostAmount } from "./format-catalog-transport";
+import {
+  resolveCatalogDongAmount,
+  resolveCatalogTransportCostAmount,
+} from "./format-catalog-transport";
 import { resolveCatalogTransportLabelKey } from "./resolve-catalog-transport-label-key";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
@@ -59,10 +62,11 @@ export async function CatalogTourDetailLogistics({
           priceDisplayPolicy
         )
       : null;
+  const dongAmountValue = resolveCatalogDongAmount(transport);
   const dongAmount =
-    transport?.dongAmount != null
+    dongAmountValue != null
       ? formatCatalogPrice(
-          transport.dongAmount,
+          dongAmountValue,
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),

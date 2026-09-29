@@ -25,7 +25,7 @@ export type MemberRegistrationItem = {
     readonly amountMinor: string;
   }[];
   /** DP1 — Finance hold dueAt (UTC ISO). */
-  readonly paymentDueAt?: string;
+  readonly paymentDueAt?: string | null;
   readonly cancelSource?: string | null;
 };
 

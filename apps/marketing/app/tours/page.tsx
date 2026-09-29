@@ -116,7 +116,8 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     filters,
     serverListFilters,
     bootstrap.pluginId,
-    pricingPreviewResult.previews
+    pricingPreviewResult.previews,
+    pricingPreviewResult.status
   );
   const listJsonLd =
     shouldEmitMarketingCatalogListJsonLd({ cursor: filters.cursor }) && items.length > 0

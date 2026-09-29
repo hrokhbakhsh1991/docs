@@ -6,7 +6,10 @@ import {
 } from "./workspace-exposure-host-bindings.generated.ts";
 
 import { buildFieldExposureEngineDecisionMap } from "./build-field-exposure-engine-input";
-import { resolveSeededExposureProfile } from "./exposure-profile";
+import {
+  mergeRegistrySeededExposureProfileDefaults,
+  resolveSeededExposureProfile,
+} from "./exposure-profile";
 import { createExposureIntentRepository } from "./create-exposure-intent-repository";
 import { resolvePersistedExposureProfileForContext } from "./resolve-persisted-exposure-profile";
 
@@ -90,7 +93,7 @@ async function tryFindExposureIntent(input: {
 
 export async function resolveDenaliSurfaceVisibleFieldIds(
   auth: TenantAuthContext,
-  input: ResolveDenaliSurfaceExposureInput,
+  input: ResolveDenaliSurfaceExposureInput
 ): Promise<readonly string[]> {
   const payload = canonicalPayload(input.canonical);
   const seededProfile = resolveDenaliSurfaceExposureProfile({
@@ -110,7 +113,10 @@ export async function resolveDenaliSurfaceVisibleFieldIds(
             trigger: seededProfile.trigger,
           },
         });
-  const profile = persistedProfile ?? seededProfile;
+  const profile = mergeRegistrySeededExposureProfileDefaults({
+    persisted: persistedProfile,
+    seed: seededProfile,
+  });
   const triggerKey = resolveTriggerStorageKey(input.coordinate.trigger);
 
   const nativeIntent =
@@ -167,7 +173,7 @@ export function buildDenaliExposureResolverPort(): {
           tourId: input.tourId,
           canonical: input.canonical,
           coordinate: input.coordinate,
-        },
+        }
       );
     },
   };

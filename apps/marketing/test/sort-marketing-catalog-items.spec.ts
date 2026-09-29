@@ -73,6 +73,31 @@ describe("sort-marketing-catalog-items.spec.ts — PR-21", () => {
     assert.deepEqual(result.map((item) => item.id), ["member-low", "base-low"]);
   });
 
+  it("BUG-STG-081 fails closed when an authenticated preview is missing", () => {
+    const items = [
+      { id: "member-tour", title: "Member tour", priceAmount: 1_000_000 },
+      { id: "public-tour", title: "Public tour", priceAmount: 2_000_000 },
+    ];
+    const sorted = sortMarketingCatalogItems(
+      items,
+      "price_asc",
+      {
+        "public-tour": {
+          grossMinor: "2000000",
+          discountableBaseMinor: "2000000",
+          memberDiscountPercentage: 0,
+          memberDiscountMinor: "0",
+          payableMinor: "2000000",
+          currency: "IRR",
+          source: "tour_canonical",
+          lines: [],
+        },
+      },
+      "partial"
+    );
+    assert.deepEqual(sorted.map((item) => item.id), ["public-tour", "member-tour"]);
+  });
+
   it("BUG-STG-027 sorts free collection as price zero", () => {
     const result = sortMarketingCatalogItems(
       [

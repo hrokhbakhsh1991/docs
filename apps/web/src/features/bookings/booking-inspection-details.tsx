@@ -34,6 +34,8 @@ type BookingInspectionDetailsProps = {
   readonly locale: AppLocale;
   readonly canManageOps: boolean;
   readonly canActOnSelected: boolean;
+  readonly canRejectSelected: boolean;
+  readonly canApproveSelected: boolean;
   readonly canWaitlistSelected: boolean;
   readonly canCancelSelected: boolean;
   readonly actionBusy: boolean;
@@ -55,6 +57,8 @@ export function BookingInspectionDetails({
   locale,
   canManageOps,
   canActOnSelected,
+  canRejectSelected,
+  canApproveSelected,
   canWaitlistSelected,
   canCancelSelected,
   actionBusy,
@@ -129,7 +133,8 @@ export function BookingInspectionDetails({
       (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (
         <BookingActionButtons
           busy={actionBusy}
-          showApproveReject={canActOnSelected}
+          showReject={canRejectSelected}
+          showApprove={canApproveSelected}
           showWaitlist={canWaitlistSelected}
           showCancel={canCancelSelected}
           onReject={onReject}

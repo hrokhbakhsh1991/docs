@@ -764,6 +764,8 @@
       "customizeFieldsLabel": "Customize included fields",
       "customizeFieldsHint": "Tick fields to add or remove lines in the message text below. Edit wording and emoji directly in the textarea.",
       "fieldsLabel": "Message fields",
+      "fieldsLoading": "Loading workspace fields…",
+      "fieldsUnavailable": "Workspace fields are temporarily unavailable.",
       "noCandidateFields": "This workspace exposes no configurable delivery fields yet.",
       "templateLabel": "Telegram message text",
       "templateCanvasDescription": "Each ticked field adds a line with '{{field:...}}'. Set order and copy here.",

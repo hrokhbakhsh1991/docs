@@ -5,6 +5,7 @@ import {
 } from "./build-catalog-list-card-summary";
 import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import {
   resolveMarketingCatalogListPrice,
   type MarketingCatalogPricingPreviews,
@@ -65,7 +66,8 @@ export async function filterMarketingCatalogItems(
     | "maxDuration"
   >,
   pluginId?: string,
-  pricingPreviews?: MarketingCatalogPricingPreviews
+  pricingPreviews?: MarketingCatalogPricingPreviews,
+  pricingPreviewStatus: MarketingCommercialPricingPreviewStatus = "anonymous"
 ): Promise<readonly MarketingCatalogCard[]> {
   const surface = pluginId != null ? await resolveMarketingCatalogSurface(pluginId) : null;
   let filtered = items.filter(isPublicCatalogItemAllowed);
@@ -100,7 +102,7 @@ export async function filterMarketingCatalogItems(
 
   if (filters.minPrice != null || filters.maxPrice != null) {
     filtered = filtered.filter((item) => {
-      const price = resolveMarketingCatalogListPrice(item, pricingPreviews);
+      const price = resolveMarketingCatalogListPrice(item, pricingPreviews, pricingPreviewStatus);
       if (price == null || !Number.isFinite(price)) {
         return false;
       }

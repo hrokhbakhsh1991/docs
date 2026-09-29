@@ -34,6 +34,7 @@ import {
   parseCatalogRegistrationResponseBody,
 } from "./denali-registration-intake-client-logic";
 import { DenaliRenderIntakeForm } from "./denali-intake-form";
+import { sumParticipantPayableMinor } from "./denali-registration-pricing";
 
 /** Product hard cap: other-guest cards per intake submit (self is separate). */
 export const DENALI_MAX_OTHER_GUESTS = 10;
@@ -808,6 +809,21 @@ export function DenaliIntakeStep({
         )
       : null;
   })();
+  const formattedPreviewTotal = (() => {
+    if (participantPricingInputs.length < 2) {
+      return null;
+    }
+    const previews = participantPricingInputs.map(
+      (input) => commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)]
+    );
+    if (previews.some((preview) => preview === undefined)) {
+      return null;
+    }
+    const totalMinor = sumParticipantPayableMinor(
+      previews as readonly CommercialPricingPreview[]
+    );
+    return totalMinor === null ? null : formatMinor(totalMinor, priceLocale);
+  })();
   const isWaitlistRegistration = context.registrationState === "waitlist";
   const submitDisabled = loading || !clientReady || (!selfSelected && otherGuests.length === 0);
   const ctaAlert =
@@ -880,7 +896,7 @@ export function DenaliIntakeStep({
       {travelerDraftCount > 0 ? (
         <p data-denali-party-line>
           {partyLineText}
-          {!hasMembershipDiscount && formattedPrice !== null ? (
+          {!isWaitlistRegistration && !hasMembershipDiscount && formattedPrice !== null ? (
             <>
               {" · "}
               <strong>{t("intake.priceAmount", { amount: formattedPrice })}</strong>{" "}
@@ -889,12 +905,12 @@ export function DenaliIntakeStep({
           ) : null}
         </p>
       ) : null}
-      {commercialPricingPreviewLoading ? (
+      {!isWaitlistRegistration && commercialPricingPreviewLoading ? (
         <p data-registration-pricing-preview-loading role="status">
           {t("intake.pricingPreviewLoading")}
         </p>
       ) : null}
-      {participantPricingInputs.length > 0 ? (
+      {!isWaitlistRegistration && participantPricingInputs.length > 0 ? (
         <div data-registration-pricing-preview>
           {participantPricingInputs.map((input) => {
             const preview =
@@ -1497,23 +1513,39 @@ export function DenaliIntakeStep({
                 );
               })}
             </ul>
-            {formattedPreviewPayable !== null ? (
-              <>
-                <p data-denali-rail-price-label>{t("intake.pricePerRegistration")}</p>
-                <p data-registration-price-hint>
-                  {t("intake.priceAmount", { amount: formattedPreviewPayable })}
-                </p>
-                <p data-denali-price-per>{t("intake.separateRegistrationPrice")}</p>
-              </>
-            ) : formattedPrice !== null ? (
-              <>
-                <p data-denali-rail-price-label>{t("intake.pricePerPerson")}</p>
-                <p data-registration-price-hint>
-                  {t("intake.priceAmount", { amount: formattedPrice })}
-                </p>
-                <p data-denali-price-per>{t("intake.pricePerPerson")}</p>
-              </>
-            ) : null}
+            {!isWaitlistRegistration
+              ? formattedPreviewTotal !== null
+                ? (
+                    <>
+                      <p data-denali-rail-price-label>{t("intake.totalPayableAmount")}</p>
+                      <p data-registration-price-hint>
+                        {t("intake.priceAmount", { amount: formattedPreviewTotal })}
+                      </p>
+                      <p data-denali-price-per>{t("intake.separateRegistrationPrice")}</p>
+                    </>
+                  )
+                : formattedPreviewPayable !== null
+                  ? (
+                      <>
+                        <p data-denali-rail-price-label>{t("intake.pricePerRegistration")}</p>
+                        <p data-registration-price-hint>
+                          {t("intake.priceAmount", { amount: formattedPreviewPayable })}
+                        </p>
+                        <p data-denali-price-per>{t("intake.separateRegistrationPrice")}</p>
+                      </>
+                    )
+                  : formattedPrice !== null
+                    ? (
+                        <>
+                          <p data-denali-rail-price-label>{t("intake.pricePerPerson")}</p>
+                          <p data-registration-price-hint>
+                            {t("intake.priceAmount", { amount: formattedPrice })}
+                          </p>
+                          <p data-denali-price-per>{t("intake.pricePerPerson")}</p>
+                        </>
+                      )
+                    : null
+              : null}
           </aside>
 
           <div

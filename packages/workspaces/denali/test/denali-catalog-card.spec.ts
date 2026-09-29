@@ -86,4 +86,20 @@ describe("denali-catalog-card", () => {
       dongAmount: 300_000,
     });
   });
+
+  it("BUG-STG-025 removes the numeric price and JSON-LD offer for free tours", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        pricing: {
+          basePricePerPerson: 2500000,
+          paymentCollection: "free",
+        },
+      }),
+    });
+
+    assert.equal(card.paymentCollection, "free");
+    assert.equal(card.priceAmount, null);
+    assert.equal("offers" in (card.structuredData ?? {}), false);
+  });
 });

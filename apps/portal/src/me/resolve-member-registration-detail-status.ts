@@ -50,6 +50,17 @@ export function resolveMemberRegistrationDetailStatus({
     };
   }
 
+  // Registration payment projection is authoritative for finality. A stale
+  // receipt status must not turn an already-paid registration back into a
+  // receipt-review or payment action state (BUG-STG-039/072).
+  if (paymentStatus.trim().toLowerCase() === "paid") {
+    return {
+      tone: "complete",
+      title: "statusPaidTitle",
+      body: "statusPaidBody",
+    };
+  }
+
   if (receiptStatus === "pending") {
     return {
       tone: "review",
@@ -66,19 +77,19 @@ export function resolveMemberRegistrationDetailStatus({
     };
   }
 
+  if (receiptStatus === "paid" && paymentStatus.trim().toLowerCase() !== "paid") {
+    return {
+      tone: "complete",
+      title: "statusReceiptApprovedTitle",
+      body: "statusReceiptApprovedBody",
+    };
+  }
+
   if (financialDisplayState === "WAIVED") {
     return {
       tone: "complete",
       title: "statusWaivedTitle",
       body: "statusWaivedBody",
-    };
-  }
-
-  if (paymentStatus.trim().toLowerCase() === "paid") {
-    return {
-      tone: "complete",
-      title: "statusPaidTitle",
-      body: "statusPaidBody",
     };
   }
 

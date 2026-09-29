@@ -86,6 +86,11 @@ export interface BookingRepositoryPort {
     readonly tenantId: string;
     readonly paymentStatus: BookingPaymentStatus;
   }): Promise<BookingRecord | null>;
+  /** Atomically marks an approved free registration paid, finalized, and waived. */
+  markFreeCollectionApplied(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+  }): Promise<BookingRecord | null>;
   /**
    * Merge keys into `registrationIntake` (finance obligation override, etc.).
    * Missing booking → null.

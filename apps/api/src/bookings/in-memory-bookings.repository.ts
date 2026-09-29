@@ -597,6 +597,34 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return cloneBooking(updated);
   }
 
+  async markFreeCollectionApplied(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+  }): Promise<BookingRecord | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      return null;
+    }
+    const nextPaymentStatus = raiseBookingPaymentStatus(row.paymentStatus, "paid");
+    const shouldFinalize = row.status === "approved" && nextPaymentStatus === "paid";
+    const finalizedAt =
+      shouldFinalize && row.finalizationStatus !== "finalized"
+        ? new Date().toISOString()
+        : row.finalizedAt;
+    const updated: BookingRecord = {
+      ...row,
+      paymentStatus: nextPaymentStatus,
+      ...(shouldFinalize ? { finalizationStatus: "finalized" as const } : {}),
+      ...(finalizedAt !== undefined ? { finalizedAt } : {}),
+      registrationIntake: {
+        ...(row.registrationIntake ?? {}),
+        freeCollectionApplied: true,
+      },
+    };
+    bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
+  }
+
   async finalizeBooking(input: {
     readonly bookingId: string;
     readonly tenantId: string;

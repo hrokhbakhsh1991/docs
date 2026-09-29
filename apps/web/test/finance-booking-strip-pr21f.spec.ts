@@ -70,7 +70,10 @@ describe("PR21-G2 settlement summary (once, not per row)", () => {
       "booking_unpaid_pending"
     );
     assert.match(EN.payments.stripBookingSettlementPartialRecorded, /partially paid/i);
-    assert.doesNotMatch(EN.payments.stripBookingSettlementPartialRecorded, /booking is fully paid/i);
+    assert.doesNotMatch(
+      EN.payments.stripBookingSettlementPartialRecorded,
+      /booking is fully paid/i
+    );
     assert.match(EN.payments.stripBookingSettlementWaived, /No payment is required/i);
     assert.match(FA.payments.stripBookingSettlementWaived, /بدون نیاز به پرداخت/);
     assert.match(FA.payments.stripBookingSettlementPartialRecorded, /جزئی/);
@@ -133,8 +136,40 @@ describe("PR21-F3 / G2 next-step + CTA hierarchy (superseded routing details in 
     );
   });
 
+  it("hides every financial next step for a waived booking", () => {
+    assert.equal(
+      resolveStripNextStep({
+        bookingStatus: "approved",
+        bookingPaymentStatus: "unpaid",
+        financialDisplayState: "WAIVED",
+        hasOpenPendingPayment: true,
+        hasPendingReceipt: true,
+        hasRemainingBalance: true,
+        registrationId: reg,
+      }),
+      null
+    );
+  });
+
+  it("does not fetch or render payment surfaces for a waived booking", () => {
+    const stripSrc = readFileSync(
+      join(WEB_ROOT, "src/finance/booking-financial-strip.tsx"),
+      "utf8"
+    );
+    assert.match(stripSrc, /isWaivedBooking/);
+    assert.match(stripSrc, /financialDisplayState\?\.trim\(\)\.toUpperCase\(\) === \"WAIVED\"/);
+    assert.match(
+      stripSrc,
+      /if \(financialDisplayState\?\.trim\(\)\.toUpperCase\(\) === \"WAIVED\"\)/
+    );
+    assert.match(stripSrc, /!isWaivedBooking && nextStep !== null/);
+  });
+
   it("strip hierarchy: settlement once; no View details; primary Open payments only on next-step", () => {
-    const stripSrc = readFileSync(join(WEB_ROOT, "src/finance/booking-financial-strip.tsx"), "utf8");
+    const stripSrc = readFileSync(
+      join(WEB_ROOT, "src/finance/booking-financial-strip.tsx"),
+      "utf8"
+    );
     const inspection = readFileSync(
       join(WEB_ROOT, "src/features/bookings/booking-inspection-details.tsx"),
       "utf8"
@@ -175,10 +210,16 @@ describe("PR21-F4 finance registration cache invalidation", () => {
       invoice: { balanceDueMinor: "9" },
     });
     invalidateFinanceRegistrationCaches(a);
-    assert.equal(readFinanceRegistrationCache(FINANCE_REGISTRATION_CACHE_NS.invoiceBalance, a), null);
-    assert.deepEqual(readFinanceRegistrationCache(FINANCE_REGISTRATION_CACHE_NS.invoiceBalance, b), {
-      invoice: { balanceDueMinor: "9" },
-    });
+    assert.equal(
+      readFinanceRegistrationCache(FINANCE_REGISTRATION_CACHE_NS.invoiceBalance, a),
+      null
+    );
+    assert.deepEqual(
+      readFinanceRegistrationCache(FINANCE_REGISTRATION_CACHE_NS.invoiceBalance, b),
+      {
+        invoice: { balanceDueMinor: "9" },
+      }
+    );
     clearFinanceRegistrationCache();
   });
 });

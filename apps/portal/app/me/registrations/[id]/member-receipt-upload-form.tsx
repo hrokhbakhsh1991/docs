@@ -28,6 +28,7 @@ export type MemberReceiptDue = {
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: RegistrationLifecycleStatus;
+  readonly paymentStatus: string;
   readonly initialPanel: MemberReceiptPanel;
   readonly tripsListHref: string;
   readonly tourHref: string | null;
@@ -110,6 +111,7 @@ function ReceiptStateCard({ body, children, eyebrow, rootProps, title }: Receipt
 export function MemberReceiptUploadForm({
   registrationId,
   registrationStatus,
+  paymentStatus,
   initialPanel,
   tripsListHref,
   tourHref,
@@ -468,7 +470,10 @@ export function MemberReceiptUploadForm({
     );
   }
 
-  if (receiptStatus === "paid") {
+  // Payment finality wins over a stale receipt projection. Keep receipt status
+  // visible in the separate status card, but never show upload/payment copy
+  // after the registration is paid (BUG-STG-039/072).
+  if (paymentStatus.trim().toLowerCase() === "paid") {
     return (
       <ReceiptStateCard
         eyebrow={eyebrow}
@@ -476,6 +481,22 @@ export function MemberReceiptUploadForm({
         title={t("paidTitle")}
         body={t("paidBody")}
       >
+        {previewBlock}
+        {actionLinks}
+      </ReceiptStateCard>
+    );
+  }
+
+  if (receiptStatus === "paid" && paymentStatus.trim().toLowerCase() !== "paid") {
+    return (
+      <ReceiptStateCard
+        eyebrow={eyebrow}
+        rootProps={{ "data-portal-member-receipt-approved-awaiting-payment": "" }}
+        title={t("receiptApprovedTitle")}
+        body={t("receiptApprovedPaymentBody")}
+      >
+        {dueBlock}
+        {paymentDestinationBlock}
         {previewBlock}
         {actionLinks}
       </ReceiptStateCard>

@@ -28,7 +28,8 @@ import { resolveWorkspaceBookingEventReaction } from "./booking-event-reaction-r
 import { resolveBookingWorkspaceDependencies } from "./booking-dependency-registry";
 import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
 import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
-import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
+import { readObligationOverrideFromIntake } from "@app-tour/finance-core";
+import { resolveFinancialDisplayStateForListRecord } from "./booking-list-intake-scalars";
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 import type {
   ApproveBookingResponse,
@@ -147,16 +148,11 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     registrationSlo: { record: recordRegistrationSloEvent },
     financialDisplayState: {
       resolve: (record) => {
-        if (record.status !== "approved" || record.paymentStatus !== "paid") {
-          return undefined;
-        }
-        if (record.registrationIntake?.freeCollectionApplied === true) {
-          return "WAIVED";
-        }
-        const override = readObligationOverrideFromIntake(record.registrationIntake);
-        return override !== null && isZeroObligationMinor(override.obligationMinor)
-          ? "WAIVED"
-          : undefined;
+        return resolveFinancialDisplayStateForListRecord(
+          record,
+          readObligationOverrideFromIntake(record.registrationIntake),
+          record.registrationIntake?.freeCollectionApplied === true
+        );
       },
     },
   });

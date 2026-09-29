@@ -38,13 +38,13 @@ describe("member registration departure display", () => {
         paymentStatus: "unpaid",
         receiptStatus: "paid",
       }).title,
-      "statusApprovedTitle"
+      "statusReceiptApprovedTitle"
     );
     assert.equal(
       resolveMemberRegistrationDetailStatus({
         lifecycleStatus: "approved",
         paymentStatus: "paid",
-        receiptStatus: "paid",
+        receiptStatus: "pending",
       }).title,
       "statusPaidTitle"
     );

@@ -47,6 +47,7 @@ export async function CatalogTourDetailBookingRail({
         priceDisplayPolicy
       )
     : null;
+  const showCommercialPricing = shouldShowCatalogPrice(tour);
   const freeCollectionLabel = resolveCatalogFreeCollectionLabel(t, locale);
 
   const capacityLine =
@@ -64,13 +65,13 @@ export async function CatalogTourDetailBookingRail({
         : {})}
     >
       <CatalogCommercialPricingBreakdown
-        preview={pricingPreview}
+        preview={showCommercialPricing ? pricingPreview : null}
         canonicalPrice={priceLine}
         isFreeCollection={tour.paymentCollection === "free"}
         dateLocale={dateLocale}
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}
-        pricingPreviewStatus={pricingPreviewStatus}
+        pricingPreviewStatus={showCommercialPricing ? pricingPreviewStatus : "anonymous"}
       />
       {tour.paymentCollection === "free" ? (
         <p data-marketing-catalog-detail-free>{freeCollectionLabel}</p>

@@ -64,20 +64,17 @@ export function CatalogCommercialPricingCompact({
   );
 
   if (preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection) {
-    if (canonicalPrice != null || ancillaryLines.length > 0) {
-      return (
-        <span data-marketing-catalog-card-price>
-          {canonicalPrice}
-          {ancillary}
-        </span>
-      );
-    }
     return (
       <span data-marketing-catalog-card-price-unavailable>
         {t("pricing.unavailable")}
         {ancillary}
       </span>
     );
+  }
+  if (isFreeCollection) {
+    return ancillaryLines.length > 0 ? (
+      <span data-marketing-catalog-card-free-ancillary>{ancillary}</span>
+    ) : null;
   }
   if (!hasMarketingMembershipDiscount(preview)) {
     return canonicalPrice != null || ancillaryLines.length > 0 ? (
@@ -150,6 +147,9 @@ export function CatalogCommercialPricingBreakdown({
     ) : (
       <p data-marketing-catalog-detail-rail-price-unavailable>{t("pricing.unavailable")}</p>
     );
+  }
+  if (isFreeCollection) {
+    return null;
   }
   if (!hasMarketingMembershipDiscount(preview)) {
     if (compact) {

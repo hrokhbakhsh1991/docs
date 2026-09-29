@@ -1001,6 +1001,502 @@ and Denali registration detail service.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
 
+## Full local phase gate recheck — ۲۰۲۶-۰۹-۲۹
+
+- `pnpm run phase-2:gate` روی HEAD کاری اجرا و کامل سبز شد: build همه packageها، API، Web/Admin، platform-core و guardهای Phase 2.
+- API: `۳۱۵۹ pass`، `۰ fail`، `۷ skip`؛ skipها به سناریوهای وابسته به PostgreSQL/MinIO و سرویس خارجی مربوط‌اند و به‌عنوان closure staging ثبت نمی‌شوند.
+- Web/Admin: `۲۰۵۵ pass`، `۰ fail`، `۰ skip`.
+- Platform-core Phase 2: `۱۰/۱۰ pass`؛ `guard:architecture`، `guard:import-boundary`، design-token، artifact-surface و audit boundary همگی PASS.
+- `git diff --check` PASS و فقط یک frontend لوکال روی پورت ۳۰۰۰ همراه API روی ۳۰۰۱ فعال است.
+- این گیت source/local است و جایگزین deploy با artifact جدید، runtime SHA و mutation واقعی staging نمی‌شود. بنابراین مواردی که در سابقه با artifact قدیمی باز بوده‌اند، تا deploy و retest همان SHA هنوز `UNVERIFIED` باقی می‌مانند.
+
+## Current bug ledger after local implementation — ۲۰۲۶-۰۹-۲۹
+
+- Source/local اصلاح و تست‌شده: `BUG-STG-019`، `BUG-STG-036`، `BUG-STG-039/072`، `BUG-STG-080`، دو projection پرداخت، `BUG-STG-062/047`، `BUG-STG-WAITLIST-GUEST-FORM-COPY`، `BUG-STG-063`، `BUG-STG-064/065`، `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL`، `BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC`، `BUG-STG-037`، `BUG-STG-021`، `BUG-STG-022`، locale Exposure، `BUG-STG-081`، `BUG-STG-082` و `BUG-STG-025/026/027`.
+- Source/local و runtime read-only تأییدشده: `BUG-STG-006`، `BUG-STG-014/015/016`، `BUG-STG-EXPORT-SUMMARY`، و labelهای فارسی eventهای Admin؛ ارسال واقعی Telegram در این وضعیت اثبات نشده است.
+- Source fix موجود ولی staging هنوز روی artifact قدیمی است: `BUG-STG-019`، `BUG-STG-036`، `BUG-STG-039/072`، `BUG-STG-080`، دو projection پرداخت، `BUG-STG-062/047`، `BUG-STG-WAITLIST-GUEST-FORM-COPY`، `BUG-STG-081`، `BUG-STG-082` و `BUG-STG-035`. این‌ها با runtime قدیمی بسته نمی‌شوند و بعد از deploy همین HEAD باید retest شوند.
+- نیازمند fixture/mutation واقعی staging: promotion گروهی `BUG-STG-063`، انتقال واقعی Waitlist `BUG-STG-064/065`، submit واقعی duplicate `BUG-STG-021`، محاسبهٔ کامل transport/dong چندنفره در `BUG-STG-022`، و free-pending payment path.
+- خارج از این sweep یا بدون fixture معتبر: binary receipt و `BUG-STG-040`، upload/resubmit باینری، Telegram delivery/thread/retry، و `BUG-STG-024` که قراردادش باگ محسوب نمی‌شود.
+- `BUG-STG-044` طبق تصمیم محصول عمدی است: ظرفیت نمایشی پنهان می‌ماند و باگ محسوب نمی‌شود.
+
+## Focused local regression after ledger — ۲۰۲۶-۰۹-۲۹
+
+- Portal departure/payment/projection: `۲۱/۲۱ pass`؛ شامل `BUG-STG-035`، `BUG-STG-039/072`، `BUG-STG-080` و stale paid-list projection.
+- Marketing pricing/transport/sort: `۲۴/۲۴ pass`؛ شامل `BUG-STG-019`، `BUG-STG-025`، `BUG-STG-027`، `BUG-STG-081` و `BUG-STG-082`.
+- Web operational/finance: `۵۰/۵۰ pass`؛ شامل `BUG-STG-037`، Waitlist capacity guard، financial CTA/cache invalidation و timezone-independent operator labels.
+- Local Admin smoke با `Host: admin.denali.localhost` پاسخ redirect احراز هویت معتبر (`307` به `/auth/login`) داد؛ بدون session، محتوای protected Exposure قابل ارزیابی نیست.
+
+## Local runtime invariant — ۲۰۲۶-۰۹-۲۹
+
+- API محلی روی `3001` و تنها frontend محلی روی `3000` فعال است؛ frontend دوم اجرا نشده است.
+- `git diff --check` سبز است؛ تغییرات در working tree باقی مانده‌اند و commit، push یا PR ساخته نشده است.
+- HEAD کاری: `1234f065a` روی branch `codex/staging-p0-p1-p2-final`؛ وضعیت source با working-tree تغییرکرده بررسی می‌شود، نه با ادعای deploy شدن.
+
+## Additional local contract coverage — ۲۰۲۶-۰۹-۲۹
+
+- Portal-host CTA resolution: `۱۰/۱۰ pass`؛ شامل `BUG-STG-FREE-CTA-PORTAL-HOST` روی staging apex واقعی.
+- Receipt upload/offline gate: `۷/۷ pass`؛ route، BFF binary proxy و offline receipt chain source-level تأیید شدند. این نتیجه upload واقعی روی staging نیست.
+
+## Timezone/redaction static audit — ۲۰۲۶-۰۹-۲۹
+
+- تمام formatterهای تاریخ/زمان در `apps/marketing/src` inventory شدند؛ هر دو مسیر catalog از `CATALOG_DISPLAY_TIME_ZONE=Asia/Tehran` استفاده می‌کنند و formatter بدون timezone باقی نمانده است.
+- Exposure negative tests صراحتاً قیمت، payment policy، transport، destination slug، ظرفیت مشتق و structured-data offers را بررسی می‌کنند؛ failure جدیدی پیدا نشد.
+
+## Mixed Exposure regression fix — ۲۰۲۶-۰۹-۲۹
+
+- failure لوکال پیدا شد: با روشن‌بودن Exposure نوع حمل و خاموش‌بودن Exposure مالی، `dongAmount`/`transportCostAmount` هنوز در snapshot عمومی باقی می‌ماند.
+- اصلاح شد: mode حمل حفظ می‌شود، اما مبلغ‌های حمل و دُنگ در `clearPaymentPolicy` حذف می‌شوند؛ بنابراین قیمت از مسیر logistics نشت نمی‌کند.
+- regression Denali/Marketing: `۳۳/۳۳ pass`؛ TypeScript lint/build package Denali و `git diff --check` بدون خطا.
+
+## Post-fix changed-test gate — ۲۰۲۶-۰۹-۲۹
+
+- `pnpm run test:changed`: PASS برای API، Web، Marketing، Portal، Denali و packageهای وابسته.
+- `pnpm run guard:import-boundary`: PASS.
+- `git diff --check`: PASS.
+
+## Local regression recheck — ۲۰۲۶-۰۹-۲۹
+
+- مسیرهای Public مربوط به `BUG-STG-035` دوباره از نظر formatter بررسی شدند؛ `formatCatalogDateRange` و `CatalogTourDetailLogistics` هر دو از `Asia/Tehran` استفاده می‌کنند و مسیر دیگری با `toLocaleString`/`Intl.DateTimeFormat` بدون timezone در محدودهٔ Marketing پیدا نشد.
+- تست‌های focused زمان و قرارداد PDP/Portal: Marketing `۹/۹` و Portal `۴/۴` pass شدند؛ شامل `BUG-STG-008/013`، `BUG-STG-025`، `BUG-STG-024` در display policy و `BUG-STG-035`.
+- `pnpm run test:changed`: PASS روی `origin/main`؛ `pnpm run pre-commit:fast`: PASS؛ `git diff --check`: PASS. هیچ commit، push یا PR انجام نشد.
+- این evidence source/local است و deploy staging را تأیید نمی‌کند؛ runtime failureهای ثبت‌شده برای artifact قدیمی (`BUG-STG-081/082/080/019/039/072`، projectionهای Portal/Admin و locale runtime) تا deploy همین working tree و retest با SHA جدید باز می‌مانند.
+- `CatalogCommercialPricingCompact` در همهٔ شاخه‌های preview، member discount، free و unavailable، ancillary حمل را حفظ می‌کند؛ `BUG-STG-082` در source regression پاس است و failure مشاهده‌شده به artifact قدیمی نسبت داده نمی‌شود مگر پس از deploy جدید.
+- صفحهٔ Exposure روی Admin محلی با یک frontend فعال شد، اما پیام «اتصال فعالی وجود ندارد» مانع مشاهدهٔ field واقعی `location-zones` است؛ بنابراین locale runtime همچنان `UNVERIFIED` است و source pass جایگزین آن نمی‌شود.
+
+## Local hardening — Waitlist action-reason localization — ۲۰۲۶-۰۹-۲۹
+
+- مصرف hint ظرفیت‌پر در Admin به‌صورت fail-closed اصلاح شد؛ اگر namespace ترجمه در runtime حاضر نباشد، کلید خام `actionReason.capacityFull` دیگر به UI نشت نمی‌کند.
+- ترجمهٔ فارسی و انگلیسی این کلید در message catalog موجود است؛ مسیر reasonهای پویا همچنان از `t.has(...)` استفاده می‌کند.
+- تست‌های Web مرتبط: `25/25 pass` شامل capacity action availability، command center، KPI عملیاتی و matrix وضعیت booking.
+- این اصلاح local/source است و تا deploy با SHA جدید روی staging، closure runtime برای locale قطعی محسوب نمی‌شود.
+
+## Local package artifact refresh — Exposure locale — ۲۰۲۶-۰۹-۲۹
+
+- ریشه‌یابی نشان داد Admin از `@app-tour/workspace-denali` و پیام‌های workspace در artifact `dist` مصرف می‌کند؛ وجود اصلاح در source به‌تنهایی runtime محلی را به‌روز نمی‌کند.
+- `@app-tour/workspace-denali` با وابستگی‌های لازم rebuild شد و فرانت واحد Admin روی پورت ۳۰۰۰ با artifact محلی جدید restart شد؛ API همان پورت ۳۰۰۱ باقی ماند.
+- `pnpm --filter @app-tour/workspace-denali run lint` بدون خطا پایان یافت.
+- recheck بصری Exposure به‌دلیل timeout ابزار مرورگر قابل ثبت نبود؛ بنابراین `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE` هنوز **UNVERIFIED runtime** است و PASS اعلام نمی‌شود.
+
+## Local runtime/browser recheck after workspace rebuild — ۲۰۲۶-۰۹-۲۹
+
+- فرانت محلی Admin پس از rebuild در صفحه Exposure load شد؛ اما به‌دلیل نبود اتصال فعال، candidate fieldهای واقعی در UI نمایش داده نشدند و description `location-zones` قابل مشاهده نبود.
+- تست‌های package برای card، transport/dong، free label و localization: `12/12 pass`.
+- نتیجه: source/package contract سبز است؛ runtime locale در نبود integration fixture همچنان **UNVERIFIED** باقی می‌ماند.
+
+## Local P0 hardening — commercial preview redaction — ۲۰۲۶-۰۹-۲۹
+
+- ریشهٔ `BUG-STG-019` در مسیر جداگانهٔ `pricingPreview` پیدا شد: حتی پس از redaction شدن `priceAmount`، preview عضو می‌توانست در PLP/PDP/Sticky/Rail render شود.
+- هر سه سطح اکنون preview و status آن را با `shouldShowCatalogPrice` gate می‌کنند؛ در حالت redacted، preview و پیام unavailable هر دو حذف می‌شوند و transport مستقل همچنان طبق Exposure خودش رفتار می‌کند.
+- تست Marketing مرتبط با Exposure، pricing و sort: `25/25 pass`.
+- این اصلاح source/local است و نیازمند retest runtime با artifact جدید باقی می‌ماند.
+
+## Local P1 hardening — Waitlist guest-form pricing copy — ۲۰۲۶-۰۹-۲۹
+
+- در مسیر `registrationState=waitlist`، قیمت پایه، pricing preview عضو/مهمان، تخفیف، payable و loading آن دیگر render نمی‌شوند.
+- خلاصهٔ فرم Waitlist فقط اطلاعات افراد و CTA «ثبت درخواست لیست انتظار» را نگه می‌دارد؛ مسیر عادی همچنان pricing و CTA معمول خود را حفظ می‌کند.
+- تست قرارداد Portal/Denali: `8/8 pass`.
+- این اصلاح source/local است؛ mutation واقعی guest staging برای closure نهایی انجام نشده است.
+
+## Local P0 hardening — Portal paid-list projection — ۲۰۲۶-۰۹-۲۹
+
+- ریشهٔ stale بودن Portal List مشخص شد: hydration فقط `paymentCollection` و `financialDisplayState` را از Detail می‌گرفت و `paymentStatus` و `paymentDueAt` قدیمی را نگه می‌داشت.
+- hydration اکنون `paymentStatus`، `paymentCollection`، `financialDisplayState` و `paymentDueAt` را از Detail canonical جایگزین می‌کند و مقدارهای پاک‌شده را نیز صریحاً پاک می‌کند.
+- تست Portal/finance مرتبط: `24/24 pass`؛ سناریوی approved unpaid → paid با حذف deadline اضافه شد.
+- این اصلاح source/local است و retest runtime بعد از deploy اصلاحی همچنان لازم است.
+
+## BUG-STG-081 local regression recheck — ۲۰۲۶-۰۹-۲۹
+
+- مسیر قیمت‌گذاری PLP با preview عضو و وضعیت fetch ردیابی شد؛ در نبود preview احراز‌شده، resolver دیگر به قیمت پایه fallback نمی‌کند تا sort/filter با قیمت کارت اختلاف پیدا نکند.
+- کارت و detail همچنان `payableMinor` را از preview معتبر مصرف می‌کنند و محاسبهٔ تخفیف در frontend انجام نمی‌شود؛ free collection در منطق filter/sort مقدار صفر دارد.
+- تست focused شامل filter، sort، preview، display و transport: `۳۴/۳۴ pass`، `۰ fail`.
+- این نتیجه source/local است؛ artifact قدیمی staging هنوز برای closure runtime معتبر نیست و deploy یا commit انجام نشده است.
+
+## P0/P1 focused local source gate — ۲۰۲۶-۰۹-۲۹
+
+- Portal registration/finance/waitlist/receipt contracts: `۲۸/۲۸ pass`.
+- Web finance/operational list/capacity/projection contracts: `۲۸/۲۸ pass`.
+- Denali catalog exposure/card/participant pricing/locale contracts: `۲۱/۲۱ pass`.
+- این اجرا source/local است و جایگزین mutation واقعی staging برای promotion، approve receipt، upload باینری و Telegram delivery نمی‌شود.
+
+## Waitlist/capacity local API gate — ۲۰۲۶-۰۹-۲۹
+
+- ظرفیت approve/create و ownership قرارداد: `۱۳/۱۳ pass`.
+- promotion بعد از آزادشدن صندلی و نگه‌داشتن گروه بزرگ‌تر از ظرفیت آزاد در Waitlist: `۲/۲ pass`.
+- registration capacity و waitlist policy: `۱۰/۱۰ pass`.
+- مجموع این اجرای API محلی: `۲۵/۲۵ pass`؛ هیچ mutation staging یا commit انجام نشد.
+
+## Waitlist transition/local lifecycle gate — ۲۰۲۶-۰۹-۲۹
+
+- Denali capacity/operator journey/intake done state/domain gate: `۲۷/۲۷ pass`؛ شامل waitlist → promote → cancel و copy موفقیت Waitlist.
+- API cancellation/seat release/promotion و lifecycle transition matrix: `۱۴/۱۴ pass`.
+- این evidence رفتار source/local را تأیید می‌کند؛ transition واقعی روی staging هنوز انجام نشده و برای آن artifact جدید لازم است.
+
+## Exposure/Telegram label local source gate — ۲۰۲۶-۰۹-۲۹
+
+- Exposure event list و UI control-plane contracts: `۱۵/۱۵ pass`.
+- این نتیجه ترجمه و قرارداد source را تأیید می‌کند؛ labelهای انگلیسی مشاهده‌شده روی staging قدیمی تا زمان deploy artifact جدید runtime-open باقی می‌مانند.
+
+## BUG-STG-080 atomic free projection hardening — ۲۰۲۶-۰۹-۲۹
+
+- ریسک N+1/پنجرهٔ mixed state در مسیر free approval پیدا شد: `paymentStatus` و `freeCollectionApplied` قبلاً دو write جدا بودند.
+- repository operation جدید `markFreeCollectionApplied` هر دو مقدار را همراه با finalization در یک transaction/operation ثبت می‌کند؛ مسیر approve دیگر دو write مستقل انجام نمی‌دهد.
+- تست projection اتمیک، finance sync و list/detail contract: `۲۴/۲۴ pass`.
+- API TypeScript check: PASS؛ این اصلاح local/source است و هنوز commit یا deploy نشده است.
+- retry هم‌زمان همان operation نیز بررسی شد؛ هر دو نتیجه `paid/finalized/WAIVED` ماندند و downgrade رخ نداد.
+
+## Local Admin browser smoke — ۲۰۲۶-۰۹-۲۹
+
+- `admin.denali.localhost:3000/settings/exposure` با session توسعه باز شد و صفحهٔ فارسی، سطح کاتالوگ عمومی و وضعیت بدون pending change را نشان داد.
+- UI محلی اعلام کرد اتصال integration فعالی وجود ندارد؛ بنابراین نمایش runtime فهرست رویدادهای Telegram و fixture واقعی Exposure در این محیط قابل مشاهده نیست و source contract جایگزین آن شد.
+- تلاش برای navigation مستقیم به Waitlist در تب محلی timeout شد؛ هیچ mutation یا action اپراتوری انجام نشد.
+
+## Phase 2 gate failure remediation — ۲۰۲۶-۰۹-۲۹
+
+- اجرای `pnpm run phase-2:gate` تا بخش API دو failure معماری واقعی نشان داد:
+  - `FIN-P1.9-01`
+  - `FIN-P1.3-01`
+- علت مشترک: تست جدید `registration-commercial-quote-freeze-context.adapter.spec.ts` داخل مسیر production به‌نام `apps/api/src/workspace-finance/infrastructure/` قرار گرفته بود؛ guard آن را به‌عنوان adapter production می‌شمرد و exact inventory را می‌شکست.
+- کد production تغییر نکرد؛ تست به مسیر `apps/api/test/registration-commercial-quote-freeze-context.adapter.spec.ts` منتقل شد تا boundary تست/production حفظ شود.
+- پس از اصلاح، تست‌های `finance-outbox-ownership.spec.ts`، `finance-ws2-engine.spec.ts` و تست جابه‌جاشده اجرا شدند: **۲۷/۲۷ PASS**.
+- این failure یک regression source بود، نه failure runtime staging؛ هنوز closure staging با artifact SHA جدید انجام نشده است.
+- بعد از جابه‌جایی، `pnpm run test:changed` با base=`origin/main` اجرا شد و **PASS** شد؛ `git diff --check` نیز سبز است.
+- runtime محلی در پایان همچنان فقط یک frontend وب روی پورت ۳۰۰۰ و API روی پورت ۳۰۰۱ دارد؛ هیچ commit، push یا PR انجام نشده است.
+
+## Local verification checkpoint — ۲۰۲۶-۰۹-۲۹
+
+- فقط یک frontend لوکال فعال بود: Admin/Web روی `admin.denali.localhost:3000`؛ API روی `127.0.0.1:3001` فعال و `/health` برابر HTTP 200 بود. Marketing و Portal به‌صورت process جداگانه اجرا نشدند.
+- smoke read-only واقعی Admin روی fixture تور `00000000-0000-4000-8000-000000000229` انجام شد: صف Waitlist یک نتیجه، ظرفیت `۱/۱`، badge «در لیست انتظار» و وضعیت مالی «پرداخت‌نشده (رزرو)» را نشان داد؛ هیچ approve، promotion یا mutation اجرا نشد.
+- تست‌های focused این checkpoint: API `۲۲/۲۲`، Portal `۲۰/۲۰`، Web `۵۵/۵۵`، Denali `۱۴/۱۴` و Marketing `۴۵/۴۵` pass شدند.
+- در Marketing، قراردادهای source برای قیمت عضو، free label/filter/sort و حمل/dong pass است؛ در Denali egress نیز shared-car `dongAmount` حفظ می‌شود. این نتایج source/local هستند و جایگزین runtime proof روی artifact جدید Staging نمی‌شوند.
+- وضعیت باگ‌های runtime قدیمی تغییری اعلام نمی‌شود تا deploy با SHA جدید انجام شود؛ هیچ commit، push یا PR در این checkpoint انجام نشده است.
+
+### Source fix — authenticated pricing preview fail-closed
+
+- pipeline فیلتر و sort کاتالوگ اکنون همان قرارداد کارت قیمت را مصرف می‌کند: اگر session عضو باشد و preview برای یک تور موجود نباشد، قیمت پایه به‌صورت اشتباه وارد filter/sort نمی‌شود و نتیجه `null`/نامشخص می‌ماند.
+- این اصلاح اختلاف order-dependent مربوط به `BUG-STG-081` را در حالت partial/unavailable preview پوشش می‌دهد؛ تست regression جدید به همراه suite قیمت `۳۱/۳۱` pass شد و Marketing lint/typecheck نیز سبز است.
+- این اصلاح هنوز روی Staging deploy نشده است؛ closure runtime فقط بعد از deploy با SHA جدید معتبر است.
+
+### Local Exposure UI smoke — ۲۰۲۶-۰۹-۲۹
+
+- صفحهٔ `admin.denali.localhost:3000/settings/exposure` با همان frontend لوکال باز شد؛ عنوان، توضیحات سطح‌ها و state رابط فارسی بودند.
+- محیط لوکال اتصال فعال Exposure/Telegram نداشت (`اتصال فعالی وجود ندارد`)، بنابراین toggle و ذخیرهٔ Exposure برای ساخت side effect جدید اجرا نشد.
+- این مورد محدودیت fixture/config لوکال است، نه نتیجهٔ جدید برای باگ runtime؛ localization و redaction همچنان با source test پوشش داده شده‌اند و runtime Staging بعد از deploy SHA جدید باید تأیید شود.
+
+### Additional local contract verification — ۲۰۲۶-۰۹-۲۹
+
+- timezone و catalog display: `15/15 pass`؛ شامل `BUG-STG-035` با `Asia/Tehran` و قرارداد `BUG-STG-008/013`.
+- Portal payment deadline: `5/5 pass`؛ Admin/operator payment deadline: `5/5 pass`.
+- این نتایج source/local هستند؛ تناقض‌های مشاهده‌شده روی artifact قدیمی Staging با این تست‌ها به‌تنهایی بسته نمی‌شوند.
+
+### API integration verification — ۲۰۲۶-۰۹-۲۹
+
+- Denali catalog/Exposure integration: `15/15 pass`.
+- Booking safety and waived projection: `12/12 pass`.
+- Finance service and payment projection sync: `19/19 pass`.
+- warning کنترل‌شدهٔ `BOOKINGS_DB_UNAVAILABLE` در سناریوی failure-injection تست بود و failure test محسوب نشد.
+
+### Phase 1 full gate — ۲۰۲۶-۰۹-۲۹
+
+- `pnpm run phase-1:gate`: **PASS**.
+- Build کامل monorepo و build هر چهار سطح اصلی سبز شد؛ platform-core closure `79/79`، unit/internal `163/163` و phase contract `22/22` pass شدند.
+- `guard:architecture`، `guard:import-boundary`، `guard:symlink`، adversarial specs و `phase-1:guard` همگی PASS شدند.
+- دو warning build دربارهٔ duplicate keyهای قدیمی در root `package.json` و یک notice مربوط به ESLint Next.js ثبت شد؛ هیچ‌کدام failure نیستند و به تغییرات این دور مرتبط نیستند.
+
+## Waived finance-surface hardening — ۲۰۲۶-۰۹-۲۹
+
+- در بازبینی Admin یک نقص source در مسیر `BookingFinancialStrip` پیدا شد: `financialDisplayState=WAIVED` فقط settlement summary را تغییر می‌داد، اما می‌توانست invoice، payment و pending-receipt را fetch کند و payment-history/next-step را render کند.
+- اصلاح شد: برای `WAIVED` هیچ finance fetch، invoice card، payment row، receipt/payment CTA یا next-step تولید نمی‌شود؛ فقط وضعیت مستقل «بدون نیاز به پرداخت» باقی می‌ماند. مسیر `paid` و وضعیت‌های unpaid/partial تغییر قراردادی نکردند.
+- تست هدفمند Web: `23/23` pass؛ شامل تست منفی WAIVED برای next-step و بررسی عدم render/fetch سطح‌های مالی.
+- Prettier: PASS؛ `test:changed`: PASS؛ `guard:import-boundary`: PASS؛ `git diff --check`: PASS.
+- این اصلاح هنوز commit/deploy نشده است؛ closure staging نیازمند deploy همین working tree و بررسی runtime با fixture رایگان است.
+
+## Local runtime recheck — ۲۰۲۶-۰۹-۲۹
+
+- API process موجود بدون restart سالم بود: `GET http://127.0.0.1:3001/health` با HTTP `200`.
+- تنها frontend مجاز Web/Admin روی پورت `3000` متوقف شده بود؛ همان process با `NEXT_FONT_OFFLINE=1` دوباره بالا آمد و `Ready` شد. Marketing و Portal اجرا نشدند.
+- smoke host routing: درخواست `Host: admin.operator.localhost` به `/settings` با HTTP `307` به `/auth/login` برگشت؛ tenant route و auth boundary فعال است.
+
+## Local catalog list/detail parity — ۲۰۲۶-۰۹-۲۹
+
+- API local با tenant smoke `00000000-0000-4000-8000-000000000003` بررسی شد؛ list `/denali/catalog` و detail `/denali/catalog/:tourId` برای fixtureهای `220`، `228` و `229` مقدارهای یکسان `priceAmount`، `paymentCollection`، `spotsRemaining` و `registrationState` برگرداندند.
+- fixture ظرفیت‌پر `229` در هر دو مسیر `spotsRemaining=0` و `registrationState=waitlist` دارد؛ برای این مسیر mismatch محلی وجود ندارد.
+- endpoint `GET /catalog/pricing-previews` بدون هویت پاسخ `IDENTITY_REQUIRED` داد؛ بنابراین member-discount با session جعلی یا حدسی بررسی نشد و `BUG-STG-081` همچنان نیازمند fixture هویت‌دار/اجرای staging است.
+
+## Local working-tree verification — ۲۰۲۶-۰۹-۲۹
+
+- `pnpm run test:changed`: PASS؛ همهٔ packageهای تغییرکرده با cache معتبر بررسی شدند و اجرای نهایی `base=origin/main mode=ci` سبز بود.
+- `pnpm run guard:import-boundary`: PASS.
+- `pnpm run pre-commit:fast`: PASS؛ guard-docs و check-node-engine سبز هستند. چون فایل‌ها عمداً staged نشده‌اند، lint-staged و test-changed داخلی hook به‌درستی skip شدند؛ این مورد به‌عنوان جایگزین تست کامل staged ثبت نمی‌شود.
+- `git diff --check`: PASS.
+- نتیجه: source/local verification فعلی سبز است، اما failureهای runtime staging مثل `BUG-STG-019`، `BUG-STG-036`، `BUG-STG-039/072`، `BUG-STG-080`، دو projection پرداخت، `BUG-STG-082`، `BUG-STG-035`، CTA Waitlist و locale Exposure تا deploy همان تغییرات و retest با SHA runtime بسته نمی‌شوند.
+- Focused local regression recheck همان روز: Portal `20/20`، Marketing `42/42`، Denali `14/14` و API finance/list/receipt `28/28` pass؛ warningهای `BOOKINGS_DB_UNAVAILABLE`/`MINIO_NOT_CONFIGURED` در تست‌های کنترل‌شدهٔ integration هستند و failure assertion نیستند.
+
+## Local canonical financial projection guard — ۲۰۲۶-۰۹-۲۹
+
+- علت source-level یک failure بالقوه پیدا شد: `BookingsService` مقدار persisted `financialDisplayState` را قبل از resolver canonical با `??` ترجیح می‌داد؛ یک `WAIVED` قدیمی می‌توانست روی ردیف approved/unpaid باقی بماند.
+- اصلاح: List و Detail همیشه از resolver مشترک استفاده می‌کنند؛ resolver فقط بعد از تأیید `approved` و وضعیت پرداخت فعلی `paid` مقدار persisted `WAIVED` را می‌پذیرد و برای approved/unpaid مقدار stale را حذف می‌کند. free marker و zero-obligation همچنان از همان resolver عبور می‌کنند.
+- regression جدید: `does not preserve a stale WAIVED projection for an unpaid approved row`.
+- API booking-list/DI: `13/13 pass`؛ `test:changed`: PASS؛ import-boundary: PASS؛ Prettier و `git diff --check`: PASS.
+- این اصلاح هنوز روی staging deploy نشده و runtime closure برای projectionهای staging همچنان نیازمند artifact جدید است.
+- API package lint/typecheck و تمام prelint guards: PASS؛ فرانت Web/Admin همچنان تنها frontend فعال است و smoke محلی `admin.operator.localhost:3000/settings` با redirect احراز هویت HTTP 307 پاسخ داد.
+
+## Local BUG-STG-080 complete-stale projection guard — ۲۰۲۶-۰۹-۲۹
+
+- علت تکمیلی پیدا شد: List فقط projection ناقص را از Detail canonical دوباره می‌خواند؛ projection کامل اما stale (`offline`/`UNPAID`) بدون اصلاح باقی می‌ماند.
+- اصلاح لوکال: تمام ردیف‌های `approved` از owned Detail دوباره hydrate می‌شوند؛ ردیف‌های pending/waitlisted read اضافه نمی‌گیرند.
+- تست regression برای legacy، partial-stale و complete-stale اضافه و اجرا شد: `16/16 pass` در `apps/portal/test/portal-member-registrations.spec.ts`.
+- این اصلاح هنوز commit، deploy یا روی Staging retest نشده است؛ closure runtime `BUG-STG-080` همچنان نیازمند artifact جدید است.
+
+## Local BUG-STG-022 participant total guard — ۲۰۲۶-۰۹-۲۹
+
+- علت تکمیلی پیدا شد: در فرم چندparticipant، summary rail فقط قیمت نفر اول/preview اول را نشان می‌داد و جمع canonical نداشت.
+- اصلاح لوکال: جمع فقط از `payableMinor`های authoritative همهٔ participantها ساخته می‌شود؛ transport/dong هر participant داخل همان preview باقی می‌ماند و تخفیف در frontend محاسبه نمی‌شود.
+- اگر حتی یک preview ناقص باشد، total نمایش داده نمی‌شود تا مبلغ ناقص یا حدسی به کاربر نشان داده نشود.
+- تست‌های Denali transport/due/pricing: `13/13 pass`؛ build workspace-denali و Portal lint/typecheck نیز pass شدند.
+- ثبت نهایی چندنفره روی Staging هنوز انجام نشده و closure runtime به artifact جدید و fixture واقعی نیاز دارد.
+
+## Local BUG-STG-063 inline/bulk capacity guard — ۲۰۲۶-۰۹-۲۹
+
+- بازتولید قبل از اصلاح: fixture محلی `North Ridge Trek` با ظرفیت `۱/۱` و registration انتظار `00000000-0000-4000-8000-000000000312` (مهمان `Jamal Hosseini`، party size برابر ۳) در Waitlist workspace کنترل inline تأیید و کنترل bulk «انتخاب همهٔ قابل‌تأیید» را نمایش می‌داد؛ guard پنل جزئیات وجود داشت اما row و bulk از آن استفاده نمی‌کردند.
+- اصلاح: `apps/web/src/features/bookings/bookings-command-center-shell.tsx` اکنون ظرفیت را از guard سطح تور یا snapshot canonical همان row resolve می‌کند و برای inline approve، انتخاب row و محاسبهٔ bulk به‌صورت مشترک اعمال می‌کند. `shouldShowInlineApprove` نیز در `bookings-command-center-logic.ts` با `capacityFull` fail-closed شده است.
+- Regression source: suite وب مرتبط `۷۲/۷۲` pass؛ `apps/web` lint/typecheck و import/UI boundary guardها PASS؛ `pnpm run test:changed` PASS؛ `git diff --check` PASS.
+- Browser evidence بعد از اصلاح: Admin محلی با همان tour/registration و ظرفیت `۱/۱`، heading ظرفیت `۱/۱ نفر — ظرفیت تور پر است` را نشان داد؛ در AX row فقط وضعیت `در لیست انتظار` و اطلاعات مهمان را داشت و هیچ کنترل inline تأیید یا bulk select وجود نداشت.
+- نتیجه: `BUG-STG-063` در local source/runtime fixture **PASS** شد. این نتیجه جایگزین staging artifact proof نیست و deploy/PR انجام نشده است.
+
+## Local BUG-STG-082 organized-transport dong leak guard — ۲۰۲۶-۰۹-۲۹
+
+- در audit کد PDP مشخص شد `dongAmount` بدون محدودشدن به mode نمایش داده می‌شد؛ اگر payload حمل سازمانی هم‌زمان dong داشته باشد، PDP می‌توانست مبلغ حمل و دُنگ را با هم نشان دهد.
+- اصلاح در `apps/marketing/src/catalog/format-catalog-transport.ts`: `resolveCatalogDongAmount` فقط برای `shared_cars` مقدار می‌دهد. PDP logistics از همین helper استفاده می‌کند؛ مقدار `transportCostAmount` همچنان فقط برای حمل سازمانی مصرف می‌شود.
+- Regression Marketing focused: `۱۸/۱۸` pass؛ شامل policy PDP، free label، member pricing، shared-car dong و تست منفی organized transport. Marketing lint/typecheck و import-boundary PASS.
+- نتیجه: نشت دُنگ در payload حمل سازمانی در local source **PASS** شد؛ runtime staging جدید هنوز برای closure نهایی deploy نشده است.
+
+## Local BUG-STG-037 closure follow-up — ۲۰۲۶-۰۹-۲۹
+
+- علت ریشه‌ای شمارندهٔ operational پیدا شد: endpoint با `limit=1` همان صفحهٔ اول را برای `total` محاسبه می‌کرد؛ در نتیجه badge می‌توانست با تعداد واقعی ردیف‌های جدول اختلاف داشته باشد.
+- اصلاح استاندارد با پارامتر صریح `countOnly=1` انجام شد؛ شمارنده تمام صفحات همان فیلتر canonical را می‌خواند و endpoint معمولی pagination و `items` را دست‌نخورده نگه می‌دارد.
+- regression جدید API: `۹/۹` pass؛ شامل اثبات دو ردیف approved با `limit=1` و `countOnly=true` که `total=2` و `items=[]` برمی‌گرداند.
+- regression Web مرتبط: `۴۷/۴۷` pass؛ helper شمارنده `countOnly=1` را تولید می‌کند.
+- گیت‌ها: `pnpm run test:changed`، `pnpm run guard:import-boundary` و `git diff --check` همگی PASS.
+- تأیید UI محلی با فقط یک frontend Web روی `admin.operator.localhost:3000`: شمارندهٔ لیست عملیاتی `۱` و ردیف `Ali Rezaei` با وضعیت `پرداخت‌نشده` هم‌زمان دیده شد؛ ردیف Waitlist `Jamal Hosseini` در operational list وارد نشد.
+- این closure فقط source و local runtime است؛ staging با artifact جدید هنوز deploy نشده و closure نهایی staging محسوب نمی‌شود.
+
+## Local P0-P2 focused regression — ۲۰۲۶-۰۹-۲۹
+
+- API finance/receipt/list projection: `۲۸/۲۸` pass؛ شامل free=`WAIVED`، approve projection، receipt flow و payment sync.
+- Web booking/action matrix: `۲۵/۲۵` pass؛ شامل full-capacity waitlist guard، labelهای مستقل payment/registration و `BUG-STG-037`.
+- Portal registration/status: `۲۵/۲۵` pass؛ شامل free status، receipt resubmit، timezone و waitlist guest-flow contract.
+- Marketing merchandising: `۴۴/۴۴` pass؛ شامل member/guest preview، free label، free filter/sort، transport/dong و PLP/PDP parity contract.
+- Exposure و locale: `۱۸/۱۸` pass؛ شامل `BUG-STG-019`، `BUG-STG-036`، `BUG-STG-006` و `location-zones` فارسی.
+- هیچ frontend اضافه‌ای برای این regressionها بالا نیامد؛ همان Web/Admin محلی تنها frontend فعال باقی ماند.
+- `pnpm run pre-commit:fast` نیز PASS شد؛ چون worktree عمداً dirty و بدون stage نگه داشته شده، lint-staged و test-changed داخل hook طبق قرارداد `skip` شدند و گیت‌های مستقل بالا به‌صورت جداگانه اجرا و سبز شدند.
+- typecheck ابتدا یک drift واقعی بین source و `@app-tour/workspace-denali/dist` پیدا کرد (`countOnly` در declaration قدیمی نبود). build رسمی workspace Denali اجرا شد و پس از آن `pnpm --filter @apps/api run lint` و `pnpm --filter @apps/web run lint` هر دو PASS شدند.
+- duplicate guest race با `DATABASE_URL` و `DATABASE_URL_ADMIN` از `.env.local` و `STORAGE_DRIVER=prisma` اجرا شد: `۱/۱` pass؛ دو POST هم‌زمان دقیقاً یک `201` و یک `409` تولید کردند و رکورد دوم ساخته نشد.
+
+## Local BUG-STG-080 partial-projection hardening — ۲۰۲۶-۰۹-۲۹
+
+- edge case واقعی پیدا شد: ردیف approved با `paymentCollection=offline` اما بدون `financialDisplayState` از rehydrate جزئی عبور می‌کرد و می‌توانست پیام پرداخت stale را حفظ کند.
+- hydration اکنون هر approved row با هر projection مالی ناقص را از Detail مالکانه دوباره می‌خواند و مقدار canonical را جایگزین می‌کند؛ ردیف‌های pending/waitlisted و projectionهای کامل همچنان بدون request اضافه می‌مانند.
+- Portal focused regression: `۱۹/۱۹` pass؛ شامل سناریوی stale offline → `free/WAIVED`.
+- Portal lint، typecheck و guardهای import/profile/architecture: PASS.
+
+## Local capacity-guard follow-up — ۲۰۲۶-۰۹-۲۹
+
+- در اجرای لوکال Web روی تور fixture `00000000-0000-4000-8000-000000000229` با ظرفیت `۱/۱`، Waitlist row با وجود ظرفیت پر هنوز action تأیید را render می‌کرد؛ متن UI نیز امکان تجاوز ظرفیت را القا می‌کرد. علت این بود که fallback ظرفیت فقط به resolver نمایش داده می‌شد و handlerهای approve فقط `tourCapacityGuard` اختصاصی را بررسی می‌کردند.
+- اصلاح انجام شد: `effectiveCapacityGuard` اکنون منبع مشترک rendering و handlerهای approve/approve-without-payment است؛ API capacity guard همچنان مرجع نهایی باقی می‌ماند. این اصلاح فقط لوکال است و deploy نشده.
+- تست‌های Web مربوط به availability، command center و management matrix: `۲۵/۲۵ pass`؛ تست‌های Denali transport/obligation و API finance obligation: `۲۰/۲۰ pass`.
+- پس از patch، `pnpm run test:changed` و `pnpm run guard:import-boundary` نیز PASS شدند؛ این‌ها source evidence هستند و جای runtime/staging closure را نمی‌گیرند.
+- پس از reload لوکال، fixture در حین fetch به حالت skeleton/`ظرفیت باز` رفت و row دوباره برای مشاهدهٔ نهایی بارگذاری نشد؛ بنابراین UI mutation/transition واقعی در این checkpoint بسته نشده و باید پس از پایدارشدن fetch همان fixture دوباره دیده شود.
+
+## Local remediation checkpoint — ۲۰۲۶-۰۹-۲۹
+
+- ریشهٔ `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE` در source پیدا و اصلاح شد: registry واقعی `id=denali.location-zones` را با `canonicalPath=startPoint` می‌فرستد؛ localization اکنون identity پایدار `id` را نیز بررسی می‌کند و description فارسی را اعمال می‌کند.
+- regression package Denali برای localization: `4/4 pass`؛ regression Web برای booking action و localization: `9/9 pass`.
+- برای `BUG-STG-063`، صفحهٔ global Admin اکنون در صورت نبودن guard سطح تور، از `capacitySnapshot` همان ردیف به‌عنوان fallback استفاده می‌کند؛ بنابراین ردیف Waitlist با ظرفیت `۱/۱` نباید صرفاً به‌دلیل entry point عمومی action تأیید بگیرد. تست‌های Web booking matrix/command center: `25/25 pass`.
+- پیام فارسی/انگلیسی `actionReason.capacityFull` به‌عنوان alias قراردادی کنار `capacity_full` اضافه شد تا renderهای قدیمی یا مسیرهای متفاوت به کلید خام نرسند.
+- runtime محلی Web با fixture تور `00000000-0000-4000-8000-000000000229` و booking `92506218-b12d-48f7-b9bb-a9a3932c9c78` ردیف `در لیست انتظار` و ظرفیت `۱/۱` را نشان داد. تلاش approve قبلی در global route با `POST /approve → 409` متوقف شد و رکورد approved ساخته نشد؛ مسیر Workspace guard به‌دلیل cold compile/route loading هنوز evidence کامل ندارد.
+- این checkpoint source/local است؛ staging artifact جدید هنوز deploy نشده و closure runtime موارد قبلی (`080`، `081`، `082`، `019`، `035`، `039/072` و projectionها) همچنان نیازمند deploy و retest با SHA واقعی هستند.
+- P0 finance state hardening: `paymentStatus=paid` اکنون در Detail resolver، receipt form و live status-card copy بر `receiptStatus` stale مقدم است؛ receipt badge همچنان مستقل render می‌شود و دیگر متن upload/deadline برای registration paid تولید نمی‌شود. Portal regression این checkpoint `22/22 pass` است.
+
+## Local Marketing runtime recheck — ۲۰۲۶-۰۹-۲۹
+
+- روی یک frontend محلی Marketing و fixture رایگان `00000000-0000-4000-8000-000000000225`، PLP ابتدا مبلغ عددی `۲٬۵۰۰٬۰۰۰ تومان` را هم‌زمان با label رایگان نشان داد؛ این بازتولید واقعی `BUG-STG-025` بود و نشان داد source contract قبلی به‌تنهایی کافی نیست.
+- اصلاح انجام شد: مسیر free collection در card و pricing breakdown دیگر `canonicalPrice` را render نمی‌کند؛ detail facts نیز به‌جای مبلغ، label `رایگان / بدون نیاز به پرداخت` را نمایش می‌دهد.
+- Regression Marketing pricing: `۹/۹` pass؛ مجموع focused Marketing P2: `۴۰/۴۰` pass؛ `git diff --check` pass.
+- Recheck مرورگر محلی پس از reload: PLP برای fixtureهای رایگان فقط label رایگان و PDP در بخش «قیمت» فقط `رایگان / بدون نیاز به پرداخت` نشان می‌دهد؛ مبلغ عددی و کنترل پرداخت در این مسیر دیده نشد. paid card همچنان مبلغ عددی خود را نشان می‌دهد.
+- این اصلاح فقط در working tree است؛ commit، push، PR و staging deploy انجام نشده‌اند. برای closure staging باید همین source با artifact جدید deploy و با SHA runtime دوباره بررسی شود.
+
+## Local free egress hardening — ۲۰۲۶-۰۹-۲۹
+
+- بررسی مستقیم API Local نشان داد free fixtureها علاوه بر UI، در egress نیز `priceAmount=2500000` و `structuredData.offers.price` داشتند؛ این بخش مستقل از renderer و یک نشت/قیمت ساختگی در API و JSON-LD بود.
+- اصلاح backend در `toDenaliCatalogCard`: وقتی `paymentCollection=free` است، `priceAmount=null` و Offer مربوط به JSON-LD حذف می‌شود؛ منطق filter/sort همچنان از free به‌عنوان صفر استفاده می‌کند.
+- بعد از restart API، هر چهار free fixture Local `priceAmount=null` و `offers=null` برمی‌گردانند؛ HTML PDP نیز `priceAmount:null` دارد و Offer عددی ندارد.
+- تست Denali `9/9` و Marketing `40/40` pass شدند؛ health API `200` و `git diff --check` pass است. این تغییر هنوز deploy staging نشده است.
+- PLP Local با `minPrice=0&sort=price_asc` پس از null شدن مبلغ backend، هر چهار free fixture را ابتدای فهرست و بدون مبلغ عددی نمایش داد؛ paid fixtureها بعد از آن با مبلغ عادی باقی ماندند. این recheck، `BUG-STG-026 / 027` را در runtime محلی بدون regression تأیید کرد.
+
+## Local transport parity recheck — ۲۰۲۶-۰۹-۲۹
+
+- با seed رسمی tenant `operator` و فقط همان frontend Marketing، fixture `00000000-0000-4000-8000-000000000214` بررسی شد.
+- PLP: `خودروهای مشترک` و `دونگی: ۸۰٬۰۰۰ تومان` را نشان داد.
+- PDP facts و بخش Logistics همان mode را نشان دادند؛ پیش از اصلاح fact بالایی label اشتباه `هزینه حمل‌ونقل` داشت و Logistics `هزینه دونگی` داشت.
+- اصلاح انجام شد: برای `transport.mode=shared_cars` label fact نیز از `detail.logistics.dongAmount` استفاده می‌کند؛ organized transport همچنان `هزینه حمل‌ونقل` می‌ماند.
+- پس از reload مرورگر، هر دو سطح PDP label `هزینه دونگی` و مبلغ `۸۰٬۰۰۰ تومان` را نشان دادند؛ Marketing focused suite `۴۲/۴۲` pass شد.
+- نتیجه Local برای `BUG-STG-082`: mode و مبلغ در PLP/PDP همسان شد. Exposure خاموش و staging runtime هنوز باید جداگانه با artifact deployشده بررسی شود.
+
+## Local free payment-policy egress recheck — ۲۰۲۶-۰۹-۲۹
+
+- API Local برای free fixture ابتدا `paymentMode=offline_receipt` را در payload عمومی برمی‌گرداند؛ UI آن را پنهان می‌کرد، اما این با قرارداد free بدون روش پرداخت هم‌خوان نبود.
+- اصلاح backend: برای `paymentCollection=free`، `paymentMode` و `paymentPlan` از public detail/list egress حذف می‌شوند؛ `registrationApproval` برای copy معتبر قبل از ثبت‌نام باقی می‌ماند.
+- پس از rebuild رسمی `@app-tour/workspace-denali` و restart API، free fixture با `priceAmount=null`, `paymentMode=null`, `paymentPlan=null`, `offers=null` برگشت.
+- این تفاوت مهم source/runtime با rebuild package بسته شد؛ تست‌های Denali `17/17` و Marketing `29/29` pass شدند. staging هنوز deploy نشده است.
+
+### 2026-09-29 — local Portal free projection and fixture reconciliation
+
+- fixtureهای booking matrix برای tenant محلی Denali با context صحیح `workspaceType=denali` دوباره seed/reconcile شدند؛ هر شش fixture با `publish_status=published` در DB محلی قابل مشاهده شدند. اجرای قبلی بدون workspace context آن‌ها را draft ذخیره کرده بود و 404 می‌داد؛ این مشکل از روش اجرای seed بود، نه از منطق public catalog.
+- فقط یک frontend محلی (Portal روی `3003`) فعال بود؛ API روی `3001` و هیچ Web/Admin/Marketing دیگری اجرا نشد.
+- روی fixture `00000000-0000-4000-8000-000000000225`، ثبت‌نام واقعی از UI انجام شد و نتیجه `registrationId=61cc4879-5088-460e-8fba-1fe756f4078a` ایجاد شد.
+- Portal List همان registration را با `تأیید شده` و `ثبت‌نام نهایی شده؛ پرداخت لازم نیست` نشان داد.
+- Portal Detail همان registration را با `ثبت‌نام شما نهایی شده است`، `نیازی به پرداخت نیست`، `ثبت‌نام: تأیید شده` و `رسید: لازم نیست` نشان داد؛ هیچ deadline، outstanding balance، upload receipt یا CTA پرداخت render نشد.
+- نتیجهٔ محلی: `BUG-STG-080` در source فعلی و مسیر واقعی local Portal PASS است؛ closure staging همچنان به deploy همین HEAD و runtime SHA نیاز دارد.
+- fixture رایگان manual `00000000-0000-4000-8000-000000000224` نیز در UI بدون مبلغ و بدون کنترل پرداخت دیده شد؛ fixture discount `00000000-0000-4000-8000-000000000226` برای حساب فعلیِ owner بدون membership discount نمایش داده شد و تست member-discount باید با identity fixture اختصاصی source/E2E ادامه یابد.
+- تست‌های محلی تکمیلی روی همین HEAD: DP1 waitlist/payment-hold `2/2 pass`، شامل نگه‌داشتن گروه بزرگ‌تر از ظرفیت در Waitlist (`BUG-STG-063`)؛ Postgres duplicate race `1/1 pass`، دقیقاً یک `201` و یک `409` (`BUG-STG-021`).
+- روی tenant محلی فعلی برای تور `00000000-0000-4000-8000-000000000220` هیچ registration موجودی نبود؛ بنابراین UI ظرفیت‌پر/Waitlist واقعی با mutation گروهی در این دور قابل بازسازی نشد و به‌عنوان fixture missing باقی ماند. تست source/API همچنان سبز است و submit گروهی عمداً بدون fixture معتبر تکرار نشد.
+
+### 2026-09-29 — local real Waitlist UI fixture
+
+- برای جلوگیری از تغییر fixtureهای قبلی، تور ایزولهٔ محلی `00000000-0000-4000-8000-000000000229` با ظرفیت `۱`، ثبت‌نام رایگان و approval خودکار با builder رسمی ساخته و با `workspaceType=denali` published شد.
+- ثبت‌نام خودی `4efd9f3c-dd97-4e76-b5b3-21f8ddf34753` از Portal ثبت و تأیید شد؛ سپس مهمان `QA Waitlist Guest` با registration ID `92506218-b12d-48f7-b9bb-a9a3932c9c78` از همان UI ثبت شد.
+- فرم ظرفیت‌پر متن «این فرم درخواست شما را در لیست انتظار ثبت می‌کند» و CTA دقیق `ثبت درخواست لیست انتظار` داشت؛ copy ثبت‌نام عادی و کنترل upload/payment در مسیر Waitlist دیده نشد.
+- Success screen صریحاً «درخواست در لیست انتظار ثبت شد» و انتقال به صف را نشان داد.
+- Portal List همان رکورد را `لیست انتظار برای دیگری` و Portal Detail آن را با `درخواست شما در حال بررسی است`، `ثبت‌نام: لیست انتظار` و `رسید: لازم نیست` نشان داد؛ هیچ label تأییدشده، deadline یا CTA پرداخت وجود نداشت.
+- نتیجهٔ local UI: `BUG-STG-062 / 047`، `BUG-STG-WAITLIST-GUEST-FORM-COPY`، `BUG-STG-064 / 065` و `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL` در مسیر Portal/guest فرم PASS شدند. promotion واقعی Admin هنوز با runner source/API پوشش داده شده و UI mutation آن نیازمند اجرای Admin جداست.
+
+## Local Admin smoke and fixture gate — ۲۰۲۶-۰۹-۲۹
+
+- فقط API و یک frontend از نوع Web/Admin فعال نگه داشته شد؛ Portal و Marketing برای رعایت محدودیت منابع اجرا نشدند. API روی `127.0.0.1:3001/health` با HTTP `200` و `database.status=ok` پاسخ داد و Web/Admin روی `admin.denali.localhost:3000` آماده بود.
+- fixture رسمی local با `pnpm run db:seed` ایجاد/تکمیل شد تا tenant و tour Denali قابل دسترس باشند. login از مسیر واقعی UI انجام شد؛ درخواست OTP، verify/login و ability-context همگی HTTP `200` بودند و Dashboard با AX به‌درستی render شد.
+- مسیر Admin bookings برای تور `00000000-0000-4000-8000-000000000220` با فیلتر `status=waitlisted` به‌صورت read-only باز شد: heading «مرکز رزروها»، فیلتر «در لیست انتظار» و پیام بدون نتیجه دیده شد. چون fixture local booking/waitlist ندارد، این نتیجه فقط route/filter rendering را تأیید می‌کند و mutation واقعی Waitlist/promotion را PASS نمی‌کند؛ وضعیت آن بخش `UNVERIFIED / fixture missing` باقی است.
+- نتیجهٔ این smoke، سلامت runtime لوکال و route Admin است؛ هیچ commit، push، PR یا deploy انجام نشد.
+
+## Local source and verification gate — ۲۰۲۶-۰۹-۲۹
+
+- focused Waitlist suites روی HEAD فعلی: Marketing `18/18`، Portal `22/22` و Denali `30/30` pass؛ شامل CTA Waitlist، guest-form state، done-step copy، ظرفیت‌پر و party-size capacity guard.
+- repository gates: `pnpm run pre-commit:fast`، `pnpm run guard:import-boundary` و `pnpm run test:changed` همگی PASS شدند. `test:changed` با `base=origin/main` در mode=ci اجرا شد.
+- Web/Admin لوکال با `NEXT_FONT_OFFLINE=1` روی `admin.denali.localhost:3000` تنها frontend فعال است و API روی `127.0.0.1:3001` سالم است؛ Portal و Marketing عمداً اجرا نشدند.
+- این gate source و local runtime را تأیید می‌کند؛ failureهای artifact قدیمی staging و mutationهای staging (approve/promotion/upload واقعی/Telegram delivery) تا deploy همان HEAD و اجرای fixture مربوطه closure محسوب نمی‌شوند.
+
+## Local focused P0/P1/P2 regression — ۲۰۲۶-۰۹-۲۹
+
+- API Finance/Exposure/quote-freeze: `19/19` pass؛ شامل free projection، receipt approve projection و جلوگیری از انتقال تخفیف عضو به participant دیگر.
+- Web/Admin: `26/26` pass؛ شامل actionهای ظرفیت‌پر، KPI فیلترشده، locale fail-closed Exposure و matrix وضعیت رزرو.
+- Denali finance/catalog/read services: `19/19` pass؛ شامل due lineهای trip/dong/transport، اَعمال حمل و اَثر آن در public card.
+- Portal finance/registration/pricing: `25/25` pass؛ شامل timezone، free status، receipt/registration state، deadline و preview قیمت/هزینه‌های جانبی.
+- این نتایج failure source جدیدی نشان ندادند؛ هیچ mutation staging، commit، push یا PR انجام نشد.
+
+## Local Portal browser participant check — ۲۰۲۶-۰۹-۲۹
+
+- Web/Admin متوقف و فقط Portal روی `denali.portal.localhost:3003` اجرا شد تا محدودیت منابع رعایت شود.
+- فرم واقعی تور `00000000-0000-4000-8000-000000000220` باز شد. با افزودن مهمان و تکمیل fixture محلی، دو participant مستقل در UI دیده شدند و هر دو ردیف قیمت جداگانهٔ `۲٬۵۰۰٬۰۰۰ تومان` داشتند؛ state عضو و مهمان در preview به هم نشت نکرد.
+- همان fixture محلی transport follow-up نداشت؛ بنابراین transport/dong چندنفره در Browser محلی برای این tour قابل اثبات نبود و `BUG-STG-022` برای این بخش `fixture missing` باقی ماند. source/API قرارداد مربوطه `PASS` است.
+- tour smoke حمل `...0214` در Portal local قابل resolve نبود و صفحهٔ 404 داد؛ هیچ mutation یا workaround انجام نشد.
+- تلاش read-only برای free fixture `...0224` نیز در API/Portal local صفحهٔ 404 داد؛ بنابراین free-pending و مسیرهای ثبت‌نام رایگان در browser local fixture ندارند و از source/API test نتیجه‌گیری runtime نمی‌شود.
+
+## Local continuation gate — ۲۰۲۶-۰۹-۲۹
+
+- طبق محدودیت منابع، فقط Web/Admin روی پورت `3000` و API روی پورت `3001` فعال نگه داشته شدند؛ Portal و Marketing خاموش‌اند و پورت‌های `3002` و `3003` listener ندارند.
+- `pnpm run test:changed`: PASS با base=`origin/main` و mode=`ci`.
+- `git diff --check`: PASS.
+- source فعلی همچنان بدون commit، push یا PR نگه داشته شد.
+- آخرین بررسی source تأیید کرد که timezone نمایش اپراتور و Portal هر دو `Asia/Tehran` هستند و mapping فارسی رویدادهای Telegram در source حاضر است؛ این evidence جایگزین deploy/retest staging با SHA جدید نیست.
+- Admin local route و labelهای Waitlist render شدند، اما login با identity مجاز توسعه روی مرحلهٔ ارسال OTP متوقف ماند و API widgetها `401` دادند؛ برای جلوگیری از bypass، Admin data-level smoke در این اجرا `UNVERIFIED` باقی ماند.
+- focused local source gate: API `27/27`، Portal `22/22`، Web `26/26`، Marketing `8/8` و Denali `28/28` pass.
+- `pnpm run pre-commit:fast`: PASS؛ `pnpm run guard:import-boundary`: PASS؛ هیچ فایل staged نشد و هیچ commit/push/PR ساخته نشد.
+
+## Local continuation — BUG-STG-022 و BUG-STG-063 — ۲۰۲۶-۰۹-۲۹
+
+- ریشهٔ `BUG-STG-022` در resolver تجاری quote پیدا شد: برای `registrantTarget=other`، شناسهٔ submitter عضو به‌اشتباه به‌عنوان `memberUserId` وارد quote می‌شد و تخفیف عضو را به مهمان منتقل می‌کرد.
+- اصلاح local: فقط `registrantTarget=self` مجاز به دریافت `memberUserId` است؛ برای `other` مقدار canonical برابر `null` است. تست adapter جدید self/other و تست‌های quote/finance در مجموع `۲۳/۲۳` pass شدند.
+- ریشهٔ `BUG-STG-063` در availability UI پیدا شد: وقتی ظرفیت کامل بود، hint نمایش داده می‌شد اما actionهای approve همچنان فعال می‌ماندند.
+- اصلاح local: در ظرفیت کامل، approve و approve-without-payment مخفی و reject همچنان مجاز است؛ تست‌های availability، matrix و command center در مجموع `۲۵/۲۵` pass شدند.
+- Web lint/typecheck و guardهای package: PASS؛ API lint/typecheck و guardهای package: PASS.
+- این اصلاحات هنوز روی staging deploy نشده‌اند؛ بنابراین closure runtime برای `BUG-STG-022/063` بعد از deploy با SHA جدید لازم است.
+
+## Local continuation — BUG-STG-037 — ۲۰۲۶-۰۹-۲۹
+
+- ریشهٔ اختلاف شمارنده و جدول پیدا شد: `/bookings/summary` شمارندهٔ global می‌داد، اما جدول `/bookings` با فیلترهای `status/tourId/...` می‌آمد.
+- اصلاح local: وقتی KPI فعال است، مقدار همان KPI از `listData.total` همان query فیلترشده خوانده می‌شود؛ در داشبورد بدون KPI فعال، summary global حفظ می‌شود.
+- regression جدید `BUG-STG-037` اضافه شد: waitlist فیلترشده با total صفر دیگر badge global هفت را نشان نمی‌دهد؛ تست focused command center همراه با action matrix در مجموع `۲۵/۲۵` pass شد.
+- این اصلاح نیز هنوز deploy نشده؛ staging closure نیازمند اجرای همان URL فیلترشده روی artifact جدید است.
+
+## Local runtime/resource gate — ۲۰۲۶-۰۹-۲۹
+
+- API روی `127.0.0.1:3001` با health `200` فعال است و فقط Portal روی `127.0.0.1:3003` اجرا شد؛ Marketing و Web برای حفظ منابع اجرا نشدند.
+- Portal بدون session به `/login` redirect می‌کند؛ این محدودیت محیط local است و failure محصول محسوب نمی‌شود.
+- `git diff --check`: PASS. هیچ commit، push، PR یا deploy انجام نشده است.
+
+## Critical focused local verification — ۲۰۲۶-۰۹-۲۹
+
+- Exposure profile/redaction contract: `۴/۴` pass؛ شامل merge امن seed قدیمی و عدم override پروفایل native.
+- Quote freeze برای pricing چندنفره: `۲/۲` pass؛ `other` تخفیف submitter را نمی‌گیرد و `self` تخفیف عضو را حفظ می‌کند.
+- Portal مالی/رسید: `۲۱/۲۱` pass؛ free، deadline، receipt/registration label و legacy approved list projection پوشش داده شد.
+- Marketing merchandising: `۳۰/۳۰` pass؛ member price، guest/base fallback، free filter/sort و transport/dong پوشش داده شد.
+- Web operational queue: `۲۵/۲۵` pass؛ capacity-full approval، Waitlist و شمارندهٔ فیلترشدهٔ `BUG-STG-037` پوشش داده شد.
+- این شواهد source/local هستند؛ به‌دلیل عدم deploy، failureهای artifact staging هنوز closure محسوب نمی‌شوند.
+- یک stale-state کوتاه در زمان تعویض فیلتر نیز بررسی و اصلاح شد: نوار KPI تا پایان fetch جدید render نمی‌شود؛ regression و Web lint/typecheck پس از این اصلاح دوباره سبز شدند.
+- Local browser smoke روی `http://127.0.0.1:3003/me/registrations` با AX انجام شد؛ بدون session به `/login?portalReturn=%2Fme%2Fregistrations` رفت و صفحهٔ ورود، فیلد موبایل و CTA ارسال کد را render کرد. هیچ mutation اجرا نشد.
+- برای پوشش Admin، Portal متوقف و فقط `@apps/web` روی پورت `3000` اجرا شد. Admin local با host `admin.denali.localhost` و صفحهٔ Login/داشبورد/فیلتر Waitlist render شد؛ درخواست‌های widgetهای API در این local session پاسخ `401` دادند، بنابراین دادهٔ واقعی صف و mutation بسته نشد. طبق راهنمای QA، به credential دیگری retry یا auth bypass نشد.
+- تلاش کنترل‌شده برای login با identity مجاز local (`+15550001001` / OTP توسعه `1234`) در UI انجام شد؛ دکمه روی «در حال ارسال…» ماند و مرحلهٔ OTP/نشست API ایجاد نشد. به API shortcut یا bypass auth نرفتم؛ بنابراین Admin data-level smoke فعلاً `UNVERIFIED` است.
+
+## Local continuation checkpoint — ۲۰۲۶-۰۹-۲۹
+
+- روی branch `codex/staging-p0-p1-p2-final` با HEAD `1234f065a` هیچ commit، push یا PR جدیدی انجام نشد؛ تغییرات قبلی و فایل‌های unrelated حفظ شدند.
+- فقط API روی پورت `3001` و Portal روی پورت `3003` فعال بودند؛ هیچ frontend دوم اجرا نشد. API health با `200` و Portal با `307` به login برای مسیر محافظت‌شده پاسخ دادند؛ `Cache-Control: no-store` در Portal دیده شد.
+- focused source suites سبز شدند: Portal `21/21`، API `40/40`، Marketing `32/32`، Denali `19/19` و Web `16/16`.
+- `pre-commit:fast`، `guard:import-boundary` و `git diff --check` سبز شدند. این gateها source/local هستند و artifact staging را تغییر نمی‌دهند.
+- نتیجه closure: اصلاحات local برای projection مالی، receipt/registration state، exposure redaction/defaults و member pricing تست شدند؛ `BUG-STG-081`، `BUG-STG-082`، `BUG-STG-080` و Telegram label runtime فقط بعد از deploy همین HEAD قابل بستن هستند. Waitlist promotion واقعی، duplicate submit واقعی، upload باینری و Telegram delivery همچنان staging-only هستند.
+- اصلاح جدید local برای `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE`: قبل از warm شدن host adapter، فیلدهای خام registry render نمی‌شوند؛ در خطای warm-up نیز UI fail-closed و بدون metadata انگلیسی باقی می‌ماند. Web focused `16/16` و lint/typecheck/guards سبز است.
+- regression جدید `apps/web/test/exposure-policy-host-warmup.spec.ts` نیز `1/1` pass شد تا fallback قبلیِ render کردن `exposureCandidateFields` پیش از readiness برنگردد.
+- `pnpm run test:changed` نیز با base `origin/main` و mode `ci` به‌صورت کامل `PASS` شد؛ هیچ تغییر source جدیدی از این verification باقی نماند.
+- side-effect review تکمیل شد: readiness اکنون با `pluginId` جفت است و در تغییر workspace، adapter قبلی یک بار دیگر مصرف نمی‌شود؛ regression/Telegram focused `4/4` و Web lint/typecheck/guards سبز است.
+
+## Post-merge runtime recheck — ۲۰۲۶-۰۹-۲۹ — SHA 21a0ade0b3fce292276d43c8d19e6277c02cd7b8
+
+- Runtime health روی هر سه host (`denali`, `portal`, `admin`) سبز است؛ artifact digest برابر `50a10a1fa6936c20bbeabf551175cdc33643a5fa7d07df405ca6810dcf732f6e` و cache در درخواست‌های بررسی `BYPASS` بود.
+- Portal List و Detail برای registration رایگان legacy `4190860a-9948-4c62-b29b-85d3e494e765` ناسازگارند: Detail «نیازی به پرداخت نیست» اما List «برای نهایی‌شدن، پرداخت لازم است». BUG-STG-080 همچنان FAIL است. اصلاح local برای rehydrate وجود دارد ولی در runtime این SHA deploy نشده.
+- Free pending fixture `c537ac2e-8d2f-454a-bbf8-9cbba1adc7a8` در Detail بدون deadline، CTA پرداخت یا upload و با `رسید: لازم نیست` دیده شد؛ مسیر free manual pending PASS است.
+- Waitlist guest form برای تور ظرفیت‌پر copy مستقل «ثبت درخواست لیست انتظار» و پیام «ثبت‌نام نهایی نیست» دارد و payment/upload copy ندارد؛ BUG-STG-062/047 و WAITLIST-GUEST-FORM-COPY در smoke خواندنی PASS هستند، اما mutation promotion/submit انجام نشده است.
+- Paid receipt fixture `f2144510-bc47-4d1f-b6ad-42002a6ac51a` در Portal هم‌زمان «برای نهایی شدن سفر، رسید پرداخت را ارسال کنید» و «پرداخت تأیید شد / رسید شما تأیید شد» نشان می‌دهد؛ BUG-STG-039/072 FAIL قطعی است.
+- P2 free label، `minPrice=0&maxPrice=0`، sort صعودی و نزولی PASS شدند؛ free با label صحیح نمایش داده شد، در صعودی ابتدا و در نزولی انتهای فهرست قرار گرفت.
+- P2 member price در PLP برای session عضو با preview تخفیف صحیح PASS شد؛ اما PLP API برای `a4f227fb-bc72-40ed-bf23-2c1d6fb35fb9` فیلد `transport` ندارد در حالی‌که Detail همان تور `shared_cars` و `dongAmount=344444` دارد. BUG-STG-082 همچنان FAIL و منشأ آن projection list/detail است، نه CSS.
+- Admin Exposure فعلاً event labelهای فارسی را نشان می‌دهد، اما کارت public-list روی «نمایش پیش‌فرض» است و فهرست فیلدهای location-zones برای اثبات redaction/description باز نشده؛ BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE و BUG-STG-036/019 به‌عنوان closure نهایی UNVERIFIED باقی می‌مانند.
+- Admin bookings شمارنده‌های `در انتظار=۱۰`، `در لیست انتظار=۸` و ردیف‌های waitlist با label مستقل را نشان می‌دهد. approve واقعی روی registration جدید در این recheck اجرا نشد؛ Admin/Finance post-approve projection، race promotion/duplicate و hidden Exposure mutation هنوز UNVERIFIED هستند.
+
+## Source recheck after runtime continuation — ۲۰۲۶-۰۹-۲۹
+
+- Portal registration suite: `14/14` PASS؛ شامل hydrate legacy free projection و قرارداد receipt/registration.
+- Marketing focused suites: `38/38` PASS؛ شامل free filter/sort، member pricing، transport formatter و PDP/PLP contracts.
+- Denali focused suites: `8/8` PASS؛ شامل public card transport egress و spots enrichment.
+- این source results با runtime API mismatch برای `BUG-STG-082` و runtime List/Detail mismatch برای `BUG-STG-080` تناقض ندارند؛ artifact staging هنوز patch local را ندارد و list/detail egress در runtime باید جداگانه اصلاح و deploy شود.
+
+## Post-merge runtime recheck — ۲۰۲۶-۰۹-۲۹ — SHA `21a0ade0b3fce292276d43c8d19e6277c02cd7b8`
+
+- Portal List با query مستقل `qa_recheck=20260929followup` دوباره بررسی شد: free approved registration `4190860a-9948-4c62-b29b-85d3e494e765` هنوز «برای نهایی‌شدن، پرداخت لازم است» دارد، درحالی‌که free fixtures `c26e18b7-bf20-4fce-a186-b874b0af9872` و `74fcff3c-d046-4835-a26d-596bd4a9dcb7` «پرداخت لازم نیست» دارند. `BUG-STG-080` همچنان FAIL و account/legacy-row specific است.
+- همان free registration در Portal Detail «ثبت‌نام شما نهایی شده است»، «رسید: لازم نیست» و «نیازی به پرداخت نیست» دارد؛ اختلاف List/Detail با AX مستقل تأیید شد.
+- free pending `c537ac2e-8d2f-454a-bbf8-9cbba1adc7a8` در Detail «در انتظار بررسی / رسید: لازم نیست» دارد و هیچ payment CTA، deadline یا upload receipt ندارد؛ `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH` در این مرز PASS read-only است.
+- Waitlist form برای `e8c21d68-b161-4085-9dd3-b03b59540d39` copy مستقل ظرفیت‌پر و CTA «ثبت درخواست لیست انتظار» دارد و payment/upload copy ندارد؛ `BUG-STG-062/047` و `BUG-STG-WAITLIST-GUEST-FORM-COPY` در این مرز PASS copy smoke هستند، نه promotion mutation.
+- Paid receipt fixture `f2144510-bc47-4d1f-b6ad-42002a6ac51a` هنوز هم‌زمان «رسید پرداخت را ارسال کنید»، `رسید: تأیید شده`، «پرداخت تأیید شد» و deadline دارد؛ `BUG-STG-039/072` و paid projection closure همچنان FAIL هستند.
+- `/api/catalog` برای `a4f227fb-bc72-40ed-bf23-2c1d6fb35fb9` فیلد `transport` ندارد، اما `/api/catalog/{tourId}` همان تور را با `mode=shared_cars` و `dongAmount=344444` برمی‌گرداند؛ `BUG-STG-082` در API list/detail و PLP/PDP parity همچنان FAIL است.
+- focused source suites بعد از این recheck: Marketing `38/38`، Denali catalog `8/8`، Portal member registration `14/14` pass. این سبزی source، failureهای runtime فوق را نمی‌بندد.
+
+## Post-merge staging recheck — ۲۰۲۶-۰۹-۲۹ — runtime `21a0ade0b3fce292276d43c8d19e6277c02cd7b8`
+
+- Deploy workflow `36474448092` موفق شد؛ artifact digest با `50a10a1fa6936c20bbeabf551175cdc33643a5fa7d07df405ca6810dcf732f6e` ثبت شد و API، Web، Marketing و Portal همگی health/smoke سبز شدند.
+- P2 free filter/sort: `minPrice=0&maxPrice=0&sort=price_asc` سه نتیجهٔ رایگان با label «رایگان / بدون نیاز به پرداخت» برگرداند؛ **PASS runtime** برای `BUG-STG-025/026/027`.
+- P2 member pricing/PDP: تور `a4f227fb-bc72-40ed-bf23-2c1d6fb35fb9` در PDP قیمت عضو `۵۰۰٬۰۰۰ تومان`، تخفیف ۵۰٪، shared cars و دُنگ `۳۴۴٬۴۴۴ تومان` را نشان داد؛ **PASS PDP** برای `BUG-STG-081/082`.
+- همان سناریو در PLP برای کارت `ec171184-1877-4501-9a92-857f712838e2` قیمت عضو و پایه را نشان داد، اما نوع حمل و مبلغ دُنگ در کارت وجود نداشت؛ `BUG-STG-082` همچنان **FAIL runtime** و اختلاف PLP/PDP باقی است.
+- Portal Detail برای free fixture `4190860a-9948-4c62-b29b-85d3e494e765` صحیح است: «نیازی به پرداخت نیست» و `رسید: لازم نیست`.
+- Portal List همان fixture هنوز «برای نهایی‌شدن، پرداخت لازم است» نشان می‌دهد؛ `BUG-STG-080` بعد از deploy نیز **FAIL runtime** است. ریشهٔ فعلی: legacy approved row در list فاقد marker مالی است، در حالی‌که owned detail از policy فعلی tour مقدار `free` را resolve می‌کند.
+- اصلاح source برای `BUG-STG-080` در follow-up اضافه شد: فقط approved rowهای فاقد projection مالی، detail مالکانه را برای rehydrate کردن `paymentCollection/financialDisplayState` می‌خوانند؛ pending/waitlisted و rowهای دارای projection بدون request اضافه باقی می‌مانند. تست focused Portal `14/14` و lint/guards سبز شدند؛ deploy این follow-up هنوز انجام نشده است.
+
 ## Exposure location-zones locale recheck — ۲۰۲۶-۰۹-۲۸
 
 - Admin فارسی روی `https://admin.denali.shenski.com/settings/exposure?qa_recheck=20260928ax2` باز شد.

@@ -1,5 +1,6 @@
 import type { CatalogListSort } from "./catalog-list-query";
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import {
   resolveMarketingCatalogListPrice,
   type MarketingCatalogPricingPreviews,
@@ -30,7 +31,8 @@ function compareNullableNumbers(a: number | null, b: number | null): number {
 export function sortMarketingCatalogItems(
   items: readonly MarketingCatalogCard[],
   sort: CatalogListSort,
-  pricingPreviews?: MarketingCatalogPricingPreviews
+  pricingPreviews?: MarketingCatalogPricingPreviews,
+  pricingPreviewStatus: MarketingCommercialPricingPreviewStatus = "anonymous"
 ): readonly MarketingCatalogCard[] {
   if (sort === "newest") {
     return items;
@@ -58,16 +60,16 @@ export function sortMarketingCatalogItems(
     case "price_asc":
       sorted.sort((left, right) =>
         compareNullableNumbers(
-          resolveMarketingCatalogListPrice(left, pricingPreviews),
-          resolveMarketingCatalogListPrice(right, pricingPreviews)
+          resolveMarketingCatalogListPrice(left, pricingPreviews, pricingPreviewStatus),
+          resolveMarketingCatalogListPrice(right, pricingPreviews, pricingPreviewStatus)
         )
       );
       break;
     case "price_desc":
       sorted.sort((left, right) =>
         compareNullableNumbers(
-          resolveMarketingCatalogListPrice(right, pricingPreviews),
-          resolveMarketingCatalogListPrice(left, pricingPreviews)
+          resolveMarketingCatalogListPrice(right, pricingPreviews, pricingPreviewStatus),
+          resolveMarketingCatalogListPrice(left, pricingPreviews, pricingPreviewStatus)
         )
       );
       break;
