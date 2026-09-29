@@ -35,6 +35,7 @@ import {
   readBookingIdFromCommandCenterParams,
   resolveBookingsSelectedId,
   resolveBookingsKpiQueryPatch,
+  resolveBookingsKpiValue,
   resolveBookingsKpiStatusFilter,
   resolveBookingsListTotalPages,
   resolveInboxSelectionAfterKey,
@@ -492,6 +493,28 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(canInlineApproveBooking({ status: "pending" }), true);
     assert.equal(canInlineApproveBooking({ status: "waitlisted" }), true);
     assert.equal(canInlineApproveBooking({ status: "approved" }), false);
+    assert.equal(
+      shouldShowInlineApprove({
+        featureEnabled: true,
+        canManageOps: true,
+        item: { status: "pending" },
+        capacityFull: true,
+        selected: true,
+        narrowViewport: false,
+      }),
+      false
+    );
+    assert.equal(
+      shouldShowInlineApprove({
+        featureEnabled: true,
+        canManageOps: true,
+        item: { status: "waitlisted" },
+        capacityFull: true,
+        selected: true,
+        narrowViewport: false,
+      }),
+      false
+    );
     assert.equal(
       shouldShowInlineApprove({
         featureEnabled: true,
@@ -1098,6 +1121,41 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(bookingsCommandCenterHasActiveFilters(withAll), true);
   });
 
+  it("BUG-STG-037 uses the filtered list total for an active KPI", () => {
+    const base = {
+      ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
+      tourId: "tour-qa",
+    };
+
+    assert.equal(
+      resolveBookingsKpiValue({
+        kpi: "waitlist",
+        query: { ...base, status: "waitlisted" },
+        filteredListTotal: 0,
+        summaryValue: 7,
+      }),
+      0
+    );
+    assert.equal(
+      resolveBookingsKpiValue({
+        kpi: "pending",
+        query: base,
+        filteredListTotal: 2,
+        summaryValue: 5,
+      }),
+      5
+    );
+    assert.equal(
+      resolveBookingsKpiValue({
+        kpi: "waitlist",
+        query: base,
+        filteredListTotal: 2,
+        summaryValue: 7,
+      }),
+      7
+    );
+  });
+
   it("WEB-9.5-13 server sort query includes departureAt (P3b-a)", () => {
     const withDepartureSort = {
       ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
@@ -1372,6 +1430,8 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(pageSource, /BookingsDirectoryPagination/);
     assert.match(pageSource, /goToBookingsPage/);
     assert.match(pageSource, /BOOKINGS_LIST_PAGE_SIZE/);
+    assert.match(pageSource, /resolveBookingsKpiValue/);
+    assert.match(pageSource, /summary !== null && !embedded && !loading/);
     assert.doesNotMatch(pageSource, /loadMore/);
     assert.match(pageSource, /embedded \? \(/);
     assert.match(pageSource, /showTourScope=\{canManageOps\}/);

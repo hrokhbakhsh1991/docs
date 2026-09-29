@@ -89,6 +89,7 @@
     "pricePerPerson": "Price per person",
     "payableAmount": "Amount payable",
     "pricePerRegistration": "Amount per registration",
+    "totalPayableAmount": "Total amount for all registrations",
     "separateRegistrationPrice": "Each person is submitted as a separate registration.",
     "membershipDiscount": "Membership discount {percentage}%",
     "discountAmount": "-{amount} IRR",

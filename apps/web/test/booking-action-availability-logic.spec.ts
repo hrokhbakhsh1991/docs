@@ -22,7 +22,7 @@ function booking(status: BookingListItem["status"]): BookingListItem {
 }
 
 describe("booking-action-availability-logic", () => {
-  it("pending at capacity shows capacity hint and approve actions", () => {
+  it("pending at capacity keeps rejection available but hides approval actions", () => {
     const result = resolveBookingActionAvailability({
       canManageOps: true,
       booking: booking("pending"),
@@ -30,8 +30,24 @@ describe("booking-action-availability-logic", () => {
       isCancellable: true,
       capacityFull: true,
     });
-    assert.equal(result.canApprove, true);
+    assert.equal(result.canApprove, false);
+    assert.equal(result.canApproveWithoutPayment, false);
+    assert.equal(result.canReject, true);
+    assert.equal(result.unavailableReason, "capacity_full");
     assert.equal(result.showCapacityFullHint, true);
+  });
+
+  it("waitlisted at capacity cannot be promoted from the operator UI", () => {
+    const result = resolveBookingActionAvailability({
+      canManageOps: true,
+      booking: booking("waitlisted"),
+      isWaitlistable: false,
+      isCancellable: true,
+      capacityFull: true,
+    });
+    assert.equal(result.canApprove, false);
+    assert.equal(result.canApproveWithoutPayment, false);
+    assert.equal(result.canReject, true);
   });
 
   it("approved routes to finance hint", () => {

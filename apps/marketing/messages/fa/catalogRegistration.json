@@ -98,6 +98,7 @@
     "emailLabel": "ایمیل",
     "emailRequired": "برای این تور ایمیل الزامی است.",
     "notesLabel": "یادداشت (اختیاری)",
+    "totalPayableAmount": "مبلغ کل همه ثبت‌نام‌ها",
     "estimatedPrice": "قیمت تقریبی هر نفر: {amount} تومان",
     "summaryTitle": "خلاصه ثبت‌نام",
     "summaryTravelersLabel": "مسافرها",

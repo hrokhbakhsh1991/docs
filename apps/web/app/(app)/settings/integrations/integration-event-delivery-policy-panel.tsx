@@ -222,14 +222,26 @@ export function IntegrationEventDeliveryPolicyPanel({
   const tWizard = useWorkspaceWizardTranslator(pluginId);
   const tErrors = useTranslations("settings.integrations.errors");
 
-  const [hostAdaptersWarm, setHostAdaptersWarm] = useState(false);
+  const [hostAdaptersStatus, setHostAdaptersStatus] = useState<"loading" | "ready" | "failed">(
+    "loading"
+  );
+  const [hostAdaptersReadyPluginId, setHostAdaptersReadyPluginId] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
+    setHostAdaptersStatus("loading");
+    setHostAdaptersReadyPluginId(null);
     void loadWizardWorkspacePlugin(pluginId)
       .then((plugin) => ensureWizardHostReady(plugin))
       .then(() => {
         if (!cancelled) {
-          setHostAdaptersWarm(true);
+          setHostAdaptersReadyPluginId(pluginId);
+          setHostAdaptersStatus("ready");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Exposure configuration must fail closed rather than leak raw registry metadata.
+          setHostAdaptersStatus("failed");
         }
       });
     return () => {
@@ -238,11 +250,18 @@ export function IntegrationEventDeliveryPolicyPanel({
   }, [pluginId]);
 
   const localizedCandidateFields = useMemo((): readonly ExposureCatalogField[] => {
-    if (!hostAdaptersWarm) {
-      return exposureCandidateFields;
+    if (hostAdaptersStatus !== "ready" || hostAdaptersReadyPluginId !== pluginId) {
+      return [];
     }
     return localizeExposureCatalogFields(pluginId, exposureCandidateFields, tWizard);
-  }, [exposureCandidateFields, tWizard, hostAdaptersWarm, pluginId]);
+  }, [exposureCandidateFields, tWizard, hostAdaptersReadyPluginId, hostAdaptersStatus, pluginId]);
+
+  const candidateFieldsEmptyLabel =
+    hostAdaptersStatus === "loading"
+      ? t("fieldsLoading")
+      : hostAdaptersStatus === "failed"
+        ? t("fieldsUnavailable")
+        : t("noCandidateFields");
 
   const eventTypes = useMemo(
     () => buildExposureEventTypeList(connection, providerSurface),
@@ -495,7 +514,7 @@ export function IntegrationEventDeliveryPolicyPanel({
                     <ExposureFieldChecklist
                       context={toExposureContext(eventState)}
                       disabled={!canEdit || isSaving}
-                      emptyLabel={t("noCandidateFields")}
+                      emptyLabel={candidateFieldsEmptyLabel}
                       fields={toExposureChecklistFields(localizedCandidateFields)}
                       selectedFieldIds={selectedFieldIds}
                       selectedSummary={t("selectedSummary", { count: selectedFieldIds.length })}

@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
   formatCatalogTransportMode,
+  resolveCatalogDongAmount,
   resolveCatalogTransportCostAmount,
 } from "../src/catalog/format-catalog-transport";
 
@@ -52,6 +53,21 @@ describe("catalog transport display", () => {
         transportCostAmount: 500_000,
         dongAmount: 125_000,
       }),
+      125_000
+    );
+  });
+
+  it("does not leak dong as a second fee for organized transport", () => {
+    assert.equal(
+      resolveCatalogDongAmount({
+        mode: "bus",
+        transportCostAmount: 500_000,
+        dongAmount: 125_000,
+      }),
+      null
+    );
+    assert.equal(
+      resolveCatalogDongAmount({ mode: "shared_cars", dongAmount: 125_000 }),
       125_000
     );
   });

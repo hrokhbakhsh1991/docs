@@ -783,6 +783,52 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     });
   }
 
+  async markFreeCollectionApplied(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+  }): Promise<BookingRecord | null> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (existing === null) {
+        return null;
+      }
+      const nextPaymentStatus = raiseBookingPaymentStatus(
+        existing.paymentStatus as BookingPaymentStatus,
+        "paid"
+      );
+      const currentIntake =
+        existing.registrationIntake !== null &&
+        typeof existing.registrationIntake === "object" &&
+        !Array.isArray(existing.registrationIntake)
+          ? (existing.registrationIntake as Record<string, unknown>)
+          : {};
+      const shouldFinalize = existing.status === "approved" && nextPaymentStatus === "paid";
+      const updated = await tx.operatorRegistration.updateMany({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        data: {
+          paymentStatus: nextPaymentStatus,
+          ...(shouldFinalize && existing.finalizationStatus !== "finalized"
+            ? { finalizationStatus: "finalized", finalizedAt: new Date() }
+            : {}),
+          registrationIntake: {
+            ...currentIntake,
+            freeCollectionApplied: true,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      if (updated.count !== 1) {
+        return null;
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      return row === null ? null : toBookingRecord(row);
+    });
+  }
+
   async finalizeBooking(input: {
     readonly bookingId: string;
     readonly tenantId: string;

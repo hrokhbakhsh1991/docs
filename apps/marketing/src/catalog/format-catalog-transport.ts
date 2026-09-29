@@ -47,3 +47,10 @@ export function resolveCatalogTransportCostAmount(
 
   return null;
 }
+
+/** Dong is a shared-car fuel share, never an additional organized-transport fee. */
+export function resolveCatalogDongAmount(
+  transport: PublicCatalogTransportSnapshot | null | undefined
+): number | null {
+  return transport?.mode === "shared_cars" ? (transport.dongAmount ?? null) : null;
+}

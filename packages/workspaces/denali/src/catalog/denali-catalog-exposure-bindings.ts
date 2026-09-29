@@ -33,12 +33,25 @@ function clearParticipantPricing(card: PublicCatalogCard): PublicCatalogCard {
   });
 }
 
+/** Keep an exposed transport mode, but remove its monetary components when the financial surface is hidden. */
+function clearTransportAmounts(card: PublicCatalogCard): PublicCatalogCard {
+  if (card.transport == null) {
+    return card;
+  }
+  const { transportCostAmount: _transportCostAmount, dongAmount: _dongAmount, ...transport } =
+    card.transport;
+  return Object.freeze({ ...card, transport: Object.freeze(transport) });
+}
+
 function clearPaymentPolicy(card: PublicCatalogCard): PublicCatalogCard {
   const publicFreeCollection = card.paymentCollection === "free" ? "free" : undefined;
   // Payment policy and money display form one public financial surface. Keeping
   // the base/member price after hiding payment policy leaks the same financial
   // contract through a different field (especially on personalized PDPs).
-  let next = clearWorkspaceCatalogCardStringField(clearParticipantPricing(card), "paymentMode");
+  let next = clearWorkspaceCatalogCardStringField(
+    clearTransportAmounts(clearParticipantPricing(card)),
+    "paymentMode"
+  );
   for (const key of [
     "paymentPlan",
     "paymentCollection",

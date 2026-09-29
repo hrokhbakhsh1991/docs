@@ -40,6 +40,7 @@ import {
   buildTourWorkspaceFinanceHref,
   buildTourWorkspaceHistoryHref,
   buildTourWorkspaceOpsCountsQuery,
+  buildTourWorkspaceRosterCountsHref,
   hrefForWorkspaceMoneyKpi,
   hrefForWorkspaceOpsKpi,
   resolveTourWorkspaceOpsCountsFromListPayloads,
@@ -413,6 +414,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
 
   it("H1 hardening — ops counts from list totals; fail closed; clickable hrefs", () => {
     assert.match(buildTourWorkspaceOpsCountsQuery(TOUR_ID, "pending"), /status=pending/);
+    assert.match(
+      buildTourWorkspaceRosterCountsHref(TOUR_ID, "operational"),
+      /operational-roster\?.*filter=operational.*countOnly=1/
+    );
     const ok = resolveTourWorkspaceOpsCountsFromListPayloads({
       pendingPayload: { total: 2 },
       waitlistedPayload: { total: 1 },

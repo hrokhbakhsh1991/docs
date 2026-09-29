@@ -27,23 +27,12 @@ export async function applyFreeCollectionAfterBookingApprove(input: {
     return;
   }
 
-  // Keep the booking projection in sync with the finance result. The booking
-  // repositories own the canonical approved+paid => finalized transition;
-  // bypassing them leaves a free registration operational but not final.
+  // Keep payment, finalization, and the free marker in one repository
+  // transaction. Separate writes expose a mixed list projection to readers.
   const { getBookingsRepository } = await import("../bookings/create-bookings-repository");
   const bookings = getBookingsRepository();
-  await bookings.updatePaymentStatus({
+  await bookings.markFreeCollectionApplied({
     bookingId: input.bookingId,
     tenantId: input.tenantId,
-    paymentStatus: "paid",
-  });
-
-  // The booking list intentionally does not infer WAIVED from `paid` alone.
-  // Persist a dedicated collection marker so a free collection is not confused
-  // with a manually-entered obligation override.
-  await bookings.mergeRegistrationIntake({
-    bookingId: input.bookingId,
-    tenantId: input.tenantId,
-    patch: { freeCollectionApplied: true },
   });
 }

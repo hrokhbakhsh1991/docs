@@ -66,6 +66,11 @@ export async function CatalogTourCard({
       ? t("pricing.ancillary.dong")
       : t("pricing.ancillary.transport");
   const showPrice = shouldShowCatalogPrice(tour);
+  // Commercial previews are a separate API surface from the catalog card.
+  // Never render a member preview when the payment Exposure has redacted the
+  // canonical price from this card (BUG-STG-019).
+  const visiblePricingPreview = showPrice ? pricingPreview : null;
+  const visiblePricingPreviewStatus = showPrice ? pricingPreviewStatus : "anonymous";
   const priceLine = showPrice
     ? formatCatalogPrice(
         tour.priceAmount,
@@ -103,13 +108,13 @@ export async function CatalogTourCard({
           />
         </Link>
         <CatalogCommercialPricingCompact
-          preview={pricingPreview}
+          preview={visiblePricingPreview}
           canonicalPrice={priceLine}
           isFreeCollection={freeCollection}
           dateLocale={dateLocale}
           priceDisplayPolicy={priceDisplayPolicy}
           t={t}
-          pricingPreviewStatus={pricingPreviewStatus}
+          pricingPreviewStatus={visiblePricingPreviewStatus}
           ancillaryLines={
             transportCostAmount != null
               ? [

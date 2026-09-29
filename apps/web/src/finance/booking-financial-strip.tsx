@@ -118,7 +118,8 @@ export function BookingFinancialStrip({
   const tPayments = useTranslations("finance.payments");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
-  const isSettledBooking = bookingPaymentStatus === "paid";
+  const isWaivedBooking = financialDisplayState?.trim().toUpperCase() === "WAIVED";
+  const isSettledBooking = bookingPaymentStatus === "paid" || isWaivedBooking;
   const [loading, setLoading] = useState(() => registrationId.trim().length >= 32);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<readonly FinancePaymentRow[]>([]);
@@ -127,6 +128,14 @@ export function BookingFinancialStrip({
 
   useEffect(() => {
     const id = registrationId.trim();
+    if (financialDisplayState?.trim().toUpperCase() === "WAIVED") {
+      setItems([]);
+      setBalanceDueMinor(null);
+      setHasPendingReceipt(false);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     if (id.length < 32) {
       setItems([]);
       setBalanceDueMinor(null);
@@ -241,7 +250,7 @@ export function BookingFinancialStrip({
     return () => {
       controller.abort();
     };
-  }, [refreshKey, registrationId]);
+  }, [financialDisplayState, refreshKey, registrationId]);
 
   const paymentsHref = useMemo(
     () => withFinanceRegistrationQuery("/finance?tab=payments", registrationId),
@@ -281,6 +290,7 @@ export function BookingFinancialStrip({
     return resolveStripNextStep({
       bookingStatus,
       bookingPaymentStatus,
+      financialDisplayState,
       hasOpenPendingPayment: hasOpenPendingManualPayment(items),
       hasPendingReceipt,
       hasRemainingBalance: hasInvoiceRemainingBalance(balanceDueMinor),
@@ -290,6 +300,7 @@ export function BookingFinancialStrip({
     balanceDueMinor,
     bookingPaymentStatus,
     bookingStatus,
+    financialDisplayState,
     hasPendingReceipt,
     items,
     loading,
@@ -301,7 +312,9 @@ export function BookingFinancialStrip({
       className="space-y-3 rounded-md border bg-muted/20 p-3"
       data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.strip}
     >
-      <FinanceInvoiceBalanceCard registrationId={registrationId} refreshKey={refreshKey} />
+      {!isWaivedBooking ? (
+        <FinanceInvoiceBalanceCard registrationId={registrationId} refreshKey={refreshKey} />
+      ) : null}
 
       {settlementSummary !== null ? (
         <p
@@ -313,24 +326,28 @@ export function BookingFinancialStrip({
         </p>
       ) : null}
 
-      <p
-        className="text-sm font-medium"
-        data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.latestPaymentsTitle}
-      >
-        {tPayments("stripLatestPaymentsTitle")}
-      </p>
+      {!isWaivedBooking ? (
+        <p
+          className="text-sm font-medium"
+          data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.latestPaymentsTitle}
+        >
+          {tPayments("stripLatestPaymentsTitle")}
+        </p>
+      ) : null}
 
-      {loading ? <p className="text-sm text-muted-foreground">{tCommon("loading")}</p> : null}
-      {error !== null ? (
+      {!isWaivedBooking && loading ? (
+        <p className="text-sm text-muted-foreground">{tCommon("loading")}</p>
+      ) : null}
+      {!isWaivedBooking && error !== null ? (
         <p className="text-sm text-destructive" role="alert">
           {localizeFinanceMessage(tValidation, tErrors, error)}
         </p>
       ) : null}
-      {!loading && error === null && items.length === 0 ? (
+      {!isWaivedBooking && !loading && error === null && items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{tPayments("empty")}</p>
       ) : null}
 
-      {items.length > 0 ? (
+      {!isWaivedBooking && items.length > 0 ? (
         <ul className="space-y-2">
           {items.map((row) => (
             <li
@@ -364,7 +381,7 @@ export function BookingFinancialStrip({
       ) : null}
 
       {/* Primary next-step only (PR22-A order + PR22-B single primary). */}
-      {nextStep !== null && nextStep.tab === "receipts" ? (
+      {!isWaivedBooking && nextStep !== null && nextStep.tab === "receipts" ? (
         <p
           className="rounded-md border border-primary/30 bg-muted/40 p-2.5 text-sm text-foreground"
           data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.nextStep}
@@ -382,7 +399,7 @@ export function BookingFinancialStrip({
         </p>
       ) : null}
 
-      {nextStep !== null && nextStep.tab === "payments" ? (
+      {!isWaivedBooking && nextStep !== null && nextStep.tab === "payments" ? (
         <p
           className="rounded-md border border-primary/30 bg-muted/40 p-2.5 text-sm text-foreground"
           data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.nextStep}
@@ -402,7 +419,7 @@ export function BookingFinancialStrip({
       ) : null}
 
       {/* Secondary + tertiary nav — never styled as equal primary actions. */}
-      {!loading ? (
+      {!isWaivedBooking && !loading ? (
         <nav
           className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
           data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.secondaryNav}

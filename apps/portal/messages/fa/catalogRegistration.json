@@ -89,6 +89,7 @@
     "pricePerPerson": "قیمت هر نفر",
     "payableAmount": "مبلغ قابل پرداخت",
     "pricePerRegistration": "مبلغ هر ثبت‌نام",
+    "totalPayableAmount": "مبلغ کل همه ثبت‌نام‌ها",
     "separateRegistrationPrice": "پرداخت هر نفر جداگانه انجام می‌شود.",
     "membershipDiscount": "تخفیف عضویت {percentage}٪",
     "discountAmount": "−{amount} تومان",

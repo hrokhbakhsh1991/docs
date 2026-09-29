@@ -146,6 +146,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
           </div>
           <MemberRegistrationStatusCard
             lifecycleStatus={lifecycleStatus}
+            paymentStatus={row.paymentStatus}
             statusLabel={statusLabel}
             initialCopy={detailStatus}
             initialReceiptStatus={receiptPanel.status}
@@ -216,6 +217,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
+          paymentStatus={row.paymentStatus}
           initialPanel={receiptPanel}
           tripsListHref={tripsListHref}
           tourHref={tourHref}

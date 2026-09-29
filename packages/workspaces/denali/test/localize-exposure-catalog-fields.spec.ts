@@ -43,4 +43,20 @@ describe("localizeExposureCatalogFields (package SoT)", () => {
     );
     assert.equal(localized?.adminDescription, "ناحیه‌های مسیر");
   });
+
+  it("uses the stable field id when the registry canonical path is the wizard path", () => {
+    const t = (key: string) =>
+      key === "fields.startPoint" ? "نقطه شروع" :
+      key === "fieldDescriptions.locationZones" ? "ناحیه‌های مسیر" : key;
+    const [localized] = localizeExposureCatalogFields(
+      [{
+        id: "denali.location-zones",
+        canonicalPath: "startPoint",
+        adminLabel: "Location Zones",
+        adminDescription: "Start, summit, camp and end location zones.",
+      }],
+      t,
+    );
+    assert.equal(localized?.adminDescription, "ناحیه‌های مسیر");
+  });
 });

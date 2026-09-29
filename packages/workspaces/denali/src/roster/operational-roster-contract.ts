@@ -60,6 +60,8 @@ export type OperationalRosterListQuery = {
   readonly transportKind?: BookingTransportKind;
   readonly limit: number;
   readonly cursor?: string;
+  /** Return only the exact filtered total for workspace KPI/count requests. */
+  readonly countOnly?: boolean;
 };
 
 export type OperationalRosterListResponse = {
@@ -110,6 +112,8 @@ export function parseOperationalRosterListQuery(url: URL): OperationalRosterList
 
   const limit = parsePositiveInt(url.searchParams.get("limit"), 50, 100);
   const cursor = url.searchParams.get("cursor")?.trim();
+  const countOnlyRaw = (url.searchParams.get("countOnly") ?? "").trim().toLowerCase();
+  const countOnly = countOnlyRaw === "1" || countOnlyRaw === "true";
   const viewRaw = (url.searchParams.get("view") ?? "ops").trim().toLowerCase();
 
   return {
@@ -118,5 +122,6 @@ export function parseOperationalRosterListQuery(url: URL): OperationalRosterList
     ...(transportKind !== undefined ? { transportKind } : {}),
     limit,
     ...(cursor !== undefined && cursor.length > 0 ? { cursor } : {}),
+    ...(countOnly ? { countOnly: true } : {}),
   };
 }

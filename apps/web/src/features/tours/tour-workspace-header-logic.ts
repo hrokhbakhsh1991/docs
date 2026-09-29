@@ -52,6 +52,7 @@ export function buildTourWorkspaceRosterCountsHref(
   const params = new URLSearchParams();
   params.set("view", "ops");
   params.set("filter", filter);
+  params.set("countOnly", "1");
   return `/api/tours/${encodeURIComponent(tourId.trim())}/operational-roster?${params.toString()}`;
 }
 

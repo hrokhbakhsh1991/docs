@@ -1,5 +1,6 @@
 import type { MarketingCatalogCard } from "./catalog-types";
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 
 export type MarketingCatalogPricingPreviews = Readonly<
   Record<string, MarketingCommercialPricingPreview>
@@ -15,13 +16,20 @@ export type MarketingCatalogPricingPreviews = Readonly<
  */
 export function resolveMarketingCatalogListPrice(
   item: MarketingCatalogCard,
-  pricingPreviews?: MarketingCatalogPricingPreviews
+  pricingPreviews?: MarketingCatalogPricingPreviews,
+  pricingPreviewStatus: MarketingCommercialPricingPreviewStatus = "anonymous"
 ): number | null {
   if (item.paymentCollection === "free") {
     return 0;
   }
 
   const preview = pricingPreviews?.[item.id];
+  // The card fails closed when an authenticated member preview is missing.
+  // Filtering/sorting must use the same contract; falling back to the public
+  // base price here would make order/filter results disagree with the card.
+  if (preview === undefined && pricingPreviewStatus !== "anonymous") {
+    return null;
+  }
   if (preview?.source === "member_discount") {
     const discount = Number.parseInt(preview.memberDiscountMinor, 10);
     const payable = Number.parseInt(preview.payableMinor, 10);

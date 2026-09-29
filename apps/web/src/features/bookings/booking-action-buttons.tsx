@@ -13,7 +13,8 @@ type BookingActionButtonsProps = {
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
-  readonly showApproveReject: boolean;
+  readonly showReject: boolean;
+  readonly showApprove: boolean;
   readonly showWaitlist: boolean;
   readonly showCancel: boolean;
   readonly actionHint?: string | null;
@@ -29,7 +30,8 @@ export function BookingActionButtons({
   onApproveWithoutPayment,
   onWaitlist,
   onCancel,
-  showApproveReject,
+  showReject,
+  showApprove,
   showWaitlist,
   showCancel,
   actionHint = null,
@@ -56,7 +58,7 @@ export function BookingActionButtons({
           {actionHint}
         </p>
       ) : null}
-      {showApproveReject ? (
+      {showReject ? (
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -70,7 +72,7 @@ export function BookingActionButtons({
             <X className="me-1 size-4" />
             {t("rejectRegistration")}
           </Button>
-          {onApproveWithoutPayment !== undefined ? (
+          {showApprove && onApproveWithoutPayment !== undefined ? (
             <Button
               variant="outline"
               className="flex-1"
@@ -85,7 +87,7 @@ export function BookingActionButtons({
           ) : null}
         </div>
       ) : null}
-      {showApproveReject ? (
+      {showApprove ? (
         <Button
           className="w-full"
           disabled={busy}

@@ -18,9 +18,12 @@ export type ExposureCatalogFieldForLocalization = {
 
 function resolveDenaliFieldDescription(
   translateWizard: DenaliTranslator,
-  canonicalPath: string,
+  field: Pick<ExposureCatalogFieldForLocalization, "id" | "canonicalPath">,
 ): string | null {
-  if (canonicalPath === "denali.location-zones") {
+  // The registry's stable identity is the field id.  Some seeded registry
+  // rows expose the underlying wizard path (`startPoint`) as canonicalPath;
+  // checking only canonicalPath leaks the English registry description.
+  if (field.id === "denali.location-zones" || field.canonicalPath === "denali.location-zones") {
     const key = "fieldDescriptions.locationZones";
     if (typeof translateWizard.has === "function" && !translateWizard.has(key)) {
       return null;
@@ -46,7 +49,7 @@ export function localizeExposureCatalogFields<T extends ExposureCatalogFieldForL
 ): readonly T[] {
   return fields.map((field) => {
     const label = resolveDenaliFieldLabel(translateWizard, field.canonicalPath);
-    const description = resolveDenaliFieldDescription(translateWizard, field.canonicalPath);
+    const description = resolveDenaliFieldDescription(translateWizard, field);
     const localized = {
       ...field,
       ...(description === null ? {} : { adminDescription: description }),

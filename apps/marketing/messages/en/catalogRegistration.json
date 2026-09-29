@@ -98,6 +98,7 @@
     "emailLabel": "Email",
     "emailRequired": "Email is required for this tour.",
     "notesLabel": "Notes (optional)",
+    "totalPayableAmount": "Total amount for all registrations",
     "estimatedPrice": "Estimated price per person: {amount} IRR",
     "summaryTitle": "Registration summary",
     "summaryTravelersLabel": "Travelers",

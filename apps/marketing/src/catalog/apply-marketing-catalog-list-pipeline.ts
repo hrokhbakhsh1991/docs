@@ -1,5 +1,6 @@
 import type { CatalogListFilters } from "./catalog-list-query";
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import { filterMarketingCatalogItems } from "./filter-marketing-catalog-items";
 import { sortMarketingCatalogItems } from "./sort-marketing-catalog-items";
 import type { MarketingCatalogPricingPreviews } from "./resolve-marketing-catalog-list-price";
@@ -16,7 +17,8 @@ export async function applyMarketingCatalogListPipeline(
   filters: CatalogListFilters,
   serverListFilters: readonly string[] = [],
   pluginId?: string,
-  pricingPreviews?: MarketingCatalogPricingPreviews
+  pricingPreviews?: MarketingCatalogPricingPreviews,
+  pricingPreviewStatus: MarketingCommercialPricingPreviewStatus = "anonymous"
 ): Promise<MarketingCatalogListPipelineResult> {
   void serverListFilters;
   const filteredItems = await filterMarketingCatalogItems(
@@ -33,9 +35,15 @@ export async function applyMarketingCatalogListPipeline(
       maxDuration: filters.maxDuration,
     },
     pluginId,
-    pricingPreviews
+    pricingPreviews,
+    pricingPreviewStatus
   );
-  const items = sortMarketingCatalogItems(filteredItems, filters.sort, pricingPreviews);
+  const items = sortMarketingCatalogItems(
+    filteredItems,
+    filters.sort,
+    pricingPreviews,
+    pricingPreviewStatus
+  );
   return {
     items,
     matchedCount: items.length,

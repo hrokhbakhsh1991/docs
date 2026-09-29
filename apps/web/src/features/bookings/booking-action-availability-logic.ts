@@ -67,14 +67,18 @@ export function resolveBookingActionAvailability(
     return inactive("wrong_status");
   }
 
-  const canAct = true;
+  // A full tour may still be rejected/cancelled, but approval must not be offered
+  // from the operator UI. The API remains the final capacity gate; hiding the
+  // approval action prevents an operator from treating an expected 409 as a valid
+  // promotion path (BUG-STG-063).
+  const canApprove = !input.capacityFull;
   return {
-    canApprove: canAct,
-    canApproveWithoutPayment: canAct,
-    canReject: canAct,
+    canApprove,
+    canApproveWithoutPayment: canApprove,
+    canReject: true,
     canWaitlist: input.isWaitlistable,
     canCancel: input.isCancellable,
-    unavailableReason: null,
+    unavailableReason: input.capacityFull ? "capacity_full" : null,
     showCapacityFullHint: input.capacityFull,
   };
 }

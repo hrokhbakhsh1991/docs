@@ -14,6 +14,7 @@ import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
+import { resolveCatalogFreeCollectionLabel } from "./resolve-catalog-free-label";
 import {
   formatCatalogTransportMode,
   resolveCatalogTransportCostAmount,
@@ -40,15 +41,18 @@ export async function CatalogTourDetailFacts({
   const surface = await resolveMarketingCatalogSurface(pluginId);
   const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
 
-  const priceValue = shouldShowCatalogPrice(tour)
-    ? formatCatalogPrice(
-        tour.priceAmount,
-        tour.priceCurrency,
-        dateLocale,
-        t("detail.priceOnRequest"),
-        priceDisplayPolicy
-      )
-    : null;
+  const priceValue =
+    tour.paymentCollection === "free"
+      ? resolveCatalogFreeCollectionLabel(t, locale)
+      : shouldShowCatalogPrice(tour)
+        ? formatCatalogPrice(
+            tour.priceAmount,
+            tour.priceCurrency,
+            dateLocale,
+            t("detail.priceOnRequest"),
+            priceDisplayPolicy
+          )
+        : null;
 
   const capacityValue =
     tour.spotsRemaining != null
@@ -85,6 +89,10 @@ export async function CatalogTourDetailFacts({
           priceDisplayPolicy
         )
       : null;
+  const transportCostLabel =
+    tour.transport?.mode === "shared_cars"
+      ? t("detail.logistics.dongAmount")
+      : t("detail.facts.transportCost");
 
   const facts = buildCatalogTourDetailFacts({
     tour,
@@ -92,7 +100,7 @@ export async function CatalogTourDetailFacts({
     factLabels: {
       price: t("detail.facts.price"),
       transport: t("detail.facts.transport"),
-      transportCost: t("detail.facts.transportCost"),
+      transportCost: transportCostLabel,
       capacity: t("detail.facts.capacity"),
       dates: t("detail.facts.dates"),
       difficulty: t("detail.facts.difficulty"),

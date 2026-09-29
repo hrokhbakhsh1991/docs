@@ -47,6 +47,14 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(denaliIntake, /intake\.submitWaitlist/);
   });
 
+  it("BUG-STG-WAITLIST-GUEST-FORM-COPY hides pricing preview from the waitlist path", () => {
+    assert.match(denaliIntake, /!isWaitlistRegistration && !hasMembershipDiscount/);
+    assert.match(denaliIntake, /!isWaitlistRegistration && commercialPricingPreviewLoading/);
+    assert.match(denaliIntake, /!isWaitlistRegistration && participantPricingInputs\.length > 0/);
+    assert.match(denaliIntake, /!isWaitlistRegistration\s*\n\s*\? formattedPreviewTotal !== null/);
+    assert.match(denaliIntake, /isWaitlistRegistration\s*\?\s*t\("intake\.submitWaitlist"\)/);
+  });
+
   it("BUG-STG-047 blocks direct registration for past/closed tours but preserves waitlist", () => {
     const page = readFileSync(
       join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),

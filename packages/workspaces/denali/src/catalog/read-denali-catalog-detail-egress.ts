@@ -258,10 +258,10 @@ export function readDenaliCatalogDetailEgress(
     ...(includedServices.length > 0 ? { includedServices } : {}),
     ...(excludedServices.length > 0 ? { excludedServices } : {}),
     ...(includesTourInsurance ? { includesTourInsurance: true } : {}),
-    ...(paymentMode != null ? { paymentMode } : {}),
+    ...(paymentCollection !== "free" && paymentMode != null ? { paymentMode } : {}),
     paymentCollection,
     registrationApproval,
-    ...(prepaymentPolicy.enabled && prepaymentPolicy.percent != null
+    ...(paymentCollection !== "free" && prepaymentPolicy.enabled && prepaymentPolicy.percent != null
       ? { paymentPlan: { prepaymentPercent: prepaymentPolicy.percent } }
       : {}),
     ...(socialMediaLink != null ? { socialMediaLink } : {}),

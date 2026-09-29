@@ -72,7 +72,7 @@ describe("readDenaliCatalogDetailEgress", () => {
     assert.equal(egress.gearItems?.[0]?.name, "Hiking boots");
     assert.deepEqual(egress.includedServices, ["Guide", "Snack"]);
     assert.equal(egress.includesTourInsurance, true);
-    assert.equal(egress.paymentMode, "offline_receipt");
+    assert.equal(egress.paymentMode, undefined);
     assert.equal(egress.paymentCollection, "free");
     assert.equal(egress.registrationApproval, "auto");
     assert.equal(egress.socialMediaLink, "https://instagram.com/denali.club");

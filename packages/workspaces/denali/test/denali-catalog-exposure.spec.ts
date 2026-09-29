@@ -151,6 +151,37 @@ describe("applyDenaliCatalogCardExposure", () => {
     assert.equal("registrationApproval" in redacted, false);
   });
 
+  it("BUG-STG-019 removes transport money while preserving an independently exposed mode", () => {
+    const card = toDenaliCatalogCard({
+      id: "mixed-exposure-tour",
+      canonical: {
+        schemaVersion: 1,
+        data: {
+          title: "Mixed exposure tour",
+          pricing: {
+            basePricePerPerson: 2_000_000,
+            paymentMode: "offline_receipt",
+            paymentCollection: "offline",
+          },
+          transport: {
+            mode: "shared_cars",
+            dongAmount: 300_000,
+          },
+        },
+      },
+    });
+
+    const redacted = applyDenaliCatalogCardExposure(
+      card,
+      new Set(["title", "denali.transport-mode"])
+    );
+
+    assert.equal(redacted.transport?.mode, "shared_cars");
+    assert.equal(redacted.transport?.dongAmount, undefined);
+    assert.equal(redacted.transport?.transportCostAmount, undefined);
+    assert.equal(redacted.priceAmount, null);
+  });
+
   it("BUG-STG-006 makes transport visibility depend on the Exposure field", () => {
     const card = toDenaliCatalogCard({
       id: "tour-transport",

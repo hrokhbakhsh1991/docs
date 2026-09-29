@@ -46,18 +46,19 @@ export async function CatalogTourDetailStickyBar({
         priceDisplayPolicy
       )
     : null;
+  const showCommercialPricing = shouldShowCatalogPrice(tour);
 
   return (
     <div data-marketing-catalog-detail-sticky-bar>
       <CatalogCommercialPricingBreakdown
-        preview={pricingPreview}
+        preview={showCommercialPricing ? pricingPreview : null}
         canonicalPrice={priceLine}
         isFreeCollection={tour.paymentCollection === "free"}
         dateLocale={dateLocale}
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}
         compact
-        pricingPreviewStatus={pricingPreviewStatus}
+        pricingPreviewStatus={showCommercialPricing ? pricingPreviewStatus : "anonymous"}
       />
       {registration.state === "closed" && cta.primaryKind !== "view-self" ? (
         <p data-marketing-catalog-detail-sold-out>{t("detail.soldOut")}</p>
