@@ -18,7 +18,6 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 12px 32px rgba(15, 23, 42, 0.06);
 }
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-filter-bar-head] {
   display: flex;
@@ -28,7 +27,6 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   padding-bottom: var(--space-3);
   border-bottom: var(--mkt-border-width) solid color-mix(in srgb, var(--border) 70%, transparent);
 }
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-filter-bar-title-row] {
   display: inline-flex;
@@ -36,13 +34,11 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   gap: var(--space-2);
   min-width: 0;
 }
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   svg[data-marketing-catalog-filter-bar-icon] {
   flex-shrink: 0;
   color: var(--color-primary);
 }
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   p[data-marketing-catalog-filter-bar-title] {
   margin: 0;
@@ -51,7 +47,6 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   line-height: 1.3;
   color: var(--foreground);
 }
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   p[data-marketing-catalog-filter-section-label] {
   margin: 0 0 var(--space-2);
@@ -61,7 +56,6 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   text-transform: uppercase;
   color: var(--muted-foreground);
 }
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   a[data-marketing-catalog-clear-filters] {
   display: inline-flex;
@@ -420,18 +414,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   backdrop-filter: blur(8px);
 }
 
-/* Past tours remain browseable, but their state must be unambiguous at card level. */
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   span[data-marketing-catalog-card-past-badge] {
   inset-block-start: var(--space-3);
   inset-inline-end: var(--space-3);
-  color: var(--wiz-tone-amber-fg, #92400e);
-  background: color-mix(
-    in srgb,
-    var(--wiz-tone-amber-source, #b45309) 18%,
-    var(--color-bg-surface, #fff)
-  );
-  border: 1px solid color-mix(in srgb, var(--wiz-tone-amber-source, #b45309) 42%, transparent);
+  color: var(--mkt-accent-deep);
+  background: color-mix(in srgb, var(--mkt-accent-mid) 18%, var(--color-bg-surface));
+  border: 1px solid color-mix(in srgb, var(--mkt-accent-mid) 42%, transparent);
   box-shadow: 0 0.25rem 0.75rem rgb(15 23 42 / 0.16);
 }
 
