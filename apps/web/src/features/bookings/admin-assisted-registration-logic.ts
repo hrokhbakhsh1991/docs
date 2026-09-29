@@ -143,7 +143,9 @@ export function extractWorkspaceAdminRegistrationRequirements(
     transport: {
       mode: transportMode,
       allowPersonalCar: readBoolean(readCanonicalPath(data, "transport.allowPersonalCar")),
-      transportCostAmount: readInteger(readCanonicalPath(data, "transport.transportCost")),
+      transportCostAmount:
+        readInteger(readCanonicalPath(data, "transport.transportCost")) ??
+        readInteger(readCanonicalPath(data, "transport.transportCostAmount")),
       dongAmount: readInteger(readCanonicalPath(data, "transport.dongAmount")),
     },
   };
