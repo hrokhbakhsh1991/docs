@@ -73,12 +73,10 @@ export async function buildFinalRosterWorkbook(input: {
   workbook.created = generatedAt;
   workbook.modified = generatedAt;
 
-  const finalRows = input.rows.filter(
-    (row) =>
-      row.isFinalParticipant &&
-      row.isFinanciallySettled &&
-      (row.financialDisplayState === "PAID" || row.financialDisplayState === "WAIVED")
-  );
+  // The final roster is the participant roster, not a payment-cleared roster.
+  // Approved unpaid/partial participants stay here and retain their financial
+  // status in the dedicated column; the payment follow-up sheet is additive.
+  const finalRows = input.rows.filter((row) => row.isFinalParticipant);
   const unpaidRows = input.rows.filter(
     (row) => row.isOperationalParticipant && !row.isFinanciallySettled
   );
@@ -200,7 +198,9 @@ function toExportRow(
 }
 
 function resolveExportCurrency(rows: readonly TourOperationalRosterRow[]): string | null {
-  return rows.find((row) => row.currency !== null && row.currency.trim().length > 0)?.currency ?? null;
+  return (
+    rows.find((row) => row.currency !== null && row.currency.trim().length > 0)?.currency ?? null
+  );
 }
 
 function totalForRow(row: TourOperationalRosterRow): string | null {

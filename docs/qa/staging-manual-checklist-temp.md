@@ -1001,6 +1001,33 @@ and Denali registration detail service.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
 
+## Staging runtime continuation — ۲۰۲۶-۰۹-۲۹
+
+### P2 merchandising recheck
+
+- `BUG-STG-081` — **PASS فعلی در PLP/PDP**. تور `ec171184-1877-4501-9a92-857f712838e2` در PLP با `sort=price_asc` و `sort=price_desc` قیمت پایه `۲٬۰۰۰٬۰۰۰ تومان`، قیمت عضو `۱٬۰۰۰٬۰۰۰ تومان` و تخفیف ۵۰٪ را نشان داد؛ PDP همان قیمت عضو را نشان داد.
+- `BUG-STG-082` — **PASS فعلی در Marketing**. همان کارت PLP نوع حمل `خودروهای مشترک` و دُنگ `۳۰۰٬۰۰۰ تومان` را نشان داد؛ PDP نیز هر دو مقدار را نشان داد.
+- `BUG-STG-025` — **PASS فعلی**. PDP رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` label «رایگان / بدون نیاز به پرداخت» داشت و روش پرداخت، مبلغ پرداخت و CTA پرداخت نداشت. PLP نیز همین label را داشت.
+- `BUG-STG-026 / 027` — **PASS فعلی**. URL `https://denali.shenski.com/tours?minPrice=0&maxPrice=0&sort=price_asc` مقدارهای صفر را حفظ کرد و ۳ تور رایگان برگرداند؛ در `sort=price_asc` رایگان‌ها ابتدای فهرست و در `sort=price_desc` انتهای فهرست بودند.
+
+### Excel/final participant roster recheck
+
+- دکمهٔ خروجی Excel در Admin با موفقیت فایل ساخت و پیام «فایل Excel آماده و دانلود شد» نمایش داده شد.
+- فایل: `/home/hamed/Downloads/denali-final-roster-20260929072317.xlsx`
+- محتوای فایل: شیت «لیست نهایی» فقط ۵ ردیف و شیت «منتظر پرداخت» ۷ ردیف داشت؛ approvedهای پرداخت‌نشده هنوز از لیست نهایی حذف شده‌اند. بنابراین اصلاح نهایی participant roster در Admin هنوز روی staging نیست و **FAIL** باقی می‌ماند.
+- همان Admin runtime در `North Ridge Trek` نیز «نهایی‌شده برای حضور ۵»، «منتظر پرداخت ۷» و متن «برای ورود به فهرست نهایی، پرداخت باقی‌مانده را پیگیری کنید» را نشان داد.
+
+### Host/artifact divergence
+
+- در همین زمان Marketing/PDP/PLP رفتار اصلاح‌شدهٔ P2 را نشان داد، اما Admin/Excel رفتار قدیمی payment-gated را نشان داد.
+- headerهای عمومی SHA runtime ارائه نکردند؛ بنابراین artifact SHA دقیق Admin هنوز `UNVERIFIED` است. این مورد باید قبل از closure با fingerprint/SHA هر host تأیید شود.
+
+### وضعیت این اجرای staging
+
+- PASS: `BUG-STG-081`, `BUG-STG-082`, `BUG-STG-025`, `BUG-STG-026 / 027` در Marketing.
+- FAIL: final participant roster/Excel در Admin؛ approved unpaid/partial هنوز در «لیست نهایی» نیستند.
+- UNVERIFIED: یکسان‌بودن artifact SHA بین Marketing، Portal و Admin؛ P0/P1 mutationهای واقعی در این اجرای read-only انجام نشدند.
+
 ## Full local phase gate recheck — ۲۰۲۶-۰۹-۲۹
 
 - `pnpm run phase-2:gate` روی HEAD کاری اجرا و کامل سبز شد: build همه packageها، API، Web/Admin، platform-core و guardهای Phase 2.
@@ -3032,3 +3059,76 @@ and Denali registration detail service.
 - پوشش شامل putProof بعد از authorization، cleanup در خطای submit، GET pending بعد از upload، جلوگیری از upload برای مالک دیگر و approval projection است.
 - Telegram adapter/worker نیز در همین اجرا sendPhoto/sendDocument multipart، fileKey، topic/thread، stale-thread recovery، General fail-closed و retry بدون send دوم را pass کرد.
 - بنابراین source contract برای upload و Telegram استاندارد و سبز است؛ تنها تأیید باقی‌مانده، اجرای واقعی PNG/PDF و delivery روی staging با artifact جدید است.
+
+## Staging runtime continuation — ۲۰۲۶-۰۹-۲۹ (remaining items, current artifact)
+
+Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally excluded from this remaining-check list because its fix is not deployed yet. It remains a separate deployment blocker.
+
+### Current PASS evidence
+
+- `BUG-STG-081` — PASS on current Marketing runtime. PLP `https://denali.shenski.com/tours?sort=price_asc` and PDP `https://denali.shenski.com/tours/ec171184-1877-4501-9a92-857f712838e2` both showed base `۲٬۰۰۰٬۰۰۰ تومان`, member `۱٬۰۰۰٬۰۰۰ تومان`, and 50% membership discount. The PLP and PDP values matched for the logged-in member fixture.
+- `BUG-STG-082` — PASS on current Marketing runtime for the shared-car fixture `ec171184-1877-4501-9a92-857f712838e2`: PLP and PDP both showed `خودروهای مشترک` and `۳۰۰٬۰۰۰ تومان` dong. No duplicate transport amount was observed.
+- `BUG-STG-025` — PASS on free PDP `https://denali.shenski.com/tours/c3a3c778-99ab-4750-8dc6-3172fa5ce034`: `رایگان / بدون نیاز به پرداخت` was visible and payment method/CTA/plan UI was absent.
+- `BUG-STG-026 / 027` — PASS on current PLP: `minPrice=0&maxPrice=0` returned 3 free tours with free cards; `price_asc` placed free cards first and `price_desc` placed free cards last.
+- `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL` — PASS on Admin workspace `https://admin.denali.shenski.com/tours/00000000-0000-4000-8000-000000000220/workspace?tab=waitlist`: all 7 rows showed `در لیست انتظار`, not `تأییدشده`; selected row detail also showed `در لیست انتظار`.
+- `BUG-STG-037` — PASS for the current read-only operational view: Admin summary showed `لیست عملیاتی ۱۲`, the table showed 12 rows, and the transport tab count matched the visible operational total. This is a count/filter smoke only; no mutation was performed.
+- `BUG-STG-WAITLIST-GUEST-FORM-COPY` — PASS for current guest-form copy at `https://portal.denali.shenski.com/catalog/e8c21d68-b161-4085-9dd3-b03b59540d39/register`: the page stated `ظرفیت تور تکمیل است؛ این فرم درخواست شما را در لیست انتظار ثبت می‌کند` and the CTA label was `ثبت درخواست لیست انتظار`. No receipt upload or payment CTA was visible. The CTA was disabled because the logged-in user already had a registration; no submit mutation was executed.
+
+### Current FAIL evidence
+
+- `BUG-STG-062 / 047` — FAIL on current PDP `https://denali.shenski.com/tours/e8c21d68-b161-4085-9dd3-b03b59540d39`: the page showed `۰ جای خالی` and a generic `ثبت‌نام مهمان دیگر` link, but no explicit PDP CTA/copy `عضویت در لیست انتظار`. The guest form has the correct copy, so the remaining defect is specifically PDP exposure/CTA.
+- `BUG-STG-080` — FAIL on current Portal runtime. Free registration `4190860a-9948-4c62-b29b-85d3e494e765` appeared in Portal List as `تأیید شده ... برای نهایی‌شدن، پرداخت لازم است`, while its detail page showed `ثبت‌نام شما نهایی شده است`, `نیازی به پرداخت ندارید`, and `رسید: لازم نیست`. List and Detail still disagree for the same free registration.
+- `BUG-STG-039 / 072` — FAIL on current Portal detail `https://portal.denali.shenski.com/me/registrations/f2144510-bc47-4d1f-b6ad-42002a6ac51a`: it showed `رسید پرداخت تأیید شد` but also `برای نهایی شدن سفر، پرداخت را تکمیل کنید` and an active payment deadline. Receipt status and registration/payment projection remain mixed.
+- `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE` — FAIL on the same paid registration `f2144510-bc47-4d1f-b6ad-42002a6ac51a`: approved receipt did not produce a settled Portal projection; payment deadline/action remained visible.
+- `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE` — FAIL in current Admin workspace: operational rows still showed `تأییدشده`, `برای ورود به فهرست نهایی، پرداخت باقی‌مانده را پیگیری کنید`, and `پرداخت‌نشده` for approved registrations. This is the old payment-gated projection on Admin/Finance.
+
+### Still unverified without a controlled mutation or missing fixture
+
+- `BUG-STG-063` — UNVERIFIED in this read-only pass. A real promotion of a group larger than available capacity was not executed; no booking/hold side effect was created.
+- `BUG-STG-064 / 065` — UNVERIFIED for the actual transition event. Current waitlist rows and guest-form copy are correct, but a real capacity release → promotion/rejection transition was not executed.
+- `BUG-STG-021` — existing source/backend and prior staging duplicate evidence remain PASS, but no new concurrent submit was run in this read-only continuation.
+- `BUG-STG-022` — existing source/preview evidence remains partial; final multi-person submit and independent transport/dong total were not re-executed in this continuation.
+- `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE` — not re-run in the current browser pass because the real Exposure field route/fixture was not opened; status remains UNVERIFIED, not PASS.
+- `BUG-STG-019` and `BUG-STG-036` — no new toggle/redaction mutation was executed; prior current-artifact evidence remains the authoritative FAIL/needs-fix record. Closure still requires API + HTML + AX + structured-data proof after the Exposure setting is changed.
+
+### Runtime evidence metadata
+
+- Current URLs inspected: Marketing PLP/PDP, Portal registration/detail, Admin tour workspace.
+- Browser AX evidence was captured for each page above.
+- Admin current counts: waitlist 7, operational 12, finalized-for-attendance 5.
+- No registration, receipt, promotion, cancellation, approval, or upload mutation was performed in this continuation; therefore no new registration/receipt IDs or before/after mutation responses were generated.
+- Runtime artifact SHA remains UNVERIFIED because the current hosts do not expose a usable build SHA/fingerprint in the inspected response headers.
+
+### Correction from direct current-runtime Exposure recheck
+
+- `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE` — PASS on the current page `https://admin.denali.shenski.com/settings/exposure` after expanding `جزئیات کاتالوگ عمومی`. The field rendered as `نقطه شروع` and its AX description was Persian: `ناحیه‌های شروع، قله، اردوگاه و پایان مسیر.`; no raw English registry description was visible. The Telegram event labels on the same page were also Persian (`ثبت‌نام عضو`, `تأیید رسید پرداخت`, `رد رسید پرداخت`, `ارسال رسید پرداخت`, `قرارگرفتن ثبت‌نام در لیست انتظار`). This supersedes the older historical runtime failure for this check; no setting was changed and the save control remained disabled.
+
+### Additional non-mutating P1 check
+
+- `BUG-STG-022` — still UNVERIFIED for final multi-person pricing. The discount-tour guest form exposed `افزودن همراه`, guest name/phone fields, and independent personal-car controls; adding/removing the local guest draft did not submit anything. Because the guest identity was not entered or submitted, independent member-vs-guest payable totals and final transport/dong aggregation were not closed.
+
+### PLP/PDP capacity-state continuation
+
+- `BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC` — FAIL on the current pair for `e8c21d68-b161-4085-9dd3-b03b59540d39`: PLP showed the card labels `رایگان / بدون نیاز به پرداخت` and `لیست انتظار`, while PDP showed `۰ جای خالی` and only the generic `ثبت‌نام مهمان دیگر` link without an explicit Waitlist CTA. The capacity fact is consistent, but the user-facing registration state/CTA is not consistent between list and detail.
+
+### Existing staging fixtures rechecked read-only
+
+- `BUG-STG-021` — fixture `QA Duplicate Runtime 20260928` exists in Portal as registration `bc596f02-acdc-4ef9-b837-dcc0949f2a59`; the current list contains one visible record for that guest. This proves fixture availability, not the required concurrent `201/409` race, so the current continuation remains UNVERIFIED for a fresh browser mutation.
+- `BUG-STG-022` — two current staging fixtures exist: `QA Multi Guest One 20260928` (`0e9fd673-9ebc-4647-bdad-8b18d820eff3`) and `QA Multi Guest Two 20260928` (`0b6d0cb3-e070-4b88-b2c4-46174a63c543`). Their detail pages are pending approval and expose transport controls, but no final participant payable totals; therefore the multi-person pricing/transport closure remains UNVERIFIED.
+- `BUG-STG-063` — Admin read-only fixture `QA P1 group over-capacity 20260928` is present with party size 3 and remains in `لیست انتظار` while capacity is `۱۲/۱۲`. This confirms the pre-promotion guard state, but no promotion action was clicked; atomic promotion success/failure and hold creation remain UNVERIFIED.
+
+### Portal Waitlist/final-state fixture comparison
+
+- Waitlist fixture `fb630288-60e0-4ee9-96d2-ae86084fbcc2` (`QA Waitlist Runtime 20260928C`) showed heading `درخواست شما در حال بررسی است`, independent labels `ثبت‌نام: لیست انتظار` and `رسید: لازم نیست`, and no payment/upload action.
+- Final fixture `9b676ad8-08f3-48a0-bf47-1494b42bd9af` (`QA Waitlist Guest 20260928`) showed `ثبت‌نام شما نهایی شده است`, `ثبت‌نام: تأیید شده`, `رسید: لازم نیست`, and no payment action.
+- This confirms the two rendered states are separated for existing records, but does not prove the real capacity-release transition from the first fixture to the second; `BUG-STG-064 / 065` remains UNVERIFIED for transition closure.
+
+### Second multi-person fixture recheck
+
+- `BUG-STG-022` fixture `0e9fd673-9ebc-4647-bdad-8b18d820eff3` (`QA Multi Guest One 20260928`) showed `در انتظار بررسی`, transport `ماشین شخصی می‌آورم · 1 صندلی`, and an independent transport editor. No payable amount was exposed before approval, so the final member/guest discount and dong aggregation still cannot be certified from read-only UI.
+
+## Local P0 financial projection checkpoint — 2026-09-29
+
+- Implemented one shared Portal financial projection for List hydration and Detail rendering.
+- The projection normalizes free/waived and paid states and clears stale `paymentDueAt`; receipt status remains independent.
+- Source/runtime staging closure is not claimed here: staging deploy, runtime SHA, real registration IDs, screenshots/AX and cache evidence remain required after deploy.

@@ -1,4 +1,5 @@
 import type { MemberRegistrationItem } from "./fetch-member-registrations.server";
+import { resolveMemberFinancialProjection } from "./resolve-member-financial-projection";
 
 type FetchRegistrationDetail = (registrationId: string) => Promise<MemberRegistrationItem | null>;
 
@@ -13,9 +14,7 @@ export async function hydrateMemberRegistrationListFinancialProjection(
   items: readonly MemberRegistrationItem[],
   fetchDetail: FetchRegistrationDetail
 ): Promise<MemberRegistrationItem[]> {
-  const candidates = items.filter(
-    (item) => item.status === "approved"
-  );
+  const candidates = items.filter((item) => item.status === "approved");
   if (candidates.length === 0) {
     return [...items];
   }
@@ -33,10 +32,7 @@ export async function hydrateMemberRegistrationListFinancialProjection(
     return {
       ...item,
       // Do not retain stale list values when detail explicitly clears them.
-      paymentStatus: detail.paymentStatus,
-      paymentCollection: detail.paymentCollection,
-      financialDisplayState: detail.financialDisplayState,
-      paymentDueAt: detail.paymentDueAt,
+      ...resolveMemberFinancialProjection(detail),
     };
   });
 }

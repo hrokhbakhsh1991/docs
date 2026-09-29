@@ -18,51 +18,43 @@ import {
 } from "../src/roster/operational-roster-semantics.ts";
 
 describe("DP-2 operational roster semantics", () => {
-  it("approved unpaid is operational but not final", () => {
+  it("approved unpaid is operational and remains in the final participant roster", () => {
     assert.equal(isOperationalParticipant("approved"), true);
     assert.equal(isFinanciallySettled("1000"), false);
-    assert.equal(isFinalParticipant({ status: "approved", remainingMinor: "1000" }), false);
+    assert.equal(isFinalParticipant({ status: "approved" }), true);
     assert.equal(occupiesCapacity("approved"), true);
   });
 
-  it("finalized unpaid is not final without settlement", () => {
+  it("finalized unpaid remains final without settlement", () => {
     assert.equal(
       isFinalParticipant({
         status: "approved",
-        remainingMinor: "1000",
-        finalizationStatus: "finalized",
       }),
-      false
+      true
     );
   });
 
-  it("keeps final roster membership bounded by lifecycle and settlement", () => {
+  it("keeps final roster membership bounded by lifecycle, not settlement", () => {
     const cases = [
       {
-        name: "explicit not_final",
-        input: {
-          status: "approved" as const,
-          remainingMinor: "0",
-          finalizationStatus: "not_final",
-        },
+        name: "explicit not_final approved participant",
+        input: { status: "approved" as const },
         expected: true,
       },
       {
         name: "legacy settled row",
-        input: { status: "approved" as const, remainingMinor: "0" },
+        input: { status: "approved" as const },
         expected: true,
       },
       {
-        name: "legacy unpaid row",
-        input: { status: "approved" as const, remainingMinor: "1000" },
-        expected: false,
+        name: "legacy unpaid approved participant",
+        input: { status: "approved" as const },
+        expected: true,
       },
       {
         name: "waitlisted stale finalized metadata",
         input: {
           status: "waitlisted" as const,
-          remainingMinor: "0",
-          finalizationStatus: "finalized",
         },
         expected: false,
       },
@@ -70,8 +62,6 @@ describe("DP-2 operational roster semantics", () => {
         name: "cancelled stale finalized metadata",
         input: {
           status: "cancelled" as const,
-          remainingMinor: "0",
-          finalizationStatus: "finalized",
         },
         expected: false,
       },
@@ -102,7 +92,7 @@ describe("DP-2 operational roster semantics", () => {
       }),
       "PAID"
     );
-    assert.equal(isFinalParticipant({ status: "approved", remainingMinor: "0" }), true);
+    assert.equal(isFinalParticipant({ status: "approved" }), true);
   });
 
   it("waived free registration", () => {
@@ -115,7 +105,7 @@ describe("DP-2 operational roster semantics", () => {
       }),
       "WAIVED"
     );
-    assert.equal(isFinalParticipant({ status: "approved", remainingMinor: "0" }), true);
+    assert.equal(isFinalParticipant({ status: "approved" }), true);
   });
 
   it("waitlisted does not occupy capacity", () => {

@@ -397,6 +397,8 @@
     "statusPendingTitle": "درخواست شما در حال بررسی است",
     "statusPendingBody": "پس از تأیید باشگاه، مرحله‌ی پرداخت برای شما فعال می‌شود.",
     "statusPendingFreeBody": "درخواست شما در انتظار تأیید باشگاه است.",
+    "statusWaitlistedTitle": "در لیست انتظار قرار گرفتید",
+    "statusWaitlistedBody": "ظرفیت تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شده و ثبت‌نام نهایی نیست.",
     "statusApprovedTitle": "ثبت‌نام شما تأیید شده است",
     "statusApprovedBody": "برای نهایی شدن سفر، پرداخت را تکمیل کنید.",
     "statusReceiptPendingTitle": "فیش شما در حال بررسی است",

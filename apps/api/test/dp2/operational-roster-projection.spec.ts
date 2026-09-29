@@ -8,7 +8,10 @@ import { after, before, beforeEach, describe, it } from "node:test";
 import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { resolveFinanceServiceForTenant } from "../../src/boot/lazy-finance-service.ts";
-import { resetTenantConnectionBudgetForTests, withTenantDbBudget } from "../../src/db/tenant-connection-budget.ts";
+import {
+  resetTenantConnectionBudgetForTests,
+  withTenantDbBudget,
+} from "../../src/db/tenant-connection-budget.ts";
 import {
   approveBooking,
   createBooking,
@@ -58,7 +61,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     const row = operational.items.find((item) => item.registrationId === created.id);
     assert.ok(row, "approved row missing from operational roster");
     assert.equal(row.isOperationalParticipant, true);
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
     assert.ok(unpaid.items.some((item) => item.registrationId === created.id));
@@ -106,7 +109,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     const row = roster.items.find((item) => item.registrationId === created.id);
     assert.ok(row);
     assert.equal(row.financialDisplayState, "PARTIALLY_PAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
   });
 

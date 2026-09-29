@@ -15,12 +15,12 @@ Operator cannot answer from one surface who holds a seat, who has paid, who owes
 
 ## Semantics (DEN-PROD-03 — approved)
 
-| Predicate                  | Definition                                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                  |
-| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                         |
-| `isFinalParticipant`       | `approved` ∧ financially settled (`PAID` or `WAIVED`); `finalizationStatus` records the decision/audit state but cannot make an unpaid row final |
-| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                 |
+| Predicate                  | Definition                                                                                                                                                                                                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                                                                                |
+| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                                                                                       |
+| `isFinalParticipant`       | `booking.status === "approved"`; unpaid and partially paid approved rows remain in the final participant roster, while `financialDisplayState` and `finalizationStatus` expose payment/finalization separately |
+| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                                                                               |
 
 Financial display states (projection only — not persisted on Bookings):
 
@@ -98,7 +98,7 @@ Tour workspace **transport** tab consumes the roster endpoint and renders paymen
 
 ## Final roster Excel export
 
-The final roster export is an operator-facing report, not a database dump. It reads the composed operational projection, puts only fully paid or waived/free participants in `لیست نهایی`, and keeps approved participants awaiting or partially completing payment in the separate `منتظر پرداخت` sheet. Payment-follow-up rows must not contaminate the final sheet.
+The final roster export is an operator-facing participant report, not a database dump. It reads the composed operational projection and puts every approved participant in `لیست نهایی`, including paid, partially paid, unpaid, and waived/free participants. Financial follow-up is represented by the separate `منتظر پرداخت` sheet and the payment-status column; it must not remove an approved participant from the final sheet.
 
 The workbook uses readable Persian labels and four data sheets:
 

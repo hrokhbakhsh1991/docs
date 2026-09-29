@@ -11,6 +11,7 @@ import {
 import { hydrateMemberRegistrationListFinancialProjection } from "@/me/hydrate-member-registration-list-financial-projection.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { resolveMemberPortalTripsDetailPath } from "@/me/resolve-member-portal-routes.server";
+import { resolveMemberFinancialProjection } from "@/me/resolve-member-financial-projection";
 import { resolveMarketingToursUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -51,6 +52,7 @@ export default async function MeRegistrationsPage({
 
   const rows = await Promise.all(
     items.map(async (item) => {
+      const financialProjection = resolveMemberFinancialProjection(item);
       const registrantTarget = item.registrantTarget === "other" ? "other" : "self";
       const guestLabel =
         typeof item.guestLabel === "string" && item.guestLabel.trim().length > 0
@@ -63,9 +65,9 @@ export default async function MeRegistrationsPage({
         statusLabel: await localizeMemberRegistrationStatus(item.status, bootstrap.pluginId),
         finalizationStatusLabel: await localizeMemberFinalizationStatus(
           item.status,
-          item.paymentStatus,
-          item.paymentCollection,
-          item.financialDisplayState
+          financialProjection.paymentStatus,
+          financialProjection.paymentCollection,
+          financialProjection.financialDisplayState
         ),
         departureLabel: await formatMemberRegistrationDeparture(item.departureAt),
       };

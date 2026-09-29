@@ -58,7 +58,7 @@ describe("DP-2 operational roster API contract", () => {
     const row = response.body.items?.find((item) => item.registrationId === bookingId);
     assert.ok(row, "roster row missing for approved booking");
     assert.equal(row.financialDisplayState, "UNPAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.passengerAssignmentStatus, "not_implemented");
     assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
   });
@@ -99,10 +99,7 @@ describe("DP-2 operational roster API contract", () => {
       response.headers["content-type"],
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    assert.match(
-      String(response.headers["content-disposition"]),
-      /denali-final-roster-.*\.xlsx/
-    );
+    assert.match(String(response.headers["content-disposition"]), /denali-final-roster-.*\.xlsx/);
     assert.equal(response.body.subarray(0, 2).toString("hex"), "504b");
   });
 

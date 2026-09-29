@@ -58,6 +58,31 @@ describe("member registration departure display", () => {
     );
   });
 
+  it("BUG-STG-064/065 distinguishes waitlist from generic pending review", () => {
+    assert.deepEqual(
+      resolveMemberRegistrationDetailStatus({
+        lifecycleStatus: "waitlisted",
+        paymentCollection: "free",
+        paymentStatus: "unpaid",
+        receiptStatus: "none",
+      }),
+      {
+        tone: "waiting",
+        title: "statusWaitlistedTitle",
+        body: "statusWaitlistedBody",
+      }
+    );
+    assert.equal(
+      resolveMemberRegistrationDetailStatus({
+        lifecycleStatus: "pending",
+        paymentCollection: "free",
+        paymentStatus: "unpaid",
+        receiptStatus: "none",
+      }).title,
+      "statusPendingTitle"
+    );
+  });
+
   it("BUG-STG-080 never exposes payment status for an approved free registration", () => {
     assert.deepEqual(
       resolveMemberRegistrationDetailStatus({
