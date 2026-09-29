@@ -299,6 +299,16 @@ export async function finalizeBooking(
   return (await resolveBookingsServiceForTenant(auth.tenantId)).finalizeBooking(auth, bookingId);
 }
 
+export async function finalizeBookingWithOpenPayment(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).finalizeBookingWithOpenPayment(
+    auth,
+    bookingId
+  );
+}
+
 export async function autoApprovePublicBooking(input: {
   readonly tenantId: string;
   readonly bookingId: string;

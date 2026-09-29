@@ -50,6 +50,8 @@ export type BookingPublicOwnedDetail = {
   readonly guestLabel: string;
   /** Who the seat is for — derived from intake; defaults to self. */
   readonly registrantTarget: "self" | "other";
+  /** Explicit attendance finalization; independent from payment settlement. */
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly paymentStatus: string;
   /** Additive finance projection; WAIVED means no payment was required. */
   readonly financialDisplayState?: "WAIVED";

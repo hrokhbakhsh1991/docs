@@ -138,7 +138,7 @@ export function composeTourOperationalRosterRow(
     isDriverOffer: isDriverOffer(input.booking.transportKind),
     passengerAssignmentStatus: passengerAssignmentStatus(),
     refundDisplayState: deriveRefundDisplayState(input.refundStatuses),
-    isFinalParticipant: isFinalParticipant({ status: registrationStatus }),
+    isFinalParticipant: isFinalParticipant({ status: registrationStatus, finalizationStatus }),
     isOperationalParticipant: isOperationalParticipant(registrationStatus),
     isFinanciallySettled: financiallySettled,
     occupiesCapacity: occupiesCapacity(registrationStatus),

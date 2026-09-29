@@ -67,7 +67,8 @@ export default async function MeRegistrationsPage({
           item.status,
           financialProjection.paymentStatus,
           financialProjection.paymentCollection,
-          financialProjection.financialDisplayState
+          financialProjection.financialDisplayState,
+          item.finalizationStatus
         ),
         departureLabel: await formatMemberRegistrationDeparture(item.departureAt),
       };

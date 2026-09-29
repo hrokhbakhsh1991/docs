@@ -22,6 +22,7 @@ function toOwnedDetail(row: {
   readonly tourTitle: string;
   readonly guestLabel: string;
   readonly paymentStatus: string;
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
@@ -37,6 +38,7 @@ function toOwnedDetail(row: {
   readonly guestLabel: string;
   readonly registrantTarget: "self" | "other";
   readonly paymentStatus: string;
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
@@ -53,6 +55,7 @@ function toOwnedDetail(row: {
     guestLabel: row.guestLabel,
     registrantTarget: readRegistrantTargetFromIntake(row.registrationIntake),
     paymentStatus: row.paymentStatus,
+    finalizationStatus: row.finalizationStatus ?? "not_final",
     ...(row.financialDisplayState !== undefined
       ? { financialDisplayState: row.financialDisplayState }
       : {}),

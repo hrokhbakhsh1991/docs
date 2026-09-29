@@ -61,13 +61,15 @@ export async function localizeMemberFinalizationStatus(
   registrationStatus: string,
   paymentStatus: string,
   paymentCollection?: "offline" | "free",
-  financialDisplayState?: string
+  financialDisplayState?: string,
+  finalizationStatus: "not_final" | "finalized" = "not_final"
 ): Promise<string | null> {
   const statusKey = resolveMemberFinalizationStatusKey({
     registrationStatus,
     paymentStatus,
     paymentCollection,
     financialDisplayState,
+    finalizationStatus,
   });
   if (statusKey === null) return null;
   const t = await getTranslations("portalMember.registrations");
@@ -79,10 +81,17 @@ export function resolveMemberFinalizationStatusKey(input: {
   readonly paymentStatus: string;
   readonly paymentCollection?: "offline" | "free";
   readonly financialDisplayState?: string;
-}): "waived" | "partial" | "unpaid" | "paid" | null {
+  readonly finalizationStatus?: "not_final" | "finalized";
+}): "waived" | "partial" | "unpaid" | "finalizedOpenPayment" | "paid" | null {
   if (input.registrationStatus.trim().toLowerCase() !== "approved") return null;
   if (input.paymentCollection === "free" || input.financialDisplayState === "WAIVED") {
     return "waived";
+  }
+  if (
+    input.finalizationStatus === "finalized" &&
+    input.paymentStatus.trim().toLowerCase() !== "paid"
+  ) {
+    return "finalizedOpenPayment";
   }
   if (
     input.financialDisplayState === "PARTIALLY_PAID" ||

@@ -42,6 +42,7 @@ import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
   BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
+  BookingOpenPaymentFinalizationNotAllowedError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
@@ -651,6 +652,45 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       finalizedByUserId: input.finalizedByUserId,
     };
     bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
+  }
+
+  async finalizeBookingWithOpenPayment(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (row.status !== "approved") {
+      throw new BookingStatusConflictError(row.status);
+    }
+    if (row.finalizationStatus === "finalized") {
+      return cloneBooking(row);
+    }
+    if (
+      (row.paymentStatus !== "unpaid" && row.paymentStatus !== "partial") ||
+      row.financialDisplayState === "WAIVED"
+    ) {
+      throw new BookingOpenPaymentFinalizationNotAllowedError();
+    }
+    const finalizedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...row,
+      finalizationStatus: "finalized",
+      finalizedAt,
+      finalizedByUserId: input.finalizedByUserId,
+    };
+    bookingsStore.set(input.bookingId, updated);
+    appendBookingOutboxEventIfAbsent({
+      tenantId: input.tenantId,
+      aggregateId: input.bookingId,
+      eventType: "registration.finalized_open_payment",
+      payload: { bookingId: input.bookingId, paymentStatus: row.paymentStatus },
+      domainEventId: `registration.finalized_open_payment:${input.bookingId}`,
+    });
     return cloneBooking(updated);
   }
 

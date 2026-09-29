@@ -48,13 +48,11 @@ export function isOperationalParticipant(status: OperationalRosterLifecycleStatu
 
 export function isFinalParticipant(input: {
   readonly status: OperationalRosterLifecycleStatus;
+  readonly finalizationStatus: "not_final" | "finalized";
 }): boolean {
-  // Final-roster membership answers the operational question "who is
-  // participating?". Payment is a separate projection and must not remove
-  // an approved participant from the roster. Unpaid/partial rows remain
-  // visible there with their financial state and are also available through
-  // the dedicated financial filters.
-  return isOperationalParticipant(input.status);
+  // Approval reserves capacity; explicit finalization controls attendance
+  // roster inclusion. Payment remains an independent projection.
+  return isOperationalParticipant(input.status) && input.finalizationStatus === "finalized";
 }
 
 export function occupiesCapacity(status: OperationalRosterLifecycleStatus): boolean {

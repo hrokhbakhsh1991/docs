@@ -117,6 +117,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     paymentCollection: financialProjection.paymentCollection,
     paymentStatus: financialProjection.paymentStatus,
     financialDisplayState: financialProjection.financialDisplayState,
+    finalizationStatus: row.finalizationStatus,
     receiptStatus: receiptPanel.status,
   });
   return (
@@ -155,6 +156,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             statusLabel={statusLabel}
             initialCopy={detailStatus}
             initialReceiptStatus={receiptPanel.status}
+            finalizationStatus={row.finalizationStatus}
           />
           <div data-portal-member-detail-kpis>
             <div data-portal-member-detail-kpi data-kpi="departure">

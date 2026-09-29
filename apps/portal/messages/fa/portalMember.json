@@ -61,6 +61,7 @@
       "unpaid": "برای نهایی‌شدن، پرداخت لازم است",
       "partial": "برای نهایی‌شدن، پرداخت باید تکمیل شود",
       "paid": "پرداخت ثبت شد",
+      "finalizedOpenPayment": "نهایی شده؛ پرداخت باقی مانده است",
       "waived": "ثبت‌نام نهایی شده؛ پرداخت لازم نیست"
     },
     "finalizationPaymentRequired": "برای نهایی‌شدن پرداخت لازم است",
@@ -405,6 +406,8 @@
     "statusReceiptPendingBody": "نتیجه‌ی بررسی فیش در همین صفحه و اعلان‌ها به شما اعلام می‌شود.",
     "statusPaidTitle": "سفر شما نهایی شده است",
     "statusPaidBody": "پرداخت شما تأیید شده و اطلاعات سفر در دسترس است.",
+    "statusFinalizedOpenPaymentTitle": "ثبت‌نام شما نهایی شده است",
+    "statusFinalizedOpenPaymentBody": "حضور شما تأیید نهایی شده است؛ پرداخت باقی مانده و همچنان قابل پیگیری است.",
     "statusReceiptApprovedTitle": "رسید پرداخت تأیید شد",
     "statusReceiptApprovedBody": "رسید تأیید شده است؛ برای نهایی شدن سفر، پرداخت را تکمیل کنید.",
     "statusWaivedTitle": "ثبت‌نام شما نهایی شده است",

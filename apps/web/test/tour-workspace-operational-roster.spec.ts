@@ -276,7 +276,7 @@ describe("DP-2 tour workspace operational roster contract", () => {
         isFinalParticipant: true,
         financialDisplayState: "UNPAID",
       }),
-      "approved_payment_required"
+      "final_open_payment"
     );
     assert.equal(
       resolveOperationalRosterStage({

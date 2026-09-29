@@ -105,9 +105,9 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 The API coalesces concurrent outstanding-AR and tour-collection reads per tenant for the duration of the shared load. It does not retain the result after completion; both reports therefore continue to read the same invoice-based source without multiplying the expensive scan.
 
-### Registration finalization is payment-gated
+### Registration finalization is independent from payment settlement
 
-`approved` is the registration decision for participation and `finalized` is an independent audit marker. The final participant roster is lifecycle-based: every approved participant is included regardless of whether payment is `PAID`, `PARTIALLY_PAID`, `UNPAID`, or `WAIVED`. Financial status remains a separate projection and payment follow-up view. Waitlisted, pending, rejected, and cancelled registrations are excluded from the participant roster. The API contract must expose lifecycle, finalization, and financial dimensions separately so payment follow-up cannot remove a real participant from the final roster.
+`approved` is the initial registration decision and `finalized` is the operator's independent decision to include the participant in the final attendance roster. A finalized participant may be `PAID`, `PARTIALLY_PAID`, `UNPAID`, or `WAIVED`; financial status remains a separate projection and payment follow-up view. Approved-but-not-finalized participants remain operational and reserve capacity, but are excluded from the final participant roster until an operator explicitly finalizes them. Waitlisted, pending, rejected, and cancelled registrations are excluded from the final participant roster. The API contract must expose lifecycle, finalization, and financial dimensions separately so finalization with an open balance does not waive or hide payment follow-up.
 
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 

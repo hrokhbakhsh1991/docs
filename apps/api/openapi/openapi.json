@@ -3634,6 +3634,142 @@
         }
       }
     },
+    "/bookings/{bookingId}/finalize-with-open-payment": {
+      "post": {
+        "operationId": "finalizeBookingWithOpenPayment",
+        "summary": "Finalize approved booking while payment remains open",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved booking added to the final roster while payment remains open",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "FinalizeBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-0000-0000-000000000891",
+                      "status": "approved",
+                      "finalizationStatus": "finalized",
+                      "finalizedAt": "2026-07-20T12:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Open-payment finalization requires an approved unpaid or partially paid registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/bookings/{bookingId}/reject": {
       "post": {
         "operationId": "rejectBooking",

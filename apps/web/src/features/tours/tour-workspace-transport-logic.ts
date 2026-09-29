@@ -52,6 +52,7 @@ export type TourOperationalRosterRow = {
 export type OperationalRosterStage =
   | "approved_payment_required"
   | "approved_ready_to_finalize"
+  | "final_open_payment"
   | "final_ready";
 
 /** One primary, human-readable stage for the four approval/finalization cases. */
@@ -60,6 +61,9 @@ export function resolveOperationalRosterStage(
 ): OperationalRosterStage {
   const paymentRequired =
     row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID";
+  if (row.isFinalParticipant && paymentRequired) {
+    return "final_open_payment";
+  }
   if (paymentRequired) {
     return "approved_payment_required";
   }

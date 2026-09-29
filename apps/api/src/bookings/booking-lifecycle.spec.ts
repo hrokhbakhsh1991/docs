@@ -27,6 +27,7 @@ import {
   approveBooking,
   cancelBooking,
   createBooking,
+  finalizeBookingWithOpenPayment,
   rejectBooking,
   resetBookingsServiceCompositionForTests,
   waitlistBooking,
@@ -91,6 +92,36 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
       aggregateId: created.id,
     });
     assert.ok(outbox.some((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE));
+  });
+
+  it("finalizes approved unpaid booking without waiving payment and preserves finality after payment", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Finalize Open Payment"));
+    await approveBooking(opsAuth(TENANT_DENALI), created.id);
+
+    const finalized = await finalizeBookingWithOpenPayment(opsAuth(TENANT_DENALI), created.id);
+    assert.equal(finalized.status, "approved");
+    assert.equal(finalized.finalizationStatus, "finalized");
+    const outbox = await peekOutboxByAggregateForTests({
+      tenantId: TENANT_DENALI,
+      aggregateId: created.id,
+    });
+    assert.ok(outbox.some((row) => row.eventType === "registration.finalized_open_payment"));
+
+    const afterFinalize = await getBookingsRepository().getById(created.id, TENANT_DENALI);
+    assert.equal(afterFinalize?.paymentStatus, "unpaid");
+    assert.equal(afterFinalize?.finalizationStatus, "finalized");
+
+    const retry = await finalizeBookingWithOpenPayment(opsAuth(TENANT_DENALI), created.id);
+    assert.equal(retry.finalizationStatus, "finalized");
+
+    await getBookingsRepository().updatePaymentStatus({
+      bookingId: created.id,
+      tenantId: TENANT_DENALI,
+      paymentStatus: "paid",
+    });
+    const afterPayment = await getBookingsRepository().getById(created.id, TENANT_DENALI);
+    assert.equal(afterPayment?.paymentStatus, "paid");
+    assert.equal(afterPayment?.finalizationStatus, "finalized");
   });
 
   it("lifecycle transitions clear stale finalization metadata", async () => {

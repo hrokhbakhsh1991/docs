@@ -8,6 +8,7 @@
 import {
   BookingCapabilityViolationError,
   BookingFinalizationRequiresSettlementError,
+  BookingOpenPaymentFinalizationNotAllowedError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
@@ -88,6 +89,12 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     status: 409,
     reason: "Approved registration still has an outstanding financial balance",
     clientAction: "Complete or waive payment before adding the registration to the final roster",
+  },
+  {
+    domainError: "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED",
+    status: 409,
+    reason: "Open-payment finalization requires an approved unpaid or partially paid registration",
+    clientAction: "Use the paid finalization or free/waived approval path",
   },
   {
     domainError: "BOOKING_FORBIDDEN",
@@ -217,6 +224,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (error instanceof BookingFinalizationRequiresSettlementError) {
     return resolutionFromCode(error.code, error.message);
   }
+  if (error instanceof BookingOpenPaymentFinalizationNotAllowedError) {
+    return resolutionFromCode(error.code, error.message);
+  }
   if (error instanceof BulkApproveBatchLimitError) {
     return resolutionFromCode(error.code, error.message, { maxBatch: error.maxBatch });
   }
@@ -267,6 +277,12 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
     message.startsWith("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT:")
   ) {
     return resolutionFromCode("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT", message);
+  }
+  if (
+    message === "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED" ||
+    message.startsWith("BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED:")
+  ) {
+    return resolutionFromCode("BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED", message);
   }
   if (message === "BOOKING_FORBIDDEN" || message.startsWith("BOOKING_FORBIDDEN:")) {
     return resolutionFromCode("BOOKING_FORBIDDEN", message);

@@ -29,6 +29,7 @@ import {
   cancelBooking,
   createBooking,
   finalizeBooking,
+  finalizeBookingWithOpenPayment,
   getBooking,
   getBookingsSummary,
   listBookings,
@@ -170,6 +171,27 @@ export async function handleFinalizeBooking(
       auth,
       async () => {
         const result = await finalizeBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleFinalizeBookingWithOpenPayment(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await finalizeBookingWithOpenPayment(auth, bookingId);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }
