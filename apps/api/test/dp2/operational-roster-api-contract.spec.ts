@@ -6,6 +6,7 @@ import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app.ts";
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
+import { finalizeBookingWithOpenPayment } from "../../src/bookings/create-bookings-service.ts";
 import { resetPaymentHoldRepositoryForTests } from "../../src/finance/payment-hold.repository.ts";
 import { operatorAuthHeaders } from "../fixtures/operator-identity-fixture.ts";
 import { installHttpTestClient } from "../http-test-client.ts";
@@ -17,6 +18,7 @@ import {
 import {
   DP1_TOUR_ID,
   dp1CreateAndApprovePending,
+  dp1OpsAuth,
   resetDp1MemoryHarness,
 } from "../dp1/dp1-test-harness.ts";
 
@@ -37,6 +39,7 @@ describe("DP-2 operational roster API contract", () => {
 
   it("returns composed roster rows with DP-2 fields", async () => {
     const { bookingId } = await dp1CreateAndApprovePending();
+    await finalizeBookingWithOpenPayment(dp1OpsAuth(), bookingId);
 
     const response = await client.requestJson<{
       tourId?: string;

@@ -15,6 +15,7 @@ import {
 import {
   approveBooking,
   createBooking,
+  finalizeBookingWithOpenPayment,
   waitlistBooking,
 } from "../../src/bookings/create-bookings-service.ts";
 import { listTourOperationalRoster } from "../../src/roster/operational-roster.service.ts";
@@ -46,6 +47,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
   it("matrix: approved unpaid appears in operational + unpaid filters", async () => {
     const created = await createBooking(dp1OpsAuth(), dp1BookingBody());
     await approveBooking(dp1OpsAuth(), created.id);
+    await finalizeBookingWithOpenPayment(dp1OpsAuth(), created.id);
 
     const operational = await listTourOperationalRoster(dp1OpsAuth(), DP1_TOUR_ID, {
       view: "ops",
@@ -94,6 +96,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
   it("matrix: partial payment stays non-final", async () => {
     const created = await createBooking(dp1OpsAuth(), dp1BookingBody());
     await approveBooking(dp1OpsAuth(), created.id);
+    await finalizeBookingWithOpenPayment(dp1OpsAuth(), created.id);
     const finance = await resolveFinanceServiceForTenant(DP1_TENANT_DENALI);
     await finance.createManualPayment(
       financeAuth(),
