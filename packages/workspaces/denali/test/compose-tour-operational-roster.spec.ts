@@ -36,7 +36,7 @@ function booking(over: Partial<BookingListItem> = {}): BookingListItem {
 }
 
 describe("DP-2 compose tour operational roster", () => {
-  it("approved unpaid row is operational and remains in the final participant roster", () => {
+  it("approved unpaid row is operational but not final before explicit finalization", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking(),
       invoice: {
@@ -51,7 +51,7 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.isOperationalParticipant, true);
-    assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.isFinalParticipant, false);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.equal(row.remainingMinor, "2500000");
     assert.equal(row.amountDueNowMinor, "750000");
@@ -77,7 +77,7 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.financialDisplayState, "UNPAID");
   });
 
-  it("keeps approved settled rows in the final roster without rewriting finalization metadata", () => {
+  it("keeps approved settled rows out of final roster until finalization", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({ status: "approved" }),
       invoice: {
@@ -91,12 +91,12 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.finalizationStatus, "not_final");
-    assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.isFinalParticipant, false);
   });
 
   it("partial payment projection", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking(),
+      booking: booking({ finalizationStatus: "finalized" }),
       invoice: {
         remainingMinor: "500000",
         paidAmountMinor: "2000000",
@@ -114,7 +114,7 @@ describe("DP-2 compose tour operational roster", () => {
 
   it("paid final participant has no actionable payment deadline after hold is satisfied", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking(),
+      booking: booking({ finalizationStatus: "finalized" }),
       invoice: {
         remainingMinor: "0",
         paidAmountMinor: "2500000",
@@ -134,6 +134,7 @@ describe("DP-2 compose tour operational roster", () => {
   it("waived zero-obligation registration has no actionable payment deadline", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({
+        finalizationStatus: "finalized",
         paymentStatus: "paid",
         paymentDueAt: "2026-08-25T12:00:00.000Z",
       }),
@@ -154,7 +155,7 @@ describe("DP-2 compose tour operational roster", () => {
 
   it("satisfied hold does not expose an actionable payment deadline", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking({ paymentDueAt: null }),
+      booking: booking({ finalizationStatus: "finalized", paymentDueAt: null }),
       invoice: {
         remainingMinor: "2500000",
         paidAmountMinor: "0",
@@ -204,7 +205,7 @@ describe("DP-2 compose tour operational roster", () => {
 
   it("refund badge orthogonal to payment state", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking(),
+      booking: booking({ finalizationStatus: "finalized" }),
       invoice: {
         remainingMinor: "0",
         paidAmountMinor: "2500000",
@@ -234,7 +235,11 @@ describe("DP-2 compose tour operational roster", () => {
   it("filters: final, unpaid, paid, expiring, waitlist", () => {
     const rows = [
       composeTourOperationalRosterRow({
-        booking: booking({ id: "unpaid", guestLabel: "Unpaid Guest" }),
+        booking: booking({
+          id: "unpaid",
+          guestLabel: "Unpaid Guest",
+          finalizationStatus: "finalized",
+        }),
         invoice: {
           remainingMinor: "1000",
           paidAmountMinor: "0",
@@ -246,7 +251,11 @@ describe("DP-2 compose tour operational roster", () => {
         nowIso: NOW,
       }),
       composeTourOperationalRosterRow({
-        booking: booking({ id: "paid", guestLabel: "Paid Guest" }),
+        booking: booking({
+          id: "paid",
+          guestLabel: "Paid Guest",
+          finalizationStatus: "finalized",
+        }),
         invoice: {
           remainingMinor: "0",
           paidAmountMinor: "1000",

@@ -472,6 +472,12 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/finalize-with-open-payment",
+    summary: "Finalize approved booking while payment remains open",
+    operationId: "finalizeBookingWithOpenPayment",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/reject",
     summary: "Reject booking (intentionally silent — no outbox)",
     operationId: "rejectBooking",

@@ -91,8 +91,8 @@ describe("final roster Excel export", () => {
           registrationId: "debt-1",
           guestLabel: '=HYPERLINK("https://evil.example")',
           isFinalParticipant: true,
-          finalizedAt: null,
-          finalizationStatus: "not_final",
+          finalizedAt: "2026-09-18T08:11:00.000Z",
+          finalizationStatus: "finalized",
           isFinanciallySettled: false,
           financialDisplayState: "PARTIALLY_PAID",
           remainingMinor: "50000",
@@ -146,7 +146,7 @@ describe("final roster Excel export", () => {
     assert.match(finalSheet.getCell("G2").text, /تومان/);
     assert.match(finalSheet.getCell("M2").text, /۱۴۰۵|2026/);
     assert.match(finalSheet.getCell("G3").text, /۰ تومان/);
-    assert.equal(finalSheet.getCell("N3").text, "—");
+    assert.match(finalSheet.getCell("N3").text, /۱۴۰۵|2026/);
     assert.equal(finalSheet.getCell("K2").text, "حمل سازمان‌یافته");
     assert.equal(unpaidSheet.getCell("B2").text.startsWith("'="), true);
     assert.equal(finalSheet.getCell("L4").text, "۳ نفر");

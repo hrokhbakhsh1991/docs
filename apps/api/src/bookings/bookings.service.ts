@@ -768,6 +768,25 @@ export class BookingsService {
     };
   }
 
+  async finalizeBookingWithOpenPayment(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<FinalizeBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.finalizeBookingWithOpenPayment({
+      bookingId,
+      tenantId: auth.tenantId,
+      finalizedByUserId: auth.userId,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      finalizationStatus: updated.finalizationStatus ?? "not_final",
+      finalizedAt: updated.finalizedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
   /**
    * Tour-policy public auto-approve — no ops CASL.
    * Ownership: actorUserId must equal submittedByUserId.

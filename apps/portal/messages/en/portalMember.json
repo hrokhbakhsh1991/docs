@@ -61,6 +61,7 @@
       "unpaid": "Payment is required to finalize",
       "partial": "Complete the remaining payment to finalize",
       "paid": "Payment recorded",
+      "finalizedOpenPayment": "Finalized; payment remains open",
       "waived": "Registration finalized; no payment required"
     },
     "finalizationPaymentRequired": "Payment required to finalize",
@@ -405,6 +406,8 @@
     "statusReceiptPendingBody": "We will show the result here and in your notifications.",
     "statusPaidTitle": "Your trip is confirmed",
     "statusPaidBody": "Your payment was approved and your trip details are available.",
+    "statusFinalizedOpenPaymentTitle": "Your registration is finalized",
+    "statusFinalizedOpenPaymentBody": "Your attendance is finalized; payment remains open and can still be completed.",
     "statusReceiptApprovedTitle": "Your payment receipt was approved",
     "statusReceiptApprovedBody": "Your receipt was approved; complete the payment to finalize the trip.",
     "statusWaivedTitle": "Your registration is confirmed",

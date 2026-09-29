@@ -12,6 +12,7 @@ type Input = {
   readonly paymentCollection?: "offline" | "free";
   readonly paymentStatus: string;
   readonly financialDisplayState?: "WAIVED";
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly receiptStatus: MemberReceiptStatus;
 };
 
@@ -24,6 +25,7 @@ export function resolveMemberRegistrationDetailStatus({
   paymentCollection,
   paymentStatus,
   financialDisplayState,
+  finalizationStatus,
   receiptStatus,
 }: Input): MemberRegistrationDetailStatusCopy {
   if (lifecycleStatus === "waitlisted") {
@@ -55,6 +57,14 @@ export function resolveMemberRegistrationDetailStatus({
       tone: "complete",
       title: "statusWaivedTitle",
       body: "statusWaivedBody",
+    };
+  }
+
+  if (finalizationStatus === "finalized" && paymentStatus.trim().toLowerCase() !== "paid") {
+    return {
+      tone: "complete",
+      title: "statusFinalizedOpenPaymentTitle",
+      body: "statusFinalizedOpenPaymentBody",
     };
   }
 

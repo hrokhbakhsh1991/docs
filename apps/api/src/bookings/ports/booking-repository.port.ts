@@ -165,8 +165,14 @@ export interface BookingRepositoryPort {
       readonly occupiedApprovedPartySize: number;
     }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
-  /** Explicit operator finalization; allowed only after financial settlement. */
+  /** Explicit operator finalization after financial settlement. */
   finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord>;
+  /** Explicit operator finalization while an unpaid/partial balance remains. */
+  finalizeBookingWithOpenPayment(input: {
     readonly bookingId: string;
     readonly tenantId: string;
     readonly finalizedByUserId: string;

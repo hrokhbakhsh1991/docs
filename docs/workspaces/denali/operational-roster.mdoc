@@ -19,7 +19,7 @@ Operator cannot answer from one surface who holds a seat, who has paid, who owes
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                                                                                |
 | `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                                                                                       |
-| `isFinalParticipant`       | `booking.status === "approved"`; unpaid and partially paid approved rows remain in the final participant roster, while `financialDisplayState` and `finalizationStatus` expose payment/finalization separately |
+| `isFinalParticipant`       | `booking.status === "approved" && booking.finalizationStatus === "finalized"`; finalized rows may remain unpaid or partially paid, while `financialDisplayState` exposes payment separately |
 | `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                                                                               |
 
 Financial display states (projection only — not persisted on Bookings):
@@ -98,7 +98,7 @@ Tour workspace **transport** tab consumes the roster endpoint and renders paymen
 
 ## Final roster Excel export
 
-The final roster export is an operator-facing participant report, not a database dump. It reads the composed operational projection and puts every approved participant in `لیست نهایی`, including paid, partially paid, unpaid, and waived/free participants. Financial follow-up is represented by the separate `منتظر پرداخت` sheet and the payment-status column; it must not remove an approved participant from the final sheet.
+The final roster export is an operator-facing participant report, not a database dump. It reads the composed operational projection and puts every explicitly finalized participant in `لیست نهایی`, including paid, partially paid, unpaid, and waived/free participants. Approved-but-not-finalized participants remain in the operational/payment-follow-up view but are excluded from the final sheet. Financial follow-up is represented by the separate `منتظر پرداخت` sheet and the payment-status column.
 
 The workbook uses readable Persian labels and four data sheets:
 
@@ -111,4 +111,4 @@ Data sheets must not expose internal UUIDs or database keys. Dates are rendered 
 
 ## Events
 
-Finalization is payment-gated. Any booking-finalized event or Telegram notification must be emitted only after the approved registration is `PAID` or `WAIVED`; unpaid and partially paid rows use payment-follow-up messaging. The canonical Finance approval transaction persists the paid booking projection and finalization marker atomically; the roster may normalize legacy projections only as a defensive read model. Event delivery is outbox-backed and idempotent, and Telegram retries must not create duplicate topics or messages.
+Finalization is independent from payment settlement. The operator may finalize an approved unpaid or partially paid participant; this must preserve the outstanding balance and payment follow-up. Payment approval may later move `finalized + unpaid/partial` to `finalized + paid` without clearing finalization. Any finalization event or Telegram notification must be outbox-backed and idempotent. Waitlisted, pending, rejected, and cancelled rows must never become final participants.

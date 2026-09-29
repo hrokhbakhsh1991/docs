@@ -35,3 +35,22 @@ describe("BUG-STG-025 free collection labels", () => {
     assert.match(rail, /resolveCatalogFreeCollectionLabel/);
   });
 });
+
+describe("past tour PLP status badge", () => {
+  it("renders a dedicated past badge hook for the Denali card skin", () => {
+    const card = readFileSync(join(catalogRoot, "catalog-tour-card.tsx"), "utf8");
+    const skin = readFileSync(
+      join(
+        __dirname,
+        "../../../packages/workspaces/denali/theme/marketing/components/26-pr-21-p1.css"
+      ),
+      "utf8"
+    );
+
+    assert.match(card, /data-marketing-catalog-card-past-badge/);
+    assert.match(card, /t\("list\.card\.past"\)/);
+    assert.match(skin, /span\[data-marketing-catalog-card-past-badge\]/);
+    assert.match(skin, /inset-block-start: var\(--space-3\)/);
+    assert.match(skin, /wiz-tone-amber/);
+  });
+});

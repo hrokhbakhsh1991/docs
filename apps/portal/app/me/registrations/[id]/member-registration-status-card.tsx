@@ -23,6 +23,7 @@ type Props = {
   readonly statusLabel: string;
   readonly initialCopy: StatusCopy;
   readonly initialReceiptStatus: MemberReceiptStatus;
+  readonly finalizationStatus?: "not_final" | "finalized";
 };
 
 function receiptStatusLabelKey(status: MemberReceiptStatus): string {
@@ -40,9 +41,20 @@ function receiptStatusLabelKey(status: MemberReceiptStatus): string {
   }
 }
 
-function resolveReceiptCopy(status: MemberReceiptStatus, paymentStatus: string): StatusCopy {
+function resolveReceiptCopy(
+  status: MemberReceiptStatus,
+  paymentStatus: string,
+  finalizationStatus?: "not_final" | "finalized"
+): StatusCopy {
   if (paymentStatus.trim().toLowerCase() === "paid") {
     return { tone: "complete", title: "statusPaidTitle", body: "statusPaidBody" };
+  }
+  if (finalizationStatus === "finalized") {
+    return {
+      tone: "complete",
+      title: "statusFinalizedOpenPaymentTitle",
+      body: "statusFinalizedOpenPaymentBody",
+    };
   }
   switch (status) {
     case "pending":
@@ -78,6 +90,7 @@ export function MemberRegistrationStatusCard({
   statusLabel,
   initialCopy,
   initialReceiptStatus,
+  finalizationStatus,
 }: Props) {
   const t = useTranslations("portalMember.detail");
   const [copy, setCopy] = useState(initialCopy);
@@ -89,13 +102,13 @@ export function MemberRegistrationStatusCard({
       if (detail?.status === undefined) return;
       setReceiptStatus(detail.status);
       if (lifecycleStatus === "approved") {
-        setCopy(resolveReceiptCopy(detail.status, paymentStatus));
+        setCopy(resolveReceiptCopy(detail.status, paymentStatus, finalizationStatus));
       }
     };
     window.addEventListener(MEMBER_RECEIPT_STATUS_CHANGED_EVENT, onReceiptStatusChanged);
     return () =>
       window.removeEventListener(MEMBER_RECEIPT_STATUS_CHANGED_EVENT, onReceiptStatusChanged);
-  }, [lifecycleStatus, paymentStatus]);
+  }, [finalizationStatus, lifecycleStatus, paymentStatus]);
 
   const showReceiptBadge = lifecycleStatus === "approved" || receiptStatus !== "none";
   return (

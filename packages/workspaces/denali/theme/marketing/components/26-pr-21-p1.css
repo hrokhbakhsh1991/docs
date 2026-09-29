@@ -420,6 +420,28 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   backdrop-filter: blur(8px);
 }
 
+/* Past tours remain browseable, but their state must be unambiguous at card level. */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-catalog-card-past-badge] {
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  color: var(--wiz-tone-amber-fg, #92400e);
+  background: color-mix(
+    in srgb,
+    var(--wiz-tone-amber-source, #b45309) 18%,
+    var(--color-bg-surface, #fff)
+  );
+  border: 1px solid color-mix(in srgb, var(--wiz-tone-amber-source, #b45309) 42%, transparent);
+  box-shadow: 0 0.25rem 0.75rem rgb(15 23 42 / 0.16);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    span[data-marketing-catalog-card-past-badge] {
+    backdrop-filter: none;
+  }
+}
+
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   p[data-marketing-catalog-card-category] {
   margin: 0;

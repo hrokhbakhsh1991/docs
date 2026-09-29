@@ -29,6 +29,7 @@ import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
   BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
+  BookingOpenPaymentFinalizationNotAllowedError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
@@ -877,6 +878,97 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             throw new BookingStatusConflictError(current.status as BookingStatus);
           }
         }
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (row === null) {
+        throw new BookingNotFoundError();
+      }
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? toBookingListRecord(row);
+    });
+  }
+
+  async finalizeBookingWithOpenPayment(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (existing === null) {
+        throw new BookingNotFoundError();
+      }
+      if (existing.status !== "approved") {
+        throw new BookingStatusConflictError(existing.status as BookingStatus);
+      }
+      if (existing.finalizationStatus === "finalized") {
+        const [alreadyFinalized] = await enrichBookingListRecordsWithIntakeScalars(
+          tx,
+          input.tenantId,
+          [toBookingListRecord(existing)]
+        );
+        return alreadyFinalized ?? toBookingListRecord(existing);
+      }
+      const [existingProjection] = await enrichBookingListRecordsWithIntakeScalars(
+        tx,
+        input.tenantId,
+        [toBookingListRecord(existing)]
+      );
+      if (
+        existingProjection === undefined ||
+        (existingProjection.paymentStatus !== "unpaid" &&
+          existingProjection.paymentStatus !== "partial") ||
+        existingProjection.financialDisplayState === "WAIVED"
+      ) {
+        throw new BookingOpenPaymentFinalizationNotAllowedError();
+      }
+      if (existing.finalizationStatus !== "finalized") {
+        const finalizedAt = new Date();
+        const changed = await tx.operatorRegistration.updateMany({
+          where: {
+            id: input.bookingId,
+            tenantId: input.tenantId,
+            status: "approved",
+            finalizationStatus: { not: "finalized" },
+          },
+          data: {
+            finalizationStatus: "finalized",
+            finalizedAt,
+            finalizedByUserId: input.finalizedByUserId,
+          },
+        });
+        if (changed.count !== 1) {
+          const current = await tx.operatorRegistration.findFirst({
+            where: { id: input.bookingId, tenantId: input.tenantId },
+            select: BOOKING_LIST_SELECT,
+          });
+          if (current === null) {
+            throw new BookingNotFoundError();
+          }
+          if (current.status !== "approved") {
+            throw new BookingStatusConflictError(current.status as BookingStatus);
+          }
+        }
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: input.bookingId,
+          eventType: "registration.finalized_open_payment",
+          payload: {
+            bookingId: input.bookingId,
+            paymentStatus: existingProjection.paymentStatus,
+          },
+          domainEventId: `registration.finalized_open_payment:${input.bookingId}`,
+        });
       }
       const row = await tx.operatorRegistration.findFirst({
         where: { id: input.bookingId, tenantId: input.tenantId },

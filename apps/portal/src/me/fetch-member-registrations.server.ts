@@ -7,6 +7,7 @@ export type MemberRegistrationItem = {
   readonly tourId: string;
   readonly tourTitle: string;
   readonly status: string;
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly paymentStatus: string;
   readonly paymentCollection?: "offline" | "free";
   /** Distinguishes a waived obligation from money actually received. */

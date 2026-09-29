@@ -62,6 +62,7 @@ export function TourWorkspaceTransportClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
+  const [confirmingFinalizationId, setConfirmingFinalizationId] = useState<string | null>(null);
   const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -98,14 +99,18 @@ export function TourWorkspaceTransportClient({
 
   const localizedError = resolveTourErrorMessage(tErrors, error);
 
-  const finalizeParticipant = async (registrationId: string) => {
+  const finalizeParticipant = async (registrationId: string, openPayment: boolean) => {
     setFinalizingId(registrationId);
     setFinalizationMessage(null);
     try {
-      const response = await fetch(`/api/bookings/${encodeURIComponent(registrationId)}/finalize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const endpoint = openPayment ? "finalize-with-open-payment" : "finalize";
+      const response = await fetch(
+        `/api/bookings/${encodeURIComponent(registrationId)}/${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
       if (!response.ok) {
         throw new Error(`FINALIZE_HTTP_${response.status}`);
       }
@@ -115,7 +120,16 @@ export function TourWorkspaceTransportClient({
       setFinalizationMessage(t("finalizeParticipantFailed"));
     } finally {
       setFinalizingId(null);
+      setConfirmingFinalizationId(null);
     }
+  };
+
+  const requestFinalization = (registrationId: string, openPayment: boolean) => {
+    if (openPayment && confirmingFinalizationId !== registrationId) {
+      setConfirmingFinalizationId(registrationId);
+      return;
+    }
+    void finalizeParticipant(registrationId, openPayment);
   };
 
   const exportFinalRoster = async () => {
@@ -220,7 +234,7 @@ export function TourWorkspaceTransportClient({
     const isWaitlisted = row.registrationStatus.trim().toLowerCase() === "waitlisted";
     const paymentRequired =
       row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID";
-    const finalForDisplay = row.isFinalParticipant && !paymentRequired;
+    const finalForDisplay = row.isFinalParticipant;
     return (
       <div className="flex flex-wrap items-center gap-2" data-testid="operator-roster-state">
         <Badge
@@ -234,26 +248,37 @@ export function TourWorkspaceTransportClient({
           {t(
             isWaitlisted
               ? "waitlistedParticipant"
-              : finalForDisplay
-                ? "finalParticipant"
-                : "approvedParticipant"
+              : finalForDisplay && paymentRequired
+                ? "finalOpenPaymentParticipant"
+                : finalForDisplay
+                  ? "finalParticipant"
+                  : "approvedParticipant"
           )}
         </Badge>
-        {canManage &&
-        !isWaitlisted &&
-        row.isOperationalParticipant &&
-        !row.isFinalParticipant &&
-        !paymentRequired ? (
+        {canManage && !isWaitlisted && row.isOperationalParticipant && !row.isFinalParticipant ? (
           <Button
             type="button"
             size="sm"
             variant="outline"
             disabled={finalizingId === row.registrationId}
             data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalizeParticipantButton}
-            onClick={() => void finalizeParticipant(row.registrationId)}
+            onClick={() => requestFinalization(row.registrationId, paymentRequired)}
           >
-            {t("addToFinalRoster")}
+            {paymentRequired && confirmingFinalizationId === row.registrationId
+              ? t("confirmFinalizeWithOpenPayment")
+              : paymentRequired
+                ? t("finalizeWithOpenPayment")
+                : t("addToFinalRoster")}
           </Button>
+        ) : null}
+        {canManage &&
+        !isWaitlisted &&
+        row.isOperationalParticipant &&
+        paymentRequired &&
+        confirmingFinalizationId === row.registrationId ? (
+          <span className="text-xs text-muted-foreground" role="status">
+            {t("finalizeWithOpenPaymentHint")}
+          </span>
         ) : null}
         {canManage && row.isOperationalParticipant && paymentRequired ? (
           <Button asChild type="button" size="sm" variant="ghost">

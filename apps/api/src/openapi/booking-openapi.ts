@@ -792,6 +792,30 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       }),
     },
   },
+  finalizeBookingWithOpenPayment: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Approved booking added to the final roster while payment remains open",
+        content: jsonContent("FinalizeBookingResponse", {
+          id: "00000000-0000-0000-0000-000000000891",
+          status: "approved",
+          finalizationStatus: "finalized",
+          finalizedAt: "2026-07-20T12:30:00.000Z",
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse(
+        "Open-payment finalization requires an approved unpaid or partially paid registration",
+        {
+          error: "conflict",
+          code: "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED",
+        }
+      ),
+    },
+  },
   rejectBooking: {
     tags: ["Bookings"],
     parameters: [bookingIdPathParam],

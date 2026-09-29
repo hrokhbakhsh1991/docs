@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   handleApproveBooking,
   handleFinalizeBooking,
+  handleFinalizeBookingWithOpenPayment,
   handleBulkApproveBookings,
   handleApproveMemberCancellation,
   handleCancelBooking,
@@ -304,9 +305,7 @@ async function dispatchRequest(
     return;
   }
 
-  const telegramWebhookMatch = url.pathname.match(
-    /^\/webhooks\/telegram\/([^/]+)\/([^/]+)$/
-  );
+  const telegramWebhookMatch = url.pathname.match(/^\/webhooks\/telegram\/([^/]+)\/([^/]+)$/);
   if (method === "POST" && telegramWebhookMatch) {
     await handleTelegramWebhook(
       req,
@@ -556,6 +555,14 @@ async function dispatchRequest(
     return;
   }
 
+  const bookingFinalizeOpenPaymentMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/finalize-with-open-payment$/
+  );
+  if (method === "POST" && bookingFinalizeOpenPaymentMatch) {
+    await handleFinalizeBookingWithOpenPayment(req, res, bookingFinalizeOpenPaymentMatch[1]!);
+    return;
+  }
+
   const bookingRejectMatch = url.pathname.match(/^\/bookings\/([^/]+)\/reject$/);
   if (method === "POST" && bookingRejectMatch) {
     await handleRejectBooking(req, res, bookingRejectMatch[1]!);
@@ -574,9 +581,7 @@ async function dispatchRequest(
     return;
   }
 
-  const memberCancellationMatch = url.pathname.match(
-    /^\/bookings\/([^/]+)\/member-cancellation$/
-  );
+  const memberCancellationMatch = url.pathname.match(/^\/bookings\/([^/]+)\/member-cancellation$/);
   if (memberCancellationMatch) {
     if (method === "GET") {
       await handleGetMemberCancellation(req, res, memberCancellationMatch[1]!);
@@ -618,7 +623,7 @@ async function dispatchRequest(
   }
 
   const memberNotificationReadMatch = url.pathname.match(
-    /^\/member\/notifications\/([^/]+)\/read$/,
+    /^\/member\/notifications\/([^/]+)\/read$/
   );
   if (method === "PATCH" && memberNotificationReadMatch) {
     await handleMemberMarkNotificationRead(req, res, memberNotificationReadMatch[1]!);
@@ -683,7 +688,7 @@ async function dispatchRequest(
   }
 
   const memberTicketNotificationReadMatch = url.pathname.match(
-    /^\/member\/ticket-notifications\/([^/]+)\/read$/,
+    /^\/member\/ticket-notifications\/([^/]+)\/read$/
   );
   if (method === "PATCH" && memberTicketNotificationReadMatch) {
     await handleMemberMarkTicketNotificationRead(req, res, memberTicketNotificationReadMatch[1]!);
@@ -725,7 +730,12 @@ async function dispatchRequest(
 
   const operatorTicketReopenMatch = url.pathname.match(/^\/tickets\/([^/]+)\/reopen$/);
   if (method === "POST" && operatorTicketReopenMatch) {
-    await handleTicketingOperatorReopenTicket(req, res, ticketingDeps, operatorTicketReopenMatch[1]!);
+    await handleTicketingOperatorReopenTicket(
+      req,
+      res,
+      ticketingDeps,
+      operatorTicketReopenMatch[1]!
+    );
     return;
   }
 
@@ -745,10 +755,14 @@ async function dispatchRequest(
   }
 
   const operatorTicketNotificationReadMatch = url.pathname.match(
-    /^\/ticket-notifications\/([^/]+)\/read$/,
+    /^\/ticket-notifications\/([^/]+)\/read$/
   );
   if (method === "PATCH" && operatorTicketNotificationReadMatch) {
-    await handleOperatorMarkTicketNotificationRead(req, res, operatorTicketNotificationReadMatch[1]!);
+    await handleOperatorMarkTicketNotificationRead(
+      req,
+      res,
+      operatorTicketNotificationReadMatch[1]!
+    );
     return;
   }
 
@@ -796,7 +810,9 @@ async function dispatchRequest(
     return;
   }
 
-  const ticketTemplateRevisionsMatch = url.pathname.match(/^\/ticket-templates\/([^/]+)\/revisions$/);
+  const ticketTemplateRevisionsMatch = url.pathname.match(
+    /^\/ticket-templates\/([^/]+)\/revisions$/
+  );
   if (method === "GET" && ticketTemplateRevisionsMatch) {
     await handleListTicketTemplateRevisions(req, res, ticketTemplateRevisionsMatch[1]!);
     return;
@@ -906,39 +922,39 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       ticketTagRemoveMatch[1]!,
-      ticketTagRemoveMatch[2]!,
+      ticketTagRemoveMatch[2]!
     );
     return;
   }
 
   const memberAttachmentIntentMatch = url.pathname.match(
-    /^\/member\/tickets\/([^/]+)\/attachments\/intents$/,
+    /^\/member\/tickets\/([^/]+)\/attachments\/intents$/
   );
   if (method === "POST" && memberAttachmentIntentMatch) {
     await handleTicketingMemberCreateAttachmentIntent(
       req,
       res,
       ticketingDeps,
-      memberAttachmentIntentMatch[1]!,
+      memberAttachmentIntentMatch[1]!
     );
     return;
   }
 
   const operatorAttachmentIntentMatch = url.pathname.match(
-    /^\/tickets\/([^/]+)\/attachments\/intents$/,
+    /^\/tickets\/([^/]+)\/attachments\/intents$/
   );
   if (method === "POST" && operatorAttachmentIntentMatch) {
     await handleTicketingOperatorCreateAttachmentIntent(
       req,
       res,
       ticketingDeps,
-      operatorAttachmentIntentMatch[1]!,
+      operatorAttachmentIntentMatch[1]!
     );
     return;
   }
 
   const memberAttachmentUploadMatch = url.pathname.match(
-    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)\/upload$/,
+    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)\/upload$/
   );
   if (method === "PUT" && memberAttachmentUploadMatch) {
     await handleTicketingMemberUploadAttachment(
@@ -946,13 +962,13 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       memberAttachmentUploadMatch[1]!,
-      memberAttachmentUploadMatch[2]!,
+      memberAttachmentUploadMatch[2]!
     );
     return;
   }
 
   const operatorAttachmentUploadMatch = url.pathname.match(
-    /^\/tickets\/([^/]+)\/attachments\/([^/]+)\/upload$/,
+    /^\/tickets\/([^/]+)\/attachments\/([^/]+)\/upload$/
   );
   if (method === "PUT" && operatorAttachmentUploadMatch) {
     await handleTicketingOperatorUploadAttachment(
@@ -960,13 +976,13 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       operatorAttachmentUploadMatch[1]!,
-      operatorAttachmentUploadMatch[2]!,
+      operatorAttachmentUploadMatch[2]!
     );
     return;
   }
 
   const memberAttachmentCompleteMatch = url.pathname.match(
-    /^\/member\/tickets\/([^/]+)\/messages\/([^/]+)\/attachments\/([^/]+)\/complete$/,
+    /^\/member\/tickets\/([^/]+)\/messages\/([^/]+)\/attachments\/([^/]+)\/complete$/
   );
   if (method === "POST" && memberAttachmentCompleteMatch) {
     await handleTicketingMemberCompleteAttachment(
@@ -975,13 +991,13 @@ async function dispatchRequest(
       ticketingDeps,
       memberAttachmentCompleteMatch[1]!,
       memberAttachmentCompleteMatch[2]!,
-      memberAttachmentCompleteMatch[3]!,
+      memberAttachmentCompleteMatch[3]!
     );
     return;
   }
 
   const operatorAttachmentCompleteMatch = url.pathname.match(
-    /^\/tickets\/([^/]+)\/messages\/([^/]+)\/attachments\/([^/]+)\/complete$/,
+    /^\/tickets\/([^/]+)\/messages\/([^/]+)\/attachments\/([^/]+)\/complete$/
   );
   if (method === "POST" && operatorAttachmentCompleteMatch) {
     await handleTicketingOperatorCompleteAttachment(
@@ -990,13 +1006,13 @@ async function dispatchRequest(
       ticketingDeps,
       operatorAttachmentCompleteMatch[1]!,
       operatorAttachmentCompleteMatch[2]!,
-      operatorAttachmentCompleteMatch[3]!,
+      operatorAttachmentCompleteMatch[3]!
     );
     return;
   }
 
   const memberAttachmentGetMatch = url.pathname.match(
-    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)$/,
+    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)$/
   );
   if (method === "GET" && memberAttachmentGetMatch) {
     await handleTicketingMemberGetAttachment(
@@ -1004,25 +1020,27 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       memberAttachmentGetMatch[1]!,
-      memberAttachmentGetMatch[2]!,
+      memberAttachmentGetMatch[2]!
     );
     return;
   }
 
-  const operatorAttachmentGetMatch = url.pathname.match(/^\/tickets\/([^/]+)\/attachments\/([^/]+)$/);
+  const operatorAttachmentGetMatch = url.pathname.match(
+    /^\/tickets\/([^/]+)\/attachments\/([^/]+)$/
+  );
   if (method === "GET" && operatorAttachmentGetMatch) {
     await handleTicketingOperatorGetAttachment(
       req,
       res,
       ticketingDeps,
       operatorAttachmentGetMatch[1]!,
-      operatorAttachmentGetMatch[2]!,
+      operatorAttachmentGetMatch[2]!
     );
     return;
   }
 
   const memberAttachmentDeleteMatch = url.pathname.match(
-    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)$/,
+    /^\/member\/tickets\/([^/]+)\/attachments\/([^/]+)$/
   );
   if (method === "DELETE" && memberAttachmentDeleteMatch) {
     await handleTicketingMemberDeleteAttachment(
@@ -1030,13 +1048,13 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       memberAttachmentDeleteMatch[1]!,
-      memberAttachmentDeleteMatch[2]!,
+      memberAttachmentDeleteMatch[2]!
     );
     return;
   }
 
   const operatorAttachmentDeleteMatch = url.pathname.match(
-    /^\/tickets\/([^/]+)\/attachments\/([^/]+)$/,
+    /^\/tickets\/([^/]+)\/attachments\/([^/]+)$/
   );
   if (method === "DELETE" && operatorAttachmentDeleteMatch) {
     await handleTicketingOperatorDeleteAttachment(
@@ -1044,7 +1062,7 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       operatorAttachmentDeleteMatch[1]!,
-      operatorAttachmentDeleteMatch[2]!,
+      operatorAttachmentDeleteMatch[2]!
     );
     return;
   }
@@ -1068,7 +1086,12 @@ async function dispatchRequest(
       return;
     }
     if (method === "POST") {
-      await handleTicketingOperatorCreateLink(req, res, ticketingDeps, operatorTicketLinksMatch[1]!);
+      await handleTicketingOperatorCreateLink(
+        req,
+        res,
+        ticketingDeps,
+        operatorTicketLinksMatch[1]!
+      );
       return;
     }
   }
@@ -1080,7 +1103,7 @@ async function dispatchRequest(
       res,
       ticketingDeps,
       operatorTicketLinkDeleteMatch[1]!,
-      operatorTicketLinkDeleteMatch[2]!,
+      operatorTicketLinkDeleteMatch[2]!
     );
     return;
   }
@@ -1134,16 +1157,12 @@ async function dispatchRequest(
   );
   if (method === "GET" && tourOperationalRosterExportMatch) {
     const { handleExportTourFinalRoster } = await import("./roster/operational-roster.routes.ts");
-    await handleExportTourFinalRoster(
-      req,
-      res,
-      tourOperationalRosterExportMatch[1]!,
-      toursService
-    );
+    await handleExportTourFinalRoster(req, res, tourOperationalRosterExportMatch[1]!, toursService);
     return;
   }
   if (method === "GET" && tourOperationalRosterMatch) {
-    const { handleGetTourOperationalRoster } = await import("./roster/operational-roster.routes.ts");
+    const { handleGetTourOperationalRoster } =
+      await import("./roster/operational-roster.routes.ts");
     await handleGetTourOperationalRoster(req, res, tourOperationalRosterMatch[1]!);
     return;
   }
@@ -1153,9 +1172,8 @@ async function dispatchRequest(
   );
   if (tourTransportAllocationsMatch) {
     const tourId = tourTransportAllocationsMatch[1]!;
-    const { handleGetTransportAllocations, handlePutTransportAllocations } = await import(
-      "./transport/transport-allocation.routes.ts"
-    );
+    const { handleGetTransportAllocations, handlePutTransportAllocations } =
+      await import("./transport/transport-allocation.routes.ts");
     if (method === "GET") {
       await handleGetTransportAllocations(req, res, tourId);
       return;
@@ -1175,7 +1193,8 @@ async function dispatchRequest(
 
   const tourDriverSettlementsMatch = url.pathname?.match(/^\/tours\/([^/]+)\/driver-settlements$/);
   if (method === "GET" && tourDriverSettlementsMatch) {
-    const { handleListDriverSettlements } = await import("./settlement/driver-settlement.routes.ts");
+    const { handleListDriverSettlements } =
+      await import("./settlement/driver-settlement.routes.ts");
     await handleListDriverSettlements(req, res, tourDriverSettlementsMatch[1]!);
     return;
   }
@@ -1251,9 +1270,8 @@ async function dispatchRequest(
 
   const publicMarketingPageMatch = /^\/public\/marketing-pages\/([^/]+)$/.exec(url.pathname);
   if (method === "GET" && publicMarketingPageMatch !== null) {
-    const { handlePublicMarketingPage } = await import(
-      "./workspace-marketing-pages/marketing-pages.routes"
-    );
+    const { handlePublicMarketingPage } =
+      await import("./workspace-marketing-pages/marketing-pages.routes");
     await handlePublicMarketingPage(req, res, publicMarketingPageMatch[1]!);
     return;
   }
@@ -1262,28 +1280,25 @@ async function dispatchRequest(
   if (settingsMarketingPageMatch !== null) {
     const pageKey = settingsMarketingPageMatch[1]!;
     if (method === "GET") {
-      const { handleGetOperatorMarketingPage } = await import(
-        "./workspace-marketing-pages/marketing-pages.routes"
-      );
+      const { handleGetOperatorMarketingPage } =
+        await import("./workspace-marketing-pages/marketing-pages.routes");
       await handleGetOperatorMarketingPage(req, res, pageKey);
       return;
     }
     if (method === "PATCH") {
-      const { handlePatchOperatorMarketingPage } = await import(
-        "./workspace-marketing-pages/marketing-pages.routes"
-      );
+      const { handlePatchOperatorMarketingPage } =
+        await import("./workspace-marketing-pages/marketing-pages.routes");
       await handlePatchOperatorMarketingPage(req, res, pageKey);
       return;
     }
   }
 
   const publishMarketingPageMatch = /^\/settings\/marketing-pages\/([^/]+)\/publish$/.exec(
-    url.pathname,
+    url.pathname
   );
   if (method === "POST" && publishMarketingPageMatch !== null) {
-    const { handlePublishOperatorMarketingPage } = await import(
-      "./workspace-marketing-pages/marketing-pages.routes"
-    );
+    const { handlePublishOperatorMarketingPage } =
+      await import("./workspace-marketing-pages/marketing-pages.routes");
     await handlePublishOperatorMarketingPage(req, res, publishMarketingPageMatch[1]!);
     return;
   }

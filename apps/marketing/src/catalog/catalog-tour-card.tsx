@@ -136,7 +136,9 @@ export async function CatalogTourCard({
           <span data-marketing-catalog-card-free>{freeCollectionLabel}</span>
         ) : null}
         {isPast ? (
-          <span data-marketing-catalog-card-spots>{t("list.card.past")}</span>
+          <span data-marketing-catalog-card-spots data-marketing-catalog-card-past-badge>
+            {t("list.card.past")}
+          </span>
         ) : registrationState === "waitlist" ? (
           <span data-marketing-catalog-card-spots>{t("list.card.waitlist")}</span>
         ) : soldOut ? (

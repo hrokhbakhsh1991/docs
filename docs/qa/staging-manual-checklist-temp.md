@@ -3499,3 +3499,63 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - تست regression جدید برای دادهٔ legacy اضافه شد؛ Denali card/exposure: `18/18` سبز.
 
 **نتیجهٔ فعلی:** علت کدی و داده‌ای قطعی شد و source fix آماده است؛ staging هنوز با artifact قبل از این patch سرو می‌شود، بنابراین browser closure و PASS نهایی بعد از deploy همین تغییر باقی است.
+
+### Closure browser برای organized transport — 2026-09-29
+
+- PR fix در `dev` merge شد و staging workflow `36599959571` با build و deploy سبز اجرا شد.
+- runtime staging روی release SHA `313b1f3c9c48803b071887443f76b893bf2f8d8f` قرار گرفت؛ build timestamp: `2026-09-29T16:54:49Z`.
+- BFF همان fixture پاسخ `200` داد و `transportCostAmount=150000` را برگرداند.
+- PDP همان fixture در facts و logistics مقدار `۱۵۰٬۰۰۰ تومان` را نشان داد.
+- PLP همان fixture نیز `خودرو: ۱۵۰٬۰۰۰ تومان` را نشان داد.
+- shared-car fixture همچنان `دونگی: ۸۰٬۰۰۰ تومان` را در PLP/PDP نشان داد.
+
+**PASS قطعی:** `BUG-STG-082` برای organized transport legacy data و shared-car dong در API، PLP و PDP.
+
+### Retest واقعی Waitlist و promotion پس از آزادشدن ظرفیت — 2026-09-29
+
+- fixture: `QA 2026 Waitlist Capacity 1` (`0ae44e0f-7ce7-4bf3-aa18-662be4aa2af8`).
+- registration `646f8548-4120-4517-ac2f-cef9ad25c0a0` با Portal در ظرفیت پر ساخته شد و Portal List/Detail و Admin آن را `waitlisted` نشان دادند.
+- occupant قبلی لغو شد؛ candidate بدون ازبین‌رفتن رکورد به `approved` منتقل شد و Portal Detail state، deadline و بدهی واقعی را نشان داد.
+- دو مهمان دیگر به‌عنوان دو registration مستقل ساخته شدند: `7c518074-e340-4d1f-8fa8-fc73b751c106` و `1ae8f869-a670-4212-b800-19b36a6bf2c7`.
+- با لغو occupant `646f8548-4120-4517-ac2f-cef9ad25c0a0`، فقط candidate اول (`7c518074-e340-4d1f-8fa8-fc73b751c106`) promotion شد و candidate دوم (`1ae8f869-a670-4212-b800-19b36a6bf2c7`) در Waitlist باقی ماند؛ ظرفیت بیش از حد مصرف نشد.
+- Portal برای candidate promoted، `ثبت‌نام: تأیید شده`، `رسید: ارسال نشده` و CTA/مبلغ پرداخت را مستقل نشان داد؛ candidate باقی‌مانده همچنان `در لیست انتظار` است.
+
+**PASS واقعی:** `BUG-STG-064 / 065` برای transition و feedback promotion یک‌نفره؛ `BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC` و `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL` نیز در همین fixture هم‌state بودند.
+**UNVERIFIED باقی‌مانده:** promotion یک رکورد با `partySize>1`؛ فرم Portal اینجا دو مهمان را به دو registration مستقل تبدیل کرد.
+
+### بررسی سناریوی «تأیید، منتظر پرداخت، سپس نهایی‌سازی» — 2026-09-29
+
+- fixture: `QA 2026 Waitlist Capacity 1` (`0ae44e0f-7ce7-4bf3-aa18-662be4aa2af8`).
+- registration: `7c518074-e340-4d1f-8fa8-fc73b751c106`.
+- Portal detail: `ثبت‌نام شما تأیید شده است`، `برای نهایی شدن سفر، پرداخت را تکمیل کنید`، `رسید: ارسال نشده`، deadline و مبلغ بدهی نمایش داده شد؛ upload receipt/text note در دسترس بود.
+- Admin bookings: `تأییدشده` + `پرداخت‌نشده (رزرو)` + `پیگیری پرداخت` و deadline نمایش داده شد.
+- Admin operational roster: ردیف `تأییدشده` و لینک `پیگیری پرداخت` داشت؛ دکمه `افزودن به فهرست نهایی` برای ردیف بدهکار نمایش داده نشد.
+- source confirms the guard: `tour-workspace-transport-client.tsx` only renders finalization when `!paymentRequired`; otherwise only `followPayment` is rendered.
+
+**PASS:** مسیر تأیید ادمین و پرداخت بعدی وجود دارد و از نظر Portal/Admin قابل فهم است.
+
+**UX/product gap:** اگر منظور محصول این است که ادمین بتواند فردِ تأییدشده اما بدهکار را همین حالا وارد «لیست نهایی» کند و پرداخت را بعداً پیگیری کند، این قابلیت در UI وجود ندارد؛ وضعیت فعلی «تأییدشده» را از «نهایی برای حضور» جدا می‌کند و final roster را تا تسویه مسدود می‌کند. دکمه `تأیید بدون نیاز به پرداخت` نیز معادل این سناریو نیست؛ آن مسیر بدهی را صفر و پرداخت را waive می‌کند. تصمیم لازم: `نهایی برای حضور با بدهی باز` مجاز باشد یا همین قرارداد فعلی حفظ شود.
+
+**تصحیح قرارداد موردنظر کاربر:** سناریوی مطلوب دو تأیید مستقل دارد: `تأیید اولیه → منتظر پرداخت → تأیید نهایی حضور`؛ در لحظهٔ تأیید نهایی، `paymentStatus=unpaid` باقی می‌ماند و بدهی همچنان قابل پیگیری است. این سناریو در قرارداد فعلی پیاده نشده است: API `finalizeBooking` صراحتاً فقط `paymentStatus=paid` را می‌پذیرد و برای unpaid خطای `BookingFinalizationRequiresSettlementError` می‌دهد؛ UI نیز دکمهٔ نهایی‌سازی را برای `paymentRequired` مخفی می‌کند.
+
+### Gap و side-effect audit برای «تأیید نهایی با پرداخت باز» — 2026-09-29
+
+**Gapهای قطعی source:**
+
+- API و هر دو repository حافظه/Postgres نهایی‌سازی را به `paymentStatus=paid` قفل کرده‌اند.
+- UI برای unpaid به‌جای finalization فقط `پیگیری پرداخت` را نشان می‌دهد.
+- خطای API نیز قرارداد فعلی را «پرداخت یا waive قبل از لیست نهایی» اعلام می‌کند.
+- Portal فقط payment/receipt را برای finality مصرف می‌کند و state جدید `finalized + unpaid` ندارد.
+
+**Side effectهایی که قبل از پیاده‌سازی باید قرارداد داشته باشند:**
+
+- ظرفیت و Waitlist: فرد نهایی‌شدهٔ بدهکار باید صندلی را نگه دارد و دوباره promote نشود.
+- Portal و Admin: نهایی‌شدن حضور و وضعیت پرداخت باید دو label مستقل داشته باشند.
+- Finance: بدهی، deadline، CTA پرداخت و receipt باید بعد از finalization باقی بمانند.
+- Excel/final roster: فرد باید در لیست نهایی باشد و هم‌زمان در شیت بدهکاران بماند.
+- پرداخت بعدی: تبدیل `finalized + unpaid → finalized + paid` باید finalization را حفظ کند و idempotent باشد.
+- لغو: آزادسازی ظرفیت، refund (در صورت پرداخت جزئی/کامل) و promotion باید با finalization جدید سازگار شود.
+- حمل و settlement: ورود به roster عملیاتی نباید قبل از پرداخت باعث تسویه راننده یا settlement اشتباه شود.
+- permission/audit/notification/cache: اکشن جدید باید actor، زمان، event، invalidation و refresh همهٔ projectionها را ثبت کند.
+
+**نتیجه:** این تغییر یک feature/state-contract جدید است؛ patch صرفاً روی دکمه یا شرط UI کافی نیست.
