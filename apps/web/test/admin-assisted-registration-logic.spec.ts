@@ -65,6 +65,25 @@ describe("admin-assisted-registration-logic", () => {
     ]);
   });
 
+  it("reads the persisted legacy organized transport amount", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements({
+      ...TOUR_DETAIL,
+      canonical: {
+        data: {
+          ...TOUR_DETAIL.canonical.data,
+          transport: {
+            mode: "bus",
+            allowPersonalCar: true,
+            transportCostAmount: 150000,
+          },
+        },
+      },
+    });
+
+    assert.equal(requirements.transport.mode, "bus");
+    assert.equal(requirements.transport.transportCostAmount, 150000);
+  });
+
   it("defaults the form to the workspace's preferred approval and transport flow", () => {
     const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
     const form = createDefaultAdminAssistedRegistrationForm(requirements);

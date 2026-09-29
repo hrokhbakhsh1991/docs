@@ -318,6 +318,7 @@
 - سطح «فهرست کاتالوگ عمومی» روی حالت پیش‌فرض با `۱۲ فیلد نمایش داده می‌شود` است و custom fieldهای آن expand نشده‌اند؛ در این سطح checkbox مستقلی برای «نحوه حمل‌ونقل» در AX دیده نشد.
 - سطح «جزئیات کاتالوگ عمومی» روی حالت سفارشی `۱۲ از ۱۲` است و checkbox «نحوه حمل‌ونقل» فعال است؛ بنابراین transport در PDP exposure شده، اما در PLP field registry فعلی به‌صورت مستقل exposed نیست.
 - description فیلد location zones همچنان `نقطه شروع Start, summit, camp and end location zones.` است؛ `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE` همچنان FAIL است.
+
 - این snapshot علت قراردادی محتملِ `BUG-STG-082` را روشن می‌کند، اما بدون تغییر تنظیمات/patch، نتیجهٔ runtime قبلی (`PLP فاقد transport/dong`) همچنان **FAIL** باقی می‌ماند.
 
 ### anonymous SSR برای CTA عمومی Waitlist — ۲۰۲۶-۰۹-۲۸
@@ -3132,3 +3133,369 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - Implemented one shared Portal financial projection for List hydration and Detail rendering.
 - The projection normalizes free/waived and paid states and clears stale `paymentDueAt`; receipt status remains independent.
 - Source/runtime staging closure is not claimed here: staging deploy, runtime SHA, real registration IDs, screenshots/AX and cache evidence remain required after deploy.
+
+## Image fixture/Object Storage recheck — ۲۰۲۶-۰۹-۲۹
+
+این بخش فقط نتیجهٔ fixture تصویری QA را ثبت می‌کند؛ هیچ کد، commit یا PR در این مرحله تغییر نکرد.
+
+### Fixture و storage
+
+- چهار فایل PNG ارائه‌شدهٔ کاربر در Object Storage استیجینگ آپلود شد.
+- ۱۱ تور QA به چهار `storageKey` واقعی متصل شدند؛ مجموعاً ۴۴ آبجکت تصویری.
+- الگوی کلیدها:
+  - `00000000-0000-4000-8000-000000000003/tours/<tourId>/photos/smk-photo-1`
+  - `00000000-0000-4000-8000-000000000003/tours/<tourId>/photos/qa-photo-2`
+  - `00000000-0000-4000-8000-000000000003/tours/<tourId>/photos/qa-photo-3`
+  - `00000000-0000-4000-8000-000000000003/tours/<tourId>/photos/qa-photo-4`
+- نمونهٔ Object Storage برای `de32096c-4b02-405f-9bc8-31e906e89838` با `mc stat` موجود بود؛ هر چهار آبجکت اندازهٔ حدود ۱٫۹ تا ۲٫۲ MiB و `Content-Type=image/png` داشتند.
+- در `canonical_data.data.photos` هر ۱۱ تور، فیلد `storageKey` وجود داشت و URL خارجی قدیمی حذف شده بود.
+
+### PDP browser evidence
+
+- URL: `https://denali.shenski.com/tours/de32096c-4b02-405f-9bc8-31e906e89838`
+- عنوان تور: `QA 2026 Free No Payment`
+- چهار تصویر گالری با `complete=true` و `naturalWidth > 0` لود شدند.
+- تصویر اصلی: `1672×941`؛ سه تصویر دیگر: `640×360`.
+- `currentSrc` هر چهار تصویر از مسیر signed Object Storage از طریق image proxy استیجینگ بود.
+- `externalUnsplash=0` و fallback محلی در تصاویر گالری مشاهده نشد.
+- label رایگان همچنان `رایگان / بدون نیاز به پرداخت` بود؛ این بررسی تصویر، regression مالی جدیدی ایجاد نکرد.
+
+### PLP browser evidence
+
+- URL: `https://denali.shenski.com/tours`
+- ۱۱ کارت QA در صفحه پیدا شدند.
+- هر ۱۱ تصویر `complete=true` و `naturalWidth=451` داشتند.
+- `broken=[]`، `externalUnsplash=0` و `fallback=0`.
+- `storageBacked=11`؛ همهٔ تصاویر کارت‌ها از Object Storage خوانده شدند.
+
+### نتیجهٔ closure این مورد
+
+**PASS قطعی برای fixture تصویری:**
+
+- `BUG-STG-IMAGE-STORAGE-FIXTURE` — آپلود، اتصال `storageKey` و نمایش واقعی تصویر در PLP/PDP.
+- تصویر broken، fallback یا URL خارجی در PLP/PDP دیده نشد.
+
+این نتیجه فقط صحت fixture و مسیر نمایش تصویر را می‌بندد و جایگزین تست سایر P0/P1/P2های مالی، Waitlist، Exposure یا pricing نیست.
+
+## Current staging retest after deploy — ۲۰۲۶-۰۹-۲۹
+
+این sweep روی staging فعلی انجام شد. نتیجهٔ این بخش جایگزین شواهد قبلی نیست؛ اگر fixture لازم در artifact فعلی وجود نداشته باشد، وضعیت `UNVERIFIED / fixture missing` ثبت شده است.
+
+### PASS قطعی در artifact فعلی
+
+- `BUG-STG-IMAGE-STORAGE-FIXTURE`: PDP تور `de32096c-4b02-405f-9bc8-31e906e89838` هر ۴ تصویر را با `complete=true` و `naturalWidth > 0` لود کرد؛ PLP نیز ۱۱ تصویر QA را لود کرد، `broken=0`، `fallback=0` و `Unsplash=0`.
+- `BUG-STG-081`: تور `QA 2026 Member Discount` در PLP و PDP هر دو قیمت پایه `۲٬۵۰۰٬۰۰۰ تومان`، تخفیف `۵۰٪` و قیمت عضو `۱٬۲۵۰٬۰۰۰ تومان` نشان دادند.
+- `BUG-STG-082`: تور `QA 2026 Shared Cars Dong` در PLP و PDP هر دو `خودروهای مشترک` و `دونگی: ۸۰٬۰۰۰ تومان` را نشان دادند؛ در PDP نیز همین مقدار در بخش logistics تکرار شد.
+- `BUG-STG-025`: تور `QA 2026 Free No Payment` در PLP و PDP label `رایگان / بدون نیاز به پرداخت` داشت؛ روش پرداخت و payment plan در PDP نبود.
+- `BUG-STG-026 / 027`: `minPrice=0&maxPrice=0` یک تور رایگان را برگرداند؛ در `price_asc` رایگان ابتدای فهرست و در `price_desc` انتهای فهرست بود.
+- past-tour label: PLP برای `QA 2026 Past Expired` برچسب `پایان‌یافته` و PDP پیام `این تور به پایان رسیده است` نشان داد؛ ثبت‌نام جدید برای آن نمایش داده نشد.
+- `BUG-STG-035`: Public PDP و Admin Workspace برای `North Ridge Trek` هر دو زمان شروع `۲۱ مهر ۱۴۰۵، ۱۱:۳۰` را نشان دادند؛ اختلاف timezone در این fixture دیده نشد.
+- `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE`: صفحهٔ Exposure فعلی labelها و descriptionهای فارسی را نشان داد؛ description انگلیسی خام در متن صفحه دیده نشد.
+- `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`: رویدادهای صفحهٔ فارسی Admin مانند `ثبت‌نام عضو`، `تأیید رسید پرداخت`، `رد رسید پرداخت` و رویدادهای Ticket فارسی بودند؛ label انگلیسی در متن صفحه پیدا نشد.
+
+### UNVERIFIED — fixture فعلی برای تست وجود نداشت
+
+- `BUG-STG-080`: Portal List فعلی `هنوز ثبت‌نامی ندارید` نشان داد و detail شناسهٔ قبلی `4190860a-9948-4c62-b29b-85d3e494e765`، `صفحه یافت نشد` بود؛ free List/Detail/Admin/Finance قابل تطبیق نبود.
+- `BUG-STG-039 / 072`، `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE` و `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE`: registration/receiptهای قبلی در Portal فعلی قابل بازشدن نبودند؛ approve/resubmit جدید اجرا نشد.
+- `BUG-STG-062 / 047`، `BUG-STG-WAITLIST-GUEST-FORM-COPY` و `BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC`: fixture ظرفیت‌پر فعلی پیدا نشد؛ `e8c21d68-b161-4085-9dd3-b03b59540d39` دیگر منتشر نیست و `North Ridge Trek` ظرفیت `۰/۱۲` دارد، نه ظرفیت‌پر.
+- `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL` و `BUG-STG-037`: Admin Waitlist برای fixture فعلی صفر ردیف نشان داد؛ بنابراین label ردیف‌ها و تطبیق شمارنده/جدول exercised نشد.
+- `BUG-STG-021`: concurrent duplicate submit اجرا نشد؛ هیچ `201/409` جدیدی در این sweep تولید نشد.
+- `BUG-STG-022`: submit واقعی چندنفره و جمع نهایی transport/dong اجرا نشد.
+- `BUG-STG-063` و `BUG-STG-064 / 065`: promotion یا transition واقعی Waitlist اجرا نشد؛ side effect ایجاد نشد.
+- `BUG-STG-019 / 036`: toggle Exposure و بررسی هم‌زمان API، HTML، AX و JSON-LD اجرا نشد؛ closure redaction تأیید نشد.
+- `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH`، `BUG-STG-040` و `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS`: fixture pending/rejected receipt موجود نبود و upload/resubmit اجرا نشد.
+- Telegram delivery واقعی و فایل تصویری/PDF خارج از این sweep اجرایی بود؛ source/UI label pass به‌تنهایی delivery را نمی‌بندد.
+
+### جمع‌بندی این ریتست
+
+- PASS قطعی جدید/تأییدشده: تصویر Object Storage، قیمت عضو، حمل و دُنگ PLP/PDP، label و filter/sort رایگان، past-tour label، timezone فعلی و locale Exposure/Telegram.
+- موارد مالی، Waitlist، duplicate و promotion به‌دلیل نبود fixture قابل اجرا بسته نشدند؛ وضعیت آن‌ها `UNVERIFIED` است، نه PASS.
+- هیچ mutation مالی، receipt، promotion، cancellation یا submit جدیدی در این sweep انجام نشد.
+
+## Controlled staging mutation sweep — ۲۰۲۶-۰۹-۲۹
+
+این بخش نتیجهٔ اجرای واقعی روی fixtureهای کم‌ظرفیت QA است. تمام mutationها با یک تب staging و با ثبت AX انجام شدند؛ هیچ دادهٔ واقعی کاربر هدف نبود.
+
+### Fixtureهای اجراشده
+
+- Waitlist: `QA 2026 Waitlist Capacity 1` — tour `0ae44e0f-7ce7-4bf3-aa18-662be4aa2af8`
+- Free: `QA 2026 Free No Payment` — tour `de32096c-4b02-405f-9bc8-31e906e89838`
+- Receipt: `QA 2026 Receipt States` — tour `f5f579c9-665e-4606-80db-161e8044d894`
+- QA member/session: `نصر الله`، phone ending `6598`
+
+### Waitlist ثبت‌نام و آزادسازی ظرفیت
+
+- registration `87ba6c0a-d0f7-4c96-9090-3e9a09d6d5e5` از Portal ثبت شد.
+- قبل از انتقال: Portal detail متن `درخواست شما در حال بررسی است` و Admin row با وضعیت `در انتظار` داشت.
+- Admin action `انتقال به لیست انتظار` موفق بود و پیام `نصر الله به لیست انتظار منتقل شد.` نمایش داده شد.
+- بعد از انتقال: Portal detail متن `در لیست انتظار قرار گرفتید`، `ثبت‌نام: لیست انتظار` و `رسید: لازم نیست` داشت؛ CTA پرداخت/آپلود وجود نداشت.
+- Admin Waitlist ظرفیت `۱/۱`، row با label `در لیست انتظار` و پرداخت `پرداخت‌نشده (رزرو)` نشان داد.
+- برای آزادکردن ظرفیت، رزرو QA نهایی‌شدهٔ `6163d13a-0703-499a-b1a3-b1a59da038f0` از Admin لغو شد؛ ظرفیت به `۰/۱` رسید.
+- نتیجهٔ مهم: Waitlist موجود به‌جای promotion، به وضعیت `لغوشده` رفت و در فهرست `waitlisted` باقی نماند. بنابراین promotion واقعی اجرا نشد.
+
+**FAIL قطعی:** `BUG-STG-063` و transition بخشی از `BUG-STG-064 / 065` — با آزادشدن ظرفیت، candidate صف انتظار به‌صورت خودکار لغو شد؛ booking approved ساخته نشد و promotion قابل مشاهده نبود.
+
+### ثبت‌نام رایگان
+
+- registration `fe517455-25fb-43bc-9d42-4e73f3574d60` برای `QA 2026 Free No Payment` ثبت شد.
+- Portal List: `تأیید شده` و `پرداخت لازم نیست`.
+- Portal Detail: `ثبت‌نام شما نهایی شده است`، `رسید: لازم نیست`، `نیازی به پرداخت نیست` و مبلغ `۰ تومان`.
+- کنترل UI: upload receipt، CTA پرداخت و deadline در Detail وجود نداشتند.
+
+**PASS:** `BUG-STG-080` برای free List/Detail/Portal و نبود مسیر پرداخت در سناریوی واقعی.
+
+### چرخهٔ کامل receipt متنی
+
+- registration پرداختی `68930b23-ea43-4e2a-81f8-dd4c3402b127` برای `QA 2026 Receipt States` ثبت شد و از Admin با تأیید دو مرحله‌ای به `تأییدشده` رسید.
+- Portal Detail قبل از receipt: `ثبت‌نام: تأیید شده`، `رسید: ارسال نشده` و بدهی `۲٬۵۰۰٬۰۰۰ تومان`.
+- receipt اول به‌صورت متن `QA متن رسید اول - پرداخت آزمایشی ۱۴۰۵۰۷۰۸` ارسال شد؛ Portal بلافاصله `فیش شما در حال بررسی است` و `رسید: در انتظار بررسی` نشان داد.
+- Admin Finance receipt را با روش `Manual` و متن همان receipt نشان داد؛ فایل لازم نبود.
+- receipt اول رد شد؛ Portal پس از refresh heading `اصلاح فیش لازم است`، متن `رسید: رد شده؛ اصلاح لازم است` و کنترل resubmit را نشان داد.
+- receipt دوم به‌صورت متن `QA متن رسید دوم - اصلاح شده ۱۴۰۵۰۷۰۸` ارسال شد و دوباره `رسید: در انتظار بررسی` شد.
+- receipt دوم در Admin تأیید شد.
+- Portal نهایی: `سفر شما نهایی شده است`، `ثبت‌نام: تأیید شده`، `رسید: تأیید شده` و `پرداخت تأیید شد`.
+- Admin booking list: همان registration با `تأییدشده` و `وجه دریافت شد`.
+- Admin Finance پس از reload: صف receipt خالی و ردیف بدهی/پیگیری حذف شد.
+- UI فعلی شناسهٔ receipt را نمایش نداد؛ فقط registration ID و متن receipt در AX قابل ثبت بود. بنابراین receipt ID مستقل: `UNEXPOSED_BY_UI`.
+
+**PASS:** `BUG-STG-039 / 072`، `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE` و `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE` برای چرخهٔ متنی pending → rejected → resubmit → approved.
+
+**PASS:** مسیر `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH` نقض نشد؛ free registration مسیر receipt را ارائه نکرد.
+
+### گیت evidence
+
+- registration IDs ثبت‌شده: `87ba6c0a-d0f7-4c96-9090-3e9a09d6d5e5`, `fe517455-25fb-43bc-9d42-4e73f3574d60`, `68930b23-ea43-4e2a-81f8-dd4c3402b127`.
+- receipt ID مستقل: در UI/AX نمایش داده نشد؛ `UNEXPOSED_BY_UI`.
+- API before/after خام، cache key و Cache-Control در این اجرای browser-only استخراج نشدند؛ این گیت‌ها `UNVERIFIED` باقی می‌مانند.
+- screenshot فایل‌دار تولید نشد؛ AX tree قبل/بعد برای Portal، Admin و Finance ثبت شد.
+- runtime artifact SHA در این mutation sweep دوباره از host خوانده نشد؛ `UNVERIFIED`.
+
+### وضعیت پس از mutation sweep
+
+- **PASS:** free واقعی، receipt متنی reject/resubmit/approve، projection نهایی Portal/Admin/Finance پس از reload.
+- **FAIL:** promotion از Waitlist پس از آزادشدن ظرفیت؛ candidate به‌طور خودکار لغو شد.
+- **UNVERIFIED:** receipt ID مستقل، API خام before/after، cache evidence، runtime SHA و raceهای هم‌زمان duplicate/promotion.
+
+### Promotion retry با fixture ظرفیت آزاد
+
+- fixture `QA 2026 Group Capacity 2` ابتدا با registration `0ebde30c-e467-4f2e-960c-a89d64f890e7`، party size `۲` و ظرفیت `۲/۲` پر شد؛ Admin approval دوکلیکی موفق بود.
+- candidate واقعی Portal با registration `40a2d04c-6cf5-4ffc-a46b-f3db48aa7904` در ظرفیت پر ثبت شد؛ Portal CTA و copy صریح `ثبت درخواست لیست انتظار` و پیام `درخواست در لیست انتظار ثبت شد` نشان داد.
+- ظرفیت fixture برای این تست به‌صورت کنترل‌شده به `۳` افزایش یافت؛ Admin صفحهٔ edit پیام `ذخیره ناموفق بود (خطای سرور)` نشان داد، اما runtime و دیتابیس مقدار `capacityMax=3` را نشان دادند. این رفتار مستقل، یک مورد نیازمند پیگیری برای save/error reporting است و نباید به‌عنوان save تمیز PASS شود.
+- Admin Waitlist پس از آزادشدن ظرفیت، همان candidate را با ظرفیت `۲/۳` و action `تأیید` نشان داد.
+- promotion با action تأیید اجرا شد؛ toast: `نصر الله تأیید شد. پرداخت هنوز تسویه نشده.` و Waitlist خالی شد.
+- Admin بعد از promotion: ظرفیت `۳/۳`، operational list با ۲ نفر.
+- Portal detail برای registration `40a2d04c-6cf5-4ffc-a46b-f3db48aa7904`: `ثبت‌نام شما نهایی شده است`، `ثبت‌نام: تأیید شده`، `رسید: لازم نیست`.
+- دیتابیس runtime بعد از promotion: candidate `status=approved`, `payment_status=paid`, `finalization_status=finalized`؛ occupant قبلی `status=approved`, `payment_status=unpaid`, `finalization_status=not_final`.
+
+**PASS قطعی:** `BUG-STG-063` برای promotion واقعیِ candidate وقتی ظرفیت آزاد است؛ `BUG-STG-062 / 047` و `BUG-STG-WAITLIST-GUEST-FORM-COPY` برای CTA/copy مسیر Portal Waitlist؛ و همگامی Waitlist → Portal Detail → Admin operational در این fixture.
+
+**FAIL جداگانه باقی‌مانده:** مسیر آزادشدن ظرفیت با `لغو رزرو` در fixture قبلی، candidate Waitlist را خودکار `لغوشده` کرد؛ این با promotion کنترل‌شدهٔ بالا یکی نیست و برای `BUG-STG-064 / 065` به‌عنوان transition از cancel هنوز failure ثبت می‌شود.
+
+**UNVERIFIED:** race هم‌زمان promotion/duplicate، API خام before/after، cache key/headers، runtime SHA و receipt ID مستقل.
+
+### تکمیل شناسه‌های receipt از دیتابیس runtime
+
+پس از پایان UI sweep، شناسه‌های مستقل receipt از جدول runtime با join به payment و همان `registrationId` تطبیق داده شدند:
+
+- receipt اول: `369b9b3c-ddea-45e4-ab4c-0d701aca46d5` — `Rejected` — note: `QA متن رسید اول - پرداخت آزمایشی ۱۴۰۵۰۷۰۸`
+- receipt دوم: `88ca1954-d8c4-4327-8586-3c6405bdd85a` — `Approved` — note: `QA متن رسید دوم - اصلاح شده ۱۴۰۵۰۷۰۸`
+- هر دو به payment و registration `68930b23-ea43-4e2a-81f8-dd4c3402b127` متصل بودند؛ payment نهایی `Paid` است.
+
+این بخش، شکاف `receipt ID مستقل` را می‌بندد؛ API خام before/after، cache evidence و runtime SHA همچنان جداگانه استخراج نشده‌اند.
+
+### اجرای قطعی سناریوهای باقی‌مانده — 2026-09-29
+
+#### لغو، آزادشدن ظرفیت و promotion
+
+- fixture: `QA 2026 Group Capacity 2`, ظرفیت قبل از mutation `۳/۳`.
+- booking لغوشده: `0ebde30c-e467-4f2e-960c-a89d64f890e7`، party size `۲`.
+- candidate Waitlist: `QA Cancel Waitlist Candidate 20260929`، شناسهٔ نمایشی `d252…6606`.
+- بعد از تأیید لغو در Admin و reload:
+  - booking اصلی `لغوشده` شد؛
+  - ظرفیت به `۲/۳` رسید؛
+  - candidate از Waitlist به `تأییدشده` منتقل شد؛
+  - شمارندهٔ Waitlist به `۰` رسید؛
+  - candidate در لیست Admin با ظرفیت `۲/۳` باقی ماند.
+
+**PASS قطعی:** `BUG-STG-064 / 065` در سناریوی لغو و آزادشدن ظرفیت، و promotion واقعی candidate. این نتیجه جایگزین failure قبلی همان مسیر در fixture قدیمی است؛ آن failure تاریخی باید برای ریشه‌یابی جداگانه باقی بماند، اما در fixture جدید قابل تکرار نشد.
+
+#### قیمت چندنفرهٔ عضو/مهمان
+
+- fixture: `31139b4a-f65b-4ef7-b727-42283294faa5`.
+- عضو: base `۲٬۵۰۰٬۰۰۰`، تخفیف `۵۰٪`، payable `۱٬۲۵۰٬۰۰۰`.
+- مهمان `QA Guest Pricing 20260929`: base/payable `۲٬۵۰۰٬۰۰۰`.
+- مجموع قبل و بعد از submit: `۳٬۷۵۰٬۰۰۰`.
+- Admin detail مهمان همان invoice `۲٬۵۰۰٬۰۰۰` و balance `۲٬۵۰۰٬۰۰۰` را نشان داد.
+
+**PASS جزئی:** بخش مستقل‌بودن تخفیف عضو و مهمان در `BUG-STG-022`؛ حمل، dong و submit چند participant با transport متفاوت هنوز اجرا نشده است.
+
+#### Exposure و redaction
+
+- fixture: `c1491f02-6f80-4a6f-a4e8-f352a21fcc16`.
+- سه exposure خاموش و سپس restore شدند: پرداخت، حمل‌ونقل و location-zones؛ UI بعد از restore به `۱۲/۱۲` برگشت.
+- PDP در حالت خاموش: قیمت، payment، transport، dong و location-zones در متن DOM دیده نشدند.
+- JSON-LD در همان حالت: `price`، `priceCurrency`، `dongAmount`، `transportCostAmount`، `paymentCollection` و `locationZones` دیده نشدند.
+- PLP در همان اجرای toggle همچنان قیمت/حمل نشان داد؛ بنابراین redaction در همهٔ سطح‌ها یکسان اثبات نشد.
+
+**PASS محدود / FAIL closure:** `BUG-STG-019 / 036` برای PDP و JSON-LD؛ closure کامل API، PLP و AX هنوز تأیید نشده و PLP فعلاً failure قابل پیگیری دارد.
+
+#### Waitlist state و copy
+
+- fixture ظرفیت‌پر `a60e26da-9007-4706-980d-808b65e5461f`.
+- Portal فرم مهمان CTA `ثبت درخواست لیست انتظار`، متن انتقال به صف و نتیجهٔ موفق waitlisted را نشان داد.
+- Admin row همان candidate را با label `در لیست انتظار` نشان داد.
+- در session عضوِ دارای registration قبلی، PDP به‌جای CTA عمومی Waitlist، state شخصی `مشاهده ثبت‌نام من` داشت؛ مقایسهٔ PLP/PDP با session مستقل و بدون registration هنوز ثبت نشده است.
+
+**PASS:** copy و label مسیر Waitlist (`BUG-STG-062 / 047`, `BUG-STG-WAITLIST-GUEST-FORM-COPY`).
+**UNVERIFIED:** `BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC` برای session مستقل؛ با session فعلی state شخصی بود و closure عمومی ثابت نشد.
+
+#### شمارندهٔ عملیاتی و ظرفیت
+
+- Admin برای fixture گروهی badge `لیست عملیاتی ۲` و دقیقاً ۲ ردیف نشان داد؛ API `total` خام هم‌زمان استخراج نشد.
+- تغییر ظرفیت از `۳` به `۴` در Admin toast `ذخیره ناموفق بود (خطای سرور)` داد و بعد از reload مقدار به `۳/۳` برگشت.
+
+**PASS UI smoke / UNVERIFIED closure:** `BUG-STG-037` تا تطبیق API total با badge و rowها کامل نشده است.
+**FAIL قطعی مستقل:** مسیر save ظرفیت و گزارش خطا/پایداری مقدار؛ نتیجهٔ UI و مقدار پایدار backend یکسان نیستند.
+
+#### duplicate هم‌زمان
+
+- تست‌های source duplicate و contract سبز شدند؛ تست HTTP race به‌دلیل نبود `DATABASE_URL` و `DATABASE_URL_ADMIN` اجرا نشد.
+- submit هم‌زمان واقعی Browser با انتظار دقیق `۲۰۱/۴۰۹` اجرا نشد.
+
+**UNVERIFIED:** `BUG-STG-021`؛ source pass به‌تنهایی closure نیست.
+
+#### گیت‌های مشترک این sweep
+
+- source tests: Portal `۱۴/۱۴`، workspace Denali `۲۲/۲۲`، API focused `۳۸/۳۸`؛ مجموع `۷۴` تست سبز.
+- `TODO-007` race تست source به‌دلیل نبود database skip شد.
+- پاسخ HTTP عمومی `denali.shenski.com/tours`: `200`، `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` و `x-cache: BYPASS`.
+- runtime artifact SHA، API خام before/after، cache key/revalidation داخلی، screenshot فایل‌دار و AX کامل همهٔ سطح‌ها در این sweep استخراج نشدند؛ این موارد `UNVERIFIED` هستند.
+
+### ادامهٔ browser sweep — Exposure سطح PLP و duplicate — 2026-09-29
+
+#### Exposure واقعی روی PLP
+
+- سطح `public_list` در Admin به‌صورت سفارشی ذخیره شد و سه فیلد `تور پولی`، `نحوه حمل‌ونقل` و `نقطه شروع ناحیه‌های شروع، قله، اردوگاه و پایان مسیر.` خاموش شدند.
+- بعد از ذخیره، PLP برای fixture `c1491f02-6f80-4a6f-a4e8-f352a21fcc16` قیمت و حمل را نشان نداد؛ کارت فقط اطلاعات غیرمالی و ظرفیت مشتق را نشان داد.
+- تنظیم `public_list` به حالت اولیهٔ `نمایش پیش‌فرض` برگشت و پیام `نمایش سطح ذخیره شد` ثبت شد.
+
+**PASS browser:** `BUG-STG-019 / 036` برای PLP در صورت اعمال toggle درستِ `public_list`. مشاهدهٔ قبلی قیمت در PLP ناشی از خاموش‌کردن فقط `public_details` بود؛ سطح‌ها مستقل‌اند.
+
+#### duplicate Browser
+
+- تلاش مستقیم از فرم Portal برای submit دوم با همان مهمان به‌دلیل خالی‌ماندن مقدار input تلفن در automation به submit معتبر نرسید؛ پاسخ duplicate API ثبت نشد.
+- تلاش برای دو POST هم‌زمان از evaluate صفحه به‌دلیل محدودیت realm ابزار (`fetch` در evaluate در دسترس نبود) اجرا نشد.
+
+**UNVERIFIED:** `BUG-STG-021`؛ هنوز مدرک معتبر `۲۰۱/۴۰۹` از دو submit واقعی هم‌زمان نداریم.
+
+#### transport/dong چندنفره
+
+- فرم shared-cars برای سه مهمان باز شد و preview مستقل `۲٬۵۰۰٬۰۰۰` برای هر participant و جمع `۷٬۵۰۰٬۰۰۰` را نشان داد.
+- submit نهایی به‌دلیل ناتوانی automation در نگه‌داشتن مقدار phone مهمان تکمیل نشد؛ transport/dong نهایی و response submit هنوز ثبت نشده است.
+
+**UNVERIFIED:** بخش transport/dong در `BUG-STG-022`.
+
+### browser sweep تکمیلی — duplicate، ظرفیت عملیاتی و transport/dong — 2026-09-29
+
+#### duplicate مهمان در Browser
+
+- fixture تور رایگان: `de32096c-4b02-405f-9bc8-31e906e89838`.
+- مهمان اولِ موجود: `QA Duplicate Browser 20260929`، registration کوتاه‌شدهٔ `fc40…2824`.
+- submit دوم با همان شمارهٔ `09125556666` و نام متفاوت انجام شد.
+- Portal پیام `قبلاً برای این تور ثبت‌نام کرده‌اید` را نشان داد.
+- Admin بعد از submit فقط `۲ کل` داشت: یک ردیف خودِ عضو و یک ردیف همان مهمان؛ رکورد دوم ساخته نشد.
+
+**PASS browser:** duplicate guest در مسیر واقعی UI رد شد و duplicate record ساخته نشد. کد HTTP داخلی 409 از UI قابل مشاهده نیست، بنابراین assertion دقیق `201/409` همچنان source/API evidence است، نه browser-network evidence.
+
+#### ذخیرهٔ ظرفیت و پایداری مقدار
+
+- fixture: `a60e26da-9007-4706-980d-808b65e5461f`.
+- مقدار ظرفیت در Admin از `۳` به `۵` تغییر داده شد.
+- پس از reload، فیلد ظرفیت `۵` و header ظرفیت `۲/۵` را نشان داد.
+- تست source policy نیز `capacity increase is allowed` را سبز کرد.
+
+**PASS browser/source:** خطای قبلی save ظرفیت در اجرای تکراری قابل بازتولید نشد؛ نتیجهٔ پایدار UI و مقدار ذخیره‌شده همسان بود. failure تاریخی `۳→۴` به‌عنوان non-reproducible retained می‌ماند و بدون network payload/response علت قطعی برای آن ثبت نمی‌شود.
+
+#### لیست عملیاتی و شمارنده
+
+- همان fixture گروهی پس از promotion: badge `لیست عملیاتی ۲` و دقیقاً ۲ ردیف قابل مشاهده.
+- هر دو ردیف با state `نهایی`، transport label و payment label مستقل نمایش داده شدند.
+- header ظرفیت `۲/۵` و summaryهای `نیازمند بررسی ۰`، `منتظر پرداخت ۰` و `نهایی‌شده برای حضور ۲` با UI هم‌خوان بودند.
+
+**PASS UI:** `BUG-STG-037` در سطح badge/visible rows/summary. API raw `total` هنوز از network ثبت نشده است؛ closure backend-total همچنان `UNVERIFIED` است.
+
+#### submit واقعی چندنفره با shared cars و dong
+
+- fixture: `99c917a2-769f-499d-a59f-5c9ae1874aeb`.
+- سه participant با transport `بدون ماشین — دونگ` و گزینهٔ `بله، دونگ می‌دهم` ثبت شدند.
+- preview قبل از submit: قیمت پایهٔ هر participant `۲٬۵۰۰٬۰۰۰` و جمع پس از dong `۷٬۷۴۰٬۰۰۰` تومان.
+- submit Portal موفق شد و صفحهٔ `درخواست ثبت شد` نمایش داده شد.
+- Admin سه registration مستقل را نشان داد؛ دو مهمان با target `دیگری`.
+- Admin detail مهمان: حمل `بدون ماشین — دونگ`، جمع invoice `۲٬۵۸۰٬۰۰۰` تومان، بدهی `۲٬۵۸۰٬۰۰۰` تومان.
+
+**PASS جزئی/واقعی:** `BUG-STG-022` برای submit چندنفره و dong amount. تفاوت preview سه‌نفره با invoice تک‌نفره به‌علت نمایش invoice مستقل برای هر registration است و با قرارداد پرداخت جداگانه سازگار است؛ transport سازمانی و دو transport متفاوت هنوز جداگانه اجرا نشده‌اند.
+
+#### source gate تکمیلی
+
+- workspace Denali focused: `27/27` سبز؛ شامل exposure، pricing و mutation policy.
+- Portal focused: `24/24` سبز.
+- API focused: `40/40` سبز.
+- مجموع اجرای این نوبت: `91/91` سبز.
+
+**باقی‌ماندهٔ مستنداتی، نه failure جدید:** runtime artifact SHA، raw API before/after و network-level cache key/revalidation هنوز قابل استخراج از staging نیست؛ این‌ها برای closure release gate باید جداگانه از deployment/runtime ثبت شوند.
+
+#### بررسی مستقیم PDP ظرفیت‌پر
+
+- fixture: `0ae44e0f-7ce7-4bf3-aa18-662be4aa2af8`.
+- PDP در session فعلی مقدار `۰ جای خالی` و لینک صریح `عضویت در لیست انتظار` را نشان داد.
+- همان صفحه روش پرداخت و CTA ثبت‌نام عادی را به‌عنوان action اصلی نشان نداد.
+
+**PASS PDP:** `BUG-STG-062 / 047` و بخش PDP از `BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC`. مقایسهٔ raw PLP response با raw PDP response و session کاملاً مستقل همچنان به network/auth evidence نیاز دارد.
+
+### source و browser ادامهٔ sweep — operational roster و organized transport — 2026-09-29
+
+- Web operational roster و command-center: `34/34` سبز.
+- API operational roster contract/projection: `15/15` سبز؛ تست `countOnly` صراحتاً total فیلترشده را مستقل از page size تأیید کرد.
+- fixture organized transport: `967f3bf6-2479-4dea-bd48-d5393442f301`.
+- PDP نوع حمل را `اتوبوس · خودرو شخصی` و در بخش logistics مقدار `اتوبوس`/`خودرو شخصی: امکان‌پذیر` نشان داد.
+- Preview ثبت‌نام مبلغ پایهٔ `۲٬۵۰۰٬۰۰۰` تومان را نشان داد؛ در fixture فعلی `transportCostAmount` قابل‌نمایش مقدار نداشت، بنابراین amount حمل سازمانی از این fixture قابل اثبات نیست.
+
+**PASS source/UI:** `BUG-STG-037` در قرارداد و countOnly؛ نوع حمل سازمانی در PDP.
+**UNVERIFIED:** مبلغ حمل سازمانی با fixture‌ای که مقدار `transportCostAmount` غیر-null داشته باشد؛ این کمبود fixture است، نه failure اثبات‌شدهٔ formatter.
+
+### تصحیح browser organized transport بعد از ثبت مبلغ — 2026-09-29
+
+- همان fixture `967f3bf6-2479-4dea-bd48-d5393442f301` در Admin با مقدار `transportCostAmount=120000` ذخیره شد؛ پس از reload مقدار `۱۲۰٬۰۰۰` در Admin باقی ماند.
+- PDP پس از ذخیره و reload همچنان فقط `اتوبوس · خودرو شخصی` و logistics نوع `اتوبوس` را نشان داد و مقدار `۱۲۰٬۰۰۰` را نمایش نداد.
+- source فعلی resolver مشترک `resolveCatalogTransportCostAmount` و render `detail.logistics.transportCost` را دارد و تست‌های transport/detail با نتیجهٔ `19/19` سبز شدند.
+
+**FAIL staging behavior:** `BUG-STG-082` برای نمایش مبلغ حمل سازمانی در PDP هنوز در runtime مشاهده شد.
+**SOURCE PASS / DEPLOYMENT UNVERIFIED:** این failure با source فعلی سازگار نیست؛ runtime artifact SHA از staging در دسترس نیست، بنابراین علت محتمل artifact قدیمی است اما بدون SHA قطعی اعلام نمی‌شود. closure فقط بعد از deploy همین HEAD و تکرار browser قابل قبول است.
+
+### تأیید API BFF و regression source — 2026-09-29
+
+- درخواست مستقیم `GET https://denali.shenski.com/api/catalog/967f3bf6-2479-4dea-bd48-d5393442f301` با `200` پاسخ داد.
+- در response عمومی، `transport` فقط `{mode: "bus", allowPersonalCar: true}` بود و `transportCostAmount` وجود نداشت؛ بنابراین PDP نمی‌توانست مبلغ `۱۲۰٬۰۰۰` را نمایش دهد.
+- regression جدید `BUG-STG-082` برای تبدیل canonical string `transport.transportCost="120000"` به `transportCostAmount=120000` اضافه شد و تست Denali card/exposure با `17/17` سبز شد.
+
+**نتیجه:** source contract و egress mapper در HEAD درست و تست‌شده‌اند؛ failure فعلی در staging در سطح API response باقی است. تا deploy همین HEAD و مشاهدهٔ `transportCostAmount: 120000` در BFF، این مورد بسته نیست.
+
+### تفکیک branch و runtime برای organized transport — 2026-09-29
+
+- `origin/dev` روی `2eaf701eed9ddf29ca095cbe4ad88a9eca10a55e` است؛ branch کاری روی `11c7d6bc66a52a78b9c45ef04b874985ae9bf876` است.
+- workflow استقرار staging فقط از `dev` deploy می‌کند؛ بنابراین تست staging فعلی نمی‌تواند صحت HEAD branch کاری را اثبات کند.
+- source مربوط به reader، mapper و PDP در `origin/dev` نیز وجود دارد؛ پس صرفاً «کمبود فایل frontend» علت کافی نیست.
+- local API روی HEAD بدون خطای build بالا آمد و focused source tests سبز ماندند، اما fixture organized transport در seed محلی وجود نداشت؛ browser local برای همان مقدار عددی قابل اجرا نبود.
+
+**گیت باقی‌مانده:** merge/deploy به `dev`، ثبت runtime SHA، سپس تکرار `GET /api/catalog/<tourId>` و PDP. انتظار دقیق: `transport.transportCostAmount=120000` در BFF و نمایش `۱۲۰٬۰۰۰ تومان` در PDP.
+
+### ریشه‌یابی قطعی organized transport — 2026-09-29
+
+- با دسترسی read-only به PostgreSQL staging، ردیف fixture `967f3bf6-2479-4dea-bd48-d5393442f301` بررسی شد.
+- canonical واقعی این ردیف مقدار را با کلید legacy `data.transport.transportCostAmount=150000` نگه داشته است؛ کلید فعلی wizard یعنی `data.transport.transportCost` در این ردیف وجود ندارد.
+- reader عمومی فقط `transport.transportCost` را می‌خواند؛ بنابراین Admin مقدار را دارد اما BFF/PLP/PDP مبلغ را از دست می‌دهند.
+- اصلاح محدود در `readDenaliCatalogTransportSnapshot` انجام شد: مسیر فعلی اولویت دارد و سپس برای داده‌های persisted قدیمی از `transport.transportCostAmount` fallback می‌گیرد.
+- منطق ثبت‌نام ادمین نیز همین fallback را می‌خواند تا quote با catalog ناسازگار نشود.
+- تست regression جدید برای دادهٔ legacy اضافه شد؛ Denali card/exposure: `18/18` سبز.
+
+**نتیجهٔ فعلی:** علت کدی و داده‌ای قطعی شد و source fix آماده است؛ staging هنوز با artifact قبل از این patch سرو می‌شود، بنابراین browser closure و PASS نهایی بعد از deploy همین تغییر باقی است.
