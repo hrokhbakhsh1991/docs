@@ -18,6 +18,7 @@ export function normalizeDriverCompensationPerSeat(raw: string): string | null {
 export type OperationalRosterFilter =
   | "operational"
   | "final"
+  | "awaiting_finalization"
   | "unpaid"
   | "paid"
   | "expiring"
@@ -104,8 +105,9 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
 } as const;
 
 export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
-  "operational",
   "final",
+  "awaiting_finalization",
+  "operational",
   "unpaid",
   "paid",
   "expiring",
@@ -114,7 +116,7 @@ export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
 
 export function buildTourOperationalRosterQuery(
   tourId: string,
-  filter: OperationalRosterFilter = "operational",
+  filter: OperationalRosterFilter = "final",
   transportKind?: string
 ): string {
   const params = new URLSearchParams();
@@ -129,7 +131,7 @@ export function buildTourOperationalRosterQuery(
 
 export function buildTourOperationalRosterHref(
   tourId: string,
-  filter: OperationalRosterFilter = "operational"
+  filter: OperationalRosterFilter = "final"
 ): string {
   return `/api/tours/${encodeURIComponent(tourId)}/operational-roster?${buildTourOperationalRosterQuery(tourId, filter)}`;
 }

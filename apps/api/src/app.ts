@@ -4,6 +4,7 @@ import {
   handleApproveBooking,
   handleFinalizeBooking,
   handleFinalizeBookingWithOpenPayment,
+  handleWaiveAndFinalizeBooking,
   handleBulkApproveBookings,
   handleApproveMemberCancellation,
   handleCancelBooking,
@@ -19,6 +20,7 @@ import {
   handlePostMemberCancellation,
   handleRejectBooking,
   handleWaitlistBooking,
+  handlePromoteWaitlistWithCapacityIncrease,
 } from "./bookings/bookings.routes";
 import {
   handleMemberListNotifications,
@@ -563,6 +565,14 @@ async function dispatchRequest(
     return;
   }
 
+  const bookingWaiveAndFinalizeMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/waive-and-finalize$/
+  );
+  if (method === "POST" && bookingWaiveAndFinalizeMatch) {
+    await handleWaiveAndFinalizeBooking(req, res, bookingWaiveAndFinalizeMatch[1]!);
+    return;
+  }
+
   const bookingRejectMatch = url.pathname.match(/^\/bookings\/([^/]+)\/reject$/);
   if (method === "POST" && bookingRejectMatch) {
     await handleRejectBooking(req, res, bookingRejectMatch[1]!);
@@ -572,6 +582,18 @@ async function dispatchRequest(
   const bookingWaitlistMatch = url.pathname.match(/^\/bookings\/([^/]+)\/waitlist$/);
   if (method === "POST" && bookingWaitlistMatch) {
     await handleWaitlistBooking(req, res, bookingWaitlistMatch[1]!);
+    return;
+  }
+
+  const bookingWaitlistCapacityAdmissionMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/promote-waitlist-with-capacity-increase$/
+  );
+  if (method === "POST" && bookingWaitlistCapacityAdmissionMatch) {
+    await handlePromoteWaitlistWithCapacityIncrease(
+      req,
+      res,
+      bookingWaitlistCapacityAdmissionMatch[1]!
+    );
     return;
   }
 

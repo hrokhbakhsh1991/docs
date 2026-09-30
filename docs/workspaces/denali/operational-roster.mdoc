@@ -15,12 +15,12 @@ Operator cannot answer from one surface who holds a seat, who has paid, who owes
 
 ## Semantics (DEN-PROD-03 — approved)
 
-| Predicate                  | Definition                                                                                                                                                                                                     |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                                                                                |
-| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                                                                                       |
+| Predicate                  | Definition                                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                                                             |
+| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                                                                    |
 | `isFinalParticipant`       | `booking.status === "approved" && booking.finalizationStatus === "finalized"`; finalized rows may remain unpaid or partially paid, while `financialDisplayState` exposes payment separately |
-| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                                                                               |
+| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                                                            |
 
 Financial display states (projection only — not persisted on Bookings):
 
@@ -54,15 +54,16 @@ No duplicate SoT columns on `operator_registrations`.
 GET /tours/:tourId/operational-roster?view=ops&filter=&transportKind=&limit=&cursor=
 ```
 
-| Query                          | Behavior                                  |
-| ------------------------------ | ----------------------------------------- |
-| `filter=operational` (default) | Approved seat holders                     |
-| `filter=final`                 | `isFinalParticipant`                      |
-| `filter=unpaid`                | Approved with `remainingMinor > 0`        |
-| `filter=paid`                  | Approved with `PAID` financial state      |
-| `filter=expiring`              | Approved with `paymentDueAt <= now + 24h` |
-| `filter=waitlist`              | `status=waitlisted`                       |
-| `transportKind`                | Narrow to intake kind                     |
+| Query                          | Behavior                                                  |
+| ------------------------------ | --------------------------------------------------------- |
+| `filter=operational` (default) | Approved seat holders                                     |
+| `filter=final`                 | `isFinalParticipant`                                      |
+| `filter=awaiting_finalization` | Approved seat holders with `finalizationStatus=not_final` |
+| `filter=unpaid`                | Approved with `remainingMinor > 0`                        |
+| `filter=paid`                  | Approved with `PAID` financial state                      |
+| `filter=expiring`              | Approved with `paymentDueAt <= now + 24h`                 |
+| `filter=waitlist`              | `status=waitlisted`                                       |
+| `transportKind`                | Narrow to intake kind                                     |
 
 Tenant isolation: `tourId` scoped list; cross-tenant IDs never returned.
 
@@ -92,7 +93,7 @@ This keeps peak tenant DB ops ≤4 for a single roster request without raising s
 
 ## Operator UI
 
-Tour workspace **transport** tab consumes the roster endpoint and renders payment + deadline + final-participant indicator alongside transport columns (no new dashboard).
+Tour workspace **transport** tab consumes the roster endpoint and renders the final roster by default. The `final` view contains only explicit final participants; the `awaiting_finalization` view is the operator queue for approved seat holders that still need an explicit finalization decision. Payment filters remain projection filters and must not change capacity or finalization state.
 
 **Finance follow-up** (`useTourWorkspacePaymentFollowUpList`) merges pending bookings (`/api/bookings?status=pending`) with the operational roster. Fetches use `Promise.allSettled` so a roster outage (for example **503** `TENANT_DB_BUDGET_EXCEEDED`) does **not** clear pending rows. When roster fails but pending succeeds, the finance tab shows a degraded banner (`rosterDegraded`) and keeps actionable pending approvals visible. Resolver: `apps/web/src/features/tours/tour-workspace-payment-follow-up-load.ts` (`resolvePaymentFollowUpLoadOutcome`).
 
@@ -112,3 +113,22 @@ Data sheets must not expose internal UUIDs or database keys. Dates are rendered 
 ## Events
 
 Finalization is independent from payment settlement. The operator may finalize an approved unpaid or partially paid participant; this must preserve the outstanding balance and payment follow-up. Payment approval may later move `finalized + unpaid/partial` to `finalized + paid` without clearing finalization. Any finalization event or Telegram notification must be outbox-backed and idempotent. Waitlisted, pending, rejected, and cancelled rows must never become final participants.
+
+## Finance follow-up actions
+
+For an `approved` participant whose `finalizationStatus` is `not_final` and whose financial state is `UNPAID` or `PARTIALLY_PAID`, the Finance tab exposes two independent operator commands:
+
+- `finalize-with-open-payment`: adds the participant to the final roster while preserving the outstanding balance, deadline, and payment follow-up;
+- `waive-and-finalize`: atomically sets the obligation to zero/`WAIVED` and adds the participant to the final roster.
+
+The second command is not the pending-registration `approve-without-payment` flow. It is a distinct command for an already-approved registration and must not call the approval transition a second time. Both commands are idempotent, permission-checked, audit/outbox-backed, and refresh the Finance projection, final-roster projection, and workspace counts after success.
+
+## Waitlist capacity-increase handoff
+
+The Waitlist tab also exposes a separate operator command for a waitlisted participant who should be admitted by explicitly expanding the tour capacity:
+
+- `promote-waitlist-with-capacity-increase`: atomically increases the tour capacity by the participant's `partySize`, changes the registration to `approved + unpaid/partial`, creates or preserves the payment deadline/hold, and hands the participant to Finance follow-up;
+- this command does not finalize attendance, waive the balance, create transport settlement, or automatically promote another waitlisted participant;
+- repeated clicks/retries return the existing result and must not increase capacity or create a second registration;
+- the capacity increase is an explicit tour-setting change and is not automatically reversed by cancellation; reversing it requires a separate operator action;
+- after success, Waitlist, Finance, operational counts, tour-capacity projection, and relevant caches are refreshed together, with an audit record and idempotent outbox event.

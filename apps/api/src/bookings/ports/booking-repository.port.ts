@@ -150,6 +150,7 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     correlationId?: string;
+    registrationIntakePatch?: Readonly<Record<string, unknown>>;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
@@ -173,6 +174,12 @@ export interface BookingRepositoryPort {
   }): Promise<BookingRecord>;
   /** Explicit operator finalization while an unpaid/partial balance remains. */
   finalizeBookingWithOpenPayment(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord>;
+  /** Atomically waives the balance and finalizes an already-approved booking. */
+  waiveAndFinalizeBooking(input: {
     readonly bookingId: string;
     readonly tenantId: string;
     readonly finalizedByUserId: string;

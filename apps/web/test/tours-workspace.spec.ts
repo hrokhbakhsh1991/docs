@@ -359,7 +359,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(registrations, /outcome === "payment_required"/);
     assert.match(registrations, /navigateWorkspaceTab\?\.\("finance"\)/);
     assert.match(bookingsShell, /onOpsMutationSuccess\?\.\("finalized"\)/);
-    assert.match(bookingsShell, /action === "approve" \? "payment_required" : "other"/);
+    assert.match(
+      bookingsShell,
+      /action === "approve" \|\| action === "promote-waitlist-with-capacity-increase"[\s\S]*?"payment_required"[\s\S]*?: "other"/
+    );
     assert.match(client, /navigateWorkspaceTab\("registrations"\)/);
     assert.equal(
       pickTourCollectionRollup(

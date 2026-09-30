@@ -51,6 +51,10 @@ describe("tour-workspace-payment-follow-up-row.spec.ts", () => {
     assert.match(rowSource, /primaryAction/);
     assert.match(rowSource, /paymentFollowUpPrimaryActionLabelKey/);
     assert.match(rowSource, /formatMinorAmount/);
+    assert.match(rowSource, /primaryAction}-open-payment/);
+    assert.match(rowSource, /primaryAction}-waive/);
+    assert.match(rowSource, /confirmFinalizeWithOpenPayment/);
+    assert.match(rowSource, /confirmWaiveAndFinalize/);
   });
 
   it("finance guest list uses roster-backed follow-up hook and row actions", () => {

@@ -11,6 +11,7 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
+import { bookingPaymentStatusFromBalanceDue } from "../domain/booking-payment-status-from-balance";
 import { resolveStagedPaymentProjection } from "../domain/staged-payment-projection";
 import { assertCancelPendingManualPaymentReason } from "../domain/cancel-pending-manual-payment";
 import {
@@ -1653,10 +1654,14 @@ export class FinanceService {
 
       this.recordLedgerCapture(auth, gate.workspaceType, "success");
 
+      const invoice = await this.compileRegistrationInvoiceInternal(
+        auth.tenantId,
+        body.registrationId
+      );
       await this.trySyncBookingPaymentStatus(
         auth.tenantId,
         body.registrationId,
-        "partial",
+        bookingPaymentStatusFromBalanceDue(invoice.balanceDueMinor),
         ids.prepaymentDomainEventId
       );
       await this.lockQuoteAfterCapture(auth.tenantId, body.registrationId);

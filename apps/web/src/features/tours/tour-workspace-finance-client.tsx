@@ -207,6 +207,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const [followUpListRefreshKey, setFollowUpListRefreshKey] = useState(0);
   const [workspaceExitNotice, setWorkspaceExitNotice] = useState<string | null>(null);
   const [receiptReviewNotice, setReceiptReviewNotice] = useState<string | null>(null);
+  const [finalizationNotice, setFinalizationNotice] = useState<string | null>(null);
+  const [finalizationBusyId, setFinalizationBusyId] = useState<string | null>(null);
+  const [finalizationConfirmation, setFinalizationConfirmation] = useState<{
+    readonly registrationId: string;
+    readonly mode: "open_payment" | "waive";
+  } | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const {
@@ -390,6 +396,42 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     [followUpList.rows, isNarrowViewport]
   );
 
+  const handleFinalizationAction = useCallback(
+    async (registrationId: string, mode: "open_payment" | "waive") => {
+      const confirmation = finalizationConfirmation;
+      if (confirmation?.registrationId !== registrationId || confirmation.mode !== mode) {
+        setFinalizationConfirmation({ registrationId, mode });
+        return;
+      }
+      setFinalizationConfirmation(null);
+      setFinalizationBusyId(registrationId);
+      setFinalizationNotice(null);
+      try {
+        const endpoint = mode === "waive" ? "waive-and-finalize" : "finalize-with-open-payment";
+        const response = await fetch(
+          `/api/bookings/${encodeURIComponent(registrationId)}/${endpoint}`,
+          { method: "POST", cache: "no-store" }
+        );
+        if (!response.ok) {
+          throw new Error("finalization_failed");
+        }
+        setFinalizationNotice(
+          mode === "waive" ? t("waiveAndFinalizeSuccess") : t("finalizeWithOpenPaymentSuccess")
+        );
+        setHighlightedRegistrationId(registrationId);
+        setPendingFocusId(registrationId);
+        setListFilter("all");
+        setSearchQuery("");
+        refreshWorkspaceFinanceView();
+      } catch {
+        setFinalizationNotice(t("finalizationFailed"));
+      } finally {
+        setFinalizationBusyId(null);
+      }
+    },
+    [finalizationConfirmation, refreshWorkspaceFinanceView, t]
+  );
+
   const handleRegistrationPaymentChanged = useCallback(
     (event: TourWorkspacePaymentActionEvent) => {
       setLastPaymentAction(event);
@@ -549,6 +591,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
             role="status"
           >
             {receiptReviewNotice}
+          </p>
+        ) : null}
+        {finalizationNotice !== null ? (
+          <p
+            className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm"
+            role="status"
+          >
+            {finalizationNotice}
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
@@ -855,6 +905,19 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                   onPrimaryAction={(_action, registrationId) => {
                     handleFollowUpRowAction(registrationId);
                   }}
+                  canManage={canManage}
+                  finalizationBusy={finalizationBusyId === row.registrationId}
+                  finalizationConfirmation={
+                    finalizationConfirmation?.registrationId === row.registrationId
+                      ? finalizationConfirmation.mode
+                      : null
+                  }
+                  onFinalizeWithOpenPayment={() =>
+                    void handleFinalizationAction(row.registrationId, "open_payment")
+                  }
+                  onWaiveAndFinalize={() =>
+                    void handleFinalizationAction(row.registrationId, "waive")
+                  }
                 />
               </li>
             );

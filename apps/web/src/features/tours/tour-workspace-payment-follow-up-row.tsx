@@ -37,6 +37,11 @@ type TourWorkspacePaymentFollowUpRowProps = {
     action: PaymentFollowUpPrimaryActionKind,
     registrationId: string
   ) => void;
+  readonly canManage: boolean;
+  readonly finalizationBusy: boolean;
+  readonly finalizationConfirmation: "open_payment" | "waive" | null;
+  readonly onFinalizeWithOpenPayment: () => void;
+  readonly onWaiveAndFinalize: () => void;
 };
 
 function paymentBadgeLabel(
@@ -63,6 +68,11 @@ export function TourWorkspacePaymentFollowUpRow({
   highlighted,
   onSelect,
   onPrimaryAction,
+  canManage,
+  finalizationBusy,
+  finalizationConfirmation,
+  onFinalizeWithOpenPayment,
+  onWaiveAndFinalize,
 }: TourWorkspacePaymentFollowUpRowProps) {
   const tFinance = useTranslations("tours.workspace.finance");
   const tBookings = useTranslations("bookings");
@@ -83,6 +93,11 @@ export function TourWorkspacePaymentFollowUpRow({
       : null;
   const primaryLabelKey = paymentFollowUpPrimaryActionLabelKey(row.primaryAction);
   const primaryLabelNamespace = tFinance;
+  const canFinalizeWithOpenPayment =
+    canManage &&
+    row.registrationStatus.trim().toLowerCase() === "approved" &&
+    !row.isFinalParticipant &&
+    (row.listKind === "unpaid" || row.listKind === "partial");
 
   return (
     <div
@@ -142,6 +157,41 @@ export function TourWorkspacePaymentFollowUpRow({
         </div>
       </button>
       <div className="flex w-full shrink-0 flex-col gap-1 sm:w-auto">
+        {canFinalizeWithOpenPayment ? (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              className="w-full sm:w-auto"
+              disabled={finalizationBusy}
+              data-testid={`${TOUR_WORKSPACE_PAYMENT_FOLLOW_UP_ROW_TEST_IDS.primaryAction}-open-payment`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onFinalizeWithOpenPayment();
+              }}
+            >
+              {finalizationConfirmation === "open_payment"
+                ? tFinance("confirmFinalizeWithOpenPayment")
+                : tFinance("finalizeWithOpenPayment")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="w-full sm:w-auto"
+              disabled={finalizationBusy}
+              data-testid={`${TOUR_WORKSPACE_PAYMENT_FOLLOW_UP_ROW_TEST_IDS.primaryAction}-waive`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onWaiveAndFinalize();
+              }}
+            >
+              {finalizationConfirmation === "waive"
+                ? tFinance("confirmWaiveAndFinalize")
+                : tFinance("waiveAndFinalize")}
+            </Button>
+          </>
+        ) : null}
         {primaryLabelKey !== null && row.primaryAction !== "none" ? (
           <Button
             type="button"

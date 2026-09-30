@@ -50,6 +50,7 @@ export function buildBookingCreatePayload(
     departureAt,
     ...(form.guestEmail.trim().length > 0 ? { guestEmail: form.guestEmail.trim() } : {}),
     ...(form.guestPhone.trim().length > 0 ? { guestPhone: form.guestPhone.trim() } : {}),
+    registrationIntake: { registrantTarget: "other" },
   };
 }
 
@@ -65,7 +66,11 @@ export function departureInputFromTour(tour: BookingCreateTourOption | undefined
 }
 
 export function mapToursToCreateOptions(
-  items: ReadonlyArray<{ readonly id: string; readonly title: string; readonly departureAt: string | null }>
+  items: ReadonlyArray<{
+    readonly id: string;
+    readonly title: string;
+    readonly departureAt: string | null;
+  }>
 ): BookingCreateTourOption[] {
   return items.map((item) => ({
     id: item.id,

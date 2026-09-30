@@ -35,15 +35,21 @@ describe("DP-2 tour workspace operational roster contract", () => {
     );
     assert.match(client, /buildTourOperationalRosterHref/);
     assert.doesNotMatch(client, /fetch\(`\/api\/bookings\?/);
+    assert.match(
+      client,
+      /const \{ reloadNonce, reloadWorkspaceChrome \} = useTourWorkspaceChrome\(\)/
+    );
+    assert.match(client, /fetchTourDetailCached\(tourId, \{ force: reloadNonce > 0 \}\)/);
+    assert.match(client, /\}, \[filter, reloadNonce, tourId\]\)/);
   });
 
-  it("BUG-STG-037 keeps the Transport badge in the same scope as its default rows", () => {
+  it("keeps the Transport badge in the same scope as the final roster rows", () => {
     const layout = readFileSync(
       join(webRoot, "app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx"),
       "utf8"
     );
-    assert.match(layout, /buildTourWorkspaceRosterCountsHref\(tourId, "operational"\)/);
-    assert.match(layout, /map\.transport = opsCounts\.operational/);
+    assert.match(layout, /buildTourWorkspaceRosterCountsHref\(tourId, "final"\)/);
+    assert.match(layout, /map\.transport = opsCounts\.final/);
     assert.match(layout, /operationalPayload: await operationalRes\.json\(\)/);
   });
 
@@ -162,13 +168,21 @@ describe("DP-2 tour workspace operational roster contract", () => {
 
   it("exposes approved DP-2 roster filters", () => {
     assert.deepEqual(OPERATIONAL_ROSTER_FILTERS, [
-      "operational",
       "final",
+      "awaiting_finalization",
+      "operational",
       "unpaid",
       "paid",
       "expiring",
       "waitlist",
     ]);
+  });
+
+  it("defaults the transport roster to final attendance", () => {
+    assert.equal(
+      buildTourOperationalRosterHref("tour-abc"),
+      "/api/tours/tour-abc/operational-roster?view=ops&filter=final"
+    );
   });
 
   it("amount due formatter respects financial display state", () => {

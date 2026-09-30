@@ -478,6 +478,12 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/waive-and-finalize",
+    summary: "Finalize approved booking and waive payment",
+    operationId: "waiveAndFinalizeBooking",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/reject",
     summary: "Reject booking (intentionally silent — no outbox)",
     operationId: "rejectBooking",
@@ -487,6 +493,12 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     path: "/bookings/{bookingId}/waitlist",
     summary: "Waitlist booking (emits registration.waitlisted)",
     operationId: "waitlistBooking",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/promote-waitlist-with-capacity-increase",
+    summary: "Increase capacity and admit a waitlisted booking to payment follow-up",
+    operationId: "promoteWaitlistWithCapacityIncrease",
   },
   {
     method: "POST",

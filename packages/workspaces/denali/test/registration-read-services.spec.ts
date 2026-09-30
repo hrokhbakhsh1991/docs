@@ -118,6 +118,7 @@ describe("registration-read-services", () => {
           tourTitle: "Read Services Tour",
           guestLabel: "Member",
           registrantTarget: "self",
+          finalizationStatus: "finalized",
           paymentStatus: "unpaid",
           departureAt: "2026-06-01T08:00:00.000Z",
           submittedAt: "2026-05-01T08:00:00.000Z",
@@ -153,6 +154,7 @@ describe("registration-read-services", () => {
     assert.equal(detail.dueCurrency, "IRR");
     assert.equal(detail.dueLines?.length, 2);
     assert.equal(detail.paymentCollection, "offline");
+    assert.equal(detail.finalizationStatus, "finalized");
     assert.equal(detail.transportKind, "primary");
     assert.equal(detail.personalCarOccupants, undefined);
   });

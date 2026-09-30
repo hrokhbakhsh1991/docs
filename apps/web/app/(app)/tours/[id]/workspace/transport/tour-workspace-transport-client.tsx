@@ -36,6 +36,7 @@ import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { fetchTourDetailCached } from "@/features/tours/tour-route-cache";
+import { useTourWorkspaceChrome } from "@/features/tours/tour-workspace-chrome-context";
 import { DriverSettlementPanel } from "./driver-settlement-panel";
 
 type TourWorkspaceTransportClientProps = {
@@ -56,9 +57,10 @@ export function TourWorkspaceTransportClient({
   const tTable = useTranslations("tours.workspace.table");
   const tWorkspaceCopy = useTranslations("tours.workspace");
   const tErrors = useTranslations("tours.workspace.errors");
+  const { reloadNonce, reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const [modes, setModes] = useState<string[]>([]);
   const [items, setItems] = useState<TourOperationalRosterRow[]>([]);
-  const [filter, setFilter] = useState<OperationalRosterFilter>("operational");
+  const [filter, setFilter] = useState<OperationalRosterFilter>("final");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export function TourWorkspaceTransportClient({
     setError(null);
     try {
       const [tourPayload, rosterResponse] = await Promise.all([
-        fetchTourDetailCached(tourId),
+        fetchTourDetailCached(tourId, { force: reloadNonce > 0 }),
         fetch(buildTourOperationalRosterHref(tourId, filter), { cache: "no-store" }),
       ]);
       if (!rosterResponse.ok) {
@@ -91,7 +93,7 @@ export function TourWorkspaceTransportClient({
     } finally {
       setLoading(false);
     }
-  }, [filter, tourId]);
+  }, [filter, reloadNonce, tourId]);
 
   useEffect(() => {
     void loadTransport();
@@ -116,6 +118,9 @@ export function TourWorkspaceTransportClient({
       }
       setFinalizationMessage(t("finalizeParticipantSuccess"));
       await loadTransport();
+      // Finalization changes the parent summary badge as well as this panel.
+      // Refresh both projections so the final-roster count cannot remain stale.
+      reloadWorkspaceChrome();
     } catch {
       setFinalizationMessage(t("finalizeParticipantFailed"));
     } finally {

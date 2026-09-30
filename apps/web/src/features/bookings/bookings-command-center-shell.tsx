@@ -581,6 +581,11 @@ export function BookingsPageClient({
   const refreshData = () => {
     setBulkSelectedIds([]);
     setActionError(null);
+    // A lifecycle mutation can also promote a waitlisted booking. Keep the
+    // previous list out of the authoritative view until both list and summary
+    // have been revalidated; otherwise the cancelled row can remain visible
+    // while the promotion is already committed on the API.
+    setLoading(true);
     setFetchNonce((value) => value + 1);
   };
 
@@ -762,7 +767,12 @@ export function BookingsPageClient({
   };
 
   const runBookingAction = async (
-    action: "approve" | "reject" | "waitlist" | "cancel",
+    action:
+      | "approve"
+      | "reject"
+      | "waitlist"
+      | "cancel"
+      | "promote-waitlist-with-capacity-increase",
     bookingId: string,
     rejectReason = ""
   ) => {
@@ -779,11 +789,17 @@ export function BookingsPageClient({
       if (!response.ok) {
         throw new Error(`BOOKINGS_${action.toUpperCase()}_HTTP_${response.status}`);
       }
-      if (action === "approve" && embedded && lockedTour.trim().length > 0) {
+      if (
+        (action === "approve" || action === "promote-waitlist-with-capacity-increase") &&
+        embedded &&
+        lockedTour.trim().length > 0
+      ) {
         invalidateFinanceRegistrationCaches(bookingId);
         invalidateTourWorkspaceFinanceCache(lockedTour);
       }
-      if (snapshot !== null) {
+      if (action === "promote-waitlist-with-capacity-increase") {
+        setActionNotice(t("promoteWaitlistWithCapacityIncreaseSuccess"));
+      } else if (snapshot !== null) {
         const notice = buildBookingLifecycleActionNotice({
           action,
           guestLabel: snapshot.guestLabel,
@@ -797,7 +813,11 @@ export function BookingsPageClient({
         }
       }
       refreshData();
-      onOpsMutationSuccess?.(action === "approve" ? "payment_required" : "other");
+      onOpsMutationSuccess?.(
+        action === "approve" || action === "promote-waitlist-with-capacity-increase"
+          ? "payment_required"
+          : "other"
+      );
     } catch (actionErr: unknown) {
       setActionError(actionErr instanceof Error ? actionErr.message : "BOOKINGS_ACTION_FAILED");
     } finally {
@@ -885,6 +905,11 @@ export function BookingsPageClient({
   const canApproveSelected =
     actionAvailability.canApprove || actionAvailability.canApproveWithoutPayment;
   const canActOnSelected = canRejectSelected || canApproveSelected;
+  const showPromoteWaitlistWithCapacityIncrease =
+    canManageOps &&
+    lockedStatusFilter === "waitlisted" &&
+    capacityFull &&
+    inspectionTarget?.status === "waitlisted";
   const actionUnavailableHint = useMemo(() => {
     if (actionAvailability.unavailableReason === "approved_use_finance" && !canActOnSelected) {
       return t("actionReason.approvedUseFinance");
@@ -1283,7 +1308,10 @@ export function BookingsPageClient({
               <CardTitle>{t("inspection")}</CardTitle>
               {inspectionTarget !== null &&
               canManageOps &&
-              (canActOnSelected || canWaitlistSelected || canCancelSelected) ? (
+              (canActOnSelected ||
+                canWaitlistSelected ||
+                canCancelSelected ||
+                showPromoteWaitlistWithCapacityIncrease) ? (
                 <p
                   className="text-xs font-normal text-muted-foreground"
                   data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.inspectionActionsHint}
@@ -1315,6 +1343,13 @@ export function BookingsPageClient({
                   onApprove={() => requestApprove(inspectionTarget.id)}
                   onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
+                  showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
+                  onPromoteWaitlistWithCapacityIncrease={() =>
+                    void runBookingAction(
+                      "promote-waitlist-with-capacity-increase",
+                      inspectionTarget.id
+                    )
+                  }
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex"
                   actionHint={actionUnavailableHint}
@@ -1363,6 +1398,13 @@ export function BookingsPageClient({
                   onApprove={() => requestApprove(inspectionTarget.id)}
                   onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
+                  showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
+                  onPromoteWaitlistWithCapacityIncrease={() =>
+                    void runBookingAction(
+                      "promote-waitlist-with-capacity-increase",
+                      inspectionTarget.id
+                    )
+                  }
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex w-full flex-wrap"
                   actionHint={actionUnavailableHint}

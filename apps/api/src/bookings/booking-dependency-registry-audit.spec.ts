@@ -187,6 +187,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       financialDisplayState: {
         resolve: () => undefined,
       },
+      serialMutation: { run: async (fn) => fn() },
     });
 
     await assert.rejects(
@@ -207,8 +208,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
           }
         ),
       (error: unknown) =>
-        error instanceof BookingCapabilityViolationError &&
-        error.capability === "publicCreate"
+        error instanceof BookingCapabilityViolationError && error.capability === "publicCreate"
     );
   });
 

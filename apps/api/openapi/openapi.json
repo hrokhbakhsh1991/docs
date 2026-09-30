@@ -415,9 +415,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "workspaces"
-                  ],
+                  "required": ["workspaces"],
                   "properties": {
                     "workspaces": {
                       "type": "array",
@@ -445,10 +443,7 @@
                           },
                           "productionTier": {
                             "type": "string",
-                            "enum": [
-                              "stub",
-                              "certified"
-                            ]
+                            "enum": ["stub", "certified"]
                           },
                           "productionOnboardingAllowed": {
                             "type": "boolean"
@@ -1818,9 +1813,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "mobile"
-                ],
+                "required": ["mobile"],
                 "properties": {
                   "mobile": {
                     "type": "string",
@@ -1838,9 +1831,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "exists"
-                  ],
+                  "required": ["exists"],
                   "properties": {
                     "exists": {
                       "type": "boolean"
@@ -1887,9 +1878,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "mobile"
-                ],
+                "required": ["mobile"],
                 "properties": {
                   "mobile": {
                     "type": "string"
@@ -1906,9 +1895,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "challengeId"
-                  ],
+                  "required": ["challengeId"],
                   "properties": {
                     "challengeId": {
                       "type": "string",
@@ -1956,10 +1943,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "challengeId",
-                  "code"
-                ],
+                "required": ["challengeId", "code"],
                 "properties": {
                   "challengeId": {
                     "type": "string",
@@ -1991,12 +1975,7 @@
                   "oneOf": [
                     {
                       "type": "object",
-                      "required": [
-                        "sessionToken",
-                        "userId",
-                        "tenantId",
-                        "role"
-                      ],
+                      "required": ["sessionToken", "userId", "tenantId", "role"],
                       "properties": {
                         "sessionToken": {
                           "type": "string"
@@ -2016,16 +1995,11 @@
                     },
                     {
                       "type": "object",
-                      "required": [
-                        "requiresRegistration",
-                        "onboardingToken"
-                      ],
+                      "required": ["requiresRegistration", "onboardingToken"],
                       "properties": {
                         "requiresRegistration": {
                           "type": "boolean",
-                          "enum": [
-                            true
-                          ]
+                          "enum": [true]
                         },
                         "onboardingToken": {
                           "type": "string"
@@ -2074,10 +2048,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "onboardingToken",
-                  "displayName"
-                ],
+                "required": ["onboardingToken", "displayName"],
                 "properties": {
                   "onboardingToken": {
                     "type": "string"
@@ -2102,12 +2073,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "sessionToken",
-                    "userId",
-                    "tenantId",
-                    "role"
-                  ],
+                  "required": ["sessionToken", "userId", "tenantId", "role"],
                   "properties": {
                     "sessionToken": {
                       "type": "string"
@@ -2648,9 +2614,7 @@
       "get": {
         "operationId": "listBookings",
         "summary": "List bookings for tenant (ops)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "view",
@@ -2839,9 +2803,7 @@
       "post": {
         "operationId": "createBooking",
         "summary": "Create booking (ops / operatorCreate)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "requestBody": {
           "required": true,
           "content": {
@@ -3000,9 +2962,7 @@
       "get": {
         "operationId": "getBookingsSummary",
         "summary": "Bookings ops summary counts",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "responses": {
           "200": {
             "description": "Ops summary",
@@ -3096,9 +3056,7 @@
       "get": {
         "operationId": "getBooking",
         "summary": "Get booking detail (ops; includes registrationIntake)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -3227,9 +3185,7 @@
       "post": {
         "operationId": "bulkApproveBookings",
         "summary": "Bulk approve bookings",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "requestBody": {
           "required": true,
           "content": {
@@ -3241,9 +3197,7 @@
                 "default": {
                   "summary": "BulkApproveBookingsRequest",
                   "value": {
-                    "ids": [
-                      "00000000-0000-4000-8000-000000000891"
-                    ]
+                    "ids": ["00000000-0000-4000-8000-000000000891"]
                   }
                 }
               }
@@ -3262,9 +3216,7 @@
                   "default": {
                     "summary": "BulkApproveBookingsResponse",
                     "value": {
-                      "approvedIds": [
-                        "00000000-0000-4000-8000-000000000891"
-                      ],
+                      "approvedIds": ["00000000-0000-4000-8000-000000000891"],
                       "skippedIds": []
                     }
                   }
@@ -3367,9 +3319,7 @@
       "post": {
         "operationId": "approveBooking",
         "summary": "Approve booking (emits registration.approved)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -3502,9 +3452,7 @@
       "post": {
         "operationId": "finalizeBooking",
         "summary": "Finalize approved booking for the final roster",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -3638,9 +3586,7 @@
       "post": {
         "operationId": "finalizeBookingWithOpenPayment",
         "summary": "Finalize approved booking while payment remains open",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -3770,13 +3716,145 @@
         }
       }
     },
+    "/bookings/{bookingId}/waive-and-finalize": {
+      "post": {
+        "operationId": "waiveAndFinalizeBooking",
+        "summary": "Finalize approved booking and waive payment",
+        "tags": ["Bookings"],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved booking added to the final roster and payment waived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "FinalizeBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-0000-0000-000000000891",
+                      "status": "approved",
+                      "finalizationStatus": "finalized",
+                      "finalizedAt": "2026-07-20T12:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Waive-and-finalize requires an approved unpaid or partially paid registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/bookings/{bookingId}/reject": {
       "post": {
         "operationId": "rejectBooking",
         "summary": "Reject booking (intentionally silent — no outbox)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -3926,9 +4004,7 @@
       "post": {
         "operationId": "waitlistBooking",
         "summary": "Waitlist booking (emits registration.waitlisted)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -4056,13 +4132,147 @@
         }
       }
     },
+    "/bookings/{bookingId}/promote-waitlist-with-capacity-increase": {
+      "post": {
+        "operationId": "promoteWaitlistWithCapacityIncrease",
+        "summary": "Increase capacity and admit a waitlisted booking to payment follow-up",
+        "tags": ["Bookings"],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Capacity increased and waitlisted booking admitted with payment open",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistCapacityAdmissionResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "WaitlistCapacityAdmissionResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "approved",
+                      "paymentStatus": "unpaid",
+                      "capacityAdded": 1,
+                      "previousCapacity": 1,
+                      "nextCapacity": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Waitlist capacity admission is not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/bookings/{bookingId}/cancel": {
       "post": {
         "operationId": "cancelBooking",
         "summary": "Cancel booking (emits registration.cancelled)",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -4194,9 +4404,7 @@
       "post": {
         "operationId": "postBookingReceipt",
         "summary": "Submit member receipt proof for booking registration",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -4374,9 +4582,7 @@
       "get": {
         "operationId": "getBookingReceiptStatus",
         "summary": "Get member receipt status for booking registration",
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "parameters": [
           {
             "name": "bookingId",
@@ -4724,11 +4930,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "tourId",
-                  "contact",
-                  "partySize"
-                ],
+                "required": ["tourId", "contact", "partySize"],
                 "properties": {
                   "tourId": {
                     "type": "string",
@@ -4736,16 +4938,11 @@
                   },
                   "registrantTarget": {
                     "type": "string",
-                    "enum": [
-                      "self",
-                      "other"
-                    ]
+                    "enum": ["self", "other"]
                   },
                   "contact": {
                     "type": "object",
-                    "required": [
-                      "fullName"
-                    ],
+                    "required": ["fullName"],
                     "properties": {
                       "fullName": {
                         "type": "string",
@@ -4781,27 +4978,15 @@
                   },
                   "transport": {
                     "type": "object",
-                    "required": [
-                      "kind"
-                    ],
+                    "required": ["kind"],
                     "properties": {
                       "kind": {
                         "type": "string",
-                        "enum": [
-                          "primary",
-                          "personal_car",
-                          "no_car_dong",
-                          "no_car_acquaintance"
-                        ]
+                        "enum": ["primary", "personal_car", "no_car_dong", "no_car_acquaintance"]
                       },
                       "personalCarOccupants": {
                         "type": "integer",
-                        "enum": [
-                          0,
-                          1,
-                          2,
-                          3
-                        ]
+                        "enum": [0, 1, 2, 3]
                       }
                     }
                   }
@@ -4833,9 +5018,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "pending"
-                          ]
+                          "enum": ["pending"]
                         }
                       }
                     }
@@ -5379,61 +5562,36 @@
           },
           "tourTitle": {
             "type": "string",
-            "examples": [
-              "Alborz Day Hike"
-            ]
+            "examples": ["Alborz Day Hike"]
           },
           "guestLabel": {
             "type": "string",
-            "examples": [
-              "Ada Lovelace"
-            ]
+            "examples": ["Ada Lovelace"]
           },
           "registrantTarget": {
             "type": "string",
-            "enum": [
-              "self",
-              "other"
-            ],
+            "enum": ["self", "other"],
             "description": "Who the seat is for — scalar derived from intake (list omits registrationIntake).",
-            "examples": [
-              "self"
-            ]
+            "examples": ["self"]
           },
           "transportKind": {
             "type": "string",
             "nullable": true,
-            "enum": [
-              "primary",
-              "personal_car",
-              "no_car_dong",
-              "no_car_acquaintance"
-            ],
+            "enum": ["primary", "personal_car", "no_car_dong", "no_car_acquaintance"],
             "description": "Guest intake transport kind — list scalar (H5-T3); not the intake blob.",
-            "examples": [
-              "personal_car"
-            ]
+            "examples": ["personal_car"]
           },
           "personalCarOccupants": {
             "type": "integer",
             "nullable": true,
-            "enum": [
-              0,
-              1,
-              2,
-              3
-            ],
+            "enum": [0, 1, 2, 3],
             "description": "When transportKind=personal_car, occupants 0–3 (list scalar); 0 means driver only.",
-            "examples": [
-              2
-            ]
+            "examples": [2]
           },
           "partySize": {
             "type": "integer",
             "minimum": 1,
-            "examples": [
-              2
-            ]
+            "examples": [2]
           },
           "status": {
             "$ref": "#/components/schemas/BookingStatus"
@@ -5443,49 +5601,35 @@
           },
           "financialDisplayState": {
             "type": "string",
-            "enum": [
-              "WAIVED"
-            ],
+            "enum": ["WAIVED"],
             "description": "Display-only Finance state; when present with paymentStatus=paid, no payment was required.",
-            "examples": [
-              "WAIVED"
-            ]
+            "examples": ["WAIVED"]
           },
           "departureAt": {
             "type": "string",
             "format": "date-time",
-            "examples": [
-              "2031-08-01T10:00:00.000Z"
-            ]
+            "examples": ["2031-08-01T10:00:00.000Z"]
           },
           "submittedAt": {
             "type": "string",
             "format": "date-time",
-            "examples": [
-              "2026-07-20T08:00:00.000Z"
-            ]
+            "examples": ["2026-07-20T08:00:00.000Z"]
           },
           "rejectReason": {
             "type": "string",
             "description": "Ops reject reason when status=rejected (optional / additive).",
-            "examples": [
-              "capacity"
-            ]
+            "examples": ["capacity"]
           },
           "memberUserId": {
             "type": "string",
             "description": "Ops list projection — submitter user id for directory avatar parity.",
-            "examples": [
-              "00000000-0000-4000-8000-000000000101"
-            ]
+            "examples": ["00000000-0000-4000-8000-000000000101"]
           },
           "memberAvatarUrl": {
             "type": "string",
             "nullable": true,
             "description": "Ops list projection — presigned avatar URL when membership has storage key.",
-            "examples": [
-              null
-            ]
+            "examples": [null]
           }
         },
         "examples": [
@@ -5507,11 +5651,7 @@
       },
       "BookingsListResponse": {
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "nextCursor"
-        ],
+        "required": ["items", "total", "nextCursor"],
         "properties": {
           "items": {
             "type": "array",
@@ -5522,18 +5662,11 @@
           "total": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              1
-            ]
+            "examples": [1]
           },
           "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "examples": [
-              null
-            ]
+            "type": ["string", "null"],
+            "examples": [null]
           }
         },
         "examples": [
@@ -5558,35 +5691,24 @@
       },
       "BookingTourChip": {
         "type": "object",
-        "required": [
-          "tourId",
-          "tourTitle",
-          "pendingCount",
-          "totalCount"
-        ],
+        "required": ["tourId", "tourTitle", "pendingCount", "totalCount"],
         "properties": {
           "tourId": {
             "$ref": "#/components/schemas/BookingTourId"
           },
           "tourTitle": {
             "type": "string",
-            "examples": [
-              "Alborz Day Hike"
-            ]
+            "examples": ["Alborz Day Hike"]
           },
           "pendingCount": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              3
-            ]
+            "examples": [3]
           },
           "totalCount": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              12
-            ]
+            "examples": [12]
           }
         },
         "examples": [
@@ -5600,41 +5722,27 @@
       },
       "BookingsSummaryResponse": {
         "type": "object",
-        "required": [
-          "pending",
-          "approvedToday",
-          "departures7d",
-          "waitlist",
-          "tourChips"
-        ],
+        "required": ["pending", "approvedToday", "departures7d", "waitlist", "tourChips"],
         "properties": {
           "pending": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              4
-            ]
+            "examples": [4]
           },
           "approvedToday": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              2
-            ]
+            "examples": [2]
           },
           "departures7d": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              5
-            ]
+            "examples": [5]
           },
           "waitlist": {
             "type": "integer",
             "minimum": 0,
-            "examples": [
-              1
-            ]
+            "examples": [1]
           },
           "tourChips": {
             "type": "array",
@@ -5663,12 +5771,7 @@
       "TourSlimListItem": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "tenantId",
-          "createdAt",
-          "rowVersion"
-        ],
+        "required": ["id", "tenantId", "createdAt", "rowVersion"],
         "properties": {
           "id": {
             "type": "string",
@@ -5735,75 +5838,40 @@
             "type": "string"
           },
           "shortDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "listStatus": {
             "type": "string",
-            "enum": [
-              "draft",
-              "open",
-              "published",
-              "closed",
-              "cancelled",
-              "archived"
-            ]
+            "enum": ["draft", "open", "published", "closed", "cancelled", "archived"]
           },
           "uiStatus": {
             "type": "string",
-            "enum": [
-              "draft",
-              "active",
-              "archived"
-            ]
+            "enum": ["draft", "active", "archived"]
           },
           "priceAmount": {
-            "type": [
-              "number",
-              "null"
-            ]
+            "type": ["number", "null"]
           },
           "priceCurrency": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "totalCapacity": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           },
           "acceptedCount": {
             "type": "integer",
             "minimum": 0
           },
           "category": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "coverImageUrl": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "coverImageStorageKey": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "departureAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           }
         }
@@ -5811,10 +5879,7 @@
       "ToursListResponse": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "properties": {
           "items": {
             "type": "array",
@@ -5830,10 +5895,7 @@
             }
           },
           "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "total": {
             "type": "integer",
@@ -5843,87 +5905,52 @@
       },
       "BookingStatus": {
         "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "waitlisted",
-          "rejected",
-          "cancelled"
-        ],
+        "enum": ["pending", "approved", "waitlisted", "rejected", "cancelled"],
         "description": "Booking lifecycle status (booking-http-contracts).",
-        "examples": [
-          "pending"
-        ]
+        "examples": ["pending"]
       },
       "BookingPaymentStatus": {
         "type": "string",
-        "enum": [
-          "unpaid",
-          "partial",
-          "paid"
-        ],
+        "enum": ["unpaid", "partial", "paid"],
         "description": "Payment projection on booking list/create (booking-http-contracts).",
-        "examples": [
-          "unpaid"
-        ]
+        "examples": ["unpaid"]
       },
       "BookingFinalizationStatus": {
         "type": "string",
-        "enum": [
-          "not_final",
-          "finalized"
-        ],
+        "enum": ["not_final", "finalized"],
         "description": "Whether an approved booking is included in the final roster.",
-        "examples": [
-          "finalized"
-        ]
+        "examples": ["finalized"]
       },
       "BookingsListView": {
         "type": "string",
-        "enum": [
-          "ops",
-          "mine"
-        ],
+        "enum": ["ops", "mine"],
         "description": "List view discriminator.",
-        "examples": [
-          "ops"
-        ]
+        "examples": ["ops"]
       },
       "BookingId": {
         "type": "string",
         "format": "uuid",
         "description": "Booking / operator registration id.",
-        "examples": [
-          "00000000-0000-4000-8000-000000000891"
-        ]
+        "examples": ["00000000-0000-4000-8000-000000000891"]
       },
       "BookingTourId": {
         "type": "string",
         "format": "uuid",
         "description": "Tour id.",
-        "examples": [
-          "00000000-0000-4000-8000-000000000880"
-        ]
+        "examples": ["00000000-0000-4000-8000-000000000880"]
       },
       "BookingHttpError": {
         "type": "object",
-        "required": [
-          "error",
-          "code"
-        ],
+        "required": ["error", "code"],
         "additionalProperties": true,
         "properties": {
           "error": {
             "type": "string",
-            "examples": [
-              "forbidden"
-            ]
+            "examples": ["forbidden"]
           },
           "code": {
             "type": "string",
-            "examples": [
-              "BOOKINGS_OPS_FORBIDDEN"
-            ]
+            "examples": ["BOOKINGS_OPS_FORBIDDEN"]
           },
           "maxBatch": {
             "type": "integer",
@@ -5945,9 +5972,7 @@
           "tourCapacityMax": {
             "type": "integer",
             "minimum": 1,
-            "examples": [
-              10
-            ]
+            "examples": [10]
           }
         },
         "examples": [
@@ -5997,13 +6022,7 @@
       },
       "CreateBookingRequest": {
         "type": "object",
-        "required": [
-          "tourId",
-          "tourTitle",
-          "guestLabel",
-          "partySize",
-          "departureAt"
-        ],
+        "required": ["tourId", "tourTitle", "guestLabel", "partySize", "departureAt"],
         "properties": {
           "tourId": {
             "$ref": "#/components/schemas/BookingTourId"
@@ -6011,43 +6030,31 @@
           "tourTitle": {
             "type": "string",
             "minLength": 1,
-            "examples": [
-              "Alborz Day Hike"
-            ]
+            "examples": ["Alborz Day Hike"]
           },
           "guestLabel": {
             "type": "string",
             "minLength": 1,
-            "examples": [
-              "Ada Lovelace"
-            ]
+            "examples": ["Ada Lovelace"]
           },
           "guestEmail": {
             "type": "string",
             "format": "email",
-            "examples": [
-              "ada@example.com"
-            ]
+            "examples": ["ada@example.com"]
           },
           "guestPhone": {
             "type": "string",
-            "examples": [
-              "+15550001111"
-            ]
+            "examples": ["+15550001111"]
           },
           "partySize": {
             "type": "integer",
             "minimum": 1,
-            "examples": [
-              2
-            ]
+            "examples": [2]
           },
           "departureAt": {
             "type": "string",
             "format": "date-time",
-            "examples": [
-              "2031-08-01T10:00:00.000Z"
-            ]
+            "examples": ["2031-08-01T10:00:00.000Z"]
           },
           "paymentStatus": {
             "$ref": "#/components/schemas/BookingPaymentStatus"
@@ -6073,10 +6080,7 @@
       },
       "CreateBookingResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "status"
-        ],
+        "required": ["id", "status"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/BookingId"
@@ -6094,11 +6098,7 @@
       },
       "ApproveBookingResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "status",
-          "approvedAt"
-        ],
+        "required": ["id", "status", "approvedAt"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/BookingId"
@@ -6109,9 +6109,7 @@
           "approvedAt": {
             "type": "string",
             "format": "date-time",
-            "examples": [
-              "2026-07-20T12:00:00.000Z"
-            ]
+            "examples": ["2026-07-20T12:00:00.000Z"]
           }
         },
         "examples": [
@@ -6124,12 +6122,7 @@
       },
       "FinalizeBookingResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "status",
-          "finalizationStatus",
-          "finalizedAt"
-        ],
+        "required": ["id", "status", "finalizationStatus", "finalizedAt"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/BookingId"
@@ -6143,9 +6136,7 @@
           "finalizedAt": {
             "type": "string",
             "format": "date-time",
-            "examples": [
-              "2026-07-20T12:30:00.000Z"
-            ]
+            "examples": ["2026-07-20T12:30:00.000Z"]
           }
         },
         "examples": [
@@ -6163,9 +6154,7 @@
           "reason": {
             "type": "string",
             "description": "Optional ops reject reason; persisted as rejectReason when non-empty.",
-            "examples": [
-              "capacity"
-            ]
+            "examples": ["capacity"]
           }
         },
         "examples": [
@@ -6176,10 +6165,7 @@
       },
       "RejectBookingResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "status"
-        ],
+        "required": ["id", "status"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/BookingId"
@@ -6190,9 +6176,7 @@
           "rejectReason": {
             "type": "string",
             "description": "Persisted reject reason when provided (additive / optional).",
-            "examples": [
-              "capacity"
-            ]
+            "examples": ["capacity"]
           }
         },
         "examples": [
@@ -6205,10 +6189,7 @@
       },
       "WaitlistBookingResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "status"
-        ],
+        "required": ["id", "status"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/BookingId"
@@ -6224,12 +6205,43 @@
           }
         ]
       },
-      "CancelBookingResponse": {
+      "WaitlistCapacityAdmissionResponse": {
         "type": "object",
         "required": [
           "id",
-          "status"
+          "status",
+          "paymentStatus",
+          "capacityAdded",
+          "previousCapacity",
+          "nextCapacity"
         ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "paymentStatus": {
+            "$ref": "#/components/schemas/BookingPaymentStatus"
+          },
+          "capacityAdded": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "previousCapacity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nextCapacity": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "CancelBookingResponse": {
+        "type": "object",
+        "required": ["id", "status"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/BookingId"
@@ -6247,9 +6259,7 @@
       },
       "BulkApproveBookingsRequest": {
         "type": "object",
-        "required": [
-          "ids"
-        ],
+        "required": ["ids"],
         "properties": {
           "ids": {
             "type": "array",
@@ -6257,27 +6267,18 @@
               "$ref": "#/components/schemas/BookingId"
             },
             "minItems": 1,
-            "examples": [
-              [
-                "00000000-0000-4000-8000-000000000891"
-              ]
-            ]
+            "examples": [["00000000-0000-4000-8000-000000000891"]]
           }
         },
         "examples": [
           {
-            "ids": [
-              "00000000-0000-4000-8000-000000000891"
-            ]
+            "ids": ["00000000-0000-4000-8000-000000000891"]
           }
         ]
       },
       "BulkApproveBookingsResponse": {
         "type": "object",
-        "required": [
-          "approvedIds",
-          "skippedIds"
-        ],
+        "required": ["approvedIds", "skippedIds"],
         "properties": {
           "approvedIds": {
             "type": "array",
@@ -6294,9 +6295,7 @@
         },
         "examples": [
           {
-            "approvedIds": [
-              "00000000-0000-4000-8000-000000000891"
-            ],
+            "approvedIds": ["00000000-0000-4000-8000-000000000891"],
             "skippedIds": []
           }
         ]
@@ -6306,9 +6305,7 @@
         "description": "At least one of fileKey or note is required.",
         "anyOf": [
           {
-            "required": [
-              "fileKey"
-            ],
+            "required": ["fileKey"],
             "properties": {
               "fileKey": {
                 "type": "string",
@@ -6317,9 +6314,7 @@
             }
           },
           {
-            "required": [
-              "note"
-            ],
+            "required": ["note"],
             "properties": {
               "note": {
                 "type": "string",
@@ -6331,26 +6326,15 @@
         ],
         "properties": {
           "fileKey": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "minLength": 1,
-            "examples": [
-              "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
-            ]
+            "examples": ["tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"]
           },
           "note": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "minLength": 1,
             "maxLength": 2000,
-            "examples": [
-              "bank transfer",
-              null
-            ]
+            "examples": ["bank transfer", null]
           }
         },
         "examples": [
@@ -6361,82 +6345,50 @@
       },
       "BookingMemberReceiptStatusResponse": {
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "description": "Member receipt panel for a booking. Money SoT is invoice remaining; status is never paid/waived while remaining > 0.",
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "none",
-              "pending",
-              "rejected",
-              "paid",
-              "waived"
-            ],
-            "examples": [
-              "pending"
-            ]
+            "enum": ["none", "pending", "rejected", "paid", "waived"],
+            "examples": ["pending"]
           },
           "remainingMinor": {
             "type": "string",
-            "examples": [
-              "1500000"
-            ]
+            "examples": ["1500000"]
           },
           "invoiceTotalMinor": {
             "type": "string",
-            "examples": [
-              "2500000"
-            ]
+            "examples": ["2500000"]
           },
           "initialPaymentDueMinor": {
             "type": "string",
-            "examples": [
-              "750000"
-            ]
+            "examples": ["750000"]
           },
           "amountDueNowMinor": {
             "type": "string",
-            "examples": [
-              "750000"
-            ]
+            "examples": ["750000"]
           },
           "obligationMinor": {
             "type": "string",
-            "examples": [
-              "2500000"
-            ]
+            "examples": ["2500000"]
           },
           "paidMinor": {
             "type": "string",
-            "examples": [
-              "1000000"
-            ]
+            "examples": ["1000000"]
           },
           "currency": {
             "type": "string",
-            "examples": [
-              "IRR"
-            ]
+            "examples": ["IRR"]
           },
           "previewUrl": {
             "type": "string",
-            "examples": [
-              "https://example.test/proof"
-            ]
+            "examples": ["https://example.test/proof"]
           },
           "previewKind": {
             "type": "string",
-            "enum": [
-              "image",
-              "pdf",
-              "unknown"
-            ],
-            "examples": [
-              "image"
-            ]
+            "enum": ["image", "pdf", "unknown"],
+            "examples": ["image"]
           }
         },
         "examples": [
@@ -6450,16 +6402,12 @@
       "BookingListSearchQuery": {
         "type": "string",
         "description": "Free-text guest/tour search.",
-        "examples": [
-          "Ada"
-        ]
+        "examples": ["Ada"]
       },
       "BookingListCursor": {
         "type": "string",
         "description": "Opaque pagination cursor.",
-        "examples": [
-          "opaque-cursor"
-        ]
+        "examples": ["opaque-cursor"]
       },
       "BookingListLimit": {
         "type": "integer",
@@ -6467,9 +6415,7 @@
         "maximum": 100,
         "default": 25,
         "description": "Page size.",
-        "examples": [
-          25
-        ]
+        "examples": [25]
       },
       "BookingReceiptCreatedResponse": {
         "type": "object",
@@ -6479,43 +6425,24 @@
           "id": {
             "type": "string",
             "format": "uuid",
-            "examples": [
-              "00000000-0000-4000-8000-000000000701"
-            ]
+            "examples": ["00000000-0000-4000-8000-000000000701"]
           },
           "paymentId": {
             "type": "string",
             "format": "uuid",
-            "examples": [
-              "00000000-0000-4000-8000-000000000702"
-            ]
+            "examples": ["00000000-0000-4000-8000-000000000702"]
           },
           "status": {
             "type": "string",
-            "examples": [
-              "Pending"
-            ]
+            "examples": ["Pending"]
           },
           "fileKey": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "examples": [
-              "tenants/…/receipts/proof.bin",
-              null
-            ]
+            "type": ["string", "null"],
+            "examples": ["tenants/…/receipts/proof.bin", null]
           },
           "note": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "examples": [
-              "bank transfer",
-              "کد پیگیری ۱۲۳۴۵",
-              null
-            ]
+            "type": ["string", "null"],
+            "examples": ["bank transfer", "کد پیگیری ۱۲۳۴۵", null]
           }
         },
         "examples": [
@@ -6532,9 +6459,7 @@
         "type": "string",
         "format": "binary",
         "description": "Raw receipt upload body (Content-Type not application/json).",
-        "examples": [
-          "<binary>"
-        ]
+        "examples": ["<binary>"]
       }
     }
   }
