@@ -216,6 +216,8 @@
   "reject": "Reject",
   "rejectRegistration": "Reject registration",
   "approveAwaitingPayment": "Approve — payment pending",
+  "promoteWaitlistWithCapacityIncrease": "Increase capacity and move to payment follow-up",
+  "promoteWaitlistWithCapacityIncreaseSuccess": "Capacity increased; registration moved to approved payment follow-up.",
   "approveWithoutPayment": "Approve — no payment required",
   "approveWithoutPaymentSuccess": "{guest} approved — no payment required.",
   "nextStepReceiptHint": "Next: member uploads a payment receipt. Review proofs in Finance → Receipts.",

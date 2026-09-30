@@ -36,8 +36,12 @@ import {
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
-import type { BookingRecord } from "./bookings.types";
-import { BookingCapabilityViolationError, BookingNotFoundError } from "./bookings.errors";
+import type { BookingRecord, WaitlistCapacityAdmissionResponse } from "./bookings.types";
+import {
+  BookingCapabilityViolationError,
+  BookingNotFoundError,
+  BookingWaitlistCapacityAdmissionNotAllowedError,
+} from "./bookings.errors";
 import {
   resolvePaymentDueAtForProjection,
   resolveUtcApprovedWithinDaysWindow,
@@ -45,6 +49,7 @@ import {
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
+import { runSerialBookingMutation } from "./in-memory-bookings.repository";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -787,6 +792,25 @@ export class BookingsService {
     };
   }
 
+  async waiveAndFinalizeBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<FinalizeBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.waiveAndFinalizeBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      finalizedByUserId: auth.userId,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      finalizationStatus: updated.finalizationStatus ?? "not_final",
+      finalizedAt: updated.finalizedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
   /**
    * Tour-policy public auto-approve — no ops CASL.
    * Ownership: actorUserId must equal submittedByUserId.
@@ -857,6 +881,74 @@ export class BookingsService {
       outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
     });
     return { id: updated.id, status: updated.status };
+  }
+
+  async promoteWaitlistWithCapacityIncrease(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<WaitlistCapacityAdmissionResponse> {
+    return runSerialBookingMutation(async () => {
+      await this.assertTenantBound(auth.tenantId);
+      this.authorization.assertOpsAccess(auth);
+      const current = await this.repository.getById(bookingId, auth.tenantId);
+      if (current === null) {
+        throw new BookingNotFoundError();
+      }
+      const marker = current.registrationIntake?.waitlistCapacityAdmission;
+      if (
+        current.status === "approved" &&
+        marker !== undefined &&
+        typeof marker === "object" &&
+        marker !== null
+      ) {
+        const record = marker as Record<string, unknown>;
+        return {
+          id: current.id,
+          status: current.status,
+          paymentStatus: current.paymentStatus,
+          capacityAdded:
+            typeof record.capacityAdded === "number" ? record.capacityAdded : current.partySize,
+          previousCapacity:
+            typeof record.previousCapacity === "number" ? record.previousCapacity : 0,
+          nextCapacity: typeof record.nextCapacity === "number" ? record.nextCapacity : 0,
+        };
+      }
+      if (current.status !== "waitlisted" || current.partySize < 1) {
+        throw new BookingWaitlistCapacityAdmissionNotAllowedError();
+      }
+      const increaseTourCapacity = this.tourCapacity.increaseTourCapacity;
+      if (increaseTourCapacity === undefined) {
+        throw new Error("BOOKING_CAPACITY_INCREMENT_UNSUPPORTED");
+      }
+      const expansion = await increaseTourCapacity({
+        tenantId: auth.tenantId,
+        tourId: current.tourId,
+        delta: current.partySize,
+      });
+      const approved = await this.repository.approveWithOutbox({
+        bookingId,
+        tenantId: auth.tenantId,
+        outboxEvent: "registration.waitlist_promoted_with_capacity_increase",
+        assertCapacityInTx: () => undefined,
+        registrationIntakePatch: {
+          waitlistCapacityAdmission: {
+            capacityAdded: current.partySize,
+            previousCapacity: expansion.previousCapacity,
+            nextCapacity: expansion.nextCapacity,
+          },
+        },
+      });
+      await this.invokeApproveReaction(auth.tenantId, approved.id);
+      const result = approved;
+      return {
+        id: result.id,
+        status: result.status,
+        paymentStatus: result.paymentStatus,
+        capacityAdded: current.partySize,
+        previousCapacity: expansion.previousCapacity,
+        nextCapacity: expansion.nextCapacity,
+      };
+    });
   }
 
   async cancelBooking(

@@ -13,6 +13,7 @@ import type {
 export type OperationalRosterFilter =
   | "operational"
   | "final"
+  | "awaiting_finalization"
   | "unpaid"
   | "paid"
   | "expiring"
@@ -75,6 +76,7 @@ export type OperationalRosterListResponse = {
 const ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
   "operational",
   "final",
+  "awaiting_finalization",
   "unpaid",
   "paid",
   "expiring",

@@ -28,6 +28,7 @@ import {
   cancelBooking,
   createBooking,
   finalizeBookingWithOpenPayment,
+  waiveAndFinalizeBooking,
   rejectBooking,
   resetBookingsServiceCompositionForTests,
   waitlistBooking,
@@ -122,6 +123,42 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     const afterPayment = await getBookingsRepository().getById(created.id, TENANT_DENALI);
     assert.equal(afterPayment?.paymentStatus, "paid");
     assert.equal(afterPayment?.finalizationStatus, "finalized");
+  });
+
+  it("waives and finalizes approved unpaid booking atomically", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Waive And Finalize"));
+    await approveBooking(opsAuth(TENANT_DENALI), created.id);
+
+    const finalized = await waiveAndFinalizeBooking(opsAuth(TENANT_DENALI), created.id);
+    assert.equal(finalized.status, "approved");
+    assert.equal(finalized.finalizationStatus, "finalized");
+
+    const row = await getBookingsRepository().getById(created.id, TENANT_DENALI);
+    assert.equal(row?.paymentStatus, "paid");
+    assert.equal(row?.financialDisplayState, "WAIVED");
+    const override = row?.registrationIntake?.obligationOverride as
+      | { obligationMinor?: string }
+      | undefined;
+    assert.equal(override?.obligationMinor, "0");
+
+    const outbox = await peekOutboxByAggregateForTests({
+      tenantId: TENANT_DENALI,
+      aggregateId: created.id,
+    });
+    assert.equal(
+      outbox.filter((event) => event.eventType === "registration.waived_finalized").length,
+      1
+    );
+    const retry = await waiveAndFinalizeBooking(opsAuth(TENANT_DENALI), created.id);
+    assert.equal(retry.finalizationStatus, "finalized");
+    const retriedOutbox = await peekOutboxByAggregateForTests({
+      tenantId: TENANT_DENALI,
+      aggregateId: created.id,
+    });
+    assert.equal(
+      retriedOutbox.filter((event) => event.eventType === "registration.waived_finalized").length,
+      1
+    );
   });
 
   it("lifecycle transitions clear stale finalization metadata", async () => {

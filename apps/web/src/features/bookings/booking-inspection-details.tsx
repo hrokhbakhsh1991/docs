@@ -38,6 +38,7 @@ type BookingInspectionDetailsProps = {
   readonly canApproveSelected: boolean;
   readonly canWaitlistSelected: boolean;
   readonly canCancelSelected: boolean;
+  readonly showPromoteWaitlistWithCapacityIncrease?: boolean;
   readonly actionBusy: boolean;
   readonly idCopied: boolean;
   readonly onCopyId: () => void;
@@ -46,6 +47,7 @@ type BookingInspectionDetailsProps = {
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
+  readonly onPromoteWaitlistWithCapacityIncrease?: () => void;
   readonly actionClassName: string;
   readonly actionHint?: string | null;
   readonly capacityFullHint?: string | null;
@@ -61,6 +63,7 @@ export function BookingInspectionDetails({
   canApproveSelected,
   canWaitlistSelected,
   canCancelSelected,
+  showPromoteWaitlistWithCapacityIncrease = false,
   actionBusy,
   idCopied,
   onCopyId,
@@ -69,6 +72,7 @@ export function BookingInspectionDetails({
   onApproveWithoutPayment,
   onWaitlist,
   onCancel,
+  onPromoteWaitlistWithCapacityIncrease,
   actionClassName,
   actionHint = null,
   capacityFullHint = null,
@@ -137,11 +141,13 @@ export function BookingInspectionDetails({
           showApprove={canApproveSelected}
           showWaitlist={canWaitlistSelected}
           showCancel={canCancelSelected}
+          showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
           onReject={onReject}
           onApprove={onApprove}
           onApproveWithoutPayment={onApproveWithoutPayment}
           onWaitlist={onWaitlist}
           onCancel={onCancel}
+          onPromoteWaitlistWithCapacityIncrease={onPromoteWaitlistWithCapacityIncrease}
           className={actionClassName}
           actionHint={actionHint}
           capacityFullHint={capacityFullHint}

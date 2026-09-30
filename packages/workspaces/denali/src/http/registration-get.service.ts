@@ -58,6 +58,8 @@ export type DenaliRegistrationOwnedDetail = {
   readonly tourTitle: string;
   readonly guestLabel: string;
   readonly registrantTarget: "self" | "other";
+  /** Explicit attendance finalization, independent from payment settlement. */
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly paymentStatus: string;
   /** Canonical booking projection; WAIVED means no payment was required. */
   readonly financialDisplayState?: "WAIVED";
@@ -105,6 +107,7 @@ export async function getDenaliRegistrationOwned(params: {
     tourTitle: owned.tourTitle,
     guestLabel: owned.guestLabel,
     registrantTarget: owned.registrantTarget,
+    finalizationStatus: owned.finalizationStatus ?? "not_final",
     paymentStatus: owned.paymentStatus,
     ...(owned.financialDisplayState !== undefined
       ? { financialDisplayState: owned.financialDisplayState }

@@ -116,6 +116,25 @@ export class BookingOpenPaymentFinalizationNotAllowedError extends Error {
   }
 }
 
+/** Waive-and-finalize is only valid for an approved unpaid/partial booking. */
+export class BookingWaiveAndFinalizeNotAllowedError extends Error {
+  readonly code = "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED" as const;
+
+  constructor() {
+    super("BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED");
+    this.name = "BookingWaiveAndFinalizeNotAllowedError";
+  }
+}
+
+export class BookingWaitlistCapacityAdmissionNotAllowedError extends Error {
+  readonly code = "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED" as const;
+
+  constructor() {
+    super("BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED");
+    this.name = "BookingWaitlistCapacityAdmissionNotAllowedError";
+  }
+}
+
 export class BulkApproveBatchLimitError extends Error {
   readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
 

@@ -157,6 +157,8 @@ export function matchesOperationalRosterFilter(
       return row.isOperationalParticipant;
     case "final":
       return row.isFinalParticipant;
+    case "awaiting_finalization":
+      return row.isOperationalParticipant && !row.isFinalParticipant;
     case "unpaid":
       return row.isOperationalParticipant && !row.isFinanciallySettled;
     case "paid":

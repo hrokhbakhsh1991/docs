@@ -30,11 +30,13 @@ import {
   createBooking,
   finalizeBooking,
   finalizeBookingWithOpenPayment,
+  waiveAndFinalizeBooking,
   getBooking,
   getBookingsSummary,
   listBookings,
   rejectBooking,
   waitlistBooking,
+  promoteWaitlistWithCapacityIncrease,
 } from "./create-bookings-service";
 import {
   getMemberCancellationEligibility,
@@ -201,6 +203,27 @@ export async function handleFinalizeBookingWithOpenPayment(
   }
 }
 
+export async function handleWaiveAndFinalizeBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await waiveAndFinalizeBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
 function readHeader(req: IncomingMessage, name: string): string {
   const raw = req.headers[name.toLowerCase()];
   if (raw === undefined) {
@@ -270,6 +293,27 @@ export async function handleWaitlistBooking(
       auth,
       async () => {
         const result = await waitlistBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handlePromoteWaitlistWithCapacityIncrease(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await promoteWaitlistWithCapacityIncrease(auth, bookingId);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }

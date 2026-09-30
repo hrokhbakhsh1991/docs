@@ -191,6 +191,7 @@
       "TOUR_REGISTER_HTTP_400": "درخواست ثبت‌نام نامعتبر است.",
       "TOUR_REGISTER_HTTP_403": "اجازه ثبت‌نام ندارید.",
       "TOUR_REGISTER_HTTP_404": "تور پیدا نشد.",
+      "TOUR_REGISTER_HTTP_409": "این مهمان از قبل در این تور ثبت شده است یا ثبت‌نام تکراری است.",
       "TOUR_REGISTER_HTTP_500": "ثبت‌نام ناموفق بود (خطای سرور)."
     }
   },
@@ -218,13 +219,13 @@
     "tabs": {
       "registrations": "درخواست‌های ثبت‌نام",
       "waitlist": "لیست انتظار",
-      "transport": "لیست عملیاتی",
+      "transport": "لیست نهایی حضور",
       "finance": "پیگیری مالی"
     },
     "tabsHint": {
       "registrations": "بررسی و تأیید درخواست‌های جدید",
       "waitlist": "صف ظرفیت — تأیید پس از آزاد شدن جا",
-      "transport": "افراد تأییدشده را ببینید؛ پرداخت و حمل‌ونقل را تا نهایی‌شدن پیگیری کنید",
+      "transport": "فقط افراد نهایی‌شده را ببینید؛ وضعیت پرداخت و حمل‌ونقل آن‌ها را پیگیری کنید",
       "finance": "اقدامات پرداخت و بررسی رسید"
     },
     "operationsSummary": {
@@ -292,6 +293,13 @@
       "statusPartial": "پرداخت ناقص",
       "statusUnknown": "مبلغ باقی‌مانده",
       "ctaReviewPayment": "بررسی پرداخت",
+      "finalizeWithOpenPayment": "تأیید نهایی با پرداخت باز",
+      "confirmFinalizeWithOpenPayment": "برای تأیید نهایی با بدهی باز دوباره کلیک کنید",
+      "waiveAndFinalize": "تأیید نهایی بدون نیاز به پرداخت",
+      "confirmWaiveAndFinalize": "برای حذف بدهی و نهایی‌سازی دوباره کلیک کنید",
+      "finalizeWithOpenPaymentSuccess": "فرد نهایی شد؛ پیگیری پرداخت و بدهی باقی ماند.",
+      "waiveAndFinalizeSuccess": "فرد نهایی شد و بدهی او حذف شد.",
+      "finalizationFailed": "نهایی‌سازی انجام نشد؛ وضعیت رزرو را دوباره بررسی کنید.",
       "ctaReviewPartial": "بررسی پرداخت ناقص",
       "ctaOpenCase": "جزئیات پرداخت",
       "refreshQueue": "بروزرسانی پیگیری پرداخت",
@@ -475,14 +483,14 @@
       "capacityFullWarn": "ظرفیت این تور پر است. باز هم تأیید شود؟"
     },
     "transport": {
-      "title": "لیست عملیاتی",
-      "description": "افراد تأییدشدهٔ تور؛ وضعیت پرداخت، نهایی‌شدن، حضور و حمل‌ونقل را از اینجا پیگیری کنید.",
+      "title": "لیست نهایی حضور",
+      "description": "افراد نهایی‌شدهٔ تور؛ وضعیت پرداخت و حمل‌ونقل را از اینجا پیگیری کنید.",
       "exportFinalRoster": "خروجی Excel لیست نهایی",
       "exporting": "در حال ساخت فایل…",
       "exportSucceeded": "فایل Excel آماده و دانلود شد.",
       "exportFailed": "ساخت فایل Excel انجام نشد.",
       "exportFinalRosterScope": "خروجی شامل همه افراد نهایی‌شدهٔ تور است؛ افراد تسویه‌شده و نیازمند تسویه در شیت‌های جدا می‌آیند.",
-      "tableCaption": "فهرست عملیاتی و وضعیت پرداخت و حمل‌ونقل",
+      "tableCaption": "فهرست نهایی حضور و وضعیت پرداخت و حمل‌ونقل",
       "empty": "مهمانی با این فیلتر یافت نشد.",
       "unknownIntake": "انتخاب نامشخص",
       "finalParticipant": "نهایی",
@@ -505,8 +513,9 @@
       "driverOffer": "راننده",
       "noOperationalDebt": "بدون مانده قابل پیگیری",
       "filters": {
-        "operational": "همه عملیاتی",
-        "final": "نهایی",
+        "operational": "همه تأییدشده‌ها",
+        "final": "لیست نهایی حضور",
+        "awaiting_finalization": "تأییدشده؛ منتظر نهایی‌سازی",
         "unpaid": "نیازمند پرداخت",
         "paid": "تسویه‌شده",
         "expiring": "مهلت نزدیک",

@@ -231,7 +231,9 @@ function TourWorkspaceLayoutInner({
     if (opsCounts !== null) {
       map.registrations = opsCounts.pending;
       map.waitlist = opsCounts.waitlisted;
-      map.transport = opsCounts.operational;
+      // The transport tab is the final attendance roster by default. Approved
+      // but non-final rows remain reachable through its explicit filter.
+      map.transport = opsCounts.final;
     }
     return map;
   }, [opsCounts, subnavTabs]);

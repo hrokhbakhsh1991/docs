@@ -191,6 +191,7 @@
       "TOUR_REGISTER_HTTP_400": "Invalid registration request.",
       "TOUR_REGISTER_HTTP_403": "You are not allowed to register guests.",
       "TOUR_REGISTER_HTTP_404": "Tour not found.",
+      "TOUR_REGISTER_HTTP_409": "This guest is already registered for the tour or the registration is a duplicate.",
       "TOUR_REGISTER_HTTP_500": "Registration failed (server error)."
     }
   },
@@ -218,13 +219,13 @@
     "tabs": {
       "registrations": "Registration requests",
       "waitlist": "Waitlist",
-      "transport": "Operations roster",
+      "transport": "Final attendance roster",
       "finance": "Payment follow-up"
     },
     "tabsHint": {
       "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
-      "transport": "Track approved guests through payment, finalization, attendance, and transport",
+      "transport": "View finalized participants and track their payment and transport status",
       "finance": "Payment actions and receipt review"
     },
     "operationsSummary": {
@@ -292,6 +293,13 @@
       "statusPartial": "Partial payment",
       "statusUnknown": "Remaining amount",
       "ctaReviewPayment": "Review payment",
+      "finalizeWithOpenPayment": "Finalize with payment open",
+      "confirmFinalizeWithOpenPayment": "Click again to finalize with balance open",
+      "waiveAndFinalize": "Finalize without payment required",
+      "confirmWaiveAndFinalize": "Click again to waive balance and finalize",
+      "finalizeWithOpenPaymentSuccess": "Finalized; payment follow-up and balance remain.",
+      "waiveAndFinalizeSuccess": "Finalized and balance waived.",
+      "finalizationFailed": "Finalization failed; review the booking state and try again.",
       "ctaReviewPartial": "Review partial payment",
       "ctaOpenCase": "Payment details",
       "refreshQueue": "Refresh payment follow-up",
@@ -475,14 +483,14 @@
       "capacityFullWarn": "This tour is at capacity. Approve anyway?"
     },
     "transport": {
-      "title": "Operations roster",
-      "description": "Approved guests; track payment, finalization, attendance, and transport here.",
+      "title": "Final attendance roster",
+      "description": "Finalized participants; track payment and transport status here.",
       "exportFinalRoster": "Export final roster to Excel",
       "exporting": "Building file…",
       "exportSucceeded": "The Excel file is ready and has been downloaded.",
       "exportFailed": "Could not build the Excel file.",
       "exportFinalRosterScope": "The export includes all final participants; settled and payment-follow-up participants are separated into sheets.",
-      "tableCaption": "Operations roster with payment and transport status",
+      "tableCaption": "Final attendance roster with payment and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",
       "finalParticipant": "Final",
@@ -506,8 +514,9 @@
       "driverOffer": "Driver",
       "noOperationalDebt": "No balance to follow up",
       "filters": {
-        "operational": "All operational",
-        "final": "Final",
+        "operational": "All approved",
+        "final": "Final attendance roster",
+        "awaiting_finalization": "Approved; awaiting finalization",
         "unpaid": "Needs payment",
         "paid": "Settled",
         "expiring": "Deadline soon",

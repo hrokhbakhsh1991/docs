@@ -29,6 +29,15 @@ export type {
   WaitlistBookingResponse,
 } from "@app-tour/booking-http-contracts";
 
+export type WaitlistCapacityAdmissionResponse = {
+  readonly id: string;
+  readonly status: string;
+  readonly paymentStatus: BookingPaymentStatus;
+  readonly capacityAdded: number;
+  readonly previousCapacity: number;
+  readonly nextCapacity: number;
+};
+
 export type CreateBookingRequest = BookingHttpCreateBookingRequest & {
   readonly memberUserId?: string;
 };

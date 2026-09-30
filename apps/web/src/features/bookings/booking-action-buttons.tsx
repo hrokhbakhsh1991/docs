@@ -12,10 +12,12 @@ type BookingActionButtonsProps = {
   readonly onApprove: () => void;
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
+  readonly onPromoteWaitlistWithCapacityIncrease?: () => void;
   readonly onCancel: () => void;
   readonly showReject: boolean;
   readonly showApprove: boolean;
   readonly showWaitlist: boolean;
+  readonly showPromoteWaitlistWithCapacityIncrease?: boolean;
   readonly showCancel: boolean;
   readonly actionHint?: string | null;
   readonly capacityFullHint?: string | null;
@@ -29,10 +31,12 @@ export function BookingActionButtons({
   onApprove,
   onApproveWithoutPayment,
   onWaitlist,
+  onPromoteWaitlistWithCapacityIncrease,
   onCancel,
   showReject,
   showApprove,
   showWaitlist,
+  showPromoteWaitlistWithCapacityIncrease = false,
   showCancel,
   actionHint = null,
   capacityFullHint = null,
@@ -112,6 +116,17 @@ export function BookingActionButtons({
           onClick={onWaitlist}
         >
           {t("waitlist")}
+        </Button>
+      ) : null}
+      {showPromoteWaitlistWithCapacityIncrease && onPromoteWaitlistWithCapacityIncrease ? (
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          data-testid="operator-bookings-promote-waitlist-with-capacity-increase"
+          onClick={onPromoteWaitlistWithCapacityIncrease}
+        >
+          {t("promoteWaitlistWithCapacityIncrease")}
         </Button>
       ) : null}
       {showCancel ? (

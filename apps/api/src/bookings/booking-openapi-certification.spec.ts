@@ -112,6 +112,16 @@ const REGISTERED_BOOKING_ROUTES: readonly {
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/waive-and-finalize",
+    appMarker: "handleWaiveAndFinalizeBooking",
+    operationId: "waiveAndFinalizeBooking",
+    requestSchema: null,
+    responseSchema: "FinalizeBookingResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + FinalizeBookingResponse",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/reject",
     appMarker: "handleRejectBooking",
     operationId: "rejectBooking",
@@ -129,6 +139,16 @@ const REGISTERED_BOOKING_ROUTES: readonly {
     responseSchema: "WaitlistBookingResponse",
     errors: ["401", "403", "404", "409"],
     exampleSurface: "WaitlistBookingResponse",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/promote-waitlist-with-capacity-increase",
+    appMarker: "handlePromoteWaitlistWithCapacityIncrease",
+    operationId: "promoteWaitlistWithCapacityIncrease",
+    requestSchema: null,
+    responseSchema: "WaitlistCapacityAdmissionResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + WaitlistCapacityAdmissionResponse",
   },
   {
     method: "POST",
@@ -413,7 +433,7 @@ describe("booking OpenAPI certification", () => {
     }
 
     assert.equal(rows.length, REGISTERED_BOOKING_ROUTES.length);
-    assert.equal(rows.length, 13, "coverage must be 100% of registered Booking endpoints");
+    assert.equal(rows.length, 15, "coverage must be 100% of registered Booking endpoints");
     console.log("endpoint | request schema | response schema | errors | examples");
     for (const row of rows) {
       console.log(row);

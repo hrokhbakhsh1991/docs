@@ -48,6 +48,7 @@ import type {
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
+  WaitlistCapacityAdmissionResponse,
 } from "./bookings.types";
 import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
 
@@ -309,6 +310,16 @@ export async function finalizeBookingWithOpenPayment(
   );
 }
 
+export async function waiveAndFinalizeBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).waiveAndFinalizeBooking(
+    auth,
+    bookingId
+  );
+}
+
 export async function autoApprovePublicBooking(input: {
   readonly tenantId: string;
   readonly bookingId: string;
@@ -355,6 +366,34 @@ export async function waitlistBooking(
   bookingId: string
 ): Promise<WaitlistBookingResponse> {
   return (await resolveBookingsServiceForTenant(auth.tenantId)).waitlistBooking(auth, bookingId);
+}
+
+export async function promoteWaitlistWithCapacityIncrease(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<WaitlistCapacityAdmissionResponse> {
+  const result = await (
+    await resolveBookingsServiceForTenant(auth.tenantId)
+  ).promoteWaitlistWithCapacityIncrease(auth, bookingId);
+  if (result.status === "approved") {
+    const repo = getBookingsRepository();
+    const approvedRow = await repo.getById(result.id, auth.tenantId);
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
+    const holdSideEffects = await applyPaymentHoldAfterBookingApprove({
+      tenantId: auth.tenantId,
+      bookingId: result.id,
+      approvedAt: approvedRow?.approvedAt ?? new Date().toISOString(),
+    });
+    const { applyFreeCollectionAfterBookingApprove } =
+      await import("../workspace-finance/apply-free-collection-after-booking-approve");
+    await applyFreeCollectionAfterBookingApprove({
+      tenantId: auth.tenantId,
+      bookingId: result.id,
+    });
+    return { ...result, ...holdSideEffects };
+  }
+  return result;
 }
 
 export async function cancelBooking(

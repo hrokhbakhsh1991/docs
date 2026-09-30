@@ -216,6 +216,8 @@
   "reject": "رد",
   "rejectRegistration": "رد ثبت‌نام",
   "approveAwaitingPayment": "تأیید و منتظر پرداخت",
+  "promoteWaitlistWithCapacityIncrease": "افزایش ظرفیت و انتقال به پیگیری پرداخت",
+  "promoteWaitlistWithCapacityIncreaseSuccess": "ظرفیت افزایش یافت؛ ثبت‌نام به تأییدشده و پیگیری پرداخت منتقل شد.",
   "approveWithoutPayment": "تأیید بدون نیاز به پرداخت",
   "approveWithoutPaymentSuccess": "{guest} تأیید شد — نیازی به پرداخت ندارد.",
   "nextStepReceiptHint": "گام بعد: عضو فیش واریز را بارگذاری می‌کند. بررسی فیش‌ها در مالی ← رسیدها.",

@@ -6,8 +6,12 @@ import { randomUUID } from "node:crypto";
 import { beforeEach, describe, it } from "node:test";
 
 import { createFinanceService } from "../src/application/finance.service.ts";
+import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
 import type { FinanceActorContext } from "../src/ports/finance-actor-context.ts";
-import type { FinanceLedgerCapturePlan, FinanceLedgerPolicyPort } from "../src/ports/finance-ledger-policy.port.ts";
+import type {
+  FinanceLedgerCapturePlan,
+  FinanceLedgerPolicyPort,
+} from "../src/ports/finance-ledger-policy.port.ts";
 import {
   FakeAuthz,
   FakeCapability,
@@ -55,7 +59,10 @@ function emptyLedgerPolicy(): FinanceLedgerPolicyPort {
   };
 }
 
-function createService(ledger: FinanceLedgerPolicyPort = createFakeLedgerPolicy()) {
+function createService(
+  ledger: FinanceLedgerPolicyPort = createFakeLedgerPolicy(),
+  obligation: FinanceObligationPort | undefined = undefined
+) {
   const booking = createFakeBookingPort();
   const repo = new InMemoryFinanceRepository(booking);
   const finance = createFinanceService(
@@ -71,9 +78,24 @@ function createService(ledger: FinanceLedgerPolicyPort = createFakeLedgerPolicy(
     FakeAuthz,
     FakeSchedules,
     FakeLogger,
-    FakeClock
+    FakeClock,
+    obligation
   );
   return { finance, repo, booking };
+}
+
+function fixedObligation(obligationMinor: string): FinanceObligationPort {
+  return {
+    async resolveRegistrationObligation() {
+      return { currency: "IRR", obligationMinor, source: "tour_canonical" };
+    },
+    async resolveRegistrationPaymentCollection() {
+      return "offline";
+    },
+    async setRegistrationObligationOverride() {
+      return false;
+    },
+  };
 }
 
 async function seedPendingReceipt(repo: InMemoryFinanceRepository): Promise<{
@@ -128,7 +150,10 @@ describe("INV-LEDGER Paid ⇒ exactly one durable capture", () => {
     const receipt = await repo.findReceiptById(TENANT, seeded.receiptId);
     assert.equal(payment?.status, "Pending");
     assert.equal(receipt?.status, "Pending");
-    assert.equal(countPaymentCaptures(await repo.listLedgerEvents(TENANT, 50), seeded.paymentId), 0);
+    assert.equal(
+      countPaymentCaptures(await repo.listLedgerEvents(TENANT, 50), seeded.paymentId),
+      0
+    );
   });
 
   it("INV-P2 successful approve ⇒ exactly one capture", async () => {
@@ -140,7 +165,10 @@ describe("INV-LEDGER Paid ⇒ exactly one durable capture", () => {
     assert.equal(reviewed.status, "Approved");
     const payment = await repo.findPaymentById(TENANT, seeded.paymentId);
     assert.equal(payment?.status, "Paid");
-    assert.equal(countPaymentCaptures(await repo.listLedgerEvents(TENANT, 50), seeded.paymentId), 1);
+    assert.equal(
+      countPaymentCaptures(await repo.listLedgerEvents(TENANT, 50), seeded.paymentId),
+      1
+    );
   });
 
   it("INV-P3 repeated approve / replay ⇒ still exactly one capture", async () => {
@@ -151,7 +179,10 @@ describe("INV-LEDGER Paid ⇒ exactly one durable capture", () => {
       decision: "approve",
     });
     assert.equal(replay.status, "Approved");
-    assert.equal(countPaymentCaptures(await repo.listLedgerEvents(TENANT, 50), seeded.paymentId), 1);
+    assert.equal(
+      countPaymentCaptures(await repo.listLedgerEvents(TENANT, 50), seeded.paymentId),
+      1
+    );
   });
 
   it("INV-P4 empty lines refuse prepayment — no recorded event", async () => {
@@ -174,10 +205,7 @@ describe("INV-LEDGER Paid ⇒ exactly one durable capture", () => {
     const listed = await finance.listPrepayments(AUTH, 20, registrationId);
     assert.equal(listed.length, 0);
     const events = await repo.listLedgerEvents(TENANT, 50);
-    assert.equal(
-      events.filter((e) => e.eventType === "finance.prepayment.recorded").length,
-      0
-    );
+    assert.equal(events.filter((e) => e.eventType === "finance.prepayment.recorded").length, 0);
   });
 
   it("INV-P5 prepay enqueue conflict — memory refuses empty before write; duplicate key replays once", async () => {
@@ -213,9 +241,22 @@ describe("INV-LEDGER Paid ⇒ exactly one durable capture", () => {
         e.domainEventId.includes(registrationId)
     );
     assert.equal(ledgerRows.length, 1);
-    assert.equal(
-      events.filter((e) => e.eventType === "finance.prepayment.recorded").length,
-      1
+    assert.equal(events.filter((e) => e.eventType === "finance.prepayment.recorded").length, 1);
+  });
+
+  it("INV-P6 full prepayment raises booking projection to paid", async () => {
+    const { finance, booking } = createService(
+      createFakeLedgerPolicy(),
+      fixedObligation("2500000")
     );
+    const registrationId = randomUUID();
+
+    await finance.recordPrepayment(
+      AUTH,
+      { registrationId, amountMinor: "2500000", currency: "IRR", method: "Manual" },
+      `prepay-full-${registrationId}`
+    );
+
+    assert.equal(await booking.getPaymentStatus({ tenantId: TENANT, registrationId }), "paid");
   });
 });

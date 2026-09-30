@@ -27,17 +27,17 @@ export function TourWorkspaceTransportControls({
   const t = useTranslations("tours.workspace.transport");
   const tControls = useTranslations("tours.workspace.controls");
 
-  const filtersDirty = filter !== "operational";
+  const filtersDirty = filter !== "final";
 
   const activeChips = useMemo((): readonly OperatorDirectoryFilterChip[] => {
-    if (filter === "operational") {
+    if (filter === "final") {
       return [];
     }
     return [
       {
         key: "roster",
         label: tControls("activeFilters.roster", { value: t(`filters.${filter}`) }),
-        onRemove: () => onFilterChange("operational"),
+        onRemove: () => onFilterChange("final"),
       },
     ];
   }, [filter, onFilterChange, t, tControls]);
@@ -53,7 +53,7 @@ export function TourWorkspaceTransportControls({
       clearAllLabel={tControls("clearAll")}
       removeFilterAriaLabel={(label) => tControls("removeFilter", { filter: label })}
       activeChips={activeChips}
-      onClearAll={filtersDirty ? () => onFilterChange("operational") : undefined}
+      onClearAll={filtersDirty ? () => onFilterChange("final") : undefined}
       filterPanel={
         <>
           <div className="space-y-2" data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.filters}>
@@ -64,9 +64,7 @@ export function TourWorkspaceTransportControls({
               id="tour-workspace-transport-roster-filter"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={filter}
-              onChange={(event) =>
-                onFilterChange(event.target.value as OperationalRosterFilter)
-              }
+              onChange={(event) => onFilterChange(event.target.value as OperationalRosterFilter)}
             >
               {OPERATIONAL_ROSTER_FILTERS.map((filterId) => (
                 <option key={filterId} value={filterId}>
@@ -81,7 +79,7 @@ export function TourWorkspaceTransportControls({
               size="sm"
               variant="ghost"
               className="w-full"
-              onClick={() => onFilterChange("operational")}
+              onClick={() => onFilterChange("final")}
             >
               {tControls("clearAll")}
             </Button>

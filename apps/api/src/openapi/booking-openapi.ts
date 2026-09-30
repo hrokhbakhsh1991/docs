@@ -387,6 +387,25 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
     },
     examples: [{ id: "00000000-0000-4000-8000-000000000891", status: "waitlisted" }],
   },
+  WaitlistCapacityAdmissionResponse: {
+    type: "object",
+    required: [
+      "id",
+      "status",
+      "paymentStatus",
+      "capacityAdded",
+      "previousCapacity",
+      "nextCapacity",
+    ],
+    properties: {
+      id: ref("BookingId"),
+      status: ref("BookingStatus"),
+      paymentStatus: ref("BookingPaymentStatus"),
+      capacityAdded: { type: "integer", minimum: 1 },
+      previousCapacity: { type: "integer", minimum: 1 },
+      nextCapacity: { type: "integer", minimum: 1 },
+    },
+  },
   CancelBookingResponse: {
     type: "object",
     required: ["id", "status"],
@@ -816,6 +835,30 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       ),
     },
   },
+  waiveAndFinalizeBooking: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Approved booking added to the final roster and payment waived",
+        content: jsonContent("FinalizeBookingResponse", {
+          id: "00000000-0000-0000-0000-000000000891",
+          status: "approved",
+          finalizationStatus: "finalized",
+          finalizedAt: "2026-07-20T12:30:00.000Z",
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse(
+        "Waive-and-finalize requires an approved unpaid or partially paid registration",
+        {
+          error: "conflict",
+          code: "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED",
+        }
+      ),
+    },
+  },
   rejectBooking: {
     tags: ["Bookings"],
     parameters: [bookingIdPathParam],
@@ -848,6 +891,29 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       },
       ...authErrorResponses,
       ...notFoundConflictResponses,
+    },
+  },
+  promoteWaitlistWithCapacityIncrease: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Capacity increased and waitlisted booking admitted with payment open",
+        content: jsonContent("WaitlistCapacityAdmissionResponse", {
+          id: "00000000-0000-4000-8000-000000000891",
+          status: "approved",
+          paymentStatus: "unpaid",
+          capacityAdded: 1,
+          previousCapacity: 1,
+          nextCapacity: 2,
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse("Waitlist capacity admission is not allowed", {
+        error: "conflict",
+        code: "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED",
+      }),
     },
   },
   cancelBooking: {
