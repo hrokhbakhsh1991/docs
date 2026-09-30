@@ -434,7 +434,7 @@
   },
   "pnpm": {
     "overrides": {
-      "brace-expansion": "2.1.4",
+      "brace-expansion": "2.1.7",
       "deepmerge-ts": "8.0.2",
       "nanoid": "3.3.18",
       "next": "15.5.24",
