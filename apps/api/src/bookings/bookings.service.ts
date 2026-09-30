@@ -49,7 +49,7 @@ import {
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
-import { runSerialBookingMutation } from "./in-memory-bookings.repository";
+import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -77,6 +77,7 @@ export type BookingsServiceDeps = {
   readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
   readonly registrationSlo: BookingRegistrationSloPort;
   readonly financialDisplayState: BookingFinancialDisplayStatePort;
+  readonly serialMutation: BookingSerialMutationPort;
 };
 
 /** Booking-owned capacity: missing max is never a silent allow. */
@@ -169,6 +170,7 @@ export class BookingsService {
   private readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
   private readonly registrationSlo: BookingRegistrationSloPort;
   private readonly financialDisplayState: BookingFinancialDisplayStatePort;
+  private readonly serialMutation: BookingSerialMutationPort;
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -216,6 +218,9 @@ export class BookingsService {
     if (deps.financialDisplayState == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:financialDisplayState");
     }
+    if (deps.serialMutation == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:serialMutation");
+    }
     const workspaceType = deps.workspaceType.trim().toLowerCase();
     if (workspaceType.length === 0) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:workspaceType");
@@ -236,6 +241,7 @@ export class BookingsService {
     this.postCancelSideEffects = deps.postCancelSideEffects;
     this.registrationSlo = deps.registrationSlo;
     this.financialDisplayState = deps.financialDisplayState;
+    this.serialMutation = deps.serialMutation;
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -887,7 +893,7 @@ export class BookingsService {
     auth: BookingActorContext,
     bookingId: string
   ): Promise<WaitlistCapacityAdmissionResponse> {
-    return runSerialBookingMutation(async () => {
+    return this.serialMutation.run(async () => {
       await this.assertTenantBound(auth.tenantId);
       this.authorization.assertOpsAccess(auth);
       const current = await this.repository.getById(bookingId, auth.tenantId);

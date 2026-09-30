@@ -91,6 +91,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       financialDisplayState: {
         resolve: () => undefined,
       },
+      serialMutation: { run: async (fn) => fn() },
     });
 
     await assert.rejects(
@@ -183,6 +184,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
         financialDisplayState: {
           resolve: () => undefined,
         },
+        serialMutation: { run: async (fn) => fn() },
       });
 
       await assert.rejects(

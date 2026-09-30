@@ -7,6 +7,7 @@
  */
 
 import { getBookingsRepository } from "./create-bookings-repository";
+import { runSerialBookingMutation } from "./in-memory-bookings.repository";
 import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
@@ -156,6 +157,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
         );
       },
     },
+    serialMutation: { run: runSerialBookingMutation },
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,

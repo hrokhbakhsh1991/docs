@@ -9,25 +9,30 @@ authority:
   - docs/phase-20/p7/appendices/BOOKING_SERVICE_DI_B0_5.md
   - docs/phase-20/p7/appendices/BOOKING_BOUNDARY_B0_1.md
 constraints:
-  - BookingsService depends only on BookingRepositoryPort, BookingAuthorizationPort, BookingClockPort (+ domain DTOs)
-  - no new ports
+  - BookingsService depends only on booking ports (+ domain DTOs)
+  - mutation serialization is injected through a narrow booking port
   - domain errors leave adapter files
   - no behavior change
 ```
 
 ## Changes
 
-| Item | Action |
-| ---- | ------ |
-| Domain errors | SoT → `bookings.errors.ts` (application) |
-| Adapter error defs | Removed from `in-memory-bookings.repository.ts` |
-| `BookingsService` | Imports only ports + `bookings.types` + actor context type; no adapter imports; no error re-exports |
+| Item               | Action                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| Domain errors      | SoT → `bookings.errors.ts` (application)                                                            |
+| Adapter error defs | Removed from `in-memory-bookings.repository.ts`                                                     |
+| `BookingsService`  | Imports only ports + `bookings.types` + actor context type; no adapter imports; no error re-exports |
+
+Mutation serialization is a composition concern. The service receives it through
+`BookingSerialMutationPort`; the in-memory implementation stays outside the
+application layer while preserving race-safe runtime and test behavior.
 
 ## BookingsService allowed imports
 
 - `./ports/booking-repository.port`
 - `./ports/booking-authorization.port`
 - `./ports/booking-clock.port`
+- `./ports/booking-serial-mutation.port`
 - `./ports/booking-actor-context` (DTO for method signatures)
 - `./bookings.types` (domain DTOs)
 

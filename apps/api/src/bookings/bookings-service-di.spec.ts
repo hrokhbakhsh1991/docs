@@ -167,7 +167,8 @@ describe("bookings-service-di (B0.5)", () => {
         from === "./ports/booking-tour-capacity.port" ||
         from === "./ports/booking-post-cancel-side-effects.port" ||
         from === "./ports/booking-registration-slo.port" ||
-        from === "./ports/booking-financial-display-state.port";
+        from === "./ports/booking-financial-display-state.port" ||
+        from === "./ports/booking-serial-mutation.port";
       assert.ok(allowed, `illegal BookingsService import from ${from}`);
     }
   });
@@ -198,6 +199,7 @@ describe("bookings-service-di (B0.5)", () => {
           postCancelSideEffects: stubPostCancelSideEffects(),
           registrationSlo: stubRegistrationSlo(),
           financialDisplayState: stubFinancialDisplayState(),
+          serialMutation: { run: async (fn) => fn() },
         }),
       /BOOKINGS_SERVICE_DEP_REQUIRED:repository/
     );
@@ -227,6 +229,7 @@ describe("bookings-service-di (B0.5)", () => {
       postCancelSideEffects: stubPostCancelSideEffects(),
       registrationSlo: stubRegistrationSlo(),
       financialDisplayState: stubFinancialDisplayState(),
+      serialMutation: { run: async (fn) => fn() },
     });
     assert.equal(typeof service.listBookings, "function");
     assert.equal(service.boundWorkspaceType, "denali");
