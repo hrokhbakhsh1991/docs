@@ -126,7 +126,10 @@ describe("outstanding-balances PR23-D1", () => {
 
     const page = await finance.listOutstandingBalances(AUTH, { limit: 50 });
     const hit = page.items.find((item) => item.registrationId === registrationId);
-    assert.ok(hit, "PAY-FIN-02: remaining obligation without a Manual Payment must still be outstanding");
+    assert.ok(
+      hit,
+      "PAY-FIN-02: remaining obligation without a Manual Payment must still be outstanding"
+    );
     assert.equal(hit.invoice.remainingMinor, "2500000");
     assert.equal(hit.invoice.paidMinor, "0");
     assert.equal(hit.bookingPaymentStatus, "unpaid");
@@ -177,6 +180,56 @@ describe("outstanding-balances PR23-D1", () => {
     assert.ok(BigInt(hit.invoice.remainingMinor.replace(/\D/g, "")) > 0n);
   });
 
+  it("D1-E — cancelled registration is excluded from active outstanding follow-up", async () => {
+    const registrationId = randomUUID();
+    const booking = {
+      ...createFakeBookingPort(),
+      async getRegistrationLifecycleStatus(input: { readonly registrationId: string }) {
+        return input.registrationId === registrationId
+          ? ("cancelled" as const)
+          : ("approved" as const);
+      },
+    };
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createService(repo, booking, offlineObligation("2500000"));
+    seedOutstandingRegistrationCandidate({
+      tenantId: TENANT,
+      registrationId,
+    });
+
+    const page = await finance.listOutstandingBalances(AUTH, { limit: 50 });
+    assert.equal(
+      page.items.some((item) => item.registrationId === registrationId),
+      false
+    );
+  });
+
+  it("D1-F — only approved registrations enter outstanding follow-up", async () => {
+    const pendingId = randomUUID();
+    const waitlistedId = randomUUID();
+    const approvedId = randomUUID();
+    const booking = {
+      ...createFakeBookingPort(),
+      async getRegistrationLifecycleStatus(input: { readonly registrationId: string }) {
+        if (input.registrationId === pendingId) return "pending" as const;
+        if (input.registrationId === waitlistedId) return "waitlisted" as const;
+        return "approved" as const;
+      },
+    };
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createService(repo, booking, offlineObligation("2500000"));
+    for (const registrationId of [pendingId, waitlistedId, approvedId]) {
+      seedOutstandingRegistrationCandidate({ tenantId: TENANT, registrationId });
+    }
+
+    const page = await finance.listOutstandingBalances(AUTH, { limit: 50 });
+    assert.deepEqual(
+      page.items.map((item) => item.registrationId),
+      [approvedId],
+      "pending and waitlisted registrations are not payable follow-up rows"
+    );
+  });
+
   it("D1-D — tenant isolation", async () => {
     const booking = createFakeBookingPort();
     const repo = new InMemoryFinanceRepository(booking);
@@ -196,13 +249,25 @@ describe("outstanding-balances PR23-D1", () => {
 
     const pageA = await finance.listOutstandingBalances(AUTH, { limit: 50 });
     const pageB = await finance.listOutstandingBalances(AUTH_B, { limit: 50 });
-    assert.equal(pageA.items.some((item) => item.registrationId === regB), false);
-    assert.equal(pageB.items.some((item) => item.registrationId === regA), false);
-    assert.equal(pageA.items.some((item) => item.registrationId === regA), true);
-    assert.equal(pageB.items.some((item) => item.registrationId === regB), true);
+    assert.equal(
+      pageA.items.some((item) => item.registrationId === regB),
+      false
+    );
+    assert.equal(
+      pageB.items.some((item) => item.registrationId === regA),
+      false
+    );
+    assert.equal(
+      pageA.items.some((item) => item.registrationId === regA),
+      true
+    );
+    assert.equal(
+      pageB.items.some((item) => item.registrationId === regB),
+      true
+    );
   });
 
-  it("D1-E — cursor continuation + stable oldest-first ordering", async () => {
+  it("D1-G — cursor continuation + stable oldest-first ordering", async () => {
     const booking = createFakeBookingPort();
     const repo = new InMemoryFinanceRepository(booking);
     const finance = createService(repo, booking, offlineObligation("2500000"));
@@ -344,11 +409,8 @@ describe("outstanding-balances PR23-D1", () => {
     assert.equal(next.items[0]?.registrationId, late.registrationId);
   });
 
-  it("D1-G — boundary: invoice compile SoT; no gateway / mutation path", () => {
-    const service = readFileSync(
-      resolve(PKG_ROOT, "src/application/finance.service.ts"),
-      "utf8"
-    );
+  it("D1-H — boundary: invoice compile SoT; no gateway / mutation path", () => {
+    const service = readFileSync(resolve(PKG_ROOT, "src/application/finance.service.ts"), "utf8");
     const start = service.indexOf("async listOutstandingBalances");
     assert.ok(start > 0);
     const end = service.indexOf("async listPendingReceipts", start);
