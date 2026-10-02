@@ -8,12 +8,12 @@
 
 ### Host enforcement surfaces (`BookingsService` → repository)
 
-| Transition | Source statuses (host) | Target | Outbox |
-| --- | --- | --- | --- |
-| approve | `pending`, `waitlisted` | `approved` | `registration.approved` |
-| reject | `pending`, `waitlisted` | `rejected` | **none** (decision B) |
-| waitlist | `pending` | `waitlisted` | `registration.waitlisted` |
-| cancel | `pending`, `waitlisted`, `approved` | `cancelled` | `registration.cancelled` |
+| Transition | Source statuses (host)              | Target       | Outbox                    |
+| ---------- | ----------------------------------- | ------------ | ------------------------- |
+| approve    | `pending`, `waitlisted`             | `approved`   | `registration.approved`   |
+| reject     | `pending`, `waitlisted`             | `rejected`   | **none** (decision B)     |
+| waitlist   | `pending`                           | `waitlisted` | `registration.waitlisted` |
+| cancel     | `pending`, `waitlisted`, `approved` | `cancelled`  | `registration.cancelled`  |
 
 Enforced in:
 
@@ -26,13 +26,29 @@ Enforced in:
 
 `packages/workspaces/denali/src/booking/lifecycle.ts` held `DENALI_BOOKING_TRANSITIONS`:
 
-| From | To (allowed) |
-| --- | --- |
-| `pending` | `approved`, `waitlisted`, `rejected`, `cancelled` |
-| `waitlisted` | `approved`, `rejected`, `cancelled` |
-| `approved` | `cancelled` |
-| `rejected` | — (terminal) |
-| `cancelled` | — (terminal) |
+| From         | To (allowed)                                      |
+| ------------ | ------------------------------------------------- |
+| `pending`    | `approved`, `waitlisted`, `rejected`, `cancelled` |
+| `waitlisted` | `approved`, `rejected`, `cancelled`               |
+| `approved`   | `cancelled`                                       |
+| `rejected`   | — (terminal)                                      |
+| `cancelled`  | — (terminal)                                      |
+
+### Operator auto-approval at full capacity
+
+An operator-created registration for a tour whose approval mode is `auto` must
+still be created as a `pending` record before the approval decision is made.
+The create transaction must not reject the record merely because approving its
+party would exceed `capacityMax`; the subsequent approval transition is the
+capacity gate. A failed approval must then transition that same record to
+`waitlisted`, preserving its identity and audit trail. A `409` caused by
+capacity is distinct from `BOOKING_GUEST_DUPLICATE` and must never be rendered
+as a duplicate-registration message.
+
+This deferred capacity gate applies to operator-assisted creation only; public
+creation keeps rejecting an over-capacity request at intake, while the
+operator-created pending record is the one that can be explicitly moved to
+Waitlist after approval is denied.
 
 ### Parity result
 
@@ -40,11 +56,11 @@ Enforced in:
 
 **Intentional divergence (not edges):**
 
-| Area | Host | Denali workspace domain |
-| --- | --- | --- |
-| History append model | Not in repository (DB status column only) | `applyDenaliBookingTransition` + `DenaliBookingHistoryEntry` in `lifecycle.ts` |
-| Capacity gates on approve | `BookingsService` + `assertCapacityInTx` | `decideDenaliApprove` + `assertDenaliTransitionCapacity` |
-| Waitlist policy gate | Host capability / workspace binding | `denaliWaitlistAllowed(rule)` |
+| Area                      | Host                                      | Denali workspace domain                                                        |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| History append model      | Not in repository (DB status column only) | `applyDenaliBookingTransition` + `DenaliBookingHistoryEntry` in `lifecycle.ts` |
+| Capacity gates on approve | `BookingsService` + `assertCapacityInTx`  | `decideDenaliApprove` + `assertDenaliTransitionCapacity`                       |
+| Waitlist policy gate      | Host capability / workspace binding       | `denaliWaitlistAllowed(rule)`                                                  |
 
 Outbox semantics (CW0-04): approve / waitlist / cancel observable; reject silent — identical on both paths.
 
@@ -77,12 +93,12 @@ Host booking authorization and persistence **do not** import Denali `lifecycle.t
 
 ### Remaining consumers of Denali lifecycle module
 
-| Consumer | Role | CW4-04 disposition |
-| --- | --- | --- |
-| `operator-decisions.ts` | Pure workspace domain snapshots + capacity | **Compat** — uses `applyDenaliBookingTransition` (history model); edges delegated to contract |
-| `ops-actions.ts` | Ops action → decision map | **Compat** — no independent graph |
-| `packages/workspaces/denali/test/*` | Domain / journey specs | Test parity |
-| `test/parity/registration-lifecycle.golden.spec.mjs` | CW0-04 goldens | Switched to contract importers |
+| Consumer                                             | Role                                       | CW4-04 disposition                                                                            |
+| ---------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `operator-decisions.ts`                              | Pure workspace domain snapshots + capacity | **Compat** — uses `applyDenaliBookingTransition` (history model); edges delegated to contract |
+| `ops-actions.ts`                                     | Ops action → decision map                  | **Compat** — no independent graph                                                             |
+| `packages/workspaces/denali/test/*`                  | Domain / journey specs                     | Test parity                                                                                   |
+| `test/parity/registration-lifecycle.golden.spec.mjs` | CW0-04 goldens                             | Switched to contract importers                                                                |
 
 ### Workspace-retained (documented)
 

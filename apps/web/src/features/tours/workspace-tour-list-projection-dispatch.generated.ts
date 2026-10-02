@@ -38,6 +38,7 @@ function defaultExtractTourListProjection(_canonical: CanonicalDocument): TourLi
     uiStatus: "draft",
     priceAmount: null,
     priceCurrency: null,
+    paymentCollection: "offline",
     totalCapacity: null,
     acceptedCount: 0,
     category: null,

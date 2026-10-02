@@ -9,6 +9,8 @@ import type {
   TourUiStatus,
 } from "@app-tour/workspace-sdk";
 
+import { resolveDenaliPaymentCollectionMode } from "../finance/resolve-denali-payment-collection-mode";
+
 import {
   readDenaliCanonicalPhotoRows,
   readDenaliFirstPhotoHttpsUrl,
@@ -75,6 +77,7 @@ export function extractDenaliTourListProjection(
     uiStatus,
     priceAmount: readInteger(readCanonicalPath(data, "pricing.basePricePerPerson")),
     priceCurrency: DEFAULT_PRICE_CURRENCY,
+    paymentCollection: resolveDenaliPaymentCollectionMode(data),
     totalCapacity: readInteger(data.capacityMax),
     acceptedCount: 0,
     category: readString(data.category),

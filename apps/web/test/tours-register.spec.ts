@@ -6,7 +6,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { resolveTourRegisterGateState } from "../app/(app)/tours/[id]/register/tour-register-gate";
-import { buildBookingCreatePayload, validateBookingCreateForm } from "../src/features/bookings/bookings-create-logic";
+import {
+  buildBookingCreatePayload,
+  validateBookingCreateForm,
+} from "../src/features/bookings/bookings-create-logic";
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
 import {
   buildTourRegisterSuccessRedirect,
@@ -64,10 +67,7 @@ describe("tours-register.spec.ts — Phase 9.3 Web", () => {
     assert.ok(payload !== null);
     assert.equal(payload.tourId, TOUR_ID);
     assert.equal(payload.tourTitle, "Alpine Trek");
-    assert.equal(
-      buildTourRegisterSuccessRedirect(TOUR_ID),
-      `/tours/${TOUR_ID}/workspace`
-    );
+    assert.equal(buildTourRegisterSuccessRedirect(TOUR_ID), `/tours/${TOUR_ID}/workspace`);
   });
 
   it("WEB-9.3-R03 register gate locks members (CP-9.3-R03)", () => {
@@ -144,5 +144,41 @@ describe("tours-register.spec.ts — Phase 9.3 Web", () => {
       assert.equal(validation.field, "guestLabel");
       assert.equal(validation.message, "GUEST_REQUIRED");
     }
+  });
+
+  it("rejects a party larger than the Denali per-registration limit", () => {
+    const detail = mapTourDetailToCreateOption({
+      id: TOUR_ID,
+      tenantId: "tenant-1",
+      rowVersion: 1,
+      canonical: { data: {} },
+      projection: {
+        id: TOUR_ID,
+        tenantId: "tenant-1",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        rowVersion: 1,
+        title: "Capacity test",
+        shortDescription: null,
+        listStatus: "active",
+        uiStatus: "active",
+        priceAmount: null,
+        priceCurrency: null,
+        totalCapacity: 100,
+        acceptedCount: 0,
+        category: null,
+        coverImageUrl: null,
+        departureAt: "2026-09-01T00:00:00.000Z",
+      },
+    });
+    const validation = validateBookingCreateForm(
+      { ...initRegisterFormFromTour(detail), guestLabel: "Group", partySize: "100" },
+      [detail]
+    );
+    assert.deepEqual(validation, {
+      ok: false,
+      field: "partySize",
+      message: "PARTY_SIZE_OVER_MAX",
+    });
   });
 });

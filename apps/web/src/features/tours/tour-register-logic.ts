@@ -1,4 +1,7 @@
-import type { BookingCreateFormState, BookingCreateTourOption } from "@/features/bookings/bookings-create-types";
+import type {
+  BookingCreateFormState,
+  BookingCreateTourOption,
+} from "@/features/bookings/bookings-create-types";
 import { departureInputFromTour } from "@/features/bookings/bookings-create-logic";
 
 import type { OperatorTourDetailResponse } from "./operator-tour-detail-types";
@@ -12,6 +15,20 @@ export function mapTourDetailToCreateOption(
     title: detail.projection.title,
     departureAt: detail.projection.departureAt,
   };
+}
+
+export function resolveTourRegistrationApprovalMode(
+  detail: OperatorTourDetailResponse
+): "manual" | "auto" {
+  const data = detail.canonical.data as Record<string, unknown>;
+  const read = (root: string): unknown => {
+    const value = data[root];
+    return value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>).registrationApproval
+      : undefined;
+  };
+  const raw = read("pricing") ?? read("pricingPayment");
+  return raw === "auto" ? "auto" : "manual";
 }
 
 export function initRegisterFormFromTour(tour: BookingCreateTourOption): BookingCreateFormState {

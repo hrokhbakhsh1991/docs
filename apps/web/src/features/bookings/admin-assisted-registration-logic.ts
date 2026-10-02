@@ -1,4 +1,5 @@
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
+import { MAX_BOOKING_PARTY_SIZE } from "./bookings-create-types";
 
 export type WorkspaceRegistrationTransportMode =
   | "none"
@@ -242,6 +243,9 @@ export function validateAdminAssistedRegistrationStep(input: {
     const partySize = Number(form.partySize);
     if (!Number.isFinite(partySize) || partySize <= 0) {
       return { ok: false, field: "partySize", message: "PARTY_SIZE_INVALID" };
+    }
+    if (partySize > MAX_BOOKING_PARTY_SIZE) {
+      return { ok: false, field: "partySize", message: "PARTY_SIZE_OVER_MAX" };
     }
     if (requirements.capacityMax !== null && partySize > requirements.capacityMax) {
       return { ok: false, field: "partySize", message: "PARTY_SIZE_OVER_CAPACITY" };

@@ -6,6 +6,7 @@ import {
   buildBookingsSummaryApiQuery,
   parseBookingsCommandCenterQuery,
 } from "@/features/bookings/bookings-command-center-logic";
+import { BOOKINGS_LIST_PAGE_SIZE } from "@/features/bookings/bookings-command-center-types";
 import {
   isAdminOrOwnerRole,
   resolveBookingsViewForRole,
@@ -59,7 +60,10 @@ export default async function OperatorBookingsPage({ searchParams }: OperatorBoo
     view: resolveBookingsViewForRole(session.role, parsedQuery.view),
   };
   const initialPrefetch = await fetchBookingsServerPrefetch(
-    buildBookingsApiQuery(query),
+    buildBookingsApiQuery(query, {
+      cursor: query.page > 1 ? query.listCursor : undefined,
+      limit: BOOKINGS_LIST_PAGE_SIZE,
+    }),
     isAdminOrOwnerRole(session.role),
     buildBookingsSummaryApiQuery(query)
   );

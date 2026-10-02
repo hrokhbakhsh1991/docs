@@ -461,7 +461,12 @@ export class BookingsService {
     this.authorization.assertOpsAccess(auth);
     this.assertOperatorCreateCapability();
     const submittedByUserId = await this.resolveSubmittedByUserIdForOperatorCreate(auth, body);
-    return this.executeCreatePipeline(auth, body, submittedByUserId);
+    // Operator-created records must exist before approval decides capacity. This
+    // lets an auto-approval flow move the same record to waitlisted instead of
+    // turning a capacity conflict into a misleading duplicate error.
+    return this.executeCreatePipeline(auth, body, submittedByUserId, undefined, {
+      enforceCapacityAtCreate: false,
+    });
   }
 
   async sumApprovedPartySizeByTourIds(
@@ -523,7 +528,10 @@ export class BookingsService {
   ): Promise<CreateBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.assertPublicCreateCapability();
-    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent, "waitlisted");
+    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent, {
+      initialStatus: "waitlisted",
+      enforceCapacityAtCreate: false,
+    });
   }
 
   private async resolveSubmittedByUserIdForOperatorCreate(
@@ -584,10 +592,15 @@ export class BookingsService {
     body: CreateBookingRequest,
     submittedByUserId: string,
     outboxEvent?: BookingPublicOutboxEvent,
-    initialStatus: "pending" | "waitlisted" = "pending"
+    options: {
+      readonly initialStatus?: "pending" | "waitlisted";
+      readonly enforceCapacityAtCreate?: boolean;
+    } = {}
   ): Promise<CreateBookingResponse> {
     const started = performance.now();
     try {
+      const initialStatus = options.initialStatus ?? "pending";
+      const enforceCapacityAtCreate = options.enforceCapacityAtCreate ?? true;
       this.assertCreatePolicyCapabilityLevels();
       const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
         auth.tenantId,
@@ -624,7 +637,7 @@ export class BookingsService {
         tenantId: auth.tenantId,
         submittedByUserId,
         body: securedBody,
-        ...(initialStatus === "pending"
+        ...(initialStatus === "pending" && enforceCapacityAtCreate
           ? {
               assertCapacityInTx: (ctx: {
                 readonly tourId: string;

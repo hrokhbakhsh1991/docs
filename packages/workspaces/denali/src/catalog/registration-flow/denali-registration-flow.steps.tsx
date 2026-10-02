@@ -581,6 +581,14 @@ export function DenaliIntakeStep({
       | { readonly target: "self"; readonly draft: ParticipantDraft; readonly idx: 0 }
       | { readonly target: "other"; readonly draft: ParticipantDraft; readonly idx: number };
 
+    type PreparedParticipant = {
+      readonly participant: ParticipantToPost;
+      readonly merged: Readonly<Record<string, string>>;
+      readonly transportPayload: ReturnType<typeof transportSurface.buildPayload>;
+      readonly guestPhone: string;
+      readonly email: string;
+    };
+
     const participants: ParticipantToPost[] = [];
     // Never POST self when the gate already knows an active self registration.
     if (selfSelected && !selfTabLocked) {
@@ -610,6 +618,10 @@ export function DenaliIntakeStep({
         return;
       }
 
+      // Validate every participant before the first POST. A previous version
+      // posted self successfully and only then discovered a missing guest
+      // phone, leaving a partial multi-participant registration behind.
+      const preparedParticipants: PreparedParticipant[] = [];
       for (const p of participants) {
         const target = p.target;
         const intakeContextForTarget = resolveIntakeContext(target);
@@ -677,13 +689,27 @@ export function DenaliIntakeStep({
           p.draft.transportState
         );
 
-        // Denali registers one participant per submission.
-        const partySize = 1;
         const guestPhone =
           target === "other"
             ? (((merged.phone ?? p.draft.intakePhone) as string) ?? "").trim()
             : "";
         const email = (((merged.email ?? data.sessionEmail) as string) ?? "").trim();
+
+        preparedParticipants.push({
+          participant: p,
+          merged,
+          transportPayload,
+          guestPhone,
+          email,
+        });
+      }
+
+      // Denali registers one participant per submission. All requests start
+      // only after the complete batch has passed client-side validation.
+      for (const prepared of preparedParticipants) {
+        const { participant: p, merged, transportPayload, guestPhone, email } = prepared;
+        const target = p.target;
+        const partySize = 1;
 
         const idempotencyKey = `portal-denali-reg-${context.tourId}-${target}-${p.idx}-${submitSeed}`;
         const res = await fetch("/api/catalog/registrations", {

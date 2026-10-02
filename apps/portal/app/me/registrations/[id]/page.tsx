@@ -220,7 +220,11 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
-        <MemberCancellationPanel registrationId={row.id} registrationStatus={lifecycleStatus} />
+        <MemberCancellationPanel
+          registrationId={row.id}
+          registrationStatus={lifecycleStatus}
+          paymentCollection={financialProjection.paymentCollection}
+        />
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}

@@ -375,6 +375,7 @@
       "GUEST_REQUIRED": "نام شخص را وارد کنید.",
       "PHONE_REQUIRED": "موبایل معتبر وارد کنید.",
       "PARTY_SIZE_INVALID": "تعداد نفرات معتبر نیست.",
+      "PARTY_SIZE_OVER_MAX": "در هر ثبت‌نام حداکثر ۲۰ نفر مجاز است. برای افراد بیشتر، چند ثبت‌نام جدا ایجاد کنید.",
       "PARTY_SIZE_OVER_CAPACITY": "تعداد نفرات از ظرفیت تور بیشتر است.",
       "NATIONAL_ID_REQUIRED": "کد ملی معتبر وارد کنید.",
       "FATHER_NAME_REQUIRED": "نام پدر الزامی است.",

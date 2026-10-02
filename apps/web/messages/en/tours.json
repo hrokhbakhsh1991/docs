@@ -120,7 +120,8 @@
   },
   "format": {
     "seatsWithCapacity": "{accepted, number}/{capacity, number} seats",
-    "seatsOpen": "{accepted, number} registered"
+    "seatsOpen": "{accepted, number} registered",
+    "freeCollection": "Free / no payment required"
   },
   "edit": {
     "notFound": "Tour not found.",
@@ -182,11 +183,13 @@
     "emailOptional": "Email (optional)",
     "phoneOptional": "Phone (optional)",
     "submit": "Create pending registration",
+    "submitAuto": "Create automatic registration",
     "errors": {
       "TOUR_REGISTER_FETCH_FAILED": "Failed to load tour.",
       "TOUR_REGISTER_INVALID": "Invalid form data.",
       "GUEST_REQUIRED": "Guest name is required.",
       "TOUR_REGISTER_FORBIDDEN": "You are not allowed to register guests.",
+      "PARTY_SIZE_OVER_MAX": "Each registration can include at most 20 people. Create separate registrations for more people.",
       "TOUR_REGISTER_FAILED": "Registration failed.",
       "TOUR_REGISTER_HTTP_400": "Invalid registration request.",
       "TOUR_REGISTER_HTTP_403": "You are not allowed to register guests.",
