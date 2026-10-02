@@ -364,6 +364,7 @@ type TourListProjectionFields = {
   readonly uiStatus: TourUiStatus; // draft|active|archived
   readonly priceAmount: number | null;
   readonly priceCurrency: string | null;
+  readonly paymentCollection: "offline" | "free"; // missing/unknown values resolve to offline
   readonly totalCapacity: number | null;
   readonly acceptedCount: number;
   readonly category: string | null;

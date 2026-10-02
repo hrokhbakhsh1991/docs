@@ -30,6 +30,8 @@ export type TourListProjectionFields = {
   readonly uiStatus: TourUiStatus;
   readonly priceAmount: number | null;
   readonly priceCurrency: string | null;
+  /** Canonical collection policy used by operator-directory presentation. */
+  readonly paymentCollection: "offline" | "free";
   readonly totalCapacity: number | null;
   readonly acceptedCount: number;
   readonly category: string | null;

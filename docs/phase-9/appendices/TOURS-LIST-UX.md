@@ -147,6 +147,7 @@ export type TourListProjection = {
   readonly uiStatus: "draft" | "active" | "archived"; // card badge bucket
   readonly priceAmount: number | null; // normalized USD or tenant currency minor units
   readonly priceCurrency: string | null; // ISO 4217
+  readonly paymentCollection: "offline" | "free"; // canonical collection policy; unknown/missing resolves to offline
   readonly totalCapacity: number | null;
   readonly acceptedCount: number; // 0 until 9.5 registration index; stub 0 in 9.3-L-R1
   readonly category: string | null;
@@ -209,6 +210,7 @@ sequenceDiagram
 | `listStatus`       | `details.status` → normalizer                      |
 | `priceAmount`      | `costContext.totalAmount` or plugin price resolver |
 | `totalCapacity`    | `capacityMax`                                      |
+| `paymentCollection` | `pricing.paymentCollection`; legacy `pricing.requiresPayment=false` maps to `free`, otherwise `offline` |
 | `category`         | `category`                                         |
 | `coverImageUrl`    | First photo `url` (HTTPS) or server-signed MinIO read URL from first photo `storageKey` — rows from flat `photos[]` **or** legacy persisted `photosData.photos` (same paths as edit hydrate) |
 | `coverImageStorageKey` | First photo `storageKey` when URL not yet resolved — operator BFF fallback (`2026-06-24`) |
@@ -216,7 +218,10 @@ sequenceDiagram
 
 > **Trunk note (2026-06-08):** Denali canonical persists `publishStatus` (`draft` \| `active`) at the top-level `data` root — not legacy `details.status`. `extractTourListProjection` maps `publishStatus` → `listStatus` / `uiStatus` per §4.1 bucket table until lifecycle FSM lands.
 
-Starter workspace uses `basics.title` — plugin hook keeps API workspace-agnostic.
+Starter workspace uses `basics.title` — plugin hook keeps API workspace-agnostic. The operator directory uses
+`paymentCollection` only to choose its display label: `free` renders the localized free/no-payment label while
+`offline` preserves the existing internal price display. `priceAmount` remains available for internal configuration
+and is not removed from the canonical document or API.
 
 ### 4.6 Trunk implementation (S9.3-L-R0)
 

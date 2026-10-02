@@ -33,6 +33,7 @@ import {
 } from "../src/features/tours/tour-list-category-logic";
 import {
   formatTourDeparture,
+  formatTourListPrice,
   formatTourPrice,
   formatTourSeats,
 } from "../src/features/tours/tour-list-formatters";
@@ -308,6 +309,28 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(formatTourSeats({ acceptedCount: 3, totalCapacity: 12 }), "3/12 seats");
   });
 
+  it("WEB-TL-PRICE-01 free collection hides the internal base price", () => {
+    const tomanPolicy = { irrDisplayUnit: "toman" as const };
+    assert.equal(
+      formatTourListPrice(
+        { paymentCollection: "free", priceAmount: 2_500_000, priceCurrency: "IRR" },
+        "fa",
+        "رایگان / بدون نیاز به پرداخت",
+        tomanPolicy
+      ),
+      "رایگان / بدون نیاز به پرداخت"
+    );
+    assert.equal(
+      formatTourListPrice(
+        { paymentCollection: "offline", priceAmount: 2_500_000, priceCurrency: "IRR" },
+        "fa",
+        "رایگان / بدون نیاز به پرداخت",
+        tomanPolicy
+      ),
+      `${formatLocalizedNumber(2_500_000, "fa")} تومان`
+    );
+  });
+
   it("ED-CURR-01 Denali IRR operator price uses toman label without conversion", () => {
     const tomanPolicy = { irrDisplayUnit: "toman" as const };
     assert.equal(formatTourPrice(1200, "IRR", "en", tomanPolicy), "1,200 toman");
@@ -367,6 +390,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     const messages = await loadAppMessages("fa");
     const format = messages.tours.format as {
       seatsWithCapacity: string;
+      freeCollection: string;
       seatsOpen: string;
     };
     const seatsLabel = formatTourSeats(
@@ -384,6 +408,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       seatsLabel,
       `${formatLocalizedNumber(3, "fa")}/${formatLocalizedNumber(12, "fa")} نفر`
     );
+    assert.equal(format.freeCollection, "رایگان / بدون نیاز به پرداخت");
     const faPrice = formatTourPrice(1200, "USD", "fa");
     assert.notEqual(faPrice, "$1,200");
     assert.equal(faPrice?.includes("۲۰۰") ?? faPrice?.includes("200"), true);

@@ -120,7 +120,8 @@
   },
   "format": {
     "seatsWithCapacity": "{accepted, number}/{capacity, number} نفر",
-    "seatsOpen": "{accepted, number} ثبت‌نام"
+    "seatsOpen": "{accepted, number} ثبت‌نام",
+    "freeCollection": "رایگان / بدون نیاز به پرداخت"
   },
   "edit": {
     "notFound": "تور پیدا نشد.",
@@ -182,11 +183,13 @@
     "emailOptional": "ایمیل (اختیاری)",
     "phoneOptional": "تلفن (اختیاری)",
     "submit": "ایجاد ثبت‌نام در انتظار",
+    "submitAuto": "ثبت‌نام خودکار",
     "errors": {
       "TOUR_REGISTER_FETCH_FAILED": "بارگذاری تور ناموفق بود.",
       "TOUR_REGISTER_INVALID": "اطلاعات فرم نامعتبر است.",
       "GUEST_REQUIRED": "نام مهمان الزامی است.",
       "TOUR_REGISTER_FORBIDDEN": "اجازه ثبت‌نام ندارید.",
+      "PARTY_SIZE_OVER_MAX": "در هر ثبت‌نام حداکثر ۲۰ نفر مجاز است. برای افراد بیشتر، چند ثبت‌نام جدا ایجاد کنید.",
       "TOUR_REGISTER_FAILED": "ثبت‌نام ناموفق بود.",
       "TOUR_REGISTER_HTTP_400": "درخواست ثبت‌نام نامعتبر است.",
       "TOUR_REGISTER_HTTP_403": "اجازه ثبت‌نام ندارید.",

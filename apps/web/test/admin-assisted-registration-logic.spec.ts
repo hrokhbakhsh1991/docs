@@ -209,4 +209,18 @@ describe("admin-assisted-registration-logic", () => {
       { kind: "personal_car", personalCarOccupants: 0 }
     );
   });
+
+  it("rejects a party larger than the per-registration contract", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
+    const form = {
+      ...createDefaultAdminAssistedRegistrationForm(requirements),
+      memberUserId: "user-42",
+      memberDisplayName: "Member Guest",
+      partySize: "100",
+    };
+    assert.deepEqual(
+      validateAdminAssistedRegistrationStep({ step: "identity", requirements, form }),
+      { ok: false, field: "partySize", message: "PARTY_SIZE_OVER_MAX" }
+    );
+  });
 });

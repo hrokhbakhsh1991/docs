@@ -13,6 +13,9 @@ export type BookingCreateTourOption = {
   readonly departureAt: string | null;
 };
 
+/** Denali product contract: one registration may contain at most 20 people. */
+export const MAX_BOOKING_PARTY_SIZE = 20;
+
 export type BookingCreateResponse = {
   readonly id?: string;
   readonly status?: string;

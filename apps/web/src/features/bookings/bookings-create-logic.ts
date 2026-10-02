@@ -1,4 +1,8 @@
-import type { BookingCreateFormState, BookingCreateTourOption } from "./bookings-create-types";
+import {
+  MAX_BOOKING_PARTY_SIZE,
+  type BookingCreateFormState,
+  type BookingCreateTourOption,
+} from "./bookings-create-types";
 
 export type BookingCreateValidationResult =
   | { readonly ok: true }
@@ -21,6 +25,9 @@ export function validateBookingCreateForm(
   const partySize = Number(form.partySize);
   if (!Number.isFinite(partySize) || partySize <= 0) {
     return { ok: false, field: "partySize", message: "PARTY_SIZE_INVALID" };
+  }
+  if (partySize > MAX_BOOKING_PARTY_SIZE) {
+    return { ok: false, field: "partySize", message: "PARTY_SIZE_OVER_MAX" };
   }
   if (form.departureAt.trim().length === 0) {
     return { ok: false, field: "departureAt", message: "DEPARTURE_REQUIRED" };

@@ -12,6 +12,7 @@ export type TourListProjection = {
   readonly uiStatus: TourUiStatus;
   readonly priceAmount: number | null;
   readonly priceCurrency: string | null;
+  readonly paymentCollection: "offline" | "free";
   readonly totalCapacity: number | null;
   readonly acceptedCount: number;
   readonly category: string | null;

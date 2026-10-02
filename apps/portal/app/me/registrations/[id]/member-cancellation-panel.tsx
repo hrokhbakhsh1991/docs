@@ -21,9 +21,14 @@ type CancellationEligibility = {
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: string;
+  readonly paymentCollection?: "offline" | "free";
 };
 
-export function MemberCancellationPanel({ registrationId, registrationStatus }: Props) {
+export function MemberCancellationPanel({
+  registrationId,
+  registrationStatus,
+  paymentCollection = "offline",
+}: Props) {
   const t = useTranslations("portalMember.cancellation");
   const router = useRouter();
   const [eligibility, setEligibility] = useState<CancellationEligibility | null>(null);
@@ -79,7 +84,7 @@ export function MemberCancellationPanel({ registrationId, registrationStatus }: 
 
   return (
     <section data-portal-member-cancel data-portal-member-cancel-eligible={eligibility.eligible}>
-      {eligibility.refund !== undefined ? (
+      {eligibility.refund !== undefined && paymentCollection !== "free" ? (
         <p data-portal-member-refund-eligible={eligibility.refund.eligibleRefundMinor}>
           {t("refundEligible", {
             amount: formatMemberMoney(
@@ -92,7 +97,11 @@ export function MemberCancellationPanel({ registrationId, registrationStatus }: 
       {eligibility.eligible ? (
         <>
           <p data-portal-member-cancel-hint>
-            {eligibility.mode === "request" ? t("requestHint") : t("withdrawHint")}
+            {eligibility.mode === "request"
+              ? paymentCollection === "free"
+                ? t("freeRequestHint")
+                : t("requestHint")
+              : t("withdrawHint")}
           </p>
           <button
             type="button"
