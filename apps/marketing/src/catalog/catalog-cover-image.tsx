@@ -18,6 +18,8 @@ export type CatalogCoverImageProps = {
   readonly sizes?: string;
   /** Optional smaller fallback for dense card surfaces; detail views keep the default. */
   readonly fallbackSrc?: string;
+  /** Mark the image as the full-size catalog lightbox surface. */
+  readonly lightbox?: boolean;
 };
 
 const DEFAULT_CATALOG_COVER_FALLBACK = "/home/fallback-tour-cover.webp";
@@ -31,6 +33,7 @@ export function CatalogCoverImage({
   priority = false,
   sizes,
   fallbackSrc,
+  lightbox = false,
 }: CatalogCoverImageProps) {
   const normalizedFallbackSrc = fallbackSrc?.trim() || DEFAULT_CATALOG_COVER_FALLBACK;
   const requestedSrc = src.trim();
@@ -57,6 +60,7 @@ export function CatalogCoverImage({
       priority={priority}
       sizes={sizes}
       data-marketing-catalog-cover
+      {...(lightbox ? { "data-marketing-catalog-detail-photo-lightbox-image": true } : {})}
       onError={() => {
         if (!isFallback) {
           setImageSrc(normalizedFallbackSrc);

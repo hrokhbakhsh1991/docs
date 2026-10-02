@@ -52,6 +52,7 @@ describe("home-gallery.spec.ts", () => {
       "packages/workspaces/denali/theme/marketing/home/destinations.css"
     );
     const lightbox = readSrc("apps/marketing/src/catalog/catalog-tour-detail-photo-lightbox.tsx");
+    const coverImage = readSrc("apps/marketing/src/catalog/catalog-cover-image.tsx");
 
     assert.match(aggregator, /@import "\.\/home\/hero\.css"/);
     assert.match(aggregator, /@import "\.\/home\/programs\.css"/);
@@ -69,5 +70,8 @@ describe("home-gallery.spec.ts", () => {
     assert.doesNotMatch(why, /data-marketing-home-gallery/);
     assert.doesNotMatch(destinations, /data-marketing-home-gallery/);
     assert.match(lightbox, /data-marketing-catalog-detail-photo-lightbox/);
+    assert.match(lightbox, /CatalogCoverImage/);
+    assert.doesNotMatch(lightbox, /<img[\s\S]*activePhoto\.src/);
+    assert.match(coverImage, /data-marketing-catalog-detail-photo-lightbox-image/);
   });
 });

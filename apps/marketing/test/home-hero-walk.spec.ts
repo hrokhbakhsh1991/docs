@@ -116,6 +116,11 @@ describe("home-hero-walk.spec.ts", () => {
       "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css"
     );
     assert.match(css, /data-marketing-home-hero-walk/);
+    assert.match(
+      css,
+      /@media \(min-width: 48\.01rem\)[\s\S]*?height: clamp\(24rem, 42\.85vw, 100svh\);/
+    );
+    assert.match(css, /div\[data-marketing-home-hero-layout\][\s\S]*?min-height: 100%;/);
     assert.doesNotMatch(css, /data-marketing-header-overlay/);
     assert.match(overlay, /data-marketing-header-overlay/);
     assert.match(overlay, /gap: 5px/);

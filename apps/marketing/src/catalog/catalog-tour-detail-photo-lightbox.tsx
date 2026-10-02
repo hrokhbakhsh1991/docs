@@ -16,6 +16,7 @@ import {
 } from "react";
 
 import type { CatalogTourPhotoItem } from "./build-catalog-tour-photo-items";
+import { CatalogCoverImage } from "./catalog-cover-image";
 
 export type CatalogTourDetailPhotoLightboxLabels = Readonly<{
   readonly close: string;
@@ -193,11 +194,13 @@ export function CatalogTourDetailPhotoLightbox({
                 <p data-marketing-catalog-detail-photo-lightbox-counter>{counterLabel}</p>
               </>
             ) : null}
-            {/* Full-resolution source in modal — display size only in page grid */}
-            <img
+            {/* Keep the modal on the same proxy-safe image path as the page grid. */}
+            <CatalogCoverImage
               src={activePhoto.src}
               alt={activePhoto.alt}
-              data-marketing-catalog-detail-photo-lightbox-image
+              width={1920}
+              height={1080}
+              lightbox
             />
           </div>
         ) : null}
