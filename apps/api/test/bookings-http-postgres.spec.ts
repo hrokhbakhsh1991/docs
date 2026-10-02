@@ -136,6 +136,7 @@ describe(
     const tourId = randomUUID();
     const operatorA = randomUUID();
     const operatorB = randomUUID();
+    const extraTourIds: string[] = [];
     let admin: PrismaClient;
     const listener = createRequestListener();
 
@@ -220,7 +221,7 @@ describe(
           await admin.outboxEvent.deleteMany({ where: { tenantId } });
           await admin.operatorRegistration.deleteMany({ where: { tenantId } });
         }
-        await admin.tour.deleteMany({ where: { id: tourId } });
+        await admin.tour.deleteMany({ where: { id: { in: [tourId, ...extraTourIds] } } });
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await admin.$disconnect();
@@ -282,11 +283,7 @@ describe(
     // ─── 1. POST /bookings ───────────────────────────────────────────────
 
     it("C1 POST /bookings valid create → 201 + Prisma row", async () => {
-      const response = await httpCreate(
-        tenantA,
-        operatorA,
-        createBody({ guestLabel: "C1 Guest" })
-      );
+      const response = await httpCreate(tenantA, operatorA, createBody({ guestLabel: "C1 Guest" }));
       assert.equal(response.status, 201, JSON.stringify(response.body));
       assert.equal(typeof response.body.id, "string");
       assert.equal(response.body.status, "pending");
@@ -317,10 +314,11 @@ describe(
       assert.equal(after, before);
     });
 
-    it("C3 POST /bookings capacity failure → 409 BOOKING_CAPACITY_REJECTED", async () => {
-      // Dedicated tour SoT capacityMax=2 — shared cert tour is capacity 20 and would
-      // skip the intake-only reject path; also avoid operatorA colliding with C1.
+    it("C3 POST /bookings defers capacity decision until approval", async () => {
+      // Operator-created records are accepted before approval so the same record
+      // can be moved to waitlist instead of being lost at intake.
       const capacityTourId = randomUUID();
+      extraTourIds.push(capacityTourId);
       await admin.tour.create({
         data: {
           id: capacityTourId,
@@ -354,12 +352,20 @@ describe(
           tourId: capacityTourId,
         })
       );
-      assert.equal(response.status, 409, JSON.stringify(response.body));
-      assert.equal(response.body.code, "BOOKING_CAPACITY_REJECTED");
-      assert.match(String(response.body.error ?? ""), /BOOKING_CAPACITY_REJECTED/);
+      assert.equal(response.status, 201, JSON.stringify(response.body));
+      assert.equal(response.body.status, "pending");
+      assert.equal(typeof response.body.id, "string");
+      const approval = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${response.body.id as string}/approve`,
+        tenantId: tenantA,
+        userId: operatorA,
+      });
+      assert.equal(approval.status, 409, JSON.stringify(approval.body));
+      assert.equal(approval.body.code, "BOOKING_CAPACITY_REJECTED");
+      assert.match(String(approval.body.error ?? ""), /BOOKING_CAPACITY_REJECTED/);
       const after = await admin.operatorRegistration.count({ where: { tenantId: tenantA } });
-      assert.equal(after, before);
-      await admin.tour.deleteMany({ where: { id: capacityTourId } });
+      assert.equal(after, before + 1);
     });
 
     // ─── 2. POST /bookings/:id/approve ───────────────────────────────────
@@ -586,10 +592,7 @@ describe(
       assert.equal((response.body.approvedIds as string[]).length, 2);
       assert.ok(Array.isArray(response.body.skippedIds));
       assert.equal((response.body.skippedIds as string[]).length, 0);
-      assert.equal(
-        Object.keys(response.body).sort().join(","),
-        "approvedIds,skippedIds"
-      );
+      assert.equal(Object.keys(response.body).sort().join(","), "approvedIds,skippedIds");
 
       for (const id of [a, b]) {
         const row = await admin.operatorRegistration.findUnique({ where: { id } });
@@ -622,9 +625,7 @@ describe(
       assert.equal(response.status, 200, JSON.stringify(response.body));
       assert.ok(Array.isArray(response.body.items));
       assert.equal(typeof response.body.total, "number");
-      assert.ok(
-        response.body.nextCursor === null || typeof response.body.nextCursor === "string"
-      );
+      assert.ok(response.body.nextCursor === null || typeof response.body.nextCursor === "string");
 
       const items = response.body.items as Array<Record<string, unknown>>;
       assert.ok(items.some((item) => item.id === id));

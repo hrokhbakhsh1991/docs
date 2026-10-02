@@ -45,6 +45,11 @@ capacity gate. A failed approval must then transition that same record to
 capacity is distinct from `BOOKING_GUEST_DUPLICATE` and must never be rendered
 as a duplicate-registration message.
 
+This deferred capacity gate applies to operator-assisted creation only; public
+creation keeps rejecting an over-capacity request at intake, while the
+operator-created pending record is the one that can be explicitly moved to
+Waitlist after approval is denied.
+
 ### Parity result
 
 **FULL PARITY** on transition edges. No semantic mismatch between host repository guards and the Denali graph.
