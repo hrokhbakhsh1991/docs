@@ -63,6 +63,7 @@ import {
 } from "./identity-list-projection";
 import {
   buildUserTenantDirectoryWhere,
+  USER_ID_PATTERN,
   type UsersDirectoryListFilters,
 } from "./users-directory-list-projection";
 import type { UsersListQuery } from "./users.types";
@@ -194,6 +195,10 @@ function buildDirectorySqlConditions(
   if (search !== undefined && search.length > 0) {
     const mobilePatterns = buildIranMobileSearchPatterns(search);
     const namePattern = `%${search}%`;
+    if (USER_ID_PATTERN.test(search)) {
+      conditions.push(Prisma.sql`CAST(u.id AS TEXT) = ${search}`);
+      return conditions;
+    }
     if (mobilePatterns.length > 1) {
       conditions.push(
         Prisma.sql`(${Prisma.join(
