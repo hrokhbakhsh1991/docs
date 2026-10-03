@@ -114,7 +114,7 @@ Detail `/me/registrations/{id}` is the **only** member money surface. It combine
 
 **Money SoT:** if `remainingMinor > 0`, status is **never** `paid` or `waived`. Latest receipt then decides `pending` / `rejected` / `none` (Approved-but-remaining → `none`, upload the rest).
 
-**Settled (`remainingMinor` is 0):** `waived` when collection is `free` or resolved obligation is zero (ops override / club guest — **no** “receipt confirmed” copy). Otherwise `paid` (money actually captured).
+**Settled (`remainingMinor` is 0):** `waived` when collection is `free` or resolved obligation is zero (ops override / club guest — **no** “receipt confirmed” copy). Otherwise `paid` (money actually captured). Settlement does not imply attendance finalization: an approved `paid` registration with `finalizationStatus=not_final` must use explicit “payment complete; awaiting operator finalization” copy in both the list and detail; only `finalizationStatus=finalized` may use “trip finalized/confirmed” copy.
 
 Do **not** set portal `initialStatus` from `row.paymentStatus === "paid"`.
 

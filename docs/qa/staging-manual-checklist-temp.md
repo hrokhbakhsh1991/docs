@@ -818,6 +818,14 @@ and Denali registration detail service.
 - PDP رایگان `c3a3c778-99ab-4750-8dc6-3172fa5ce034` با `HTTP 200`، `cache-control: private, no-cache, no-store` و `x-cache: BYPASS` پاسخ داد، اما register preview هنوز `روش پرداخت: رسید / پرداخت آفلاین` و `تأیید ثبت‌نام: دستی` دارد؛ marker رایگان اصلاح‌شده در خروجی واقعی detail دیده نشد.
 - PLP با `/tours?minPrice=0&sort=price_asc` نیز `HTTP 200` و `x-cache: BYPASS` داد، اما هنوز `۱۳ مورد در این صفحه` دارد و fixture رایگان در grid خروجی نبود.
 - `/health` با `HTTP 200` پاسخ داد اما SHA artifact را ارائه نکرد.
+
+## Denali catalog source retest after draft-engine build — ۲۰۲۶-۱۰-۰۳
+
+- dependency قبلی `@app-tour/draft-engine` با `pnpm --filter @app-tour/draft-engine run build` ساخته شد؛ خطای missing `dist/index.js` دیگر بازتولید نشد.
+- تست‌های focused Marketing برای PDP facts، transport/dong و waitlist با این دستور اجرا شدند:
+  `pnpm --filter @apps/marketing exec node --import tsx --test test/resolve-marketing-tour-detail-cta.spec.ts test/build-catalog-tour-detail-facts.spec.ts`
+- نتیجه: `۱۶/۱۶ PASS`؛ شامل `PR-D-FACTS-03` برای نمایش transport و cost و `MKT-PCMS-P3-06` برای waitlist.
+- نتیجهٔ closure: `BUG-STG-081/082` در source و contract پوشش دارند، اما closure نهایی runtime هنوز به deploy همین commit و retest PLP/PDP با artifact SHA واقعی نیاز دارد.
 - آخرین workflow deploy staging همچنان run `36273529557` روی SHA `a37f38cd89576b17b07808c45279788eab63b3a1` است؛ PR head `e8a15c965e4bf619e7776b5cdc0de00b919f0595` deploy نشده است.
 
 نتیجه: sweep read-only ادامه یافت و failure فعلی دوباره ثبت شد؛ این failure همچنان به artifact قدیمی نسبت داده می‌شود، نه به source HEAD اصلاحی. ریتست با SHA اصلاحی بعد از deploy باقی است.
@@ -3559,3 +3567,15 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - permission/audit/notification/cache: اکشن جدید باید actor، زمان، event، invalidation و refresh همهٔ projectionها را ثبت کند.
 
 **نتیجه:** این تغییر یک feature/state-contract جدید است؛ patch صرفاً روی دکمه یا شرط UI کافی نیست.
+
+## 2026-10-03 — current deployment Excel artifact closure
+
+- Deployment evidence: workflow run `37126024379`, release SHA `e42ece7072a7125eec178a98d8afb68ef2c70029`, `INSTALL_ARTIFACT_OK` recorded in the deploy log, and `STAGING_ARTIFACT_DIGEST=3fb8c5ba9de3f1c605d2d6b3eb27ff4489eca1196a74ceccdc3aa072e9c38006`; the `current` symlink points to the same release.
+- Runtime: authenticated read-only export from `https://admin.denali.shenski.com/tours/31139b4a-f65b-4ef7-b727-42283294faa5/workspace?tab=transport`, tour `QA 2026 Member Discount` (`31139b4a-f65b-4ef7-b727-42283294faa5`).
+- Downloaded artifact: `denali-final-roster-20261003193624.xlsx`, SHA-256 `4983E09FCFBD29A93353A8B2D1B6B65F7CF6C0ED6D0A78C97449399AE7B5C881`.
+- Workbook read-only parse: five sheets were present — `خلاصه گزارش`, `لیست نهایی`, `منتظر پرداخت`, `پرداخت‌شده`, and `بدون دریافت وجه`; no browser console errors were observed.
+- `BUG-STG-EXPORT-SUMMARY`: **PASS**. Summary reported `۳` finalized, `۳` paid, `۰` without payment, `۱` debtor/partial, finalized total `۷٬۵۰۰٬۰۰۰ تومان`, finalized paid `۷٬۵۰۰٬۰۰۰ تومان`, finalized remaining `۰ تومان`, and outstanding remaining `۱٬۲۵۰٬۰۰۰ تومان`.
+- `BUG-STG-014`: **PASS**. Exported monetary values use `تومان`; no raw `ریال` value was present.
+- `BUG-STG-015`: **PASS**. `نوع حمل‌ونقل` exists in the final and payment sheets and contains `حمل سازمان‌یافته`.
+- `BUG-STG-016`: **PASS**. `تاریخ نهایی‌شدن` exists; finalized rows contain timestamps and the pending row contains `—`.
+- Excel evidence gate for the current deployment: **PASS**. Together with the recorded deployment, cache/exposure/edge-stability and end-to-end payment/finalization passes, this removes the last stated gate; no claim is made for unrelated scenarios outside that stated scope.

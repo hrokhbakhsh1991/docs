@@ -60,6 +60,7 @@
     "paymentProgress": {
       "unpaid": "Payment is required to finalize",
       "partial": "Complete the remaining payment to finalize",
+      "paidAwaitingFinalization": "Payment complete; awaiting operator finalization",
       "paid": "Payment recorded",
       "finalizedOpenPayment": "Finalized; payment remains open",
       "waived": "Registration finalized; no payment required"
@@ -404,6 +405,8 @@
     "statusApprovedBody": "Complete the payment to finalize the trip.",
     "statusReceiptPendingTitle": "Your receipt is under review",
     "statusReceiptPendingBody": "We will show the result here and in your notifications.",
+    "statusPaidAwaitingFinalizationTitle": "Your payment is complete",
+    "statusPaidAwaitingFinalizationBody": "Your payment was approved; operator finalization is still pending.",
     "statusPaidTitle": "Your trip is confirmed",
     "statusPaidBody": "Your payment was approved and your trip details are available.",
     "statusFinalizedOpenPaymentTitle": "Your registration is finalized",

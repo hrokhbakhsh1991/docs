@@ -82,7 +82,14 @@ export function resolveMemberFinalizationStatusKey(input: {
   readonly paymentCollection?: "offline" | "free";
   readonly financialDisplayState?: string;
   readonly finalizationStatus?: "not_final" | "finalized";
-}): "waived" | "partial" | "unpaid" | "finalizedOpenPayment" | "paid" | null {
+}):
+  | "waived"
+  | "partial"
+  | "unpaid"
+  | "finalizedOpenPayment"
+  | "paidAwaitingFinalization"
+  | "paid"
+  | null {
   if (input.registrationStatus.trim().toLowerCase() !== "approved") return null;
   if (input.paymentCollection === "free" || input.financialDisplayState === "WAIVED") {
     return "waived";
@@ -105,6 +112,8 @@ export function resolveMemberFinalizationStatusKey(input: {
   ) {
     return "unpaid";
   }
-  if (input.paymentStatus.trim().toLowerCase() === "paid") return "paid";
+  if (input.paymentStatus.trim().toLowerCase() === "paid") {
+    return input.finalizationStatus === "finalized" ? "paid" : "paidAwaitingFinalization";
+  }
   return null;
 }
