@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildWalletAccountsSearchPath,
+  buildWalletMembersSearchPath,
   buildWalletCreditRequestBody,
   buildWalletDebitRequestBody,
   buildWalletReversalRequestBody,
@@ -155,6 +156,16 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
     const path = buildWalletAccountsSearchPath("09121234567");
     assert.match(path, /search=09121234567/);
     assert.doesNotMatch(path, /userId=/);
+  });
+
+  it("WEB-WALLET-OPS-10B searches the active tenant user directory", () => {
+    const path = buildWalletMembersSearchPath("09121234567");
+    assert.match(path, /status=active/);
+    assert.match(path, /limit=50/);
+    assert.match(path, /sort=name_asc/);
+    assert.match(path, /search=09121234567/);
+    assert.doesNotMatch(path, /tenantId=/);
+    assert.doesNotMatch(path, /workspaceId=/);
   });
 
   it("WEB-WALLET-OPS-11 BFF routes proxy upstream without authority query params", () => {

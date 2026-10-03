@@ -15,6 +15,10 @@ export const WALLET_OPS_TEST_IDS = {
   searchForm: "wallet-ops-search-form",
   searchInput: "wallet-ops-search-input",
   searchSubmit: "wallet-ops-search-submit",
+  membersList: "wallet-ops-members-list",
+  memberRow: "wallet-ops-member-row",
+  membersLoading: "wallet-ops-members-loading",
+  membersEmpty: "wallet-ops-members-empty",
   accountsList: "wallet-ops-accounts-list",
   accountsPagination: "wallet-ops-accounts-pagination",
   accountRow: "wallet-ops-account-row",
@@ -260,6 +264,19 @@ export function buildWalletAccountsSearchPath(search: string, currency?: string)
     params.set("currency", currency.trim().toUpperCase());
   }
   return `/api/wallet/accounts?${params.toString()}`;
+}
+
+export function buildWalletMembersSearchPath(search = ""): string {
+  const params = new URLSearchParams({
+    status: "active",
+    limit: "50",
+    sort: "name_asc",
+  });
+  const trimmed = search.trim();
+  if (trimmed.length > 0) {
+    params.set("search", trimmed);
+  }
+  return `/api/users?${params.toString()}`;
 }
 
 export function buildWalletAccountBalancePath(accountId: string): string {
