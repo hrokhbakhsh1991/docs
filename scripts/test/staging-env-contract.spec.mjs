@@ -63,4 +63,14 @@ describe("staging-env-contract", () => {
     assert.doesNotMatch(apiExample, new RegExp(LEGACY_IP));
     assert.doesNotMatch(marketingExample, new RegExp(LEGACY_IP));
   });
+
+  it("REG-STG-ENV-05 renders the configured public portal host for Caddy", () => {
+    const render = read("scripts/vps-deploy/render-caddy-env.sh");
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    assert.match(render, /PORTAL_PUBLIC_BASE_URL=.*portal\.env/);
+    assert.match(render, /CANONICAL_PORTAL_HOST/);
+    assert.match(render, /invalid canonical portal host/);
+    assert.match(caddy, /http:\/\/\{\$CANONICAL_PORTAL_HOST\}/);
+    assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
+  });
 });

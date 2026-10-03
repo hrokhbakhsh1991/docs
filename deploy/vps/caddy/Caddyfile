@@ -53,9 +53,10 @@ http://*.portal.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-# Canonical sibling host: portal.{club}.{root}; the wildcard above keeps the
-# legacy {club}.portal.{root} address working during migration.
-http://portal.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+# Canonical portal host comes from PORTAL_PUBLIC_BASE_URL and may be a custom
+# apex such as portal.denali.club; the wildcard above keeps the legacy
+# {club}.portal.{root} address working during migration.
+http://{$CANONICAL_PORTAL_HOST} {
 	reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
