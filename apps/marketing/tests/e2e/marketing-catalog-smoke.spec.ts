@@ -75,20 +75,27 @@ test("SMK-MKT-17 denali catalog page matches current backend catalog batch", asy
   expect(response.ok()).toBe(true);
 
   const payload = (await response.json()) as {
-    readonly data?: { readonly items?: ReadonlyArray<{ readonly title?: string | null }> };
+    readonly data?: {
+      readonly items?: ReadonlyArray<{ readonly id: string; readonly title?: string | null }>;
+    };
     readonly metadata?: { readonly nextCursor?: string | null };
   };
   const expectedItems = payload.data?.items ?? [];
-  const expectedTitles = expectedItems
-    .map((item) => item.title?.trim())
-    .filter((title): title is string => title != null && title.length > 0);
 
   await page.goto("/tours", { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
   await expect(page.locator("[data-marketing-catalog-card]")).toHaveCount(expectedItems.length);
 
-  for (const title of expectedTitles) {
-    await expect(page.getByText(title, { exact: true })).toBeVisible();
+  for (const item of expectedItems) {
+    const title = item.title?.trim();
+    if (title == null || title.length === 0) {
+      continue;
+    }
+    const titleLink = page.locator(
+      `[data-marketing-catalog-card-title] a[href="/tours/${item.id}"]`
+    );
+    await expect(titleLink).toHaveText(title);
+    await expect(titleLink).toBeVisible();
   }
 
   const loadMore = page.locator("[data-marketing-catalog-pagination-next]");
