@@ -165,12 +165,16 @@ describe("tour-booking-management-matrix (admin surface)", () => {
       for (const paymentStatus of PAYMENT_STATUSES) {
         assert.equal(
           bookingPaymentLabelKey(booking(bookingStatus, paymentStatus)),
-          paymentStatus === "paid" ? "payment.paidAwaitingFinalization" : `payment.${paymentStatus}`,
+          paymentStatus === "paid"
+            ? "payment.paidAwaitingFinalization"
+            : `payment.${paymentStatus}`,
           `${bookingStatus}:${paymentStatus}`
         );
         assert.equal(
           bookingTimelinePaymentLabelKey(booking(bookingStatus, paymentStatus)),
-          paymentStatus === "paid" ? "paymentValue.paidAwaitingFinalization" : `paymentValue.${paymentStatus}`,
+          paymentStatus === "paid"
+            ? "paymentValue.paidAwaitingFinalization"
+            : `paymentValue.${paymentStatus}`,
           `timeline:${bookingStatus}:${paymentStatus}`
         );
       }
