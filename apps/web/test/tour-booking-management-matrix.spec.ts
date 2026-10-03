@@ -29,6 +29,7 @@ function booking(
     guestLabel: "Guest",
     partySize: 1,
     status,
+    finalizationStatus: "not_final",
     paymentStatus,
     transportKind: null,
     personalCarOccupants: null,
@@ -164,17 +165,25 @@ describe("tour-booking-management-matrix (admin surface)", () => {
       for (const paymentStatus of PAYMENT_STATUSES) {
         assert.equal(
           bookingPaymentLabelKey(booking(bookingStatus, paymentStatus)),
-          `payment.${paymentStatus}`,
+          paymentStatus === "paid" ? "payment.paidAwaitingFinalization" : `payment.${paymentStatus}`,
           `${bookingStatus}:${paymentStatus}`
         );
         assert.equal(
           bookingTimelinePaymentLabelKey(booking(bookingStatus, paymentStatus)),
-          `paymentValue.${paymentStatus}`,
+          paymentStatus === "paid" ? "paymentValue.paidAwaitingFinalization" : `paymentValue.${paymentStatus}`,
           `timeline:${bookingStatus}:${paymentStatus}`
         );
       }
     }
 
+    assert.equal(
+      bookingPaymentLabelKey({ paymentStatus: "paid", finalizationStatus: "finalized" }),
+      "payment.paid"
+    );
+    assert.equal(
+      bookingTimelinePaymentLabelKey({ paymentStatus: "paid", finalizationStatus: "finalized" }),
+      "paymentValue.paid"
+    );
     assert.equal(
       bookingPaymentLabelKey({ paymentStatus: "paid", financialDisplayState: "WAIVED" }),
       "payment.waived"
