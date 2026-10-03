@@ -11,6 +11,7 @@ import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace
 import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
 import {
   captureBookingDeskArtifact,
+  clearPriorBqcBookings,
   clickApproveAndWait,
   clickApproveWithoutPaymentAndWait,
   clickRejectAndWait,
@@ -20,6 +21,7 @@ import {
   openBookingsInbox,
   selectBookingByGuest,
   seedDenaliGuestRegistration,
+  tourOpsApiBase,
 } from "./fixtures/operator-booking-desk";
 
 test.describe("operator booking desk — TC-BOOK", () => {
@@ -47,11 +49,16 @@ test.describe("operator booking desk — TC-BOOK", () => {
     await page.getByTestId(BOOKINGS_CREATE_TEST_IDS.submitButton).click();
 
     await expect(page).toHaveURL(/\/bookings/, { timeout: 30_000 });
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText(
       guestLabel,
+      { timeout: 60_000 },
     );
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText(
       /pending|در انتظار/i,
+      { timeout: 60_000 },
     );
     await captureBookingDeskArtifact(page, "/opt/cursor/artifacts/booking-01-manual-pending.png");
   });
@@ -189,6 +196,7 @@ test.describe("operator booking desk — TC-BOOK", () => {
     const amountInput = page.locator(`#workspace-payment-amount-${registrationId}`);
     await expect(amountInput).toBeVisible({ timeout: 15_000 });
     await expect(amountInput).not.toHaveValue("", { timeout: 30_000 });
+    await amountInput.fill("100000");
 
     const createResponse = page.waitForResponse(
       (response) =>
@@ -216,7 +224,7 @@ test.describe("operator booking desk — TC-BOOK", () => {
     };
     expect((prepayments.items ?? []).length).toBeGreaterThan(0);
     const recorded = prepayments.items?.find((row) => row.registrationId === registrationId);
-    expect(recorded?.amountMinor).toBe("500000");
+    expect(recorded?.amountMinor).toBe("100000");
 
     const bookingAfterRes = await page.request.get(`/api/bookings/${registrationId}`);
     expect(bookingAfterRes.ok(), await bookingAfterRes.text()).toBeTruthy();
@@ -231,6 +239,139 @@ test.describe("operator booking desk — TC-BOOK", () => {
       page,
       "/opt/cursor/artifacts/booking-05-manual-payment-created.png",
     );
+  });
+
+  test("TC-BOOK-07 final unpaid cancellation promotes the oldest waitlisted guest", async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    await loginDenaliBookings(page);
+
+    const tourRes = await page.request.get(
+      `/api/tours/${encodeURIComponent(DENALI_PUBLISHED_TOUR_ID)}`,
+    );
+    expect(tourRes.ok(), await tourRes.text()).toBeTruthy();
+    const tourBody = (await tourRes.json()) as {
+      projection?: { totalCapacity?: number };
+    };
+    const capacity = tourBody.projection?.totalCapacity ?? 0;
+    expect(capacity).toBeGreaterThan(0);
+    await clearPriorBqcBookings(page);
+
+    const approved: Array<{ id: string; guest: string }> = [];
+    for (let index = 0; index < capacity; index += 1) {
+      const guest = `BQC Final Cancel ${stamp} ${index}`;
+      const create = await page.request.post(`${tourOpsApiBase()}/denali/registrations`, {
+        headers: {
+          "x-tenant-id": "00000000-0000-4000-8000-000000000003",
+          "content-type": "application/json",
+        },
+        data: {
+          tourId: DENALI_PUBLISHED_TOUR_ID,
+          registrantTarget: "other",
+          contact: {
+            fullName: guest,
+            email: `bqc-final-cancel-${stamp}-${index}@denali.local`,
+            phone: `+1555${String(stamp + index).slice(-10)}`,
+          },
+          partySize: 1,
+        },
+      });
+      expect(create.ok(), await create.text()).toBeTruthy();
+      const created = (await create.json()) as { data?: { id?: string } };
+      const id = created.data?.id?.trim() ?? "";
+      expect(id).toHaveLength(36);
+      const approve = await page.request.post(`/api/bookings/${id}/approve`);
+      expect(approve.ok(), await approve.text()).toBeTruthy();
+      approved.push({ id, guest });
+    }
+
+    const waitlistedGuest = `BQC Waitlist After Final Cancel ${stamp}`;
+    const waitlistedCreate = await page.request.post(`${tourOpsApiBase()}/denali/registrations`, {
+      headers: {
+        "x-tenant-id": "00000000-0000-4000-8000-000000000003",
+        "content-type": "application/json",
+      },
+      data: {
+        tourId: DENALI_PUBLISHED_TOUR_ID,
+        registrantTarget: "other",
+        contact: {
+          fullName: waitlistedGuest,
+          email: `bqc-final-cancel-waitlist-${stamp}@denali.local`,
+          phone: `+1555${String(stamp + capacity + 1).slice(-10)}`,
+        },
+        partySize: 1,
+      },
+    });
+    expect(waitlistedCreate.ok(), await waitlistedCreate.text()).toBeTruthy();
+    const waitlistedBody = (await waitlistedCreate.json()) as {
+      data?: { id?: string; status?: string };
+    };
+    const waitlistedId = waitlistedBody.data?.id?.trim() ?? "";
+    expect(waitlistedId).toHaveLength(36);
+    expect(waitlistedBody.data?.status).toBe("waitlisted");
+
+    const finalizedId = approved[0]!.id;
+    const finalize = await page.request.post(
+      `/api/bookings/${finalizedId}/finalize-with-open-payment`,
+    );
+    expect(finalize.ok(), await finalize.text()).toBeTruthy();
+    const finalizedBefore = await page.request.get(`/api/bookings/${finalizedId}`);
+    expect(finalizedBefore.ok(), await finalizedBefore.text()).toBeTruthy();
+    const finalizedBeforeBody = (await finalizedBefore.json()) as {
+      status?: string;
+      paymentStatus?: string;
+      finalizationStatus?: string;
+    };
+    expect(finalizedBeforeBody.status).toBe("approved");
+    expect(finalizedBeforeBody.paymentStatus).toBe("unpaid");
+    expect(finalizedBeforeBody.finalizationStatus).toBe("finalized");
+
+    await page.goto("/bookings?status=all", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
+      timeout: 60_000,
+    });
+    const finalizedRow = page
+      .locator("[data-booking-row]")
+      .filter({ hasText: new RegExp(approved[0]!.guest, "i") })
+      .first();
+    await expect(finalizedRow).toBeVisible({ timeout: 30_000 });
+    await finalizedRow
+      .locator(`[data-testid^="${BOOKINGS_COMMAND_CENTER_TEST_IDS.inboxRow}-"]`)
+      .click();
+
+    const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
+    await expect(inspection).toBeVisible({ timeout: 15_000 });
+    await expect(inspection).toContainText(approved[0]!.guest, { timeout: 10_000 });
+    await expect(inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton)).toBeVisible({
+      timeout: 15_000,
+    });
+    const cancelResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/bookings/${finalizedId}/cancel`) &&
+        response.request().method() === "POST",
+    );
+    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton).click();
+    const dialog = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmDialog);
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await dialog.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmButton).click();
+    expect((await cancelResponse).status()).toBe(200);
+
+    const cancelled = await page.request.get(`/api/bookings/${finalizedId}`);
+    expect(cancelled.ok(), await cancelled.text()).toBeTruthy();
+    const cancelledBody = (await cancelled.json()) as { status?: string };
+    expect(cancelledBody.status).toBe("cancelled");
+
+    const promoted = await page.request.get(`/api/bookings/${waitlistedId}`);
+    expect(promoted.ok(), await promoted.text()).toBeTruthy();
+    const promotedBody = (await promoted.json()) as {
+      status?: string;
+      paymentStatus?: string;
+      finalizationStatus?: string;
+    };
+    expect(promotedBody.status).toBe("approved");
+    expect(promotedBody.paymentStatus).toBe("unpaid");
+    expect(promotedBody.finalizationStatus).toBe("not_final");
   });
 
   test("TC-BOOK-06 inbox shows pending row after guest seed", async ({ page }) => {

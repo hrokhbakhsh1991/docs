@@ -18,6 +18,8 @@ import {
   DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
   DENALI_BOOKING_PAID_AUTO_TOUR_ID,
   DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
 } from "../src/fixtures/operator-smoke-published-tour.fixture";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
@@ -97,7 +99,7 @@ describe("denali-catalog", () => {
     });
     assert.equal(response.status, 200);
     const items = (response.body as { data?: { items?: { id: string }[] } }).data?.items ?? [];
-    assert.equal(items.length, 10);
+    assert.equal(items.length, 12);
     const ids = items.map((item) => item.id).sort();
     assert.deepEqual(
       ids,
@@ -106,6 +108,8 @@ describe("denali-catalog", () => {
         OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
         OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
         OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+        OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID,
+        OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID,
         DENALI_BOOKING_PAID_AUTO_TOUR_ID,
         DENALI_BOOKING_FREE_MANUAL_TOUR_ID,
         DENALI_BOOKING_FREE_AUTO_TOUR_ID,

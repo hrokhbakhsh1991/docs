@@ -9,6 +9,8 @@ export const DENALI_OPERATOR_OWNER_MOBILE = "09174070937";
 export const DENALI_OPERATOR_VIEWER_MOBILE = "+15550001996";
 export const DENALI_DEV_OTP = "1234";
 
+const sessionTokenCache = new Map<string, string>();
+
 function operatorAuthUrl(path: string): {
   url: string;
   headers?: Record<string, string>;
@@ -30,6 +32,26 @@ async function loginDenaliOperatorSession(
   endpoint: "login-web-session" | "login-team-web-session" = "login-web-session"
 ): Promise<void> {
   await page.context().clearCookies();
+
+  const cacheKey = `${phone}:${endpoint}`;
+  const cachedToken = sessionTokenCache.get(cacheKey);
+  if (cachedToken !== undefined) {
+    const context = page.context() as {
+      readonly _options?: { readonly baseURL?: string };
+    };
+    const baseURL = context._options?.baseURL?.trim() ?? "http://denali.admin.localhost:3000";
+    const cookieUrl = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
+    await page.context().addCookies([
+      {
+        name: SESSION_TOKEN_COOKIE,
+        value: cachedToken,
+        url: cookieUrl,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    return;
+  }
 
   const otpRequest = operatorAuthUrl("/api/auth/request-otp");
   const otpRes = await page.request.post(otpRequest.url, {
@@ -55,6 +77,7 @@ async function loginDenaliOperatorSession(
   expect(loginRes.ok(), loginText).toBeTruthy();
   const loginBody = JSON.parse(loginText) as { session_token?: string };
   expect(typeof loginBody.session_token).toBe("string");
+  sessionTokenCache.set(cacheKey, loginBody.session_token!);
 
   const context = page.context() as {
     readonly _options?: { readonly baseURL?: string };

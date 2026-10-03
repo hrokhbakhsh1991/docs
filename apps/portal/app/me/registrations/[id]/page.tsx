@@ -66,13 +66,21 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     (showIntakeAmend || lifecycleStatus === "approved") &&
     typeof row.tourId === "string" &&
     row.tourId.trim().length > 0;
-  const tour = shouldLoadTour
-    ? await fetchCatalogTour({
+  let tour = null;
+  if (shouldLoadTour) {
+    try {
+      tour = await fetchCatalogTour({
         tenantId: bootstrap.tenantId,
         pluginId: bootstrap.pluginId,
         tourId: row.tourId,
-      })
-    : null;
+      });
+    } catch {
+      // Catalog detail is optional on a member registration detail page. Keep
+      // the authoritative registration/payment state renderable when a legacy
+      // or unpublished tour cannot be read.
+      tour = null;
+    }
+  }
 
   const tripsListHref = resolveMemberPortalTripsListPath(bootstrap.pluginId);
   const tourHref =

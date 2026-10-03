@@ -19,6 +19,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: denaliOperatorBaseUrl,
     viewport: { width: 1280, height: 900 },
+    ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
     navigationTimeout: 180_000,
   },
   webServer: {

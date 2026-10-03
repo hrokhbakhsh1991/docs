@@ -9,6 +9,7 @@ import {
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTourItinerary,
   buildOperatorSmokeTransportBusTour,
+  buildOperatorSmokeTransportBusTourVariant,
   buildOperatorSmokeTransportSharedCarsTour,
   DENALI_CLUB_DEV_DRAFT_TOUR_ID,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
@@ -22,6 +23,8 @@ import {
   OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
   resolveOperatorSmokePublishedTourWindow,
 } from "../fixtures/operator-smoke-published-tour.fixture";
@@ -336,6 +339,20 @@ export class InMemoryTourRepository implements TourStorageRepository {
     }
     if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID)) {
       this.indexTour(buildOperatorSmokeTransportBusTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
+    }
+    for (const [tourId, createdAt] of [
+      [OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID, new Date(5).toISOString()],
+      [OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID, new Date(6).toISOString()],
+    ] as const) {
+      if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, tourId)) {
+        this.indexTour(
+          buildOperatorSmokeTransportBusTourVariant({
+            tenantId: OPERATOR_SMOKE_TENANT_ID,
+            tourId,
+            createdAt,
+          })
+        );
+      }
     }
     if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
       this.indexTour(

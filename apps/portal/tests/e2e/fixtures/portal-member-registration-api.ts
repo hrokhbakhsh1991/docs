@@ -57,10 +57,12 @@ export async function attachMemberReceiptFile(page: Page): Promise<void> {
 export async function submitMemberReceiptUpload(
   page: Page,
   registrationId: string,
-): Promise<void> {
-  await page.waitForFunction(() => {
-    const input = document.getElementById("receipt-file");
-    return input instanceof HTMLInputElement && (input.files?.length ?? 0) > 0;
+): Promise<{ readonly id?: string }> {
+  // The form intentionally clears the native input after onChange and keeps
+  // the selected File in React state. The enabled submit button is therefore
+  // the authoritative browser contract, not input.files.length.
+  await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled({
+    timeout: 20_000,
   });
 
   const responsePromise = page
@@ -76,7 +78,12 @@ export async function submitMemberReceiptUpload(
   const uploadResponse = await responsePromise;
 
   if (uploadResponse !== null && uploadResponse.ok()) {
-    return;
+    const body = (await uploadResponse.json().catch(() => ({}))) as {
+      id?: unknown;
+      data?: { id?: unknown };
+    };
+    const id = body.id ?? body.data?.id;
+    return { id: typeof id === "string" ? id : undefined };
   }
 
   const fallback = await page.evaluate(async (id) => {
@@ -97,4 +104,5 @@ export async function submitMemberReceiptUpload(
   await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
     timeout: 60_000,
   });
+  return {};
 }
