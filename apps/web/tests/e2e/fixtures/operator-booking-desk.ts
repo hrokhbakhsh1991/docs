@@ -14,6 +14,32 @@ export function tourOpsApiBase(): string {
   return (process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 }
 
+export async function clearPriorBqcBookings(page: Page): Promise<void> {
+  const smokeGuest = /^BQC\s/i;
+  for (const status of ["approved", "pending"] as const) {
+    const response = await page.request.get(
+      `/api/bookings?tourId=${encodeURIComponent(DENALI_PUBLISHED_TOUR_ID)}&status=${status}&view=ops&limit=100`,
+    );
+    expect(response.ok(), await response.text()).toBeTruthy();
+    const body = (await response.json()) as {
+      items?: Array<{ id?: string; guestLabel?: string }>;
+    };
+    for (const row of body.items ?? []) {
+      const id = row.id?.trim() ?? "";
+      if (id.length === 0 || !smokeGuest.test(row.guestLabel?.trim() ?? "")) {
+        continue;
+      }
+      const action =
+        status === "pending"
+          ? await page.request.post(`/api/bookings/${id}/reject`, {
+              data: { reason: "E2E capacity hygiene" },
+            })
+          : await page.request.post(`/api/bookings/${id}/cancel`);
+      expect(action.ok(), await action.text()).toBeTruthy();
+    }
+  }
+}
+
 export async function captureBookingDeskArtifact(
   page: Page,
   path: string,

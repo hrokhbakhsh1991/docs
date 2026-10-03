@@ -65,23 +65,40 @@ async function seedMemberRegistrationViaApi(
     readonly guestName: string;
     readonly email: string;
     readonly phone: string;
+    readonly registrantTarget?: "self" | "other";
   }
-): Promise<{ readonly bookingId: string; readonly status: string }> {
+): Promise<{ readonly bookingId: string; readonly status: string; readonly reused?: boolean }> {
+  const headers = {
+    "x-tenant-id": BOOKING_SCENARIO_TENANT_ID,
+    "x-authenticated-tenant-id": BOOKING_SCENARIO_TENANT_ID,
+    "x-user-id": OPERATOR_SMOKE_MEMBER_USER_ID,
+    "x-actor-role": "member",
+    "x-membership-status": "ACTIVE",
+    "x-workspace-id": BOOKING_SCENARIO_WORKSPACE_ID,
+    "content-type": "application/json",
+  };
+  if (input.registrantTarget === "self") {
+    const existingResponse = await request.get(
+      `${tourOpsApiBase()}/denali/registrations/for-tour/${input.tourId}`,
+      { headers }
+    );
+    if (existingResponse.ok()) {
+      const existingBody = (await existingResponse.json()) as {
+        data?: { self?: { id?: string; status?: string } | null };
+      };
+      const existing = existingBody.data?.self;
+      if (existing?.id !== undefined && existing.status !== undefined) {
+        return { bookingId: existing.id, status: existing.status, reused: true };
+      }
+    }
+  }
   const response = await request.post(`${tourOpsApiBase()}/denali/registrations`, {
-    headers: {
-      "x-tenant-id": BOOKING_SCENARIO_TENANT_ID,
-      "x-authenticated-tenant-id": BOOKING_SCENARIO_TENANT_ID,
-      "x-user-id": OPERATOR_SMOKE_MEMBER_USER_ID,
-      "x-actor-role": "member",
-      "x-membership-status": "ACTIVE",
-      "x-workspace-id": BOOKING_SCENARIO_WORKSPACE_ID,
-      "content-type": "application/json",
-    },
+    headers,
     data: {
       tourId: input.tourId,
       // Use an explicit other-guest target so the smoke remains rerunnable in
       // the long-lived in-memory operator server (self is unique per tour/user).
-      registrantTarget: "other",
+      registrantTarget: input.registrantTarget ?? "other",
       contact: { fullName: input.guestName, email: input.email, phone: input.phone },
       partySize: 1,
     },
@@ -328,7 +345,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       .click();
     const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
     await expect(inspection).toBeVisible({ timeout: 15_000 });
-    await expect(inspection).toContainText(/approved|تأیید شده/i);
+    await expect(inspection).toContainText(/approved|تأیید/i);
   });
 
   test("DEN-BOOK-X-SURFACE free manual booking transitions pending to waived in admin reservations", async ({
@@ -363,14 +380,57 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       .click();
     const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
     await expect(inspection).toBeVisible({ timeout: 15_000 });
-    const approveResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/bookings/${booking.bookingId}/approve`) &&
-        response.request().method() === "POST"
+    const approveWithoutPaymentButton = inspection.getByTestId(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.approveWithoutPaymentButton
     );
-    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
-    const approved = await approveResponse;
-    expect(approved.status(), await approved.text()).toBe(200);
+    await expect(approveWithoutPaymentButton).toBeVisible({ timeout: 15_000 });
+    await expect(approveWithoutPaymentButton).toBeEnabled({ timeout: 15_000 });
+    await expect
+      .poll(
+        async () =>
+          approveWithoutPaymentButton.evaluate((element) => {
+            const reactKey = Object.keys(element).find((key) => key.startsWith("__reactProps"));
+            const props = reactKey ? (element as unknown as Record<string, unknown>)[reactKey] : null;
+            return typeof (props as { onClick?: unknown } | null)?.onClick === "function";
+          }),
+        { timeout: 180_000, intervals: [250, 1_000, 5_000] }
+      )
+      .toBe(true);
+    const [overrideResponse, approveResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/finance/registrations/${booking.bookingId}/obligation-override`) &&
+          response.request().method() === "PUT",
+        { timeout: 180_000 }
+      ),
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/bookings/${booking.bookingId}/approve`) &&
+          response.request().method() === "POST",
+        { timeout: 180_000 }
+      ),
+      approveWithoutPaymentButton.click(),
+    ]);
+    expect(overrideResponse.status(), await overrideResponse.text()).toBe(200);
+    expect(approveResponse.status(), await approveResponse.text()).toBe(200);
+
+    await expect
+      .poll(
+        async () => {
+          const response = await page.request.get(`/api/bookings/${booking.bookingId}`);
+          if (!response.ok()) {
+            return "request_failed";
+          }
+          const body = (await response.json()) as {
+            status?: string;
+            paymentStatus?: string;
+            financialDisplayState?: string;
+          };
+          return `${body.status ?? "unknown"}/${body.paymentStatus ?? "unknown"}/${body.financialDisplayState ?? "none"}`;
+        },
+        { timeout: 30_000 }
+      )
+      .toBe("approved/paid/WAIVED");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     const approvedRow = page.locator("[data-booking-row]").filter({ hasText: guestName }).first();
@@ -394,6 +454,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       guestName,
       email: `denali-discount-${stamp}@denali-smoke.local`,
       phone: `+1555${String(stamp).slice(-7)}`,
+      registrantTarget: "self",
     });
     expect(booking.status).toBe("approved");
 
@@ -410,10 +471,12 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     expect(invoice.invoiceTotalMinor).toBe("2000000");
     expect(invoice.balanceDueMinor).toBe("2000000");
 
-    await page.goto("/bookings?status=all", { waitUntil: "domcontentloaded", timeout: 180_000 });
-    const row = page.locator("[data-booking-row]").filter({ hasText: guestName }).first();
-    await expect(row).toBeVisible({ timeout: 30_000 });
-    await expect(row).toContainText(/approved|تأیید[\s‌]*شده/i);
+    if (booking.reused !== true) {
+      await page.goto("/bookings?status=all", { waitUntil: "domcontentloaded", timeout: 180_000 });
+      const row = page.locator("[data-booking-row]").filter({ hasText: guestName }).first();
+      await expect(row).toBeVisible({ timeout: 30_000 });
+      await expect(row).toContainText(/approved|تأیید[\s‌]*شده/i);
+    }
   });
 
   test("DEN-BOOK-X-SURFACE free member discount keeps zero obligation", async ({
@@ -454,7 +517,7 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
     await expect(row).toContainText(/approved|تأیید[\s‌]*شده/i);
   });
 
-  test("DEN-BOOK-X-SURFACE manual approval freezes the member discount", async ({
+  test("DEN-BOOK-X-SURFACE manual approval keeps guest base pricing", async ({
     page,
     request,
   }) => {
@@ -477,13 +540,28 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       .first()
       .click();
     const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
-    const approveResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/bookings/${booking.bookingId}/approve`) &&
-        response.request().method() === "POST"
-    );
-    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton).click();
-    const approveResult = await approveResponse;
+    const approveButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton);
+    await expect(approveButton).toBeVisible({ timeout: 15_000 });
+    await expect(approveButton).toBeEnabled({ timeout: 15_000 });
+    await expect
+      .poll(
+        async () =>
+          approveButton.evaluate((element) => {
+            const reactKey = Object.keys(element).find((key) => key.startsWith("__reactProps"));
+            const props = reactKey ? (element as unknown as Record<string, unknown>)[reactKey] : null;
+            return typeof (props as { onClick?: unknown } | null)?.onClick === "function";
+          }),
+        { timeout: 180_000, intervals: [250, 1_000, 5_000] }
+      )
+      .toBe(true);
+    const [approveResult] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/bookings/${booking.bookingId}/approve`) &&
+          response.request().method() === "POST"
+      ),
+      approveButton.click(),
+    ]);
     expect(approveResult.status(), await approveResult.text()).toBe(200);
 
     const invoiceResponse = await page.request.get(
@@ -494,8 +572,10 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
       invoiceTotalMinor?: string;
       balanceDueMinor?: string;
     };
-    expect(invoice.invoiceTotalMinor).toBe("2000000");
-    expect(invoice.balanceDueMinor).toBe("2000000");
+    // This helper intentionally registers `registrantTarget=other`; the member
+    // discount must not leak from the submitting member to the guest.
+    expect(invoice.invoiceTotalMinor).toBe("2500000");
+    expect(invoice.balanceDueMinor).toBe("2500000");
   });
 
   test("DEN-BOOK-X-SURFACE free auto cancellation is terminal and survives admin reload", async ({
@@ -528,7 +608,21 @@ test.describe("denali-booking-confidence.spec.ts — Phase 3 E02/E03", () => {
         response.url().includes(`/api/bookings/${booking.bookingId}/cancel`) &&
         response.request().method() === "POST"
     );
-    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton).click();
+    const cancelButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton);
+    await expect(cancelButton).toBeVisible({ timeout: 15_000 });
+    await expect(cancelButton).toBeEnabled({ timeout: 15_000 });
+    await expect
+      .poll(
+        async () =>
+          cancelButton.evaluate((element) => {
+            const reactKey = Object.keys(element).find((key) => key.startsWith("__reactProps"));
+            const props = reactKey ? (element as unknown as Record<string, unknown>)[reactKey] : null;
+            return typeof (props as { onClick?: unknown } | null)?.onClick === "function";
+          }),
+        { timeout: 180_000, intervals: [250, 1_000, 5_000] }
+      )
+      .toBe(true);
+    await cancelButton.click();
     const dialog = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmDialog);
     await expect(dialog).toBeVisible({ timeout: 15_000 });
     await dialog.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmButton).click();

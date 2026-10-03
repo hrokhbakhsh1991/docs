@@ -320,7 +320,9 @@ export async function completeCatalogRegistrationIntake(
       if (guestPhone) {
         await fillIntakeFieldInRootIfVisible(card, "phone", guestPhone);
       }
-      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1234567890");
+      // Use a checksum-valid shared identity by default so duplicate/race probes
+      // reach the API instead of being stopped by client-side validation.
+      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1000000001");
       await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");
       await fillIntakeFieldInRootIfVisible(card, "birthDate", input.birthDate ?? "1990-01-15");
       await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
@@ -333,7 +335,7 @@ export async function completeCatalogRegistrationIntake(
     if (input.phone) {
       await fillIntakeFieldInRootIfVisible(page, "phone", input.phone);
     }
-    await fillIntakeFieldInRootIfVisible(page, "nationalId", input.nationalId ?? "1234567890");
+    await fillIntakeFieldInRootIfVisible(page, "nationalId", input.nationalId ?? "1000000001");
     await fillIntakeFieldInRootIfVisible(page, "fatherName", input.fatherName ?? "Smoke Father");
     await fillIntakeFieldInRootIfVisible(page, "birthDate", input.birthDate ?? "1990-01-15");
     await fillIntakeFieldInRootIfVisible(page, "partySize", input.partySize ?? "2");
