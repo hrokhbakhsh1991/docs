@@ -47,7 +47,17 @@ function resolveReceiptCopy(
   finalizationStatus?: "not_final" | "finalized"
 ): StatusCopy {
   if (paymentStatus.trim().toLowerCase() === "paid") {
-    return { tone: "complete", title: "statusPaidTitle", body: "statusPaidBody" };
+    return {
+      tone: "complete",
+      title:
+        finalizationStatus === "finalized"
+          ? "statusPaidTitle"
+          : "statusPaidAwaitingFinalizationTitle",
+      body:
+        finalizationStatus === "finalized"
+          ? "statusPaidBody"
+          : "statusPaidAwaitingFinalizationBody",
+    };
   }
   if (finalizationStatus === "finalized") {
     return {
@@ -64,13 +74,11 @@ function resolveReceiptCopy(
         body: "statusReceiptPendingBody",
       };
     case "paid":
-      return paymentStatus.trim().toLowerCase() === "paid"
-        ? { tone: "complete", title: "statusPaidTitle", body: "statusPaidBody" }
-        : {
-            tone: "complete",
-            title: "statusReceiptApprovedTitle",
-            body: "statusReceiptApprovedBody",
-          };
+      return {
+        tone: "complete",
+        title: "statusReceiptApprovedTitle",
+        body: "statusReceiptApprovedBody",
+      };
     case "waived":
       return { tone: "complete", title: "statusWaivedTitle", body: "statusWaivedBody" };
     case "rejected":

@@ -60,6 +60,7 @@
     "paymentProgress": {
       "unpaid": "برای نهایی‌شدن، پرداخت لازم است",
       "partial": "برای نهایی‌شدن، پرداخت باید تکمیل شود",
+      "paidAwaitingFinalization": "پرداخت کامل شد؛ در انتظار نهایی‌سازی ادمین",
       "paid": "پرداخت ثبت شد",
       "finalizedOpenPayment": "نهایی شده؛ پرداخت باقی مانده است",
       "waived": "ثبت‌نام نهایی شده؛ پرداخت لازم نیست"
@@ -404,6 +405,8 @@
     "statusApprovedBody": "برای نهایی شدن سفر، پرداخت را تکمیل کنید.",
     "statusReceiptPendingTitle": "فیش شما در حال بررسی است",
     "statusReceiptPendingBody": "نتیجه‌ی بررسی فیش در همین صفحه و اعلان‌ها به شما اعلام می‌شود.",
+    "statusPaidAwaitingFinalizationTitle": "پرداخت شما کامل شده است",
+    "statusPaidAwaitingFinalizationBody": "پرداخت تأیید شده است؛ نهایی‌سازی حضور توسط ادمین باقی مانده است.",
     "statusPaidTitle": "سفر شما نهایی شده است",
     "statusPaidBody": "پرداخت شما تأیید شده و اطلاعات سفر در دسترس است.",
     "statusFinalizedOpenPaymentTitle": "ثبت‌نام شما نهایی شده است",

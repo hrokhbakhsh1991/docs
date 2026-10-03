@@ -7,6 +7,11 @@ import { dirname, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import {
+  bookingPaymentLabelKey,
+  bookingTimelinePaymentLabelKey,
+} from "../src/features/bookings/booking-payment-display";
+
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("bookings payment vocabulary PR21-H1", () => {
@@ -43,6 +48,20 @@ describe("bookings payment vocabulary PR21-H1", () => {
     );
     assert.match(financeFa.payments.status.Paid, /این پرداخت/);
     assert.notEqual(fa.payment.paid, financeFa.payments.status.Paid);
+  });
+
+  it("H1: paid but not finalized keeps payment and finalization visible", () => {
+    const booking = {
+      paymentStatus: "paid" as const,
+      finalizationStatus: "not_final" as const,
+      financialDisplayState: undefined,
+    };
+    assert.equal(bookingPaymentLabelKey(booking), "payment.paidAwaitingFinalization");
+    assert.equal(bookingTimelinePaymentLabelKey(booking), "paymentValue.paidAwaitingFinalization");
+    assert.equal(
+      bookingPaymentLabelKey({ ...booking, finalizationStatus: "finalized" }),
+      "payment.paid"
+    );
   });
 
   it("H0-01: inspection/timeline field labels say booking settlement", () => {

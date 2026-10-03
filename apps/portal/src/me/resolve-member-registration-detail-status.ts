@@ -74,8 +74,14 @@ export function resolveMemberRegistrationDetailStatus({
   if (paymentStatus.trim().toLowerCase() === "paid") {
     return {
       tone: "complete",
-      title: "statusPaidTitle",
-      body: "statusPaidBody",
+      title:
+        finalizationStatus === "finalized"
+          ? "statusPaidTitle"
+          : "statusPaidAwaitingFinalizationTitle",
+      body:
+        finalizationStatus === "finalized"
+          ? "statusPaidBody"
+          : "statusPaidAwaitingFinalizationBody",
     };
   }
 

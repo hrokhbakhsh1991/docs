@@ -45,8 +45,22 @@ describe("member registration departure display", () => {
         lifecycleStatus: "approved",
         paymentStatus: "paid",
         receiptStatus: "pending",
+        finalizationStatus: "finalized",
       }).title,
       "statusPaidTitle"
+    );
+    assert.deepEqual(
+      resolveMemberRegistrationDetailStatus({
+        lifecycleStatus: "approved",
+        paymentStatus: "paid",
+        receiptStatus: "pending",
+        finalizationStatus: "not_final",
+      }),
+      {
+        tone: "complete",
+        title: "statusPaidAwaitingFinalizationTitle",
+        body: "statusPaidAwaitingFinalizationBody",
+      }
     );
     assert.equal(
       resolveMemberRegistrationDetailStatus({
@@ -55,6 +69,25 @@ describe("member registration departure display", () => {
         receiptStatus: "pending",
       }).title,
       "statusReceiptPendingTitle"
+    );
+  });
+
+  it("keeps paid-but-not-final registrations distinct from finalized registrations", () => {
+    assert.equal(
+      resolveMemberFinalizationStatusKey({
+        registrationStatus: "approved",
+        paymentStatus: "paid",
+        finalizationStatus: "not_final",
+      }),
+      "paidAwaitingFinalization"
+    );
+    assert.equal(
+      resolveMemberFinalizationStatusKey({
+        registrationStatus: "approved",
+        paymentStatus: "paid",
+        finalizationStatus: "finalized",
+      }),
+      "paid"
     );
   });
 

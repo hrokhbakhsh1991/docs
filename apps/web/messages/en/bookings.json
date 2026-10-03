@@ -186,6 +186,7 @@
       "unpaid": "Unpaid (booking)",
       "partial": "Partially paid (booking)",
       "paid": "Payment received",
+      "paidAwaitingFinalization": "Payment received — awaiting finalization",
       "waived": "No payment required"
     }
   },
@@ -228,6 +229,7 @@
     "unpaid": "Unpaid (booking)",
     "partial": "Partially paid (booking)",
     "paid": "Payment received",
+    "paidAwaitingFinalization": "Payment received — awaiting finalization",
     "waived": "No payment required"
   },
   "paymentDueAt": "Payment due: {date}",
