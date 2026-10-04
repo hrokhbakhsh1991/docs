@@ -3640,3 +3640,20 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
   URL before retesting browser image loads.
 - Client-side `http`→`https` rewriting remains explicitly disallowed because it
   invalidates the presigned URL contract and can hide an unavailable backend.
+
+### Authenticated paid-projection retest availability — ۲۰۲۶-۱۰-۰۴
+
+- Portal login was opened for the paid registration
+  `f2144510-bc47-4d1f-b6ad-42002a6ac51a` and the known staging mobile
+  `09174070937` was submitted with the supplied dev OTP path.
+- The Portal request `POST
+  https://portal.denali.shenski.com/api/public-auth/phone-preflight`
+  ended with `net::ERR_TIMED_OUT`; the UI remained on «در حال ارسال…» and
+  never produced an OTP field.
+- Direct read-only probes from this environment also timed out for both
+  `https://portal.denali.shenski.com/api/health` and
+  `https://denali.shenski.com/api/health` (`curl` status `000` after 20s).
+- Result: authenticated staging verification of `paid + not_final` is
+  **BLOCKED BY STAGING AVAILABILITY**, not by the OTP value. Source
+  projection evidence remains green (Portal `6/6`, Admin `13/13`), but this
+  cannot be promoted to runtime PASS while the hosts are unreachable.
