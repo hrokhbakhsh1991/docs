@@ -104,6 +104,14 @@ export const BOOKING_LIST_SELECT = {
   finalizedAt: true,
   finalizedByUserId: true,
   rejectReason: true,
+  cancelSource: true,
+  cancellationStatus: true,
+  cancellationReasonCode: true,
+  cancellationReasonNote: true,
+  cancellationRequestedAt: true,
+  cancellationApprovedAt: true,
+  cancellationApprovedByUserId: true,
+  cancellationCorrelationId: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
 type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
@@ -132,6 +140,14 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     ...(row.rejectReason !== null && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
+    cancelSource: row.cancelSource,
+    cancellationStatus: row.cancellationStatus as BookingRecord["cancellationStatus"],
+    cancellationReasonCode: row.cancellationReasonCode,
+    cancellationReasonNote: row.cancellationReasonNote,
+    cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
+    cancellationApprovedAt: row.cancellationApprovedAt?.toISOString() ?? null,
+    cancellationApprovedByUserId: row.cancellationApprovedByUserId,
+    cancellationCorrelationId: row.cancellationCorrelationId,
   };
 }
 
@@ -155,6 +171,14 @@ function toBookingRecord(row: {
   finalizedByUserId?: string | null;
   registrationIntake?: Prisma.JsonValue | null;
   rejectReason?: string | null;
+  cancelSource?: string | null;
+  cancellationStatus?: string;
+  cancellationReasonCode?: string | null;
+  cancellationReasonNote?: string | null;
+  cancellationRequestedAt?: Date | null;
+  cancellationApprovedAt?: Date | null;
+  cancellationApprovedByUserId?: string | null;
+  cancellationCorrelationId?: string | null;
 }): BookingRecord {
   const registrationIntake =
     row.registrationIntake !== null &&
@@ -189,6 +213,14 @@ function toBookingRecord(row: {
     ...(row.rejectReason !== null && row.rejectReason !== undefined && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
+    cancelSource: row.cancelSource ?? null,
+    cancellationStatus: (row.cancellationStatus as BookingRecord["cancellationStatus"] | undefined) ?? "none",
+    cancellationReasonCode: row.cancellationReasonCode ?? null,
+    cancellationReasonNote: row.cancellationReasonNote ?? null,
+    cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
+    cancellationApprovedAt: row.cancellationApprovedAt?.toISOString() ?? null,
+    cancellationApprovedByUserId: row.cancellationApprovedByUserId ?? null,
+    cancellationCorrelationId: row.cancellationCorrelationId ?? null,
   };
 }
 
@@ -1658,6 +1690,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
+    cancelSource?: string;
+    cancellationStatus?: string;
+    cancellationReasonCode?: string;
+    cancellationReasonNote?: string;
+    cancellationApprovedByUserId?: string;
+    cancellationCorrelationId?: string;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1691,6 +1729,30 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           finalizationStatus: "not_final",
           finalizedAt: null,
           finalizedByUserId: null,
+          ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
+          ...(input.cancellationStatus !== undefined
+            ? { cancellationStatus: input.cancellationStatus }
+            : {}),
+          ...(input.cancellationReasonCode !== undefined
+            ? { cancellationReasonCode: input.cancellationReasonCode }
+            : {}),
+          ...(input.cancellationReasonNote !== undefined
+            ? { cancellationReasonNote: input.cancellationReasonNote }
+            : {}),
+          ...(input.cancellationApprovedByUserId !== undefined
+            ? { cancellationApprovedByUserId: input.cancellationApprovedByUserId }
+            : {}),
+          ...(input.cancellationCorrelationId !== undefined
+            ? { cancellationCorrelationId: input.cancellationCorrelationId }
+            : {}),
+          cancellationApprovedAt: new Date(),
+          cancellationSnapshot: {
+            previousStatus: current.status,
+            previousFinalizationStatus: current.finalizationStatus,
+            previousPaymentStatus: current.paymentStatus,
+            partySize: current.partySize,
+            finalizedAt: current.finalizedAt?.toISOString() ?? null,
+          },
         },
       });
       if (transitioned.count !== 1) {
@@ -1716,8 +1778,20 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           status: "cancelled",
           cancelledAt: cancelledAt.toISOString(),
           previousStatus,
+          previousFinalizationStatus: current.finalizationStatus,
+          previousPaymentStatus: current.paymentStatus,
+          partySize: current.partySize,
+          ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
+          ...(input.cancellationReasonCode !== undefined
+            ? { reasonCode: input.cancellationReasonCode }
+            : {}),
+          ...(input.cancellationCorrelationId !== undefined
+            ? { correlationId: input.cancellationCorrelationId }
+            : {}),
         },
-        domainEventId: `registration.cancelled:${updated.id}:${cancelledAt.toISOString()}`,
+        correlationId: input.cancellationCorrelationId,
+        domainEventId:
+          input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
         createdAt: cancelledAt,
       });
       return toBookingRecord(updated);

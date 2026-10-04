@@ -155,7 +155,7 @@ const REGISTERED_BOOKING_ROUTES: readonly {
     path: "/bookings/{bookingId}/cancel",
     appMarker: "handleCancelBooking",
     operationId: "cancelBooking",
-    requestSchema: null,
+    requestSchema: "CancelBookingRequest",
     responseSchema: "CancelBookingResponse",
     errors: ["401", "403", "404", "409"],
     exampleSurface: "CancelBookingResponse",

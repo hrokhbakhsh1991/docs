@@ -241,7 +241,7 @@ test.describe("operator booking desk — TC-BOOK", () => {
     );
   });
 
-  test("TC-BOOK-07 final unpaid cancellation promotes the oldest waitlisted guest", async ({
+  test("TC-BOOK-07 final unpaid cancellation keeps waitlist pending for operator approval", async ({
     page,
   }) => {
     const stamp = Date.now();
@@ -327,31 +327,26 @@ test.describe("operator booking desk — TC-BOOK", () => {
     expect(finalizedBeforeBody.paymentStatus).toBe("unpaid");
     expect(finalizedBeforeBody.finalizationStatus).toBe("finalized");
 
-    await page.goto("/bookings?status=all", { waitUntil: "domcontentloaded" });
+    await page.goto(
+      `/bookings?status=all&bookingId=${encodeURIComponent(finalizedId)}`,
+      { waitUntil: "domcontentloaded" },
+    );
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.page)).toBeVisible({
       timeout: 60_000,
     });
-    const finalizedRow = page
-      .locator("[data-booking-row]")
-      .filter({ hasText: new RegExp(approved[0]!.guest, "i") })
-      .first();
-    await expect(finalizedRow).toBeVisible({ timeout: 30_000 });
-    await finalizedRow
-      .locator(`[data-testid^="${BOOKINGS_COMMAND_CENTER_TEST_IDS.inboxRow}-"]`)
-      .click();
-
     const inspection = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection);
     await expect(inspection).toBeVisible({ timeout: 15_000 });
     await expect(inspection).toContainText(approved[0]!.guest, { timeout: 10_000 });
-    await expect(inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton)).toBeVisible({
-      timeout: 15_000,
-    });
+    await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
+    const cancelButton = inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton);
+    await expect(cancelButton).toBeVisible({ timeout: 15_000 });
+    await expect(cancelButton).toBeEnabled({ timeout: 30_000 });
     const cancelResponse = page.waitForResponse(
       (response) =>
         response.url().includes(`/api/bookings/${finalizedId}/cancel`) &&
         response.request().method() === "POST",
     );
-    await inspection.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton).click();
+    await cancelButton.click();
     const dialog = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmDialog);
     await expect(dialog).toBeVisible({ timeout: 15_000 });
     await dialog.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmButton).click();
@@ -359,19 +354,25 @@ test.describe("operator booking desk — TC-BOOK", () => {
 
     const cancelled = await page.request.get(`/api/bookings/${finalizedId}`);
     expect(cancelled.ok(), await cancelled.text()).toBeTruthy();
-    const cancelledBody = (await cancelled.json()) as { status?: string };
+    const cancelledBody = (await cancelled.json()) as {
+      status?: string;
+      cancellationStatus?: string;
+      cancellationReasonCode?: string;
+    };
     expect(cancelledBody.status).toBe("cancelled");
+    expect(cancelledBody.cancellationStatus).toBe("applied");
+    expect(cancelledBody.cancellationReasonCode).toBe("operator_correction");
 
-    const promoted = await page.request.get(`/api/bookings/${waitlistedId}`);
-    expect(promoted.ok(), await promoted.text()).toBeTruthy();
-    const promotedBody = (await promoted.json()) as {
+    const stillWaitlisted = await page.request.get(`/api/bookings/${waitlistedId}`);
+    expect(stillWaitlisted.ok(), await stillWaitlisted.text()).toBeTruthy();
+    const stillWaitlistedBody = (await stillWaitlisted.json()) as {
       status?: string;
       paymentStatus?: string;
       finalizationStatus?: string;
     };
-    expect(promotedBody.status).toBe("approved");
-    expect(promotedBody.paymentStatus).toBe("unpaid");
-    expect(promotedBody.finalizationStatus).toBe("not_final");
+    expect(stillWaitlistedBody.status).toBe("waitlisted");
+    expect(stillWaitlistedBody.paymentStatus).toBe("unpaid");
+    expect(stillWaitlistedBody.finalizationStatus).toBe("not_final");
   });
 
   test("TC-BOOK-06 inbox shows pending row after guest seed", async ({ page }) => {

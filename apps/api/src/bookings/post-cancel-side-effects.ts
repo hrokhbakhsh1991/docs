@@ -6,7 +6,6 @@ import { orchestrateRefundAfterCancellation } from "../finance/refund-orchestrat
 import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import { setBookingPaymentDueAtProjection } from "../bookings/in-memory-bookings.repository.ts";
-import { promoteOldestWaitlistedGuest } from "../bookings/promote-waitlist-after-seat-release.ts";
 import type { BookingRecord } from "../bookings/bookings.types.ts";
 import { handlePassengerCancelledForSettlement } from "../settlement/driver-settlement.service.ts";
 
@@ -25,6 +24,8 @@ export type PostCancelSideEffectsResult = {
   readonly refundId: string | null;
   readonly eligibleRefundMinor: string;
   readonly waitlistPromoted: boolean;
+  readonly waitlistCandidate: boolean;
+  readonly settlementStatus: "not_affected" | "correction_pending" | "manual_review";
 };
 
 function shouldApplyPenalty(input: {
@@ -65,6 +66,9 @@ export async function runPostCancelSideEffects(
 ): Promise<PostCancelSideEffectsResult> {
   const { auth, booking, previousStatus, cancelDomainEventId } = input;
   let waitlistPromoted = false;
+  const waitlistCandidate =
+    previousStatus === "approved" && Date.parse(booking.departureAt) > Date.now();
+  let settlementStatus: PostCancelSideEffectsResult["settlementStatus"] = "not_affected";
 
   if (previousStatus === "approved") {
     await closePaymentHoldOnOperatorCancel({
@@ -76,24 +80,26 @@ export async function runPostCancelSideEffects(
       bookingId: booking.id,
       paymentDueAt: null,
     });
-    const promoted = await promoteOldestWaitlistedGuest({
-      tenantId: auth.tenantId,
-      tourId: booking.tourId,
-    });
-    waitlistPromoted = promoted !== null;
   }
 
   try {
     await handlePassengerCancelledForSettlement(auth, booking.id);
+    settlementStatus =
+      previousStatus === "approved" && booking.finalizationStatus === "finalized"
+        ? "correction_pending"
+        : "not_affected";
   } catch {
-    // DP-5 optional when transport not configured
+    settlementStatus = "manual_review";
   }
 
   const policy = await resolveCancellationPolicyForBooking({
     tenantId: auth.tenantId,
     bookingId: booking.id,
   });
-  const applyPenalty = shouldApplyPenalty({
+  const isLateCorrection = Date.parse(booking.departureAt) <= Date.now();
+  const applyPenalty = isLateCorrection
+    ? false
+    : shouldApplyPenalty({
     previousStatus,
     paymentStatus: booking.paymentStatus,
     departureAt: booking.departureAt,
@@ -101,7 +107,7 @@ export async function runPostCancelSideEffects(
     cancellationDeadlineHours: policy.cancellationDeadlineHours,
     cancellationPenaltyPercentage: policy.cancellationPenaltyPercentage,
     tourCancelled: input.tourCancelled === true,
-  });
+      });
 
   const refund = await orchestrateRefundAfterCancellation({
     tenantId: auth.tenantId,
@@ -110,7 +116,11 @@ export async function runPostCancelSideEffects(
     cancelDomainEventId,
     applyPenalty,
     cancellationPenaltyPercentage: policy.cancellationPenaltyPercentage,
-    reasonCode: input.cancelSource === "member" ? "member_withdrawal" : "ops_correction",
+    reasonCode: isLateCorrection
+      ? "ops_correction"
+      : input.cancelSource === "member"
+        ? "member_withdrawal"
+        : "ops_correction",
   });
 
   return {
@@ -118,5 +128,7 @@ export async function runPostCancelSideEffects(
     refundId: refund.refundId,
     eligibleRefundMinor: refund.eligibleRefundMinor,
     waitlistPromoted,
+    waitlistCandidate,
+    settlementStatus,
   };
 }

@@ -3,6 +3,7 @@
  * HTTP wire DTOs SoT: `@app-tour/booking-http-contracts` (Phase B1.2).
  */
 import type {
+  BookingCancellationStatus,
   BookingPaymentStatus,
   BookingStatus,
   CreateBookingRequest as BookingHttpCreateBookingRequest,
@@ -11,6 +12,7 @@ import type {
 export type {
   ApproveBookingResponse,
   BookingListItem,
+  BookingCancellationStatus,
   BookingPaymentStatus,
   BookingStatus,
   BookingTourChip,
@@ -22,6 +24,7 @@ export type {
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
   CancelBookingResponse,
+  CancelBookingRequest,
   CreateBookingResponse,
   FinalizeBookingResponse,
   RejectBookingRequest,
@@ -83,6 +86,13 @@ export type BookingRecord = {
   readonly paymentDueAt?: string | null;
   /** DP1 — terminal cancel provenance (`payment_deadline` | `operator` | null). */
   readonly cancelSource?: string | null;
+  readonly cancellationStatus?: BookingCancellationStatus;
+  readonly cancellationReasonCode?: string | null;
+  readonly cancellationReasonNote?: string | null;
+  readonly cancellationRequestedAt?: string | null;
+  readonly cancellationApprovedAt?: string | null;
+  readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationCorrelationId?: string | null;
 };
 
 export type BookingOutboxRecord = {
@@ -93,6 +103,7 @@ export type BookingOutboxRecord = {
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
   readonly domainEventId: string;
+  readonly correlationId?: string;
   readonly createdAt: string;
 };
 

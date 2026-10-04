@@ -212,6 +212,12 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
+    cancellationStatus?: string;
+    cancellationReasonCode?: string;
+    cancellationReasonNote?: string;
+    cancellationApprovedByUserId?: string;
+    cancellationCorrelationId?: string;
+    cancellationRequestedAt?: string;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

@@ -52,6 +52,15 @@ export type BookingRegistrantTarget = "self" | "other";
 
 export type BookingFinancialDisplayState = "WAIVED";
 export type BookingFinalizationStatus = "not_final" | "finalized";
+export type BookingCancellationStatus =
+  | "none"
+  | "request_pending"
+  | "approved"
+  | "rejected"
+  | "applied"
+  | "late_correction"
+  | "manual_review"
+  | "completed";
 
 /** Guest intake transport kind — list scalar (H5-T3); not the intake blob. */
 export type BookingTransportKind =
@@ -115,6 +124,13 @@ export type BookingListItem = {
   readonly paymentDueAt?: string;
   /** DP1 — cancel provenance when status=cancelled. */
   readonly cancelSource?: string | null;
+  readonly cancellationStatus?: BookingCancellationStatus;
+  readonly cancellationReasonCode?: string | null;
+  readonly cancellationReasonNote?: string | null;
+  readonly cancellationRequestedAt?: string | null;
+  readonly cancellationApprovedAt?: string | null;
+  readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationCorrelationId?: string | null;
   /** Ops list projection — submitter user id for directory avatar parity. */
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
@@ -213,6 +229,15 @@ export type WaitlistBookingResponse = {
 export type CancelBookingResponse = {
   readonly id: string;
   readonly status: BookingStatus;
+  readonly cancellationStatus?: BookingCancellationStatus;
+  readonly refundStatus?: "not_required" | "pending_finance_approval";
+  readonly settlementStatus?: "not_affected" | "correction_pending" | "manual_review";
+};
+
+export type CancelBookingRequest = {
+  readonly reasonCode: string;
+  readonly reasonNote?: string;
+  readonly mode?: "direct" | "request";
 };
 
 /** Member receipt JSON body on POST /bookings/:id/receipts (file and/or text evidence). */

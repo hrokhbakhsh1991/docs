@@ -211,6 +211,9 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     });
     const cancelled = await cancelBooking(opsAuth(TENANT_DENALI), cancelCandidate.id);
     assert.equal(cancelled.status, "cancelled");
+    assert.equal(cancelled.cancellationStatus, "applied");
+    assert.equal(cancelled.refundStatus, "pending_finance_approval");
+    assert.equal(cancelled.settlementStatus, "correction_pending");
     const cancelledRow = await getBookingsRepository().getById(cancelCandidate.id, TENANT_DENALI);
     assert.equal(cancelledRow?.finalizationStatus, "not_final");
     assert.equal(cancelledRow?.finalizedAt, null);

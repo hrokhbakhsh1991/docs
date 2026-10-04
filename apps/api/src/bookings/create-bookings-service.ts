@@ -400,11 +400,12 @@ export async function promoteWaitlistWithCapacityIncrease(
 
 export async function cancelBooking(
   auth: BookingActorContext,
-  bookingId: string
+  bookingId: string,
+  input?: { readonly reasonCode: string; readonly reasonNote?: string }
 ): Promise<CancelBookingResponse> {
   const result = await (
     await resolveBookingsServiceForTenant(auth.tenantId)
-  ).cancelBooking(auth, bookingId);
+  ).cancelBooking(auth, bookingId, input);
   const { closePaymentHoldOnOperatorCancel } =
     await import("../finance/apply-payment-hold-after-booking-approve");
   await closePaymentHoldOnOperatorCancel({

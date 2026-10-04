@@ -148,6 +148,7 @@
   "cancelDialogDescription": "Cancel {guest} on {tour}. This cannot be undone from the queue.",
   "cancelDialogConfirm": "Confirm cancel",
   "cancelDialogKeep": "Keep registration",
+  "cancelDialogReason": "Cancellation reason",
   "inlineApproveConfirm": "Confirm? (2nd click)",
   "inlineApproveConfirmCountdown": "Confirm? ({seconds})",
   "inlineApproveConfirmAria": "Confirm approve for {guest} — {seconds}s left",

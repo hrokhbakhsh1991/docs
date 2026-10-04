@@ -34,7 +34,9 @@ export async function clearPriorBqcBookings(page: Page): Promise<void> {
           ? await page.request.post(`/api/bookings/${id}/reject`, {
               data: { reason: "E2E capacity hygiene" },
             })
-          : await page.request.post(`/api/bookings/${id}/cancel`);
+          : await page.request.post(`/api/bookings/${id}/cancel`, {
+              data: { reasonCode: "operator_correction" },
+            });
       expect(action.ok(), await action.text()).toBeTruthy();
     }
   }
