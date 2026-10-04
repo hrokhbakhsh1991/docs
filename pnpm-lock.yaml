@@ -467,6 +467,9 @@ importers:
       "@app-tour/iran-mountain-landmarks":
         specifier: workspace:*
         version: link:../../packages/iran-mountain-landmarks
+      "@app-tour/localized-calendar":
+        specifier: workspace:*
+        version: link:../../packages/localized-calendar
       "@app-tour/marketing-pages-http-contracts":
         specifier: workspace:*
         version: link:../../packages/marketing-pages-http-contracts

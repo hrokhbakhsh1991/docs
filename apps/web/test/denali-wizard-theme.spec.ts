@@ -185,9 +185,21 @@ describe("denali-wizard-theme.spec.ts", () => {
   it("WEB-DENALI-WIZARD-22 map action and time picker have high-contrast affordances", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.match(fields, /denali-wizard-map-experience__preview-overlay[\s\S]*z-index: 2/);
-    assert.match(fields, /denali-wizard-map-experience__open[\s\S]*background: var\(--color-primary\)/);
+    assert.match(
+      fields,
+      /denali-wizard-map-experience__open[\s\S]*background: var\(--color-primary\)/
+    );
     assert.match(fields, /operator-time-picker__option[\s\S]*min-height: 2\.75rem/);
     assert.match(fields, /operator-time-picker__preview[\s\S]*font-size: 1\.375rem/);
+  });
+
+  it("WEB-DENALI-WIZARD-23 tour registration uses the shared localized date picker", () => {
+    const registration = readFileSync(
+      join(import.meta.dirname, "../app/(app)/tours/[id]/register/tour-register-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(registration, /@app-tour\/localized-calendar\/localized-date-picker/);
+    assert.doesNotMatch(registration, /@\/components\/i18n\/localized-date-picker/);
   });
 
   it("WEB-DENALI-WIZARD-09 photo grid BEM in wizard-fields.css", () => {

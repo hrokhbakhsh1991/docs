@@ -7,11 +7,21 @@
 
 @keyframes denali-hero-image-drift {
   from {
-    transform: scale(1.035);
+    transform: scale(1.48);
   }
 
   to {
-    transform: scale(1);
+    transform: scale(1.45);
+  }
+}
+
+@keyframes denali-hero-image-drift-mobile {
+  from {
+    transform: scale(1.52);
+  }
+
+  to {
+    transform: scale(1.45);
   }
 }
 
@@ -60,6 +70,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-hero-walk]::before {
   background:
+    linear-gradient(
+      180deg,
+      rgb(26 31 36 / 0.3) 0%,
+      rgb(26 31 36 / 0.12) 12%,
+      transparent 24%,
+      transparent 82%,
+      rgb(7 22 19 / 0.2) 100%
+    ),
     radial-gradient(
       ellipse 42% 24% at 10% 78%,
       transparent 0 48%,
@@ -113,7 +131,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   max-width: none;
   object-fit: cover;
   object-position: 28% 62%;
-  transform: scale(1);
+  transform: scale(1.45);
   animation: denali-hero-image-drift 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -152,8 +170,11 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     > section[data-marketing-home-hero-walk] {
-    height: clamp(24rem, 42.85vw, 100svh);
-    min-height: clamp(24rem, 42.85vw, 100svh);
+    /* Give the landing hero a real first-screen presence on desktop. The
+     * supplied landscape image can safely crop at the sides inside this
+     * taller frame while the copy gets enough vertical breathing room. */
+    height: clamp(40rem, 100svh, 56rem);
+    min-height: clamp(40rem, 100svh, 56rem);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -318,9 +339,20 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 @media (max-width: 48rem) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
+    > section[data-marketing-home-hero-walk] {
+    /* Avoid a full mobile viewport of hero-only content on tall phones while
+     * keeping a stable, spacious first fold on shorter devices. */
+    height: min(100svh, 48rem);
+    min-height: 42rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
     section[data-marketing-home-hero-walk]
     img[data-marketing-home-hero-background] {
     object-position: 46% 28%;
+    transform: scale(1.45);
+    animation-name: denali-hero-image-drift-mobile;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -328,7 +360,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     section[data-marketing-home-hero-walk]
     div[data-marketing-home-hero-layout] {
     align-items: flex-start;
-    padding-block-start: calc(var(--mkt-header-height) + var(--space-5));
+    padding-block-start: calc(
+      var(--mkt-header-height) + var(--space-8) + env(safe-area-inset-top, 0px)
+    );
     padding-inline: var(--catalog-page-padding-x);
   }
 
