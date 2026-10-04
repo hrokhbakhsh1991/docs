@@ -3579,3 +3579,13 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - `BUG-STG-015`: **PASS**. `نوع حمل‌ونقل` exists in the final and payment sheets and contains `حمل سازمان‌یافته`.
 - `BUG-STG-016`: **PASS**. `تاریخ نهایی‌شدن` exists; finalized rows contain timestamps and the pending row contains `—`.
 - Excel evidence gate for the current deployment: **PASS**. Together with the recorded deployment, cache/exposure/edge-stability and end-to-end payment/finalization passes, this removes the last stated gate; no claim is made for unrelated scenarios outside that stated scope.
+
+## 2026-10-04 — staging deployment after dev merge
+
+- Deployment workflow: `Deploy staging (dev)`, run `37183307399`, head/release SHA `3c09a4f734261f75960cfbf3ea5be0fb9e99c5f7`.
+- Artifact verification: `INSTALL_ARTIFACT_OK sha=3c09a4f734261f75960cfbf3ea5be0fb9e99c5f7`.
+- Artifact digest: `801ed4e80d5d456b1abd6175145bde841bdcc5f73728817d8002ad683c44d7aa`.
+- Migration head: `20260923120000_payment_gated_finalization`.
+- Deploy verification: transfer/install/migrate/seed, four-process health, RLS remote gate, and workspace staging adapter all **PASS**.
+- Process smoke: API, Web, Marketing, and Portal each returned HTTP `200`; `SMOKE_FOUR_PROCESS_OK` and `P10_REMOTE_GATE_OK` were recorded.
+- This deployment is the runtime baseline for the next PLP/PDP and Portal/Admin retests; runtime bug closure remains scoped to scenarios actually rechecked on this SHA.
