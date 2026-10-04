@@ -3598,3 +3598,9 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - PDP result: displayed `حمل‌ونقل: خودروهای مشترک`, but no dong label or monetary amount was rendered in the server-rendered page text.
 - `BUG-STG-082`: **FAIL** on this deployed SHA; PLP/PDP transport ancillary parity is still broken. No closure or FINAL PASS is issued.
 - Separate runtime observation: the HTTPS PLP requested signed MinIO images over HTTP and the browser blocked them as mixed content. This is recorded separately from the dong parity failure.
+
+### Follow-up diagnosis
+
+- The deployed Marketing source contains a shared-cars dong resolver for both compact cards and PDP logistics, and the isolated transport regression is `6/6 PASS`. The runtime discrepancy therefore is not caused by the formatter.
+- Denali exposure deliberately removes `transport.dongAmount` when the payment-policy field is hidden (`BUG-STG-019` contract). The next fix must reconcile the persisted `public_list`/`public_details` exposure profile or detail projection; bypassing that redaction in the renderer would create a financial exposure regression.
+- The mixed-content failure is a staging photo-storage configuration issue: signed MinIO URLs are emitted with `http://89.42.210.252:9002` while the public surface is HTTPS. It requires an HTTPS MinIO/public proxy endpoint (or equivalent staging environment correction), not client-side URL rewriting.
