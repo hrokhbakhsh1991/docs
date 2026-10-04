@@ -3626,3 +3626,17 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
   - `transport={mode:"shared_cars",dongAmount:80000}`
 - `BUG-STG-082` API/list/detail parity: **PASS** for this fixture and current
   staging configuration. The mixed-content image issue remains open separately.
+
+### Mixed-content follow-up probe
+
+- `https://89.42.210.252:9002` does not provide a usable TLS endpoint.
+- Candidate paths on `https://denali.shenski.com` (`/storage`, `/minio`,
+  `/media`) return `404`; no existing HTTPS storage proxy was found.
+- The repository's staging synchronizer still deliberately sets
+  `MINIO_PUBLIC_ENDPOINT=http://${PUBLIC_HOST}:9002`, and the Caddy profile has
+  no storage upstream. A safe fix therefore requires infrastructure work:
+  provision an HTTPS storage hostname/proxy to MinIO, update
+  `MINIO_PUBLIC_ENDPOINT` to that origin, restart API, and verify a newly signed
+  URL before retesting browser image loads.
+- Client-side `http`→`https` rewriting remains explicitly disallowed because it
+  invalidates the presigned URL contract and can hide an unavailable backend.
