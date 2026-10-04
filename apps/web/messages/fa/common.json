@@ -59,8 +59,9 @@
     "timeLabel": "ساعت",
     "pickTime": "انتخاب ساعت",
     "confirmTime": "تأیید",
-    "timePickerHint": "ساعت و دقیقه را از لیست انتخاب کنید",
+    "timePickerHint": "ساعت را تایپ کنید یا یک بازه پنج‌دقیقه‌ای انتخاب کنید",
     "hour": "ساعت",
-    "minute": "دقیقه"
+    "minute": "دقیقه",
+    "quickMinutes": "دقیقه‌های سریع"
   }
 }

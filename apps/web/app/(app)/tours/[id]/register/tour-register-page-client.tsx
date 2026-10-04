@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { LocalizedDatePicker } from "@app-tour/localized-calendar/localized-date-picker";
 
 import { PageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

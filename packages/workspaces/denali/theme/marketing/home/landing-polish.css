@@ -11,16 +11,23 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   content: "";
   position: absolute;
   inset-inline: 0;
+  inset-block-start: auto;
   inset-block-end: 0;
-  height: clamp(5.5rem, 16vh, 11rem);
+  height: clamp(4rem, 10vh, 7rem);
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(
-    to top,
-    var(--color-bg-surface, #fff) 0%,
-    rgb(255 255 255 / 0.9) 38%,
-    transparent 100%
-  );
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(26 31 36 / 0.2) 0%,
+      transparent 24%
+    ),
+    linear-gradient(
+      to top,
+      var(--color-bg-surface, #fff) 0%,
+      rgb(255 255 255 / 0.82) 38%,
+      transparent 100%
+    );
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
