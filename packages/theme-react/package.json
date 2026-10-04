@@ -20,9 +20,9 @@
     }
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ./scripts/verify-export-allowlist.mjs",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && node ./scripts/verify-export-allowlist.mjs",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "NODE_ENV=test node --import ./test/register-dom.mjs --import tsx --test --test-concurrency=1 \"src/**/*.spec.ts\" \"src/**/*.spec.tsx\" \"test/**/*.spec.tsx\"",
+    "test": "node --import ./test/set-test-env.mjs --import ./test/register-dom.mjs --import tsx --test --test-concurrency=1 \"src/**/*.spec.ts\" \"src/**/*.spec.tsx\" \"test/**/*.spec.tsx\"",
     "verify:exports": "node ./scripts/verify-export-allowlist.mjs"
   },
   "dependencies": {

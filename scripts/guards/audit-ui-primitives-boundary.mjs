@@ -51,10 +51,35 @@ function rgBarrelHits() {
   ];
   const r = spawnSync("rg", args, { cwd: REPO_ROOT, encoding: "utf8" });
   if (r.error?.code === "ENOENT") {
-    console.error(
-      "audit-ui-primitives-boundary: ripgrep (rg) not found — install ripgrep (apt/brew) or add it to CI before doc-gate",
-    );
-    process.exit(2);
+    return nodeBarrelHits();
+  }
+
+  function nodeBarrelHits() {
+    const hits = [];
+    const extensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+    const ignored = new Set(["node_modules", "dist", "legacy", "TEMP", "reports", "ui-primitives"]);
+
+    function walk(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+          if (!ignored.has(entry.name)) walk(path.join(dir, entry.name));
+          continue;
+        }
+        if (!extensions.has(path.extname(entry.name))) continue;
+        const file = path.join(dir, entry.name);
+        const relative = path.relative(REPO_ROOT, file);
+        if (relative === SELF_SCRIPT) continue;
+        const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+        lines.forEach((line, index) => {
+          if (BARREL_PATTERN.test(line)) {
+            hits.push(`${relative}:${index + 1}:${line}`);
+          }
+        });
+      }
+    }
+
+    for (const root of SCAN_ROOTS) walk(root);
+    return hits;
   }
   if (r.status === 1 && !r.stdout?.trim()) {
     return [];
