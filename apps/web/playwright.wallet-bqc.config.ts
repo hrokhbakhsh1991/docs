@@ -5,6 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const denaliOperatorBaseUrl =
   process.env.SMOKE_DENALI_WEB_BASE_URL ?? "http://denali.admin.localhost:3000";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,6 +18,10 @@ export default defineConfig({
     baseURL: denaliOperatorBaseUrl,
     viewport: { width: 1280, height: 900 },
     navigationTimeout: 180_000,
+    launchOptions: {
+      args: ["--disable-dev-shm-usage", "--disable-gpu", "--no-sandbox"],
+      ...(chromiumExecutablePath === undefined ? {} : { executablePath: chromiumExecutablePath }),
+    },
   },
   webServer: {
     command: "node scripts/smoke-operator-wallet-bqc-servers.mjs",

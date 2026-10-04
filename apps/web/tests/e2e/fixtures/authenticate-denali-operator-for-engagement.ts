@@ -8,6 +8,7 @@ import { SESSION_TOKEN_COOKIE } from "../../../src/auth/build-session-cookie";
 export const DENALI_OPERATOR_OWNER_MOBILE = "09174070937";
 export const DENALI_OPERATOR_VIEWER_MOBILE = "+15550001996";
 export const DENALI_DEV_OTP = "1234";
+const WALLET_AUTH_TIMEOUT_MS = 300_000;
 
 const sessionTokenCache = new Map<string, string>();
 
@@ -57,7 +58,7 @@ async function loginDenaliOperatorSession(
   const otpRes = await page.request.post(otpRequest.url, {
     data: { phone },
     headers: otpRequest.headers,
-    timeout: 120_000,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   expect(otpRes.ok(), await otpRes.text()).toBeTruthy();
   const otpBody = (await otpRes.json()) as { challenge_id?: string };
@@ -71,7 +72,7 @@ async function loginDenaliOperatorSession(
       challenge_id: otpBody.challenge_id,
     },
     headers: loginRequest.headers,
-    timeout: 120_000,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   const loginText = await loginRes.text();
   expect(loginRes.ok(), loginText).toBeTruthy();

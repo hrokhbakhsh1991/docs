@@ -10,11 +10,12 @@ export const DENALI_WALLET_PILOT_OPERATOR_BASE_URL =
   "http://admin.denali-wallet-pilot.localhost:3000";
 
 export const DENALI_WALLET_PILOT_OPERATOR_WALLET_PATH = "/wallet" as const;
+const WALLET_AUTH_TIMEOUT_MS = 300_000;
 
 export async function loginDenaliWalletPilotOwner(page: Page): Promise<void> {
   const otpRes = await page.request.post("/api/auth/request-otp", {
     data: { phone: DENALI_WALLET_PILOT.ownerMobile },
-    timeout: 120_000,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   expect(otpRes.ok()).toBeTruthy();
   const otpBody = (await otpRes.json()) as { challenge_id?: string };
@@ -26,7 +27,7 @@ export async function loginDenaliWalletPilotOwner(page: Page): Promise<void> {
       otp: DENALI_WALLET_PILOT.devOtp,
       challenge_id: otpBody.challenge_id,
     },
-    timeout: 120_000,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   expect(loginRes.ok()).toBeTruthy();
 }

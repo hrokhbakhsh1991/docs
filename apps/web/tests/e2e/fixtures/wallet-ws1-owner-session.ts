@@ -9,11 +9,12 @@ export const WALLET_WS1_OPERATOR_BASE_URL =
   process.env.SMOKE_OWNER_WEB_BASE_URL ?? "http://admin.wallet-ws1.localhost:3000";
 
 export const WALLET_WS1_OPERATOR_WALLET_PATH = "/wallet" as const;
+const WALLET_AUTH_TIMEOUT_MS = 300_000;
 
 export async function loginWalletWs1Owner(page: Page): Promise<void> {
   const otpRes = await page.request.post("/api/auth/request-otp", {
     data: { phone: WALLET_WS1_CERTIFICATION.ownerMobile },
-    timeout: 120_000,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   expect(otpRes.ok()).toBeTruthy();
   const otpBody = (await otpRes.json()) as { challenge_id?: string };
@@ -25,7 +26,7 @@ export async function loginWalletWs1Owner(page: Page): Promise<void> {
       otp: WALLET_WS1_CERTIFICATION.devOtp,
       challenge_id: otpBody.challenge_id,
     },
-    timeout: 120_000,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   expect(loginRes.ok()).toBeTruthy();
 }
