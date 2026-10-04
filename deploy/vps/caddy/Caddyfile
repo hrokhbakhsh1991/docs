@@ -70,6 +70,23 @@ http://{$CANONICAL_PORTAL_HOST} {
 	}
 }
 
+# Public HTTPS origin for browser-reachable MinIO presigned URLs. Arvan
+# terminates TLS; Caddy forwards the request to loopback MinIO without
+# exposing port 9002 or an IP address to the browser.
+http://{$MINIO_PUBLIC_HOST} {
+	reverse_proxy 127.0.0.1:{$MINIO_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/minio-access.log
+		format json
+	}
+}
+
 http://*.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$MARKETING_PORT} {
 		header_up Host {host}
