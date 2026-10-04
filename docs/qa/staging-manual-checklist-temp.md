@@ -3589,3 +3589,12 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - Deploy verification: transfer/install/migrate/seed, four-process health, RLS remote gate, and workspace staging adapter all **PASS**.
 - Process smoke: API, Web, Marketing, and Portal each returned HTTP `200`; `SMOKE_FOUR_PROCESS_OK` and `P10_REMOTE_GATE_OK` were recorded.
 - This deployment is the runtime baseline for the next PLP/PDP and Portal/Admin retests; runtime bug closure remains scoped to scenarios actually rechecked on this SHA.
+
+## 2026-10-04 — runtime retest on `3c09a4f734261f75960cfbf3ea5be0fb9e99c5f7`
+
+- Public Marketing URL: `https://denali.shenski.com/tours`.
+- `BUG-STG-082` fixture: `QA 2026 Shared Cars Dong` (`99c917a2-769f-499d-a59f-5c9ae1874aeb`).
+- PLP result: card displayed `دونگی: ۸۰٬۰۰۰ تومان` and `حمل‌ونقل: خودروهای مشترک`.
+- PDP result: displayed `حمل‌ونقل: خودروهای مشترک`, but no dong label or monetary amount was rendered in the server-rendered page text.
+- `BUG-STG-082`: **FAIL** on this deployed SHA; PLP/PDP transport ancillary parity is still broken. No closure or FINAL PASS is issued.
+- Separate runtime observation: the HTTPS PLP requested signed MinIO images over HTTP and the browser blocked them as mixed content. This is recorded separately from the dong parity failure.
