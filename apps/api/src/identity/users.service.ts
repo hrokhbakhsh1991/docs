@@ -1,5 +1,7 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
+import { assertWalletOperatorAccess } from "../workspace-wallet/assert-wallet-operator-access";
+
 import type {
   IdentityMembershipRecord,
   IdentityRepository,
@@ -233,7 +235,11 @@ export async function listUsersDirectory(
   query: UsersListQuery,
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<UsersListResponse> {
-  await assertUsersDirectoryAccess(auth);
+  if (query.scope === "wallet") {
+    assertWalletOperatorAccess(auth);
+  } else {
+    await assertUsersDirectoryAccess(auth);
+  }
 
   const filters = {
     search: query.search,

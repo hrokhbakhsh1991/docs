@@ -20,6 +20,7 @@ import {
   parseWalletAccountsResponse,
   parseWalletMutationResponse,
   validateMemberUserIdSearch,
+  validateMemberSearch,
   validateWalletMutationForm,
   validateWalletReversalForm,
   walletUiMustNotSendAuthorityFields,
@@ -34,6 +35,13 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
       validateMemberUserIdSearch("00000000-0000-4000-8000-000000000099").ok,
       true,
     );
+  });
+
+  it("WEB-WALLET-OPS-01A member directory search accepts human identifiers", () => {
+    assert.equal(validateMemberSearch("  Ali Rezaei  ").ok, true);
+    assert.equal(validateMemberSearch("09174070941").ok, true);
+    assert.equal(validateMemberSearch("").ok, false);
+    assert.equal(validateMemberSearch("x".repeat(121)).ok, false);
   });
 
   it("WEB-WALLET-OPS-02 credit/debit validation requires positive minor amount and reason", () => {
@@ -55,6 +63,14 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
   it("WEB-WALLET-OPS-03 reversal validation requires reason", () => {
     assert.equal(validateWalletReversalForm({ reasonNote: "" }).ok, false);
     assert.equal(validateWalletReversalForm({ reasonNote: "mistake" }).ok, true);
+  });
+
+  it("WEB-WALLET-OPS-03A rejects overlong operation reasons", () => {
+    assert.equal(validateWalletReversalForm({ reasonNote: "x".repeat(2001) }).ok, false);
+    assert.equal(
+      validateWalletMutationForm({ amountMinor: "100", reasonNote: "x".repeat(2001) }, "IRR").ok,
+      false,
+    );
   });
 
   it("WEB-WALLET-OPS-04 mutation bodies never include tenant/workspace authority", () => {

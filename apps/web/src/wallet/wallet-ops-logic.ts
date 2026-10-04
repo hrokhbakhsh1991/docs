@@ -268,6 +268,7 @@ export function buildWalletAccountsSearchPath(search: string, currency?: string)
 
 export function buildWalletMembersSearchPath(search = ""): string {
   const params = new URLSearchParams({
+    scope: "wallet",
     status: "active",
     limit: "50",
     sort: "name_asc",

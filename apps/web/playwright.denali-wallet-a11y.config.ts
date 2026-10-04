@@ -4,13 +4,19 @@ import { defineConfig, devices } from "@playwright/test";
  * WALLET-A11Y — Denali operator wallet accessibility (Postgres E2E).
  */
 const webGateUrl = process.env.SMOKE_WEB_GATE_URL ?? "http://127.0.0.1:3000/health";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 function chromiumHostResolverArgs(): string[] {
   const rules = [
     "MAP admin.denali-wallet-pilot.localhost 127.0.0.1",
     "MAP admin.operator.localhost 127.0.0.1",
   ].join(", ");
-  return [`--host-resolver-rules=${rules}`];
+  return [
+    `--host-resolver-rules=${rules}`,
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-sandbox",
+  ];
 }
 
 export default defineConfig({
@@ -26,7 +32,10 @@ export default defineConfig({
       process.env.SMOKE_DENALI_WALLET_PILOT_WEB_BASE_URL ??
       "http://admin.denali-wallet-pilot.localhost:3000",
     viewport: { width: 1280, height: 900 },
-    launchOptions: { args: chromiumHostResolverArgs() },
+    launchOptions: {
+      args: chromiumHostResolverArgs(),
+      ...(chromiumExecutablePath === undefined ? {} : { executablePath: chromiumExecutablePath }),
+    },
   },
   webServer: {
     command: "node ../../scripts/smoke-denali-wallet-pilot-servers.mjs",

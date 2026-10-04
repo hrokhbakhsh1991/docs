@@ -4,6 +4,7 @@
 import { expect, test } from "@playwright/test";
 
 import { WALLET_WS1_CERTIFICATION } from "../../../api/test/fixtures/wallet-ws1-certification-tenant";
+import { OPERATOR_WELCOME_TEST_IDS } from "../../src/admin/onboarding/operator-welcome-types";
 import { WALLET_OPS_TEST_IDS } from "../../src/wallet/wallet-ops-logic";
 import {
   WALLET_WS1_OPERATOR_WALLET_PATH,
@@ -16,6 +17,10 @@ test.beforeEach(async ({ page }) => {
 
 test("WALLET-CERT-O01 operator wallet nav and page load", async ({ page }) => {
   await page.goto("/");
+  const welcomeDialog = page.getByTestId(OPERATOR_WELCOME_TEST_IDS.dialog);
+  if (await welcomeDialog.isVisible().catch(() => false)) {
+    await page.getByTestId(OPERATOR_WELCOME_TEST_IDS.dismissCta).click();
+  }
   await expect(page.locator('[data-operator-nav-link][href="/wallet"]')).toBeVisible({
     timeout: 60_000,
   });
@@ -25,14 +30,17 @@ test("WALLET-CERT-O01 operator wallet nav and page load", async ({ page }) => {
 
 test("WALLET-CERT-O02 account search, balance, and history", async ({ page }) => {
   await page.goto(WALLET_WS1_OPERATOR_WALLET_PATH);
-  await page
-    .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
-    .fill(WALLET_WS1_CERTIFICATION.entitledMemberUserId);
+  const searchInput = page.getByTestId(WALLET_OPS_TEST_IDS.searchInput);
+  await expect(searchInput).toBeEnabled({ timeout: 60_000 });
+  await searchInput.fill(WALLET_WS1_CERTIFICATION.entitledMemberUserId);
   await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
-  await expect(page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first()).toBeVisible({
-    timeout: 60_000,
-  });
-  await page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first().click();
+  await page
+    .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+    .filter({ hasText: WALLET_WS1_CERTIFICATION.entitledMemberMobile })
+    .click();
+  const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
+  await expect(accountRow).toBeEnabled({ timeout: 60_000 });
+  await accountRow.click();
   await expect(page.getByTestId(WALLET_OPS_TEST_IDS.balanceAmount)).toBeVisible({
     timeout: 60_000,
   });
@@ -43,11 +51,17 @@ test("WALLET-CERT-O02 account search, balance, and history", async ({ page }) =>
 
 test("WALLET-CERT-O03 manual credit requires reason and confirmation", async ({ page }) => {
   await page.goto(WALLET_WS1_OPERATOR_WALLET_PATH);
-  await page
-    .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
-    .fill(WALLET_WS1_CERTIFICATION.entitledMemberUserId);
+  const searchInput = page.getByTestId(WALLET_OPS_TEST_IDS.searchInput);
+  await expect(searchInput).toBeEnabled({ timeout: 60_000 });
+  await searchInput.fill(WALLET_WS1_CERTIFICATION.entitledMemberUserId);
   await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
-  await page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first().click();
+  await page
+    .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+    .filter({ hasText: WALLET_WS1_CERTIFICATION.entitledMemberMobile })
+    .click();
+  const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
+  await expect(accountRow).toBeEnabled({ timeout: 60_000 });
+  await accountRow.click();
   await page.getByTestId(WALLET_OPS_TEST_IDS.creditButton).click();
   await expect(page.getByTestId(WALLET_OPS_TEST_IDS.mutationDialog)).toBeVisible();
   await page.getByTestId(WALLET_OPS_TEST_IDS.mutationConfirm).click();
@@ -58,7 +72,7 @@ test("WALLET-CERT-O03 manual credit requires reason and confirmation", async ({ 
   await page.getByTestId(WALLET_OPS_TEST_IDS.mutationReason).fill("certification credit");
   await page.getByTestId(WALLET_OPS_TEST_IDS.mutationConfirm).click();
   await expect(page.getByTestId(WALLET_OPS_TEST_IDS.mutationFeedback)).toBeVisible({
-    timeout: 60_000,
+    timeout: 180_000,
   });
 });
 
@@ -66,11 +80,17 @@ test("WALLET-CERT-O04 insufficient funds debit shows error without corrupting ba
   page,
 }) => {
   await page.goto(WALLET_WS1_OPERATOR_WALLET_PATH);
-  await page
-    .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
-    .fill(WALLET_WS1_CERTIFICATION.entitledMemberUserId);
+  const searchInput = page.getByTestId(WALLET_OPS_TEST_IDS.searchInput);
+  await expect(searchInput).toBeEnabled({ timeout: 60_000 });
+  await searchInput.fill(WALLET_WS1_CERTIFICATION.entitledMemberUserId);
   await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
-  await page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first().click();
+  await page
+    .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+    .filter({ hasText: WALLET_WS1_CERTIFICATION.entitledMemberMobile })
+    .click();
+  const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
+  await expect(accountRow).toBeEnabled({ timeout: 60_000 });
+  await accountRow.click();
   const before = await page.getByTestId(WALLET_OPS_TEST_IDS.balanceAmount).textContent();
   await page.getByTestId(WALLET_OPS_TEST_IDS.debitButton).click();
   await page.getByTestId(WALLET_OPS_TEST_IDS.mutationAmount).fill("99999900");

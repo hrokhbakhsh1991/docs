@@ -47,6 +47,7 @@ import {
   parseWalletMutationResponse,
   parseWalletTransactionHistoryResponse,
   readWalletErrorCode,
+  validateMemberSearch,
   validateWalletMutationForm,
   validateWalletReversalForm,
   walletTransactionKindLabelKey,
@@ -105,6 +106,7 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
   const [mutationFeedback, setMutationFeedback] = useState<string | null>(null);
   const [mutationPending, setMutationPending] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
+  const memberSearchRequestRef = useRef(0);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId) ?? null,
@@ -129,8 +131,16 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
           return t("errorReversalInvalid");
         case "REASON_REQUIRED":
           return t("errorReasonRequired");
+        case "REASON_TOO_LONG":
+          return t("errorReasonTooLong");
         case "AMOUNT_POSITIVE_INTEGER":
           return t("errorAmountInvalid");
+        case "CURRENCY_INVALID":
+          return t("errorCurrencyInvalid");
+        case "IDEMPOTENCY_KEY_REQUIRED":
+          return t("errorIdempotencyKeyRequired");
+        case "MUTATION_FAILED":
+          return t("errorMutationFailed");
         case "FORBIDDEN_OPERATOR_FORBIDDEN":
           return t("errorForbidden");
         case "VALIDATION_FAILED":
@@ -143,19 +153,30 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
   );
 
   const loadMembers = useCallback(async (search = "") => {
+    const requestId = memberSearchRequestRef.current + 1;
+    memberSearchRequestRef.current = requestId;
     setMembersState("loading");
     setMembersError(null);
     try {
       const response = await fetch(buildWalletMembersSearchPath(search), { cache: "no-store" });
+      if (requestId !== memberSearchRequestRef.current) {
+        return;
+      }
       if (!response.ok) {
         setMembersState("error");
         setMembersError(t("errorGeneric"));
         return;
       }
       const payload = (await response.json()) as UsersListResponse;
+      if (requestId !== memberSearchRequestRef.current) {
+        return;
+      }
       setMembers(Array.isArray(payload.items) ? payload.items : []);
       setMembersState("ready");
     } catch {
+      if (requestId !== memberSearchRequestRef.current) {
+        return;
+      }
       setMembersState("error");
       setMembersError(t("errorGeneric"));
     }
@@ -272,9 +293,9 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
     setSearchError(null);
     setLoadError(null);
     setMutationFeedback(null);
-    const search = searchInput.trim();
-    if (search.length === 0 || search.length > 120) {
-      setSearchError(resolveErrorMessage("MEMBER_USER_ID_INVALID"));
+    const validated = validateMemberSearch(searchInput);
+    if (!validated.ok) {
+      setSearchError(resolveErrorMessage(validated.error));
       return;
     }
     setSelectedMember(null);
@@ -284,7 +305,7 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
     setBalanceMinor(null);
     setHistoryItems([]);
     setAccountsState("idle");
-    await loadMembers(search);
+    await loadMembers(validated.value);
   };
 
   const loadMoreHistory = async () => {
@@ -528,6 +549,12 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
             <ul className="space-y-2" data-testid={WALLET_OPS_TEST_IDS.membersList}>
               {members.map((member) => {
                 const selected = member.userId === selectedMember?.userId;
+                const phone = member.phone?.trim() ?? "";
+                const rawDisplayName = member.displayName.trim();
+                const hasDistinctDisplayName = rawDisplayName.length > 0 && rawDisplayName !== phone;
+                const displayName = hasDistinctDisplayName
+                  ? rawDisplayName
+                  : t("unnamedMember");
                 return (
                   <li key={member.userId}>
                     <button
@@ -539,9 +566,9 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
                       disabled={accountsState === "loading"}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-medium">{member.displayName}</span>
+                        <span className="block truncate font-medium">{displayName}</span>
                         <span className="block truncate text-sm text-muted-foreground" dir="ltr">
-                          {member.phone ?? member.userId}
+                          {phone.length > 0 ? phone : member.userId}
                         </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
