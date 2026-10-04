@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,7 @@ describe("workspace-sdk import purity", () => {
 
   it("dist barrel exposes frozen presets and starter without eager CASL (subprocess)", () => {
     const probe = `
-      const sdk = await import(${JSON.stringify(path.join(SDK_ROOT, "dist/index.js"))});
+      const sdk = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/index.js")).href)});
       const presets = sdk.workspaceThemePresets ?? sdk.getWorkspaceThemePresets();
       const map = typeof presets === "function" ? presets() : presets;
       if (!Object.isFrozen(map)) process.exit(1);
@@ -54,15 +54,13 @@ describe("workspace-sdk import purity", () => {
   it("auth/casl subpath loads @casl/ability; root and auth barrels do not", async () => {
     const probe = `
       import { createRequire } from "node:module";
-      import path from "node:path";
       const require = createRequire(import.meta.url);
-      const root = ${JSON.stringify(SDK_ROOT)};
       const before = Object.keys(require.cache).filter(k => /@casl[\\\\/]ability/.test(k)).length;
-      await import(path.join(root, "dist", "index.js"));
+      await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/index.js")).href)});
       const afterBarrel = Object.keys(require.cache).filter(k => /@casl[\\\\/]ability/.test(k)).length;
-      const auth = await import(path.join(root, "dist", "auth", "index.js"));
+      const auth = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/auth/index.js")).href)});
       const afterAuth = Object.keys(require.cache).filter(k => /@casl[\\\\/]ability/.test(k)).length;
-      const casl = await import(path.join(root, "dist", "auth", "casl", "index.js"));
+      const casl = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/auth/casl/index.js")).href)});
       const afterCasl = Object.keys(require.cache).filter(k => /@casl[\\\\/]ability/.test(k)).length;
       casl.defineAbilityFor({ userId: "u1", tenantId: "t1", workspaceId: "w1", role: "owner", status: "ACTIVE" });
       if (before !== 0 || afterBarrel !== 0 || afterAuth !== 0 || afterCasl === 0) process.exit(1);

@@ -26,7 +26,8 @@ export function cruiseLegacyViolations(
   packageRootRel: string,
 ): DepcruiseSummaryError[] {
   const absRoot = legacyCruiseTargetAbs(repoRoot, packageRootRel);
-  const r = spawnSync(process.execPath, [CRUISE_LEGACY_HELPER, absRoot], {
+  const helperRel = `./${path.relative(repoRoot, CRUISE_LEGACY_HELPER)}`;
+  const r = spawnSync(process.execPath, [helperRel, absRoot], {
     cwd: repoRoot,
     encoding: "utf8",
     maxBuffer: 8 * 1024 * 1024,

@@ -522,6 +522,9 @@ Node **24** (`.nvmrc` + `engines`) · `node-version-file: .nvmrc` · trigger: `p
 
 **Foundation gate (KS-01):** فقط `pnpm run test:phase-0` — [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) اجرای **10** covenant در subprocess:
 
+Subprocessهای قرارداد، spec را نسبت به `workspace-sdk` و نه به‌صورت مسیر مطلق
+به Node می‌دهند تا اجرای foundation gate روی Windows و POSIX رفتار یکسان داشته باشد.
+
 | Covenant ID | Spec |
 |-------------|------|
 | dist-surface | `test/contract.spec.ts` |
