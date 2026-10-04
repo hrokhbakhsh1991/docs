@@ -1,7 +1,7 @@
 # MAT-M2 Stage 0 — REQ-P7-007 urban digest closure
 
-**Date:** 2026-08-24  
-**Verdict:** **STALE EVIDENCE (A) + LEGITIMATE ARTIFACT DRIFT (B)** — not Urban regression
+**Date:** 2026-10-04
+**Verdict:** **REFRESHED EVIDENCE (A) + LEGITIMATE ARTIFACT DRIFT (B)** — not Urban regression
 
 ---
 
@@ -9,8 +9,8 @@
 
 | Question | Finding |
 |----------|---------|
-| Current digest | `d2754778da018c9b9d909891ecf5f10b557ed99832522a862a25ddbff9d92ef9` (105 files) |
-| Expected (stale) | `15af23b2861cd7dac01cebd0afaa8cfc93150f627bf01d4983f4a650ed9aa8f4` (103 files) |
+| Current digest | `8a44e078757f6f3faa350f25c16375a299760dd76cf426564ac27bf284f36dd5` (105 files) |
+| Expected (stale) | `d2754778da018c9b9d909891ecf5f10b557ed99832522a862a25ddbff9d92ef9` (105 files) |
 | Last matching commit | `0e988120` — Wave A denali token purge |
 | First diverging commit | `bb564fd1` — integrationSurface strip + phase-1 contract |
 | Current HEAD change | `60552407` — CW5-10 wizard resume Option C |
@@ -29,6 +29,6 @@
 
 ## Remediation
 
-Updated `reports/phase-7-genericity-baseline.yaml` and `reports/phase-8-genericity-baseline.yaml` with current tree digest via canonical REQ-P7-007 algorithm (no algorithm change; proof rev 5 unchanged).
+Updated `reports/phase-7-genericity-baseline.yaml` and `reports/phase-8-genericity-baseline.yaml` with current tree digest via canonical REQ-P7-007 algorithm (no algorithm change; proof rev 5 unchanged). The refresh covers the intentional Phase 0/1 portability commits; Urban remains unchanged.
 
 *Architect, documentation status: Updated. Link to docs: `docs/dev/mat-m2-stage0-urban-digest-closure.md`.*

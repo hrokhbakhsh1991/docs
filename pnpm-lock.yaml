@@ -243,6 +243,9 @@ importers:
       "@app-tour/ui-primitives":
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      "@app-tour/workspace-denali":
+        specifier: workspace:*
+        version: link:../../packages/workspaces/denali
       "@app-tour/workspace-harbor":
         specifier: workspace:*
         version: link:../../packages/workspaces/harbor

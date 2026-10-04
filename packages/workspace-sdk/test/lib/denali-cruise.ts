@@ -35,7 +35,8 @@ export function cruiseDenaliViolations(
   packageRootRel: string,
 ): DepcruiseSummaryError[] {
   const absRoot = denaliCruiseTargetAbs(repoRoot, packageRootRel);
-  const r = spawnSync(process.execPath, [CRUISE_DENALI_HELPER, absRoot], {
+  const helperRel = `./${path.relative(repoRoot, CRUISE_DENALI_HELPER)}`;
+  const r = spawnSync(process.execPath, [helperRel, absRoot], {
     cwd: repoRoot,
     encoding: "utf8",
     maxBuffer: 8 * 1024 * 1024,

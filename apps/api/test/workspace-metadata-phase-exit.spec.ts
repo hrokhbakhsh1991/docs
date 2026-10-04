@@ -28,6 +28,7 @@ describe("workspace-metadata-phase-exit", () => {
     const output = execFileSync("pnpm", ["run", "guard:p3-denali-covenant"], {
       cwd: repoRoot,
       encoding: "utf8",
+      shell: process.platform === "win32",
     });
     assert.match(output, /guard-p3-denali-covenant — PASS/);
   });

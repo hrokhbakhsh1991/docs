@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   loadWorkspaceInfrastructureRegistry,
@@ -24,10 +25,9 @@ describe("workspace-infrastructure-registry (MAT-010)", () => {
   });
 
   it("tenant override wins over workspace-type default", () => {
-    process.env.WORKSPACE_INFRASTRUCTURE_REGISTRY_PATH = new URL(
-      "../../test/fixtures/workspace-infrastructure-registry.override.json",
-      import.meta.url
-    ).pathname;
+    process.env.WORKSPACE_INFRASTRUCTURE_REGISTRY_PATH = fileURLToPath(
+      new URL("../../test/fixtures/workspace-infrastructure-registry.override.json", import.meta.url)
+    );
     resetWorkspaceInfrastructureRegistryForTests();
 
     const placement = resolveWorkspacePlacementFromRegistry({

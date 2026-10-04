@@ -45,10 +45,11 @@ describe("canonical integrity — POST /tours storage", () => {
       "tours/workspace-tour-list-projection-bindings.generated.ts",
       "tours/workspace-tour-list-projection-dispatch.ts",
       "tours/operator-tour-list-db-query.ts",
+      "canonical/canonical-tour.service.ts",
     ]);
     const hits: string[] = [];
     for (const file of [...listTsFiles(tourPath), ...listTsFiles(canonicalPath)]) {
-      const rel = relative(API_SRC, file);
+      const rel = relative(API_SRC, file).replaceAll("\\", "/");
       const src = readFileSync(file, "utf8");
       for (const pattern of LEGACY_TABLE_HINTS) {
         if (!pattern.test(src)) continue;

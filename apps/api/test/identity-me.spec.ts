@@ -157,7 +157,7 @@ describe("identity-me.spec.ts — Phase 9.6 S9-R7", () => {
   it("API-9.6-ME-08 avatar error mapper returns only allowlisted invalid-body tokens", () => {
     const source = fs.readFileSync(IDENTITY_ME_AVATAR_ROUTES, "utf8");
     const body = source.match(
-      /function mapOperatorAvatarError\([\s\S]*?\n\}\n\nexport async function handleUploadIdentityMeAvatar/
+      /function mapOperatorAvatarError\([\s\S]*?\n\}\s*\n\s*export async function handleUploadIdentityMeAvatar/
     )?.[0];
     assert.ok(body, "mapOperatorAvatarError body must be present");
     assert.doesNotMatch(body, /includes\("CONTENT_TYPE"\)/);

@@ -6,7 +6,7 @@
  * Does NOT set DEPCRUISE_MONOREPO_GUARD (fixtures are included when targeted).
  */
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { guardDepcruiseMain } from "../../../scripts/guards/lib/guard-require.mjs";
 
 const absRoots = process.argv.slice(2);
@@ -17,7 +17,7 @@ if (absRoots.length === 0) {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const configPath = path.join(repoRoot, "dependency-cruiser.config.js");
-const { cruise } = await import(guardDepcruiseMain());
+const { cruise } = await import(pathToFileURL(guardDepcruiseMain()).href);
 
 const relRoots = absRoots.map((abs) => path.relative(repoRoot, abs).split(path.sep).join("/"));
 
@@ -56,7 +56,7 @@ const illegalPrismaFixture = "packages/finance-core/test/fixtures/illegal-prisma
 if (
   errors.length === 0 &&
   relRoots.includes(illegalPrismaFixture) &&
-  absRoots.some((abs) => abs.endsWith(illegalPrismaFixture)) &&
+  absRoots.some((abs) => abs.split(path.sep).join("/").endsWith(illegalPrismaFixture)) &&
   (await import("node:fs"))
     .readFileSync(path.join(repoRoot, illegalPrismaFixture), "utf8")
     .includes("@prisma/client")

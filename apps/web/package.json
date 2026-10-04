@@ -15,7 +15,7 @@
     "prelint": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit -p tsconfig.lint.json",
     "pretest": "pnpm --dir ../../packages/iran-mountain-landmarks run build",
-    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit --test-concurrency=1 $(node ./scripts/list-node-unit-specs.mjs)",
+    "test": "node --import ../../scripts/test/set-test-env.mjs --import tsx --import ./test/register-dom.mjs --test --test-force-exit --test-concurrency=1 $(node ./scripts/list-node-unit-specs.mjs)",
     "test:runtime-sweep": "playwright test -c playwright.runtime-sweep.config.ts",
     "test:file": "node ./scripts/run-node-test-file.mjs",
     "test:e2e:th-1": "playwright test tests/e2e/th-1-tenant-theme-isolation.spec.ts",
@@ -48,7 +48,7 @@
     "smoke:denali-draft-unification:standalone": "node scripts/smoke-denali-draft-unification-run.mjs",
     "smoke:denali-draft-unification:standalone:on": "SMOKE_EXPECT_UNIFICATION_ON=true SMOKE_FORCE_FRESH_SERVERS=1 node scripts/smoke-denali-draft-unification-run.mjs",
     "test:e2e:th-1:install": "playwright install chromium",
-    "validate:canonical-sot": "NODE_ENV=test node --import tsx --test test/canonical-sot.spec.ts",
+    "validate:canonical-sot": "node --import ../../scripts/test/set-test-env.mjs --import tsx --test test/canonical-sot.spec.ts",
     "phase-3:web-gate": "pnpm run prelint && pnpm run lint && pnpm run test && pnpm run build",
     "start": "next start --port 3000"
   },

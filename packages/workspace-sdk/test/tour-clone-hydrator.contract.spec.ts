@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
 
 const SDK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -10,7 +10,7 @@ const SDK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 describe("tour-clone-hydrator.contract.spec.ts (P13-7)", () => {
   it("P13-7-01 dist exports WizardPhotoRemintPlanEntry type surface", () => {
     const probe = `
-      const sdk = await import(${JSON.stringify(path.join(SDK_ROOT, "dist/index.js"))});
+      const sdk = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/index.js")).href)});
       if (typeof sdk.WizardPhotoRemintPlanEntry !== "undefined") {
         console.error("WizardPhotoRemintPlanEntry must be type-only");
         process.exit(1);

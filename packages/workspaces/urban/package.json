@@ -92,7 +92,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.flow.json",
     "lint": "tsc --noEmit",
-    "test": "node ../../../scripts/verify-phase-7-genericity-proof-rev.mjs && NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+    "test": "node --import ../../../scripts/test/set-test-env.mjs ../../../scripts/verify-phase-7-genericity-proof-rev.mjs && node --import tsx --test \"test/**/*.spec.ts\""
   },
   "dependencies": {
     "@app-tour/catalog-intake-ui": "workspace:*",

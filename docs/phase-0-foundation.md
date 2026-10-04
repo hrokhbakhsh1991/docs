@@ -154,6 +154,8 @@ flowchart LR
 - [x] `reports/phase-0-baseline-*.json` — baseline coupling (0.6)
 - [x] `pnpm run baseline:metrics` + `pnpm run phase-0:gate` در `package.json`
 
+> **Windows/POSIX parity:** اسکریپت‌های تست SDK متغیرهای محیطی را با preloadهای Node تنظیم می‌کنند، نه با syntaxی مانند `NODE_ENV=test command`. بنابراین `pnpm run test:phase-0` در PowerShell و shellهای POSIX یک رفتار دارد.
+
 ### 3.2 خروجی‌های soft (مستندات)
 
 - [x] [`MIGRATION-MAP.md`](MIGRATION-MAP.md) — نقشه کل
@@ -521,6 +523,9 @@ Node **24** (`.nvmrc` + `engines`) · `node-version-file: .nvmrc` · trigger: `p
 ### 9.3 Foundation closure + `phase-0-guard.mjs`
 
 **Foundation gate (KS-01):** فقط `pnpm run test:phase-0` — [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) اجرای **10** covenant در subprocess:
+
+Subprocessهای قرارداد، spec را نسبت به `workspace-sdk` و نه به‌صورت مسیر مطلق
+به Node می‌دهند تا اجرای foundation gate روی Windows و POSIX رفتار یکسان داشته باشد.
 
 | Covenant ID | Spec |
 |-------------|------|

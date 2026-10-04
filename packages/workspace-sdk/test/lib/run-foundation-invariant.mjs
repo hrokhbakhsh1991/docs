@@ -16,11 +16,11 @@ if (!absSpec) {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const sdkRoot = path.join(repoRoot, "packages/workspace-sdk");
 
-const stubPath = path.join(sdkRoot, "test/register-server-only-stub.mjs");
+const testTarget = path.relative(sdkRoot, absSpec);
 
 const r = spawnSync(
   process.execPath,
-  ["--import", stubPath, "--import", "tsx", "--test", absSpec],
+  ["--import", "./test/register-server-only-stub.mjs", "--import", "tsx", "--test", `./${testTarget}`],
   {
   cwd: sdkRoot,
   encoding: "utf8",

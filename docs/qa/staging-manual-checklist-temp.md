@@ -3579,3 +3579,81 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - `BUG-STG-015`: **PASS**. `نوع حمل‌ونقل` exists in the final and payment sheets and contains `حمل سازمان‌یافته`.
 - `BUG-STG-016`: **PASS**. `تاریخ نهایی‌شدن` exists; finalized rows contain timestamps and the pending row contains `—`.
 - Excel evidence gate for the current deployment: **PASS**. Together with the recorded deployment, cache/exposure/edge-stability and end-to-end payment/finalization passes, this removes the last stated gate; no claim is made for unrelated scenarios outside that stated scope.
+
+## 2026-10-04 — staging deployment after dev merge
+
+- Deployment workflow: `Deploy staging (dev)`, run `37183307399`, head/release SHA `3c09a4f734261f75960cfbf3ea5be0fb9e99c5f7`.
+- Artifact verification: `INSTALL_ARTIFACT_OK sha=3c09a4f734261f75960cfbf3ea5be0fb9e99c5f7`.
+- Artifact digest: `801ed4e80d5d456b1abd6175145bde841bdcc5f73728817d8002ad683c44d7aa`.
+- Migration head: `20260923120000_payment_gated_finalization`.
+- Deploy verification: transfer/install/migrate/seed, four-process health, RLS remote gate, and workspace staging adapter all **PASS**.
+- Process smoke: API, Web, Marketing, and Portal each returned HTTP `200`; `SMOKE_FOUR_PROCESS_OK` and `P10_REMOTE_GATE_OK` were recorded.
+- This deployment is the runtime baseline for the next PLP/PDP and Portal/Admin retests; runtime bug closure remains scoped to scenarios actually rechecked on this SHA.
+
+## 2026-10-04 — runtime retest on `3c09a4f734261f75960cfbf3ea5be0fb9e99c5f7`
+
+- Public Marketing URL: `https://denali.shenski.com/tours`.
+- `BUG-STG-082` fixture: `QA 2026 Shared Cars Dong` (`99c917a2-769f-499d-a59f-5c9ae1874aeb`).
+- PLP result: card displayed `دونگی: ۸۰٬۰۰۰ تومان` and `حمل‌ونقل: خودروهای مشترک`.
+- PDP result: displayed `حمل‌ونقل: خودروهای مشترک`, but no dong label or monetary amount was rendered in the server-rendered page text.
+- `BUG-STG-082`: **FAIL** on this deployed SHA; PLP/PDP transport ancillary parity is still broken. No closure or FINAL PASS is issued.
+- Separate runtime observation: the HTTPS PLP requested signed MinIO images over HTTP and the browser blocked them as mixed content. This is recorded separately from the dong parity failure.
+
+### Follow-up diagnosis
+
+- The deployed Marketing source contains a shared-cars dong resolver for both compact cards and PDP logistics, and the isolated transport regression is `6/6 PASS`. The runtime discrepancy therefore is not caused by the formatter.
+- Denali exposure deliberately removes `transport.dongAmount` when the payment-policy field is hidden (`BUG-STG-019` contract). The next fix must reconcile the persisted `public_list`/`public_details` exposure profile or detail projection; bypassing that redaction in the renderer would create a financial exposure regression.
+- The mixed-content failure is a staging photo-storage configuration issue: signed MinIO URLs are emitted with `http://89.42.210.252:9002` while the public surface is HTTPS. It requires an HTTPS MinIO/public proxy endpoint (or equivalent staging environment correction), not client-side URL rewriting.
+
+## 2026-10-04 — exposure profile correction and API parity retest
+
+- Direct BFF comparison used the same tenant header and fixture for both endpoints:
+  - `GET https://denali.shenski.com/api/catalog?limit=50`
+  - `GET https://denali.shenski.com/api/catalog/99c917a2-769f-499d-a59f-5c9ae1874aeb`
+- Before the correction, `public_list` returned `priceAmount=2500000` and
+  `transport={mode:"shared_cars",dongAmount:80000}`, while `public_details`
+  returned `priceAmount=null`, `paymentMode=null`, and `transport={mode:"shared_cars"}`.
+- Admin read-only exposure inspection showed `public_details` had a custom profile
+  with `تور پولی (ثبت‌نام با پرداخت)` disabled, while `public_list` had the same
+  field enabled. This was the direct cause of the detail redaction; no renderer
+  bypass was needed.
+- The `تور پولی (ثبت‌نام با پرداخت)` field was enabled for `public_details` in
+  Admin exposure settings and saved through the normal policy endpoint
+  (`PATCH /api/workspaces/denali/exposure/surfaces/public_details`).
+- After propagation, both API projections returned:
+  - `priceAmount=2500000`
+  - `paymentMode="offline_receipt"`
+  - `transport={mode:"shared_cars",dongAmount:80000}`
+- `BUG-STG-082` API/list/detail parity: **PASS** for this fixture and current
+  staging configuration. The mixed-content image issue remains open separately.
+
+### Mixed-content follow-up probe
+
+- `https://89.42.210.252:9002` does not provide a usable TLS endpoint.
+- Candidate paths on `https://denali.shenski.com` (`/storage`, `/minio`,
+  `/media`) return `404`; no existing HTTPS storage proxy was found.
+- The repository's staging synchronizer still deliberately sets
+  `MINIO_PUBLIC_ENDPOINT=http://${PUBLIC_HOST}:9002`, and the Caddy profile has
+  no storage upstream. A safe fix therefore requires infrastructure work:
+  provision an HTTPS storage hostname/proxy to MinIO, update
+  `MINIO_PUBLIC_ENDPOINT` to that origin, restart API, and verify a newly signed
+  URL before retesting browser image loads.
+- Client-side `http`→`https` rewriting remains explicitly disallowed because it
+  invalidates the presigned URL contract and can hide an unavailable backend.
+
+### Authenticated paid-projection retest availability — ۲۰۲۶-۱۰-۰۴
+
+- Portal login was opened for the paid registration
+  `f2144510-bc47-4d1f-b6ad-42002a6ac51a` and the known staging mobile
+  `09174070937` was submitted with the supplied dev OTP path.
+- The Portal request `POST
+  https://portal.denali.shenski.com/api/public-auth/phone-preflight`
+  ended with `net::ERR_TIMED_OUT`; the UI remained on «در حال ارسال…» and
+  never produced an OTP field.
+- Direct read-only probes from this environment also timed out for both
+  `https://portal.denali.shenski.com/api/health` and
+  `https://denali.shenski.com/api/health` (`curl` status `000` after 20s).
+- Result: authenticated staging verification of `paid + not_final` is
+  **BLOCKED BY STAGING AVAILABILITY**, not by the OTP value. Source
+  projection evidence remains green (Portal `6/6`, Admin `13/13`), but this
+  cannot be promoted to runtime PASS while the hosts are unreachable.
