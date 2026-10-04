@@ -72,6 +72,7 @@ set_env_kv() {
 PUBLIC_HOST="$(resolve_public_host)"
 CLUB_LABEL="$(resolve_club_label)"
 PUBLIC_ROOT_DOMAIN="$(resolve_root_domain)"
+MINIO_PUBLIC_HOST="${STAGING_PUBLIC_MINIO_HOST:-storage.${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_MARKETING_BASE_URL="${STAGING_PUBLIC_MARKETING_BASE_URL:-https://${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://portal.${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 MKT_PORT="23002"
@@ -102,7 +103,8 @@ set_env_kv "${ENV_DIR}/web.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST},1
 set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/api.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
-set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "http://${PUBLIC_HOST}:9002"
+set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_HOST "$MINIO_PUBLIC_HOST"
+set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "https://${MINIO_PUBLIC_HOST}"
 
 # Public egress origins. These are overridable for a staging tenant and are
 # deliberately HTTPS so cross-surface auth never points at an internal port.
@@ -126,4 +128,4 @@ set_env_kv "${ENV_DIR}/portal.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST
 chown root:app-tour "${ENV_DIR}"/*.env 2>/dev/null || true
 chmod 640 "${ENV_DIR}"/*.env 2>/dev/null || true
 
-echo "sync-staging-profile-b-public-urls: OK profile=staging public-root=${PUBLIC_ROOT_DOMAIN} fallback_host=${PUBLIC_HOST} ports=${MKT_PORT}/${PTL_PORT}"
+echo "sync-staging-profile-b-public-urls: OK profile=staging public-root=${PUBLIC_ROOT_DOMAIN} fallback_host=${PUBLIC_HOST} minio_host=${MINIO_PUBLIC_HOST} ports=${MKT_PORT}/${PTL_PORT}"

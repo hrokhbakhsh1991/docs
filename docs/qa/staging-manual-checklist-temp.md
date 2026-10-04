@@ -3632,12 +3632,21 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - `https://89.42.210.252:9002` does not provide a usable TLS endpoint.
 - Candidate paths on `https://denali.shenski.com` (`/storage`, `/minio`,
   `/media`) return `404`; no existing HTTPS storage proxy was found.
-- The repository's staging synchronizer still deliberately sets
-  `MINIO_PUBLIC_ENDPOINT=http://${PUBLIC_HOST}:9002`, and the Caddy profile has
+- The observed staging deployment used
+  `MINIO_PUBLIC_ENDPOINT=http://${PUBLIC_HOST}:9002`, and the Caddy profile had
   no storage upstream. A safe fix therefore requires infrastructure work:
   provision an HTTPS storage hostname/proxy to MinIO, update
   `MINIO_PUBLIC_ENDPOINT` to that origin, restart API, and verify a newly signed
   URL before retesting browser image loads.
+- **Standard remediation implemented in source:** staging now derives
+  `storage.<tenant>.<root-domain>` (override with
+  `STAGING_PUBLIC_MINIO_HOST`), renders it into Caddy as `MINIO_PUBLIC_HOST`,
+  reverse-proxies that host to loopback MinIO `:9002`, and sets
+  `MINIO_PUBLIC_ENDPOINT=https://storage.<tenant>.<root-domain>`. The legacy
+  HTTP IP fallback is no longer emitted by the synchronizer or Wave C
+  bootstrap. Deployment must still provision DNS/Arvan routing for the storage
+  hostname, run the Caddy installer, restart the API, and verify a newly
+  signed URL before closure.
 - Client-side `http`→`https` rewriting remains explicitly disallowed because it
   invalidates the presigned URL contract and can hide an unavailable backend.
 

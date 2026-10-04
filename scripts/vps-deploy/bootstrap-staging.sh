@@ -124,7 +124,7 @@ ensure_env_value "$ENV_DIR/portal.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUB
 ensure_env_value "$ENV_DIR/portal.env" SESSION_COOKIE_SECURE true
 
 grep -qE '^MINIO_PUBLIC_ENDPOINT=' "$ENV_DIR/api.env" 2>/dev/null || \
-  echo "MINIO_PUBLIC_ENDPOINT=http://${VPS_IP}:9002" >>"$ENV_DIR/api.env"
+  echo "MINIO_PUBLIC_ENDPOINT=https://storage.denali.shenski.com" >>"$ENV_DIR/api.env"
 if [[ -f "$ENV_DIR/portal.env" ]]; then
   grep -qE '^PORTAL_INTERNAL_URL=' "$ENV_DIR/portal.env" 2>/dev/null || \
     echo "PORTAL_INTERNAL_URL=http://127.0.0.1:23003" >>"$ENV_DIR/portal.env"
