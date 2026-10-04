@@ -17,6 +17,8 @@ jobs:
     name: Remote p7:staging-gate
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: staging
     if: github.repository == 'hrokhbakhsh1991/docs'
     steps:
       - name: Check VPS secrets
