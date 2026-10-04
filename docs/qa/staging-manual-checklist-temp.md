@@ -3604,3 +3604,25 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
 - The deployed Marketing source contains a shared-cars dong resolver for both compact cards and PDP logistics, and the isolated transport regression is `6/6 PASS`. The runtime discrepancy therefore is not caused by the formatter.
 - Denali exposure deliberately removes `transport.dongAmount` when the payment-policy field is hidden (`BUG-STG-019` contract). The next fix must reconcile the persisted `public_list`/`public_details` exposure profile or detail projection; bypassing that redaction in the renderer would create a financial exposure regression.
 - The mixed-content failure is a staging photo-storage configuration issue: signed MinIO URLs are emitted with `http://89.42.210.252:9002` while the public surface is HTTPS. It requires an HTTPS MinIO/public proxy endpoint (or equivalent staging environment correction), not client-side URL rewriting.
+
+## 2026-10-04 — exposure profile correction and API parity retest
+
+- Direct BFF comparison used the same tenant header and fixture for both endpoints:
+  - `GET https://denali.shenski.com/api/catalog?limit=50`
+  - `GET https://denali.shenski.com/api/catalog/99c917a2-769f-499d-a59f-5c9ae1874aeb`
+- Before the correction, `public_list` returned `priceAmount=2500000` and
+  `transport={mode:"shared_cars",dongAmount:80000}`, while `public_details`
+  returned `priceAmount=null`, `paymentMode=null`, and `transport={mode:"shared_cars"}`.
+- Admin read-only exposure inspection showed `public_details` had a custom profile
+  with `تور پولی (ثبت‌نام با پرداخت)` disabled, while `public_list` had the same
+  field enabled. This was the direct cause of the detail redaction; no renderer
+  bypass was needed.
+- The `تور پولی (ثبت‌نام با پرداخت)` field was enabled for `public_details` in
+  Admin exposure settings and saved through the normal policy endpoint
+  (`PATCH /api/workspaces/denali/exposure/surfaces/public_details`).
+- After propagation, both API projections returned:
+  - `priceAmount=2500000`
+  - `paymentMode="offline_receipt"`
+  - `transport={mode:"shared_cars",dongAmount:80000}`
+- `BUG-STG-082` API/list/detail parity: **PASS** for this fixture and current
+  staging configuration. The mixed-content image issue remains open separately.
