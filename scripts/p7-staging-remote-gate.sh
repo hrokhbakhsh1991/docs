@@ -35,7 +35,16 @@ set -euo pipefail
 cd '${DEPLOY_PATH}'
 export TOUR_OPS_API_URL=http://127.0.0.1:23001
 export ENV_DIR='${ENV_DIR}'
-pnpm run p7:staging-gate
+if [[ -f package.json ]]; then
+  pnpm run p7:staging-gate
+elif [[ -x scripts/vps-deploy/smoke-four-process.sh ]]; then
+  ENV_DIR="\$ENV_DIR" UNIT_PREFIX=app-tour-staging \
+    bash scripts/vps-deploy/smoke-four-process.sh
+  echo "P7_ARTIFACT_SMOKE_OK"
+else
+  echo "P7_REMOTE_GATE_FAIL: unsupported staging layout at ${DEPLOY_PATH}" >&2
+  exit 1
+fi
 EOF
 
 echo "P7_REMOTE_GATE_OK"

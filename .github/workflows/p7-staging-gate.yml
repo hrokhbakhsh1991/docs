@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       deploy_path:
-        description: "Path on VPS (default /opt/app-tour)"
+        description: "Path on VPS (default /opt/app-tour-staging/tooling)"
         required: false
-        default: "/opt/app-tour"
+        default: "/opt/app-tour-staging/tooling"
 
 concurrency:
   group: p7-staging-gate
