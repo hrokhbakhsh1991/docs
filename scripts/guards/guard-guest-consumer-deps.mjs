@@ -107,10 +107,17 @@ for (const consumer of CONSUMERS) {
 
 const apiPkg = JSON.parse(read("apps/api/package.json"));
 const prebuild = typeof apiPkg.scripts?.prebuild === "string" ? apiPkg.scripts.prebuild : "";
-const delegatedWorkspaceBuild = "scripts/ci/build-api-workspace-deps.sh";
+const delegatedWorkspaceBuild =
+  prebuild.includes("scripts/ci/build-api-workspace-deps.mjs")
+    ? "scripts/ci/build-api-workspace-deps.mjs"
+    : "scripts/ci/build-api-workspace-deps.sh";
 const delegatesAllWorkspaceBuilds = prebuild.includes(delegatedWorkspaceBuild);
 if (delegatesAllWorkspaceBuilds) {
-  const delegatedSource = read(delegatedWorkspaceBuild);
+  const delegatedSource = read(
+    delegatedWorkspaceBuild.endsWith(".mjs")
+      ? "scripts/ci/build-api-workspace-deps.sh"
+      : delegatedWorkspaceBuild,
+  );
   if (
     !/for dir in packages\/workspaces\/\*\//.test(delegatedSource) ||
     !/pnpm --dir "\$dir" run build/.test(delegatedSource)

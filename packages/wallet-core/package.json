@@ -40,7 +40,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "node --import ../../scripts/test/set-test-env.mjs --import tsx --test \"test/**/*.spec.ts\"",
+    "test": "node --import ./test/set-test-env.mjs --import tsx --test \"test/**/*.spec.ts\"",
     "guard:boundary": "node ./scripts/guard-boundary.mjs",
     "guard:portability": "node ./scripts/guard-portability.mjs"
   },
