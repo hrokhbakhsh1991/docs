@@ -14,7 +14,7 @@ const TOUR_ADAPTER = path.join(REPO_ROOT, "src", "db", "tour-storage.adapter.ts"
 
 describe("tour-safety.spec.ts", () => {
   it("TR-SAFE-01 prisma listByTenantPage uses TOUR_LIST_PAGE_SELECT and take", () => {
-    const source = fs.readFileSync(PRISMA_TOUR_REPO, "utf8");
+    const source = fs.readFileSync(PRISMA_TOUR_REPO, "utf8").replaceAll("\r\n", "\n");
     const methodBody = source.match(/async listByTenantPage\([\s\S]*?\n  \}/)?.[0];
     assert.ok(methodBody !== undefined, "listByTenantPage must exist");
     assert.match(methodBody, /withTenantRls\s*\(/);
@@ -23,14 +23,14 @@ describe("tour-safety.spec.ts", () => {
   });
 
   it("TR-SAFE-02 listToursOperator uses listOperatorToursPage not materialize-all", () => {
-    const source = fs.readFileSync(LIST_TOURS_OPERATOR, "utf8");
+    const source = fs.readFileSync(LIST_TOURS_OPERATOR, "utf8").replaceAll("\r\n", "\n");
     assert.match(source, /listOperatorToursPage\s*\(/);
     assert.doesNotMatch(source, /loadAllTourRecordsViaListPage\s*\(/);
     assert.doesNotMatch(source, /\.findMany\s*\(/);
   });
 
   it("TR-SAFE-04 prisma listOperatorToursPage uses OPERATOR_TOUR_LIST_SELECT and take", () => {
-    const source = fs.readFileSync(PRISMA_TOUR_REPO, "utf8");
+    const source = fs.readFileSync(PRISMA_TOUR_REPO, "utf8").replaceAll("\r\n", "\n");
     const methodBody = source.match(
       /async listOperatorToursPage\([\s\S]*?\n  \}\n\n  async createTour/
     )?.[0];
@@ -48,7 +48,7 @@ describe("tour-safety.spec.ts", () => {
   });
 
   it("TR-SAFE-03 tour adapter findMany uses bounded listByTenantPage chunks", () => {
-    const source = fs.readFileSync(TOUR_ADAPTER, "utf8");
+    const source = fs.readFileSync(TOUR_ADAPTER, "utf8").replaceAll("\r\n", "\n");
     const methodBody = source.match(/async findMany\([\s\S]*?\n  \}/)?.[0];
     assert.ok(methodBody !== undefined, "findMany must exist");
     assert.match(methodBody, /listByTenantPage\s*\(/);

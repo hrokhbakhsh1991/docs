@@ -18,6 +18,10 @@ convertedAt: 2026-06-03
 > **Forensic archive (permanent):** Markdoc [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc) · legacy [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md)  
 > **Integrity report:** [`audits/phase-2-documentation-integrity-2026-06-03.mdoc`](audits/phase-2-documentation-integrity-2026-06-03.mdoc)
 > **Windows/POSIX parity:** package test runners use Node preload modules and Node filesystem APIs instead of shell-specific env assignments or `rm -rf`.
+> **API integration census parity:** static API census tests use URL-to-path conversion and Node filesystem traversal rather than shell commands, so the full gate observes the same source set on Windows and POSIX.
+> **Child-process parity:** contract tests that invoke package-manager scripts enable the platform shell on Windows so the package-manager shim resolves consistently across Windows and POSIX.
+> **API prebuild parity:** the API workspace-dependency prebuild uses a Node wrapper for the shared Bash build script, preserving the skip flag without embedding POSIX conditionals in a package-manager script.
+> **API bundle parity:** the API esbuild invocation is expressed through its Node API wrapper, avoiding shell quoting differences around scoped external package globs.
 
 ---
 

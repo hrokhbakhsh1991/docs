@@ -14,7 +14,7 @@ const PRISMA_INTENT = path.join(REPO_ROOT, "src/exposure/prisma-exposure-intent.
 
 describe("exposure-batch-reads.spec.ts", () => {
   it("EXP-BATCH-01 getWorkspaceExposureSurfaces uses findForContexts", () => {
-    const source = fs.readFileSync(SURFACES_SERVICE, "utf8");
+    const source = fs.readFileSync(SURFACES_SERVICE, "utf8").replaceAll("\r\n", "\n");
     const body = source.match(/export async function getWorkspaceExposureSurfaces\([\s\S]*?\n\}/)?.[0];
     assert.ok(body !== undefined);
     assert.match(body, /findForContexts/);
@@ -22,7 +22,7 @@ describe("exposure-batch-reads.spec.ts", () => {
   });
 
   it("EXP-BATCH-02 buildConnectionContextsFromPrefetch uses prefetched intent/profile maps", () => {
-    const source = fs.readFileSync(CONTROL_PLANE, "utf8");
+    const source = fs.readFileSync(CONTROL_PLANE, "utf8").replaceAll("\r\n", "\n");
     const body = source.match(
       /function buildConnectionContextsFromPrefetch\([\s\S]*?\n  return contexts;\n\}/
     )?.[0];
@@ -36,7 +36,7 @@ describe("exposure-batch-reads.spec.ts", () => {
   });
 
   it("EXP-BATCH-04 getWorkspaceExposureControlPlane batches connection intents and profiles", () => {
-    const source = fs.readFileSync(CONTROL_PLANE, "utf8");
+    const source = fs.readFileSync(CONTROL_PLANE, "utf8").replaceAll("\r\n", "\n");
     const body = source.match(
       /export async function getWorkspaceExposureControlPlane\([\s\S]*?\n\}/
     )?.[0];
@@ -55,7 +55,7 @@ describe("exposure-batch-reads.spec.ts", () => {
   });
 
   it("EXP-BATCH-03 prisma exposure intent repo implements findForContexts", () => {
-    const source = fs.readFileSync(PRISMA_INTENT, "utf8");
+    const source = fs.readFileSync(PRISMA_INTENT, "utf8").replaceAll("\r\n", "\n");
     assert.match(source, /async findForContexts/);
     assert.match(source, /findMany\([\s\S]*OR:/);
   });

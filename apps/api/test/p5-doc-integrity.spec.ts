@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function read(path: string): string {
-  return readFileSync(join(repoRoot, path), "utf8");
+  return readFileSync(join(repoRoot, path), "utf8").replaceAll("\r\n", "\n");
 }
 
 function readCanonicalFromDocSyncIndex(): Record<string, string> {
