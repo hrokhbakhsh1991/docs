@@ -101,7 +101,9 @@ export function MemberCancellationPanel({
               ? paymentCollection === "free"
                 ? t("freeRequestHint")
                 : t("requestHint")
-              : t("withdrawHint")}
+              : eligibility.mode === "self_cancel"
+                ? t("selfCancelHint")
+                : t("withdrawHint")}
           </p>
           <button
             type="button"
@@ -109,7 +111,11 @@ export function MemberCancellationPanel({
             disabled={submitting}
             onClick={() => void onCancel()}
           >
-            {eligibility.mode === "request" ? t("requestAction") : t("withdrawAction")}
+            {eligibility.mode === "request"
+              ? t("requestAction")
+              : eligibility.mode === "self_cancel"
+                ? t("selfCancelAction")
+                : t("withdrawAction")}
           </button>
         </>
       ) : (

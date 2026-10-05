@@ -481,9 +481,11 @@
   },
   "cancellation": {
     "withdrawHint": "You can withdraw this registration before the club approves it.",
+    "selfCancelHint": "This registration is approved but unpaid, so you can cancel it directly.",
     "requestHint": "Paid registrations require club review. Submit a cancellation request.",
     "freeRequestHint": "This free registration cancellation will be sent to the club for review.",
     "withdrawAction": "Withdraw registration",
+    "selfCancelAction": "Cancel registration",
     "requestAction": "Request cancellation",
     "blocked": "Cancellation is not available ({reason}).",
     "error": "Could not submit cancellation ({code}).",

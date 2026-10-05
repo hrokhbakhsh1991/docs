@@ -441,6 +441,10 @@ export function FinancePaymentsPanel({
     () => visibleItems.some((row) => isFinancePaymentPendingStatus(row.status)),
     [visibleItems]
   );
+  const hasVisiblePendingReceipt = useMemo(
+    () => visibleItems.some((row) => pendingReceiptPaymentIds.has(row.id)),
+    [pendingReceiptPaymentIds, visibleItems]
+  );
 
   const scopedListIdentity = useMemo(() => {
     if (!registrationScoped || registrationFilter === null) {
@@ -956,7 +960,7 @@ export function FinancePaymentsPanel({
               className="text-xs text-muted-foreground"
               data-testid={FINANCE_PAYMENTS_TEST_IDS.pendingMeaning}
             >
-              {t("pendingPaymentMeaning")}
+              {hasVisiblePendingReceipt ? t("pendingReceiptMeaning") : t("pendingPaymentMeaning")}
             </p>
           ) : null}
           {loading ? (

@@ -31,6 +31,19 @@ Composite **D + B + C**:
 
 Eligibility is evaluated **only** on the API (`evaluateDenaliMemberCancellationEligibility`). Portal renders server response; client-side gates are presentation hints only.
 
+## Portal wording contract
+
+The cancellation hint must follow the server mode, not only the registration status:
+
+| Server mode | Meaning shown to the member |
+| ----------- | --------------------------- |
+| `withdraw` | The registration is not yet approved and can be withdrawn. |
+| `self_cancel` | The registration is approved but unpaid and can be cancelled directly. |
+| `request` | Payment exists, so cancellation requires operator review. |
+
+The `withdraw` wording must not be rendered for `approved + unpaid`; that state is the
+`self_cancel` path.
+
 ## Side effects (approved-unpaid self-cancel / withdraw from approved)
 
 1. Booking `→ cancelled`, `cancelSource=member`
