@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  filterDenaliCatalogTourDepartureWindow,
   filterDenaliCatalogTourRecords,
+  isDenaliCatalogTourUpcoming,
   parseDenaliCatalogListQuery,
   sortDenaliCatalogTourRecords,
 } from "../src/catalog/filter-denali-catalog-list";
@@ -106,7 +108,9 @@ describe("filter-denali-catalog-list.spec.ts — PR-22", () => {
       ["2"]
     );
     assert.deepEqual(
-      filterDenaliCatalogTourRecords(tours, { difficulty: 2, fitness: "low" }).map((item) => item.id),
+      filterDenaliCatalogTourRecords(tours, { difficulty: 2, fitness: "low" }).map(
+        (item) => item.id
+      ),
       ["2"]
     );
   });
@@ -116,5 +120,24 @@ describe("filter-denali-catalog-list.spec.ts — PR-22", () => {
       sortDenaliCatalogTourRecords(tours, "departure_asc").map((item) => item.id),
       ["2", "1"]
     );
+  });
+
+  it("keeps only actionable departures in the public catalog", () => {
+    const now = new Date("2026-09-21T00:00:00.000Z");
+    const toursWithWindow = [
+      ...tours,
+      tour({ id: "past", startDateTime: "2026-09-20T23:59:59.000Z" }),
+      tour({ id: "at-now", startDateTime: "2026-09-21T00:00:00.000Z" }),
+      tour({ id: "future", startDateTime: "2026-09-21T00:00:01.000Z" }),
+      tour({ id: "tba" }),
+    ];
+
+    assert.deepEqual(
+      filterDenaliCatalogTourDepartureWindow(toursWithWindow, now).map((item) => item.id),
+      ["future", "tba"]
+    );
+    assert.equal(isDenaliCatalogTourUpcoming(toursWithWindow[2]!, now), false);
+    assert.equal(isDenaliCatalogTourUpcoming(toursWithWindow[3]!, now), false);
+    assert.equal(isDenaliCatalogTourUpcoming(toursWithWindow[5]!, now), true);
   });
 });

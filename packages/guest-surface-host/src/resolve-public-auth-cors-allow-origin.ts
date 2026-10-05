@@ -1,5 +1,6 @@
 import { resolveMarketingPublicBaseUrl } from "./resolve-marketing-public-base-url";
 import { resolvePortalPublicBaseUrl } from "./resolve-portal-public-base-url";
+import { readPublicFallbackHostsFromEnv } from "./read-public-fallback-hosts";
 
 function readHttpOrigin(value: string): string | null {
   const trimmed = value.trim();
@@ -17,6 +18,19 @@ function readHttpOrigin(value: string): string | null {
     return url.origin;
   } catch {
     return null;
+  }
+}
+
+function isConfiguredPublicFallbackOrigin(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "http:" &&
+      url.port.length > 0 &&
+      readPublicFallbackHostsFromEnv().has(url.hostname.toLowerCase())
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -41,6 +55,9 @@ export function resolvePublicAuthCorsAllowOrigin(input: {
   }
   if (marketingOrigin !== null) {
     allowed.add(marketingOrigin);
+  }
+  if (isConfiguredPublicFallbackOrigin(origin)) {
+    allowed.add(origin);
   }
 
   return allowed.has(origin) ? origin : null;

@@ -78,13 +78,14 @@ function mapMemoryRow(row: {
 }): MemberNotificationRow {
   const eventType = String(row.payload.eventType ?? "unknown");
   const sourceModule = inferSourceModuleFromTemplate(row.templateId);
+  const entityType = readEntityTypeFromPayload(row.payload, inferEntityType(sourceModule));
   return {
     id: row.id,
     tenantId: row.tenantId,
     userId: row.userId,
     sourceModule,
     eventType,
-    entityType: inferEntityType(sourceModule),
+    entityType,
     entityId: resolveEntityId(row.payload, sourceModule),
     title: row.titleKey,
     body: row.bodyKey,
@@ -113,6 +114,20 @@ function inferEntityType(
   if (sourceModule === "finance") return "payment";
   if (sourceModule === "wallet") return "wallet_event";
   return "registration";
+}
+
+function readEntityTypeFromPayload(
+  payload: Readonly<Record<string, unknown>>,
+  fallback: MemberNotificationRow["entityType"]
+): MemberNotificationRow["entityType"] {
+  const entityType = payload.entityType;
+  return entityType === "ticket" ||
+    entityType === "registration" ||
+    entityType === "payment" ||
+    entityType === "wallet_event" ||
+    entityType === "engagement_event"
+    ? entityType
+    : fallback;
 }
 
 function resolveEntityId(

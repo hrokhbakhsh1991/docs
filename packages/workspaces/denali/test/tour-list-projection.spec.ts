@@ -73,6 +73,7 @@ describe("tour-list-projection.spec.ts — workspace-denali", () => {
     assert.equal(projection.uiStatus, "draft");
     assert.equal(projection.priceAmount, 500_000);
     assert.equal(projection.priceCurrency, "IRR");
+    assert.equal(projection.paymentCollection, "offline");
     assert.equal(projection.totalCapacity, 15);
     assert.equal(projection.acceptedCount, 0);
     assert.equal(projection.category, "mountain_day");
@@ -83,6 +84,24 @@ describe("tour-list-projection.spec.ts — workspace-denali", () => {
       plugin.tourList?.extractTourListProjection(canonical).title,
       projection.title
     );
+  });
+
+  it("DN-9.3-04 resolves free collection before base-price display", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const make = (pricing: Record<string, unknown>) =>
+      createCanonicalDocument({
+        schemaVersion: 1,
+        roots: [...plugin.wizard.roots],
+        data: buildDenaliCanonicalData(plugin.wizard.roots, {
+          title: "Free collection tour",
+          pricing: { basePricePerPerson: 2_500_000, ...pricing },
+        }),
+      });
+
+    assert.equal(extractDenaliTourListProjection(make({ paymentCollection: "free" })).paymentCollection, "free");
+    assert.equal(extractDenaliTourListProjection(make({ requiresPayment: false })).paymentCollection, "free");
+    assert.equal(extractDenaliTourListProjection(make({ paymentCollection: "offline" })).paymentCollection, "offline");
+    assert.equal(extractDenaliTourListProjection(make({})).paymentCollection, "offline");
   });
 
   it("DN-9.3-02 coverImageUrl uses https url on first photo", () => {

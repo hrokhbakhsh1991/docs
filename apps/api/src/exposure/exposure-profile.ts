@@ -62,7 +62,7 @@ function normalizeProfileIdPart(value: string | null): string {
  * this seed without changing dispatch callers.
  */
 export function resolveSeededExposureProfile(
-  input: ResolveSeededExposureProfileInput,
+  input: ResolveSeededExposureProfileInput
 ): ExposureProfile | null {
   if (input.workspaceType === null || input.workspaceType.trim().length === 0) {
     return null;
@@ -91,4 +91,32 @@ export function resolveSeededExposureProfile(
     source: REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED,
     version: "migration-seed-v1",
   };
+}
+
+/**
+ * Keeps registry-seeded profiles compatible with newly eligible public fields.
+ * Native profiles and explicit exposure intents remain authoritative; only the
+ * transitional registry seed is merged, and existing field order is retained.
+ */
+export function mergeRegistrySeededExposureProfileDefaults(input: {
+  readonly persisted: ExposureProfile | null;
+  readonly seed: ExposureProfile | null;
+}): ExposureProfile | null {
+  if (input.persisted === null) {
+    return input.seed;
+  }
+  if (
+    input.seed === null ||
+    input.persisted.source !== REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED
+  ) {
+    return input.persisted;
+  }
+
+  const defaultFieldIds = [
+    ...new Set([...input.persisted.defaultFieldIds, ...input.seed.defaultFieldIds]),
+  ];
+  if (defaultFieldIds.length === input.persisted.defaultFieldIds.length) {
+    return input.persisted;
+  }
+  return { ...input.persisted, defaultFieldIds };
 }

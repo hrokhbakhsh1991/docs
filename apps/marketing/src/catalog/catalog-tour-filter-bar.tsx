@@ -40,6 +40,10 @@ function buildCategoryChipHref(
     difficulty: filters.difficulty != null ? String(filters.difficulty) : undefined,
     fitness: filters.fitness,
     availability: filters.availability,
+    minPrice: filters.minPrice != null ? String(filters.minPrice) : undefined,
+    maxPrice: filters.maxPrice != null ? String(filters.maxPrice) : undefined,
+    minDuration: filters.minDuration != null ? String(filters.minDuration) : undefined,
+    maxDuration: filters.maxDuration != null ? String(filters.maxDuration) : undefined,
     sort: filters.sort,
   })}`;
 }
@@ -184,6 +188,60 @@ export async function CatalogTourFilterBar({
           ) : null}
 
           <label data-marketing-catalog-filter-field>
+            <span data-marketing-catalog-filter-field-label>{t("list.filters.durationLabel")}</span>
+            <span data-marketing-catalog-filter-range>
+              <input
+                type="number"
+                name="minDuration"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                defaultValue={filters.minDuration ?? ""}
+                placeholder={t("list.filters.durationMinPlaceholder")}
+                aria-label={t("list.filters.durationMinLabel")}
+              />
+              <span aria-hidden="true">–</span>
+              <input
+                type="number"
+                name="maxDuration"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                defaultValue={filters.maxDuration ?? ""}
+                placeholder={t("list.filters.durationMaxPlaceholder")}
+                aria-label={t("list.filters.durationMaxLabel")}
+              />
+            </span>
+          </label>
+
+          <label data-marketing-catalog-filter-field>
+            <span data-marketing-catalog-filter-field-label>{t("list.filters.priceLabel")}</span>
+            <span data-marketing-catalog-filter-range>
+              <input
+                type="number"
+                name="minPrice"
+                min="0"
+                step="100000"
+                inputMode="numeric"
+                defaultValue={filters.minPrice ?? ""}
+                placeholder={t("list.filters.priceMinPlaceholder")}
+                aria-label={t("list.filters.priceMinLabel")}
+              />
+              <span aria-hidden="true">–</span>
+              <input
+                type="number"
+                name="maxPrice"
+                min="0"
+                step="100000"
+                inputMode="numeric"
+                defaultValue={filters.maxPrice ?? ""}
+                placeholder={t("list.filters.priceMaxPlaceholder")}
+                aria-label={t("list.filters.priceMaxLabel")}
+              />
+            </span>
+          </label>
+
+          <label data-marketing-catalog-filter-field>
             <span data-marketing-catalog-filter-field-label>{t("list.filters.sortLabel")}</span>
             <select name="sort" defaultValue={filters.sort}>
               <option value="newest">{t("list.filters.sort.newest")}</option>
@@ -195,9 +253,13 @@ export async function CatalogTourFilterBar({
             </select>
           </label>
 
-          {(hasExtendedCatalogFilters || options.difficulties.length > 0 || filters.difficulty != null) && (
+          {(hasExtendedCatalogFilters ||
+            options.difficulties.length > 0 ||
+            filters.difficulty != null) && (
             <label data-marketing-catalog-filter-field>
-              <span data-marketing-catalog-filter-field-label>{t("list.filters.difficultyLabel")}</span>
+              <span data-marketing-catalog-filter-field-label>
+                {t("list.filters.difficultyLabel")}
+              </span>
               <select
                 name="difficulty"
                 defaultValue={filters.difficulty != null ? String(filters.difficulty) : ""}
@@ -215,17 +277,20 @@ export async function CatalogTourFilterBar({
             </label>
           )}
 
-          {(hasExtendedCatalogFilters || options.fitnessLevels.length > 0 || (filters.fitness != null && filters.fitness.length > 0)) && (
+          {(hasExtendedCatalogFilters ||
+            options.fitnessLevels.length > 0 ||
+            (filters.fitness != null && filters.fitness.length > 0)) && (
             <label data-marketing-catalog-filter-field>
-              <span data-marketing-catalog-filter-field-label>{t("list.filters.fitnessLabel")}</span>
+              <span data-marketing-catalog-filter-field-label>
+                {t("list.filters.fitnessLabel")}
+              </span>
               <select name="fitness" defaultValue={filters.fitness ?? ""}>
                 <option value="">{t("list.filters.all")}</option>
-                {(
-                  filters.fitness != null &&
-                  filters.fitness.length > 0 &&
-                  !options.fitnessLevels.includes(filters.fitness)
-                    ? [filters.fitness, ...options.fitnessLevels]
-                    : options.fitnessLevels
+                {(filters.fitness != null &&
+                filters.fitness.length > 0 &&
+                !options.fitnessLevels.includes(filters.fitness)
+                  ? [filters.fitness, ...options.fitnessLevels]
+                  : options.fitnessLevels
                 ).map((level) => {
                   const fitnessKey = `list.filters.fitnessLevels.${level}`;
                   const localized = t(fitnessKey);
@@ -241,11 +306,10 @@ export async function CatalogTourFilterBar({
             </label>
           )}
 
-          <label
-            data-marketing-catalog-filter-field
-            data-marketing-catalog-filter-availability
-          >
-            <span data-marketing-catalog-filter-field-label>{t("list.filters.availabilityLabel")}</span>
+          <label data-marketing-catalog-filter-field data-marketing-catalog-filter-availability>
+            <span data-marketing-catalog-filter-field-label>
+              {t("list.filters.availabilityLabel")}
+            </span>
             <span data-marketing-catalog-filter-checkbox-row>
               <input
                 type="checkbox"
@@ -342,6 +406,30 @@ export async function CatalogTourFilterBar({
                 data-marketing-catalog-active-filter-id="city"
               >
                 {t("list.cityActive", { city: filters.city })}
+              </Link>
+            ) : null}
+            {filters.minDuration != null || filters.maxDuration != null ? (
+              <Link
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, [
+                  "minDuration",
+                  "maxDuration",
+                ])}`}
+                data-marketing-catalog-active-filter
+                data-marketing-catalog-active-filter-id="duration"
+              >
+                {t("list.filters.durationActive")}
+              </Link>
+            ) : null}
+            {filters.minPrice != null || filters.maxPrice != null ? (
+              <Link
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, [
+                  "minPrice",
+                  "maxPrice",
+                ])}`}
+                data-marketing-catalog-active-filter
+                data-marketing-catalog-active-filter-id="price"
+              >
+                {t("list.filters.priceActive")}
               </Link>
             ) : null}
           </div>

@@ -105,6 +105,9 @@
     },
     "publishStatus": "وضعیت انتشار"
   },
+  "fieldDescriptions": {
+    "locationZones": "ناحیه‌های شروع، قله، اردوگاه و پایان مسیر."
+  },
   "fieldKinds": {
     "text": "متن",
     "enum": "انتخاب",

@@ -78,8 +78,21 @@ export function sanitizeNotificationTitle(title: string): string {
   return title.replace(/\s*\([^)]*\)\s*$/u, "").trim();
 }
 
-function isRawTranslationKey(value: string): boolean {
-  return /^(?:notification|portalMember|tickets|settings|nav|common)(?:[._]|$)/u.test(value.trim());
+export function isRawTranslationKey(value: string): boolean {
+  return /^(?:notification|portalMember|tickets|settings|nav|common|engagement)(?:[._]|$)/u.test(
+    value.trim()
+  );
+}
+
+/** Reads a badge code from persisted localized/raw notification fields. */
+export function readEngagementBadgeCode(values: readonly string[]): string | null {
+  for (const value of values) {
+    const match = /^engagement\.badge\.([a-z0-9_]+)\.(?:label|description)$/u.exec(value.trim());
+    if (match?.[1] !== undefined) {
+      return match[1];
+    }
+  }
+  return null;
 }
 
 export function resolveNotificationBodyForLocale(input: {

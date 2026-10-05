@@ -358,7 +358,7 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `data-public-registration-email` | email at intake when capability + profile lacks email |
 | `data-public-registration-notes` | optional notes (Urban capability) |
 | `data-portal-member-profile` | `/me/profile` form |
-| `data-public-registration-personal-car-opt-in` | optional personal-car opt-in (allowPersonalCar tours) |
+| `[data-public-registration-transport] input[name^="hasPersonalCar-"]` | direct own-car/other-car choices (allowPersonalCar tours) |
 | `data-public-registration-transport` | car / dong follow-up fieldset |
 | `data-registration-price-hint` | estimated per-person price |
 | `data-public-registration-success` | completion |
@@ -461,7 +461,7 @@ capability and is not implied by this flow.
 |----|------|------|
 | SMK-PTL-01 | `portal-registration-smoke.spec.ts` | `operator.portal.localhost:3003` |
 | DEN-INTAKE-01 · 02 · 03 · 04 | `portal-registration-intake-smoke.spec.ts` | tour-flag gating · participant tour · self/other · intake→profile persist |
-| DEN-TRANS-01 · 02 · 03 | `portal-registration-transport-smoke.spec.ts` | bus default (no UI) · personal-car opt-in · shared_cars dong |
+| DEN-TRANS-01 · 02 · 03 | `portal-registration-transport-smoke.spec.ts` | bus default (no UI) · direct personal-car choices · shared_cars dong |
 | SMK-PTL-02 · 04 · 05 · 06 | `portal-member-smoke.spec.ts` | member list · receipt · home redirect · logout |
 | DEN-PROF-01 · 02 · 03 | `portal-member-profile-smoke.spec.ts` | profile fields · PATCH persist · intake hide |
 | SMK-MKT-03 | `marketing-catalog-smoke.spec.ts` | PDP modal OTP → continue → portal intake |
@@ -483,7 +483,7 @@ E2E helper `completeCatalogRegistrationIntake` (`fixtures/catalog-registration-o
 | ID | Tour | Guest action | Persisted `transport.kind` |
 |----|------|--------------|-----------------------------|
 | DEN-TRANS-01 | `…213` bus | none — organized default | `primary` (or omitted) · no `[data-public-registration-transport]` shown |
-| DEN-TRANS-02 | `…213` bus + opt-in | check `[data-public-registration-personal-car-opt-in]` → occupants | `personal_car` |
+| DEN-TRANS-02 | `…213` bus + direct choice | select own/other car → occupants | `personal_car` |
 | DEN-TRANS-03 | `…214` shared_cars | mandatory `[data-public-registration-transport]` → no car → pays dong | `no_car_dong` · price hint = base + `dongAmount` |
 
 Assertions read the outgoing `POST /api/catalog/registrations` body to confirm the SDK payload `transport.kind`; there is no `pluginId === "denali"` branch in the portal.

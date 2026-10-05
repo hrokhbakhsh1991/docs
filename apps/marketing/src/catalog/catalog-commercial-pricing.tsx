@@ -1,6 +1,7 @@
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import { hasMarketingMembershipDiscount } from "./commercial-pricing-preview";
 import { formatCatalogPrice, type CatalogPriceDisplayPolicy } from "./format-catalog-display";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 
 type CatalogTranslation = (key: string, values?: Record<string, string | number>) => string;
 
@@ -35,19 +36,52 @@ function ancillaryLabel(code: string, t: CatalogTranslation): string {
 export function CatalogCommercialPricingCompact({
   preview,
   canonicalPrice,
+  isFreeCollection = false,
   dateLocale,
   priceDisplayPolicy,
   t,
+  ancillaryLines = [],
+  pricingPreviewStatus = "anonymous",
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
+  readonly isFreeCollection?: boolean;
   readonly dateLocale: string;
   readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
+  readonly ancillaryLines?: readonly {
+    readonly label: string;
+    readonly value: string | null;
+  }[];
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
+  const ancillary = ancillaryLines.map((line) =>
+    line.value != null ? (
+      <small key={line.label}>
+        {line.label}: {line.value}
+      </small>
+    ) : null
+  );
+
+  if (preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection) {
+    return (
+      <span data-marketing-catalog-card-price-unavailable>
+        {t("pricing.unavailable")}
+        {ancillary}
+      </span>
+    );
+  }
+  if (isFreeCollection) {
+    return ancillaryLines.length > 0 ? (
+      <span data-marketing-catalog-card-free-ancillary>{ancillary}</span>
+    ) : null;
+  }
   if (!hasMarketingMembershipDiscount(preview)) {
-    return canonicalPrice != null ? (
-      <span data-marketing-catalog-card-price>{canonicalPrice}</span>
+    return canonicalPrice != null || ancillaryLines.length > 0 ? (
+      <span data-marketing-catalog-card-price>
+        {canonicalPrice}
+        {ancillary}
+      </span>
     ) : null;
   }
 
@@ -67,7 +101,10 @@ export function CatalogCommercialPricingCompact({
   );
   if (gross === null || payable === null) {
     return canonicalPrice != null ? (
-      <span data-marketing-catalog-card-price>{canonicalPrice}</span>
+      <span data-marketing-catalog-card-price>
+        {canonicalPrice}
+        {ancillary}
+      </span>
     ) : null;
   }
 
@@ -75,6 +112,7 @@ export function CatalogCommercialPricingCompact({
     <span data-marketing-catalog-card-member-price>
       <span data-marketing-catalog-card-member-price-original>{gross}</span>
       <span data-marketing-catalog-card-member-price-payable>{payable}</span>
+      {ancillary}
       <span data-marketing-catalog-card-member-price-benefit>
         {t("pricing.membershipDiscountCompact", {
           percent: preview.memberDiscountPercentage,
@@ -87,18 +125,32 @@ export function CatalogCommercialPricingCompact({
 export function CatalogCommercialPricingBreakdown({
   preview,
   canonicalPrice,
+  isFreeCollection = false,
   dateLocale,
   priceDisplayPolicy,
   t,
   compact = false,
+  pricingPreviewStatus = "anonymous",
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
+  readonly isFreeCollection?: boolean;
   readonly dateLocale: string;
   readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
   readonly compact?: boolean;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 }) {
+  if (preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection) {
+    return compact ? (
+      <span data-marketing-catalog-detail-price-unavailable>{t("pricing.unavailable")}</span>
+    ) : (
+      <p data-marketing-catalog-detail-rail-price-unavailable>{t("pricing.unavailable")}</p>
+    );
+  }
+  if (isFreeCollection) {
+    return null;
+  }
   if (!hasMarketingMembershipDiscount(preview)) {
     if (compact) {
       return canonicalPrice != null ? (

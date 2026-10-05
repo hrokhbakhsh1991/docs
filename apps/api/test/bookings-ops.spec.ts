@@ -85,6 +85,60 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
     assert.equal(typeof tourChips[0]?.pendingCount, "number");
   });
 
+  it("API-9.5-02b finalization requires settled payment", async () => {
+    const bookingId = "00000000-0000-4000-8000-000000000399";
+    getBookingsRepository().seedBooking({
+      id: bookingId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourTitle: "Finalization Test Tour",
+      guestLabel: "Finalization Guest",
+      guestEmail: null,
+      guestPhone: null,
+      partySize: 1,
+      status: "approved",
+      paymentStatus: "unpaid",
+      departureAt: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+      submittedAt: new Date().toISOString(),
+      submittedByUserId: OPERATOR_SMOKE.memberUserId,
+      approvedAt: new Date().toISOString(),
+      finalizationStatus: "not_final",
+      registrationIntake: { tourCapacityMax: 12 },
+    });
+
+    const response = await client.requestJson<BookingsApiResponse>(
+      "POST",
+      `/bookings/${bookingId}/finalize`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(response.status, 409);
+    assert.equal(response.body.code, "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT");
+
+    await getBookingsRepository().updatePaymentStatus({
+      bookingId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentStatus: "paid",
+    });
+
+    const settled = await client.requestJson<BookingsApiResponse>(
+      "POST",
+      `/bookings/${bookingId}/finalize`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(settled.status, 200);
+    assert.equal(settled.body.status, "approved");
+    assert.equal(settled.body.finalizationStatus, "finalized");
+    assert.equal(typeof settled.body.finalizedAt, "string");
+
+    const repeat = await client.requestJson<BookingsApiResponse>(
+      "POST",
+      `/bookings/${bookingId}/finalize`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(repeat.status, 200);
+    assert.equal(repeat.body.finalizationStatus, "finalized");
+  });
+
   it("API-9.5-03 member view=ops returns 403", async () => {
     const response = await client.requestJson<BookingsApiResponse>("GET", "/bookings?view=ops", {
       headers: {
@@ -138,4 +192,5 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
       assert.equal(outboxRows[0]?.eventType, "registration.approved");
     }
   });
+
 });

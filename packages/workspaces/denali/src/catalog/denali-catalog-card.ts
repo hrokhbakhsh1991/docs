@@ -15,6 +15,7 @@ import {
   readDenaliCatalogTransportSnapshot,
 } from "./read-denali-catalog-transport";
 import { readDenaliFirstPhotoHttpsUrl } from "../list/read-denali-first-photo";
+import { resolveDenaliPaymentCollectionMode } from "../finance/resolve-denali-payment-collection-mode";
 
 export type DenaliCatalogCardOptions = ProjectDenaliCatalogItineraryOptions & {
   readonly photoEnrichment?: DenaliCatalogPhotoEnrichment;
@@ -93,7 +94,11 @@ function buildBaseCard(
   const itineraryDays = projectDenaliCatalogItinerary(data, itineraryOptions);
   const category = readString(data.category);
   const shortDescription = readString(readCanonicalPath(data, "program.shortDescription"));
-  const priceAmount = readInteger(readCanonicalPath(data, "pricing.basePricePerPerson"));
+  const paymentCollection = resolveDenaliPaymentCollectionMode(data);
+  const priceAmount =
+    paymentCollection === "free"
+      ? null
+      : readInteger(readCanonicalPath(data, "pricing.basePricePerPerson"));
   const transport = readDenaliCatalogTransportSnapshot(data);
   const nationalIdRequired = readDenaliCatalogNationalIdRequired(data);
   const fatherNameRequired = readDenaliCatalogFatherNameRequired(data);
@@ -143,7 +148,9 @@ function buildBaseCard(
 function attachStructuredData(card: PublicCatalogCard): PublicCatalogCard {
   return Object.freeze({
     ...card,
-    structuredData: buildDenaliTouristTripJsonLd(card) as unknown as Readonly<Record<string, unknown>>,
+    structuredData: buildDenaliTouristTripJsonLd(card) as unknown as Readonly<
+      Record<string, unknown>
+    >,
   });
 }
 
@@ -174,7 +181,9 @@ export function toDenaliCatalogCard(
         listSubtitle: null,
         listDescription: null,
         showListPrice: true,
-        ...(tour.catalogUpdatedAt?.trim() ? { catalogUpdatedAt: tour.catalogUpdatedAt.trim() } : {}),
+        ...(tour.catalogUpdatedAt?.trim()
+          ? { catalogUpdatedAt: tour.catalogUpdatedAt.trim() }
+          : {}),
       })
     );
   }

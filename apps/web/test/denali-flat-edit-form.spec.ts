@@ -3,6 +3,8 @@
  * Authority: docs/phase-12/subphases/12.4-denali-flat-edit-form.md
  */
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -31,14 +33,17 @@ describe("denali-flat-edit-form.spec.ts — Phase 12.4 Web", () => {
   });
 
   it("WEB-12.4-02 12.4b default sections cover wizard rail minus review", () => {
-    assert.deepEqual([...DENALI_FLAT_EDIT_SECTIONS_FULL], [
-      "denali_basic",
-      "denali_photos",
-      "denali_program",
-      "denali_logistics",
-      "denali_pricing",
-      "denali_legal",
-    ]);
+    assert.deepEqual(
+      [...DENALI_FLAT_EDIT_SECTIONS_FULL],
+      [
+        "denali_basic",
+        "denali_photos",
+        "denali_program",
+        "denali_logistics",
+        "denali_pricing",
+        "denali_legal",
+      ]
+    );
   });
 
   it("WEB-12.4-02 filterFlatEditRenderSteps keeps allowed step ids", () => {
@@ -66,5 +71,16 @@ describe("denali-flat-edit-form.spec.ts — Phase 12.4 Web", () => {
       filtered.map((step) => step.stepId),
       ["denali_basic", "denali_program"]
     );
+  });
+
+  it("WEB-12.4-03 requires an operator choice before rendering an unstamped legacy edit draft", async () => {
+    const source = await readFile(
+      path.join(process.cwd(), "app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(source, /legacyDraftRecoveryRequired/);
+    assert.match(source, /data-testid="tour-edit-legacy-draft-recovery"/);
+    assert.match(source, /recoverLegacyDraft/);
+    assert.match(source, /useTourBaseline/);
   });
 });

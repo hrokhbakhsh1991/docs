@@ -65,7 +65,7 @@ node apps/marketing/scripts/smoke-marketing-e2e-servers.mjs
 | **SMK-P6-PTL-04** | VS-05 | portal | `portal-member-smoke.spec.ts` SMK-PTL-04 | `@apps/portal test:smoke` | receipt upload 201 |
 | **SMK-P6-PTL-06** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-06 | `@apps/portal test:smoke` | logout · middleware blocks `/me/*` |
 | **SMK-P6-PTL-07** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-01 | `@apps/portal test:smoke` | bus tour `…213` hides transport UI · body omits `transport` |
-| **SMK-P6-PTL-08** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-02 | `@apps/portal test:smoke` | personal-car opt-in → `transport.kind=personal_car` |
+| **SMK-P6-PTL-08** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-02 | `@apps/portal test:smoke` | direct personal-car choice → `transport.kind=personal_car` |
 | **SMK-P6-PTL-09** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-03 | `@apps/portal test:smoke` | shared_cars `…214` dong → `transport.kind=no_car_dong` |
 | **SMK-P6-ADM-01** | VS-06 | web | `operator-smoke.spec.ts` SMK-P9-04 | `playwright.operator.config.ts -g SMK-P9-04` | booking approved (fa/en status) |
 | **SMK-P6-ADM-02** | VS-07 | web | `p6-operator-receipt-approve-smoke.spec.ts` SMK-P6-ADM-02 | `playwright.operator.config.ts -g SMK-P6-ADM-02` | receipt approved · queue empty |

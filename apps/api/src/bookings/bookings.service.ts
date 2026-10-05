@@ -17,12 +17,14 @@ import type {
   BookingsSummaryQuery,
   BookingsSummaryResponse,
   BookingPublicCapabilityPort,
+  BookingPublicOutboxEvent,
   BookingValidationPolicyPort,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
@@ -34,12 +36,20 @@ import {
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
-import type { BookingRecord } from "./bookings.types";
-import { BookingCapabilityViolationError, BookingNotFoundError } from "./bookings.errors";
-import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
+import type { BookingRecord, WaitlistCapacityAdmissionResponse } from "./bookings.types";
+import {
+  BookingCapabilityViolationError,
+  BookingNotFoundError,
+  BookingWaitlistCapacityAdmissionNotAllowedError,
+} from "./bookings.errors";
+import {
+  resolvePaymentDueAtForProjection,
+  resolveUtcApprovedWithinDaysWindow,
+} from "./booking-list-query";
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
+import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -67,6 +77,7 @@ export type BookingsServiceDeps = {
   readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
   readonly registrationSlo: BookingRegistrationSloPort;
   readonly financialDisplayState: BookingFinancialDisplayStatePort;
+  readonly serialMutation: BookingSerialMutationPort;
 };
 
 /** Booking-owned capacity: missing max is never a silent allow. */
@@ -115,19 +126,44 @@ function toListItem(
     personalCarOccupants,
     partySize: record.partySize,
     status: record.status,
+    finalizationStatus: record.finalizationStatus ?? "not_final",
     paymentStatus: record.paymentStatus,
     ...(financialDisplayState !== undefined ? { financialDisplayState } : {}),
     departureAt: record.departureAt,
     submittedAt: record.submittedAt,
     ...(approvedAt !== undefined ? { approvedAt } : {}),
+    ...(record.finalizedAt !== undefined && record.finalizedAt !== null
+      ? { finalizedAt: record.finalizedAt }
+      : {}),
     ...(includeIntake && record.registrationIntake !== undefined
       ? { registrationIntake: record.registrationIntake }
       : {}),
     ...(record.rejectReason !== undefined ? { rejectReason: record.rejectReason } : {}),
-    ...(record.paymentDueAt !== undefined && record.paymentDueAt !== null
-      ? { paymentDueAt: record.paymentDueAt }
+    ...(resolvePaymentDueAtForProjection(record) !== undefined
+      ? { paymentDueAt: resolvePaymentDueAtForProjection(record) }
       : {}),
     ...(record.cancelSource !== undefined ? { cancelSource: record.cancelSource } : {}),
+    ...(record.cancellationStatus !== undefined
+      ? { cancellationStatus: record.cancellationStatus }
+      : {}),
+    ...(record.cancellationReasonCode !== undefined
+      ? { cancellationReasonCode: record.cancellationReasonCode }
+      : {}),
+    ...(record.cancellationReasonNote !== undefined
+      ? { cancellationReasonNote: record.cancellationReasonNote }
+      : {}),
+    ...(record.cancellationRequestedAt !== undefined
+      ? { cancellationRequestedAt: record.cancellationRequestedAt }
+      : {}),
+    ...(record.cancellationApprovedAt !== undefined
+      ? { cancellationApprovedAt: record.cancellationApprovedAt }
+      : {}),
+    ...(record.cancellationApprovedByUserId !== undefined
+      ? { cancellationApprovedByUserId: record.cancellationApprovedByUserId }
+      : {}),
+    ...(record.cancellationCorrelationId !== undefined
+      ? { cancellationCorrelationId: record.cancellationCorrelationId }
+      : {}),
     ...(capacitySnapshot !== undefined ? { capacitySnapshot } : {}),
   };
 }
@@ -155,6 +191,7 @@ export class BookingsService {
   private readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
   private readonly registrationSlo: BookingRegistrationSloPort;
   private readonly financialDisplayState: BookingFinancialDisplayStatePort;
+  private readonly serialMutation: BookingSerialMutationPort;
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -202,6 +239,9 @@ export class BookingsService {
     if (deps.financialDisplayState == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:financialDisplayState");
     }
+    if (deps.serialMutation == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:serialMutation");
+    }
     const workspaceType = deps.workspaceType.trim().toLowerCase();
     if (workspaceType.length === 0) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:workspaceType");
@@ -222,6 +262,7 @@ export class BookingsService {
     this.postCancelSideEffects = deps.postCancelSideEffects;
     this.registrationSlo = deps.registrationSlo;
     this.financialDisplayState = deps.financialDisplayState;
+    this.serialMutation = deps.serialMutation;
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -369,8 +410,7 @@ export class BookingsService {
               max: maxByTour[record.tourId] ?? null,
             },
             {
-              financialDisplayState:
-                record.financialDisplayState ?? this.financialDisplayState.resolve(record),
+              financialDisplayState: this.financialDisplayState.resolve(record),
             }
           );
         })
@@ -442,7 +482,12 @@ export class BookingsService {
     this.authorization.assertOpsAccess(auth);
     this.assertOperatorCreateCapability();
     const submittedByUserId = await this.resolveSubmittedByUserIdForOperatorCreate(auth, body);
-    return this.executeCreatePipeline(auth, body, submittedByUserId);
+    // Operator-created records must exist before approval decides capacity. This
+    // lets an auto-approval flow move the same record to waitlisted instead of
+    // turning a capacity conflict into a misleading duplicate error.
+    return this.executeCreatePipeline(auth, body, submittedByUserId, undefined, {
+      enforceCapacityAtCreate: false,
+    });
   }
 
   async sumApprovedPartySizeByTourIds(
@@ -488,11 +533,26 @@ export class BookingsService {
    */
   async createPublicGuestBooking(
     auth: BookingActorContext,
-    body: CreateBookingRequest
+    body: CreateBookingRequest,
+    outboxEvent?: BookingPublicOutboxEvent
   ): Promise<CreateBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.assertPublicCreateCapability();
-    return this.executeCreatePipeline(auth, body, auth.userId);
+    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent);
+  }
+
+  /** Public waitlist create: same validation boundary, without claiming approved capacity. */
+  async createPublicWaitlistedBooking(
+    auth: BookingActorContext,
+    body: CreateBookingRequest,
+    outboxEvent?: BookingPublicOutboxEvent
+  ): Promise<CreateBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.assertPublicCreateCapability();
+    return this.executeCreatePipeline(auth, body, auth.userId, outboxEvent, {
+      initialStatus: "waitlisted",
+      enforceCapacityAtCreate: false,
+    });
   }
 
   private async resolveSubmittedByUserIdForOperatorCreate(
@@ -551,10 +611,17 @@ export class BookingsService {
   private async executeCreatePipeline(
     auth: BookingActorContext,
     body: CreateBookingRequest,
-    submittedByUserId: string
+    submittedByUserId: string,
+    outboxEvent?: BookingPublicOutboxEvent,
+    options: {
+      readonly initialStatus?: "pending" | "waitlisted";
+      readonly enforceCapacityAtCreate?: boolean;
+    } = {}
   ): Promise<CreateBookingResponse> {
     const started = performance.now();
     try {
+      const initialStatus = options.initialStatus ?? "pending";
+      const enforceCapacityAtCreate = options.enforceCapacityAtCreate ?? true;
       this.assertCreatePolicyCapabilityLevels();
       const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
         auth.tenantId,
@@ -591,12 +658,22 @@ export class BookingsService {
         tenantId: auth.tenantId,
         submittedByUserId,
         body: securedBody,
-        assertCapacityInTx: (ctx) => {
-          this.capacityPolicy.assertCreateCapacity({
-            ...baseCtx,
-            occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
-          });
-        },
+        ...(initialStatus === "pending" && enforceCapacityAtCreate
+          ? {
+              assertCapacityInTx: (ctx: {
+                readonly tourId: string;
+                readonly partySize: number;
+                readonly occupiedApprovedPartySize: number;
+              }) => {
+                this.capacityPolicy.assertCreateCapacity({
+                  ...baseCtx,
+                  occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
+                });
+              },
+            }
+          : {}),
+        initialStatus,
+        ...(outboxEvent === undefined ? {} : { outboxEvent }),
       });
       this.registrationSlo.record({
         workspaceType: this.workspaceType,
@@ -717,6 +794,63 @@ export class BookingsService {
     };
   }
 
+  async finalizeBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<FinalizeBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.finalizeBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      finalizedByUserId: auth.userId,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      finalizationStatus: updated.finalizationStatus ?? "not_final",
+      finalizedAt: updated.finalizedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
+  async finalizeBookingWithOpenPayment(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<FinalizeBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.finalizeBookingWithOpenPayment({
+      bookingId,
+      tenantId: auth.tenantId,
+      finalizedByUserId: auth.userId,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      finalizationStatus: updated.finalizationStatus ?? "not_final",
+      finalizedAt: updated.finalizedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
+  async waiveAndFinalizeBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<FinalizeBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.waiveAndFinalizeBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      finalizedByUserId: auth.userId,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      finalizationStatus: updated.finalizationStatus ?? "not_final",
+      finalizedAt: updated.finalizedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
   /**
    * Tour-policy public auto-approve — no ops CASL.
    * Ownership: actorUserId must equal submittedByUserId.
@@ -789,9 +923,80 @@ export class BookingsService {
     return { id: updated.id, status: updated.status };
   }
 
-  async cancelBooking(
+  async promoteWaitlistWithCapacityIncrease(
     auth: BookingActorContext,
     bookingId: string
+  ): Promise<WaitlistCapacityAdmissionResponse> {
+    return this.serialMutation.run(async () => {
+      await this.assertTenantBound(auth.tenantId);
+      this.authorization.assertOpsAccess(auth);
+      const current = await this.repository.getById(bookingId, auth.tenantId);
+      if (current === null) {
+        throw new BookingNotFoundError();
+      }
+      const marker = current.registrationIntake?.waitlistCapacityAdmission;
+      if (
+        current.status === "approved" &&
+        marker !== undefined &&
+        typeof marker === "object" &&
+        marker !== null
+      ) {
+        const record = marker as Record<string, unknown>;
+        return {
+          id: current.id,
+          status: current.status,
+          paymentStatus: current.paymentStatus,
+          capacityAdded:
+            typeof record.capacityAdded === "number" ? record.capacityAdded : current.partySize,
+          previousCapacity:
+            typeof record.previousCapacity === "number" ? record.previousCapacity : 0,
+          nextCapacity: typeof record.nextCapacity === "number" ? record.nextCapacity : 0,
+        };
+      }
+      if (current.status !== "waitlisted" || current.partySize < 1) {
+        throw new BookingWaitlistCapacityAdmissionNotAllowedError();
+      }
+      const increaseTourCapacity = this.tourCapacity.increaseTourCapacity;
+      if (increaseTourCapacity === undefined) {
+        throw new Error("BOOKING_CAPACITY_INCREMENT_UNSUPPORTED");
+      }
+      const expansion = await increaseTourCapacity({
+        tenantId: auth.tenantId,
+        tourId: current.tourId,
+        delta: current.partySize,
+      });
+      const approved = await this.repository.approveWithOutbox({
+        bookingId,
+        tenantId: auth.tenantId,
+        outboxEvent: "registration.waitlist_promoted_with_capacity_increase",
+        assertCapacityInTx: () => undefined,
+        registrationIntakePatch: {
+          waitlistCapacityAdmission: {
+            capacityAdded: current.partySize,
+            previousCapacity: expansion.previousCapacity,
+            nextCapacity: expansion.nextCapacity,
+          },
+        },
+      });
+      await this.invokeApproveReaction(auth.tenantId, approved.id);
+      const result = approved;
+      return {
+        id: result.id,
+        status: result.status,
+        paymentStatus: result.paymentStatus,
+        capacityAdded: current.partySize,
+        previousCapacity: expansion.previousCapacity,
+        nextCapacity: expansion.nextCapacity,
+      };
+    });
+  }
+
+  async cancelBooking(
+    auth: BookingActorContext,
+    bookingId: string,
+    input: { readonly reasonCode: string; readonly reasonNote?: string } = {
+      reasonCode: "operator_correction",
+    }
   ): Promise<CancelBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
@@ -800,20 +1005,34 @@ export class BookingsService {
       throw new BookingNotFoundError();
     }
     const previousStatus = before.status;
+    const correlationId = `registration.cancelled:${bookingId}`;
     const updated = await this.repository.cancelBooking({
       bookingId,
       tenantId: auth.tenantId,
       outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
       cancelSource: "operator",
+      cancellationStatus: Date.parse(before.departureAt) <= Date.now() ? "late_correction" : "applied",
+      cancellationReasonCode: input.reasonCode,
+      cancellationReasonNote: input.reasonNote,
+      cancellationApprovedByUserId: auth.userId,
+      cancellationCorrelationId: correlationId,
     });
-    await this.postCancelSideEffects.run({
+    const effects = await this.postCancelSideEffects.run({
       auth,
       booking: { ...before, status: "cancelled", cancelSource: "operator" },
       previousStatus,
-      cancelDomainEventId: `registration.cancelled:${bookingId}`,
+      cancelDomainEventId: correlationId,
       cancelSource: "operator",
     });
-    return { id: updated.id, status: updated.status };
+    return {
+      id: updated.id,
+      status: updated.status,
+      cancellationStatus: updated.cancellationStatus,
+      refundStatus: updated.paymentStatus === "paid" || updated.paymentStatus === "partial"
+        ? "pending_finance_approval"
+        : "not_required",
+      settlementStatus: effects.settlementStatus,
+    };
   }
 
   async bulkApproveBookings(

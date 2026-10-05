@@ -25,6 +25,10 @@ CACHE_DIR="${TEST_CHANGED_CACHE_DIR:-$ROOT/.cache/test-changed}"
 mkdir -p "$CACHE_DIR"
 
 resolve_base() {
+  if [ -n "${GITHUB_BASE_REF:-}" ] && git rev-parse --verify "origin/${GITHUB_BASE_REF}" >/dev/null 2>&1; then
+    echo "origin/${GITHUB_BASE_REF}"
+    return
+  fi
   if git rev-parse --verify origin/main >/dev/null 2>&1; then
     echo "origin/main"
     return

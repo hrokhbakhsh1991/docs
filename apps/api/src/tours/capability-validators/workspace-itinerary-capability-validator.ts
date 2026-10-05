@@ -4,11 +4,20 @@ import type {
   WorkspaceViolation,
 } from "@app-tour/workspace-sdk";
 
-import { isRecord, readCanonicalPath, readFiniteNumber, readNonEmptyString } from "./canonical-path.ts";
+import {
+  isRecord,
+  readCanonicalPath,
+  readFiniteNumber,
+  readNonEmptyString,
+} from "./canonical-path.ts";
 
 const ITINERARY_CANONICAL_PATH = "program.itinerary";
 
-function validateItinerarySegment(segment: unknown, dayIndex: number, segmentIndex: number): WorkspaceViolation | null {
+function validateItinerarySegment(
+  segment: unknown,
+  dayIndex: number,
+  segmentIndex: number
+): WorkspaceViolation | null {
   if (!isRecord(segment)) {
     return {
       code: "WORKSPACE_ITINERARY_INVALID",
@@ -97,6 +106,13 @@ export function validateWorkspaceItineraryCapability(
     return {
       code: "WORKSPACE_ITINERARY_INVALID",
       message: "program.itinerary must be an array when present",
+    };
+  }
+
+  if (rawItinerary.length > capabilities.maxDayCount) {
+    return {
+      code: "WORKSPACE_ITINERARY_INVALID",
+      message: `program.itinerary cannot contain more than ${capabilities.maxDayCount} days`,
     };
   }
 

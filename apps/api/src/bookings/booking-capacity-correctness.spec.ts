@@ -16,6 +16,7 @@ import {
   createPublicGuestBooking,
   getOrCreateBookingRuntimeForWorkspaceType,
   resetBookingsServiceCompositionForTests,
+  waitlistBooking,
 } from "./create-bookings-service.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";
 import { getBookingWorkspaceCapabilities } from "./workspace-booking-capabilities.generated.ts";
@@ -96,15 +97,18 @@ describe("booking-owned capacity correctness", { concurrency: false }, () => {
     );
   });
 
-  it("2) create over capacity is rejected", async () => {
+  it("2) operator create defers over-capacity decision until approval", async () => {
+    const pending = await createBooking(
+      opsAuth(TENANT_DENALI),
+      body({ partySize: 11, tourCapacityMax: 10, guestLabel: "Over" })
+    );
+    assert.equal(pending.status, "pending");
     await assert.rejects(
-      () =>
-        createBooking(
-          opsAuth(TENANT_DENALI),
-          body({ partySize: 11, tourCapacityMax: 10, guestLabel: "Over" })
-        ),
+      () => approveBooking(opsAuth(TENANT_DENALI), pending.id),
       /BOOKING_CAPACITY_REJECTED/
     );
+    const waitlisted = await waitlistBooking(opsAuth(TENANT_DENALI), pending.id);
+    assert.equal(waitlisted.status, "waitlisted");
   });
 
   it("3) approve after occupancy changed rejects when exceeded", async () => {

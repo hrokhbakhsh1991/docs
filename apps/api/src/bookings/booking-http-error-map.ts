@@ -7,6 +7,10 @@
  */
 import {
   BookingCapabilityViolationError,
+  BookingFinalizationRequiresSettlementError,
+  BookingOpenPaymentFinalizationNotAllowedError,
+  BookingWaiveAndFinalizeNotAllowedError,
+  BookingWaitlistCapacityAdmissionNotAllowedError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
@@ -81,6 +85,30 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     status: 404,
     reason: "Booking registration not found for tenant",
     clientAction: "Verify booking id and tenant",
+  },
+  {
+    domainError: "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
+    status: 409,
+    reason: "Approved registration still has an outstanding financial balance",
+    clientAction: "Complete or waive payment before adding the registration to the final roster",
+  },
+  {
+    domainError: "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED",
+    status: 409,
+    reason: "Open-payment finalization requires an approved unpaid or partially paid registration",
+    clientAction: "Use the paid finalization or free/waived approval path",
+  },
+  {
+    domainError: "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED",
+    status: 409,
+    reason: "Waive-and-finalize requires an approved unpaid or partially paid registration",
+    clientAction: "Use the open-payment finalization or settled payment path",
+  },
+  {
+    domainError: "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED",
+    status: 409,
+    reason: "Waitlist capacity admission requires a waitlisted, non-empty booking",
+    clientAction: "Refresh the waitlist row and choose an eligible registration",
   },
   {
     domainError: "BOOKING_FORBIDDEN",
@@ -207,6 +235,18 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (error instanceof BookingNotFoundError) {
     return resolutionFromCode(error.code, error.message);
   }
+  if (error instanceof BookingFinalizationRequiresSettlementError) {
+    return resolutionFromCode(error.code, error.message);
+  }
+  if (error instanceof BookingOpenPaymentFinalizationNotAllowedError) {
+    return resolutionFromCode(error.code, error.message);
+  }
+  if (error instanceof BookingWaiveAndFinalizeNotAllowedError) {
+    return resolutionFromCode(error.code, error.message);
+  }
+  if (error instanceof BookingWaitlistCapacityAdmissionNotAllowedError) {
+    return resolutionFromCode(error.code, error.message);
+  }
   if (error instanceof BulkApproveBatchLimitError) {
     return resolutionFromCode(error.code, error.message, { maxBatch: error.maxBatch });
   }
@@ -221,6 +261,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
 
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) {
     return resolutionFromCode("BOOKING_CAPACITY_REJECTED", message);
+  }
+  if (message.startsWith("BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED")) {
+    return resolutionFromCode("BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED", message);
   }
   if (message === "BOOKING_GUEST_DUPLICATE" || message.startsWith("BOOKING_GUEST_DUPLICATE:")) {
     return resolutionFromCode("BOOKING_GUEST_DUPLICATE", message);
@@ -251,6 +294,24 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   }
   if (message === "BOOKING_NOT_FOUND" || message.startsWith("BOOKING_NOT_FOUND:")) {
     return resolutionFromCode("BOOKING_NOT_FOUND", message);
+  }
+  if (
+    message === "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT" ||
+    message.startsWith("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT:")
+  ) {
+    return resolutionFromCode("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT", message);
+  }
+  if (
+    message === "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED" ||
+    message.startsWith("BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED:")
+  ) {
+    return resolutionFromCode("BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED", message);
+  }
+  if (
+    message === "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED" ||
+    message.startsWith("BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED:")
+  ) {
+    return resolutionFromCode("BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED", message);
   }
   if (message === "BOOKING_FORBIDDEN" || message.startsWith("BOOKING_FORBIDDEN:")) {
     return resolutionFromCode("BOOKING_FORBIDDEN", message);

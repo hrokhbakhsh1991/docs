@@ -7,7 +7,8 @@ export const TOUR_PUBLISHED_EXPOSURE_REMAP_SOURCE =
   "tour_published_trigger_migration_v1" as const;
 
 export const TOUR_CREATED_SEEDED_TEMPLATE = "Tour created: {{title}}" as const;
-export const TOUR_PUBLISHED_SEEDED_TEMPLATE = "Tour published: {{title}}" as const;
+export const TOUR_PUBLISHED_SEEDED_TEMPLATE =
+  "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}" as const;
 
 export type ExposureIntentRemapCandidate = {
   readonly id: string;

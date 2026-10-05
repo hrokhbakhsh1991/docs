@@ -53,12 +53,17 @@ describe("denali-operator-create-bridge.spec.ts", () => {
           details: { summary: "Memory spec tour" },
           category: "mountain_day",
           startDateTime: "2031-02-10T06:30:00.000Z",
+          pricing: { basePricePerPerson: 1_250_000, paymentMode: "offline_receipt" },
         },
       },
     });
     assert.equal(document.data.title, "Operator list seed");
     assert.equal(document.data.basics?.title, "Operator list seed");
     assert.equal(document.data.startDateTime, "2031-02-10T06:30:00.000Z");
+    assert.equal(
+      (document.data.pricing as { basePricePerPerson?: number }).basePricePerPerson,
+      1_250_000
+    );
   });
 
   it("BRIDGE-03 title-only ingress skips starter validation bridge", async () => {

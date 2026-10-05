@@ -304,10 +304,13 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("BOOKING_WORKSPACE_TENANT_MISMATCH")) return 403;
   if (message.startsWith("BOOKING_CAPABILITY_VIOLATION")) return 422;
   if (message.startsWith("BOOKING_PUBLIC_CREATE_UNSUPPORTED")) return 403;
+  if (message === "INTEGRATION_NOT_FOUND") return 404;
+  if (message.startsWith("INTEGRATION_")) return 400;
   if (message.startsWith("BOOKING_WAITLIST_REQUIRED")) return 409;
   if (message.startsWith("BOOKING_ALREADY_APPROVED")) return 409;
   if (message.startsWith("BOOKING_ALREADY_CANCELLED")) return 409;
   if (message.startsWith("BOOKING_STATUS_CONFLICT")) return 409;
+  if (message === "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT") return 409;
   if (message === "BOOKING_NOT_FOUND" || message.startsWith("BOOKING_NOT_FOUND:")) return 404;
   if (
     message === "BOOKING_FORBIDDEN" ||
@@ -353,6 +356,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
   if (message === "FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING") return 409;
   if (message === "FINANCE_RECEIPT_NOT_REQUIRED") return 409;
+  if (message === "PAYMENT_DESTINATION_REVISION_UNAVAILABLE") return 409;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") return 409;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_FAILED") return 409;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") return 500;

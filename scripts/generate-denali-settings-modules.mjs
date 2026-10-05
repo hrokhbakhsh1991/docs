@@ -14,24 +14,24 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MANIFEST_PATH = join(
   REPO_ROOT,
-  "packages/workspaces/denali/src/settings/denali-settings.manifest.ts",
+  "packages/workspaces/denali/src/settings/denali-settings.manifest.ts"
 );
 const FALLBACK_PATH = join(
   REPO_ROOT,
-  "packages/workspaces/denali/src/settings/denali-fallback-settings-modules.ts",
+  "packages/workspaces/denali/src/settings/denali-fallback-settings-modules.ts"
 );
 const SHELL_EMIT_PATH = join(
   REPO_ROOT,
-  "apps/web/src/features/settings/denali-required-settings-modules.generated.ts",
+  "apps/web/src/features/settings/denali-required-settings-modules.generated.ts"
 );
 const SHELL_BINDER_PATH = join(
   REPO_ROOT,
-  "apps/web/src/bootstrap/workspace-settings-hub-fallback-bindings.generated.ts",
+  "apps/web/src/bootstrap/workspace-settings-hub-fallback-bindings.generated.ts"
 );
 
 function extractDenaliSettingsModuleIds(manifestSource) {
   const match = manifestSource.match(
-    /const DENALI_SETTINGS_MODULES = Object\.freeze\(\[([\s\S]*?)\]\s*as const/,
+    /const DENALI_SETTINGS_MODULES[^=]*=\s*Object\.freeze\(\[([\s\S]*?)\]\s*as const/
   );
   if (match === null) {
     throw new Error(`${MANIFEST_PATH}: DENALI_SETTINGS_MODULES block not found`);
@@ -50,12 +50,12 @@ function main() {
 
   if (!manifestSource.includes("export const DENALI_BACKEND_REQUIRED_MODULE_IDS")) {
     failures.push(
-      `${MANIFEST_PATH}: must export DENALI_BACKEND_REQUIRED_MODULE_IDS (Phase 3c package ownership)`,
+      `${MANIFEST_PATH}: must export DENALI_BACKEND_REQUIRED_MODULE_IDS (Phase 3c package ownership)`
     );
   }
   if (!manifestSource.includes("DENALI_SETTINGS_MODULES.map")) {
     failures.push(
-      `${MANIFEST_PATH}: DENALI_BACKEND_REQUIRED_MODULE_IDS must derive from DENALI_SETTINGS_MODULES`,
+      `${MANIFEST_PATH}: DENALI_BACKEND_REQUIRED_MODULE_IDS must derive from DENALI_SETTINGS_MODULES`
     );
   }
 
@@ -65,13 +65,13 @@ function main() {
     !fallbackSource.includes("denali-settings.manifest")
   ) {
     failures.push(
-      `${FALLBACK_PATH}: must re-export DENALI_BACKEND_REQUIRED_MODULE_IDS from settings manifest`,
+      `${FALLBACK_PATH}: must re-export DENALI_BACKEND_REQUIRED_MODULE_IDS from settings manifest`
     );
   }
 
   if (existsSync(SHELL_EMIT_PATH)) {
     failures.push(
-      `forbidden shell emit still present: ${SHELL_EMIT_PATH} (delete; ids live on Denali package)`,
+      `forbidden shell emit still present: ${SHELL_EMIT_PATH} (delete; ids live on Denali package)`
     );
   }
 
@@ -79,12 +79,12 @@ function main() {
     const binder = readFileSync(SHELL_BINDER_PATH, "utf8");
     if (binder.includes("denali-required-settings-modules.generated")) {
       failures.push(
-        `${SHELL_BINDER_PATH}: must not statically import denali-required-settings-modules.generated`,
+        `${SHELL_BINDER_PATH}: must not statically import denali-required-settings-modules.generated`
       );
     }
     if (!binder.includes("mod.DENALI_BACKEND_REQUIRED_MODULE_IDS")) {
       failures.push(
-        `${SHELL_BINDER_PATH}: must read requiredModuleIds from dynamic fallback-modules import`,
+        `${SHELL_BINDER_PATH}: must read requiredModuleIds from dynamic fallback-modules import`
       );
     }
   }
@@ -99,7 +99,7 @@ function main() {
 
   const mode = process.argv.includes("--check") ? "--check" : "verify";
   console.log(
-    `generate:denali-settings-modules ${mode}: PASS (${moduleIds.length} module ids; package-owned; no apps/web emit)`,
+    `generate:denali-settings-modules ${mode}: PASS (${moduleIds.length} module ids; package-owned; no apps/web emit)`
   );
 }
 

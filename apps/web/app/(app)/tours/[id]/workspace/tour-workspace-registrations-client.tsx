@@ -42,7 +42,7 @@ export function TourWorkspaceRegistrationsClient({
   detail,
 }: TourWorkspaceRegistrationsClientProps) {
   const t = useTranslations("tours.workspace.registrations");
-  const { reloadWorkspaceChrome } = useTourWorkspaceChrome();
+  const { navigateWorkspaceTab, reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const canManage = isAdminOrOwnerRole(session.role);
   const capacityFull =
     detail !== null &&
@@ -50,6 +50,15 @@ export function TourWorkspaceRegistrationsClient({
       acceptedCount: detail.projection.acceptedCount,
       totalCapacity: detail.projection.totalCapacity,
     });
+
+  const handleOpsMutationSuccess = (
+    outcome?: "payment_required" | "finalized" | "other"
+  ) => {
+    reloadWorkspaceChrome();
+    if (outcome === "payment_required") {
+      navigateWorkspaceTab?.("finance");
+    }
+  };
 
   return (
     <div
@@ -94,7 +103,7 @@ export function TourWorkspaceRegistrationsClient({
         lockedStatus="pending"
         embedded
         opsActions={opsActions}
-        onOpsMutationSuccess={reloadWorkspaceChrome}
+        onOpsMutationSuccess={handleOpsMutationSuccess}
       />
     </div>
   );

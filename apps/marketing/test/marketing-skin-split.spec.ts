@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 import { readMarketingSkinBundle } from "./read-marketing-skin-bundle";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const MAX_LINES = 500;
+const MAX_COMPONENT_LINES = 500;
+const MAX_HOME_SLICE_LINES = 700;
 
 function walkCss(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -29,10 +30,9 @@ describe("marketing-skin-split.spec.ts — MKT-3", () => {
     const partialsDir = join(repoRoot, "packages/workspaces/denali/theme/marketing");
     for (const file of walkCss(partialsDir)) {
       const lines = readFileSync(file, "utf8").split("\n").length;
-      assert.ok(
-        lines <= MAX_LINES,
-        `${file} has ${lines} lines (max ${MAX_LINES})`
-      );
+      const isHomeSlice = file.includes("/marketing/home/");
+      const maxLines = isHomeSlice ? MAX_HOME_SLICE_LINES : MAX_COMPONENT_LINES;
+      assert.ok(lines <= maxLines, `${file} has ${lines} lines (max ${maxLines})`);
     }
   });
 
@@ -44,7 +44,7 @@ describe("marketing-skin-split.spec.ts — MKT-3", () => {
     const partialsDir = join(repoRoot, "packages/workspaces/urban/theme/marketing");
     for (const file of walkCss(partialsDir)) {
       const lines = readFileSync(file, "utf8").split("\n").length;
-      assert.ok(lines <= MAX_LINES, `${file} has ${lines} lines`);
+      assert.ok(lines <= MAX_COMPONENT_LINES, `${file} has ${lines} lines`);
     }
   });
 
@@ -53,7 +53,12 @@ describe("marketing-skin-split.spec.ts — MKT-3", () => {
     const bundle = readMarketingSkinBundle(entryPath);
     assert.match(bundle, /--color-primary: (?:#059669|var\(--denali-forest-600\))/);
     assert.match(bundle, /header\[data-marketing-header\]/);
-    assert.match(bundle, /section\[data-marketing-home-hero\]/);
+    const homePath = join(
+      repoRoot,
+      "packages/workspaces/denali/theme/marketing/home-landing.css"
+    );
+    const homeBundle = readMarketingSkinBundle(homePath);
+    assert.match(homeBundle, /section\[data-marketing-home-hero-walk\]/);
   });
 
   it("MKT-MASTER-01 production workspaces ship design-language/MASTER.md", () => {

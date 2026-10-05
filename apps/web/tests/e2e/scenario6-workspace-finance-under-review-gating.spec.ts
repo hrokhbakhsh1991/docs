@@ -73,7 +73,7 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
     const booking = await seedChainGuestRegistrationViaApi(page.request, {
       guestName: `Scenario6 Candidate ${stamp}`,
       email: `scenario6-${stamp}@denali-smoke.local`,
-      mobile: `+1555${String(Date.now()).slice(-7)}`,
+      mobile: `0912${String(Date.now()).slice(-7)}`,
     });
     const registrationId = booking.bookingId;
     const approveRes = await page.request.post(`/api/bookings/${registrationId}/approve`);

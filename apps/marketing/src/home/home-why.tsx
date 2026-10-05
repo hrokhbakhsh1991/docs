@@ -69,6 +69,10 @@ export async function HomeWhy({
             );
           })}
         </ul>
+        <aside data-marketing-home-why-support>
+          <h3>{t("home.full.why.support.title")}</h3>
+          <p>{t("home.full.why.support.description")}</p>
+        </aside>
       </div>
     </section>
   );

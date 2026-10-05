@@ -83,7 +83,7 @@ describe("resolveExposureDecision", () => {
       payload: { title: "Alpine Day" },
       profile: {
         ...profile,
-        defaultTemplateId: "Tour published: {{title}}",
+        defaultTemplateId: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
       },
       exposureIntent: null,
       resolveDeliveryFieldDefinitions: async () => [],

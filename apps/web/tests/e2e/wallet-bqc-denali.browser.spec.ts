@@ -73,16 +73,18 @@ test.describe("BQC Denali wallet operator states", () => {
     });
     await page.goto(WALLET_PATH);
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.page)).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.membersList)).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.searchForm)).toBeVisible();
     await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-01-idle-page.png");
   });
 
-  test("W02 invalid member UUID validation error", async ({ page }) => {
+  test("W02 unmatched member search shows empty directory", async ({ page }) => {
     await page.goto(WALLET_PATH);
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.page)).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.membersList)).toBeVisible({ timeout: 60_000 });
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchInput).fill("not-a-uuid");
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
-    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.error)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.membersEmpty)).toBeVisible({ timeout: 10_000 });
     await captureWalletArtifact(page, "/opt/cursor/artifacts/wallet-02-validation-error.png");
   });
 
@@ -93,6 +95,12 @@ test.describe("BQC Denali wallet operator states", () => {
       .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
       .fill(DENALI_DEFAULT_WALLET.entitledMemberUserId);
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
+
+    const memberRow = page
+      .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+      .filter({ hasText: "09174070941" });
+    await expect(memberRow).toBeVisible({ timeout: 60_000 });
+    await memberRow.click();
 
     const loading = page.getByTestId(WALLET_OPS_TEST_IDS.loading);
     const empty = page.getByTestId(WALLET_OPS_TEST_IDS.empty);
@@ -120,10 +128,17 @@ test.describe("BQC Denali wallet operator states", () => {
   test("W04 credit dialog validation and cancel", async ({ page }) => {
     await page.goto(WALLET_PATH);
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.page)).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.membersList)).toBeVisible({ timeout: 60_000 });
     await page
       .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
       .fill(DENALI_DEFAULT_WALLET.entitledMemberUserId);
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
+
+    const memberRow = page
+      .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+      .filter({ hasText: "09174070941" });
+    await expect(memberRow).toBeVisible({ timeout: 60_000 });
+    await memberRow.click();
 
     const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
     await expect(accountRow).toBeVisible({ timeout: 60_000 });
@@ -150,10 +165,17 @@ test.describe("BQC Denali wallet operator states", () => {
   test("W05 insufficient debit rejected", async ({ page }) => {
     await page.goto(WALLET_PATH);
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.page)).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.membersList)).toBeVisible({ timeout: 60_000 });
     await page
       .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
       .fill(DENALI_DEFAULT_WALLET.entitledMemberUserId);
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
+
+    const memberRow = page
+      .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+      .filter({ hasText: "09174070941" });
+    await expect(memberRow).toBeVisible({ timeout: 60_000 });
+    await memberRow.click();
 
     const accountRow = page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first();
     await expect(accountRow).toBeVisible({ timeout: 60_000 });

@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   isBookingJsonReceiptContentType,
+  parseBookingMemberReceiptJsonBody,
   parseBookingsListQuery,
   parseBulkApproveBookingsBody,
   parseCreateBookingBody,
@@ -75,7 +76,10 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
     assert.match(src, /parseCreateBookingBody/);
     assert.match(src, /isBookingJsonReceiptContentType/);
     assert.match(src, /from ["']\.\/create-bookings-service["']/);
-    assert.match(src, /listBookings|createBooking|approveBooking|rejectBooking|waitlistBooking|cancelBooking|bulkApproveBookings/);
+    assert.match(
+      src,
+      /listBookings|createBooking|approveBooking|rejectBooking|waitlistBooking|cancelBooking|bulkApproveBookings/
+    );
     assert.doesNotMatch(src, /const BOOKING_STATUSES/);
     assert.doesNotMatch(src, /function parseListQuery/);
     assert.doesNotMatch(src, /function parseCreateBody/);
@@ -144,6 +148,13 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
     assert.equal(isBookingJsonReceiptContentType("application/json"), true);
     assert.equal(isBookingJsonReceiptContentType(""), true);
     assert.equal(isBookingJsonReceiptContentType("multipart/form-data"), false);
+    assert.deepEqual(parseBookingMemberReceiptJsonBody({ fileKey: null, note: "کد پیگیری" }), {
+      note: "کد پیگیری",
+    });
+    assert.deepEqual(parseBookingMemberReceiptJsonBody({ fileKey: "proof.pdf", note: null }), {
+      fileKey: "proof.pdf",
+    });
+    assert.equal(parseBookingMemberReceiptJsonBody({ fileKey: null, note: null }), null);
   });
 
   it("repositories do not import booking-http-contracts (domain types only)", () => {
@@ -161,9 +172,6 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
   });
 
   it("no booking-http handler package yet (handlers remain apps/api)", () => {
-    assert.throws(
-      () => statSync(join(repoRoot, "packages/booking-http/package.json")),
-      /ENOENT/
-    );
+    assert.throws(() => statSync(join(repoRoot, "packages/booking-http/package.json")), /ENOENT/);
   });
 });

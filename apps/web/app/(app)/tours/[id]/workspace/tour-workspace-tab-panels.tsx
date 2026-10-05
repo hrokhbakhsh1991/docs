@@ -94,7 +94,11 @@ export function TourWorkspaceTabPanels({
           hidden={activeTab !== "transport"}
           aria-hidden={activeTab !== "transport"}
         >
-          <TourWorkspaceTransportClient tourId={tourId} pluginId={session.pluginId} />
+          <TourWorkspaceTransportClient
+            tourId={tourId}
+            pluginId={session.pluginId}
+            canManage={session.role === "admin" || session.role === "owner"}
+          />
         </div>
       ) : null}
       {includeFinance && mountedTabs.has("finance") ? (

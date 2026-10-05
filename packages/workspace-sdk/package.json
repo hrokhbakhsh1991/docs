@@ -104,14 +104,14 @@
     }
   },
   "scripts": {
-    "build": "pnpm --dir ../catalog-registration-auth run build && pnpm --dir ../booking-http-contracts run build && pnpm --dir ../tour-core run build && rm -rf dist && tsc -p tsconfig.json",
+    "build": "pnpm --dir ../catalog-registration-auth run build && pnpm --dir ../booking-http-contracts run build && pnpm --dir ../tour-core run build && node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "validate:manifests": "node --import tsx scripts/validate-manifests.ts",
-    "test": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test \"test/**/*.spec.ts\"",
-    "test:phase-0": "pnpm run build && NODE_ENV=test LEGACY_IMPORT_SCAN_SCOPE=foundation node --import ./test/register-server-only-stub.mjs --import tsx --test test/phase-0.contract.spec.ts",
-    "test:invariants": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test test/invariant-manifest.contract.spec.ts",
+    "test": "node --import ./test/lib/set-test-env.mjs --import ./test/register-server-only-stub.mjs --import tsx --test \"test/**/*.spec.ts\"",
+    "test:phase-0": "pnpm run build && node --import ./test/lib/set-foundation-test-env.mjs --import ./test/register-server-only-stub.mjs --import tsx --test test/phase-0.contract.spec.ts",
+    "test:invariants": "node --import ./test/lib/set-test-env.mjs --import ./test/register-server-only-stub.mjs --import tsx --test test/invariant-manifest.contract.spec.ts",
     "test:contract:foundation": "pnpm run test:phase-0",
-    "test:contract:monorepo": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test test/legacy-import.monorepo.contract.spec.ts",
+    "test:contract:monorepo": "node --import ./test/lib/set-test-env.mjs --import ./test/register-server-only-stub.mjs --import tsx --test test/legacy-import.monorepo.contract.spec.ts",
     "test:contract": "pnpm run test:phase-0"
   },
   "peerDependencies": {

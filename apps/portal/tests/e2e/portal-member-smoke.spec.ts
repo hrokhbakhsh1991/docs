@@ -19,11 +19,13 @@ import {
 
 const REGISTRATION_EMAIL = `smk-ptl-02-${Date.now()}@denali-smoke.local`;
 const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
+const DEFAULT_ADMIN_BASE_URL =
+  process.env.SMOKE_ADMIN_BASE_URL?.trim() || "http://admin.operator.localhost:3000";
 const cachedOperatorSessionTokens = new Map<string, string>();
 
 async function createDenaliAdminPage(
   browser: Browser,
-  baseURL = "http://admin.denali.localhost:3000"
+  baseURL = DEFAULT_ADMIN_BASE_URL
 ): Promise<{
   readonly context: Awaited<ReturnType<Browser["newContext"]>>;
   readonly page: Page;
@@ -298,7 +300,7 @@ test("DEN-BOOK-CORE wrong-tenant admin cannot read a Denali invoice", async ({ p
 
   const { context: wrongTenantContext, page: wrongTenantPage } = await createDenaliAdminPage(
     browser,
-    "http://admin.operator.localhost:3000"
+    "http://admin.denali.localhost:3000"
   );
   try {
     const invoiceResponse = await wrongTenantPage.request.get(
@@ -537,11 +539,10 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
-  await page.locator("#receipt-file").setInputFiles({
-    name: "denali-paid-auto-receipt.png",
-    mimeType: "image/png",
-    buffer: Buffer.from("denali-smoke-receipt"),
-  });
+  await page
+    .locator("[data-portal-member-receipt-note]")
+    .fill("پرداخت از طریق انتقال بانکی انجام شد.");
+  await expect(page.locator("#receipt-file")).toHaveValue("");
   const receiptResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&

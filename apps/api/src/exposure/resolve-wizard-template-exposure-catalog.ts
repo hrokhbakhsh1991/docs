@@ -5,7 +5,7 @@ import type {
 } from "../settings/settings.types";
 
 import {
-  buildExposureFieldCatalog,
+  buildExposureSelectableFieldCatalog,
   type ExposureFieldCatalogEntry,
 } from "./exposure-field-catalog";
 
@@ -73,7 +73,9 @@ export async function buildWizardTemplateExposureCatalog(input: {
     return [];
   }
 
-  const registryFields = await buildExposureFieldCatalog(input.workspaceType);
+  // A published wizard template may narrow the public catalog, but it must
+  // never widen it with fields that have no catalog redaction binding.
+  const registryFields = await buildExposureSelectableFieldCatalog(input.workspaceType);
   if (registryFields.length === 0) {
     return [];
   }

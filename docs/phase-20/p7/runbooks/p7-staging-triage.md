@@ -49,7 +49,7 @@ curl -fsS "$TOUR_OPS_API_URL/health"
 | ------- | ----- |
 | `tenant-context` 404 | `PUBLIC_TENANT_FALLBACK_LABEL` + `PUBLIC_TENANT_FALLBACK_HOSTS` on API |
 | Marketing wrong club | `TOUR_OPS_PUBLIC_FALLBACK_HOSTS` on marketing.env |
-| CTA wrong portal URL | `PORTAL_PUBLIC_BASE_URL` on marketing |
+| CTA wrong portal URL | `PORTAL_PUBLIC_BASE_URL` on marketing; rerun `bootstrap-staging.sh` with `PUBLIC_ROOT_DOMAIN` and `PUBLIC_TENANT_LABEL` |
 
 ---
 

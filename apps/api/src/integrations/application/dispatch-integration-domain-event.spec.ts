@@ -137,6 +137,84 @@ describe("dispatch-integration-domain-event", () => {
     assert.equal(isFieldExposureDecisionEngineShadowEnabled(), false);
   });
 
+  it("carries the mapped forum topic into the delivery job", async () => {
+    const enqueued: unknown[] = [];
+    const policyEngine: IntegrationPolicyEngine = {
+      evaluate: async () => [
+        {
+          connectionId: "conn-1",
+          tenantId: "tenant-a",
+          provider: "telegram",
+          capability: "message.send",
+          topicKey: "registration",
+          workspaceType: "denali",
+          exposureIntent: null,
+        },
+      ],
+    };
+
+    await dispatchIntegrationDomainEvent(
+      {
+        tenantId: "tenant-a",
+        domainEventId: "evt-topic-1",
+        eventType: "member.registered",
+        aggregateType: "member",
+        aggregateId: "member-1",
+        payload: { displayName: "Test member" },
+      },
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository: emptyDeliveryRepository(enqueued),
+        resolveWorkspaceType: async () => "denali",
+      })
+    );
+
+    assert.equal(
+      (enqueued[0] as { payload: Record<string, unknown> }).payload.telegramTopicKey,
+      "registration"
+    );
+  });
+
+  it("does not echo a Telegram-originated ticket reply back to its connection", async () => {
+    const enqueued: unknown[] = [];
+    const policyEngine: IntegrationPolicyEngine = {
+      evaluate: async () => [
+        {
+          connectionId: "conn-1",
+          tenantId: "tenant-a",
+          provider: "telegram",
+          capability: "message.send",
+          topicKey: "tickets",
+          workspaceType: "denali",
+          exposureIntent: null,
+        },
+      ],
+    };
+
+    const count = await dispatchIntegrationDomainEvent(
+      {
+        tenantId: "tenant-a",
+        domainEventId: "evt-telegram-reply-1",
+        eventType: "ticket.message.posted",
+        aggregateType: "ticket",
+        aggregateId: "ticket-1",
+        payload: {
+          sourceChannel: "telegram",
+          sourceIntegrationId: "conn-1",
+          body: "Operator reply",
+        },
+      },
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository: emptyDeliveryRepository(enqueued),
+        resolveWorkspaceType: async () => "denali",
+      })
+    );
+
+    assert.equal(count, 0);
+    assert.deepEqual(enqueued, []);
+  });
+
   it("keeps integration delivery payload unchanged when forward shadow is enabled", async () => {
     const policyEngine: IntegrationPolicyEngine = {
       evaluate: async () => [

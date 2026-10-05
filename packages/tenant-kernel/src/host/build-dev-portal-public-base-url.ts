@@ -23,7 +23,8 @@ export type BuildDevPortalPublicBaseUrlInput = {
 /**
  * Map marketing/admin ingress host to portal public base URL (dev).
  * Localhost canonical: `portal.{club}.localhost` (PCMS-COOK-03 M↔P cookie share).
- * Other roots: `{club}.portal.{root}` until platform TLS wildcards flip.
+ * Other roots: `portal.{club}.{root}` so the portal and marketing hosts share
+ * the workspace parent and can safely share the member session cookie.
  */
 export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlInput): string {
   const configured = input.configuredBaseUrl?.trim();
@@ -46,7 +47,7 @@ export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlIn
     if (root === "localhost") {
       return `http://portal.${outcome.subdomain}.localhost:${port}`;
     }
-    return `http://${outcome.subdomain}.portal.${root}:${port}`;
+    return `http://portal.${outcome.subdomain}.${root}:${port}`;
   }
 
   if (outcome.kind === "club_portal") {

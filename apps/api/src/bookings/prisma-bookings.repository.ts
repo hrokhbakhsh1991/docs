@@ -1,4 +1,8 @@
 import { buildIranMobileSearchPatterns } from "@app-tour/iran-mobile";
+import {
+  buildObligationOverrideIntakeValue,
+  OBLIGATION_OVERRIDE_INTAKE_KEY,
+} from "@app-tour/finance-core";
 import { Prisma } from "@prisma/client";
 
 import {
@@ -27,7 +31,10 @@ import {
 } from "./bookings-member-summary-projection";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
+  BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
+  BookingOpenPaymentFinalizationNotAllowedError,
+  BookingWaiveAndFinalizeNotAllowedError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
@@ -88,12 +95,23 @@ export const BOOKING_LIST_SELECT = {
   guestPhone: true,
   partySize: true,
   status: true,
+  finalizationStatus: true,
   paymentStatus: true,
   departureAt: true,
   submittedAt: true,
   submittedByUserId: true,
   approvedAt: true,
+  finalizedAt: true,
+  finalizedByUserId: true,
   rejectReason: true,
+  cancelSource: true,
+  cancellationStatus: true,
+  cancellationReasonCode: true,
+  cancellationReasonNote: true,
+  cancellationRequestedAt: true,
+  cancellationApprovedAt: true,
+  cancellationApprovedByUserId: true,
+  cancellationCorrelationId: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
 type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
@@ -111,14 +129,25 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     guestPhone: row.guestPhone,
     partySize: row.partySize,
     status: row.status as BookingStatus,
+    finalizationStatus: row.finalizationStatus as BookingRecord["finalizationStatus"],
     paymentStatus: row.paymentStatus as BookingRecord["paymentStatus"],
     departureAt: row.departureAt.toISOString(),
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    finalizedAt: row.finalizedAt?.toISOString() ?? null,
+    finalizedByUserId: row.finalizedByUserId,
     ...(row.rejectReason !== null && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
+    cancelSource: row.cancelSource,
+    cancellationStatus: row.cancellationStatus as BookingRecord["cancellationStatus"],
+    cancellationReasonCode: row.cancellationReasonCode,
+    cancellationReasonNote: row.cancellationReasonNote,
+    cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
+    cancellationApprovedAt: row.cancellationApprovedAt?.toISOString() ?? null,
+    cancellationApprovedByUserId: row.cancellationApprovedByUserId,
+    cancellationCorrelationId: row.cancellationCorrelationId,
   };
 }
 
@@ -132,13 +161,24 @@ function toBookingRecord(row: {
   guestPhone: string | null;
   partySize: number;
   status: string;
+  finalizationStatus?: string;
   paymentStatus: string;
   departureAt: Date;
   submittedAt: Date;
   submittedByUserId: string;
   approvedAt: Date | null;
+  finalizedAt?: Date | null;
+  finalizedByUserId?: string | null;
   registrationIntake?: Prisma.JsonValue | null;
   rejectReason?: string | null;
+  cancelSource?: string | null;
+  cancellationStatus?: string;
+  cancellationReasonCode?: string | null;
+  cancellationReasonNote?: string | null;
+  cancellationRequestedAt?: Date | null;
+  cancellationApprovedAt?: Date | null;
+  cancellationApprovedByUserId?: string | null;
+  cancellationCorrelationId?: string | null;
 }): BookingRecord {
   const registrationIntake =
     row.registrationIntake !== null &&
@@ -157,11 +197,15 @@ function toBookingRecord(row: {
     guestPhone: row.guestPhone,
     partySize: row.partySize,
     status: row.status as BookingStatus,
+    finalizationStatus:
+      (row.finalizationStatus as BookingRecord["finalizationStatus"] | undefined) ?? "not_final",
     paymentStatus: row.paymentStatus as BookingRecord["paymentStatus"],
     departureAt: row.departureAt.toISOString(),
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    finalizedAt: row.finalizedAt?.toISOString() ?? null,
+    finalizedByUserId: row.finalizedByUserId ?? null,
     ...(registrationIntake !== undefined ? { registrationIntake } : {}),
     registrantTarget: readRegistrantTargetFromIntake(registrationIntake),
     transportKind: readTransportKindFromIntake(registrationIntake),
@@ -169,6 +213,14 @@ function toBookingRecord(row: {
     ...(row.rejectReason !== null && row.rejectReason !== undefined && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
+    cancelSource: row.cancelSource ?? null,
+    cancellationStatus: (row.cancellationStatus as BookingRecord["cancellationStatus"] | undefined) ?? "none",
+    cancellationReasonCode: row.cancellationReasonCode ?? null,
+    cancellationReasonNote: row.cancellationReasonNote ?? null,
+    cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
+    cancellationApprovedAt: row.cancellationApprovedAt?.toISOString() ?? null,
+    cancellationApprovedByUserId: row.cancellationApprovedByUserId ?? null,
+    cancellationCorrelationId: row.cancellationCorrelationId ?? null,
   };
 }
 
@@ -376,11 +428,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         orderBy: [{ departureAt: "desc" }, { id: "desc" }],
         take: capped,
       });
-      return enrichBookingListRecordsWithIntakeScalars(
-        tx,
-        tenantId,
-        rows.map(toBookingListRecord)
-      );
+      return enrichBookingListRecordsWithIntakeScalars(tx, tenantId, rows.map(toBookingListRecord));
     });
   }
 
@@ -427,11 +475,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         input.tenantId,
         pageRows.map(toBookingListRecord)
       );
-      const items = await enrichBookingListRecordsWithIntakeScalars(
-        tx,
-        input.tenantId,
-        baseItems
-      );
+      const items = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, baseItems);
 
       return { items, hasMore };
     });
@@ -702,7 +746,10 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (row === null) {
         return null;
       }
-      const [record] = await attachPaymentDueAtProjection(tx, tenantId, [toBookingRecord(row)]);
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, tenantId, [
+        toBookingRecord(row),
+      ]);
+      const [record] = await attachPaymentDueAtProjection(tx, tenantId, [enriched!]);
       return record ?? null;
     });
   }
@@ -743,17 +790,19 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       }
       const current = existing.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
-      if (next === current) {
-        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(
-          tx,
-          input.tenantId,
-          [toBookingListRecord(existing)]
-        );
+      const shouldFinalize = existing.status === "approved" && next === "paid";
+      if (next === current && (!shouldFinalize || existing.finalizationStatus === "finalized")) {
+        const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+          toBookingListRecord(existing),
+        ]);
         return enriched ?? null;
       }
       const updated = await tx.operatorRegistration.updateMany({
         where: { id: input.bookingId, tenantId: input.tenantId },
-        data: { paymentStatus: next },
+        data: {
+          paymentStatus: next,
+          ...(shouldFinalize ? { finalizationStatus: "finalized", finalizedAt: new Date() } : {}),
+        },
       });
       if (updated.count !== 1) {
         return null;
@@ -769,6 +818,318 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         toBookingListRecord(row),
       ]);
       return enriched ?? null;
+    });
+  }
+
+  async markFreeCollectionApplied(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+  }): Promise<BookingRecord | null> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (existing === null) {
+        return null;
+      }
+      const nextPaymentStatus = raiseBookingPaymentStatus(
+        existing.paymentStatus as BookingPaymentStatus,
+        "paid"
+      );
+      const currentIntake =
+        existing.registrationIntake !== null &&
+        typeof existing.registrationIntake === "object" &&
+        !Array.isArray(existing.registrationIntake)
+          ? (existing.registrationIntake as Record<string, unknown>)
+          : {};
+      const shouldFinalize = existing.status === "approved" && nextPaymentStatus === "paid";
+      const updated = await tx.operatorRegistration.updateMany({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        data: {
+          paymentStatus: nextPaymentStatus,
+          ...(shouldFinalize && existing.finalizationStatus !== "finalized"
+            ? { finalizationStatus: "finalized", finalizedAt: new Date() }
+            : {}),
+          registrationIntake: {
+            ...currentIntake,
+            freeCollectionApplied: true,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      if (updated.count !== 1) {
+        return null;
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      return row === null ? null : toBookingRecord(row);
+    });
+  }
+
+  async finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (existing === null) {
+        throw new BookingNotFoundError();
+      }
+      if (existing.status !== "approved") {
+        throw new BookingStatusConflictError(existing.status as BookingStatus);
+      }
+      if (existing.paymentStatus !== "paid") {
+        throw new BookingFinalizationRequiresSettlementError();
+      }
+      if (existing.finalizationStatus !== "finalized") {
+        const finalizedAt = new Date();
+        const changed = await tx.operatorRegistration.updateMany({
+          where: {
+            id: input.bookingId,
+            tenantId: input.tenantId,
+            status: "approved",
+            paymentStatus: "paid",
+            finalizationStatus: { not: "finalized" },
+          },
+          data: {
+            finalizationStatus: "finalized",
+            finalizedAt,
+            finalizedByUserId: input.finalizedByUserId,
+          },
+        });
+        if (changed.count !== 1) {
+          const current = await tx.operatorRegistration.findFirst({
+            where: { id: input.bookingId, tenantId: input.tenantId },
+            select: BOOKING_LIST_SELECT,
+          });
+          if (current === null) {
+            throw new BookingNotFoundError();
+          }
+          if (current.status !== "approved") {
+            throw new BookingStatusConflictError(current.status as BookingStatus);
+          }
+        }
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (row === null) {
+        throw new BookingNotFoundError();
+      }
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? toBookingListRecord(row);
+    });
+  }
+
+  async finalizeBookingWithOpenPayment(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (existing === null) {
+        throw new BookingNotFoundError();
+      }
+      if (existing.status !== "approved") {
+        throw new BookingStatusConflictError(existing.status as BookingStatus);
+      }
+      if (existing.finalizationStatus === "finalized") {
+        const [alreadyFinalized] = await enrichBookingListRecordsWithIntakeScalars(
+          tx,
+          input.tenantId,
+          [toBookingListRecord(existing)]
+        );
+        return alreadyFinalized ?? toBookingListRecord(existing);
+      }
+      const [existingProjection] = await enrichBookingListRecordsWithIntakeScalars(
+        tx,
+        input.tenantId,
+        [toBookingListRecord(existing)]
+      );
+      if (
+        existingProjection === undefined ||
+        (existingProjection.paymentStatus !== "unpaid" &&
+          existingProjection.paymentStatus !== "partial") ||
+        existingProjection.financialDisplayState === "WAIVED"
+      ) {
+        throw new BookingOpenPaymentFinalizationNotAllowedError();
+      }
+      if (existing.finalizationStatus !== "finalized") {
+        const finalizedAt = new Date();
+        const changed = await tx.operatorRegistration.updateMany({
+          where: {
+            id: input.bookingId,
+            tenantId: input.tenantId,
+            status: "approved",
+            finalizationStatus: { not: "finalized" },
+          },
+          data: {
+            finalizationStatus: "finalized",
+            finalizedAt,
+            finalizedByUserId: input.finalizedByUserId,
+          },
+        });
+        if (changed.count !== 1) {
+          const current = await tx.operatorRegistration.findFirst({
+            where: { id: input.bookingId, tenantId: input.tenantId },
+            select: BOOKING_LIST_SELECT,
+          });
+          if (current === null) {
+            throw new BookingNotFoundError();
+          }
+          if (current.status !== "approved") {
+            throw new BookingStatusConflictError(current.status as BookingStatus);
+          }
+        }
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: input.bookingId,
+          eventType: "registration.finalized_open_payment",
+          payload: {
+            bookingId: input.bookingId,
+            paymentStatus: existingProjection.paymentStatus,
+          },
+          domainEventId: `registration.finalized_open_payment:${input.bookingId}`,
+        });
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (row === null) {
+        throw new BookingNotFoundError();
+      }
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? toBookingListRecord(row);
+    });
+  }
+
+  async waiveAndFinalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (existing === null) {
+        throw new BookingNotFoundError();
+      }
+      if (existing.status !== "approved") {
+        throw new BookingStatusConflictError(existing.status as BookingStatus);
+      }
+      if (existing.finalizationStatus === "finalized") {
+        const [alreadyFinalized] = await enrichBookingListRecordsWithIntakeScalars(
+          tx,
+          input.tenantId,
+          [toBookingListRecord(existing)]
+        );
+        return alreadyFinalized ?? toBookingListRecord(existing);
+      }
+      const [existingProjection] = await enrichBookingListRecordsWithIntakeScalars(
+        tx,
+        input.tenantId,
+        [toBookingListRecord(existing)]
+      );
+      if (
+        existingProjection === undefined ||
+        (existingProjection.paymentStatus !== "unpaid" &&
+          existingProjection.paymentStatus !== "partial") ||
+        existingProjection.financialDisplayState === "WAIVED"
+      ) {
+        throw new BookingWaiveAndFinalizeNotAllowedError();
+      }
+      const existingFull = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (existingFull === null) {
+        throw new BookingNotFoundError();
+      }
+      const currentIntake =
+        existingFull.registrationIntake !== null &&
+        typeof existingFull.registrationIntake === "object" &&
+        !Array.isArray(existingFull.registrationIntake)
+          ? (existingFull.registrationIntake as Record<string, unknown>)
+          : {};
+      const finalizedAt = new Date();
+      const override = buildObligationOverrideIntakeValue({
+        obligationMinor: "0",
+        reason: "operator_waive_and_finalize",
+        setAt: finalizedAt.toISOString(),
+        setByUserId: input.finalizedByUserId,
+      });
+      const changed = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          status: "approved",
+          finalizationStatus: { not: "finalized" },
+          paymentStatus: { in: ["unpaid", "partial"] },
+        },
+        data: {
+          paymentStatus: "paid",
+          finalizationStatus: "finalized",
+          finalizedAt,
+          finalizedByUserId: input.finalizedByUserId,
+          registrationIntake: {
+            ...currentIntake,
+            [OBLIGATION_OVERRIDE_INTAKE_KEY]: override,
+            freeCollectionApplied: true,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      if (changed.count !== 1) {
+        const current = await tx.operatorRegistration.findFirst({
+          where: { id: input.bookingId, tenantId: input.tenantId },
+          select: BOOKING_LIST_SELECT,
+        });
+        if (current === null) {
+          throw new BookingNotFoundError();
+        }
+        if (current.status !== "approved") {
+          throw new BookingStatusConflictError(current.status as BookingStatus);
+        }
+        throw new BookingWaiveAndFinalizeNotAllowedError();
+      }
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: input.bookingId,
+        eventType: "registration.waived_finalized",
+        payload: { bookingId: input.bookingId, paymentStatus: existingProjection.paymentStatus },
+        domainEventId: `registration.waived_finalized:${input.bookingId}`,
+      });
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (row === null) {
+        throw new BookingNotFoundError();
+      }
+      const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
+        toBookingListRecord(row),
+      ]);
+      return enriched ?? toBookingListRecord(row);
     });
   }
 
@@ -911,6 +1272,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: {
+      readonly eventType: string;
+      readonly payload: Readonly<Record<string, unknown>>;
+      readonly correlationId?: string;
+    };
+    initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       await acquireTourCapacityLock(tx, input.tenantId, input.body.tourId);
@@ -938,7 +1305,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             guestEmail: input.body.guestEmail ?? null,
             guestPhone: input.body.guestPhone ?? null,
             partySize: input.body.partySize,
-            status: "pending",
+            status: input.initialStatus ?? "pending",
             paymentStatus: input.body.paymentStatus ?? "unpaid",
             departureAt: new Date(input.body.departureAt),
             submittedByUserId: input.submittedByUserId,
@@ -953,6 +1320,22 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           }
           throw error;
         });
+      if (input.outboxEvent !== undefined) {
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: row.id,
+          eventType: input.outboxEvent.eventType,
+          payload: {
+            ...input.outboxEvent.payload,
+            bookingId: row.id,
+          } as Prisma.InputJsonValue,
+          domainEventId: `${input.outboxEvent.eventType}:${row.id}`,
+          ...(input.outboxEvent.correlationId === undefined
+            ? {}
+            : { correlationId: input.outboxEvent.correlationId }),
+        });
+      }
       return toBookingRecord(row);
     });
   }
@@ -962,6 +1345,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     correlationId?: string;
+    registrationIntakePatch?: Readonly<Record<string, unknown>>;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
@@ -1002,13 +1386,30 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       }
 
       const approvedAt = new Date();
+      const currentIntake =
+        current.registrationIntake !== null &&
+        typeof current.registrationIntake === "object" &&
+        !Array.isArray(current.registrationIntake)
+          ? (current.registrationIntake as Record<string, unknown>)
+          : {};
       const transitioned = await tx.operatorRegistration.updateMany({
         where: {
           id: current.id,
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("approved")] },
         },
-        data: { status: "approved", approvedAt },
+        data: {
+          status: "approved",
+          approvedAt,
+          ...(input.registrationIntakePatch !== undefined
+            ? {
+                registrationIntake: {
+                  ...currentIntake,
+                  ...input.registrationIntakePatch,
+                } as Prisma.InputJsonValue,
+              }
+            : {}),
+        },
       });
       if (transitioned.count !== 1) {
         const again = await tx.operatorRegistration.findFirst({
@@ -1204,6 +1605,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         data: {
           status: "rejected",
           approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
           ...(rejectReason !== undefined ? { rejectReason } : {}),
         },
       });
@@ -1244,7 +1648,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("waitlisted")] },
         },
-        data: { status: "waitlisted", approvedAt: null },
+        data: {
+          status: "waitlisted",
+          approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
+        },
       });
       if (transitioned.count !== 1) {
         const again = await tx.operatorRegistration.findFirst({
@@ -1280,6 +1690,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
+    cancelSource?: string;
+    cancellationStatus?: string;
+    cancellationReasonCode?: string;
+    cancellationReasonNote?: string;
+    cancellationApprovedByUserId?: string;
+    cancellationCorrelationId?: string;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1307,7 +1723,37 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("cancelled")] },
         },
-        data: { status: "cancelled", approvedAt: null },
+        data: {
+          status: "cancelled",
+          approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
+          ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
+          ...(input.cancellationStatus !== undefined
+            ? { cancellationStatus: input.cancellationStatus }
+            : {}),
+          ...(input.cancellationReasonCode !== undefined
+            ? { cancellationReasonCode: input.cancellationReasonCode }
+            : {}),
+          ...(input.cancellationReasonNote !== undefined
+            ? { cancellationReasonNote: input.cancellationReasonNote }
+            : {}),
+          ...(input.cancellationApprovedByUserId !== undefined
+            ? { cancellationApprovedByUserId: input.cancellationApprovedByUserId }
+            : {}),
+          ...(input.cancellationCorrelationId !== undefined
+            ? { cancellationCorrelationId: input.cancellationCorrelationId }
+            : {}),
+          cancellationApprovedAt: new Date(),
+          cancellationSnapshot: {
+            previousStatus: current.status,
+            previousFinalizationStatus: current.finalizationStatus,
+            previousPaymentStatus: current.paymentStatus,
+            partySize: current.partySize,
+            finalizedAt: current.finalizedAt?.toISOString() ?? null,
+          },
+        },
       });
       if (transitioned.count !== 1) {
         const again = await tx.operatorRegistration.findFirst({
@@ -1332,8 +1778,20 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           status: "cancelled",
           cancelledAt: cancelledAt.toISOString(),
           previousStatus,
+          previousFinalizationStatus: current.finalizationStatus,
+          previousPaymentStatus: current.paymentStatus,
+          partySize: current.partySize,
+          ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
+          ...(input.cancellationReasonCode !== undefined
+            ? { reasonCode: input.cancellationReasonCode }
+            : {}),
+          ...(input.cancellationCorrelationId !== undefined
+            ? { correlationId: input.cancellationCorrelationId }
+            : {}),
         },
-        domainEventId: `registration.cancelled:${updated.id}:${cancelledAt.toISOString()}`,
+        correlationId: input.cancellationCorrelationId,
+        domainEventId:
+          input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
         createdAt: cancelledAt,
       });
       return toBookingRecord(updated);

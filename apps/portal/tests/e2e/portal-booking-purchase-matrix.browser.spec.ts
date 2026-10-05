@@ -17,6 +17,7 @@ import {
 import {
   attachMemberReceiptFile,
   fetchMemberRegistrationId,
+  minimalReceiptPngBuffer,
   submitMemberReceiptUpload,
 } from "./fixtures/portal-member-registration-api";
 import {
@@ -57,7 +58,10 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-01-awaiting-approval.png");
   });
 
-  test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({ page, browser }) => {
+  test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({
+    page,
+    browser,
+  }) => {
     const contact = uniqueContact("book-bqc-02");
     const guestName = "BOOK BQC 02 Approved";
     await completePortalCatalogRegistration(page, {
@@ -88,7 +92,10 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-02-upload-unlocked.png");
   });
 
-  test("BOOK-BQC-03 operator reject shows closed registration to member", async ({ page, browser }) => {
+  test("BOOK-BQC-03 operator reject shows closed registration to member", async ({
+    page,
+    browser,
+  }) => {
     const contact = uniqueContact("book-bqc-03");
     const guestName = "BOOK BQC 03 Rejected";
     await completePortalCatalogRegistration(page, {
@@ -117,7 +124,10 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-03-rejected-closed.png");
   });
 
-  test("BOOK-BQC-04 member receipt upload enters waiting-for-review state", async ({ page, browser }) => {
+  test("BOOK-BQC-04 member receipt upload enters waiting-for-review state", async ({
+    page,
+    browser,
+  }) => {
     const contact = uniqueContact("book-bqc-04");
     const guestName = "BOOK BQC 04 Receipt";
     await completePortalCatalogRegistration(page, {
@@ -178,14 +188,94 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       timeout: 60_000,
     });
 
+    await attachMemberReceiptFile(page);
+    await submitMemberReceiptUpload(page, registrationId);
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-upload]")).toHaveCount(0);
+
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
       timeout: 60_000,
     });
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-upload]")).toHaveCount(0);
+
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-05-persist-after-reload.png");
+  });
+
+  test("BOOK-BQC-06 rejected receipt can be corrected and resubmitted", async ({
+    page,
+  }) => {
+    const contact = uniqueContact("book-bqc-06");
+    const guestName = "BOOK BQC 06 Receipt Resubmit";
+    await completePortalCatalogRegistration(page, {
+      email: contact.email,
+      fullName: guestName,
+      phone: contact.phone,
+    });
+
+    const registrationId = await fetchMemberRegistrationId(page, {
+      tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
+    });
+
+    const apiBase = process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001";
+    const operatorHeaders = {
+      "x-tenant-id": "00000000-0000-4000-8000-000000000014",
+      "x-authenticated-tenant-id": "00000000-0000-4000-8000-000000000014",
+      "x-user-id": "00000000-0000-4000-8000-000000000101",
+      "x-actor-role": "owner",
+      "x-membership-status": "ACTIVE",
+      "x-workspace-id": "ws-operator-smoke",
+    };
+    const approved = await page.request.post(
+      `${apiBase}/bookings/${encodeURIComponent(registrationId)}/approve`,
+      { headers: operatorHeaders },
+    );
+    expect(approved.ok(), await approved.text()).toBeTruthy();
+
+    await openMemberRegistrationDetailById(page, registrationId);
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
       timeout: 60_000,
     });
+    await page.locator("#receipt-file").setInputFiles({
+      name: "bqc-receipt-first.png",
+      mimeType: "image/png",
+      buffer: minimalReceiptPngBuffer(),
+    });
+    const firstReceipt = await submitMemberReceiptUpload(page, registrationId);
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
+      timeout: 60_000,
+    });
+    expect(firstReceipt.id).toBeTruthy();
+    const rejected = await page.request.patch(
+      `${apiBase}/finance/receipts/${encodeURIComponent(firstReceipt.id!)}/review`,
+      {
+        headers: operatorHeaders,
+        data: { decision: "reject", reviewNote: "BQC rejected receipt correction path" },
+      },
+    );
+    expect(rejected.ok(), await rejected.text()).toBeTruthy();
 
-    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-05-persist-after-reload.png");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-receipt-rejected-hint]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
+    await page.locator("#receipt-file").setInputFiles({
+      name: "bqc-receipt-resubmitted.png",
+      mimeType: "image/png",
+      buffer: minimalReceiptPngBuffer(),
+    });
+    await submitMemberReceiptUpload(page, registrationId);
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-rejected-hint]")).toHaveCount(0);
+
+    await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-06-receipt-resubmit.png");
   });
 });

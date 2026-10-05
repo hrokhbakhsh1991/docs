@@ -18,6 +18,7 @@ export const FINANCE_OUTSTANDING_TEST_IDS = {
   tourRow: "finance-outstanding-tour-row",
   openPayments: "finance-outstanding-open-payments",
   agingUnavailable: "finance-outstanding-aging-unavailable",
+  loadMore: "finance-outstanding-load-more",
 } as const;
 
 export type OutstandingBalanceListItem = {

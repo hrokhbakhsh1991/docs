@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260909120000_marketing_page_contents";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20261005090000_booking_cancellation_workflow";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
@@ -25,8 +25,7 @@ export const REQUIRED_PRISMA_MIGRATION_NAMES = [
 ] as const;
 
 export const PRODUCTION_MIGRATION_HEAD_MISMATCH = "PRODUCTION_MIGRATION_HEAD_MISMATCH";
-export const PRODUCTION_MIGRATION_CHECKSUM_MISMATCH =
-  "PRODUCTION_MIGRATION_CHECKSUM_MISMATCH";
+export const PRODUCTION_MIGRATION_CHECKSUM_MISMATCH = "PRODUCTION_MIGRATION_CHECKSUM_MISMATCH";
 
 export type MigrationHeadRow = {
   readonly migration_name: string;
@@ -40,6 +39,20 @@ export type MigrationFileChecksum = {
   readonly migration_name: string;
   readonly checksum: string;
 };
+
+/**
+ * Prisma's finished_at is an execution timestamp, not the migration order.
+ * A restored database can therefore have a newer migration with an older
+ * finished_at value. Migration names are timestamp-prefixed and are the
+ * canonical ordering key.
+ */
+export function selectLatestMigrationName(
+  rows: readonly MigrationHeadRow[]
+): string | undefined {
+  return rows
+    .map((row) => row.migration_name)
+    .sort((left, right) => right.localeCompare(left))[0];
+}
 
 function resolveDefaultMigrationsDir(): string {
   return (
@@ -123,10 +136,10 @@ export async function assertProductionMigrationHead(
       SELECT migration_name
       FROM "_prisma_migrations"
       WHERE finished_at IS NOT NULL
-      ORDER BY finished_at DESC
+      ORDER BY migration_name DESC
       LIMIT 1
     `;
-    assertMigrationHeadMatches(rows[0]?.migration_name);
+    assertMigrationHeadMatches(selectLatestMigrationName(rows));
 
     const requiredRows = await probe.$queryRaw<MigrationChecksumRow[]>`
       SELECT migration_name, checksum

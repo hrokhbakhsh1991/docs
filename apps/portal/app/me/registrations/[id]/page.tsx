@@ -8,12 +8,14 @@ import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-i
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import {
   formatMemberRegistrationDeparture,
-  localizeMemberPaymentStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
+import { resolveMemberRegistrationDetailStatus } from "@/me/resolve-member-registration-detail-status";
+import { resolveMemberFinancialProjection } from "@/me/resolve-member-financial-projection";
+import { shouldShowMemberPaymentDue } from "@/me/should-show-member-payment-due";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
@@ -25,6 +27,7 @@ import { resolveIntakeSchema } from "@app-tour/workspace-sdk";
 import { MemberIntakeAmendForm } from "./member-intake-amend-form";
 import { MemberCancellationPanel } from "./member-cancellation-panel";
 import { MemberReceiptUploadForm } from "./member-receipt-upload-form";
+import { MemberRegistrationStatusCard } from "./member-registration-status-card";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -45,9 +48,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   }
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
-  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
+  const [statusLabel, departureLabel, receiptPanel] = await Promise.all([
     localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
-    localizeMemberPaymentStatus(row.paymentStatus),
     formatMemberRegistrationDeparture(row.departureAt),
     fetchMemberReceiptPanel(host, row.id),
   ]);
@@ -64,13 +66,21 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     (showIntakeAmend || lifecycleStatus === "approved") &&
     typeof row.tourId === "string" &&
     row.tourId.trim().length > 0;
-  const tour = shouldLoadTour
-    ? await fetchCatalogTour({
+  let tour = null;
+  if (shouldLoadTour) {
+    try {
+      tour = await fetchCatalogTour({
         tenantId: bootstrap.tenantId,
         pluginId: bootstrap.pluginId,
         tourId: row.tourId,
-      })
-    : null;
+      });
+    } catch {
+      // Catalog detail is optional on a member registration detail page. Keep
+      // the authoritative registration/payment state renderable when a legacy
+      // or unpublished tour cannot be read.
+      tour = null;
+    }
+  }
 
   const tripsListHref = resolveMemberPortalTripsListPath(bootstrap.pluginId);
   const tourHref =
@@ -106,7 +116,18 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     typeof row.guestLabel === "string" && row.guestLabel.trim().length > 0
       ? row.guestLabel.trim()
       : null;
-
+  const financialProjection = resolveMemberFinancialProjection({
+    ...row,
+    status: lifecycleStatus,
+  });
+  const detailStatus = resolveMemberRegistrationDetailStatus({
+    lifecycleStatus,
+    paymentCollection: financialProjection.paymentCollection,
+    paymentStatus: financialProjection.paymentStatus,
+    financialDisplayState: financialProjection.financialDisplayState,
+    finalizationStatus: row.finalizationStatus,
+    receiptStatus: receiptPanel.status,
+  });
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main
@@ -137,13 +158,15 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
               </p>
             ) : null}
           </div>
+          <MemberRegistrationStatusCard
+            lifecycleStatus={lifecycleStatus}
+            paymentStatus={financialProjection.paymentStatus}
+            statusLabel={statusLabel}
+            initialCopy={detailStatus}
+            initialReceiptStatus={receiptPanel.status}
+            finalizationStatus={row.finalizationStatus}
+          />
           <div data-portal-member-detail-kpis>
-            <div data-portal-member-detail-kpi data-kpi="status">
-              <p data-portal-member-detail-kpi-label>{t("statusLabel")}</p>
-              <p data-portal-member-registration-status>
-                {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
-              </p>
-            </div>
             <div data-portal-member-detail-kpi data-kpi="departure">
               <p data-portal-member-detail-kpi-label>{t("departureLabel")}</p>
               <p data-portal-member-registration-departure>
@@ -165,11 +188,17 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 </p>
               </div>
             ) : null}
-            {typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0 ? (
+            {shouldShowMemberPaymentDue({
+              registrationStatus: lifecycleStatus,
+              paymentCollection: financialProjection.paymentCollection,
+              paymentStatus: financialProjection.paymentStatus,
+              financialDisplayState: financialProjection.financialDisplayState,
+              paymentDueAt: financialProjection.paymentDueAt,
+            }) ? (
               <div data-portal-member-detail-kpi data-kpi="payment-due">
                 <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
                 <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
-                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt)}
+                  {formatPaymentDueAtForMemberLocale(financialProjection.paymentDueAt ?? "")}
                 </p>
               </div>
             ) : null}
@@ -199,10 +228,15 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
-        <MemberCancellationPanel registrationId={row.id} registrationStatus={lifecycleStatus} />
+        <MemberCancellationPanel
+          registrationId={row.id}
+          registrationStatus={lifecycleStatus}
+          paymentCollection={financialProjection.paymentCollection}
+        />
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
+          paymentStatus={financialProjection.paymentStatus}
           initialPanel={receiptPanel}
           tripsListHref={tripsListHref}
           tourHref={tourHref}
@@ -218,7 +252,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
-          paymentDueAt={row.paymentDueAt ?? null}
+          paymentCollection={financialProjection.paymentCollection}
+          paymentDueAt={financialProjection.paymentDueAt ?? null}
           cancelSource={row.cancelSource ?? null}
         />
       </main>

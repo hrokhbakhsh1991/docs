@@ -1,5 +1,20 @@
 import { createClientSafeUuid } from "@app-tour/draft-engine";
+import { getWorkspaceItineraryCapabilities } from "@app-tour/workspace-sdk";
 import { z } from "zod";
+
+const denaliItineraryCapabilities = getWorkspaceItineraryCapabilities("denali");
+
+if (denaliItineraryCapabilities == null) {
+  throw new Error("DENALI_ITINERARY_CAPABILITIES_MISSING");
+}
+
+/** Single manifest-backed operational ceiling for generated and persisted itinerary rows. */
+export const DENALI_MAX_ITINERARY_DAY_COUNT = denaliItineraryCapabilities.maxDayCount;
+
+export function clampDenaliItineraryDayCount(dayCount: number): number {
+  const normalized = Number.isFinite(dayCount) ? Math.floor(dayCount) : 1;
+  return Math.max(1, Math.min(normalized, DENALI_MAX_ITINERARY_DAY_COUNT));
+}
 
 export const DENALI_ITINERARY_SEGMENT_KINDS = [
   "activity",
@@ -87,7 +102,7 @@ function scaffoldItineraryDay(dayNumber: number): DenaliItineraryDay {
 }
 
 export function buildDefaultItineraryDays(dayCount: number): DenaliItineraryDay[] {
-  const count = Math.max(1, Math.min(Math.floor(dayCount), 60));
+  const count = clampDenaliItineraryDayCount(dayCount);
   return Array.from({ length: count }, (_, index) => ({
     dayNumber: index + 1,
     title: "",
@@ -302,7 +317,7 @@ export function syncDenaliItineraryRows(
   itinerary: readonly unknown[] | undefined,
   dayCount: number
 ): DenaliItineraryDay[] {
-  const safeCount = Math.max(1, Math.min(Math.floor(dayCount), 60));
+  const safeCount = clampDenaliItineraryDayCount(dayCount);
   const parsed = parseDenaliItineraryDays(itinerary ?? []);
   const byDay = new Map(parsed.map((row) => [row.dayNumber, row] as const));
   const next: DenaliItineraryDay[] = [];
@@ -312,7 +327,8 @@ export function syncDenaliItineraryRows(
       next.push({
         ...prev,
         dayNumber,
-        segments: prev.segments.length > 0 ? [...prev.segments] : [createEmptyDenaliItinerarySegment()],
+        segments:
+          prev.segments.length > 0 ? [...prev.segments] : [createEmptyDenaliItinerarySegment()],
       });
       continue;
     }
@@ -330,7 +346,11 @@ export function dayHasRequiredItineraryContent(day: DenaliItineraryDay): boolean
 
 export function collectDenaliItineraryDayValidationIssues(
   days: readonly DenaliItineraryDay[]
-): readonly { readonly dayIndex: number; readonly segmentIndex?: number; readonly message: string }[] {
+): readonly {
+  readonly dayIndex: number;
+  readonly segmentIndex?: number;
+  readonly message: string;
+}[] {
   const issues: { dayIndex: number; segmentIndex?: number; message: string }[] = [];
   for (let dayIndex = 0; dayIndex < days.length; dayIndex += 1) {
     const day = days[dayIndex];

@@ -17,6 +17,7 @@ import {
   createPublicGuestBooking,
   getOrCreateBookingRuntimeForWorkspaceType,
   resetBookingsServiceCompositionForTests,
+  waitlistBooking,
 } from "./create-bookings-service.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";
 
@@ -42,11 +43,13 @@ function publicAuth(tenantId: string): BookingActorContext {
   };
 }
 
-function baseBody(over: Partial<{
-  guestLabel: string;
-  partySize: number;
-  tourCapacityMax: number;
-}> = {}) {
+function baseBody(
+  over: Partial<{
+    guestLabel: string;
+    partySize: number;
+    tourCapacityMax: number;
+  }> = {}
+) {
   const tourCapacityMax = over.tourCapacityMax ?? 10;
   return {
     tourId: TOUR_ID,
@@ -75,22 +78,26 @@ describe("booking capacity ownership (single decision point)", () => {
     resetBookingsServiceCompositionForTests();
   });
 
-  it("denali over-capacity create is rejected by Booking capacityPolicy", async () => {
+  it("public over-capacity create is rejected, while operator create defers the gate to approval", async () => {
     await assert.rejects(
       () =>
         createPublicGuestBooking(
           publicAuth(TENANT_DENALI),
           baseBody({ partySize: 11, tourCapacityMax: 10 })
         ),
-      (err: unknown) =>
-        err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
+      (err: unknown) => err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
     );
+    const operatorCreated = await createBooking(
+      opsAuth(TENANT_DENALI),
+      baseBody({ partySize: 11, tourCapacityMax: 10 })
+    );
+    assert.equal(operatorCreated.status, "pending");
     await assert.rejects(
-      () =>
-        createBooking(opsAuth(TENANT_DENALI), baseBody({ partySize: 11, tourCapacityMax: 10 })),
-      (err: unknown) =>
-        err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
+      () => approveBooking(opsAuth(TENANT_DENALI), operatorCreated.id),
+      /BOOKING_CAPACITY_REJECTED/
     );
+    const waitlisted = await waitlistBooking(opsAuth(TENANT_DENALI), operatorCreated.id);
+    assert.equal(waitlisted.status, "waitlisted");
   });
 
   it("booking-ws2 over-capacity create is rejected by Booking capacityPolicy", async () => {
@@ -100,8 +107,7 @@ describe("booking capacity ownership (single decision point)", () => {
           publicAuth(TENANT_WS2),
           baseBody({ partySize: 11, tourCapacityMax: 10 })
         ),
-      (err: unknown) =>
-        err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
+      (err: unknown) => err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
     );
   });
 
@@ -120,8 +126,7 @@ describe("booking capacity ownership (single decision point)", () => {
 
     await assert.rejects(
       () => approveBooking(opsAuth(TENANT_DENALI), second.id),
-      (err: unknown) =>
-        err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
+      (err: unknown) => err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
     );
   });
 
@@ -141,18 +146,26 @@ describe("booking capacity ownership (single decision point)", () => {
 
     await assert.rejects(
       () => createPublicGuestBooking(publicAuth(TENANT_WS2), caseA),
-      (err: unknown) =>
-        err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
+      (err: unknown) => err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
     );
 
-    // Absolute over-capacity still rejects on both after marker path.
+    // Operator over-capacity records are created first; approval remains the gate.
+    const denaliPending = await createBooking(
+      opsAuth(TENANT_DENALI),
+      baseBody({ partySize: 12, tourCapacityMax: 10 })
+    );
+    const ws2Pending = await createBooking(
+      opsAuth(TENANT_WS2),
+      baseBody({ partySize: 12, tourCapacityMax: 10 })
+    );
+    assert.equal(denaliPending.status, "pending");
+    assert.equal(ws2Pending.status, "pending");
     await assert.rejects(
-      () =>
-        createBooking(opsAuth(TENANT_DENALI), baseBody({ partySize: 12, tourCapacityMax: 10 })),
+      () => approveBooking(opsAuth(TENANT_DENALI), denaliPending.id),
       /BOOKING_CAPACITY_REJECTED/
     );
     await assert.rejects(
-      () => createBooking(opsAuth(TENANT_WS2), baseBody({ partySize: 12, tourCapacityMax: 10 })),
+      () => approveBooking(opsAuth(TENANT_WS2), ws2Pending.id),
       /BOOKING_CAPACITY_REJECTED/
     );
   });

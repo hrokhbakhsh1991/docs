@@ -26,6 +26,26 @@ log() { printf '[install-artifact] %s\n' "$*"; }
   exit 1
 }
 
+# Existing staging env files may predate the integration delivery feature.
+# Preserve explicit operator values, but make the required delivery path
+# self-healing on every artifact deployment.
+ensure_api_env_default() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_DIR/api.env" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$ENV_DIR/api.env"
+  log "added missing ${key} to ${ENV_DIR}/api.env"
+}
+
+[[ -f "$ENV_DIR/api.env" ]] || {
+  echo "install-staging-artifact: missing $ENV_DIR/api.env" >&2
+  exit 1
+}
+ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
+ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=ensure-staging-artifact-prerequisites.sh
 source "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh"

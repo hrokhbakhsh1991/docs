@@ -122,6 +122,10 @@ async function executeMemberCancel(
     tenantId: auth.tenantId,
     outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
     cancelSource: "member",
+    cancellationStatus: Date.parse(booking.departureAt) <= Date.now() ? "late_correction" : "applied",
+    cancellationReasonCode: "member_withdrawal",
+    cancellationApprovedByUserId: auth.userId,
+    cancellationCorrelationId: `registration.cancelled:${booking.id}`,
   });
 
   await runPostCancelSideEffects({

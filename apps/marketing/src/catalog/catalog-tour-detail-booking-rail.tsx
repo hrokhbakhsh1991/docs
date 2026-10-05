@@ -3,12 +3,14 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { CatalogCommercialPricingBreakdown } from "./catalog-commercial-pricing";
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
+import { resolveCatalogFreeCollectionLabel } from "./resolve-catalog-free-label";
 
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
@@ -16,6 +18,7 @@ export type CatalogTourDetailBookingRailProps = {
   readonly registration: CatalogTourRegistrationState;
   readonly cta: MarketingTourDetailCtaModel;
   readonly pricingPreview?: MarketingCommercialPricingPreview | null;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 };
 
 export async function CatalogTourDetailBookingRail({
@@ -24,8 +27,9 @@ export async function CatalogTourDetailBookingRail({
   registration,
   cta,
   pricingPreview = null,
+  pricingPreviewStatus = "anonymous",
 }: CatalogTourDetailBookingRailProps) {
-  if (cta.primaryHref == null && !registration.isSoldOut) {
+  if (cta.primaryHref == null && registration.state !== "past" && registration.state !== "closed") {
     return null;
   }
 
@@ -43,6 +47,8 @@ export async function CatalogTourDetailBookingRail({
         priceDisplayPolicy
       )
     : null;
+  const showCommercialPricing = shouldShowCatalogPrice(tour);
+  const freeCollectionLabel = resolveCatalogFreeCollectionLabel(t, locale);
 
   const capacityLine =
     tour.spotsRemaining != null
@@ -59,12 +65,17 @@ export async function CatalogTourDetailBookingRail({
         : {})}
     >
       <CatalogCommercialPricingBreakdown
-        preview={pricingPreview}
+        preview={showCommercialPricing ? pricingPreview : null}
         canonicalPrice={priceLine}
+        isFreeCollection={tour.paymentCollection === "free"}
         dateLocale={dateLocale}
         priceDisplayPolicy={priceDisplayPolicy}
         t={t}
+        pricingPreviewStatus={showCommercialPricing ? pricingPreviewStatus : "anonymous"}
       />
+      {tour.paymentCollection === "free" ? (
+        <p data-marketing-catalog-detail-free>{freeCollectionLabel}</p>
+      ) : null}
       {capacityLine != null ? (
         <p data-marketing-catalog-detail-rail-capacity>{capacityLine}</p>
       ) : null}

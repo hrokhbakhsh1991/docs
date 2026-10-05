@@ -9,6 +9,9 @@ export type UsersDirectoryListFilters = {
   readonly status?: UsersListQuery["status"];
 };
 
+export const USER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function buildUserTenantDirectoryWhere(
   tenantId: string,
   filters: UsersDirectoryListFilters
@@ -35,6 +38,7 @@ export function buildUserTenantDirectoryWhere(
       }
     }
     where.OR = [
+      ...(USER_ID_PATTERN.test(search) ? [{ user: { id: search } }] : []),
       ...[...phoneNeedles].map((needle) => ({
         user: { mobile: { contains: needle, mode: "insensitive" as const } },
       })),
@@ -45,6 +49,7 @@ export function buildUserTenantDirectoryWhere(
           mode: "insensitive",
         },
       },
+      { membershipCode: { contains: search, mode: "insensitive" } },
     ];
   }
 

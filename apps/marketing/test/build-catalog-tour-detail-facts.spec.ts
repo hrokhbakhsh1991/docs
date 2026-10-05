@@ -10,7 +10,7 @@ const baseTour: MarketingCatalogCard = {
   title: "Test",
   shortDescription: null,
   category: "mountain_single_day",
-  departureAt: "2026-08-01T06:00:00.000Z",
+  departureAt: "2031-08-01T06:00:00.000Z",
   endAt: null,
   priceAmount: 2_500_000,
   priceCurrency: "IRR",
@@ -24,16 +24,26 @@ describe("resolve-catalog-tour-registration-state", () => {
   it("PR-D-REG-01 marks sold out when spotsRemaining is zero", () => {
     const state = resolveCatalogTourRegistrationState(
       { ...baseTour, spotsRemaining: 0 },
-      "https://portal.example/register",
+      "https://portal.example/register"
     );
     assert.equal(state.isSoldOut, true);
+    assert.equal(state.state, "closed");
     assert.equal(state.canRegister, false);
+  });
+
+  it("PR-D-REG-01b only infers waitlist when the policy is explicit", () => {
+    const state = resolveCatalogTourRegistrationState(
+      { ...baseTour, spotsRemaining: 0, waitlistEnabled: true },
+      "https://portal.example/register"
+    );
+    assert.equal(state.state, "waitlist");
+    assert.equal(state.canJoinWaitlist, true);
   });
 
   it("PR-D-REG-02 allows register when URL present and seats remain", () => {
     const state = resolveCatalogTourRegistrationState(
       { ...baseTour, spotsRemaining: 3 },
-      "https://portal.example/register",
+      "https://portal.example/register"
     );
     assert.equal(state.canRegister, true);
   });
@@ -43,6 +53,26 @@ describe("resolve-catalog-tour-registration-state", () => {
     const state = resolveCatalogTourRegistrationState({ ...baseTour, spotsRemaining: 5 }, url);
     assert.equal(state.registrationUrl, url);
     assert.equal(state.canRegister, true);
+  });
+
+  it("PR-D-REG-04 routes an explicitly full tour to waitlist", () => {
+    const state = resolveCatalogTourRegistrationState(
+      { ...baseTour, spotsRemaining: 0, registrationState: "waitlist" },
+      "https://portal.example/register"
+    );
+    assert.equal(state.state, "waitlist");
+    assert.equal(state.canRegister, false);
+    assert.equal(state.canJoinWaitlist, true);
+  });
+
+  it("PR-D-REG-05 keeps a past published tour visible but non-actionable", () => {
+    const state = resolveCatalogTourRegistrationState(
+      { ...baseTour, registrationState: "past" },
+      "https://portal.example/register"
+    );
+    assert.equal(state.state, "past");
+    assert.equal(state.canRegister, false);
+    assert.equal(state.canJoinWaitlist, false);
   });
 });
 
@@ -56,6 +86,8 @@ describe("build-catalog-tour-detail-facts", () => {
 
   const labels = {
     price: "Price",
+    transport: "Transport",
+    transportCost: "Transport cost",
     capacity: "Capacity",
     dates: "Dates",
     difficulty: "Difficulty",
@@ -69,6 +101,8 @@ describe("build-catalog-tour-detail-facts", () => {
       sections,
       factLabels: labels,
       priceValue: "IRR 2,500,000",
+      transportValue: null,
+      transportCostValue: null,
       capacityValue: "12 spots",
       datesValue: "Aug 1",
       difficultyValue: "6 of 10",
@@ -79,7 +113,7 @@ describe("build-catalog-tour-detail-facts", () => {
     });
     assert.deepEqual(
       facts.map((fact) => fact.id),
-      ["price", "capacity", "difficulty", "fitness"],
+      ["price", "capacity", "difficulty", "fitness"]
     );
   });
 
@@ -89,6 +123,8 @@ describe("build-catalog-tour-detail-facts", () => {
       sections,
       factLabels: labels,
       priceValue: "IRR 2,500,000",
+      transportValue: null,
+      transportCostValue: null,
       capacityValue: "12 spots",
       datesValue: "Aug 1",
       difficultyValue: "6 of 10",
@@ -98,7 +134,7 @@ describe("build-catalog-tour-detail-facts", () => {
     });
     assert.deepEqual(
       facts.map((fact) => fact.id),
-      ["price", "capacity", "dates", "difficulty", "fitness", "category"],
+      ["price", "capacity", "dates", "difficulty", "fitness", "category"]
     );
   });
 
@@ -108,6 +144,8 @@ describe("build-catalog-tour-detail-facts", () => {
       sections,
       factLabels: labels,
       priceValue: "IRR 2,500,000",
+      transportValue: null,
+      transportCostValue: null,
       capacityValue: "0 spots",
       datesValue: "Aug 1",
       difficultyValue: null,
@@ -116,5 +154,28 @@ describe("build-catalog-tour-detail-facts", () => {
       isSoldOut: true,
     });
     assert.equal(facts.find((fact) => fact.id === "capacity")?.soldOut, true);
+  });
+
+  it("PR-D-FACTS-03 puts transport and its cost beside the primary facts", () => {
+    const facts = buildCatalogTourDetailFacts({
+      tour: { ...baseTour, transport: { mode: "bus" } },
+      sections,
+      factLabels: labels,
+      priceValue: "IRR 2,500,000",
+      transportValue: "Bus",
+      transportCostValue: "IRR 500,000",
+      capacityValue: "12 spots",
+      datesValue: "Aug 1",
+      difficultyValue: null,
+      fitnessValue: null,
+      categoryValue: null,
+      isSoldOut: false,
+      omitMetaLineDuplicates: true,
+    });
+
+    assert.deepEqual(
+      facts.map((fact) => fact.id),
+      ["price", "transport", "transport-cost", "capacity"]
+    );
   });
 });

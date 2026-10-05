@@ -8,6 +8,7 @@ export type WorkspaceItineraryCapabilities = {
   readonly supported: true;
   readonly wizardTourField: boolean;
   readonly catalogDetailSection: boolean;
+  readonly maxDayCount: number;
 };
 
 export const WORKSPACE_ITINERARY_CAPABILITIES = {
@@ -15,6 +16,7 @@ export const WORKSPACE_ITINERARY_CAPABILITIES = {
     supported: true as const,
     wizardTourField: true as const,
     catalogDetailSection: true as const,
+    maxDayCount: 60 as const,
   },
 } as const satisfies Record<string, WorkspaceItineraryCapabilities>;
 

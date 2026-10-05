@@ -2,11 +2,12 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, MoreHorizontal } from "lucide-react";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { scrollHorizontalItemIntoView } from "@/components/ui/horizontal-scroll";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,10 +28,14 @@ import {
   buildTourWorkspaceBookingsHref,
   buildTourWorkspaceFinanceHref,
   buildTourWorkspaceOpsCountsQuery,
+  buildTourWorkspaceRosterCountsHref,
   resolveTourWorkspaceOpsCountsFromListPayloads,
   type TourWorkspaceOpsCounts,
 } from "@/features/tours/tour-workspace-header-logic";
-import { listTourWorkspaceSubnavTabs } from "@/features/tours/tour-workspace-logic";
+import {
+  hrefForWorkspaceTab,
+  listTourWorkspaceSubnavTabs,
+} from "@/features/tours/tour-workspace-logic";
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { fetchTourDetailCached, readCachedTourDetail } from "@/features/tours/tour-route-cache";
 import {
@@ -103,6 +108,7 @@ function TourWorkspaceLayoutInner({
   const tErrors = useTranslations("tours.workspace.errors");
   const tNav = useTranslations("tours.nav");
   const { reloadNonce, navigateWorkspaceTab, activeTab } = useTourWorkspaceChrome();
+  const subnavRef = useRef<HTMLElement>(null);
   const canManage = isAdminOrOwnerRole(session.role);
   const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(() =>
     readCachedTourDetail(tourId)
@@ -140,24 +146,40 @@ function TourWorkspaceLayoutInner({
     let cancelled = false;
     const loadOps = async () => {
       try {
-        const [pendingRes, waitlistedRes, approvedRes] = await Promise.all([
-          fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "pending")}`, {
-            cache: "no-store",
-          }),
-          fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "waitlisted")}`, {
-            cache: "no-store",
-          }),
-          fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "approved")}`, {
-            cache: "no-store",
-          }),
-        ]);
-        if (!pendingRes.ok || !waitlistedRes.ok || !approvedRes.ok) {
+        const [pendingRes, waitlistedRes, approvedRes, paymentDueRes, operationalRes, finalRes] =
+          await Promise.all([
+            fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "pending")}`, {
+              cache: "no-store",
+            }),
+            fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "waitlisted")}`, {
+              cache: "no-store",
+            }),
+            fetch(`/api/bookings?${buildTourWorkspaceOpsCountsQuery(tourId, "approved")}`, {
+              cache: "no-store",
+            }),
+            fetch(buildTourWorkspaceRosterCountsHref(tourId, "unpaid"), { cache: "no-store" }),
+            fetch(buildTourWorkspaceRosterCountsHref(tourId, "operational"), {
+              cache: "no-store",
+            }),
+            fetch(buildTourWorkspaceRosterCountsHref(tourId, "final"), { cache: "no-store" }),
+          ]);
+        if (
+          !pendingRes.ok ||
+          !waitlistedRes.ok ||
+          !approvedRes.ok ||
+          !paymentDueRes.ok ||
+          !operationalRes.ok ||
+          !finalRes.ok
+        ) {
           throw new Error("TOUR_WORKSPACE_OPS_COUNTS_FAILED");
         }
         const resolved = resolveTourWorkspaceOpsCountsFromListPayloads({
           pendingPayload: await pendingRes.json(),
           waitlistedPayload: await waitlistedRes.json(),
           approvedPayload: await approvedRes.json(),
+          paymentDuePayload: await paymentDueRes.json(),
+          operationalPayload: await operationalRes.json(),
+          finalPayload: await finalRes.json(),
         });
         if (!cancelled) {
           if (!resolved.ok) {
@@ -190,6 +212,15 @@ function TourWorkspaceLayoutInner({
   const visibleActiveTab = activeTab === "finance" && !financeEnabled ? "registrations" : activeTab;
 
   useEffect(() => {
+    const activeButton = subnavRef.current?.querySelector<HTMLButtonElement>(
+      `#tour-workspace-tab-${visibleActiveTab}`
+    );
+    if (activeButton !== null && activeButton !== undefined) {
+      scrollHorizontalItemIntoView(activeButton, { behavior: "auto" });
+    }
+  }, [visibleActiveTab]);
+
+  useEffect(() => {
     if (activeTab === "finance" && !financeEnabled && navigateWorkspaceTab !== null) {
       navigateWorkspaceTab("registrations");
     }
@@ -200,7 +231,9 @@ function TourWorkspaceLayoutInner({
     if (opsCounts !== null) {
       map.registrations = opsCounts.pending;
       map.waitlist = opsCounts.waitlisted;
-      map.transport = opsCounts.approved;
+      // The transport tab is the final attendance roster by default. Approved
+      // but non-final rows remain reachable through its explicit filter.
+      map.transport = opsCounts.final;
     }
     return map;
   }, [opsCounts, subnavTabs]);
@@ -335,8 +368,53 @@ function TourWorkspaceLayoutInner({
         </p>
       ) : null}
 
+      {opsCounts !== null ? (
+        <div
+          className="grid gap-2 sm:grid-cols-3"
+          data-testid="operator-tour-workspace-operations-summary"
+          aria-label={t("operationsSummary.ariaLabel")}
+        >
+          <TourInternalLink
+            href={hrefForWorkspaceTab(tourId, "registrations")}
+            className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+          >
+            <span className="block text-xs text-muted-foreground">
+              {t("operationsSummary.pending")}
+            </span>
+            <span className="text-lg font-semibold">
+              {formatLocalizedNumber(opsCounts.pending, locale)}
+            </span>
+          </TourInternalLink>
+          {financeEnabled ? (
+            <TourInternalLink
+              href={hrefForWorkspaceTab(tourId, "finance")}
+              className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+            >
+              <span className="block text-xs text-muted-foreground">
+                {t("operationsSummary.paymentDue")}
+              </span>
+              <span className="text-lg font-semibold">
+                {formatLocalizedNumber(opsCounts.paymentDue, locale)}
+              </span>
+            </TourInternalLink>
+          ) : null}
+          <TourInternalLink
+            href={hrefForWorkspaceTab(tourId, "transport")}
+            className="rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/60"
+          >
+            <span className="block text-xs text-muted-foreground">
+              {t("operationsSummary.final")}
+            </span>
+            <span className="text-lg font-semibold">
+              {formatLocalizedNumber(opsCounts.final, locale)}
+            </span>
+          </TourInternalLink>
+        </div>
+      ) : null}
+
       <nav
-        className="flex flex-wrap gap-2 border-b pb-2"
+        ref={subnavRef}
+        className="flex min-w-0 gap-2 overflow-x-auto border-b pb-2"
         role="tablist"
         aria-orientation="horizontal"
         aria-label={t("subnavAria")}
@@ -359,7 +437,7 @@ function TourWorkspaceLayoutInner({
                 handleWorkspaceTabKeyDown(event, subnavTabs, tab, navigateWorkspaceTab)
               }
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
                 isActive
                   ? "bg-primary font-medium text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted"
@@ -384,6 +462,13 @@ function TourWorkspaceLayoutInner({
           );
         })}
       </nav>
+
+      <p
+        className="sm:hidden text-xs text-muted-foreground"
+        data-testid="tour-workspace-subnav-scroll-hint"
+      >
+        {t("subnavScrollHint")}
+      </p>
 
       <p className="text-xs text-muted-foreground" data-testid={TOUR_WORKSPACE_TEST_IDS.tabHint}>
         {t(`tabsHint.${visibleActiveTab}`)}

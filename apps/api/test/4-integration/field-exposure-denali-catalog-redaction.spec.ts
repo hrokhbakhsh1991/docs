@@ -42,8 +42,8 @@ function buildPublishedDenaliCanonical(title: string): {
   const data: Record<string, unknown> = {
     title,
     publishStatus: "active",
-    startDateTime: "2026-07-01T08:00:00.000Z",
-    endDateTime: "2026-07-03T18:00:00.000Z",
+    startDateTime: "2031-07-01T08:00:00.000Z",
+    endDateTime: "2031-07-03T18:00:00.000Z",
     category: "mountain_multi",
     capacityMax: 12,
     program: { shortDescription: "Catalog redaction integration tour" },
@@ -176,8 +176,8 @@ describe(
       assert.equal(response.status, 200, JSON.stringify(response.body));
       const data = response.body.data as Record<string, unknown>;
       assert.equal(data.title, "Exposure Catalog Redaction Tour");
-      assert.equal(data.departureAt, "2026-07-01T08:00:00.000Z");
-      assert.equal(data.endAt, "2026-07-03T18:00:00.000Z");
+      assert.equal(data.departureAt, "2031-07-01T08:00:00.000Z");
+      assert.equal(data.endAt, "2031-07-03T18:00:00.000Z");
     });
 
     it("redacts hidden catalog fields after public_details surface override", async () => {

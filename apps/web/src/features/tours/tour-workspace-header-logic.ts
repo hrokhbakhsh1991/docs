@@ -11,6 +11,12 @@ export type TourWorkspaceOpsCounts = {
   readonly pending: number;
   readonly waitlisted: number;
   readonly approved: number;
+  /** Approved registrations that still have an outstanding balance. */
+  readonly paymentDue: number;
+  /** Rows rendered by the default Transport operational roster. */
+  readonly operational: number;
+  /** Operational roster rows that are financially settled and truly final. */
+  readonly final: number;
 };
 
 export type TourWorkspaceOpsCountsLoadResult =
@@ -39,13 +45,27 @@ export function buildTourWorkspaceOpsCountsQuery(tourId: string, status: string)
   return params.toString();
 }
 
-/** H-02 — approved KPI navigates to transport (day-of roster). */
-export function hrefForWorkspaceOpsKpi(
+export function buildTourWorkspaceRosterCountsHref(
   tourId: string,
-  kpi: keyof TourWorkspaceOpsCounts
+  filter: "unpaid" | "operational" | "final"
 ): string {
+  const params = new URLSearchParams();
+  params.set("view", "ops");
+  params.set("filter", filter);
+  params.set("countOnly", "1");
+  return `/api/tours/${encodeURIComponent(tourId.trim())}/operational-roster?${params.toString()}`;
+}
+
+/** H-02 — approved KPI navigates to transport (day-of roster). */
+export function hrefForWorkspaceOpsKpi(tourId: string, kpi: keyof TourWorkspaceOpsCounts): string {
   const tab: TourWorkspaceSubnavTab =
-    kpi === "waitlisted" ? "waitlist" : kpi === "approved" ? "transport" : "registrations";
+    kpi === "waitlisted"
+      ? "waitlist"
+      : kpi === "approved" || kpi === "final"
+        ? "transport"
+        : kpi === "paymentDue"
+          ? "finance"
+          : "registrations";
   return hrefForWorkspaceTab(tourId, tab);
 }
 
@@ -93,15 +113,30 @@ export function resolveTourWorkspaceOpsCountsFromListPayloads(input: {
   readonly pendingPayload: unknown;
   readonly waitlistedPayload: unknown;
   readonly approvedPayload: unknown;
+  readonly paymentDuePayload?: unknown;
+  readonly operationalPayload?: unknown;
+  readonly finalPayload?: unknown;
 }): TourWorkspaceOpsCountsLoadResult {
   const pending = readBookingsListTotal(input.pendingPayload);
   const waitlisted = readBookingsListTotal(input.waitlistedPayload);
   const approved = readBookingsListTotal(input.approvedPayload);
-  if (pending === null || waitlisted === null || approved === null) {
+  const paymentDue =
+    input.paymentDuePayload === undefined ? 0 : readBookingsListTotal(input.paymentDuePayload);
+  const operational =
+    input.operationalPayload === undefined ? 0 : readBookingsListTotal(input.operationalPayload);
+  const final = input.finalPayload === undefined ? 0 : readBookingsListTotal(input.finalPayload);
+  if (
+    pending === null ||
+    waitlisted === null ||
+    approved === null ||
+    paymentDue === null ||
+    operational === null ||
+    final === null
+  ) {
     return { ok: false, errorCode: "TOUR_WORKSPACE_OPS_COUNTS_INVALID" };
   }
   return {
     ok: true,
-    counts: { pending, waitlisted, approved },
+    counts: { pending, waitlisted, approved, paymentDue, operational, final },
   };
 }

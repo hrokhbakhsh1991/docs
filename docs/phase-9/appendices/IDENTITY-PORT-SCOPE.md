@@ -96,6 +96,7 @@ Legacy DB values `leader` → normalize to `admin` at hydrate boundary (DEC-P9-0
 | `gender`      | ✓   | ✓     | `UserTenant.membership_metadata.gender` — optional · `male` \| `female` \| `other` · PATCH `null` clears |
 | `avatarUrl`   | ✓   | —     | signed read from `membership_metadata.avatar.storageKey` (MinIO)                                         |
 | `workspaceId` | ✓   | —     | optional membership field                                                                                |
+| `membershipCode` | ✓   | ✓     | immutable, backend-generated workspace member code; format `<WORKSPACE>-<6 digits>` (for example `DENALI-000001`) |
 
 **Avatar metadata shape** (`membership_metadata.avatar`):
 

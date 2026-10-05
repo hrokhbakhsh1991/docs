@@ -270,6 +270,26 @@ describe("commercial-quote-member-discount-e2e.spec.ts — CQ-2D", () => {
     assert.equal(await quoteRepo.getActive(TENANT_A, registrationId), null);
   });
 
+  it("CQ-E2E-01e: 50% member discount leaves dong add-on undiscounted", async () => {
+    const registrationId = randomUUID();
+    const { finance, quoteRepo } = createHarness({
+      tourCanonical: tourCanonicalGate(true),
+      membershipDiscount: createMembershipDiscountByTenant({ [TENANT_A]: 50 }),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "1344444",
+        grossObligationMinor: "1344444",
+        discountableBaseMinor: "1000000",
+        source: "tour_canonical",
+      },
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+
+    assert.equal(invoice.invoiceTotalMinor, "844444");
+    assert.equal(await quoteRepo.getActive(TENANT_A, registrationId), null);
+  });
+
   it("CQ-E2E-02: tour gate false ignores membership discount", async () => {
     const registrationId = randomUUID();
     const { finance, quoteRepo } = createHarness({

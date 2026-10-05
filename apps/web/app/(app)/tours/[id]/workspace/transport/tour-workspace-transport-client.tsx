@@ -23,6 +23,7 @@ import {
   extractTransportModesFromTourPayload,
   formatOperationalRosterAmountDue,
   resolveOperationalRosterActionablePaymentDueAt,
+  resolveOperationalRosterNoteKind,
   sortTransportRosterRows,
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
   type OperationalRosterFilter,
@@ -35,16 +36,19 @@ import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { fetchTourDetailCached } from "@/features/tours/tour-route-cache";
+import { useTourWorkspaceChrome } from "@/features/tours/tour-workspace-chrome-context";
 import { DriverSettlementPanel } from "./driver-settlement-panel";
 
 type TourWorkspaceTransportClientProps = {
   readonly tourId: string;
   readonly pluginId: string;
+  readonly canManage: boolean;
 };
 
 export function TourWorkspaceTransportClient({
   tourId,
   pluginId,
+  canManage,
 }: TourWorkspaceTransportClientProps) {
   const locale = useLocale() as AppLocale;
   const tWorkspace = useWorkspaceWizardTranslator(pluginId);
@@ -53,18 +57,25 @@ export function TourWorkspaceTransportClient({
   const tTable = useTranslations("tours.workspace.table");
   const tWorkspaceCopy = useTranslations("tours.workspace");
   const tErrors = useTranslations("tours.workspace.errors");
+  const { reloadNonce, reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const [modes, setModes] = useState<string[]>([]);
   const [items, setItems] = useState<TourOperationalRosterRow[]>([]);
-  const [filter, setFilter] = useState<OperationalRosterFilter>("operational");
+  const [filter, setFilter] = useState<OperationalRosterFilter>("final");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [finalizingId, setFinalizingId] = useState<string | null>(null);
+  const [confirmingFinalizationId, setConfirmingFinalizationId] = useState<string | null>(null);
+  const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   const loadTransport = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [tourPayload, rosterResponse] = await Promise.all([
-        fetchTourDetailCached(tourId),
+        fetchTourDetailCached(tourId, { force: reloadNonce > 0 }),
         fetch(buildTourOperationalRosterHref(tourId, filter), { cache: "no-store" }),
       ]);
       if (!rosterResponse.ok) {
@@ -82,13 +93,80 @@ export function TourWorkspaceTransportClient({
     } finally {
       setLoading(false);
     }
-  }, [filter, tourId]);
+  }, [filter, reloadNonce, tourId]);
 
   useEffect(() => {
     void loadTransport();
   }, [loadTransport]);
 
   const localizedError = resolveTourErrorMessage(tErrors, error);
+
+  const finalizeParticipant = async (registrationId: string, openPayment: boolean) => {
+    setFinalizingId(registrationId);
+    setFinalizationMessage(null);
+    try {
+      const endpoint = openPayment ? "finalize-with-open-payment" : "finalize";
+      const response = await fetch(
+        `/api/bookings/${encodeURIComponent(registrationId)}/${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`FINALIZE_HTTP_${response.status}`);
+      }
+      setFinalizationMessage(t("finalizeParticipantSuccess"));
+      await loadTransport();
+      // Finalization changes the parent summary badge as well as this panel.
+      // Refresh both projections so the final-roster count cannot remain stale.
+      reloadWorkspaceChrome();
+    } catch {
+      setFinalizationMessage(t("finalizeParticipantFailed"));
+    } finally {
+      setFinalizingId(null);
+      setConfirmingFinalizationId(null);
+    }
+  };
+
+  const requestFinalization = (registrationId: string, openPayment: boolean) => {
+    if (openPayment && confirmingFinalizationId !== registrationId) {
+      setConfirmingFinalizationId(registrationId);
+      return;
+    }
+    void finalizeParticipant(registrationId, openPayment);
+  };
+
+  const exportFinalRoster = async () => {
+    setExporting(true);
+    setExportError(null);
+    setExportSuccess(null);
+    try {
+      const response = await fetch(
+        `/api/tours/${encodeURIComponent(tourId)}/operational-roster/export?filter=final&format=xlsx`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) {
+        throw new Error(`ROSTER_EXPORT_HTTP_${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download =
+        readAttachmentFilename(response.headers.get("Content-Disposition")) ??
+        "denali-final-roster.xlsx";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportSuccess(t("exportSucceeded"));
+    } catch {
+      setExportError(t("exportFailed"));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const driverRow = items.find((row) => row.transportKind === "personal_car");
   const passengerRows = items.filter(
@@ -118,22 +196,22 @@ export function TourWorkspaceTransportClient({
   }
 
   function resolveOperationalNote(row: TourOperationalRosterRow): string {
-    if (!row.isFinalParticipant) {
-      return t("notes.notFinal");
+    switch (resolveOperationalRosterNoteKind(row)) {
+      case "payment_required":
+        return t("notes.paymentRequiredForFinal");
+      case "not_final":
+        return t("notes.notFinal");
+      case "refund":
+        return t(`refund.${row.refundDisplayState}`);
+      case "payment_deadline":
+        return t("notes.paymentDeadline", {
+          date: formatBookingDeparture(row.paymentDueAt!, locale),
+        });
+      case "driver":
+        return t("notes.driver");
+      default:
+        return t("notes.ready");
     }
-    if (row.refundDisplayState !== "none") {
-      return t(`refund.${row.refundDisplayState}`);
-    }
-    const paymentDueAt = resolveOperationalRosterActionablePaymentDueAt(row);
-    if (paymentDueAt !== null) {
-      return t("notes.paymentDeadline", {
-        date: formatBookingDeparture(paymentDueAt, locale),
-      });
-    }
-    if (row.isDriverOffer) {
-      return t("notes.driver");
-    }
-    return t("notes.ready");
   }
 
   function renderParticipantIdentity(row: TourOperationalRosterRow) {
@@ -158,12 +236,65 @@ export function TourWorkspaceTransportClient({
   }
 
   function renderParticipationState(row: TourOperationalRosterRow) {
-    return row.isFinalParticipant ? (
-      <Badge variant="default" data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalBadge}>
-        {t("finalParticipant")}
-      </Badge>
-    ) : (
-      <Badge variant="outline">{t("notFinalParticipant")}</Badge>
+    const isWaitlisted = row.registrationStatus.trim().toLowerCase() === "waitlisted";
+    const paymentRequired =
+      row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID";
+    const finalForDisplay = row.isFinalParticipant;
+    return (
+      <div className="flex flex-wrap items-center gap-2" data-testid="operator-roster-state">
+        <Badge
+          variant={isWaitlisted ? "outline" : finalForDisplay ? "default" : "outline"}
+          data-testid={
+            finalForDisplay && !isWaitlisted
+              ? TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalBadge
+              : undefined
+          }
+        >
+          {t(
+            isWaitlisted
+              ? "waitlistedParticipant"
+              : finalForDisplay && paymentRequired
+                ? "finalOpenPaymentParticipant"
+                : finalForDisplay
+                  ? "finalParticipant"
+                  : "approvedParticipant"
+          )}
+        </Badge>
+        {canManage && !isWaitlisted && row.isOperationalParticipant && !row.isFinalParticipant ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={finalizingId === row.registrationId}
+            data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.finalizeParticipantButton}
+            onClick={() => requestFinalization(row.registrationId, paymentRequired)}
+          >
+            {paymentRequired && confirmingFinalizationId === row.registrationId
+              ? t("confirmFinalizeWithOpenPayment")
+              : paymentRequired
+                ? t("finalizeWithOpenPayment")
+                : t("addToFinalRoster")}
+          </Button>
+        ) : null}
+        {canManage &&
+        !isWaitlisted &&
+        row.isOperationalParticipant &&
+        paymentRequired &&
+        confirmingFinalizationId === row.registrationId ? (
+          <span className="text-xs text-muted-foreground" role="status">
+            {t("finalizeWithOpenPaymentHint")}
+          </span>
+        ) : null}
+        {canManage && row.isOperationalParticipant && paymentRequired ? (
+          <Button asChild type="button" size="sm" variant="ghost">
+            <OperatorInternalLink
+              href={`/tours/${encodeURIComponent(tourId)}/workspace?tab=finance`}
+            >
+              {t("followPayment")}
+            </OperatorInternalLink>
+          </Button>
+        ) : null}
+      </div>
     );
   }
 
@@ -171,7 +302,7 @@ export function TourWorkspaceTransportClient({
     const amountDue = formatOperationalRosterAmountDue(row);
     return (
       <div className="space-y-1 text-sm">
-        <p>{t(`financial.${row.financialDisplayState}`)}</p>
+        <Badge variant="secondary">{t(`financial.${row.financialDisplayState}`)}</Badge>
         <p
           className="text-xs text-muted-foreground"
           data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.amountDue}
@@ -193,7 +324,41 @@ export function TourWorkspaceTransportClient({
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {finalizationMessage !== null ? (
+          <p
+            className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm"
+            role="status"
+          >
+            {finalizationMessage}
+          </p>
+        ) : null}
         <TourWorkspaceTransportControls filter={filter} onFilterChange={setFilter} />
+        {canManage ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.exportFinalRosterButton}
+                onClick={() => void exportFinalRoster()}
+                disabled={exporting}
+              >
+                {exporting ? t("exporting") : t("exportFinalRoster")}
+              </Button>
+              {exportError !== null ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {exportError}
+                </p>
+              ) : null}
+              {exportSuccess !== null ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {exportSuccess}
+                </p>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("exportFinalRosterScope")}</p>
+          </div>
+        ) : null}
 
         {loading ? <Skeleton className="h-32 w-full rounded-lg" /> : null}
         {localizedError !== null ? (
@@ -294,6 +459,7 @@ export function TourWorkspaceTransportClient({
                     return (
                       <tr
                         key={row.registrationId}
+                        data-registration-id={row.registrationId}
                         className="border-b transition-colors last:border-b-0 hover:bg-muted/50"
                       >
                         <td className="px-3 py-3">
@@ -336,20 +502,28 @@ export function TourWorkspaceTransportClient({
                 const transportLabel = formatRowTransportLabel(row);
                 const paymentDueAt = resolveOperationalRosterActionablePaymentDueAt(row);
                 return (
-                  <article key={row.registrationId} className="rounded-lg border p-3">
-                    <div className="flex items-start justify-between gap-3">
+                  <article
+                    key={row.registrationId}
+                    data-registration-id={row.registrationId}
+                    className="rounded-lg border p-3"
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                       {renderParticipantIdentity(row)}
-                      {renderParticipationState(row)}
+                      <div className="min-w-0 max-w-full">{renderParticipationState(row)}</div>
                     </div>
                     <div className="mt-3 grid gap-2 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{tTable("transportIntake")}</span>
-                        <span className="text-end">{transportLabel ?? "—"}</span>
+                      <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start gap-3">
+                        <span className="min-w-0 text-muted-foreground">
+                          {tTable("transportIntake")}
+                        </span>
+                        <span className="min-w-0 break-words text-end">
+                          {transportLabel ?? "—"}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{t("columns.note")}</span>
+                      <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start gap-3">
+                        <span className="min-w-0 text-muted-foreground">{t("columns.note")}</span>
                         <span
-                          className="text-end"
+                          className="min-w-0 break-words text-end"
                           data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.paymentDeadline}
                         >
                           {resolveOperationalNote(row)}
@@ -371,4 +545,10 @@ export function TourWorkspaceTransportClient({
       </CardContent>
     </Card>
   );
+}
+
+function readAttachmentFilename(contentDisposition: string | null): string | null {
+  const match = contentDisposition?.match(/filename="([^"]+)"/i);
+  const filename = match?.[1]?.trim() ?? "";
+  return filename.length > 0 ? filename : null;
 }

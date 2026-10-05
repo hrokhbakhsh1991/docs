@@ -4,17 +4,20 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { LocalizedDatePicker } from "@app-tour/localized-calendar/localized-date-picker";
 
 import { PageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildBookingCreatePayload, validateBookingCreateForm } from "@/features/bookings/bookings-create-logic";
+import {
+  buildBookingCreatePayload,
+  validateBookingCreateForm,
+} from "@/features/bookings/bookings-create-logic";
 import type {
   BookingCreateFormState,
   BookingCreateResponse,
@@ -28,6 +31,7 @@ import {
   buildTourRegisterSuccessRedirect,
   initRegisterFormFromTour,
   mapTourDetailToCreateOption,
+  resolveTourRegistrationApprovalMode,
 } from "@/features/tours/tour-register-logic";
 import { TOUR_REGISTER_TEST_IDS } from "@/features/tours/tour-register-types";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
@@ -49,6 +53,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
   const router = useRouter();
   const canManage = isAdminOrOwnerRole(session.role);
   const [tour, setTour] = useState<BookingCreateTourOption | null>(null);
+  const [registrationApprovalMode, setRegistrationApprovalMode] = useState<"manual" | "auto">(
+    "manual"
+  );
   const [tourUiStatus, setTourUiStatus] = useState<TourUiStatus>("draft");
   const [form, setForm] = useState<BookingCreateFormState | null>(null);
   const [loadingTour, setLoadingTour] = useState(canManage);
@@ -69,10 +76,7 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
     tourUiStatus,
   });
 
-  const tourOptions = useMemo(
-    () => (tour === null ? [] : [tour]),
-    [tour]
-  );
+  const tourOptions = useMemo(() => (tour === null ? [] : [tour]), [tour]);
 
   useEffect(() => {
     if (!canManage) {
@@ -105,6 +109,7 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
         }
         const option = mapTourDetailToCreateOption(detail);
         setTour(option);
+        setRegistrationApprovalMode(resolveTourRegistrationApprovalMode(detail));
         setTourUiStatus(detail.projection.uiStatus);
         setForm(initRegisterFormFromTour(option));
       })
@@ -162,8 +167,32 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
       if (response.status === 403) {
         throw new Error("TOUR_REGISTER_FORBIDDEN");
       }
-      if (!response.ok || body.status !== "pending") {
+      if (!response.ok || typeof body.id !== "string") {
         throw new Error(`TOUR_REGISTER_HTTP_${response.status}`);
+      }
+
+      if (registrationApprovalMode === "auto" && body.status === "pending") {
+        const approveResponse = await fetch(
+          `/api/bookings/${encodeURIComponent(body.id)}/approve`,
+          {
+            method: "POST",
+          }
+        );
+        if (approveResponse.ok) {
+          router.push(buildTourRegisterSuccessRedirect(tourId));
+          return;
+        }
+        if (approveResponse.status !== 409) {
+          throw new Error(`TOUR_REGISTER_APPROVE_HTTP_${approveResponse.status}`);
+        }
+
+        const waitlistResponse = await fetch(
+          `/api/bookings/${encodeURIComponent(body.id)}/waitlist`,
+          { method: "POST" }
+        );
+        if (!waitlistResponse.ok) {
+          throw new Error(`TOUR_REGISTER_WAITLIST_HTTP_${waitlistResponse.status}`);
+        }
       }
       router.push(buildTourRegisterSuccessRedirect(tourId));
     } catch (submitFailure: unknown) {
@@ -176,9 +205,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
 
   const localizedLoadError =
     pageState.type === "error"
-      ? resolveTourErrorMessage(tErrors, pageState.message) ?? pageState.message
+      ? (resolveTourErrorMessage(tErrors, pageState.message) ?? pageState.message)
       : null;
-  const localizedSubmitError = resolveTourErrorMessage(tErrors, submitError);
+  const localizedSubmitError = resolveCodedErrorMessage(tErrors, submitError);
   const localizedGuestError = resolveCodedErrorMessage(tErrors, fieldErrors.guestLabel ?? null);
 
   return (
@@ -191,7 +220,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
           </TourInternalLink>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/edit`}>{tNav("editTour")}</TourInternalLink>
+          <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/edit`}>
+            {tNav("editTour")}
+          </TourInternalLink>
         </Button>
       </div>
 
@@ -216,7 +247,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>{t("draftBlockedDescription")}</p>
             <Button asChild variant="outline" size="sm">
-              <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/edit`}>{t("draftBlockedEdit")}</TourInternalLink>
+              <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/edit`}>
+                {t("draftBlockedEdit")}
+              </TourInternalLink>
             </Button>
           </CardContent>
         </Card>
@@ -356,7 +389,7 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
                     disabled={pageState.type === "submitting"}
                     data-testid={TOUR_REGISTER_TEST_IDS.submitButton}
                   >
-                    {t("submit")}
+                    {registrationApprovalMode === "auto" ? t("submitAuto") : t("submit")}
                   </Button>
                   <Button type="button" variant="outline" asChild>
                     <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/workspace`}>

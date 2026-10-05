@@ -70,6 +70,7 @@ export function extractUrbanTourListProjection(
     uiStatus,
     priceAmount: null,
     priceCurrency: null,
+    paymentCollection: "offline",
     totalCapacity: readInteger(tour?.capacity),
     acceptedCount: 0,
     category: readString(tour?.city),

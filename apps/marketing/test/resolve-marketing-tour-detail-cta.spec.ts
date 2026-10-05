@@ -83,4 +83,17 @@ describe("resolveMarketingTourDetailCtaModel — Phase 3 PDP matrix", () => {
     assert.equal(cta.primaryHref, null);
     assert.equal(cta.secondaryKind, null);
   });
+
+  it("MKT-PCMS-P3-06 guest full tour exposes waitlist action", () => {
+    const cta = resolveMarketingTourDetailCtaModel({
+      registrationUrl: registerUrl,
+      tourSignInUrl: signInUrl,
+      canRegister: false,
+      canJoinWaitlist: true,
+      memberSessionReadable: false,
+      selfRegistrationDetailUrl: null,
+    });
+    assert.equal(cta.primaryKind, "waitlist");
+    assert.equal(cta.primaryHref, registerUrl);
+  });
 });

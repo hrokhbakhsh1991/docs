@@ -17,7 +17,11 @@ import {
   requirePaymentHoldPort,
   resetDp1MemoryHarness,
 } from "./dp1-test-harness.ts";
-import { approveBooking, createBooking } from "../../src/bookings/create-bookings-service.ts";
+import {
+  approveBooking,
+  bulkApproveBookings,
+  createBooking,
+} from "../../src/bookings/create-bookings-service.ts";
 
 describe("DP1-C booking approve payment hold", { concurrency: false }, () => {
   before(() => {
@@ -75,5 +79,22 @@ describe("DP1-C booking approve payment hold", { concurrency: false }, () => {
     });
     const scheduled = outbox.filter((row) => row.eventType === "payment.hold.scheduled");
     assert.equal(scheduled.length, 1, "hold scheduled event must be idempotent");
+  });
+
+  it("S1 bulk: payable approvals also create one open hold per booking", async () => {
+    const first = await createBooking(dp1OpsAuth(), dp1BookingBody({ guestLabel: "DP1 Bulk A" }));
+    const second = await createBooking(dp1OpsAuth(), dp1BookingBody({ guestLabel: "DP1 Bulk B" }));
+
+    const result = await bulkApproveBookings(dp1OpsAuth(), {
+      ids: [first.id, second.id],
+    });
+    assert.deepEqual(result.approvedIds, [first.id, second.id]);
+
+    const holdPort = await requirePaymentHoldPort();
+    for (const bookingId of result.approvedIds) {
+      const hold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, bookingId);
+      assert.ok(hold !== null, `hold row missing for bulk booking ${bookingId}`);
+      assert.equal(hold.status, "open");
+    }
   });
 });

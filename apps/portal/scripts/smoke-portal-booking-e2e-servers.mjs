@@ -80,17 +80,23 @@ const apiEnv = {
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
+  PAYMENT_HOLD_ENABLED: "true",
 };
 delete apiEnv.DATABASE_URL;
 delete apiEnv.DATABASE_URL_ADMIN;
 
 const portalSmokeHost =
-  process.env.SMOKE_PORTAL_BASE_URL?.trim() || "http://operator.portal.localhost:3003";
+  process.env.SMOKE_PORTAL_BASE_URL?.trim() || "http://portal.operator.localhost:3003";
+const marketingPublicBaseUrl =
+  process.env.MARKETING_PUBLIC_BASE_URL?.trim() ||
+  (process.env.PORTAL_SMOKE_MODE === "production"
+    ? "http://operator.localhost"
+    : `${portalSmokeHost.replace(/\/$/, "")}/health`);
 
 const portalEnv = {
   ...process.env,
   ...jwtEnv,
-  NODE_ENV: "development",
+  NODE_ENV: process.env.PORTAL_SMOKE_MODE === "production" ? "production" : "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   API_INTERNAL_URL: "http://127.0.0.1:3001",
@@ -98,13 +104,17 @@ const portalEnv = {
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
   TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
   PORTAL_DEV_PORT: "3003",
-  MARKETING_PUBLIC_BASE_URL: `${portalSmokeHost.replace(/\/$/, "")}/health`,
+  MARKETING_PUBLIC_BASE_URL: marketingPublicBaseUrl,
+  ...(process.env.PORTAL_SMOKE_MODE === "production"
+    ? { MARKETING_PUBLIC_BASE_URL_ALLOWLIST: marketingPublicBaseUrl }
+    : {}),
 };
 
 const webEnv = {
   ...process.env,
   ...jwtEnv,
   NODE_ENV: "development",
+  ALLOW_DENALI_WEB_PLUGIN: "true",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
@@ -119,7 +129,7 @@ await waitForPortFree(3000);
 await waitForPortFree(3001);
 await waitForPortFree(3003);
 
-const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+const api = spawn(process.execPath, ["--import", "tsx", "src/main.ts"], {
   cwd: path.join(repoRoot, "apps/api"),
   env: apiEnv,
   stdio: "inherit",
@@ -127,22 +137,79 @@ const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
 
 let web;
 let portal;
+let shuttingDown = false;
+
+const shutdown = (signal, exitCode = 0) => {
+  shuttingDown = true;
+  api.kill(signal);
+  if (web) {
+    web.kill(signal);
+  }
+  if (portal) {
+    portal.kill(signal);
+  }
+  process.exit(exitCode);
+};
+
+function spawnTracked(command, args, options, label) {
+  const child = spawn(command, args, options);
+  child.on("error", (error) => {
+    if (!shuttingDown) {
+      console.error(`smoke-portal-booking-e2e-servers: ${label} spawn failed`, error);
+      shutdown("SIGTERM", 1);
+    }
+  });
+  child.on("exit", (code, signal) => {
+    if (!shuttingDown) {
+      console.error(
+        `smoke-portal-booking-e2e-servers: ${label} exited unexpectedly ` +
+          `(code=${code ?? "null"}, signal=${signal ?? "null"})`
+      );
+      shutdown("SIGTERM", 1);
+    }
+  });
+  return child;
+}
 
 void waitForUrl("http://127.0.0.1:3001/health")
   .then(() => {
-    web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000", "--hostname", "127.0.0.1"], {
-      cwd: webDir,
-      env: webEnv,
-      stdio: "inherit",
-    });
+    web = spawnTracked(
+      process.execPath,
+      [
+        path.join(webDir, "node_modules/next/dist/bin/next"),
+        "dev",
+        "--port",
+        "3000",
+        "--hostname",
+        "127.0.0.1",
+      ],
+      { cwd: webDir, env: webEnv, stdio: "inherit" },
+      "web"
+    );
     return waitForUrl("http://127.0.0.1:3000/bookings");
   })
   .then(() => {
-    portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
-      cwd: portalDir,
-      env: portalEnv,
-      stdio: "inherit",
-    });
+    if (
+      process.env.PORTAL_SMOKE_MODE === "production" &&
+      process.env.PORTAL_SMOKE_SKIP_BUILD !== "1"
+    ) {
+      execSync("pnpm run build", {
+        cwd: portalDir,
+        env: portalEnv,
+        stdio: "inherit",
+      });
+    }
+    portal = spawnTracked(
+      process.execPath,
+      [
+        path.join(portalDir, "node_modules/next/dist/bin/next"),
+        process.env.PORTAL_SMOKE_MODE === "production" ? "start" : "dev",
+        "--port",
+        "3003",
+      ],
+      { cwd: portalDir, env: portalEnv, stdio: "inherit" },
+      "portal"
+    );
     return waitForUrl("http://127.0.0.1:3003/health");
   })
   .then(async () => {
@@ -157,15 +224,5 @@ void waitForUrl("http://127.0.0.1:3001/health")
     process.exit(1);
   });
 
-const shutdown = (signal) => {
-  api.kill(signal);
-  if (web) {
-    web.kill(signal);
-  }
-  if (portal) {
-    portal.kill(signal);
-  }
-  process.exit(0);
-};
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));

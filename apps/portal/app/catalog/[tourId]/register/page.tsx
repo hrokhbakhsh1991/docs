@@ -16,6 +16,7 @@ import { PortalRegisterGuestAuthGate } from "@/auth/portal-register-guest-auth-g
 import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
+import { fetchMemberSelfRegistrationForTour } from "@/me/fetch-member-self-registration-for-tour.server";
 import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -86,8 +87,36 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
   if (tour === null) {
     notFound();
   }
-
   const tourTitle = tour.title || "Tour";
+
+  // Keep direct registration links consistent with the public catalog contract.
+  // A stale/shared link must never reopen intake for a past or closed tour;
+  // a full tour (`waitlist`) intentionally continues to the waitlist flow.
+  if (tour.registrationState === "past" || tour.registrationState === "closed") {
+    const unavailableMessage =
+      tour.registrationState === "past"
+        ? t("registrationUnavailable.past")
+        : t("registrationUnavailable.closed");
+    return (
+      <PortalAuthExperienceShell
+        branding={branding}
+        backHref={backHref}
+        heroTitle={tourTitle}
+        heroKicker={t("registrationUnavailable.kicker")}
+        heroLede={unavailableMessage}
+        registrationIntakeResume={false}
+        pageKind="registration"
+        workspace={bootstrap.pluginId}
+        mainAttributes={{ "data-registration-unavailable": tour.registrationState }}
+      >
+        <div data-registration-unavailable-panel role="status">
+          <p>{unavailableMessage}</p>
+          <a href={backHref}>{t("backToTour")}</a>
+        </div>
+      </PortalAuthExperienceShell>
+    );
+  }
+
   const workspace = bootstrap.pluginId;
 
   const registrationResume = await buildRegistrationResumeInitialState(host, bootstrap.tenantId, {
@@ -99,6 +128,9 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
     memberModuleHref,
   });
   const resumeAtIntake = registrationResume !== null;
+  const existingSelfRegistration = resumeAtIntake
+    ? await fetchMemberSelfRegistrationForTour(host, tourId)
+    : null;
   // PCMS-UX-MODAL-04 — guests auth in modal only; page is intake after session.
   const heroLede = resumeAtIntake ? t("intake.resumeLede") : t("phone.loginDescription");
   const heroKicker = resumeAtIntake ? t("intake.kicker") : null;
@@ -139,6 +171,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           tenantId={bootstrap.tenantId}
           tourId={tourId}
           tourTitle={tourTitle}
+          registrationState={tour.registrationState}
           tourPoliciesText={tour.policiesText ?? null}
           tourPriceAmount={tour.priceAmount ?? null}
           tourTransport={tour.transport}
@@ -148,6 +181,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           backHref={backHref}
           memberModuleHref={memberModuleHref}
           initialRuntimeState={registrationResume.initialState}
+          existingSelfRegistrationId={existingSelfRegistration?.id ?? null}
         />
       ) : (
         <>

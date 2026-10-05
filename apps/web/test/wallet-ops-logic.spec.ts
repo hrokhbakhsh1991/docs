@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildWalletAccountsSearchPath,
+  buildWalletMembersSearchPath,
   buildWalletCreditRequestBody,
   buildWalletDebitRequestBody,
   buildWalletReversalRequestBody,
@@ -19,6 +20,7 @@ import {
   parseWalletAccountsResponse,
   parseWalletMutationResponse,
   validateMemberUserIdSearch,
+  validateMemberSearch,
   validateWalletMutationForm,
   validateWalletReversalForm,
   walletUiMustNotSendAuthorityFields,
@@ -33,6 +35,13 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
       validateMemberUserIdSearch("00000000-0000-4000-8000-000000000099").ok,
       true,
     );
+  });
+
+  it("WEB-WALLET-OPS-01A member directory search accepts human identifiers", () => {
+    assert.equal(validateMemberSearch("  Ali Rezaei  ").ok, true);
+    assert.equal(validateMemberSearch("09174070941").ok, true);
+    assert.equal(validateMemberSearch("").ok, false);
+    assert.equal(validateMemberSearch("x".repeat(121)).ok, false);
   });
 
   it("WEB-WALLET-OPS-02 credit/debit validation requires positive minor amount and reason", () => {
@@ -54,6 +63,14 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
   it("WEB-WALLET-OPS-03 reversal validation requires reason", () => {
     assert.equal(validateWalletReversalForm({ reasonNote: "" }).ok, false);
     assert.equal(validateWalletReversalForm({ reasonNote: "mistake" }).ok, true);
+  });
+
+  it("WEB-WALLET-OPS-03A rejects overlong operation reasons", () => {
+    assert.equal(validateWalletReversalForm({ reasonNote: "x".repeat(2001) }).ok, false);
+    assert.equal(
+      validateWalletMutationForm({ amountMinor: "100", reasonNote: "x".repeat(2001) }, "IRR").ok,
+      false,
+    );
   });
 
   it("WEB-WALLET-OPS-04 mutation bodies never include tenant/workspace authority", () => {
@@ -151,6 +168,22 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
     assert.doesNotMatch(path, /tenantId=/);
   });
 
+  it("WEB-WALLET-OPS-10A supports member name/mobile search while preserving UUID lookup", () => {
+    const path = buildWalletAccountsSearchPath("09121234567");
+    assert.match(path, /search=09121234567/);
+    assert.doesNotMatch(path, /userId=/);
+  });
+
+  it("WEB-WALLET-OPS-10B searches the active tenant user directory", () => {
+    const path = buildWalletMembersSearchPath("09121234567");
+    assert.match(path, /status=active/);
+    assert.match(path, /limit=50/);
+    assert.match(path, /sort=name_asc/);
+    assert.match(path, /search=09121234567/);
+    assert.doesNotMatch(path, /tenantId=/);
+    assert.doesNotMatch(path, /workspaceId=/);
+  });
+
   it("WEB-WALLET-OPS-11 BFF routes proxy upstream without authority query params", () => {
     const accountsRoute = readFileSync(
       resolve(WEB_ROOT, "app/api/wallet/accounts/route.ts"),
@@ -158,6 +191,10 @@ describe("wallet-ops-logic.spec.ts — WALLET-P3B", () => {
     );
     const proxy = readFileSync(resolve(WEB_ROOT, "src/wallet/proxy-wallet-api.server.ts"), "utf8");
     assert.match(accountsRoute, /proxyWalletApiGet/);
+    assert.match(accountsRoute, /search/);
+    assert.match(accountsRoute, /userId or search is required/);
+    assert.match(accountsRoute, /incoming\.searchParams\.toString\(\)/);
+    assert.match(accountsRoute, /`\/wallet\/accounts\?\$\{query\}`/);
     assert.doesNotMatch(accountsRoute, /workspaceId/);
     assert.match(proxy, /Idempotency-Key/);
   });

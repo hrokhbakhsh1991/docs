@@ -75,12 +75,13 @@ test.describe("bookings-directory-controls-responsive", () => {
       .isVisible()
       .catch(() => false);
     if (paginationVisible) {
-      const nextButton = page.getByRole("button", { name: /Next|بعدی/i });
+      const pagination = page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.pagination);
+      const nextButton = pagination.getByRole("button", { name: /Next|بعدی/i });
       if (await nextButton.isEnabled()) {
         await nextButton.click();
         await page.waitForTimeout(500);
         await expect(page).toHaveURL(/page=2/);
-        await page.getByRole("button", { name: /Previous|قبلی/i }).click();
+        await pagination.getByRole("button", { name: /Previous|قبلی/i }).click();
         await page.waitForTimeout(300);
       }
     }

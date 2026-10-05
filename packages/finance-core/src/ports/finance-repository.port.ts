@@ -93,7 +93,7 @@ export type FinancePaymentRow = FinanceOpenPaymentRow & {
 export type FinanceReceiptRow = {
   readonly id: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly status: string;
   readonly note: string | null;
   readonly reviewNote: string | null;
@@ -102,6 +102,23 @@ export type FinanceReceiptRow = {
   readonly createdAt: Date;
   readonly payment: FinancePaymentRow | null;
 };
+
+/** Server-only payment destination revision material. Never include in member/BFF DTOs. */
+export type PaymentDestinationRevision = {
+  readonly tenantId: string;
+  readonly revision: string;
+  readonly cardNumber: string;
+  readonly cardHolderName: string;
+  readonly bankName: string | null;
+  readonly instructions: string | null;
+  readonly actorUserId: string | null;
+  readonly createdAt: Date;
+};
+
+export type PaymentReceiptDestinationSnapshot = Omit<
+  PaymentDestinationRevision,
+  "tenantId" | "actorUserId" | "createdAt"
+>;
 
 export type FinanceLedgerOutboxRow = {
   readonly id: string;
@@ -127,10 +144,18 @@ export type CreatePaymentInput = {
 export type CreateReceiptInput = {
   readonly tenantId: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly note?: string;
   /** SHA-256 hex of HTTP Idempotency-Key; omit for non-HTTP submits. */
   readonly idempotencyKeyHash?: string;
+  /** Server-resolved immutable destination; never accept card material from HTTP. */
+  readonly destinationSnapshot?: PaymentReceiptDestinationSnapshot;
+  /** Optional domain event to enqueue atomically with the receipt row. */
+  readonly outboxEvent?: {
+    readonly eventType: string;
+    readonly payload: Record<string, unknown>;
+    readonly correlationId?: string;
+  };
 };
 
 export type ApproveManualReceiptAtomicInput = {
@@ -372,6 +397,28 @@ export interface FinanceRepositoryPort {
   ): Promise<FinanceReceiptRow | null>;
 
   createReceipt(input: CreateReceiptInput): Promise<FinanceReceiptRow>;
+
+  /** Atomically advances the tenant's current destination and appends immutable history. */
+  putPaymentDestinationRevision(input: {
+    readonly tenantId: string;
+    readonly cardNumber: string;
+    readonly cardHolderName: string;
+    readonly bankName?: string | null;
+    readonly instructions?: string | null;
+    readonly actorUserId?: string | null;
+  }): Promise<PaymentDestinationRevision>;
+
+  /** Tenant-scoped lookup. Unknown or cross-tenant revisions return null. */
+  findPaymentDestinationRevision(
+    tenantId: string,
+    revision?: string
+  ): Promise<PaymentDestinationRevision | null>;
+
+  /** Server-only receipt snapshot lookup for operator review. */
+  findPaymentReceiptDestinationSnapshot(
+    tenantId: string,
+    receiptId: string
+  ): Promise<PaymentReceiptDestinationSnapshot | null>;
 
   findReceiptById(tenantId: string, receiptId: string): Promise<FinanceReceiptRow | null>;
 

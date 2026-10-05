@@ -64,7 +64,10 @@ import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker
 import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
-import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
+import {
+  formatMinorAmount,
+  resolveFinanceAmountUnitLabel,
+} from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
 import {
@@ -686,7 +689,11 @@ export function FinancePaymentsPanel({
               <FinanceInvoiceBalanceCard registrationId={form.registrationId} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="payment-amount">{tCommon("amountDisplay")}</Label>
+              <Label htmlFor="payment-amount">
+                {tCommon("amountDisplay", {
+                  unit: resolveFinanceAmountUnitLabel(form.currency, locale),
+                })}
+              </Label>
               <LocalizedNumericInput
                 id="payment-amount"
                 mode="digits"

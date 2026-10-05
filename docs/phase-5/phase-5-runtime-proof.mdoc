@@ -10,7 +10,7 @@
 | --- | --- |
 | `phase-5:guard` | Static contracts — docs/schema/prisma/SQL presence, anti-hollow, doc hardening, `phase-5.contract.spec.ts` |
 | `phase-5:runtime-proof` | Runtime/data/security — `db:test-reset`, `phase-4:guard` (not `:gate`), targeted perf specs |
-| `phase-5:gate` | Historical full closure — build + test + nested `phase-4:gate` + `phase-5:guard` (**unchanged**; also `test:full`) |
+| `phase-5:gate` | Full Phase 5 closure — reset + build + test + direct `phase-4:guard` + `phase-5:guard`; run `phase-4:gate` separately on the same SHA (**no nested duplicate chain**) |
 | `phase-6:gate` | Option B — build + test + runtime-proof + phase-5:guard + residual apps-cert (`post-test` + `floors`) + phase-6:guard |
 
 ## `phase-5:runtime-proof` graph

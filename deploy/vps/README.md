@@ -16,8 +16,8 @@ Push to **`main`** → GitHub Actions runs `scripts/vps-deploy/remote-deploy.sh`
 **Recommended for production.** Apps bind to `127.0.0.1` (loopback), Caddy reverse-proxies with TLS.
 
 ```
-https://{club}.admin.{root}   → 127.0.0.1:3000 (web)
-https://{club}.portal.{root}  → 127.0.0.1:3003 (portal)
+https://admin.{club}.{root}   → 127.0.0.1:3000 (web)
+https://portal.{club}.{root}  → 127.0.0.1:3003 (portal)
 https://{club}.{root}         → 127.0.0.1:3002 (marketing)
 API (internal)                → 127.0.0.1:3001
 ```

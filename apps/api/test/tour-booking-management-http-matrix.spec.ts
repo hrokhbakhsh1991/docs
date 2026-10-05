@@ -119,6 +119,7 @@ describe("tour-booking-management HTTP matrix", { concurrency: false }, () => {
         const response = await client.requestJson("POST", actionPath(action, id), {
           headers: authHeaders(),
           ...(action === "reject" ? { body: { reason: `reject ${from}` } } : {}),
+          ...(action === "cancel" ? { body: { reasonCode: "operator_correction" } } : {}),
         });
         const allowed = ALLOWED_ACTIONS[from].includes(action);
         assert.equal(response.status === 200, allowed, `${from} -> ${action}`);
@@ -143,6 +144,7 @@ describe("tour-booking-management HTTP matrix", { concurrency: false }, () => {
       const response = await client.requestJson("POST", actionPath(action, id), {
         headers: authHeaders(MEMBER_ID, "member"),
         ...(action === "reject" ? { body: { reason: "not allowed" } } : {}),
+        ...(action === "cancel" ? { body: { reasonCode: "operator_correction" } } : {}),
       });
       assert.equal(response.status, 403, `member ${action}`);
     }

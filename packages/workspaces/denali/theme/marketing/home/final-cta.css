@@ -72,12 +72,54 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   margin: 0;
   padding-block: var(--space-8);
   padding-inline: var(--space-6);
-  border: var(--mkt-border-width, 1px) solid color-mix(in srgb, var(--denali-forest-600) 16%, var(--border));
+  border: var(--mkt-border-width, 1px) solid
+    color-mix(in srgb, var(--denali-forest-600) 16%, var(--border));
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--denali-forest-600) 8%, var(--color-bg-surface, var(--color-bg-page)));
+  background: color-mix(
+    in srgb,
+    var(--denali-forest-600) 8%,
+    var(--color-bg-surface, var(--color-bg-page))
+  );
   color: var(--color-text-primary);
   text-align: start;
   box-shadow: none;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 88% 18%,
+      color-mix(in srgb, var(--denali-sage-400, #94ad87) 18%, transparent),
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(
+        in srgb,
+        var(--denali-forest-600) 10%,
+        var(--color-bg-surface, var(--color-bg-page))
+      ),
+      var(--color-bg-surface, var(--color-bg-page))
+    );
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-final-cta]
+  div[data-marketing-home-final-cta-body]::before {
+  content: "";
+  position: absolute;
+  inset-inline-end: -4rem;
+  inset-block-start: -6rem;
+  z-index: 0;
+  width: 15rem;
+  height: 15rem;
+  border: 1px solid color-mix(in srgb, var(--denali-forest-600) 22%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1.5rem color-mix(in srgb, var(--denali-forest-600) 8%, transparent),
+    0 0 0 3rem color-mix(in srgb, var(--denali-forest-600) 4%, transparent);
+  pointer-events: none;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -89,8 +131,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-final-cta]
   > h2 {
-  position: static;
-  z-index: auto;
+  position: relative;
+  z-index: 1;
   margin: 0;
   max-width: 20rem;
   font-family: inherit;
@@ -116,6 +158,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   letter-spacing: 0;
   color: var(--color-text-muted, var(--color-text-secondary));
   opacity: 1;
+  position: relative;
+  z-index: 1;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -127,8 +171,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-final-cta]
   a[data-marketing-home-final-cta-action] {
-  position: static;
-  z-index: auto;
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -158,6 +202,22 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-final-cta]
   div[data-marketing-home-final-cta-body]
+  a[data-marketing-home-cta]::after,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-final-cta]
+  a[data-marketing-home-final-cta-action]::after {
+  content: "↗";
+  margin-inline-start: 0.55em;
+  font-size: 1.05em;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-final-cta]
+  div[data-marketing-home-final-cta-body]
   a[data-marketing-home-cta]:hover,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
@@ -168,6 +228,20 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   opacity: 1;
   transform: none;
   box-shadow: 0 0.35rem 1rem rgb(0 0 0 / 0.18);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-final-cta]
+    div[data-marketing-home-final-cta-body]
+    a[data-marketing-home-cta]:hover::after,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-final-cta]
+    a[data-marketing-home-final-cta-action]:hover::after {
+    transform: translate(0.12em, -0.12em);
+  }
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -249,6 +323,17 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     section[data-marketing-home-final-cta]
     a[data-marketing-home-cta] {
     animation: none;
+    transition: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-final-cta]
+    a[data-marketing-home-cta]::after,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-final-cta]
+    a[data-marketing-home-final-cta-action]::after {
     transition: none;
   }
 }

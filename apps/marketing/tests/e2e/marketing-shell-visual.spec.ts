@@ -20,7 +20,7 @@ test.describe("marketing shell visual — denali", () => {
     const chrome = page.locator("[data-marketing-header], [data-marketing-catalog-toolbar]");
     await page.waitForLoadState("networkidle");
     await expect(chrome.first()).toBeVisible();
-    await expect(page.locator("body")).toHaveScreenshot("denali-catalog-shell-chrome.png", {
+    await expect(page).toHaveScreenshot("denali-catalog-shell-chrome.png", {
       ...SCREENSHOT_OPTS,
       clip: { x: 0, y: 0, width: 1280, height: 320 },
     });

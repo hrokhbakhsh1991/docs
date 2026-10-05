@@ -10,7 +10,7 @@ export const denaliTransportModeField = Object.freeze({
   rhfPath: "transport.transportMode",
   zodPath: "transport.transportMode",
   zodKind: "transportMode",
-  tags: ["core"] as const,
+  tags: ["core", "deliverable"] as const,
   ruleDefaults: { required: true, hidden: false },
   wire: [
     { kind: "createTourDto" as const, field: "transportModes" as const },

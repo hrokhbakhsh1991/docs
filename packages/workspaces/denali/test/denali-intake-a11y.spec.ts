@@ -19,6 +19,10 @@ describe("denali intake a11y — unique field ids", () => {
     assert.match(steps, /idPrefix=\{`denali-intake-other-\$\{guestIdx\}`\}/);
     assert.match(steps, /setInvalidField\(null\)/);
     assert.match(steps, /denaliIntakeNationalIdChecksumIssue/);
+    assert.match(steps, /data-denali-transport-scope/);
+    assert.match(steps, /setInvalidField\(\{ scope: target, idx: p\.idx, fieldId: "transport" \}\)/);
+    assert.match(steps, /data-denali-field-alert/);
+    assert.match(steps, /\$\{errorId\}-\$\{scope\}-\$\{idx\}/);
     assert.doesNotMatch(steps, /hasError=\{error !== null\}/);
     assert.doesNotMatch(steps, /schema-intake-\$\{field\.id\}/);
   });

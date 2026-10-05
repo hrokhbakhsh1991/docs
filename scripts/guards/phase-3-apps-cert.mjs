@@ -41,6 +41,12 @@ function main() {
       `workspace-sdk tests ≥ ${MIN_WORKSPACE_SDK_TESTS}`,
     ),
     checkCommand(
+      "p3_workspace_sdk_behavioral_contracts",
+      "P3-E-CASL-01",
+      "workspace-sdk foundation invariant contract suites",
+      ["--filter", "@app-tour/workspace-sdk", "run", "test:invariants"],
+    ),
+    checkCommand(
       "p3_starter_build",
       "P3-E-WS-01",
       "pnpm --filter @app-tour/workspace-starter run build",
@@ -52,6 +58,22 @@ function main() {
       "p3_starter_tests",
       "P3-E-WS-01",
       `workspace-starter tests ≥ ${MIN_STARTER_TESTS}`,
+    ),
+    checkCommand(
+      "p3_starter_behavioral_contracts",
+      "P3-E-WS-01",
+      "workspace-starter parity and exposure contract suites",
+      [
+        "--filter",
+        "@app-tour/workspace-starter",
+        "exec",
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "test/sdk-reference-parity.spec.ts",
+        "test/starter-exposure-surfaces.spec.ts",
+      ],
     ),
     checkCommand(
       "p3_api_gate",

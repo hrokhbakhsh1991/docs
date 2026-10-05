@@ -140,10 +140,11 @@ const apiEnv = {
   PUBLIC_TENANT_FALLBACK_HOSTS: "127.0.0.1,localhost,denali.localhost",
 };
 
+const productionWeb = process.env.SMOKE_WEB_MODE === "production";
 const webEnv = {
   ...process.env,
   ...jwtEnv,
-  NODE_ENV: "development",
+  NODE_ENV: productionWeb ? "production" : "development",
   ALLOW_DEV_WEB_SESSION: "true",
   ALLOW_DENALI_WEB_PLUGIN: "true",
   TOUR_OPS_DEV_TENANT_ID: denaliSmokeTenantId,
@@ -166,7 +167,7 @@ const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
 });
 await waitForUrl("http://127.0.0.1:3001/health");
 
-const web = spawn("pnpm", ["--filter", "@apps/web", "run", "dev"], {
+const web = spawn("pnpm", ["--filter", "@apps/web", "run", productionWeb ? "start" : "dev"], {
   cwd: repoRoot,
   env: webEnv,
   stdio: "inherit",

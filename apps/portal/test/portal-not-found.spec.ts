@@ -17,6 +17,8 @@ describe("portal-not-found.spec.ts", () => {
   it("root not-found uses App Router surface and page-missing copy", () => {
     const source = readPortal("app/not-found.tsx");
     assert.match(source, /getTranslations\("common\.pageNotFound"\)/);
+    assert.match(source, /dynamic = "force-dynamic"/);
+    assert.match(source, /FALLBACK_COPY/);
     assert.match(source, /data-portal-page-not-found/);
     assert.match(source, /data-portal-not-found/);
     assert.doesNotMatch(source, /from ["']next\/document["']/);

@@ -16,6 +16,9 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
       fitnessLevel: "high",
       spotsRemaining: 3,
       shortDescription: "Alpine ridge day hike",
+      departureAt: "2026-08-01T08:00:00.000Z",
+      endAt: "2026-08-03T08:00:00.000Z",
+      priceAmount: 3000000,
     },
     {
       id: "2",
@@ -25,6 +28,9 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
       fitnessLevel: "low",
       spotsRemaining: 0,
       shortDescription: "Easy woodland trail",
+      departureAt: "2026-08-01T08:00:00.000Z",
+      endAt: "2026-08-01T18:00:00.000Z",
+      priceAmount: 800000,
     },
     {
       id: "3",
@@ -34,6 +40,9 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
       fitnessLevel: "medium",
       spotsRemaining: 12,
       shortDescription: "Multi-day summit push",
+      departureAt: "2026-08-01T08:00:00.000Z",
+      endAt: "2026-08-06T08:00:00.000Z",
+      priceAmount: 7000000,
     },
   ];
 
@@ -46,14 +55,16 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
 
   it("filters by denali category family", async () => {
     assert.deepEqual(
-      (await filterMarketingCatalogItems(
-        [
-          { id: "1", title: "Alpine", category: "mountain_multi" },
-          { id: "2", title: "Woods", category: "nature_day" },
-        ],
-        { category: "mountain" },
-        "denali"
-      )).map((item) => item.id),
+      (
+        await filterMarketingCatalogItems(
+          [
+            { id: "1", title: "Alpine", category: "mountain_multi" },
+            { id: "2", title: "Woods", category: "nature_day" },
+          ],
+          { category: "mountain" },
+          "denali"
+        )
+      ).map((item) => item.id),
       ["1"]
     );
   });
@@ -94,14 +105,66 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
     );
   });
 
+  it("filters by duration and price ranges", async () => {
+    assert.deepEqual(
+      (
+        await filterMarketingCatalogItems(items, {
+          minDuration: 2,
+          maxDuration: 3,
+          minPrice: 2000000,
+          maxPrice: 5000000,
+        })
+      ).map((item) => item.id),
+      ["1"]
+    );
+  });
+
+  it("BUG-STG-026 treats free collection as price zero", async () => {
+    const result = await filterMarketingCatalogItems(
+      [
+        ...items,
+        {
+          id: "free",
+          title: "Free walk",
+          paymentCollection: "free",
+          priceAmount: null,
+        },
+      ],
+      { minPrice: 0, maxPrice: 0 }
+    );
+
+    assert.deepEqual(
+      result.map((item) => item.id),
+      ["free"]
+    );
+  });
+
   it("applies category then q", async () => {
     assert.deepEqual(
-      (await filterMarketingCatalogItems(items, { category: "Peak", q: "north" })).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { category: "Peak", q: "north" })).map(
+        (item) => item.id
+      ),
       ["1"]
     );
   });
 
   it("returns all items when filters empty", async () => {
     assert.equal((await filterMarketingCatalogItems(items, {})).length, 3);
+  });
+
+  it("blocks known staging/test records from public catalog egress", async () => {
+    const result = await filterMarketingCatalogItems(
+      [
+        ...items,
+        { id: "test-1", title: "hgjghjfghj" },
+        { id: "test-2", title: "تست اعلان تلگرام استیجینگ" },
+        { id: "test-3", title: "سناریوی تست تور پولی" },
+      ],
+      {}
+    );
+    assert.deepEqual(
+      result.map((item) => item.id),
+      ["1", "2", "3"]
+    );
   });
 });

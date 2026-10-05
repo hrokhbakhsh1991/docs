@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { BookingRecord } from "./bookings.types";
+import { InMemoryBookingsRepository } from "./in-memory-bookings.repository";
 import {
   enrichInMemoryBookingListRecord,
   resolveFinancialDisplayStateForListRecord,
@@ -129,5 +130,66 @@ describe("booking-list-intake-scalars.spec.ts", () => {
     );
     assert.equal(record.registrationIntake, undefined);
     assert.equal(record.financialDisplayState, "WAIVED");
+  });
+
+  it("BUG-STG-080 projects approved free rows as WAIVED before payment status", () => {
+    assert.equal(
+      resolveFinancialDisplayStateForListRecord(
+        { status: "approved", paymentStatus: "unpaid" },
+        null,
+        true
+      ),
+      "WAIVED"
+    );
+  });
+
+  it("does not preserve a stale WAIVED projection for an unpaid approved row", () => {
+    const record = {
+      status: "approved",
+      paymentStatus: "unpaid",
+      financialDisplayState: "WAIVED",
+    } as const;
+
+    assert.equal(resolveFinancialDisplayStateForListRecord(record, null, false), undefined);
+  });
+
+  it("BUG-STG-080 atomically marks free collection paid, finalized, and waived", async () => {
+    const repo = new InMemoryBookingsRepository();
+    const record = baseRecord({
+      id: "00000000-0000-0000-0000-000000000908",
+      status: "approved",
+      paymentStatus: "unpaid",
+    });
+    repo.seedBooking(record);
+
+    const updated = await repo.markFreeCollectionApplied({
+      bookingId: record.id,
+      tenantId: record.tenantId,
+    });
+
+    assert.equal(updated?.paymentStatus, "paid");
+    assert.equal(updated?.finalizationStatus, "finalized");
+    assert.equal(updated?.registrationIntake?.freeCollectionApplied, true);
+    assert.equal(enrichInMemoryBookingListRecord(updated!).financialDisplayState, "WAIVED");
+  });
+
+  it("BUG-STG-080 free collection marking is idempotent under retry", async () => {
+    const repo = new InMemoryBookingsRepository();
+    const record = baseRecord({
+      id: "00000000-0000-0000-0000-000000000909",
+      status: "approved",
+      paymentStatus: "unpaid",
+    });
+    repo.seedBooking(record);
+
+    const results = await Promise.all([
+      repo.markFreeCollectionApplied({ bookingId: record.id, tenantId: record.tenantId }),
+      repo.markFreeCollectionApplied({ bookingId: record.id, tenantId: record.tenantId }),
+    ]);
+    const finalRow = await repo.getById(record.id, record.tenantId);
+
+    assert.equal(results.every((result) => result?.paymentStatus === "paid"), true);
+    assert.equal(finalRow?.finalizationStatus, "finalized");
+    assert.equal(finalRow?.registrationIntake?.freeCollectionApplied, true);
   });
 });

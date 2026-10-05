@@ -4,9 +4,7 @@ import type { TourListCategoryFilterGroup } from "./tour-list-category-surface-t
 
 export const TOUR_CATEGORY_FILTER_ALL = "all" as const;
 
-export type TourCategoryFilter =
-  | typeof TOUR_CATEGORY_FILTER_ALL
-  | (string & {});
+export type TourCategoryFilter = typeof TOUR_CATEGORY_FILTER_ALL | (string & {});
 
 export type { TourListCategoryFilterGroup as TourCategoryFilterGroup };
 
@@ -56,6 +54,35 @@ export function resolveTourKindDuration(
     return null;
   }
   return surface.resolveTourKindDuration(category);
+}
+
+/**
+ * Resolve the category group independently from the composite kind label.
+ *
+ * Workspace kind labels may include duration (for example, "mountain_day"
+ * can render as "Mountain - single day"). The operator list renders duration
+ * as a separate metadata value, so it must use the group label here to avoid
+ * presenting the same dimension twice.
+ */
+export function resolveTourKindCategoryGroup(
+  pluginId: string,
+  category: string | null
+): string | null {
+  const surface = resolveTourListCategorySurface(pluginId);
+  const categorySlug = category?.trim();
+  if (surface == null || categorySlug == null || !surface.isTourKindSlug(categorySlug)) {
+    return null;
+  }
+  const configuredGroup = surface.filterGroups.find((group) => group.slugs.includes(categorySlug))?.id;
+  if (configuredGroup != null) {
+    return configuredGroup;
+  }
+
+  // A workspace may hide a valid group from the launch filter surface while
+  // still exposing its kind values (for example, event variants). Preserve
+  // the non-composite label for those kinds as well.
+  const inferredGroup = categorySlug.split("_", 1)[0];
+  return surface.isTourCategoryGroup(inferredGroup) ? inferredGroup : null;
 }
 
 export function matchesTourCategoryFilter(

@@ -2,13 +2,23 @@
  * DP-2 — tour workspace operational roster logic (transport tab).
  */
 import { extractTransportModesFromTourPayload } from "@/features/tours/tour-canonical-transport-modes";
+import { toAsciiDigits } from "@/i18n/format-localized-digits";
+import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 
 export { extractTransportModesFromTourPayload };
+
+/** Normalize a driver-seat amount without accepting signs, decimals, or letters. */
+export function normalizeDriverCompensationPerSeat(raw: string): string | null {
+  const ascii = toAsciiDigits(raw).trim();
+  const normalized = ascii.replace(/[\s,_٬،]/g, "");
+  return /^\d+$/.test(normalized) && normalized !== "0" ? normalized : null;
+}
 
 /** HTTP query filter values for `/tours/:id/operational-roster` (DEN-PROD-03). */
 export type OperationalRosterFilter =
   | "operational"
   | "final"
+  | "awaiting_finalization"
   | "unpaid"
   | "paid"
   | "expiring"
@@ -24,6 +34,7 @@ export type TourOperationalRosterRow = {
   readonly registrationStatus: string;
   readonly financialDisplayState: string;
   readonly remainingMinor: string | null;
+  readonly amountDueNowMinor?: string | null;
   readonly paidMinor: string | null;
   readonly currency: string | null;
   readonly paymentDueAt: string | null;
@@ -38,6 +49,27 @@ export type TourOperationalRosterRow = {
   readonly departureAt: string;
   readonly submittedAt: string;
 };
+
+export type OperationalRosterStage =
+  | "approved_payment_required"
+  | "approved_ready_to_finalize"
+  | "final_open_payment"
+  | "final_ready";
+
+/** One primary, human-readable stage for the four approval/finalization cases. */
+export function resolveOperationalRosterStage(
+  row: Pick<TourOperationalRosterRow, "isFinalParticipant" | "financialDisplayState">
+): OperationalRosterStage {
+  const paymentRequired =
+    row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID";
+  if (row.isFinalParticipant && paymentRequired) {
+    return "final_open_payment";
+  }
+  if (paymentRequired) {
+    return "approved_payment_required";
+  }
+  return row.isFinalParticipant ? "final_ready" : "approved_ready_to_finalize";
+}
 
 export type TourOperationalRosterResponse = {
   readonly tourId: string;
@@ -59,6 +91,7 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   filtersPanel: "operator-tour-workspace-transport-filters-panel",
   activeFilters: "operator-tour-workspace-transport-active-filters",
   finalBadge: "operator-tour-workspace-operational-roster-final",
+  finalizeParticipantButton: "operator-tour-workspace-finalize-participant",
   amountDue: "operator-tour-workspace-operational-roster-amount-due",
   paymentDeadline: "operator-tour-workspace-operational-roster-deadline",
   driverBadge: "operator-tour-workspace-operational-roster-driver",
@@ -68,11 +101,13 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   settlementStatus: "operator-tour-workspace-driver-settlement-status",
   freezeButton: "operator-tour-workspace-roster-freeze",
   approvePayableButton: "operator-tour-workspace-settlement-approve-payable",
+  exportFinalRosterButton: "operator-tour-workspace-export-final-roster",
 } as const;
 
 export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
-  "operational",
   "final",
+  "awaiting_finalization",
+  "operational",
   "unpaid",
   "paid",
   "expiring",
@@ -81,7 +116,7 @@ export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
 
 export function buildTourOperationalRosterQuery(
   tourId: string,
-  filter: OperationalRosterFilter = "operational",
+  filter: OperationalRosterFilter = "final",
   transportKind?: string
 ): string {
   const params = new URLSearchParams();
@@ -96,7 +131,7 @@ export function buildTourOperationalRosterQuery(
 
 export function buildTourOperationalRosterHref(
   tourId: string,
-  filter: OperationalRosterFilter = "operational"
+  filter: OperationalRosterFilter = "final"
 ): string {
   return `/api/tours/${encodeURIComponent(tourId)}/operational-roster?${buildTourOperationalRosterQuery(tourId, filter)}`;
 }
@@ -173,7 +208,7 @@ export function formatOperationalRosterAmountDue(
   if (digits.length === 0 || digits === "0") {
     return null;
   }
-  return row.currency !== null ? `${digits} ${row.currency}` : digits;
+  return row.currency !== null ? formatMinorAmount(digits, row.currency, "fa") : digits;
 }
 
 export function resolveOperationalRosterActionablePaymentDueAt(
@@ -187,4 +222,36 @@ export function resolveOperationalRosterActionablePaymentDueAt(
     return null;
   }
   return row.paymentDueAt;
+}
+
+export type OperationalRosterNoteKind =
+  | "not_final"
+  | "payment_required"
+  | "payment_deadline"
+  | "refund"
+  | "driver"
+  | "ready";
+
+export function resolveOperationalRosterNoteKind(
+  row: Pick<
+    TourOperationalRosterRow,
+    | "isFinalParticipant"
+    | "financialDisplayState"
+    | "paymentDueAt"
+    | "refundDisplayState"
+    | "isDriverOffer"
+  >
+): OperationalRosterNoteKind {
+  if (!row.isFinalParticipant) {
+    return row.financialDisplayState === "UNPAID" || row.financialDisplayState === "PARTIALLY_PAID"
+      ? "payment_required"
+      : "not_final";
+  }
+  if (row.refundDisplayState !== "none") {
+    return "refund";
+  }
+  if (resolveOperationalRosterActionablePaymentDueAt(row) !== null) {
+    return "payment_deadline";
+  }
+  return row.isDriverOffer ? "driver" : "ready";
 }

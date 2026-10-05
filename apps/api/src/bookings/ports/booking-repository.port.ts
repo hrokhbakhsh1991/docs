@@ -3,6 +3,7 @@ import type {
   BookingListPageOutput,
   BookingPaymentStatus,
   BookingRecord,
+  BookingOutboxEventInput,
   CreateBookingRequest,
 } from "../bookings.types";
 
@@ -37,9 +38,7 @@ export interface BookingRepositoryPort {
   listByTenant(tenantId: string): Promise<BookingRecord[]>;
   listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
   /** Exact COUNT for the same filters as {@link listByTenantPage} (no row cap). */
-  countByTenantFilters(
-    input: Omit<BookingListPageInput, "limit" | "cursor">
-  ): Promise<number>;
+  countByTenantFilters(input: Omit<BookingListPageInput, "limit" | "cursor">): Promise<number>;
   /**
    * Active guest duplicate on a tour (not cancelled/rejected). Uncapped SQL/filter lookup.
    * @see docs/phase-20/p7/appendices/BOOKING_LIST_CORRECTNESS.md
@@ -86,6 +85,11 @@ export interface BookingRepositoryPort {
     readonly bookingId: string;
     readonly tenantId: string;
     readonly paymentStatus: BookingPaymentStatus;
+  }): Promise<BookingRecord | null>;
+  /** Atomically marks an approved free registration paid, finalized, and waived. */
+  markFreeCollectionApplied(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
   }): Promise<BookingRecord | null>;
   /**
    * Merge keys into `registrationIntake` (finance obligation override, etc.).
@@ -134,6 +138,8 @@ export interface BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: BookingOutboxEventInput;
+    initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord>;
   /**
    * Approve in one tenant TX: load → occupancy sum → optional capacity assert → status + outbox.
@@ -144,6 +150,7 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     correlationId?: string;
+    registrationIntakePatch?: Readonly<Record<string, unknown>>;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
@@ -159,6 +166,24 @@ export interface BookingRepositoryPort {
       readonly occupiedApprovedPartySize: number;
     }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
+  /** Explicit operator finalization after financial settlement. */
+  finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord>;
+  /** Explicit operator finalization while an unpaid/partial balance remains. */
+  finalizeBookingWithOpenPayment(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord>;
+  /** Atomically waives the balance and finalizes an already-approved booking. */
+  waiveAndFinalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord>;
   /**
    * pending|waitlisted → rejected. Persist status + optional rejectReason — **no outbox** (decision B).
    * Intentionally silent; do not compare with cancel observability.
@@ -187,6 +212,12 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
+    cancellationStatus?: string;
+    cancellationReasonCode?: string;
+    cancellationReasonNote?: string;
+    cancellationApprovedByUserId?: string;
+    cancellationCorrelationId?: string;
+    cancellationRequestedAt?: string;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

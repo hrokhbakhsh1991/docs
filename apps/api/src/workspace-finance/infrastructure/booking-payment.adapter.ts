@@ -21,9 +21,7 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
   /** Prefer explicit injection from boot — do not silently bind via module singleton. */
   constructor(private readonly bookings: BookingRepositoryPort) {}
 
-  async syncStatus(
-    input: BookingPaymentSyncStatusInput
-  ): Promise<BookingPaymentSyncStatus | null> {
+  async syncStatus(input: BookingPaymentSyncStatusInput): Promise<BookingPaymentSyncStatus | null> {
     const updated = await this.bookings.updatePaymentStatus({
       bookingId: input.registrationId.trim(),
       tenantId: input.tenantId.trim(),
@@ -45,17 +43,26 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
     try {
       const booking = await prismaTx.operatorRegistration.findFirst({
         where: { id: registrationId, tenantId },
-        select: { id: true, paymentStatus: true },
+        select: { id: true, status: true, paymentStatus: true, finalizationStatus: true },
       });
       if (booking === null) {
         throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
       }
       const current = booking.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
-      if (next !== current) {
+      const shouldFinalize =
+        booking.status === "approved" &&
+        next === "paid" &&
+        booking.finalizationStatus !== "finalized";
+      if (next !== current || shouldFinalize) {
         const updated = await prismaTx.operatorRegistration.updateMany({
           where: { id: registrationId, tenantId },
-          data: { paymentStatus: next },
+          data: {
+            paymentStatus: next,
+            ...(booking.status === "approved" && next === "paid"
+              ? { finalizationStatus: "finalized", finalizedAt: new Date() }
+              : {}),
+          },
         });
         if (updated.count !== 1) {
           throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
@@ -75,10 +82,7 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
   }
 
   async memberOwnsRegistration(input: BookingPaymentMemberOwnershipInput): Promise<boolean> {
-    const booking = await this.bookings.getById(
-      input.registrationId.trim(),
-      input.tenantId.trim()
-    );
+    const booking = await this.bookings.getById(input.registrationId.trim(), input.tenantId.trim());
     return (
       booking !== null &&
       booking.tenantId === input.tenantId.trim() &&
@@ -90,10 +94,7 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
     readonly tenantId: string;
     readonly registrationId: string;
   }): Promise<BookingPaymentSyncStatus | null> {
-    const booking = await this.bookings.getById(
-      input.registrationId.trim(),
-      input.tenantId.trim()
-    );
+    const booking = await this.bookings.getById(input.registrationId.trim(), input.tenantId.trim());
     if (booking === null || booking.tenantId !== input.tenantId.trim()) {
       return null;
     }
@@ -104,10 +105,7 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
     readonly tenantId: string;
     readonly registrationId: string;
   }) {
-    const booking = await this.bookings.getById(
-      input.registrationId.trim(),
-      input.tenantId.trim()
-    );
+    const booking = await this.bookings.getById(input.registrationId.trim(), input.tenantId.trim());
     if (booking === null || booking.tenantId !== input.tenantId.trim()) {
       return null;
     }

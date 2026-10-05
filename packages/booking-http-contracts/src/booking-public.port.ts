@@ -15,6 +15,13 @@ export type BookingPublicCreateInput = {
   readonly partySize: number;
   readonly departureAt: string;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  readonly outboxEvent?: BookingPublicOutboxEvent;
+};
+
+export type BookingPublicOutboxEvent = {
+  readonly eventType: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly correlationId?: string;
 };
 
 export type BookingPublicCreateResult = {
@@ -43,7 +50,11 @@ export type BookingPublicOwnedDetail = {
   readonly guestLabel: string;
   /** Who the seat is for — derived from intake; defaults to self. */
   readonly registrantTarget: "self" | "other";
+  /** Explicit attendance finalization; independent from payment settlement. */
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly paymentStatus: string;
+  /** Additive finance projection; WAIVED means no payment was required. */
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize: number;
@@ -86,6 +97,8 @@ export interface BookingPublicPort {
     email: string
   ): Promise<{ readonly id: string } | null>;
   createPendingBooking(input: BookingPublicCreateInput): Promise<BookingPublicCreateResult>;
+  /** Create a validated waitlisted booking without consuming approved capacity. */
+  createWaitlistedBooking?: (input: BookingPublicCreateInput) => Promise<BookingPublicCreateResult>;
   /**
    * Tour-policy auto-approve after public create (no ops CASL).
    * Capacity failure → leave pending and return current status.

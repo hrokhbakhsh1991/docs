@@ -9,7 +9,10 @@ import { getBookingsRepository } from "../src/bookings/create-bookings-repositor
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { installHttpTestClient } from "./http-test-client";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
-import { operatorAuthHeaders, seedOperatorIdentityFixture } from "./fixtures/operator-identity-fixture";
+import {
+  operatorAuthHeaders,
+  seedOperatorIdentityFixture,
+} from "./fixtures/operator-identity-fixture";
 import {
   createSharedMemoryTourStoreForHttpTests,
   createTestToursService,
@@ -84,12 +87,15 @@ describe("p6-member-receipt-flow", () => {
       `/bookings/${registrationId}/receipts`,
       {
         headers: memberHeaders(memberUserId, memberWorkspaceId),
-        body: { fileKey: `receipts/${registrationId}/proof.jpg` },
+        body: { fileKey: `receipts/${OPERATOR_SMOKE.tenantId}/${registrationId}/proof.jpg` },
       }
     );
     assert.equal(response.status, 201);
     assert.equal(response.body.status, "Pending");
-    assert.equal(response.body.fileKey, `receipts/${registrationId}/proof.jpg`);
+    assert.equal(
+      response.body.fileKey,
+      `receipts/${OPERATOR_SMOKE.tenantId}/${registrationId}/proof.jpg`
+    );
   });
 
   it("P6-MR-01b GET /bookings/{id}/receipts returns pending after upload", async () => {
@@ -98,13 +104,9 @@ describe("p6-member-receipt-flow", () => {
       remainingMinor?: string | null;
       previewKind?: string | null;
       previewUrl?: string | null;
-    }>(
-      "GET",
-      `/bookings/${registrationId}/receipts`,
-      {
-        headers: memberHeaders(memberUserId, memberWorkspaceId),
-      }
-    );
+    }>("GET", `/bookings/${registrationId}/receipts`, {
+      headers: memberHeaders(memberUserId, memberWorkspaceId),
+    });
     assert.equal(response.status, 200);
     assert.equal(response.body.status, "pending");
     assert.equal(response.body.previewKind, "image");
@@ -187,7 +189,7 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(response.body.code, "BOOKINGS_FORBIDDEN");
   });
 
-  it("P6-MR-03 operator approves member receipt (VS-07 memory path)", async () => {
+  it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE / P6-MR-03 operator approval updates booking and member list projection", async () => {
     const idRepo = getIdentityRepository();
     const { user, membership } = await idRepo.registerPublicGuest({
       tenantId: OPERATOR_SMOKE.tenantId,
@@ -202,7 +204,10 @@ describe("p6-member-receipt-flow", () => {
         headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
         body: {
           tourId: OPERATOR_SMOKE.seedTourId,
-          contact: { email: "p6-receipt-approve@denali-smoke.local", fullName: "P6 Receipt Approve" },
+          contact: {
+            email: "p6-receipt-approve@denali-smoke.local",
+            fullName: "P6 Receipt Approve",
+          },
           partySize: 1,
         },
       }
@@ -222,7 +227,7 @@ describe("p6-member-receipt-flow", () => {
       `/bookings/${bookingId}/receipts`,
       {
         headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
-        body: { fileKey: `receipts/${bookingId}/approve-proof.jpg` },
+        body: { fileKey: `receipts/${OPERATOR_SMOKE.tenantId}/${bookingId}/approve-proof.jpg` },
       }
     );
     assert.equal(upload.status, 201);
@@ -244,13 +249,19 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(review.status, 200);
     assert.equal(review.body.status, "Approved");
     assert.ok(typeof review.body.ledgerJournalId === "string");
-    assert.equal(
-      (review.body as { bookingPaymentStatus?: string }).bookingPaymentStatus,
-      "paid"
-    );
+    assert.equal((review.body as { bookingPaymentStatus?: string }).bookingPaymentStatus, "paid");
 
     const booking = await getBookingsRepository().getById(bookingId, OPERATOR_SMOKE.tenantId);
     assert.equal(booking?.paymentStatus, "paid");
+
+    const list = await client.requestJson<{
+      items?: readonly { id?: string; paymentStatus?: string }[];
+    }>("GET", "/bookings?view=mine&limit=50", {
+      headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
+    });
+    assert.equal(list.status, 200);
+    const listed = list.body.items?.find((item) => item.id === bookingId);
+    assert.equal(listed?.paymentStatus, "paid");
 
     const status = await client.requestJson<{ status?: string }>(
       "GET",

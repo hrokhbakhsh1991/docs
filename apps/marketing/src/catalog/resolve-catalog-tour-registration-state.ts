@@ -3,19 +3,32 @@ import type { MarketingCatalogCard } from "./catalog-types";
 export type CatalogTourRegistrationState = {
   readonly registrationUrl: string | null;
   readonly isSoldOut: boolean;
+  readonly state: "open" | "waitlist" | "past" | "closed";
+  readonly canJoinWaitlist: boolean;
   readonly canRegister: boolean;
 };
 
 /** PR-D: sold-out when occupancy reports zero remaining seats. */
 export function resolveCatalogTourRegistrationState(
   tour: MarketingCatalogCard,
-  registrationUrl: string | null,
+  registrationUrl: string | null
 ): CatalogTourRegistrationState {
   const isSoldOut = tour.spotsRemaining === 0;
+  const state =
+    tour.registrationState ??
+    (tour.departureAt != null && Date.parse(tour.departureAt) <= Date.now()
+      ? "past"
+      : isSoldOut
+        ? tour.waitlistEnabled === true
+          ? "waitlist"
+          : "closed"
+        : "open");
   const hasUrl = registrationUrl != null && registrationUrl.trim().length > 0;
   return Object.freeze({
     registrationUrl: hasUrl ? registrationUrl.trim() : null,
     isSoldOut,
-    canRegister: hasUrl && !isSoldOut,
+    state,
+    canJoinWaitlist: hasUrl && state === "waitlist",
+    canRegister: hasUrl && state === "open",
   });
 }

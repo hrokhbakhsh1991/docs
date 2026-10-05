@@ -10,6 +10,20 @@ rg -q "X-Forwarded-Proto|forwarded-proto" deploy/vps/caddy/Caddyfile -i || {
   exit 1
 }
 
+for route in \
+  'http://admin\.\{\$CANONICAL_TENANT_LABEL\}\.\{\$PLATFORM_ROOT_DOMAIN\}' \
+  'http://portal\.\{\$CANONICAL_TENANT_LABEL\}\.\{\$PLATFORM_ROOT_DOMAIN\}'; do
+  rg -q "$route" deploy/vps/caddy/Caddyfile || {
+    echo "P10_PROFILE_C_ENV_FAIL: missing canonical sibling route ($route)" >&2
+    exit 1
+  }
+done
+
+if rg -q 'header_up X-Forwarded-Proto \{scheme\}' deploy/vps/caddy/Caddyfile; then
+  echo "P10_PROFILE_C_ENV_FAIL: Arvan origin must forward X-Forwarded-Proto https" >&2
+  exit 1
+fi
+
 for f in deploy/vps/env/web.env.example deploy/vps/env/portal.env.example; do
   rg -q "SESSION_COOKIE_SECURE" "$f" || {
     echo "P10_PROFILE_C_ENV_FAIL: missing SESSION_COOKIE_SECURE in $f" >&2

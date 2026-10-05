@@ -170,11 +170,18 @@ describe("bookings-safety.spec.ts", () => {
     assert.match(source, /enrichBookingListRecordsWithIntakeScalars/);
   });
 
+  it("BUG-STG-080 getById enriches the same waived projection used by the list", () => {
+    const source = fs.readFileSync(PRISMA_BOOKINGS_REPO, "utf8");
+    const getByIdStart = source.indexOf("async getById(");
+    const getByIdEnd = source.indexOf("async getByIds(", getByIdStart);
+    const getById = source.slice(getByIdStart, getByIdEnd);
+    assert.match(getById, /enrichBookingListRecordsWithIntakeScalars/);
+    assert.match(getById, /attachPaymentDueAtProjection/);
+  });
+
   it("BK-SAFE-02 prisma listByTenantPage uses withTenantRls for paginated query", () => {
     const source = fs.readFileSync(PRISMA_BOOKINGS_REPO, "utf8");
-    const methodBody = source.match(
-      /async listByTenantPage\([\s\S]*?\n  \}/
-    )?.[0];
+    const methodBody = source.match(/async listByTenantPage\([\s\S]*?\n  \}/)?.[0];
     assert.ok(methodBody !== undefined, "listByTenantPage must exist");
     assert.match(methodBody, /withTenantRls\s*\(/, "paginated list must run inside withTenantRls");
     assert.match(methodBody, /select:\s*BOOKING_LIST_SELECT/);
@@ -199,7 +206,6 @@ describe("bookings-safety.spec.ts", () => {
     assert.equal(wrongTenant, null);
   });
 
-
   it("BK-SAFE-04 new pagination types stay off package root exports", () => {
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")
@@ -219,5 +225,4 @@ describe("bookings-safety.spec.ts", () => {
     );
     assert.match(repoInterface, /listByTenantPage\(input: BookingListPageInput\)/);
   });
-
 });

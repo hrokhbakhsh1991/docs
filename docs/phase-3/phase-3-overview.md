@@ -6,7 +6,7 @@
 phase_id: "3"
 phase_name: "Design System & App Integration"
 north_star: "Platform shell = generic · Workspace = injectable plugin · Authority = CASL before ingress · Visual = subpath-only primitives"
-document_status_claim: "Gate-passed — platform scaffold 3.0–3.5 + 3.3.x — pnpm run phase-3:gate exit 0 (refresh SHA after gap closure)"
+document_status_claim: "Scaffold / In Progress — runtime backlog active; gate evidence does not close the whole phase"
 document_closure_claim: "Starter + apps/api + apps/web prove CASL, subpath primitives (incl. select/checkbox), canonical SoT, STORAGE_DRIVER — MAP Locked label requires final-phase-3-audit PASS"
 prerequisite_phase: "2"
 prerequisite_gate: "pnpm run phase-2:gate — ALL exit criteria PASS (Closed: Zero-Debt Verified)"

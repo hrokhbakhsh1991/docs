@@ -17,8 +17,8 @@ fail_token: FAIL
 | **Doc execution system** | **96**       | BOOT-MANIFEST + guard `p5_doc_hardening` (target >= 95) |
 | **Doc navigation**       | 100          | Precision pack complete                                 |
 | **Repo scaffold**        | ~43          | 5.1 + guard                                             |
-| **Repo behavioral**      | ~29          | 5.2 VERIFIED; 5.3–5.5 open                              |
-| **Phase closed**         | ~37 weighted | Needs 5.3–5.5 behavioral + phase-4:gate                 |
+| **Repo behavioral**      | ~29          | 5.2–5.5 VERIFIED_BEHAVIORAL; current-SHA tests required |
+| **Phase closed**         | ~37 weighted | Needs same-SHA phase-4 prerequisite + 5.6 closure       |
 
 `phase-5:guard` PASS ≠ Phase 5 closed. See [`AI-READABILITY-REPORT.md`](AI-READABILITY-REPORT.md).
 
@@ -133,9 +133,9 @@ Implement the **data layer standard** (ADR-005): `canonical_data` JSONB SoT, syn
 | 5.0 | [`subphases/5.0-entry-gate.md`](subphases/5.0-entry-gate.md)                     | PARTIAL                         |
 | 5.1 | [`subphases/5.1-canonical-schema.md`](subphases/5.1-canonical-schema.md)         | VERIFIED (scaffold)             |
 | 5.2 | [`subphases/5.2-plugin-validation.md`](subphases/5.2-plugin-validation.md)       | **VERIFIED**                    |
-| 5.3 | [`subphases/5.3-projections.md`](subphases/5.3-projections.md)                   | VERIFIED (unified in 5.4-S1 TX) |
-| 5.4 | [`subphases/5.4-transactional-outbox.md`](subphases/5.4-transactional-outbox.md) | SPEC_ONLY                       |
-| 5.5 | [`subphases/5.5-audit-events.md`](subphases/5.5-audit-events.md)                 | SPEC_ONLY                       |
+| 5.3 | [`subphases/5.3-projections.md`](subphases/5.3-projections.md)                   | VERIFIED_BEHAVIORAL             |
+| 5.4 | [`subphases/5.4-transactional-outbox.md`](subphases/5.4-transactional-outbox.md) | VERIFIED_BEHAVIORAL             |
+| 5.5 | [`subphases/5.5-audit-events.md`](subphases/5.5-audit-events.md)                 | VERIFIED_BEHAVIORAL             |
 | 5.6 | [`subphases/5.6-phase-gate.md`](subphases/5.6-phase-gate.md)                     | PARTIAL                         |
 
 ## FAIL conditions

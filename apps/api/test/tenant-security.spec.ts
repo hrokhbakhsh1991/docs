@@ -54,6 +54,7 @@ async function signProductionJwt(
 }
 
 beforeEach(() => {
+  process.env.NODE_ENV = "test";
   process.env.STORAGE_DRIVER = "memory";
   process.env.P5_VALIDATION_WORKERS_ENABLED = "false";
   process.env.P5_VALIDATION_WORKER_POOL_SIZE = "0";

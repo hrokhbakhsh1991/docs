@@ -1,7 +1,9 @@
 import type { CatalogListFilters } from "./catalog-list-query";
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import { filterMarketingCatalogItems } from "./filter-marketing-catalog-items";
 import { sortMarketingCatalogItems } from "./sort-marketing-catalog-items";
+import type { MarketingCatalogPricingPreviews } from "./resolve-marketing-catalog-list-price";
 
 export type MarketingCatalogListPipelineResult = {
   readonly items: readonly MarketingCatalogCard[];
@@ -14,7 +16,9 @@ export async function applyMarketingCatalogListPipeline(
   fetchedItems: readonly MarketingCatalogCard[],
   filters: CatalogListFilters,
   serverListFilters: readonly string[] = [],
-  pluginId?: string
+  pluginId?: string,
+  pricingPreviews?: MarketingCatalogPricingPreviews,
+  pricingPreviewStatus: MarketingCommercialPricingPreviewStatus = "anonymous"
 ): Promise<MarketingCatalogListPipelineResult> {
   void serverListFilters;
   const filteredItems = await filterMarketingCatalogItems(
@@ -25,10 +29,21 @@ export async function applyMarketingCatalogListPipeline(
       difficulty: filters.difficulty,
       fitness: filters.fitness,
       availability: filters.availability,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      minDuration: filters.minDuration,
+      maxDuration: filters.maxDuration,
     },
-    pluginId
+    pluginId,
+    pricingPreviews,
+    pricingPreviewStatus
   );
-  const items = sortMarketingCatalogItems(filteredItems, filters.sort);
+  const items = sortMarketingCatalogItems(
+    filteredItems,
+    filters.sort,
+    pricingPreviews,
+    pricingPreviewStatus
+  );
   return {
     items,
     matchedCount: items.length,

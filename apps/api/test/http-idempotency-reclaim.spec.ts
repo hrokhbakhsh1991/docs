@@ -462,7 +462,10 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
       path: "/finance/receipts",
       tenantId: denaliTenantId,
       idempotencyKey: `receipt-${paymentId}`,
-      body: { paymentId, fileKey: `receipts/${paymentId}/proof.jpg` },
+      body: {
+        paymentId,
+        fileKey: `receipts/${denaliTenantId}/${registrationId}/proof.jpg`,
+      },
     });
     assert.equal(receipt.status, 201);
     const receiptId = String(receipt.body.id);

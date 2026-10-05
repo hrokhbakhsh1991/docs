@@ -14,7 +14,155 @@ describe("format integration delivery message", () => {
         eventType: "TourPublished",
         payload: { title: "Alpine Day", aggregateId: "tour-1" },
       }),
-      "Tour published: Alpine Day"
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day"
+    );
+  });
+
+  it("BUG-STG-040 renders operational registration and truthful receipt evidence fields", async () => {
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "member.registered",
+        payload: {
+          displayName: "Ali Test",
+          mobile: "+989121234567",
+          registeredAt: "2026-09-14T10:00:00.000Z",
+        },
+      }),
+      "عضو جدید دنالی\nنام: Ali Test\nشماره تماس: +989121234567\nتاریخ ثبت‌نام: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "registration.created",
+        payload: {
+          guestLabel: "Ali Test",
+          tourTitle: "Damavand",
+          departureAt: "2026-09-20",
+          partySize: 2,
+          bookingId: "registration-123",
+          approvalStatus: "awaiting_approval",
+          approvalPrompt: "⏳ این تور نیاز به تأیید ادمین دارد.",
+        },
+      }),
+      "📝 ثبت‌نام جدید\n\n👤 نام: Ali Test\n🏕 تور: Damavand\n📅 تاریخ حرکت: 2026-09-20\n👥 تعداد نفرات: 2\n🆔 شناسه ثبت‌نام: registration-123\n\n⏳ این تور نیاز به تأیید ادمین دارد."
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "registration.waitlisted",
+        payload: {
+          guestLabel: "Ali Test",
+          tourTitle: "Damavand",
+          departureAt: "2026-09-20",
+          partySize: 2,
+          bookingId: "registration-123",
+          approvalPrompt: "⏳ ظرفیت تکمیل است؛ ثبت‌نام در لیست انتظار قرار گرفت.",
+        },
+      }),
+      "⏳ ثبت‌نام در لیست انتظار\n\n👤 نام: Ali Test\n🏕 تور: Damavand\n📅 تاریخ حرکت: 2026-09-20\n👥 تعداد نفرات: 2\n🆔 شناسه ثبت‌نام: registration-123\n\n⏳ ظرفیت تکمیل است؛ ثبت‌نام در لیست انتظار قرار گرفت."
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: {
+          registrationId: "reg-1",
+          paymentId: "pay-1",
+          amount: "2500000",
+          currency: "IRR",
+          submittedAt: "2026-09-14T10:00:00.000Z",
+        },
+      }),
+      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
+    );
+    assert.match(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: {
+          registrationId: "reg-2",
+          paymentId: "pay-2",
+          amount: "2500000",
+          currency: "IRR",
+          submittedAt: "2026-09-14T10:00:00.000Z",
+          evidenceKind: "text",
+          note: "پرداخت از طریق کارت به کارت انجام شد",
+        },
+      }),
+      /نوع مدرک: text\nتوضیحات: پرداخت از طریق کارت به کارت انجام شد/
+    );
+    assert.match(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "receipt.submitted",
+        payload: { registrationId: "reg-3", note: "رسید متنی" },
+      }),
+      /نوع مدرک: متن\nتوضیحات: رسید متنی/
+    );
+    const fileWithoutNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-4",
+        evidenceKind: "photo",
+        fileKey: "proof/a.jpg",
+        note: "",
+      },
+    });
+    assert.match(fileWithoutNote, /نوع مدرک: photo/);
+    assert.doesNotMatch(fileWithoutNote, /بدون توضیحات|توضیحات:/);
+
+    const documentWithoutNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-5",
+        evidenceKind: "document",
+        fileKey: "proof/a.pdf",
+        note: "   ",
+      },
+    });
+    assert.match(documentWithoutNote, /نوع مدرک: document/);
+    assert.doesNotMatch(documentWithoutNote, /بدون توضیحات|توضیحات:/);
+
+    const fileWithNote = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "receipt.submitted",
+      payload: {
+        registrationId: "reg-6",
+        evidenceKind: "photo",
+        fileKey: "proof/a.jpg",
+        note: "توضیح واقعی رسید",
+      },
+    });
+    assert.match(fileWithNote, /نوع مدرک: photo\nتوضیحات: توضیح واقعی رسید/);
+  });
+
+  it("renders ticket identifiers, subject, body, and Tehran-local date", async () => {
+    const payload = {
+      ticketCode: "TKT-000010",
+      subject: "تست قالب تلگرام",
+      status: "open",
+      createdAt: "2026-09-14T10:00:00.000Z",
+      body: "متن کامل تیکت",
+    };
+
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "ticket.created",
+        payload,
+      }),
+      "🎫 تیکت جدید برای بررسی\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن تیکت:\nمتن کامل تیکت\n\n↩️ برای پاسخ به کاربر، روی همین پیام Reply کنید."
+    );
+    assert.equal(
+      await formatIntegrationDeliveryMessage({
+        workspaceType: "denali",
+        eventType: "ticket.message.posted",
+        payload,
+      }),
+      "💬 پیام جدید در تیکت\nشناسه: TKT-000010\nموضوع: تست قالب تلگرام\nوضعیت: open\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰\n\nمتن پیام:\nمتن کامل تیکت"
     );
   });
 
@@ -35,11 +183,11 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour published: Alpine Day",
+        "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day",
         "Destination: Kerman",
         "Title: Alpine Day",
         "Start Date Time: 2026-06-28",
-      ].join("\n"),
+      ].join("\n")
     );
   });
 
@@ -63,10 +211,10 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour published: Alpine Day",
+        "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day",
         "✅ 📍 Meeting Point: Jamshidiyeh Park",
         "✅ 🎒 Gear Items: Breakfast, water, baton",
-      ].join("\n"),
+      ].join("\n")
     );
   });
 
@@ -86,7 +234,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "New tour Alpine Day (TourPublished)",
+      "New tour Alpine Day (TourPublished)"
     );
   });
 
@@ -183,7 +331,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "Tour published: Alpine Day\nTitle: Alpine Day",
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: Alpine Day\nTitle: Alpine Day"
     );
   });
 });

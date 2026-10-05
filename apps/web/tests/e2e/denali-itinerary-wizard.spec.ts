@@ -228,5 +228,9 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
         .getByRole("textbox", { name: /^عنوان$|^Title$/i })
         .first()
     ).toHaveValue("Day one activity");
+    await page.screenshot({
+      path: "test-results/t10-wizard-itinerary.png",
+      fullPage: true,
+    });
   });
 });

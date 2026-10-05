@@ -33,4 +33,18 @@ describe("finance-invoice-prefill.spec.ts — FC-2", () => {
     };
     assert.equal(resolveSuggestedPaymentAmountMinor(invoice), "5000000");
   });
+
+  it("WEB-FC2-03 prefers the staged amount due now", () => {
+    const invoice: RegistrationInvoice = {
+      registrationId: "00000000-0000-4000-8000-000000000001",
+      currency: "IRR",
+      invoiceTotalMinor: "5000000",
+      paidAmountMinor: "0",
+      balanceDueMinor: "5000000",
+      amountDueNowMinor: "1500000",
+      initialPaymentDueMinor: "1500000",
+      walletNetMinor: "0",
+    };
+    assert.equal(resolveSuggestedPaymentAmountMinor(invoice), "1500000");
+  });
 });

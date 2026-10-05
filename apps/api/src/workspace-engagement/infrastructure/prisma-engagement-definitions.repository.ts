@@ -43,6 +43,14 @@ function toI18nJson(value: EngagementI18nText): Prisma.InputJsonValue {
   return { fa: value.fa, en: value.en };
 }
 
+function isLegacyI18nKey(value: Prisma.JsonValue, key: string): boolean {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return record.en === key && record.fa === key;
+}
+
 function mapBadgeRow(row: {
   id: string;
   tenantId: string;
@@ -288,19 +296,74 @@ export function createPrismaEngagementDefinitionsRepository() {
         const existingCount = await tx.engagementBadgeDefinition.count({
           where: { tenantId, workspaceId },
         });
+
+        // Repair the original seed shape in place. Older rows stored translation
+        // keys as display text; only exact key-for-both-locales values are changed,
+        // so operator-customized definitions remain untouched.
+        const existingBadges = await tx.engagementBadgeDefinition.findMany({
+          where: { tenantId, workspaceId },
+          select: { id: true, code: true, titleI18n: true, descriptionI18n: true },
+        });
+        for (const badge of DEFAULT_ENGAGEMENT_BADGES) {
+          const row = existingBadges.find((item) => item.code === badge.code);
+          if (row === undefined) {
+            continue;
+          }
+          const data: Prisma.EngagementBadgeDefinitionUpdateInput = {};
+          if (isLegacyI18nKey(row.titleI18n, badge.labelKey) && badge.titleI18n !== undefined) {
+            data.titleI18n = toI18nJson(badge.titleI18n);
+          }
+          if (
+            isLegacyI18nKey(row.descriptionI18n, badge.descriptionKey) &&
+            badge.descriptionI18n !== undefined
+          ) {
+            data.descriptionI18n = toI18nJson(badge.descriptionI18n);
+          }
+          if (Object.keys(data).length > 0) {
+            await tx.engagementBadgeDefinition.update({ where: { id: row.id }, data });
+          }
+        }
+
+        const existingLevels = await tx.engagementLevelDefinition.findMany({
+          where: { tenantId, workspaceId },
+          select: { id: true, code: true, titleI18n: true, descriptionI18n: true },
+        });
+        for (const level of DEFAULT_ENGAGEMENT_LEVELS) {
+          const row = existingLevels.find((item) => item.code === level.code);
+          if (
+            row === undefined ||
+            level.titleI18n === undefined ||
+            !isLegacyI18nKey(row.titleI18n, level.labelKey)
+          ) {
+            continue;
+          }
+          await tx.engagementLevelDefinition.update({
+            where: { id: row.id },
+            data: {
+              titleI18n: toI18nJson(level.titleI18n),
+              ...(isLegacyI18nKey(row.descriptionI18n, level.labelKey)
+                ? { descriptionI18n: toI18nJson(level.titleI18n) }
+                : {}),
+            },
+          });
+        }
+
         if (existingCount > 0) {
           return;
         }
 
         for (const badge of DEFAULT_ENGAGEMENT_BADGES) {
-          const i18n = { en: badge.labelKey, fa: badge.labelKey };
           await tx.engagementBadgeDefinition.create({
             data: {
               tenantId,
               workspaceId,
               code: badge.code,
-              titleI18n: toI18nJson(i18n),
-              descriptionI18n: toI18nJson({ en: badge.descriptionKey, fa: badge.descriptionKey }),
+              titleI18n: toI18nJson(
+                badge.titleI18n ?? { en: badge.labelKey, fa: badge.labelKey },
+              ),
+              descriptionI18n: toI18nJson(
+                badge.descriptionI18n ?? { en: badge.descriptionKey, fa: badge.descriptionKey },
+              ),
               iconKey: "mountain",
               status: "active",
               triggerKind: badge.trigger.kind,
@@ -313,14 +376,17 @@ export function createPrismaEngagementDefinitionsRepository() {
         }
 
         for (const [index, level] of DEFAULT_ENGAGEMENT_LEVELS.entries()) {
-          const i18n = { en: level.labelKey, fa: level.labelKey };
           await tx.engagementLevelDefinition.create({
             data: {
               tenantId,
               workspaceId,
               code: level.code,
-              titleI18n: toI18nJson(i18n),
-              descriptionI18n: toI18nJson(i18n),
+              titleI18n: toI18nJson(
+                level.titleI18n ?? { en: level.labelKey, fa: level.labelKey },
+              ),
+              descriptionI18n: toI18nJson(
+                level.titleI18n ?? { en: level.labelKey, fa: level.labelKey },
+              ),
               minPoints: level.minPoints,
               sortOrder: index,
               status: "active",

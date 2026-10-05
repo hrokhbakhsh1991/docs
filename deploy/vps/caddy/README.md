@@ -20,8 +20,8 @@ Apps (loopback 127.0.0.1)
 
 | Surface | Pattern | Backend |
 |---------|---------|---------|
-| Admin | `https://{club}.admin.{root}` | 127.0.0.1:3000 |
-| Portal | `https://{club}.portal.{root}` | 127.0.0.1:3003 |
+| Admin | `https://admin.{club}.{root}` | 127.0.0.1:3000 |
+| Portal | `https://portal.{club}.{root}` | 127.0.0.1:3003 |
 | Marketing | `https://{club}.{root}` | 127.0.0.1:3002 |
 | API | Internal only | 127.0.0.1:3001 |
 
@@ -33,6 +33,7 @@ Set in `/etc/environment` or systemd service:
 
 ```bash
 PLATFORM_ROOT_DOMAIN=staging.example.com
+CANONICAL_TENANT_LABEL=denali
 ```
 
 ## Installation
@@ -66,7 +67,7 @@ ENV_DIR=/etc/app-tour-staging PLATFORM_ROOT_DOMAIN=your.staging.apex \
 sudo systemctl restart caddy
 ```
 
-**Staging ports:** `render-caddy-env.sh` reads `PORT=` from each app env file — production `3000–3003`, staging `23000–23003`.
+**Staging ports:** `render-caddy-env.sh` reads `PORT=` from each app env file — production `3000–3003`, staging `23000–23003`. It reads `PORTAL_PUBLIC_BASE_URL` from `portal.env` (falling back to `marketing.env`) so custom hosts such as `portal.denali.club` route to the Portal upstream instead of the marketing wildcard. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` and `X-Forwarded-Host` remain set for the applications. Provisioning another workspace must update the public URL/env and reload Caddy; it does not broaden the session cookie to the platform root.
 
 ### 3. Configure DNS
 
@@ -74,8 +75,10 @@ For wildcard TLS, you need DNS records:
 
 ```
 *.staging.example.com        A    <VPS_IP>
-*.admin.staging.example.com  A    <VPS_IP>
-*.portal.staging.example.com A    <VPS_IP>
+<club>.admin.staging.example.com  A    <VPS_IP>  # legacy compatibility
+<club>.portal.staging.example.com A    <VPS_IP>  # legacy compatibility
+admin.<club>.staging.example.com  A    <VPS_IP>
+portal.<club>.staging.example.com A    <VPS_IP>
 ```
 
 **Note:** Wildcard TLS via Let's Encrypt requires DNS-01 challenge. For HTTP-01 challenge (simpler), use individual subdomains instead.

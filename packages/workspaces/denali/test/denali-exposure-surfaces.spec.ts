@@ -17,6 +17,8 @@ describe("denali exposure surfaces", () => {
     assert.ok(DENALI_PUBLIC_LIST_FIELD_IDS.length > 0);
     assert.ok(DENALI_PUBLIC_DETAILS_FIELD_IDS.length > DENALI_PUBLIC_LIST_FIELD_IDS.length);
     assert.ok(DENALI_PUBLIC_DETAILS_FIELD_IDS.includes("denali.social-media-link"));
+    assert.ok(DENALI_PUBLIC_DETAILS_FIELD_IDS.includes("denali.pricing-payment"));
+    assert.ok(DENALI_PUBLIC_LIST_FIELD_IDS.includes("denali.transport-mode"));
     for (const fieldId of DENALI_PUBLIC_LIST_FIELD_IDS) {
       assert.ok(DENALI_PUBLIC_DETAILS_FIELD_IDS.includes(fieldId));
     }

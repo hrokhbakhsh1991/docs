@@ -112,10 +112,26 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
       fileKey: "receipts/proof.pdf",
       note: "ok",
     };
-    assert.deepEqual(parseSubmitReceiptBody(validSubmit), parseSubmitReceiptBodyDenali(validSubmit));
+    assert.deepEqual(
+      parseSubmitReceiptBody(validSubmit),
+      parseSubmitReceiptBodyDenali(validSubmit)
+    );
+
+    const textOnlySubmit = {
+      paymentId: PAYMENT_ID,
+      note: "پرداخت با کارت به کارت انجام شد",
+    };
+    assert.deepEqual(
+      parseSubmitReceiptBody(textOnlySubmit),
+      parseSubmitReceiptBodyDenali(textOnlySubmit)
+    );
+    assert.throws(() => parseSubmitReceiptBody({ paymentId: PAYMENT_ID }), /ZOD_VALIDATION_FAILED/);
 
     const validReview = { decision: "approve" as const, reviewNote: "lgtm" };
-    assert.deepEqual(parseReviewReceiptBody(validReview), parseReviewReceiptBodyDenali(validReview));
+    assert.deepEqual(
+      parseReviewReceiptBody(validReview),
+      parseReviewReceiptBodyDenali(validReview)
+    );
 
     const validPrepay = {
       registrationId: REGISTRATION_ID,
@@ -144,7 +160,8 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
     );
 
     assert.throws(
-      () => parseCreateManualPaymentBody({ registrationId: "not-uuid", amount: "1", currency: "IRR" }),
+      () =>
+        parseCreateManualPaymentBody({ registrationId: "not-uuid", amount: "1", currency: "IRR" }),
       /ZOD_VALIDATION_FAILED/
     );
     try {

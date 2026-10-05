@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildIntegrationPatchInput,
   channelIdFromConfig,
+  formatIntegrationTestedAt,
   hasActiveTelegramDeliverySource,
   hasPlatformIntegrationConnection,
   hasPlatformTelegramConnection,
@@ -51,6 +52,13 @@ function sampleItem(
 }
 
 describe("integrations-settings-logic", () => {
+  it("WEB-INT-14 formats test timestamps for operators and hides invalid raw values", () => {
+    const fa = formatIntegrationTestedAt("2026-09-21T18:46:52.687Z", "fa");
+    assert.match(fa, /۱۴۰۵|۲۰۲۶/);
+    assert.doesNotMatch(fa, /T18:46:52/);
+    assert.equal(formatIntegrationTestedAt("not-a-date", "fa"), "—");
+  });
+
   it("WEB-INT-04 resolves workspace scenarios", () => {
     assert.equal(
       resolveIntegrationsWorkspaceScenario({

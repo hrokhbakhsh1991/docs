@@ -1,0 +1,79 @@
+version: 1
+name: denali-qa
+task_source: reports/denali-admin-bug-ledger.md
+
+# A task cannot be closed from an LLM message. The verifier must read the
+# evidence fields below and reject missing or stale proof.
+states:
+  - BACKLOG
+  - IN_PROGRESS
+  - CODE_DONE
+  - LOCAL_TESTED
+  - STAGING_READY
+  - BROWSER_VERIFIED
+  - CLOSED
+  - BLOCKED
+
+transitions:
+  BACKLOG: [IN_PROGRESS, BLOCKED]
+  IN_PROGRESS: [CODE_DONE, BLOCKED]
+  CODE_DONE: [LOCAL_TESTED, IN_PROGRESS, BLOCKED]
+  LOCAL_TESTED: [STAGING_READY, IN_PROGRESS, BLOCKED]
+  STAGING_READY: [BROWSER_VERIFIED, IN_PROGRESS, BLOCKED]
+  BROWSER_VERIFIED: [CLOSED, IN_PROGRESS]
+  BLOCKED: [IN_PROGRESS]
+  CLOSED: []
+
+completion_rules:
+  - status: CLOSED
+    requires:
+      - task_id
+      - acceptance_criteria
+      - source_sha
+      - test_command
+      - test_result
+      - runtime_environment
+      - verifier
+      - verified_at
+  - status: BROWSER_VERIFIED
+    requires:
+      - browser_url
+      - visible_result
+      - console_error_count
+      - network_result
+      - screenshot_or_dom_assertion
+  - status: BLOCKED
+    requires:
+      - blocker
+      - attempted_proof
+      - next_action
+      - owner
+
+task_rules:
+  one_task_at_a_time: true
+  task_order: ascending_id
+  ui_tasks_require_browser: true
+  payment_and_telegram_require_browser: true
+  implementer_can_not_be_final_verifier: true
+  test_message_is_not_event_evidence: true
+  skipped_is_not_pass: true
+  old_sha_is_not_runtime_proof: true
+
+evidence_contract:
+  source_sha: exact git commit tested
+  test_command: exact command, not a summary
+  test_result: exit code and relevant output
+  runtime_environment: local | staging | production
+  browser_url: final URL after the action
+  visible_result: user-visible expected state
+  console_error_count: integer from the relevant flow
+  network_result: relevant request status and response assertion
+  screenshot_or_dom_assertion: screenshot path or deterministic DOM assertion
+  verifier: actor or verifier job that checked the evidence
+  verified_at: ISO-8601 timestamp
+
+failure_policy:
+  - Any missing required field keeps the task open.
+  - A failed browser assertion returns the task to IN_PROGRESS.
+  - A browser pass on a different SHA is invalid.
+  - After three identical blocked attempts, escalate to a human with the evidence packet.

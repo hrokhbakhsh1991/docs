@@ -48,7 +48,7 @@ export type DenaliPaymentSource = {
 export type DenaliReceiptRowSource = {
   readonly id: string;
   readonly status: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly reviewedAt?: string | null;
 };
 

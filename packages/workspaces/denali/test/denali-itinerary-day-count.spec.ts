@@ -50,4 +50,9 @@ describe("denali-itinerary-day-count.spec.ts", () => {
     assert.match(PHOTOS_SRC, /estimateDenaliTourDayCount/);
     assert.equal(/Math\.max\(stored\.length,\s*2\)/.test(ITINERARY_SRC), false);
   });
+
+  it("DN-MULTI-CAL-05 caps a malformed multi-year range before it can render hundreds of rows", () => {
+    const farFuture = new Date(2029, 8, 18, 18, 0, 0).toISOString();
+    assert.equal(estimateDenaliTourDayCount(start, farFuture), 60);
+  });
 });

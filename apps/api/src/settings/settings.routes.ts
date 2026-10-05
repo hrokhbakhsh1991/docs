@@ -44,6 +44,7 @@ import type {
   CreateTourThemeRequest,
   PresetsAdvancedMatchRule,
   PresetsAdvancedPayloadV1,
+  PaymentDestinationPayloadV1,
   PutSettingsConfigRequest,
   WizardTemplatePayloadV1,
 } from "./settings.types";
@@ -356,13 +357,42 @@ function parsePresetsAdvancedPayload(body: unknown): PresetsAdvancedPayloadV1 | 
   };
 }
 
+function parsePaymentDestinationPayload(body: unknown): PaymentDestinationPayloadV1 | null {
+  if (typeof body !== "object" || body === null) return null;
+  const payloadRaw = (body as Record<string, unknown>).payload;
+  if (typeof payloadRaw !== "object" || payloadRaw === null) return null;
+  const payload = payloadRaw as Record<string, unknown>;
+  if (
+    typeof payload.enabled !== "boolean" ||
+    typeof payload.cardNumber !== "string" ||
+    typeof payload.cardHolderName !== "string"
+  ) {
+    return null;
+  }
+  const bankName =
+    payload.bankName === null || typeof payload.bankName === "string" ? payload.bankName : null;
+  const instructions =
+    payload.instructions === null || typeof payload.instructions === "string"
+      ? payload.instructions
+      : null;
+  return {
+    enabled: payload.enabled,
+    cardNumber: payload.cardNumber,
+    cardHolderName: payload.cardHolderName,
+    bankName,
+    instructions,
+  };
+}
+
 function parsePutConfigBody(body: unknown, configKey: string): PutSettingsConfigRequest | null {
   if (typeof body !== "object" || body === null) return null;
   const configVersion = readNumberField(body, "configVersion");
   const payload =
     configKey === "presets_advanced"
       ? parsePresetsAdvancedPayload(body)
-      : parseWizardTemplatePayload(body);
+      : configKey === "payment_destination"
+        ? parsePaymentDestinationPayload(body)
+        : parseWizardTemplatePayload(body);
   if (configVersion === null || payload === null) {
     return null;
   }

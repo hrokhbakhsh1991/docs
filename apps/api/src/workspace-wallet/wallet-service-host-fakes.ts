@@ -164,7 +164,7 @@ export function createFakeWalletService(
         items: [
           {
             id: ACCOUNT_ID,
-            userId: query.userId,
+            userId: query.userId ?? "00000000-0000-4000-8000-000000000001",
             workspaceId: WORKSPACE,
             currency: "IRR",
             status: "active",

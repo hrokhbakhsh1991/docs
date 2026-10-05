@@ -70,6 +70,7 @@ describe("finance-obligation-denali.spec.ts — FC-2", () => {
       () => ({
         currency: "IRR",
         obligationMinor: "1300000",
+        discountableBaseMinor: "1000000",
         source: "tour_canonical",
         lines: [
           { code: "trip", amountMinor: "1000000" },

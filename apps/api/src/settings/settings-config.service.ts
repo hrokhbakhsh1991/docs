@@ -15,11 +15,13 @@ import {
 import type {
   PresetsAdvancedMatchRule,
   PresetsAdvancedPayloadV1,
+  PaymentDestinationPayloadV1,
   PutSettingsConfigRequest,
   SettingsConfigResponse,
   WizardTemplatePayloadV1,
 } from "./settings.types";
 import { SettingsMutationForbiddenError } from "./settings.service";
+import { SettingsResourceInvalidError } from "./settings-resource-errors";
 
 export { SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
 export class SettingsConfigVersionUnsupportedError extends Error {
@@ -33,6 +35,7 @@ export class SettingsConfigVersionUnsupportedError extends Error {
 
 const WIZARD_TEMPLATE_CURRENT_VERSION = 1;
 const PRESETS_ADVANCED_CURRENT_VERSION = 1;
+const PAYMENT_DESTINATION_CURRENT_VERSION = 1;
 
 const WIZARD_TEMPLATE_WORKSPACE_DEFAULT: WizardTemplatePayloadV1 = {
   seedLabel: "",
@@ -46,6 +49,14 @@ const PRESETS_ADVANCED_WORKSPACE_DEFAULT: PresetsAdvancedPayloadV1 = {
   autoMatchEnabled: false,
   defaultPresetId: null,
   matchRules: [],
+};
+
+const PAYMENT_DESTINATION_WORKSPACE_DEFAULT: PaymentDestinationPayloadV1 = {
+  enabled: false,
+  cardNumber: "",
+  cardHolderName: "",
+  bankName: null,
+  instructions: null,
 };
 
 const invalidatedTenantConfigKeys = new Set<string>();
@@ -269,6 +280,24 @@ function normalizePresetsAdvancedPayload(
   };
 }
 
+function normalizePaymentDestinationPayload(
+  payload: Record<string, unknown>
+): PaymentDestinationPayloadV1 {
+  const cardNumber = typeof payload.cardNumber === "string"
+    ? payload.cardNumber.replace(/[\s-]/g, "").replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    : "";
+  const cardHolderName = typeof payload.cardHolderName === "string" ? payload.cardHolderName.trim() : "";
+  const bankName = typeof payload.bankName === "string" ? payload.bankName.trim() || null : null;
+  const instructions = typeof payload.instructions === "string" ? payload.instructions.trim() || null : null;
+  return {
+    enabled: payload.enabled === true,
+    cardNumber,
+    cardHolderName,
+    bankName,
+    instructions,
+  };
+}
+
 async function assertSupportedConfigKey(tenantId: string, configKey: string): Promise<void> {
   await resolveSettingsModuleByConfigKeyForTenant(tenantId, configKey);
 }
@@ -344,10 +373,59 @@ export async function getSettingsConfig(
   if (configKey === "wizard_template") {
     return getWizardTemplateConfig(auth, configKey);
   }
+
   if (configKey === "presets_advanced") {
     return getPresetsAdvancedConfig(auth, configKey);
   }
+  if (configKey === "payment_destination") {
+    const repo = getSettingsConfigRepository();
+    const stored = await repo.get(auth.tenantId, configKey);
+    return {
+      configKey,
+      configVersion: PAYMENT_DESTINATION_CURRENT_VERSION,
+      source: stored === null ? "workspace" : "tenant",
+        payload:
+        stored === null
+            ? (PAYMENT_DESTINATION_WORKSPACE_DEFAULT as unknown as SettingsConfigResponse["payload"])
+            : (normalizePaymentDestinationPayload(stored.payload as Record<string, unknown>) as unknown as SettingsConfigResponse["payload"]),
+      updatedAt: stored?.updatedAt ?? null,
+    };
+  }
   throw new SettingsConfigUnknownError(configKey);
+}
+
+export async function getPaymentDestinationMemberProjection(tenantId: string): Promise<{
+  readonly enabled: boolean;
+  readonly revision: string | null;
+  readonly cardNumber: string | null;
+  readonly cardHolderName: string | null;
+  readonly bankName: string | null;
+  readonly instructions: string | null;
+}> {
+  const repo = getSettingsConfigRepository();
+  const stored = await repo.get(tenantId, "payment_destination");
+  const unavailable = {
+    enabled: false,
+    revision: null,
+    cardNumber: null,
+    cardHolderName: null,
+    bankName: null,
+    instructions: null,
+  } as const;
+  if (stored === null) return unavailable;
+  const payload = normalizePaymentDestinationPayload(stored.payload as Record<string, unknown>);
+  if (!payload.enabled) return unavailable;
+  const { getPlatformFinanceRepository } = await import("../boot/lazy-finance-service");
+  const revision = await getPlatformFinanceRepository().findPaymentDestinationRevision(tenantId);
+  if (revision === null) return unavailable;
+  return {
+    enabled: true,
+    revision: revision.revision,
+    cardNumber: revision.cardNumber,
+    cardHolderName: revision.cardHolderName,
+    bankName: revision.bankName,
+    instructions: revision.instructions,
+  };
 }
 
 async function putWizardTemplateConfig(
@@ -369,7 +447,7 @@ async function putWizardTemplateConfig(
   const repo = getSettingsConfigRepository();
   const saved = await repo.put(auth.tenantId, configKey, {
     configVersion: expectedVersion,
-    payload,
+    payload: payload as unknown as PutSettingsConfigRequest["payload"],
   });
   invalidateTenantConfig(auth.tenantId, configKey);
   await emitSettingsConfigAudit(auth, configKey, "Updated wizard template seed");
@@ -400,7 +478,7 @@ async function putPresetsAdvancedConfig(
   const repo = getSettingsConfigRepository();
   const saved = await repo.put(auth.tenantId, configKey, {
     configVersion: expectedVersion,
-    payload,
+    payload: payload as unknown as PutSettingsConfigRequest["payload"],
   });
   invalidateTenantConfig(auth.tenantId, configKey);
   await emitSettingsConfigAudit(auth, configKey, "Updated advanced tour presets");
@@ -426,6 +504,43 @@ export async function putSettingsConfig(
   }
   if (configKey === "presets_advanced") {
     return putPresetsAdvancedConfig(auth, configKey, body);
+  }
+  if (configKey === "payment_destination") {
+    const module = await resolveSettingsModuleByConfigKeyForTenant(auth.tenantId, configKey);
+    const expectedVersion = module.configVersion ?? PAYMENT_DESTINATION_CURRENT_VERSION;
+    if (body.configVersion !== expectedVersion) {
+      throw new SettingsConfigVersionUnsupportedError(body.configVersion);
+    }
+    const payload = normalizePaymentDestinationPayload(body.payload as Record<string, unknown>);
+    if (payload.enabled && (!/^\d{16}$/.test(payload.cardNumber) || payload.cardHolderName.length === 0)) {
+      throw new SettingsResourceInvalidError();
+    }
+    const repo = getSettingsConfigRepository();
+    const saved = await repo.put(auth.tenantId, configKey, {
+      configVersion: expectedVersion,
+      payload: payload as unknown as PutSettingsConfigRequest["payload"],
+    });
+    // Finance owns immutable revision history; config remains the canonical settings seam.
+    const { getPlatformFinanceRepository } = await import("../boot/lazy-finance-service");
+    if (payload.enabled) {
+      await getPlatformFinanceRepository().putPaymentDestinationRevision({
+        tenantId: auth.tenantId,
+        cardNumber: payload.cardNumber,
+        cardHolderName: payload.cardHolderName,
+        bankName: payload.bankName,
+        instructions: payload.instructions,
+        actorUserId: auth.userId,
+      });
+    }
+    invalidateTenantConfig(auth.tenantId, configKey);
+    await emitSettingsConfigAudit(auth, configKey, "Updated payment destination");
+    return {
+      configKey,
+      configVersion: saved.configVersion,
+      source: "tenant",
+      payload: saved.payload,
+      updatedAt: saved.updatedAt,
+    };
   }
   throw new SettingsConfigUnknownError(configKey);
 }

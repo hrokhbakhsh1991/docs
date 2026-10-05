@@ -9,6 +9,7 @@ import {
 import {
   assertDenaliCreateValid,
   buildDenaliBookingCreatePolicyContext,
+  denaliWaitlistAllowed,
   resolveDenaliRegistrationApprovalMode,
 } from "../booking";
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
@@ -26,6 +27,8 @@ import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 import type { DenaliRegistrationPostBody } from "./schemas/denali-registration-post.schema";
 import { normalizeDenaliRegistrationTransportIntake } from "./resolve-denali-registration-transport";
+import { isDenaliCatalogTourUpcoming } from "../catalog/filter-denali-catalog-list";
+import { DenaliRegistrationClosedError } from "./errors/denali-registration-closed.error";
 
 export type DenaliGuestMembershipSnapshot = {
   readonly displayName?: string | null;
@@ -63,7 +66,7 @@ export async function createDenaliRegistration(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
 
   const tour = await requireWorkspacePublishedTour({
@@ -75,6 +78,9 @@ export async function createDenaliRegistration(params: {
     isPublished: resolveDenaliRegistrationTourPublishVisibility,
     getCanonical: (row) => row.canonical,
   });
+  if (!isDenaliCatalogTourUpcoming(tour)) {
+    throw new DenaliRegistrationClosedError();
+  }
 
   const capacityRaw = readWorkspaceCanonicalCapacityByPath(tour.canonical, ["capacityMax"]);
   const capacity = capacityRaw === null ? null : Math.trunc(capacityRaw);
@@ -107,10 +113,9 @@ export async function createDenaliRegistration(params: {
     }
   );
 
-  const normalizedTransport = normalizeDenaliRegistrationTransportIntake(
-    params.body.transport,
-    { transport: card.transport }
-  );
+  const normalizedTransport = normalizeDenaliRegistrationTransportIntake(params.body.transport, {
+    transport: card.transport,
+  });
 
   const email = params.body.contact.email?.trim() ?? "";
   const guestLabel = params.body.contact.fullName.trim();
@@ -221,12 +226,25 @@ export async function createDenaliRegistration(params: {
     // Booking-owned capacity: Denali supplies tour max when known; Booking fails closed if missing.
     ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
   };
+  const approvalRequired = resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto";
+
+  const approvedOccupancy =
+    capacity !== null
+      ? ((
+          await params.bookingPort.sumApprovedPartySizeByTourIds(params.tenantId, [
+            params.body.tourId,
+          ])
+        )[params.body.tourId] ?? 0)
+      : null;
+  const shouldWaitlist =
+    params.bookingPort.createWaitlistedBooking !== undefined &&
+    denaliWaitlistAllowed() &&
+    capacity !== null &&
+    approvedOccupancy !== null &&
+    approvedOccupancy + params.body.partySize > capacity;
 
   // Own-other identity collision → reclassify same row to self (tour-global guest uniques).
-  if (
-    registrantTarget === "self" &&
-    params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID
-  ) {
+  if (registrantTarget === "self" && params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID) {
     let identityHit: { readonly id: string } | null = null;
     if (intakeNationalId.length > 0) {
       identityHit = await params.bookingPort.findDuplicateByTourGuestNationalId(
@@ -235,11 +253,7 @@ export async function createDenaliRegistration(params: {
         intakeNationalId
       );
     }
-    if (
-      identityHit === null &&
-      guestPhone !== undefined &&
-      guestPhone.length > 0
-    ) {
+    if (identityHit === null && guestPhone !== undefined && guestPhone.length > 0) {
       identityHit = await params.bookingPort.findDuplicateByTourGuestPhone(
         params.tenantId,
         params.body.tourId,
@@ -283,7 +297,7 @@ export async function createDenaliRegistration(params: {
     }
   }
 
-  const created = await params.bookingPort.createPendingBooking({
+  const createInput = {
     tenantId: params.tenantId,
     guestUserId: params.guestUserId,
     tourId: params.body.tourId,
@@ -294,7 +308,38 @@ export async function createDenaliRegistration(params: {
     partySize: params.body.partySize,
     departureAt,
     registrationIntake,
-  });
+    outboxEvent: {
+      eventType: shouldWaitlist ? "registration.waitlisted" : "registration.created",
+      payload: {
+        topicKey: "registration",
+        guestUserId: params.guestUserId,
+        tourId: params.body.tourId,
+        tourTitle: card.title,
+        guestLabel,
+        ...(email.length > 0 ? { guestEmail: email } : {}),
+        ...(guestPhone !== undefined ? { guestPhone } : {}),
+        partySize: params.body.partySize,
+        departureAt,
+        approvalRequired: shouldWaitlist ? false : approvalRequired,
+        approvalStatus: shouldWaitlist
+          ? "waitlisted"
+          : approvalRequired
+            ? "awaiting_approval"
+            : "approved",
+        approvalPrompt: shouldWaitlist
+          ? "🕒 ظرفیت این تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شد."
+          : approvalRequired
+            ? "⏳ این تور نیاز به تأیید ادمین دارد."
+            : "ℹ️ این تور نیاز به تأیید ادمین ندارد.",
+      },
+    },
+  };
+
+  if (shouldWaitlist) {
+    return params.bookingPort.createWaitlistedBooking!(createInput);
+  }
+
+  const created = await params.bookingPort.createPendingBooking(createInput);
 
   // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).
   // Never trust client intake; mode comes only from loaded tour SoT.

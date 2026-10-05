@@ -92,6 +92,36 @@ const REGISTERED_BOOKING_ROUTES: readonly {
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/finalize",
+    appMarker: "handleFinalizeBooking",
+    operationId: "finalizeBooking",
+    requestSchema: null,
+    responseSchema: "FinalizeBookingResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + FinalizeBookingResponse",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/finalize-with-open-payment",
+    appMarker: "handleFinalizeBookingWithOpenPayment",
+    operationId: "finalizeBookingWithOpenPayment",
+    requestSchema: null,
+    responseSchema: "FinalizeBookingResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + FinalizeBookingResponse",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/waive-and-finalize",
+    appMarker: "handleWaiveAndFinalizeBooking",
+    operationId: "waiveAndFinalizeBooking",
+    requestSchema: null,
+    responseSchema: "FinalizeBookingResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + FinalizeBookingResponse",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/reject",
     appMarker: "handleRejectBooking",
     operationId: "rejectBooking",
@@ -112,10 +142,20 @@ const REGISTERED_BOOKING_ROUTES: readonly {
   },
   {
     method: "POST",
+    path: "/bookings/{bookingId}/promote-waitlist-with-capacity-increase",
+    appMarker: "handlePromoteWaitlistWithCapacityIncrease",
+    operationId: "promoteWaitlistWithCapacityIncrease",
+    requestSchema: null,
+    responseSchema: "WaitlistCapacityAdmissionResponse",
+    errors: ["401", "403", "404", "409"],
+    exampleSurface: "path BookingId + WaitlistCapacityAdmissionResponse",
+  },
+  {
+    method: "POST",
     path: "/bookings/{bookingId}/cancel",
     appMarker: "handleCancelBooking",
     operationId: "cancelBooking",
-    requestSchema: null,
+    requestSchema: "CancelBookingRequest",
     responseSchema: "CancelBookingResponse",
     errors: ["401", "403", "404", "409"],
     exampleSurface: "CancelBookingResponse",
@@ -127,7 +167,7 @@ const REGISTERED_BOOKING_ROUTES: readonly {
     operationId: "postBookingReceipt",
     requestSchema: "BookingMemberReceiptJsonBody",
     responseSchema: "BookingReceiptCreatedResponse",
-    errors: ["400", "401", "403", "503"],
+    errors: ["400", "401", "403", "409", "503"],
     exampleSurface: "BookingMemberReceiptJsonBody / BookingReceiptCreatedResponse",
   },
   {
@@ -146,6 +186,7 @@ const REGISTERED_BOOKING_ROUTES: readonly {
 const REQUIRED_DTO_SCHEMAS = [
   "BookingStatus",
   "BookingPaymentStatus",
+  "BookingFinalizationStatus",
   "BookingsListView",
   "BookingListItem",
   "BookingDetailItem",
@@ -155,6 +196,7 @@ const REQUIRED_DTO_SCHEMAS = [
   "CreateBookingRequest",
   "CreateBookingResponse",
   "ApproveBookingResponse",
+  "FinalizeBookingResponse",
   "RejectBookingRequest",
   "RejectBookingResponse",
   "WaitlistBookingResponse",
@@ -214,9 +256,7 @@ function collectInlineObjects(node: unknown, path: string, hits: string[]): void
 
 describe("booking OpenAPI certification", () => {
   const appSrc = readFileSync(join(apiRoot, "src/app.ts"), "utf8");
-  const openapi = JSON.parse(
-    readFileSync(join(apiRoot, "openapi/openapi.json"), "utf8")
-  ) as {
+  const openapi = JSON.parse(readFileSync(join(apiRoot, "openapi/openapi.json"), "utf8")) as {
     paths?: Record<string, Record<string, OpenApiOp>>;
     components?: { schemas?: Record<string, Record<string, unknown>> };
   };
@@ -238,9 +278,7 @@ describe("booking OpenAPI certification", () => {
   });
 
   it("inventory has no extra Booking routes beyond registered set", () => {
-    const registeredKeys = new Set(
-      REGISTERED_BOOKING_ROUTES.map((r) => `${r.method} ${r.path}`)
-    );
+    const registeredKeys = new Set(REGISTERED_BOOKING_ROUTES.map((r) => `${r.method} ${r.path}`));
     for (const route of inventory) {
       const key = `${route.method} ${route.path}`;
       assert.ok(registeredKeys.has(key), `extra inventory route: ${key}`);
@@ -270,10 +308,7 @@ describe("booking OpenAPI certification", () => {
   it("all Booking DTOs are named components (no missing schemas)", () => {
     for (const name of REQUIRED_DTO_SCHEMAS) {
       assert.ok(schemas[name], `components.schemas missing ${name}`);
-      assert.ok(
-        BOOKING_OPENAPI_SCHEMAS[name],
-        `BOOKING_OPENAPI_SCHEMAS missing ${name}`
-      );
+      assert.ok(BOOKING_OPENAPI_SCHEMAS[name], `BOOKING_OPENAPI_SCHEMAS missing ${name}`);
       const examples = schemas[name]?.examples;
       assert.ok(
         examples !== undefined || schemas[name]?.example !== undefined,
@@ -282,12 +317,39 @@ describe("booking OpenAPI certification", () => {
     }
   });
 
+  it("receipt request contract permits nullable fields but requires non-empty evidence", () => {
+    const receipt = schemas.BookingMemberReceiptJsonBody;
+    assert.deepEqual(receipt?.properties, {
+      fileKey: {
+        type: ["string", "null"],
+        minLength: 1,
+        examples: ["tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"],
+      },
+      note: {
+        type: ["string", "null"],
+        minLength: 1,
+        maxLength: 2000,
+        examples: ["bank transfer", null],
+      },
+    });
+    assert.deepEqual(receipt?.anyOf, [
+      {
+        required: ["fileKey"],
+        properties: { fileKey: { type: "string", minLength: 1 } },
+      },
+      {
+        required: ["note"],
+        properties: { note: { type: "string", minLength: 1, maxLength: 2000 } },
+      },
+    ]);
+  });
+
   it("Booking operations: request/response/error schemas + examples (100%)", () => {
     const rows: string[] = [];
     for (const registered of REGISTERED_BOOKING_ROUTES) {
-      const op = openapi.paths?.[registered.path]?.[
-        registered.method.toLowerCase()
-      ] as OpenApiOp | undefined;
+      const op = openapi.paths?.[registered.path]?.[registered.method.toLowerCase()] as
+        | OpenApiOp
+        | undefined;
       assert.ok(op, `missing op ${registered.operationId}`);
       assert.ok(
         BOOKING_OPENAPI_OVERRIDES[registered.operationId],
@@ -322,8 +384,12 @@ describe("booking OpenAPI certification", () => {
         assert.ok(json?.examples, `${registered.operationId} request examples`);
       }
 
-      const successCode = registered.method === "POST" && registered.path === "/bookings" ? "201"
-        : registered.operationId === "postBookingReceipt" ? "201" : "200";
+      const successCode =
+        registered.method === "POST" && registered.path === "/bookings"
+          ? "201"
+          : registered.operationId === "postBookingReceipt"
+            ? "201"
+            : "200";
       const success = op.responses?.[successCode]?.content?.["application/json"];
       assert.equal(
         schemaRefName(success?.schema),
@@ -349,9 +415,7 @@ describe("booking OpenAPI certification", () => {
       if (registered.operationId === "listBookings") {
         const paymentParam = (op.parameters ?? []).find(
           (p) =>
-            typeof p === "object" &&
-            p !== null &&
-            (p as { name?: string }).name === "paymentStatus"
+            typeof p === "object" && p !== null && (p as { name?: string }).name === "paymentStatus"
         ) as { schema?: { $ref?: string }; examples?: unknown } | undefined;
         assert.equal(schemaRefName(paymentParam?.schema), "BookingPaymentStatus");
         assert.ok(paymentParam?.examples);
@@ -369,7 +433,7 @@ describe("booking OpenAPI certification", () => {
     }
 
     assert.equal(rows.length, REGISTERED_BOOKING_ROUTES.length);
-    assert.equal(rows.length, 11, "coverage must be 100% of registered Booking endpoints");
+    assert.equal(rows.length, 15, "coverage must be 100% of registered Booking endpoints");
     console.log("endpoint | request schema | response schema | errors | examples");
     for (const row of rows) {
       console.log(row);

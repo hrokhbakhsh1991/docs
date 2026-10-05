@@ -34,6 +34,7 @@ import {
 } from "../hooks/use-wizard-rule-sync";
 import { runDenaliFlatEditPatch, type DenaliFlatEditPatchIntent } from "./flat-edit-patch-logic";
 import {
+  isDenaliFlatEditDraftUnstamped,
   prepareDenaliFlatEditSeedEnvelope,
   replaceDenaliFlatEditDraftAfterSuccessfulPatch,
   resolveDenaliFlatEditWorkingEnvelope,
@@ -116,8 +117,17 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   const [published, setPublished] = useState(false);
   const [unpublished, setUnpublished] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<DenaliFlatEditPatchIntent | null>(null);
+  const [legacyDraftChoice, setLegacyDraftChoice] = useState<"unresolved" | "recover" | "baseline">(
+    "unresolved"
+  );
   const [pending, startTransition] = useTransition();
   const suppressTourSeedRef = useRef(false);
+
+  // A single client component may remain mounted while the route changes.
+  // Never carry an explicit legacy-draft decision from one tour into another.
+  useEffect(() => {
+    setLegacyDraftChoice("unresolved");
+  }, [input.tourId]);
 
   const denaliRules = useDenaliWizardRules();
   const themeCatalog = useDenaliThemeCatalog(input.gate.published);
@@ -159,8 +169,15 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
       tourBaseline,
       tourRowVersion: rowVersion,
       envelopeMeta: input.envelopeMeta,
+      allowUnstampedRemote: legacyDraftChoice === "recover",
     });
-  }, [input.draftSync.data, tourBaseline, rowVersion, input.envelopeMeta]);
+  }, [input.draftSync.data, tourBaseline, rowVersion, input.envelopeMeta, legacyDraftChoice]);
+
+  const legacyDraftRecoveryRequired =
+    input.draftSync.data !== null &&
+    tourBaseline !== null &&
+    isDenaliFlatEditDraftUnstamped(input.draftSync.data) &&
+    legacyDraftChoice === "unresolved";
 
   const draft = envelope?.form ?? emptyDenaliTourWizardDraft();
   // UX: clear stale submit error/validation after real draft edits.
@@ -381,6 +398,9 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     pendingIntent,
     canPublish: input.canPublish,
     canUnpublish,
+    legacyDraftRecoveryRequired,
+    recoverLegacyDraft: () => setLegacyDraftChoice("recover"),
+    useTourBaseline: () => setLegacyDraftChoice("baseline"),
     handlePatch,
     reloadTour: loadTour,
   };

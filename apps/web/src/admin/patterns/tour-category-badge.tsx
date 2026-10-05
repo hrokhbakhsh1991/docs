@@ -1,9 +1,15 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { isTourKindSlug } from "@/features/tours/tour-list-category-logic";
+import {
+  isTourKindSlug,
+  resolveTourKindCategoryGroup,
+} from "@/features/tours/tour-list-category-logic";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
-import { resolveWizardTourKindLabel } from "@/wizard/wizard-label-surface-registry";
+import {
+  resolveWizardTourCategoryGroupLabel,
+  resolveWizardTourKindLabel,
+} from "@/wizard/wizard-label-surface-registry";
 
 type TourCategoryBadgeProps = {
   readonly pluginId: string;
@@ -17,9 +23,13 @@ export function TourCategoryBadge({ pluginId, category }: TourCategoryBadgeProps
     return null;
   }
 
+  const categoryGroup = resolveTourKindCategoryGroup(pluginId, category);
+
   return (
     <Badge variant="outline" data-operator-category-badge>
-      {resolveWizardTourKindLabel(pluginId, tWorkspace, category)}
+      {categoryGroup == null
+        ? resolveWizardTourKindLabel(pluginId, tWorkspace, category)
+        : resolveWizardTourCategoryGroupLabel(pluginId, tWorkspace, categoryGroup)}
     </Badge>
   );
 }

@@ -347,7 +347,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       idempotencyKey: `receipt-${paymentId}`,
       body: {
         paymentId,
-        fileKey: `receipts/${paymentId}/proof.jpg`,
+        fileKey: `receipts/${input.tenantId}/${registrationId}/proof.jpg`,
       },
     });
     assert.equal(receipt.status, 201);
@@ -455,7 +455,10 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       path: "/finance/receipts",
       tenantId: denaliTenantId,
       idempotencyKey: `receipt-03d-second-${secondPaymentId}`,
-      body: { paymentId: secondPaymentId, fileKey: `receipts/${secondPaymentId}/second.jpg` },
+      body: {
+        paymentId: secondPaymentId,
+        fileKey: `receipts/${denaliTenantId}/${registrationId}/second.jpg`,
+      },
     });
     assert.equal(secondReceipt.status, 201);
 
@@ -585,7 +588,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       role: "member",
       userId: strangerUserId,
       idempotencyKey: `authz-idor-rcpt-${paymentId}`,
-      body: { paymentId, fileKey: `receipts/${denaliTenantId}/stolen.pdf` },
+      body: { paymentId, fileKey: `receipts/${denaliTenantId}/${registrationId}/stolen.pdf` },
     });
     assert.equal(stolen.status, 403);
     assert.equal(stolen.body.code, "BOOKINGS_FORBIDDEN");
@@ -603,7 +606,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       role: "member",
       userId: randomUUID(),
       idempotencyKey: `authz-xtenant-${paymentId}`,
-      body: { paymentId, fileKey: `receipts/cross.pdf` },
+      body: { paymentId, fileKey: `receipts/${denaliTenantBId}/${randomUUID()}/cross.pdf` },
     });
     assert.equal(cross.status, 404);
     assert.equal(cross.body.code, "FINANCE_PAYMENT_NOT_FOUND");
@@ -1117,7 +1120,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     assert.equal(manual.status, 201);
     const paymentId = String(manual.body.id);
     const idempotencyKey = `receipt-submit-idem-01-${paymentId}`;
-    const body = { paymentId, fileKey: `receipts/${paymentId}/idem.jpg` };
+    const body = { paymentId, fileKey: `receipts/${denaliTenantId}/${registrationId}/idem.jpg` };
     const first = await requestJson(listener, {
       method: "POST",
       path: "/finance/receipts",
@@ -1158,7 +1161,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       path: "/finance/receipts",
       tenantId: denaliTenantId,
       idempotencyKey,
-      body: { paymentId, fileKey: `receipts/${paymentId}/a.jpg` },
+      body: { paymentId, fileKey: `receipts/${denaliTenantId}/${registrationId}/a.jpg` },
     });
     assert.equal(first.status, 201);
     const second = await requestJson(listener, {
@@ -1166,7 +1169,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       path: "/finance/receipts",
       tenantId: denaliTenantId,
       idempotencyKey,
-      body: { paymentId, fileKey: `receipts/${paymentId}/b.jpg` },
+      body: { paymentId, fileKey: `receipts/${denaliTenantId}/${registrationId}/b.jpg` },
     });
     assert.equal(second.status, 409);
     assert.equal(second.body.code, "IDEMPOTENCY_PAYLOAD_MISMATCH");
@@ -1232,7 +1235,10 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     assert.equal(manual.status, 201);
     const paymentId = String(manual.body.id);
     const idempotencyKey = `receipt-submit-reclaim-01-${paymentId}`;
-    const body = { paymentId, fileKey: `receipts/${paymentId}/reclaim.jpg` };
+    const body = {
+      paymentId,
+      fileKey: `receipts/${denaliTenantId}/${registrationId}/reclaim.jpg`,
+    };
     const first = await requestJson(listener, {
       method: "POST",
       path: "/finance/receipts",

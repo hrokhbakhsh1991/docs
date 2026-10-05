@@ -45,11 +45,11 @@ Manual Payment → Pending → Receipt review → Paid
 
 ## Invoice as AR SoT
 
-| Field | Source |
-| ----- | ------ |
-| `invoice.totalMinor` | `compileRegistrationInvoice.invoiceTotalMinor` |
-| `invoice.paidMinor` | `compileRegistrationInvoice.paidAmountMinor` |
-| `invoice.remainingMinor` | `compileRegistrationInvoice.balanceDueMinor` |
+| Field                    | Source                                         |
+| ------------------------ | ---------------------------------------------- |
+| `invoice.totalMinor`     | `compileRegistrationInvoice.invoiceTotalMinor` |
+| `invoice.paidMinor`      | `compileRegistrationInvoice.paidAmountMinor`   |
+| `invoice.remainingMinor` | `compileRegistrationInvoice.balanceDueMinor`   |
 
 Forbidden:
 
@@ -94,9 +94,17 @@ HTTP GET /finance/reports/outstanding-balances
 
 `listOutstandingBalanceCandidates` enumerates **operator registrations** for the tenant, not payment rows.
 
-| Driver | Source | `occurredAt` |
-| ------ | ------ | ------------ |
-| Prisma | `operatorRegistration.findMany({ tenantId })` | `createdAt` |
+The outstanding read path must then apply the registration lifecycle gate before
+publishing an AR item: only `approved` registrations are active payment
+follow-up rows. `pending`, `waitlisted`, `rejected`, and `cancelled` registrations
+must not appear, even when an old invoice obligation still has a positive
+balance. This lifecycle gate is deliberately separate from the invoice
+remaining-balance gate; an approved/finalized registration with an open balance
+remains outstanding.
+
+| Driver            | Source                                                                           | `occurredAt`                                                                |
+| ----------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Prisma            | `operatorRegistration.findMany({ tenantId })`                                    | `createdAt`                                                                 |
 | Memory (dev/test) | bookings `listByTenantPage` until exhausted (same universe, uncapped via paging) | `submittedAt` (booking clock; no separate `createdAt` on the memory record) |
 
 **Forbidden candidate sources:** scanning `payments` / `paymentsById` as the universe. A Manual Payment row is a collection artifact, not the AR identity. Under Denali `approve_then_offline_pay`, club approve creates **no** payment row; the member has not uploaded a receipt yet. That guest still owes — invoice compile + obligation must keep them.

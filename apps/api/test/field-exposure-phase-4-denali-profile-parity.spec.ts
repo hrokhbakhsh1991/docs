@@ -34,7 +34,10 @@ describe("Denali telegram tour published profile parity", () => {
     assert.equal(profile?.id, "denali.telegram.TourPublished");
     assert.equal(DENALI_TELEGRAM_TOUR_PUBLISHED_PROFILE_SLUG, "telegram_tour_published");
     assert.deepEqual(profile?.defaultFieldIds, selectableIds);
-    assert.equal(profile?.defaultTemplateId, "Tour published: {{title}}");
+    assert.equal(
+      profile?.defaultTemplateId,
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
+    );
     assert.equal(profile?.source, "registry_deliverable_migration_seed");
   });
 });

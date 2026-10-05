@@ -8,10 +8,14 @@ import { after, before, beforeEach, describe, it } from "node:test";
 import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { resolveFinanceServiceForTenant } from "../../src/boot/lazy-finance-service.ts";
-import { resetTenantConnectionBudgetForTests, withTenantDbBudget } from "../../src/db/tenant-connection-budget.ts";
+import {
+  resetTenantConnectionBudgetForTests,
+  withTenantDbBudget,
+} from "../../src/db/tenant-connection-budget.ts";
 import {
   approveBooking,
   createBooking,
+  finalizeBookingWithOpenPayment,
   waitlistBooking,
 } from "../../src/bookings/create-bookings-service.ts";
 import { listTourOperationalRoster } from "../../src/roster/operational-roster.service.ts";
@@ -43,6 +47,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
   it("matrix: approved unpaid appears in operational + unpaid filters", async () => {
     const created = await createBooking(dp1OpsAuth(), dp1BookingBody());
     await approveBooking(dp1OpsAuth(), created.id);
+    await finalizeBookingWithOpenPayment(dp1OpsAuth(), created.id);
 
     const operational = await listTourOperationalRoster(dp1OpsAuth(), DP1_TOUR_ID, {
       view: "ops",
@@ -58,15 +63,40 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     const row = operational.items.find((item) => item.registrationId === created.id);
     assert.ok(row, "approved row missing from operational roster");
     assert.equal(row.isOperationalParticipant, true);
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
     assert.ok(unpaid.items.some((item) => item.registrationId === created.id));
   });
 
+  it("countOnly returns the exact filtered total beyond the requested page size", async () => {
+    const first = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: `Count-only first ${randomUUID()}` })
+    );
+    await approveBooking(dp1OpsAuth(), first.id);
+    const second = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: `Count-only second ${randomUUID()}` })
+    );
+    await approveBooking(dp1OpsAuth(), second.id);
+
+    const result = await listTourOperationalRoster(dp1OpsAuth(), DP1_TOUR_ID, {
+      view: "ops",
+      filter: "operational",
+      limit: 1,
+      countOnly: true,
+    });
+
+    assert.deepEqual(result.items, []);
+    assert.equal(result.total, 2);
+    assert.equal(result.nextCursor, null);
+  });
+
   it("matrix: partial payment stays non-final", async () => {
     const created = await createBooking(dp1OpsAuth(), dp1BookingBody());
     await approveBooking(dp1OpsAuth(), created.id);
+    await finalizeBookingWithOpenPayment(dp1OpsAuth(), created.id);
     const finance = await resolveFinanceServiceForTenant(DP1_TENANT_DENALI);
     await finance.createManualPayment(
       financeAuth(),
@@ -82,7 +112,7 @@ describe("DP-2 operational roster projection", { concurrency: false }, () => {
     const row = roster.items.find((item) => item.registrationId === created.id);
     assert.ok(row);
     assert.equal(row.financialDisplayState, "PARTIALLY_PAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
   });
 

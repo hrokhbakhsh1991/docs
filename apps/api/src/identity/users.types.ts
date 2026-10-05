@@ -16,6 +16,7 @@ export type WorkspaceRewardBadgeId = (typeof WORKSPACE_REWARD_BADGE_IDS)[number]
 export type UsersDirectoryRow = {
   readonly userId: string;
   readonly tenantId: string;
+  readonly membershipCode: string | null;
   readonly role: ActorRole;
   readonly status: "ACTIVE" | "INVITED" | "SUSPENDED";
   readonly displayName: string;
@@ -35,6 +36,7 @@ export type UsersListStatusFilter = "all" | "active" | "suspended";
 
 export type UsersListQuery = {
   readonly search?: string;
+  readonly scope?: "directory" | "wallet";
   readonly role?: "all" | "owner" | "admin" | "member" | "viewer";
   readonly status?: UsersListStatusFilter;
   readonly sort: "name_asc" | "name_desc" | "email_asc" | "email_desc";

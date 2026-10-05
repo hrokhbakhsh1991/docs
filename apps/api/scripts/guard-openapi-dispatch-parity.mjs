@@ -47,9 +47,7 @@ function appWiresRoute(route) {
     return app.includes('"/internal/metrics"') && app.includes("handleInternalMetrics");
   }
   if (route.path.startsWith("/internal/finance/recon")) {
-    return (
-      app.includes('"/internal/finance/recon/') && app.includes("handleInternalFinanceRecon")
-    );
+    return app.includes('"/internal/finance/recon/') && app.includes("handleInternalFinanceRecon");
   }
   if (route.path === "/internal/cache/invalidate") {
     return app.includes('"/internal/cache/invalidate"') && app.includes("handleCacheInvalidate");
@@ -113,11 +111,31 @@ function appWiresRoute(route) {
   if (route.path === "/bookings/{bookingId}/approve") {
     return app.includes("bookingApproveMatch") && app.includes("handleApproveBooking");
   }
+  if (route.path === "/bookings/{bookingId}/finalize") {
+    return app.includes("bookingFinalizeMatch") && app.includes("handleFinalizeBooking");
+  }
+  if (route.path === "/bookings/{bookingId}/finalize-with-open-payment") {
+    return (
+      app.includes("bookingFinalizeOpenPaymentMatch") &&
+      app.includes("handleFinalizeBookingWithOpenPayment")
+    );
+  }
+  if (route.path === "/bookings/{bookingId}/waive-and-finalize") {
+    return (
+      app.includes("bookingWaiveAndFinalizeMatch") && app.includes("handleWaiveAndFinalizeBooking")
+    );
+  }
   if (route.path === "/bookings/{bookingId}/reject") {
     return app.includes("bookingRejectMatch") && app.includes("handleRejectBooking");
   }
   if (route.path === "/bookings/{bookingId}/waitlist") {
     return app.includes("bookingWaitlistMatch") && app.includes("handleWaitlistBooking");
+  }
+  if (route.path === "/bookings/{bookingId}/promote-waitlist-with-capacity-increase") {
+    return (
+      app.includes("bookingWaitlistCapacityAdmissionMatch") &&
+      app.includes("handlePromoteWaitlistWithCapacityIncrease")
+    );
   }
   if (route.path === "/bookings/{bookingId}/cancel") {
     return app.includes("bookingCancelMatch") && app.includes("handleCancelBooking");

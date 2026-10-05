@@ -10,6 +10,7 @@ describe("readDenaliCatalogDetailEgress", () => {
     destinationId: "dest-1",
     category: "mountain_single_day",
     approximateReturnTime: "18:30",
+    startDateTime: "2026-07-01T08:00:00.000Z",
     meetingPoint: "Parking lot A",
     program: {
       longDescription: "Full program details",
@@ -47,6 +48,8 @@ describe("readDenaliCatalogDetailEgress", () => {
     pricing: {
       includesTourInsurance: true,
       paymentMode: "offline_receipt",
+      paymentCollection: "free",
+      registrationApproval: "auto",
     },
     socialMediaLink: "instagram.com/denali.club",
     photos: [{ url: "https://cdn.example/1.jpg" }, { url: "https://cdn.example/2.jpg" }],
@@ -69,7 +72,9 @@ describe("readDenaliCatalogDetailEgress", () => {
     assert.equal(egress.gearItems?.[0]?.name, "Hiking boots");
     assert.deepEqual(egress.includedServices, ["Guide", "Snack"]);
     assert.equal(egress.includesTourInsurance, true);
-    assert.equal(egress.paymentMode, "offline_receipt");
+    assert.equal(egress.paymentMode, undefined);
+    assert.equal(egress.paymentCollection, "free");
+    assert.equal(egress.registrationApproval, "auto");
     assert.equal(egress.socialMediaLink, "https://instagram.com/denali.club");
     assert.equal(egress.photoUrls?.length, 2);
   });

@@ -41,14 +41,14 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
   });
 
   it("EX-P5-02 agent manifest and preservation checklist exist", () => {
-    const manifest = readFileSync(manifestPath, "utf8");
+    const manifest = readFileSync(manifestPath, "utf8").replaceAll("\r\n", "\n");
     assert.match(manifest, /nano_total: 56/);
     assert.match(manifest, /current_task: null/);
     assert.match(manifest, /nano_done: 56/);
     assert.match(manifest, /exit_core: P5-B-N-016/);
     assert.match(manifest, /epic_optional:\n- P5-C\n- P5-D\n- P5-E/);
 
-    const preservation = readFileSync(preservationPath, "utf8");
+    const preservation = readFileSync(preservationPath, "utf8").replaceAll("\r\n", "\n");
     assert.match(preservation, /PC-01/);
     assert.match(preservation, /PC-10/);
     assert.match(preservation, /offline_receipt/);

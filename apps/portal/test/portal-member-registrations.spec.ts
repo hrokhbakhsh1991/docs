@@ -8,10 +8,178 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-registration-headers.server";
+import { formatMemberMoney } from "../src/me/format-member-money";
+import { hydrateMemberRegistrationListFinancialProjection } from "../src/me/hydrate-member-registration-list-financial-projection.server";
+import { resolveMemberFinancialProjection } from "../src/me/resolve-member-financial-projection";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal-member-registrations", () => {
+  it("MEM-FIN-01 formats IRR with the member-facing toman label", () => {
+    assert.equal(formatMemberMoney("1344444", "IRR"), "۱٬۳۴۴٬۴۴۴ تومان");
+  });
+
+  it("BUG-STG-080 hydrates legacy approved rows from the owned detail projection", async () => {
+    const items = [
+      {
+        id: "free-legacy",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "approved",
+        paymentStatus: "unpaid",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+      {
+        id: "pending-row",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "pending",
+        paymentStatus: "unpaid",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async (id) =>
+      id === "free-legacy" ? { ...items[0], paymentCollection: "free" as const } : null
+    );
+    assert.equal(hydrated[0]?.paymentCollection, "free");
+    assert.equal(hydrated[1]?.paymentCollection, undefined);
+  });
+
+  it("BUG-STG-080 repairs a partial stale financial projection instead of trusting offline", async () => {
+    const items = [
+      {
+        id: "free-partial-stale",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "offline",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async (id) =>
+      id === "free-partial-stale"
+        ? {
+            ...items[0],
+            paymentCollection: "free" as const,
+            financialDisplayState: "WAIVED" as const,
+          }
+        : null
+    );
+
+    assert.equal(hydrated[0]?.paymentCollection, "free");
+    assert.equal(hydrated[0]?.financialDisplayState, "WAIVED");
+  });
+
+  it("BUG-STG-080 replaces a complete but stale approved projection", async () => {
+    const items = [
+      {
+        id: "free-complete-stale",
+        tourId: "tour-free",
+        tourTitle: "Free",
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "offline",
+        financialDisplayState: undefined,
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async (id) =>
+      id === "free-complete-stale"
+        ? {
+            ...items[0],
+            paymentCollection: "free" as const,
+            financialDisplayState: "WAIVED" as const,
+          }
+        : null
+    );
+
+    assert.equal(hydrated[0]?.paymentCollection, "free");
+    assert.equal(hydrated[0]?.financialDisplayState, "WAIVED");
+  });
+
+  it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE replaces stale payment status and deadline", async () => {
+    const items = [
+      {
+        id: "paid-stale",
+        tourId: "tour-paid",
+        tourTitle: "Paid",
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "offline" as const,
+        paymentDueAt: "2026-09-28T08:00:00.000Z",
+        departureAt: "2026-09-28T08:00:00.000Z",
+        submittedAt: "2026-09-01T08:00:00.000Z",
+      },
+    ] as const;
+    const hydrated = await hydrateMemberRegistrationListFinancialProjection(items, async () => ({
+      ...items[0],
+      paymentStatus: "paid",
+      paymentDueAt: null,
+      financialDisplayState: undefined,
+    }));
+
+    assert.equal(hydrated[0]?.paymentStatus, "paid");
+    assert.equal(hydrated[0]?.paymentDueAt, null);
+    assert.equal(hydrated[0]?.financialDisplayState, undefined);
+  });
+
+  it("BUG-STG-080 keeps List and Detail on the same waived projection", async () => {
+    const staleList = {
+      id: "free-contract",
+      tourId: "tour-free",
+      tourTitle: "Free",
+      status: "approved",
+      paymentStatus: "unpaid",
+      paymentCollection: "offline" as const,
+      paymentDueAt: "2026-09-28T08:00:00.000Z",
+      departureAt: "2026-09-28T08:00:00.000Z",
+      submittedAt: "2026-09-01T08:00:00.000Z",
+    };
+    const detail = {
+      ...staleList,
+      paymentCollection: "free" as const,
+      financialDisplayState: "WAIVED" as const,
+      paymentDueAt: "2026-09-28T08:00:00.000Z",
+    };
+
+    const [listProjection, detailProjection] = await Promise.all([
+      hydrateMemberRegistrationListFinancialProjection([staleList], async () => detail),
+      Promise.resolve(resolveMemberFinancialProjection(detail)),
+    ]);
+
+    assert.deepEqual(
+      {
+        paymentStatus: listProjection[0]?.paymentStatus,
+        paymentCollection: listProjection[0]?.paymentCollection,
+        financialDisplayState: listProjection[0]?.financialDisplayState,
+        paymentDueAt: listProjection[0]?.paymentDueAt,
+      },
+      detailProjection
+    );
+    assert.equal(listProjection[0]?.paymentDueAt, null);
+  });
+
+  it("clears a stale paid deadline without changing receipt state", () => {
+    assert.deepEqual(
+      resolveMemberFinancialProjection({
+        status: "approved",
+        paymentStatus: "paid",
+        paymentCollection: "offline",
+        paymentDueAt: "2026-09-28T08:00:00.000Z",
+      }),
+      {
+        paymentStatus: "paid",
+        paymentCollection: "offline",
+        paymentDueAt: null,
+      }
+    );
+  });
+
   it("MEM-BFF-01 fetchMemberRegistrations uses same-origin registrations BFF", () => {
     const fetchModule = readFileSync(
       join(repoRoot, "apps/portal/src/me/fetch-member-registrations.server.ts"),
@@ -25,6 +193,7 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /readonly registrantTarget\?:/);
     assert.match(fetchModule, /readonly transportKind\?:/);
     assert.match(fetchModule, /readonly personalCarOccupants\?:/);
+    assert.match(fetchModule, /financialDisplayState\?: "WAIVED"/);
     assert.match(
       readFileSync(
         join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
@@ -74,6 +243,10 @@ describe("portal-member-registrations", () => {
     assert.match(page, /data-portal-member-registrations-filter/);
     assert.match(page, /data-portal-member-registration-row/);
     assert.match(page, /data-portal-member-registration-status-badge/);
+    assert.match(page, /localizeMemberFinalizationStatus/);
+    assert.match(page, /data-portal-member-registration-payment-progress/);
+    assert.match(page, /financialProjection\.financialDisplayState/);
+    assert.match(page, /resolveMemberFinancialProjection/);
     assert.match(page, /data-portal-member-registrations-empty-cta/);
     assert.match(page, /fetchMemberRegistrations/);
     assert.match(page, /RegistrantListFilter/);
@@ -105,7 +278,7 @@ describe("portal-member-registrations", () => {
     assert.match(panel, /data-portal-member-notification-social-link-anchor/);
   });
 
-  it("MEM-BFF-04 /me/registrations detail page markers", () => {
+  it("BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS /me/registrations detail page markers", () => {
     const page = readFileSync(
       join(repoRoot, "apps/portal/app/me/registrations/[id]/page.tsx"),
       "utf8"
@@ -114,7 +287,25 @@ describe("portal-member-registrations", () => {
       join(repoRoot, "apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx"),
       "utf8"
     );
+    const statusCard = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-registration-status-card.tsx"),
+      "utf8"
+    );
+    const detailStatus = readFileSync(
+      join(repoRoot, "apps/portal/src/me/resolve-member-registration-detail-status.ts"),
+      "utf8"
+    );
+    const faMessages = readFileSync(
+      join(repoRoot, "apps/portal/messages/fa/portalMember.json"),
+      "utf8"
+    );
     assert.match(page, /data-portal-member-registration-detail/);
+    assert.match(page, /MemberRegistrationStatusCard/);
+    assert.match(page, /resolveMemberRegistrationDetailStatus/);
+    assert.match(detailStatus, /statusPendingTitle/);
+    assert.match(detailStatus, /statusPendingFreeBody/);
+    assert.match(detailStatus, /statusReceiptPendingTitle/);
+    assert.match(detailStatus, /statusReceiptRejectedTitle/);
     assert.match(page, /data-portal-member-registrant-target/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(page, /fetchMemberReceiptPanel/);
@@ -127,20 +318,56 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-upload/);
     assert.match(form, /data-portal-member-receipt-submit/);
     assert.match(form, /data-portal-member-receipt-awaiting-approval/);
+    assert.match(form, /awaitingFreeApprovalBody/);
+    assert.match(form, /router\.refresh\(\)/);
+    assert.match(form, /dispatchMemberReceiptStatusChanged\("pending"\)/);
+    assert.match(statusCard, /data-portal-member-detail-status-card/);
+    assert.match(statusCard, /statusReceiptPendingTitle/);
+    assert.match(statusCard, /statusReceiptApprovedTitle/);
+    assert.match(statusCard, /paymentStatus.trim\(\).toLowerCase\(\) === "paid"/);
+    assert.match(statusCard, /MEMBER_RECEIPT_STATUS_CHANGED_EVENT/);
     assert.match(form, /data-portal-member-receipt-closed/);
     assert.match(form, /data-portal-member-receipt-waiting/);
     assert.match(form, /data-portal-member-receipt-paid/);
+    assert.match(form, /data-portal-member-receipt-approved-awaiting-payment/);
+    assert.match(form, /paymentStatus.trim\(\).toLowerCase\(\) === "paid"/);
+    assert.match(form, /Payment finality wins over a stale receipt projection/);
+    assert.match(statusCard, /paymentStatus.trim\(\).toLowerCase\(\) === "paid"/);
     assert.match(form, /data-portal-member-receipt-waived/);
     assert.match(form, /data-portal-member-receipt-preview/);
+    assert.match(form, /paymentDestinationLabel/);
+    assert.match(form, /paymentDestinationUnavailable/);
+    assert.match(form, /setSelectedFile\(file\);[\s\S]*setUploadPhase\("idle"\)/);
+    assert.match(form, /event\.currentTarget\.value = "";/);
+    assert.match(form, /idempotencyKeyRef\.current = null;[\s\S]*setSelectedFile\(file\)/);
+    assert.match(
+      form,
+      /onChange=\{\(event\) => \{[\s\S]*idempotencyKeyRef\.current = null;[\s\S]*setReceiptNote\(event\.target\.value\)/
+    );
+    const uploadAt = form.indexOf("<div data-portal-member-receipt-upload>");
+    const uploadDestinationAt = form.indexOf("{paymentDestinationBlock}", uploadAt);
+    assert.ok(uploadAt > 0 && uploadDestinationAt > uploadAt);
+    assert.match(form, /selectedFile === undefined/);
+    assert.match(form, /data-portal-member-receipt-file-picker/);
+    assert.match(form, /data-portal-member-receipt-note/);
+    assert.match(form, /Content-Type.*application\/json/);
+    assert.doesNotMatch(form, /\brequired\b/);
+    assert.match(form, /t\("noFileSelected"\)/);
+    assert.match(form, /t\("chooseFile"\)/);
     assert.match(form, /data-closed-reason/);
     assert.match(form, /createObjectURL/);
     const closedAt = form.indexOf('registrationStatus === "rejected"');
     const awaitingAt = form.indexOf('registrationStatus === "pending"');
+    const freeAt = form.indexOf('paymentCollection === "free"');
     const paidAt = form.indexOf('receiptStatus === "paid"');
-    assert.ok(closedAt > 0 && awaitingAt > 0 && paidAt > 0);
+    assert.ok(closedAt > 0 && awaitingAt > 0 && freeAt > 0 && paidAt > 0);
     assert.ok(
       closedAt < paidAt && awaitingAt < paidAt,
       "lifecycle closed/awaiting cards must win over paid/waived"
+    );
+    assert.ok(
+      freeAt < paidAt && freeAt < uploadAt,
+      "free registrations must never reach paid or receipt-upload branches"
     );
     assert.match(form, /data-portal-member-receipt-view-tour/);
     assert.match(form, /data-portal-member-receipt-back-trips/);
@@ -152,6 +379,11 @@ describe("portal-member-registrations", () => {
     assert.match(lifecycle, /parseRegistrationLifecycleStatus/);
     assert.doesNotMatch(lifecycle, /\|\s*string/);
     assert.match(page, /parseRegistrationLifecycleStatus/);
+    assert.match(statusCard, /registrationStatusBadge/);
+    assert.match(statusCard, /data-portal-member-detail-receipt-status-badge/);
+    assert.match(statusCard, /showReceiptBadge/);
+    assert.match(faMessages, /"registrationStatusBadge": "ثبت‌نام: \{status\}"/);
+    assert.match(faMessages, /"receiptStatusRejected": "رسید: رد شده؛ اصلاح لازم است"/);
     assert.doesNotMatch(form, /parseRegistrationLifecycleStatus/);
     assert.match(form, /disabled=\{uploadPhase === "uploading"\}/);
     assert.match(page, /MemberIntakeAmendForm/);
@@ -280,18 +512,34 @@ describe("portal-member-registrations", () => {
     assert.match(loadMessages, /portalMember\.json/);
     const fa = readFileSync(join(repoRoot, "apps/portal/messages/fa/portalMember.json"), "utf8");
     const en = readFileSync(join(repoRoot, "apps/portal/messages/en/portalMember.json"), "utf8");
+    const faReceipt = JSON.parse(fa).receipt as Record<string, string>;
+    const enReceipt = JSON.parse(en).receipt as Record<string, string>;
     assert.match(fa, /"trips"/);
     assert.match(en, /"trips"/);
     assert.match(fa, /"waitingTitle"/);
     assert.match(en, /"waitingTitle"/);
-    assert.match(fa, /"dueRemaining"/);
-    assert.match(en, /"dueRemaining"/);
+    for (const key of ["dueRemaining", "dueTotal", "dueNow", "dueBalanceAfterPayment"] as const) {
+      assert.equal(typeof faReceipt[key], "string", `missing fa receipt.${key}`);
+      assert.equal(typeof enReceipt[key], "string", `missing en receipt.${key}`);
+      assert.match(
+        faReceipt[key],
+        /\{amount\}/,
+        `fa receipt.${key} must expose amount placeholder`
+      );
+      assert.match(
+        enReceipt[key],
+        /\{amount\}/,
+        `en receipt.${key} must expose amount placeholder`
+      );
+    }
     assert.match(fa, /"previewLabel"/);
     assert.match(en, /"previewLabel"/);
     assert.match(fa, /"waivedTitle"/);
     assert.match(en, /"waivedTitle"/);
     assert.match(fa, /"cancelledTitle"/);
     assert.match(en, /"cancelledTitle"/);
+    assert.match(fa, /"paymentProgress"/);
+    assert.match(en, /"paymentProgress"/);
     assert.match(fa, /"viewTour"/);
     assert.match(en, /"viewTour"/);
     assert.match(fa, /"forOtherBadge"/);

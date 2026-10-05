@@ -70,6 +70,7 @@ export type BookingListItem = {
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: Exclude<BookingStatus, "all" | "actionable">;
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly paymentStatus: "unpaid" | "partial" | "paid";
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;

@@ -25,6 +25,8 @@ model Tenant {
   tenantRoute                 TenantRoute?
   payments                    Payment[]
   paymentReceipts             PaymentReceipt[]
+  paymentDestinationRevisions PaymentDestinationRevision[]
+  paymentReceiptDestinationSnapshots PaymentReceiptDestinationSnapshot[]
   financeSchedules            FinanceSchedule[]
   financeCommercialQuotes     FinanceCommercialQuote[]
   financePaymentHolds         FinancePaymentHold[]
@@ -173,6 +175,7 @@ model Tour {
   schemaVersion Int                 @default(1) @map("schema_version")
   rowVersion    Int                 @default(1) @map("row_version")
   createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @default(now()) @map("updated_at")
   tenant        Tenant              @relation(fields: [tenantId], references: [id])
   registrations UrbanRegistration[]
 
@@ -420,7 +423,7 @@ model PaymentReceipt {
   id                 String    @id @default(uuid()) @db.Uuid
   tenantId           String    @map("tenant_id") @db.Uuid
   paymentId          String    @map("payment_id") @db.Uuid
-  fileKey            String    @map("file_key")
+  fileKey            String?   @map("file_key")
   status             String    @default("Pending")
   note               String?
   reviewedByUserId   String?   @map("reviewed_by_user_id")
@@ -433,11 +436,50 @@ model PaymentReceipt {
   updatedAt          DateTime  @updatedAt @map("updated_at")
   tenant             Tenant    @relation(fields: [tenantId], references: [id])
   payment            Payment   @relation(fields: [paymentId], references: [id])
+  destinationSnapshot PaymentReceiptDestinationSnapshot?
 
   @@unique([tenantId, idempotencyKeyHash])
   @@index([tenantId, status])
   @@index([tenantId, paymentId])
   @@map("payment_receipts")
+}
+
+/// Immutable, tenant-scoped payment destination history.
+model PaymentDestinationRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  revision        String   @unique
+  cardNumber      String   @map("card_number")
+  cardHolderName  String   @map("card_holder_name")
+  bankName        String?  @map("bank_name")
+  instructions    String?
+  actorUserId     String?  @map("actor_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  snapshots       PaymentReceiptDestinationSnapshot[]
+
+  @@unique([tenantId, revision])
+  @@index([tenantId, createdAt])
+  @@map("payment_destination_revisions")
+}
+
+/// One-to-one server-only destination snapshot captured with a receipt.
+model PaymentReceiptDestinationSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  paymentReceiptId String @unique @map("payment_receipt_id") @db.Uuid
+  revision       String
+  cardNumber     String   @map("card_number")
+  cardHolderName String   @map("card_holder_name")
+  bankName       String?  @map("bank_name")
+  instructions   String?
+  tenant         Tenant  @relation(fields: [tenantId], references: [id])
+  receipt        PaymentReceipt @relation(fields: [paymentReceiptId], references: [id], onDelete: Cascade)
+  destinationRevisionRecord PaymentDestinationRevision @relation(fields: [tenantId, revision], references: [tenantId, revision])
+
+  @@unique([tenantId, paymentReceiptId])
+  @@index([tenantId, revision])
+  @@map("payment_receipt_destination_snapshots")
 }
 
 /// Phase 9.7 R3 — installment / deposit schedule rows (one per sequence slot).
@@ -595,6 +637,7 @@ model User {
 model UserTenant {
   userId             String   @map("user_id") @db.Uuid
   tenantId           String   @map("tenant_id") @db.Uuid
+  membershipCode     String?  @map("membership_code")
   role               String
   status             String   @default("ACTIVE")
   sessionVersion     Int      @default(1) @map("session_version")
@@ -607,6 +650,7 @@ model UserTenant {
 
   @@id([userId, tenantId])
   @@index([tenantId, status], map: "idx_user_tenants_tenant_status")
+  @@unique([tenantId, membershipCode], map: "uq_user_tenants_tenant_membership_code")
   @@map("user_tenants")
 }
 
@@ -669,16 +713,28 @@ model OperatorRegistration {
   guestPhone        String?   @map("guest_phone")
   partySize         Int       @map("party_size")
   status            String    @default("pending")
+  /// Registration approval and final roster inclusion are separate decisions.
+  finalizationStatus String   @default("not_final") @map("finalization_status")
   paymentStatus     String    @default("unpaid") @map("payment_status")
   departureAt       DateTime  @map("departure_at")
   submittedAt       DateTime  @default(now()) @map("submitted_at")
   submittedByUserId String    @map("submitted_by_user_id") @db.Uuid
   approvedAt        DateTime? @map("approved_at")
+  finalizedAt       DateTime? @map("finalized_at")
+  finalizedByUserId String?   @map("finalized_by_user_id") @db.Uuid
   registrationIntake Json?  @map("registration_intake")
   /// Ops reject reason (optional). Null when never rejected or rejected without reason.
   rejectReason      String?   @map("reject_reason")
   /// DP1 — terminal cancel provenance (`payment_deadline`, `operator`, …).
   cancelSource      String?   @map("cancel_source")
+  cancellationStatus String    @default("none") @map("cancellation_status")
+  cancellationReasonCode String? @map("cancellation_reason_code")
+  cancellationReasonNote String? @map("cancellation_reason_note")
+  cancellationRequestedAt DateTime? @map("cancellation_requested_at")
+  cancellationApprovedAt DateTime? @map("cancellation_approved_at")
+  cancellationApprovedByUserId String? @map("cancellation_approved_by_user_id") @db.Uuid
+  cancellationCorrelationId String? @map("cancellation_correlation_id")
+  cancellationSnapshot Json? @map("cancellation_snapshot")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

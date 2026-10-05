@@ -114,6 +114,11 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
 
   it("G-P6-UI-07 denali marketing skin aligns with denali-club DTCG tokens", () => {
     const skin = readMarketingSkinBundle(denaliMarketingSkinPath);
+    const homeSkinPath = join(
+      repoRoot,
+      "packages/workspaces/denali/theme/marketing/home-landing.css"
+    );
+    const homeSkin = readMarketingSkinBundle(homeSkinPath);
     assert.match(skin, /--color-primary: (?:#059669|var\(--denali-forest-600\))/);
     assert.match(skin, /--denali-forest-600: #059669/);
     assert.match(skin, /--mkt-accent-mid: #b45309/);
@@ -121,15 +126,13 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     assert.match(skin, /--font-heading: var\(--font-heading-en/);
     assert.match(skin, /--mkt-text-h1:/);
     assert.match(skin, /--mkt-shadow-card:/);
-    assert.match(skin, /section\[data-marketing-home-hero\]/);
-    assert.match(skin, /section\[data-marketing-home-latest\]/);
-    assert.match(skin, /section\[data-marketing-home-programs\]/);
-    assert.match(skin, /section\[data-marketing-home-trust\]/);
-    assert.match(skin, /section\[data-marketing-home-final-cta\]/);
-    assert.match(skin, /section\[data-marketing-home-faq\]/);
-    assert.match(skin, /section\[data-marketing-home-why\]/);
-    assert.match(skin, /section\[data-marketing-home-journey\]/);
-    assert.match(skin, /section\[data-marketing-home-testimonials\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-hero(?:-walk)?\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-programs\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-destinations\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-gallery\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-final-cta\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-faq\]/);
+    assert.match(homeSkin, /section\[data-marketing-home-why\]/);
     assert.match(skin, /footer\[data-marketing-footer\]/);
     assert.match(skin, /details\[data-marketing-nav-drawer\]/);
     assert.match(skin, /div\[data-marketing-catalog-toolbar\]/);

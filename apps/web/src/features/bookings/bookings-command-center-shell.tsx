@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Check, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppPathname, useAppSearchParams } from "@/navigation/app-navigation-hooks";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
 import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
@@ -51,6 +51,7 @@ import {
   applyDepartureWindow,
   BOOKINGS_UPCOMING_FACET_DAYS,
   resolveBookingsKpiQueryPatch,
+  resolveBookingsKpiValue,
   resolveInboxSelectionAfterKey,
   resolveInlineApproveClick,
   serializeBookingsCommandCenterQuery,
@@ -130,7 +131,7 @@ type BookingsPageClientProps = {
    * HARDENING H-03 — Tour Workspace chrome reload after approve/reject/waitlist/cancel/bulk.
    * Invoked only after a successful mutation (not list soft-refresh).
    */
-  readonly onOpsMutationSuccess?: () => void;
+  readonly onOpsMutationSuccess?: (outcome?: "payment_required" | "finalized" | "other") => void;
   /**
    * H-08 / H2-T2 — when set and at capacity, approve requires overbook confirm (waitlist embed).
    */
@@ -229,22 +230,25 @@ export function BookingsPageClient({
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [cancelReasonDraft, setCancelReasonDraft] = useState("operator_correction");
   const [overbookConfirmOpen, setOverbookConfirmOpen] = useState(false);
   const [overbookConfirmBookingId, setOverbookConfirmBookingId] = useState<string | null>(null);
   const [overbookConfirmMode, setOverbookConfirmMode] = useState<
     "approve" | "approve_without_payment"
   >("approve");
   const [armedInlineApproveId, setArmedInlineApproveId] = useState<string | null>(null);
+  /** UX-BKG-52 follow-up — visible countdown while the confirm arm window is open. */
+  const [armedInlineApproveRemainingSeconds, setArmedInlineApproveRemainingSeconds] = useState(0);
   const [inspectionBooking, setInspectionBooking] = useState<BookingListItem | null>(null);
   const inlineApproveArmTimeoutRef = useRef<number | null>(null);
+  const inlineApproveCountdownIntervalRef = useRef<number | null>(null);
 
   const replaceQuery = (
     next: BookingsCommandCenterQuery,
     options?: { preservePagination?: boolean }
   ) => {
     const shouldReset =
-      options?.preservePagination !== true &&
-      shouldResetBookingsPagination(queryRef.current, next);
+      options?.preservePagination !== true && shouldResetBookingsPagination(queryRef.current, next);
     let scoped = shouldReset ? withBookingsPaginationReset(next) : next;
     if (shouldReset) {
       pageStartCursorsRef.current = { 1: "" };
@@ -321,6 +325,9 @@ export function BookingsPageClient({
     return () => {
       if (inlineApproveArmTimeoutRef.current !== null) {
         window.clearTimeout(inlineApproveArmTimeoutRef.current);
+      }
+      if (inlineApproveCountdownIntervalRef.current !== null) {
+        window.clearInterval(inlineApproveCountdownIntervalRef.current);
       }
     };
   }, []);
@@ -453,7 +460,9 @@ export function BookingsPageClient({
   const bodyState = resolveBookingsPageBodyState({
     canManageOps,
     view: query.view,
-    loading: loading && listData === null,
+    // A changed filter must not present the previous response as the new result.
+    // Keep the loading state authoritative while the filtered request is pending.
+    loading,
     error,
     itemsLength: listData?.items.length ?? 0,
     hasActiveFilters: bookingsCommandCenterHasActiveFilters(query),
@@ -513,6 +522,37 @@ export function BookingsPageClient({
   const inspectionTarget =
     inspectionBooking?.id === selectedId ? inspectionBooking : selectedBooking;
 
+  // The workspace injects a tour-level guard, while the global bookings page
+  // only has the canonical row snapshot. Keep the same fallback for both
+  // rendering and mutation handlers so a full waitlist row cannot expose an
+  // approval action that the API will reject (BUG-STG-063).
+  const effectiveCapacityGuard =
+    tourCapacityGuard ??
+    (inspectionTarget?.capacitySnapshot !== undefined
+      ? {
+          acceptedCount: inspectionTarget.capacitySnapshot.occupied,
+          totalCapacity: inspectionTarget.capacitySnapshot.max,
+        }
+      : undefined);
+  const capacityFull =
+    effectiveCapacityGuard !== undefined && isTourCapacityFull(effectiveCapacityGuard);
+
+  const isItemCapacityFull = useCallback(
+    (item: BookingListItem) => {
+      const itemCapacityGuard =
+        lockedTour.length > 0 && item.tourId === lockedTour && tourCapacityGuard !== undefined
+          ? tourCapacityGuard
+          : item.capacitySnapshot !== undefined
+            ? {
+                acceptedCount: item.capacitySnapshot.occupied,
+                totalCapacity: item.capacitySnapshot.max,
+              }
+            : undefined;
+      return itemCapacityGuard !== undefined && isTourCapacityFull(itemCapacityGuard);
+    },
+    [lockedTour, tourCapacityGuard]
+  );
+
   const applyKpiFilter = (kpi: BookingsKpiFilterId) => {
     if (kpi === "departures7d") {
       replaceQuery(
@@ -542,6 +582,11 @@ export function BookingsPageClient({
   const refreshData = () => {
     setBulkSelectedIds([]);
     setActionError(null);
+    // A lifecycle mutation can also promote a waitlisted booking. Keep the
+    // previous list out of the authoritative view until both list and summary
+    // have been revalidated; otherwise the cancelled row can remain visible
+    // while the promotion is already committed on the API.
+    setLoading(true);
     setFetchNonce((value) => value + 1);
   };
 
@@ -572,13 +617,17 @@ export function BookingsPageClient({
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [actionBusy, bulkConfirmOpen, cancelDialogOpen, loading, rejectDialogOpen]);
 
+  const capacityEligibleItems = useMemo(
+    () => (listData?.items ?? []).filter((item) => !isItemCapacityFull(item)),
+    [isItemCapacityFull, listData?.items]
+  );
   const bulkApprovableIds = useMemo(
-    () => filterBulkApprovableIds(listData?.items ?? [], bulkSelectedIds, bulkApproveMaxBatch),
-    [bulkApproveMaxBatch, bulkSelectedIds, listData?.items]
+    () => filterBulkApprovableIds(capacityEligibleItems, bulkSelectedIds, bulkApproveMaxBatch),
+    [bulkApproveMaxBatch, bulkSelectedIds, capacityEligibleItems]
   );
   const pageApprovableIds = useMemo(
-    () => listBulkApprovableIds(listData?.items ?? [], bulkApproveMaxBatch),
-    [bulkApproveMaxBatch, listData?.items]
+    () => listBulkApprovableIds(capacityEligibleItems, bulkApproveMaxBatch),
+    [bulkApproveMaxBatch, capacityEligibleItems]
   );
   const allPageApprovableSelected =
     pageApprovableIds.length > 0 && pageApprovableIds.every((id) => bulkSelectedIds.includes(id));
@@ -612,7 +661,7 @@ export function BookingsPageClient({
         setActionNotice(t("bulkApproveSuccess", { count: result.approvedIds.length }));
       }
       refreshData();
-      onOpsMutationSuccess?.();
+      onOpsMutationSuccess?.("other");
     } catch (bulkError: unknown) {
       setActionError(
         bulkError instanceof Error ? bulkError.message : "BOOKINGS_BULK_APPROVE_FAILED"
@@ -633,7 +682,12 @@ export function BookingsPageClient({
       window.clearTimeout(inlineApproveArmTimeoutRef.current);
       inlineApproveArmTimeoutRef.current = null;
     }
+    if (inlineApproveCountdownIntervalRef.current !== null) {
+      window.clearInterval(inlineApproveCountdownIntervalRef.current);
+      inlineApproveCountdownIntervalRef.current = null;
+    }
     setArmedInlineApproveId(null);
+    setArmedInlineApproveRemainingSeconds(0);
   };
 
   const handleInlineApproveClick = (bookingId: string) => {
@@ -650,14 +704,30 @@ export function BookingsPageClient({
     if (inlineApproveArmTimeoutRef.current !== null) {
       window.clearTimeout(inlineApproveArmTimeoutRef.current);
     }
+    if (inlineApproveCountdownIntervalRef.current !== null) {
+      window.clearInterval(inlineApproveCountdownIntervalRef.current);
+    }
+    const armMs = BOOKINGS_INLINE_APPROVE_ARM_MS;
+    const armedAt = Date.now();
+    setArmedInlineApproveRemainingSeconds(Math.ceil(armMs / 1000));
+    inlineApproveCountdownIntervalRef.current = window.setInterval(() => {
+      const remainingMs = armedAt + armMs - Date.now();
+      setArmedInlineApproveRemainingSeconds(Math.max(0, Math.ceil(remainingMs / 1000)));
+    }, 250);
     inlineApproveArmTimeoutRef.current = window.setTimeout(() => {
       setArmedInlineApproveId(null);
+      setArmedInlineApproveRemainingSeconds(0);
       inlineApproveArmTimeoutRef.current = null;
-    }, BOOKINGS_INLINE_APPROVE_ARM_MS);
+      if (inlineApproveCountdownIntervalRef.current !== null) {
+        window.clearInterval(inlineApproveCountdownIntervalRef.current);
+        inlineApproveCountdownIntervalRef.current = null;
+      }
+    }, armMs);
   };
 
   const openCancelDialog = (bookingId: string) => {
     setCancelTargetId(bookingId);
+    setCancelReasonDraft("operator_correction");
     setCancelDialogOpen(true);
   };
 
@@ -668,7 +738,8 @@ export function BookingsPageClient({
     const bookingId = cancelTargetId;
     setCancelDialogOpen(false);
     setCancelTargetId(null);
-    await runBookingAction("cancel", bookingId);
+    await runBookingAction("cancel", bookingId, cancelReasonDraft);
+    setCancelReasonDraft("operator_correction");
   };
 
   const confirmReject = async () => {
@@ -699,7 +770,12 @@ export function BookingsPageClient({
   };
 
   const runBookingAction = async (
-    action: "approve" | "reject" | "waitlist" | "cancel",
+    action:
+      | "approve"
+      | "reject"
+      | "waitlist"
+      | "cancel"
+      | "promote-waitlist-with-capacity-increase",
     bookingId: string,
     rejectReason = ""
   ) => {
@@ -711,16 +787,27 @@ export function BookingsPageClient({
       const response = await fetch(`/api/bookings/${bookingId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: action === "reject" ? buildRejectBookingRequestBody(rejectReason) : undefined,
+        body:
+          action === "reject"
+            ? buildRejectBookingRequestBody(rejectReason)
+            : action === "cancel"
+              ? JSON.stringify({ reasonCode: rejectReason || "operator_correction" })
+              : undefined,
       });
       if (!response.ok) {
         throw new Error(`BOOKINGS_${action.toUpperCase()}_HTTP_${response.status}`);
       }
-      if (action === "approve" && embedded && lockedTour.trim().length > 0) {
+      if (
+        (action === "approve" || action === "promote-waitlist-with-capacity-increase") &&
+        embedded &&
+        lockedTour.trim().length > 0
+      ) {
         invalidateFinanceRegistrationCaches(bookingId);
         invalidateTourWorkspaceFinanceCache(lockedTour);
       }
-      if (snapshot !== null) {
+      if (action === "promote-waitlist-with-capacity-increase") {
+        setActionNotice(t("promoteWaitlistWithCapacityIncreaseSuccess"));
+      } else if (snapshot !== null) {
         const notice = buildBookingLifecycleActionNotice({
           action,
           guestLabel: snapshot.guestLabel,
@@ -734,7 +821,11 @@ export function BookingsPageClient({
         }
       }
       refreshData();
-      onOpsMutationSuccess?.();
+      onOpsMutationSuccess?.(
+        action === "approve" || action === "promote-waitlist-with-capacity-increase"
+          ? "payment_required"
+          : "other"
+      );
     } catch (actionErr: unknown) {
       setActionError(actionErr instanceof Error ? actionErr.message : "BOOKINGS_ACTION_FAILED");
     } finally {
@@ -743,7 +834,7 @@ export function BookingsPageClient({
   };
 
   const requestApprove = (bookingId: string) => {
-    if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
+    if (capacityFull) {
       setOverbookConfirmMode("approve");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
@@ -782,7 +873,7 @@ export function BookingsPageClient({
         setActionNotice(t("approveWithoutPaymentSuccess", { guest: snapshot.guestLabel }));
       }
       refreshData();
-      onOpsMutationSuccess?.();
+      onOpsMutationSuccess?.("finalized");
     } catch (actionErr: unknown) {
       setActionError(
         actionErr instanceof Error ? actionErr.message : "BOOKINGS_APPROVE_WITHOUT_PAYMENT_FAILED"
@@ -793,7 +884,7 @@ export function BookingsPageClient({
   };
 
   const requestApproveWithoutPayment = (bookingId: string) => {
-    if (tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard)) {
+    if (capacityFull) {
       setOverbookConfirmMode("approve_without_payment");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
@@ -803,15 +894,10 @@ export function BookingsPageClient({
   };
 
   const showLeaderBanner = !embedded && (leaderAlias || isLeaderReviewAlias(query.scope));
-  const canActOnSelected =
-    canManageOps &&
-    inspectionTarget !== null &&
-    (inspectionTarget.status === "pending" || inspectionTarget.status === "waitlisted");
   const canWaitlistSelected =
     canManageOps && inspectionTarget !== null && isBookingWaitlistable(inspectionTarget);
   const canCancelSelected =
     canManageOps && inspectionTarget !== null && isBookingCancellable(inspectionTarget);
-  const capacityFull = tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard);
   const actionAvailability = useMemo(
     () =>
       resolveBookingActionAvailability({
@@ -823,6 +909,15 @@ export function BookingsPageClient({
       }),
     [canCancelSelected, canManageOps, canWaitlistSelected, capacityFull, inspectionTarget]
   );
+  const canRejectSelected = actionAvailability.canReject;
+  const canApproveSelected =
+    actionAvailability.canApprove || actionAvailability.canApproveWithoutPayment;
+  const canActOnSelected = canRejectSelected || canApproveSelected;
+  const showPromoteWaitlistWithCapacityIncrease =
+    canManageOps &&
+    lockedStatusFilter === "waitlisted" &&
+    capacityFull &&
+    inspectionTarget?.status === "waitlisted";
   const actionUnavailableHint = useMemo(() => {
     if (actionAvailability.unavailableReason === "approved_use_finance" && !canActOnSelected) {
       return t("actionReason.approvedUseFinance");
@@ -846,7 +941,9 @@ export function BookingsPageClient({
   ]);
   const capacityFullHint =
     actionAvailability.showCapacityFullHint && canActOnSelected
-      ? t("actionReason.capacityFull")
+      ? t.has("actionReason.capacityFull")
+        ? t("actionReason.capacityFull")
+        : null
       : null;
   const totalPages =
     listData !== null ? resolveBookingsListTotalPages(listData.total, BOOKINGS_LIST_PAGE_SIZE) : 1;
@@ -861,6 +958,7 @@ export function BookingsPageClient({
 
   const renderInboxRow = (item: (typeof displayItems)[number]) => {
     const selected = selectedBooking?.id === item.id;
+    const itemCapacityFull = isItemCapacityFull(item);
     return (
       <Fragment key={item.id}>
         {item.status === "cancelled" && item.cancelSource === "payment_deadline" ? (
@@ -872,18 +970,22 @@ export function BookingsPageClient({
           item={item}
           selected={selected}
           bulkChecked={bulkSelectedIds.includes(item.id)}
-          showBulkSelect={canManageOps && isBulkApprovable(item)}
+          showBulkSelect={canManageOps && isBulkApprovable(item) && !itemCapacityFull}
           onBulkToggle={() => toggleBulkSelection(item.id)}
           onSelect={() => selectBooking(item.id)}
           showInlineApprove={shouldShowInlineApprove({
             featureEnabled: BOOKINGS_INLINE_APPROVE_ENABLED,
             canManageOps,
             item,
+            capacityFull: itemCapacityFull,
             selected,
             narrowViewport: isNarrowViewport,
           })}
           inlineApproveBusy={actionBusy}
           inlineApproveArmed={armedInlineApproveId === item.id}
+          inlineApproveRemainingSeconds={
+            armedInlineApproveId === item.id ? armedInlineApproveRemainingSeconds : 0
+          }
           onInlineApprove={() => handleInlineApproveClick(item.id)}
           onInlineApproveDisarm={clearInlineApproveArm}
           showTourTitle={!isWorkspaceEmbed}
@@ -938,14 +1040,19 @@ export function BookingsPageClient({
         ) : null}
       </div>
 
-      {canManageOps && summary !== null && !embedded ? (
+      {canManageOps && summary !== null && !embedded && !loading ? (
         <div
           className="flex flex-wrap items-center gap-2"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.kpiStrip}
         >
           <BookingsKpiCard
             label={t("kpi.pending")}
-            value={summary.pending}
+            value={resolveBookingsKpiValue({
+              kpi: "pending",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.pending,
+            })}
             locale={locale}
             ariaLabel={t("kpi.pendingAria")}
             active={query.status === "pending" && query.departureWithinDays.length === 0}
@@ -953,7 +1060,12 @@ export function BookingsPageClient({
           />
           <BookingsKpiCard
             label={t("kpi.approvedToday")}
-            value={summary.approvedToday}
+            value={resolveBookingsKpiValue({
+              kpi: "approvedToday",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.approvedToday,
+            })}
             locale={locale}
             active={
               query.status === "approved" &&
@@ -964,7 +1076,12 @@ export function BookingsPageClient({
           />
           <BookingsKpiCard
             label={t("kpi.departures7d")}
-            value={summary.departures7d}
+            value={resolveBookingsKpiValue({
+              kpi: "departures7d",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.departures7d,
+            })}
             locale={locale}
             ariaLabel={t("kpi.departures7dAria")}
             active={query.departureWithinDays === "7"}
@@ -972,7 +1089,12 @@ export function BookingsPageClient({
           />
           <BookingsKpiCard
             label={t("kpi.waitlist")}
-            value={summary.waitlist}
+            value={resolveBookingsKpiValue({
+              kpi: "waitlist",
+              query,
+              filteredListTotal: listData?.total ?? 0,
+              summaryValue: summary.waitlist,
+            })}
             locale={locale}
             ariaLabel={t("kpi.waitlistAria")}
             active={query.status === "waitlisted" && query.departureWithinDays.length === 0}
@@ -1194,7 +1316,10 @@ export function BookingsPageClient({
               <CardTitle>{t("inspection")}</CardTitle>
               {inspectionTarget !== null &&
               canManageOps &&
-              (canActOnSelected || canWaitlistSelected || canCancelSelected) ? (
+              (canActOnSelected ||
+                canWaitlistSelected ||
+                canCancelSelected ||
+                showPromoteWaitlistWithCapacityIncrease) ? (
                 <p
                   className="text-xs font-normal text-muted-foreground"
                   data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.inspectionActionsHint}
@@ -1215,6 +1340,8 @@ export function BookingsPageClient({
                   locale={locale}
                   canManageOps={canManageOps}
                   canActOnSelected={canActOnSelected}
+                  canRejectSelected={canRejectSelected}
+                  canApproveSelected={canApproveSelected}
                   canWaitlistSelected={canWaitlistSelected}
                   canCancelSelected={canCancelSelected}
                   actionBusy={actionBusy}
@@ -1224,6 +1351,13 @@ export function BookingsPageClient({
                   onApprove={() => requestApprove(inspectionTarget.id)}
                   onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
+                  showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
+                  onPromoteWaitlistWithCapacityIncrease={() =>
+                    void runBookingAction(
+                      "promote-waitlist-with-capacity-increase",
+                      inspectionTarget.id
+                    )
+                  }
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex"
                   actionHint={actionUnavailableHint}
@@ -1247,7 +1381,7 @@ export function BookingsPageClient({
       >
         <SheetContent
           side="bottom"
-          className="max-h-[90vh] overflow-y-auto rounded-t-xl lg:hidden"
+          className="max-h-[90vh] overflow-y-auto rounded-t-xl pb-[calc(1.5rem+env(safe-area-inset-bottom))] lg:hidden"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.mobileInspectionSheet}
         >
           {inspectionTarget !== null ? (
@@ -1261,6 +1395,8 @@ export function BookingsPageClient({
                   locale={locale}
                   canManageOps={canManageOps}
                   canActOnSelected={canActOnSelected}
+                  canRejectSelected={canRejectSelected}
+                  canApproveSelected={canApproveSelected}
                   canWaitlistSelected={canWaitlistSelected}
                   canCancelSelected={canCancelSelected}
                   actionBusy={actionBusy}
@@ -1270,6 +1406,13 @@ export function BookingsPageClient({
                   onApprove={() => requestApprove(inspectionTarget.id)}
                   onApproveWithoutPayment={() => requestApproveWithoutPayment(inspectionTarget.id)}
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
+                  showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
+                  onPromoteWaitlistWithCapacityIncrease={() =>
+                    void runBookingAction(
+                      "promote-waitlist-with-capacity-increase",
+                      inspectionTarget.id
+                    )
+                  }
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex w-full flex-wrap"
                   actionHint={actionUnavailableHint}
@@ -1301,7 +1444,7 @@ export function BookingsPageClient({
         onConfirm={() => void confirmReject()}
       />
 
-      <BookingsCancelConfirmDialog
+        <BookingsCancelConfirmDialog
         open={cancelDialogOpen}
         busy={actionBusy}
         guestLabel={
@@ -1309,16 +1452,19 @@ export function BookingsPageClient({
           inspectionTarget?.guestLabel ??
           ""
         }
-        tourTitle={
+          tourTitle={
           findSelectedBooking(displayItems, cancelTargetId)?.tourTitle ??
           inspectionTarget?.tourTitle ??
           ""
-        }
-        onOpenChange={(open) => {
-          setCancelDialogOpen(open);
-          if (!open) {
-            setCancelTargetId(null);
           }
+          reason={cancelReasonDraft}
+          onReasonChange={setCancelReasonDraft}
+          onOpenChange={(open) => {
+            setCancelDialogOpen(open);
+            if (!open) {
+              setCancelTargetId(null);
+              setCancelReasonDraft("operator_correction");
+            }
         }}
         onConfirm={() => void confirmCancel()}
       />

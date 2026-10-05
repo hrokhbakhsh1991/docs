@@ -56,7 +56,7 @@ export async function proxyWalletApiRequest(
 export async function proxyWalletApiGet(req: Request, backendPath: string): Promise<NextResponse> {
   const incoming = new URL(req.url);
   const query = incoming.searchParams.toString();
-  const path = query.length > 0 ? `${backendPath}?${query}` : backendPath;
+  const path = backendPath.includes("?") || query.length === 0 ? backendPath : `${backendPath}?${query}`;
   return proxyWalletApiRequest(req, { path, method: "GET" });
 }
 

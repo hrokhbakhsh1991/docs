@@ -38,6 +38,12 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
     description: "Payment projection on booking list/create (booking-http-contracts).",
     examples: ["unpaid"],
   },
+  BookingFinalizationStatus: {
+    type: "string",
+    enum: ["not_final", "finalized"],
+    description: "Whether an approved booking is included in the final roster.",
+    examples: ["finalized"],
+  },
   BookingsListView: {
     type: "string",
     enum: ["ops", "mine"],
@@ -323,6 +329,24 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
       },
     ],
   },
+  FinalizeBookingResponse: {
+    type: "object",
+    required: ["id", "status", "finalizationStatus", "finalizedAt"],
+    properties: {
+      id: ref("BookingId"),
+      status: ref("BookingStatus"),
+      finalizationStatus: ref("BookingFinalizationStatus"),
+      finalizedAt: { type: "string", format: "date-time", examples: ["2026-07-20T12:30:00.000Z"] },
+    },
+    examples: [
+      {
+        id: "00000000-0000-4000-8000-000000000891",
+        status: "approved",
+        finalizationStatus: "finalized",
+        finalizedAt: "2026-07-20T12:30:00.000Z",
+      },
+    ],
+  },
   RejectBookingRequest: {
     type: "object",
     properties: {
@@ -363,14 +387,50 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
     },
     examples: [{ id: "00000000-0000-4000-8000-000000000891", status: "waitlisted" }],
   },
-  CancelBookingResponse: {
+  WaitlistCapacityAdmissionResponse: {
     type: "object",
-    required: ["id", "status"],
+    required: [
+      "id",
+      "status",
+      "paymentStatus",
+      "capacityAdded",
+      "previousCapacity",
+      "nextCapacity",
+    ],
     properties: {
       id: ref("BookingId"),
       status: ref("BookingStatus"),
+      paymentStatus: ref("BookingPaymentStatus"),
+      capacityAdded: { type: "integer", minimum: 1 },
+      previousCapacity: { type: "integer", minimum: 1 },
+      nextCapacity: { type: "integer", minimum: 1 },
     },
-    examples: [{ id: "00000000-0000-4000-8000-000000000891", status: "cancelled" }],
+  },
+  CancelBookingResponse: {
+    type: "object",
+    required: ["id", "status", "cancellationStatus", "refundStatus", "settlementStatus"],
+    properties: {
+      id: ref("BookingId"),
+      status: ref("BookingStatus"),
+      cancellationStatus: { type: "string", enum: ["none", "request_pending", "approved", "rejected", "applied", "late_correction", "manual_review", "completed"] },
+      refundStatus: { type: "string", enum: ["not_required", "pending_finance_approval"] },
+      settlementStatus: { type: "string", enum: ["not_affected", "correction_pending", "manual_review"] },
+    },
+    examples: [{
+      id: "00000000-0000-4000-8000-000000000891",
+      status: "cancelled",
+      cancellationStatus: "applied",
+      refundStatus: "pending_finance_approval",
+      settlementStatus: "correction_pending",
+    }],
+  },
+  CancelBookingRequest: {
+    type: "object",
+    required: ["reasonCode"],
+    properties: {
+      reasonCode: { type: "string", minLength: 1 },
+      reasonNote: { type: "string", maxLength: 2000 },
+    },
   },
   BulkApproveBookingsRequest: {
     type: "object",
@@ -401,19 +461,33 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
   },
   BookingMemberReceiptJsonBody: {
     type: "object",
-    required: ["fileKey"],
+    description: "At least one of fileKey or note is required.",
+    anyOf: [
+      {
+        required: ["fileKey"],
+        properties: { fileKey: { type: "string", minLength: 1 } },
+      },
+      {
+        required: ["note"],
+        properties: { note: { type: "string", minLength: 1, maxLength: 2000 } },
+      },
+    ],
     properties: {
       fileKey: {
-        type: "string",
+        type: ["string", "null"],
         minLength: 1,
         examples: ["tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"],
       },
-      note: { type: "string", examples: ["bank transfer"] },
+      note: {
+        type: ["string", "null"],
+        minLength: 1,
+        maxLength: 2000,
+        examples: ["bank transfer", null],
+      },
     },
     examples: [
       {
-        fileKey: "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
-        note: "bank transfer",
+        note: "کد پیگیری ۱۲۳۴۵؛ واریز در تاریخ ۱۴۰۵/۰۶/۲۳",
       },
     ],
   },
@@ -429,6 +503,9 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         examples: ["pending"],
       },
       remainingMinor: { type: "string", examples: ["1500000"] },
+      invoiceTotalMinor: { type: "string", examples: ["2500000"] },
+      initialPaymentDueMinor: { type: "string", examples: ["750000"] },
+      amountDueNowMinor: { type: "string", examples: ["750000"] },
       obligationMinor: { type: "string", examples: ["2500000"] },
       paidMinor: { type: "string", examples: ["1000000"] },
       currency: { type: "string", examples: ["IRR"] },
@@ -471,7 +548,8 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         examples: ["00000000-0000-4000-8000-000000000702"],
       },
       status: { type: "string", examples: ["Pending"] },
-      fileKey: { type: "string", examples: ["tenants/…/receipts/proof.bin"] },
+      fileKey: { type: ["string", "null"], examples: ["tenants/…/receipts/proof.bin", null] },
+      note: { type: ["string", "null"], examples: ["bank transfer", "کد پیگیری ۱۲۳۴۵", null] },
     },
     examples: [
       {
@@ -479,6 +557,7 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         paymentId: "00000000-0000-4000-8000-000000000702",
         status: "Pending",
         fileKey: "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
+        note: "bank transfer",
       },
     ],
   },
@@ -728,6 +807,75 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       ...capacityConflictResponses,
     },
   },
+  finalizeBooking: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Approved booking added to the final roster",
+        content: jsonContent("FinalizeBookingResponse", {
+          id: "00000000-0000-4000-8000-000000000891",
+          status: "approved",
+          finalizationStatus: "finalized",
+          finalizedAt: "2026-07-20T12:30:00.000Z",
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse("Finalization requires settled payment", {
+        error: "conflict",
+        code: "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT",
+      }),
+    },
+  },
+  finalizeBookingWithOpenPayment: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Approved booking added to the final roster while payment remains open",
+        content: jsonContent("FinalizeBookingResponse", {
+          id: "00000000-0000-0000-0000-000000000891",
+          status: "approved",
+          finalizationStatus: "finalized",
+          finalizedAt: "2026-07-20T12:30:00.000Z",
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse(
+        "Open-payment finalization requires an approved unpaid or partially paid registration",
+        {
+          error: "conflict",
+          code: "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED",
+        }
+      ),
+    },
+  },
+  waiveAndFinalizeBooking: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Approved booking added to the final roster and payment waived",
+        content: jsonContent("FinalizeBookingResponse", {
+          id: "00000000-0000-0000-0000-000000000891",
+          status: "approved",
+          finalizationStatus: "finalized",
+          finalizedAt: "2026-07-20T12:30:00.000Z",
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse(
+        "Waive-and-finalize requires an approved unpaid or partially paid registration",
+        {
+          error: "conflict",
+          code: "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED",
+        }
+      ),
+    },
+  },
   rejectBooking: {
     tags: ["Bookings"],
     parameters: [bookingIdPathParam],
@@ -762,15 +910,48 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       ...notFoundConflictResponses,
     },
   },
+  promoteWaitlistWithCapacityIncrease: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Capacity increased and waitlisted booking admitted with payment open",
+        content: jsonContent("WaitlistCapacityAdmissionResponse", {
+          id: "00000000-0000-4000-8000-000000000891",
+          status: "approved",
+          paymentStatus: "unpaid",
+          capacityAdded: 1,
+          previousCapacity: 1,
+          nextCapacity: 2,
+        }),
+      },
+      ...authErrorResponses,
+      ...notFoundConflictResponses,
+      409: errorResponse("Waitlist capacity admission is not allowed", {
+        error: "conflict",
+        code: "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED",
+      }),
+    },
+  },
   cancelBooking: {
     tags: ["Bookings"],
     parameters: [bookingIdPathParam],
+    requestBody: {
+      required: true,
+      content: jsonContent("CancelBookingRequest", {
+        reasonCode: "operator_correction",
+        reasonNote: "Operator correction after finalization",
+      }),
+    },
     responses: {
       200: {
         description: "Cancelled (emits registration.cancelled)",
         content: jsonContent("CancelBookingResponse", {
           id: "00000000-0000-4000-8000-000000000891",
           status: "cancelled",
+          cancellationStatus: "applied",
+          refundStatus: "pending_finance_approval",
+          settlementStatus: "correction_pending",
         }),
       },
       ...authErrorResponses,
@@ -818,9 +999,13 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
       },
       400: errorResponse("Invalid receipt payload", {
         error: "invalid_payload",
-        code: "FILE_KEY_REQUIRED",
+        code: "RECEIPT_EVIDENCE_REQUIRED",
       }),
       ...authErrorResponses,
+      409: errorResponse("Receipt idempotency conflict", {
+        error: "conflict",
+        code: "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT",
+      }),
       503: errorResponse("Object storage unavailable", {
         error: "service_unavailable",
         code: "MINIO_NOT_CONFIGURED",

@@ -9,6 +9,7 @@ import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "./tests/e2e/fixtures/smoke-pub
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =
   process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
+const executablePath = process.env.PW_EXECUTABLE_PATH;
 
 // SEO matrix seeds operator tenant …014 + tour …0210. Do not inherit the
 // denali-default tour id (…0220) from resolveSmokePublishedTourId().
@@ -29,6 +30,11 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
   return { args: [`--host-resolver-rules=${rules}`] };
 }
 
+const launchOptions = {
+  ...(executablePath ? { executablePath } : {}),
+  ...(stagingLaunchOptions() ?? {}),
+};
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["marketing-seo-*.spec.ts"],
@@ -40,7 +46,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: marketingSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
-    ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
+    launchOptions,
   },
   ...(useExternalServers
     ? {}

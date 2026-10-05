@@ -55,7 +55,7 @@ export function TourWorkspacePaymentEvidenceList({
           ? receipt.payment.status
           : t("detailEvidenceUnknownValue");
         const fileLabel =
-          receipt.fileKey.trim().length > 0
+          receipt.fileKey !== null && receipt.fileKey.trim().length > 0
             ? receiptFileLabel(receipt.fileKey)
             : t("detailEvidenceUnknownValue");
         const isExpanded = expandedReceiptId === receipt.id;
@@ -85,23 +85,29 @@ export function TourWorkspacePaymentEvidenceList({
                   </p>
                 ) : null}
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setExpandedReceiptId((current) => (current === receipt.id ? null : receipt.id))
-                }
-              >
-                {isExpanded ? t("detailEvidenceHideProof") : t("detailEvidenceShowProof")}
-              </Button>
+              {receipt.fileKey ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setExpandedReceiptId((current) => (current === receipt.id ? null : receipt.id))
+                  }
+                >
+                  {isExpanded ? t("detailEvidenceHideProof") : t("detailEvidenceShowProof")}
+                </Button>
+              ) : (
+                <span className="text-xs text-muted-foreground">{t("detailEvidenceTextOnly")}</span>
+              )}
             </div>
-            <ReceiptProofPreview
-              receiptId={receipt.id}
-              fileKey={receipt.fileKey}
-              expanded={isExpanded}
-              className="mt-3 space-y-2 rounded-md border bg-muted/20 p-3"
-            />
+            {receipt.fileKey ? (
+              <ReceiptProofPreview
+                receiptId={receipt.id}
+                fileKey={receipt.fileKey}
+                expanded={isExpanded}
+                className="mt-3 space-y-2 rounded-md border bg-muted/20 p-3"
+              />
+            ) : null}
           </div>
         );
       })}

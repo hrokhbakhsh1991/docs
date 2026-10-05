@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { getDenaliCatalogTour } from "../src/http/catalog.service";
+import { getDenaliCatalogTour, listDenaliCatalog } from "../src/http/catalog.service";
 import type { BookingPublicPort } from "../src/http/ports/public-booking.port";
 import type { DenaliTourStorePort } from "../src/http/ports/tour-store.port";
 
@@ -93,5 +93,79 @@ describe("catalog-spots-enrichment", () => {
       tourId: TOUR_ID,
     });
     assert.equal(card?.spotsRemaining, 12);
+  });
+
+  it("DN-CAT-STATE-01 keeps published full and past tours in the default catalog with explicit states", async () => {
+    const listStore: DenaliTourStorePort = {
+      async listPage() {
+        return {
+          items: [
+            {
+              id: "tour-open",
+              createdAt: "2026-09-22T00:00:00.000Z",
+              canonical: {
+                schemaVersion: 1,
+                roots: ["basics"],
+                data: {
+                  title: "Open tour",
+                  publishStatus: "active",
+                  startDateTime: "2030-09-20T08:00:00.000Z",
+                  capacityMax: 12,
+                },
+              },
+            },
+            {
+              id: "tour-full",
+              createdAt: "2026-09-21T00:00:00.000Z",
+              canonical: {
+                schemaVersion: 1,
+                roots: ["basics"],
+                data: {
+                  title: "Full tour",
+                  publishStatus: "active",
+                  startDateTime: "2030-09-21T08:00:00.000Z",
+                  capacityMax: 12,
+                },
+              },
+            },
+            {
+              id: "tour-past",
+              createdAt: "2026-09-20T00:00:00.000Z",
+              canonical: {
+                schemaVersion: 1,
+                roots: ["basics"],
+                data: {
+                  title: "Past tour",
+                  publishStatus: "active",
+                  startDateTime: "2025-09-21T08:00:00.000Z",
+                  capacityMax: 12,
+                },
+              },
+            },
+          ],
+          nextCursor: null,
+        };
+      },
+      async findFirst() {
+        return null;
+      },
+    };
+
+    const result = await listDenaliCatalog({
+      tenantId: "tenant",
+      workspaceType: "denali",
+      store: listStore,
+      bookingPort: bookingPort({ "tour-full": 12 }),
+    });
+
+    assert.deepEqual(
+      result.items.map((item) => ({ id: item.id, state: item.registrationState })),
+      [
+        { id: "tour-open", state: "open" },
+        { id: "tour-full", state: "waitlist" },
+        { id: "tour-past", state: "past" },
+      ]
+    );
+    assert.equal(result.items.find((item) => item.id === "tour-full")?.waitlistEnabled, true);
   });
 });

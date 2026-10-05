@@ -62,6 +62,13 @@ const MEMBER_NOTIFICATION_EVENT_MAP: Readonly<
     titleKey: "notification.payment.expired.title",
     bodyKey: "notification.payment.expired.body",
   },
+  "finance.receipt.approved": {
+    sourceModule: "finance",
+    entityType: "registration",
+    templateId: "finance.receipt.approved",
+    titleKey: "notification.finance.receipt.approved.title",
+    bodyKey: "notification.finance.receipt.approved.body",
+  },
   "tour.mutation.notification_required": {
     sourceModule: "booking",
     entityType: "registration",
@@ -93,7 +100,7 @@ function resolveRecipientUserId(payload: Readonly<Record<string, unknown>>): str
 function resolveEntityId(
   payload: Readonly<Record<string, unknown>>,
   entityType: MemberNotificationEntityType,
-  aggregateId: string,
+  aggregateId: string
 ): string | null {
   if (entityType === "registration") {
     const registrationId = payload.registrationId ?? payload.bookingId ?? aggregateId;
@@ -107,7 +114,7 @@ function resolveEntityId(
 }
 
 export async function dispatchMemberNotificationFromOutbox(
-  row: WorkspaceOutboxPublishedRow,
+  row: WorkspaceOutboxPublishedRow
 ): Promise<void> {
   const mapping = MEMBER_NOTIFICATION_EVENT_MAP[row.eventType];
   if (mapping === undefined) {

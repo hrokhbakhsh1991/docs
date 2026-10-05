@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       deploy_path:
-        description: "Path on VPS (default /opt/app-tour)"
+        description: "Path on VPS (default /opt/app-tour-staging/tooling)"
         required: false
-        default: "/opt/app-tour"
+        default: "/opt/app-tour-staging/tooling"
 
 concurrency:
   group: p7-staging-gate
@@ -17,6 +17,8 @@ jobs:
     name: Remote p7:staging-gate
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: staging
     if: github.repository == 'hrokhbakhsh1991/docs'
     steps:
       - name: Check VPS secrets

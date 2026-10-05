@@ -121,6 +121,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       getById: async () => null,
       getByIds: async () => [],
       updatePaymentStatus: async () => null,
+      markFreeCollectionApplied: async () => null,
       mergeRegistrationIntake: async () => null,
       updateGuestProjectionAndIntake: async () => null,
       reclassifyOwnedOtherToSelf: async () => null,
@@ -186,6 +187,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       financialDisplayState: {
         resolve: () => undefined,
       },
+      serialMutation: { run: async (fn) => fn() },
     });
 
     await assert.rejects(
@@ -206,8 +208,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
           }
         ),
       (error: unknown) =>
-        error instanceof BookingCapabilityViolationError &&
-        error.capability === "publicCreate"
+        error instanceof BookingCapabilityViolationError && error.capability === "publicCreate"
     );
   });
 

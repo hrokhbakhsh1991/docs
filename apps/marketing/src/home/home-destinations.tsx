@@ -3,7 +3,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { isAppLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 
-import { resolveMarketingDestinationImagePath } from "./resolve-marketing-destination-image-path";
+import {
+  resolveMarketingDestinationImagePath,
+  resolveMarketingDestinationImageSrcSet,
+} from "./resolve-marketing-destination-image-path";
 
 export type HomeDestinationsProps = {
   readonly destinationSlugs: readonly string[];
@@ -32,11 +35,12 @@ export async function HomeDestinations({
         <div data-marketing-home-destinations-row>
           {destinationSlugs.map((id) => {
             const name = t(`home.full.destinations.${id}.name`);
-            const explore = t("home.full.destinations.explore");
+            const explore = t("home.full.destinations.exploreAll");
             const tagline = t(`home.full.hero.spotlight.${id}.tagline`);
             const elevation = t(`home.full.hero.spotlight.${id}.elevationValue`);
             const region = t(`home.full.hero.spotlight.${id}.regionValue`);
             const imagePath = resolveMarketingDestinationImagePath(id, destinationImageStems);
+            const imageSrcSet = resolveMarketingDestinationImageSrcSet(id, destinationImageStems);
 
             return (
               <article
@@ -48,9 +52,11 @@ export async function HomeDestinations({
                   <img
                     data-marketing-home-destination-image
                     src={imagePath}
+                    {...(imageSrcSet ? { srcSet: imageSrcSet } : {})}
                     alt=""
                     width={720}
                     height={900}
+                    sizes="(min-width: 64rem) 25vw, (min-width: 48rem) 50vw, 100vw"
                     decoding="async"
                     loading="lazy"
                   />
@@ -70,7 +76,8 @@ export async function HomeDestinations({
                     {t(`home.full.destinations.${id}.description`)}
                   </p>
                   <Link
-                    href={resolveMarketingToursListPath(locale, { q: name })}
+                    href={resolveMarketingToursListPath(locale)}
+                    prefetch={false}
                     data-marketing-home-destination-link
                     aria-label={`${explore} — ${name}`}
                   >

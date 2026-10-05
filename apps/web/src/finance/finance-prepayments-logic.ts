@@ -38,6 +38,19 @@ export type RecordPrepaymentFormState = {
   readonly note: string;
 };
 
+/** Keep operator input labels aligned with the amount display policy. */
+export function resolveFinanceAmountUnitLabel(currency: string, locale: AppLocale = "en"): string {
+  const normalizedCurrency = currency.trim().toUpperCase();
+  if (normalizedCurrency === "IRR") {
+    return locale === "fa" ? "تومان" : "toman";
+  }
+  return normalizedCurrency.length > 0
+    ? normalizedCurrency
+    : locale === "fa"
+      ? "واحد نمایش"
+      : "display unit";
+}
+
 export type RecordPrepaymentValidation =
   | { readonly ok: true; readonly value: RecordPrepaymentFormState }
   | { readonly ok: false; readonly error: string };
@@ -111,11 +124,16 @@ export function formatMinorAmount(
   currency: string,
   locale: AppLocale = "en"
 ): string {
+  // Denali stores operator-entered تومان digits under ISO IRR under the
+  // existing no-×10 product policy. Keep finance labels aligned with catalog.
+  const normalizedCurrency = currency.trim().toUpperCase();
+  const displayCurrency =
+    normalizedCurrency === "IRR" ? (locale === "fa" ? "تومان" : "toman") : currency;
   const digits = amountMinor.replace(/\D/g, "");
   if (digits.length === 0) {
-    return `${formatLocalizedNumber(0, locale)} ${currency}`;
+    return `${formatLocalizedNumber(0, locale)} ${displayCurrency}`;
   }
-  return `${formatGroupedDigitsString(digits, locale)} ${currency}`;
+  return `${formatGroupedDigitsString(digits, locale)} ${displayCurrency}`;
 }
 
 export function formatPrepaymentRecordedAt(iso: string, locale: AppLocale = "en"): string {

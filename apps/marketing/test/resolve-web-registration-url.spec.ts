@@ -60,14 +60,33 @@ describe("resolve-web-registration-url", () => {
   });
 
   it("MKT-12 custom apex marketing host maps to portal.denali.club", () => {
-    assert.equal(
-      resolvePortalPublicBaseUrl("denali.club"),
-      "http://portal.denali.club:3003"
-    );
+    assert.equal(resolvePortalPublicBaseUrl("denali.club"), "http://portal.denali.club:3003");
     assert.equal(
       resolveWebRegistrationUrl("denali.club", "tour-abc", "denali"),
       "http://portal.denali.club:3003/catalog/tour-abc/register"
     );
+  });
+
+  it("BUG-STG-FREE-CTA-PORTAL-HOST maps the real staging apex to the Portal host", () => {
+    const priorRoot = process.env.PLATFORM_ROOT_DOMAIN;
+    const priorPortal = process.env.PORTAL_PUBLIC_BASE_URL;
+    process.env.PLATFORM_ROOT_DOMAIN = "shenski.com";
+    delete process.env.PORTAL_PUBLIC_BASE_URL;
+    try {
+      assert.equal(
+        resolveWebRegistrationUrl(
+          "denali.shenski.com",
+          "c3a3c778-99ab-4750-8dc6-3172fa5ce034",
+          "denali"
+        ),
+        "http://portal.denali.shenski.com:3003/catalog/c3a3c778-99ab-4750-8dc6-3172fa5ce034/register"
+      );
+    } finally {
+      if (priorRoot === undefined) delete process.env.PLATFORM_ROOT_DOMAIN;
+      else process.env.PLATFORM_ROOT_DOMAIN = priorRoot;
+      if (priorPortal === undefined) delete process.env.PORTAL_PUBLIC_BASE_URL;
+      else process.env.PORTAL_PUBLIC_BASE_URL = priorPortal;
+    }
   });
 
   it("MKT-PCMS-02 tour sign-in URL opens register with auth=login modal", () => {
@@ -91,10 +110,7 @@ describe("resolve-web-registration-url", () => {
 
   it("MKT-PCMS-P3-10 member registration detail URL appends id", () => {
     assert.equal(
-      resolveWebMemberRegistrationDetailUrl(
-        "denali.club",
-        "00000000-0000-4000-8000-000000000601"
-      ),
+      resolveWebMemberRegistrationDetailUrl("denali.club", "00000000-0000-4000-8000-000000000601"),
       "http://portal.denali.club:3003/me/registrations/00000000-0000-4000-8000-000000000601"
     );
     assert.equal(resolveWebMemberRegistrationDetailUrl("denali.club", "../escape"), null);

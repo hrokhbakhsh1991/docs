@@ -43,6 +43,43 @@ function readRegistrationIntake(req: IncomingMessage): {
   return transportKind.length > 0 ? { transport: { kind: transportKind } } : {};
 }
 
+function readRegistrantTarget(req: IncomingMessage): "self" | "other" {
+  return readQueryString(req, "registrantTarget") === "other" ? "other" : "self";
+}
+
+export async function settleWithConcurrency<T, R>(
+  items: readonly T[],
+  worker: (item: T) => Promise<R>,
+  concurrency = 4
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= items.length) return;
+        try {
+          results[index] = { status: "fulfilled", value: await worker(items[index]) };
+        } catch (reason) {
+          results[index] = { status: "rejected", reason };
+        }
+      }
+    })
+  );
+
+  return results;
+}
+
+export function resolveCommercialPricingMemberUserId(
+  registrantTarget: "self" | "other",
+  authenticatedUserId: string
+): string | null {
+  return registrantTarget === "self" ? authenticatedUserId : null;
+}
+
 function normalizeWorkspaceType(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -78,6 +115,7 @@ async function resolveCommercialPricingPreview(input: {
   readonly workspace: string;
   readonly tourId: string;
   readonly partySize: number;
+  readonly registrantTarget: "self" | "other";
   readonly registrationIntake: { readonly transport?: { readonly kind: string } };
 }): Promise<CommercialPricingPreviewDto | null> {
   const normalizedWorkspace = input.workspace.toLowerCase();
@@ -107,18 +145,23 @@ async function resolveCommercialPricingPreview(input: {
   }
 
   const allowMembershipDiscount = readTourAllowMembershipDiscount(tour.canonical);
-  const membershipDiscountPercentage = allowMembershipDiscount
-    ? await new IdentityMembershipDiscountReadAdapter().getMembershipDiscountPercentage(
-        input.tenantId,
-        input.memberUserId
-      )
-    : null;
+  const memberUserId = resolveCommercialPricingMemberUserId(
+    input.registrantTarget,
+    input.memberUserId
+  );
+  const membershipDiscountPercentage =
+    allowMembershipDiscount && memberUserId !== null
+      ? await new IdentityMembershipDiscountReadAdapter().getMembershipDiscountPercentage(
+          input.tenantId,
+          memberUserId
+        )
+      : null;
   const quoteInput = buildCommercialQuoteFreezeInput({
     tenantId: input.tenantId,
-    registrationId: `preview:${input.tourId}:${input.memberUserId}`,
+    registrationId: `preview:${input.tourId}:${input.registrantTarget}:${input.memberUserId}`,
     obligation,
     paymentCollection: resolvePaymentCollection(tour.canonical),
-    memberUserId: input.memberUserId,
+    memberUserId,
     allowMembershipDiscount,
     membershipDiscountPercentage,
   });
@@ -163,6 +206,7 @@ export async function handleCatalogCommercialPricingPreview(
       workspace: normalizedWorkspace,
       tourId,
       partySize: readPartySize(req),
+      registrantTarget: readRegistrantTarget(req),
       registrationIntake: readRegistrationIntake(req),
     });
     if (preview === null) {
@@ -202,21 +246,25 @@ export async function handleCatalogCommercialPricingPreviews(
     }
 
     const previews: Record<string, CommercialPricingPreviewDto> = {};
-    await Promise.all(
-      tourIds.map(async (tourId) => {
-        const preview = await resolveCommercialPricingPreview({
+    const results = await settleWithConcurrency(tourIds, async (tourId) => {
+      return {
+        tourId,
+        preview: await resolveCommercialPricingPreview({
           tenantId: auth.tenantId,
           memberUserId: auth.userId,
           workspace: normalizedWorkspace,
           tourId,
           partySize: readPartySize(req),
+          registrantTarget: readRegistrantTarget(req),
           registrationIntake: readRegistrationIntake(req),
-        });
-        if (preview !== null) {
-          previews[tourId] = preview;
-        }
-      })
-    );
+        }),
+      };
+    });
+    for (const result of results) {
+      if (result.status === "fulfilled" && result.value.preview !== null) {
+        previews[result.value.tourId] = result.value.preview;
+      }
+    }
 
     sendJson(res, 200, {
       ok: true,

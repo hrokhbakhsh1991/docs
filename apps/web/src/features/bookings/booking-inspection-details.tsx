@@ -34,8 +34,11 @@ type BookingInspectionDetailsProps = {
   readonly locale: AppLocale;
   readonly canManageOps: boolean;
   readonly canActOnSelected: boolean;
+  readonly canRejectSelected: boolean;
+  readonly canApproveSelected: boolean;
   readonly canWaitlistSelected: boolean;
   readonly canCancelSelected: boolean;
+  readonly showPromoteWaitlistWithCapacityIncrease?: boolean;
   readonly actionBusy: boolean;
   readonly idCopied: boolean;
   readonly onCopyId: () => void;
@@ -44,6 +47,7 @@ type BookingInspectionDetailsProps = {
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
+  readonly onPromoteWaitlistWithCapacityIncrease?: () => void;
   readonly actionClassName: string;
   readonly actionHint?: string | null;
   readonly capacityFullHint?: string | null;
@@ -55,8 +59,11 @@ export function BookingInspectionDetails({
   locale,
   canManageOps,
   canActOnSelected,
+  canRejectSelected,
+  canApproveSelected,
   canWaitlistSelected,
   canCancelSelected,
+  showPromoteWaitlistWithCapacityIncrease = false,
   actionBusy,
   idCopied,
   onCopyId,
@@ -65,6 +72,7 @@ export function BookingInspectionDetails({
   onApproveWithoutPayment,
   onWaitlist,
   onCancel,
+  onPromoteWaitlistWithCapacityIncrease,
   actionClassName,
   actionHint = null,
   capacityFullHint = null,
@@ -103,19 +111,23 @@ export function BookingInspectionDetails({
       </div>
       <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
         <dt className="text-muted-foreground">{t("fields.party")}</dt>
-        <dd>{formatLocalizedNumber(booking.partySize, locale)}</dd>
+        <dd className="min-w-0 break-words">{formatLocalizedNumber(booking.partySize, locale)}</dd>
         <dt className="text-muted-foreground">{t("fields.departure")}</dt>
-        <dd>{formatBookingDeparture(booking.departureAt, locale)}</dd>
+        <dd className="min-w-0 break-words">
+          {formatBookingDeparture(booking.departureAt, locale)}
+        </dd>
         {paymentDeadlineLabel !== null ? (
           <>
             <dt className="text-muted-foreground">{t("fields.payment")}</dt>
-            <dd>{t("paymentDueAt", { date: paymentDeadlineLabel })}</dd>
+            <dd className="min-w-0 break-words">
+              {t("paymentDueAt", { date: paymentDeadlineLabel })}
+            </dd>
           </>
         ) : null}
         {booking.capacitySnapshot !== undefined ? (
           <>
             <dt className="text-muted-foreground">{t("capacity")}</dt>
-            <dd>
+            <dd className="min-w-0">
               <BookingCapacityBar snapshot={booking.capacitySnapshot} locale={locale} />
             </dd>
           </>
@@ -125,14 +137,17 @@ export function BookingInspectionDetails({
       (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (
         <BookingActionButtons
           busy={actionBusy}
-          showApproveReject={canActOnSelected}
+          showReject={canRejectSelected}
+          showApprove={canApproveSelected}
           showWaitlist={canWaitlistSelected}
           showCancel={canCancelSelected}
+          showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
           onReject={onReject}
           onApprove={onApprove}
           onApproveWithoutPayment={onApproveWithoutPayment}
           onWaitlist={onWaitlist}
           onCancel={onCancel}
+          onPromoteWaitlistWithCapacityIncrease={onPromoteWaitlistWithCapacityIncrease}
           className={actionClassName}
           actionHint={actionHint}
           capacityFullHint={capacityFullHint}
@@ -145,7 +160,7 @@ export function BookingInspectionDetails({
         </summary>
         <dl className="mt-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
           <dt className="text-muted-foreground">{t("bookingId")}</dt>
-          <dd className="flex flex-wrap items-center gap-2">
+          <dd className="min-w-0 flex flex-wrap items-center gap-2 break-words">
             <span dir="ltr" className="font-mono">
               {truncateBookingId(booking.id)}
             </span>
@@ -164,7 +179,7 @@ export function BookingInspectionDetails({
           {booking.guestPhone !== undefined && booking.guestPhone.length > 0 ? (
             <>
               <dt className="text-muted-foreground">{t("fields.phone")}</dt>
-              <dd dir="ltr" className="text-start">
+              <dd dir="ltr" className="min-w-0 break-words text-start">
                 {formatIranMobileForDisplay(booking.guestPhone)}
               </dd>
             </>
@@ -172,7 +187,7 @@ export function BookingInspectionDetails({
           {booking.guestEmail !== undefined && booking.guestEmail.length > 0 ? (
             <>
               <dt className="text-muted-foreground">{t("fields.email")}</dt>
-              <dd dir="ltr" className="text-start">
+              <dd dir="ltr" className="min-w-0 break-words text-start">
                 {booking.guestEmail}
               </dd>
             </>
@@ -180,7 +195,7 @@ export function BookingInspectionDetails({
           {booking.rejectReason !== undefined && booking.rejectReason.length > 0 ? (
             <>
               <dt className="text-muted-foreground">{t("fields.rejectReason")}</dt>
-              <dd>{booking.rejectReason}</dd>
+              <dd className="min-w-0 break-words">{booking.rejectReason}</dd>
             </>
           ) : null}
         </dl>

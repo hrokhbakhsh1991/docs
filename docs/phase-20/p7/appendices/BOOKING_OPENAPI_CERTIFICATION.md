@@ -31,6 +31,7 @@ There is **no** `GET /bookings/{bookingId}` today — **detail** wire shape is `
 | `GET /bookings/summary` | `/bookings/summary` | `getBookingsSummary` |
 | `POST /bookings/bulk-approve` | `/bookings/bulk-approve` | `bulkApproveBookings` |
 | `POST /bookings/:id/approve` | `/bookings/{bookingId}/approve` | `approveBooking` |
+| `POST /bookings/:id/finalize` | `/bookings/{bookingId}/finalize` | `finalizeBooking` |
 | `POST /bookings/:id/reject` | `/bookings/{bookingId}/reject` | `rejectBooking` |
 | `POST /bookings/:id/waitlist` | `/bookings/{bookingId}/waitlist` | `waitlistBooking` |
 | `POST /bookings/:id/cancel` | `/bookings/{bookingId}/cancel` | `cancelBooking` |
@@ -41,7 +42,7 @@ There is **no** `GET /bookings/{bookingId}` today — **detail** wire shape is `
 
 `apps/api/src/openapi/booking-openapi.ts` mirrors `@app-tour/booking-http-contracts` DTOs:
 
-`BookingStatus`, `BookingPaymentStatus`, `BookingsListView`, `BookingListItem`, `BookingsListResponse`, `BookingsSummaryResponse`, `BookingTourChip`, `CreateBookingRequest`, `CreateBookingResponse`, `ApproveBookingResponse`, `RejectBookingRequest`, `RejectBookingResponse`, `WaitlistBookingResponse`, `CancelBookingResponse`, `BulkApproveBookingsRequest`, `BulkApproveBookingsResponse`, `BookingMemberReceiptJsonBody`, `BookingMemberReceiptStatusResponse`, `BookingHttpError`, `BookingIdPathParam`.
+`BookingStatus`, `BookingPaymentStatus`, `BookingFinalizationStatus`, `BookingsListView`, `BookingListItem`, `BookingsListResponse`, `BookingsSummaryResponse`, `BookingTourChip`, `CreateBookingRequest`, `CreateBookingResponse`, `ApproveBookingResponse`, `FinalizeBookingResponse`, `RejectBookingRequest`, `RejectBookingResponse`, `WaitlistBookingResponse`, `CancelBookingResponse`, `BulkApproveBookingsRequest`, `BulkApproveBookingsResponse`, `BookingMemberReceiptJsonBody`, `BookingMemberReceiptStatusResponse`, `BookingHttpError`, `BookingIdPathParam`.
 
 ## Completeness matrix (100% of registered Booking HTTP)
 
@@ -52,6 +53,7 @@ There is **no** `GET /bookings/{bookingId}` today — **detail** wire shape is `
 | `GET /bookings/summary` | — | `BookingsSummaryResponse` | 401,403 | yes |
 | `POST /bookings/bulk-approve` | `BulkApproveBookingsRequest` | `BulkApproveBookingsResponse` | 400,401,403,429 | yes |
 | `POST /bookings/{bookingId}/approve` | — (path `BookingId`) | `ApproveBookingResponse` | 401,403,404,409,429 | yes |
+| `POST /bookings/{bookingId}/finalize` | — (path `BookingId`) | `FinalizeBookingResponse` | 401,403,404,409 | yes |
 | `POST /bookings/{bookingId}/reject` | `RejectBookingRequest` | `RejectBookingResponse` | 401,403,404,409 | yes |
 | `POST /bookings/{bookingId}/waitlist` | — (path `BookingId`) | `WaitlistBookingResponse` | 401,403,404,409 | yes |
 | `POST /bookings/{bookingId}/cancel` | — (path `BookingId`) | `CancelBookingResponse` | 401,403,404,409 | yes |

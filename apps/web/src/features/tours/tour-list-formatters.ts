@@ -39,6 +39,18 @@ export function formatTourPrice(
   }
 }
 
+export function formatTourListPrice(
+  tour: Pick<TourListProjection, "paymentCollection" | "priceAmount" | "priceCurrency">,
+  locale: AppLocale = "en",
+  freeLabel = "Free / no payment required",
+  priceDisplayPolicy?: CatalogPriceDisplayPolicy | null
+): string | null {
+  if (tour.paymentCollection === "free") {
+    return freeLabel;
+  }
+  return formatTourPrice(tour.priceAmount, tour.priceCurrency, locale, priceDisplayPolicy);
+}
+
 export function formatTourDeparture(iso: string | null, locale: AppLocale = "en"): string | null {
   if (iso === null || iso.trim().length === 0) {
     return null;

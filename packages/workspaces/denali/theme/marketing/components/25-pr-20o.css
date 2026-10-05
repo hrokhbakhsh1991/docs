@@ -85,6 +85,17 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-shadow: 0 0 0 0.1875rem var(--background);
 }
 
+/* Desktop journey is a four-column rail; keep the index inside each column. */
+@media (min-width: 64rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step]
+    span[data-marketing-home-journey-step-index] {
+    inset-inline: 0;
+    top: var(--space-2);
+    margin-inline: auto;
+  }
+}
+
 /* PR-21 — catalog discovery shell (2026-07-04) — active
    Editorial list cards + filter toolbar; client filters on current API batch. */
 

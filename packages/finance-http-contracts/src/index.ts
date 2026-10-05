@@ -56,6 +56,7 @@ export type {
   FinanceOfflineReceiptDefaults,
   FinanceObligationPort,
   FinancePaymentCollectionMode,
+  FinanceRegistrationPaymentPlan,
   FinanceRegistrationObligation,
   FinanceRegistrationObligationOverrideInput,
   FinanceReceiptDefaultsPort,

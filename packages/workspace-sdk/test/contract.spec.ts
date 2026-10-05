@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -399,7 +399,7 @@ describe("workspace-sdk foundation contract", () => {
 
     it("imports dist entry and exposes required public exports (subprocess)", () => {
       const probe = `
-        const sdk = await import(${JSON.stringify(path.join(SDK_ROOT, "dist/index.js"))});
+        const sdk = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/index.js")).href)});
         const names = ${JSON.stringify([...REQUIRED_DIST_EXPORTS])};
         for (const name of names) {
           if (!(name in sdk)) {
@@ -431,7 +431,7 @@ describe("workspace-sdk foundation contract", () => {
       const allowed = [...ALLOWED_ROOT_RUNTIME_EXPORTS];
       const ignored = [...IGNORED_RUNTIME_META_KEYS];
       const probe = `
-        const sdk = await import(${JSON.stringify(path.join(SDK_ROOT, "dist/index.js"))});
+        const sdk = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/index.js")).href)});
         const allowed = new Set(${JSON.stringify(allowed)});
         const ignored = new Set(${JSON.stringify(ignored)});
         const runtimeNames = Object.keys(sdk).filter((name) => !ignored.has(name));
@@ -466,7 +466,7 @@ describe("workspace-sdk foundation contract", () => {
 
     it("auth subpath exposes buildTenantAuthz and denies cross-tenant theme access", () => {
       const probe = `
-        const auth = await import(${JSON.stringify(path.join(SDK_ROOT, "dist/auth/index.js"))});
+        const auth = await import(${JSON.stringify(pathToFileURL(path.join(SDK_ROOT, "dist/auth/index.js")).href)});
         const names = ${JSON.stringify([...REQUIRED_AUTH_EXPORTS])};
         for (const name of names) {
           if (!(name in auth)) {

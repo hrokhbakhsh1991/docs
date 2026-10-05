@@ -23,6 +23,20 @@ describe("DP4 portal member cancellation contract", () => {
     assert.match(panel, /data-portal-member-cancel/);
   });
 
+  it("free registrations do not render paid refund copy", () => {
+    const page = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/page.tsx"),
+      "utf8"
+    );
+    const panel = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-cancellation-panel.tsx"),
+      "utf8"
+    );
+    assert.match(page, /paymentCollection=\{financialProjection\.paymentCollection\}/);
+    assert.match(panel, /paymentCollection !== "free"/);
+    assert.match(panel, /freeRequestHint/);
+  });
+
   it("BFF exposes member cancellation route", () => {
     const route = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/[id]/cancellation/route.ts"),

@@ -1,11 +1,12 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
+import { Input } from "@app-tour/ui-primitives/input";
 
 import { Button } from "../ui/button";
 import {
@@ -36,8 +37,12 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
   const minuteOptions = listTimePickerMinutes();
   const selectedHour = hours.length > 0 ? hours : "09";
   const selectedMinute = minutes.length > 0 ? minutes : "00";
+  const [hourDraft, setHourDraft] = useState(selectedHour);
+  const [minuteDraft, setMinuteDraft] = useState(selectedMinute);
 
   useEffect(() => {
+    setHourDraft(selectedHour);
+    setMinuteDraft(selectedMinute);
     const scrollSelected = (container: HTMLDivElement | null, selected: string) => {
       const option = container?.querySelector(`[data-time-option="${selected}"]`);
       option?.scrollIntoView({ block: "center" });
@@ -47,12 +52,35 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
   }, [selectedHour, selectedMinute]);
 
   const selectHour = (hour: string) => {
+    setHourDraft(hour);
     onChange(joinClockParts(hour, selectedMinute));
   };
 
   const selectMinute = (minute: string) => {
+    setMinuteDraft(minute);
     onChange(joinClockParts(selectedHour, minute));
   };
+
+  const commitTypedPart = (part: "hour" | "minute", rawValue: string) => {
+    const digits = rawValue.replace(/\D/g, "").slice(0, 2);
+    if (part === "hour") {
+      setHourDraft(digits);
+    } else {
+      setMinuteDraft(digits);
+    }
+    if (digits.length !== 2) return;
+    const parsed = Number.parseInt(digits, 10);
+    const max = part === "hour" ? 23 : 59;
+    if (parsed > max) return;
+    onChange(
+      joinClockParts(
+        part === "hour" ? digits : selectedHour,
+        part === "minute" ? digits : selectedMinute
+      )
+    );
+  };
+
+  const quickMinutes = ["00", "15", "30", "45"];
 
   return (
     <div
@@ -60,7 +88,60 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
       data-operator-wizard-time-picker
       dir="ltr"
     >
-      <p className="operator-time-picker__hint">{t("timePickerHint")}</p>
+      <div className="operator-time-picker__header">
+        <div>
+          <p className="operator-time-picker__eyebrow">{t("timeLabel")}</p>
+          <p className="operator-time-picker__hint">{t("timePickerHint")}</p>
+        </div>
+        <p className="operator-time-picker__preview" aria-live="polite">
+          {formatOptionLabel(joinClockParts(selectedHour, selectedMinute), locale)}
+        </p>
+      </div>
+      <div className="operator-time-picker__digital" aria-label={t("timeLabel")}>
+        <label className="operator-time-picker__digital-field">
+          <span>{t("hour")}</span>
+          <Input
+            inputMode="numeric"
+            maxLength={2}
+            value={hourDraft}
+            aria-label={t("hour")}
+            onFocus={(event) => event.currentTarget.select()}
+            onChange={(event) => commitTypedPart("hour", event.currentTarget.value)}
+          />
+        </label>
+        <span className="operator-time-picker__digital-separator" aria-hidden>
+          :
+        </span>
+        <label className="operator-time-picker__digital-field">
+          <span>{t("minute")}</span>
+          <Input
+            inputMode="numeric"
+            maxLength={2}
+            value={minuteDraft}
+            aria-label={t("minute")}
+            onFocus={(event) => event.currentTarget.select()}
+            onChange={(event) => commitTypedPart("minute", event.currentTarget.value)}
+          />
+        </label>
+      </div>
+      <div className="operator-time-picker__quick" aria-label={t("quickMinutes")}>
+        <span className="operator-time-picker__column-label">{t("quickMinutes")}</span>
+        <div className="operator-time-picker__quick-list">
+          {quickMinutes.map((minute) => (
+            <button
+              key={minute}
+              type="button"
+              className={cn(
+                "operator-time-picker__quick-option",
+                minute === selectedMinute && "operator-time-picker__quick-option--selected"
+              )}
+              onClick={() => selectMinute(minute)}
+            >
+              {formatOptionLabel(minute, locale)}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="operator-time-picker__columns" role="group" aria-label={t("timeLabel")}>
         <div className="operator-time-picker__column-wrap">
           <span className="operator-time-picker__column-label">{t("hour")}</span>
@@ -126,9 +207,6 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
           </div>
         </div>
       </div>
-      <p className="operator-time-picker__preview" aria-live="polite">
-        {formatOptionLabel(joinClockParts(selectedHour, selectedMinute), locale)}
-      </p>
       {onConfirm != null ? (
         <div className="operator-time-picker__actions">
           <Button type="button" size="sm" className="w-full" onClick={onConfirm}>

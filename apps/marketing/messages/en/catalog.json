@@ -70,6 +70,18 @@
       "difficultyLabel": "Difficulty level",
       "difficultyOption": "{level, number} of {max, number}",
       "fitnessLabel": "Required fitness",
+      "durationLabel": "Duration (days)",
+      "durationMinLabel": "Minimum duration in days",
+      "durationMaxLabel": "Maximum duration in days",
+      "durationMinPlaceholder": "From",
+      "durationMaxPlaceholder": "To",
+      "priceLabel": "Price",
+      "priceMinLabel": "Minimum price",
+      "priceMaxLabel": "Maximum price",
+      "priceMinPlaceholder": "From",
+      "priceMaxPlaceholder": "To",
+      "durationActive": "Duration filter",
+      "priceActive": "Price filter",
       "availabilityOpen": "Open spots only",
       "categoryLabel": "Program type",
       "categoryGroups": {
@@ -88,11 +100,14 @@
     },
     "card": {
       "soldOut": "Sold out",
+      "waitlist": "Waitlist",
+      "past": "Past",
       "summary": {
         "singleDay": "Single day",
         "multiDay": "{days, number} days",
         "difficulty": "Difficulty {level, number} of {max, number}",
         "capacity": "Max {count, number} guests",
+        "openSpots": "{count, number} spots left",
         "openSpots": "{count, number} spots left"
       }
     }
@@ -102,6 +117,7 @@
     "membershipDiscount": "Membership discount {percent}%",
     "membershipDiscountCompact": "{percent}% membership discount",
     "yourPrice": "Your price",
+    "unavailable": "Member price is temporarily unavailable",
     "ancillary": {
       "transport": "Vehicle",
       "dong": "Shared ride"
@@ -131,9 +147,13 @@
     "priceOnRequest": "Price on request",
     "datesTba": "Dates TBA",
     "soldOut": "Fully booked",
+    "joinWaitlist": "Join waitlist",
+    "past": "This tour has ended",
     "difficultyShort": "{level, number} of {max, number}",
     "facts": {
       "price": "Price",
+      "transport": "Transport",
+      "transportCost": "Transport cost",
       "capacity": "Capacity",
       "dates": "Dates",
       "difficulty": "Difficulty",
@@ -172,6 +192,7 @@
       "gathering": "Meeting point",
       "map": "Map",
       "openMap": "View on map",
+      "startTime": "Start time",
       "returnTime": "Approx. return time",
       "transport": "Transport",
       "transportCost": "Transport cost",
@@ -221,6 +242,12 @@
       "maximumAge": "Maximum age: {years, number} years",
       "transportIntake": "Transport preference or vehicle details",
       "payment": "Payment method: {mode}",
+      "prepayment": "Prepayment: {percent, number}% of the final amount after approval",
+      "freeCollection": "Free / no payment required",
+      "registrationApproval": {
+        "manual": "Registration approval: manual",
+        "auto": "Registration approval: automatic"
+      },
       "paymentModes": {
         "offlineReceipt": "Offline receipt / bank transfer",
         "gateway": "Online payment"
@@ -264,6 +291,7 @@
         "imageAlt": "Mountain landscape with a hiker on the trail",
         "ctaPrimary": "See programs",
         "ctaSecondary": "Why {siteName}?",
+        "ctaConsultation": "Travel consultation",
         "scrollHint": "Scroll to explore",
         "spotlight": {
           "rotateLabel": "360° rotation",
@@ -326,6 +354,7 @@
         "title": "Popular destinations",
         "lead": "Regions we run programs in often.",
         "explore": "Browse tours",
+        "exploreAll": "Browse all tours",
         "alborz": {
           "name": "Alborz",
           "description": "Popular routes north of Tehran — from day hikes to classic summit programs."
@@ -399,6 +428,10 @@
         "community": {
           "title": "Hiking community",
           "description": "Travel with like-minded people — no unnecessary pressure or hype."
+        },
+        "support": {
+          "title": "Support and coordination",
+          "description": "Use the member portal for coordination and follow-up."
         }
       },
       "journey": {
@@ -516,5 +549,8 @@
     "catalogBody": "We could not load tours. Check the API connection or configuration.",
     "retry": "Try again",
     "backToTours": "Back to tours"
+  },
+  "loading": {
+    "label": "Loading tours…"
   }
 }

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   buildMarketingCatalogCacheTag,
@@ -8,6 +11,8 @@ import {
 } from "../src/catalog/catalog-fetch-options";
 
 describe("catalog-fetch-options", () => {
+  const catalogDir = join(dirname(fileURLToPath(import.meta.url)), "../src/catalog");
+
   it("MKT-17 builds tenant-scoped cache tag", () => {
     assert.equal(
       buildMarketingCatalogCacheTag("00000000-0000-4000-8000-000000000014"),
@@ -20,10 +25,7 @@ describe("catalog-fetch-options", () => {
     process.env.MARKETING_CATALOG_REVALIDATE_SECONDS = "120";
     try {
       const next = resolveCatalogFetchNext("tenant-1");
-      assert.deepEqual(next.tags, [
-        "marketing-catalog-tenant-1",
-        "marketing-seo-tenant-1",
-      ]);
+      assert.deepEqual(next.tags, ["marketing-catalog-tenant-1", "marketing-seo-tenant-1"]);
       assert.equal(next.revalidate, 120);
     } finally {
       if (prior === undefined) {
@@ -39,5 +41,14 @@ describe("catalog-fetch-options", () => {
       buildMarketingSeoCacheTag("00000000-0000-4000-8000-000000000014"),
       "marketing-seo-00000000-0000-4000-8000-000000000014"
     );
+  });
+
+  it("BUG-STG-WAITLIST-PDP-STATE-NONDETERMINISTIC uses live fetches for PLP and PDP", () => {
+    const listSource = readFileSync(join(catalogDir, "fetch-catalog-list.ts"), "utf8");
+    const detailSource = readFileSync(join(catalogDir, "fetch-catalog-tour.ts"), "utf8");
+    assert.match(listSource, /cache: "no-store"/);
+    assert.match(detailSource, /cache: "no-store"/);
+    assert.doesNotMatch(listSource, /resolveCatalogFetchNext/);
+    assert.doesNotMatch(detailSource, /resolveCatalogFetchNext/);
   });
 });

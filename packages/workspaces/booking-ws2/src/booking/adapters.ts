@@ -15,6 +15,14 @@ import {
   type WorkspaceBookingEventReactionPort,
 } from "@app-tour/booking-http-contracts";
 
+function assertBookingWs2CaseAAllowed(ctx: BookingCreatePolicyContext): void {
+  if (ctx.guestLabel.trim() === BOOKING_POLICY_CASE_A_GUEST_LABEL) {
+    throw new Error(
+      `BOOKING_CAPACITY_REJECTED: workspace=booking-ws2 rejects guestLabel=${BOOKING_POLICY_CASE_A_GUEST_LABEL}`
+    );
+  }
+}
+
 export class BookingWs2PublicAdapter implements BookingPublicCapabilityPort {
   readonly kind = "booking-ws2-public" as const;
 
@@ -27,11 +35,7 @@ export class BookingWs2CapacityPolicyAdapter implements BookingCapacityPolicyPor
   readonly kind = "booking-ws2-capacity-policy" as const;
 
   assertCreateCapacity(ctx: BookingCreatePolicyContext): void {
-    if (ctx.guestLabel.trim() === BOOKING_POLICY_CASE_A_GUEST_LABEL) {
-      throw new Error(
-        `BOOKING_CAPACITY_REJECTED: workspace=booking-ws2 rejects guestLabel=${BOOKING_POLICY_CASE_A_GUEST_LABEL}`
-      );
-    }
+    assertBookingWs2CaseAAllowed(ctx);
     assertBookingStandardCapacity(ctx);
   }
 }
@@ -40,6 +44,10 @@ export class BookingWs2ValidationPolicyAdapter implements BookingValidationPolic
   readonly kind = "booking-ws2-validation-policy" as const;
 
   assertCreateValid(ctx: BookingCreatePolicyContext): void {
+    // Operator-created pending records defer occupancy checks until approval,
+    // but workspace-specific policy markers must never be bypassable by that
+    // deferred-capacity path.
+    assertBookingWs2CaseAAllowed(ctx);
     assertBookingBaseCreateShape(ctx);
   }
 }

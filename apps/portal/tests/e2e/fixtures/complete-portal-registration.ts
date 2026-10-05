@@ -13,6 +13,10 @@ export const DENALI_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000
 export const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 export const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 export const OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID = "00000000-0000-4000-8000-000000000213";
+export const OPERATOR_SMOKE_TRANSPORT_BUS_OCCUPANCY_TOUR_ID =
+  "00000000-0000-4000-8000-000000000215";
+export const OPERATOR_SMOKE_TRANSPORT_BUS_DRIVER_ONLY_TOUR_ID =
+  "00000000-0000-4000-8000-000000000216";
 export const OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 export const DENALI_BOOKING_PAID_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000223";
 export const DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000226";
@@ -67,12 +71,4 @@ export async function completePortalCatalogRegistration(
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 60_000,
   });
-
-  // Pre-warm authenticated member trips SSR while the session cookie is fresh.
-  await page.goto("/me/registrations", { waitUntil: "domcontentloaded" });
-  await page
-    .locator("[data-portal-member-registrations-list] li")
-    .first()
-    .waitFor({ state: "visible", timeout: 120_000 })
-    .catch(() => undefined);
 }

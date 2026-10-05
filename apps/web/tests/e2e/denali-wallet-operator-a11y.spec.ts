@@ -19,10 +19,15 @@ import {
 
 async function openPilotAccount(page: import("@playwright/test").Page): Promise<void> {
   await page.goto(DENALI_WALLET_PILOT_OPERATOR_WALLET_PATH);
-  await page
-    .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
-    .fill(DENALI_WALLET_PILOT.entitledMemberUserId);
+  const searchInput = page.getByTestId(WALLET_OPS_TEST_IDS.searchInput);
+  await expect(searchInput).toBeEnabled({ timeout: 60_000 });
+  await searchInput.fill(DENALI_WALLET_PILOT.entitledMemberUserId);
   await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
+  const memberRow = page
+    .getByTestId(WALLET_OPS_TEST_IDS.memberRow)
+    .filter({ hasText: DENALI_WALLET_PILOT.entitledMemberMobile });
+  await expect(memberRow).toBeVisible({ timeout: 60_000 });
+  await memberRow.click();
   await expect(page.getByTestId(WALLET_OPS_TEST_IDS.accountRow).first()).toBeVisible({
     timeout: 60_000,
   });
@@ -36,13 +41,16 @@ test.describe("WALLET-A11Y operator wallet", () => {
     await loginDenaliWalletPilotOwner(page);
     await page.goto(DENALI_WALLET_PILOT_OPERATOR_WALLET_PATH);
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.page)).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.searchInput)).toBeEnabled({
+      timeout: 60_000,
+    });
     await assertNoSeriousA11yViolations(page, "[data-wallet-ops]", "operator wallet overview");
     await assertKeyboardReachable(page, page.getByTestId(WALLET_OPS_TEST_IDS.searchInput));
     await page
       .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
       .fill("00000000-0000-4000-8000-000099999999");
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
-    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.empty)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId(WALLET_OPS_TEST_IDS.membersEmpty)).toBeVisible({ timeout: 60_000 });
     await assertNoSeriousA11yViolations(page, "[data-wallet-ops]", "operator wallet empty state");
   });
 
@@ -119,6 +127,7 @@ test.describe("WALLET-A11Y operator wallet", () => {
       .getByTestId(WALLET_OPS_TEST_IDS.searchInput)
       .fill(DENALI_WALLET_PILOT.entitledMemberUserId);
     await page.getByTestId(WALLET_OPS_TEST_IDS.searchSubmit).click();
+    await page.getByTestId(WALLET_OPS_TEST_IDS.memberRow).first().click();
     await expect(page.getByTestId(WALLET_OPS_TEST_IDS.loading).first()).toBeVisible({
       timeout: 30_000,
     });

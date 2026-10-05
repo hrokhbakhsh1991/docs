@@ -140,6 +140,52 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
     });
     return rows.map(mapListRow);
   }
+
+  async upsertTelegramTopicThreadId(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly topicName: string;
+    readonly threadId: number;
+  }): Promise<void> {
+    await withTenantRls(input.tenantId, async (tx) => {
+      const current = await tx.integrationConnection.findFirst({
+        where: { id: input.connectionId, tenantId: input.tenantId },
+        select: { config: true },
+      });
+      if (current === null) {
+        return;
+      }
+      const config =
+        typeof current.config === "object" && current.config !== null
+          ? (current.config as Record<string, unknown>)
+          : {};
+      const topicThreadIds =
+        typeof config.topicThreadIds === "object" && config.topicThreadIds !== null
+          ? (config.topicThreadIds as Record<string, unknown>)
+          : {};
+      const topicNames =
+        typeof config.topicNames === "object" && config.topicNames !== null
+          ? (config.topicNames as Record<string, unknown>)
+          : {};
+      // A topic's stored name is authoritative once set — never overwrite it,
+      // only fill it in the first time this key is provisioned.
+      const preservedName =
+        typeof topicNames[input.topicKey] === "string"
+          ? (topicNames[input.topicKey] as string)
+          : input.topicName;
+      await tx.integrationConnection.update({
+        where: { id: input.connectionId },
+        data: {
+          config: {
+            ...config,
+            topicThreadIds: { ...topicThreadIds, [input.topicKey]: input.threadId },
+            topicNames: { ...topicNames, [input.topicKey]: preservedName },
+          } as Prisma.InputJsonValue,
+        },
+      });
+    });
+  }
 }
 
 export function createIntegrationConnectionRepository(): IntegrationConnectionRepository {

@@ -66,7 +66,12 @@ export function readDenaliCatalogTransportSnapshot(
 ): PublicCatalogTransportSnapshot {
   const mode = readTransportMode(data);
   const allowPersonalCar = readBoolean(readCanonicalPath(data, "transport.allowPersonalCar"));
-  const transportCostAmount = readInteger(readCanonicalPath(data, "transport.transportCost"));
+  // Older persisted Denali tours used the public egress name in canonical data.
+  // Prefer the current wizard path, but keep those tours readable until they are
+  // migrated; otherwise Admin shows the amount while the public catalog drops it.
+  const transportCostAmount =
+    readInteger(readCanonicalPath(data, "transport.transportCost")) ??
+    readInteger(readCanonicalPath(data, "transport.transportCostAmount"));
   const dongAmount = readInteger(readCanonicalPath(data, "transport.dongAmount"));
 
   return Object.freeze({

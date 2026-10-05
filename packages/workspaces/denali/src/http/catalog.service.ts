@@ -1,4 +1,7 @@
-import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
+import type {
+  PublicCatalogRegistrationState,
+  PublicCatalogTourInput,
+} from "@app-tour/workspace-sdk";
 import {
   applyWorkspaceCatalogCardExposure,
   assertWorkspaceTypeOrThrow,
@@ -36,7 +39,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
 }
 
-function collectDestinationIdsFromTours(tours: readonly PublicCatalogTourInput[]): readonly string[] {
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isTourId(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
+function collectDestinationIdsFromTours(
+  tours: readonly PublicCatalogTourInput[]
+): readonly string[] {
   const ids = new Set<string>();
   for (const tour of tours) {
     const data = tour.canonical.data;
@@ -135,9 +146,28 @@ async function enrichCatalogCardsWithSpots(params: {
           params.tenantId,
           params.cards.map((card) => card.id)
         );
-  return params.cards.map((card) =>
-    withSpotsRemaining(card, approvedByTour[card.id] ?? 0)
-  );
+  return params.cards.map((card) => {
+    const withSpots = withSpotsRemaining(card, approvedByTour[card.id] ?? 0);
+    return withDenaliRegistrationState(withSpots);
+  });
+}
+
+function withDenaliRegistrationState<T extends ReturnType<typeof toDenaliCatalogCard>>(card: T): T {
+  const departureAt = card.departureAt == null ? null : Date.parse(card.departureAt);
+  const hasDeparture = departureAt != null && Number.isFinite(departureAt);
+  let registrationState: PublicCatalogRegistrationState = "open";
+  if (!hasDeparture) {
+    registrationState = "closed";
+  } else if (departureAt <= Date.now()) {
+    registrationState = "past";
+  } else if (card.spotsRemaining === 0) {
+    registrationState = "waitlist";
+  }
+  return Object.freeze({
+    ...card,
+    registrationState,
+    waitlistEnabled: true,
+  });
 }
 
 export type DenaliCatalogListResult = {
@@ -159,7 +189,7 @@ export async function listDenaliCatalog(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
 
   const limit = clampWorkspaceCatalogPageLimit({ limit: params.limit });
@@ -199,7 +229,7 @@ export async function listDenaliCatalog(params: {
       destinationNameById,
       surface: DENALI_EXPOSURE_SURFACE.publicList,
       exposurePort: params.exposurePort,
-    }),
+    })
   );
   const items = await enrichCatalogCardsWithSpots({
     tenantId: params.tenantId,
@@ -224,8 +254,13 @@ export async function getDenaliCatalogTour(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
+  // Tour ids are UUIDs in the Denali persistence model. Treat malformed public
+  // route params as a catalog miss before Prisma can turn them into a 500.
+  if (!isTourId(params.tourId)) {
+    return null;
+  }
   const tour = await loadWorkspaceTourIfPublished({
     findFirst: () => params.store.findFirst({ tenantId: params.tenantId, id: params.tourId }),
     isPublished: isDenaliTourPublished,

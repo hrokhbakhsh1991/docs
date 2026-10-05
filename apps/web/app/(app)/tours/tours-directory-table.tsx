@@ -62,7 +62,10 @@ export function ToursDirectoryTable({
             <th className={`${HEAD_CELL} w-[10rem]`} scope="col">
               {t("updated")}
             </th>
-            <th className={`${HEAD_CELL} sticky left-0 z-20 w-[15rem] bg-muted`} scope="col">
+            <th
+              className={`${HEAD_CELL} sticky z-20 w-[15rem] bg-muted rtl:left-0 ltr:right-0`}
+              scope="col"
+            >
               {t("actions")}
             </th>
           </tr>
@@ -120,7 +123,7 @@ function TourDirectoryTableRow({
           </div>
         </div>
       </td>
-      <td className={`${BODY_CELL} sticky left-0 z-10 min-w-[15rem] bg-card`}>
+      <td className={BODY_CELL}>
         <TourStatusBadge status={tour.uiStatus} />
       </td>
       <td className={`${BODY_CELL} whitespace-nowrap`}>
@@ -155,7 +158,7 @@ function TourDirectoryTableRow({
           {row.updatedLabel}
         </span>
       </td>
-      <td className={BODY_CELL}>
+      <td className={`${BODY_CELL} sticky z-10 min-w-[15rem] bg-card rtl:left-0 ltr:right-0`}>
         <TourListRowActions tour={tour} canManage={canManage} compact />
       </td>
     </tr>

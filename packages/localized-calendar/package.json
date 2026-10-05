@@ -43,7 +43,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
-    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\""
+    "test": "node --import ../../scripts/test/set-test-env.mjs --import tsx --import ./test/register-dom.mjs --test \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\""
   },
   "dependencies": {
     "@app-tour/ui-primitives": "workspace:*"

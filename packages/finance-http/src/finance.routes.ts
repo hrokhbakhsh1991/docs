@@ -361,7 +361,16 @@ export async function handleFinanceSubmitReceipt(
       throw new Error(host.idempotencyKeyRequiredCode);
     }
     const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
-    const body = parseSubmitReceiptBody(parsedBody);
+    const parsed = parseSubmitReceiptBody(parsedBody);
+    const destinationRevision =
+      req.headers["x-payment-destination-revision"] ??
+      req.headers["x-destination-revision"];
+    const body = {
+      ...parsed,
+      ...(typeof destinationRevision === "string" && destinationRevision.trim().length > 0
+        ? { destinationRevision: destinationRevision.trim() }
+        : {}),
+    };
     const auth = await host.resolveTenantContextFromRequest(req);
     const financeService = await host.resolveFinanceService(deps, auth);
     const requestHash = host.hashIdempotentRequest(

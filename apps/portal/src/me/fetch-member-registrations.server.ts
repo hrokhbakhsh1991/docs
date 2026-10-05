@@ -7,7 +7,11 @@ export type MemberRegistrationItem = {
   readonly tourId: string;
   readonly tourTitle: string;
   readonly status: string;
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly paymentStatus: string;
+  readonly paymentCollection?: "offline" | "free";
+  /** Distinguishes a waived obligation from money actually received. */
+  readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize?: number;
@@ -22,7 +26,7 @@ export type MemberRegistrationItem = {
     readonly amountMinor: string;
   }[];
   /** DP1 — Finance hold dueAt (UTC ISO). */
-  readonly paymentDueAt?: string;
+  readonly paymentDueAt?: string | null;
   readonly cancelSource?: string | null;
 };
 

@@ -69,4 +69,75 @@ describe("denali-catalog-card", () => {
     );
     assert.equal(card.coverImageUrl, signedCover);
   });
+
+  it("BUG-STG-082 keeps the shared-car dong amount in the public card egress", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        transport: {
+          mode: "shared_cars",
+          dongAmount: 300_000,
+        },
+      }),
+    });
+
+    assert.deepEqual(card.transport, {
+      mode: "shared_cars",
+      dongAmount: 300_000,
+    });
+  });
+
+  it("BUG-STG-082 keeps the organized transport amount in the public card egress", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        transport: {
+          mode: "bus",
+          allowPersonalCar: true,
+          transportCost: "120000",
+        },
+      }),
+    });
+
+    assert.deepEqual(card.transport, {
+      mode: "bus",
+      allowPersonalCar: true,
+      transportCostAmount: 120_000,
+    });
+  });
+
+  it("BUG-STG-082 reads the persisted legacy organized transport amount", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        transport: {
+          mode: "bus",
+          allowPersonalCar: true,
+          transportCostAmount: 150_000,
+        },
+      }),
+    });
+
+    assert.deepEqual(card.transport, {
+      mode: "bus",
+      allowPersonalCar: true,
+      transportCostAmount: 150_000,
+    });
+  });
+
+  it("BUG-STG-025 removes the numeric price and JSON-LD offer for free tours", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        pricing: {
+          basePricePerPerson: 2500000,
+          paymentCollection: "free",
+        },
+      }),
+    });
+
+    assert.equal(card.paymentCollection, "free");
+    assert.equal(card.priceAmount, null);
+    assert.equal("offers" in (card.structuredData ?? {}), false);
+  });
 });

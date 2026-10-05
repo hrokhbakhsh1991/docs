@@ -14,9 +14,9 @@ checklist_meta:
 | Check                 | Command / file                                                                        | Status                |
 | --------------------- | ------------------------------------------------------------------------------------- | --------------------- |
 | Node 24               | `nvm use` / `.nvmrc`                                                                  | **PASS**              |
-| Phase 4 gate (nested) | `pnpm run phase-4:gate` inside `phase-5:gate`                                         | **PASS** (2026-06-05) |
+| Phase 4 prerequisite  | `pnpm run phase-4:gate` separately on the same SHA                                     | **PASS** (2026-09-26 current-db) |
 | Entry yaml            | [`reports/phase-5-entry-verified.yaml`](../../../reports/phase-5-entry-verified.yaml) | blocking fields PASS  |
-| DB reset before gate  | `pnpm run db:test-reset` (in `phase-5:gate`)                                          | **PASS**              |
+| DB reset before gate  | `pnpm run db:test-reset` (in `phase-5:gate`)                                          | **PASS** (current-db) |
 
 ## B — Subphases (behavioral proof required)
 
@@ -36,7 +36,8 @@ checklist_meta:
 export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH"
 export DATABASE_URL="postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db"
 export DATABASE_URL_ADMIN="postgresql://postgres:postgres@127.0.0.1:5434/tour_db"
-pnpm run phase-5:gate   # db:test-reset + build + test + phase-4:gate + phase-5:guard
+pnpm run phase-4:gate   # same-SHA Phase 4 prerequisite
+pnpm run phase-5:gate   # db:test-reset + build + test + phase-4:guard + phase-5:guard
 ```
 
 | JSON                                                                                    | Rule                       |

@@ -3498,6 +3498,414 @@
         }
       }
     },
+    "/bookings/{bookingId}/finalize": {
+      "post": {
+        "operationId": "finalizeBooking",
+        "summary": "Finalize approved booking for the final roster",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved booking added to the final roster",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "FinalizeBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "approved",
+                      "finalizationStatus": "finalized",
+                      "finalizedAt": "2026-07-20T12:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Finalization requires settled payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/finalize-with-open-payment": {
+      "post": {
+        "operationId": "finalizeBookingWithOpenPayment",
+        "summary": "Finalize approved booking while payment remains open",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved booking added to the final roster while payment remains open",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "FinalizeBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-0000-0000-000000000891",
+                      "status": "approved",
+                      "finalizationStatus": "finalized",
+                      "finalizedAt": "2026-07-20T12:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Open-payment finalization requires an approved unpaid or partially paid registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/waive-and-finalize": {
+      "post": {
+        "operationId": "waiveAndFinalizeBooking",
+        "summary": "Finalize approved booking and waive payment",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved booking added to the final roster and payment waived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "FinalizeBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-0000-0000-000000000891",
+                      "status": "approved",
+                      "finalizationStatus": "finalized",
+                      "finalizedAt": "2026-07-20T12:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Waive-and-finalize requires an approved unpaid or partially paid registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/bookings/{bookingId}/reject": {
       "post": {
         "operationId": "rejectBooking",
@@ -3784,6 +4192,144 @@
         }
       }
     },
+    "/bookings/{bookingId}/promote-waitlist-with-capacity-increase": {
+      "post": {
+        "operationId": "promoteWaitlistWithCapacityIncrease",
+        "summary": "Increase capacity and admit a waitlisted booking to payment follow-up",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Capacity increased and waitlisted booking admitted with payment open",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistCapacityAdmissionResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "WaitlistCapacityAdmissionResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "approved",
+                      "paymentStatus": "unpaid",
+                      "capacityAdded": 1,
+                      "previousCapacity": 1,
+                      "nextCapacity": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Waitlist capacity admission is not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/bookings/{bookingId}/cancel": {
       "post": {
         "operationId": "cancelBooking",
@@ -3807,6 +4353,25 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelBookingRequest"
+              },
+              "examples": {
+                "default": {
+                  "summary": "CancelBookingRequest",
+                  "value": {
+                    "reasonCode": "operator_correction",
+                    "reasonNote": "Operator correction after finalization"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Cancelled (emits registration.cancelled)",
@@ -3820,7 +4385,10 @@
                     "summary": "CancelBookingResponse",
                     "value": {
                       "id": "00000000-0000-4000-8000-000000000891",
-                      "status": "cancelled"
+                      "status": "cancelled",
+                      "cancellationStatus": "applied",
+                      "refundStatus": "pending_finance_approval",
+                      "settlementStatus": "correction_pending"
                     }
                   }
                 }
@@ -4008,7 +4576,7 @@
                     "summary": "BookingHttpError",
                     "value": {
                       "error": "invalid_payload",
-                      "code": "FILE_KEY_REQUIRED"
+                      "code": "RECEIPT_EVIDENCE_REQUIRED"
                     }
                   }
                 }
@@ -4057,7 +4625,23 @@
             "description": "Not found"
           },
           "409": {
-            "description": "Conflict"
+            "description": "Receipt idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
             "description": "Rate limited"
@@ -5415,6 +5999,7 @@
           "uiStatus",
           "priceAmount",
           "priceCurrency",
+          "paymentCollection",
           "totalCapacity",
           "acceptedCount",
           "category",
@@ -5481,6 +6066,13 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "paymentCollection": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "free"
             ]
           },
           "totalCapacity": {
@@ -5577,6 +6169,17 @@
         "description": "Payment projection on booking list/create (booking-http-contracts).",
         "examples": [
           "unpaid"
+        ]
+      },
+      "BookingFinalizationStatus": {
+        "type": "string",
+        "enum": [
+          "not_final",
+          "finalized"
+        ],
+        "description": "Whether an approved booking is included in the final roster.",
+        "examples": [
+          "finalized"
         ]
       },
       "BookingsListView": {
@@ -5823,6 +6426,41 @@
           }
         ]
       },
+      "FinalizeBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "finalizationStatus",
+          "finalizedAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "finalizationStatus": {
+            "$ref": "#/components/schemas/BookingFinalizationStatus"
+          },
+          "finalizedAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-20T12:30:00.000Z"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "approved",
+            "finalizationStatus": "finalized",
+            "finalizedAt": "2026-07-20T12:30:00.000Z"
+          }
+        ]
+      },
       "RejectBookingRequest": {
         "type": "object",
         "properties": {
@@ -5890,11 +6528,15 @@
           }
         ]
       },
-      "CancelBookingResponse": {
+      "WaitlistCapacityAdmissionResponse": {
         "type": "object",
         "required": [
           "id",
-          "status"
+          "status",
+          "paymentStatus",
+          "capacityAdded",
+          "previousCapacity",
+          "nextCapacity"
         ],
         "properties": {
           "id": {
@@ -5902,14 +6544,94 @@
           },
           "status": {
             "$ref": "#/components/schemas/BookingStatus"
+          },
+          "paymentStatus": {
+            "$ref": "#/components/schemas/BookingPaymentStatus"
+          },
+          "capacityAdded": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "previousCapacity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nextCapacity": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "CancelBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "cancellationStatus",
+          "refundStatus",
+          "settlementStatus"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "cancellationStatus": {
+            "type": "string",
+            "enum": [
+              "none",
+              "request_pending",
+              "approved",
+              "rejected",
+              "applied",
+              "late_correction",
+              "manual_review",
+              "completed"
+            ]
+          },
+          "refundStatus": {
+            "type": "string",
+            "enum": [
+              "not_required",
+              "pending_finance_approval"
+            ]
+          },
+          "settlementStatus": {
+            "type": "string",
+            "enum": [
+              "not_affected",
+              "correction_pending",
+              "manual_review"
+            ]
           }
         },
         "examples": [
           {
             "id": "00000000-0000-4000-8000-000000000891",
-            "status": "cancelled"
+            "status": "cancelled",
+            "cancellationStatus": "applied",
+            "refundStatus": "pending_finance_approval",
+            "settlementStatus": "correction_pending"
           }
         ]
+      },
+      "CancelBookingRequest": {
+        "type": "object",
+        "required": [
+          "reasonCode"
+        ],
+        "properties": {
+          "reasonCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reasonNote": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
       },
       "BulkApproveBookingsRequest": {
         "type": "object",
@@ -5969,28 +6691,59 @@
       },
       "BookingMemberReceiptJsonBody": {
         "type": "object",
-        "required": [
-          "fileKey"
+        "description": "At least one of fileKey or note is required.",
+        "anyOf": [
+          {
+            "required": [
+              "fileKey"
+            ],
+            "properties": {
+              "fileKey": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "note"
+            ],
+            "properties": {
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          }
         ],
         "properties": {
           "fileKey": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "minLength": 1,
             "examples": [
               "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
             ]
           },
           "note": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 2000,
             "examples": [
-              "bank transfer"
+              "bank transfer",
+              null
             ]
           }
         },
         "examples": [
           {
-            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
-            "note": "bank transfer"
+            "note": "کد پیگیری ۱۲۳۴۵؛ واریز در تاریخ ۱۴۰۵/۰۶/۲۳"
           }
         ]
       },
@@ -6018,6 +6771,24 @@
             "type": "string",
             "examples": [
               "1500000"
+            ]
+          },
+          "invoiceTotalMinor": {
+            "type": "string",
+            "examples": [
+              "2500000"
+            ]
+          },
+          "initialPaymentDueMinor": {
+            "type": "string",
+            "examples": [
+              "750000"
+            ]
+          },
+          "amountDueNowMinor": {
+            "type": "string",
+            "examples": [
+              "750000"
             ]
           },
           "obligationMinor": {
@@ -6114,9 +6885,24 @@
             ]
           },
           "fileKey": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "examples": [
-              "tenants/…/receipts/proof.bin"
+              "tenants/…/receipts/proof.bin",
+              null
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "examples": [
+              "bank transfer",
+              "کد پیگیری ۱۲۳۴۵",
+              null
             ]
           }
         },
@@ -6125,7 +6911,8 @@
             "id": "00000000-0000-4000-8000-000000000701",
             "paymentId": "00000000-0000-4000-8000-000000000702",
             "status": "Pending",
-            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
+            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
+            "note": "bank transfer"
           }
         ]
       },

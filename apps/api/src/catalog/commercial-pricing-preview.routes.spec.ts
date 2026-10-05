@@ -2,13 +2,22 @@ import assert from "node:assert/strict";
 import type { IncomingMessage } from "node:http";
 import { describe, it } from "node:test";
 
-import { resolveCommercialPricingWorkspace } from "./commercial-pricing-preview.routes";
+import {
+  resolveCommercialPricingMemberUserId,
+  resolveCommercialPricingWorkspace,
+  settleWithConcurrency,
+} from "./commercial-pricing-preview.routes";
 
 function request(url: string): IncomingMessage {
   return { url } as IncomingMessage;
 }
 
 describe("commercial pricing workspace binding", () => {
+  it("BUG-STG-022 applies membership discount only to the self participant", () => {
+    assert.equal(resolveCommercialPricingMemberUserId("self", "member-1"), "member-1");
+    assert.equal(resolveCommercialPricingMemberUserId("other", "member-1"), null);
+  });
+
   it("resolves an omitted workspace from the tenant for both route shapes", async () => {
     const resolver = async () => "denali";
 
@@ -127,5 +136,31 @@ describe("commercial pricing workspace binding", () => {
     assert.match(source, /getById\(input\.tourId, input\.tenantId\)/);
     assert.match(source, /tenantId: auth\.tenantId/);
     assert.doesNotMatch(source, /(?:\|\||\?\?)\s*["']denali["']/);
+  });
+
+  it("BUG-STG-081 bounds batch pricing resolution to avoid order-dependent preview loss", async () => {
+    let active = 0;
+    let peak = 0;
+    const settled = await settleWithConcurrency(["a", "b", "c", "d", "e"], async (value) => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      active -= 1;
+      return value.toUpperCase();
+    }, 2);
+
+    assert.equal(peak, 2);
+    assert.deepEqual(
+      settled.map((result) => (result.status === "fulfilled" ? result.value : result.reason)),
+      ["A", "B", "C", "D", "E"]
+    );
+
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("./commercial-pricing-preview.routes.ts", import.meta.url), "utf8")
+    );
+
+    assert.match(source, /settleWithConcurrency/);
+    assert.match(source, /concurrency = 4/);
+    assert.match(source, /settleWithConcurrency\(tourIds/);
   });
 });

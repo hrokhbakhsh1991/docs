@@ -7,6 +7,8 @@
  */
 
 import { getBookingsRepository } from "./create-bookings-repository";
+import { runSerialBookingMutation } from "./in-memory-bookings.repository";
+import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
 import { HostBookingAssistedRegistrationMembersAdapter } from "./infrastructure/host-booking-assisted-registration-members.adapter";
@@ -27,7 +29,8 @@ import { resolveWorkspaceBookingEventReaction } from "./booking-event-reaction-r
 import { resolveBookingWorkspaceDependencies } from "./booking-dependency-registry";
 import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
 import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
-import { isZeroObligationMinor, readObligationOverrideFromIntake } from "@app-tour/finance-core";
+import { readObligationOverrideFromIntake } from "@app-tour/finance-core";
+import { resolveFinancialDisplayStateForListRecord } from "./booking-list-intake-scalars";
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 import type {
   ApproveBookingResponse,
@@ -42,9 +45,11 @@ import type {
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
+  WaitlistCapacityAdmissionResponse,
 } from "./bookings.types";
 import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
 
@@ -145,15 +150,14 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     registrationSlo: { record: recordRegistrationSloEvent },
     financialDisplayState: {
       resolve: (record) => {
-        if (record.status !== "approved" || record.paymentStatus !== "paid") {
-          return undefined;
-        }
-        const override = readObligationOverrideFromIntake(record.registrationIntake);
-        return override !== null && isZeroObligationMinor(override.obligationMinor)
-          ? "WAIVED"
-          : undefined;
+        return resolveFinancialDisplayStateForListRecord(
+          record,
+          readObligationOverrideFromIntake(record.registrationIntake),
+          record.registrationIntake?.freeCollectionApplied === true
+        );
       },
     },
+    serialMutation: { run: runSerialBookingMutation },
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,
@@ -243,11 +247,25 @@ export async function findGuestBookingDuplicateMatch(
 
 export async function createPublicGuestBooking(
   auth: BookingActorContext,
-  body: CreateBookingRequest
+  body: CreateBookingRequest,
+  outboxEvent?: BookingPublicOutboxEvent
 ): Promise<CreateBookingResponse> {
   return (await resolveBookingsServiceForTenant(auth.tenantId)).createPublicGuestBooking(
     auth,
-    body
+    body,
+    outboxEvent
+  );
+}
+
+export async function createPublicWaitlistedBooking(
+  auth: BookingActorContext,
+  body: CreateBookingRequest,
+  outboxEvent?: BookingPublicOutboxEvent
+): Promise<CreateBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).createPublicWaitlistedBooking(
+    auth,
+    body,
+    outboxEvent
   );
 }
 
@@ -275,6 +293,33 @@ export async function approveBooking(
     return { ...result, ...holdSideEffects };
   }
   return result;
+}
+
+export async function finalizeBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).finalizeBooking(auth, bookingId);
+}
+
+export async function finalizeBookingWithOpenPayment(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).finalizeBookingWithOpenPayment(
+    auth,
+    bookingId
+  );
+}
+
+export async function waiveAndFinalizeBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<FinalizeBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).waiveAndFinalizeBooking(
+    auth,
+    bookingId
+  );
 }
 
 export async function autoApprovePublicBooking(input: {
@@ -325,13 +370,42 @@ export async function waitlistBooking(
   return (await resolveBookingsServiceForTenant(auth.tenantId)).waitlistBooking(auth, bookingId);
 }
 
-export async function cancelBooking(
+export async function promoteWaitlistWithCapacityIncrease(
   auth: BookingActorContext,
   bookingId: string
+): Promise<WaitlistCapacityAdmissionResponse> {
+  const result = await (
+    await resolveBookingsServiceForTenant(auth.tenantId)
+  ).promoteWaitlistWithCapacityIncrease(auth, bookingId);
+  if (result.status === "approved") {
+    const repo = getBookingsRepository();
+    const approvedRow = await repo.getById(result.id, auth.tenantId);
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
+    const holdSideEffects = await applyPaymentHoldAfterBookingApprove({
+      tenantId: auth.tenantId,
+      bookingId: result.id,
+      approvedAt: approvedRow?.approvedAt ?? new Date().toISOString(),
+    });
+    const { applyFreeCollectionAfterBookingApprove } =
+      await import("../workspace-finance/apply-free-collection-after-booking-approve");
+    await applyFreeCollectionAfterBookingApprove({
+      tenantId: auth.tenantId,
+      bookingId: result.id,
+    });
+    return { ...result, ...holdSideEffects };
+  }
+  return result;
+}
+
+export async function cancelBooking(
+  auth: BookingActorContext,
+  bookingId: string,
+  input?: { readonly reasonCode: string; readonly reasonNote?: string }
 ): Promise<CancelBookingResponse> {
   const result = await (
     await resolveBookingsServiceForTenant(auth.tenantId)
-  ).cancelBooking(auth, bookingId);
+  ).cancelBooking(auth, bookingId, input);
   const { closePaymentHoldOnOperatorCancel } =
     await import("../finance/apply-payment-hold-after-booking-approve");
   await closePaymentHoldOnOperatorCancel({
@@ -349,9 +423,17 @@ export async function bulkApproveBookings(
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).bulkApproveBookings(auth, body);
   if (result.approvedIds.length > 0) {
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
     const { applyFreeCollectionAfterBookingApprove } =
       await import("../workspace-finance/apply-free-collection-after-booking-approve");
     for (const bookingId of result.approvedIds) {
+      const booking = await getBookingsRepository().getById(bookingId, auth.tenantId);
+      await applyPaymentHoldAfterBookingApprove({
+        tenantId: auth.tenantId,
+        bookingId,
+        approvedAt: booking?.approvedAt ?? new Date().toISOString(),
+      });
       await applyFreeCollectionAfterBookingApprove({
         tenantId: auth.tenantId,
         bookingId,

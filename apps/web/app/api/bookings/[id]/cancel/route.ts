@@ -19,6 +19,7 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
 
   const { id } = await context.params;
   const incoming = new URL(req.url);
+  const body = await req.text();
 
   let backendRes: Response;
   try {
@@ -28,7 +29,9 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
       headers: {
         Authorization: `Bearer ${sessionToken}`,
         host: incoming.host.split(":")[0] ?? "localhost",
+        "Content-Type": "application/json",
       },
+      body,
       cache: "no-store",
     });
   } catch {

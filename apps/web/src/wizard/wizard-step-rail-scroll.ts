@@ -1,3 +1,5 @@
+import { scrollHorizontalItemIntoView } from "@/components/ui/horizontal-scroll";
+
 /** Horizontal scroll overflow edges for wizard step pill rails (LTR + RTL). */
 export function readWizardStepRailOverflowEdges(element: HTMLElement): {
   readonly start: boolean;
@@ -29,9 +31,5 @@ export function scrollWizardStepRailItemIntoView(
   item: HTMLElement,
   options?: { readonly behavior?: ScrollBehavior }
 ): void {
-  item.scrollIntoView({
-    behavior: options?.behavior ?? "smooth",
-    block: "nearest",
-    inline: "center",
-  });
+  scrollHorizontalItemIntoView(item, options);
 }

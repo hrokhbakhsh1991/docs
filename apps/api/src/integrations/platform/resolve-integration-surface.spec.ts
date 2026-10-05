@@ -7,6 +7,26 @@ import {
   resolveIntegrationSurfaceForWorkspaceType,
 } from "./resolve-integration-surface";
 
+const DENALI_TELEGRAM_EVENT_TYPES = [
+  "TourPublished",
+  "member.registered",
+  "registration.created",
+  "registration.waitlisted",
+  "registration.approved",
+  "receipt.submitted",
+  "receipt.approved",
+  "receipt.rejected",
+  "ticket.created",
+  "ticket.message.posted",
+  "ticket.internal_note.created",
+  "ticket.status.changed",
+  "ticket.resolved",
+  "ticket.reopened",
+  "ticket.assigned",
+  "ticket.priority.changed",
+  "ticket.closed",
+];
+
 describe("resolve integration surface", () => {
   it("resolves Denali telegram provider surface", async () => {
     const surface = await resolveIntegrationSurfaceForWorkspaceType("denali");
@@ -28,7 +48,7 @@ describe("resolve integration surface", () => {
         workspaceType: "denali",
         providerId: "telegram",
       }),
-      ["TourPublished"]
+      DENALI_TELEGRAM_EVENT_TYPES
     );
   });
 

@@ -177,6 +177,21 @@ export function parseRejectBookingBody(body: unknown): { readonly reason?: strin
   return reason.length > 0 ? { reason } : {};
 }
 
+export function parseCancelBookingBody(body: unknown): {
+  readonly reasonCode: string;
+  readonly reasonNote?: string;
+} {
+  const reasonCode = readBookingStringField(body, "reasonCode");
+  const reasonNote = readBookingStringField(body, "reasonNote");
+  if (reasonCode.length === 0) {
+    throw new Error("BOOKING_CANCEL_REASON_REQUIRED");
+  }
+  return {
+    reasonCode,
+    ...(reasonNote.length > 0 ? { reasonNote } : {}),
+  };
+}
+
 export function parseBookingMemberReceiptJsonBody(
   body: unknown
 ): BookingMemberReceiptJsonBody | null {
@@ -185,11 +200,14 @@ export function parseBookingMemberReceiptJsonBody(
   }
   const record = body as Record<string, unknown>;
   const fileKey = typeof record.fileKey === "string" ? record.fileKey.trim() : "";
-  if (fileKey.length === 0) {
+  const note = typeof record.note === "string" ? record.note.trim() : undefined;
+  if (fileKey.length === 0 && (note === undefined || note.length === 0)) {
     return null;
   }
-  const note = typeof record.note === "string" ? record.note.trim() : undefined;
-  return note !== undefined && note.length > 0 ? { fileKey, note } : { fileKey };
+  return {
+    ...(fileKey.length > 0 ? { fileKey } : {}),
+    ...(note !== undefined && note.length > 0 ? { note } : {}),
+  };
 }
 
 /**

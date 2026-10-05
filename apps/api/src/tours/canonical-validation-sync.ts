@@ -256,7 +256,7 @@ function validateCanonicalDocumentWithEngine(
     const documentRoots = isRecord(profileStrippedCreateData)
       ? filterRootsAfterProfileStrip(
           input.workspaceType,
-          input.body.roots ?? [...validationPlugin.wizard.roots],
+          starterPick?.roots ?? input.body.roots ?? [...validationPlugin.wizard.roots],
           profileStrippedCreateData
         )
       : (input.body.roots ?? [...validationPlugin.wizard.roots]);

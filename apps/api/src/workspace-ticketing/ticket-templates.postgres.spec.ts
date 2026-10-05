@@ -326,6 +326,34 @@ describe(
       assert.match(rows[0]?.body ?? "", /Template notify|SLA breached/i);
     });
 
+    it("handles concurrent default-template seeding without throwing (race-safe upsert)", async () => {
+      const tenant = integrationTenantId();
+      const admin = getPrismaAdmin();
+      await admin.tenant.create({
+        data: {
+          id: tenant,
+          subdomain: `tpl-race-${tenant.slice(0, 8)}`,
+          workspaceType: "denali",
+          theme: { enabledModules: ["ticketing"] },
+        },
+      });
+      try {
+        await assert.doesNotReject(
+          Promise.all([
+            ensureDefaultTicketTemplatesForTenant(tenant),
+            ensureDefaultTicketTemplatesForTenant(tenant),
+            ensureDefaultTicketTemplatesForTenant(tenant),
+          ]),
+        );
+        const templates = await listTicketTemplates(tenant);
+        assert.ok(templates.some((t) => t.code === "reply_ack" && t.locale === "en"));
+      } finally {
+        await admin.ticketTemplateRevision.deleteMany({ where: { tenantId: tenant } });
+        await admin.ticketTemplate.deleteMany({ where: { tenantId: tenant } });
+        await admin.tenant.deleteMany({ where: { id: tenant } });
+      }
+    });
+
     it("enforces tenant isolation", async () => {
       await ensureDefaultTicketTemplatesForTenant(tenantB);
       const leaked = await findTicketTemplate(tenantA, "reply_ack", "public_reply", "en");

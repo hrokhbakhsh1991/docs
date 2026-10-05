@@ -30,9 +30,21 @@ export function resolveDenaliPaymentCollectionMode(
   const raw =
     readCanonicalPath(data, "pricing.paymentCollection") ??
     readCanonicalPath(data, "pricingPayment.paymentCollection");
-  if (typeof raw !== "string") {
-    return "offline";
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    return normalized === "free" ? "free" : "offline";
   }
-  const normalized = raw.trim().toLowerCase();
-  return normalized === "free" ? "free" : "offline";
+
+  // The wizard's persisted source of truth is `requiresPayment`; older
+  // records may not have the derived paymentCollection field yet.
+  const requiresPayment =
+    readCanonicalPath(data, "pricing.requiresPayment") ??
+    readCanonicalPath(data, "pricingPayment.requiresPayment");
+  if (requiresPayment === false) {
+    return "free";
+  }
+  if (typeof requiresPayment === "string" && requiresPayment.trim().toLowerCase() === "false") {
+    return "free";
+  }
+  return "offline";
 }

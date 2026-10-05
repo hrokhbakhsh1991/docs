@@ -10,6 +10,7 @@ import { resetBookingsRepositoryForTests } from "./create-bookings-repository.ts
 import {
   autoApprovePublicBooking,
   createPublicGuestBooking,
+  createPublicWaitlistedBooking,
   resetBookingsServiceCompositionForTests,
 } from "./create-bookings-service.ts";
 import { BookingNotFoundError } from "./bookings.errors.ts";
@@ -141,5 +142,27 @@ describe("booking public auto-approve", { concurrency: false }, () => {
       actorUserId: GUEST_B,
     });
     assert.equal(result.status, "pending");
+  });
+
+  it("P3-BA-04 public waitlist create bypasses approved-capacity assertion", async () => {
+    const first = await createPublicGuestBooking(publicAuth(GUEST_A), body("Waitlist Filler", 20));
+    await autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: first.id,
+      actorUserId: GUEST_A,
+    });
+
+    const waitlisted = await createPublicWaitlistedBooking(
+      publicAuth(GUEST_B),
+      body("Waitlist Candidate", 1)
+    );
+
+    assert.equal(waitlisted.status, "waitlisted");
+    assert.deepEqual(
+      await createHostBookingPublicAdapter().sumApprovedPartySizeByTourIds(TENANT_DENALI, [
+        TOUR_DENALI,
+      ]),
+      { [TOUR_DENALI]: 20 }
+    );
   });
 });

@@ -11,6 +11,8 @@ describe("bookings-list-server-prefetch.spec.ts", () => {
     const pageSource = readFileSync(resolve(WEB_ROOT, "app/(app)/bookings/page.tsx"), "utf8");
     assert.match(pageSource, /fetchBookingsServerPrefetch/);
     assert.match(pageSource, /initialPrefetch/);
+    assert.match(pageSource, /cursor: query\.page > 1 \? query\.listCursor : undefined/);
+    assert.match(pageSource, /limit: BOOKINGS_LIST_PAGE_SIZE/);
   });
 
   it("BOOKINGS-02 bookings client skips first fetch when initialPrefetch is provided", () => {

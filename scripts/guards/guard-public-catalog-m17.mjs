@@ -311,7 +311,9 @@ assertCheck(
     portalRegistrationDoc.includes("data-denali-remove-guest") &&
     portalRegistrationDoc.includes("data-denali-submit-results") &&
     portalRegistrationDoc.includes("data-denali-self-guest-card") &&
-    denaliRegistrationFlowSteps.includes("data-public-registration-personal-car-opt-in") &&
+    denaliRegistrationFlowSteps.includes("data-public-registration-transport") &&
+    denaliRegistrationFlowSteps.includes("data-public-registration-transport-occupants") &&
+    !denaliRegistrationFlowSteps.includes("data-public-registration-personal-car-opt-in") &&
     denaliRegistrationFlowSteps.includes("data-denali-add-guest") &&
     denaliRegistrationFlowSteps.includes("data-denali-submit-results"),
   "portal registration must document transport + multi-guest intake hooks"

@@ -20,6 +20,7 @@ export async function resolveMarketingTourDetailCta(input: {
   readonly registrationUrl: string | null;
   readonly tourSignInUrl: string | null;
   readonly canRegister: boolean;
+  readonly canJoinWaitlist: boolean;
 }): Promise<MarketingTourDetailCtaModel> {
   const session = await readMarketingMemberSessionFromCookies();
   const memberSessionReadable =
@@ -31,6 +32,7 @@ export async function resolveMarketingTourDetailCta(input: {
       registrationUrl: input.registrationUrl,
       tourSignInUrl: input.tourSignInUrl,
       canRegister: input.canRegister,
+      canJoinWaitlist: input.canJoinWaitlist,
       memberSessionReadable: false,
       selfRegistrationDetailUrl: null,
     });
@@ -56,6 +58,7 @@ export async function resolveMarketingTourDetailCta(input: {
     registrationUrl: input.registrationUrl,
     tourSignInUrl: input.tourSignInUrl,
     canRegister: input.canRegister,
+    canJoinWaitlist: input.canJoinWaitlist,
     memberSessionReadable: true,
     selfRegistrationDetailUrl,
   });

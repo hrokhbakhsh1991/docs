@@ -176,7 +176,7 @@ describe("outstanding-balance memory candidates (PAY-FIN-02)", { concurrency: fa
     );
   });
 
-  it("PAY-FIN-02 — payment-only fixture without bookings injection still lists from payments", async () => {
+  it("PAY-FIN-02 — orphan payment-only fixture does not become outstanding", async () => {
     const registrationId = randomUUID();
     const bookingPayments = new BookingPaymentAdapter(resetBookingsRepositoryForTests());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
@@ -206,7 +206,11 @@ describe("outstanding-balance memory candidates (PAY-FIN-02)", { concurrency: fa
       status: "Pending",
     });
     const page = await finance.listOutstandingBalances(operatorAuth, { limit: 50 });
-    assert.ok(page.items.some((item) => item.registrationId === registrationId));
+    assert.equal(
+      page.items.some((item) => item.registrationId === registrationId),
+      false,
+      "outstanding follow-up is registration/invoice based; an orphan payment row is not a debt candidate"
+    );
   });
 
   it("memory driver pages bookings for candidates; factory injects bookings repo", () => {

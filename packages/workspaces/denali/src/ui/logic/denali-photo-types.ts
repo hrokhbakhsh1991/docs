@@ -1,4 +1,5 @@
 import { countInclusiveLocalCalendarDays } from "../../adapters/denaliDatetime";
+import { clampDenaliItineraryDayCount } from "../../schemas/denaliItineraryDaySchema";
 
 export type DenaliTourPhoto = {
   readonly id?: string;
@@ -16,7 +17,9 @@ export function parseDenaliTourPhotos(value: unknown): DenaliTourPhoto[] {
     return [];
   }
   return value
-    .filter((entry): entry is Record<string, unknown> => entry !== null && typeof entry === "object")
+    .filter(
+      (entry): entry is Record<string, unknown> => entry !== null && typeof entry === "object"
+    )
     .map((entry) => ({
       ...(typeof entry.id === "string" ? { id: entry.id } : {}),
       ...(typeof entry.label === "string" ? { label: entry.label } : {}),
@@ -38,5 +41,6 @@ export function estimateDenaliTourDayCount(
   startDateTime: string,
   endDateTime: string
 ): number | undefined {
-  return countInclusiveLocalCalendarDays(startDateTime, endDateTime);
+  const count = countInclusiveLocalCalendarDays(startDateTime, endDateTime);
+  return count == null ? undefined : clampDenaliItineraryDayCount(count);
 }

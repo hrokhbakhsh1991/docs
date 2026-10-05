@@ -8,6 +8,7 @@ import { beforeEach, describe, it } from "node:test";
 import { createFinanceService } from "../src/application/finance.service.ts";
 import type { FinanceActorContext } from "../src/ports/finance-actor-context.ts";
 import type { IBookingPaymentPort } from "../src/ports/booking-payment.port.ts";
+import type { ReceiptProofStoragePort } from "../src/ports/finance-receipt-proof-url.port.ts";
 import {
   FakeAuthz,
   FakeCapability,
@@ -51,9 +52,7 @@ function adminAuth(tenantId: string): FinanceActorContext {
   };
 }
 
-function createOwnershipBookingPort(
-  owners: Map<string, string>
-): IBookingPaymentPort {
+function createOwnershipBookingPort(owners: Map<string, string>): IBookingPaymentPort {
   return {
     async syncStatus(input) {
       return input.paymentStatus;
@@ -73,7 +72,6 @@ function createOwnershipBookingPort(
     async getRegistrationLifecycleStatus() {
       return "approved";
     },
-
   };
 }
 
@@ -120,6 +118,303 @@ describe("FIN-AUTHZ-RECEIPT submitReceipt ownership", () => {
     );
     assert.equal(receipt.paymentId, payment.id);
     assert.equal(receipt.status, "Pending");
+  });
+
+  it("positive — member may submit text-only receipt evidence", async () => {
+    const registrationId = randomUUID();
+    const owners = new Map([[`${TENANT_A}:${registrationId}`, OWNER_USER]]);
+    const booking = createOwnershipBookingPort(owners);
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock
+    );
+
+    const payment = await repo.createManualPayment({
+      tenantId: TENANT_A,
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      provider: "manual",
+      status: "Pending",
+    });
+
+    const receipt = await finance.submitReceipt(
+      memberAuth(OWNER_USER, TENANT_A),
+      { paymentId: payment.id, fileKey: null, note: "پرداخت با کارت به کارت انجام شد" },
+      "idem-text-only-1"
+    );
+    assert.equal(receipt.fileKey, null);
+    assert.equal(receipt.note, "پرداخت با کارت به کارت انجام شد");
+    assert.equal(receipt.status, "Pending");
+  });
+
+  it("positive — operator can approve text-only receipt and run payment side effects", async () => {
+    const registrationId = randomUUID();
+    const owners = new Map([[`${TENANT_A}:${registrationId}`, OWNER_USER]]);
+    const booking = createOwnershipBookingPort(owners);
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock
+    );
+    const payment = await repo.createManualPayment({
+      tenantId: TENANT_A,
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      provider: "manual",
+      status: "Pending",
+    });
+    const receipt = await finance.submitReceipt(
+      memberAuth(OWNER_USER, TENANT_A),
+      { paymentId: payment.id, fileKey: null, note: "کد پیگیری ۱۲۳" },
+      "idem-text-approve"
+    );
+
+    const reviewed = await finance.reviewReceipt(adminAuth(TENANT_A), receipt.id, {
+      decision: "approve",
+    });
+    const stored = await repo.findReceiptById(TENANT_A, receipt.id);
+    const paid = await repo.findPaymentById(TENANT_A, payment.id);
+    assert.equal(reviewed.status, "Approved");
+    assert.equal(stored?.status, "Approved");
+    assert.equal(paid?.status, "Paid");
+    assert.ok(stored?.ledgerJournalId);
+  });
+
+  it("positive — file and note evidence stay together through approval", async () => {
+    const registrationId = randomUUID();
+    const owners = new Map([[`${TENANT_A}:${registrationId}`, OWNER_USER]]);
+    const booking = createOwnershipBookingPort(owners);
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock
+    );
+    const payment = await repo.createManualPayment({
+      tenantId: TENANT_A,
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      provider: "manual",
+      status: "Pending",
+    });
+    const receipt = await finance.submitReceipt(
+      memberAuth(OWNER_USER, TENANT_A),
+      {
+        paymentId: payment.id,
+        fileKey: `receipts/${TENANT_A}/${registrationId}/proof.pdf`,
+        note: "کد پیگیری ۱۲۳",
+      },
+      "idem-file-and-note"
+    );
+    assert.equal(receipt.fileKey, `receipts/${TENANT_A}/${registrationId}/proof.pdf`);
+    assert.equal(receipt.note, "کد پیگیری ۱۲۳");
+    const reviewed = await finance.reviewReceipt(adminAuth(TENANT_A), receipt.id, {
+      decision: "approve",
+    });
+    assert.equal(reviewed.status, "Approved");
+    const stored = await repo.findReceiptById(TENANT_A, receipt.id);
+    assert.equal(stored?.fileKey, receipt.fileKey);
+    assert.equal(stored?.note, receipt.note);
+  });
+
+  it("positive — operator can reject text-only receipt and persist review note", async () => {
+    const registrationId = randomUUID();
+    const owners = new Map([[`${TENANT_A}:${registrationId}`, OWNER_USER]]);
+    const booking = createOwnershipBookingPort(owners);
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock
+    );
+    const payment = await repo.createManualPayment({
+      tenantId: TENANT_A,
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      provider: "manual",
+      status: "Pending",
+    });
+    const receipt = await finance.submitReceipt(
+      memberAuth(OWNER_USER, TENANT_A),
+      { paymentId: payment.id, fileKey: null, note: "شرح پرداخت" },
+      "idem-text-reject"
+    );
+
+    const reviewed = await finance.reviewReceipt(adminAuth(TENANT_A), receipt.id, {
+      decision: "reject",
+      reviewNote: "اطلاعات کافی نیست",
+    });
+    const stored = await repo.findReceiptById(TENANT_A, receipt.id);
+    const unchangedPayment = await repo.findPaymentById(TENANT_A, payment.id);
+    assert.equal(reviewed.status, "Rejected");
+    assert.equal(stored?.status, "Rejected");
+    assert.equal(stored?.reviewNote, "اطلاعات کافی نیست");
+    assert.equal(unchangedPayment?.status, "Pending");
+  });
+
+  it("negative — idempotency key rejects a changed receipt payload", async () => {
+    const registrationId = randomUUID();
+    const owners = new Map([[`${TENANT_A}:${registrationId}`, OWNER_USER]]);
+    const booking = createOwnershipBookingPort(owners);
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      FakeProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock
+    );
+    const payment = await repo.createManualPayment({
+      tenantId: TENANT_A,
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      provider: "manual",
+      status: "Pending",
+    });
+    const fileKey = `receipts/${TENANT_A}/${registrationId}/same.pdf`;
+    const first = await finance.submitReceipt(
+      memberAuth(OWNER_USER, TENANT_A),
+      { paymentId: payment.id, fileKey },
+      "idem-payload-mismatch"
+    );
+
+    const replay = await finance.submitReceipt(
+      memberAuth(OWNER_USER, TENANT_A),
+      { paymentId: payment.id, fileKey },
+      "idem-payload-mismatch"
+    );
+    assert.equal(replay.id, first.id);
+
+    await assert.rejects(
+      () =>
+        finance.submitReceipt(
+          memberAuth(OWNER_USER, TENANT_A),
+          { paymentId: payment.id, fileKey, note: "توضیح جدید" },
+          "idem-payload-mismatch"
+        ),
+      (error: unknown) =>
+        error instanceof Error && error.message === "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
+    );
+
+    await assert.rejects(
+      () =>
+        finance.submitReceipt(
+          memberAuth(OWNER_USER, TENANT_A),
+          { paymentId: payment.id, fileKey: `${fileKey}.different` },
+          "idem-payload-mismatch"
+        ),
+      (error: unknown) =>
+        error instanceof Error && error.message === "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
+    );
+  });
+
+  it("negative — foreign receipt proof key fails before creating a receipt", async () => {
+    const registrationId = randomUUID();
+    const owners = new Map([[`${TENANT_A}:${registrationId}`, OWNER_USER]]);
+    const booking = createOwnershipBookingPort(owners);
+    const repo = new InMemoryFinanceRepository(booking);
+    const rejectingProof: ReceiptProofStoragePort = {
+      async getSignedReadUrl() {
+        throw new Error("RECEIPT_PROOF_KEY_SCOPE_INVALID");
+      },
+    };
+    const finance = createFinanceService(
+      createFakeLedgerPolicy(),
+      repo,
+      booking,
+      FakeReceiptDefaults,
+      FakeDisplay,
+      FakeMetrics,
+      FakeStorage,
+      rejectingProof,
+      FakeCapability,
+      FakeAuthz,
+      FakeSchedules,
+      FakeLogger,
+      FakeClock
+    );
+    const payment = await repo.createManualPayment({
+      tenantId: TENANT_A,
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      provider: "manual",
+      status: "Pending",
+    });
+
+    await assert.rejects(
+      () =>
+        finance.submitReceipt(
+          memberAuth(OWNER_USER, TENANT_A),
+          { paymentId: payment.id, fileKey: `receipts/${TENANT_B}/foreign.pdf` },
+          "idem-foreign-proof"
+        ),
+      (error: unknown) =>
+        error instanceof Error && error.message === "RECEIPT_PROOF_KEY_SCOPE_INVALID"
+    );
+    assert.equal(await repo.findLatestReceiptForRegistration(TENANT_A, registrationId), null);
   });
 
   it("negative IDOR — member cannot submit for another user’s paymentId", async () => {

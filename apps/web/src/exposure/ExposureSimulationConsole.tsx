@@ -30,6 +30,7 @@ import type {
   IntegrationProviderSurfaceMeta,
 } from "@/integrations/integrations-types";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
+import { telegramEventLabelKey } from "@/exposure/telegram-event-label-key";
 
 export const EXPOSURE_SIMULATION_CONSOLE_TEST_IDS = {
   root: "exposure-simulation-console",
@@ -113,6 +114,12 @@ export function ExposureSimulationConsole({
   exposureCandidateFields,
 }: ExposureSimulationConsoleProps) {
   const t = useTranslations("settings.exposure.simulation");
+  const eventLabel = (eventType: string): string => {
+    const key = telegramEventLabelKey(eventType);
+    return key !== undefined && t.has(`eventLabels.${key}`)
+      ? t(`eventLabels.${key}`)
+      : eventType;
+  };
   const eventTypes = useMemo(
     () => buildExposureEventTypeList(connection, providerSurface),
     [connection, providerSurface],
@@ -217,7 +224,7 @@ export function ExposureSimulationConsole({
               setError(null);
             }}
           >
-            {eventType}
+            {eventLabel(eventType)}
           </Button>
         ))}
       </div>

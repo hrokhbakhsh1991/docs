@@ -34,6 +34,7 @@ import {
   parseCatalogRegistrationResponseBody,
 } from "./denali-registration-intake-client-logic";
 import { DenaliRenderIntakeForm } from "./denali-intake-form";
+import { sumParticipantPayableMinor } from "./denali-registration-pricing";
 
 /** Product hard cap: other-guest cards per intake submit (self is separate). */
 export const DENALI_MAX_OTHER_GUESTS = 10;
@@ -45,6 +46,12 @@ export {
 };
 
 type CommercialPricingPreview = NonNullable<RegistrationFlowContext["commercialPricingPreview"]>;
+
+type PricingParticipantTarget = "self" | "other";
+
+function pricingPreviewKey(target: PricingParticipantTarget, transportKind: string): string {
+  return `${target}:${transportKind}`;
+}
 
 function parseMinorToNumber(minor: string): number | null {
   const digits = minor.replace(/\D/g, "");
@@ -150,6 +157,15 @@ export function DenaliIntakeStep({
   }, []);
   useEffect(() => {
     if (invalidField === null) return;
+    if (invalidField.fieldId === "transport") {
+      const transportScope = invalidField.scope === "self" ? "self" : `other-${invalidField.idx}`;
+      document
+        .querySelector<HTMLElement>(
+          `[data-public-registration-transport][data-denali-transport-scope="${transportScope}"] input`
+        )
+        ?.focus();
+      return;
+    }
     const prefix =
       invalidField.scope === "self"
         ? "denali-intake-self"
@@ -186,6 +202,7 @@ export function DenaliIntakeStep({
   type TransportState = typeof data.transportState;
 
   type ParticipantDraft = Readonly<{
+    readonly draftId: string;
     readonly intakeName: string;
     readonly intakePhone: string;
     readonly intakeNationalId: string;
@@ -199,7 +216,6 @@ export function DenaliIntakeStep({
 
   function emptyTransportState(): TransportState {
     return {
-      optInPersonalCar: false,
       hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,
@@ -210,6 +226,7 @@ export function DenaliIntakeStep({
     () => !selfTabLocked && data.registrantTarget === "self"
   );
   const [selfDraft, setSelfDraft] = useState<ParticipantDraft>(() => ({
+    draftId: createClientSafeId(`portal-denali-self-${context.tourId}`),
     intakeName: data.intakeName,
     intakePhone: "",
     intakeNationalId: data.intakeNationalId,
@@ -229,6 +246,7 @@ export function DenaliIntakeStep({
     if (data.registrantTarget !== "other") return [];
     return [
       {
+        draftId: createClientSafeId(`portal-denali-other-${context.tourId}`),
         intakeName: "",
         intakePhone: "",
         intakeNationalId: "",
@@ -244,6 +262,7 @@ export function DenaliIntakeStep({
 
   function createEmptyOtherDraft(): ParticipantDraft {
     return {
+      draftId: createClientSafeId(`portal-denali-other-${context.tourId}`),
       intakeName: "",
       intakePhone: "",
       intakeNationalId: "",
@@ -324,8 +343,6 @@ export function DenaliIntakeStep({
   const showKnownNameHintSelf = !effectiveSchemaSelf.fields.some(
     (field) => field.id === "fullName"
   );
-  const personalCarOptInVisible = transportSurface.showPersonalCarOptIn(context.tourTransport);
-
   const estimatedPrice = useMemo(() => {
     const candidateTransportState = selfSelected
       ? selfDraft.transportState
@@ -365,8 +382,50 @@ export function DenaliIntakeStep({
     context.tourTransport,
     transportSurface,
   ]);
-  const [commercialPricingPreview, setCommercialPricingPreview] =
-    useState<CommercialPricingPreview | null>(context.commercialPricingPreview ?? null);
+  const participantPricingInputs = useMemo(() => {
+    const inputs: Array<{
+      readonly key: string;
+      readonly label: string;
+      readonly target: PricingParticipantTarget;
+      readonly transportKind: string;
+    }> = [];
+    const resolveKind = (transportState: typeof selfDraft.transportState): string => {
+      const payload = transportSurface.buildPayload(context.tourTransport, transportState);
+      return payload?.kind ?? "primary";
+    };
+    if (selfSelected) {
+      inputs.push({
+        key: "self-0",
+        label: (selfDraft.intakeName || data.intakeName).trim() || t("intake.selfParticipant"),
+        target: "self",
+        transportKind: resolveKind(selfDraft.transportState),
+      });
+    }
+    otherGuests.forEach((guest, idx) => {
+      inputs.push({
+        key: `other-${idx}`,
+        label: guest.intakeName.trim() || t("intake.guestParticipant", { index: idx + 1 }),
+        target: "other",
+        transportKind: resolveKind(guest.transportState),
+      });
+    });
+    return inputs;
+  }, [
+    context.tourTransport,
+    data.intakeName,
+    otherGuests,
+    selfDraft,
+    selfSelected,
+    t,
+    transportSurface,
+  ]);
+  const [commercialPricingPreviews, setCommercialPricingPreviews] = useState<
+    Record<string, CommercialPricingPreview>
+  >(() =>
+    context.commercialPricingPreview !== null && context.commercialPricingPreview !== undefined
+      ? { [pricingPreviewKey("self", previewTransportKind)]: context.commercialPricingPreview }
+      : {}
+  );
   const [commercialPricingPreviewLoading, setCommercialPricingPreviewLoading] = useState(false);
 
   useEffect(() => {
@@ -374,26 +433,48 @@ export function DenaliIntakeStep({
     setCommercialPricingPreviewLoading(true);
     void (async () => {
       try {
-        const params = new URLSearchParams({
-          tourId: context.tourId,
-          partySize: "1",
-          transportKind: previewTransportKind,
-        });
-        const res = await fetch(`/api/catalog/pricing-preview?${params}`, {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        const body = (await res.json()) as {
-          readonly ok?: boolean;
-          readonly preview?: CommercialPricingPreview;
-        };
+        const entries = await Promise.all(
+          participantPricingInputs
+            .filter(
+              (input, index, inputs) =>
+                inputs.findIndex(
+                  (candidate) =>
+                    pricingPreviewKey(candidate.target, candidate.transportKind) ===
+                    pricingPreviewKey(input.target, input.transportKind)
+                ) === index
+            )
+            .map(async (input) => {
+              const params = new URLSearchParams({
+                tourId: context.tourId,
+                partySize: "1",
+                transportKind: input.transportKind,
+                registrantTarget: input.target,
+              });
+              const res = await fetch(`/api/catalog/pricing-preview?${params}`, {
+                credentials: "same-origin",
+                cache: "no-store",
+              });
+              const body = (await res.json()) as {
+                readonly ok?: boolean;
+                readonly preview?: CommercialPricingPreview;
+              };
+              return res.ok && body.ok === true && body.preview !== undefined
+                ? ([pricingPreviewKey(input.target, input.transportKind), body.preview] as const)
+                : null;
+            })
+        );
         if (cancelled) {
           return;
         }
-        setCommercialPricingPreview(res.ok && body.ok === true ? (body.preview ?? null) : null);
+        const nextPreviews = Object.fromEntries(
+          entries.filter(
+            (entry): entry is readonly [string, CommercialPricingPreview] => entry !== null
+          )
+        ) as Record<string, CommercialPricingPreview>;
+        setCommercialPricingPreviews(nextPreviews);
       } catch {
         if (!cancelled) {
-          setCommercialPricingPreview(null);
+          setCommercialPricingPreviews({});
         }
       } finally {
         if (!cancelled) {
@@ -404,10 +485,37 @@ export function DenaliIntakeStep({
     return () => {
       cancelled = true;
     };
-  }, [context.tourId, previewTransportKind]);
+  }, [context.tourId, participantPricingInputs, previewTransportKind]);
 
   const travelerDraftCount = (selfSelected ? 1 : 0) + otherGuests.length;
   const canAddGuest = !loading && otherGuests.length < DENALI_MAX_OTHER_GUESTS;
+  const [removedGuest, setRemovedGuest] = useState<{
+    readonly guest: ParticipantDraft;
+    readonly index: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (removedGuest === null) return;
+    const timeout = window.setTimeout(() => setRemovedGuest(null), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [removedGuest]);
+
+  function removeGuest(guestIdx: number): void {
+    const guest = otherGuests[guestIdx];
+    if (guest === undefined) return;
+    setRemovedGuest({ guest, index: guestIdx });
+    setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx));
+  }
+
+  function undoRemoveGuest(): void {
+    if (removedGuest === null) return;
+    setOtherGuests((prev) => {
+      if (prev.some((guest) => guest.draftId === removedGuest.guest.draftId)) return prev;
+      const index = Math.min(removedGuest.index, prev.length);
+      return [...prev.slice(0, index), removedGuest.guest, ...prev.slice(index)];
+    });
+    setRemovedGuest(null);
+  }
 
   function updateSelfField(fieldId: string, value: string): void {
     setSelfDraft((prev) => {
@@ -473,6 +581,14 @@ export function DenaliIntakeStep({
       | { readonly target: "self"; readonly draft: ParticipantDraft; readonly idx: 0 }
       | { readonly target: "other"; readonly draft: ParticipantDraft; readonly idx: number };
 
+    type PreparedParticipant = {
+      readonly participant: ParticipantToPost;
+      readonly merged: Readonly<Record<string, string>>;
+      readonly transportPayload: ReturnType<typeof transportSurface.buildPayload>;
+      readonly guestPhone: string;
+      readonly email: string;
+    };
+
     const participants: ParticipantToPost[] = [];
     // Never POST self when the gate already knows an active self registration.
     if (selfSelected && !selfTabLocked) {
@@ -492,6 +608,7 @@ export function DenaliIntakeStep({
       readonly idx: number;
       readonly ok: boolean;
       readonly error?: string;
+      readonly status?: "pending" | "approved" | "waitlisted";
       readonly kind?: "self_already";
     }[] = [];
 
@@ -501,6 +618,10 @@ export function DenaliIntakeStep({
         return;
       }
 
+      // Validate every participant before the first POST. A previous version
+      // posted self successfully and only then discovered a missing guest
+      // phone, leaving a partial multi-participant registration behind.
+      const preparedParticipants: PreparedParticipant[] = [];
       for (const p of participants) {
         const target = p.target;
         const intakeContextForTarget = resolveIntakeContext(target);
@@ -558,6 +679,7 @@ export function DenaliIntakeStep({
         }
 
         if (!transportSurface.isComplete(context.tourTransport, p.draft.transportState)) {
+          setInvalidField({ scope: target, idx: p.idx, fieldId: "transport" });
           setError(t("intake.transportIncomplete"));
           return;
         }
@@ -567,13 +689,27 @@ export function DenaliIntakeStep({
           p.draft.transportState
         );
 
-        // Denali registers one participant per submission.
-        const partySize = 1;
         const guestPhone =
           target === "other"
             ? (((merged.phone ?? p.draft.intakePhone) as string) ?? "").trim()
             : "";
         const email = (((merged.email ?? data.sessionEmail) as string) ?? "").trim();
+
+        preparedParticipants.push({
+          participant: p,
+          merged,
+          transportPayload,
+          guestPhone,
+          email,
+        });
+      }
+
+      // Denali registers one participant per submission. All requests start
+      // only after the complete batch has passed client-side validation.
+      for (const prepared of preparedParticipants) {
+        const { participant: p, merged, transportPayload, guestPhone, email } = prepared;
+        const target = p.target;
+        const partySize = 1;
 
         const idempotencyKey = `portal-denali-reg-${context.tourId}-${target}-${p.idx}-${submitSeed}`;
         const res = await fetch("/api/catalog/registrations", {
@@ -640,7 +776,12 @@ export function DenaliIntakeStep({
           continue;
         }
 
-        results.push({ target, idx: p.idx, ok: true });
+        results.push({
+          target,
+          idx: p.idx,
+          ok: true,
+          status: result.status ?? "pending",
+        });
       }
     } catch {
       setError(resolveError("network"));
@@ -656,6 +797,12 @@ export function DenaliIntakeStep({
       }
       return;
     }
+    const submissionOutcome = results.some((result) => result.status === "waitlisted")
+      ? "waitlisted"
+      : results.some((result) => result.status === "approved")
+        ? "approved"
+        : "pending";
+    dispatch({ type: "merge", patch: { submissionOutcome } });
     transitionFlowStep(dispatch, "done");
   }
 
@@ -671,23 +818,39 @@ export function DenaliIntakeStep({
   const priceLocale = locale === "fa" ? "fa-IR" : "en-US";
   const formattedPrice =
     estimatedPrice !== null ? estimatedPrice.toLocaleString(priceLocale) : null;
-  const previewDiscountMinor = commercialPricingPreview?.memberDiscountMinor ?? "0";
-  const hasMembershipDiscount =
-    commercialPricingPreview?.source === "member_discount" &&
-    (parseMinorToNumber(previewDiscountMinor) ?? 0) > 0;
-  const formattedPreviewGross =
-    commercialPricingPreview !== null
-      ? formatMinor(commercialPricingPreview.grossMinor, priceLocale)
+  const hasMembershipDiscount = participantPricingInputs.some((input) => {
+    const preview = commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)];
+    return (
+      preview?.source === "member_discount" &&
+      (parseMinorToNumber(preview.memberDiscountMinor) ?? 0) > 0
+    );
+  });
+  const formattedPreviewPayable = (() => {
+    const input = participantPricingInputs[0];
+    return participantPricingInputs.length === 1 && input !== undefined
+      ? formatMinor(
+          commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)]
+            ?.payableMinor ?? "",
+          priceLocale
+        )
       : null;
-  const formattedPreviewDiscount = hasMembershipDiscount
-    ? formatMinor(previewDiscountMinor, priceLocale)
-    : null;
-  const formattedPreviewPayable =
-    commercialPricingPreview !== null
-      ? formatMinor(commercialPricingPreview.payableMinor, priceLocale)
-      : null;
-  const previewAncillaryLines =
-    commercialPricingPreview?.lines.filter((line) => line.code !== "trip") ?? [];
+  })();
+  const formattedPreviewTotal = (() => {
+    if (participantPricingInputs.length < 2) {
+      return null;
+    }
+    const previews = participantPricingInputs.map(
+      (input) => commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)]
+    );
+    if (previews.some((preview) => preview === undefined)) {
+      return null;
+    }
+    const totalMinor = sumParticipantPayableMinor(
+      previews as readonly CommercialPricingPreview[]
+    );
+    return totalMinor === null ? null : formatMinor(totalMinor, priceLocale);
+  })();
+  const isWaitlistRegistration = context.registrationState === "waitlist";
   const submitDisabled = loading || !clientReady || (!selfSelected && otherGuests.length === 0);
   const ctaAlert =
     error !== null && invalidField === null ? (
@@ -705,7 +868,7 @@ export function DenaliIntakeStep({
       return null;
     }
     return (
-      <p id={errorId} role="alert" data-denali-field-alert>
+      <p id={`${errorId}-${scope}-${idx}`} role="alert" data-denali-field-alert>
         {error}
       </p>
     );
@@ -730,6 +893,11 @@ export function DenaliIntakeStep({
           <> · {t("intake.partyCount", { count: travelerDraftCount })}</>
         ) : null}
       </p>
+      {isWaitlistRegistration ? (
+        <p data-denali-waitlist-notice role="status">
+          {t("intake.waitlistNotice")}
+        </p>
+      ) : null}
       {selfTabLocked ? (
         <p data-registration-self-already role="status">
           {t("intake.selfAlreadyRegistered")}{" "}
@@ -754,7 +922,7 @@ export function DenaliIntakeStep({
       {travelerDraftCount > 0 ? (
         <p data-denali-party-line>
           {partyLineText}
-          {!hasMembershipDiscount && formattedPrice !== null ? (
+          {!isWaitlistRegistration && !hasMembershipDiscount && formattedPrice !== null ? (
             <>
               {" · "}
               <strong>{t("intake.priceAmount", { amount: formattedPrice })}</strong>{" "}
@@ -763,53 +931,78 @@ export function DenaliIntakeStep({
           ) : null}
         </p>
       ) : null}
-      {commercialPricingPreviewLoading ? (
+      {!isWaitlistRegistration && commercialPricingPreviewLoading ? (
         <p data-registration-pricing-preview-loading role="status">
           {t("intake.pricingPreviewLoading")}
         </p>
       ) : null}
-      {formattedPreviewPayable !== null ? (
+      {!isWaitlistRegistration && participantPricingInputs.length > 0 ? (
         <div data-registration-pricing-preview>
-          <div data-registration-pricing-row="gross">
-            <span>{t("intake.pricePerPerson")}</span>
-            <strong data-registration-pricing-gross>
-              {t("intake.priceAmount", {
-                amount: formattedPreviewGross ?? formattedPreviewPayable,
-              })}
-            </strong>
-          </div>
-          {hasMembershipDiscount && formattedPreviewDiscount !== null ? (
-            <div data-registration-pricing-row="membership-discount">
-              <span>
-                {t("intake.membershipDiscount", {
-                  percentage: commercialPricingPreview?.memberDiscountPercentage ?? 0,
-                })}
-              </span>
-              <strong data-registration-pricing-discount>
-                {t("intake.discountAmount", { amount: formattedPreviewDiscount })}
-              </strong>
-            </div>
-          ) : null}
-          {previewAncillaryLines.map((line) => {
-            const amount = formatMinor(line.amountMinor, priceLocale);
-            if (amount === null) {
+          {participantPricingInputs.map((input) => {
+            const preview =
+              commercialPricingPreviews[pricingPreviewKey(input.target, input.transportKind)];
+            if (preview === undefined) {
               return null;
             }
+            const gross = formatMinor(preview.grossMinor, priceLocale);
+            const discount = formatMinor(preview.memberDiscountMinor, priceLocale);
+            const payable = formatMinor(preview.payableMinor, priceLocale);
+            if (gross === null && payable === null) {
+              return null;
+            }
+            const displayAmount = gross ?? payable;
+            if (displayAmount === null) return null;
+            const participantHasDiscount =
+              preview.source === "member_discount" &&
+              (parseMinorToNumber(preview.memberDiscountMinor) ?? 0) > 0;
             return (
-              <div key={line.code} data-registration-pricing-row={`ancillary-${line.code}`}>
-                <span>{t(`intake.ancillary.${line.code}`)}</span>
-                <strong>{t("intake.priceAmount", { amount })}</strong>
+              <div key={input.key} data-registration-pricing-participant={input.key}>
+                <div data-registration-pricing-row="gross">
+                  <span>
+                    {input.label} · {t("intake.pricePerPerson")}
+                  </span>
+                  <strong data-registration-pricing-gross>
+                    {t("intake.priceAmount", { amount: displayAmount })}
+                  </strong>
+                </div>
+                {participantHasDiscount && discount !== null ? (
+                  <div data-registration-pricing-row="membership-discount">
+                    <span>
+                      {t("intake.membershipDiscount", {
+                        percentage: preview.memberDiscountPercentage,
+                      })}
+                    </span>
+                    <strong data-registration-pricing-discount>
+                      {t("intake.discountAmount", { amount: discount })}
+                    </strong>
+                  </div>
+                ) : null}
+                {preview.lines
+                  .filter((line) => line.code !== "trip")
+                  .map((line) => {
+                    const amount = formatMinor(line.amountMinor, priceLocale);
+                    if (amount === null) return null;
+                    return (
+                      <div
+                        key={`${input.key}-${line.code}`}
+                        data-registration-pricing-row={`ancillary-${line.code}`}
+                      >
+                        <span>{t(`intake.ancillary.${line.code}`)}</span>
+                        <strong>{t("intake.priceAmount", { amount })}</strong>
+                      </div>
+                    );
+                  })}
+                {participantHasDiscount && payable !== null ? (
+                  <div data-registration-pricing-row="payable">
+                    <span>{t("intake.payableAmount")}</span>
+                    <strong data-registration-pricing-payable>
+                      {t("intake.priceAmount", { amount: payable })}
+                    </strong>
+                  </div>
+                ) : null}
               </div>
             );
           })}
-          {hasMembershipDiscount ? (
-            <div data-registration-pricing-row="payable">
-              <span>{t("intake.payableAmount")}</span>
-              <strong data-registration-pricing-payable>
-                {t("intake.priceAmount", { amount: formattedPreviewPayable })}
-              </strong>
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -925,36 +1118,26 @@ export function DenaliIntakeStep({
                   invalidFieldId={invalidField?.scope === "self" ? invalidField.fieldId : undefined}
                 />
 
-                {personalCarOptInVisible ? (
-                  <label
-                    className="portal-registration-transport-opt-in"
-                    data-public-registration-personal-car-opt-in
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selfDraft.transportState.optInPersonalCar}
-                      onChange={(event) =>
-                        setSelfDraft((prev) => ({
-                          ...prev,
-                          transportState: {
-                            ...prev.transportState,
-                            optInPersonalCar: event.target.checked,
-                            hasPersonalCar: null,
-                            personalCarOccupants: null,
-                            paysDong: null,
-                          },
-                        }))
-                      }
-                    />
-                    <span>{t("intake.personalCarOptIn")}</span>
-                  </label>
-                ) : null}
-
                 {transportSurface.showTransportFollowUp(
                   context.tourTransport,
                   selfDraft.transportState
                 ) ? (
-                  <fieldset data-public-registration-transport>
+                  <fieldset
+                    data-public-registration-transport
+                    data-denali-transport-scope="self"
+                    aria-invalid={
+                      invalidField?.scope === "self" &&
+                      invalidField.idx === 0 &&
+                      invalidField.fieldId === "transport"
+                    }
+                    aria-describedby={
+                      invalidField?.scope === "self" &&
+                      invalidField.idx === 0 &&
+                      invalidField.fieldId === "transport"
+                        ? `${errorId}-self-0`
+                        : undefined
+                    }
+                  >
                     <legend>{t("intake.transportLegend")}</legend>
                     <p>{t("intake.hasPersonalCarQuestion")}</p>
 
@@ -1103,6 +1286,14 @@ export function DenaliIntakeStep({
               ) : null}
             </div>
             <p data-denali-other-guests-lead>{t("intake.otherGuestsLead")}</p>
+            {removedGuest !== null ? (
+              <p data-denali-guest-removed role="status" aria-live="polite">
+                {t("intake.guestRemoved")}
+                <button type="button" data-denali-undo-guest onClick={undoRemoveGuest}>
+                  {t("intake.undoGuest")}
+                </button>
+              </p>
+            ) : null}
 
             {otherGuests.length > 0 ? (
               <div data-denali-other-guest-cards>
@@ -1114,15 +1305,28 @@ export function DenaliIntakeStep({
                   const guestName = guest.intakeName.trim();
                   return (
                     <div
-                      key={guestIdx}
+                      key={guest.draftId}
                       data-denali-other-guest-card
                       data-denali-guest-idx={guestIdx}
+                      data-denali-guest-id={guest.draftId}
                     >
-                      <h3 data-denali-guest-name>
-                        {guestName.length > 0
-                          ? guestName
-                          : t("intake.guestCardTitle", { index: guestIdx + 1 })}
-                      </h3>
+                      <div data-denali-guest-card-header>
+                        <h3 data-denali-guest-name>
+                          {guestName.length > 0
+                            ? guestName
+                            : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                        </h3>
+                        <button
+                          type="button"
+                          data-denali-remove-guest
+                          aria-label={t("intake.removeGuestAriaLabel", {
+                            index: guestIdx + 1,
+                          })}
+                          onClick={() => removeGuest(guestIdx)}
+                        >
+                          {t("intake.removeGuestShort")}
+                        </button>
+                      </div>
                       <DenaliRenderIntakeForm
                         schema={effectiveSchemaOther}
                         values={{
@@ -1146,40 +1350,23 @@ export function DenaliIntakeStep({
                         }
                       />
 
-                      {personalCarOptInVisible ? (
-                        <label
-                          className="portal-registration-transport-opt-in"
-                          data-public-registration-personal-car-opt-in
-                          data-denali-guest-transport={guestIdx}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={guest.transportState.optInPersonalCar}
-                            onChange={(event) => {
-                              const checked = event.target.checked;
-                              setOtherGuests((prev) =>
-                                prev.map((g, idx) => {
-                                  if (idx !== guestIdx) return g;
-                                  return {
-                                    ...g,
-                                    transportState: {
-                                      ...g.transportState,
-                                      optInPersonalCar: checked,
-                                      hasPersonalCar: null,
-                                      personalCarOccupants: null,
-                                      paysDong: null,
-                                    },
-                                  };
-                                })
-                              );
-                            }}
-                          />
-                          <span>{t("intake.personalCarOptIn")}</span>
-                        </label>
-                      ) : null}
-
                       {transportFollowUpVisible ? (
-                        <fieldset data-public-registration-transport>
+                        <fieldset
+                          data-public-registration-transport
+                          data-denali-transport-scope={`other-${guestIdx}`}
+                          aria-invalid={
+                            invalidField?.scope === "other" &&
+                            invalidField.idx === guestIdx &&
+                            invalidField.fieldId === "transport"
+                          }
+                          aria-describedby={
+                            invalidField?.scope === "other" &&
+                            invalidField.idx === guestIdx &&
+                            invalidField.fieldId === "transport"
+                              ? `${errorId}-other-${guestIdx}`
+                              : undefined
+                          }
+                        >
                           <legend>{t("intake.transportLegend")}</legend>
                           <p>{t("intake.hasPersonalCarQuestion")}</p>
 
@@ -1320,17 +1507,6 @@ export function DenaliIntakeStep({
                         </fieldset>
                       ) : null}
 
-                      {otherGuests.length > 1 ? (
-                        <button
-                          type="button"
-                          data-denali-remove-guest
-                          onClick={() =>
-                            setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))
-                          }
-                        >
-                          {t("intake.removeGuestShort")}
-                        </button>
-                      ) : null}
                       {fieldAlert("other", guestIdx)}
                     </div>
                   );
@@ -1363,27 +1539,39 @@ export function DenaliIntakeStep({
                 );
               })}
             </ul>
-            {formattedPreviewPayable !== null ? (
-              <>
-                <p data-denali-rail-price-label>{t("intake.payableAmount")}</p>
-                <p data-registration-price-hint>
-                  {t("intake.priceAmount", { amount: formattedPreviewPayable })}
-                </p>
-                <p data-denali-price-per>
-                  {hasMembershipDiscount
-                    ? t("intake.memberPriceSummary")
-                    : t("intake.pricePerPerson")}
-                </p>
-              </>
-            ) : formattedPrice !== null ? (
-              <>
-                <p data-denali-rail-price-label>{t("intake.pricePerPerson")}</p>
-                <p data-registration-price-hint>
-                  {t("intake.priceAmount", { amount: formattedPrice })}
-                </p>
-                <p data-denali-price-per>{t("intake.pricePerPerson")}</p>
-              </>
-            ) : null}
+            {!isWaitlistRegistration
+              ? formattedPreviewTotal !== null
+                ? (
+                    <>
+                      <p data-denali-rail-price-label>{t("intake.totalPayableAmount")}</p>
+                      <p data-registration-price-hint>
+                        {t("intake.priceAmount", { amount: formattedPreviewTotal })}
+                      </p>
+                      <p data-denali-price-per>{t("intake.separateRegistrationPrice")}</p>
+                    </>
+                  )
+                : formattedPreviewPayable !== null
+                  ? (
+                      <>
+                        <p data-denali-rail-price-label>{t("intake.pricePerRegistration")}</p>
+                        <p data-registration-price-hint>
+                          {t("intake.priceAmount", { amount: formattedPreviewPayable })}
+                        </p>
+                        <p data-denali-price-per>{t("intake.separateRegistrationPrice")}</p>
+                      </>
+                    )
+                  : formattedPrice !== null
+                    ? (
+                        <>
+                          <p data-denali-rail-price-label>{t("intake.pricePerPerson")}</p>
+                          <p data-registration-price-hint>
+                            {t("intake.priceAmount", { amount: formattedPrice })}
+                          </p>
+                          <p data-denali-price-per>{t("intake.pricePerPerson")}</p>
+                        </>
+                      )
+                    : null
+              : null}
           </aside>
 
           <div
@@ -1399,7 +1587,11 @@ export function DenaliIntakeStep({
                 data-action="intake-submit"
                 onClick={() => void handleSubmit()}
               >
-                {loading ? t("intake.submitting") : t("intake.submit")}
+                {loading
+                  ? t("intake.submitting")
+                  : isWaitlistRegistration
+                    ? t("intake.submitWaitlist")
+                    : t("intake.submit")}
               </button>
             </div>
           </div>

@@ -30,7 +30,7 @@ function preview(
 }
 
 describe("marketing-commercial-pricing-preview", () => {
-  it("MKT-MEMBER-PRICE-01 shows personalized benefit only for authoritative member discount", () => {
+  it("BUG-STG-081 shows personalized benefit only for authoritative member discount", () => {
     assert.equal(hasMarketingMembershipDiscount(preview()), true);
     assert.equal(
       hasMarketingMembershipDiscount(
@@ -54,10 +54,12 @@ describe("marketing-commercial-pricing-preview", () => {
     );
 
     assert.match(page, /fetchCommercialPricingPreviews/);
-    assert.match(page, /tourIds: items\.map/);
+    assert.match(page, /tourIds: fetchedItems\.map/);
+    assert.match(page, /pricingPreviewResult\.previews/);
     assert.match(list, /pricingPreviews\[tour\.id\]/);
     assert.match(fetcher, /\/catalog\/pricing-previews/);
     assert.match(fetcher, /params\.append\("tourId"/);
+    assert.match(fetcher, /requestPreviews\(\[tourId\]\)/);
     assert.doesNotMatch(list, /fetchCommercialPricingPreview|fetchCommercialPricingPreviews/);
   });
 
@@ -66,28 +68,86 @@ describe("marketing-commercial-pricing-preview", () => {
       "apps/marketing/src/catalog/fetch-commercial-pricing-previews.server.ts"
     );
     assert.match(fetcher, /headers\.Authorization === undefined/);
-    assert.match(fetcher, /return \{\}/);
+    assert.match(fetcher, /status: "anonymous"/);
   });
 
   it("MKT-MEMBER-PRICE-04 UI renders server fields without client discount arithmetic", () => {
     const ui = readRepo("apps/marketing/src/catalog/catalog-commercial-pricing.tsx");
+    const card = readRepo("apps/marketing/src/catalog/catalog-tour-card.tsx");
+    const rail = readRepo("apps/marketing/src/catalog/catalog-tour-detail-booking-rail.tsx");
+    const sticky = readRepo("apps/marketing/src/catalog/catalog-tour-detail-sticky-bar.tsx");
     assert.match(ui, /preview\.grossMinor/);
     assert.match(ui, /preview\.memberDiscountMinor/);
     assert.match(ui, /preview\.payableMinor/);
     assert.match(ui, /preview\.memberDiscountPercentage/);
+    assert.match(ui, /data-marketing-catalog-card-member-price[\s\S]*\{ancillary\}/);
+    assert.match(ui, /data-marketing-catalog-card-price-unavailable[\s\S]*ancillaryLines\.map/);
+    assert.match(ui, /data-marketing-catalog-card-price-unavailable/);
+    assert.match(ui, /pricingPreviewStatus !== "anonymous" && !isFreeCollection/);
+    assert.match(card, /isFreeCollection=\{freeCollection\}/);
+    assert.match(rail, /isFreeCollection=\{tour\.paymentCollection === "free"\}/);
+    assert.match(sticky, /isFreeCollection=\{tour\.paymentCollection === "free"\}/);
     assert.doesNotMatch(ui, /0\.8|80 \/ 100|memberDiscountPercentage \*|\/ 100/);
   });
 
-  it("MKT-MEMBER-PRICE-05 detail and sticky surfaces receive the same preview as the list", () => {
+  it("BUG-STG-081 never labels a missing member preview with the base price", () => {
+    const ui = readRepo("apps/marketing/src/catalog/catalog-commercial-pricing.tsx");
+    const missingPreviewBranch = ui.match(
+      /if \(preview == null && pricingPreviewStatus !== "anonymous" && !isFreeCollection\) \{([\s\S]*?)\n  \}/
+    )?.[1];
+    assert.ok(missingPreviewBranch);
+    assert.match(missingPreviewBranch, /data-marketing-catalog-card-price-unavailable/);
+    assert.doesNotMatch(missingPreviewBranch, /\{canonicalPrice\}/);
+  });
+
+  it("BUG-STG-019 gates private previews when payment Exposure redacts the card price", () => {
+    const card = readRepo("apps/marketing/src/catalog/catalog-tour-card.tsx");
+    const rail = readRepo("apps/marketing/src/catalog/catalog-tour-detail-booking-rail.tsx");
+    const sticky = readRepo("apps/marketing/src/catalog/catalog-tour-detail-sticky-bar.tsx");
+
+    assert.match(card, /const visiblePricingPreview = showPrice \? pricingPreview : null/);
+    assert.match(card, /const visiblePricingPreviewStatus = showPrice \? pricingPreviewStatus : "anonymous"/);
+    assert.match(rail, /preview=\{showCommercialPricing \? pricingPreview : null\}/);
+    assert.match(sticky, /preview=\{showCommercialPricing \? pricingPreview : null\}/);
+    assert.match(rail, /pricingPreviewStatus=\{showCommercialPricing \? pricingPreviewStatus : "anonymous"\}/);
+    assert.match(sticky, /pricingPreviewStatus=\{showCommercialPricing \? pricingPreviewStatus : "anonymous"\}/);
+  });
+
+  it("BUG-STG-025 never renders a numeric price for free collection", () => {
+    const ui = readRepo("apps/marketing/src/catalog/catalog-commercial-pricing.tsx");
+    const facts = readRepo("apps/marketing/src/catalog/catalog-tour-detail-facts.tsx");
+    const freeBranch = ui.match(/if \(isFreeCollection\) \{([\s\S]*?)\n  \}/g);
+    assert.equal(freeBranch?.length, 2);
+    assert.match(freeBranch?.[0] ?? "", /data-marketing-catalog-card-free-ancillary/);
+    assert.doesNotMatch(freeBranch?.[0] ?? "", /canonicalPrice/);
+    assert.doesNotMatch(freeBranch?.[1] ?? "", /canonicalPrice/);
+    assert.match(freeBranch?.[1] ?? "", /return null/);
+    assert.match(facts, /tour\.paymentCollection === "free"/);
+    assert.match(facts, /resolveCatalogFreeCollectionLabel\(t, locale\)/);
+  });
+
+  it("BUG-STG-082 labels shared-car amount as dong across PDP facts", () => {
+    const facts = readRepo("apps/marketing/src/catalog/catalog-tour-detail-facts.tsx");
+    assert.match(facts, /tour\.transport\?\.mode === "shared_cars"/);
+    assert.match(facts, /t\("detail\.logistics\.dongAmount"\)/);
+  });
+
+  it("BUG-STG-081 detail and sticky surfaces receive the same preview as the list", () => {
     const detailPage = readRepo("apps/marketing/app/tours/[tourId]/page.tsx");
     const detail = readRepo("apps/marketing/src/catalog/catalog-tour-detail.tsx");
     const rail = readRepo("apps/marketing/src/catalog/catalog-tour-detail-booking-rail.tsx");
     const sticky = readRepo("apps/marketing/src/catalog/catalog-tour-detail-sticky-bar.tsx");
 
-    assert.match(detailPage, /pricingPreview=\{pricingPreviews\[tourId\] \?\? null\}/);
+    assert.match(
+      detailPage,
+      /pricingPreview=\{pricingPreviewResult\.previews\[tourId\] \?\? null\}/
+    );
     assert.match(detail, /pricingPreview=\{pricingPreview\}/);
     assert.match(rail, /CatalogCommercialPricingBreakdown/);
     assert.match(sticky, /CatalogCommercialPricingBreakdown/);
+    assert.match(detail, /pricingPreviewStatus/);
+    assert.match(rail, /pricingPreviewStatus/);
+    assert.match(sticky, /pricingPreviewStatus/);
   });
 
   it("MKT-MEMBER-PRICE-06 API batch preview remains read-only and shares Finance reducer", () => {
@@ -101,6 +161,8 @@ describe("marketing-commercial-pricing-preview", () => {
       route,
       /financeCommercialQuote\.create|createVersion|ensureFrozenForMoneyPath/
     );
+    assert.match(route, /settleWithConcurrency\(tourIds/);
+    assert.doesNotMatch(route, /Promise\.allSettled/);
   });
 
   it("MKT-MEMBER-PRICE-07 copy and theme cover list, detail, and ancillary rows", () => {

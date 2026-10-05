@@ -51,5 +51,6 @@ describe("denali-wizard-map-experience (INV-DENALI-WIZ-MAP-01)", () => {
     assert.match(css, /\.denali-wizard-map-dialog:not\(\[open\]\)/);
     assert.match(css, /100dvh/);
     assert.match(css, /data-wizard-map-interaction="preview"/);
+    assert.match(css, /preview-overlay[\s\S]*z-index:\s*2/);
   });
 });

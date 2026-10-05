@@ -14,11 +14,7 @@ const envelopeMeta = { currentStepIndex: 0, wizardSessionId: "sess-edit" };
 
 describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
   it("DEN-12.4-DRAFT-01 stamps sourceRowVersion on seed envelopes", () => {
-    const seed = prepareDenaliFlatEditSeedEnvelope(
-      { data: { title: "Saved" } },
-      envelopeMeta,
-      4
-    );
+    const seed = prepareDenaliFlatEditSeedEnvelope({ data: { title: "Saved" } }, envelopeMeta, 4);
     assert.equal(seed.meta.sourceRowVersion, 4);
     assert.equal(seed.meta.wizardSessionId, "sess-edit");
     assert.equal(seed.form.data.title, "Saved");
@@ -55,7 +51,7 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
     assert.equal(working?.meta.sourceRowVersion, 2);
   });
 
-  it("DEN-12.4-DRAFT-04 keeps unstamped drafts so pre-stamp unsaved work survives", () => {
+  it("DEN-12.4-DRAFT-04 requires explicit recovery for unstamped drafts", () => {
     const remote = denaliPrepareDraftEnvelope(
       { data: { title: "Unstamped unsaved" } },
       envelopeMeta
@@ -68,7 +64,16 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
       tourRowVersion: 2,
       envelopeMeta,
     });
-    assert.equal(working?.form.data.title, "Unstamped unsaved");
+    assert.equal(working?.form.data.title, "Canonical");
+
+    const recovered = resolveDenaliFlatEditWorkingEnvelope({
+      remoteDraft: remote,
+      tourBaseline: { data: { title: "Canonical" } },
+      tourRowVersion: 2,
+      envelopeMeta,
+      allowUnstampedRemote: true,
+    });
+    assert.equal(recovered?.form.data.title, "Unstamped unsaved");
   });
 
   it("DEN-12.4-DRAFT-05 hydrates from tour when remote draft is absent", () => {
@@ -119,9 +124,7 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
       tourRowVersion: 2,
       draftSync: {
         clearDraftAndReset: async (reset) => {
-          events.push(
-            `clearDraftAndReset:${reset.form.data.title}:${reset.meta.sourceRowVersion}`
-          );
+          events.push(`clearDraftAndReset:${reset.form.data.title}:${reset.meta.sourceRowVersion}`);
           current = reset.form;
         },
       },

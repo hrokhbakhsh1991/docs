@@ -27,11 +27,13 @@ import {
   uiStatusToQueryStatus,
 } from "../src/features/tours/tours-list-logic";
 import {
+  resolveTourKindCategoryGroup,
   resolveTourKindDuration,
   tourCategoryFilterGroupsForPlugin,
 } from "../src/features/tours/tour-list-category-logic";
 import {
   formatTourDeparture,
+  formatTourListPrice,
   formatTourPrice,
   formatTourSeats,
 } from "../src/features/tours/tour-list-formatters";
@@ -67,6 +69,18 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(TOURS_LIST_TEST_IDS.sort, "operator-tours-sort");
     assert.equal(TOURS_LIST_TEST_IDS.sortSelect, "operator-tours-sort-select");
     assert.equal(TOURS_LIST_TEST_IDS.pagination, "operator-tours-pagination");
+  });
+
+  it("WEB-TL-A11Y-01 labels the tour search field", async () => {
+    const controls = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-directory-controls.tsx"),
+      "utf8"
+    );
+    const { loadAppMessages } = await import("../src/i18n/load-messages");
+    const messages = await loadAppMessages("fa");
+    assert.match(controls, /htmlFor="tours-search"/);
+    assert.match(controls, /id="tours-search"/);
+    assert.equal(messages.tours.searchLabel, "جستجوی تورها");
   });
 
   it("WEB-9.3-03 URL query model round-trips search and status (CP-9.3-L07)", () => {
@@ -218,8 +232,8 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     );
     assert.match(table, /border-separate border-spacing-0/);
     assert.match(table, /bg-muted\/50/);
-    assert.match(table, /sticky left-0 z-20 w-\[15rem\] bg-muted/);
-    assert.match(table, /sticky left-0 z-10 min-w-\[15rem\] bg-card/);
+    assert.match(table, /sticky z-20 w-\[15rem\] bg-muted rtl:left-0 ltr:right-0/);
+    assert.match(table, /sticky z-10 min-w-\[15rem\] bg-card rtl:left-0 ltr:right-0/);
     assert.match(actions, /grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)_auto\]/);
     assert.match(actions, /compact \? "h-9 min-w-0 w-full px-2 text-xs"/);
   });
@@ -295,6 +309,28 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(formatTourSeats({ acceptedCount: 3, totalCapacity: 12 }), "3/12 seats");
   });
 
+  it("WEB-TL-PRICE-01 free collection hides the internal base price", () => {
+    const tomanPolicy = { irrDisplayUnit: "toman" as const };
+    assert.equal(
+      formatTourListPrice(
+        { paymentCollection: "free", priceAmount: 2_500_000, priceCurrency: "IRR" },
+        "fa",
+        "رایگان / بدون نیاز به پرداخت",
+        tomanPolicy
+      ),
+      "رایگان / بدون نیاز به پرداخت"
+    );
+    assert.equal(
+      formatTourListPrice(
+        { paymentCollection: "offline", priceAmount: 2_500_000, priceCurrency: "IRR" },
+        "fa",
+        "رایگان / بدون نیاز به پرداخت",
+        tomanPolicy
+      ),
+      `${formatLocalizedNumber(2_500_000, "fa")} تومان`
+    );
+  });
+
   it("ED-CURR-01 Denali IRR operator price uses toman label without conversion", () => {
     const tomanPolicy = { irrDisplayUnit: "toman" as const };
     assert.equal(formatTourPrice(1200, "IRR", "en", tomanPolicy), "1,200 toman");
@@ -333,6 +369,11 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(resolveTourKindDuration(PLUGIN_ID, null), null);
   });
 
+  it("WEB-9.3-11 category badge excludes the duration already shown as a chip", () => {
+    assert.equal(resolveTourKindCategoryGroup(PLUGIN_ID, "mountain_day"), "mountain");
+    assert.equal(resolveTourKindCategoryGroup(PLUGIN_ID, null), null);
+  });
+
   it("WEB-9.3-10 category filter groups match Denali launch surface", () => {
     const slugs = tourCategoryFilterGroupsForPlugin(PLUGIN_ID).flatMap((group) => group.slugs);
     assert.equal(slugs.length, 6);
@@ -349,6 +390,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     const messages = await loadAppMessages("fa");
     const format = messages.tours.format as {
       seatsWithCapacity: string;
+      freeCollection: string;
       seatsOpen: string;
     };
     const seatsLabel = formatTourSeats(
@@ -366,6 +408,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       seatsLabel,
       `${formatLocalizedNumber(3, "fa")}/${formatLocalizedNumber(12, "fa")} نفر`
     );
+    assert.equal(format.freeCollection, "رایگان / بدون نیاز به پرداخت");
     const faPrice = formatTourPrice(1200, "USD", "fa");
     assert.notEqual(faPrice, "$1,200");
     assert.equal(faPrice?.includes("۲۰۰") ?? faPrice?.includes("200"), true);

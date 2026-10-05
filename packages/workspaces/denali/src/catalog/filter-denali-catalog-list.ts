@@ -122,6 +122,26 @@ function readDepartureTimestamp(data: Record<string, unknown>): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** Public catalog entries must still be actionable when they expose a departure date. */
+export function isDenaliCatalogTourUpcoming(
+  tour: DenaliTourRecord,
+  now: Date = new Date()
+): boolean {
+  const data = readTourData(tour);
+  if (data == null) {
+    return true;
+  }
+  const departureAt = readDepartureTimestamp(data);
+  return departureAt == null || departureAt > now.getTime();
+}
+
+export function filterDenaliCatalogTourDepartureWindow(
+  tours: readonly DenaliTourRecord[],
+  now: Date = new Date()
+): readonly DenaliTourRecord[] {
+  return tours.filter((tour) => isDenaliCatalogTourUpcoming(tour, now));
+}
+
 function compareNullableNumbers(a: number | null, b: number | null): number {
   if (a == null && b == null) {
     return 0;
@@ -146,7 +166,9 @@ export function filterDenaliCatalogTourRecords(
   if (category != null && category.length > 0) {
     filtered = filtered.filter((tour) => {
       const data = readTourData(tour);
-      return data != null && matchesDenaliCatalogCategoryFilter(readString(data.category), category);
+      return (
+        data != null && matchesDenaliCatalogCategoryFilter(readString(data.category), category)
+      );
     });
   }
 

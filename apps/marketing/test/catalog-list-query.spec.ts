@@ -6,6 +6,7 @@ import {
   buildCatalogListHref,
   buildCatalogListQueryWithoutFilters,
   catalogFiltersToQueryInput,
+  catalogListQueryHasEmptyValues,
   catalogListHasActiveFilters,
   catalogListHasClientFilters,
   parseCatalogListFilters,
@@ -131,6 +132,29 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
     assert.equal(query.fitness, "high");
     assert.equal(query.availability, "open");
     assert.equal(query.sort, "departure_asc");
+  });
+
+  it("round-trips client-side duration and price ranges", () => {
+    const filters = parseCatalogListFilters({
+      minDuration: "2",
+      maxDuration: "5",
+      minPrice: "1000000",
+      maxPrice: "5000000",
+    });
+    assert.equal(filters.minDuration, 2);
+    assert.equal(filters.maxDuration, 5);
+    assert.equal(filters.minPrice, 1000000);
+    assert.equal(filters.maxPrice, 5000000);
+    assert.equal(
+      buildCatalogListHref("/tours", filters),
+      "/tours?minPrice=1000000&maxPrice=5000000&minDuration=2&maxDuration=5"
+    );
+  });
+
+  it("detects native GET form URLs that contain empty controls", () => {
+    assert.equal(catalogListQueryHasEmptyValues({ sort: "price_asc", q: "" }), true);
+    assert.equal(catalogListQueryHasEmptyValues({ sort: "price_asc", q: undefined }), false);
+    assert.equal(catalogListQueryHasEmptyValues({ category: ["mountain", ""] }), true);
   });
 
   it("clears cursor when removing an active filter pill", () => {

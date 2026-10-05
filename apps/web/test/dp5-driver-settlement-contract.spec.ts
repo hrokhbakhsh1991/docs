@@ -32,6 +32,20 @@ describe("DP-5 web contract", () => {
     assert.match(panel, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.settlementPanel/);
     assert.match(panel, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.freezeButton/);
     assert.match(panel, /TOUR_WORKSPACE_TRANSPORT_TEST_IDS\.approvePayableButton/);
+    assert.match(panel, /if \(!res\.ok\) throw new Error\(`FREEZE_HTTP_\$\{res\.status\}`\)/);
+    assert.match(panel, /if \(!confirmResponse\.ok\) throw new Error\("PAYABLE_FAILED"\)/);
+    assert.match(panel, /allocationFailed/);
+    assert.match(panel, /rosterFrozenLoadFailed/);
+    assert.match(panel, /const loaded = await loadSettlements\(\)/);
+    assert.match(panel, /normalizeDriverCompensationPerSeat\(unitMinor\)/);
+    assert.match(panel, /unitAmountInvalid/);
+    assert.match(panel, /inputMode="numeric"/);
+    assert.doesNotMatch(panel, /Per-seat \(minor\)|Finalize roster|No settlement yet/);
+    assert.match(panel, /formatMinorAmount\(primary\.totalMinor, primary\.currency, locale\)/);
+    assert.match(panel, /settlement\.status\.draft/);
+    assert.match(panel, /settlementLoadError/);
+    assert.match(panel, /settlement\.loadFailed/);
+    assert.match(panel, /setSettlements\(\[\]\)/);
     const logic = readFileSync(
       join(webRoot, "src/features/tours/tour-workspace-transport-logic.ts"),
       "utf8"

@@ -25,6 +25,20 @@ describe("resolveMemberSessionCookieDomain", () => {
     );
   });
 
+  it("PCMS-COOK-03 canonical platform portal returns workspace apex", () => {
+    assert.equal(
+      resolveMemberSessionCookieDomain("portal.denali.shenski.com", "shenski.com"),
+      "denali.shenski.com"
+    );
+  });
+
+  it("PCMS-COOK-01 legacy platform portal remains host-only", () => {
+    assert.equal(
+      resolveMemberSessionCookieDomain("denali.portal.shenski.com", "shenski.com"),
+      undefined
+    );
+  });
+
   it("PCMS-COOK-03 marketing custom apex returns same registrable apex", () => {
     assert.equal(resolveMemberSessionCookieDomain("alpine.club", "localhost"), "alpine.club");
   });

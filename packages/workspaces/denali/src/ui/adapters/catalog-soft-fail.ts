@@ -1,6 +1,14 @@
 const HTTP_ERROR_CODE = /^([A-Z0-9_]+)_HTTP_(\d+)$/;
 const LOAD_FAILED_CODE = /_LOAD_FAILED$/;
 const NETWORK_FAILURE_MARKERS = ["failed to fetch", "networkerror", "load failed", "fetch failed"];
+const DEFAULT_CATALOG_FETCH_TIMEOUT_MS = 10_000;
+
+function isCatalogRequestTimeout(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return error.name === "AbortError" || error.name === "TimeoutError";
+}
 
 /**
  * ED-UX-01 / ED-UX-02 — catalog BFF 5xx/429 and network/`*_LOAD_FAILED` must not present as
@@ -40,10 +48,14 @@ export function isDenaliCatalogSoftFail(code: string | null | undefined): boolea
 export async function fetchDenaliCatalogJsonWithSoftRetry<T>(
   url: string,
   httpCodePrefix: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = DEFAULT_CATALOG_FETCH_TIMEOUT_MS
 ): Promise<T> {
   const attempt = async (): Promise<T> => {
-    const response = await fetchImpl(url, { cache: "no-store" });
+    const response = await fetchImpl(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
     if (!response.ok) {
       throw new Error(`${httpCodePrefix}_HTTP_${response.status}`);
     }
@@ -53,6 +65,9 @@ export async function fetchDenaliCatalogJsonWithSoftRetry<T>(
   try {
     return await attempt();
   } catch (first: unknown) {
+    if (isCatalogRequestTimeout(first)) {
+      throw new Error(`${httpCodePrefix}_LOAD_FAILED`);
+    }
     const message = first instanceof Error ? first.message : "CATALOG_LOAD_FAILED";
     if (!isDenaliCatalogSoftFail(message)) {
       throw first instanceof Error ? first : new Error(message);

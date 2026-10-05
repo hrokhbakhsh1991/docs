@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { PageHeader } from "@/admin/patterns/page-header";
@@ -20,25 +20,59 @@ type Props = {
 
 export function TicketingReportsClient({ session }: Props) {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      const res = await fetch("/api/ticket-reports/summary", { cache: "no-store" });
+  const loadSummary = useCallback(async (): Promise<void> => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10_000);
+    setLoading(true);
+    setError(false);
+    setSummary(null);
+    try {
+      const res = await fetch("/api/ticket-reports/summary", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
       if (!res.ok) {
-        setError("Failed to load report");
-        return;
+        throw new Error(`TICKET_REPORTS_HTTP_${res.status}`);
       }
       const body = (await res.json()) as { summary?: ReportSummary };
-      setSummary(body.summary ?? null);
-    })();
+      if (body.summary === undefined) {
+        throw new Error("TICKET_REPORTS_RESPONSE_INVALID");
+      }
+      setSummary(body.summary);
+    } catch {
+      setError(true);
+    } finally {
+      window.clearTimeout(timeoutId);
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
 
   return (
     <div className="space-y-6" data-ticketing-reports>
       <PageHeader title="Ticketing reports" description="Tenant-scoped ticket analytics" />
-      {error !== null ? <p className="text-sm text-destructive">{error}</p> : null}
-      {summary !== null ? (
+      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+      {error ? (
+        <div className="space-y-3" role="alert">
+          <p className="text-sm text-destructive">
+            Ticketing report could not be loaded. Please try again.
+          </p>
+          <button
+            type="button"
+            className="rounded-md border px-3 py-2 text-sm"
+            onClick={() => void loadSummary()}
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
+      {!loading && !error && summary !== null ? (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">Tickets</p>
@@ -52,7 +86,9 @@ export function TicketingReportsClient({ session }: Props) {
           </div>
           <div className="rounded-lg border p-4 md:col-span-2">
             <p className="mb-2 text-sm font-medium">Status distribution</p>
-            <pre className="overflow-auto text-xs">{JSON.stringify(summary.statusDistribution, null, 2)}</pre>
+            <pre className="overflow-auto text-xs">
+              {JSON.stringify(summary.statusDistribution, null, 2)}
+            </pre>
           </div>
         </div>
       ) : null}

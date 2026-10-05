@@ -9,7 +9,7 @@ import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { resolveOperatorSmokeOwnerMobile } from "./operator-smoke-identity.mjs";
 
@@ -163,7 +163,7 @@ function waitForUrlOrChildExit(child, url, label, timeoutMs = 300_000) {
 }
 
 async function bootstrapSmokeJwtEnv() {
-  const { exportPKCS8, exportSPKI, generateKeyPair } = await import(joseEntry);
+  const { exportPKCS8, exportSPKI, generateKeyPair } = await import(pathToFileURL(joseEntry).href);
   const pair = await generateKeyPair("RS256", { extractable: true });
   return {
     AUTH_JWT_PUBLIC_KEY: await exportSPKI(pair.publicKey),
@@ -669,9 +669,12 @@ try {
   });
 
   if (!apiListening) {
+    const apiEnvFiles = [".env", ".env.local"].filter((file) =>
+      fs.existsSync(path.join(repoRoot, "apps/api", file))
+    );
     api = spawn(
       "node",
-      ["--import", "tsx", "--env-file=.env", "--env-file=.env.local", "src/main.ts"],
+      ["--import", "tsx", ...apiEnvFiles.map((file) => `--env-file=${file}`), "src/main.ts"],
       {
         cwd: path.join(repoRoot, "apps/api"),
         env: apiEnv,
@@ -690,23 +693,29 @@ try {
   }
 
   if (!webListening) {
-    web = spawn(
-      "pnpm",
-      [
-        "exec",
-        "next",
-        useProductionWeb ? "start" : "dev",
-        "--port",
-        "3000",
-        "--hostname",
-        "127.0.0.1",
-      ],
-      {
-        cwd: webDir,
-        env: webEnv,
-        stdio: "inherit",
-      }
-    );
+    const webCommand = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : "pnpm";
+    const webArgs =
+      process.platform === "win32"
+        ? [
+            "/d",
+            "/s",
+            "/c",
+            `pnpm.cmd exec next ${useProductionWeb ? "start" : "dev"} --port 3000 --hostname 127.0.0.1`,
+          ]
+        : [
+            "exec",
+            "next",
+            useProductionWeb ? "start" : "dev",
+            "--port",
+            "3000",
+            "--hostname",
+            "127.0.0.1",
+          ];
+    web = spawn(webCommand, webArgs, {
+      cwd: webDir,
+      env: webEnv,
+      stdio: "inherit",
+    });
     await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/", "web server", 300_000);
     await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/auth/login", "web server", 300_000);
     await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/bookings/new", "web server", 300_000);

@@ -96,6 +96,45 @@ export class BookingNotFoundError extends Error {
   }
 }
 
+/** Legacy finalization command requires a settled or waived financial projection. */
+export class BookingFinalizationRequiresSettlementError extends Error {
+  readonly code = "BOOKING_FINALIZATION_REQUIRES_SETTLEMENT" as const;
+
+  constructor() {
+    super("BOOKING_FINALIZATION_REQUIRES_SETTLEMENT");
+    this.name = "BookingFinalizationRequiresSettlementError";
+  }
+}
+
+/** Open-payment finalization is only valid for an approved unpaid/partial booking. */
+export class BookingOpenPaymentFinalizationNotAllowedError extends Error {
+  readonly code = "BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED" as const;
+
+  constructor() {
+    super("BOOKING_OPEN_PAYMENT_FINALIZATION_NOT_ALLOWED");
+    this.name = "BookingOpenPaymentFinalizationNotAllowedError";
+  }
+}
+
+/** Waive-and-finalize is only valid for an approved unpaid/partial booking. */
+export class BookingWaiveAndFinalizeNotAllowedError extends Error {
+  readonly code = "BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED" as const;
+
+  constructor() {
+    super("BOOKING_WAIVE_AND_FINALIZE_NOT_ALLOWED");
+    this.name = "BookingWaiveAndFinalizeNotAllowedError";
+  }
+}
+
+export class BookingWaitlistCapacityAdmissionNotAllowedError extends Error {
+  readonly code = "BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED" as const;
+
+  constructor() {
+    super("BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED");
+    this.name = "BookingWaitlistCapacityAdmissionNotAllowedError";
+  }
+}
+
 export class BulkApproveBatchLimitError extends Error {
   readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
 

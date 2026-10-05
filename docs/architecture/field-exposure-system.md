@@ -645,7 +645,7 @@ Profiles define `defaultFieldIds` and optional `defaultTemplateId`. They do not 
 provider credentials.
 
 `defaultTemplateId` on a seeded profile mirrors the workspace integration-surface header
-seed (for example `Tour published: {{title}}`). It is **not** dispatched as
+seed (for Denali Telegram `TourPublished`: `🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}`). It is **not** dispatched as
 `integrationDeliveryMessageTemplate`. Only `ExposureIntent.templateOverrideId` becomes a
 custom delivery override at runtime. When no override exists, `formatIntegrationDeliveryMessage`
 uses the surface header plus automatic field lines from eligible values.

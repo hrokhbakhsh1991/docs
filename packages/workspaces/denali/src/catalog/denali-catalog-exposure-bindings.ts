@@ -22,6 +22,53 @@ function clearPhotos(card: PublicCatalogCard): PublicCatalogCard {
   return omitWorkspaceCatalogCardKey(next, "photoUrls");
 }
 
+function clearParticipantPricing(card: PublicCatalogCard): PublicCatalogCard {
+  return Object.freeze({
+    ...card,
+    priceAmount: null,
+    minimumAge: null,
+    maximumAge: null,
+    fitnessLevel: null,
+    fitnessPrerequisiteText: null,
+  });
+}
+
+/** Keep an exposed transport mode, but remove its monetary components when the financial surface is hidden. */
+function clearTransportAmounts(card: PublicCatalogCard): PublicCatalogCard {
+  if (card.transport == null) {
+    return card;
+  }
+  const { transportCostAmount: _transportCostAmount, dongAmount: _dongAmount, ...transport } =
+    card.transport;
+  return Object.freeze({ ...card, transport: Object.freeze(transport) });
+}
+
+function clearPaymentPolicy(card: PublicCatalogCard): PublicCatalogCard {
+  const publicFreeCollection = card.paymentCollection === "free" ? "free" : undefined;
+  // Payment policy and money display form one public financial surface. Keeping
+  // the base/member price after hiding payment policy leaks the same financial
+  // contract through a different field (especially on personalized PDPs).
+  let next = clearWorkspaceCatalogCardStringField(
+    clearTransportAmounts(clearParticipantPricing(card)),
+    "paymentMode"
+  );
+  for (const key of [
+    "paymentPlan",
+    "paymentCollection",
+    "registrationApproval",
+    "includesTourInsurance",
+  ]) {
+    next = omitWorkspaceCatalogCardKey(next, key);
+  }
+  return publicFreeCollection === "free"
+    ? Object.freeze({ ...next, paymentCollection: publicFreeCollection })
+    : next;
+}
+
+function clearTransport(card: PublicCatalogCard): PublicCatalogCard {
+  return omitWorkspaceCatalogCardKey(card, "transport");
+}
+
 /** Maps registry field ids to catalog card redaction steps. */
 export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardExposureBinding[] =
   Object.freeze([
@@ -31,6 +78,9 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       applyHidden: (card) =>
         Object.freeze({
           ...clearWorkspaceCatalogCardStringField(card, "category"),
+          // `listSubtitle` is populated from the same canonical category and
+          // must not remain as an alternate egress when destination is hidden.
+          listSubtitle: null,
           destinationLabel: null,
         }),
     },
@@ -48,11 +98,15 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "denali.pricing-participants",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "priceAmount"),
+      applyHidden: clearParticipantPricing,
     },
     {
       fieldId: "denali.pricing-payment",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "paymentMode"),
+      applyHidden: clearPaymentPolicy,
+    },
+    {
+      fieldId: "denali.transport-mode",
+      applyHidden: clearTransport,
     },
     {
       fieldId: "denali.social-media-link",
@@ -64,7 +118,8 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "capacityMax",
-      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "totalCapacity"),
+      applyHidden: (card) =>
+        Object.freeze({ ...card, totalCapacity: null, spotsRemaining: null }),
     },
     {
       fieldId: "meetingPoint",
@@ -73,6 +128,10 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     {
       fieldId: "startPointLocationText",
       applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "meetingPointText"),
+    },
+    {
+      fieldId: "denali.location-zones",
+      applyHidden: clearGatheringFields,
     },
   ]);
 

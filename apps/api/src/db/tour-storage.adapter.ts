@@ -15,6 +15,7 @@ function toRecord(tour: Tour): TourRecord {
     tenantId: tour.tenantId,
     canonical: tour.canonical,
     createdAt: tour.createdAt,
+    updatedAt: tour.updatedAt ?? tour.createdAt,
     rowVersion: tour.rowVersion,
   };
 }

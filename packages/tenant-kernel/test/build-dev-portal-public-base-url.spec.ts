@@ -48,6 +48,17 @@ describe("buildDevPortalPublicBaseUrl", () => {
     );
   });
 
+  it("maps a non-local marketing host to a canonical sibling portal host", () => {
+    assert.equal(
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "denali.shenski.com:23002",
+        rootDomain: "shenski.com",
+        portalPort: "23003",
+      }),
+      "http://portal.denali.shenski.com:23003"
+    );
+  });
+
   it("honors PORTAL_PUBLIC_BASE_URL override via configuredBaseUrl", () => {
     assert.equal(
       buildDevPortalPublicBaseUrl({

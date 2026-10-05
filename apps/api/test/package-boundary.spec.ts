@@ -49,6 +49,7 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@casl/ability",
   "@prisma/client",
   "archiver",
+  "exceljs",
   "ioredis",
   "jose",
   "zod",

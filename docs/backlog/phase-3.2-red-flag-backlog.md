@@ -1,6 +1,6 @@
 # Phase 3.2 — Primary Backlog (Red Flags)
 
-**Status:** P0/P1 tracks closed (R0–R3) — gate refresh + Playwright waiver before MAP «Locked»  
+**Status:** R0–R3 implementation evidence exists, but current-SHA revalidation is required; do not treat historical closure rows as current phase closure.
 **Source of truth:** [`audit-red-flags-phase-3.md`](../archive/root-forensics/audit-red-flags-phase-3.md)  
 **Stance:** Scaffold Theater → **honest scaffold** with blocking security and one real vertical slice (web → API)
 
@@ -103,7 +103,14 @@ See **Bridge Plan** section below. **Depends on:** R0 + R1 (auth + session forwa
 
 ### Track R5 — P3 hardening (backlog)
 
-RF-F04, RF-F07, RF-F10, RF-F11, RF-G05–G09 — schedule after R3 exit.
+RF-F04, RF-F07, RF-F10, RF-G05–G08 — validated as false-positive/stale or
+out-of-scope on the current contract; retain historical evidence and do not
+rewrite the archive. RF-F11 is a confirmed in-memory persistence-integrity gap
+and RF-G09 is a confirmed gate-evidence gap. Both have bounded remediation
+evidence in:
+[`reports/phase-3-r5-rf-f11-validation-2026-09-25.md`](../../reports/phase-3-r5-rf-f11-validation-2026-09-25.md)
+and
+[`reports/phase-3-r5-rf-g09-validation-2026-09-25.md`](../../reports/phase-3-r5-rf-g09-validation-2026-09-25.md).
 
 ---
 

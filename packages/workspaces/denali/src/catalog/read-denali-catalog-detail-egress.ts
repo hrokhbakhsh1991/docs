@@ -1,4 +1,8 @@
-import type { PublicCatalogGatheringPoint, PublicCatalogGearItem } from "@app-tour/workspace-sdk";
+import type {
+  PublicCatalogGatheringPoint,
+  PublicCatalogGearItem,
+  PublicCatalogPaymentPlan,
+} from "@app-tour/workspace-sdk";
 
 import {
   readDenaliCanonicalPhotoRows,
@@ -11,6 +15,9 @@ import {
   parseDenaliLocationData,
 } from "../ui/logic/denali-location-types";
 import { normalizeSocialMediaLink } from "../ui/logic/denali-social-media-link-logic";
+import { resolveDenaliPrepaymentPolicy } from "../bookings/resolve-denali-prepayment-policy";
+import { resolveDenaliRegistrationApprovalMode } from "../booking/resolve-denali-registration-approval-mode";
+import { resolveDenaliPaymentCollectionMode } from "../finance/resolve-denali-payment-collection-mode";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
@@ -129,6 +136,9 @@ export type DenaliCatalogDetailEgress = {
   readonly excludedServices?: readonly string[];
   readonly includesTourInsurance?: boolean;
   readonly paymentMode?: string | null;
+  readonly paymentCollection?: "offline" | "free";
+  readonly registrationApproval?: "manual" | "auto";
+  readonly paymentPlan?: PublicCatalogPaymentPlan;
   readonly socialMediaLink?: string | null;
   readonly photoUrls?: readonly string[];
 };
@@ -212,6 +222,9 @@ export function readDenaliCatalogDetailEgress(
   const paymentMode =
     readString(readCanonicalPath(data, "pricing.paymentMode")) ??
     readString(readCanonicalPath(data, "pricingPayment.paymentMode"));
+  const paymentCollection = resolveDenaliPaymentCollectionMode(data);
+  const registrationApproval = resolveDenaliRegistrationApprovalMode(data);
+  const prepaymentPolicy = resolveDenaliPrepaymentPolicy(data);
   const socialMediaLinkRaw =
     readString(data.socialMediaLink) ??
     readString(readCanonicalPath(data, "basicInfo.socialMediaLink"));
@@ -245,7 +258,12 @@ export function readDenaliCatalogDetailEgress(
     ...(includedServices.length > 0 ? { includedServices } : {}),
     ...(excludedServices.length > 0 ? { excludedServices } : {}),
     ...(includesTourInsurance ? { includesTourInsurance: true } : {}),
-    ...(paymentMode != null ? { paymentMode } : {}),
+    ...(paymentCollection !== "free" && paymentMode != null ? { paymentMode } : {}),
+    paymentCollection,
+    registrationApproval,
+    ...(paymentCollection !== "free" && prepaymentPolicy.enabled && prepaymentPolicy.percent != null
+      ? { paymentPlan: { prepaymentPercent: prepaymentPolicy.percent } }
+      : {}),
     ...(socialMediaLink != null ? { socialMediaLink } : {}),
     ...(photoUrls != null ? { photoUrls } : {}),
   });

@@ -17,14 +17,14 @@ related: graceful-shutdown-ingress-reject.md DEC-101, production-deploy-checklis
 
 ## Decision
 
-| Item         | Choice                                                                           |
-| ------------ | -------------------------------------------------------------------------------- |
-| API deploy   | **Argo Rollouts** `blueGreen` strategy with `scaleDownDelaySeconds: 30`          |
-| Relay deploy | Separate **Deployment** `outbox-relay` — same image, different boot path         |
-| API env      | `WORKER_ROLE=api` (default), `OUTBOX_RELAY_ENABLED=false`                        |
-| Relay env    | `WORKER_ROLE=outbox-relay`, `OUTBOX_RELAY_ENABLED=true`                          |
-| Boot split   | `bootstrapOutboxRelayWorker()` — health HTTP only + relay + projection reconcile |
-| Grace        | `terminationGracePeriodSeconds: 35` (≥ 30s scale-down + relay flush)             |
+| Item         | Choice                                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| API deploy   | **Argo Rollouts** `blueGreen` strategy with `scaleDownDelaySeconds: 30`                                                                  |
+| Relay deploy | Separate **Deployment** `outbox-relay` — same image, different boot path                                                                 |
+| API env      | `WORKER_ROLE=api` (default), `OUTBOX_RELAY_ENABLED=false`                                                                                |
+| Relay env    | `WORKER_ROLE=outbox-relay`, `OUTBOX_RELAY_ENABLED=true`, `INTEGRATION_DELIVERY_ENABLED=true`, `INTEGRATION_DELIVERY_WORKER_ENABLED=true` |
+| Boot split   | `bootstrapOutboxRelayWorker()` — health HTTP only + relay + projection reconcile + integration delivery                                  |
+| Grace        | `terminationGracePeriodSeconds: 35` (≥ 30s scale-down + relay flush)                                                                     |
 
 ### Rollback target (<30s active switch)
 
@@ -45,10 +45,10 @@ Blue/green **does not** guarantee <30s image pull on cold nodes — pre-pull / c
 
 ### Manifest layout
 
-| Path                                                | Kind                                   | Role                                      |
-| --------------------------------------------------- | -------------------------------------- | ----------------------------------------- |
-| `deploy/argo-rollouts/api-rollout.yaml`             | `Rollout` + `Service` (active/preview) | HTTP API — relay off                      |
-| `deploy/argo-rollouts/outbox-relay-deployment.yaml` | `Deployment`                           | Background publish + projection reconcile |
+| Path                                                | Kind                                   | Role                                                             |
+| --------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------- |
+| `deploy/argo-rollouts/api-rollout.yaml`             | `Rollout` + `Service` (active/preview) | HTTP API — relay off                                             |
+| `deploy/argo-rollouts/outbox-relay-deployment.yaml` | `Deployment`                           | Background publish + projection reconcile + integration delivery |
 
 ### Worker HTTP surface (relay)
 
@@ -60,12 +60,14 @@ Full tour API routes are **not** mounted on relay pods.
 
 ## Environment
 
-| Variable                              | API pod         | Relay pod                     |
-| ------------------------------------- | --------------- | ----------------------------- |
-| `WORKER_ROLE`                         | `api` (default) | `outbox-relay`                |
-| `OUTBOX_RELAY_ENABLED`                | `false`         | `true` (required)             |
-| `DATABASE_URL` / `DATABASE_URL_ADMIN` | required (prod) | required (prod)               |
-| `GRACEFUL_SHUTDOWN_*`                 | per DEC-085     | same — relay drain on SIGTERM |
+| Variable                              | API pod         | Relay pod                                    |
+| ------------------------------------- | --------------- | -------------------------------------------- |
+| `WORKER_ROLE`                         | `api` (default) | `outbox-relay`                               |
+| `OUTBOX_RELAY_ENABLED`                | `false`         | `true` (required)                            |
+| `INTEGRATION_DELIVERY_ENABLED`        | `false`         | `true` (required for Telegram delivery jobs) |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `false`         | `true` (required to send Telegram jobs)      |
+| `DATABASE_URL` / `DATABASE_URL_ADMIN` | required (prod) | required (prod)                              |
+| `GRACEFUL_SHUTDOWN_*`                 | per DEC-085     | same — relay drain on SIGTERM                |
 
 ## Verification
 

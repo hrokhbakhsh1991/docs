@@ -5,6 +5,7 @@ export const MAX_PENDING_INVITES_PER_TENANT = 200;
 export const MEMBERSHIP_LIST_SELECT = {
   userId: true,
   tenantId: true,
+  membershipCode: true,
   role: true,
   status: true,
   sessionVersion: true,

@@ -74,7 +74,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     resetBookingsRepositoryForTests();
   });
 
-  function seedBooking(registrationId: string): void {
+  function seedBooking(registrationId: string, status: "pending" | "approved" = "pending"): void {
     getBookingsRepository().seedBooking({
       id: registrationId,
       tenantId: OPERATOR_SMOKE.tenantId,
@@ -84,12 +84,12 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       guestEmail: null,
       guestPhone: null,
       partySize: 1,
-      status: "pending",
+      status,
       paymentStatus: "unpaid",
       departureAt: "2026-08-01T00:00:00.000Z",
       submittedAt: "2026-07-01T00:00:00.000Z",
       submittedByUserId: OPERATOR_SMOKE.memberUserId,
-      approvedAt: null,
+      approvedAt: status === "approved" ? "2026-07-01T00:00:00.000Z" : null,
     });
   }
 
@@ -100,6 +100,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     readonly paymentAmount?: string;
     readonly obligationMinor?: string | null;
     readonly createPayment?: boolean;
+    readonly bookingStatus?: "pending" | "approved";
   }): Promise<{
     readonly finance: FinanceService;
     readonly financeRepo: InMemoryFinanceRepository;
@@ -148,7 +149,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     );
 
     if (input.withBooking) {
-      seedBooking(input.registrationId);
+      seedBooking(input.registrationId, input.bookingStatus);
     }
 
     if (input.createPayment === false) {
@@ -187,11 +188,12 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     assert.equal(invoice.balanceDueMinor, "1000000");
   });
 
-  it("FIN-SVC-01 approve raises booking.paymentStatus to paid and returns bookingPaymentStatus", async () => {
+  it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE / FIN-SVC-01 approve updates detail and list payment projection", async () => {
     const registrationId = randomUUID();
-    const { finance, receiptId } = await seedPendingReceipt({
+    const { finance, financeRepo, receiptId } = await seedPendingReceipt({
       registrationId,
       withBooking: true,
+      bookingStatus: "approved",
     });
 
     const reviewed = await finance.reviewReceipt(operatorAuth, receiptId, {
@@ -200,10 +202,48 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     });
 
     assert.equal(reviewed.status, "Approved");
+    assert.equal(reviewed.registrationId, registrationId);
     assert.equal(reviewed.bookingPaymentStatus, "paid");
+    assert.deepEqual(
+      (await financeRepo.listLedgerEvents(OPERATOR_SMOKE.tenantId, 20))
+        .filter((event) => event.eventType.startsWith("receipt."))
+        .map((event) => event.eventType),
+      ["receipt.approved"]
+    );
 
     const booking = await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId);
     assert.equal(booking?.paymentStatus, "paid");
+    assert.equal(booking?.finalizationStatus, "finalized");
+    const listed = await getBookingsRepository().listByTenantPage({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      submittedByUserId: OPERATOR_SMOKE.userId,
+      statuses: ["approved"],
+      limit: 20,
+      sort: "submittedAt",
+    });
+    const listedBooking = listed.items.find((item) => item.id === registrationId);
+    assert.equal(listedBooking?.paymentStatus, "paid");
+    assert.equal(listedBooking?.finalizationStatus, "finalized");
+  });
+
+  it("FIN-SVC-05 reject emits exactly one receipt.rejected notification event", async () => {
+    const registrationId = randomUUID();
+    const { finance, financeRepo, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+    });
+
+    const reviewed = await finance.reviewReceipt(operatorAuth, receiptId, {
+      decision: "reject",
+      reviewNote: "proof is unreadable",
+    });
+
+    assert.equal(reviewed.status, "Rejected");
+    const events = (await financeRepo.listLedgerEvents(OPERATOR_SMOKE.tenantId, 20)).filter(
+      (event) => event.eventType.startsWith("receipt.")
+    );
+    assert.equal(events.length, 1);
+    assert.equal(events[0]?.eventType, "receipt.rejected");
   });
 
   it("PR20-B underpay approve → booking partial (obligation 2500000, payment 1500000)", async () => {

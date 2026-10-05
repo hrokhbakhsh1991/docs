@@ -245,6 +245,16 @@ ssh_cmd "chmod +x ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/*.sh && \
   DEPLOY_ROOT=${DEPLOY_ROOT} ENV_DIR=${ENV_DIR} \
   bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-staging-artifact.sh"
 
+log "transfer and install Profile C edge config"
+scp_with_retry "${SCRIPT_DIR}/install-caddy-profile-c.sh" \
+  "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-caddy-profile-c.sh"
+ssh_cmd "mkdir -p ${DEPLOY_ROOT}/tooling/deploy/vps/caddy"
+scp_with_retry "${REPO_ROOT}/deploy/vps/caddy/Caddyfile" \
+  "${REMOTE}:${DEPLOY_ROOT}/tooling/deploy/vps/caddy/Caddyfile"
+ssh_cmd "DEPLOY_PATH=${DEPLOY_ROOT}/tooling ENV_DIR=${ENV_DIR} \
+  CADDY_SOURCE_CONFIG=${DEPLOY_ROOT}/tooling/deploy/vps/caddy/Caddyfile \
+  bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-caddy-profile-c.sh"
+
 log "start stack sequentially"
 ssh_cmd "ENV_DIR=${ENV_DIR} UNIT_PREFIX=app-tour-staging \
   bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/start-staging-artifact-stack.sh"

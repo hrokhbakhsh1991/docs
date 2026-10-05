@@ -160,4 +160,17 @@ describe("MAT-002 capability validators", () => {
     );
     assert.equal(violation?.code, "WORKSPACE_ITINERARY_INVALID");
   });
+
+  it("itinerary — rejects a payload beyond the workspace-declared day ceiling", () => {
+    const itinerary = Array.from({ length: 61 }, (_, index) => ({
+      dayNumber: index + 1,
+      title: `Day ${index + 1}`,
+      segments: [{ id: `seg-${index + 1}`, kind: "activity", title: "Hike" }],
+    }));
+    const violation = validateWorkspaceItineraryCapability(
+      baseCtx("denali", { program: { itinerary } })
+    );
+    assert.equal(violation?.code, "WORKSPACE_ITINERARY_INVALID");
+    assert.match(violation?.message ?? "", /more than 60 days/);
+  });
 });

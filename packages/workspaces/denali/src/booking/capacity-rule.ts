@@ -7,8 +7,8 @@ export type DenaliCapacityRule = {
   /** Maximum party size allowed on a single booking create. */
   readonly maxPartySize: number;
   /**
-   * When true, operators may transition pending → waitlisted (ops promote path).
-   * Create-time HTTP capacity still accept/deny only (host always creates as pending).
+   * When true, public creates that exceed approved occupancy enter waitlisted;
+   * operators may also transition pending → waitlisted through the ops path.
    */
   readonly waitlistEnabled: boolean;
   /**

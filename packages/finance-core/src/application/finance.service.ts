@@ -11,6 +11,8 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
+import { bookingPaymentStatusFromBalanceDue } from "../domain/booking-payment-status-from-balance";
+import { resolveStagedPaymentProjection } from "../domain/staged-payment-projection";
 import { assertCancelPendingManualPaymentReason } from "../domain/cancel-pending-manual-payment";
 import {
   assertPositiveRefundAmountMinor,
@@ -176,16 +178,27 @@ export type MemberReceiptPreviewKind = "image" | "pdf" | "unknown";
 
 export type MemberReceiptStatusView = {
   readonly status: MemberReceiptPanelStatus;
+  readonly invoiceTotalMinor: string | null;
+  readonly initialPaymentDueMinor: string | null;
+  readonly amountDueNowMinor: string | null;
   readonly remainingMinor: string | null;
   readonly obligationMinor: string | null;
   readonly paidMinor: string | null;
   readonly currency: string | null;
   readonly previewUrl: string | null;
   readonly previewKind: MemberReceiptPreviewKind | null;
+  readonly paymentDestination?: {
+    readonly enabled: boolean;
+    readonly revision: string | null;
+    readonly cardNumber: string | null;
+    readonly cardHolderName: string | null;
+    readonly bankName: string | null;
+    readonly instructions: string | null;
+  };
 };
 
-function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
-  const lower = fileKey.trim().toLowerCase();
+function previewKindFromFileKey(fileKey: string | null | undefined): MemberReceiptPreviewKind {
+  const lower = fileKey?.trim().toLowerCase() ?? "";
   if (lower.endsWith(".pdf")) {
     return "pdf";
   }
@@ -196,6 +209,11 @@ function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
 }
 
 export class FinanceService {
+  private readonly outstandingBalanceItemsInFlight = new Map<
+    string,
+    Promise<readonly OutstandingBalanceItem[]>
+  >();
+
   constructor(
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
     private readonly repository: FinanceRepositoryPort,
@@ -230,6 +248,23 @@ export class FinanceService {
     assertCompositionDep("clock", clock);
     assertCompositionDep("obligation", obligation);
     assertCompositionDep("arObservation", arObservation);
+  }
+
+  /** Coalesce concurrent report reads without retaining stale financial data. */
+  private loadOutstandingBalanceItemsCoalesced(
+    tenantId: string
+  ): Promise<readonly OutstandingBalanceItem[]> {
+    const existing = this.outstandingBalanceItemsInFlight.get(tenantId);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const load = loadOutstandingBalanceItems(this.outstandingOperatorDeps(), tenantId).finally(
+      () => {
+        this.outstandingBalanceItemsInFlight.delete(tenantId);
+      }
+    );
+    this.outstandingBalanceItemsInFlight.set(tenantId, load);
+    return load;
   }
 
   private async ensureQuoteFrozenForMoneyPath(
@@ -535,7 +570,7 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const loaded = await loadOutstandingBalanceItems(this.outstandingOperatorDeps(), auth.tenantId);
+    const loaded = await this.loadOutstandingBalanceItemsCoalesced(auth.tenantId);
     const tourId = normalizeOptionalTourId(query.tourId);
     const items =
       tourId !== undefined ? loaded.filter((row) => row.identity.tourId === tourId) : loaded;
@@ -566,10 +601,7 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const outstanding = await loadOutstandingBalanceItems(
-      this.outstandingOperatorDeps(),
-      auth.tenantId
-    );
+    const outstanding = await this.loadOutstandingBalanceItemsCoalesced(auth.tenantId);
     const aggregated = aggregateTourCollectionFromOutstanding(outstanding);
     const tourId = normalizeOptionalTourId(query.tourId);
     const tours =
@@ -796,6 +828,17 @@ export class FinanceService {
   async submitReceipt(auth: FinanceActorContext, body: SubmitReceiptBody, idempotencyKey?: string) {
     const gate = await this.gate(auth);
     this.authorization.assertReceiptSubmitAccess(auth);
+    const fileKey = body.fileKey?.trim() || null;
+    const note = body.note?.trim() || undefined;
+    if (fileKey !== null && fileKey.length > 512) {
+      throw new Error("RECEIPT_FILE_KEY_MAX");
+    }
+    if (note !== undefined && note.length > 2000) {
+      throw new Error("RECEIPT_NOTE_MAX");
+    }
+    if (fileKey === null && note === undefined) {
+      throw new Error("RECEIPT_EVIDENCE_REQUIRED");
+    }
     const trimmedKey = idempotencyKey?.trim() ?? "";
     const idempotencyKeyHash =
       trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : undefined;
@@ -823,11 +866,70 @@ export class FinanceService {
         throw new Error("BOOKINGS_FORBIDDEN");
       }
     }
+    const destination = await this.repository.findPaymentDestinationRevision(
+      auth.tenantId,
+      body.destinationRevision
+    );
+    if (destination === null && body.destinationRevision !== undefined) {
+      throw new Error("PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
+    }
+    const previewKind = previewKindFromFileKey(fileKey);
+    if (fileKey !== null) {
+      try {
+        // Validate ownership/availability before creating the receipt. The signed URL is
+        // intentionally not persisted; delivery workers resolve a fresh URL when needed.
+        await this.receiptProofStorage.getSignedReadUrl({
+          tenantId: auth.tenantId,
+          storageKey: fileKey,
+        });
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message === "RECEIPT_PROOF_KEY_SCOPE_INVALID") {
+          throw error;
+        }
+        this.logger.warn({
+          event: "finance.receipt_proof.validation_unavailable",
+          tenantId: auth.tenantId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    const submittedAt = new Date().toISOString();
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
-      fileKey: body.fileKey,
-      note: body.note,
+      fileKey,
+      note,
+      ...(destination === null
+        ? {}
+        : {
+            destinationSnapshot: {
+              revision: destination.revision,
+              cardNumber: destination.cardNumber,
+              cardHolderName: destination.cardHolderName,
+              bankName: destination.bankName,
+              instructions: destination.instructions,
+            },
+          }),
+      outboxEvent: {
+        eventType: "receipt.submitted",
+        payload: {
+          topicKey: "receipts",
+          paymentId: payment.id,
+          registrationId: payment.registrationId,
+          amount: payment.amount,
+          currency: payment.currency,
+          ...(fileKey === null ? {} : { fileKey }),
+          evidenceKind: fileKey === null ? "text" : "file",
+          submittedAt,
+          ...(fileKey === null || previewKind === "unknown"
+            ? {}
+            : {
+                telegramMediaKind: previewKind === "image" ? "photo" : "document",
+              }),
+          ...(note === undefined ? {} : { note }),
+          submittedByUserId: auth.userId,
+        },
+      },
       ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
     });
     this.metrics.increment(
@@ -846,8 +948,25 @@ export class FinanceService {
 
   async submitMemberReceiptForRegistration(
     auth: FinanceActorContext,
-    input: { readonly registrationId: string; readonly fileKey: string; readonly note?: string }
+    input: {
+      readonly registrationId: string;
+      readonly fileKey?: string | null;
+      readonly note?: string;
+      readonly destinationRevision?: string;
+    },
+    idempotencyKey?: string
   ) {
+    const fileKey = input.fileKey?.trim() || null;
+    const note = input.note?.trim() || undefined;
+    if (fileKey !== null && fileKey.length > 512) {
+      throw new Error("RECEIPT_FILE_KEY_MAX");
+    }
+    if (note !== undefined && note.length > 2000) {
+      throw new Error("RECEIPT_NOTE_MAX");
+    }
+    if (fileKey === null && note === undefined) {
+      throw new Error("RECEIPT_EVIDENCE_REQUIRED");
+    }
     const owns = await this.bookingPayments.memberOwnsRegistration({
       tenantId: auth.tenantId,
       registrationId: input.registrationId,
@@ -912,7 +1031,19 @@ export class FinanceService {
         registrationId: input.registrationId,
       });
       const offlineDefaults = this.receiptDefaults.offlineReceiptPaymentDefaults();
-      const remainingMinor = invoice.balanceDueMinor;
+      const plan = this.obligation.resolveRegistrationPaymentPlan
+        ? await this.obligation.resolveRegistrationPaymentPlan({
+            tenantId: auth.tenantId,
+            registrationId: input.registrationId,
+          })
+        : null;
+      const staged = resolveStagedPaymentProjection({
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
+        paidAmountMinor: invoice.paidAmountMinor,
+        balanceDueMinor: invoice.balanceDueMinor,
+        plan,
+      });
+      const remainingMinor = staged.amountDueNowMinor;
       const amount =
         parseMinorDigits(remainingMinor) > BigInt(0)
           ? remainingMinor
@@ -931,11 +1062,18 @@ export class FinanceService {
       });
     }
 
-    return this.submitReceipt(auth, {
-      paymentId: payment.id,
-      fileKey: input.fileKey,
-      ...(input.note !== undefined ? { note: input.note } : {}),
-    });
+    return this.submitReceipt(
+      auth,
+      {
+        paymentId: payment.id,
+        fileKey,
+        ...(input.destinationRevision !== undefined
+          ? { destinationRevision: input.destinationRevision }
+          : {}),
+        ...(note !== undefined ? { note } : {}),
+      },
+      idempotencyKey
+    );
   }
 
   /**
@@ -1085,13 +1223,33 @@ export class FinanceService {
       registrationId,
     });
     const invoice = await this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
-      .then((invoice) => ({
-        remainingMinor: invoice.balanceDueMinor,
-        paidMinor: invoice.paidAmountMinor,
-        currency: invoice.currency,
-        remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
-      }))
+      .then(async (invoice) => {
+        const plan = this.obligation.resolveRegistrationPaymentPlan
+          ? await this.obligation.resolveRegistrationPaymentPlan({
+              tenantId: auth.tenantId,
+              registrationId,
+            })
+          : null;
+        const staged = resolveStagedPaymentProjection({
+          invoiceTotalMinor: invoice.invoiceTotalMinor,
+          paidAmountMinor: invoice.paidAmountMinor,
+          balanceDueMinor: invoice.balanceDueMinor,
+          plan,
+        });
+        return {
+          invoiceTotalMinor: invoice.invoiceTotalMinor,
+          initialPaymentDueMinor: staged.initialPaymentDueMinor,
+          amountDueNowMinor: staged.amountDueNowMinor,
+          remainingMinor: invoice.balanceDueMinor,
+          paidMinor: invoice.paidAmountMinor,
+          currency: invoice.currency,
+          remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
+        };
+      })
       .catch(() => ({
+        invoiceTotalMinor: null as string | null,
+        initialPaymentDueMinor: null as string | null,
+        amountDueNowMinor: null as string | null,
         remainingMinor: null as string | null,
         paidMinor: null as string | null,
         currency: null as string | null,
@@ -1108,6 +1266,9 @@ export class FinanceService {
     const remainingPositive = invoice.remainingPositive;
 
     const base = {
+      invoiceTotalMinor: invoice.invoiceTotalMinor,
+      initialPaymentDueMinor: invoice.initialPaymentDueMinor,
+      amountDueNowMinor: invoice.amountDueNowMinor,
       remainingMinor,
       obligationMinor: obligation?.obligationMinor ?? null,
       paidMinor,
@@ -1153,12 +1314,15 @@ export class FinanceService {
 
   private async resolveMemberReceiptPreview(
     tenantId: string,
-    latest: { readonly fileKey: string } | null
+    latest: { readonly fileKey: string | null } | null
   ): Promise<{
     readonly url: string | null;
     readonly kind: MemberReceiptPreviewKind | null;
   }> {
     if (latest === null) {
+      return { url: null, kind: null };
+    }
+    if (latest.fileKey === null) {
       return { url: null, kind: null };
     }
     const kind = previewKindFromFileKey(latest.fileKey);
@@ -1239,6 +1403,30 @@ export class FinanceService {
             toleranceMinor: this.obligationToleranceMinor,
           })
         ) {
+          // A concurrent approval can commit after this request read the
+          // pending receipt but before the balance check. Re-read only in
+          // that case, so a genuine excess manual payment remains a 422.
+          const latest = await this.repository.findReceiptById(auth.tenantId, receiptId);
+          if (
+            latest !== null &&
+            latest.status === "Approved" &&
+            latest.payment !== null &&
+            latest.payment.status === "Paid"
+          ) {
+            this.recordApprove(auth, gate.workspaceType, "replay");
+            return {
+              id: latest.id,
+              registrationId: latest.payment.registrationId,
+              status: latest.status,
+              reviewNote: latest.reviewNote,
+              reviewedAt: latest.reviewedAt?.toISOString() ?? null,
+              ledgerJournalId: latest.ledgerJournalId ?? "",
+              bookingPaymentStatus: await this.resolveApproveReplayBookingStatus(
+                auth.tenantId,
+                latest.payment.registrationId
+              ),
+            };
+          }
           throw new Error("FINANCE_OBLIGATION_OVERPAY");
         }
       }
@@ -1313,7 +1501,10 @@ export class FinanceService {
       }
       this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
       await this.lockQuoteAfterCapture(auth.tenantId, payment.registrationId);
-      return approved;
+      return {
+        ...approved,
+        registrationId: payment.registrationId,
+      };
     } catch (error: unknown) {
       // Concurrent approve: loser may lose Pending guards; if winner already committed, replay.
       if (!(error instanceof Error) || error.message !== "FINANCE_APPROVE_CONFLICT") {
@@ -1334,6 +1525,7 @@ export class FinanceService {
         await this.lockQuoteAfterCapture(auth.tenantId, latest.payment.registrationId);
         return {
           id: latest.id,
+          registrationId: latest.payment.registrationId,
           status: latest.status,
           reviewNote: latest.reviewNote,
           reviewedAt: latest.reviewedAt?.toISOString() ?? null,
@@ -1357,6 +1549,13 @@ export class FinanceService {
     const receipt = await this.repository.findReceiptById(auth.tenantId, receiptId);
     if (receipt === null) {
       throw new Error("FINANCE_RECEIPT_NOT_FOUND");
+    }
+    if (receipt.fileKey === null) {
+      return {
+        receiptId: receipt.id,
+        fileKey: null,
+        url: null,
+      };
     }
     try {
       const url = await this.receiptProofStorage.getSignedReadUrl({
@@ -1455,10 +1654,14 @@ export class FinanceService {
 
       this.recordLedgerCapture(auth, gate.workspaceType, "success");
 
+      const invoice = await this.compileRegistrationInvoiceInternal(
+        auth.tenantId,
+        body.registrationId
+      );
       await this.trySyncBookingPaymentStatus(
         auth.tenantId,
         body.registrationId,
-        "partial",
+        bookingPaymentStatusFromBalanceDue(invoice.balanceDueMinor),
         ids.prepaymentDomainEventId
       );
       await this.lockQuoteAfterCapture(auth.tenantId, body.registrationId);
@@ -1592,7 +1795,25 @@ export class FinanceService {
       // a missing or foreign-tenant booking; that masks an IDOR boundary.
       throw new Error("BOOKING_NOT_FOUND");
     }
-    return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
+    const invoice = await this.compileRegistrationInvoiceInternal(
+      auth.tenantId,
+      normalizedRegistrationId
+    );
+    const plan = this.obligation.resolveRegistrationPaymentPlan
+      ? await this.obligation.resolveRegistrationPaymentPlan({
+          tenantId: auth.tenantId,
+          registrationId: normalizedRegistrationId,
+        })
+      : null;
+    return {
+      ...invoice,
+      ...resolveStagedPaymentProjection({
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
+        paidAmountMinor: invoice.paidAmountMinor,
+        balanceDueMinor: invoice.balanceDueMinor,
+        plan,
+      }),
+    };
   }
 
   private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {

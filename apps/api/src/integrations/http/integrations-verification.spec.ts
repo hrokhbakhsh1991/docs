@@ -5,6 +5,7 @@ import type { IntegrationConnectionPublicDto } from "../platform/integration-con
 import {
   annotateActiveDeliverySource,
   computeWorkspaceIntegrationsSummary,
+  resolveTelegramProviderTestThreadId,
   resolveActiveDeliverySource,
   testConnectionMessageForCode,
 } from "./integrations-verification";
@@ -106,5 +107,43 @@ describe("integrations verification helpers", () => {
 
   it("maps test connection codes to operator-facing messages", () => {
     assert.match(testConnectionMessageForCode("INTEGRATION_CONFIG_INCOMPLETE"), /Channel ID/);
+    assert.match(
+      testConnectionMessageForCode("INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING"),
+      /registration forum topic/
+    );
+  });
+
+  it("requires the registration forum topic for Telegram integration connection tests", () => {
+    assert.deepEqual(
+      resolveTelegramProviderTestThreadId({
+        config: { topicThreadIds: { registration: 101 } },
+        requireRegistrationTopic: true,
+      }),
+      { ok: true, threadId: 101 }
+    );
+    assert.deepEqual(
+      resolveTelegramProviderTestThreadId({
+        config: { topicThreadIds: { receipts: 202 } },
+        requireRegistrationTopic: true,
+      }),
+      { ok: false, code: "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING" }
+    );
+  });
+
+  it("keeps legacy Telegram tests compatible but still uses registration topic when present", () => {
+    assert.deepEqual(
+      resolveTelegramProviderTestThreadId({
+        config: { channelId: "@legacy" },
+        requireRegistrationTopic: false,
+      }),
+      { ok: true }
+    );
+    assert.deepEqual(
+      resolveTelegramProviderTestThreadId({
+        config: { topicThreadIds: { registration: 101 } },
+        requireRegistrationTopic: false,
+      }),
+      { ok: true, threadId: 101 }
+    );
   });
 });

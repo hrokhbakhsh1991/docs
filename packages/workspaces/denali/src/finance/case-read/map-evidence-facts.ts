@@ -45,7 +45,7 @@ export function mapDenaliEvidenceToEvidenceFacts(source: DenaliEvidenceSource): 
   return {
     proofExists: knownFact(true),
     proofProgress: knownFact(progress),
-    evidenceInspectable: knownFact(receipt.fileKey.trim().length > 0),
+    evidenceInspectable: knownFact((receipt.fileKey?.trim().length ?? 0) > 0),
     evidenceSource: knownFact("offline"),
   };
 }

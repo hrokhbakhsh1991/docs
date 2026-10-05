@@ -11,11 +11,16 @@ const marketingRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("marketing-catalog-cover-contract.spec.ts — MKT-COVER-01", () => {
   it("MKT-COVER-01 catalog cover has no inline style; fill mode uses data attr", () => {
-    const source = readFileSync(
-      join(marketingRoot, "src/catalog/catalog-cover-image.tsx"),
-      "utf8"
-    );
+    const source = readFileSync(join(marketingRoot, "src/catalog/catalog-cover-image.tsx"), "utf8");
     assert.doesNotMatch(source, /style=\{/);
     assert.match(source, /data-marketing-catalog-cover-fill/);
+  });
+
+  it("MKT-COVER-02 recovers broken or empty sources with the local fallback", () => {
+    const source = readFileSync(join(marketingRoot, "src/catalog/catalog-cover-image.tsx"), "utf8");
+    assert.match(source, /^"use client";/);
+    assert.match(source, /DEFAULT_CATALOG_COVER_FALLBACK/);
+    assert.match(source, /onError=\{\(\) =>/);
+    assert.match(source, /normalizedFallbackSrc/);
   });
 });

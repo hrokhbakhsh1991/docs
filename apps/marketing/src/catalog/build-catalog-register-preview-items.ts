@@ -17,13 +17,16 @@ export type BuildCatalogRegisterPreviewItemsInput = {
     readonly maximumAge: (years: number) => string;
     readonly transportIntake: string;
     readonly payment: (modeLabel: string) => string;
+    readonly paymentCollection: () => string;
+    readonly registrationApproval: (mode: "manual" | "auto") => string;
+    readonly prepayment: (percent: number) => string;
   };
   readonly paymentModeLabel: string | null;
 };
 
 /** PR-D5 intake preview lines — card flags only; no admin/API changes. */
 export function buildCatalogRegisterPreviewItems(
-  input: BuildCatalogRegisterPreviewItemsInput,
+  input: BuildCatalogRegisterPreviewItemsInput
 ): readonly CatalogRegisterPreviewItem[] {
   const { tour, labels } = input;
   const items: CatalogRegisterPreviewItem[] = [];
@@ -56,10 +59,36 @@ export function buildCatalogRegisterPreviewItems(
   }
 
   const paymentMode = tour.paymentMode?.trim() ?? "";
-  if (paymentMode.length > 0 && input.paymentModeLabel != null) {
+  if (
+    tour.paymentCollection !== "free" &&
+    paymentMode.length > 0 &&
+    input.paymentModeLabel != null
+  ) {
     items.push({
       id: "payment-mode",
       text: labels.payment(input.paymentModeLabel),
+    });
+  }
+  if (tour.paymentCollection === "free") {
+    items.push({ id: "payment-collection", text: labels.paymentCollection() });
+  }
+  if (tour.registrationApproval != null) {
+    items.push({
+      id: "registration-approval",
+      text: labels.registrationApproval(tour.registrationApproval),
+    });
+  }
+
+  const prepaymentPercent = tour.paymentPlan?.prepaymentPercent;
+  if (
+    prepaymentPercent != null &&
+    Number.isInteger(prepaymentPercent) &&
+    prepaymentPercent >= 1 &&
+    prepaymentPercent <= 100
+  ) {
+    items.push({
+      id: "prepayment",
+      text: labels.prepayment(prepaymentPercent),
     });
   }
 
@@ -67,17 +96,22 @@ export function buildCatalogRegisterPreviewItems(
 }
 
 export function tourHasRegisterPreviewData(tour: MarketingCatalogCard): boolean {
-  return buildCatalogRegisterPreviewItems({
-    tour,
-    labels: {
-      nationalId: "",
-      fatherName: "",
-      birthDate: "",
-      minimumAge: () => "",
-      maximumAge: () => "",
-      transportIntake: "",
-      payment: () => "",
-    },
-    paymentModeLabel: tour.paymentMode?.trim() ? tour.paymentMode.trim() : null,
-  }).length > 0;
+  return (
+    buildCatalogRegisterPreviewItems({
+      tour,
+      labels: {
+        nationalId: "",
+        fatherName: "",
+        birthDate: "",
+        minimumAge: () => "",
+        maximumAge: () => "",
+        transportIntake: "",
+        payment: () => "",
+        paymentCollection: () => "",
+        registrationApproval: () => "",
+        prepayment: () => "",
+      },
+      paymentModeLabel: tour.paymentMode?.trim() ? tour.paymentMode.trim() : null,
+    }).length > 0
+  );
 }

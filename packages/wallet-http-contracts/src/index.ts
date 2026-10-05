@@ -20,6 +20,7 @@ export {
   parseWalletTransactionsLimit,
   parseOptionalListCursor,
   parseOperatorAccountLookupUserId,
+  parseOptionalOperatorAccountLookupSearch,
   parseOptionalCurrencyFilter,
   parseOptionalWorkspaceFilter,
   type WalletReferenceBody,

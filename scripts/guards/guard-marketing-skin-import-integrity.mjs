@@ -12,8 +12,8 @@ const ENTRY = path.join(
   "packages/workspaces/denali/theme/denali-marketing.css"
 );
 const COMPONENTS = path.join(REPO_ROOT, "packages/workspaces/denali/theme/marketing/components");
-/** Cap tracks numbered Denali marketing partials through `37-mkt-login-modal.css` (38 files incl. commercial-pricing split). */
-const MAX_PARTIALS = 38;
+/** Cap tracks numbered Denali marketing partials through the current PR-21 loading split (39 files incl. commercial-pricing split). */
+const MAX_PARTIALS = 39;
 
 /** @type {string[]} */
 const violations = [];

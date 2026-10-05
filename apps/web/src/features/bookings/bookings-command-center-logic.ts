@@ -22,10 +22,39 @@ import {
   type BookingsListView,
 } from "./bookings-command-center-types";
 
+export type BookingsKpiValueInput = {
+  readonly kpi: BookingsKpiFilterId;
+  readonly query: BookingsCommandCenterQuery;
+  readonly filteredListTotal: number;
+  readonly summaryValue: number;
+};
+
 const BOOKING_DATE_LOCALE: Record<AppLocale, string> = {
   fa: "fa-IR",
   en: "en-US",
 };
+
+/**
+ * Keep an active KPI count tied to the same filtered list response that the
+ * operator is looking at. Summary counts remain the default for the global
+ * dashboard, while a KPI-selected view must never show a stale global count.
+ */
+export function resolveBookingsKpiValue({
+  kpi,
+  query,
+  filteredListTotal,
+  summaryValue,
+}: BookingsKpiValueInput): number {
+  const listIsCanonicalForKpi =
+    (kpi === "pending" && query.status === "pending") ||
+    (kpi === "waitlist" && query.status === "waitlisted") ||
+    (kpi === "approvedToday" &&
+      query.status === "approved" &&
+      query.approvedWithinDays === "1") ||
+    (kpi === "departures7d" && query.departureWithinDays === "7");
+
+  return listIsCanonicalForKpi ? filteredListTotal : summaryValue;
+}
 
 export function readBookingPaymentDueAt(
   item: Pick<BookingListItem, "paymentDueAt">
@@ -333,10 +362,14 @@ export function shouldShowInlineApprove(input: {
   readonly featureEnabled: boolean;
   readonly canManageOps: boolean;
   readonly item: Pick<BookingListItem, "status">;
+  readonly capacityFull?: boolean;
   readonly selected: boolean;
   readonly narrowViewport: boolean;
 }): boolean {
   if (!input.featureEnabled || !input.canManageOps) {
+    return false;
+  }
+  if (input.capacityFull === true) {
     return false;
   }
   if (!canInlineApproveBooking(input.item)) {

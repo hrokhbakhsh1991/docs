@@ -56,11 +56,10 @@ test("DEN-PROF-04 mobile change via OTP updates profile mobile", async ({ page }
   const [requestResponse] = await Promise.all([
     page.waitForResponse(
       (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/me/mobile/request-otp"),
+        res.request().method() === "POST" && res.url().includes("/api/me/mobile/request-otp"),
       { timeout: 90_000 }
     ),
-    page.locator('[data-member-profile-mobile-change-request] button').first().click(),
+    page.locator("[data-member-profile-mobile-change-request] button").first().click(),
   ]);
   expect(requestResponse.ok()).toBeTruthy();
 
@@ -78,11 +77,10 @@ test("DEN-PROF-04 mobile change via OTP updates profile mobile", async ({ page }
       await page.locator("#profile-mobile-change-otp").fill("1234");
       const [verifyResponse] = await Promise.all([
         page.waitForResponse(
-          (res) =>
-            res.request().method() === "POST" && res.url().includes("/api/me/mobile/verify"),
+          (res) => res.request().method() === "POST" && res.url().includes("/api/me/mobile/verify"),
           { timeout: 90_000 }
         ),
-        page.locator('[data-member-profile-mobile-change-verify] button').first().click(),
+        page.locator("[data-member-profile-mobile-change-verify] button").first().click(),
       ]);
       expect(verifyResponse.ok()).toBeTruthy();
       return;
@@ -203,10 +201,9 @@ test("DEN-PROF-06 seeded birth date survives open/save without edit", async ({ p
   await expect(popover).toBeHidden({ timeout: 10_000 });
 
   const patchAfterSave = await page
-    .waitForRequest(
-      (req) => req.method() === "PATCH" && req.url().includes("/api/me/profile"),
-      { timeout: 8_000 }
-    )
+    .waitForRequest((req) => req.method() === "PATCH" && req.url().includes("/api/me/profile"), {
+      timeout: 8_000,
+    })
     .catch(() => null);
 
   if (patchAfterSave !== null) {

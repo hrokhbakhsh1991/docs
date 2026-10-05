@@ -32,7 +32,7 @@ function storeWithPolicy(
             title: "Approval Mode Tour",
             publishStatus: "active",
             capacityMax: 12,
-            startDateTime: "2026-06-01T08:00:00.000Z",
+            startDateTime: "2031-06-01T08:00:00.000Z",
             pricing: {
               registrationApproval: mode,
               paymentCollection,

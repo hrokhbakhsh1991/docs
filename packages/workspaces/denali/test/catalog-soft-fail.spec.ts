@@ -68,8 +68,28 @@ describe("catalog-soft-fail (ED-UX-01 / ED-UX-02)", () => {
     assert.equal(calls, 1);
   });
 
+  it("converts a timed-out catalog request into a retryable load failure", async () => {
+    const fetchImpl = (async () => {
+      throw new DOMException("The operation timed out", "TimeoutError");
+    }) as unknown as typeof fetch;
+
+    await assert.rejects(
+      () =>
+        fetchDenaliCatalogJsonWithSoftRetry(
+          "/api/settings/resources/locations",
+          "LOCATIONS",
+          fetchImpl,
+          1
+        ),
+      /LOCATIONS_LOAD_FAILED/
+    );
+  });
+
   it("ED-CAT-RETRY-01 degraded notice exposes retry control", () => {
-    const src = readFileSync(join(SRC_ROOT, "ui/components/denali-catalog-load-notice.tsx"), "utf8");
+    const src = readFileSync(
+      join(SRC_ROOT, "ui/components/denali-catalog-load-notice.tsx"),
+      "utf8"
+    );
     assert.match(src, /denali-catalog-soft-fail-retry/);
     assert.match(src, /onRetry/);
     assert.match(src, /composites\.catalog\.retry/);

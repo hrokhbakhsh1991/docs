@@ -1,6 +1,7 @@
 import type {
   FinanceObligationPort,
   FinancePaymentCollectionMode,
+  FinanceRegistrationPaymentPlan,
   FinanceRegistrationObligationOverrideInput,
 } from "@app-tour/finance-http-contracts";
 import {
@@ -32,6 +33,10 @@ export type RegistrationPaymentCollectionResolver = (
   tourCanonical: unknown
 ) => FinancePaymentCollectionMode;
 
+export type RegistrationPaymentPlanResolver = (
+  tourCanonical: unknown
+) => FinanceRegistrationPaymentPlan;
+
 /**
  * Commercial registration-obligation adapter — booking snapshot + injected pricing resolver (FC-2 / P3.5).
  * Host composition wires workspace-specific resolvers via codegen; this module stays workspace-agnostic.
@@ -49,7 +54,11 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
     private readonly resolvePaymentCollection: RegistrationPaymentCollectionResolver = () =>
       "offline",
     /** Optional gross resolver — preserves list price when payable is waived or overridden. */
-    private readonly resolveGrossObligation?: RegistrationObligationResolver
+    private readonly resolveGrossObligation?: RegistrationObligationResolver,
+    private readonly resolvePaymentPlan: RegistrationPaymentPlanResolver = () => ({
+      enabled: false,
+      percent: null,
+    })
   ) {}
 
   private resolveGrossPricing(input: {
@@ -183,6 +192,17 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
       return "offline";
     }
     return this.resolvePaymentCollection(canonical);
+  }
+
+  async resolveRegistrationPaymentPlan(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<FinanceRegistrationPaymentPlan | null> {
+    const canonical = await this.loadTourCanonical(input.tenantId, input.registrationId);
+    if (canonical === null) {
+      return null;
+    }
+    return this.resolvePaymentPlan(canonical);
   }
 
   async setRegistrationObligationOverride(

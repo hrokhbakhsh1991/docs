@@ -70,6 +70,18 @@
       "difficultyLabel": "درجه سختی",
       "difficultyOption": "{level, number} از {max, number}",
       "fitnessLabel": "توان بدنی مورد نیاز",
+      "durationLabel": "مدت (روز)",
+      "durationMinLabel": "حداقل مدت به روز",
+      "durationMaxLabel": "حداکثر مدت به روز",
+      "durationMinPlaceholder": "از",
+      "durationMaxPlaceholder": "تا",
+      "priceLabel": "قیمت (تومان)",
+      "priceMinLabel": "حداقل قیمت به تومان",
+      "priceMaxLabel": "حداکثر قیمت به تومان",
+      "priceMinPlaceholder": "از",
+      "priceMaxPlaceholder": "تا",
+      "durationActive": "فیلتر مدت",
+      "priceActive": "فیلتر قیمت",
       "availabilityOpen": "فقط با ظرفیت باز",
       "categoryLabel": "نوع برنامه",
       "categoryGroups": {
@@ -88,11 +100,14 @@
     },
     "card": {
       "soldOut": "تکمیل ظرفیت",
+      "waitlist": "لیست انتظار",
+      "past": "پایان‌یافته",
       "summary": {
         "singleDay": "تک‌روزه",
         "multiDay": "{days, number} روز",
         "difficulty": "سختی {level, number} از {max, number}",
         "capacity": "حداکثر {count, number} نفر",
+        "openSpots": "{count, number} جای خالی",
         "openSpots": "{count, number} جای خالی"
       }
     }
@@ -102,6 +117,7 @@
     "membershipDiscount": "تخفیف عضویت {percent}٪",
     "membershipDiscountCompact": "{percent}٪ تخفیف عضویت",
     "yourPrice": "قیمت برای شما",
+    "unavailable": "قیمت برای این عضو در دسترس نیست",
     "ancillary": {
       "transport": "خودرو",
       "dong": "دونگی"
@@ -131,9 +147,13 @@
     "priceOnRequest": "قیمت پس از استعلام",
     "datesTba": "تاریخ اعلام می‌شود",
     "soldOut": "ظرفیت تکمیل شده",
+    "joinWaitlist": "عضویت در لیست انتظار",
+    "past": "این تور به پایان رسیده است",
     "difficultyShort": "{level, number} از {max, number}",
     "facts": {
       "price": "قیمت",
+      "transport": "حمل‌ونقل",
+      "transportCost": "هزینه حمل‌ونقل",
       "capacity": "ظرفیت",
       "dates": "تاریخ",
       "difficulty": "سختی",
@@ -172,6 +192,7 @@
       "gathering": "محل تجمع",
       "map": "نقشه",
       "openMap": "مشاهده روی نقشه",
+      "startTime": "ساعت شروع",
       "returnTime": "ساعت بازگشت تقریبی",
       "transport": "حمل‌ونقل",
       "transportCost": "هزینه حمل‌ونقل",
@@ -221,6 +242,12 @@
       "maximumAge": "حداکثر سن: {years, number} سال",
       "transportIntake": "ترجیح حمل‌ونقل یا جزئیات خودرو",
       "payment": "روش پرداخت: {mode}",
+      "prepayment": "پیش‌پرداخت: {percent, number}٪ از مبلغ نهایی پس از تأیید",
+      "freeCollection": "رایگان / بدون نیاز به پرداخت",
+      "registrationApproval": {
+        "manual": "تأیید ثبت‌نام: دستی",
+        "auto": "تأیید ثبت‌نام: خودکار"
+      },
       "paymentModes": {
         "offlineReceipt": "رسید / پرداخت آفلاین",
         "gateway": "پرداخت آنلاین"
@@ -264,6 +291,7 @@
         "imageAlt": "کوهستان و یک کوهنورد در مسیر",
         "ctaPrimary": "دیدن برنامه‌ها",
         "ctaSecondary": "چرا {siteName}؟",
+        "ctaConsultation": "مشاوره سفر",
         "scrollHint": "پیمایش برای ادامه",
         "spotlight": {
           "rotateLabel": "چرخش ۳۶۰°",
@@ -326,6 +354,7 @@
         "title": "مقاصد محبوب",
         "lead": "مناطق پرتکرار در برنامه‌های باشگاه.",
         "explore": "مشاهده تورها",
+        "exploreAll": "مشاهده همه برنامه‌ها",
         "alborz": {
           "name": "البرز",
           "description": "مسیرهای محبوب شمال تهران — از پیاده‌روی روزانه تا صعودهای کلاسیک."
@@ -399,6 +428,10 @@
         "community": {
           "title": "جامعه کوهنورد",
           "description": "در کنار افراد هم‌فکر سفر کنید — بدون فشار یا رقابت غیرضروری."
+        },
+        "support": {
+          "title": "پشتیبانی و هماهنگی",
+          "description": "برای هماهنگی و پیگیری، از پورتال اعضا استفاده کنید."
         }
       },
       "journey": {
@@ -516,5 +549,8 @@
     "catalogBody": "در بارگذاری تورها مشکلی پیش آمد. اتصال یا تنظیمات API را بررسی کنید.",
     "retry": "تلاش مجدد",
     "backToTours": "بازگشت به تورها"
+  },
+  "loading": {
+    "label": "در حال بارگذاری تورها…"
   }
 }

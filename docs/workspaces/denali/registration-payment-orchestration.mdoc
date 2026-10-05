@@ -103,7 +103,51 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 **Logic:** outstanding candidates are operator registrations (Prisma `operatorRegistration` / memory bookings page scan). Invoice compile uses obligation even when `getRegistrationInvoiceFacts` returns empty payment arrays. Scanning payment rows as the candidate universe drops the guest until they upload — that is PAY-FIN-02 and is forbidden.
 
+The API coalesces concurrent outstanding-AR and tour-collection reads per tenant for the duration of the shared load. It does not retain the result after completion; both reports therefore continue to read the same invoice-based source without multiplying the expensive scan.
+
+### Registration finalization is independent from payment settlement
+
+`approved` is the initial registration decision and `finalized` is the operator's independent decision to include the participant in the final attendance roster. A finalized participant may be `PAID`, `PARTIALLY_PAID`, `UNPAID`, or `WAIVED`; financial status remains a separate projection and payment follow-up view. Approved-but-not-finalized participants remain operational and reserve capacity, but are excluded from the final participant roster until an operator explicitly finalizes them. Waitlisted, pending, rejected, and cancelled registrations are excluded from the final participant roster. The API contract must expose lifecycle, finalization, and financial dimensions separately so finalization with an open balance does not waive or hide payment follow-up.
+
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
+
+For free collection, `freeCollectionApplied` is the canonical zero-collection marker. Booking list and detail projections must both resolve this marker to `financialDisplayState: "WAIVED"` before Portal derives payment copy; receipt status remains a separate axis.
+
+### Telegram registration decision message
+
+The Telegram `registration` topic receives an actionable `registration.created`
+message and a non-actionable `registration.waitlisted` message. Receipt review
+remains a separate flow in the `receipts` topic.
+
+The message must show the guest, tour, departure, party size, and registration
+identifier, then state whether the tour requires operator approval. Its inline
+actions are:
+
+| Tour approval mode | Actions                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `auto`             | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
+| `manual`           | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
+
+Callbacks are typed as `registration:<action>:<registrationId>`, are accepted
+only from an administrator or creator in the configured Telegram supergroup, and are
+tenant-scoped and idempotent. `approve` uses the existing Bookings approval
+operation; `waitlist` uses the existing waitlist operation. Any action that marks a
+guest final must re-read the financial projection and reject unpaid or partially paid
+registrations. Telegram must show payment follow-up for those rows and final
+participation only for `PAID` or `WAIVED` rows; this must not be confused with receipt
+approval.
+
+## Operator queue transitions (phase 1C)
+
+The tour workspace separates work by the operator's next action. The
+`درخواست‌های ثبت‌نام` tab is the pending-registration queue only. Approving a
+registration that requires payment is a state transition, not a second approval action: the
+row leaves that queue and the workspace opens `پیگیری مالی`, where the
+approved guest remains visible until the balance is zero. Approving without
+payment follows the waiver path and moves the guest directly to the final
+roster. Rejecting or waitlisting removes the row from the pending queue after
+the successful mutation. Refreshing the workspace counters is part of every
+transition so the four surfaces cannot display stale queue membership.
 
 ## Operator hint (phase 1C)
 
@@ -139,20 +183,58 @@ Dev OTP operator paths (not `/auth/otp/*`): `POST /auth/request-otp` → `POST /
 
 ### Path verification closure (2026-08-07)
 
-| Item                                | Result                                                                                                                      |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Fresh create from catalog           | OK — `POST /api/catalog/registrations` → booking `pending`/`unpaid` (tour `capacityMax` must leave approved-party headroom) |
-| Admin Approve on `/bookings`        | OK — UI `تأیید` → `approved`/`unpaid`                                                                                       |
-| Member receipt upload               | OK — portal BFF `POST …/receipt` → Finance receipt `Pending`                                                                |
-| Finance receipt approve             | OK — `PATCH …/review` + `Idempotency-Key` → `bookingPaymentStatus=paid` (portal paid panel)                                 |
-| E rejected receipt re-upload        | OK — upload form + prior-reject status copy                                                                                 |
-| G rejected / H cancelled            | OK — closed panel, no upload                                                                                                |
-| Logout                              | OK — lands on `/login` (may include `portalReturn`)                                                                         |
-| P2 false 404                        | Fixed — wrong method → **405** `METHOD_NOT_ALLOWED` + `Allow`                                                               |
-| Catalog submit Idempotency + Bearer | Fixed — Denali intake sends/forwards `Idempotency-Key`; BFF uses `buildMemberApiHeaders`                                    |
-| P3 admin Next hang                  | **Ops** — intermittent `next dev` stall; restart process; no product-code defect found                                      |
+| Item                                | Result                                                                                                                                                                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh create from catalog           | OK — `POST /api/catalog/registrations` → booking `pending`/`unpaid` while approved capacity remains; when the published tour is full and waitlist is enabled, booking is `waitlisted` (no payment hold or auto-approve) |
+| Admin Approve on `/bookings`        | OK — UI `تأیید` → `approved`/`unpaid`                                                                                                                                                                                   |
+| Member receipt upload               | OK — portal BFF `POST …/receipt` → Finance receipt `Pending`                                                                                                                                                            |
+| Finance receipt approve             | OK — `PATCH …/review` + `Idempotency-Key` → `bookingPaymentStatus=paid` (portal paid panel)                                                                                                                             |
+| E rejected receipt re-upload        | OK — upload form + prior-reject status copy                                                                                                                                                                             |
+| G rejected / H cancelled            | OK — closed panel, no upload                                                                                                                                                                                            |
+| Logout                              | OK — lands on `/login` (may include `portalReturn`)                                                                                                                                                                     |
+| P2 false 404                        | Fixed — wrong method → **405** `METHOD_NOT_ALLOWED` + `Allow`                                                                                                                                                           |
+| Catalog submit Idempotency + Bearer | Fixed — Denali intake sends/forwards `Idempotency-Key`; BFF uses `buildMemberApiHeaders`                                                                                                                                |
+| P3 admin Next hang                  | **Ops** — intermittent `next dev` stall; restart process; no product-code defect found                                                                                                                                  |
 
 ## Phase 2 — Offline receipt amount from tour obligation (2026-08-06)
+
+## Phase 2A — Denali prepayment as a staged member payment (2026-09-21)
+
+`pricing.prepaymentEnabled` and `pricing.prepaymentPercent` define the first
+payment stage for a paid Denali registration. They must not replace the Finance
+invoice total and must not be treated as an already-collected wallet amount.
+
+The Finance read model exposes both values explicitly:
+
+- `invoiceTotalMinor`: the frozen payable total for the registration;
+- `paidAmountMinor`: completed payment/prepayment credit already collected;
+- `balanceDueMinor`: `invoiceTotalMinor - paidAmountMinor` (the full remaining
+  balance, never the configured deposit by itself);
+- `initialPaymentDueMinor`: the configured percentage of the total, capped at
+  the current balance and zero when the tour has no valid prepayment policy;
+- `amountDueNowMinor`: `min(initialPaymentDueMinor, balanceDueMinor)` while
+  the first stage is still unpaid, otherwise `balanceDueMinor`.
+
+The member receipt endpoint and portal must show `amountDueNowMinor` as the
+amount to transfer, while also showing the total and remaining balance. After a
+successful first capture, the next receipt uses the remaining balance. Manual
+and automatic approval use the same projection. Invalid percentages (missing,
+zero, fractional, or above 100) fail closed to the regular full-payment path.
+
+This contract is display/projection logic only: a configured prepayment is not
+collection. Receipt review and ledger capture remain the only source of paid
+money, and all amount transitions must remain idempotent and tenant-scoped.
+
+Cross-surface display rules are explicit:
+
+- Public marketing exposes the configured percentage as a registration hint; it
+  must not invent an exact amount before party size, transport, and discounts are
+  resolved in the portal.
+- The member portal is authoritative for the exact `amountDueNowMinor`, total,
+  and post-payment balance.
+- The operator tour finance inbox reads the approved `unpaid` roster projection,
+  not the transport `operational` filter, and displays `amountDueNowMinor` with
+  `remainingMinor` retained for the total outstanding balance.
 
 When a member uploads a receipt and no pending manual payment exists yet, Finance creates one:
 
@@ -201,6 +283,18 @@ Canonical path (Denali tour document):
 | ------------------------------ | ------------------ | ------------------------------------- |
 | `pricing.registrationApproval` | `manual` \| `auto` | `manual` (missing / unknown → manual) |
 
+## Phase 4 — Transport acknowledgement and money display policy (2026-09-13)
+
+The public registration flow must collect an explicit acknowledgement whenever the
+registrant is not using a personal car. This acknowledgement is UI state only; the
+server remains authoritative and still normalizes the submitted transport kind.
+
+Denali catalog prices continue to use the existing product policy: the canonical
+integer is displayed as تومان while the financial ISO currency remains `IRR`; no
+implicit ×10 conversion is introduced without a separate product/migration decision.
+Finance-facing Denali displays must consume the same display policy so the member,
+operator, and finance surfaces do not label the same stored digits as different units.
+
 ```text
 manual (default): create → pending → operator approve → receipt
 auto:             create → pending → host autoApprove (capacity OK) → approved → receipt
@@ -233,7 +327,7 @@ Rules:
 
 - Pure Denali resolver reads `pricing.paymentCollection` (also accepts `pricingPayment.paymentCollection`).
 - When `free`, commercial obligation resolves to `obligationMinor: "0"` (no offline default amount).
-- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition calls Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved.
+- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition runs the same post-approval finance orchestration: schedule/refresh the payment hold for payable registrations, then call Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved. Bulk approval must not skip the payment-hold step.
 - Free paid is a **booking payment projection only** (`IBookingPaymentPort.syncStatus` → `paid`). No `PaymentIntent`, no receipt, no double-entry journal (zero money).
 - Member receipt submit: blocked when remaining is already 0 or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
 - Member receipt status GET: remaining = 0 and free/zero-obligation → `{ status: "waived" }`. Remaining = 0 after capture → `{ status: "paid" }`. Remaining > 0 never returns `paid`.
@@ -241,6 +335,32 @@ Rules:
 - PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
 
 Portal: list/detail KPI still show booking `paymentStatus`; the receipt **panel** uses remaining + `waived`/`paid` from `GET /bookings/{id}/receipts`, never the booking ratchet alone.
+
+### Member list/detail financial projection contract
+
+Portal List and Detail must consume the same member financial projection for an
+owned registration. The projection is resolved in this order: lifecycle state,
+`paymentCollection`, `financialDisplayState`, booking `paymentStatus`, and
+`paymentDueAt`; `receiptStatus` remains an independent receipt-review axis.
+`paymentCollection=free` or `financialDisplayState=WAIVED` always clears a
+payment deadline and payment action. `paymentStatus=paid` also clears a stale
+deadline. A receipt that is approved without a settled booking payment must
+not be converted to `paid`; it may only render the independent receipt state.
+List hydration may repair an old list row from the owned Detail projection,
+but the List and Detail BFF contract must be tested together so this repair
+cannot silently regress to two different states.
+
+## Phase 6 — Member completion surfaces after receipt approval (2026-09-13)
+
+Receipt review is a finance-owned state transition, but it must also publish a
+durable member-facing completion event in the same transaction as the payment,
+booking projection, receipt approval, and ledger outbox write. The event carries
+the registration, member user, tour, and validated social link. The portal then
+shows the link in both the approved registration detail and the notification
+inbox. Missing or invalid links are omitted without blocking payment approval.
+
+The notification renderer resolves event keys through the portal locale catalog;
+raw keys or legacy English bodies must never be displayed as user-facing Persian.
 
 ## Phase 5 — Personal obligation override / discount (2026-08-06)
 
@@ -337,3 +457,9 @@ PC-07 remains: Denali paid ingress is `offline_receipt` only.
 - [platform-portal-member.mdoc](../../phase-19/platform-portal-member.mdoc)
 - [BOOKING_LIFECYCLE_OWNERSHIP.md](../../phase-20/p7/appendices/BOOKING_LIFECYCLE_OWNERSHIP.md)
 - [PAYMENT-LEDGER-BOUNDARY.md](../../phase-20/p7/appendices/PAYMENT-LEDGER-BOUNDARY.md)
+
+## Auth and notification resilience addendum (2026-09-17)
+
+- OTP verification must remain single-use and additionally enforce bounded attempts per challenge plus a phone/IP failure window. Static OTP `1234` is permitted only in development/test or with the explicit staging profile flag; ordinary production must fail closed.
+- Registration and receipt notifications are emitted through the durable outbox. `registration.created`, `registration.waitlisted`, `receipt.submitted`, `receipt.approved`, and `receipt.rejected` are delivery inputs; Telegram delivery is best effort and must never roll back the financial mutation.
+- Anonymous registration keeps the modal-first experience as progressive enhancement, with a server-rendered login/retry escape path. CTA variants must not leave hidden rail/sticky controls keyboard-focusable.

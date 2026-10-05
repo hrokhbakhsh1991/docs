@@ -66,6 +66,12 @@ export function isMarketingCatalogImageOptimizable(src: string): boolean {
     return false;
   }
 
+  // Next can safely optimize same-origin static assets without a remote-host
+  // allowlist. Keep the allowlist for absolute CDN URLs only.
+  if (src.startsWith("/") && !src.startsWith("//")) {
+    return true;
+  }
+
   const allowedHosts = parseMarketingImageRemoteHosts(
     process.env.MARKETING_IMAGE_REMOTE_HOSTS
   );

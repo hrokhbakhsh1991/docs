@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { BookingListItem } from "../src/features/bookings/bookings-command-center-types";
 import {
   filterPaymentFollowUpParticipants,
-  mapPendingBookingToFollowUpRow,
   mapRosterRowToFollowUpParticipant,
   mergePaymentFollowUpParticipants,
   resolvePaymentFollowUpPrimaryAction,
@@ -12,27 +10,7 @@ import {
 } from "../src/features/tours/tour-workspace-payment-follow-up-logic";
 import type { TourOperationalRosterRow } from "../src/features/tours/tour-workspace-transport-logic";
 
-const BOOKING_ID = "00000000-0000-4000-8000-000000000101";
-
-function pendingBooking(): BookingListItem {
-  return {
-    id: BOOKING_ID,
-    tourId: "tour-1",
-    tourTitle: "Tour",
-    guestLabel: "Ali Pending",
-    partySize: 1,
-    status: "pending",
-    paymentStatus: "unpaid",
-    departureAt: "2026-09-01T00:00:00.000Z",
-    submittedAt: "2026-08-01T00:00:00.000Z",
-    transportKind: null,
-    personalCarOccupants: null,
-  };
-}
-
-function rosterRow(
-  overrides: Partial<TourOperationalRosterRow> = {}
-): TourOperationalRosterRow {
+function rosterRow(overrides: Partial<TourOperationalRosterRow> = {}): TourOperationalRosterRow {
   return {
     registrationId: "00000000-0000-4000-8000-000000000102",
     tourId: "tour-1",
@@ -61,17 +39,10 @@ function rosterRow(
 }
 
 describe("tour-workspace-payment-follow-up-logic.spec.ts", () => {
-  it("maps pending booking to approve actions", () => {
-    const row = mapPendingBookingToFollowUpRow(pendingBooking());
-    assert.equal(row.listKind, "pending");
-    assert.equal(row.primaryAction, "approve_awaiting_payment");
-    assert.equal(row.secondaryAction, "approve_without_payment");
-  });
-
   it("maps approved unpaid roster row to follow-up payment", () => {
     const row = mapRosterRowToFollowUpParticipant(rosterRow());
     assert.equal(row.listKind, "unpaid");
-    assert.equal(row.primaryAction, "follow_up_payment");
+    assert.equal(row.primaryAction, "open_details");
     assert.equal(row.paymentDueAt, "2026-08-30T00:00:00.000Z");
   });
 
@@ -84,7 +55,7 @@ describe("tour-workspace-payment-follow-up-logic.spec.ts", () => {
         remainingMinor: "500",
       })
     );
-    assert.equal(partial.primaryAction, "follow_up_partial");
+    assert.equal(partial.primaryAction, "open_details");
 
     const waived = mapRosterRowToFollowUpParticipant(
       rosterRow({
@@ -99,17 +70,60 @@ describe("tour-workspace-payment-follow-up-logic.spec.ts", () => {
     assert.equal(waived.primaryAction, "none");
   });
 
-  it("merges pending + roster without duplicate ids", () => {
+  it("keeps the four operator scenarios distinct and actionable", () => {
+    const approvedUnpaid = mapRosterRowToFollowUpParticipant(rosterRow());
+    const approvedPaid = mapRosterRowToFollowUpParticipant(
+      rosterRow({
+        registrationId: "00000000-0000-4000-8000-000000000105",
+        guestLabel: "Paid final",
+        financialDisplayState: "PAID",
+        remainingMinor: "0",
+        isFinalParticipant: true,
+        paymentDueAt: null,
+      })
+    );
+    const approvedWaived = mapRosterRowToFollowUpParticipant(
+      rosterRow({
+        registrationId: "00000000-0000-4000-8000-000000000106",
+        guestLabel: "Free final",
+        financialDisplayState: "WAIVED",
+        remainingMinor: "0",
+        isFinalParticipant: true,
+        paymentDueAt: null,
+      })
+    );
+
+    assert.equal(approvedUnpaid.primaryAction, "open_details");
+    assert.equal(approvedPaid.listKind, "settled");
+    assert.equal(approvedPaid.primaryAction, "none");
+    assert.equal(approvedWaived.listKind, "settled");
+    assert.equal(approvedWaived.primaryAction, "none");
+    assert.equal(
+      filterPaymentFollowUpParticipants(
+        [approvedUnpaid, approvedPaid, approvedWaived],
+        "all",
+        ""
+      ).length,
+      1
+    );
+  });
+
+  it("builds the finance list from approved roster rows", () => {
     const merged = mergePaymentFollowUpParticipants({
-      pendingBookings: [pendingBooking()],
-      rosterRows: [rosterRow()],
+      rosterRows: [
+        rosterRow(),
+        rosterRow({
+          registrationId: "00000000-0000-4000-8000-000000000107",
+          financialDisplayState: "PAID",
+          remainingMinor: "0",
+        }),
+      ],
     });
-    assert.equal(merged.length, 2);
+    assert.equal(merged.length, 1);
   });
 
   it("filters unpaid and partial lists", () => {
     const rows = mergePaymentFollowUpParticipants({
-      pendingBookings: [pendingBooking()],
       rosterRows: [
         rosterRow(),
         rosterRow({
@@ -118,8 +132,16 @@ describe("tour-workspace-payment-follow-up-logic.spec.ts", () => {
         }),
       ],
     });
-    assert.equal(filterPaymentFollowUpParticipants(rows, "unpaid", "").length, 2);
+    assert.equal(filterPaymentFollowUpParticipants(rows, "unpaid", "").length, 1);
     assert.equal(filterPaymentFollowUpParticipants(rows, "partial", "").length, 1);
+    assert.equal(
+      filterPaymentFollowUpParticipants(
+        [...rows, mapRosterRowToFollowUpParticipant(rosterRow({ financialDisplayState: "PAID" }))],
+        "all",
+        ""
+      ).every((row) => row.listKind !== "settled"),
+      true
+    );
   });
 
   it("shows deadline only when payment is still required", () => {
@@ -135,9 +157,14 @@ describe("tour-workspace-payment-follow-up-logic.spec.ts", () => {
       shouldShowPaymentFollowUpDeadline(mapRosterRowToFollowUpParticipant(rosterRow())),
       true
     );
-    assert.deepEqual(resolvePaymentFollowUpPrimaryAction({ registrationStatus: "rejected", financialDisplayState: null }), {
-      primary: "none",
-      secondary: null,
-    });
+    assert.deepEqual(
+      resolvePaymentFollowUpPrimaryAction({
+        registrationStatus: "rejected",
+        financialDisplayState: null,
+      }),
+      {
+        primary: "none",
+      }
+    );
   });
 });

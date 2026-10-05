@@ -6,6 +6,8 @@ import { assertProductionRuntimeIntegrity } from "./production-runtime-env";
 import { logger } from "../observability/logger";
 import { startOutboxRelayIfEnabled } from "../outbox/start-outbox-relay";
 import { startProjectionAutoReconcileIfEnabled } from "../outbox/start-projection-auto-reconcile";
+import { bootstrapIntegrationProviders } from "../integrations/platform/bootstrap-integration-providers";
+import { startIntegrationDeliveryWorkerIfEnabled } from "../integrations/worker/start-integration-delivery-worker";
 import { installGracefulShutdownHandlers } from "./graceful-shutdown";
 import { createRelayWorkerListener } from "./create-relay-worker-listener";
 import { assertOutboxRelayWorkerRelayEnabled } from "./worker-runtime-role";
@@ -25,8 +27,14 @@ export async function bootstrapOutboxRelayWorker(): Promise<void> {
 
   const outboxRelay = startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
+  bootstrapIntegrationProviders();
+  const integrationDelivery = startIntegrationDeliveryWorkerIfEnabled();
 
-  installGracefulShutdownHandlers({ server, outboxRelay });
+  installGracefulShutdownHandlers({
+    server,
+    outboxRelay,
+    onShutdown: () => integrationDelivery.stop(),
+  });
 
   server.listen(port, () => {
     logger.info(

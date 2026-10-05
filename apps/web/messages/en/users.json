@@ -76,7 +76,8 @@
   },
   "empty": {
     "pending": "No pending invites. Send an invite to grow your team.",
-    "active": "No team members yet. Invite your first teammate."
+    "active": "No team members yet. Invite your first teammate.",
+    "filtered": "No members match these filters. Change or clear the filters."
   },
   "counts": {
     "members": "{count, number} members",

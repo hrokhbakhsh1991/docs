@@ -2,6 +2,7 @@
   "pageTitle": "Tours",
   "pageSubtitle": "Manage and publish club tours",
   "newTour": "New tour",
+  "searchLabel": "Search tours",
   "searchPlaceholder": "Search tours…",
   "sortLabel": "Sort:",
   "sortOption": {
@@ -119,7 +120,8 @@
   },
   "format": {
     "seatsWithCapacity": "{accepted, number}/{capacity, number} seats",
-    "seatsOpen": "{accepted, number} registered"
+    "seatsOpen": "{accepted, number} registered",
+    "freeCollection": "Free / no payment required"
   },
   "edit": {
     "notFound": "Tour not found.",
@@ -142,6 +144,12 @@
     "warmErrorBack": "Back to tour",
     "saving": "Saving…",
     "saved": "Changes saved.",
+    "legacyDraft": {
+      "title": "Legacy draft found",
+      "description": "This draft is not linked to the saved tour version. Choose how to continue so outdated data is not shown by default. If you continue with the saved tour, the legacy draft is replaced when you first edit it.",
+      "recover": "Recover legacy draft",
+      "useSavedTour": "Continue with saved tour"
+    },
     "errors": {
       "TOUR_NOT_FOUND": "Tour not found.",
       "TOUR_EDIT_LOAD_FAILED": "Failed to load tour.",
@@ -175,21 +183,25 @@
     "emailOptional": "Email (optional)",
     "phoneOptional": "Phone (optional)",
     "submit": "Create pending registration",
+    "submitAuto": "Create automatic registration",
     "errors": {
       "TOUR_REGISTER_FETCH_FAILED": "Failed to load tour.",
       "TOUR_REGISTER_INVALID": "Invalid form data.",
       "GUEST_REQUIRED": "Guest name is required.",
       "TOUR_REGISTER_FORBIDDEN": "You are not allowed to register guests.",
+      "PARTY_SIZE_OVER_MAX": "Each registration can include at most 20 people. Create separate registrations for more people.",
       "TOUR_REGISTER_FAILED": "Registration failed.",
       "TOUR_REGISTER_HTTP_400": "Invalid registration request.",
       "TOUR_REGISTER_HTTP_403": "You are not allowed to register guests.",
       "TOUR_REGISTER_HTTP_404": "Tour not found.",
+      "TOUR_REGISTER_HTTP_409": "This guest is already registered for the tour or the registration is a duplicate.",
       "TOUR_REGISTER_HTTP_500": "Registration failed (server error)."
     }
   },
   "workspace": {
     "title": "Tour management",
     "subnavAria": "Tour workspace sections",
+    "subnavScrollHint": "Swipe the section bar left or right to see more sections.",
     "openCommandCenter": "Open Command Center",
     "openFinance": "Open payment follow-up",
     "openWorkspace": "Open tour workspace",
@@ -210,14 +222,20 @@
     "tabs": {
       "registrations": "Registration requests",
       "waitlist": "Waitlist",
-      "transport": "Final participants",
-      "finance": "Payment status"
+      "transport": "Final attendance roster",
+      "finance": "Payment follow-up"
     },
     "tabsHint": {
       "registrations": "Review and approve new requests",
       "waitlist": "Capacity queue — approve when a seat opens",
-      "transport": "Final tour participants and their transport status",
-      "finance": "See paid guests, outstanding balances, and receipts to review"
+      "transport": "View finalized participants and track their payment and transport status",
+      "finance": "Payment actions and receipt review"
+    },
+    "operationsSummary": {
+      "ariaLabel": "Tour operations summary",
+      "pending": "Needs review",
+      "paymentDue": "Awaiting payment",
+      "final": "Final for attendance"
     },
     "approvedQuickAccess": {
       "title": "Final approved members",
@@ -238,7 +256,7 @@
         "payment": "Payment: {value}",
         "sort": "Sort: {value}",
         "search": "Search: {value}",
-        "roster": "Transport: {value}"
+        "roster": "Roster view: {value}"
       }
     },
     "finance": {
@@ -277,8 +295,14 @@
       "statusUnpaid": "Not paid yet",
       "statusPartial": "Partial payment",
       "statusUnknown": "Remaining amount",
-      "ctaFollowUpPayment": "Follow up payment",
-      "ctaFollowUpPartialPayment": "Follow up remaining balance",
+      "ctaReviewPayment": "Review payment",
+      "finalizeWithOpenPayment": "Finalize with payment open",
+      "confirmFinalizeWithOpenPayment": "Click again to finalize with balance open",
+      "waiveAndFinalize": "Finalize without payment required",
+      "confirmWaiveAndFinalize": "Click again to waive balance and finalize",
+      "finalizeWithOpenPaymentSuccess": "Finalized; payment follow-up and balance remain.",
+      "waiveAndFinalizeSuccess": "Finalized and balance waived.",
+      "finalizationFailed": "Finalization failed; review the booking state and try again.",
       "ctaReviewPartial": "Review partial payment",
       "ctaOpenCase": "Payment details",
       "refreshQueue": "Refresh payment follow-up",
@@ -287,6 +311,7 @@
       "rowCompleted": "Settled",
       "rowSettled": "No balance due",
       "rowPending": "Awaiting approval",
+      "rowActionFailed": "The action could not be completed. The guest list was refreshed; check the current status before trying again.",
       "rowFinalParticipant": "Final member",
       "rowPaidReceived": "Payment received",
       "rowWaivedNoPayment": "No payment required",
@@ -335,6 +360,7 @@
       "detailEvidenceReceiptNote": "Note",
       "detailEvidenceShowProof": "Show proof",
       "detailEvidenceHideProof": "Hide proof",
+      "detailEvidenceTextOnly": "Text-only evidence",
       "detailEvidenceUnknownValue": "—",
       "detailActivityTitle": "Payment history summary",
       "detailManualPendingCount": "{count} manual payments still awaiting resolution",
@@ -432,7 +458,7 @@
       "guest": "Guest",
       "party": "Party",
       "payment": "Payment",
-      "transportIntake": "Transport choice",
+      "transportIntake": "Transport status",
       "departure": "Departure",
       "submitted": "Submitted",
       "actions": "Actions",
@@ -442,7 +468,7 @@
     "registrations": {
       "title": "Registration requests",
       "description": "Approve, reject, and inspect guest requests for this tour.",
-      "capacityFullBanner": "At capacity — new registrations do not auto-waitlist. Use Waitlist or approve to overbook.",
+      "capacityFullBanner": "At capacity — new public registrations are recorded on the waitlist. Open Waitlist to review and approve them.",
       "capacityFullWaitlistLink": "Open waitlist",
       "adminCreateCta": "Manual registration",
       "empty": "No registrations for this tour yet.",
@@ -460,18 +486,40 @@
       "capacityFullWarn": "This tour is at capacity. Approve anyway?"
     },
     "transport": {
-      "title": "Final participants",
-      "description": "Confirmed tour participants; manage attendance and transport here.",
-      "tableCaption": "Final participants and transport status",
+      "title": "Final attendance roster",
+      "description": "Finalized participants; track payment and transport status here.",
+      "exportFinalRoster": "Export final roster to Excel",
+      "exporting": "Building file…",
+      "exportSucceeded": "The Excel file is ready and has been downloaded.",
+      "exportFailed": "Could not build the Excel file.",
+      "exportFinalRosterScope": "The export includes all final participants; settled and payment-follow-up participants are separated into sheets.",
+      "tableCaption": "Final attendance roster with payment and transport status",
       "empty": "No guests match this roster filter yet.",
       "unknownIntake": "Unknown choice",
       "finalParticipant": "Final",
-      "notFinalParticipant": "Needs follow-up",
+      "finalOpenPaymentParticipant": "Final; payment open",
+      "notFinalParticipant": "Not final yet",
+      "approvedParticipant": "Approved",
+      "waitlistedParticipant": "Waitlisted",
+      "addToFinalRoster": "Add to final roster",
+      "finalizeWithOpenPayment": "Finalize with payment open",
+      "confirmFinalizeWithOpenPayment": "Click again to confirm",
+      "finalizeWithOpenPaymentHint": "This participant enters the final roster, while the balance and payment deadline remain open.",
+      "followPayment": "Follow up payment",
+      "finalizeParticipantSuccess": "Participant finalized; payment state remains separate.",
+      "finalizeParticipantFailed": "Could not finalize this participant.",
+      "stages": {
+        "approved_payment_required": "Approved; payment required",
+        "approved_ready_to_finalize": "Approved; ready for final roster",
+        "final_open_payment": "Final; payment open",
+        "final_ready": "Final; ready to join"
+      },
       "driverOffer": "Driver",
-      "noOperationalDebt": "No payment follow-up",
+      "noOperationalDebt": "No balance to follow up",
       "filters": {
-        "operational": "All operational",
-        "final": "Final",
+        "operational": "All approved",
+        "final": "Final attendance roster",
+        "awaiting_finalization": "Approved; awaiting finalization",
         "unpaid": "Needs payment",
         "paid": "Settled",
         "expiring": "Deadline soon",
@@ -501,7 +549,32 @@
         "ready": "Ready to join",
         "driver": "Driver offer; check available seats",
         "notFinal": "Not final yet",
+        "paymentRequiredForFinal": "Follow up the remaining payment before final participation",
         "paymentDeadline": "Payment follow-up by {date}"
+      },
+      "settlement": {
+        "unitPerSeat": "Amount per seat (toman)",
+        "unitAmountHint": "Enter a positive whole amount.",
+        "unitAmountInvalid": "Enter a positive whole amount before finalizing the vehicle roster.",
+        "finalizeRoster": "Finalize vehicle roster",
+        "allocationFailed": "Passenger allocation could not be saved; roster was not finalized.",
+        "freezeFailed": "Vehicle roster could not be finalized.",
+        "rosterFrozen": "Vehicle roster finalized and settlements generated.",
+        "rosterFrozenLoadFailed": "Vehicle roster finalized, but settlement status could not be loaded.",
+        "payableFailed": "Driver payment approval failed.",
+        "financePayableOpened": "Driver payment was opened for finance.",
+        "billableSeats": "Billable: {billable} / offered capacity: {offered}",
+        "total": "Total: {amount}",
+        "status": {
+          "draft": "Draft",
+          "confirmed": "Confirmed",
+          "approved": "Payment approved",
+          "paid": "Paid",
+          "unknown": "Unknown status"
+        },
+        "approvePayable": "Approve driver payment",
+        "noSettlement": "No settlement yet; finalize the vehicle roster after assigning passengers.",
+        "loadFailed": "Settlement status could not be loaded; try again."
       }
     },
     "errors": {

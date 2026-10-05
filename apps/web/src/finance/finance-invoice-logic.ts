@@ -9,6 +9,8 @@ export type RegistrationInvoice = {
   readonly invoiceTotalMinor: string;
   readonly paidAmountMinor: string;
   readonly balanceDueMinor: string;
+  readonly initialPaymentDueMinor?: string;
+  readonly amountDueNowMinor?: string;
   readonly walletNetMinor: string;
 };
 
@@ -29,6 +31,8 @@ export function parseRegistrationInvoice(raw: unknown): RegistrationInvoice | nu
     invoiceTotalMinor: String(record.invoiceTotalMinor ?? "0"),
     paidAmountMinor: String(record.paidAmountMinor ?? "0"),
     balanceDueMinor: String(record.balanceDueMinor ?? "0"),
+    initialPaymentDueMinor: String(record.initialPaymentDueMinor ?? "0"),
+    amountDueNowMinor: String(record.amountDueNowMinor ?? record.balanceDueMinor ?? "0"),
     walletNetMinor: String(record.walletNetMinor ?? "0"),
   };
 }
@@ -52,6 +56,10 @@ const UUID_LOOKUP_PATTERN =
 
 /** Suggested manual payment / prepayment amount from invoice read model (FC-2). */
 export function resolveSuggestedPaymentAmountMinor(invoice: RegistrationInvoice): string {
+  const stage = (invoice.amountDueNowMinor ?? "").trim();
+  if (/^\d+$/.test(stage) && BigInt(stage) > BigInt(0)) {
+    return stage;
+  }
   const due = invoice.balanceDueMinor.trim();
   if (/^\d+$/.test(due) && BigInt(due) > BigInt(0)) {
     return due;

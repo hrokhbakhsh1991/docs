@@ -40,6 +40,14 @@ export type PublicCatalogGatheringPoint = {
   readonly longitude?: number | null;
 };
 
+/** Public payment-plan hint. The exact payable amount is resolved after registration. */
+export type PublicCatalogPaymentPlan = {
+  readonly prepaymentPercent?: number | null;
+};
+
+/** Server-derived action state for a published public tour. */
+export type PublicCatalogRegistrationState = "open" | "waitlist" | "past" | "closed";
+
 /** Egress-safe list card — workspaces extend via additional fields at API layer. */
 export type PublicCatalogCard = {
   readonly id: string;
@@ -50,10 +58,18 @@ export type PublicCatalogCard = {
   readonly endAt: string | null;
   readonly priceAmount: number | null;
   readonly priceCurrency: string;
+  /** Public collection policy; free tours remain filterable and labeled. */
+  readonly paymentCollection?: "offline" | "free";
+  /** Public registration approval policy shown before registration. */
+  readonly registrationApproval?: "manual" | "auto";
   readonly coverImageUrl: string | null;
   readonly totalCapacity: number | null;
   /** Remaining seats when host enriches from approved booking occupancy (DEC-P11-013). */
   readonly spotsRemaining?: number | null;
+  /** Server-derived registration state; publishStatus remains a separate concern. */
+  readonly registrationState?: PublicCatalogRegistrationState;
+  /** Whether a full tour accepts new public waitlist entries. */
+  readonly waitlistEnabled?: boolean;
   readonly difficultyLevel?: number | null;
   readonly fitnessLevel?: string | null;
   readonly itineraryDays?: readonly PublicCatalogItineraryDay[];
@@ -99,6 +115,8 @@ export type PublicCatalogCard = {
   readonly excludedServices?: readonly string[];
   readonly includesTourInsurance?: boolean;
   readonly paymentMode?: string | null;
+  /** Optional public hint for staged offline payment; never a payment authorization. */
+  readonly paymentPlan?: PublicCatalogPaymentPlan;
   /** Public organizer/group link, exposed only through published catalog egress. */
   readonly socialMediaLink?: string | null;
   readonly photoUrls?: readonly string[];

@@ -11,15 +11,14 @@ describe("MR-P0-009 composite tenant write hygiene", () => {
     const src = readFileSync(join(here, "infrastructure/booking-payment.adapter.ts"), "utf8");
     assert.match(src, /operatorRegistration\.updateMany/);
     assert.match(src, /where:\s*\{\s*id:\s*registrationId,\s*tenantId\s*\}/);
+    assert.match(src, /status: true, paymentStatus: true, finalizationStatus: true/);
+    assert.match(src, /finalizationStatus: "finalized", finalizedAt: new Date\(\)/);
     assert.doesNotMatch(src, /getBookingsRepository/);
     assert.match(src, /constructor\(private readonly bookings: BookingRepositoryPort\)/);
   });
 
   it("prisma bookings updatePaymentStatus uses updateMany with tenantId", () => {
-    const src = readFileSync(
-      join(here, "../bookings/prisma-bookings.repository.ts"),
-      "utf8"
-    );
+    const src = readFileSync(join(here, "../bookings/prisma-bookings.repository.ts"), "utf8");
     const fn = src.slice(src.indexOf("async updatePaymentStatus"));
     const body = fn.slice(0, fn.indexOf("\n  async "));
     assert.match(body, /operatorRegistration\.updateMany/);
@@ -29,7 +28,11 @@ describe("MR-P0-009 composite tenant write hygiene", () => {
 
   it("prisma finance payment/receipt writes use updateMany with tenantId", () => {
     const src = readFileSync(join(here, "infrastructure/prisma-finance.repository.ts"), "utf8");
-    for (const method of ["async updateReceiptReview", "async markPaymentPaid", "async revertPaymentToPending"]) {
+    for (const method of [
+      "async updateReceiptReview",
+      "async markPaymentPaid",
+      "async revertPaymentToPending",
+    ]) {
       const start = src.indexOf(method);
       assert.ok(start > 0, method);
       const body = src.slice(start, start + 900);
@@ -49,5 +52,4 @@ describe("MR-P0-009 composite tenant write hygiene", () => {
     assert.doesNotMatch(src, /create-bookings-repository/);
     assert.match(src, /createBookingPaymentPort/);
   });
-
 });

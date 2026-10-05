@@ -14,6 +14,10 @@ export type CatalogListQueryInput = {
   readonly difficulty?: string;
   readonly fitness?: string;
   readonly availability?: string;
+  readonly minPrice?: string;
+  readonly maxPrice?: string;
+  readonly minDuration?: string;
+  readonly maxDuration?: string;
   readonly sort?: string;
 };
 
@@ -40,6 +44,10 @@ export type CatalogListFilters = {
   readonly difficulty?: number;
   readonly fitness?: string;
   readonly availability?: "open";
+  readonly minPrice?: number;
+  readonly maxPrice?: number;
+  readonly minDuration?: number;
+  readonly maxDuration?: number;
   readonly sort: CatalogListSort;
   readonly cursor?: string;
   readonly city?: string;
@@ -84,6 +92,17 @@ export function parseCatalogListFilters(
     categoryRaw != null && categoryRaw.toLowerCase() === "all" ? undefined : categoryRaw;
   const cursor = readCatalogListQueryValue(input.cursor);
   const city = readCatalogListQueryValue(input.city);
+  const parseNonNegative = (value: string | undefined): number | undefined => {
+    if (value == null || !/^\d+(?:\.\d+)?$/.test(value)) {
+      return undefined;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+  };
+  const minPrice = parseNonNegative(readCatalogListQueryValue(input.minPrice));
+  const maxPrice = parseNonNegative(readCatalogListQueryValue(input.maxPrice));
+  const minDuration = parseNonNegative(readCatalogListQueryValue(input.minDuration));
+  const maxDuration = parseNonNegative(readCatalogListQueryValue(input.maxDuration));
 
   return {
     ...(q != null ? { q } : {}),
@@ -94,7 +113,19 @@ export function parseCatalogListFilters(
     sort: parseCatalogListSort(readCatalogListQueryValue(input.sort)),
     ...(cursor != null ? { cursor } : {}),
     ...(city != null ? { city } : {}),
+    ...(minPrice != null ? { minPrice } : {}),
+    ...(maxPrice != null ? { maxPrice } : {}),
+    ...(minDuration != null ? { minDuration } : {}),
+    ...(maxDuration != null ? { maxDuration } : {}),
   };
+}
+
+/** Native GET forms submit empty controls; redirect those URLs to the canonical query. */
+export function catalogListQueryHasEmptyValues(input: CatalogListQueryInputRaw): boolean {
+  return Object.values(input).some((value) => {
+    const values = Array.isArray(value) ? value : [value];
+    return values.some((part) => part != null && part.trim().length === 0);
+  });
 }
 
 /** Narrowing filters that require a wider catalog fetch when applied. */
@@ -104,7 +135,11 @@ export function catalogListHasNarrowingFilters(filters: CatalogListFilters): boo
     (filters.category != null && filters.category.length > 0) ||
     filters.difficulty != null ||
     (filters.fitness != null && filters.fitness.length > 0) ||
-    filters.availability === "open"
+    filters.availability === "open" ||
+    filters.minPrice != null ||
+    filters.maxPrice != null ||
+    filters.minDuration != null ||
+    filters.maxDuration != null
   );
 }
 
@@ -125,6 +160,10 @@ export function buildCatalogListQuery(input: CatalogListQueryInput): string {
   if (input.availability?.trim() === "open") {
     query.set("availability", "open");
   }
+  set("minPrice", input.minPrice);
+  set("maxPrice", input.maxPrice);
+  set("minDuration", input.minDuration);
+  set("maxDuration", input.maxDuration);
   const sort = parseCatalogListSort(input.sort);
   if (sort !== "newest") {
     query.set("sort", sort);
@@ -149,7 +188,11 @@ export function catalogListHasClientFilters(
     (filters.fitness != null &&
       filters.fitness.length > 0 &&
       !serverListFilters.includes("fitness")) ||
-    (filters.availability === "open" && !serverListFilters.includes("availability"))
+    (filters.availability === "open" && !serverListFilters.includes("availability")) ||
+    (filters.minPrice != null && !serverListFilters.includes("minPrice")) ||
+    (filters.maxPrice != null && !serverListFilters.includes("maxPrice")) ||
+    (filters.minDuration != null && !serverListFilters.includes("minDuration")) ||
+    (filters.maxDuration != null && !serverListFilters.includes("maxDuration"))
   );
 }
 
@@ -200,6 +243,10 @@ export function catalogFiltersToQueryInput(
     ...(filters.difficulty != null ? { difficulty: String(filters.difficulty) } : {}),
     ...(filters.fitness != null && filters.fitness.length > 0 ? { fitness: filters.fitness } : {}),
     ...(filters.availability === "open" ? { availability: "open" } : {}),
+    ...(filters.minPrice != null ? { minPrice: String(filters.minPrice) } : {}),
+    ...(filters.maxPrice != null ? { maxPrice: String(filters.maxPrice) } : {}),
+    ...(filters.minDuration != null ? { minDuration: String(filters.minDuration) } : {}),
+    ...(filters.maxDuration != null ? { maxDuration: String(filters.maxDuration) } : {}),
     sort: filters.sort,
     ...(cursor != null && cursor.trim().length > 0 ? { cursor: cursor.trim() } : {}),
   };
@@ -217,6 +264,10 @@ export function catalogFiltersToNoindexSearchParams(
     difficulty: filters.difficulty != null ? String(filters.difficulty) : undefined,
     fitness: filters.fitness,
     availability: filters.availability,
+    minPrice: filters.minPrice != null ? String(filters.minPrice) : undefined,
+    maxPrice: filters.maxPrice != null ? String(filters.maxPrice) : undefined,
+    minDuration: filters.minDuration != null ? String(filters.minDuration) : undefined,
+    maxDuration: filters.maxDuration != null ? String(filters.maxDuration) : undefined,
     sort: filters.sort !== "newest" ? filters.sort : undefined,
   };
 }
@@ -227,6 +278,10 @@ export type CatalogListFilterOmitKey =
   | "difficulty"
   | "fitness"
   | "availability"
+  | "minPrice"
+  | "maxPrice"
+  | "minDuration"
+  | "maxDuration"
   | "sort"
   | "city";
 
@@ -247,6 +302,14 @@ export function buildCatalogListQueryWithoutFilters(
     ...(filters.fitness && !omitSet.has("fitness") ? { fitness: filters.fitness } : {}),
     ...(filters.availability === "open" && !omitSet.has("availability")
       ? { availability: "open" }
+      : {}),
+    ...(filters.minPrice != null && !omitSet.has("minPrice") ? { minPrice: filters.minPrice } : {}),
+    ...(filters.maxPrice != null && !omitSet.has("maxPrice") ? { maxPrice: filters.maxPrice } : {}),
+    ...(filters.minDuration != null && !omitSet.has("minDuration")
+      ? { minDuration: filters.minDuration }
+      : {}),
+    ...(filters.maxDuration != null && !omitSet.has("maxDuration")
+      ? { maxDuration: filters.maxDuration }
       : {}),
   };
   return buildCatalogListQuery(catalogFiltersToQueryInput(next));

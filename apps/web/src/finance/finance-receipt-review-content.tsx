@@ -400,15 +400,17 @@ export function FinanceReceiptReviewContent({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <button
-          type="button"
-          className="font-medium text-foreground underline-offset-2 hover:underline"
-          data-testid={FINANCE_RECEIPTS_TEST_IDS.proofToggle}
-          aria-expanded={proofOpen}
-          onClick={() => setProofOpen((open) => !open)}
-        >
-          {proofOpen ? t("hideProof") : t("showProof")}
-        </button>
+        {receipt.fileKey !== null ? (
+          <button
+            type="button"
+            className="font-medium text-foreground underline-offset-2 hover:underline"
+            data-testid={FINANCE_RECEIPTS_TEST_IDS.proofToggle}
+            aria-expanded={proofOpen}
+            onClick={() => setProofOpen((open) => !open)}
+          >
+            {proofOpen ? t("hideProof") : t("showProof")}
+          </button>
+        ) : null}
         <span data-testid={FINANCE_RECEIPTS_TEST_IDS.submittedAt}>
           {t("submittedAt")}: {formatFinanceTimestamp(receipt.createdAt, locale)}
         </span>
@@ -429,7 +431,17 @@ export function FinanceReceiptReviewContent({
         ) : null}
       </div>
 
-      <ReceiptProofPreview receiptId={receipt.id} fileKey={receipt.fileKey} expanded={proofOpen} />
+      {receipt.fileKey !== null ? (
+        <ReceiptProofPreview
+          receiptId={receipt.id}
+          fileKey={receipt.fileKey}
+          expanded={proofOpen}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground" data-testid="finance-receipt-text-only">
+          {t("textOnlyEvidence")}
+        </p>
+      )}
 
       {canManage ? (
         <div

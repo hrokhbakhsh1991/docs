@@ -59,8 +59,9 @@
     "timeLabel": "Time",
     "pickTime": "Pick time",
     "confirmTime": "Confirm",
-    "timePickerHint": "Choose hour and minute from the lists",
+    "timePickerHint": "Type a time or choose a five-minute slot",
     "hour": "Hour",
-    "minute": "Minute"
+    "minute": "Minute",
+    "quickMinutes": "Quick minutes"
   }
 }

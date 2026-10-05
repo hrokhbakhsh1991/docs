@@ -5,7 +5,7 @@
  * Exit 0 + "[]" on stdout when clean; exit 1 + JSON errors otherwise.
  */
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { guardDepcruiseMain } from "../../../../scripts/guards/lib/guard-require.mjs";
 
 const absRoot = process.argv[2];
@@ -16,7 +16,7 @@ if (!absRoot) {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const configPath = path.join(repoRoot, "dependency-cruiser.config.js");
-const { cruise } = await import(guardDepcruiseMain());
+const { cruise } = await import(pathToFileURL(guardDepcruiseMain()).href);
 const relRoot = path.relative(repoRoot, absRoot).split(path.sep).join("/");
 
 const result = await cruise(

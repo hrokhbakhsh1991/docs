@@ -44,7 +44,10 @@ export function ToursDirectoryMobileRow({
               <TourStatusBadge status={tour.uiStatus} />
               <TourCategoryBadge pluginId={pluginId} category={tour.category} />
               {row.durationLabel ? (
-                <span className="text-xs text-muted-foreground" data-testid={TOURS_LIST_TEST_IDS.cardDuration}>
+                <span
+                  className="text-xs text-muted-foreground"
+                  data-testid={TOURS_LIST_TEST_IDS.cardDuration}
+                >
                   {row.durationLabel}
                 </span>
               ) : null}
@@ -73,7 +76,9 @@ export function ToursDirectoryMobileRow({
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">{t("updated")}</dt>
-            <dd dir="ltr" className="tabular-nums text-muted-foreground">{row.updatedLabel}</dd>
+            <dd dir="ltr" className="tabular-nums text-muted-foreground">
+              {row.updatedLabel}
+            </dd>
           </div>
         </dl>
 
@@ -81,7 +86,7 @@ export function ToursDirectoryMobileRow({
           <p className="line-clamp-2 text-sm text-muted-foreground">{tour.shortDescription}</p>
         ) : null}
 
-        <TourListRowActions tour={tour} canManage={canManage} />
+        <TourListRowActions tour={tour} canManage={canManage} compact />
       </div>
     </article>
   );

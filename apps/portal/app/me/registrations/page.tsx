@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
+import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
 import {
   formatMemberRegistrationDeparture,
-  localizeMemberPaymentStatus,
+  localizeMemberFinalizationStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
+import { hydrateMemberRegistrationListFinancialProjection } from "@/me/hydrate-member-registration-list-financial-projection.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
-import {
-  resolveMemberPortalTripsDetailPath,
-} from "@/me/resolve-member-portal-routes.server";
+import { resolveMemberPortalTripsDetailPath } from "@/me/resolve-member-portal-routes.server";
+import { resolveMemberFinancialProjection } from "@/me/resolve-member-financial-projection";
 import { resolveMarketingToursUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -41,13 +42,17 @@ export default async function MeRegistrationsPage({
 }) {
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
-  const items = await fetchMemberRegistrations(host);
+  const items = await hydrateMemberRegistrationListFinancialProjection(
+    await fetchMemberRegistrations(host),
+    (registrationId) => fetchMemberRegistrationById(host, registrationId)
+  );
   const t = await getTranslations("portalMember.registrations");
   const params = await searchParams;
   const activeFilter = parseRegistrantListFilter(params.target);
 
   const rows = await Promise.all(
     items.map(async (item) => {
+      const financialProjection = resolveMemberFinancialProjection(item);
       const registrantTarget = item.registrantTarget === "other" ? "other" : "self";
       const guestLabel =
         typeof item.guestLabel === "string" && item.guestLabel.trim().length > 0
@@ -58,7 +63,13 @@ export default async function MeRegistrationsPage({
         registrantTarget,
         guestLabel,
         statusLabel: await localizeMemberRegistrationStatus(item.status, bootstrap.pluginId),
-        paymentStatusLabel: await localizeMemberPaymentStatus(item.paymentStatus),
+        finalizationStatusLabel: await localizeMemberFinalizationStatus(
+          item.status,
+          financialProjection.paymentStatus,
+          financialProjection.paymentCollection,
+          financialProjection.financialDisplayState,
+          item.finalizationStatus
+        ),
         departureLabel: await formatMemberRegistrationDeparture(item.departureAt),
       };
     })
@@ -68,9 +79,7 @@ export default async function MeRegistrationsPage({
   const otherCount = rows.filter((row) => row.registrantTarget === "other").length;
   const allCount = rows.length;
   const visibleRows =
-    activeFilter === "all"
-      ? rows
-      : rows.filter((row) => row.registrantTarget === activeFilter);
+    activeFilter === "all" ? rows : rows.filter((row) => row.registrantTarget === activeFilter);
 
   const browseToursUrl = resolveMarketingToursUrl(host);
   const filterTabs: readonly {
@@ -85,10 +94,7 @@ export default async function MeRegistrationsPage({
 
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
-      <main
-        data-portal-member-registrations
-        data-registrant-filter={activeFilter}
-      >
+      <main data-portal-member-registrations data-registrant-filter={activeFilter}>
         <header data-portal-member-page-header>
           <h1>{t("title")}</h1>
           <p data-portal-member-registrations-lede>{t("lede")}</p>
@@ -132,25 +138,16 @@ export default async function MeRegistrationsPage({
             </div>
           </div>
         ) : visibleRows.length === 0 ? (
-          <div
-            data-portal-member-registrations-empty-state
-            data-empty-reason="filtered"
-          >
+          <div data-portal-member-registrations-empty-state data-empty-reason="filtered">
             <div data-portal-member-registrations-empty-copy>
               <p data-portal-member-registrations-empty-eyebrow>
-                {
-                  filterTabs.find(({ target }) => target === activeFilter)?.label
-                    ?? t("filterAll")
-                }
+                {filterTabs.find(({ target }) => target === activeFilter)?.label ?? t("filterAll")}
               </p>
               <h2 data-portal-member-registrations-empty-title>{t("filterOther")}</h2>
               <p data-portal-member-registrations-empty>{t("emptyFiltered")}</p>
             </div>
             <div data-portal-member-registrations-empty-actions>
-              <a
-                href={registrantListHref("all")}
-                data-portal-member-registrations-empty-cta
-              >
+              <a href={registrantListHref("all")} data-portal-member-registrations-empty-cta>
                 {t("filterAll")}
               </a>
             </div>
@@ -163,7 +160,7 @@ export default async function MeRegistrationsPage({
                 registrantTarget,
                 guestLabel,
                 statusLabel,
-                paymentStatusLabel,
+                finalizationStatusLabel,
                 departureLabel,
               }) => (
                 <li
@@ -175,18 +172,13 @@ export default async function MeRegistrationsPage({
                     <a href={resolveMemberPortalTripsDetailPath(bootstrap.pluginId, item.id)}>
                       {item.tourTitle}
                     </a>
-                    <span
-                      data-portal-member-registration-status-badge
-                      data-status={item.status}
-                    >
+                    <span data-portal-member-registration-status-badge data-status={item.status}>
                       {statusLabel}
                     </span>
                   </div>
                   {registrantTarget === "other" ? (
                     <p data-portal-member-registration-guest>
-                      <span data-portal-member-registrant-other-badge>
-                        {t("forOtherBadge")}
-                      </span>
+                      <span data-portal-member-registrant-other-badge>{t("forOtherBadge")}</span>
                       {guestLabel !== null ? (
                         <span data-portal-member-registration-guest-label>
                           {t("guestLine", { guestLabel })}
@@ -195,15 +187,15 @@ export default async function MeRegistrationsPage({
                     </p>
                   ) : (
                     <p data-portal-member-registration-guest>
-                      <span data-portal-member-registrant-self-badge>
-                        {t("forSelfBadge")}
-                      </span>
+                      <span data-portal-member-registrant-self-badge>{t("forSelfBadge")}</span>
                     </p>
                   )}
                   <p data-portal-member-registration-meta>
-                    <span data-portal-member-registration-payment-status>
-                      {paymentStatusLabel}
-                    </span>
+                    {finalizationStatusLabel !== null ? (
+                      <span data-portal-member-registration-payment-progress>
+                        {finalizationStatusLabel}
+                      </span>
+                    ) : null}
                     <span data-portal-member-registration-departure>{departureLabel}</span>
                   </p>
                   <span data-portal-member-row-chevron aria-hidden="true">

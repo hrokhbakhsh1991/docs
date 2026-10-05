@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   createWorkspaceBindingId,
@@ -21,10 +22,9 @@ afterEach(() => {
 describe("workspace-infrastructure-request-context (MAT-010)", () => {
   it("workspace A SHARED cannot receive workspace B dedicated DB handle", async () => {
     process.env.DATABASE_URL = "postgresql://shared:5432/app";
-    process.env.WORKSPACE_INFRASTRUCTURE_REGISTRY_PATH = new URL(
-      "../../test/fixtures/workspace-infrastructure-registry.override.json",
-      import.meta.url
-    ).pathname;
+    process.env.WORKSPACE_INFRASTRUCTURE_REGISTRY_PATH = fileURLToPath(
+      new URL("../../test/fixtures/workspace-infrastructure-registry.override.json", import.meta.url)
+    );
     process.env.DEDICATED_DB_DENALI_URL = "postgresql://dedicated-b:5432/app";
     resetWorkspaceInfrastructureRegistryForTests();
 

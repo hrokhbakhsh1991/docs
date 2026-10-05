@@ -20,6 +20,7 @@ export async function extractTourListProjectionViaPlugin(
       uiStatus: "draft",
       priceAmount: null,
       priceCurrency: null,
+      paymentCollection: "offline",
       totalCapacity: null,
       acceptedCount: 0,
       category: null,

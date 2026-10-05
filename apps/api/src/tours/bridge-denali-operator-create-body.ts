@@ -72,6 +72,7 @@ export function shouldUseStarterValidationForDenaliCreate(
 
 export function pickStarterCreateDataForValidation(data: Record<string, unknown>): {
   readonly createData: Record<string, unknown>;
+  readonly roots: readonly string[];
   readonly category?: string;
   readonly startDateTime?: string;
 } {
@@ -83,11 +84,17 @@ export function pickStarterCreateDataForValidation(data: Record<string, unknown>
     typeof data.startDateTime === "string" && data.startDateTime.trim().length > 0
       ? data.startDateTime.trim()
       : undefined;
+  const createData = {
+    basics: data.basics,
+    details: data.details,
+    // Starter ingress is still used by the operator create flow. Preserve
+    // pricing so the Denali projection, payment flow, and operator price
+    // sorting all read the same canonical value after the bridge.
+    ...(isRecord(data.pricing) ? { pricing: data.pricing } : {}),
+  };
   return {
-    createData: {
-      basics: data.basics,
-      details: data.details,
-    },
+    createData,
+    roots: Object.keys(createData),
     category,
     startDateTime,
   };

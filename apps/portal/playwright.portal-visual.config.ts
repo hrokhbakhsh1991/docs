@@ -4,8 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Portal shell visual regression — SMK-PTL-VIS-01 (denali)
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
-const portalBaseUrl =
-  process.env.SMOKE_PORTAL_BASE_URL ?? "http://denali.portal.localhost:3003";
+const portalBaseUrl = process.env.SMOKE_PORTAL_BASE_URL ?? "http://portal.denali.localhost:3003";
 
 export default defineConfig({
   testDir: "./tests/e2e",

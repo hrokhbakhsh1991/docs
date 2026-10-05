@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * WALLET-P3C — wallet-ws1 operator + Denali negative certification (Postgres).
  */
 const webGateUrl = process.env.SMOKE_WEB_GATE_URL ?? "http://127.0.0.1:3000/health";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 function chromiumHostResolverArgs(): string[] {
   const rules = [
@@ -11,7 +12,12 @@ function chromiumHostResolverArgs(): string[] {
     "MAP denali.admin.localhost 127.0.0.1",
     "MAP admin.denali.localhost 127.0.0.1",
   ].join(", ");
-  return [`--host-resolver-rules=${rules}`];
+  return [
+    `--host-resolver-rules=${rules}`,
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-sandbox",
+  ];
 }
 
 export default defineConfig({
@@ -25,7 +31,10 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: process.env.SMOKE_WEB_BASE_URL ?? "http://admin.wallet-ws1.localhost:3000",
     viewport: { width: 1280, height: 900 },
-    launchOptions: { args: chromiumHostResolverArgs() },
+    launchOptions: {
+      args: chromiumHostResolverArgs(),
+      ...(chromiumExecutablePath === undefined ? {} : { executablePath: chromiumExecutablePath }),
+    },
   },
   webServer: {
     command: "node ../../scripts/smoke-wallet-ws1-certification-servers.mjs",

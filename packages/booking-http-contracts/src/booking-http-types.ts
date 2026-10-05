@@ -51,6 +51,16 @@ export type BookingCapacitySnapshot = {
 export type BookingRegistrantTarget = "self" | "other";
 
 export type BookingFinancialDisplayState = "WAIVED";
+export type BookingFinalizationStatus = "not_final" | "finalized";
+export type BookingCancellationStatus =
+  | "none"
+  | "request_pending"
+  | "approved"
+  | "rejected"
+  | "applied"
+  | "late_correction"
+  | "manual_review"
+  | "completed";
 
 /** Guest intake transport kind — list scalar (H5-T3); not the intake blob. */
 export type BookingTransportKind =
@@ -84,6 +94,8 @@ export type BookingListItem = {
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: BookingStatus;
+  /** Independent from payment; optional for backward-compatible clients. */
+  readonly finalizationStatus?: BookingFinalizationStatus;
   readonly paymentStatus: BookingPaymentStatus;
   /**
    * Additive display-only Finance state. Present when paymentStatus=paid means
@@ -94,6 +106,8 @@ export type BookingListItem = {
   readonly submittedAt: string;
   /** Present after approve when the host persisted approvedAt. */
   readonly approvedAt?: string;
+  /** Present when an operator explicitly or automatically finalized the roster entry. */
+  readonly finalizedAt?: string;
   /**
    * Guest intake JSON — **detail / getBooking only** (UX-BKG-50 amend).
    * Must be omitted from `listBookings` list projection (BK-SAFE-01).
@@ -110,6 +124,13 @@ export type BookingListItem = {
   readonly paymentDueAt?: string;
   /** DP1 — cancel provenance when status=cancelled. */
   readonly cancelSource?: string | null;
+  readonly cancellationStatus?: BookingCancellationStatus;
+  readonly cancellationReasonCode?: string | null;
+  readonly cancellationReasonNote?: string | null;
+  readonly cancellationRequestedAt?: string | null;
+  readonly cancellationApprovedAt?: string | null;
+  readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationCorrelationId?: string | null;
   /** Ops list projection — submitter user id for directory avatar parity. */
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
@@ -150,6 +171,13 @@ export type BulkApproveBookingsRequest = {
 export type BulkApproveBookingsResponse = {
   readonly approvedIds: readonly string[];
   readonly skippedIds: readonly string[];
+};
+
+export type FinalizeBookingResponse = {
+  readonly id: string;
+  readonly status: BookingStatus;
+  readonly finalizationStatus: BookingFinalizationStatus;
+  readonly finalizedAt: string;
 };
 
 export type CreateBookingRequest = {
@@ -201,10 +229,19 @@ export type WaitlistBookingResponse = {
 export type CancelBookingResponse = {
   readonly id: string;
   readonly status: BookingStatus;
+  readonly cancellationStatus?: BookingCancellationStatus;
+  readonly refundStatus?: "not_required" | "pending_finance_approval";
+  readonly settlementStatus?: "not_affected" | "correction_pending" | "manual_review";
 };
 
-/** Member receipt JSON body on POST /bookings/:id/receipts (fileKey path). */
+export type CancelBookingRequest = {
+  readonly reasonCode: string;
+  readonly reasonNote?: string;
+  readonly mode?: "direct" | "request";
+};
+
+/** Member receipt JSON body on POST /bookings/:id/receipts (file and/or text evidence). */
 export type BookingMemberReceiptJsonBody = {
-  readonly fileKey: string;
+  readonly fileKey?: string;
   readonly note?: string;
 };

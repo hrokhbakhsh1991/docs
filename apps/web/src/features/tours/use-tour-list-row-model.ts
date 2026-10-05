@@ -8,7 +8,7 @@ import {
 } from "@/features/tours/tour-list-category-logic";
 import {
   formatTourDeparture,
-  formatTourPrice,
+  formatTourListPrice,
   formatTourSeats,
   formatTourUpdated,
 } from "@/features/tours/tour-list-formatters";
@@ -34,10 +34,10 @@ export function useTourListRowModel(
   const tFormat = useTranslations("tours.format");
   const tWorkspace = useWorkspaceWizardTranslator(pluginId);
 
-  const priceLabel = formatTourPrice(
-    tour.priceAmount,
-    tour.priceCurrency,
+  const priceLabel = formatTourListPrice(
+    tour,
     locale,
+    tFormat("freeCollection"),
     resolveTourPriceDisplayPolicy(pluginId)
   );
   const departureLabel = formatTourDeparture(tour.departureAt, locale);

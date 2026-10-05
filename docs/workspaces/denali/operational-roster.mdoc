@@ -15,12 +15,12 @@ Operator cannot answer from one surface who holds a seat, who has paid, who owes
 
 ## Semantics (DEN-PROD-03 — approved)
 
-| Predicate | Definition |
-| --------- | ---------- |
-| `isOperationalParticipant` | `booking.status === "approved"` |
-| `isFinanciallySettled` | Finance invoice `remainingMinor === "0"` |
-| `isFinalParticipant` | `approved` ∧ `isFinanciallySettled` |
-| `occupiesCapacity` | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1) |
+| Predicate                  | Definition                                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isOperationalParticipant` | `booking.status === "approved"`                                                                                                                                                             |
+| `isFinanciallySettled`     | Finance invoice `remainingMinor === "0"`                                                                                                                                                    |
+| `isFinalParticipant`       | `booking.status === "approved" && booking.finalizationStatus === "finalized"`; finalized rows may remain unpaid or partially paid, while `financialDisplayState` exposes payment separately |
+| `occupiesCapacity`         | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1)                                                                                                                            |
 
 Financial display states (projection only — not persisted on Bookings):
 
@@ -38,13 +38,13 @@ Passenger-to-vehicle assignment is **not implemented** (TW-C-06). Roster exposes
 
 **SoT remains split.** `TourOperationalRosterRow` is a **composed projection** at query time:
 
-| Field | Source |
-| ----- | ------ |
-| Lifecycle | Bookings `operator_registrations` |
-| `remainingMinor`, `paidMinor`, `currency` | Finance invoice compile |
-| `paymentDueAt`, `holdStatus` | Finance `finance_payment_holds` |
-| Transport scalars | Bookings list projection (`transportKind`, `personalCarOccupants`) |
-| Refund badge | Finance `FinanceRefund` rows |
+| Field                                     | Source                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| Lifecycle                                 | Bookings `operator_registrations`                                  |
+| `remainingMinor`, `paidMinor`, `currency` | Finance invoice compile                                            |
+| `paymentDueAt`, `holdStatus`              | Finance `finance_payment_holds`                                    |
+| Transport scalars                         | Bookings list projection (`transportKind`, `personalCarOccupants`) |
+| Refund badge                              | Finance `FinanceRefund` rows                                       |
 
 No duplicate SoT columns on `operator_registrations`.
 
@@ -54,15 +54,16 @@ No duplicate SoT columns on `operator_registrations`.
 GET /tours/:tourId/operational-roster?view=ops&filter=&transportKind=&limit=&cursor=
 ```
 
-| Query | Behavior |
-| ----- | -------- |
-| `filter=operational` (default) | Approved seat holders |
-| `filter=final` | `isFinalParticipant` |
-| `filter=unpaid` | Approved with `remainingMinor > 0` |
-| `filter=paid` | Financially settled approved |
-| `filter=expiring` | Approved with `paymentDueAt <= now + 24h` |
-| `filter=waitlist` | `status=waitlisted` |
-| `transportKind` | Narrow to intake kind |
+| Query                          | Behavior                                                  |
+| ------------------------------ | --------------------------------------------------------- |
+| `filter=operational` (default) | Approved seat holders                                     |
+| `filter=final`                 | `isFinalParticipant`                                      |
+| `filter=awaiting_finalization` | Approved seat holders with `finalizationStatus=not_final` |
+| `filter=unpaid`                | Approved with `remainingMinor > 0`                        |
+| `filter=paid`                  | Approved with `PAID` financial state                      |
+| `filter=expiring`              | Approved with `paymentDueAt <= now + 24h`                 |
+| `filter=waitlist`              | `status=waitlisted`                                       |
+| `transportKind`                | Narrow to intake kind                                     |
 
 Tenant isolation: `tourId` scoped list; cross-tenant IDs never returned.
 
@@ -70,32 +71,106 @@ Tenant isolation: `tourId` scoped list; cross-tenant IDs never returned.
 
 Roster rows are composed **sequentially per booking** (not `Promise.all` across the page). Each approved row may fan out to Finance invoice compile, refund list, and payment-hold lookup — parallelizing across many bookings on a single HTTP request exceeded the per-tenant app-pool semaphore (`TENANT_MAX_CONCURRENT_DB_OPS`, default **4**) and returned **503** `TENANT_DB_BUDGET_EXCEEDED` on staging-sized tours (transport tab + finance follow-up list empty while registrations tab still worked).
 
-| Stage | Concurrency |
-| ----- | ----------- |
-| Bookings list fetch | One `listBookings` call |
-| Per-row Finance/hold enrichment | Sequential `for` over `bookings.items` |
-| Inner invoice + refunds + hold for one row | Sequential awaits (≤1 slot at a time) |
+| Stage                                      | Concurrency                            |
+| ------------------------------------------ | -------------------------------------- |
+| Bookings list fetch                        | One `listBookings` call                |
+| Per-row Finance/hold enrichment            | Sequential `for` over `bookings.items` |
+| Inner invoice + refunds + hold for one row | Sequential awaits (≤1 slot at a time)  |
 
 Implementation: `apps/api/src/roster/operational-roster-enrichment.ts` (`enrichOperationalRosterRowsBudgetSafe`). `operational-roster.service.ts` must delegate to it — enforced by `guard-operational-roster-budget.mjs`.
 
 ### Regression prevention
 
-| Layer | Guard |
-| ----- | ----- |
-| Static | `pnpm --filter @apps/api run guard:operational-roster-budget` — forbids page-wide `Promise.all(bookings.items.map)` and `Promise.all` inside enrichment |
-| Unit | `test/dp2/operational-roster-projection.spec.ts` — ≥12 approved rows under `TENANT_MAX_CONCURRENT_DB_OPS=4` |
-| Unit | `test/dp2/operational-roster-enrichment.spec.ts` — enrichment module contract |
-| DP-2 script | `scripts/test-dp2-operational-roster.sh` — `guard:operational-roster-budget` + denali + api dp2/* + web roster contract |
-| Web | `apps/web/test/tour-workspace-payment-follow-up-load.spec.ts` — roster 503 keeps pending follow-up rows |
+| Layer       | Guard                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Static      | `pnpm --filter @apps/api run guard:operational-roster-budget` — forbids page-wide `Promise.all(bookings.items.map)` and `Promise.all` inside enrichment |
+| Unit        | `test/dp2/operational-roster-projection.spec.ts` — ≥12 approved rows under `TENANT_MAX_CONCURRENT_DB_OPS=4`                                             |
+| Unit        | `test/dp2/operational-roster-enrichment.spec.ts` — enrichment module contract                                                                           |
+| DP-2 script | `scripts/test-dp2-operational-roster.sh` — `guard:operational-roster-budget` + denali + api dp2/\* + web roster contract                                |
+| Web         | `apps/web/test/tour-workspace-payment-follow-up-load.spec.ts` — roster 503 keeps pending follow-up rows                                                 |
 
 This keeps peak tenant DB ops ≤4 for a single roster request without raising staging caps.
 
 ## Operator UI
 
-Tour workspace **transport** tab consumes the roster endpoint and renders payment + deadline + final-participant indicator alongside transport columns (no new dashboard).
+Tour workspace **transport** tab consumes the roster endpoint and renders the final roster by default. The `final` view contains only explicit final participants; the `awaiting_finalization` view is the operator queue for approved seat holders that still need an explicit finalization decision. Payment filters remain projection filters and must not change capacity or finalization state.
 
 **Finance follow-up** (`useTourWorkspacePaymentFollowUpList`) merges pending bookings (`/api/bookings?status=pending`) with the operational roster. Fetches use `Promise.allSettled` so a roster outage (for example **503** `TENANT_DB_BUDGET_EXCEEDED`) does **not** clear pending rows. When roster fails but pending succeeds, the finance tab shows a degraded banner (`rosterDegraded`) and keeps actionable pending approvals visible. Resolver: `apps/web/src/features/tours/tour-workspace-payment-follow-up-load.ts` (`resolvePaymentFollowUpLoadOutcome`).
 
+## Final roster Excel export
+
+The final roster export is an operator-facing participant report, not a database dump. It reads the composed operational projection and puts every explicitly finalized participant in `لیست نهایی`, including paid, partially paid, unpaid, and waived/free participants. Approved-but-not-finalized participants remain in the operational/payment-follow-up view but are excluded from the final sheet. Financial follow-up is represented by the separate `منتظر پرداخت` sheet and the payment-status column.
+
+The workbook uses readable Persian labels and four data sheets:
+
+- `لیست نهایی` — all final participants
+- `منتظر پرداخت` — approved operational participants with an outstanding balance
+- `پرداخت‌شده` — final participants with a paid invoice
+- `بدون دریافت وجه` — final participants with the `WAIVED` financial state
+
+Data sheets must not expose internal UUIDs or database keys. Dates are rendered in Tehran time using the Persian calendar, money is formatted with a thousands separator and currency label, transport kinds are localized, and personal-car rows expose the declared passenger capacity (`personalCarOccupants`).
+
 ## Events
 
-Read-only projection — no new outbox types in DP-2.
+Finalization is independent from payment settlement. The operator may finalize an approved unpaid or partially paid participant; this must preserve the outstanding balance and payment follow-up. Payment approval may later move `finalized + unpaid/partial` to `finalized + paid` without clearing finalization. Any finalization event or Telegram notification must be outbox-backed and idempotent. Waitlisted, pending, rejected, and cancelled rows must never become final participants.
+
+## Finalized-registration cancellation (DEN-PROD-10)
+
+Cancellation is a lifecycle tombstone, not a hard delete. A cancelled registration
+and its member identity, payment history, refund history, settlement history, and
+audit trail remain queryable. The final roster projection excludes the row, while
+historical snapshots retain the pre-cancellation finalization and financial facts.
+
+v1 treats a registration as one cancellable unit. A registration with
+`partySize > 1` cannot remove only one person; it must be cancelled as a whole
+until a participant-level model exists.
+
+Member cancellation is a request. Before roster freeze it may be processed by the
+normal operator workflow; after freeze, and after departure, an administrator must
+approve or reject it. Rejection leaves lifecycle, finalization, transport, and
+financial projections unchanged. Approval changes lifecycle to `cancelled` and
+creates a retryable cancellation workflow.
+
+Refunds are never completed automatically by cancellation. Approval creates a
+finance refund request; Finance approves, rejects, processes, and completes it as a
+separate aggregate. A cancellation after departure is a late correction: it does
+not create waitlist capacity and has zero refund by default unless Finance applies
+an explicit override.
+
+Waitlist admission is never automatic as a consequence of cancellation. After
+capacity is actually released, the operator may approve a specific waitlisted
+registration. The approval is a separate idempotent command and sends the new
+participant's notification only after success.
+
+The cancellation workflow is outbox-backed and reports these independent axes:
+
+| Axis | Values |
+| --- | --- |
+| `cancellationStatus` | `none` · `request_pending` · `approved` · `rejected` · `applied` · `late_correction` · `manual_review` · `completed` |
+| Refund | `not_required` · `pending_finance_approval` · `approved` · `rejected` · `processing` · `completed` · `failed` |
+| Settlement correction | `not_affected` · `correction_pending` · `correction_approved` · `adjust_on_next_payable` · `manual_review` · `completed` |
+
+The cancellation event payload carries the immutable cancellation/correlation id,
+actor, reason, previous lifecycle/finalization/payment state, party size, and
+late-correction flag. Transport, roster, refund, settlement, waitlist, and
+notification handlers are idempotent and retryable; a failed side effect is never
+silently ignored.
+
+## Finance follow-up actions
+
+For an `approved` participant whose `finalizationStatus` is `not_final` and whose financial state is `UNPAID` or `PARTIALLY_PAID`, the Finance tab exposes two independent operator commands:
+
+- `finalize-with-open-payment`: adds the participant to the final roster while preserving the outstanding balance, deadline, and payment follow-up;
+- `waive-and-finalize`: atomically sets the obligation to zero/`WAIVED` and adds the participant to the final roster.
+
+The second command is not the pending-registration `approve-without-payment` flow. It is a distinct command for an already-approved registration and must not call the approval transition a second time. Both commands are idempotent, permission-checked, audit/outbox-backed, and refresh the Finance projection, final-roster projection, and workspace counts after success.
+
+## Waitlist capacity-increase handoff
+
+The Waitlist tab also exposes a separate operator command for a waitlisted participant who should be admitted by explicitly expanding the tour capacity:
+
+- `promote-waitlist-with-capacity-increase`: atomically increases the tour capacity by the participant's `partySize`, changes the registration to `approved + unpaid/partial`, creates or preserves the payment deadline/hold, and hands the participant to Finance follow-up;
+- this command does not finalize attendance, waive the balance, create transport settlement, or automatically promote another waitlisted participant;
+- repeated clicks/retries return the existing result and must not increase capacity or create a second registration;
+- the capacity increase is an explicit tour-setting change and is not automatically reversed by cancellation; reversing it requires a separate operator action;
+- after success, Waitlist, Finance, operational counts, tour-capacity projection, and relevant caches are refreshed together, with an audit record and idempotent outbox event.

@@ -22,15 +22,22 @@ describe("marketing shell — PCMS-03", () => {
     assert.doesNotMatch(shell, /resolvePortalMemberAreaUrl/);
   });
 
-  it("MKT-PCMS-02 layout resolves portal login + member module + origin adapter URLs", () => {
+  it("MKT-PCMS-02 layout resolves portal login + member module URLs", () => {
     const layout = readFileSync(path.join(marketingRoot, "app/layout.tsx"), "utf8");
     assert.match(layout, /resolvePortalMemberLoginUrl/);
     assert.match(layout, /portalMemberLoginUrl=/);
     assert.match(layout, /resolvePortalMemberModuleUrl/);
     assert.match(layout, /portalMemberModuleUrl=/);
-    assert.match(layout, /resolvePortalPublicBaseUrl/);
-    assert.match(layout, /MarketingLoginModalProvider/);
-    assert.match(layout, /resolveMemberLoginCatalogTourId/);
     assert.doesNotMatch(layout, /resolvePortalMemberAreaUrl/);
+  });
+
+  it("MKT-PCMS-03 detail route owns the marketing login modal", () => {
+    const detail = readFileSync(
+      path.join(marketingRoot, "app/tours/[tourId]/page.tsx"),
+      "utf8"
+    );
+    assert.match(detail, /MarketingLoginModalProvider/);
+    assert.match(detail, /resolvePortalPublicBaseUrl/);
+    assert.match(detail, /resolvePortalMemberModuleUrl/);
   });
 });

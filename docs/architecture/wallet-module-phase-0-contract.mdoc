@@ -221,10 +221,10 @@ Manifest-driven routes on `/wallet/*` (mirror `/finance/*` prefix convention). R
 | Nav         | `capabilities.walletNav` + `walletWorkspaceHasCapability(ops)` + `isWalletModuleEnabled(theme)` + owner/admin role                     |
 | BFF         | `GET/POST /api/wallet/**` — session cookie + `Idempotency-Key` on mutations; never accepts `tenantId` / `workspaceId` as authority     |
 | Upstream    | Existing `/wallet/accounts`, `/wallet/accounts/:id/balance`, `/wallet/accounts/:id/transactions`, credit/debit/reverse                 |
-| UI          | Account lookup by member `userId`, balance + paginated history, manual credit/debit/reversal with required reason + confirmation modal |
+| UI          | Tenant/workspace-scoped active-member directory with search by display name, normalized mobile, membership code, or UUID; each row shows identity and selection state, then the selected member's wallet accounts, balance + paginated history, and manual credit/debit/reversal with required reason + confirmation modal |
 | Idempotency | Client generates `Idempotency-Key` per submission; preserved on retry; replay feedback from `replay: true`                             |
 | RTL         | Operator shell `dir` + `fa` / `en` message namespaces                                                                                  |
-| Denali      | No `walletNav` capability — nav hidden, route `notFound()`                                                                             |
+| Denali      | Wallet is supported but remains theme-gated; when `enabledModules` includes `wallet`, the owner/admin operator route is available     |
 
 ### 3.4.1 Phase 3A member portal read surface (shipped)
 

@@ -32,6 +32,7 @@ import { tourHasOverflowGalleryPhotos } from "./build-catalog-tour-photo-set";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import type { MarketingCatalogCard } from "./catalog-types";
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
+import type { MarketingCommercialPricingPreviewStatus } from "./fetch-commercial-pricing-previews.server";
 import { formatCatalogCardDescription } from "./format-catalog-display";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
@@ -53,6 +54,7 @@ export type CatalogTourDetailProps = {
   readonly cta: MarketingTourDetailCtaModel;
   readonly pluginId: string;
   readonly pricingPreview?: MarketingCommercialPricingPreview | null;
+  readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 };
 
 function tourHasPolicies(tour: MarketingCatalogCard): boolean {
@@ -70,6 +72,7 @@ export async function CatalogTourDetail({
   cta,
   pluginId,
   pricingPreview = null,
+  pricingPreviewStatus = "anonymous",
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
   const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
@@ -101,7 +104,8 @@ export async function CatalogTourDetail({
     categoryLabel,
   });
   const registration = resolveCatalogTourRegistrationState(tour, registrationUrl);
-  const showCtaBlock = cta.primaryHref != null || registration.isSoldOut;
+  const showCtaBlock =
+    cta.primaryHref != null || registration.state === "past" || registration.state === "closed";
   const showItinerary =
     sections.itinerary && tour.itineraryDays != null && tour.itineraryDays.length > 0;
   const showPolicies = sections.policies && tourHasPolicies(tour);
@@ -254,6 +258,7 @@ export async function CatalogTourDetail({
             registration={registration}
             cta={cta}
             pricingPreview={pricingPreview}
+            pricingPreviewStatus={pricingPreviewStatus}
           />
         </div>
 
@@ -263,6 +268,7 @@ export async function CatalogTourDetail({
           registration={registration}
           cta={cta}
           pricingPreview={pricingPreview}
+          pricingPreviewStatus={pricingPreviewStatus}
         />
 
         {detailJsonLdGraph != null ? (

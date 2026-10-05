@@ -10,6 +10,7 @@ import {
   parseOperatorDebitBody,
   parseOperatorReversalBody,
   parseOptionalCurrencyFilter,
+  parseOptionalOperatorAccountLookupSearch,
   parseOptionalListCursor,
   parseOptionalWorkspaceFilter,
   parseWalletTransactionsLimit,
@@ -135,7 +136,14 @@ export async function handleWalletOperatorAccounts(
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
-    const userId = parseOperatorAccountLookupUserId(url.searchParams.get("userId"));
+    const rawUserId = url.searchParams.get("userId");
+    const userId = rawUserId === null || rawUserId.trim() === ""
+      ? undefined
+      : parseOperatorAccountLookupUserId(rawUserId);
+    const search = parseOptionalOperatorAccountLookupSearch(url.searchParams.get("search"));
+    if (userId === undefined && search === undefined) {
+      throw new Error("ZOD_VALIDATION_FAILED: userId or search is required");
+    }
     const currency = parseOptionalCurrencyFilter(url.searchParams.get("currency"));
     const workspaceId = parseOptionalWorkspaceFilter(url.searchParams.get("workspaceId"));
     const walletService = await host.resolveWalletService(deps, auth);
@@ -144,7 +152,8 @@ export async function handleWalletOperatorAccounts(
       auth,
       async () => {
         const result = await walletService.lookupOperatorAccounts(auth, {
-          userId,
+          ...(userId !== undefined ? { userId } : {}),
+          ...(search !== undefined ? { search } : {}),
           ...(currency !== undefined ? { currency } : {}),
           ...(workspaceId !== undefined ? { workspaceId } : {}),
         });

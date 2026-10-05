@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  buildObligationOverrideIntakeValue,
+  OBLIGATION_OVERRIDE_INTAKE_KEY,
+} from "@app-tour/finance-core";
+
 import { canTransitionBookingStatus } from "./booking-status-transitions";
 
 import {
@@ -40,7 +45,10 @@ import {
 import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
+  BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
+  BookingOpenPaymentFinalizationNotAllowedError,
+  BookingWaiveAndFinalizeNotAllowedError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
@@ -169,7 +177,7 @@ function seedOperatorSmokeDevBookingsFixture(): void {
     id: "00000000-0000-4000-8000-000000000312",
     tenantId: OPERATOR_SMOKE_TENANT_ID,
     tourId: OPERATOR_SMOKE_SEED_TOUR_ID,
-    tourTitle: "Coastal Walk",
+    tourTitle: "North Ridge Trek",
     guestLabel: "Jamal Hosseini",
     guestEmail: null,
     guestPhone: "+15550002003",
@@ -195,11 +203,12 @@ function cloneBooking(record: BookingRecord): BookingRecord {
     !Array.isArray(registrationIntake.obligationOverride)
       ? (registrationIntake.obligationOverride as Readonly<Record<string, unknown>>)
       : null;
+  const freeCollectionApplied = registrationIntake?.freeCollectionApplied === true;
   return {
     ...record,
     financialDisplayState:
       record.financialDisplayState ??
-      resolveFinancialDisplayStateForListRecord(record, obligationOverride),
+      resolveFinancialDisplayStateForListRecord(record, obligationOverride, freeCollectionApplied),
     registrantTarget: record.registrantTarget ?? readRegistrantTargetFromIntake(registrationIntake),
     transportKind:
       record.transportKind !== undefined
@@ -576,12 +585,173 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       return null;
     }
     const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
-    if (next === row.paymentStatus) {
+    const finalizationStatus =
+      row.status === "approved" && next === "paid" ? "finalized" : row.finalizationStatus;
+    if (next === row.paymentStatus && finalizationStatus === row.finalizationStatus) {
       return cloneBooking(row);
     }
-    const updated: BookingRecord = { ...row, paymentStatus: next };
+    const updated: BookingRecord = {
+      ...row,
+      paymentStatus: next,
+      ...(finalizationStatus !== undefined ? { finalizationStatus } : {}),
+      ...(row.status === "approved" &&
+      next === "paid" &&
+      finalizationStatus !== row.finalizationStatus
+        ? { finalizedAt: new Date().toISOString() }
+        : {}),
+    };
     bookingsStore.set(input.bookingId, updated);
     return cloneBooking(updated);
+  }
+
+  async markFreeCollectionApplied(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+  }): Promise<BookingRecord | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      return null;
+    }
+    const nextPaymentStatus = raiseBookingPaymentStatus(row.paymentStatus, "paid");
+    const shouldFinalize = row.status === "approved" && nextPaymentStatus === "paid";
+    const finalizedAt =
+      shouldFinalize && row.finalizationStatus !== "finalized"
+        ? new Date().toISOString()
+        : row.finalizedAt;
+    const updated: BookingRecord = {
+      ...row,
+      paymentStatus: nextPaymentStatus,
+      ...(shouldFinalize ? { finalizationStatus: "finalized" as const } : {}),
+      ...(finalizedAt !== undefined ? { finalizedAt } : {}),
+      registrationIntake: {
+        ...(row.registrationIntake ?? {}),
+        freeCollectionApplied: true,
+      },
+    };
+    bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
+  }
+
+  async finalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (row.status !== "approved") {
+      throw new BookingStatusConflictError(row.status);
+    }
+    if (row.paymentStatus !== "paid") {
+      throw new BookingFinalizationRequiresSettlementError();
+    }
+    if (row.finalizationStatus === "finalized") {
+      return cloneBooking(row);
+    }
+    const finalizedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...row,
+      finalizationStatus: "finalized",
+      finalizedAt,
+      finalizedByUserId: input.finalizedByUserId,
+    };
+    bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
+  }
+
+  async finalizeBookingWithOpenPayment(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (row.status !== "approved") {
+      throw new BookingStatusConflictError(row.status);
+    }
+    if (row.finalizationStatus === "finalized") {
+      return cloneBooking(row);
+    }
+    if (
+      (row.paymentStatus !== "unpaid" && row.paymentStatus !== "partial") ||
+      row.financialDisplayState === "WAIVED"
+    ) {
+      throw new BookingOpenPaymentFinalizationNotAllowedError();
+    }
+    const finalizedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...row,
+      finalizationStatus: "finalized",
+      finalizedAt,
+      finalizedByUserId: input.finalizedByUserId,
+    };
+    bookingsStore.set(input.bookingId, updated);
+    appendBookingOutboxEventIfAbsent({
+      tenantId: input.tenantId,
+      aggregateId: input.bookingId,
+      eventType: "registration.finalized_open_payment",
+      payload: { bookingId: input.bookingId, paymentStatus: row.paymentStatus },
+      domainEventId: `registration.finalized_open_payment:${input.bookingId}`,
+    });
+    return cloneBooking(updated);
+  }
+
+  async waiveAndFinalizeBooking(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly finalizedByUserId: string;
+  }): Promise<BookingRecord> {
+    return runSerialBookingMutation(async () => {
+      const row = bookingsStore.get(input.bookingId);
+      if (row === undefined || row.tenantId !== input.tenantId) {
+        throw new BookingNotFoundError();
+      }
+      if (row.status !== "approved") {
+        throw new BookingStatusConflictError(row.status);
+      }
+      if (row.finalizationStatus === "finalized") {
+        return cloneBooking(row);
+      }
+      if (
+        (row.paymentStatus !== "unpaid" && row.paymentStatus !== "partial") ||
+        row.financialDisplayState === "WAIVED"
+      ) {
+        throw new BookingWaiveAndFinalizeNotAllowedError();
+      }
+      const finalizedAt = new Date().toISOString();
+      const override = buildObligationOverrideIntakeValue({
+        obligationMinor: "0",
+        reason: "operator_waive_and_finalize",
+        setAt: finalizedAt,
+        setByUserId: input.finalizedByUserId,
+      });
+      const updated: BookingRecord = {
+        ...row,
+        paymentStatus: "paid",
+        financialDisplayState: "WAIVED",
+        finalizationStatus: "finalized",
+        finalizedAt,
+        finalizedByUserId: input.finalizedByUserId,
+        registrationIntake: {
+          ...(row.registrationIntake ?? {}),
+          [OBLIGATION_OVERRIDE_INTAKE_KEY]: override,
+          freeCollectionApplied: true,
+        },
+      };
+      bookingsStore.set(input.bookingId, updated);
+      appendBookingOutboxEventIfAbsent({
+        tenantId: input.tenantId,
+        aggregateId: input.bookingId,
+        eventType: "registration.waived_finalized",
+        payload: { bookingId: input.bookingId, paymentStatus: row.paymentStatus },
+        domainEventId: `registration.waived_finalized:${input.bookingId}`,
+      });
+      return cloneBooking(updated);
+    });
   }
 
   async mergeRegistrationIntake(input: {
@@ -678,6 +848,12 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
     }) => void;
+    outboxEvent?: {
+      readonly eventType: string;
+      readonly payload: Readonly<Record<string, unknown>>;
+      readonly correlationId?: string;
+    };
+    initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord> {
     let occupiedApprovedPartySize = 0;
     for (const row of bookingsStore.values()) {
@@ -708,7 +884,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       guestEmail: input.body.guestEmail ?? null,
       guestPhone: input.body.guestPhone ?? null,
       partySize: input.body.partySize,
-      status: "pending",
+      status: input.initialStatus ?? "pending",
       paymentStatus: input.body.paymentStatus ?? "unpaid",
       departureAt: input.body.departureAt,
       submittedAt: now,
@@ -719,6 +895,15 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         : {}),
     };
     bookingsStore.set(record.id, record);
+    if (input.outboxEvent !== undefined) {
+      appendBookingOutboxEventIfAbsent({
+        tenantId: input.tenantId,
+        aggregateId: record.id,
+        eventType: input.outboxEvent.eventType,
+        payload: { ...input.outboxEvent.payload, bookingId: record.id },
+        domainEventId: `${input.outboxEvent.eventType}:${record.id}`,
+      });
+    }
     return cloneBooking(record);
   }
 
@@ -727,6 +912,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     correlationId?: string;
+    registrationIntakePatch?: Readonly<Record<string, unknown>>;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
@@ -767,6 +953,14 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           ...current,
           status: "approved",
           approvedAt,
+          ...(input.registrationIntakePatch !== undefined
+            ? {
+                registrationIntake: {
+                  ...(current.registrationIntake ?? {}),
+                  ...input.registrationIntakePatch,
+                },
+              }
+            : {}),
         };
         bookingsStore.set(updated.id, updated);
 
@@ -906,6 +1100,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...current,
       status: "rejected",
       approvedAt: null,
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
       ...(rejectReason !== undefined ? { rejectReason } : {}),
     };
     bookingsStore.set(updated.id, updated);
@@ -929,6 +1126,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...current,
       status: "waitlisted",
       approvedAt: null,
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
     };
     bookingsStore.set(updated.id, updated);
     outboxStore.push({
@@ -955,6 +1155,11 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
+    cancellationStatus?: BookingRecord["cancellationStatus"];
+    cancellationReasonCode?: string;
+    cancellationReasonNote?: string;
+    cancellationApprovedByUserId?: string;
+    cancellationCorrelationId?: string;
   }): Promise<BookingRecord> {
     const current = bookingsStore.get(input.bookingId);
     if (current === undefined || current.tenantId !== input.tenantId) {
@@ -969,6 +1174,16 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       status: "cancelled",
       approvedAt: null,
       paymentDueAt: null,
+      finalizationStatus: "not_final",
+      finalizedAt: null,
+      finalizedByUserId: null,
+      cancellationStatus: input.cancellationStatus ?? "applied",
+      cancellationReasonCode: input.cancellationReasonCode ?? null,
+      cancellationReasonNote: input.cancellationReasonNote ?? null,
+      cancellationRequestedAt: cancelledAt,
+      cancellationApprovedAt: cancelledAt,
+      cancellationApprovedByUserId: input.cancellationApprovedByUserId ?? null,
+      cancellationCorrelationId: input.cancellationCorrelationId ?? null,
       ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
     };
     bookingsStore.set(updated.id, updated);
@@ -984,10 +1199,17 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         status: updated.status,
         cancelledAt,
         previousStatus: current.status,
+        previousFinalizationStatus: current.finalizationStatus ?? "not_final",
+        previousPaymentStatus: current.paymentStatus,
+        partySize: current.partySize,
         guestUserId: updated.submittedByUserId,
         ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
+        ...(input.cancellationReasonCode !== undefined
+          ? { reasonCode: input.cancellationReasonCode }
+          : {}),
       },
-      domainEventId: `registration.cancelled:${updated.id}:${cancelledAt}`,
+      correlationId: input.cancellationCorrelationId,
+      domainEventId: input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
       createdAt: cancelledAt,
     });
     return cloneBooking(updated);

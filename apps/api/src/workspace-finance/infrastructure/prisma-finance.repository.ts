@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import crypto from "node:crypto";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
 import {
@@ -6,6 +7,7 @@ import {
   isPrismaUniqueConstraintError,
 } from "../../db/prisma-error-instance";
 import { loadRegistrationInvoiceFacts } from "../../finance/load-registration-invoice-facts";
+import { readTourSocialMediaLink } from "../../bookings/read-tour-social-media-link";
 import { enqueueOutboxEvent } from "../../outbox/enqueue-domain-event";
 import { shouldAbortAtomicTx } from "../../test-hooks/atomic-tx-test-abort";
 import { enqueueFinanceLedgerCaptureOutbox } from "../enqueue-finance-ledger-capture";
@@ -33,6 +35,8 @@ import type {
   FinanceTourPaymentAggregateRow,
   FinanceTransactionPort,
   IBookingPaymentPort,
+  PaymentDestinationRevision,
+  PaymentReceiptDestinationSnapshot,
   ListFinanceExceptionSourcesResult,
   ListOutstandingBalanceCandidatesResult,
   ListPendingReceiptsPage,
@@ -95,7 +99,7 @@ type OpenPaymentSelectShape = {
 type ReceiptSelectShape = {
   readonly id: string;
   readonly paymentId: string;
-  readonly fileKey: string;
+  readonly fileKey: string | null;
   readonly status: string;
   readonly note: string | null;
   readonly reviewNote: string | null;
@@ -571,7 +575,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           if (
             byHash.paymentId !== input.paymentId ||
             byHash.fileKey !== input.fileKey ||
-            (input.note !== undefined && byHash.note !== (input.note ?? null))
+            (byHash.note ?? null) !== (input.note ?? null)
           ) {
             throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
           }
@@ -601,6 +605,20 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
             ...(input.idempotencyKeyHash !== undefined
               ? { idempotencyKeyHash: input.idempotencyKeyHash }
               : {}),
+            ...(input.destinationSnapshot === undefined
+              ? {}
+              : {
+                  destinationSnapshot: {
+                    create: {
+                      tenantId: input.tenantId,
+                      revision: input.destinationSnapshot.revision,
+                      cardNumber: input.destinationSnapshot.cardNumber,
+                      cardHolderName: input.destinationSnapshot.cardHolderName,
+                      bankName: input.destinationSnapshot.bankName,
+                      instructions: input.destinationSnapshot.instructions,
+                    },
+                  },
+                }),
           },
           include: {
             payment: {
@@ -618,6 +636,24 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
             },
           },
         });
+        if (input.outboxEvent !== undefined) {
+          await enqueueOutboxEvent(tx, {
+            tenantId: input.tenantId,
+            aggregateType: "receipt",
+            aggregateId: row.id,
+            eventType: input.outboxEvent.eventType,
+            payload: {
+              ...input.outboxEvent.payload,
+              receiptId: row.id,
+              submittedAt: row.createdAt.toISOString(),
+            },
+            domainEventId: `${input.outboxEvent.eventType}:${row.id}`,
+            ...(input.outboxEvent.correlationId === undefined
+              ? {}
+              : { correlationId: input.outboxEvent.correlationId }),
+          });
+        }
+
         return toFinanceReceiptRow(row);
       } catch (error) {
         if (
@@ -652,7 +688,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           if (
             existing.paymentId !== input.paymentId ||
             existing.fileKey !== input.fileKey ||
-            (input.note !== undefined && existing.note !== (input.note ?? null))
+            (existing.note ?? null) !== (input.note ?? null)
           ) {
             throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
           }
@@ -660,6 +696,63 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         }
         throw error;
       }
+    });
+  }
+
+  async putPaymentDestinationRevision(input: {
+    readonly tenantId: string;
+    readonly cardNumber: string;
+    readonly cardHolderName: string;
+    readonly bankName?: string | null;
+    readonly instructions?: string | null;
+    readonly actorUserId?: string | null;
+  }): Promise<PaymentDestinationRevision> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      const row = await tx.paymentDestinationRevision.create({
+        data: {
+          tenantId: input.tenantId,
+          revision: crypto.randomUUID(),
+          cardNumber: input.cardNumber,
+          cardHolderName: input.cardHolderName,
+          bankName: input.bankName ?? null,
+          instructions: input.instructions ?? null,
+          actorUserId: input.actorUserId ?? null,
+        },
+      });
+      return row;
+    });
+  }
+
+  async findPaymentDestinationRevision(
+    tenantId: string,
+    revision?: string
+  ): Promise<PaymentDestinationRevision | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.paymentDestinationRevision.findFirst({
+        where: { tenantId, ...(revision === undefined ? {} : { revision }) },
+        orderBy: revision === undefined ? { createdAt: "desc" } : undefined,
+      });
+      return row;
+    });
+  }
+
+  async findPaymentReceiptDestinationSnapshot(
+    tenantId: string,
+    receiptId: string
+  ): Promise<PaymentReceiptDestinationSnapshot | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.paymentReceiptDestinationSnapshot.findFirst({
+        where: { tenantId, paymentReceiptId: receiptId },
+      });
+      return row === null
+        ? null
+        : {
+            revision: row.revision,
+            cardNumber: row.cardNumber,
+            cardHolderName: row.cardHolderName,
+            bankName: row.bankName,
+            instructions: row.instructions,
+          };
     });
   }
 
@@ -937,6 +1030,28 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
       if (row === null) {
         throw new Error("FINANCE_RECEIPT_NOT_FOUND");
       }
+      if (input.status === "Approved" || input.status === "Rejected") {
+        const reviewedAt = row.reviewedAt?.toISOString() ?? new Date().toISOString();
+        await enqueueOutboxEvent(tx, {
+          tenantId,
+          aggregateType: "receipt",
+          aggregateId: row.id,
+          eventType: input.status === "Approved" ? "receipt.approved" : "receipt.rejected",
+          payload: {
+            receiptId: row.id,
+            paymentId: row.paymentId,
+            registrationId: row.payment?.registrationId ?? "",
+            status: row.status,
+            reviewedAt,
+            ...(row.payment === null
+              ? {}
+              : { amount: row.payment.amount, currency: row.payment.currency }),
+            ...(row.reviewNote === null ? {} : { reviewNote: row.reviewNote }),
+          },
+          domainEventId: `receipt.${input.status.toLowerCase()}:${row.id}:${reviewedAt}`,
+          createdAt: row.reviewedAt ?? new Date(reviewedAt),
+        });
+      }
       return toFinanceReceiptRow(row);
     });
   }
@@ -1108,6 +1223,30 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           },
         });
 
+        const paymentFacts = await tx.payment.findFirstOrThrow({
+          where: { id: input.paymentId, tenantId: input.tenantId },
+          select: { amount: true, currency: true },
+        });
+        const reviewedAt = updated.reviewedAt?.toISOString() ?? new Date().toISOString();
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "receipt",
+          aggregateId: updated.id,
+          eventType: "receipt.approved",
+          payload: {
+            receiptId: updated.id,
+            paymentId: input.paymentId,
+            registrationId: input.registrationId,
+            status: updated.status,
+            amount: paymentFacts.amount,
+            currency: paymentFacts.currency,
+            reviewedAt,
+            reviewNote: updated.reviewNote ?? "بدون توضیح",
+          },
+          domainEventId: `receipt.approved:${updated.id}:${reviewedAt}`,
+          createdAt: updated.reviewedAt ?? new Date(reviewedAt),
+        });
+
         if (shouldAbortAtomicTx("finance_approve_after_receipt")) {
           throw new Error("P5_ATOMIC_TX_TEST_ABORT");
         }
@@ -1135,6 +1274,33 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         });
         if (!inserted) {
           throw new Error("FINANCE_APPROVE_CONFLICT");
+        }
+
+        const registration = await tx.operatorRegistration.findFirst({
+          where: { id: input.registrationId, tenantId: input.tenantId },
+          select: { id: true, tourId: true, submittedByUserId: true },
+        });
+        if (registration !== null) {
+          const approvedTour = await tx.tour.findFirst({
+            where: { id: registration.tourId, tenantId: input.tenantId },
+            select: { canonical: true },
+          });
+          const socialMediaLink = readTourSocialMediaLink(approvedTour?.canonical);
+          await enqueueOutboxEvent(tx, {
+            tenantId: input.tenantId,
+            aggregateType: "registration",
+            aggregateId: registration.id,
+            eventType: "finance.receipt.approved",
+            domainEventId: `finance.receipt.approved:${input.receiptId}`,
+            payload: {
+              registrationId: registration.id,
+              paymentId: input.paymentId,
+              tourId: registration.tourId,
+              guestUserId: registration.submittedByUserId,
+              ...(socialMediaLink !== null ? { socialMediaLink } : {}),
+              approvedAt: updated.reviewedAt?.toISOString() ?? new Date().toISOString(),
+            },
+          });
         }
 
         return {

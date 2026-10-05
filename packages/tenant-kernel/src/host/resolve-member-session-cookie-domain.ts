@@ -5,9 +5,10 @@ import { parseMultiLevelTenantHost } from "./parse-multi-level-tenant-host";
 
 /**
  * PCMS-COOK-01 — optional share-parent for member cookie Domain attribute.
+ * - Canonical platform portal: portal.denali.shenski.com → Domain=denali.shenski.com
  * - Custom apex: portal.denali.club → Domain=denali.club
  * - Local inverted portal: portal.denali.localhost → Domain=denali.localhost
- * - Legacy {club}.portal.localhost / other platform hosts: undefined (host-only)
+ * - Legacy {club}.portal.{root} / other platform hosts: undefined (host-only)
  */
 export function resolveMemberSessionCookieDomain(
   ingressHost: string,
@@ -32,6 +33,19 @@ export function resolveMemberSessionCookieDomain(
       hostname === `portal.${outcome.subdomain}.localhost`
     ) {
       return `${outcome.subdomain}.localhost`;
+    }
+  }
+
+  // PCMS-COOK-03 — canonical platform portal shares with the workspace apex.
+  // The explicit prefix check is required because the parser also accepts the
+  // legacy `{club}.portal.{root}` shape, which must remain host-only.
+  if (root !== "localhost") {
+    const outcome = parseMultiLevelTenantHost(hostname, root, reserved);
+    if (
+      outcome.kind === "club_portal" &&
+      hostname === `portal.${outcome.subdomain}.${root}`
+    ) {
+      return `${outcome.subdomain}.${root}`;
     }
   }
 

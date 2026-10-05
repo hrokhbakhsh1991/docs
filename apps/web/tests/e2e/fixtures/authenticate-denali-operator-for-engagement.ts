@@ -8,34 +8,77 @@ import { SESSION_TOKEN_COOKIE } from "../../../src/auth/build-session-cookie";
 export const DENALI_OPERATOR_OWNER_MOBILE = "09174070937";
 export const DENALI_OPERATOR_VIEWER_MOBILE = "+15550001996";
 export const DENALI_DEV_OTP = "1234";
+const WALLET_AUTH_TIMEOUT_MS = 300_000;
+
+const sessionTokenCache = new Map<string, string>();
+
+function operatorAuthUrl(path: string): {
+  url: string;
+  headers?: Record<string, string>;
+} {
+  const apiBaseUrl = process.env.SMOKE_DENALI_WEB_API_URL?.trim();
+  if (apiBaseUrl === undefined || apiBaseUrl.length === 0) {
+    return { url: path };
+  }
+  const host = process.env.SMOKE_DENALI_WEB_HOST?.trim();
+  return {
+    url: new URL(path, `${apiBaseUrl.replace(/\/$/, "")}/`).toString(),
+    ...(host === undefined ? {} : { headers: { host } }),
+  };
+}
 
 async function loginDenaliOperatorSession(
   page: Page,
   phone: string,
-  endpoint: "login-web-session" | "login-team-web-session" = "login-web-session",
+  endpoint: "login-web-session" | "login-team-web-session" = "login-web-session"
 ): Promise<void> {
   await page.context().clearCookies();
 
-  const otpRes = await page.request.post("/api/auth/request-otp", {
+  const cacheKey = `${phone}:${endpoint}`;
+  const cachedToken = sessionTokenCache.get(cacheKey);
+  if (cachedToken !== undefined) {
+    const context = page.context() as {
+      readonly _options?: { readonly baseURL?: string };
+    };
+    const baseURL = context._options?.baseURL?.trim() ?? "http://denali.admin.localhost:3000";
+    const cookieUrl = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
+    await page.context().addCookies([
+      {
+        name: SESSION_TOKEN_COOKIE,
+        value: cachedToken,
+        url: cookieUrl,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    return;
+  }
+
+  const otpRequest = operatorAuthUrl("/api/auth/request-otp");
+  const otpRes = await page.request.post(otpRequest.url, {
     data: { phone },
-    timeout: 120_000,
+    headers: otpRequest.headers,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   expect(otpRes.ok(), await otpRes.text()).toBeTruthy();
   const otpBody = (await otpRes.json()) as { challenge_id?: string };
   expect(typeof otpBody.challenge_id).toBe("string");
 
-  const loginRes = await page.request.post(`/api/auth/${endpoint}`, {
+  const loginRequest = operatorAuthUrl(`/api/auth/${endpoint}`);
+  const loginRes = await page.request.post(loginRequest.url, {
     data: {
       phone,
       otp: DENALI_DEV_OTP,
       challenge_id: otpBody.challenge_id,
     },
-    timeout: 120_000,
+    headers: loginRequest.headers,
+    timeout: WALLET_AUTH_TIMEOUT_MS,
   });
   const loginText = await loginRes.text();
   expect(loginRes.ok(), loginText).toBeTruthy();
   const loginBody = JSON.parse(loginText) as { session_token?: string };
   expect(typeof loginBody.session_token).toBe("string");
+  sessionTokenCache.set(cacheKey, loginBody.session_token!);
 
   const context = page.context() as {
     readonly _options?: { readonly baseURL?: string };

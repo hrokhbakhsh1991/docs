@@ -13,6 +13,7 @@ import type {
 export type OperationalRosterFilter =
   | "operational"
   | "final"
+  | "awaiting_finalization"
   | "unpaid"
   | "paid"
   | "expiring"
@@ -22,14 +23,21 @@ export type TourOperationalRosterRow = {
   readonly registrationId: string;
   readonly tourId: string;
   readonly guestLabel: string;
+  /** Ops-only contact/timeline scalars; never the registration intake blob. */
+  readonly guestPhone?: string | null;
+  readonly approvedAt?: string | null;
+  readonly finalizedAt?: string | null;
   /** Ops list projection — submitter user id for avatar parity. */
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
   readonly memberAvatarUrl?: string | null;
   readonly partySize: number;
   readonly registrationStatus: OperationalRosterLifecycleStatus;
+  readonly finalizationStatus: "not_final" | "finalized";
   readonly financialDisplayState: OperationalRosterFinancialDisplayState;
   readonly remainingMinor: string | null;
+  /** Current staged amount to request; falls back to remainingMinor for full-payment tours. */
+  readonly amountDueNowMinor?: string | null;
   readonly paidMinor: string | null;
   readonly currency: string | null;
   readonly paymentDueAt: string | null;
@@ -53,6 +61,8 @@ export type OperationalRosterListQuery = {
   readonly transportKind?: BookingTransportKind;
   readonly limit: number;
   readonly cursor?: string;
+  /** Return only the exact filtered total for workspace KPI/count requests. */
+  readonly countOnly?: boolean;
 };
 
 export type OperationalRosterListResponse = {
@@ -66,6 +76,7 @@ export type OperationalRosterListResponse = {
 const ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
   "operational",
   "final",
+  "awaiting_finalization",
   "unpaid",
   "paid",
   "expiring",
@@ -103,6 +114,8 @@ export function parseOperationalRosterListQuery(url: URL): OperationalRosterList
 
   const limit = parsePositiveInt(url.searchParams.get("limit"), 50, 100);
   const cursor = url.searchParams.get("cursor")?.trim();
+  const countOnlyRaw = (url.searchParams.get("countOnly") ?? "").trim().toLowerCase();
+  const countOnly = countOnlyRaw === "1" || countOnlyRaw === "true";
   const viewRaw = (url.searchParams.get("view") ?? "ops").trim().toLowerCase();
 
   return {
@@ -111,5 +124,6 @@ export function parseOperationalRosterListQuery(url: URL): OperationalRosterList
     ...(transportKind !== undefined ? { transportKind } : {}),
     limit,
     ...(cursor !== undefined && cursor.length > 0 ? { cursor } : {}),
+    ...(countOnly ? { countOnly: true } : {}),
   };
 }

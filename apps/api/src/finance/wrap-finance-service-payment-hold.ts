@@ -25,7 +25,7 @@ export function wrapFinanceServiceWithPaymentHold(service: FinanceService): Fina
       }
       const receipt = await service.submitReceipt(auth, {
         paymentId: payment.id,
-        fileKey: `dp1-operator-manual/${payment.id}.jpg`,
+        fileKey: `receipts/${auth.tenantId}/${payment.registrationId}/dp1-operator-manual-${payment.id}.jpg`,
       });
       await reviewReceipt(auth, receipt.id, { decision: "approve" });
       const invoice = await getRegistrationInvoice(auth, body.registrationId);

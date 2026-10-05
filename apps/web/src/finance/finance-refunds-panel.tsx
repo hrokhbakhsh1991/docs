@@ -25,7 +25,10 @@ import {
   type RefundSourceKind,
   type RefundStatus,
 } from "@/finance/finance-refunds-logic";
-import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
+import {
+  formatMinorAmount,
+  resolveFinanceAmountUnitLabel,
+} from "@/finance/finance-prepayments-logic";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
@@ -382,7 +385,11 @@ export function FinanceRefundsPanel() {
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="refund-amount">{t("amountAdjust")}</Label>
+                <Label htmlFor="refund-amount">
+                  {t("amountAdjust", {
+                    unit: resolveFinanceAmountUnitLabel(currencyPrefill, locale),
+                  })}
+                </Label>
                 <Input
                   id="refund-amount"
                   value={reqAmount}

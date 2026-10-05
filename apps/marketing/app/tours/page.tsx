@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -8,6 +9,9 @@ import { CatalogTourList } from "@/catalog/catalog-tour-list";
 import { CatalogTourFilterBar } from "@/catalog/catalog-tour-filter-bar";
 import {
   buildCatalogListHref,
+  buildCatalogListQuery,
+  catalogFiltersToQueryInput,
+  catalogListQueryHasEmptyValues,
   catalogFiltersToNoindexSearchParams,
   catalogListHasActiveFilters,
   catalogListHasClientFilters,
@@ -80,6 +84,9 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
   const host = headerList.get("host") ?? "localhost:3002";
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const listPath = resolveMarketingLocalePath("/tours", locale);
+  if (catalogListQueryHasEmptyValues(queryInput)) {
+    redirect(`${listPath}${buildCatalogListQuery(catalogFiltersToQueryInput(filters))}`);
+  }
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   const listFeatures = resolveCatalogListFeatures(bootstrap.pluginId);
   const serverListFilters = listFeatures.serverListFilters;
@@ -98,18 +105,20 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     items: fetchedItems,
     activeFilters: filters,
   });
+  const pricingPreviewResult = await fetchCommercialPricingPreviews({
+    host,
+    tenantId: bootstrap.tenantId,
+    workspace: bootstrap.pluginId,
+    tourIds: fetchedItems.map((item) => item.id),
+  });
   const { items, matchedCount } = await applyMarketingCatalogListPipeline(
     fetchedItems,
     filters,
     serverListFilters,
-    bootstrap.pluginId
+    bootstrap.pluginId,
+    pricingPreviewResult.previews,
+    pricingPreviewResult.status
   );
-  const pricingPreviews = await fetchCommercialPricingPreviews({
-    host,
-    tenantId: bootstrap.tenantId,
-    workspace: bootstrap.pluginId,
-    tourIds: items.map((item) => item.id),
-  });
   const listJsonLd =
     shouldEmitMarketingCatalogListJsonLd({ cursor: filters.cursor }) && items.length > 0
       ? buildMarketingCatalogListJsonLd({
@@ -164,7 +173,8 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
         <CatalogTourList
           items={items}
           pluginId={bootstrap.pluginId}
-          pricingPreviews={pricingPreviews}
+          pricingPreviews={pricingPreviewResult.previews}
+          pricingPreviewStatus={pricingPreviewResult.status}
         />
       )}
       {loadMoreHref != null || firstPageHref != null ? (

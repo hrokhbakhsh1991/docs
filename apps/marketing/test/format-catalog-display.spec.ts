@@ -58,13 +58,19 @@ describe("format-catalog-display", () => {
     );
   });
 
-  it("uses workspace price-display policy instead of plugin id for IRR toman labels", () => {
+  it("BUG-STG-024 uses workspace price-display policy instead of raw IRR labels", () => {
     assert.equal(formatCatalogPrice(1200, "IRR", "en-US", "Price on request", null), "IRR 1,200");
     assert.equal(
       formatCatalogPrice(1200, "IRR", "en-US", "Price on request", {
         irrDisplayUnit: "toman",
       }),
       "1,200 toman"
+    );
+    assert.equal(
+      formatCatalogPrice(1200, "IRR", "fa-IR", "قیمت پس از استعلام", {
+        irrDisplayUnit: "toman",
+      }),
+      "۱٬۲۰۰ تومان"
     );
   });
 

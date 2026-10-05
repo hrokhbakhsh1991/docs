@@ -70,10 +70,12 @@ function parseUsersListQuery(url: URL): UsersListQuery {
     statusRaw === "active" || statusRaw === "suspended" ? statusRaw : ("all" as const);
   const limitRaw = Number(url.searchParams.get("limit") ?? "50");
   const search = url.searchParams.get("search")?.trim();
+  const scope = url.searchParams.get("scope") === "wallet" ? "wallet" : "directory";
   const cursorRaw = url.searchParams.get("cursor")?.trim();
 
   return {
     ...(search !== undefined && search.length > 0 ? { search } : {}),
+    scope,
     role,
     status,
     sort,

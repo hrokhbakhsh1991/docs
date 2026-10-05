@@ -29,9 +29,7 @@ export class HostBookingTourCapacityAdapter implements BookingTourCapacityPort {
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number | null>>> {
     const tenant = tenantId.trim();
-    const unique = [
-      ...new Set(tourIds.map((id) => id.trim()).filter((id) => id.length > 0)),
-    ];
+    const unique = [...new Set(tourIds.map((id) => id.trim()).filter((id) => id.length > 0))];
     if (tenant.length === 0 || unique.length === 0) {
       return {};
     }
@@ -40,9 +38,42 @@ export class HostBookingTourCapacityAdapter implements BookingTourCapacityPort {
     const out: Record<string, number | null> = {};
     for (const id of unique) {
       const tour = byId.get(id);
-      out[id] =
-        tour === undefined ? null : readCapacityMaxFromTourData(tour.canonical.data);
+      out[id] = tour === undefined ? null : readCapacityMaxFromTourData(tour.canonical.data);
     }
     return out;
+  }
+
+  async increaseTourCapacity(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly delta: number;
+  }): Promise<{ readonly previousCapacity: number; readonly nextCapacity: number }> {
+    const delta = Math.trunc(input.delta);
+    if (delta < 1) {
+      throw new Error("BOOKING_CAPACITY_INCREMENT_INVALID");
+    }
+    const storage = createTourStorageRepository();
+    const current = await storage.getById(input.tourId, input.tenantId);
+    if (current === null) {
+      throw new Error("TOUR_NOT_FOUND");
+    }
+    const previousCapacity = readCapacityMaxFromTourData(current.canonical.data);
+    if (previousCapacity === null) {
+      throw new Error("BOOKING_CAPACITY_MAX_REQUIRED");
+    }
+    const data = {
+      ...(current.canonical.data as Record<string, unknown>),
+      capacityMax: previousCapacity + delta,
+    };
+    await storage.updateIfRowVersion({
+      tenantId: input.tenantId,
+      id: input.tourId,
+      canonical: {
+        ...current.canonical,
+        data,
+      },
+      expectedRowVersion: current.rowVersion,
+    });
+    return { previousCapacity, nextCapacity: previousCapacity + delta };
   }
 }

@@ -65,6 +65,25 @@ describe("admin-assisted-registration-logic", () => {
     ]);
   });
 
+  it("reads the persisted legacy organized transport amount", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements({
+      ...TOUR_DETAIL,
+      canonical: {
+        data: {
+          ...TOUR_DETAIL.canonical.data,
+          transport: {
+            mode: "bus",
+            allowPersonalCar: true,
+            transportCostAmount: 150000,
+          },
+        },
+      },
+    });
+
+    assert.equal(requirements.transport.mode, "bus");
+    assert.equal(requirements.transport.transportCostAmount, 150000);
+  });
+
   it("defaults the form to the workspace's preferred approval and transport flow", () => {
     const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
     const form = createDefaultAdminAssistedRegistrationForm(requirements);
@@ -188,6 +207,20 @@ describe("admin-assisted-registration-logic", () => {
       buildAdminAssistedRegistrationPayload({ tourId: "tour-1", requirements, form })
         .registrationIntake.transport,
       { kind: "personal_car", personalCarOccupants: 0 }
+    );
+  });
+
+  it("rejects a party larger than the per-registration contract", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
+    const form = {
+      ...createDefaultAdminAssistedRegistrationForm(requirements),
+      memberUserId: "user-42",
+      memberDisplayName: "Member Guest",
+      partySize: "100",
+    };
+    assert.deepEqual(
+      validateAdminAssistedRegistrationStep({ step: "identity", requirements, form }),
+      { ok: false, field: "partySize", message: "PARTY_SIZE_OVER_MAX" }
     );
   });
 });

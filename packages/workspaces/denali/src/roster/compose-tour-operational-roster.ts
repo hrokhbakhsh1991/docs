@@ -24,6 +24,7 @@ import {
 
 export type ComposeTourOperationalRosterInvoice = {
   readonly remainingMinor: string;
+  readonly amountDueNowMinor?: string | null;
   readonly paidAmountMinor: string;
   readonly invoiceTotalMinor: string;
   readonly currency: string;
@@ -96,11 +97,18 @@ export function composeTourOperationalRosterRow(
     waived,
   });
   const holdStatus = input.hold?.status ?? null;
+  // Final-roster membership is based on approved registration lifecycle. Keep
+  // payment/finalization metadata as independent projections so an approved
+  // participant who is still unpaid or partially paid remains visible.
+  const finalizationStatus = input.booking.finalizationStatus ?? "not_final";
 
   return {
     registrationId: input.booking.id,
     tourId: input.booking.tourId,
     guestLabel: input.booking.guestLabel,
+    guestPhone: input.booking.guestPhone ?? null,
+    approvedAt: input.booking.approvedAt ?? null,
+    finalizedAt: input.booking.finalizedAt ?? null,
     ...(input.booking.memberUserId !== undefined
       ? { memberUserId: input.booking.memberUserId }
       : {}),
@@ -109,8 +117,12 @@ export function composeTourOperationalRosterRow(
       : {}),
     partySize: input.booking.partySize,
     registrationStatus,
+    finalizationStatus,
     financialDisplayState,
     remainingMinor,
+    ...(input.invoice?.amountDueNowMinor !== undefined
+      ? { amountDueNowMinor: input.invoice.amountDueNowMinor }
+      : {}),
     paidMinor,
     currency,
     paymentDueAt: resolveActionablePaymentDueAt({
@@ -126,7 +138,7 @@ export function composeTourOperationalRosterRow(
     isDriverOffer: isDriverOffer(input.booking.transportKind),
     passengerAssignmentStatus: passengerAssignmentStatus(),
     refundDisplayState: deriveRefundDisplayState(input.refundStatuses),
-    isFinalParticipant: isFinalParticipant({ status: registrationStatus, remainingMinor }),
+    isFinalParticipant: isFinalParticipant({ status: registrationStatus, finalizationStatus }),
     isOperationalParticipant: isOperationalParticipant(registrationStatus),
     isFinanciallySettled: financiallySettled,
     occupiesCapacity: occupiesCapacity(registrationStatus),
@@ -145,6 +157,8 @@ export function matchesOperationalRosterFilter(
       return row.isOperationalParticipant;
     case "final":
       return row.isFinalParticipant;
+    case "awaiting_finalization":
+      return row.isOperationalParticipant && !row.isFinalParticipant;
     case "unpaid":
       return row.isOperationalParticipant && !row.isFinanciallySettled;
     case "paid":

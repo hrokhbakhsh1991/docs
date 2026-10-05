@@ -16,8 +16,6 @@ if (!specRel) {
 }
 
 const sdkRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const specPath = path.join(sdkRoot, specRel);
-
 const env = {
   NODE_ENV: "test",
   LEGACY_IMPORT_SCAN_SCOPE: legacyScope,
@@ -26,11 +24,9 @@ if (process.env.PATH) {
   env.PATH = process.env.PATH;
 }
 
-const stubPath = path.join(sdkRoot, "test/register-server-only-stub.mjs");
-
 const r = spawnSync(
   process.execPath,
-  ["--import", stubPath, "--import", "tsx", "--test", specPath],
+  ["--import", "./test/register-server-only-stub.mjs", "--import", "tsx", "--test", `./${specRel}`],
   {
   cwd: sdkRoot,
   encoding: "utf8",

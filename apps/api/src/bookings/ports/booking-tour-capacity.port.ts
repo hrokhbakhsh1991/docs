@@ -17,4 +17,14 @@ export type BookingTourCapacityPort = {
     tenantId: string,
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number | null>>>;
+
+  /** Explicit operator expansion used by the Waitlist → Finance handoff. */
+  readonly increaseTourCapacity?: (input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly delta: number;
+  }) => Promise<{
+    readonly previousCapacity: number;
+    readonly nextCapacity: number;
+  }>;
 };

@@ -4,7 +4,14 @@ import { isPublicCatalogOrganizedTransportMode } from "@app-tour/workspace-sdk";
 
 import { buildCatalogMapLink } from "./build-catalog-map-link";
 import type { MarketingCatalogCard } from "./catalog-types";
-import { formatCatalogPrice } from "./format-catalog-display";
+import {
+  CATALOG_DISPLAY_TIME_ZONE,
+  formatCatalogPrice,
+} from "./format-catalog-display";
+import {
+  resolveCatalogDongAmount,
+  resolveCatalogTransportCostAmount,
+} from "./format-catalog-transport";
 import { resolveCatalogTransportLabelKey } from "./resolve-catalog-transport-label-key";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
@@ -29,28 +36,37 @@ export async function CatalogTourDetailLogistics({
     tour.gatheringPoint?.label?.trim() || tour.meetingPointText?.trim() || null;
   const mapLink = buildCatalogMapLink(tour.gatheringPoint);
   const returnTime = tour.approximateReturnTime?.trim() || null;
+  const startTime = tour.departureAt
+    ? new Intl.DateTimeFormat(dateLocale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: CATALOG_DISPLAY_TIME_ZONE,
+      }).format(new Date(tour.departureAt))
+    : null;
 
   const transportMode = transport?.mode;
   const transportLabel =
     transportMode != null && transportMode !== "none"
       ? t(resolveCatalogTransportLabelKey(transportMode))
       : null;
+  const transportCostAmount = resolveCatalogTransportCostAmount(transport);
   const transportCost =
+    transportCostAmount != null &&
     transport != null &&
-    transport.transportCostAmount != null &&
     isPublicCatalogOrganizedTransportMode(transport.mode)
       ? formatCatalogPrice(
-          transport.transportCostAmount,
+          transportCostAmount,
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),
           priceDisplayPolicy
         )
       : null;
+  const dongAmountValue = resolveCatalogDongAmount(transport);
   const dongAmount =
-    transport?.dongAmount != null
+    dongAmountValue != null
       ? formatCatalogPrice(
-          transport.dongAmount,
+          dongAmountValue,
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),
@@ -61,6 +77,7 @@ export async function CatalogTourDetailLogistics({
   const hasContent =
     gatheringLabel != null ||
     mapLink != null ||
+    startTime != null ||
     returnTime != null ||
     transportLabel != null ||
     transportCost != null ||
@@ -77,6 +94,12 @@ export async function CatalogTourDetailLogistics({
     <section data-marketing-catalog-detail-logistics id="catalog-detail-logistics">
       <h2>{t("detail.logistics.heading")}</h2>
       <dl data-marketing-catalog-detail-logistics-list>
+        {startTime != null ? (
+          <div>
+            <dt>{t("detail.logistics.startTime")}</dt>
+            <dd>{localize(startTime)}</dd>
+          </div>
+        ) : null}
         {gatheringLabel != null ? (
           <div>
             <dt>{t("detail.logistics.gathering")}</dt>

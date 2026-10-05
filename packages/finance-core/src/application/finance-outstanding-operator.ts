@@ -3,9 +3,7 @@
  */
 import type { RegistrationInvoiceReadModel } from "../domain/compile-invoice-balances";
 import { isPositiveBalanceDueMinor } from "../domain/finance-exception";
-import {
-  type OutstandingBalanceItem,
-} from "../domain/outstanding-balance";
+import { type OutstandingBalanceItem } from "../domain/outstanding-balance";
 import type {
   FinanceRepositoryPort,
   OutstandingBalanceCandidateRow,
@@ -57,6 +55,13 @@ export async function loadOutstandingBalanceItems(
 
   const items: OutstandingBalanceItem[] = [];
   for (const candidate of candidates) {
+    const lifecycleStatus = await deps.bookingPayments.getRegistrationLifecycleStatus({
+      tenantId,
+      registrationId: candidate.registrationId,
+    });
+    if (lifecycleStatus !== "approved") {
+      continue;
+    }
     const invoice = await tryCompileRegistrationInvoiceInternal(
       deps,
       tenantId,
@@ -82,10 +87,7 @@ export async function loadOutstandingBalanceItems(
   const registrationIds = [
     ...new Set(items.map((item) => item.registrationId).filter((id) => id.length > 0)),
   ];
-  const contexts = await deps.registrationDisplay.getByRegistrationIds(
-    tenantId,
-    registrationIds
-  );
+  const contexts = await deps.registrationDisplay.getByRegistrationIds(tenantId, registrationIds);
   return items.map((item) =>
     attachRegistrationDisplayIdentity(item, contexts.get(item.registrationId))
   );

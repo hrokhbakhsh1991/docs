@@ -5,7 +5,6 @@ import {
 
 /** Mirrors workspace-sdk PublicCatalogTransportIntakeState (kept local to avoid SDK cycle). */
 export type CatalogRegistrationTransportIntakeState = Readonly<{
-  readonly optInPersonalCar: boolean;
   readonly hasPersonalCar: boolean | null;
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;
@@ -41,6 +40,8 @@ export type CatalogRegistrationFlowState = Readonly<{
   readonly notes: string;
   readonly registrantTarget: "self" | "other";
   readonly transportState: CatalogRegistrationTransportIntakeState;
+  /** Final status returned by the registration POST, used by the success step. */
+  readonly submissionOutcome: "pending" | "approved" | "waitlisted" | null;
 }>;
 
 export class CatalogRegistrationFlowStateError extends Error {
@@ -74,11 +75,11 @@ export const CATALOG_REGISTRATION_FLOW_STATE_KEYS = [
   "notes",
   "registrantTarget",
   "transportState",
+  "submissionOutcome",
 ] as const satisfies readonly (keyof CatalogRegistrationFlowState)[];
 
 function emptyTransportState(): CatalogRegistrationTransportIntakeState {
   return {
-    optInPersonalCar: false,
     hasPersonalCar: null,
     personalCarOccupants: null,
     paysDong: null,
@@ -114,6 +115,7 @@ export function createCatalogRegistrationFlowInitialData(): CatalogRegistrationF
     notes: "",
     registrantTarget: "self",
     transportState: emptyTransportState(),
+    submissionOutcome: null,
   });
 }
 
@@ -132,7 +134,6 @@ function isTransportState(value: unknown): value is CatalogRegistrationTransport
   }
   const row = value as Record<string, unknown>;
   return (
-    typeof row.optInPersonalCar === "boolean" &&
     (row.hasPersonalCar === null || typeof row.hasPersonalCar === "boolean") &&
     (row.personalCarOccupants === null ||
       row.personalCarOccupants === 0 ||
@@ -214,6 +215,14 @@ export function assertCatalogRegistrationFlowState(
   }
   if (!isTransportState(record.transportState)) {
     throw new CatalogRegistrationFlowStateError(`${label}: transportState invalid`);
+  }
+  if (
+    record.submissionOutcome !== null &&
+    record.submissionOutcome !== "pending" &&
+    record.submissionOutcome !== "approved" &&
+    record.submissionOutcome !== "waitlisted"
+  ) {
+    throw new CatalogRegistrationFlowStateError(`${label}: submissionOutcome invalid`);
   }
 }
 

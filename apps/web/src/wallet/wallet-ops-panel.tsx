@@ -3,10 +3,14 @@
 import "./wallet-ops-panel.a11y.css";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
-import { isOwnerRole } from "@/admin/require-operator-session";
+import {
+  isAdminOrOwnerRole,
+  type UsersDirectoryRow,
+  type UsersListResponse,
+} from "@/features/users/users-directory-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +32,7 @@ import {
   buildWalletAccountBalancePath,
   buildWalletAccountTransactionsPath,
   buildWalletAccountsSearchPath,
+  buildWalletMembersSearchPath,
   buildWalletCreditPath,
   buildWalletDebitPath,
   buildWalletCreditRequestBody,
@@ -42,7 +47,7 @@ import {
   parseWalletMutationResponse,
   parseWalletTransactionHistoryResponse,
   readWalletErrorCode,
-  validateMemberUserIdSearch,
+  validateMemberSearch,
   validateWalletMutationForm,
   validateWalletReversalForm,
   walletTransactionKindLabelKey,
@@ -73,10 +78,14 @@ const EMPTY_REVERSAL_FORM = { reasonNote: "" };
 export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("wallet.ops");
-  const canManage = isOwnerRole(session.role);
+  const canManage = isAdminOrOwnerRole(session.role);
 
   const [memberUserId, setMemberUserId] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [members, setMembers] = useState<readonly UsersDirectoryRow[]>([]);
+  const [selectedMember, setSelectedMember] = useState<UsersDirectoryRow | null>(null);
+  const [membersState, setMembersState] = useState<LoadState>("idle");
+  const [membersError, setMembersError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<readonly WalletAccountRow[]>([]);
   const [accountsPage, setAccountsPage] = useState(1);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -97,6 +106,7 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
   const [mutationFeedback, setMutationFeedback] = useState<string | null>(null);
   const [mutationPending, setMutationPending] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
+  const memberSearchRequestRef = useRef(0);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId) ?? null,
@@ -121,8 +131,16 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
           return t("errorReversalInvalid");
         case "REASON_REQUIRED":
           return t("errorReasonRequired");
+        case "REASON_TOO_LONG":
+          return t("errorReasonTooLong");
         case "AMOUNT_POSITIVE_INTEGER":
           return t("errorAmountInvalid");
+        case "CURRENCY_INVALID":
+          return t("errorCurrencyInvalid");
+        case "IDEMPOTENCY_KEY_REQUIRED":
+          return t("errorIdempotencyKeyRequired");
+        case "MUTATION_FAILED":
+          return t("errorMutationFailed");
         case "FORBIDDEN_OPERATOR_FORBIDDEN":
           return t("errorForbidden");
         case "VALIDATION_FAILED":
@@ -133,6 +151,42 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
     },
     [t],
   );
+
+  const loadMembers = useCallback(async (search = "") => {
+    const requestId = memberSearchRequestRef.current + 1;
+    memberSearchRequestRef.current = requestId;
+    setMembersState("loading");
+    setMembersError(null);
+    try {
+      const response = await fetch(buildWalletMembersSearchPath(search), { cache: "no-store" });
+      if (requestId !== memberSearchRequestRef.current) {
+        return;
+      }
+      if (!response.ok) {
+        setMembersState("error");
+        setMembersError(t("errorGeneric"));
+        return;
+      }
+      const payload = (await response.json()) as UsersListResponse;
+      if (requestId !== memberSearchRequestRef.current) {
+        return;
+      }
+      setMembers(Array.isArray(payload.items) ? payload.items : []);
+      setMembersState("ready");
+    } catch {
+      if (requestId !== memberSearchRequestRef.current) {
+        return;
+      }
+      setMembersState("error");
+      setMembersError(t("errorGeneric"));
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (canManage) {
+      void loadMembers();
+    }
+  }, [canManage, loadMembers]);
 
   const loadAccountDetails = useCallback(
     async (account: WalletAccountRow) => {
@@ -189,6 +243,48 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
     [resolveErrorMessage, t],
   );
 
+  const loadAccountsForMember = useCallback(
+    async (member: UsersDirectoryRow) => {
+      setSelectedMember(member);
+      setMemberUserId(member.userId);
+      setAccountsState("loading");
+      setAccounts([]);
+      setSelectedAccountId(null);
+      setBalanceMinor(null);
+      setHistoryItems([]);
+      setAccountsPage(1);
+      setSearchError(null);
+      setLoadError(null);
+
+      try {
+        const response = await fetch(buildWalletAccountsSearchPath(member.userId), {
+          cache: "no-store",
+        });
+        const raw = await response.json().catch(() => null);
+        if (!response.ok) {
+          setAccountsState("error");
+          setSearchError(resolveErrorMessage(readWalletErrorCode(raw)));
+          return;
+        }
+        const parsed = parseWalletAccountsResponse(raw);
+        if (parsed === null) {
+          setAccountsState("error");
+          setSearchError(t("errorGeneric"));
+          return;
+        }
+        setAccounts(parsed.items);
+        setAccountsState("ready");
+        if (parsed.items.length === 1) {
+          await loadAccountDetails(parsed.items[0]!);
+        }
+      } catch {
+        setAccountsState("error");
+        setSearchError(t("errorGeneric"));
+      }
+    },
+    [loadAccountDetails, resolveErrorMessage, t],
+  );
+
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canManage) {
@@ -197,44 +293,19 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
     setSearchError(null);
     setLoadError(null);
     setMutationFeedback(null);
-    const validated = validateMemberUserIdSearch(searchInput);
+    const validated = validateMemberSearch(searchInput);
     if (!validated.ok) {
       setSearchError(resolveErrorMessage(validated.error));
       return;
     }
-    setMemberUserId(validated.value);
-    setAccountsState("loading");
+    setSelectedMember(null);
+    setMemberUserId("");
     setAccounts([]);
     setSelectedAccountId(null);
     setBalanceMinor(null);
     setHistoryItems([]);
-    setAccountsPage(1);
-
-    try {
-      const response = await fetch(buildWalletAccountsSearchPath(validated.value), {
-        cache: "no-store",
-      });
-      const raw = await response.json().catch(() => null);
-      if (!response.ok) {
-        setAccountsState("error");
-        setSearchError(resolveErrorMessage(readWalletErrorCode(raw)));
-        return;
-      }
-      const parsed = parseWalletAccountsResponse(raw);
-      if (parsed === null) {
-        setAccountsState("error");
-        setSearchError(t("errorGeneric"));
-        return;
-      }
-      setAccounts(parsed.items);
-      setAccountsState(parsed.items.length === 0 ? "ready" : "ready");
-      if (parsed.items.length === 1) {
-        await loadAccountDetails(parsed.items[0]!);
-      }
-    } catch {
-      setAccountsState("error");
-      setSearchError(t("errorGeneric"));
-    }
+    setAccountsState("idle");
+    await loadMembers(validated.value);
   };
 
   const loadMoreHistory = async () => {
@@ -297,19 +368,12 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
   };
 
   const refreshSelectedAccount = async () => {
-    if (selectedAccount === null) {
+    if (selectedMember !== null) {
+      await loadAccountsForMember(selectedMember);
       return;
     }
-    await loadAccountDetails(selectedAccount);
-    if (memberUserId.length > 0) {
-      const response = await fetch(buildWalletAccountsSearchPath(memberUserId), {
-        cache: "no-store",
-      });
-      const raw = await response.json().catch(() => null);
-      const parsed = parseWalletAccountsResponse(raw);
-      if (parsed !== null) {
-        setAccounts(parsed.items);
-      }
+    if (selectedAccount !== null) {
+      await loadAccountDetails(selectedAccount);
     }
   };
 
@@ -435,16 +499,16 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={t("searchPlaceholder")}
                 autoComplete="off"
-                disabled={!canManage || accountsState === "loading"}
+                disabled={!canManage || membersState === "loading"}
                 data-testid={WALLET_OPS_TEST_IDS.searchInput}
               />
             </div>
             <Button
               type="submit"
-              disabled={!canManage || accountsState === "loading"}
+              disabled={!canManage || membersState === "loading"}
               data-testid={WALLET_OPS_TEST_IDS.searchSubmit}
             >
-              {accountsState === "loading" ? t("searching") : t("searchAction")}
+              {membersState === "loading" ? t("searching") : t("searchAction")}
             </Button>
           </form>
           {searchError !== null ? (
@@ -454,6 +518,73 @@ export function WalletOpsPanel({ session }: WalletOpsPanelProps) {
           ) : null}
         </CardContent>
       </Card>
+
+      {membersState === "loading" ? (
+        <Skeleton className="mb-6 h-40 w-full" data-testid={WALLET_OPS_TEST_IDS.membersLoading} />
+      ) : null}
+
+      {membersState === "error" ? (
+        <div className="mb-6 flex items-center gap-3">
+          <p role="alert" className="text-destructive" data-testid={WALLET_OPS_TEST_IDS.error}>
+            {membersError ?? t("errorGeneric")}
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void loadMembers(searchInput)}>
+            {t("retry")}
+          </Button>
+        </div>
+      ) : null}
+
+      {membersState === "ready" && members.length === 0 ? (
+        <p className="mb-6 text-muted-foreground" data-testid={WALLET_OPS_TEST_IDS.membersEmpty}>
+          {t("noMembers")}
+        </p>
+      ) : null}
+
+      {members.length > 0 ? (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{t("membersTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2" data-testid={WALLET_OPS_TEST_IDS.membersList}>
+              {members.map((member) => {
+                const selected = member.userId === selectedMember?.userId;
+                const phone = member.phone?.trim() ?? "";
+                const rawDisplayName = member.displayName.trim();
+                const hasDistinctDisplayName = rawDisplayName.length > 0 && rawDisplayName !== phone;
+                const displayName = hasDistinctDisplayName
+                  ? rawDisplayName
+                  : t("unnamedMember");
+                return (
+                  <li key={member.userId}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-4 rounded-md border px-3 py-3 text-start hover:bg-muted/40"
+                      data-testid={WALLET_OPS_TEST_IDS.memberRow}
+                      data-wallet-member-selected={selected ? "true" : "false"}
+                      onClick={() => void loadAccountsForMember(member)}
+                      disabled={accountsState === "loading"}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{displayName}</span>
+                        <span className="block truncate text-sm text-muted-foreground" dir="ltr">
+                          {phone.length > 0 ? phone : member.userId}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {member.membershipCode ? (
+                          <Badge variant="outline">{member.membershipCode}</Badge>
+                        ) : null}
+                        <Badge variant="secondary">{member.status}</Badge>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {accountsState === "loading" ? (
         <Skeleton className="mb-6 h-32 w-full" data-testid={WALLET_OPS_TEST_IDS.loading} />

@@ -3,6 +3,7 @@
  * HTTP wire DTOs SoT: `@app-tour/booking-http-contracts` (Phase B1.2).
  */
 import type {
+  BookingCancellationStatus,
   BookingPaymentStatus,
   BookingStatus,
   CreateBookingRequest as BookingHttpCreateBookingRequest,
@@ -11,6 +12,7 @@ import type {
 export type {
   ApproveBookingResponse,
   BookingListItem,
+  BookingCancellationStatus,
   BookingPaymentStatus,
   BookingStatus,
   BookingTourChip,
@@ -22,11 +24,22 @@ export type {
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
   CancelBookingResponse,
+  CancelBookingRequest,
   CreateBookingResponse,
+  FinalizeBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
 } from "@app-tour/booking-http-contracts";
+
+export type WaitlistCapacityAdmissionResponse = {
+  readonly id: string;
+  readonly status: string;
+  readonly paymentStatus: BookingPaymentStatus;
+  readonly capacityAdded: number;
+  readonly previousCapacity: number;
+  readonly nextCapacity: number;
+};
 
 export type CreateBookingRequest = BookingHttpCreateBookingRequest & {
   readonly memberUserId?: string;
@@ -42,12 +55,15 @@ export type BookingRecord = {
   readonly guestPhone: string | null;
   readonly partySize: number;
   readonly status: BookingStatus;
+  readonly finalizationStatus?: "not_final" | "finalized";
   readonly paymentStatus: BookingPaymentStatus;
   readonly financialDisplayState?: "WAIVED";
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly submittedByUserId: string;
   readonly approvedAt: string | null;
+  readonly finalizedAt?: string | null;
+  readonly finalizedByUserId?: string | null;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
   /**
    * List projection scalar — set when intake is stripped but target must remain
@@ -70,6 +86,13 @@ export type BookingRecord = {
   readonly paymentDueAt?: string | null;
   /** DP1 — terminal cancel provenance (`payment_deadline` | `operator` | null). */
   readonly cancelSource?: string | null;
+  readonly cancellationStatus?: BookingCancellationStatus;
+  readonly cancellationReasonCode?: string | null;
+  readonly cancellationReasonNote?: string | null;
+  readonly cancellationRequestedAt?: string | null;
+  readonly cancellationApprovedAt?: string | null;
+  readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationCorrelationId?: string | null;
 };
 
 export type BookingOutboxRecord = {
@@ -80,7 +103,14 @@ export type BookingOutboxRecord = {
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
   readonly domainEventId: string;
+  readonly correlationId?: string;
   readonly createdAt: string;
+};
+
+export type BookingOutboxEventInput = {
+  readonly eventType: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly correlationId?: string;
 };
 
 export type BookingListPageInput = {

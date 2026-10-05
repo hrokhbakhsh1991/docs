@@ -25,6 +25,9 @@ function booking(over: Partial<BookingListItem> = {}): BookingListItem {
     personalCarOccupants: over.personalCarOccupants ?? null,
     partySize: over.partySize ?? 1,
     status: over.status ?? "approved",
+    ...(over.finalizationStatus !== undefined
+      ? { finalizationStatus: over.finalizationStatus }
+      : {}),
     paymentStatus: over.paymentStatus ?? "unpaid",
     departureAt: over.departureAt ?? "2031-08-01T10:00:00.000Z",
     submittedAt: over.submittedAt ?? "2026-08-20T10:00:00.000Z",
@@ -33,11 +36,12 @@ function booking(over: Partial<BookingListItem> = {}): BookingListItem {
 }
 
 describe("DP-2 compose tour operational roster", () => {
-  it("approved unpaid row is operational but not final", () => {
+  it("approved unpaid row is operational but not final before explicit finalization", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking(),
       invoice: {
         remainingMinor: "2500000",
+        amountDueNowMinor: "750000",
         paidAmountMinor: "0",
         invoiceTotalMinor: "2500000",
         currency: "IRR",
@@ -50,13 +54,49 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.isFinalParticipant, false);
     assert.equal(row.financialDisplayState, "UNPAID");
     assert.equal(row.remainingMinor, "2500000");
+    assert.equal(row.amountDueNowMinor, "750000");
     assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
     assert.equal(row.holdStatus, "open");
   });
 
+  it("approved unpaid row keeps its financial balance in the final participant roster", () => {
+    const row = composeTourOperationalRosterRow({
+      booking: booking({ status: "approved", finalizationStatus: "finalized" }),
+      invoice: {
+        remainingMinor: "1000",
+        paidAmountMinor: "0",
+        invoiceTotalMinor: "1000",
+        currency: "IRR",
+      },
+      hold: null,
+      refundStatuses: [],
+      nowIso: NOW,
+    });
+    assert.equal(row.isFinalParticipant, true);
+    assert.equal(row.isFinanciallySettled, false);
+    assert.equal(row.financialDisplayState, "UNPAID");
+  });
+
+  it("keeps approved settled rows out of final roster until finalization", () => {
+    const row = composeTourOperationalRosterRow({
+      booking: booking({ status: "approved" }),
+      invoice: {
+        remainingMinor: "0",
+        paidAmountMinor: "2500000",
+        invoiceTotalMinor: "2500000",
+        currency: "IRR",
+      },
+      hold: null,
+      refundStatuses: [],
+      nowIso: NOW,
+    });
+    assert.equal(row.finalizationStatus, "not_final");
+    assert.equal(row.isFinalParticipant, false);
+  });
+
   it("partial payment projection", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking(),
+      booking: booking({ finalizationStatus: "finalized" }),
       invoice: {
         remainingMinor: "500000",
         paidAmountMinor: "2000000",
@@ -68,13 +108,13 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.financialDisplayState, "PARTIALLY_PAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.paymentDueAt, "2026-08-25T12:00:00.000Z");
   });
 
   it("paid final participant has no actionable payment deadline after hold is satisfied", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking(),
+      booking: booking({ finalizationStatus: "finalized" }),
       invoice: {
         remainingMinor: "0",
         paidAmountMinor: "2500000",
@@ -94,6 +134,7 @@ describe("DP-2 compose tour operational roster", () => {
   it("waived zero-obligation registration has no actionable payment deadline", () => {
     const row = composeTourOperationalRosterRow({
       booking: booking({
+        finalizationStatus: "finalized",
         paymentStatus: "paid",
         paymentDueAt: "2026-08-25T12:00:00.000Z",
       }),
@@ -114,7 +155,7 @@ describe("DP-2 compose tour operational roster", () => {
 
   it("satisfied hold does not expose an actionable payment deadline", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking({ paymentDueAt: null }),
+      booking: booking({ finalizationStatus: "finalized", paymentDueAt: null }),
       invoice: {
         remainingMinor: "2500000",
         paidAmountMinor: "0",
@@ -126,7 +167,7 @@ describe("DP-2 compose tour operational roster", () => {
       nowIso: NOW,
     });
     assert.equal(row.financialDisplayState, "UNPAID");
-    assert.equal(row.isFinalParticipant, false);
+    assert.equal(row.isFinalParticipant, true);
     assert.equal(row.paymentDueAt, null);
     assert.equal(row.holdStatus, "satisfied");
   });
@@ -164,7 +205,7 @@ describe("DP-2 compose tour operational roster", () => {
 
   it("refund badge orthogonal to payment state", () => {
     const row = composeTourOperationalRosterRow({
-      booking: booking(),
+      booking: booking({ finalizationStatus: "finalized" }),
       invoice: {
         remainingMinor: "0",
         paidAmountMinor: "2500000",
@@ -191,10 +232,14 @@ describe("DP-2 compose tour operational roster", () => {
     assert.equal(row.passengerAssignmentStatus, "not_implemented");
   });
 
-  it("filters: final, unpaid, paid, expiring, waitlist", () => {
+  it("filters: final, awaiting finalization, unpaid, paid, expiring, waitlist", () => {
     const rows = [
       composeTourOperationalRosterRow({
-        booking: booking({ id: "unpaid", guestLabel: "Unpaid Guest" }),
+        booking: booking({
+          id: "unpaid",
+          guestLabel: "Unpaid Guest",
+          finalizationStatus: "finalized",
+        }),
         invoice: {
           remainingMinor: "1000",
           paidAmountMinor: "0",
@@ -206,7 +251,11 @@ describe("DP-2 compose tour operational roster", () => {
         nowIso: NOW,
       }),
       composeTourOperationalRosterRow({
-        booking: booking({ id: "paid", guestLabel: "Paid Guest" }),
+        booking: booking({
+          id: "paid",
+          guestLabel: "Paid Guest",
+          finalizationStatus: "finalized",
+        }),
         invoice: {
           remainingMinor: "0",
           paidAmountMinor: "1000",
@@ -229,32 +278,34 @@ describe("DP-2 compose tour operational roster", () => {
         refundStatuses: [],
         nowIso: NOW,
       }),
+      composeTourOperationalRosterRow({
+        booking: booking({
+          id: "awaiting-finalization",
+          guestLabel: "Awaiting Finalization Guest",
+          finalizationStatus: "not_final",
+        }),
+        invoice: {
+          remainingMinor: "1000",
+          paidAmountMinor: "0",
+          invoiceTotalMinor: "1000",
+          currency: "IRR",
+        },
+        hold: { status: "open", dueAt: "2026-08-30T12:00:00.000Z" },
+        refundStatuses: [],
+        nowIso: NOW,
+      }),
     ];
 
+    assert.equal(filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length, 2);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length, 2);
     assert.equal(
-      filterOperationalRosterRows({ rows, filter: "unpaid", nowIso: NOW }).length,
+      filterOperationalRosterRows({ rows, filter: "awaiting_finalization", nowIso: NOW }).length,
       1
     );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "paid", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "final", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length,
-      1
-    );
-    assert.equal(
-      matchesOperationalRosterFilter(rows[0]!, "expiring", NOW),
-      true
-    );
+    assert.equal(filterOperationalRosterRows({ rows, filter: "expiring", nowIso: NOW }).length, 1);
+    assert.equal(filterOperationalRosterRows({ rows, filter: "waitlist", nowIso: NOW }).length, 1);
+    assert.equal(matchesOperationalRosterFilter(rows[0]!, "expiring", NOW), true);
   });
 
   it("transportKind post-filter", () => {

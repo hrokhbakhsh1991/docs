@@ -42,6 +42,7 @@ import type {
 import { listDeprecatedEventPolicies } from "@/integrations/integration-connection-load-warnings";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import { telegramEventLabelKey } from "@/exposure/telegram-event-label-key";
 
 export const INTEGRATION_DELIVERY_POLICY_TEST_IDS = {
   panel: "integration-delivery-policy-panel",
@@ -89,6 +90,7 @@ function humanizeEventType(eventType: string): string {
 }
 
 type TelegramMessagePreviewProps = {
+  readonly eventType: string;
   readonly eventLabel: string;
   readonly fields: readonly ExposureCatalogField[];
   readonly selectedFieldIds: readonly string[];
@@ -101,6 +103,7 @@ type TelegramMessagePreviewProps = {
     readonly sampleValue: string;
     readonly aggregateId: string;
     readonly redacted: string;
+    readonly pdpButton: string;
   };
 };
 
@@ -126,6 +129,11 @@ function TelegramMessagePreview(props: TelegramMessagePreviewProps) {
           },
         })}
       </pre>
+      {props.eventType === "TourPublished" ? (
+        <div className="mt-3 inline-flex rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
+          {props.labels.pdpButton}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -147,11 +155,11 @@ function toExposureContext(eventState: DeliveryPolicyEventState): ExposureCheckl
 
 function effectiveSelectedFieldIds(
   eventState: DeliveryPolicyEventState,
-  exposureCandidateFields: readonly ExposureCatalogField[],
+  exposureCandidateFields: readonly ExposureCatalogField[]
 ): readonly string[] {
   return resolveEffectiveSelectedFieldIds(
     toSelectionState(eventState),
-    catalogFieldIds(exposureCandidateFields),
+    catalogFieldIds(exposureCandidateFields)
   );
 }
 
@@ -159,7 +167,7 @@ function initialEventState(
   connection: IntegrationConnectionPublic,
   providerSurface: IntegrationProviderSurfaceMeta | null,
   eventType: string,
-  exposureCandidateFields: readonly ExposureCatalogField[],
+  exposureCandidateFields: readonly ExposureCatalogField[]
 ): DeliveryPolicyEventState {
   const persistedPolicy = connection.eventPolicies.find((policy) => policy.eventType === eventType);
   const persistedIntent =
@@ -171,19 +179,19 @@ function initialEventState(
   const enabled = persistedPolicy?.enabled ?? defaultEnabled;
   const selection = resolveExposureFieldSelectionFromPersisted(
     persistedIntent?.enabled === true,
-    persistedIntent?.selectedFieldIds ?? [],
+    persistedIntent?.selectedFieldIds ?? []
   );
   const context = resolveExposureIntentContextFromPersisted(
     connection.provider,
     eventType,
-    persistedIntent,
+    persistedIntent
   );
   const selectedFieldIds = resolveEffectiveSelectedFieldIds(
     selection,
-    catalogFieldIds(exposureCandidateFields),
+    catalogFieldIds(exposureCandidateFields)
   );
   const hydratedTemplate = hydrateTelegramTemplateState({
-    template: persistedIntent?.templateId ?? "",
+    template: persistedIntent?.templateId ?? providerSurface?.messageTemplates?.[eventType] ?? "",
     legacyFieldDecorations: persistedIntent?.fieldDecorations,
     fields: exposureCandidateFields,
     selectedFieldIds,
@@ -214,14 +222,26 @@ export function IntegrationEventDeliveryPolicyPanel({
   const tWizard = useWorkspaceWizardTranslator(pluginId);
   const tErrors = useTranslations("settings.integrations.errors");
 
-  const [hostAdaptersWarm, setHostAdaptersWarm] = useState(false);
+  const [hostAdaptersStatus, setHostAdaptersStatus] = useState<"loading" | "ready" | "failed">(
+    "loading"
+  );
+  const [hostAdaptersReadyPluginId, setHostAdaptersReadyPluginId] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
+    setHostAdaptersStatus("loading");
+    setHostAdaptersReadyPluginId(null);
     void loadWizardWorkspacePlugin(pluginId)
       .then((plugin) => ensureWizardHostReady(plugin))
       .then(() => {
         if (!cancelled) {
-          setHostAdaptersWarm(true);
+          setHostAdaptersReadyPluginId(pluginId);
+          setHostAdaptersStatus("ready");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Exposure configuration must fail closed rather than leak raw registry metadata.
+          setHostAdaptersStatus("failed");
         }
       });
     return () => {
@@ -230,23 +250,34 @@ export function IntegrationEventDeliveryPolicyPanel({
   }, [pluginId]);
 
   const localizedCandidateFields = useMemo((): readonly ExposureCatalogField[] => {
-    if (!hostAdaptersWarm) {
-      return exposureCandidateFields;
+    if (hostAdaptersStatus !== "ready" || hostAdaptersReadyPluginId !== pluginId) {
+      return [];
     }
     return localizeExposureCatalogFields(pluginId, exposureCandidateFields, tWizard);
-  }, [exposureCandidateFields, tWizard, hostAdaptersWarm, pluginId]);
+  }, [exposureCandidateFields, tWizard, hostAdaptersReadyPluginId, hostAdaptersStatus, pluginId]);
+
+  const candidateFieldsEmptyLabel =
+    hostAdaptersStatus === "loading"
+      ? t("fieldsLoading")
+      : hostAdaptersStatus === "failed"
+        ? t("fieldsUnavailable")
+        : t("noCandidateFields");
 
   const eventTypes = useMemo(
     () => buildExposureEventTypeList(connection, providerSurface),
-    [connection, providerSurface],
+    [connection, providerSurface]
   );
 
   const deprecatedEventPolicies = useMemo(
     () => listDeprecatedEventPolicies(connection),
-    [connection],
+    [connection]
   );
 
   const eventLabel = (eventType: string): string => {
+    const localizedKey = telegramEventLabelKey(eventType);
+    if (localizedKey !== undefined && t.has(`eventNames.${localizedKey}`)) {
+      return t(`eventNames.${localizedKey}`);
+    }
     const key = `eventNames.${eventType}`;
     return t.has(key) ? t(key) : humanizeEventType(eventType);
   };
@@ -267,7 +298,7 @@ export function IntegrationEventDeliveryPolicyPanel({
         connection,
         providerSurface,
         eventType,
-        localizedCandidateFields,
+        localizedCandidateFields
       );
     }
     setStateByEvent(next);
@@ -297,7 +328,7 @@ export function IntegrationEventDeliveryPolicyPanel({
         toSelectionState(previous),
         catalogFieldIds(exposureCandidateFields),
         fieldId,
-        checked,
+        checked
       );
       const field = localizedCandidateFields.find((candidate) => candidate.id === fieldId);
       const nextTemplate =
@@ -329,11 +360,11 @@ export function IntegrationEventDeliveryPolicyPanel({
       const nextSelection = setExposureCustomizeFields(
         toSelectionState(previous),
         catalogFieldIds(exposureCandidateFields),
-        customize,
+        customize
       );
       const selectedIds = resolveEffectiveSelectedFieldIds(
         nextSelection,
-        catalogFieldIds(exposureCandidateFields),
+        catalogFieldIds(exposureCandidateFields)
       );
       const template =
         customize && previous.template.trim().length === 0
@@ -398,7 +429,10 @@ export function IntegrationEventDeliveryPolicyPanel({
             const supersededBy = policy.supersededBy ?? "TourPublished";
             return (
               <div key={policy.eventType} className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="border-muted-foreground/40 text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className="border-muted-foreground/40 text-muted-foreground"
+                >
                   {t("deprecatedEventBadge")}
                 </Badge>
                 <p className="text-muted-foreground">
@@ -446,7 +480,9 @@ export function IntegrationEventDeliveryPolicyPanel({
                 <Checkbox
                   checked={eventState.enabled}
                   disabled={!canEdit || isSaving}
-                  onChange={(event) => updateEventState(eventType, { enabled: event.target.checked })}
+                  onChange={(event) =>
+                    updateEventState(eventType, { enabled: event.target.checked })
+                  }
                 />
                 <span>{t("enabledLabel")}</span>
               </label>
@@ -478,7 +514,7 @@ export function IntegrationEventDeliveryPolicyPanel({
                     <ExposureFieldChecklist
                       context={toExposureContext(eventState)}
                       disabled={!canEdit || isSaving}
-                      emptyLabel={t("noCandidateFields")}
+                      emptyLabel={candidateFieldsEmptyLabel}
                       fields={toExposureChecklistFields(localizedCandidateFields)}
                       selectedFieldIds={selectedFieldIds}
                       selectedSummary={t("selectedSummary", { count: selectedFieldIds.length })}
@@ -498,7 +534,9 @@ export function IntegrationEventDeliveryPolicyPanel({
                   <section className="space-y-2 rounded-lg border border-border/70 bg-card p-4">
                     <div className="space-y-0.5">
                       <Label htmlFor={`delivery-template-${eventType}`}>{t("templateLabel")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("templateCanvasDescription")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("templateCanvasDescription")}
+                      </p>
                     </div>
                     <textarea
                       id={`delivery-template-${eventType}`}
@@ -517,6 +555,7 @@ export function IntegrationEventDeliveryPolicyPanel({
 
                 <div className="space-y-4">
                   <TelegramMessagePreview
+                    eventType={eventType}
                     eventLabel={eventLabel(eventType)}
                     fields={localizedCandidateFields}
                     selectedFieldIds={selectedFieldIds}
@@ -529,6 +568,7 @@ export function IntegrationEventDeliveryPolicyPanel({
                       sampleValue: t("previewSampleValue"),
                       aggregateId: t("previewAggregateId"),
                       redacted: t("previewRedacted"),
+                      pdpButton: t("previewPdpButton"),
                     }}
                   />
                 </div>

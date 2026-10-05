@@ -19,7 +19,8 @@ describe("staging-env-contract", () => {
   it("REG-STG-ENV-01 wave-c bootstrap sets denali fallback, MinIO public endpoint, portal internal URL", () => {
     const sh = read("scripts/wave-c-staging-env-bootstrap.sh");
     assert.match(sh, /STAGING_PUBLIC_IP="\$\{STAGING_PUBLIC_IP:-89\.42\.210\.252\}"/);
-    assert.match(sh, /MINIO_PUBLIC_ENDPOINT=http:\/\/\$\{STAGING_PUBLIC_IP\}:9002/);
+    assert.match(sh, /MINIO_PUBLIC_HOST=\$\{STAGING_PUBLIC_MINIO_HOST\}/);
+    assert.match(sh, /MINIO_PUBLIC_ENDPOINT=https:\/\/\$\{STAGING_PUBLIC_MINIO_HOST\}/);
     assert.match(sh, /PORTAL_INTERNAL_URL=http:\/\/127\.0\.0\.1:23003/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_LABEL=denali/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_HOSTS=\$\{FALLBACK_HOSTS\}/);
@@ -29,12 +30,16 @@ describe("staging-env-contract", () => {
   it("REG-STG-ENV-02 profile-b sync sets api MINIO_PUBLIC_ENDPOINT and portal PORTAL_INTERNAL_URL", () => {
     const sh = read("scripts/vps-deploy/sync-staging-profile-b-public-urls.sh");
     assert.match(sh, /MINIO_PUBLIC_ENDPOINT/);
+    assert.match(sh, /MINIO_PUBLIC_ENDPOINT "https:\/\/\$\{MINIO_PUBLIC_HOST\}"/);
+    assert.match(sh, /MINIO_PUBLIC_HOST "\$MINIO_PUBLIC_HOST"/);
     assert.match(sh, /PORTAL_INTERNAL_URL/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_LABEL "\$CLUB_LABEL"/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_HOSTS/);
-    assert.match(sh, /portal\.%s\.localhost/);
+    assert.match(sh, /PORTAL_INTERNAL_URL "http:\/\/127\.0\.0\.1:\$\{PTL_PORT\}"/);
     assert.match(sh, /MARKETING_PUBLIC_BASE_URL/);
-    assert.match(sh, /PLATFORM_ROOT_DOMAIN localhost/);
+    assert.match(sh, /marketing\.env.*MARKETING_PUBLIC_BASE_URL/);
+    assert.match(sh, /marketing\.env.*MARKETING_PUBLIC_BASE_URL_ALLOWLIST/);
+    assert.match(sh, /domain.*!=.*localhost/);
   });
 
   it("REG-STG-ENV-03 active staging deploy scripts default to canonical staging IP", () => {
@@ -60,5 +65,17 @@ describe("staging-env-contract", () => {
     assert.match(marketingExample, new RegExp(STAGING_IP));
     assert.doesNotMatch(apiExample, new RegExp(LEGACY_IP));
     assert.doesNotMatch(marketingExample, new RegExp(LEGACY_IP));
+  });
+
+  it("REG-STG-ENV-05 renders the configured public portal host for Caddy", () => {
+    const render = read("scripts/vps-deploy/render-caddy-env.sh");
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    assert.match(render, /PORTAL_PUBLIC_BASE_URL=.*portal\.env/);
+    assert.match(render, /CANONICAL_PORTAL_HOST/);
+    assert.match(render, /invalid canonical portal host/);
+    assert.match(caddy, /http:\/\/\{\$CANONICAL_PORTAL_HOST\}/);
+    assert.match(caddy, /http:\/\/\{\$MINIO_PUBLIC_HOST\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$MINIO_PORT\}/);
+    assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
   });
 });

@@ -133,10 +133,11 @@ Default: **host-only** (no `Domain=` attribute) on legacy platform portal ingres
 
 **PCMS-COOK-02 (dev):** Bare `Domain=localhost` or `Domain=.localhost` is **rejected** by Chromium (`localhost` is on the Public Suffix List) — never emit those Domain attributes. Auth BFF may still write **host-only** cookies on legacy `{club}.portal.localhost`.
 
-**PCMS-COOK-03 (shared Domain — custom apex + localhost inverted portal):** Portal sets / refreshes `atour_mb_session` with `Domain=<share-parent>` via `resolveMemberSessionCookieDomain` / `shouldRefreshDevMemberSessionCookieDomain` / `setSessionCookieOnResponse(..., "shared")` when ingress is:
+**PCMS-COOK-03 (shared Domain — canonical portal, custom apex + localhost inverted portal):** Portal sets / refreshes `atour_mb_session` with `Domain=<share-parent>` via `resolveMemberSessionCookieDomain` / `shouldRefreshDevMemberSessionCookieDomain` / `setSessionCookieOnResponse(..., "shared")` when ingress is:
 
 | Ingress | Cookie `Domain=` | Marketing sibling that receives cookie |
 | ------- | ---------------- | -------------------------------------- |
+| `portal.{club}.{root}` (canonical platform portal, e.g. `portal.denali.shenski.com`) | `{club}.{root}` (`denali.shenski.com`) | `{club}.{root}` |
 | `portal.{apex}` (custom apex, e.g. `portal.denali.club`) | `{apex}` (`denali.club`) | `{apex}` |
 | `portal.{club}.localhost` (canonical local portal) | `{club}.localhost` (`denali.localhost`) | `{club}.localhost` |
 
@@ -150,7 +151,7 @@ Default: **host-only** (no `Domain=` attribute) on legacy platform portal ingres
 
 **PCMS-03-DEV (cross-surface tenant bind):** When `ALLOW_DEV_WEB_SESSION=true` and ingress is `*.localhost`, `sessionTenantMatchesDevCrossSurfaceHost` accepts a valid member session when its `tenant_id` matches the paired M+P dev host map for the session's club label — even if marketing bootstrap fell back to `TOUR_OPS_DEV_TENANT_ID` on an unmapped host (e.g. bare `localhost:3002`). Production remains strict: widened branch is gated by `isDevGuestHostAllowed()`.
 
-When ingress is custom apex (`tryParseCustomApexHost`) or inverted localhost portal (`portal.{club}.localhost` → `club_portal`), portal sets `Domain=<share-parent>` on `Set-Cookie` / clear so member session is shared with the marketing sibling for that tenant only.
+When ingress is canonical platform portal (`portal.{club}.{root}`), custom apex (`tryParseCustomApexHost`), or inverted localhost portal (`portal.{club}.localhost` → `club_portal`), portal sets `Domain=<share-parent>` on `Set-Cookie` / clear so member session is shared with the marketing sibling for that tenant only. Legacy `{club}.portal.{root}` remains host-only unless separately redirected by an environment-specific canonicalization rule.
 
 Cookie write points: `verify-otp` (returning member), `register-complete` (new guest after profile), `/api/me/mobile/verify`, logout clear.
 

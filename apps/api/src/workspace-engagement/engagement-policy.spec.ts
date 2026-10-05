@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
   DEFAULT_ENGAGEMENT_AWARD_RULES,
+  DEFAULT_ENGAGEMENT_BADGES,
   DEFAULT_ENGAGEMENT_LEVELS,
   resolveLevelForPoints,
   resolveNextLevel,
@@ -29,5 +30,21 @@ describe("engagement-policy", () => {
       assert.notEqual(rule.sourceModule, "wallet");
     }
     assert.equal(DEFAULT_ENGAGEMENT_LEVELS.length, 3);
+  });
+
+  it("ships human-readable seed copy instead of translation keys", () => {
+    for (const badge of DEFAULT_ENGAGEMENT_BADGES) {
+      assert.ok(badge.titleI18n?.en);
+      assert.ok(badge.titleI18n?.fa);
+      assert.ok(badge.descriptionI18n?.en);
+      assert.ok(badge.descriptionI18n?.fa);
+      assert.doesNotMatch(badge.titleI18n?.fa ?? "", /^engagement\./);
+      assert.doesNotMatch(badge.descriptionI18n?.fa ?? "", /^engagement\./);
+    }
+    for (const level of DEFAULT_ENGAGEMENT_LEVELS) {
+      assert.ok(level.titleI18n?.en);
+      assert.ok(level.titleI18n?.fa);
+      assert.doesNotMatch(level.titleI18n?.fa ?? "", /^engagement\./);
+    }
   });
 });

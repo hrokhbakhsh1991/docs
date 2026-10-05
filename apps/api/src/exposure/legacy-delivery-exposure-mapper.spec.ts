@@ -22,7 +22,10 @@ describe("legacy-delivery-exposure-mapper", () => {
     assert.equal(profile?.id, "denali.telegram.TourPublished");
     assert.equal(profile?.source, REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED);
     assert.deepEqual(profile?.defaultFieldIds, selectableIds);
-    assert.equal(profile?.defaultTemplateId, "Tour published: {{title}}");
+    assert.equal(
+      profile?.defaultTemplateId,
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
+    );
   });
 
   it("maps disabled legacy intents to inherit_profile", async () => {

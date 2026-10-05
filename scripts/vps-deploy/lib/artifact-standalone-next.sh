@@ -24,10 +24,23 @@ package_next_standalone() {
   rm -rf "$out_dir"
   mkdir -p "$out_dir"
   cp -a "${standalone_root}/." "$out_dir/"
-  mkdir -p "${out_dir}/$(dirname "${app_rel}")/${app_rel##*/}/.next"
-  cp -a "${app_dir}/.next/static" "${out_dir}/${app_rel}/.next/static"
+  local static_root
+  if [[ "$server_js" == "${app_rel}/"* ]]; then
+    static_root="${out_dir}/${app_rel}/.next"
+  else
+    static_root="${out_dir}/.next"
+  fi
+  mkdir -p "$static_root"
+  rm -rf "$static_root/static"
+  cp -a "${app_dir}/.next/static" "$static_root/static"
   if [[ -d "${app_dir}/public" ]]; then
-    cp -a "${app_dir}/public" "${out_dir}/${app_rel}/public"
+    local public_root
+    if [[ "$server_js" == "${app_rel}/"* ]]; then
+      public_root="${out_dir}/${app_rel}"
+    else
+      public_root="$out_dir"
+    fi
+    cp -a "${app_dir}/public" "$public_root/public"
   fi
   if [[ "${app_rel}" == "apps/portal" ]]; then
     local snapshot_src="${app_dir}/src/me/member-profile-contract-v1.snapshot.json"

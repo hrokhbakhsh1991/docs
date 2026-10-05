@@ -38,4 +38,18 @@ describe("bookings-approve.spec.ts — Phase 9.5", () => {
     });
     assert.equal(readyState.type, "ready");
   });
+
+  it("WEB-9.5-02 filter refresh does not present stale bookings", () => {
+    const refreshingState = resolveBookingsPageBodyState({
+      canManageOps: true,
+      view: "ops",
+      loading: true,
+      error: null,
+      // The previous response may still be in memory while the new filter loads.
+      itemsLength: 4,
+      hasActiveFilters: true,
+    });
+
+    assert.deepEqual(refreshingState, { type: "loading" });
+  });
 });

@@ -37,13 +37,17 @@ export function prepareDenaliFlatEditSeedEnvelope<TForm>(
   envelopeMeta: DenaliWizardDraftMeta,
   tourRowVersion: number | null
 ): DenaliWizardDraftEnvelope<TForm> {
-  return denaliPrepareDraftEnvelope(form, denaliFlatEditEnvelopeMetaForTour(envelopeMeta, tourRowVersion));
+  return denaliPrepareDraftEnvelope(
+    form,
+    denaliFlatEditEnvelopeMetaForTour(envelopeMeta, tourRowVersion)
+  );
 }
 
 /**
  * True when the remote edit draft was hydrated from an older tour version than
  * the GET we just loaded — leftover autosave after a successful PATCH.
- * Unstamped envelopes are kept so pre-stamp unsaved work is not discarded.
+ * Unstamped envelopes are handled separately because their source version is
+ * unknown and they require an explicit operator decision.
  */
 export function isDenaliFlatEditDraftStaleVsTour(
   draft: DenaliWizardDraftEnvelope<unknown>,
@@ -55,6 +59,15 @@ export function isDenaliFlatEditDraftStaleVsTour(
     return false;
   }
   return source < tour;
+}
+
+/**
+ * Legacy edit drafts predate the source-row-version stamp. They cannot be
+ * safely compared with the canonical tour, so they require an explicit
+ * operator choice instead of silently replacing the current record.
+ */
+export function isDenaliFlatEditDraftUnstamped(draft: DenaliWizardDraftEnvelope<unknown>): boolean {
+  return readDenaliWizardSourceRowVersion(draft.meta.sourceRowVersion) === undefined;
 }
 
 export function shouldSeedDenaliFlatEditDraftFromTour(input: {
@@ -76,12 +89,18 @@ export function resolveDenaliFlatEditWorkingEnvelope<TForm>(input: {
   readonly tourBaseline: TForm | null;
   readonly tourRowVersion: number | null;
   readonly envelopeMeta: DenaliWizardDraftMeta;
+  /** User explicitly chose to recover an unversioned legacy draft. */
+  readonly allowUnstampedRemote?: boolean;
 }): DenaliWizardDraftEnvelope<TForm> | null {
-  const { remoteDraft, tourBaseline, tourRowVersion, envelopeMeta } = input;
+  const { remoteDraft, tourBaseline, tourRowVersion, envelopeMeta, allowUnstampedRemote } = input;
   if (tourBaseline === null) {
     return remoteDraft;
   }
-  if (remoteDraft !== null && !isDenaliFlatEditDraftStaleVsTour(remoteDraft, tourRowVersion)) {
+  if (
+    remoteDraft !== null &&
+    !isDenaliFlatEditDraftStaleVsTour(remoteDraft, tourRowVersion) &&
+    (!isDenaliFlatEditDraftUnstamped(remoteDraft) || allowUnstampedRemote === true)
+  ) {
     return remoteDraft;
   }
   return denaliHydrateDraftEnvelope(

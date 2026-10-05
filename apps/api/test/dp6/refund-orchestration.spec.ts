@@ -128,7 +128,7 @@ describe("DP6 refund orchestration", () => {
     assert.equal(refunds.items.length, 1);
   });
 
-  it("S12 waitlist withdraw frees no seat; approved cancel promotes waitlist", async () => {
+  it("S12 waitlist withdraw frees no seat; approved cancel leaves waitlist for operator promotion", async () => {
     const tourId = dp1BookingBody({ tourCapacityMax: 2 }).tourId;
     const approvedId = (
       await createBooking(dp6OpsAuth(), dp1BookingBody({ tourId, guestLabel: "Approved Guest" }))
@@ -140,7 +140,7 @@ describe("DP6 refund orchestration", () => {
     await waitlistBooking(dp6OpsAuth(), waitId);
     await dp6CancelBooking(approvedId);
     const waitRow = await getBookingsRepository().getById(waitId, dp6OpsAuth().tenantId);
-    assert.equal(waitRow?.status, "approved", "waitlist guest promoted after seat release");
+    assert.equal(waitRow?.status, "waitlisted", "waitlist promotion requires operator approval");
   });
 
   it("S5 paid member cancellation request then operator approve drafts refund", async () => {

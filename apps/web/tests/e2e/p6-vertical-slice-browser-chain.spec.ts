@@ -131,5 +131,9 @@ test.describe("p6-vertical-slice-browser-chain.spec.ts — P6 VS-CHAIN browser",
         .getByRole("listitem")
         .filter({ has: financePage.locator(`a[title="${chain.bookingId}"]`) })
     ).toHaveCount(0, { timeout: 15_000 });
+    await financePage.screenshot({
+      path: "test-results/t06-registration-receipt-finance-chain.png",
+      fullPage: true,
+    });
   });
 });

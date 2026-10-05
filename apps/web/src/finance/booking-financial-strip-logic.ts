@@ -63,9 +63,7 @@ export function hasRecordedManualPayment(
 }
 
 /** True when invoice balanceDueMinor is a positive integer minor amount. */
-export function hasInvoiceRemainingBalance(
-  balanceDueMinor: string | null | undefined
-): boolean {
+export function hasInvoiceRemainingBalance(balanceDueMinor: string | null | undefined): boolean {
   if (balanceDueMinor === null || balanceDueMinor === undefined) {
     return false;
   }
@@ -128,12 +126,16 @@ export function resolveStripBookingSettlementSummary(input: {
 export function resolveStripNextStep(input: {
   readonly bookingStatus: string;
   readonly bookingPaymentStatus: StripBookingPaymentStatus;
+  readonly financialDisplayState?: StripFinancialDisplayState | null | undefined;
   readonly hasOpenPendingPayment: boolean;
   readonly hasPendingReceipt: boolean;
   readonly hasRemainingBalance: boolean;
   readonly registrationId: string;
 }): StripNextStepPlan | null {
   if (input.bookingStatus.trim().toLowerCase() !== "approved") {
+    return null;
+  }
+  if (input.financialDisplayState?.trim().toUpperCase() === "WAIVED") {
     return null;
   }
   if (input.bookingPaymentStatus === "paid") {
@@ -144,8 +146,9 @@ export function resolveStripNextStep(input: {
   }
 
   if (input.hasOpenPendingPayment) {
-    const reason: StripNextStepReason =
-      input.hasPendingReceipt ? "pending_payment_with_receipt" : "pending_payment";
+    const reason: StripNextStepReason = input.hasPendingReceipt
+      ? "pending_payment_with_receipt"
+      : "pending_payment";
     return {
       tab: "payments",
       reason,

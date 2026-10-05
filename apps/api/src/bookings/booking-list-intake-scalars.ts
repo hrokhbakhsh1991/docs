@@ -22,13 +22,19 @@ export function resolveFinancialDisplayStateForListRecord(
   obligationOverride: Readonly<Record<string, unknown>> | null | undefined,
   freeCollectionApplied = false
 ): BookingRecord["financialDisplayState"] {
-  if (record.financialDisplayState !== undefined) {
-    return record.financialDisplayState;
-  }
-  if (record.status !== "approved" || record.paymentStatus !== "paid") {
+  if (record.status !== "approved") {
     return undefined;
   }
   if (freeCollectionApplied) {
+    return "WAIVED";
+  }
+  if (record.paymentStatus !== "paid") {
+    return undefined;
+  }
+  // A persisted WAIVED value is valid only after the current payment
+  // projection confirms finality. This prevents an old list projection from
+  // surviving a later unpaid/partial state.
+  if (record.financialDisplayState === "WAIVED") {
     return "WAIVED";
   }
   const override = readObligationOverrideFromIntake(

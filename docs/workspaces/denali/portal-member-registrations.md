@@ -18,6 +18,10 @@ authority: platform-portal-member.mdoc · portal-registration-ui.md · registrat
 
 **This doc:** Denali portal skin for `/me/registrations` list + detail + receipt upload. Business rules stay in API bookings/finance; portal **must not** static-import `@app-cloud/workspace-denali`.
 
+### Projection deployment invariant (2026-09-28)
+
+The member list and owned detail must consume the same canonical financial projection. A source fix is not considered deployed until the staging runtime fingerprint matches the commit that contains it; a previous release may legitimately show the old list projection even when the detail resolver is already fixed. For free/waived registrations, the list projection must emit `financialDisplayState=WAIVED` and must not expose a payment deadline or payment CTA. Regression evidence records the runtime SHA separately from the source HEAD.
+
 ### Mine list default (active only)
 
 `GET /api/me/registrations` → `GET /bookings?view=mine` returns **active** member rows by default: statuses ∈ `{pending, waitlisted, approved}`. Terminal `cancelled` / `rejected` are omitted unless the client explicitly passes `status` / `statuses`. Prevents cancelled probe/history rows from drowning the trips list after reclassify or abandoned attempts.
@@ -26,11 +30,11 @@ authority: platform-portal-member.mdoc · portal-registration-ui.md · registrat
 
 List SSR reads optional query `?target=` (URL SoT — bookmarkable, no client-only state):
 
-| `target` | Meaning |
-| -------- | ------- |
-| omitted / `all` | Every active mine row (`self` + `other`) |
-| `self` | Only registrations where `registrantTarget !== "other"` (includes missing/null → self) |
-| `other` | Only guest registrations (`registrantTarget === "other"`) |
+| `target`        | Meaning                                                                                |
+| --------------- | -------------------------------------------------------------------------------------- |
+| omitted / `all` | Every active mine row (`self` + `other`)                                               |
+| `self`          | Only registrations where `registrantTarget !== "other"` (includes missing/null → self) |
+| `other`         | Only guest registrations (`registrantTarget === "other"`)                              |
 
 **Filter is presentation-only** on the already-fetched mine list. Upstream `GET /bookings?view=mine` still returns both targets; portal does **not** add a booking query param for target (keeps BFF one-shot and avoids ops/list contract churn).
 
@@ -51,6 +55,12 @@ Each row keeps `data-portal-member-registrant-target` and shows a badge:
 
 - `other` → `forOtherBadge` (+ guest label when present)
 - `self` → `forSelfBadge` (makes “mine vs guest” obvious when tab is **all**)
+
+For approved legacy rows that predate `financialDisplayState` or
+`paymentCollection` on the list projection, the Portal list rehydrates the
+owned detail projection before rendering the payment-progress label. This is
+a bounded compatibility path for old registrations; new rows should still
+carry the canonical list fields directly.
 
 ---
 
@@ -77,11 +87,11 @@ mapped to Next `notFound()` (404) even when the booking existed (for-tour / DB).
 
 ### HTTP service modules (portal registration reads + amend)
 
-| Module | Route responsibility |
-| ------ | -------------------- |
-| `registration-for-tour.service.ts` | `GET …/for-tour` — active self row gate before register |
-| `registration-get.service.ts` | `GET …/{id}` — owned detail + optional due breakdown |
-| `registration-amend.service.ts` | `PATCH …/{id}/intake` — transport-only amend while pending/waitlisted |
+| Module                             | Route responsibility                                                  |
+| ---------------------------------- | --------------------------------------------------------------------- |
+| `registration-for-tour.service.ts` | `GET …/for-tour` — active self row gate before register               |
+| `registration-get.service.ts`      | `GET …/{id}` — owned detail + optional due breakdown                  |
+| `registration-amend.service.ts`    | `PATCH …/{id}/intake` — transport-only amend while pending/waitlisted |
 
 Wired from `product.routes.ts`. Tests: `packages/workspaces/denali/test/registration-read-services.spec.ts`.
 
@@ -93,33 +103,33 @@ Detail `/me/registrations/{id}` is the **only** member money surface. It combine
 
 `GET /bookings/{id}/receipts` (portal BFF `GET /api/me/registrations/{id}/receipt`) returns:
 
-| Field | Meaning |
-| ----- | ------- |
-| `status` | `none` \| `pending` \| `rejected` \| `paid` \| `waived` |
-| `remainingMinor` | Invoice `balanceDueMinor` — amount still to transfer |
-| `obligationMinor` | Resolved obligation (override wins over tour list price) |
-| `paidMinor` | Already captured |
-| `currency` | ISO currency |
+| Field                        | Meaning                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `status`                     | `none` \| `pending` \| `rejected` \| `paid` \| `waived`                              |
+| `remainingMinor`             | Invoice `balanceDueMinor` — amount still to transfer                                 |
+| `obligationMinor`            | Resolved obligation (override wins over tour list price)                             |
+| `paidMinor`                  | Already captured                                                                     |
+| `currency`                   | ISO currency                                                                         |
 | `previewUrl` / `previewKind` | Signed (or fallback) proof for the **latest** receipt; `image` \| `pdf` \| `unknown` |
 
 **Money SoT:** if `remainingMinor > 0`, status is **never** `paid` or `waived`. Latest receipt then decides `pending` / `rejected` / `none` (Approved-but-remaining → `none`, upload the rest).
 
-**Settled (`remainingMinor` is 0):** `waived` when collection is `free` or resolved obligation is zero (ops override / club guest — **no** “receipt confirmed” copy). Otherwise `paid` (money actually captured).
+**Settled (`remainingMinor` is 0):** `waived` when collection is `free` or resolved obligation is zero (ops override / club guest — **no** “receipt confirmed” copy). Otherwise `paid` (money actually captured). Settlement does not imply attendance finalization: an approved `paid` registration with `finalizationStatus=not_final` must use explicit “payment complete; awaiting operator finalization” copy in both the list and detail; only `finalizationStatus=finalized` may use “trip finalized/confirmed” copy.
 
 Do **not** set portal `initialStatus` from `row.paymentStatus === "paid"`.
 
-| Condition | UI |
-| --------- | -- |
-| `status` = `pending` | Awaiting club approval (`data-portal-member-receipt-awaiting-approval`); optional intake amend |
-| `status` = `waitlisted` | Same awaiting card; KPI says waitlisted |
-| `status` = `rejected` | Closed — club rejected (`data-portal-member-receipt-closed` `data-closed-reason=rejected`) |
-| `status` = `cancelled` | Closed — cancelled (`data-portal-member-receipt-closed` `data-closed-reason=cancelled`) |
-| approved ∧ receipt `waived` | No-pay panel (`data-portal-member-receipt-waived`) — «نیازی به پرداخت نیست» |
-| approved ∧ receipt `paid` | Payment confirmed (`data-portal-member-receipt-paid`) — only when remaining is 0 |
-| approved ∧ receipt `pending` | Waiting + **proof preview** + remaining due |
-| approved ∧ receipt `rejected` | Upload + retry hint + remaining due + last-proof preview |
-| approved ∧ receipt `none` ∧ remaining > 0 | Upload + remaining due (partial leftover uses remaining, not catalog list price) |
-| approved ∧ remaining = 0 ∧ waived/paid | settled panels above |
+| Condition                                 | UI                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `status` = `pending`                      | Awaiting club approval (`data-portal-member-receipt-awaiting-approval`); optional intake amend |
+| `status` = `waitlisted`                   | Same awaiting card; KPI says waitlisted                                                        |
+| `status` = `rejected`                     | Closed — club rejected (`data-portal-member-receipt-closed` `data-closed-reason=rejected`)     |
+| `status` = `cancelled`                    | Closed — cancelled (`data-portal-member-receipt-closed` `data-closed-reason=cancelled`)        |
+| approved ∧ receipt `waived`               | No-pay panel (`data-portal-member-receipt-waived`) — «نیازی به پرداخت نیست»                    |
+| approved ∧ receipt `paid`                 | Payment confirmed (`data-portal-member-receipt-paid`) — only when remaining is 0               |
+| approved ∧ receipt `pending`              | Waiting + **proof preview** + remaining due                                                    |
+| approved ∧ receipt `rejected`             | Upload + retry hint + remaining due + last-proof preview                                       |
+| approved ∧ receipt `none` ∧ remaining > 0 | Upload + remaining due (partial leftover uses remaining, not catalog list price)               |
+| approved ∧ remaining = 0 ∧ waived/paid    | settled panels above                                                                           |
 
 Due block (`data-portal-member-receipt-due`): headline is **remaining**, not catalog `obligationMinor`. Optional `data-portal-member-receipt-due-paid` when `paidMinor > 0`. Catalog `dueLines` (trip/dong/transport) only when remaining equals unresolved list-price obligation (first unpaid slip).
 
@@ -139,10 +149,10 @@ After upload, member **stays** on `/me/registrations/{id}` (no auto-redirect).
 
 CTAs on waiting / paid / awaiting-approval / closed:
 
-| CTA | Target |
-| --- | ------ |
-| Back to trips | `resolveMemberPortalTripsListPath` |
-| View tour | marketing `resolveMarketingTourDetailUrl(host, tourId)` |
+| CTA           | Target                                                  |
+| ------------- | ------------------------------------------------------- |
+| Back to trips | `resolveMemberPortalTripsListPath`                      |
+| View tour     | marketing `resolveMarketingTourDetailUrl(host, tourId)` |
 
 `tourId` is forwarded from API `BookingListItem` through portal list/detail BFF.
 
@@ -152,35 +162,35 @@ CTAs on waiting / paid / awaiting-approval / closed:
 
 Stable selectors — **do not rename** without updating smoke specs.
 
-| Hook | Location |
-| ---- | -------- |
-| `data-portal-member-registrations` | List page root (`main`); also `data-registrant-filter={all\|self\|other}` |
-| `data-portal-member-registrations-filter` | Target filter nav; `data-active-target` mirrors query |
-| `data-portal-member-registrations-filter-tab` | Tab link; `data-target` + `aria-current="page"` when active |
-| `data-portal-member-registrations-filter-label` | Tab visible label |
-| `data-portal-member-registrations-filter-count` | Per-tab active count |
-| `data-portal-member-registrations-empty-state` | Empty shell; `data-empty-reason="filtered"` when tab has zero rows but mine list is non-empty |
-| `data-portal-member-registration-row` | Each list item |
-| `data-portal-member-registrant-target` | `self` \| `other` on each row |
-| `data-portal-member-registrant-self-badge` | Self badge copy |
-| `data-portal-member-registrant-other-badge` | Other badge copy |
-| `data-portal-member-registration-detail` | Detail page root (`main`) |
-| `data-portal-member-receipt-awaiting-approval` | Club approval pending / waitlisted |
-| `data-portal-member-receipt-closed` | rejected / cancelled — no upload (`data-closed-reason`) |
-| `data-portal-member-receipt-waived` | Free / zero override — no transfer |
-| `data-portal-member-receipt-preview` | Member proof preview (img / pdf) |
-| `data-portal-member-receipt-upload` | Receipt form shell (only when approved) |
-| `data-portal-member-receipt-submit` | Upload button |
-| `data-portal-member-receipt-success` | Brief post-POST flash (optional) |
-| `data-portal-member-receipt-error` | Error alert |
-| `data-portal-member-receipt-waiting` | Waiting-for-finance-admin panel |
-| `data-portal-member-receipt-paid` | Payment confirmed panel |
-| `data-portal-member-receipt-view-tour` | Marketing tour CTA |
-| `data-portal-member-receipt-back-trips` | Trips list CTA |
-| `data-portal-member-intake-amend` | Pending/waitlisted transport amend panel (feature `memberPendingIntakeAmend`) |
-| `data-portal-member-registration-transport` | Detail KPI — current saved `transportKind` (BUG-18) |
-| `data-portal-member-intake-amend-saved` | Amend success status |
-| `data-portal-member-intake-amend-error` | Amend error alert |
+| Hook                                            | Location                                                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `data-portal-member-registrations`              | List page root (`main`); also `data-registrant-filter={all\|self\|other}`                     |
+| `data-portal-member-registrations-filter`       | Target filter nav; `data-active-target` mirrors query                                         |
+| `data-portal-member-registrations-filter-tab`   | Tab link; `data-target` + `aria-current="page"` when active                                   |
+| `data-portal-member-registrations-filter-label` | Tab visible label                                                                             |
+| `data-portal-member-registrations-filter-count` | Per-tab active count                                                                          |
+| `data-portal-member-registrations-empty-state`  | Empty shell; `data-empty-reason="filtered"` when tab has zero rows but mine list is non-empty |
+| `data-portal-member-registration-row`           | Each list item                                                                                |
+| `data-portal-member-registrant-target`          | `self` \| `other` on each row                                                                 |
+| `data-portal-member-registrant-self-badge`      | Self badge copy                                                                               |
+| `data-portal-member-registrant-other-badge`     | Other badge copy                                                                              |
+| `data-portal-member-registration-detail`        | Detail page root (`main`)                                                                     |
+| `data-portal-member-receipt-awaiting-approval`  | Club approval pending / waitlisted                                                            |
+| `data-portal-member-receipt-closed`             | rejected / cancelled — no upload (`data-closed-reason`)                                       |
+| `data-portal-member-receipt-waived`             | Free / zero override — no transfer                                                            |
+| `data-portal-member-receipt-preview`            | Member proof preview (img / pdf)                                                              |
+| `data-portal-member-receipt-upload`             | Receipt form shell (only when approved)                                                       |
+| `data-portal-member-receipt-submit`             | Upload button                                                                                 |
+| `data-portal-member-receipt-success`            | Brief post-POST flash (optional)                                                              |
+| `data-portal-member-receipt-error`              | Error alert                                                                                   |
+| `data-portal-member-receipt-waiting`            | Waiting-for-finance-admin panel                                                               |
+| `data-portal-member-receipt-paid`               | Payment confirmed panel                                                                       |
+| `data-portal-member-receipt-view-tour`          | Marketing tour CTA                                                                            |
+| `data-portal-member-receipt-back-trips`         | Trips list CTA                                                                                |
+| `data-portal-member-intake-amend`               | Pending/waitlisted transport amend panel (feature `memberPendingIntakeAmend`)                 |
+| `data-portal-member-registration-transport`     | Detail KPI — current saved `transportKind` (BUG-18)                                           |
+| `data-portal-member-intake-amend-saved`         | Amend success status                                                                          |
+| `data-portal-member-intake-amend-error`         | Amend error alert                                                                             |
 
 Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt → waiting panel; requires approved booking) · **SMK-PTL-05** (home redirect) · **SMK-PTL-06** (logout).
 
@@ -188,21 +198,21 @@ Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt → waiting pa
 
 ## Styling
 
-| Rule | Detail |
-| ---- | ------ |
-| Scope | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
-| Skin file | `packages/workspaces/denali/theme/denali-portal.css` |
-| List | Pocket 3.2 canvas rows — `main[data-portal-member-registrations]` |
-| Detail | Pocket 3.4 canvas trip page — `main[data-portal-member-registration-detail]` |
-| Receipt | `[data-portal-member-receipt-upload]` — file input + primary submit |
-| Awaiting / closed | `[data-portal-member-receipt-awaiting-approval]` · `[data-portal-member-receipt-closed]` |
-| Waiting / paid / waived | `[data-portal-member-receipt-waiting]` · `[data-portal-member-receipt-paid]` · `[data-portal-member-receipt-waived]` |
-| Preview | `[data-portal-member-receipt-preview]` |
-| Status badge | `[data-portal-member-registration-status-badge][data-status]` — `approved` · `pending` · `waitlisted` · `rejected` · `cancelled` |
-| Row meta | `[data-portal-member-registration-meta]` — payment + departure |
-| Empty state | `[data-portal-member-registrations-empty-state]` — message + CTA (PS-M2 · 2026-07-12) |
-| Empty CTA | `[data-portal-member-registrations-empty-cta]` — egress to marketing `/tours` via `resolveMarketingToursUrl` |
-| Target filter | `[data-portal-member-registrations-filter]` · `[data-portal-member-registrations-filter-tab][data-target]` — Denali primary underline/pill for `aria-current` |
+| Rule                    | Detail                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope                   | `body[data-app-surface="portal"][data-workspace-plugin="denali"]`                                                                                             |
+| Skin file               | `packages/workspaces/denali/theme/denali-portal.css`                                                                                                          |
+| List                    | Pocket 3.2 canvas rows — `main[data-portal-member-registrations]`                                                                                             |
+| Detail                  | Pocket 3.4 canvas trip page — `main[data-portal-member-registration-detail]`                                                                                  |
+| Receipt                 | `[data-portal-member-receipt-upload]` — file input + primary submit                                                                                           |
+| Awaiting / closed       | `[data-portal-member-receipt-awaiting-approval]` · `[data-portal-member-receipt-closed]`                                                                      |
+| Waiting / paid / waived | `[data-portal-member-receipt-waiting]` · `[data-portal-member-receipt-paid]` · `[data-portal-member-receipt-waived]`                                          |
+| Preview                 | `[data-portal-member-receipt-preview]`                                                                                                                        |
+| Status badge            | `[data-portal-member-registration-status-badge][data-status]` — `approved` · `pending` · `waitlisted` · `rejected` · `cancelled`                              |
+| Row meta                | `[data-portal-member-registration-meta]` — payment + departure                                                                                                |
+| Empty state             | `[data-portal-member-registrations-empty-state]` — message + CTA (PS-M2 · 2026-07-12)                                                                         |
+| Empty CTA               | `[data-portal-member-registrations-empty-cta]` — egress to marketing `/tours` via `resolveMarketingToursUrl`                                                  |
+| Target filter           | `[data-portal-member-registrations-filter]` · `[data-portal-member-registrations-filter-tab][data-target]` — Denali primary underline/pill for `aria-current` |
 
 Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 
@@ -210,15 +220,23 @@ Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 
 ## Verification
 
-| ID | Assert |
-| -- | ------ |
-| DEN-REG-01 | List page renders `data-portal-member-registrations` with Denali skin |
-| DEN-REG-02 | Detail renders upload hooks only when `status=approved`, remaining > 0, and receipt `none`/`rejected` |
-| DEN-REG-03 | Receipt submit disabled while upload in flight |
-| DEN-REG-05 | `status=pending` shows `data-portal-member-receipt-awaiting-approval`; no upload control |
+### Financial state separation
+
+The registration payment projection is authoritative for settlement. An
+approved receipt is not itself a paid registration: the detail status, receipt
+panel, deadline, and upload/payment action must keep `paymentStatus` separate
+from `receiptStatus`. A free or waived registration must use the same financial
+projection on List and Detail and must not show a payment-required message.
+
+| ID         | Assert                                                                                                                                                                                                     |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEN-REG-01 | List page renders `data-portal-member-registrations` with Denali skin                                                                                                                                      |
+| DEN-REG-02 | Detail renders upload hooks only when `status=approved`, remaining > 0, and receipt `none`/`rejected`                                                                                                      |
+| DEN-REG-03 | Receipt submit disabled while upload in flight                                                                                                                                                             |
+| DEN-REG-05 | `status=pending` shows `data-portal-member-receipt-awaiting-approval`; no upload control                                                                                                                   |
 | DEN-REG-08 | Amend radios initialize from owned-detail `transportKind` / `personalCarOccupants` (not tour-mode defaults). Reload after PATCH keeps the saved kind. No `registrationIntake` blob on the member BFF item. |
-| DEN-REG-06 | List filter tabs render with counts; `?target=other` shows only `data-portal-member-registrant-target="other"` rows |
-| DEN-REG-07 | Self rows show `data-portal-member-registrant-self-badge`; other rows keep `forOtherBadge` |
+| DEN-REG-06 | List filter tabs render with counts; `?target=other` shows only `data-portal-member-registrant-target="other"` rows                                                                                        |
+| DEN-REG-07 | Self rows show `data-portal-member-registrant-self-badge`; other rows keep `forOtherBadge`                                                                                                                 |
 
 ### Detail chrome
 

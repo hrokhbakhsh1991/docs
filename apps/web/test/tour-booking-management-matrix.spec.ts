@@ -29,6 +29,7 @@ function booking(
     guestLabel: "Guest",
     partySize: 1,
     status,
+    finalizationStatus: "not_final",
     paymentStatus,
     transportKind: null,
     personalCarOccupants: null,
@@ -76,6 +77,24 @@ describe("tour-booking-management-matrix (admin surface)", () => {
           },
           status
         );
+
+        const paidResult = resolveBookingActionAvailability({
+          canManageOps: true,
+          booking: booking("approved", "paid"),
+          isWaitlistable: true,
+          isCancellable: true,
+          capacityFull: false,
+        });
+        assert.equal(paidResult.unavailableReason, null, "approved:paid");
+
+        const waivedResult = resolveBookingActionAvailability({
+          canManageOps: true,
+          booking: { ...booking("approved", "paid"), financialDisplayState: "WAIVED" },
+          isWaitlistable: true,
+          isCancellable: true,
+          capacityFull: false,
+        });
+        assert.equal(waivedResult.unavailableReason, null, "approved:waived");
       } else {
         assert.deepEqual(
           result,
@@ -107,8 +126,12 @@ describe("tour-booking-management-matrix (admin surface)", () => {
               capacityFull,
             });
 
-            assert.equal(result.canApprove, true, `${status}:${isWaitlistable}:${isCancellable}`);
-            assert.equal(result.canApproveWithoutPayment, true, status);
+            assert.equal(
+              result.canApprove,
+              !capacityFull,
+              `${status}:${isWaitlistable}:${isCancellable}`
+            );
+            assert.equal(result.canApproveWithoutPayment, !capacityFull, status);
             assert.equal(result.canReject, true, status);
             assert.equal(result.canWaitlist, isWaitlistable, status);
             assert.equal(result.canCancel, isCancellable, status);
@@ -142,17 +165,29 @@ describe("tour-booking-management-matrix (admin surface)", () => {
       for (const paymentStatus of PAYMENT_STATUSES) {
         assert.equal(
           bookingPaymentLabelKey(booking(bookingStatus, paymentStatus)),
-          `payment.${paymentStatus}`,
+          paymentStatus === "paid"
+            ? "payment.paidAwaitingFinalization"
+            : `payment.${paymentStatus}`,
           `${bookingStatus}:${paymentStatus}`
         );
         assert.equal(
           bookingTimelinePaymentLabelKey(booking(bookingStatus, paymentStatus)),
-          `paymentValue.${paymentStatus}`,
+          paymentStatus === "paid"
+            ? "paymentValue.paidAwaitingFinalization"
+            : `paymentValue.${paymentStatus}`,
           `timeline:${bookingStatus}:${paymentStatus}`
         );
       }
     }
 
+    assert.equal(
+      bookingPaymentLabelKey({ paymentStatus: "paid", finalizationStatus: "finalized" }),
+      "payment.paid"
+    );
+    assert.equal(
+      bookingTimelinePaymentLabelKey({ paymentStatus: "paid", finalizationStatus: "finalized" }),
+      "paymentValue.paid"
+    );
     assert.equal(
       bookingPaymentLabelKey({ paymentStatus: "paid", financialDisplayState: "WAIVED" }),
       "payment.waived"

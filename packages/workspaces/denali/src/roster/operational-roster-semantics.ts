@@ -48,9 +48,11 @@ export function isOperationalParticipant(status: OperationalRosterLifecycleStatu
 
 export function isFinalParticipant(input: {
   readonly status: OperationalRosterLifecycleStatus;
-  readonly remainingMinor: string | null | undefined;
+  readonly finalizationStatus: "not_final" | "finalized";
 }): boolean {
-  return isOperationalParticipant(input.status) && isFinanciallySettled(input.remainingMinor);
+  // Approval reserves capacity; explicit finalization controls attendance
+  // roster inclusion. Payment remains an independent projection.
+  return isOperationalParticipant(input.status) && input.finalizationStatus === "finalized";
 }
 
 export function occupiesCapacity(status: OperationalRosterLifecycleStatus): boolean {

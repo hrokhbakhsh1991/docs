@@ -28,7 +28,7 @@ function walkTsFiles(dir: string): string[] {
 }
 
 function isExcluded(rel: string): boolean {
-  return rel.endsWith(".generated.ts") || rel.includes("/test/");
+  return rel.endsWith(".generated.ts") || rel.includes("/test/") || rel.includes("\\test\\");
 }
 
 describe("CW3-08 publish-transition detector consumer census", () => {
@@ -46,7 +46,7 @@ describe("CW3-08 publish-transition detector consumer census", () => {
 
     const violations: string[] = [];
     for (const abs of walkTsFiles(API_SRC)) {
-      const rel = abs.slice(REPO_ROOT.length + 1);
+      const rel = abs.slice(REPO_ROOT.length + 1).replaceAll("\\", "/");
       if (isExcluded(rel)) {
         continue;
       }
@@ -86,7 +86,7 @@ describe("CW3-08 publish-transition detector consumer census", () => {
     ];
     const violations: string[] = [];
     for (const abs of walkTsFiles(API_SRC)) {
-      const rel = abs.slice(REPO_ROOT.length + 1);
+      const rel = abs.slice(REPO_ROOT.length + 1).replaceAll("\\", "/");
       if (isExcluded(rel)) {
         continue;
       }

@@ -6,6 +6,7 @@ import {
   parseBookingsListQuery,
   parseBookingsSummaryQuery,
   parseBulkApproveBookingsBody,
+  parseCancelBookingBody,
   parseCreateBookingBody,
   parseRejectBookingBody,
 } from "@app-tour/booking-http-contracts";
@@ -19,6 +20,7 @@ import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service";
 import {
   MEMBER_RECEIPT_PROOF_MAX_BYTES,
+  deleteMemberReceiptProof,
   putMemberReceiptProof,
   sanitizeReceiptProofFileName,
 } from "../workspace-finance/receipt-proof-storage";
@@ -27,11 +29,15 @@ import {
   bulkApproveBookings,
   cancelBooking,
   createBooking,
+  finalizeBooking,
+  finalizeBookingWithOpenPayment,
+  waiveAndFinalizeBooking,
   getBooking,
   getBookingsSummary,
   listBookings,
   rejectBooking,
   waitlistBooking,
+  promoteWaitlistWithCapacityIncrease,
 } from "./create-bookings-service";
 import {
   getMemberCancellationEligibility,
@@ -43,6 +49,8 @@ import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancella
 import { cancelTourRegistrations } from "./tour-cancellation.service.ts";
 import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
+import { getPaymentDestinationMemberProjection } from "../settings/settings-config.service";
+import { BookingsOpsForbiddenError } from "./bookings.errors";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -107,7 +115,10 @@ export async function handleGetBookingsSummary(
   }
 }
 
-export async function handleCreateBooking(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleCreateBooking(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
     const body = await readIdentityRequestBody(req);
@@ -143,6 +154,69 @@ export async function handleApproveBooking(
       auth,
       async () => {
         const result = await approveBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleFinalizeBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await finalizeBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleFinalizeBookingWithOpenPayment(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await finalizeBookingWithOpenPayment(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleWaiveAndFinalizeBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await waiveAndFinalizeBooking(auth, bookingId);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }
@@ -230,7 +304,7 @@ export async function handleWaitlistBooking(
   }
 }
 
-export async function handleCancelBooking(
+export async function handlePromoteWaitlistWithCapacityIncrease(
   req: IncomingMessage,
   res: ServerResponse,
   bookingId: string
@@ -241,12 +315,45 @@ export async function handleCancelBooking(
       req,
       auth,
       async () => {
-        const result = await cancelBooking(auth, bookingId);
+        const result = await promoteWaitlistWithCapacityIncrease(auth, bookingId);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }
     );
   } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleCancelBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    if (auth.role !== "admin" && auth.role !== "owner") {
+      throw new BookingsOpsForbiddenError();
+    }
+    const body = await readIdentityRequestBody(req);
+    const cancellation = parseCancelBookingBody(body);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await cancelBooking(auth, bookingId, cancellation);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "BOOKING_CANCEL_REASON_REQUIRED") {
+      sendHttpError(res, 400, {
+        error: "validation_error",
+        code: "BOOKING_CANCEL_REASON_REQUIRED",
+      });
+      return;
+    }
     handleHttpError(res, error);
   }
 }
@@ -257,11 +364,18 @@ function mapMemberReceiptUploadError(res: ServerResponse, error: unknown): boole
     sendHttpError(res, 503, { error: "service_unavailable", code: "MINIO_NOT_CONFIGURED" });
     return true;
   }
+  if (message === "RECEIPT_STORAGE_FULL" || message === "RECEIPT_STORAGE_UNAVAILABLE") {
+    sendHttpError(res, 503, { error: "service_unavailable", code: message });
+    return true;
+  }
   if (
     message === "RECEIPT_PROOF_EMPTY" ||
     message === "RECEIPT_PROOF_TOO_LARGE" ||
     message === "RECEIPT_PROOF_CONTENT_TYPE_INVALID" ||
-    message === "RECEIPT_PROOF_KEY_SCOPE_INVALID"
+    message === "RECEIPT_PROOF_KEY_SCOPE_INVALID" ||
+    message === "RECEIPT_EVIDENCE_REQUIRED" ||
+    message === "RECEIPT_NOTE_MAX" ||
+    message === "RECEIPT_FILE_KEY_MAX"
   ) {
     sendHttpError(res, 400, { error: "invalid_body", code: message });
     return true;
@@ -277,11 +391,17 @@ export async function handlePostBookingReceipt(
   try {
     const auth = await requireOperatorSession(req);
     const contentType = readHeader(req, "content-type");
+    const idempotencyKey = readHeader(req, "idempotency-key");
+    const receiptNote = readHeader(req, "x-receipt-note");
+    if (receiptNote.length > 2000) {
+      sendHttpError(res, 400, { error: "invalid_body", code: "RECEIPT_NOTE_MAX" });
+      return;
+    }
 
     if (isBookingJsonReceiptContentType(contentType)) {
       const body = parseBookingMemberReceiptJsonBody(await readIdentityRequestBody(req));
       if (body === null) {
-        sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
+        sendHttpError(res, 400, { error: "invalid_payload", code: "RECEIPT_EVIDENCE_REQUIRED" });
         return;
       }
 
@@ -290,11 +410,18 @@ export async function handlePostBookingReceipt(
         auth,
         async () => {
           const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
-          const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
-            registrationId: bookingId,
-            fileKey: body.fileKey,
-            ...(body.note !== undefined ? { note: body.note } : {}),
-          });
+          const receipt = await financeService.submitMemberReceiptForRegistration(
+            auth,
+            {
+              registrationId: bookingId,
+              fileKey: body.fileKey,
+              ...(body.note !== undefined ? { note: body.note } : {}),
+              ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
+                ? { destinationRevision: readHeader(req, "x-payment-destination-revision").trim() }
+                : {}),
+            },
+            idempotencyKey || undefined
+          );
           sendJson(res, 201, receipt);
         },
         { rateLimit: "write" }
@@ -325,11 +452,23 @@ export async function handlePostBookingReceipt(
               contentType,
               fileName,
             }),
+          cleanup: async (fileKey) =>
+            deleteMemberReceiptProof({ tenantId: auth.tenantId, storageKey: fileKey }),
           submit: async (fileKey) =>
-            financeService.submitMemberReceiptForRegistration(auth, {
-              registrationId: bookingId,
-              fileKey,
-            }),
+            financeService.submitMemberReceiptForRegistration(
+              auth,
+              {
+                registrationId: bookingId,
+                fileKey,
+                ...(receiptNote.length > 0 ? { note: receiptNote } : {}),
+                ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
+                  ? {
+                      destinationRevision: readHeader(req, "x-payment-destination-revision").trim(),
+                    }
+                  : {}),
+              },
+              idempotencyKey || undefined
+            ),
         });
         sendJson(res, 201, receipt);
       },
@@ -356,7 +495,8 @@ export async function handleGetBookingReceiptStatus(
       async () => {
         const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
         const status = await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
-        sendJson(res, 200, status);
+        const destination = await getPaymentDestinationMemberProjection(auth.tenantId);
+        sendJson(res, 200, { ...status, paymentDestination: destination });
       },
       { rateLimit: "read" }
     );

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("DP1-I operator payment deadline contract", () => {
-  it("S1 BR-OP-01: bookings command center row shows actionable paymentDueAt", () => {
+  it("BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE / S1: paid rows hide actionable paymentDueAt", () => {
     const row = readFileSync(join(webRoot, "src/features/bookings/booking-inbox-row.tsx"), "utf8");
     const types = readFileSync(
       join(webRoot, "src/features/bookings/bookings-command-center-types.ts"),
@@ -57,5 +57,12 @@ describe("DP1-I operator payment deadline contract", () => {
     );
     assert.match(logic, /paymentDueAt/);
     assert.doesNotMatch(logic, /approvedAt.*24.*60.*60/);
+  });
+
+  it("BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE / S18: bookings list BFF forbids stale responses", () => {
+    const route = readFileSync(join(webRoot, "app/api/bookings/route.ts"), "utf8");
+    assert.match(route, /Cache-Control/);
+    assert.match(route, /private, no-store, max-age=0, must-revalidate/);
+    assert.match(route, /BOOKING_LIST_NO_STORE_HEADERS/);
   });
 });

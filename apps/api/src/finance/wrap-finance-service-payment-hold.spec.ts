@@ -77,7 +77,7 @@ describe("wrapFinanceServiceWithPaymentHold", { concurrency: false }, () => {
     });
   }
 
-  function fakeService(): FinanceService {
+  function fakeService(reviewRegistrationId?: string): FinanceService {
     return {
       async createManualPayment() {
         return { id: randomUUID(), status: "Pending" };
@@ -86,7 +86,18 @@ describe("wrapFinanceServiceWithPaymentHold", { concurrency: false }, () => {
         return { id: randomUUID() };
       },
       async reviewReceipt() {
-        return {};
+        if (reviewRegistrationId === undefined) {
+          return {};
+        }
+        return {
+          id: randomUUID(),
+          registrationId: reviewRegistrationId,
+          status: "Approved",
+          reviewNote: null,
+          reviewedAt: null,
+          ledgerJournalId: randomUUID(),
+          bookingPaymentStatus: "paid" as const,
+        };
       },
       async getRegistrationInvoice(_auth, registrationId) {
         return {
@@ -129,6 +140,26 @@ describe("wrapFinanceServiceWithPaymentHold", { concurrency: false }, () => {
       obligationMinor: "0",
       reason: "waive",
     });
+
+    const booking = await getBookingsRepository().getById(registrationId, TENANT);
+    const updatedHold = await new PaymentHoldService().getByRegistrationId(TENANT, registrationId);
+    assert.equal(booking?.paymentDueAt ?? null, null);
+    assert.equal(updatedHold?.status, "satisfied");
+  });
+
+  it("clears paymentDueAt after receipt approval returns its registration projection key", async () => {
+    const registrationId = randomUUID();
+    const approvedAt = "2026-08-02T00:00:00.000Z";
+    const hold = await new PaymentHoldService().scheduleOnApprove({
+      tenantId: TENANT,
+      registrationId,
+      approvedAt,
+      policyHours: 24,
+    });
+    seedApprovedBooking(registrationId, hold.dueAt);
+
+    const service = wrapFinanceServiceWithPaymentHold(fakeService(registrationId));
+    await service.reviewReceipt(auth, randomUUID(), { decision: "approve" });
 
     const booking = await getBookingsRepository().getById(registrationId, TENANT);
     const updatedHold = await new PaymentHoldService().getByRegistrationId(TENANT, registrationId);

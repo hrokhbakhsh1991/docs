@@ -1,0 +1,6 @@
+name = "denali-telegram-webhook-relay"
+main = "src/index.js"
+compatibility_date = "2026-09-14"
+
+# Set API_ORIGIN in the Cloudflare environment to the public HTTPS origin of
+# the API. No Telegram bot token belongs in this Worker.

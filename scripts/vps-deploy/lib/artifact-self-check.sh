@@ -60,8 +60,30 @@ artifact_self_check() {
     return 1
   }
   for k in web portal marketing; do
-    [[ -f "${vroot}/${k}/RUNTIME.json" ]] || {
+    local runtime_json="${vroot}/${k}/RUNTIME.json"
+    [[ -f "$runtime_json" ]] || {
       echo "artifact-self-check: missing ${k}/RUNTIME.json" >&2
+      return 1
+    }
+    local server_rel
+    server_rel="$(python3 - "$runtime_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as runtime_file:
+    print(json.load(runtime_file)["serverJs"])
+PY
+    )"
+    [[ -f "${vroot}/${k}/${server_rel}" ]] || {
+      echo "artifact-self-check: missing ${k} server ${server_rel}" >&2
+      return 1
+    }
+    [[ -d "${vroot}/${k}/$(dirname "$server_rel")/.next/static" ]] || {
+      echo "artifact-self-check: missing ${k} static asset directory" >&2
+      return 1
+    }
+    find "${vroot}/${k}/$(dirname "$server_rel")/.next/static" -type f -print -quit | grep -q . || {
+      echo "artifact-self-check: empty ${k} static asset directory" >&2
       return 1
     }
   done

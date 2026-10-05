@@ -1,5 +1,5 @@
 # DEC-118 — Dedicated outbox relay worker (RB-GAP-14).
-# Same image as API; WORKER_ROLE=outbox-relay boots relay + projection reconcile only.
+# Same image as API; WORKER_ROLE=outbox-relay boots relay + projection reconcile + integration delivery.
 # Apply: kubectl apply -f deploy/argo-rollouts/outbox-relay-deployment.yaml -n app-tour
 ---
 apiVersion: apps/v1
@@ -41,6 +41,10 @@ spec:
             - name: WORKER_ROLE
               value: outbox-relay
             - name: OUTBOX_RELAY_ENABLED
+              value: "true"
+            - name: INTEGRATION_DELIVERY_ENABLED
+              value: "true"
+            - name: INTEGRATION_DELIVERY_WORKER_ENABLED
               value: "true"
             - name: PORT
               value: "3001"
