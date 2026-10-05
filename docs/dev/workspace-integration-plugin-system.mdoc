@@ -185,7 +185,11 @@ Web route proxies control-plane HTTP via Next.js API routes under `/api/workspac
   fields (e.g. `botToken`) render empty — leave blank to keep the stored token, or enter a new
   value to rotate via `PATCH /integrations/:id`. The web BFF proxies PATCH at
   `/api/integrations/:id`. Partial updates are supported: config-only, credential-only, or both in
-  one request. Legacy synthetic rows remain read-only (`actionsAllowed.patch === false`).
+  one request. Telegram `groupName` may be corrected when it refers to the same bound Chat ID;
+  the existing Chat ID and persisted forum topic thread IDs remain authoritative, so a name
+  correction does not create a new group or recreate existing topics. A different Chat ID is
+  still rejected as a binding change. Legacy synthetic rows remain read-only
+  (`actionsAllowed.patch === false`).
 - List panel shows backing badges, enabled state, and active delivery marker.
 - Detail panel shows channel config, secret presence (never token), legacy source id, and fallback suppression warning.
 - Enable/disable actions apply only to `integration_connections` rows; legacy rows display read-only guidance pending Step 6 backfill.

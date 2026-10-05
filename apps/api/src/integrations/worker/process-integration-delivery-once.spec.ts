@@ -384,6 +384,7 @@ describe("Telegram worker delivery", () => {
           departureAt: "2026-09-20",
           partySize: 2,
           approvalRequired: true,
+          paymentCollectionMode: "offline",
           approvalPrompt: "⏳ این تور نیاز به تأیید ادمین دارد.",
           approvalStatus: "awaiting_approval",
         },
@@ -448,6 +449,56 @@ describe("Telegram worker delivery", () => {
         },
       },
     ]);
+  });
+
+  it("sends a free registration without payment decision buttons", async () => {
+    const sent: Array<{ replyMarkup?: unknown }> = [];
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        domainEventId: "registration.created:free-registration-1",
+        eventType: "registration.created",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "connection-1",
+          telegramTopicKey: "registration",
+          bookingId: "free-registration-1",
+          tourTitle: "تور رایگان",
+          guestLabel: "مهمان رایگان",
+          departureAt: "2026-09-20",
+          partySize: 1,
+          approvalRequired: false,
+          paymentCollectionMode: "free",
+          approvalPrompt: "ℹ️ این تور نیاز به تأیید ادمین ندارد.",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "connection-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: { registration: 101 } },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage(_ctx, input) {
+            sent.push({ replyMarkup: input.replyMarkup });
+            return { ok: true };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sent, [{ replyMarkup: undefined }]);
   });
 
   it("sends a registration.waitlisted event to the registration topic without approval buttons", async () => {
