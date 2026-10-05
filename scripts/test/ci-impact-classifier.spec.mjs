@@ -40,6 +40,14 @@ test("Denali workspace changes fan out to all Denali surfaces", () => {
   assert.equal(result.full, false);
 });
 
+test("booking HTTP contracts stay scoped without falling back to full impact", () => {
+  const result = classifyPaths(["packages/booking-http-contracts/src/booking-http-types.ts"]);
+  assert.deepEqual(result.domains, ["api", "web", "portal", "booking"]);
+  assert.equal(result.full, false);
+  assert.equal(result.tiers.postgres, true);
+  assert.deepEqual(result.unknownPaths, []);
+});
+
 test("shared control-plane changes fail closed", () => {
   const result = classifyPaths([".github/workflows/phase-5-gate.yml", "pnpm-lock.yaml"]);
   assert.equal(result.full, true);

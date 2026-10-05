@@ -164,6 +164,16 @@ function classifyPath(path, result) {
     return;
   }
 
+  if (/^packages\/booking-http(-contracts)?\//.test(normalized)) {
+    add(
+      result,
+      ["api", "web", "portal", "booking"],
+      `booking contract package change: ${normalized}`,
+      { postgres: true }
+    );
+    return;
+  }
+
   if (
     /^packages\/(workspace-sdk|platform-core|tenant-kernel|platform-events|tour-core|design-tokens|ui-primitives|theme-react|draft-engine|wizard-navigation)\//.test(
       normalized
