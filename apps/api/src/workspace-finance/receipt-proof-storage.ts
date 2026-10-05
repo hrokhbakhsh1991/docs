@@ -11,7 +11,7 @@ import {
 export const MEMBER_RECEIPT_PROOF_MAX_BYTES = 8 * 1024 * 1024;
 const RECEIPT_PROOF_READ_URL_TTL_SECONDS = 300;
 
-/** Dev memory-driver receipt bytes — not shared across processes. */
+/** Dev receipt bytes — not shared across processes. */
 const memoryReceiptProofStore = new Map<string, Buffer>();
 
 /**
@@ -33,8 +33,10 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "application/pdf",
 ]);
 
-function isMemoryReceiptProofStoreEnabled(): boolean {
-  return process.env.STORAGE_DRIVER === "memory" && process.env.NODE_ENV !== "production";
+function isLocalReceiptProofStoreEnabled(
+  config: ReturnType<typeof readTenantBrandLogoMinioConfigFromEnv>
+): boolean {
+  return config === null && process.env.NODE_ENV !== "production";
 }
 
 export function sanitizeReceiptProofFileName(name: string): string {
@@ -125,7 +127,7 @@ export async function putMemberReceiptProof(input: {
   assertMemberReceiptProofKeyScope(storageKey, input.tenantId);
 
   if (config === null) {
-    if (isMemoryReceiptProofStoreEnabled()) {
+    if (isLocalReceiptProofStoreEnabled(config)) {
       if (!memoryReceiptProofStore.has(storageKey)) {
         memoryReceiptProofStore.set(storageKey, Buffer.from(input.body));
       }
@@ -164,7 +166,7 @@ export async function deleteMemberReceiptProof(input: {
   assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
   const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
-    if (isMemoryReceiptProofStoreEnabled()) {
+    if (isLocalReceiptProofStoreEnabled(config)) {
       memoryReceiptProofStore.delete(input.storageKey);
     }
     return;
@@ -182,7 +184,10 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
   assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
   const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
-    if (isMemoryReceiptProofStoreEnabled() && memoryReceiptProofStore.has(input.storageKey)) {
+    if (
+      isLocalReceiptProofStoreEnabled(config) &&
+      memoryReceiptProofStore.has(input.storageKey)
+    ) {
       const port = process.env.PORT?.trim() || "3001";
       return `http://127.0.0.1:${port}/internal/dev/receipt-proof/${encodeURIComponent(input.storageKey)}`;
     }
@@ -218,7 +223,7 @@ export async function readMemberReceiptProof(input: {
 
   const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
-    if (isMemoryReceiptProofStoreEnabled()) {
+    if (isLocalReceiptProofStoreEnabled(config)) {
       const body = memoryReceiptProofStore.get(input.storageKey);
       if (body !== undefined) return { body: Buffer.from(body), contentType, fileName };
     }

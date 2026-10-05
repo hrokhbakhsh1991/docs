@@ -833,6 +833,7 @@
       "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "Telegram group ID is required.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "Telegram bot token is required.",
       "INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED": "The exact Telegram group name and numeric group ID are required.",
+      "INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND": "This connection is already bound to another group. Use the actual group title with the stored Chat ID.",
       "INTEGRATION_TELEGRAM_GROUP_MUST_BE_SUPERGROUP": "The supplied ID is not a Telegram supergroup.",
       "INTEGRATION_TELEGRAM_GROUP_MUST_BE_FORUM": "Enable Topics/Forum in the Telegram group first.",
       "INTEGRATION_TELEGRAM_GROUP_NAME_MISMATCH": "The entered group name does not match the Telegram group title.",

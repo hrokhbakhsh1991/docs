@@ -871,14 +871,31 @@ export async function patchIntegration(
       throw new IntegrationNotFoundError();
     }
 
-    const config =
-      typeof record.config === "object" && record.config !== null
-        ? ((await normalizeIntegrationPatchConfigFromSurface({
-            workspaceType: existing.workspaceType,
-            provider: existing.provider as IntegrationProviderId,
-            rawConfig: record.config as Record<string, unknown>,
-          })) as Prisma.InputJsonValue)
-        : undefined;
+    let config: Prisma.InputJsonValue | undefined;
+    if (typeof record.config === "object" && record.config !== null) {
+      const normalizedConfig = await normalizeIntegrationPatchConfigFromSurface({
+        workspaceType: existing.workspaceType,
+        provider: existing.provider as IntegrationProviderId,
+        rawConfig: record.config as Record<string, unknown>,
+      });
+      if (existing.provider === "telegram") {
+        const currentConfig =
+          typeof existing.config === "object" &&
+          existing.config !== null &&
+          !Array.isArray(existing.config)
+            ? (existing.config as Record<string, unknown>)
+            : {};
+        config = {
+          ...currentConfig,
+          ...normalizedConfig,
+          ...(typeof normalizedConfig.channelId === "string"
+            ? { chatId: normalizedConfig.channelId }
+            : {}),
+        } as Prisma.InputJsonValue;
+      } else {
+        config = normalizedConfig as Prisma.InputJsonValue;
+      }
+    }
     if (existing.provider === "telegram" && config !== undefined) {
       assertTelegramBindingUnchanged(
         existing.config as Record<string, unknown>,
@@ -946,17 +963,6 @@ function assertTelegramBindingUnchanged(
   const nextChatId = typeof nextConfig.chatId === "string" ? nextConfig.chatId.trim() : "";
   if (currentChatId.length > 0 && nextChatId.length > 0 && currentChatId !== nextChatId) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_ALREADY_BOUND");
-  }
-  const currentGroupName =
-    typeof currentConfig.groupName === "string" ? currentConfig.groupName.trim() : "";
-  const nextGroupName =
-    typeof nextConfig.groupName === "string" ? nextConfig.groupName.trim() : "";
-  if (
-    currentGroupName.length > 0 &&
-    nextGroupName.length > 0 &&
-    currentGroupName !== nextGroupName
-  ) {
-    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND");
   }
 }
 
