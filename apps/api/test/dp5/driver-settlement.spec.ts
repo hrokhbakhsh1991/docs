@@ -63,6 +63,7 @@ describe("DP-5 driver settlement API", () => {
   async function freezeRoster() {
     return client.requestJson<{
       settlements?: Array<{
+        settlementId?: string;
         driverRegistrationId?: string;
         billableQuantity?: number;
         totalMinor?: string;
@@ -137,6 +138,104 @@ describe("DP-5 driver settlement API", () => {
     assert.equal(settlement?.totalMinor, "50000");
   });
 
+  it("passenger cancel after freeze recalculates a draft settlement", async () => {
+    const { driverId, passengerIds } = await dp5SeedDriverAndPassengers({
+      offeredSeats: 3,
+      passengerCount: 2,
+    });
+    await putAllocations(driverId, passengerIds);
+    const frozen = await freezeRoster();
+    const settlementId = frozen.body.settlements?.find(
+      (row) => row.driverRegistrationId === driverId
+    )?.settlementId;
+    assert.ok(settlementId);
+
+    const cancelled = await cancelBooking(dp5OpsAuth(), passengerIds[1]!);
+    assert.equal(cancelled.settlementStatus, "not_affected");
+    const settlement = findSettlementById(dp5OpsAuth().tenantId, settlementId);
+    assert.equal(settlement?.status, "draft");
+    assert.equal(settlement?.assignedPassengers, 1);
+    assert.equal(settlement?.billableQuantity, 1);
+    assert.equal(settlement?.totalMinor, "50000");
+  });
+
+  it("passenger cancel after payable approval voids stale payable and opens one correction", async () => {
+    const { driverId, passengerIds } = await dp5SeedDriverAndPassengers({
+      offeredSeats: 3,
+      passengerCount: 2,
+    });
+    await putAllocations(driverId, passengerIds);
+    const frozen = await freezeRoster();
+    const settlementId = frozen.body.settlements?.find(
+      (row) => row.driverRegistrationId === driverId
+    )?.settlementId;
+    assert.ok(settlementId);
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    const payable = await client.requestJson<{ payable?: { payableId?: string } }>(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    assert.ok(payable.body.payable?.payableId);
+
+    const cancelled = await cancelBooking(dp5OpsAuth(), passengerIds[1]!);
+    assert.equal(cancelled.settlementStatus, "correction_pending");
+    assert.equal(findSettlementById(dp5OpsAuth().tenantId, settlementId)?.status, "voided");
+    assert.equal(
+      findPayableBySettlementId(dp5OpsAuth().tenantId, settlementId)?.status,
+      "Cancelled"
+    );
+    const correction = listSettlementsForTour(dp5OpsAuth().tenantId, DP5_TOUR_ID).find(
+      (row) => row.correctionOfSettlementId === settlementId
+    );
+    assert.equal(correction?.status, "draft");
+    assert.equal(correction?.billableQuantity, 1);
+    assert.equal(correction?.totalMinor, "50000");
+  });
+
+  it("passenger cancel after payout keeps paid history and opens one correction", async () => {
+    const { driverId, passengerIds } = await dp5SeedDriverAndPassengers({
+      offeredSeats: 3,
+      passengerCount: 2,
+    });
+    await putAllocations(driverId, passengerIds);
+    const frozen = await freezeRoster();
+    const settlementId = frozen.body.settlements?.find(
+      (row) => row.driverRegistrationId === driverId
+    )?.settlementId;
+    assert.ok(settlementId);
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    const payable = await client.requestJson<{ payable?: { payableId?: string } }>(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    const payableId = payable.body.payable?.payableId;
+    assert.ok(payableId);
+    await client.requestJson("POST", `/finance/driver-payables/${payableId}/complete`, {
+      headers: operatorAuthHeaders(),
+      body: { evidenceNote: "paid before passenger cancellation" },
+    });
+
+    const cancelled = await cancelBooking(dp5OpsAuth(), passengerIds[1]!);
+    assert.equal(cancelled.settlementStatus, "correction_pending");
+    assert.equal(findSettlementById(dp5OpsAuth().tenantId, settlementId)?.status, "paid");
+    const correction = listSettlementsForTour(dp5OpsAuth().tenantId, DP5_TOUR_ID).find(
+      (row) => row.correctionOfSettlementId === settlementId
+    );
+    assert.equal(correction?.status, "draft");
+    assert.equal(correction?.billableQuantity, 1);
+    assert.equal(correction?.totalMinor, "50000");
+  });
+
   it("passenger reassignment updates billable driver", async () => {
     const auth = dp5OpsAuth();
     const driverA = await dp5SeedDriverAndPassengers({ offeredSeats: 3, passengerCount: 1 });
@@ -204,11 +303,12 @@ describe("DP-5 driver settlement API", () => {
       `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
       { headers: operatorAuthHeaders(), body: {} }
     );
-    await client.requestJson(
+    const payable = await client.requestJson<{ payable?: { payableId?: string } }>(
       "POST",
       `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,
       { headers: operatorAuthHeaders(), body: {} }
     );
+    assert.ok(payable.body.payable?.payableId);
 
     const cancelled = await cancelBooking(dp5OpsAuth(), driverId);
     assert.equal(cancelled.settlementStatus, "not_affected");
@@ -217,6 +317,12 @@ describe("DP-5 driver settlement API", () => {
       findPayableBySettlementId(dp5OpsAuth().tenantId, settlementId)?.status,
       "Cancelled"
     );
+    const payoutAfterCancel = await client.requestJson(
+      "POST",
+      `/finance/driver-payables/${payable.body.payable?.payableId}/complete`,
+      { headers: operatorAuthHeaders(), body: { evidenceNote: "must be rejected" } }
+    );
+    assert.equal(payoutAfterCancel.status, 409);
   });
 
   it("driver cancellation after payout keeps paid history and opens one correction checkpoint", async () => {

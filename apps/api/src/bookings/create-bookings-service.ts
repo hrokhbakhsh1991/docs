@@ -406,12 +406,6 @@ export async function cancelBooking(
   const result = await (
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).cancelBooking(auth, bookingId, input);
-  const { closePaymentHoldOnOperatorCancel } =
-    await import("../finance/apply-payment-hold-after-booking-approve");
-  await closePaymentHoldOnOperatorCancel({
-    tenantId: auth.tenantId,
-    bookingId: result.id,
-  });
   return result;
 }
 

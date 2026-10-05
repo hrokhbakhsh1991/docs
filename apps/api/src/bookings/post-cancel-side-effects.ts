@@ -244,8 +244,22 @@ export async function runPostCancelSideEffects(
   );
 
   try {
-    await handlePassengerCancelledForSettlement(auth, booking.id);
-    settlementStatus = await handleDriverCancelledForSettlement(auth, booking.tourId, booking.id);
+    const passengerSettlementStatus = await handlePassengerCancelledForSettlement(
+      auth,
+      booking.tourId,
+      booking.id,
+      affectedDriverRegistrationIds
+    );
+    const driverSettlementStatus = await handleDriverCancelledForSettlement(
+      auth,
+      booking.tourId,
+      booking.id
+    );
+    settlementStatus =
+      passengerSettlementStatus === "correction_pending" ||
+      driverSettlementStatus === "correction_pending"
+        ? "correction_pending"
+        : "not_affected";
   } catch {
     settlementStatus = "manual_review";
   }

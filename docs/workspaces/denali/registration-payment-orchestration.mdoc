@@ -461,6 +461,12 @@ rather than leaving a stale warning.
   idempotent `driver_cancelled_after_payout` audit event marks the required
   manual correction. That correction checkpoints `manual_review`, so it remains
   visible after refresh until an operator resolves it.
+- If a passenger leaves after the roster freeze, allocations are removed before
+  settlement work is evaluated. A draft/confirmed settlement is recalculated in
+  place; a payable or paid settlement creates one idempotent correction case and
+  cannot continue with the stale passenger count. Payable completion validates
+  the settlement before marking the payable `Completed`, so cancellation cannot
+  leave a completed payable attached to a voided settlement.
 - Member, affected-driver, and affected-passenger notifications use durable
   outbox payloads with a resolvable recipient. Passenger cancellation queues
   `registration.passenger_cancelled` for the assigned driver; driver
