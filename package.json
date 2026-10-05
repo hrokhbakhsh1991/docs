@@ -54,6 +54,7 @@
     "guard:symlink": "node scripts/guards/symlink-guard.mjs",
     "ci:integrity": "bash scripts/ci-integrity-check.sh",
     "test:changed": "bash scripts/test-changed.sh",
+    "test:ci-impact": "node --test scripts/test/ci-impact-classifier.spec.mjs",
     "test:dp1-payment-deadline": "bash scripts/test-dp1-payment-deadline.sh",
     "test:dp4-member-self-service": "bash scripts/test-dp4-member-self-service.sh",
     "test:dp5-driver-settlement": "bash scripts/test-dp5-driver-settlement.sh",
