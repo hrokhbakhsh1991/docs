@@ -51,6 +51,7 @@ jobs:
             `- Full impact: **${result.full ? 'yes' : 'no'}**`,
             `- Domains: ${result.domains.join(', ') || 'none'}`,
             `- Tiers: ${Object.entries(result.tiers).filter(([, enabled]) => enabled).map(([name]) => name).join(', ')}`,
+            `- Planned gate nodes: ${result.gateNodes.join(', ') || 'none'}`,
             `- Changed paths: **${result.changedPaths.length}**`,
           ];
           if (result.unknownPaths.length) lines.push(`- Unknown paths (fail-closed): ${result.unknownPaths.join(', ')}`);

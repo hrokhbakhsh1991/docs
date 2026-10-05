@@ -44,6 +44,36 @@ function add(result, domains, reason, options = {}) {
   if (options.security) result.tiers.security = true;
 }
 
+function deriveGateNodes(result) {
+  if (result.full) {
+    return [
+      "l0.node-engine",
+      "l1.boundaries",
+      "l1.typecheck",
+      "l1.unit",
+      "l2.build",
+      "l2.architecture",
+      "l2.integration",
+      "l3.postgres",
+      "l3.security",
+      "l3.package",
+      "l3.e2e",
+      "l3.migration",
+      "l3.performance",
+      "l3.cw-closure",
+    ];
+  }
+
+  if (!result.tiers.unit) return [];
+
+  const nodes = ["l0.node-engine", "l1.boundaries", "l1.typecheck", "l1.unit"];
+  if (result.tiers.postgres) nodes.push("l3.postgres");
+  if (result.tiers.security) nodes.push("l3.security");
+  if (result.tiers.playwright) nodes.push("l3.e2e");
+  if (result.domains.includes("workspace-denali")) nodes.push("l3.cw-closure");
+  return nodes;
+}
+
 function classifyPath(path, result) {
   const normalized = path.replaceAll("\\", "/").replace(/^\.\//, "");
 
@@ -237,6 +267,7 @@ export function classifyPaths(paths) {
     result.tiers.playwright = true;
     result.tiers.security = true;
   }
+  result.gateNodes = deriveGateNodes(result);
   return result;
 }
 
@@ -279,7 +310,7 @@ function main(argv) {
   console.log(json);
   if (args.githubOutput) {
     const escaped = json.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
-    const output = `impact_json=${escaped}\nfull=${result.full}\ndomains=${result.domains.join(",")}\n`;
+    const output = `impact_json=${escaped}\nfull=${result.full}\ndomains=${result.domains.join(",")}\ngate_nodes=${result.gateNodes.join(",")}\n`;
     appendFileSync(args.githubOutput, output);
   }
 }
