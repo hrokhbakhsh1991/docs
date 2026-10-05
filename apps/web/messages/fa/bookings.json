@@ -160,6 +160,7 @@
   "cancelDialogDescription": "لغو {guest} در تور {tour}. از صف قابل بازگشت نیست.",
   "cancelDialogConfirm": "تأیید لغو",
   "cancelDialogKeep": "نگه داشتن ثبت‌نام",
+  "cancelDialogReason": "دلیل لغو",
   "inlineApproveConfirm": "تأیید؟ (کلیک دوم)",
   "inlineApproveConfirmCountdown": "تأیید؟ ({seconds})",
   "inlineApproveConfirmAria": "تأیید نهایی برای {guest} — {seconds} ثانیه فرصت دارید",

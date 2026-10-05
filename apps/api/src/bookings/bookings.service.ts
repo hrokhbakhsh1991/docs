@@ -143,6 +143,27 @@ function toListItem(
       ? { paymentDueAt: resolvePaymentDueAtForProjection(record) }
       : {}),
     ...(record.cancelSource !== undefined ? { cancelSource: record.cancelSource } : {}),
+    ...(record.cancellationStatus !== undefined
+      ? { cancellationStatus: record.cancellationStatus }
+      : {}),
+    ...(record.cancellationReasonCode !== undefined
+      ? { cancellationReasonCode: record.cancellationReasonCode }
+      : {}),
+    ...(record.cancellationReasonNote !== undefined
+      ? { cancellationReasonNote: record.cancellationReasonNote }
+      : {}),
+    ...(record.cancellationRequestedAt !== undefined
+      ? { cancellationRequestedAt: record.cancellationRequestedAt }
+      : {}),
+    ...(record.cancellationApprovedAt !== undefined
+      ? { cancellationApprovedAt: record.cancellationApprovedAt }
+      : {}),
+    ...(record.cancellationApprovedByUserId !== undefined
+      ? { cancellationApprovedByUserId: record.cancellationApprovedByUserId }
+      : {}),
+    ...(record.cancellationCorrelationId !== undefined
+      ? { cancellationCorrelationId: record.cancellationCorrelationId }
+      : {}),
     ...(capacitySnapshot !== undefined ? { capacitySnapshot } : {}),
   };
 }
@@ -972,7 +993,10 @@ export class BookingsService {
 
   async cancelBooking(
     auth: BookingActorContext,
-    bookingId: string
+    bookingId: string,
+    input: { readonly reasonCode: string; readonly reasonNote?: string } = {
+      reasonCode: "operator_correction",
+    }
   ): Promise<CancelBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
@@ -981,20 +1005,34 @@ export class BookingsService {
       throw new BookingNotFoundError();
     }
     const previousStatus = before.status;
+    const correlationId = `registration.cancelled:${bookingId}`;
     const updated = await this.repository.cancelBooking({
       bookingId,
       tenantId: auth.tenantId,
       outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
       cancelSource: "operator",
+      cancellationStatus: Date.parse(before.departureAt) <= Date.now() ? "late_correction" : "applied",
+      cancellationReasonCode: input.reasonCode,
+      cancellationReasonNote: input.reasonNote,
+      cancellationApprovedByUserId: auth.userId,
+      cancellationCorrelationId: correlationId,
     });
-    await this.postCancelSideEffects.run({
+    const effects = await this.postCancelSideEffects.run({
       auth,
       booking: { ...before, status: "cancelled", cancelSource: "operator" },
       previousStatus,
-      cancelDomainEventId: `registration.cancelled:${bookingId}`,
+      cancelDomainEventId: correlationId,
       cancelSource: "operator",
     });
-    return { id: updated.id, status: updated.status };
+    return {
+      id: updated.id,
+      status: updated.status,
+      cancellationStatus: updated.cancellationStatus,
+      refundStatus: updated.paymentStatus === "paid" || updated.paymentStatus === "partial"
+        ? "pending_finance_approval"
+        : "not_required",
+      settlementStatus: effects.settlementStatus,
+    };
   }
 
   async bulkApproveBookings(

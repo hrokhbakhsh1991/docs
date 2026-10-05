@@ -128,6 +128,24 @@ DriverPayable {
   completedAt?
   idempotencyKey
 }
+
+## Passenger cancellation after settlement freeze (DEN-PROD-10)
+
+Removing a passenger does not mutate or delete an existing settlement. The
+correction depends on the settlement lifecycle:
+
+| Settlement state | Cancellation effect |
+| --- | --- |
+| `draft` | Recalculate with an append-only audit entry |
+| `confirmed` | Create a settlement correction for operator approval |
+| `payable` and unpaid | Correct the payable or create an idempotent replacement payable |
+| `paid` | Do not debit the driver automatically; create `correction_pending` and apply an approved adjustment to a later payable or manual finance case |
+| unknown | Block completion of the settlement side effect and expose `manual_review` |
+
+Transport allocation removal and settlement correction are separate facts. A
+successful booking cancellation must not claim that driver money was reversed.
+The admin/finance UI must expose the correction status and the original settlement
+reference. Wallet is not part of the DP-5 driver settlement boundary.
 ```
 
 ## Status machine

@@ -252,7 +252,10 @@ export async function ensureTourHasApprovalCapacity(
         status === "pending" ? `/api/bookings/${id}/reject` : `/api/bookings/${id}/cancel`;
       const actionRes = await page.request.post(endpoint, {
         headers: { "content-type": "application/json" },
-        data: status === "pending" ? { reason: "E2E capacity hygiene" } : undefined,
+        data:
+          status === "pending"
+            ? { reason: "E2E capacity hygiene" }
+            : { reasonCode: "operator_correction" },
       });
       if (actionRes.ok()) {
         slotsNeeded -= row.partySize ?? 1;

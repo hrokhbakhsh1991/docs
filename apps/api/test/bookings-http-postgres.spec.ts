@@ -563,6 +563,7 @@ describe(
         path: `/bookings/${id}/cancel`,
         tenantId: tenantA,
         userId: operatorA,
+        body: { reasonCode: "operator_correction" },
       });
       assert.equal(response.status, 200, JSON.stringify(response.body));
       assert.equal(response.body.status, "cancelled");

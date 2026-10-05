@@ -8,6 +8,8 @@ export type DispatchRoute = {
   readonly summary: string;
   readonly internal?: boolean;
   readonly operationId: string;
+  readonly requestSchema?: string;
+  readonly responseSchema?: string;
 };
 
 export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
@@ -505,6 +507,8 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     path: "/bookings/{bookingId}/cancel",
     summary: "Cancel booking (emits registration.cancelled)",
     operationId: "cancelBooking",
+    requestSchema: "CancelBookingRequest",
+    responseSchema: "CancelBookingResponse",
   },
   {
     method: "POST",

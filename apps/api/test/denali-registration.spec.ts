@@ -445,6 +445,7 @@ describe("denali-registration (M16)", () => {
     assert.equal((free.body as { data?: { status?: string } }).data?.status, "approved");
     const cancelled = await requestDenali(listener, "POST", `/bookings/${freeId}/cancel`, {
       headers: operatorOwnerHeaders(),
+      body: { reasonCode: "operator_correction" },
     });
     assert.equal(cancelled.status, 200);
     const cancelledDetail = await requestDenali(listener, "GET", `/bookings/${freeId}`, {

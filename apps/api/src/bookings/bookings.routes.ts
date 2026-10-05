@@ -6,6 +6,7 @@ import {
   parseBookingsListQuery,
   parseBookingsSummaryQuery,
   parseBulkApproveBookingsBody,
+  parseCancelBookingBody,
   parseCreateBookingBody,
   parseRejectBookingBody,
 } from "@app-tour/booking-http-contracts";
@@ -49,6 +50,7 @@ import { cancelTourRegistrations } from "./tour-cancellation.service.ts";
 import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
 import { getPaymentDestinationMemberProjection } from "../settings/settings-config.service";
+import { BookingsOpsForbiddenError } from "./bookings.errors";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -330,16 +332,28 @@ export async function handleCancelBooking(
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
+    if (auth.role !== "admin" && auth.role !== "owner") {
+      throw new BookingsOpsForbiddenError();
+    }
+    const body = await readIdentityRequestBody(req);
+    const cancellation = parseCancelBookingBody(body);
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const result = await cancelBooking(auth, bookingId);
+        const result = await cancelBooking(auth, bookingId, cancellation);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "BOOKING_CANCEL_REASON_REQUIRED") {
+      sendHttpError(res, 400, {
+        error: "validation_error",
+        code: "BOOKING_CANCEL_REASON_REQUIRED",
+      });
+      return;
+    }
     handleHttpError(res, error);
   }
 }

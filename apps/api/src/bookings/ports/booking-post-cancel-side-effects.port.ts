@@ -15,6 +15,8 @@ export type BookingPostCancelSideEffectsResult = {
   readonly refundId: string | null;
   readonly eligibleRefundMinor: string;
   readonly waitlistPromoted: boolean;
+  readonly waitlistCandidate: boolean;
+  readonly settlementStatus: "not_affected" | "correction_pending" | "manual_review";
 };
 
 export type BookingPostCancelSideEffectsPort = {

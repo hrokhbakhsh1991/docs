@@ -230,6 +230,7 @@ export function BookingsPageClient({
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [cancelReasonDraft, setCancelReasonDraft] = useState("operator_correction");
   const [overbookConfirmOpen, setOverbookConfirmOpen] = useState(false);
   const [overbookConfirmBookingId, setOverbookConfirmBookingId] = useState<string | null>(null);
   const [overbookConfirmMode, setOverbookConfirmMode] = useState<
@@ -726,6 +727,7 @@ export function BookingsPageClient({
 
   const openCancelDialog = (bookingId: string) => {
     setCancelTargetId(bookingId);
+    setCancelReasonDraft("operator_correction");
     setCancelDialogOpen(true);
   };
 
@@ -736,7 +738,8 @@ export function BookingsPageClient({
     const bookingId = cancelTargetId;
     setCancelDialogOpen(false);
     setCancelTargetId(null);
-    await runBookingAction("cancel", bookingId);
+    await runBookingAction("cancel", bookingId, cancelReasonDraft);
+    setCancelReasonDraft("operator_correction");
   };
 
   const confirmReject = async () => {
@@ -784,7 +787,12 @@ export function BookingsPageClient({
       const response = await fetch(`/api/bookings/${bookingId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: action === "reject" ? buildRejectBookingRequestBody(rejectReason) : undefined,
+        body:
+          action === "reject"
+            ? buildRejectBookingRequestBody(rejectReason)
+            : action === "cancel"
+              ? JSON.stringify({ reasonCode: rejectReason || "operator_correction" })
+              : undefined,
       });
       if (!response.ok) {
         throw new Error(`BOOKINGS_${action.toUpperCase()}_HTTP_${response.status}`);
@@ -1436,7 +1444,7 @@ export function BookingsPageClient({
         onConfirm={() => void confirmReject()}
       />
 
-      <BookingsCancelConfirmDialog
+        <BookingsCancelConfirmDialog
         open={cancelDialogOpen}
         busy={actionBusy}
         guestLabel={
@@ -1444,16 +1452,19 @@ export function BookingsPageClient({
           inspectionTarget?.guestLabel ??
           ""
         }
-        tourTitle={
+          tourTitle={
           findSelectedBooking(displayItems, cancelTargetId)?.tourTitle ??
           inspectionTarget?.tourTitle ??
           ""
-        }
-        onOpenChange={(open) => {
-          setCancelDialogOpen(open);
-          if (!open) {
-            setCancelTargetId(null);
           }
+          reason={cancelReasonDraft}
+          onReasonChange={setCancelReasonDraft}
+          onOpenChange={(open) => {
+            setCancelDialogOpen(open);
+            if (!open) {
+              setCancelTargetId(null);
+              setCancelReasonDraft("operator_correction");
+            }
         }}
         onConfirm={() => void confirmCancel()}
       />

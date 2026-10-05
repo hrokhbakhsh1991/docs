@@ -129,17 +129,21 @@ type BookingsCancelConfirmDialogProps = {
   readonly busy: boolean;
   readonly guestLabel: string;
   readonly tourTitle: string;
+  readonly reason: string;
   readonly onOpenChange: (open: boolean) => void;
+  readonly onReasonChange: (reason: string) => void;
   readonly onConfirm: () => void;
 };
 
-/** UX-BKG-52 — cancel requires explicit confirm (no reason field). */
+/** DEN-PROD-10 — cancellation requires an explicit reason for auditability. */
 export function BookingsCancelConfirmDialog({
   open,
   busy,
   guestLabel,
   tourTitle,
+  reason,
   onOpenChange,
+  onReasonChange,
   onConfirm,
 }: BookingsCancelConfirmDialogProps) {
   const t = useTranslations("bookings");
@@ -151,6 +155,13 @@ export function BookingsCancelConfirmDialog({
           <DialogDescription>
             {t("cancelDialogDescription", { guest: guestLabel, tour: tourTitle })}
           </DialogDescription>
+          <Input
+            value={reason}
+            onChange={(event) => onReasonChange(event.target.value)}
+            aria-label={t("cancelDialogReason")}
+            placeholder={t("cancelDialogReason")}
+            data-testid="booking-cancel-reason"
+          />
         </DialogHeader>
         <DialogFooter>
           <Button

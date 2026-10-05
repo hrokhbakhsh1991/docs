@@ -408,12 +408,29 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
   },
   CancelBookingResponse: {
     type: "object",
-    required: ["id", "status"],
+    required: ["id", "status", "cancellationStatus", "refundStatus", "settlementStatus"],
     properties: {
       id: ref("BookingId"),
       status: ref("BookingStatus"),
+      cancellationStatus: { type: "string", enum: ["none", "request_pending", "approved", "rejected", "applied", "late_correction", "manual_review", "completed"] },
+      refundStatus: { type: "string", enum: ["not_required", "pending_finance_approval"] },
+      settlementStatus: { type: "string", enum: ["not_affected", "correction_pending", "manual_review"] },
     },
-    examples: [{ id: "00000000-0000-4000-8000-000000000891", status: "cancelled" }],
+    examples: [{
+      id: "00000000-0000-4000-8000-000000000891",
+      status: "cancelled",
+      cancellationStatus: "applied",
+      refundStatus: "pending_finance_approval",
+      settlementStatus: "correction_pending",
+    }],
+  },
+  CancelBookingRequest: {
+    type: "object",
+    required: ["reasonCode"],
+    properties: {
+      reasonCode: { type: "string", minLength: 1 },
+      reasonNote: { type: "string", maxLength: 2000 },
+    },
   },
   BulkApproveBookingsRequest: {
     type: "object",
@@ -919,12 +936,22 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
   cancelBooking: {
     tags: ["Bookings"],
     parameters: [bookingIdPathParam],
+    requestBody: {
+      required: true,
+      content: jsonContent("CancelBookingRequest", {
+        reasonCode: "operator_correction",
+        reasonNote: "Operator correction after finalization",
+      }),
+    },
     responses: {
       200: {
         description: "Cancelled (emits registration.cancelled)",
         content: jsonContent("CancelBookingResponse", {
           id: "00000000-0000-4000-8000-000000000891",
           status: "cancelled",
+          cancellationStatus: "applied",
+          refundStatus: "pending_finance_approval",
+          settlementStatus: "correction_pending",
         }),
       },
       ...authErrorResponses,

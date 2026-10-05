@@ -114,6 +114,48 @@ Data sheets must not expose internal UUIDs or database keys. Dates are rendered 
 
 Finalization is independent from payment settlement. The operator may finalize an approved unpaid or partially paid participant; this must preserve the outstanding balance and payment follow-up. Payment approval may later move `finalized + unpaid/partial` to `finalized + paid` without clearing finalization. Any finalization event or Telegram notification must be outbox-backed and idempotent. Waitlisted, pending, rejected, and cancelled rows must never become final participants.
 
+## Finalized-registration cancellation (DEN-PROD-10)
+
+Cancellation is a lifecycle tombstone, not a hard delete. A cancelled registration
+and its member identity, payment history, refund history, settlement history, and
+audit trail remain queryable. The final roster projection excludes the row, while
+historical snapshots retain the pre-cancellation finalization and financial facts.
+
+v1 treats a registration as one cancellable unit. A registration with
+`partySize > 1` cannot remove only one person; it must be cancelled as a whole
+until a participant-level model exists.
+
+Member cancellation is a request. Before roster freeze it may be processed by the
+normal operator workflow; after freeze, and after departure, an administrator must
+approve or reject it. Rejection leaves lifecycle, finalization, transport, and
+financial projections unchanged. Approval changes lifecycle to `cancelled` and
+creates a retryable cancellation workflow.
+
+Refunds are never completed automatically by cancellation. Approval creates a
+finance refund request; Finance approves, rejects, processes, and completes it as a
+separate aggregate. A cancellation after departure is a late correction: it does
+not create waitlist capacity and has zero refund by default unless Finance applies
+an explicit override.
+
+Waitlist admission is never automatic as a consequence of cancellation. After
+capacity is actually released, the operator may approve a specific waitlisted
+registration. The approval is a separate idempotent command and sends the new
+participant's notification only after success.
+
+The cancellation workflow is outbox-backed and reports these independent axes:
+
+| Axis | Values |
+| --- | --- |
+| `cancellationStatus` | `none` · `request_pending` · `approved` · `rejected` · `applied` · `late_correction` · `manual_review` · `completed` |
+| Refund | `not_required` · `pending_finance_approval` · `approved` · `rejected` · `processing` · `completed` · `failed` |
+| Settlement correction | `not_affected` · `correction_pending` · `correction_approved` · `adjust_on_next_payable` · `manual_review` · `completed` |
+
+The cancellation event payload carries the immutable cancellation/correlation id,
+actor, reason, previous lifecycle/finalization/payment state, party size, and
+late-correction flag. Transport, roster, refund, settlement, waitlist, and
+notification handlers are idempotent and retryable; a failed side effect is never
+silently ignored.
+
 ## Finance follow-up actions
 
 For an `approved` participant whose `finalizationStatus` is `not_final` and whose financial state is `UNPAID` or `PARTIALLY_PAID`, the Finance tab exposes two independent operator commands:

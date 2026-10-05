@@ -1155,6 +1155,11 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
+    cancellationStatus?: BookingRecord["cancellationStatus"];
+    cancellationReasonCode?: string;
+    cancellationReasonNote?: string;
+    cancellationApprovedByUserId?: string;
+    cancellationCorrelationId?: string;
   }): Promise<BookingRecord> {
     const current = bookingsStore.get(input.bookingId);
     if (current === undefined || current.tenantId !== input.tenantId) {
@@ -1172,6 +1177,13 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       finalizationStatus: "not_final",
       finalizedAt: null,
       finalizedByUserId: null,
+      cancellationStatus: input.cancellationStatus ?? "applied",
+      cancellationReasonCode: input.cancellationReasonCode ?? null,
+      cancellationReasonNote: input.cancellationReasonNote ?? null,
+      cancellationRequestedAt: cancelledAt,
+      cancellationApprovedAt: cancelledAt,
+      cancellationApprovedByUserId: input.cancellationApprovedByUserId ?? null,
+      cancellationCorrelationId: input.cancellationCorrelationId ?? null,
       ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
     };
     bookingsStore.set(updated.id, updated);
@@ -1187,10 +1199,17 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         status: updated.status,
         cancelledAt,
         previousStatus: current.status,
+        previousFinalizationStatus: current.finalizationStatus ?? "not_final",
+        previousPaymentStatus: current.paymentStatus,
+        partySize: current.partySize,
         guestUserId: updated.submittedByUserId,
         ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
+        ...(input.cancellationReasonCode !== undefined
+          ? { reasonCode: input.cancellationReasonCode }
+          : {}),
       },
-      domainEventId: `registration.cancelled:${updated.id}:${cancelledAt}`,
+      correlationId: input.cancellationCorrelationId,
+      domainEventId: input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
       createdAt: cancelledAt,
     });
     return cloneBooking(updated);
