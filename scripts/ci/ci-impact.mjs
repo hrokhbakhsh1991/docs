@@ -56,6 +56,7 @@ function classifyPath(path, result) {
     normalized.startsWith(".husky/") ||
     normalized.startsWith("scripts/") ||
     normalized.startsWith("infra/") ||
+    normalized.startsWith("deploy/") ||
     normalized.startsWith("tsconfig") ||
     normalized.startsWith("pnpm-workspace")
   ) {
@@ -154,6 +155,11 @@ function classifyPath(path, result) {
       ["workspace-denali", "api", "web", "portal", "marketing", "booking", "finance", "ticketing"],
       `Denali workspace change: ${normalized}`
     );
+    return;
+  }
+
+  if (normalized.startsWith("packages/guest-surface-host/")) {
+    add(result, ["web", "portal", "marketing"], `guest surface host package change: ${normalized}`);
     return;
   }
 

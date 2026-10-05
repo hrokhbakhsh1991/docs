@@ -48,6 +48,19 @@ test("booking HTTP contracts stay scoped without falling back to full impact", (
   assert.deepEqual(result.unknownPaths, []);
 });
 
+test("guest surface host changes cover its three consumers", () => {
+  const result = classifyPaths(["packages/guest-surface-host/src/index.ts"]);
+  assert.deepEqual(result.domains, ["web", "portal", "marketing"]);
+  assert.equal(result.full, false);
+  assert.deepEqual(result.unknownPaths, []);
+});
+
+test("deployment environment changes are full impact but not unknown", () => {
+  const result = classifyPaths(["deploy/vps/env/portal.env.example"]);
+  assert.equal(result.full, true);
+  assert.deepEqual(result.unknownPaths, []);
+});
+
 test("shared control-plane changes fail closed", () => {
   const result = classifyPaths([".github/workflows/phase-5-gate.yml", "pnpm-lock.yaml"]);
   assert.equal(result.full, true);
