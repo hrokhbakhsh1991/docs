@@ -1011,27 +1011,37 @@ export class BookingsService {
       tenantId: auth.tenantId,
       outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
       cancelSource: "operator",
-      cancellationStatus: Date.parse(before.departureAt) <= Date.now() ? "late_correction" : "applied",
+      cancellationStatus:
+        Date.parse(before.departureAt) <= Date.now() ? "late_correction" : "applied",
       cancellationReasonCode: input.reasonCode,
       cancellationReasonNote: input.reasonNote,
       cancellationApprovedByUserId: auth.userId,
       cancellationCorrelationId: correlationId,
     });
-    const effects = await this.postCancelSideEffects.run({
-      auth,
-      booking: { ...before, status: "cancelled", cancelSource: "operator" },
-      previousStatus,
-      cancelDomainEventId: correlationId,
-      cancelSource: "operator",
-    });
+    let settlementStatus: CancelBookingResponse["settlementStatus"] = "not_affected";
+    try {
+      const effects = await this.postCancelSideEffects.run({
+        auth,
+        booking: { ...before, status: "cancelled", cancelSource: "operator" },
+        previousStatus,
+        cancelDomainEventId: correlationId,
+        cancelSource: "operator",
+      });
+      settlementStatus = effects.settlementStatus;
+    } catch {
+      // The lifecycle transition is already persisted. Surface a recoverable
+      // finance/settlement case instead of returning a retry-shaped 500.
+      settlementStatus = "manual_review";
+    }
     return {
       id: updated.id,
       status: updated.status,
       cancellationStatus: updated.cancellationStatus,
-      refundStatus: updated.paymentStatus === "paid" || updated.paymentStatus === "partial"
-        ? "pending_finance_approval"
-        : "not_required",
-      settlementStatus: effects.settlementStatus,
+      refundStatus:
+        updated.paymentStatus === "paid" || updated.paymentStatus === "partial"
+          ? "pending_finance_approval"
+          : "not_required",
+      settlementStatus,
     };
   }
 

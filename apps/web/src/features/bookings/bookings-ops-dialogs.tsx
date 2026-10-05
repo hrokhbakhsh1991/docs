@@ -175,7 +175,7 @@ export function BookingsCancelConfirmDialog({
           <Button
             type="button"
             variant="destructive"
-            disabled={busy}
+            disabled={busy || reason.trim().length === 0}
             onClick={onConfirm}
             data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmButton}
           >

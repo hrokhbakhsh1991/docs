@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBookingDeparture } from "@/features/bookings/bookings-command-center-logic";
+import { BookingsCancelConfirmDialog } from "@/features/bookings/bookings-ops-dialogs";
+import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
+import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
 import {
   formatRegistrationIntakeTransportLabel,
   type PublicCatalogRegistrationTransportKind,
@@ -66,6 +69,9 @@ export function TourWorkspaceTransportClient({
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
   const [confirmingFinalizationId, setConfirmingFinalizationId] = useState<string | null>(null);
   const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<TourOperationalRosterRow | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
@@ -135,6 +141,55 @@ export function TourWorkspaceTransportClient({
       return;
     }
     void finalizeParticipant(registrationId, openPayment);
+  };
+
+  const cancelParticipant = async () => {
+    if (cancelTarget === null || cancelReason.trim().length === 0) {
+      return;
+    }
+    setCancelBusy(true);
+    setFinalizationMessage(null);
+    try {
+      const response = await fetch(
+        `/api/bookings/${encodeURIComponent(cancelTarget.registrationId)}/cancel`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reasonCode: cancelReason.trim() }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`CANCEL_HTTP_${response.status}`);
+      }
+      const result = (await response.json().catch(() => null)) as {
+        refundStatus?: string;
+        settlementStatus?: string;
+      } | null;
+      const statusMessages = [
+        result?.refundStatus === "pending_finance_approval"
+          ? t("cancelParticipantRefundPending")
+          : null,
+        result?.settlementStatus === "correction_pending" ||
+        result?.settlementStatus === "manual_review"
+          ? t("cancelParticipantSettlementReview")
+          : null,
+      ].filter((message): message is string => message !== null);
+      setFinalizationMessage(
+        statusMessages.length > 0
+          ? `${t("cancelParticipantSuccess")} ${statusMessages.join(" ")}`
+          : t("cancelParticipantSuccess")
+      );
+      setCancelTarget(null);
+      setCancelReason("");
+      invalidateFinanceRegistrationCaches(cancelTarget.registrationId);
+      invalidateTourWorkspaceFinanceCache(tourId);
+      await loadTransport();
+      reloadWorkspaceChrome();
+    } catch {
+      setFinalizationMessage(t("cancelParticipantFailed"));
+    } finally {
+      setCancelBusy(false);
+    }
   };
 
   const exportFinalRoster = async () => {
@@ -294,6 +349,21 @@ export function TourWorkspaceTransportClient({
             </OperatorInternalLink>
           </Button>
         ) : null}
+        {canManage && !isWaitlisted && row.isFinalParticipant ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={cancelBusy}
+            data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.cancelParticipantButton}
+            onClick={() => {
+              setCancelTarget(row);
+              setCancelReason("");
+            }}
+          >
+            {t("cancelParticipant")}
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -364,6 +434,22 @@ export function TourWorkspaceTransportClient({
         {localizedError !== null ? (
           <p className="text-sm text-destructive">{localizedError}</p>
         ) : null}
+
+        <BookingsCancelConfirmDialog
+          open={cancelTarget !== null}
+          busy={cancelBusy}
+          guestLabel={cancelTarget?.guestLabel ?? ""}
+          tourTitle={t("title")}
+          reason={cancelReason}
+          onReasonChange={setCancelReason}
+          onOpenChange={(open) => {
+            if (!open && !cancelBusy) {
+              setCancelTarget(null);
+              setCancelReason("");
+            }
+          }}
+          onConfirm={() => void cancelParticipant()}
+        />
 
         {!loading && modes.length > 0 ? (
           <div

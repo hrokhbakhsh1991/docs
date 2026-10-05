@@ -154,7 +154,9 @@ The cancellation event payload carries the immutable cancellation/correlation id
 actor, reason, previous lifecycle/finalization/payment state, party size, and
 late-correction flag. Transport, roster, refund, settlement, waitlist, and
 notification handlers are idempotent and retryable; a failed side effect is never
-silently ignored.
+silently ignored. The cancel command still returns the persisted cancellation
+when a post-cancel side effect fails, with `settlementStatus: manual_review`, so
+the operator is not encouraged to retry an already-applied cancellation.
 
 ## Finance follow-up actions
 

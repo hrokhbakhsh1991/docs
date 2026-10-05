@@ -508,6 +508,11 @@
       "followPayment": "Follow up payment",
       "finalizeParticipantSuccess": "Participant finalized; payment state remains separate.",
       "finalizeParticipantFailed": "Could not finalize this participant.",
+      "cancelParticipant": "Cancel booking",
+      "cancelParticipantSuccess": "Participant booking was cancelled from the final roster.",
+      "cancelParticipantRefundPending": "The refund is pending finance approval.",
+      "cancelParticipantSettlementReview": "Settlement correction requires manual review.",
+      "cancelParticipantFailed": "Could not cancel this participant booking.",
       "stages": {
         "approved_payment_required": "Approved; payment required",
         "approved_ready_to_finalize": "Approved; ready for final roster",
