@@ -7,6 +7,7 @@ test("documentation-only changes stay narrow", () => {
   assert.equal(result.full, false);
   assert.deepEqual(result.domains, ["docs"]);
   assert.equal(result.tiers.postgres, false);
+  assert.deepEqual(result.gateNodes, []);
 });
 
 test("operator booking changes select booking and browser coverage", () => {
@@ -17,12 +18,14 @@ test("operator booking changes select booking and browser coverage", () => {
   assert.deepEqual(result.domains, ["web", "booking"]);
   assert.equal(result.tiers.playwright, true);
   assert.equal(result.full, false);
+  assert.ok(result.gateNodes.includes("l3.e2e"));
 });
 
 test("API finance changes include database-aware finance coverage", () => {
   const result = classifyPaths(["apps/api/src/finance/receipt.service.ts"]);
   assert.deepEqual(result.domains, ["api", "finance"]);
   assert.equal(result.tiers.postgres, true);
+  assert.ok(result.gateNodes.includes("l3.postgres"));
 });
 
 test("Denali workspace changes fan out to all Denali surfaces", () => {
@@ -38,6 +41,13 @@ test("Denali workspace changes fan out to all Denali surfaces", () => {
     "workspace-denali",
   ]);
   assert.equal(result.full, false);
+  assert.deepEqual(result.gateNodes, [
+    "l0.node-engine",
+    "l1.boundaries",
+    "l1.typecheck",
+    "l1.unit",
+    "l3.cw-closure",
+  ]);
 });
 
 test("booking HTTP contracts stay scoped without falling back to full impact", () => {
@@ -77,6 +87,8 @@ test("shared control-plane changes fail closed", () => {
     "docs",
   ]);
   assert.equal(result.tiers.playwright, true);
+  assert.ok(result.gateNodes.includes("l2.integration"));
+  assert.ok(result.gateNodes.includes("l3.cw-closure"));
 });
 
 test("unknown paths are explicitly recorded and fail closed", () => {

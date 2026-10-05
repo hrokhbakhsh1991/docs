@@ -39,6 +39,11 @@ set for shared control-plane files, database contracts, workflow/configuration
 changes, or an unknown path. This prevents a new package or cross-surface file
 from silently bypassing coverage.
 
+The JSON decision also includes `gateNodes`, using the node IDs from
+[`PROD-3-GATE-CATALOG.json`](../platform/PROD-3-GATE-CATALOG.json). The future
+orchestrator will consume these IDs instead of duplicating path rules in each
+workflow.
+
 The classifier is currently introduced as a shadow signal. Existing phase
 workflows remain authoritative until the signal has been compared against
 several real pull requests. The intended migration order is:
