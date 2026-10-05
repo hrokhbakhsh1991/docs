@@ -3666,3 +3666,41 @@ Scope note: `BUG-STG-ADMIN-EXPORT-SUMMARY` / final Excel roster is intentionally
   **BLOCKED BY STAGING AVAILABILITY**, not by the OTP value. Source
   projection evidence remains green (Portal `6/6`, Admin `13/13`), but this
   cannot be promoted to runtime PASS while the hosts are unreachable.
+
+## 2026-10-05 — final staging closure evidence after Arvan/MinIO repair
+
+- Runtime deployment baseline: `Deploy staging (dev)` run `37231737145`,
+  release SHA `21f4a6add0940a4046e8bae6854c9c452313b5b7`,
+  with `INSTALL_ARTIFACT_OK sha=21f4a6add0940a4046e8bae6854c9c452313b5b7`.
+  The deploy log also records successful artifact verification, migration,
+  seed, four-process health, RLS remote gate, and workspace staging adapter.
+- Edge and storage recovery: Arvan `storage.denali` now proxies the VPS over
+  HTTP origin; Caddy is active, `minio-access.log` is owned by `caddy:caddy`,
+  MinIO binds only to `127.0.0.1:9001` and `127.0.0.1:9002`, and public
+  MinIO port `9002` is closed.
+- Public endpoint smoke: Marketing `200`, Admin `307` to `/dashboard`,
+  Portal `307`, API health `200`, and
+  `https://storage.denali.shenski.com/minio/health/live` `200`.
+- Browser media proof: tour `QA 2026 Free No Payment`
+  (`de32096c-4b02-405f-9bc8-31e906e89838`) loaded over HTTPS with zero
+  console errors/warnings. Four signed image requests used
+  `https://storage.denali.shenski.com/...`, each returned `200`, and each
+  image had `naturalWidth=1672` and `naturalHeight=941`. The rendered HTML
+  contained neither the old HTTP storage URL nor the raw MinIO IP.
+- Financial fixture: `QA 2026 Shared Cars Dong`
+  (`99c917a2-769f-499d-a59f-5c9ae1874aeb`) contains one settled attendee and
+  one finalized attendee with open payment of `2,580,000` toman. The
+  workspace shows `نهایی؛ پرداخت باز` and `پرداختنشده` for the latter.
+- Payment/finalization: the open-payment flow was exercised; a separate full
+  payment was recorded for `QA 2026 Member Discount`, changing its queue from
+  one pending payment to zero pending and four finalized attendees.
+- Populated Excel proof: `denali-final-roster-20261005070101.xlsx`, 15,887
+  bytes, SHA-256
+  `f66e87876754abcbd5a294357ef0445da36c707a7426ba4868986d1e2ffad4a8`.
+  ExcelJS parsing passed with five sheets; `منتظر پرداخت` has 2 non-empty rows
+  and `پرداخت‌شده` has 2 non-empty rows.
+- Closure status: deployment, edge stability, HTTPS media, financial fixture,
+  payment/finalization, and populated Excel evidence are **PASS** for the
+  stated staging scope. This is **staging production-readiness evidence**, not
+  a production deployment approval or a claim that unrelated scenarios were
+  exhaustively tested.
