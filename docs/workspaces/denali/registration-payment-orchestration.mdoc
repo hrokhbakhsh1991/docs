@@ -132,6 +132,11 @@ Bookings still owns approve. Finance still owns receipt review. The inbox is a *
 
 For free collection, `freeCollectionApplied` is the canonical zero-collection marker. Booking list and detail projections must both resolve this marker to `financialDisplayState: "WAIVED"` before Portal derives payment copy; receipt status remains a separate axis.
 
+Operator booking badges follow the same separation: a cancelled or rejected
+registration does not rewrite its recorded `paymentStatus`. The booking
+lifecycle label and the payment/settlement label are rendered independently so
+historical paid, partial, unpaid, and waived states remain auditable.
+
 ### Telegram registration decision message
 
 The Telegram `registration` topic receives an actionable `registration.created`

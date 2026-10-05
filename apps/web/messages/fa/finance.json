@@ -296,7 +296,7 @@
     "invoiceTotalShort": "کل",
     "paidShort": "پرداخت‌شده",
     "remainingShort": "مانده",
-    "pendingPaymentMeaning": "این پرداخت باز است و هنوز فیشی برای بازبینی ثبت نشده است.",
+    "pendingPaymentMeaning": "این پرداخت باز است؛ به‌معنای ثبت فیش برای بازبینی نیست.",
     "pendingReceiptMeaning": "فیش این پرداخت در صف بررسی است؛ برای تأیید یا رد به تب رسیدها بروید.",
     "paidPaymentScopeHint": "این پرداخت ثبت شده است. اگر مانده باشد، تسویه رزرو ممکن است هنوز جزئی باشد.",
     "stripLatestPaymentsTitle": "آخرین پرداخت‌ها",
