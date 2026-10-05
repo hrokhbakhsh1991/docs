@@ -1,5 +1,5 @@
 /**
- * DP1-G — waitlist auto-promote on expiry (S6).
+ * DP1-G — payment expiry releases capacity without auto-promoting waitlist (S6).
  */
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
@@ -24,7 +24,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
   beforeEach(() => resetDp1MemoryHarness());
   after(() => resetDp1MemoryHarness());
 
-  it("S6: expiry promotes one waitlisted guest with new hold + quote", async () => {
+  it("S6: expiry keeps the next guest waitlisted for operator confirmation", async () => {
     const guestA = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Guest A", partySize: 2, tourCapacityMax: 2 })
@@ -44,13 +44,12 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
       registrationId: guestA.id,
     });
 
-    const promoted = await dp1GetBooking(guestB.id);
-    assert.equal(promoted.status, "approved");
-    assert.equal(promoted.paymentStatus, "unpaid");
+    const retained = await dp1GetBooking(guestB.id);
+    assert.equal(retained.status, "waitlisted");
+    assert.equal(retained.paymentStatus, "unpaid");
 
-    const promotedHold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, guestB.id);
-    assert.ok(promotedHold !== null);
-    assert.equal(promotedHold.status, "open");
+    const retainedHold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, guestB.id);
+    assert.equal(retainedHold, null);
 
     const quotePort = (await import("../../src/finance/commercial-quote-approve.service.ts")) as {
       createCommercialQuoteApproveServiceForTests: () => {
@@ -62,11 +61,10 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
         } | null>;
       };
     };
-    const quote = await quotePort.createCommercialQuoteApproveServiceForTests().getActiveQuote(
-      DP1_TENANT_DENALI,
-      guestB.id
-    );
-    assert.equal(quote?.status, "FROZEN");
+    const quote = await quotePort
+      .createCommercialQuoteApproveServiceForTests()
+      .getActiveQuote(DP1_TENANT_DENALI, guestB.id);
+    assert.equal(quote, null);
   });
 
   it("BUG-STG-063: promotion keeps a group waitlisted when released seats do not fit its partySize", async () => {

@@ -45,6 +45,7 @@ export function matchesBookingListFilters(
   record: BookingRecord,
   filters: Pick<
     BookingListPageInput,
+    | "workQueue"
     | "status"
     | "statuses"
     | "tourId"
@@ -55,19 +56,33 @@ export function matchesBookingListFilters(
     | "departureTo"
     | "approvedFrom"
     | "approvedTo"
-  >,
+  >
 ): boolean {
-  if (filters.submittedByUserId !== undefined && record.submittedByUserId !== filters.submittedByUserId) {
+  if (
+    filters.submittedByUserId !== undefined &&
+    record.submittedByUserId !== filters.submittedByUserId
+  ) {
     return false;
   }
-  if (filters.statuses !== undefined && filters.statuses.length > 0) {
+  if (filters.workQueue === true) {
+    const isLifecycleActionable = record.status === "pending" || record.status === "waitlisted";
+    const isCancellationActionable =
+      record.status === "approved" && record.cancellationStatus === "request_pending";
+    if (!isLifecycleActionable && !isCancellationActionable) {
+      return false;
+    }
+  } else if (filters.statuses !== undefined && filters.statuses.length > 0) {
     if (!filters.statuses.includes(record.status)) {
       return false;
     }
   } else if (filters.status !== undefined && record.status !== filters.status) {
     return false;
   }
-  if (filters.tourId !== undefined && filters.tourId.length > 0 && record.tourId !== filters.tourId) {
+  if (
+    filters.tourId !== undefined &&
+    filters.tourId.length > 0 &&
+    record.tourId !== filters.tourId
+  ) {
     return false;
   }
   if (filters.paymentStatus !== undefined && record.paymentStatus !== filters.paymentStatus) {
@@ -124,7 +139,10 @@ export function matchesBookingListFilters(
   return haystacks.some((value) => value.toLocaleLowerCase().includes(needle));
 }
 
-export function compareBookingsBySubmittedAtDesc(left: BookingRecord, right: BookingRecord): number {
+export function compareBookingsBySubmittedAtDesc(
+  left: BookingRecord,
+  right: BookingRecord
+): number {
   const submittedDelta = right.submittedAt.localeCompare(left.submittedAt);
   if (submittedDelta !== 0) {
     return submittedDelta;

@@ -65,6 +65,7 @@ export function parseBookingsListStatusParam(
 export function parseBookingsListQuery(url: URL): BookingsListQuery {
   const viewRaw = url.searchParams.get("view");
   const view = viewRaw === "mine" ? "mine" : "ops";
+  const workQueue = url.searchParams.get("workQueue") === "true";
   const statusFields = parseBookingsListStatusParam(url.searchParams.get("status"));
   const tourId = url.searchParams.get("tourId")?.trim();
   const paymentStatusRaw = url.searchParams.get("paymentStatus");
@@ -92,6 +93,7 @@ export function parseBookingsListQuery(url: URL): BookingsListQuery {
 
   return {
     view,
+    ...(workQueue ? { workQueue: true } : {}),
     ...statusFields,
     ...(tourId !== undefined && tourId.length > 0 ? { tourId } : {}),
     ...(paymentStatus !== undefined ? { paymentStatus } : {}),

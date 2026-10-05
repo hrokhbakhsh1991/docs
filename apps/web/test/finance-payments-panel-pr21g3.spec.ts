@@ -42,6 +42,18 @@ describe("finance-payments PR21-G3", () => {
     assert.doesNotMatch(rowBody, /paidPaymentScopeHint/);
   });
 
+  it("G3-2b: pending receipt has explicit review guidance", () => {
+    assert.match(panel, /hasVisiblePendingReceipt/);
+    assert.match(panel, /pendingReceiptMeaning/);
+    const fa = JSON.parse(readFileSync(resolve(WEB_ROOT, "messages/fa/finance.json"), "utf8")) as {
+      payments?: { pendingReceiptMeaning?: string };
+    };
+    assert.equal(
+      fa.payments?.pendingReceiptMeaning,
+      "فیش این پرداخت در صف بررسی است؛ برای تأیید یا رد به تب رسیدها بروید."
+    );
+  });
+
   it("G3-3: Advanced is secondary; Receipts remains normal path", () => {
     assert.match(panel, /FINANCE_PAYMENTS_TEST_IDS\.rowAdvanced/);
     assert.match(panel, /rowAdvancedShow/);

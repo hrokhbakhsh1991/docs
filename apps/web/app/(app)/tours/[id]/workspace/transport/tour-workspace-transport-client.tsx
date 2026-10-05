@@ -169,6 +169,9 @@ export function TourWorkspaceTransportClient({
         result?.refundStatus === "pending_finance_approval"
           ? t("cancelParticipantRefundPending")
           : null,
+        result?.refundStatus === "manual_review"
+          ? t("cancelParticipantRefundReview")
+          : null,
         result?.settlementStatus === "correction_pending" ||
         result?.settlementStatus === "manual_review"
           ? t("cancelParticipantSettlementReview")

@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20261005090000_booking_cancellation_workflow";
+export const EXPECTED_PRISMA_MIGRATION_HEAD =
+  "20261005170000_member_cancellation_request_persistence";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [

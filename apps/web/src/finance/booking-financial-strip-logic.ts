@@ -8,6 +8,16 @@ import { withFinanceRegistrationQuery } from "@/finance/finance-registration-con
 /** Booking obligation settlement (not payment-row status). */
 export type StripBookingPaymentStatus = "unpaid" | "partial" | "paid";
 export type StripFinancialDisplayState = "WAIVED" | string;
+export type StripRefundStatus = "Requested" | "Approved" | "Completed" | "Rejected" | "Cancelled";
+
+export function resolveStripRefundStatus(
+  statuses: readonly StripRefundStatus[]
+): StripRefundStatus | null {
+  if (statuses.includes("Requested")) return "Requested";
+  if (statuses.includes("Approved")) return "Approved";
+  if (statuses.includes("Completed")) return "Completed";
+  return null;
+}
 
 /**
  * Single strip-level settlement summary (not per payment row).
@@ -20,7 +30,10 @@ export type StripBookingSettlementSummary =
   | "booking_partial_pending"
   | "booking_unpaid_pending"
   | "booking_unpaid"
-  | "booking_partial";
+  | "booking_partial"
+  | "booking_cancelled"
+  | "booking_refund_pending"
+  | "booking_refunded";
 
 export type StripNextStepTab = "payments" | "receipts";
 
@@ -81,6 +94,8 @@ export function hasInvoiceRemainingBalance(balanceDueMinor: string | null | unde
 export function resolveStripBookingSettlementSummary(input: {
   readonly bookingPaymentStatus: StripBookingPaymentStatus | null | undefined;
   readonly financialDisplayState?: StripFinancialDisplayState | null | undefined;
+  readonly bookingStatus?: string | null | undefined;
+  readonly refundStatus?: StripRefundStatus | null | undefined;
   readonly items: ReadonlyArray<Pick<FinancePaymentRow, "status">>;
 }): StripBookingSettlementSummary | null {
   const booking = input.bookingPaymentStatus ?? null;
@@ -89,6 +104,16 @@ export function resolveStripBookingSettlementSummary(input: {
   }
   if (input.financialDisplayState?.trim().toUpperCase() === "WAIVED") {
     return "booking_waived";
+  }
+  const bookingStatus = input.bookingStatus?.trim().toLowerCase();
+  if (bookingStatus === "cancelled" || bookingStatus === "rejected") {
+    if (input.refundStatus === "Completed") {
+      return "booking_refunded";
+    }
+    if (input.refundStatus === "Requested" || input.refundStatus === "Approved") {
+      return "booking_refund_pending";
+    }
+    return "booking_cancelled";
   }
   const pending = hasOpenPendingManualPayment(input.items);
   const recorded = hasRecordedManualPayment(input.items);

@@ -264,6 +264,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_FOUND")) return 500;
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return 409;
   if (message.startsWith("TOUR_VERSION_CONFLICT")) return 409;
+  if (message === "DRIVER_PAYABLE_NOT_SETTLEABLE") return 409;
   if (message.startsWith("TOUR_NOT_FOUND")) return 404;
   if (message === "TENANT_NOT_FOUND") return 404;
   if (message.startsWith("TOUR_CLONE_UNSUPPORTED")) return 422;

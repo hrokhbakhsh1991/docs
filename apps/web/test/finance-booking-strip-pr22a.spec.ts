@@ -8,6 +8,8 @@ import { describe, it } from "node:test";
 
 import {
   hasInvoiceRemainingBalance,
+  resolveStripBookingSettlementSummary,
+  resolveStripRefundStatus,
   resolveStripNextStep,
 } from "../src/finance/booking-financial-strip-logic";
 
@@ -126,13 +128,54 @@ describe("PR22-A booking strip next-action", () => {
     assert.equal(hasInvoiceRemainingBalance("x"), false);
   });
 
+  it("terminal cancellation wins over stale paid status", () => {
+    assert.equal(
+      resolveStripBookingSettlementSummary({
+        bookingPaymentStatus: "paid",
+        bookingStatus: "cancelled",
+        refundStatus: "Completed",
+        items: [],
+      }),
+      "booking_refunded"
+    );
+    assert.equal(
+      resolveStripBookingSettlementSummary({
+        bookingPaymentStatus: "paid",
+        bookingStatus: "cancelled",
+        refundStatus: "Approved",
+        items: [],
+      }),
+      "booking_refund_pending"
+    );
+    assert.equal(
+      resolveStripBookingSettlementSummary({
+        bookingPaymentStatus: "paid",
+        bookingStatus: "cancelled",
+        items: [],
+      }),
+      "booking_cancelled"
+    );
+  });
+
+  it("aggregates every refund row and keeps an open remainder ahead of completed rows", () => {
+    assert.equal(resolveStripRefundStatus(["Completed", "Requested"]), "Requested");
+    assert.equal(resolveStripRefundStatus(["Completed", "Approved"]), "Approved");
+    assert.equal(resolveStripRefundStatus(["Completed", "Completed"]), "Completed");
+    assert.equal(resolveStripRefundStatus(["Rejected", "Cancelled"]), null);
+  });
+
   it("strip: one primary CTA; payments next-step clickable; no always-on Payments when next-step", () => {
     assert.match(strip, /data-next-reason=\{nextStep\.reason\}/);
     assert.match(strip, /stripNextStepPaymentsNeutralHint|paymentsNextStepHintKey/);
     assert.match(strip, /hasPendingReceipt/);
     assert.match(strip, /hasInvoiceRemainingBalance/);
+    assert.match(strip, /fetchRegistrationRefundStatus/);
+    assert.match(strip, /limit=100/);
     // PR22-B: openPayments only on primary Payments next-step (not fallback)
-    assert.match(strip, /nextStep\.tab === "payments"[\s\S]*?BOOKING_FINANCIAL_STRIP_TEST_IDS\.openPayments/);
+    assert.match(
+      strip,
+      /nextStep\.tab === "payments"[\s\S]*?BOOKING_FINANCIAL_STRIP_TEST_IDS\.openPayments/
+    );
     assert.doesNotMatch(strip, /FinanceService|@app-cloud\/finance-core/);
   });
 });

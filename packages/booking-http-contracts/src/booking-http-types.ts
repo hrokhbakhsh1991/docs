@@ -12,6 +12,12 @@ export type BookingsListSort = "submittedAt" | "departureAt";
 
 export type BookingsListQuery = {
   readonly view: BookingsListView;
+  /**
+   * Operator work queue. Includes registrations awaiting an ops lifecycle
+   * decision plus approved registrations with a pending member cancellation
+   * request. When true, it takes precedence over `status` / `statuses`.
+   */
+  readonly workQueue?: boolean;
   /** Single-status filter (BC). Prefer `statuses` when multiple. */
   readonly status?: BookingStatus;
   /**
@@ -130,6 +136,8 @@ export type BookingListItem = {
   readonly cancellationRequestedAt?: string | null;
   readonly cancellationApprovedAt?: string | null;
   readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationRejectedAt?: string | null;
+  readonly cancellationRejectedByUserId?: string | null;
   readonly cancellationCorrelationId?: string | null;
   /** Ops list projection — submitter user id for directory avatar parity. */
   readonly memberUserId?: string;
@@ -230,8 +238,13 @@ export type CancelBookingResponse = {
   readonly id: string;
   readonly status: BookingStatus;
   readonly cancellationStatus?: BookingCancellationStatus;
-  readonly refundStatus?: "not_required" | "pending_finance_approval";
+  readonly refundStatus?:
+    | "not_required"
+    | "pending_finance_approval"
+    | "completed"
+    | "manual_review";
   readonly settlementStatus?: "not_affected" | "correction_pending" | "manual_review";
+  readonly notificationStatus?: "queued" | "manual_review";
 };
 
 export type CancelBookingRequest = {

@@ -643,6 +643,17 @@ Any future UX concept (still not specified here) is acceptable **only if**:
 
 > Operators encounter work as a Financial Case, read it in hierarchy until verdict and owner are known, then only take actions allowed by that verdict — treating wait as success when ownership is elsewhere, treating unpaid+in-review as calm finance work, and treating exceptions/audit as explicit mode changes.
 
+## Pending payment and receipt wording
+
+An open manual payment and a pending receipt are different facts. The payment
+surface must state which fact is true:
+
+- open payment without a pending receipt: no receipt is currently queued for review;
+- open payment with a pending receipt: the receipt is queued and the operator should use the Receipts tab.
+
+The UI must not describe a payment with a pending receipt as if no receipt were
+ready for review.
+
 ---
 
 ## Traceability

@@ -83,6 +83,23 @@ export type BookingListItem = {
   readonly paymentDueAt?: string;
   /** DP1 — cancel provenance when status=cancelled. */
   readonly cancelSource?: string | null;
+  readonly cancellationStatus?:
+    | "none"
+    | "request_pending"
+    | "approved"
+    | "rejected"
+    | "applied"
+    | "late_correction"
+    | "manual_review"
+    | "completed";
+  readonly cancellationReasonCode?: string | null;
+  readonly cancellationReasonNote?: string | null;
+  readonly cancellationRequestedAt?: string | null;
+  readonly cancellationApprovedAt?: string | null;
+  readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationRejectedAt?: string | null;
+  readonly cancellationRejectedByUserId?: string | null;
+  readonly cancellationCorrelationId?: string | null;
   /** Ops list projection — submitter user id for avatar resolution. */
   readonly memberUserId?: string;
   /** Ops list projection — presigned avatar URL when membership has storage key. */
@@ -143,6 +160,10 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   rejectButton: "operator-bookings-reject",
   waitlistButton: "operator-bookings-waitlist",
   cancelButton: "operator-bookings-cancel",
+  memberCancellationRequestBadge: "operator-bookings-member-cancellation-request-badge",
+  approveMemberCancellationButton: "operator-bookings-member-cancellation-approve",
+  rejectMemberCancellationButton: "operator-bookings-member-cancellation-reject",
+  memberCancellationDecisionDialog: "operator-bookings-member-cancellation-decision-dialog",
   bulkApproveButton: "operator-bookings-bulk-approve",
   bulkSelectAllButton: "operator-bookings-bulk-select-all",
   clearFiltersButton: "operator-bookings-clear-filters",

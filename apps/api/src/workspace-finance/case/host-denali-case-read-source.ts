@@ -8,6 +8,7 @@ import {
   compileRegistrationInvoice,
   type FinancePaymentRow,
   type FinanceReceiptRow,
+  type FinanceRefundRow,
   type FinanceRepositoryPort,
   type RegistrationInvoiceFacts,
 } from "@app-tour/finance-core";
@@ -40,6 +41,11 @@ export type HostDenaliCaseReadFinancePort = Pick<
     tenantId: string,
     registrationId: string
   ) => Promise<readonly FinancePaymentRow[]>;
+  /** Cancellation reconciliation; optional only for portable/test adapters. */
+  readonly listRefundsForRegistration?: (
+    tenantId: string,
+    registrationId: string
+  ) => Promise<readonly FinanceRefundRow[]>;
 };
 
 export type HostDenaliCaseReadDeps = {
@@ -56,9 +62,7 @@ function registrationIdFromScope(scope: CaseFactReadScope): string {
   return scope.subjectId;
 }
 
-function toPaymentRows(
-  rows: readonly FinancePaymentRow[]
-): readonly DenaliPaymentRowSource[] {
+function toPaymentRows(rows: readonly FinancePaymentRow[]): readonly DenaliPaymentRowSource[] {
   return rows.map((row) => ({
     id: row.id,
     status: row.status,
@@ -268,9 +272,25 @@ export class HostDenaliCaseReadSource implements DenaliCaseReadSourcePort {
             this.deps.tenantId,
             registrationId
           );
+          const refunds =
+            this.deps.finance.listRefundsForRegistration === undefined
+              ? null
+              : await this.deps.finance.listRefundsForRegistration(
+                  this.deps.tenantId,
+                  registrationId
+                );
+          const collected = booking.paymentStatus === "paid" || booking.paymentStatus === "partial";
+          const hasRefundWorkflow =
+            refunds?.some(
+              (refund) =>
+                refund.status === "Requested" ||
+                refund.status === "Approved" ||
+                refund.status === "Completed"
+            ) ?? false;
           leftoverArtifactsProven =
-            receipt !== null &&
-            (receipt.status === "Pending" || booking.paymentStatus !== "paid");
+            receipt?.status === "Pending" ||
+            (collected && refunds !== null && !hasRefundWorkflow) ||
+            (refunds === null && receipt !== null && booking.paymentStatus !== "paid");
         } catch {
           leftoverArtifactsProven = null;
         }
@@ -293,6 +313,7 @@ export class HostDenaliCaseReadSource implements DenaliCaseReadSourcePort {
             resolved?.currency ?? null
           );
           meaningConflictProven = isBookingPaidWithPositiveInvoiceRemaining({
+            bookingStatus: booking.status,
             bookingPaymentStatus: booking.paymentStatus,
             remainingMinor,
           });

@@ -10,6 +10,12 @@ type CancellationEligibility = {
   readonly eligible: boolean;
   readonly mode: string;
   readonly reasonCode?: string;
+  readonly request?: {
+    readonly status: "pending" | "rejected";
+    readonly requestedAt: string | null;
+    readonly rejectedAt: string | null;
+    readonly reasonNote: string | null;
+  };
   readonly refund?: {
     readonly eligibleRefundMinor: string;
     readonly penaltyMinor: string;
@@ -35,20 +41,23 @@ export function MemberCancellationPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadEligibility = useCallback(async () => {
+    const res = await fetch(
+      `/api/me/registrations/${encodeURIComponent(registrationId)}/cancellation`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as CancellationEligibility;
+  }, [registrationId]);
+
   useEffect(() => {
     if (registrationStatus === "cancelled" || registrationStatus === "rejected") {
       return;
     }
     let cancelled = false;
-    void fetch(`/api/me/registrations/${encodeURIComponent(registrationId)}/cancellation`, {
-      cache: "no-store",
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          return null;
-        }
-        return (await res.json()) as CancellationEligibility;
-      })
+    void loadEligibility()
       .then((data) => {
         if (!cancelled && data !== null) {
           setEligibility(data);
@@ -57,7 +66,7 @@ export function MemberCancellationPanel({
     return () => {
       cancelled = true;
     };
-  }, [registrationId, registrationStatus]);
+  }, [loadEligibility, registrationStatus]);
 
   const onCancel = useCallback(async () => {
     setSubmitting(true);
@@ -72,11 +81,15 @@ export function MemberCancellationPanel({
         setError(payload.code ?? "submit_failed");
         return;
       }
+      const nextEligibility = await loadEligibility();
+      if (nextEligibility !== null) {
+        setEligibility(nextEligibility);
+      }
       router.refresh();
     } finally {
       setSubmitting(false);
     }
-  }, [registrationId, router]);
+  }, [loadEligibility, registrationId, router]);
 
   if (eligibility === null) {
     return null;
@@ -94,14 +107,24 @@ export function MemberCancellationPanel({
           })}
         </p>
       ) : null}
-      {eligibility.eligible ? (
+      {eligibility.mode === "request_pending" ? (
+        <p data-portal-member-cancel-pending>{t("requestPending")}</p>
+      ) : eligibility.mode === "request_rejected" ? (
+        <p data-portal-member-cancel-rejected>
+          {eligibility.request?.reasonNote
+            ? t("requestRejectedWithReason", { reason: eligibility.request.reasonNote })
+            : t("requestRejected")}
+        </p>
+      ) : eligibility.eligible ? (
         <>
           <p data-portal-member-cancel-hint>
             {eligibility.mode === "request"
               ? paymentCollection === "free"
                 ? t("freeRequestHint")
                 : t("requestHint")
-              : t("withdrawHint")}
+              : eligibility.mode === "self_cancel"
+                ? t("selfCancelHint")
+                : t("withdrawHint")}
           </p>
           <button
             type="button"
@@ -109,7 +132,11 @@ export function MemberCancellationPanel({
             disabled={submitting}
             onClick={() => void onCancel()}
           >
-            {eligibility.mode === "request" ? t("requestAction") : t("withdrawAction")}
+            {eligibility.mode === "request"
+              ? t("requestAction")
+              : eligibility.mode === "self_cancel"
+                ? t("selfCancelAction")
+                : t("withdrawAction")}
           </button>
         </>
       ) : (

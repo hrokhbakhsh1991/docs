@@ -511,6 +511,7 @@
       "cancelParticipant": "Cancel booking",
       "cancelParticipantSuccess": "Participant booking was cancelled from the final roster.",
       "cancelParticipantRefundPending": "The refund is pending finance approval.",
+      "cancelParticipantRefundReview": "The refund could not be recorded completely and requires finance review.",
       "cancelParticipantSettlementReview": "Settlement correction requires manual review.",
       "cancelParticipantFailed": "Could not cancel this participant booking.",
       "stages": {

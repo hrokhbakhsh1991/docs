@@ -30,6 +30,30 @@
     "viewWaitlist": "لیست انتظار",
     "viewHistory": "مشاهده در تاریخچه"
   },
+  "memberCancellation": {
+    "requestBadge": "درخواست لغو عضو",
+    "requestTitle": "درخواست لغو ثبت‌نام توسط عضو",
+    "requestedAt": "زمان درخواست: {date}",
+    "requestedAtUnknown": "زمان درخواست ثبت نشده است.",
+    "requestReason": "توضیح عضو: {reason}",
+    "reviewHint": "این درخواست عضو نیاز به تصمیم ادمین دارد.",
+    "approveAction": "تأیید لغو",
+    "rejectAction": "رد درخواست",
+    "approveDialogTitle": "درخواست لغو عضو تأیید شود؟",
+    "approveDialogDescription": "ثبت‌نام {guest} در تور {tour} لغو می‌شود، ظرفیت آزاد می‌شود و پیگیری مالی لازم آغاز خواهد شد.",
+    "rejectDialogTitle": "درخواست لغو عضو رد شود؟",
+    "rejectDialogDescription": "ثبت‌نام {guest} در تور {tour} تأییدشده باقی می‌ماند. دلیل را برای اطلاع عضو و سابقه ثبت کنید.",
+    "rejectReasonPlaceholder": "دلیل رد درخواست لغو",
+    "decisionCancel": "ادامه بررسی",
+    "approveConfirm": "تأیید و لغو رزرو",
+    "rejectConfirm": "رد درخواست",
+    "approveSuccess": "درخواست لغو تأیید شد؛ رزرو و صف‌های پیگیری به‌روزرسانی شدند.",
+    "rejectSuccess": "درخواست لغو رد شد؛ رزرو همچنان تأییدشده است.",
+    "manualReviewBadge": "نیازمند بررسی لغو",
+    "manualReviewTitle": "یک پیگیری لغو کامل نشده است",
+    "manualReviewDescription": "رزرو لغو شده، اما حداقل یکی از امور مالی، تسویه راننده، حمل‌ونقل یا اعلان باید توسط ادمین بررسی و دوباره اجرا شود.",
+    "manualReviewNotice": "رزرو لغو شد؛ یک یا چند پیگیری جانبی نیازمند بررسی دستی است."
+  },
   "overbookConfirmTitle": "ظرفیت تور پر است",
   "overbookConfirmDescription": "ظرفیت تکمیل شده. {guest} باز هم تأیید شود؟",
   "overbookConfirmAction": "باز هم تأیید",
@@ -200,7 +224,8 @@
       "partial": "پرداخت جزئی (رزرو)",
       "paid": "وجه دریافت شد",
       "paidAwaitingFinalization": "وجه دریافت شد — در انتظار نهایی‌سازی",
-      "waived": "بدون نیاز به پرداخت"
+      "waived": "بدون نیاز به پرداخت",
+      "cancelled": "رزرو بسته‌شده — پرداخت جدید مجاز نیست"
     }
   },
   "intake": {
@@ -231,7 +256,8 @@
     "partial": "پرداخت جزئی (رزرو)",
     "paid": "وجه دریافت شد",
     "paidAwaitingFinalization": "وجه دریافت شد — در انتظار نهایی‌سازی",
-    "waived": "بدون نیاز به پرداخت"
+    "waived": "بدون نیاز به پرداخت",
+    "cancelled": "رزرو بسته‌شده — پرداخت جدید مجاز نیست"
   },
   "paymentDueAt": "مهلت پرداخت: {date}",
   "actionReason": {

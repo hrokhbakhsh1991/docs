@@ -41,6 +41,27 @@ const MEMBER_NOTIFICATION_EVENT_MAP: Readonly<
     titleKey: "notification.registration.cancelled.title",
     bodyKey: "notification.registration.cancelled.body",
   },
+  "registration.passenger_cancelled": {
+    sourceModule: "booking",
+    entityType: "registration",
+    templateId: "booking.registration.passenger_cancelled",
+    titleKey: "notification.registration.passenger_cancelled.title",
+    bodyKey: "notification.registration.passenger_cancelled.body",
+  },
+  "registration.driver_cancelled": {
+    sourceModule: "booking",
+    entityType: "registration",
+    templateId: "booking.registration.driver_cancelled",
+    titleKey: "notification.registration.driver_cancelled.title",
+    bodyKey: "notification.registration.driver_cancelled.body",
+  },
+  "registration.cancellation_request_rejected": {
+    sourceModule: "booking",
+    entityType: "registration",
+    templateId: "booking.registration.cancellation_request_rejected",
+    titleKey: "notification.registration.cancellation_request_rejected.title",
+    bodyKey: "notification.registration.cancellation_request_rejected.body",
+  },
   "registration.rejected": {
     sourceModule: "booking",
     entityType: "registration",

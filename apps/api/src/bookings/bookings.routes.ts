@@ -43,6 +43,7 @@ import {
   getMemberCancellationEligibility,
   submitMemberCancellation,
   approveMemberCancellationRequestForBooking,
+  rejectMemberCancellationRequestForBooking,
 } from "../member-cancellation/member-cancellation.service";
 import { buildRefundEligibilitySnapshot } from "../finance/refund-orchestration.service.ts";
 import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
@@ -619,6 +620,50 @@ export async function handleApproveMemberCancellation(
       sendHttpError(res, 404, {
         error: "not_found",
         code: "MEMBER_CANCELLATION_REQUEST_NOT_FOUND",
+      });
+      return;
+    }
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleRejectMemberCancellation(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = await readIdentityRequestBody(req);
+    const reasonNote =
+      typeof body === "object" &&
+      body !== null &&
+      "reasonNote" in body &&
+      typeof body.reasonNote === "string"
+        ? body.reasonNote.trim()
+        : undefined;
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await rejectMemberCancellationRequestForBooking(auth, bookingId, reasonNote);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === "MEMBER_CANCELLATION_REQUEST_NOT_FOUND") {
+      sendHttpError(res, 404, {
+        error: "not_found",
+        code: "MEMBER_CANCELLATION_REQUEST_NOT_FOUND",
+      });
+      return;
+    }
+    if (message === "MEMBER_CANCELLATION_REJECT_REASON_REQUIRED") {
+      sendHttpError(res, 400, {
+        error: "invalid_request",
+        code: "MEMBER_CANCELLATION_REJECT_REASON_REQUIRED",
       });
       return;
     }

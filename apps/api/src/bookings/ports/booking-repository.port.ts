@@ -1,4 +1,7 @@
 import type {
+  BookingCancellationEffect,
+  BookingCancellationEffectStatus,
+  BookingCancellationTransportImpact,
   BookingListPageInput,
   BookingListPageOutput,
   BookingPaymentStatus,
@@ -202,6 +205,20 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
   }): Promise<BookingRecord>;
+  /** Persist an idempotent paid/partial member cancellation request. */
+  requestMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly requestedByUserId: string;
+    readonly correlationId: string;
+  }): Promise<BookingRecord>;
+  /** Reject a pending member cancellation request without changing lifecycle status. */
+  rejectMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly rejectedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord>;
   /**
    * pending|waitlisted|approved → cancelled in one tenant TX + outbox (`registration.cancelled`).
    * Takes the same tour advisory lock as approve (occupancy-safe vs concurrent approve).
@@ -218,6 +235,29 @@ export interface BookingRepositoryPort {
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
     cancellationRequestedAt?: string;
+    /** Optional compare-and-set guard for approving a member cancellation request. */
+    expectedCancellationStatus?: BookingRecord["cancellationStatus"];
+  }): Promise<BookingRecord>;
+  /**
+   * Append a stable registration outbox event. Duplicate tenant/domain-event
+   * identities are successful no-ops so post-cancel retries are safe.
+   */
+  appendOutboxEventIfAbsent(input: {
+    readonly tenantId: string;
+    readonly aggregateId: string;
+    readonly eventType: string;
+    readonly payload: Readonly<Record<string, unknown>>;
+    readonly domainEventId: string;
+    readonly correlationId?: string;
+  }): Promise<boolean>;
+  /** Persist one cancellation side-effect checkpoint under its stable correlation id. */
+  recordCancellationEffect(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly correlationId: string;
+    readonly effect: BookingCancellationEffect;
+    readonly status: BookingCancellationEffectStatus;
+    readonly transportImpact?: BookingCancellationTransportImpact;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

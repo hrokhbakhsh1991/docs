@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-08-18-v10"
+version: "2026-10-05-v16"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -93,13 +93,32 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 ## Operator money inbox after approve (2026-08-16)
 
+### Local receipt-proof storage (2026-10-05)
+
+The member upload path is:
+
+```text
+approved + unpaid
+  → member uploads image/PDF proof
+  → Finance receipt = Pending
+  → operator reviews /finance?tab=receipts
+  → approve or reject
+```
+
+Production must provide the configured MinIO-compatible proof store. In local
+development, when `STORAGE_DRIVER=memory` and MinIO is not configured, the API
+uses its process-local receipt-proof store so the upload and operator-review
+flow remains testable. A non-memory driver fails closed with
+`MINIO_NOT_CONFIGURED`; the fallback is disabled in production and is not a
+durable storage option.
+
 `approve_then_offline_pay` splits lifecycle from collection: approve does **not** create a Manual Payment. The guest is `approved` + `unpaid` with invoice remaining from the tour obligation.
 
-| Surface                                                  | Contract after approve, before receipt upload                    |
-| -------------------------------------------------------- | ---------------------------------------------------------------- |
-| `GET /finance/reports/outstanding-balances` (± `tourId`) | Registration **must** appear while `invoice.balanceDueMinor > 0` |
-| Tour workspace `?tab=finance` Money Inbox                | Same guest in **Awaiting payment** (H-10/H-11)                   |
-| Finance Hub receipts tab                                 | Empty for this guest until upload (correct — no proof yet)       |
+| Surface                                                  | Contract after approve, before receipt upload                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET /finance/reports/outstanding-balances` (± `tourId`) | Approved registration appears while `invoice.balanceDueMinor > 0`; terminal registrations are excluded |
+| Tour workspace `?tab=finance` Money Inbox                | Same guest in **Awaiting payment** (H-10/H-11)                                                         |
+| Finance Hub receipts tab                                 | Empty for this guest until upload (correct — no proof yet)                                             |
 
 **Logic:** outstanding candidates are operator registrations (Prisma `operatorRegistration` / memory bookings page scan). Invoice compile uses obligation even when `getRegistrationInvoiceFacts` returns empty payment arrays. Scanning payment rows as the candidate universe drops the guest until they upload — that is PAY-FIN-02 and is forbidden.
 
@@ -113,6 +132,11 @@ Bookings still owns approve. Finance still owns receipt review. The inbox is a *
 
 For free collection, `freeCollectionApplied` is the canonical zero-collection marker. Booking list and detail projections must both resolve this marker to `financialDisplayState: "WAIVED"` before Portal derives payment copy; receipt status remains a separate axis.
 
+Operator booking badges follow the same separation: a cancelled or rejected
+registration does not rewrite its recorded `paymentStatus`. The booking
+lifecycle label and the payment/settlement label are rendered independently so
+historical paid, partial, unpaid, and waived states remain auditable.
+
 ### Telegram registration decision message
 
 The Telegram `registration` topic receives an actionable `registration.created`
@@ -123,10 +147,12 @@ The message must show the guest, tour, departure, party size, and registration
 identifier, then state whether the tour requires operator approval. Its inline
 actions are:
 
-| Tour approval mode | Actions                                                                |
-| ------------------ | ---------------------------------------------------------------------- |
-| `auto`             | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
-| `manual`           | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
+| Tour approval mode            | Actions                                                                |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `auto` + free collection      | بدون دکمهٔ پرداخت؛ ثبت‌نام از قبل تأیید شده است                        |
+| `auto` + payment collection   | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
+| `manual` + free collection    | `تأیید` · `انتقال به لیست انتظار`                                      |
+| `manual` + payment collection | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
 
 Callbacks are typed as `registration:<action>:<registrationId>`, are accepted
 only from an administrator or creator in the configured Telegram supergroup, and are
@@ -335,6 +361,142 @@ Rules:
 - PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
 
 Portal: list/detail KPI still show booking `paymentStatus`; the receipt **panel** uses remaining + `waived`/`paid` from `GET /bookings/{id}/receipts`, never the booking ratchet alone.
+
+### Terminal cancellation and completed refund projection
+
+Lifecycle closure takes precedence over the booking payment ratchet on every
+operator surface. A `cancelled` registration is closed for collection even if
+its invoice compiler reports a positive accounting balance after a completed
+refund. That accounting remainder is audit data; it is not a member-payable
+amount and must not appear in outstanding balances, payment next steps, or a
+payment deadline.
+
+The normalized financial read for a cancelled registration must expose the
+refund and settlement dimensions separately:
+
+| Lifecycle   | Refund                   | Settlement       | Operator/member presentation                    |
+| ----------- | ------------------------ | ---------------- | ----------------------------------------------- |
+| `cancelled` | `none`                   | `not_affected`   | Closed; no collection action                    |
+| `cancelled` | `requested` / `approved` | `refund_pending` | Closed; refund requires the next finance action |
+| `cancelled` | `completed`              | `refunded`       | Closed; refund complete; no payable amount      |
+
+`paymentStatus=paid` must not produce `paidAwaitingFinalization` when the
+lifecycle is terminal or the refund is completed. Settlement history must use
+`refunded` after completion, and the Admin financial strip must not render
+`رزرو کاملاً پرداخت شده است` alongside zero paid and a positive payable amount.
+The outstanding-AR candidate universe must exclude `cancelled` and `rejected`
+registrations even when the invoice balance is positive after reversal.
+
+For `prepayment` refunds, the payment-history copy must say that no manual
+payment exists because the source was prepayment; this is different from a
+missing payment. Wallet credit remains a separate operator action after refund
+completion and is idempotent by refund id.
+
+### Cancellation execution invariants
+
+Cancellation is a cross-domain workflow, not a single booking-status mutation.
+Every entry point (member request, direct operator cancellation, tour
+cancellation, and payment-hold expiry) must produce one durable cancellation
+intent with a stable correlation id. Booking lifecycle, refund allocation,
+transport cleanup, settlement correction, notifications, and waitlist review
+must be individually idempotent and retryable from that intent.
+
+The host implementation stores that intent on the tenant-scoped registration
+row in `cancellationSnapshot`. The lifecycle transition, initial `work` map,
+stable correlation id, and `registration.cancelled` outbox event are committed
+together. The `work` map checkpoints `paymentHold`, `transportSettlement`,
+`refund`, `notification`, and `waitlistReview` as `pending`, `completed`,
+`not_required`, or `manual_review`. Checkpoint updates merge one effect under
+the matching tenant, registration, and correlation id, so concurrent retries
+cannot erase another replica's progress. Prisma serializes each snapshot
+read/merge/write with a transaction-scoped per-registration advisory lock. A
+crash after an effect but before its checkpoint is safe because the effect is
+replayed with the same idempotency identity.
+
+Checkpoint progress is monotonic across retries. A stale worker cannot replace
+`completed` or `not_required` with `pending` / `manual_review`, and beginning a
+retry does not hide an existing `manual_review`. Notification work is reopened
+only when the retry captures a previously unknown affected driver or passenger;
+the new recipient ids are merged before delivery resumes.
+
+The registration-level `cancellationStatus` is a persisted summary of those
+checkpoints. Any effect in `manual_review` makes the summary
+`manual_review`; the Admin booking inspection and command result must surface
+that state as an actionable warning. A successful replay that closes the
+problematic effect must clear the summary to the remaining workflow state
+rather than leaving a stale warning.
+
+- A member may submit or inspect only their own request. Only an authorized
+  `admin` or `owner` may approve or reject it; this authorization is enforced
+  in the application service in addition to the HTTP route. Competing approve
+  and reject decisions use a compare-and-set guard on `request_pending`, so
+  exactly one decision can commit.
+- A request remains `pending` until the cancellation intent and required
+  finance work are durably recorded. A failed effect must remain retryable and
+  must never become an unfindable approved request. Rejection persists actor,
+  timestamp, and reason and atomically emits
+  `registration.cancellation_request_rejected` for the member.
+  The first `request_pending -> rejected` transition requires a non-empty
+  normalized reason at the application-service boundary; an idempotent replay
+  of an already rejected request may return the existing outcome without a new
+  reason or duplicate notification.
+- Refund allocation spans every refundable source for the registration. Each
+  payment or prepayment source is capped independently and the sum of linked
+  refund intents must equal the eligible refund amount.
+- Refund penalty, late-correction classification, and initial waitlist-review
+  eligibility are evaluated against the persisted `cancellationApprovedAt` and
+  cancellation work snapshot, never the retry worker's wall clock. A missing or
+  invalid timestamp that can affect money fails closed to `manual_review`.
+- API refund state is derived from persisted refund rows. Booking
+  `paymentStatus` is historical collection state and must never be used to
+  claim that a refund request exists. An open `Requested` / `Approved` refund
+  takes presentation precedence over older `Completed` rows; after all open
+  rows close, a replay reports `completed` rather than creating another refund.
+- Capacity is released once. Waitlist promotion remains an explicit operator
+  action for all cancellation sources, including payment-deadline expiry.
+- `cancellationApprovedByUserId` contains a human UUID only. Automated
+  payment-deadline expiry leaves it null and records provenance through
+  `cancelSource=payment_deadline` plus the stable hold correlation id; it must
+  never write a textual system label into the UUID column.
+- Passenger and personal-car driver cancellation use their dedicated
+  transport/settlement paths. A paid driver settlement creates an auditable
+  correction case rather than being silently rewritten. Before payout, an open
+  driver payable is cancelled and the settlement is voided. After payout, the
+  paid settlement and payable remain immutable historical records and one
+  idempotent `driver_cancelled_after_payout` audit event marks the required
+  manual correction. That correction checkpoints `manual_review`, so it remains
+  visible after refresh until an operator resolves it.
+- If a passenger leaves after the roster freeze, allocations are removed before
+  settlement work is evaluated. A draft/confirmed settlement is recalculated in
+  place; a payable or paid settlement creates one idempotent correction case and
+  cannot continue with the stale passenger count. Payable completion validates
+  the settlement before marking the payable `Completed`, so cancellation cannot
+  leave a completed payable attached to a voided settlement.
+- Member, affected-driver, and affected-passenger notifications use durable
+  outbox payloads with a resolvable recipient. Passenger cancellation queues
+  `registration.passenger_cancelled` for the assigned driver; driver
+  cancellation queues `registration.driver_cancelled` for every allocated
+  passenger. The affected registration ids are captured in
+  `cancellationSnapshot.transportImpact` before allocations are removed, so a
+  restart can still retry notification delivery. Missing recipients checkpoint
+  `manual_review`, not silent success.
+
+The cancellation command response reports each effect as `completed`,
+`pending`, `not_required`, or `manual_review`. It may report lifecycle success
+while an effect is pending only when the unfinished effect has a durable,
+retryable work record using the same correlation id. Current recovery is
+replay-driven: repeating the same operator/member/tour/expiry command resumes
+unfinished checkpoints without duplicating lifecycle, capacity, refund,
+settlement, or outbox effects.
+
+The durable guarantee in this section applies to the registration cancellation
+intent and outbox. DP-5 transport allocations, driver settlements, and driver
+payables are still the documented v1 in-memory stores (see
+`driver-settlement.mdoc`). The durable `transportImpact` and
+`transportSettlement=manual_review` marker prevent silent loss in the booking
+workflow, but they do not make the underlying settlement/payable history
+restart-safe or cross-replica. That requires the separate DP-5 Prisma migration
+before production persistence can be certified.
 
 ### Member list/detail financial projection contract
 

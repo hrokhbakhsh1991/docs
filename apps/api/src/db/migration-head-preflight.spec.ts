@@ -12,7 +12,10 @@ import {
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
   it("expected head matches the current tip migration folder", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20261005090000_booking_cancellation_workflow");
+    assert.equal(
+      EXPECTED_PRISMA_MIGRATION_HEAD,
+      "20261005170000_member_cancellation_request_persistence"
+    );
   });
 
   it("throws on mismatch with structured message", () => {

@@ -55,9 +55,16 @@ describe("DP1-F payment hold expiry idempotency", { concurrency: false }, () => 
     });
     const expiredEvents = outbox.filter((row) => row.eventType === "payment.hold.expired");
     assert.equal(expiredEvents.length, 1, "expiry outbox must be idempotent");
+    const cancelled = await dp1GetBooking(bookingId);
+    assert.equal(cancelled.cancelSource, "payment_deadline");
+    assert.equal(
+      cancelled.cancellationApprovedByUserId,
+      null,
+      "automated expiry must not write a non-UUID system label into the human approver field"
+    );
   });
 
-  it("S20: at most one waitlist promote per freed seat on double expiry", async () => {
+  it("S20: repeated expiry never auto-promotes the waitlist", async () => {
     const approvedGuest = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Expire A", partySize: 2, tourCapacityMax: 2 })
@@ -74,7 +81,7 @@ describe("DP1-F payment hold expiry idempotency", { concurrency: false }, () => 
     await expireTwice(approvedGuest.id);
 
     const approved = await dp1ListBookingsByStatus("approved");
-    assert.equal(approved.length, 1, "only one promoted registration may occupy seat");
-    assert.equal(approved[0]?.id, waitB.id);
+    assert.equal(approved.length, 0, "expiry must not bypass operator waitlist confirmation");
+    assert.equal((await dp1GetBooking(waitB.id)).status, "waitlisted");
   });
 });

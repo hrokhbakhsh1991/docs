@@ -52,4 +52,20 @@ describe("DP4 portal member cancellation contract", () => {
     );
     assert.match(route, /member\/notifications/);
   });
+
+  it("uses distinct wording and action for approved unpaid self-cancel", () => {
+    const panel = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-cancellation-panel.tsx"),
+      "utf8"
+    );
+    const fa = JSON.parse(
+      readFileSync(join(repoRoot, "apps/portal/messages/fa/portalMember.json"), "utf8")
+    ) as { cancellation?: { selfCancelHint?: string; selfCancelAction?: string } };
+    assert.match(panel, /eligibility\.mode === "self_cancel"/);
+    assert.equal(
+      fa.cancellation?.selfCancelHint,
+      "این ثبت‌نام تأیید شده است، اما چون پرداختی ثبت نشده می‌توانید آن را لغو کنید."
+    );
+    assert.equal(fa.cancellation?.selfCancelAction, "لغو ثبت‌نام");
+  });
 });

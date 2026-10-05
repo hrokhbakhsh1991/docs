@@ -48,9 +48,7 @@ export function resolveBookingsKpiValue({
   const listIsCanonicalForKpi =
     (kpi === "pending" && query.status === "pending") ||
     (kpi === "waitlist" && query.status === "waitlisted") ||
-    (kpi === "approvedToday" &&
-      query.status === "approved" &&
-      query.approvedWithinDays === "1") ||
+    (kpi === "approvedToday" && query.status === "approved" && query.approvedWithinDays === "1") ||
     (kpi === "departures7d" && query.departureWithinDays === "7");
 
   return listIsCanonicalForKpi ? filteredListTotal : summaryValue;
@@ -77,6 +75,19 @@ export function buildBookingsDetailDeepLinkHref(bookingId: string): string {
   const id = bookingId.trim();
   // status=all so deep links are not masked by the L1 work-queue default.
   return `/bookings?status=all&bookingId=${encodeURIComponent(id)}`;
+}
+
+export function cancellationResponseNeedsManualReview(value: unknown): boolean {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const response = value as Record<string, unknown>;
+  return (
+    response.cancellationStatus === "manual_review" ||
+    response.refundStatus === "manual_review" ||
+    response.settlementStatus === "manual_review" ||
+    response.notificationStatus === "manual_review"
+  );
 }
 
 export function readBookingIdFromCommandCenterParams(params: URLSearchParams): string {
@@ -226,7 +237,7 @@ export function buildBookingsApiQuery(
   const params = new URLSearchParams();
   params.set("view", query.view);
   if (query.status === "actionable") {
-    params.set("status", BOOKINGS_WORK_QUEUE_STATUSES.join(","));
+    params.set("workQueue", "true");
   } else if (query.status !== "all") {
     params.set("status", query.status);
   }

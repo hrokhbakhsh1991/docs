@@ -44,6 +44,36 @@ describe("isBookingPaidWithPositiveInvoiceRemaining — PR15-G", () => {
     );
   });
 
+  it("C2 — terminal lifecycle with an actionable balance is a conflict", () => {
+    assert.equal(
+      isBookingPaidWithPositiveInvoiceRemaining({
+        bookingStatus: "cancelled",
+        bookingPaymentStatus: "partial",
+        remainingMinor: "900000",
+      }),
+      true
+    );
+    assert.equal(
+      isBookingPaidWithPositiveInvoiceRemaining({
+        bookingStatus: "rejected",
+        bookingPaymentStatus: "unpaid",
+        remainingMinor: "900000",
+      }),
+      true
+    );
+  });
+
+  it("C3 — partial projection with zero remaining is a conflict", () => {
+    assert.equal(
+      isBookingPaidWithPositiveInvoiceRemaining({
+        bookingStatus: "approved",
+        bookingPaymentStatus: "partial",
+        remainingMinor: "0",
+      }),
+      true
+    );
+  });
+
   it("D — inconsistent / unread remaining does not invent conflict", () => {
     assert.equal(
       isBookingPaidWithPositiveInvoiceRemaining({

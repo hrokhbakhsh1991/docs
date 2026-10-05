@@ -216,7 +216,10 @@ export async function confirmDriverSettlement(
 ): Promise<DriverSettlement> {
   const row = findSettlementById(auth.tenantId, settlementId);
   if (row === null || row.tourId !== tourId) {
-    throw Object.assign(new Error("Settlement not found"), { code: "SETTLEMENT_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Settlement not found"), {
+      code: "SETTLEMENT_NOT_FOUND",
+      statusCode: 404,
+    });
   }
   if (row.status === "confirmed") {
     return row;
@@ -234,10 +237,17 @@ export async function approveDriverSettlementPayable(
   auth: BookingActorContext,
   tourId: string,
   settlementId: string
-): Promise<{ readonly settlement: DriverSettlement; readonly payable: DriverPayable; readonly replay: boolean }> {
+): Promise<{
+  readonly settlement: DriverSettlement;
+  readonly payable: DriverPayable;
+  readonly replay: boolean;
+}> {
   let settlement = findSettlementById(auth.tenantId, settlementId);
   if (settlement === null || settlement.tourId !== tourId) {
-    throw Object.assign(new Error("Settlement not found"), { code: "SETTLEMENT_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Settlement not found"), {
+      code: "SETTLEMENT_NOT_FOUND",
+      statusCode: 404,
+    });
   }
 
   if (settlement.status === "draft") {
@@ -289,7 +299,12 @@ export async function approveDriverSettlementPayable(
     financePayableId: payableId,
     approvedByUserId: auth.userId,
     finalizedAt: nowIso,
-    auditAppend: { at: nowIso, actorUserId: auth.userId, action: "payable_opened", detail: payableId },
+    auditAppend: {
+      at: nowIso,
+      actorUserId: auth.userId,
+      action: "payable_opened",
+      detail: payableId,
+    },
   });
 
   return { settlement: updated, payable, replay: false };
@@ -299,10 +314,17 @@ export async function completeDriverPayable(
   auth: BookingActorContext,
   payableId: string,
   input: { readonly evidenceNote?: string; readonly evidenceFileKey?: string }
-): Promise<{ readonly payable: DriverPayable; readonly settlement: DriverSettlement; readonly replay: boolean }> {
+): Promise<{
+  readonly payable: DriverPayable;
+  readonly settlement: DriverSettlement;
+  readonly replay: boolean;
+}> {
   const row = findPayableById(auth.tenantId, payableId);
   if (row === null) {
-    throw Object.assign(new Error("Payable not found"), { code: "DRIVER_PAYABLE_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Payable not found"), {
+      code: "DRIVER_PAYABLE_NOT_FOUND",
+      statusCode: 404,
+    });
   }
 
   if (row.status === "Completed") {
@@ -314,20 +336,26 @@ export async function completeDriverPayable(
   }
 
   const nowIso = new Date().toISOString();
-  const updatedPayable = updateDriverPayable(auth.tenantId, payableId, {
-    status: "Completed",
-    completedAt: nowIso,
-    completedByUserId: auth.userId,
-    evidenceNote: input.evidenceNote ?? null,
-    evidenceFileKey: input.evidenceFileKey ?? null,
-  });
-
   const settlement = findSettlementById(auth.tenantId, row.settlementId);
   if (settlement === null) {
     throw new Error("SETTLEMENT_NOT_FOUND");
   }
 
+  if (row.status === "Cancelled" || settlement.status === "voided") {
+    throw Object.assign(new Error("DRIVER_PAYABLE_NOT_SETTLEABLE"), {
+      code: "DRIVER_PAYABLE_NOT_SETTLEABLE",
+      statusCode: 409,
+    });
+  }
+
   if (settlement.status === "paid") {
+    const updatedPayable = updateDriverPayable(auth.tenantId, payableId, {
+      status: "Completed",
+      completedAt: row.completedAt ?? nowIso,
+      completedByUserId: row.completedByUserId ?? auth.userId,
+      evidenceNote: row.evidenceNote ?? input.evidenceNote ?? null,
+      evidenceFileKey: row.evidenceFileKey ?? input.evidenceFileKey ?? null,
+    });
     return { payable: updatedPayable, settlement, replay: true };
   }
 
@@ -336,6 +364,13 @@ export async function completeDriverPayable(
     status: "paid",
     paidAt: nowIso,
     auditAppend: { at: nowIso, actorUserId: auth.userId, action: "paid", detail: payableId },
+  });
+  const updatedPayable = updateDriverPayable(auth.tenantId, payableId, {
+    status: "Completed",
+    completedAt: nowIso,
+    completedByUserId: auth.userId,
+    evidenceNote: input.evidenceNote ?? null,
+    evidenceFileKey: input.evidenceFileKey ?? null,
   });
 
   return { payable: updatedPayable, settlement: updatedSettlement, replay: false };
@@ -349,30 +384,171 @@ export async function listDriverPayablesForTenant(
 
 export async function handlePassengerCancelledForSettlement(
   auth: BookingActorContext,
-  passengerRegistrationId: string
-): Promise<void> {
+  tourId: string,
+  passengerRegistrationId: string,
+  affectedDriverRegistrationIds: readonly string[] = []
+): Promise<"not_affected" | "correction_pending"> {
   removeAllocationsForPassenger(auth.tenantId, passengerRegistrationId);
+  const affectedDrivers = new Set(affectedDriverRegistrationIds);
+  if (affectedDrivers.size === 0) {
+    return "not_affected";
+  }
+
+  const allocationInputs = listTransportAllocations(auth.tenantId, tourId).map((allocation) => ({
+    driverRegistrationId: allocation.driverRegistrationId,
+    passengerRegistrationId: allocation.passengerRegistrationId,
+  }));
+  let correctionPending = false;
+  const nowIso = new Date().toISOString();
+
+  for (const row of listSettlementsForTour(auth.tenantId, tourId)) {
+    if (!affectedDrivers.has(row.driverRegistrationId) || row.status === "voided") {
+      continue;
+    }
+    const assignedPassengers = countAssignedPassengers(
+      allocationInputs,
+      row.driverRegistrationId
+    );
+    if (assignedPassengers === row.assignedPassengers) {
+      continue;
+    }
+    const calc = calculateDriverSettlement({
+      offeredSeats: row.offeredSeats,
+      assignedPassengers,
+      unitAmountMinor: row.unitAmountMinor,
+      currency: row.currency,
+    });
+    const payable = findPayableBySettlementId(auth.tenantId, row.settlementId);
+
+    // Repair the legacy impossible state where payable completion was recorded
+    // before the settlement transition. Treat the completed payable as paid
+    // history before creating the cancellation correction.
+    const normalizedRow =
+      payable?.status === "Completed" && row.status !== "paid"
+        ? updateSettlement(auth.tenantId, row.settlementId, {
+            status: "paid",
+            paidAt: payable.completedAt ?? nowIso,
+            auditAppend: {
+              at: nowIso,
+              actorUserId: auth.userId,
+              action: "reconciled_completed_payable",
+              detail: payable.payableId,
+            },
+          })
+        : row;
+
+    if (normalizedRow.status === "draft" || normalizedRow.status === "confirmed") {
+      updateSettlement(auth.tenantId, normalizedRow.settlementId, {
+        assignedPassengers,
+        billableQuantity: calc.billableQuantity,
+        totalMinor: calc.totalMinor,
+        auditAppend: {
+          at: nowIso,
+          actorUserId: auth.userId,
+          action: "recalculated_after_passenger_cancel",
+          detail: `passenger=${passengerRegistrationId}`,
+        },
+      });
+      continue;
+    }
+
+    if (normalizedRow.status === "payable") {
+      await createCorrectionSettlement(auth, tourId, normalizedRow.settlementId, {
+        billableQuantity: assignedPassengers,
+        unitAmountMinor: normalizedRow.unitAmountMinor,
+        currency: normalizedRow.currency,
+      });
+      if (payable !== null && payable.status !== "Completed" && payable.status !== "Cancelled") {
+        updateDriverPayable(auth.tenantId, payable.payableId, { status: "Cancelled" });
+      }
+      updateSettlement(auth.tenantId, normalizedRow.settlementId, {
+        status: "voided",
+        auditAppend: {
+          at: nowIso,
+          actorUserId: auth.userId,
+          action: "voided_passenger_cancel",
+          detail: `passenger=${passengerRegistrationId}`,
+        },
+      });
+      correctionPending = true;
+      continue;
+    }
+
+    if (normalizedRow.status === "paid") {
+      await createCorrectionSettlement(auth, tourId, normalizedRow.settlementId, {
+        billableQuantity: assignedPassengers,
+        unitAmountMinor: normalizedRow.unitAmountMinor,
+        currency: normalizedRow.currency,
+      });
+      updateSettlement(auth.tenantId, normalizedRow.settlementId, {
+        auditAppend: {
+          at: nowIso,
+          actorUserId: auth.userId,
+          action: "passenger_cancelled_after_payout",
+          detail: `passenger=${passengerRegistrationId}`,
+        },
+      });
+      correctionPending = true;
+    }
+  }
+  return correctionPending ? "correction_pending" : "not_affected";
 }
 
 export async function handleDriverCancelledForSettlement(
   auth: BookingActorContext,
   tourId: string,
   driverRegistrationId: string
-): Promise<void> {
+): Promise<"not_affected" | "correction_pending"> {
   removeAllocationsForDriver(auth.tenantId, tourId, driverRegistrationId);
   const nowIso = new Date().toISOString();
+  let correctionPending = false;
   for (const row of listSettlementsForTour(auth.tenantId, tourId)) {
     if (row.driverRegistrationId !== driverRegistrationId) {
       continue;
     }
-    if (row.status === "paid" || row.status === "voided") {
+    if (row.status === "paid") {
+      correctionPending = true;
+      if (!row.audit.some((event) => event.action === "driver_cancelled_after_payout")) {
+        updateSettlement(auth.tenantId, row.settlementId, {
+          auditAppend: {
+            at: nowIso,
+            actorUserId: auth.userId,
+            action: "driver_cancelled_after_payout",
+            detail: "manual correction required",
+          },
+        });
+      }
       continue;
+    }
+    if (row.status === "voided") {
+      continue;
+    }
+    const payable = findPayableBySettlementId(auth.tenantId, row.settlementId);
+    if (payable?.status === "Completed") {
+      correctionPending = true;
+      if (!row.audit.some((event) => event.action === "driver_cancelled_after_payout")) {
+        updateSettlement(auth.tenantId, row.settlementId, {
+          status: "paid",
+          paidAt: payable.completedAt ?? nowIso,
+          auditAppend: {
+            at: nowIso,
+            actorUserId: auth.userId,
+            action: "driver_cancelled_after_payout",
+            detail: "completed payable reconciled; manual correction required",
+          },
+        });
+      }
+      continue;
+    }
+    if (payable !== null && payable.status !== "Cancelled") {
+      updateDriverPayable(auth.tenantId, payable.payableId, { status: "Cancelled" });
     }
     updateSettlement(auth.tenantId, row.settlementId, {
       status: "voided",
       auditAppend: { at: nowIso, actorUserId: auth.userId, action: "voided_driver_cancel" },
     });
   }
+  return correctionPending ? "correction_pending" : "not_affected";
 }
 
 export async function handleTourCancelledForSettlement(
@@ -387,11 +563,18 @@ export async function createCorrectionSettlement(
   auth: BookingActorContext,
   tourId: string,
   originalSettlementId: string,
-  input: { readonly billableQuantity: number; readonly unitAmountMinor: string; readonly currency: string }
+  input: {
+    readonly billableQuantity: number;
+    readonly unitAmountMinor: string;
+    readonly currency: string;
+  }
 ): Promise<DriverSettlement> {
   const original = findSettlementById(auth.tenantId, originalSettlementId);
   if (original === null || original.tourId !== tourId) {
-    throw Object.assign(new Error("Settlement not found"), { code: "SETTLEMENT_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Settlement not found"), {
+      code: "SETTLEMENT_NOT_FOUND",
+      statusCode: 404,
+    });
   }
   if (original.status !== "paid" && original.status !== "payable") {
     throw Object.assign(new Error("Correction requires paid or payable settlement"), {

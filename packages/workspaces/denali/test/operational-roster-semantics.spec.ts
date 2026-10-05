@@ -98,10 +98,7 @@ describe("DP-2 operational roster semantics", () => {
       }),
       "PAID"
     );
-    assert.equal(
-      isFinalParticipant({ status: "approved", finalizationStatus: "finalized" }),
-      true
-    );
+    assert.equal(isFinalParticipant({ status: "approved", finalizationStatus: "finalized" }), true);
   });
 
   it("waived free registration", () => {
@@ -114,10 +111,7 @@ describe("DP-2 operational roster semantics", () => {
       }),
       "WAIVED"
     );
-    assert.equal(
-      isFinalParticipant({ status: "approved", finalizationStatus: "finalized" }),
-      true
-    );
+    assert.equal(isFinalParticipant({ status: "approved", finalizationStatus: "finalized" }), true);
   });
 
   it("waitlisted does not occupy capacity", () => {
@@ -144,6 +138,16 @@ describe("DP-2 operational roster semantics", () => {
     assert.equal(deriveRefundDisplayState(["Requested"]), "in_flight");
     assert.equal(deriveRefundDisplayState(["Approved"]), "in_flight");
     assert.equal(deriveRefundDisplayState(["Completed"]), "completed");
+    assert.equal(
+      deriveRefundDisplayState(["Completed", "Requested"]),
+      "in_flight",
+      "an open refund must not be hidden by an older completed refund"
+    );
+    assert.equal(
+      deriveRefundDisplayState(["Completed", "Approved"]),
+      "in_flight",
+      "financial approval still in progress has precedence over completed history"
+    );
   });
 
   it("driver offer from personal_car transport", () => {

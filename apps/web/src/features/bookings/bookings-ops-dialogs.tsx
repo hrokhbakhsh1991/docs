@@ -43,18 +43,14 @@ export function BookingsRejectDialog({
         <DialogHeader>
           <DialogTitle>{t("rejectDialogTitle")}</DialogTitle>
           <DialogDescription>
-            {requiresReason
-              ? t("rejectDialogDescriptionRequired")
-              : t("rejectDialogDescription")}
+            {requiresReason ? t("rejectDialogDescriptionRequired") : t("rejectDialogDescription")}
           </DialogDescription>
         </DialogHeader>
         <Input
           value={reason}
           onChange={(event) => onReasonChange(event.target.value)}
           placeholder={
-            requiresReason
-              ? t("rejectReasonPlaceholderRequired")
-              : t("rejectReasonPlaceholder")
+            requiresReason ? t("rejectReasonPlaceholderRequired") : t("rejectReasonPlaceholder")
           }
           disabled={busy}
           required={requiresReason}
@@ -180,6 +176,89 @@ export function BookingsCancelConfirmDialog({
             data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmButton}
           >
             {t("cancelDialogConfirm")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type BookingsMemberCancellationDecisionDialogProps = {
+  readonly open: boolean;
+  readonly decision: "approve" | "reject";
+  readonly busy: boolean;
+  readonly guestLabel: string;
+  readonly tourTitle: string;
+  readonly reason: string;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onReasonChange: (reason: string) => void;
+  readonly onConfirm: () => void;
+};
+
+/** Member-request decision is distinct from a direct operator cancellation. */
+export function BookingsMemberCancellationDecisionDialog({
+  open,
+  decision,
+  busy,
+  guestLabel,
+  tourTitle,
+  reason,
+  onOpenChange,
+  onReasonChange,
+  onConfirm,
+}: BookingsMemberCancellationDecisionDialogProps) {
+  const t = useTranslations("bookings");
+  const isApprove = decision === "approve";
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.memberCancellationDecisionDialog}
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {t(
+              isApprove
+                ? "memberCancellation.approveDialogTitle"
+                : "memberCancellation.rejectDialogTitle"
+            )}
+          </DialogTitle>
+          <DialogDescription>
+            {t(
+              isApprove
+                ? "memberCancellation.approveDialogDescription"
+                : "memberCancellation.rejectDialogDescription",
+              { guest: guestLabel, tour: tourTitle }
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        {!isApprove ? (
+          <Input
+            value={reason}
+            onChange={(event) => onReasonChange(event.target.value)}
+            placeholder={t("memberCancellation.rejectReasonPlaceholder")}
+            aria-label={t("memberCancellation.rejectReasonPlaceholder")}
+            disabled={busy}
+            required
+          />
+        ) : null}
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={busy}
+          >
+            {t("memberCancellation.decisionCancel")}
+          </Button>
+          <Button
+            type="button"
+            variant={isApprove ? "destructive" : "default"}
+            disabled={busy || (!isApprove && reason.trim().length === 0)}
+            onClick={onConfirm}
+          >
+            {t(
+              isApprove ? "memberCancellation.approveConfirm" : "memberCancellation.rejectConfirm"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

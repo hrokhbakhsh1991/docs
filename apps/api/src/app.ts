@@ -7,6 +7,7 @@ import {
   handleWaiveAndFinalizeBooking,
   handleBulkApproveBookings,
   handleApproveMemberCancellation,
+  handleRejectMemberCancellation,
   handleCancelBooking,
   handleCancelTour,
   handleCreateBooking,
@@ -620,6 +621,14 @@ async function dispatchRequest(
   );
   if (method === "POST" && memberCancellationApproveMatch) {
     await handleApproveMemberCancellation(req, res, memberCancellationApproveMatch[1]!);
+    return;
+  }
+
+  const memberCancellationRejectMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/member-cancellation\/reject$/
+  );
+  if (method === "POST" && memberCancellationRejectMatch) {
+    await handleRejectMemberCancellation(req, res, memberCancellationRejectMatch[1]!);
     return;
   }
 

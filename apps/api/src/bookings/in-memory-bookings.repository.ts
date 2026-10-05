@@ -6,6 +6,13 @@ import {
 } from "@app-tour/finance-core";
 
 import { canTransitionBookingStatus } from "./booking-status-transitions";
+import {
+  createInitialCancellationWorkState,
+  readCancellationTransportImpact,
+  readCancellationWorkState,
+  summarizeCancellationWork,
+  updateCancellationSnapshotEffect,
+} from "./cancellation-work-state";
 
 import {
   compareBookingsByDepartureAtAsc,
@@ -21,6 +28,9 @@ import type {
   BookingOutboxRecord,
   BookingPaymentStatus,
   BookingRecord,
+  BookingCancellationEffect,
+  BookingCancellationEffectStatus,
+  BookingCancellationTransportImpact,
   CreateBookingRequest,
 } from "./bookings.types";
 import { MAX_OUTBOX_EVENTS_PER_AGGREGATE } from "./bookings-outbox-projection";
@@ -90,9 +100,10 @@ export function appendBookingOutboxEventIfAbsent(input: {
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
   readonly domainEventId: string;
-}): void {
+  readonly correlationId?: string;
+}): boolean {
   if (outboxStore.some((row) => row.domainEventId === input.domainEventId)) {
-    return;
+    return false;
   }
   outboxStore.push({
     id: randomUUID(),
@@ -102,8 +113,10 @@ export function appendBookingOutboxEventIfAbsent(input: {
     eventType: input.eventType,
     payload: input.payload,
     domainEventId: input.domainEventId,
+    ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
     createdAt: new Date().toISOString(),
   });
+  return true;
 }
 
 export function setBookingPaymentDueAtProjection(input: {
@@ -206,6 +219,19 @@ function cloneBooking(record: BookingRecord): BookingRecord {
   const freeCollectionApplied = registrationIntake?.freeCollectionApplied === true;
   return {
     ...record,
+    ...(record.cancellationTransportImpact !== undefined &&
+    record.cancellationTransportImpact !== null
+      ? {
+          cancellationTransportImpact: {
+            affectedDriverRegistrationIds: [
+              ...record.cancellationTransportImpact.affectedDriverRegistrationIds,
+            ],
+            affectedPassengerRegistrationIds: [
+              ...record.cancellationTransportImpact.affectedPassengerRegistrationIds,
+            ],
+          },
+        }
+      : {}),
     financialDisplayState:
       record.financialDisplayState ??
       resolveFinancialDisplayStateForListRecord(record, obligationOverride, freeCollectionApplied),
@@ -266,6 +292,81 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
   static createWithDevSeed(): InMemoryBookingsRepository {
     seedOperatorSmokeDevBookingsFixture();
     return new InMemoryBookingsRepository();
+  }
+
+  async appendOutboxEventIfAbsent(input: {
+    readonly tenantId: string;
+    readonly aggregateId: string;
+    readonly eventType: string;
+    readonly payload: Readonly<Record<string, unknown>>;
+    readonly domainEventId: string;
+    readonly correlationId?: string;
+  }): Promise<boolean> {
+    return appendBookingOutboxEventIfAbsent({
+      ...input,
+      payload: { ...input.payload },
+    });
+  }
+
+  async recordCancellationEffect(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly correlationId: string;
+    readonly effect: BookingCancellationEffect;
+    readonly status: BookingCancellationEffectStatus;
+    readonly transportImpact?: BookingCancellationTransportImpact;
+  }): Promise<BookingRecord> {
+    const current = bookingsStore.get(input.bookingId);
+    if (current === undefined || current.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (
+      current.status !== "cancelled" ||
+      current.cancellationCorrelationId !== input.correlationId
+    ) {
+      throw new BookingStatusConflictError(current.status);
+    }
+    const now = new Date().toISOString();
+    const baseWork =
+      current.cancellationWork ??
+      createInitialCancellationWorkState({
+        previousStatus: current.cancellationPreviousStatus ?? "approved",
+        departureAt: current.departureAt,
+        updatedAt: now,
+      });
+    const cancellationSnapshot = updateCancellationSnapshotEffect({
+      snapshot: {
+        work: baseWork,
+        ...(current.cancellationTransportImpact !== undefined &&
+        current.cancellationTransportImpact !== null
+          ? { transportImpact: current.cancellationTransportImpact }
+          : {}),
+      },
+      effect: input.effect,
+      status: input.status,
+      updatedAt: now,
+      ...(input.transportImpact !== undefined ? { transportImpact: input.transportImpact } : {}),
+    });
+    const cancellationWork = readCancellationWorkState(cancellationSnapshot);
+    if (cancellationWork === null) {
+      throw new Error("CANCELLATION_WORK_SNAPSHOT_INVALID");
+    }
+    const cancellationTransportImpact = readCancellationTransportImpact(cancellationSnapshot);
+    const updated: BookingRecord = {
+      ...current,
+      cancellationWork,
+      ...(cancellationTransportImpact !== null ? { cancellationTransportImpact } : {}),
+    };
+    const withWorkflowStatus: BookingRecord = {
+      ...updated,
+      cancellationStatus: summarizeCancellationWork({
+        work: cancellationWork,
+        cancellationApprovedAt: updated.cancellationApprovedAt,
+        departureAt: updated.departureAt,
+      }),
+    };
+    bookingsStore.set(withWorkflowStatus.id, withWorkflowStatus);
+    return cloneBooking(withWorkflowStatus);
   }
 
   seedBooking(record: BookingRecord): void {
@@ -1150,6 +1251,85 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return cloneBooking(updated);
   }
 
+  async requestMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly requestedByUserId: string;
+    readonly correlationId: string;
+  }): Promise<BookingRecord> {
+    const current = bookingsStore.get(input.bookingId);
+    if (current === undefined || current.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (current.submittedByUserId !== input.requestedByUserId) {
+      throw new Error("BOOKING_MEMBER_FORBIDDEN");
+    }
+    if (current.cancellationStatus === "request_pending") {
+      return cloneBooking(current);
+    }
+    if (current.status !== "approved") {
+      throw new BookingStatusConflictError(current.status);
+    }
+    const requestedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...current,
+      cancellationStatus: "request_pending",
+      cancellationReasonCode: "member_withdrawal",
+      cancellationReasonNote: null,
+      cancellationRequestedAt: requestedAt,
+      cancellationApprovedAt: null,
+      cancellationApprovedByUserId: null,
+      cancellationRejectedAt: null,
+      cancellationRejectedByUserId: null,
+      cancellationCorrelationId: input.correlationId,
+    };
+    bookingsStore.set(updated.id, updated);
+    return cloneBooking(updated);
+  }
+
+  async rejectMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly rejectedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord> {
+    const current = bookingsStore.get(input.bookingId);
+    if (current === undefined || current.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (current.status !== "approved" || current.cancellationStatus !== "request_pending") {
+      throw new BookingStatusConflictError(current.status);
+    }
+    const rejectedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...current,
+      cancellationStatus: "rejected",
+      cancellationReasonNote: input.reasonNote?.trim() || null,
+      cancellationRejectedAt: rejectedAt,
+      cancellationRejectedByUserId: input.rejectedByUserId,
+    };
+    bookingsStore.set(updated.id, updated);
+    appendBookingOutboxEventIfAbsent({
+      tenantId: input.tenantId,
+      aggregateId: updated.id,
+      eventType: "registration.cancellation_request_rejected",
+      payload: {
+        registrationId: updated.id,
+        bookingId: updated.id,
+        tourId: updated.tourId,
+        guestUserId: updated.submittedByUserId,
+        rejectedAt,
+        reasonNote: updated.cancellationReasonNote,
+      },
+      domainEventId: `${updated.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`}:request-rejected`,
+      ...(updated.cancellationCorrelationId !== null &&
+      updated.cancellationCorrelationId !== undefined
+        ? { correlationId: updated.cancellationCorrelationId }
+        : {}),
+    });
+    return cloneBooking(updated);
+  }
+
   async cancelBooking(input: {
     bookingId: string;
     tenantId: string;
@@ -1160,12 +1340,19 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
+    expectedCancellationStatus?: BookingRecord["cancellationStatus"];
   }): Promise<BookingRecord> {
     const current = bookingsStore.get(input.bookingId);
     if (current === undefined || current.tenantId !== input.tenantId) {
       throw new BookingNotFoundError();
     }
     if (!canTransitionBookingStatus(current.status, "cancelled")) {
+      throw new BookingStatusConflictError(current.status);
+    }
+    if (
+      input.expectedCancellationStatus !== undefined &&
+      current.cancellationStatus !== input.expectedCancellationStatus
+    ) {
       throw new BookingStatusConflictError(current.status);
     }
     const cancelledAt = new Date().toISOString();
@@ -1183,7 +1370,15 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       cancellationRequestedAt: cancelledAt,
       cancellationApprovedAt: cancelledAt,
       cancellationApprovedByUserId: input.cancellationApprovedByUserId ?? null,
+      cancellationRejectedAt: null,
+      cancellationRejectedByUserId: null,
       cancellationCorrelationId: input.cancellationCorrelationId ?? null,
+      cancellationPreviousStatus: current.status,
+      cancellationWork: createInitialCancellationWorkState({
+        previousStatus: current.status,
+        departureAt: current.departureAt,
+        updatedAt: cancelledAt,
+      }),
       ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
     };
     bookingsStore.set(updated.id, updated);

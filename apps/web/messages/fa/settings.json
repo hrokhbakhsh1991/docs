@@ -833,6 +833,7 @@
       "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "شناسه گروه تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "توکن ربات تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_GROUP_NAME_OR_CHAT_ID_REQUIRED": "نام دقیق گروه و شناسه عددی گروه تلگرام الزامی است.",
+      "INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND": "این اتصال قبلاً به گروه دیگری متصل شده است. نام گروه را با عنوان واقعی گروه و Chat ID ثبت‌شده هماهنگ کنید.",
       "INTEGRATION_TELEGRAM_GROUP_MUST_BE_SUPERGROUP": "شناسه واردشده مربوط به سوپرگروه تلگرام نیست.",
       "INTEGRATION_TELEGRAM_GROUP_MUST_BE_FORUM": "در گروه تلگرام ابتدا گزینه Topics/Forum را فعال کنید.",
       "INTEGRATION_TELEGRAM_GROUP_NAME_MISMATCH": "نام گروه واردشده با عنوان واقعی گروه تلگرام یکی نیست.",

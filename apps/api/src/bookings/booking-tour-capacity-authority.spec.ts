@@ -82,6 +82,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       postCancelSideEffects: {
         run: async () => ({
           refundDrafted: false,
+          refundStatus: "not_required",
           refundId: null,
           eligibleRefundMinor: "0",
           waitlistPromoted: false,
@@ -175,6 +176,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
         postCancelSideEffects: {
           run: async () => ({
             refundDrafted: false,
+            refundStatus: "not_required",
             refundId: null,
             eligibleRefundMinor: "0",
             waitlistPromoted: false,

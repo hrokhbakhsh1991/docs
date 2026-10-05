@@ -85,11 +85,11 @@ export function deriveFinancialDisplayState(input: {
 export function deriveRefundDisplayState(
   statuses: readonly string[]
 ): OperationalRosterRefundDisplayState {
-  if (statuses.some((s) => s === "Completed")) {
-    return "completed";
-  }
   if (statuses.some((s) => s === "Requested" || s === "Approved")) {
     return "in_flight";
+  }
+  if (statuses.some((s) => s === "Completed")) {
+    return "completed";
   }
   return "none";
 }

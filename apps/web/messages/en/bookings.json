@@ -30,6 +30,30 @@
     "viewWaitlist": "Waitlist",
     "viewHistory": "View in history"
   },
+  "memberCancellation": {
+    "requestBadge": "Cancellation requested",
+    "requestTitle": "Member cancellation request",
+    "requestedAt": "Requested at {date}",
+    "requestedAtUnknown": "Request time is unavailable.",
+    "requestReason": "Member note: {reason}",
+    "reviewHint": "This member request needs an operator decision.",
+    "approveAction": "Approve cancellation",
+    "rejectAction": "Reject request",
+    "approveDialogTitle": "Approve member cancellation?",
+    "approveDialogDescription": "This cancels {guest} from {tour}, releases the seat, and starts the applicable finance follow-up.",
+    "rejectDialogTitle": "Reject member cancellation?",
+    "rejectDialogDescription": "{guest} remains registered for {tour}. Record a reason for the member and audit history.",
+    "rejectReasonPlaceholder": "Reason for rejecting the request",
+    "decisionCancel": "Keep reviewing",
+    "approveConfirm": "Approve and cancel booking",
+    "rejectConfirm": "Reject request",
+    "approveSuccess": "Cancellation request approved; booking and follow-up queues were updated.",
+    "rejectSuccess": "Cancellation request rejected; the booking remains approved.",
+    "manualReviewBadge": "Cancellation review required",
+    "manualReviewTitle": "A cancellation follow-up is incomplete",
+    "manualReviewDescription": "The booking is cancelled, but at least one finance, driver settlement, transport, or notification effect must be reviewed and replayed by an admin.",
+    "manualReviewNotice": "The booking was cancelled; one or more follow-up effects require manual review."
+  },
   "overbookConfirmTitle": "Tour at capacity",
   "overbookConfirmDescription": "Capacity is full. Approve {guest} anyway?",
   "overbookConfirmAction": "Approve anyway",
@@ -188,7 +212,8 @@
       "partial": "Partially paid (booking)",
       "paid": "Payment received",
       "paidAwaitingFinalization": "Payment received — awaiting finalization",
-      "waived": "No payment required"
+      "waived": "No payment required",
+      "cancelled": "Booking closed — no new payment required"
     }
   },
   "fields": {
@@ -231,7 +256,8 @@
     "partial": "Partially paid (booking)",
     "paid": "Payment received",
     "paidAwaitingFinalization": "Payment received — awaiting finalization",
-    "waived": "No payment required"
+    "waived": "No payment required",
+    "cancelled": "Booking closed — no new payment required"
   },
   "paymentDueAt": "Payment due: {date}",
   "actionReason": {

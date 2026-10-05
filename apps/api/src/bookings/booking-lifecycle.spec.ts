@@ -88,11 +88,19 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     const cancelled = await cancelBooking(opsAuth(TENANT_DENALI), created.id);
     assert.equal(cancelled.status, "cancelled");
 
+    const retry = await cancelBooking(opsAuth(TENANT_DENALI), created.id);
+    assert.equal(retry.status, "cancelled");
+    assert.equal(retry.refundStatus, cancelled.refundStatus);
+
     const outbox = await peekOutboxByAggregateForTests({
       tenantId: TENANT_DENALI,
       aggregateId: created.id,
     });
-    assert.ok(outbox.some((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE));
+    assert.equal(
+      outbox.filter((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE).length,
+      1,
+      "retry must not duplicate the lifecycle outbox event"
+    );
   });
 
   it("finalizes approved unpaid booking without waiving payment and preserves finality after payment", async () => {
@@ -211,9 +219,9 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     });
     const cancelled = await cancelBooking(opsAuth(TENANT_DENALI), cancelCandidate.id);
     assert.equal(cancelled.status, "cancelled");
-    assert.equal(cancelled.cancellationStatus, "applied");
-    assert.equal(cancelled.refundStatus, "pending_finance_approval");
-    assert.equal(cancelled.settlementStatus, "correction_pending");
+    assert.equal(cancelled.cancellationStatus, "manual_review");
+    assert.equal(cancelled.refundStatus, "manual_review");
+    assert.equal(cancelled.settlementStatus, "not_affected");
     const cancelledRow = await getBookingsRepository().getById(cancelCandidate.id, TENANT_DENALI);
     assert.equal(cancelledRow?.finalizationStatus, "not_final");
     assert.equal(cancelledRow?.finalizedAt, null);

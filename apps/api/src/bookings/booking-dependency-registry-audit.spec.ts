@@ -178,6 +178,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       postCancelSideEffects: {
         run: async () => ({
           refundDrafted: false,
+          refundStatus: "not_required",
           refundId: null,
           eligibleRefundMinor: "0",
           waitlistPromoted: false,
