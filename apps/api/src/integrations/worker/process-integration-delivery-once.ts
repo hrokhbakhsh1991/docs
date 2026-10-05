@@ -378,40 +378,42 @@ export async function executeIntegrationDeliveryJob(
           : job.eventType === "registration.created" &&
               typeof job.payload.bookingId === "string" &&
               typeof job.payload.approvalRequired === "boolean"
-            ? {
-                inline_keyboard: [
-                  [
-                    {
-                      text: "تأیید ثبت‌نام بدون نیاز به پرداخت",
-                      // Wire code kept short — Telegram caps callback_data at 64 bytes;
-                      // "registration:approve_without_payment:<uuid>" would overflow it.
-                      callback_data: `registration:apr_np:${job.payload.bookingId}`,
-                    },
+            ? job.payload.paymentCollectionMode === "free"
+              ? undefined
+              : {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: "تأیید ثبت‌نام بدون نیاز به پرداخت",
+                        // Wire code kept short — Telegram caps callback_data at 64 bytes;
+                        // "registration:approve_without_payment:<uuid>" would overflow it.
+                        callback_data: `registration:apr_np:${job.payload.bookingId}`,
+                      },
+                    ],
+                    [
+                      {
+                        text: "تأیید ثبت‌نام؛ پرداخت لازم است",
+                        callback_data: `registration:apr_wp:${job.payload.bookingId}`,
+                      },
+                    ],
+                    ...(job.payload.approvalRequired
+                      ? [
+                          [
+                            {
+                              text: "تأیید",
+                              callback_data: `registration:apr:${job.payload.bookingId}`,
+                            },
+                          ],
+                          [
+                            {
+                              text: "انتقال به لیست انتظار",
+                              callback_data: `registration:wl:${job.payload.bookingId}`,
+                            },
+                          ],
+                        ]
+                      : []),
                   ],
-                  [
-                    {
-                      text: "تأیید ثبت‌نام؛ پرداخت لازم است",
-                      callback_data: `registration:apr_wp:${job.payload.bookingId}`,
-                    },
-                  ],
-                  ...(job.payload.approvalRequired
-                    ? [
-                        [
-                          {
-                            text: "تأیید",
-                            callback_data: `registration:apr:${job.payload.bookingId}`,
-                          },
-                        ],
-                        [
-                          {
-                            text: "انتقال به لیست انتظار",
-                            callback_data: `registration:wl:${job.payload.bookingId}`,
-                          },
-                        ],
-                      ]
-                    : []),
-                ],
-              }
+                }
             : undefined;
 
     const result = await adapter.sendMessage(ctx, {

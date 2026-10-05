@@ -19,6 +19,7 @@ import {
   validateDenaliRegistrationPayload,
 } from "./registration.validation";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
+import { resolveDenaliPaymentCollectionMode } from "../finance/resolve-denali-payment-collection-mode";
 import { resolveDenaliRegistrationTourPublishVisibility } from "../registration/denali-registration-tour-publish-visibility";
 
 import { DenaliRegistrationDuplicateError } from "./errors/denali-registration-conflict.error";
@@ -227,6 +228,7 @@ export async function createDenaliRegistration(params: {
     ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
   };
   const approvalRequired = resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto";
+  const paymentCollectionMode = resolveDenaliPaymentCollectionMode(tour.canonical);
 
   const approvedOccupancy =
     capacity !== null
@@ -331,6 +333,7 @@ export async function createDenaliRegistration(params: {
           : approvalRequired
             ? "⏳ این تور نیاز به تأیید ادمین دارد."
             : "ℹ️ این تور نیاز به تأیید ادمین ندارد.",
+        paymentCollectionMode,
       },
     },
   };

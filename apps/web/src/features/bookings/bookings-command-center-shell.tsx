@@ -822,6 +822,7 @@ export function BookingsPageClient({
           setActionNotice(notice);
         }
       }
+      clearSelection();
       refreshData();
       onOpsMutationSuccess?.(
         action === "approve" || action === "promote-waitlist-with-capacity-increase"
@@ -874,6 +875,7 @@ export function BookingsPageClient({
       if (snapshot !== null) {
         setActionNotice(t("approveWithoutPaymentSuccess", { guest: snapshot.guestLabel }));
       }
+      clearSelection();
       refreshData();
       onOpsMutationSuccess?.("finalized");
     } catch (actionErr: unknown) {

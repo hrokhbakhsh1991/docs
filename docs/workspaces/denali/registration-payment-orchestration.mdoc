@@ -93,6 +93,23 @@ Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) un
 
 ## Operator money inbox after approve (2026-08-16)
 
+### Local receipt-proof storage (2026-10-05)
+
+The member upload path is:
+
+```text
+approved + unpaid
+  → member uploads image/PDF proof
+  → Finance receipt = Pending
+  → operator reviews /finance?tab=receipts
+  → approve or reject
+```
+
+Production must provide the configured MinIO-compatible proof store. In local
+development, when MinIO is not configured, the API uses its process-local
+receipt-proof store so the upload and operator-review flow remains testable.
+This fallback is disabled in production and is not a durable storage option.
+
 `approve_then_offline_pay` splits lifecycle from collection: approve does **not** create a Manual Payment. The guest is `approved` + `unpaid` with invoice remaining from the tour obligation.
 
 | Surface                                                  | Contract after approve, before receipt upload                    |
@@ -123,10 +140,11 @@ The message must show the guest, tour, departure, party size, and registration
 identifier, then state whether the tour requires operator approval. Its inline
 actions are:
 
-| Tour approval mode | Actions                                                                |
-| ------------------ | ---------------------------------------------------------------------- |
-| `auto`             | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
-| `manual`           | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
+| Tour approval mode          | Actions                                                                |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `auto` + free collection    | بدون دکمهٔ پرداخت؛ ثبت‌نام از قبل تأیید شده است                        |
+| `auto` + payment collection | `تأیید ثبت‌نام بدون نیاز به پرداخت` · `تأیید ثبت‌نام؛ پرداخت لازم است` |
+| `manual`                    | همان دو مسیر ثبت‌نام، به‌علاوهٔ `تأیید` و `انتقال به لیست انتظار`      |
 
 Callbacks are typed as `registration:<action>:<registrationId>`, are accepted
 only from an administrator or creator in the configured Telegram supergroup, and are
