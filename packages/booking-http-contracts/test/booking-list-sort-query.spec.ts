@@ -58,4 +58,16 @@ describe("booking-list-status-query — UX-BKG-43a / 43b", () => {
       undefined
     );
   });
+
+  it("parses the operator work queue independently from lifecycle status", () => {
+    const query = parseBookingsListQuery(
+      new URL("http://x/bookings?view=ops&workQueue=true&status=approved")
+    );
+    assert.equal(query.workQueue, true);
+    assert.equal(query.status, "approved");
+    assert.equal(
+      parseBookingsListQuery(new URL("http://x/bookings?workQueue=false")).workQueue,
+      undefined
+    );
+  });
 });

@@ -9,6 +9,14 @@ import {
   canTransitionBookingStatus,
   listBookingSourceStatusesForTarget,
 } from "./booking-status-transitions";
+import {
+  buildCancellationSnapshot,
+  createInitialCancellationWorkState,
+  readCancellationTransportImpact,
+  readCancellationWorkState,
+  summarizeCancellationWork,
+  updateCancellationSnapshotEffect,
+} from "./cancellation-work-state";
 
 import { resolveLoginMobileLookupKeys } from "../identity/canonicalize-login-mobile";
 import { withTenantRls } from "../db/with-tenant-rls";
@@ -17,6 +25,9 @@ import { normalizeBookingSearchQuery } from "./booking-list-query";
 import type {
   BookingListPageInput,
   BookingListPageOutput,
+  BookingCancellationEffect,
+  BookingCancellationEffectStatus,
+  BookingCancellationTransportImpact,
   BookingPaymentStatus,
   BookingRecord,
   BookingStatus,
@@ -68,6 +79,28 @@ async function acquireTourCapacityLock(
   `;
 }
 
+/**
+ * Serialize cancellation-work snapshot read/merge/write for one registration.
+ *
+ * The snapshot is a JSON document, so an unconstrained read followed by update
+ * can lose a checkpoint when two API replicas finish different effects at the
+ * same time. This transaction-scoped advisory lock keeps that merge atomic
+ * across processes without widening the lock to the whole tour.
+ */
+async function acquireBookingCancellationWorkLock(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  bookingId: string
+): Promise<void> {
+  const lockKey = `${tenantId.trim()}:booking-cancellation-work:${bookingId.trim()}`;
+  await tx.$executeRaw`
+    SELECT pg_advisory_xact_lock(
+      ('x' || substr(md5(${lockKey}), 1, 8))::bit(32)::int,
+      ('x' || substr(md5(${lockKey}), 9, 8))::bit(32)::int
+    )
+  `;
+}
+
 async function sumApprovedPartySizeInTx(
   tx: Prisma.TransactionClient,
   tenantId: string,
@@ -111,12 +144,31 @@ export const BOOKING_LIST_SELECT = {
   cancellationRequestedAt: true,
   cancellationApprovedAt: true,
   cancellationApprovedByUserId: true,
+  cancellationRejectedAt: true,
+  cancellationRejectedByUserId: true,
   cancellationCorrelationId: true,
+  cancellationSnapshot: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
 type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
   select: typeof BOOKING_LIST_SELECT;
 }>;
+
+function readCancellationPreviousStatus(
+  value: Prisma.JsonValue | null | undefined
+): BookingStatus | null {
+  if (value === null || value === undefined || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const previousStatus = (value as Record<string, unknown>).previousStatus;
+  return previousStatus === "pending" ||
+    previousStatus === "waitlisted" ||
+    previousStatus === "approved" ||
+    previousStatus === "rejected" ||
+    previousStatus === "cancelled"
+    ? previousStatus
+    : null;
+}
 
 function toBookingListRecord(row: BookingListRow): BookingRecord {
   return {
@@ -147,7 +199,12 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
     cancellationApprovedAt: row.cancellationApprovedAt?.toISOString() ?? null,
     cancellationApprovedByUserId: row.cancellationApprovedByUserId,
+    cancellationRejectedAt: row.cancellationRejectedAt?.toISOString() ?? null,
+    cancellationRejectedByUserId: row.cancellationRejectedByUserId,
     cancellationCorrelationId: row.cancellationCorrelationId,
+    cancellationPreviousStatus: readCancellationPreviousStatus(row.cancellationSnapshot),
+    cancellationWork: readCancellationWorkState(row.cancellationSnapshot),
+    cancellationTransportImpact: readCancellationTransportImpact(row.cancellationSnapshot),
   };
 }
 
@@ -178,7 +235,10 @@ function toBookingRecord(row: {
   cancellationRequestedAt?: Date | null;
   cancellationApprovedAt?: Date | null;
   cancellationApprovedByUserId?: string | null;
+  cancellationRejectedAt?: Date | null;
+  cancellationRejectedByUserId?: string | null;
   cancellationCorrelationId?: string | null;
+  cancellationSnapshot?: Prisma.JsonValue | null;
 }): BookingRecord {
   const registrationIntake =
     row.registrationIntake !== null &&
@@ -214,13 +274,19 @@ function toBookingRecord(row: {
       ? { rejectReason: row.rejectReason }
       : {}),
     cancelSource: row.cancelSource ?? null,
-    cancellationStatus: (row.cancellationStatus as BookingRecord["cancellationStatus"] | undefined) ?? "none",
+    cancellationStatus:
+      (row.cancellationStatus as BookingRecord["cancellationStatus"] | undefined) ?? "none",
     cancellationReasonCode: row.cancellationReasonCode ?? null,
     cancellationReasonNote: row.cancellationReasonNote ?? null,
     cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
     cancellationApprovedAt: row.cancellationApprovedAt?.toISOString() ?? null,
     cancellationApprovedByUserId: row.cancellationApprovedByUserId ?? null,
+    cancellationRejectedAt: row.cancellationRejectedAt?.toISOString() ?? null,
+    cancellationRejectedByUserId: row.cancellationRejectedByUserId ?? null,
     cancellationCorrelationId: row.cancellationCorrelationId ?? null,
+    cancellationPreviousStatus: readCancellationPreviousStatus(row.cancellationSnapshot),
+    cancellationWork: readCancellationWorkState(row.cancellationSnapshot),
+    cancellationTransportImpact: readCancellationTransportImpact(row.cancellationSnapshot),
   };
 }
 
@@ -265,14 +331,24 @@ function buildBookingListWhere(
   const approvedTo = input.approvedTo !== undefined ? new Date(input.approvedTo) : undefined;
   const hasApprovedFrom = approvedFrom !== undefined && !Number.isNaN(approvedFrom.getTime());
   const hasApprovedTo = approvedTo !== undefined && !Number.isNaN(approvedTo.getTime());
+  const compoundFilters: Prisma.OperatorRegistrationWhereInput[] = [];
+
+  if (input.workQueue === true) {
+    compoundFilters.push({
+      OR: [
+        { status: { in: ["pending", "waitlisted"] } },
+        { status: "approved", cancellationStatus: "request_pending" },
+      ],
+    });
+  }
 
   return {
     tenantId: input.tenantId,
-    ...(input.statuses !== undefined && input.statuses.length > 0
+    ...(input.workQueue !== true && input.statuses !== undefined && input.statuses.length > 0
       ? {
           status: input.statuses.length === 1 ? input.statuses[0] : { in: [...input.statuses] },
         }
-      : input.status !== undefined
+      : input.workQueue !== true && input.status !== undefined
         ? { status: input.status }
         : {}),
     ...(input.tourId !== undefined && input.tourId.length > 0 ? { tourId: input.tourId } : {}),
@@ -305,7 +381,7 @@ function buildBookingListWhere(
               phoneNeedles.add(needle);
             }
           }
-          return {
+          compoundFilters.push({
             OR: [
               { guestLabel: { contains: q, mode: "insensitive" } },
               { guestEmail: { contains: q, mode: "insensitive" } },
@@ -313,9 +389,11 @@ function buildBookingListWhere(
                 guestPhone: { contains: needle, mode: "insensitive" as const },
               })),
             ],
-          };
+          });
+          return {};
         })()
       : {}),
+    ...(compoundFilters.length > 0 ? { AND: compoundFilters } : {}),
   };
 }
 
@@ -1686,6 +1764,133 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     });
   }
 
+  async requestMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly requestedByUserId: string;
+    readonly correlationId: string;
+  }): Promise<BookingRecord> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      // Serialize checkpoint merges for this registration across API replicas.
+      await tx.$queryRaw`
+        SELECT id
+        FROM operator_registrations
+        WHERE id = ${input.bookingId}
+          AND tenant_id = ${input.tenantId}
+        FOR UPDATE
+      `;
+      const current = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (current === null) {
+        throw new BookingNotFoundError();
+      }
+      if (current.submittedByUserId !== input.requestedByUserId) {
+        throw new Error("BOOKING_MEMBER_FORBIDDEN");
+      }
+      if (current.cancellationStatus === "request_pending") {
+        return toBookingRecord(current);
+      }
+      if (current.status !== "approved") {
+        throw new BookingStatusConflictError(current.status as BookingStatus);
+      }
+      const requestedAt = new Date();
+      const changed = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          status: "approved",
+          cancellationStatus: { in: ["none", "rejected"] },
+        },
+        data: {
+          cancellationStatus: "request_pending",
+          cancellationReasonCode: "member_withdrawal",
+          cancellationReasonNote: null,
+          cancellationRequestedAt: requestedAt,
+          cancellationApprovedAt: null,
+          cancellationApprovedByUserId: null,
+          cancellationRejectedAt: null,
+          cancellationRejectedByUserId: null,
+          cancellationCorrelationId: input.correlationId,
+        },
+      });
+      if (changed.count !== 1) {
+        const again = await tx.operatorRegistration.findFirst({
+          where: { id: input.bookingId, tenantId: input.tenantId },
+        });
+        if (again?.cancellationStatus === "request_pending") {
+          return toBookingRecord(again);
+        }
+        throw new BookingStatusConflictError((again?.status ?? current.status) as BookingStatus);
+      }
+      const updated = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      return toBookingRecord(updated);
+    });
+  }
+
+  async rejectMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly rejectedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      const rejectedAt = new Date();
+      const changed = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          status: "approved",
+          cancellationStatus: "request_pending",
+        },
+        data: {
+          cancellationStatus: "rejected",
+          cancellationReasonNote: input.reasonNote?.trim() || null,
+          cancellationRejectedAt: rejectedAt,
+          cancellationRejectedByUserId: input.rejectedByUserId,
+        },
+      });
+      if (changed.count !== 1) {
+        const current = await tx.operatorRegistration.findFirst({
+          where: { id: input.bookingId, tenantId: input.tenantId },
+        });
+        if (current === null) {
+          throw new BookingNotFoundError();
+        }
+        if (current.status === "approved" && current.cancellationStatus === "rejected") {
+          return toBookingRecord(current);
+        }
+        throw new BookingStatusConflictError(current.status as BookingStatus);
+      }
+      const updated = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      const domainEventId = `${updated.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`}:request-rejected`;
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: updated.id,
+        eventType: "registration.cancellation_request_rejected",
+        payload: {
+          registrationId: updated.id,
+          bookingId: updated.id,
+          tourId: updated.tourId,
+          guestUserId: updated.submittedByUserId,
+          rejectedAt: rejectedAt.toISOString(),
+          reasonNote: updated.cancellationReasonNote,
+        },
+        domainEventId,
+        ...(updated.cancellationCorrelationId !== null
+          ? { correlationId: updated.cancellationCorrelationId }
+          : {}),
+        createdAt: rejectedAt,
+      });
+      return toBookingRecord(updated);
+    });
+  }
+
   async cancelBooking(input: {
     bookingId: string;
     tenantId: string;
@@ -1696,6 +1901,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
+    expectedCancellationStatus?: string;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1715,6 +1921,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (!canTransitionBookingStatus(current.status as BookingStatus, "cancelled")) {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
+      if (
+        input.expectedCancellationStatus !== undefined &&
+        current.cancellationStatus !== input.expectedCancellationStatus
+      ) {
+        throw new BookingStatusConflictError(current.status as BookingStatus);
+      }
       const previousStatus = current.status;
       const cancelledAt = new Date();
       const transitioned = await tx.operatorRegistration.updateMany({
@@ -1722,6 +1934,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           id: current.id,
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("cancelled")] },
+          ...(input.expectedCancellationStatus !== undefined
+            ? { cancellationStatus: input.expectedCancellationStatus }
+            : {}),
         },
         data: {
           status: "cancelled",
@@ -1742,17 +1957,21 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           ...(input.cancellationApprovedByUserId !== undefined
             ? { cancellationApprovedByUserId: input.cancellationApprovedByUserId }
             : {}),
+          cancellationRejectedAt: null,
+          cancellationRejectedByUserId: null,
           ...(input.cancellationCorrelationId !== undefined
             ? { cancellationCorrelationId: input.cancellationCorrelationId }
             : {}),
-          cancellationApprovedAt: new Date(),
-          cancellationSnapshot: {
-            previousStatus: current.status,
+          cancellationApprovedAt: cancelledAt,
+          cancellationSnapshot: buildCancellationSnapshot({
+            previousStatus: current.status as BookingStatus,
             previousFinalizationStatus: current.finalizationStatus,
-            previousPaymentStatus: current.paymentStatus,
+            previousPaymentStatus: current.paymentStatus as BookingPaymentStatus,
             partySize: current.partySize,
             finalizedAt: current.finalizedAt?.toISOString() ?? null,
-          },
+            departureAt: current.departureAt.toISOString(),
+            updatedAt: cancelledAt.toISOString(),
+          }) as Prisma.InputJsonValue,
         },
       });
       if (transitioned.count !== 1) {
@@ -1781,6 +2000,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           previousFinalizationStatus: current.finalizationStatus,
           previousPaymentStatus: current.paymentStatus,
           partySize: current.partySize,
+          guestUserId: current.submittedByUserId,
           ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
           ...(input.cancellationReasonCode !== undefined
             ? { reasonCode: input.cancellationReasonCode }
@@ -1790,9 +2010,96 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             : {}),
         },
         correlationId: input.cancellationCorrelationId,
-        domainEventId:
-          input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
+        domainEventId: input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
         createdAt: cancelledAt,
+      });
+      return toBookingRecord(updated);
+    });
+  }
+
+  async appendOutboxEventIfAbsent(input: {
+    readonly tenantId: string;
+    readonly aggregateId: string;
+    readonly eventType: string;
+    readonly payload: Readonly<Record<string, unknown>>;
+    readonly domainEventId: string;
+    readonly correlationId?: string;
+  }): Promise<boolean> {
+    return withTenantRls(input.tenantId, (tx) =>
+      enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: input.aggregateId,
+        eventType: input.eventType,
+        payload: input.payload as Prisma.InputJsonValue,
+        domainEventId: input.domainEventId,
+        ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
+      })
+    );
+  }
+
+  async recordCancellationEffect(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly correlationId: string;
+    readonly effect: BookingCancellationEffect;
+    readonly status: BookingCancellationEffectStatus;
+    readonly transportImpact?: BookingCancellationTransportImpact;
+  }): Promise<BookingRecord> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      await acquireBookingCancellationWorkLock(tx, input.tenantId, input.bookingId);
+      const current = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (current === null) {
+        throw new BookingNotFoundError();
+      }
+      if (
+        current.status !== "cancelled" ||
+        current.cancellationCorrelationId !== input.correlationId
+      ) {
+        throw new BookingStatusConflictError(current.status as BookingStatus);
+      }
+      const updatedAt = new Date().toISOString();
+      const fallbackWork = createInitialCancellationWorkState({
+        previousStatus: readCancellationPreviousStatus(current.cancellationSnapshot) ?? "approved",
+        departureAt: current.departureAt.toISOString(),
+        updatedAt,
+      });
+      const cancellationSnapshot = updateCancellationSnapshotEffect({
+        snapshot: current.cancellationSnapshot,
+        fallbackWork,
+        effect: input.effect,
+        status: input.status,
+        updatedAt,
+        ...(input.transportImpact !== undefined ? { transportImpact: input.transportImpact } : {}),
+      });
+      const cancellationWork = readCancellationWorkState(cancellationSnapshot);
+      if (cancellationWork === null) {
+        throw new Error("CANCELLATION_WORK_SNAPSHOT_INVALID");
+      }
+      const cancellationStatus = summarizeCancellationWork({
+        work: cancellationWork,
+        cancellationApprovedAt: current.cancellationApprovedAt?.toISOString() ?? null,
+        departureAt: current.departureAt.toISOString(),
+      });
+      const changed = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          status: "cancelled",
+          cancellationCorrelationId: input.correlationId,
+        },
+        data: {
+          cancellationSnapshot: cancellationSnapshot as Prisma.InputJsonValue,
+          cancellationStatus,
+        },
+      });
+      if (changed.count !== 1) {
+        throw new BookingStatusConflictError(current.status as BookingStatus);
+      }
+      const updated = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.bookingId, tenantId: input.tenantId },
       });
       return toBookingRecord(updated);
     });

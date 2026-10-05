@@ -31,6 +31,7 @@ import {
   buildBookingsApiQuery,
   buildBookingsCommandCenterHref,
   buildBookingLifecycleActionNotice,
+  cancellationResponseNeedsManualReview,
   buildRejectBookingRequestBody,
   filterBulkApprovableIds,
   findExactBooking,
@@ -71,6 +72,7 @@ import { BookingsKpiCard } from "@/features/bookings/bookings-kpi-card";
 import {
   BookingsBulkConfirmDialog,
   BookingsCancelConfirmDialog,
+  BookingsMemberCancellationDecisionDialog,
   BookingsOverbookConfirmDialog,
   BookingsRejectDialog,
 } from "@/features/bookings/bookings-ops-dialogs";
@@ -231,6 +233,12 @@ export function BookingsPageClient({
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [cancelReasonDraft, setCancelReasonDraft] = useState("operator_correction");
+  const [memberCancellationDecisionOpen, setMemberCancellationDecisionOpen] = useState(false);
+  const [memberCancellationDecision, setMemberCancellationDecision] = useState<
+    "approve" | "reject"
+  >("approve");
+  const [memberCancellationTargetId, setMemberCancellationTargetId] = useState<string | null>(null);
+  const [memberCancellationReasonDraft, setMemberCancellationReasonDraft] = useState("");
   const [overbookConfirmOpen, setOverbookConfirmOpen] = useState(false);
   const [overbookConfirmBookingId, setOverbookConfirmBookingId] = useState<string | null>(null);
   const [overbookConfirmMode, setOverbookConfirmMode] = useState<
@@ -731,6 +739,26 @@ export function BookingsPageClient({
     setCancelDialogOpen(true);
   };
 
+  const openMemberCancellationDecision = (bookingId: string, decision: "approve" | "reject") => {
+    setMemberCancellationTargetId(bookingId);
+    setMemberCancellationDecision(decision);
+    setMemberCancellationReasonDraft("");
+    setMemberCancellationDecisionOpen(true);
+  };
+
+  const confirmMemberCancellationDecision = async () => {
+    if (memberCancellationTargetId === null) {
+      return;
+    }
+    const bookingId = memberCancellationTargetId;
+    const decision = memberCancellationDecision;
+    const reason = memberCancellationReasonDraft;
+    setMemberCancellationDecisionOpen(false);
+    setMemberCancellationTargetId(null);
+    setMemberCancellationReasonDraft("");
+    await runMemberCancellationDecision(decision, bookingId, reason);
+  };
+
   const confirmCancel = async () => {
     if (cancelTargetId === null) {
       return;
@@ -797,17 +825,21 @@ export function BookingsPageClient({
       if (!response.ok) {
         throw new Error(`BOOKINGS_${action.toUpperCase()}_HTTP_${response.status}`);
       }
+      const cancellationResult =
+        action === "cancel" ? await response.json().catch(() => null) : null;
       if (
-        (action === "approve" ||
-          action === "cancel" ||
-          action === "promote-waitlist-with-capacity-increase") &&
-        embedded &&
-        lockedTour.trim().length > 0
+        action === "approve" ||
+        action === "cancel" ||
+        action === "promote-waitlist-with-capacity-increase"
       ) {
         invalidateFinanceRegistrationCaches(bookingId);
-        invalidateTourWorkspaceFinanceCache(lockedTour);
+        if (embedded && lockedTour.trim().length > 0) {
+          invalidateTourWorkspaceFinanceCache(lockedTour);
+        }
       }
-      if (action === "promote-waitlist-with-capacity-increase") {
+      if (action === "cancel" && cancellationResponseNeedsManualReview(cancellationResult)) {
+        setActionNotice(t("memberCancellation.manualReviewNotice"));
+      } else if (action === "promote-waitlist-with-capacity-increase") {
         setActionNotice(t("promoteWaitlistWithCapacityIncreaseSuccess"));
       } else if (snapshot !== null) {
         const notice = buildBookingLifecycleActionNotice({
@@ -831,6 +863,55 @@ export function BookingsPageClient({
       );
     } catch (actionErr: unknown) {
       setActionError(actionErr instanceof Error ? actionErr.message : "BOOKINGS_ACTION_FAILED");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const runMemberCancellationDecision = async (
+    decision: "approve" | "reject",
+    bookingId: string,
+    reasonNote = ""
+  ) => {
+    setActionBusy(true);
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/member-cancellation/${decision}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: decision === "reject" ? JSON.stringify({ reasonNote: reasonNote.trim() }) : "{}",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `BOOKINGS_MEMBER_CANCELLATION_${decision.toUpperCase()}_HTTP_${response.status}`
+        );
+      }
+      const cancellationResult =
+        decision === "approve" ? await response.json().catch(() => null) : null;
+      if (decision === "approve") {
+        invalidateFinanceRegistrationCaches(bookingId);
+        if (lockedTour.trim().length > 0) {
+          invalidateTourWorkspaceFinanceCache(lockedTour);
+        }
+      }
+      setActionNotice(
+        decision === "approve" && cancellationResponseNeedsManualReview(cancellationResult)
+          ? t("memberCancellation.manualReviewNotice")
+          : t(
+              decision === "approve"
+                ? "memberCancellation.approveSuccess"
+                : "memberCancellation.rejectSuccess"
+            )
+      );
+      refreshData();
+      onOpsMutationSuccess?.("other");
+    } catch (actionErr: unknown) {
+      setActionError(
+        actionErr instanceof Error
+          ? actionErr.message
+          : "BOOKINGS_MEMBER_CANCELLATION_DECISION_FAILED"
+      );
     } finally {
       setActionBusy(false);
     }
@@ -900,8 +981,15 @@ export function BookingsPageClient({
   const showLeaderBanner = !embedded && (leaderAlias || isLeaderReviewAlias(query.scope));
   const canWaitlistSelected =
     canManageOps && inspectionTarget !== null && isBookingWaitlistable(inspectionTarget);
+  const canDecideMemberCancellation =
+    canManageOps &&
+    inspectionTarget?.status === "approved" &&
+    inspectionTarget.cancellationStatus === "request_pending";
   const canCancelSelected =
-    canManageOps && inspectionTarget !== null && isBookingCancellable(inspectionTarget);
+    canManageOps &&
+    inspectionTarget !== null &&
+    !canDecideMemberCancellation &&
+    isBookingCancellable(inspectionTarget);
   const actionAvailability = useMemo(
     () =>
       resolveBookingActionAvailability({
@@ -923,14 +1011,19 @@ export function BookingsPageClient({
     capacityFull &&
     inspectionTarget?.status === "waitlisted";
   const actionUnavailableHint = useMemo(() => {
-    if (actionAvailability.unavailableReason === "approved_use_finance" && !canActOnSelected) {
+    if (
+      actionAvailability.unavailableReason === "approved_use_finance" &&
+      !canActOnSelected &&
+      !canDecideMemberCancellation
+    ) {
       return t("actionReason.approvedUseFinance");
     }
     if (
       actionAvailability.unavailableReason !== null &&
       !canActOnSelected &&
       !canWaitlistSelected &&
-      !canCancelSelected
+      !canCancelSelected &&
+      !canDecideMemberCancellation
     ) {
       const key = bookingActionUnavailableMessageKey(actionAvailability.unavailableReason);
       return t.has(key) ? t(key) : null;
@@ -940,6 +1033,7 @@ export function BookingsPageClient({
     actionAvailability.unavailableReason,
     canActOnSelected,
     canCancelSelected,
+    canDecideMemberCancellation,
     canWaitlistSelected,
     t,
   ]);
@@ -1323,6 +1417,7 @@ export function BookingsPageClient({
               (canActOnSelected ||
                 canWaitlistSelected ||
                 canCancelSelected ||
+                canDecideMemberCancellation ||
                 showPromoteWaitlistWithCapacityIncrease) ? (
                 <p
                   className="text-xs font-normal text-muted-foreground"
@@ -1348,6 +1443,7 @@ export function BookingsPageClient({
                   canApproveSelected={canApproveSelected}
                   canWaitlistSelected={canWaitlistSelected}
                   canCancelSelected={canCancelSelected}
+                  canDecideMemberCancellation={canDecideMemberCancellation}
                   actionBusy={actionBusy}
                   idCopied={idCopied}
                   onCopyId={() => void copyBookingId(inspectionTarget.id)}
@@ -1363,6 +1459,12 @@ export function BookingsPageClient({
                     )
                   }
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
+                  onApproveMemberCancellation={() =>
+                    openMemberCancellationDecision(inspectionTarget.id, "approve")
+                  }
+                  onRejectMemberCancellation={() =>
+                    openMemberCancellationDecision(inspectionTarget.id, "reject")
+                  }
                   actionClassName="flex"
                   actionHint={actionUnavailableHint}
                   capacityFullHint={capacityFullHint}
@@ -1403,6 +1505,7 @@ export function BookingsPageClient({
                   canApproveSelected={canApproveSelected}
                   canWaitlistSelected={canWaitlistSelected}
                   canCancelSelected={canCancelSelected}
+                  canDecideMemberCancellation={canDecideMemberCancellation}
                   actionBusy={actionBusy}
                   idCopied={idCopied}
                   onCopyId={() => void copyBookingId(inspectionTarget.id)}
@@ -1418,6 +1521,12 @@ export function BookingsPageClient({
                     )
                   }
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
+                  onApproveMemberCancellation={() =>
+                    openMemberCancellationDecision(inspectionTarget.id, "approve")
+                  }
+                  onRejectMemberCancellation={() =>
+                    openMemberCancellationDecision(inspectionTarget.id, "reject")
+                  }
                   actionClassName="flex w-full flex-wrap"
                   actionHint={actionUnavailableHint}
                   capacityFullHint={capacityFullHint}
@@ -1448,7 +1557,7 @@ export function BookingsPageClient({
         onConfirm={() => void confirmReject()}
       />
 
-        <BookingsCancelConfirmDialog
+      <BookingsCancelConfirmDialog
         open={cancelDialogOpen}
         busy={actionBusy}
         guestLabel={
@@ -1456,22 +1565,48 @@ export function BookingsPageClient({
           inspectionTarget?.guestLabel ??
           ""
         }
-          tourTitle={
+        tourTitle={
           findSelectedBooking(displayItems, cancelTargetId)?.tourTitle ??
           inspectionTarget?.tourTitle ??
           ""
+        }
+        reason={cancelReasonDraft}
+        onReasonChange={setCancelReasonDraft}
+        onOpenChange={(open) => {
+          setCancelDialogOpen(open);
+          if (!open) {
+            setCancelTargetId(null);
+            setCancelReasonDraft("operator_correction");
           }
-          reason={cancelReasonDraft}
-          onReasonChange={setCancelReasonDraft}
-          onOpenChange={(open) => {
-            setCancelDialogOpen(open);
-            if (!open) {
-              setCancelTargetId(null);
-              setCancelReasonDraft("operator_correction");
-            }
-          }}
-          onConfirm={() => void confirmCancel()}
-        />
+        }}
+        onConfirm={() => void confirmCancel()}
+      />
+
+      <BookingsMemberCancellationDecisionDialog
+        open={memberCancellationDecisionOpen}
+        decision={memberCancellationDecision}
+        busy={actionBusy}
+        guestLabel={
+          findSelectedBooking(displayItems, memberCancellationTargetId)?.guestLabel ??
+          inspectionTarget?.guestLabel ??
+          ""
+        }
+        tourTitle={
+          findSelectedBooking(displayItems, memberCancellationTargetId)?.tourTitle ??
+          inspectionTarget?.tourTitle ??
+          ""
+        }
+        reason={memberCancellationReasonDraft}
+        onReasonChange={setMemberCancellationReasonDraft}
+        onOpenChange={(open) => {
+          setMemberCancellationDecisionOpen(open);
+          if (!open) {
+            setMemberCancellationTargetId(null);
+            setMemberCancellationReasonDraft("");
+          }
+        }}
+        onConfirm={() => void confirmMemberCancellationDecision()}
+      />
 
       <BookingsBulkConfirmDialog
         open={bulkConfirmOpen}

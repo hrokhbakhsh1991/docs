@@ -38,6 +38,7 @@ type BookingInspectionDetailsProps = {
   readonly canApproveSelected: boolean;
   readonly canWaitlistSelected: boolean;
   readonly canCancelSelected: boolean;
+  readonly canDecideMemberCancellation: boolean;
   readonly showPromoteWaitlistWithCapacityIncrease?: boolean;
   readonly actionBusy: boolean;
   readonly idCopied: boolean;
@@ -47,6 +48,8 @@ type BookingInspectionDetailsProps = {
   readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
+  readonly onApproveMemberCancellation: () => void;
+  readonly onRejectMemberCancellation: () => void;
   readonly onPromoteWaitlistWithCapacityIncrease?: () => void;
   readonly actionClassName: string;
   readonly actionHint?: string | null;
@@ -63,6 +66,7 @@ export function BookingInspectionDetails({
   canApproveSelected,
   canWaitlistSelected,
   canCancelSelected,
+  canDecideMemberCancellation,
   showPromoteWaitlistWithCapacityIncrease = false,
   actionBusy,
   idCopied,
@@ -72,6 +76,8 @@ export function BookingInspectionDetails({
   onApproveWithoutPayment,
   onWaitlist,
   onCancel,
+  onApproveMemberCancellation,
+  onRejectMemberCancellation,
   onPromoteWaitlistWithCapacityIncrease,
   actionClassName,
   actionHint = null,
@@ -104,6 +110,24 @@ export function BookingInspectionDetails({
             {t(bookingPaymentLabelKey(booking))}
           </Badge>
           <BookingDepartureUrgencyBadge item={booking} />
+          {booking.cancellationStatus === "request_pending" ? (
+            <Badge
+              variant="outline"
+              className="border-amber-500/60 bg-amber-500/10 text-amber-950 dark:text-amber-100"
+              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.memberCancellationRequestBadge}
+            >
+              {t("memberCancellation.requestBadge")}
+            </Badge>
+          ) : null}
+          {booking.cancellationStatus === "manual_review" ? (
+            <Badge
+              variant="outline"
+              className="border-destructive/60 bg-destructive/10 text-destructive"
+              data-booking-cancellation-manual-review
+            >
+              {t("memberCancellation.manualReviewBadge")}
+            </Badge>
+          ) : null}
         </div>
         <Badge variant="outline" className="w-fit">
           {identityLabel}
@@ -133,20 +157,58 @@ export function BookingInspectionDetails({
           </>
         ) : null}
       </dl>
+      {booking.cancellationStatus === "request_pending" ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+          <p className="font-medium">{t("memberCancellation.requestTitle")}</p>
+          <p className="mt-1 text-xs">
+            {booking.cancellationRequestedAt !== undefined &&
+            booking.cancellationRequestedAt !== null
+              ? t("memberCancellation.requestedAt", {
+                  date: formatBookingDeparture(booking.cancellationRequestedAt, locale),
+                })
+              : t("memberCancellation.requestedAtUnknown")}
+          </p>
+          {booking.cancellationReasonNote !== undefined &&
+          booking.cancellationReasonNote !== null &&
+          booking.cancellationReasonNote.trim().length > 0 ? (
+            <p className="mt-1 text-xs">
+              {t("memberCancellation.requestReason", {
+                reason: booking.cancellationReasonNote,
+              })}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {booking.cancellationStatus === "manual_review" ? (
+        <div
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          data-booking-cancellation-manual-review-panel
+        >
+          <p className="font-medium">{t("memberCancellation.manualReviewTitle")}</p>
+          <p className="mt-1 text-xs">{t("memberCancellation.manualReviewDescription")}</p>
+        </div>
+      ) : null}
       {canManageOps &&
-      (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (
+      (canActOnSelected ||
+        canWaitlistSelected ||
+        canCancelSelected ||
+        canDecideMemberCancellation ||
+        actionHint !== null) ? (
         <BookingActionButtons
           busy={actionBusy}
           showReject={canRejectSelected}
           showApprove={canApproveSelected}
           showWaitlist={canWaitlistSelected}
           showCancel={canCancelSelected}
+          showMemberCancellationDecision={canDecideMemberCancellation}
           showPromoteWaitlistWithCapacityIncrease={showPromoteWaitlistWithCapacityIncrease}
           onReject={onReject}
           onApprove={onApprove}
           onApproveWithoutPayment={onApproveWithoutPayment}
           onWaitlist={onWaitlist}
           onCancel={onCancel}
+          onApproveMemberCancellation={onApproveMemberCancellation}
+          onRejectMemberCancellation={onRejectMemberCancellation}
           onPromoteWaitlistWithCapacityIncrease={onPromoteWaitlistWithCapacityIncrease}
           className={actionClassName}
           actionHint={actionHint}

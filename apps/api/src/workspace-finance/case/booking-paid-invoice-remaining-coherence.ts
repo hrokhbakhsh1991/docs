@@ -8,13 +8,11 @@
  * Callers set `meaningConflictProven` — never fabricate `partialScopeDeclared`.
  */
 export function isBookingPaidWithPositiveInvoiceRemaining(input: {
+  readonly bookingStatus?: string | null;
   readonly bookingPaymentStatus: string | null | undefined;
   readonly remainingMinor: string | null | undefined;
 }): boolean {
   if (input.bookingPaymentStatus === null || input.bookingPaymentStatus === undefined) {
-    return false;
-  }
-  if (input.bookingPaymentStatus.trim().toLowerCase() !== "paid") {
     return false;
   }
   if (input.remainingMinor === null || input.remainingMinor === undefined) {
@@ -25,7 +23,15 @@ export function isBookingPaidWithPositiveInvoiceRemaining(input: {
     return false;
   }
   try {
-    return BigInt(digits) > BigInt(0);
+    const remaining = BigInt(digits);
+    const paymentStatus = input.bookingPaymentStatus.trim().toLowerCase();
+    const bookingStatus = input.bookingStatus?.trim().toLowerCase() ?? null;
+    const terminal = bookingStatus === "cancelled" || bookingStatus === "rejected";
+    return (
+      (paymentStatus === "paid" && remaining > BigInt(0)) ||
+      (paymentStatus === "partial" && remaining === BigInt(0)) ||
+      (terminal && remaining > BigInt(0))
+    );
   } catch {
     return false;
   }

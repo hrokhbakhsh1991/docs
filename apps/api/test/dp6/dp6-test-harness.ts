@@ -8,7 +8,6 @@ import { approveBooking, createBooking, cancelBooking } from "../../src/bookings
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
 import { resetBookingsServiceCompositionForTests } from "../../src/bookings/create-bookings-service.ts";
 import { resetLazyFinanceServiceForTests, resolveFinanceServiceForTenant, getPlatformFinanceRepositoryForTests } from "../../src/boot/lazy-finance-service.ts";
-import { resetMemberCancellationRequestsForTests } from "../../src/bookings/member-cancellation-request.repository.ts";
 import { resetPaymentHoldRepositoryForTests } from "../../src/finance/payment-hold.repository.ts";
 import type { BookingActorContext } from "../../src/bookings/ports/booking-actor-context.ts";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage.ts";
@@ -32,7 +31,6 @@ export function resetDp6Harness(): void {
   resetBookingsServiceCompositionForTests();
   resetLazyFinanceServiceForTests();
   resetPaymentHoldRepositoryForTests();
-  resetMemberCancellationRequestsForTests();
   const tourStore = createTourStorageRepository();
   if (tourStore instanceof InMemoryTourRepository) {
     tourStore.ensureDp1PaymentDeadlineTour();

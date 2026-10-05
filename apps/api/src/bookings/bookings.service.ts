@@ -161,6 +161,12 @@ function toListItem(
     ...(record.cancellationApprovedByUserId !== undefined
       ? { cancellationApprovedByUserId: record.cancellationApprovedByUserId }
       : {}),
+    ...(record.cancellationRejectedAt !== undefined
+      ? { cancellationRejectedAt: record.cancellationRejectedAt }
+      : {}),
+    ...(record.cancellationRejectedByUserId !== undefined
+      ? { cancellationRejectedByUserId: record.cancellationRejectedByUserId }
+      : {}),
     ...(record.cancellationCorrelationId !== undefined
       ? { cancellationCorrelationId: record.cancellationCorrelationId }
       : {}),
@@ -351,14 +357,16 @@ export class BookingsService {
     const filters = {
       tenantId: auth.tenantId,
       ...(query.view === "mine" ? { submittedByUserId: auth.userId } : {}),
-      ...(query.statuses !== undefined && query.statuses.length > 0
-        ? { statuses: query.statuses }
-        : query.status !== undefined
-          ? { status: query.status }
-          : query.view === "mine"
-            ? // Member trips list: active seats only (omit cancelled/rejected history).
-              { statuses: ["pending", "waitlisted", "approved"] as const }
-            : {}),
+      ...(query.view === "ops" && query.workQueue === true
+        ? { workQueue: true }
+        : query.statuses !== undefined && query.statuses.length > 0
+          ? { statuses: query.statuses }
+          : query.status !== undefined
+            ? { status: query.status }
+            : query.view === "mine"
+              ? // Member trips list: active seats only (omit cancelled/rejected history).
+                { statuses: ["pending", "waitlisted", "approved"] as const }
+              : {}),
       ...(query.tourId !== undefined && query.tourId.length > 0 ? { tourId: query.tourId } : {}),
       ...(query.paymentStatus !== undefined ? { paymentStatus: query.paymentStatus } : {}),
       ...(query.q !== undefined && query.q.length > 0 ? { q: query.q } : {}),
@@ -1004,44 +1012,66 @@ export class BookingsService {
     if (before === null) {
       throw new BookingNotFoundError();
     }
-    const previousStatus = before.status;
     const correlationId = `registration.cancelled:${bookingId}`;
-    const updated = await this.repository.cancelBooking({
-      bookingId,
-      tenantId: auth.tenantId,
-      outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
-      cancelSource: "operator",
-      cancellationStatus:
-        Date.parse(before.departureAt) <= Date.now() ? "late_correction" : "applied",
-      cancellationReasonCode: input.reasonCode,
-      cancellationReasonNote: input.reasonNote,
-      cancellationApprovedByUserId: auth.userId,
-      cancellationCorrelationId: correlationId,
-    });
+    const recoveringPreviousAttempt =
+      before.status === "cancelled" &&
+      before.cancelSource === "operator" &&
+      before.cancellationCorrelationId === correlationId;
+    const previousStatus = recoveringPreviousAttempt
+      ? (before.cancellationPreviousStatus ?? "cancelled")
+      : before.status;
+    const updated = recoveringPreviousAttempt
+      ? before
+      : await this.repository.cancelBooking({
+          bookingId,
+          tenantId: auth.tenantId,
+          outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
+          cancelSource: "operator",
+          cancellationStatus:
+            Date.parse(before.departureAt) <= Date.now() ? "late_correction" : "applied",
+          cancellationReasonCode: input.reasonCode,
+          cancellationReasonNote: input.reasonNote,
+          cancellationApprovedByUserId: auth.userId,
+          cancellationCorrelationId: correlationId,
+        });
     let settlementStatus: CancelBookingResponse["settlementStatus"] = "not_affected";
+    let refundStatus: CancelBookingResponse["refundStatus"] = "not_required";
+    let notificationStatus: CancelBookingResponse["notificationStatus"] = "manual_review";
     try {
       const effects = await this.postCancelSideEffects.run({
         auth,
-        booking: { ...before, status: "cancelled", cancelSource: "operator" },
+        booking: {
+          ...before,
+          ...updated,
+          status: "cancelled",
+          cancelSource: "operator",
+        },
         previousStatus,
         cancelDomainEventId: correlationId,
         cancelSource: "operator",
+        repository: this.repository,
       });
       settlementStatus = effects.settlementStatus;
+      notificationStatus = effects.notificationStatus;
+      refundStatus = effects.refundStatus;
     } catch {
       // The lifecycle transition is already persisted. Surface a recoverable
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
+      refundStatus =
+        before.paymentStatus === "paid" || before.paymentStatus === "partial"
+          ? "manual_review"
+          : "not_required";
+      notificationStatus = "manual_review";
     }
+    const checkpointed = await this.repository.getById(bookingId, auth.tenantId);
     return {
       id: updated.id,
       status: updated.status,
-      cancellationStatus: updated.cancellationStatus,
-      refundStatus:
-        updated.paymentStatus === "paid" || updated.paymentStatus === "partial"
-          ? "pending_finance_approval"
-          : "not_required",
+      cancellationStatus: checkpointed?.cancellationStatus ?? updated.cancellationStatus,
+      refundStatus,
       settlementStatus,
+      notificationStatus,
     };
   }
 

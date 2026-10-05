@@ -733,6 +733,8 @@ model OperatorRegistration {
   cancellationRequestedAt DateTime? @map("cancellation_requested_at")
   cancellationApprovedAt DateTime? @map("cancellation_approved_at")
   cancellationApprovedByUserId String? @map("cancellation_approved_by_user_id") @db.Uuid
+  cancellationRejectedAt DateTime? @map("cancellation_rejected_at")
+  cancellationRejectedByUserId String? @map("cancellation_rejected_by_user_id") @db.Uuid
   cancellationCorrelationId String? @map("cancellation_correlation_id")
   cancellationSnapshot Json? @map("cancellation_snapshot")
   createdAt         DateTime  @default(now()) @map("created_at")

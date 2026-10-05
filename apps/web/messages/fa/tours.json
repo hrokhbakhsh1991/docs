@@ -511,6 +511,7 @@
       "cancelParticipant": "لغو رزرو",
       "cancelParticipantSuccess": "رزرو شرکت‌کننده از لیست نهایی لغو شد.",
       "cancelParticipantRefundPending": "بازپرداخت در انتظار تأیید مالی است.",
+      "cancelParticipantRefundReview": "ثبت بازپرداخت کامل نشده و نیازمند بررسی مالی است.",
       "cancelParticipantSettlementReview": "اصلاح تسویه نیازمند بررسی دستی است.",
       "cancelParticipantFailed": "لغو رزرو شرکت‌کننده انجام نشد.",
       "stages": {

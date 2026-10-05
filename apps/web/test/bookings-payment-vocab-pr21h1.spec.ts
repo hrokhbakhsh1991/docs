@@ -64,6 +64,17 @@ describe("bookings payment vocabulary PR21-H1", () => {
     );
   });
 
+  it("H1 regression: terminal booking never shows stale paid-awaiting-finalization", () => {
+    const booking = {
+      status: "cancelled" as const,
+      paymentStatus: "paid" as const,
+      finalizationStatus: "not_final" as const,
+      financialDisplayState: undefined,
+    };
+    assert.equal(bookingPaymentLabelKey(booking), "payment.cancelled");
+    assert.equal(bookingTimelinePaymentLabelKey(booking), "paymentValue.cancelled");
+  });
+
   it("H0-01: inspection/timeline field labels say booking settlement", () => {
     assert.equal(fa.fields.payment, "تسویه رزرو");
     assert.equal(fa.timeline.payment, "تسویه رزرو");

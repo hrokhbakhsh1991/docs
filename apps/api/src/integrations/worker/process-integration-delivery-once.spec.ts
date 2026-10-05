@@ -501,6 +501,70 @@ describe("Telegram worker delivery", () => {
     assert.deepEqual(sent, [{ replyMarkup: undefined }]);
   });
 
+  it("keeps approve and waitlist actions for a free registration awaiting approval", async () => {
+    const sent: Array<{ replyMarkup?: unknown }> = [];
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        domainEventId: "registration.created:free-pending-registration-1",
+        eventType: "registration.created",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "connection-1",
+          telegramTopicKey: "registration",
+          bookingId: "free-pending-registration-1",
+          tourTitle: "تور رایگان با تأیید ادمین",
+          guestLabel: "مهمان منتظر تأیید",
+          departureAt: "2026-09-20",
+          partySize: 1,
+          approvalRequired: true,
+          paymentCollectionMode: "free",
+          approvalPrompt: "⏳ این تور نیاز به تأیید ادمین دارد.",
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "connection-1",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "telegram",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["message.send"],
+          config: { chatId: "-1004292581496", topicThreadIds: { registration: 101 } },
+          secretRef: "secret-1",
+          credentials: { botToken: "test-token" },
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        getProvider: () => ({
+          id: "telegram",
+          supportedCapabilities: ["message.send"],
+          async sendMessage(_ctx, input) {
+            sent.push({ replyMarkup: input.replyMarkup });
+            return { ok: true };
+          },
+        }),
+      }
+    );
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sent, [
+      {
+        replyMarkup: {
+          inline_keyboard: [
+            [{ text: "تأیید", callback_data: "registration:apr:free-pending-registration-1" }],
+            [
+              {
+                text: "انتقال به لیست انتظار",
+                callback_data: "registration:wl:free-pending-registration-1",
+              },
+            ],
+          ],
+        },
+      },
+    ]);
+  });
+
   it("sends a registration.waitlisted event to the registration topic without approval buttons", async () => {
     const sent: Array<{
       channelId: string;

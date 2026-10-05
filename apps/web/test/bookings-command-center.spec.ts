@@ -13,6 +13,7 @@ import {
   buildBookingsApiQuery,
   buildBookingsCommandCenterHref,
   buildBookingLifecycleActionNotice,
+  cancellationResponseNeedsManualReview,
   buildBookingsHistoryHref,
   buildBookingsDetailDeepLinkHref,
   buildRejectBookingRequestBody,
@@ -92,6 +93,26 @@ import {
 } from "../src/features/bookings/bookings-command-center-types";
 
 describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
+  it("shows a durable manual-review notice for any failed cancellation effect", () => {
+    assert.equal(
+      cancellationResponseNeedsManualReview({
+        cancellationStatus: "manual_review",
+        refundStatus: "not_required",
+      }),
+      true
+    );
+    assert.equal(
+      cancellationResponseNeedsManualReview({
+        cancellationStatus: "completed",
+        refundStatus: "completed",
+        settlementStatus: "not_affected",
+        notificationStatus: "queued",
+      }),
+      false
+    );
+    assert.equal(cancellationResponseNeedsManualReview(null), false);
+  });
+
   it("WEB-9.5-02 inbox table renders KPI strip and tour chips", () => {
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.page, "operator-bookings-page");
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.kpiStrip, "operator-bookings-kpi");
@@ -116,7 +137,8 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
 
     const apiQuery = buildBookingsApiQuery(parsed);
     assert.match(apiQuery, /view=ops/);
-    assert.match(apiQuery, /status=pending%2Cwaitlisted/);
+    assert.match(apiQuery, /workQueue=true/);
+    assert.equal(apiQuery.includes("status="), false);
     assert.match(apiQuery, /q=ali/);
   });
 
@@ -237,8 +259,14 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.pagination, "operator-bookings-pagination");
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.controls, "operator-bookings-controls");
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.queueStatus, "operator-bookings-queue-status");
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersToggle, "operator-bookings-filters-toggle");
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.activeFilters, "operator-bookings-active-filters");
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersToggle,
+      "operator-bookings-filters-toggle"
+    );
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.activeFilters,
+      "operator-bookings-active-filters"
+    );
     assert.equal(BOOKINGS_LIST_PAGE_SIZE, 25);
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionError, "operator-bookings-action-error");
     assert.equal(
@@ -252,7 +280,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     });
     assert.match(withCursor, /cursor=cursor-2/);
     assert.match(withCursor, /limit=25/);
-    assert.match(withCursor, /status=pending%2Cwaitlisted/);
+    assert.match(withCursor, /workQueue=true/);
 
     const page2Query = parseBookingsCommandCenterQuery(
       new URLSearchParams("page=2&listCursor=cursor-2")
@@ -268,10 +296,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(resolveBookingsListTotalPages(26, BOOKINGS_LIST_PAGE_SIZE), 2);
 
     assert.equal(
-      shouldResetBookingsPagination(
-        DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
-        { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, search: "ali" }
-      ),
+      shouldResetBookingsPagination(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, {
+        ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
+        search: "ali",
+      }),
       true
     );
     assert.equal(
@@ -1375,10 +1403,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
 
     // UX-BKG-53 — directory controls + pagination shell wiring.
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersPanel,
-      "operator-bookings-filters-panel"
-    );
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersPanel, "operator-bookings-filters-panel");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDirtyBadge,
       "operator-bookings-filters-dirty"

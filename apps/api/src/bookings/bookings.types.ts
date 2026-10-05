@@ -8,6 +8,17 @@ import type {
   BookingStatus,
   CreateBookingRequest as BookingHttpCreateBookingRequest,
 } from "@app-tour/booking-http-contracts";
+import type {
+  BookingCancellationTransportImpact,
+  BookingCancellationWorkState,
+} from "./cancellation-work-state";
+
+export type {
+  BookingCancellationEffect,
+  BookingCancellationEffectStatus,
+  BookingCancellationTransportImpact,
+  BookingCancellationWorkState,
+} from "./cancellation-work-state";
 
 export type {
   ApproveBookingResponse,
@@ -92,7 +103,15 @@ export type BookingRecord = {
   readonly cancellationRequestedAt?: string | null;
   readonly cancellationApprovedAt?: string | null;
   readonly cancellationApprovedByUserId?: string | null;
+  readonly cancellationRejectedAt?: string | null;
+  readonly cancellationRejectedByUserId?: string | null;
   readonly cancellationCorrelationId?: string | null;
+  /** Durable retry hint copied from cancellationSnapshot.previousStatus. */
+  readonly cancellationPreviousStatus?: BookingStatus | null;
+  /** Durable per-effect retry state copied from cancellationSnapshot.work. */
+  readonly cancellationWork?: BookingCancellationWorkState | null;
+  /** Durable affected transport identities captured before allocation cleanup. */
+  readonly cancellationTransportImpact?: BookingCancellationTransportImpact | null;
 };
 
 export type BookingOutboxRecord = {
@@ -116,6 +135,11 @@ export type BookingOutboxEventInput = {
 export type BookingListPageInput = {
   readonly tenantId: string;
   readonly submittedByUserId?: string;
+  /**
+   * Ops queue = pending/waitlisted lifecycle rows OR approved rows with a
+   * pending member cancellation request. Takes precedence over status filters.
+   */
+  readonly workQueue?: boolean;
   readonly status?: BookingStatus;
   /** Multi-status IN filter (UX-BKG-43a); takes precedence over `status`. */
   readonly statuses?: readonly BookingStatus[];

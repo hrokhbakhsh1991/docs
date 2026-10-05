@@ -14,11 +14,14 @@ type BookingActionButtonsProps = {
   readonly onWaitlist: () => void;
   readonly onPromoteWaitlistWithCapacityIncrease?: () => void;
   readonly onCancel: () => void;
+  readonly onApproveMemberCancellation?: () => void;
+  readonly onRejectMemberCancellation?: () => void;
   readonly showReject: boolean;
   readonly showApprove: boolean;
   readonly showWaitlist: boolean;
   readonly showPromoteWaitlistWithCapacityIncrease?: boolean;
   readonly showCancel: boolean;
+  readonly showMemberCancellationDecision?: boolean;
   readonly actionHint?: string | null;
   readonly capacityFullHint?: string | null;
   readonly className?: string;
@@ -33,11 +36,14 @@ export function BookingActionButtons({
   onWaitlist,
   onPromoteWaitlistWithCapacityIncrease,
   onCancel,
+  onApproveMemberCancellation,
+  onRejectMemberCancellation,
   showReject,
   showApprove,
   showWaitlist,
   showPromoteWaitlistWithCapacityIncrease = false,
   showCancel,
+  showMemberCancellationDecision = false,
   actionHint = null,
   capacityFullHint = null,
   className,
@@ -61,6 +67,47 @@ export function BookingActionButtons({
         >
           {actionHint}
         </p>
+      ) : null}
+      {showMemberCancellationDecision &&
+      onApproveMemberCancellation !== undefined &&
+      onRejectMemberCancellation !== undefined ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
+          <p className="mb-2 text-xs font-medium text-amber-950 dark:text-amber-100">
+            {t("memberCancellation.reviewHint")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-w-0 flex-1"
+              disabled={busy}
+              {...(includeTestIds
+                ? {
+                    "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectMemberCancellationButton,
+                  }
+                : {})}
+              onClick={onRejectMemberCancellation}
+            >
+              <X className="me-1 size-4" />
+              {t("memberCancellation.rejectAction")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-w-0 flex-1"
+              disabled={busy}
+              {...(includeTestIds
+                ? {
+                    "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.approveMemberCancellationButton,
+                  }
+                : {})}
+              onClick={onApproveMemberCancellation}
+            >
+              <Check className="me-1 size-4" />
+              {t("memberCancellation.approveAction")}
+            </Button>
+          </div>
+        </div>
       ) : null}
       {showReject ? (
         <div className="flex gap-2">

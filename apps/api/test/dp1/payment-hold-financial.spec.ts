@@ -49,7 +49,11 @@ describe("DP1 financial payment hold integration", { concurrency: false }, () =>
 
     const holdPort = await requirePaymentHoldPort();
     const hold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, bookingId);
-    assert.equal(hold?.status, "satisfied", "DP1-EXPECTED-FAIL: hold not satisfied on full payment");
+    assert.equal(
+      hold?.status,
+      "satisfied",
+      "DP1-EXPECTED-FAIL: hold not satisfied on full payment"
+    );
 
     const invoice = await finance.getRegistrationInvoice(opsAuth(), bookingId);
     assert.equal(invoice.remainingMinor, "0");
@@ -71,7 +75,7 @@ describe("DP1 financial payment hold integration", { concurrency: false }, () =>
     assert.equal(hold?.status, "open");
   });
 
-  it("S10b: partial then expiry cancels without auto-refund", async () => {
+  it("S10b: partial then expiry cancels and drafts a finance-approved refund", async () => {
     const { bookingId } = await dp1CreateAndApprovePending();
     const finance = await resolveFinanceServiceForTenant(DP1_TENANT_DENALI);
     await finance.createManualPayment(
@@ -87,6 +91,15 @@ describe("DP1 financial payment hold integration", { concurrency: false }, () =>
     const booking = await dp1GetBooking(bookingId);
     assert.equal(booking.status, "cancelled");
     assert.equal(booking.paymentStatus, "partial");
+
+    const refunds = await finance.listOperatorRefunds(opsAuth(), {
+      registrationId: bookingId,
+      status: "Requested",
+      limit: 20,
+    });
+    assert.equal(refunds.items.length, 1);
+    assert.equal(refunds.items[0]?.amountMinor, "1000000");
+    assert.equal(refunds.items[0]?.status, "Requested");
   });
 
   it("duplicate payment idempotency does not double-capture", async () => {

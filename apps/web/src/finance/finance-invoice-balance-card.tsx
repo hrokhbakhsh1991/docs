@@ -16,7 +16,10 @@ import {
   writeFinanceRegistrationCache,
 } from "@/finance/finance-registration-fetch-cache";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 
 type InvoiceCachePayload = {
   readonly invoice: RegistrationInvoice | null;
@@ -28,6 +31,8 @@ type FinanceInvoiceBalanceCardProps = {
   readonly autoLoad?: boolean;
   /** Optional caller-controlled refresh signal for same-registration mutations. */
   readonly refreshKey?: string | number;
+  /** Terminal registrations retain accounting history but are never payable. */
+  readonly closed?: boolean;
 };
 
 /**
@@ -37,6 +42,7 @@ export function FinanceInvoiceBalanceCard({
   registrationId,
   autoLoad = true,
   refreshKey,
+  closed = false,
 }: FinanceInvoiceBalanceCardProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.prepayments");
@@ -44,9 +50,7 @@ export function FinanceInvoiceBalanceCard({
   const tErrors = useTranslations("finance.errors");
   const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(
-    () => autoLoad && registrationId.trim().length >= 32
-  );
+  const [loading, setLoading] = useState(() => autoLoad && registrationId.trim().length >= 32);
 
   useEffect(() => {
     if (!autoLoad) {
@@ -111,9 +115,7 @@ export function FinanceInvoiceBalanceCard({
 
   return (
     <div className="space-y-2" data-testid={FINANCE_INVOICE_TEST_IDS.balancePanel}>
-      {loading ? (
-        <p className="text-sm text-muted-foreground">{t("invoiceLoading")}</p>
-      ) : null}
+      {loading ? <p className="text-sm text-muted-foreground">{t("invoiceLoading")}</p> : null}
       {error !== null ? (
         <p className="text-sm text-destructive" role="alert">
           {localizeFinanceMessage(tValidation, tErrors, error)}
@@ -134,7 +136,9 @@ export function FinanceInvoiceBalanceCard({
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{t("balanceDue")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t(closed ? "balanceDueAccounting" : "balanceDue")}
+            </p>
             <p className="font-medium">
               {formatMinorAmount(invoice.balanceDueMinor, invoice.currency, locale)}
             </p>
@@ -143,7 +147,7 @@ export function FinanceInvoiceBalanceCard({
             <p className="text-xs text-muted-foreground">{t("amountDueNow")}</p>
             <p className="font-medium">
               {formatMinorAmount(
-                invoice.amountDueNowMinor ?? invoice.balanceDueMinor,
+                closed ? "0" : (invoice.amountDueNowMinor ?? invoice.balanceDueMinor),
                 invoice.currency,
                 locale
               )}

@@ -124,6 +124,7 @@ function stubPostCancelSideEffects(): import("./ports/booking-post-cancel-side-e
   return {
     run: async () => ({
       refundDrafted: false,
+      refundStatus: "not_required",
       refundId: null,
       eligibleRefundMinor: "0",
       waitlistPromoted: false,

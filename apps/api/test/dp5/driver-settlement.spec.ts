@@ -6,12 +6,18 @@ import { before, beforeEach, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app.ts";
 import { cancelBooking } from "../../src/bookings/create-bookings-service.ts";
+import { getBookingsRepository } from "../../src/bookings/create-bookings-repository.ts";
+import { peekOutboxByAggregateForTests } from "../../src/bookings/in-memory-bookings.repository.ts";
+import { findPayableBySettlementId } from "../../src/finance/driver-payable.repository.ts";
 import {
-  handleDriverCancelledForSettlement,
-  handleTourCancelledForSettlement,
-} from "../../src/settlement/driver-settlement.service.ts";
-import { removeAllocationsForPassenger } from "../../src/transport/transport-allocation.repository.ts";
-import { operatorAuthHeaders, seedOperatorIdentityFixture } from "../fixtures/operator-identity-fixture.ts";
+  findSettlementById,
+  listSettlementsForTour,
+} from "../../src/settlement/driver-settlement.repository.ts";
+import { handleTourCancelledForSettlement } from "../../src/settlement/driver-settlement.service.ts";
+import {
+  operatorAuthHeaders,
+  seedOperatorIdentityFixture,
+} from "../fixtures/operator-identity-fixture.ts";
 import { installHttpTestClient } from "../http-test-client.ts";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "../test-helpers.ts";
 import {
@@ -104,8 +110,27 @@ describe("DP-5 driver settlement API", () => {
       passengerCount: 2,
     });
     await putAllocations(driverId, passengerIds);
-    removeAllocationsForPassenger(dp5OpsAuth().tenantId, passengerIds[1]!);
-    await cancelBooking(dp5OpsAuth(), passengerIds[1]!);
+    const cancelled = await cancelBooking(dp5OpsAuth(), passengerIds[1]!);
+    assert.equal(cancelled.notificationStatus, "queued");
+    const cancelledPassengerBooking = await getBookingsRepository().getById(
+      passengerIds[1]!,
+      dp5OpsAuth().tenantId
+    );
+    assert.deepEqual(
+      cancelledPassengerBooking?.cancellationTransportImpact?.affectedDriverRegistrationIds,
+      [driverId],
+      "the affected driver must survive allocation cleanup for notification replay"
+    );
+    const driverOutbox = await peekOutboxByAggregateForTests({
+      tenantId: dp5OpsAuth().tenantId,
+      aggregateId: driverId,
+    });
+    const driverNotification = driverOutbox.find(
+      (row) => row.eventType === "registration.passenger_cancelled"
+    );
+    assert.ok(driverNotification, "affected driver notification must be durably queued");
+    assert.equal(driverNotification.payload.driverRegistrationId, driverId);
+    assert.equal(driverNotification.payload.passengerRegistrationId, passengerIds[1]);
     const frozen = await freezeRoster();
     const settlement = frozen.body.settlements?.find((s) => s.driverRegistrationId === driverId);
     assert.equal(settlement?.billableQuantity, 1);
@@ -134,7 +159,27 @@ describe("DP-5 driver settlement API", () => {
     });
     await putAllocations(driverId, passengerIds);
     await freezeRoster();
-    await handleDriverCancelledForSettlement(dp5OpsAuth(), DP5_TOUR_ID, driverId);
+    const cancelled = await cancelBooking(dp5OpsAuth(), driverId);
+    assert.equal(cancelled.notificationStatus, "queued");
+    const cancelledDriverBooking = await getBookingsRepository().getById(
+      driverId,
+      dp5OpsAuth().tenantId
+    );
+    assert.deepEqual(
+      cancelledDriverBooking?.cancellationTransportImpact?.affectedPassengerRegistrationIds,
+      passengerIds,
+      "affected passengers must survive allocation cleanup for crash-safe notification replay"
+    );
+    const passengerOutbox = await peekOutboxByAggregateForTests({
+      tenantId: dp5OpsAuth().tenantId,
+      aggregateId: passengerIds[0]!,
+    });
+    const passengerNotification = passengerOutbox.find(
+      (row) => row.eventType === "registration.driver_cancelled"
+    );
+    assert.ok(passengerNotification, "affected passenger notification must be durably queued");
+    assert.equal(passengerNotification.payload.driverRegistrationId, driverId);
+    assert.equal(passengerNotification.payload.passengerRegistrationId, passengerIds[0]);
     const list = await client.requestJson<{ settlements?: Array<{ status?: string }> }>(
       "GET",
       `/tours/${DP5_TOUR_ID}/driver-settlements`,
@@ -142,6 +187,78 @@ describe("DP-5 driver settlement API", () => {
     );
     const row = list.body.settlements?.find((s) => s.status === "voided");
     assert.ok(row);
+  });
+
+  it("driver cancellation cancels an approved payable before payout", async () => {
+    const { driverId, passengerIds } = await dp5SeedDriverAndPassengers({
+      offeredSeats: 3,
+      passengerCount: 1,
+    });
+    await putAllocations(driverId, passengerIds);
+    await freezeRoster();
+    const settlementId = listSettlementsForTour(dp5OpsAuth().tenantId, DP5_TOUR_ID)[0]
+      ?.settlementId;
+    assert.ok(settlementId);
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+
+    const cancelled = await cancelBooking(dp5OpsAuth(), driverId);
+    assert.equal(cancelled.settlementStatus, "not_affected");
+    assert.equal(findSettlementById(dp5OpsAuth().tenantId, settlementId)?.status, "voided");
+    assert.equal(
+      findPayableBySettlementId(dp5OpsAuth().tenantId, settlementId)?.status,
+      "Cancelled"
+    );
+  });
+
+  it("driver cancellation after payout keeps paid history and opens one correction checkpoint", async () => {
+    const { driverId, passengerIds } = await dp5SeedDriverAndPassengers({
+      offeredSeats: 3,
+      passengerCount: 1,
+    });
+    await putAllocations(driverId, passengerIds);
+    await freezeRoster();
+    const settlementId = listSettlementsForTour(dp5OpsAuth().tenantId, DP5_TOUR_ID)[0]
+      ?.settlementId;
+    assert.ok(settlementId);
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    const payable = await client.requestJson<{ payable?: { payableId?: string } }>(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,
+      { headers: operatorAuthHeaders(), body: {} }
+    );
+    const payableId = payable.body.payable?.payableId;
+    assert.ok(payableId);
+    await client.requestJson("POST", `/finance/driver-payables/${payableId}/complete`, {
+      headers: operatorAuthHeaders(),
+      body: { evidenceNote: "paid before cancellation" },
+    });
+
+    const first = await cancelBooking(dp5OpsAuth(), driverId);
+    const replay = await cancelBooking(dp5OpsAuth(), driverId);
+    assert.equal(first.settlementStatus, "correction_pending");
+    assert.equal(replay.settlementStatus, "correction_pending");
+    const cancelledBooking = await getBookingsRepository().getById(driverId, dp5OpsAuth().tenantId);
+    assert.equal(cancelledBooking?.cancellationWork?.transportSettlement, "manual_review");
+    assert.equal(cancelledBooking?.cancellationStatus, "manual_review");
+    const persisted = findSettlementById(dp5OpsAuth().tenantId, settlementId);
+    assert.equal(persisted?.status, "paid");
+    assert.equal(
+      persisted?.audit.filter((event) => event.action === "driver_cancelled_after_payout").length,
+      1
+    );
   });
 
   it("tour cancellation voids settlements", async () => {
@@ -201,11 +318,13 @@ describe("DP-5 driver settlement API", () => {
       headers: operatorAuthHeaders(),
       body: {},
     });
-    const payable = await client.requestJson<{ payable?: { payableId?: string }; replay?: boolean }>(
-      "POST",
-      `/tours/${DP5_TOUR_ID}/driver-settlements/${id}/approve-payable`,
-      { headers: operatorAuthHeaders(), body: {} }
-    );
+    const payable = await client.requestJson<{
+      payable?: { payableId?: string };
+      replay?: boolean;
+    }>("POST", `/tours/${DP5_TOUR_ID}/driver-settlements/${id}/approve-payable`, {
+      headers: operatorAuthHeaders(),
+      body: {},
+    });
     assert.equal(payable.status, 200);
     const payableId = payable.body.payable?.payableId;
     assert.ok(payableId);
@@ -254,10 +373,14 @@ describe("DP-5 driver settlement API", () => {
     );
     const settlementId = list.body.settlements?.[0]?.settlementId;
     assert.ok(settlementId);
-    await client.requestJson("POST", `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`, {
-      headers: operatorAuthHeaders(),
-      body: {},
-    });
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
+      {
+        headers: operatorAuthHeaders(),
+        body: {},
+      }
+    );
     const payable = await client.requestJson(
       "POST",
       `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,
@@ -290,10 +413,14 @@ describe("DP-5 driver settlement API", () => {
     );
     const settlementId = list.body.settlements?.[0]?.settlementId;
     assert.ok(settlementId);
-    await client.requestJson("POST", `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`, {
-      headers: operatorAuthHeaders(),
-      body: {},
-    });
+    await client.requestJson(
+      "POST",
+      `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/confirm`,
+      {
+        headers: operatorAuthHeaders(),
+        body: {},
+      }
+    );
     const payable = await client.requestJson<{ payable?: { payableId?: string } }>(
       "POST",
       `/tours/${DP5_TOUR_ID}/driver-settlements/${settlementId}/approve-payable`,

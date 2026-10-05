@@ -958,11 +958,20 @@ function assertTelegramBindingUnchanged(
   currentConfig: Record<string, unknown>,
   nextConfig: Record<string, unknown>
 ): void {
-  const currentChatId =
-    typeof currentConfig.chatId === "string" ? currentConfig.chatId.trim() : "";
+  const currentChatId = typeof currentConfig.chatId === "string" ? currentConfig.chatId.trim() : "";
   const nextChatId = typeof nextConfig.chatId === "string" ? nextConfig.chatId.trim() : "";
   if (currentChatId.length > 0 && nextChatId.length > 0 && currentChatId !== nextChatId) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_ALREADY_BOUND");
+  }
+  const currentGroupName =
+    typeof currentConfig.groupName === "string" ? currentConfig.groupName.trim() : "";
+  const nextGroupName = typeof nextConfig.groupName === "string" ? nextConfig.groupName.trim() : "";
+  if (
+    currentGroupName.length > 0 &&
+    nextGroupName.length > 0 &&
+    currentGroupName !== nextGroupName
+  ) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND");
   }
 }
 
@@ -1491,7 +1500,9 @@ export async function provisionTelegramIntegration(
   }
 
   const leaseToken = randomUUID();
-  if (!(await claimTelegramProvisionLease({ tenantId: auth.tenantId, integrationId, leaseToken }))) {
+  if (
+    !(await claimTelegramProvisionLease({ tenantId: auth.tenantId, integrationId, leaseToken }))
+  ) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_PROVISION_IN_PROGRESS");
   }
 
@@ -1840,10 +1851,8 @@ export async function processTelegramWebhook(
         }),
       {
         actorId,
-        ...(connection.workspaceType === null
-          ? {}
-          : { workspaceType: connection.workspaceType }),
-      },
+        ...(connection.workspaceType === null ? {} : { workspaceType: connection.workspaceType }),
+      }
     );
   }
   return { accepted: true, connected: false };

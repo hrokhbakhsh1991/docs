@@ -10,10 +10,12 @@ import {
   hasInvoiceRemainingBalance,
   hasOpenPendingManualPayment,
   resolveStripBookingSettlementSummary,
+  resolveStripRefundStatus,
   resolveStripNextStep,
   type StripBookingPaymentStatus,
   type StripBookingSettlementSummary,
   type StripFinancialDisplayState,
+  type StripRefundStatus,
   type StripNextStepPlan,
 } from "@/finance/booking-financial-strip-logic";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
@@ -40,6 +42,7 @@ import {
   withFinanceListScopeQuery,
   withFinanceRegistrationQuery,
 } from "@/finance/finance-registration-context";
+import { parseFinanceRefundsResponse } from "@/finance/finance-refunds-logic";
 import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import type { AppLocale } from "@/i18n/routing";
 import {
@@ -90,9 +93,42 @@ function settlementSummaryCopy(
       return t("stripBookingSettlementUnpaid");
     case "booking_partial":
       return t("stripBookingSettlementPartial");
+    case "booking_cancelled":
+      return t("stripBookingSettlementCancelled");
+    case "booking_refund_pending":
+      return t("stripBookingSettlementRefundPending");
+    case "booking_refunded":
+      return t("stripBookingSettlementRefunded");
     default:
       return t("stripBookingSettlementPartial");
   }
+}
+
+async function fetchRegistrationRefundStatus(
+  registrationId: string,
+  signal: AbortSignal
+): Promise<StripRefundStatus | null> {
+  const statuses: StripRefundStatus[] = [];
+  let cursor: string | null = null;
+  const seenCursors = new Set<string>();
+  do {
+    const cursorQuery = cursor === null ? "" : `&cursor=${encodeURIComponent(cursor)}`;
+    const response = await fetchFinanceListWithRetry(
+      withFinanceListScopeQuery(`/api/finance/refunds?limit=100${cursorQuery}`, {
+        registrationId,
+      }),
+      signal
+    );
+    if (!response.ok) return null;
+    const page = parseFinanceRefundsResponse(await response.json());
+    statuses.push(...page.items.map((row) => row.status));
+    if (!page.hasMore || page.nextCursor === null || seenCursors.has(page.nextCursor)) {
+      break;
+    }
+    seenCursors.add(page.nextCursor);
+    cursor = page.nextCursor;
+  } while (!signal.aborted);
+  return resolveStripRefundStatus(statuses);
 }
 
 function paymentsNextStepHintKey(plan: StripNextStepPlan): string {
@@ -119,12 +155,15 @@ export function BookingFinancialStrip({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const isWaivedBooking = financialDisplayState?.trim().toUpperCase() === "WAIVED";
-  const isSettledBooking = bookingPaymentStatus === "paid" || isWaivedBooking;
+  const isTerminalBooking = bookingStatus === "cancelled" || bookingStatus === "rejected";
+  const isSettledBooking =
+    (bookingPaymentStatus === "paid" && !isTerminalBooking) || isWaivedBooking;
   const [loading, setLoading] = useState(() => registrationId.trim().length >= 32);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<readonly FinancePaymentRow[]>([]);
   const [balanceDueMinor, setBalanceDueMinor] = useState<string | null>(null);
   const [hasPendingReceipt, setHasPendingReceipt] = useState(false);
+  const [refundStatus, setRefundStatus] = useState<StripRefundStatus | null>(null);
 
   useEffect(() => {
     const id = registrationId.trim();
@@ -132,6 +171,7 @@ export function BookingFinancialStrip({
       setItems([]);
       setBalanceDueMinor(null);
       setHasPendingReceipt(false);
+      setRefundStatus(null);
       setError(null);
       setLoading(false);
       return;
@@ -140,6 +180,7 @@ export function BookingFinancialStrip({
       setItems([]);
       setBalanceDueMinor(null);
       setHasPendingReceipt(false);
+      setRefundStatus(null);
       setError(null);
       setLoading(false);
       return;
@@ -214,8 +255,10 @@ export function BookingFinancialStrip({
             })
             .catch(() => false);
 
-    void Promise.all([paymentsReady, invoiceReady, receiptReady])
-      .then(([rows, invoice, pendingReceipt]) => {
+    const refundReady = fetchRegistrationRefundStatus(id, controller.signal).catch(() => null);
+
+    void Promise.all([paymentsReady, invoiceReady, receiptReady, refundReady])
+      .then(([rows, invoice, pendingReceipt, refund]) => {
         if (controller.signal.aborted) {
           return;
         }
@@ -229,6 +272,7 @@ export function BookingFinancialStrip({
         setItems(rows);
         setBalanceDueMinor(invoice?.balanceDueMinor ?? null);
         setHasPendingReceipt(pendingReceipt);
+        setRefundStatus(refund);
         setError(null);
       })
       .catch((fetchError: unknown) => {
@@ -250,7 +294,7 @@ export function BookingFinancialStrip({
     return () => {
       controller.abort();
     };
-  }, [financialDisplayState, refreshKey, registrationId]);
+  }, [bookingStatus, financialDisplayState, refreshKey, registrationId]);
 
   const paymentsHref = useMemo(
     () => withFinanceRegistrationQuery("/finance?tab=payments", registrationId),
@@ -271,10 +315,12 @@ export function BookingFinancialStrip({
     }
     return resolveStripBookingSettlementSummary({
       bookingPaymentStatus,
+      bookingStatus,
       financialDisplayState,
+      refundStatus,
       items,
     });
-  }, [bookingPaymentStatus, financialDisplayState, items, loading]);
+  }, [bookingPaymentStatus, bookingStatus, financialDisplayState, items, loading, refundStatus]);
 
   const nextStep = useMemo(() => {
     if (loading) {
@@ -313,7 +359,11 @@ export function BookingFinancialStrip({
       data-testid={BOOKING_FINANCIAL_STRIP_TEST_IDS.strip}
     >
       {!isWaivedBooking ? (
-        <FinanceInvoiceBalanceCard registrationId={registrationId} refreshKey={refreshKey} />
+        <FinanceInvoiceBalanceCard
+          registrationId={registrationId}
+          refreshKey={refreshKey}
+          closed={isTerminalBooking}
+        />
       ) : null}
 
       {settlementSummary !== null ? (
@@ -344,7 +394,9 @@ export function BookingFinancialStrip({
         </p>
       ) : null}
       {!isWaivedBooking && !loading && error === null && items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{tPayments("empty")}</p>
+        <p className="text-sm text-muted-foreground">
+          {isTerminalBooking ? tPayments("emptyCancelled") : tPayments("empty")}
+        </p>
       ) : null}
 
       {!isWaivedBooking && items.length > 0 ? (
