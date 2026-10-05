@@ -53,8 +53,10 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260826120000_workspace_tour_theme_icon_key`                   | Denali settings            | Optional icon key for workspace tour themes                      |
 | `20260829120000_finance_payment_holds_rls_grants`                | Wave B DP1                 | Payment hold app-role RLS + grants                               |
 | `20260920100000_payment_destination_revision_history`            | T05-CARD                   | Payment destination revision history and secure receipt snapshot |
+| `20261005090000_booking_cancellation_workflow`                  | Booking cancellation       | Durable cancellation work state and side-effect checkpoints      |
+| `20261005170000_member_cancellation_request_persistence`        | Member cancellation        | Persisted cancellation request rejection metadata and index      |
 
-Current head: **`20260920100000_payment_destination_revision_history`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20261005170000_member_cancellation_request_persistence`** — must move in lockstep with `prisma/migrations/`.
 
 **Why self-unique tip:** Denali allows one booker to register multiple `other` guests; legacy `uq_operator_reg_active_user` blocked that. See [registration-self-other-uniqueness.mdoc](../../workspaces/denali/registration-self-other-uniqueness.mdoc).
 
