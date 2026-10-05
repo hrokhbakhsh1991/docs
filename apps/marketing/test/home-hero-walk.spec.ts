@@ -118,7 +118,7 @@ describe("home-hero-walk.spec.ts", () => {
     assert.match(css, /data-marketing-home-hero-walk/);
     assert.match(
       css,
-      /@media \(min-width: 48\.01rem\)[\s\S]*?height: clamp\(24rem, 42\.85vw, 100svh\);/
+      /@media \(min-width: 48\.01rem\)[\s\S]*?height: clamp\(40rem, 100svh, 56rem\);/
     );
     assert.match(css, /div\[data-marketing-home-hero-layout\][\s\S]*?min-height: 100%;/);
     assert.doesNotMatch(css, /data-marketing-header-overlay/);
