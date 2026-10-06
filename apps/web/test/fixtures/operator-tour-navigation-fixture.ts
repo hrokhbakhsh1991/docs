@@ -1,5 +1,6 @@
 /**
  * Operator tour wizard navigation — resilient against Fast Refresh / concurrent navigations.
+ * CI routing validation fixture: this is intentionally a non-Urban web-only change.
  */
 import { expect, type Page } from "@playwright/test";
 
