@@ -44,6 +44,11 @@ The JSON decision also includes `gateNodes`, using the node IDs from
 orchestrator will consume these IDs instead of duplicating path rules in each
 workflow.
 
+Phase 6 now consumes the same decision for its expensive PR jobs: fast
+closure, MinIO, and generic Denali Playwright smoke are skipped for
+Marketing-only changes, while the dedicated Marketing rail remains active.
+Pushes to `main`, schedules, and manual runs retain the full Phase 6 path.
+
 The classifier is currently introduced as a shadow signal. Existing phase
 workflows remain authoritative until the signal has been compared against
 several real pull requests. The intended migration order is:

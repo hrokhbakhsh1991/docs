@@ -40,6 +40,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  classify:
+    name: Classify Phase 6 impact
+    runs-on: ubuntu-latest
+    outputs:
+      run_fast_closure: ${{ steps.impact.outputs.run_fast_closure }}
+      run_minio: ${{ steps.impact.outputs.run_minio }}
+      run_browser: ${{ steps.impact.outputs.run_browser }}
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref || 'dev' }}
+      HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup platform
+        uses: ./.github/actions/setup-platform
+        with:
+          install-dependencies: "false"
+
+      - name: Classify changed paths
+        id: impact
+        run: |
+          node scripts/ci/ci-impact.mjs \
+            --base "origin/${BASE_REF}" \
+            --head "${HEAD_REF}" \
+            --github-output "$GITHUB_OUTPUT" \
+            > ci-impact-phase-6.json
+
   eph-static-guards:
     name: EPH + PSC static guards (no Postgres)
     runs-on: ubuntu-latest
@@ -82,6 +113,8 @@ jobs:
 
   fast-closure:
     name: Phase 6 fast-closure (Postgres)
+    needs: classify
+    if: ${{ github.event_name != 'pull_request' || needs.classify.outputs.run_fast_closure == 'true' }}
     runs-on: ubuntu-latest
     # Full build + monorepo test + Denali regression needs headroom on GHA runners.
     # The previous 45-minute limit cancelled a healthy run at the timeout boundary.
@@ -171,6 +204,8 @@ jobs:
 
   minio-photo:
     name: Phase 6.7 MinIO round-trip
+    needs: classify
+    if: ${{ github.event_name != 'pull_request' || needs.classify.outputs.run_minio == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -223,6 +258,8 @@ jobs:
 
   smoke-denali:
     name: Phase 6.6 Playwright smoke
+    needs: classify
+    if: ${{ github.event_name != 'pull_request' || needs.classify.outputs.run_browser == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
