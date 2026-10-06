@@ -12,8 +12,20 @@ export const AUDIT_ACTION_TOUR_UPDATED = "TOUR_UPDATED";
 export const AUDIT_ACTION_TOUR_PUBLISHED = "TOUR_PUBLISHED";
 export const AUDIT_ACTION_TOUR_UNPUBLISHED = "TOUR_UNPUBLISHED";
 export const AUDIT_ACTION_TENANT_PROVISIONED = "TENANT_PROVISIONED";
+export const AUDIT_ACTION_REGISTRATION_CANCELLED = "REGISTRATION_CANCELLED";
+export const AUDIT_ACTION_REFUND_STATUS_CHANGED = "REFUND_STATUS_CHANGED";
 
-const AUDIT_METADATA_ALLOWLIST = ["workspaceType", "fromPublishStatus", "toPublishStatus"] as const;
+const AUDIT_METADATA_ALLOWLIST = [
+  "workspaceType",
+  "fromPublishStatus",
+  "toPublishStatus",
+  "source",
+  "reasonCode",
+  "correlationId",
+  "registrationId",
+  "fromStatus",
+  "toStatus",
+] as const;
 
 export type AppendAuditEventInput = {
   readonly action: string;
@@ -29,6 +41,58 @@ export type AppendTourAuditEventInput = {
   /** DEC-077 — explicit DB `now()` from canonical TX. */
   readonly createdAt?: Date;
 };
+
+export type AppendRegistrationCancellationAuditInput = {
+  readonly registrationId: string;
+  readonly source: string;
+  readonly reasonCode: string;
+  readonly correlationId?: string;
+  readonly createdAt?: Date;
+};
+
+/** Append-only registration lifecycle audit writer; callers must stay transaction-bound. */
+export async function appendRegistrationCancellationAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: AppendRegistrationCancellationAuditInput
+): Promise<void> {
+  await appendAuditEvent(tx, {
+    action: AUDIT_ACTION_REGISTRATION_CANCELLED,
+    entityType: "registration",
+    entityId: input.registrationId,
+    metadata: {
+      source: input.source,
+      reasonCode: input.reasonCode,
+      ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
+    },
+    ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
+  });
+}
+
+export type AppendRefundStatusAuditInput = {
+  readonly refundId: string;
+  readonly registrationId: string;
+  readonly fromStatus: string;
+  readonly toStatus: string;
+  readonly createdAt?: Date;
+};
+
+/** Append-only finance lifecycle audit writer; status transitions remain transaction-bound. */
+export async function appendRefundStatusAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: AppendRefundStatusAuditInput
+): Promise<void> {
+  await appendAuditEvent(tx, {
+    action: AUDIT_ACTION_REFUND_STATUS_CHANGED,
+    entityType: "refund",
+    entityId: input.refundId,
+    metadata: {
+      registrationId: input.registrationId,
+      fromStatus: input.fromStatus,
+      toStatus: input.toStatus,
+    },
+    ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
+  });
+}
 
 export type AppendTourPublishTransitionAuditInput = {
   readonly tourId: string;

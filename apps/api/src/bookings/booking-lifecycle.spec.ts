@@ -10,6 +10,7 @@
  * - reject persists with zero outbox (silent ≠ cancel)
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { after, before, beforeEach, describe, it } from "node:test";
 
 import {
@@ -93,6 +94,34 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
       aggregateId: created.id,
     });
     assert.ok(outbox.some((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE));
+  });
+
+  it("second cancel is a conflict and does not emit a second cancellation event", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Cancel Retry"));
+    await cancelBooking(opsAuth(TENANT_DENALI), created.id);
+
+    await assert.rejects(
+      () => cancelBooking(opsAuth(TENANT_DENALI), created.id),
+      (error: unknown) => error instanceof BookingStatusConflictError
+    );
+
+    const outbox = await peekOutboxByAggregateForTests({
+      tenantId: TENANT_DENALI,
+      aggregateId: created.id,
+    });
+    assert.equal(
+      outbox.filter((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE).length,
+      1
+    );
+  });
+
+  it("Prisma cancellation contract records an append-only registration audit in the same transaction", () => {
+    const source = readFileSync(
+      new URL("./prisma-bookings.repository.ts", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /appendRegistrationCancellationAuditEvent/);
+    assert.match(source, /registrationId: updated\.id/);
   });
 
   it("finalizes approved unpaid booking without waiving payment and preserves finality after payment", async () => {

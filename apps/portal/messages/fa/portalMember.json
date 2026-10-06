@@ -481,13 +481,20 @@
   },
   "cancellation": {
     "withdrawHint": "پیش از تأیید باشگاه می‌توانید این ثبت‌نام را پس بگیرید.",
+    "selfCancelHint": "این ثبت‌نام تأییدشده و بدون پرداخت است؛ لغو آن بلافاصله ثبت می‌شود.",
     "requestHint": "ثبت‌نام‌های پرداخت‌شده نیاز به بررسی باشگاه دارند. درخواست لغو را ثبت کنید.",
     "freeRequestHint": "لغو این ثبت‌نام رایگان برای بررسی باشگاه ارسال می‌شود.",
     "withdrawAction": "پس‌گرفتن ثبت‌نام",
+    "selfCancelAction": "لغو ثبت‌نام",
     "requestAction": "درخواست لغو",
     "blocked": "امکان لغو وجود ندارد ({reason}).",
     "error": "ثبت درخواست لغو ممکن نشد ({code}).",
-    "refundEligible": "مبلغ قابل‌استرداد: {amount}"
+    "refundEligible": "مبلغ قابل‌استرداد: {amount}",
+    "requestSubmitted": "درخواست لغو ثبت شد و منتظر بررسی باشگاه است.",
+    "cancelled": "ثبت‌نام لغو شد.",
+    "cancelledRefundPending": "ثبت‌نام لغو شد؛ درخواست استرداد برای تأیید مالی ارسال شد.",
+    "cancelledCorrectionPending": "ثبت‌نام لغو شد؛ اصلاح تسویه در صف بررسی قرار گرفت.",
+    "cancelledManualReview": "ثبت‌نام لغو شد؛ بخشی از عملیات مالی نیاز به بررسی دستی دارد."
   },
   "intakeAmend": {
     "eyebrow": "پیش از تأیید",
@@ -539,11 +546,13 @@
       "paymentScheduled": "پرداخت زمان‌بندی شد",
       "paymentExpired": "مهلت پرداخت به پایان رسید",
       "receiptApproved": "فیش پرداخت تأیید شد",
+      "receiptRejected": "فیش پرداخت رد شد",
       "engagementBadgeEarned": "نشان جدید: {badge}",
       "walletUpdated": "کیف پول به‌روزرسانی شد"
     },
     "eventBodies": {
       "receiptApproved": "فیش پرداخت شما تأیید شد؛ ثبت‌نام این سفر تکمیل شد.",
+      "receiptRejected": "فیش پرداخت شما رد شد؛ لطفاً توضیح بررسی را ببینید و در صورت نیاز دوباره ارسال کنید.",
       "engagementBadgeEarned": "نشان {badge} را کسب کردید."
     },
     "engagementBadges": {

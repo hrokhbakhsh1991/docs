@@ -1,4 +1,6 @@
 import { Prisma } from "@prisma/client";
+
+import { appendRefundStatusAuditEvent } from "../../audit/audit-logger.ts";
 import crypto from "node:crypto";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
@@ -1032,6 +1034,16 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
       }
       if (input.status === "Approved" || input.status === "Rejected") {
         const reviewedAt = row.reviewedAt?.toISOString() ?? new Date().toISOString();
+        const registration =
+          row.payment?.registrationId === undefined
+            ? null
+            : await tx.operatorRegistration.findFirst({
+                where: {
+                  id: row.payment.registrationId,
+                  tenantId,
+                },
+                select: { submittedByUserId: true },
+              });
         await enqueueOutboxEvent(tx, {
           tenantId,
           aggregateType: "receipt",
@@ -1046,6 +1058,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
             ...(row.payment === null
               ? {}
               : { amount: row.payment.amount, currency: row.payment.currency }),
+            ...(registration === null ? {} : { guestUserId: registration.submittedByUserId }),
             ...(row.reviewNote === null ? {} : { reviewNote: row.reviewNote }),
           },
           domainEventId: `receipt.${input.status.toLowerCase()}:${row.id}:${reviewedAt}`,
@@ -1897,6 +1910,13 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
               }
             : {}),
         },
+      });
+      await appendRefundStatusAuditEvent(tx, {
+        refundId: updated.id,
+        registrationId: updated.registrationId,
+        fromStatus: existing.status,
+        toStatus: updated.status,
+        createdAt: occurredAt,
       });
       return { refund: mapFinanceRefundRow(updated), replay: false };
     });

@@ -18,6 +18,16 @@ type CancellationEligibility = {
   };
 };
 
+type CancellationResult =
+  | {
+      readonly kind: "cancelled";
+      readonly refundStatus?: "not_required" | "pending_finance_approval";
+      readonly settlementStatus?: "not_affected" | "correction_pending" | "manual_review";
+    }
+  | {
+      readonly kind: "request_submitted";
+    };
+
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: string;
@@ -34,6 +44,7 @@ export function MemberCancellationPanel({
   const [eligibility, setEligibility] = useState<CancellationEligibility | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<CancellationResult | null>(null);
 
   useEffect(() => {
     if (registrationStatus === "cancelled" || registrationStatus === "rejected") {
@@ -72,56 +83,89 @@ export function MemberCancellationPanel({
         setError(payload.code ?? "submit_failed");
         return;
       }
+      const payload = (await res.json().catch(() => null)) as CancellationResult | null;
+      if (payload !== null) {
+        setResult(payload);
+      }
       router.refresh();
     } finally {
       setSubmitting(false);
     }
   }, [registrationId, router]);
 
-  if (eligibility === null) {
+  if (eligibility === null && result === null) {
     return null;
   }
 
   return (
-    <section data-portal-member-cancel data-portal-member-cancel-eligible={eligibility.eligible}>
-      {eligibility.refund !== undefined && paymentCollection !== "free" ? (
-        <p data-portal-member-refund-eligible={eligibility.refund.eligibleRefundMinor}>
-          {t("refundEligible", {
-            amount: formatMemberMoney(
-              eligibility.refund.eligibleRefundMinor,
-              eligibility.refund.currency
-            ),
-          })}
+    <section
+      data-portal-member-cancel
+      data-portal-member-cancel-eligible={eligibility?.eligible ?? false}
+    >
+      {result !== null ? (
+        <p role="status" data-portal-member-cancel-result>
+          {result.kind === "request_submitted"
+            ? t("requestSubmitted")
+            : result.settlementStatus === "manual_review"
+              ? t("cancelledManualReview")
+              : result.settlementStatus === "correction_pending"
+                ? t("cancelledCorrectionPending")
+                : result.refundStatus === "pending_finance_approval"
+                  ? t("cancelledRefundPending")
+                  : t("cancelled")}
         </p>
       ) : null}
-      {eligibility.eligible ? (
+      {eligibility === null ? null : (
         <>
-          <p data-portal-member-cancel-hint>
-            {eligibility.mode === "request"
-              ? paymentCollection === "free"
-                ? t("freeRequestHint")
-                : t("requestHint")
-              : t("withdrawHint")}
-          </p>
-          <button
-            type="button"
-            data-portal-member-cancel-submit
-            disabled={submitting}
-            onClick={() => void onCancel()}
-          >
-            {eligibility.mode === "request" ? t("requestAction") : t("withdrawAction")}
-          </button>
+          {eligibility.refund !== undefined && paymentCollection !== "free" ? (
+            <p data-portal-member-refund-eligible={eligibility.refund.eligibleRefundMinor}>
+              {t("refundEligible", {
+                amount: formatMemberMoney(
+                  eligibility.refund.eligibleRefundMinor,
+                  eligibility.refund.currency
+                ),
+              })}
+            </p>
+          ) : null}
+          {eligibility.eligible ? (
+            <>
+              <p data-portal-member-cancel-hint>
+                {eligibility.mode === "request"
+                  ? paymentCollection === "free"
+                    ? t("freeRequestHint")
+                    : t("requestHint")
+                  : eligibility.mode === "self_cancel"
+                    ? t("selfCancelHint")
+                    : t("withdrawHint")}
+              </p>
+              <button
+                type="button"
+                data-portal-member-cancel-submit
+                disabled={submitting}
+                onClick={() => void onCancel()}
+              >
+                {eligibility.mode === "request"
+                  ? t("requestAction")
+                  : eligibility.mode === "self_cancel"
+                    ? t("selfCancelAction")
+                    : t("withdrawAction")}
+              </button>
+            </>
+          ) : (
+            <p
+              data-portal-member-cancel-blocked
+              data-reason={eligibility.reasonCode ?? "not_eligible"}
+            >
+              {t("blocked", { reason: eligibility.reasonCode ?? "not_eligible" })}
+            </p>
+          )}
+          {error !== null ? (
+            <p role="alert" data-portal-member-cancel-error>
+              {t("error", { code: error })}
+            </p>
+          ) : null}
         </>
-      ) : (
-        <p data-portal-member-cancel-blocked data-reason={eligibility.reasonCode ?? "not_eligible"}>
-          {t("blocked", { reason: eligibility.reasonCode ?? "not_eligible" })}
-        </p>
       )}
-      {error !== null ? (
-        <p role="alert" data-portal-member-cancel-error>
-          {t("error", { code: error })}
-        </p>
-      ) : null}
     </section>
   );
 }

@@ -69,6 +69,13 @@ const MEMBER_NOTIFICATION_EVENT_MAP: Readonly<
     titleKey: "notification.finance.receipt.approved.title",
     bodyKey: "notification.finance.receipt.approved.body",
   },
+  "receipt.rejected": {
+    sourceModule: "finance",
+    entityType: "registration",
+    templateId: "finance.receipt.rejected",
+    titleKey: "notification.finance.receipt.rejected.title",
+    bodyKey: "notification.finance.receipt.rejected.body",
+  },
   "tour.mutation.notification_required": {
     sourceModule: "booking",
     entityType: "registration",
