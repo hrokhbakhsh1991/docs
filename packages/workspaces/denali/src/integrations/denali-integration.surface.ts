@@ -131,6 +131,21 @@ export const denaliIntegrationSurface = Object.freeze({
         })),
       ],
     },
+    {
+      id: "melipayamak",
+      configFields: [
+        { id: "sender", kind: "string" as const, requiredOnCreate: true },
+        { id: "bodyId", kind: "string" as const, requiredOnCreate: false },
+        { id: "testRecipient", kind: "string" as const, requiredOnCreate: false },
+      ],
+      credentialFields: [
+        { id: "username", kind: "secret" as const, requiredOnCreate: true },
+        { id: "password", kind: "secret" as const, requiredOnCreate: true },
+      ],
+      defaultCapabilities: ["sms.send"] as const,
+      defaultEventPolicies: [],
+      eventMappings: [],
+    },
   ],
   messageTemplates: {
     TourPublished: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",

@@ -2273,6 +2273,72 @@ async function runProviderTest(input: {
     };
   }
 
+  if (input.provider === "melipayamak") {
+    if (adapter.sendSms === undefined) {
+      return {
+        ok: false,
+        code: "MELIPAYAMAK_ADAPTER_UNSUPPORTED",
+        message: testConnectionMessageForCode("MELIPAYAMAK_ADAPTER_UNSUPPORTED"),
+        testedAt: input.testedAt,
+        backingSource: input.backingSource,
+      };
+    }
+    const recipient =
+      typeof input.config.testRecipient === "string" ? input.config.testRecipient.trim() : "";
+    const templateId = typeof input.config.bodyId === "string" ? input.config.bodyId.trim() : "";
+    if (recipient.length === 0) {
+      return {
+        ok: false,
+        code: "MELIPAYAMAK_TEST_RECIPIENT_REQUIRED",
+        message: testConnectionMessageForCode("MELIPAYAMAK_TEST_RECIPIENT_REQUIRED"),
+        testedAt: input.testedAt,
+        backingSource: input.backingSource,
+      };
+    }
+    const result = await adapter.sendSms(
+      {
+        tenantId: input.tenantId,
+        workspaceType: input.workspaceType,
+        domainEventId: "test-connection",
+        eventType: "TestConnection",
+        config: input.config,
+        credentials: input.credentials,
+      },
+      { recipient, templateId, variables: ["1234"] }
+    );
+    if (!result.ok) {
+      if (input.persistStatusForConnectionId !== null) {
+        await withTenantRls(input.tenantId, async (tx) => {
+          await tx.integrationConnection.update({
+            where: { id: input.persistStatusForConnectionId! },
+            data: { status: "error" },
+          });
+        });
+      }
+      return {
+        ok: false,
+        code: result.errorCode,
+        message: testConnectionMessageForCode(result.errorCode),
+        testedAt: input.testedAt,
+        backingSource: input.backingSource,
+      };
+    }
+    if (input.persistStatusForConnectionId !== null) {
+      await withTenantRls(input.tenantId, async (tx) => {
+        await tx.integrationConnection.update({
+          where: { id: input.persistStatusForConnectionId! },
+          data: { status: "enabled" },
+        });
+      });
+    }
+    return {
+      ok: true,
+      code: "INTEGRATION_TEST_SUCCEEDED",
+      testedAt: input.testedAt,
+      backingSource: input.backingSource,
+    };
+  }
+
   const channelId =
     typeof input.config.channelId === "string"
       ? input.config.channelId

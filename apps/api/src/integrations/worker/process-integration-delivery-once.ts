@@ -1,4 +1,6 @@
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
+import { recordSmsUsageAttempt } from "../application/record-sms-usage";
+import { decryptOtpDeliveryCode } from "../../identity/otp-delivery-secret";
 import type { IntegrationDeliveryJobRecord } from "../platform/integration-delivery.types";
 import type {
   IntegrationDeliveryContext,
@@ -23,6 +25,7 @@ import { LEGACY_TELEGRAM_ID_PREFIX } from "../infrastructure/resolve-legacy-tele
 import { readMemberReceiptProof } from "../../workspace-finance/receipt-proof-storage";
 import { resolveIntegrationMediaKindFromStorageKey } from "../application/resolve-integration-media";
 import { resolveTourPublishedPdpUrl } from "../application/resolve-tour-published-pdp-url";
+import { logger } from "../../observability/logger";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
 
@@ -219,6 +222,19 @@ function deliveryFailureReason(error: Record<string, unknown> | undefined): stri
     : "INTEGRATION_DELIVERY_FAILED";
 }
 
+async function safelyRecordSmsUsageAttempt(input: Parameters<typeof recordSmsUsageAttempt>[0]): Promise<void> {
+  try {
+    await recordSmsUsageAttempt(input);
+  } catch (error: unknown) {
+    logger.error({
+      event: "integration.sms_usage_record_failed",
+      tenantId: input.job.tenantId,
+      deliveryJobId: input.job.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 export async function executeIntegrationDeliveryJob(
   job: IntegrationDeliveryJobRecord,
   deps: ExecuteIntegrationDeliveryDeps = {}
@@ -266,6 +282,40 @@ export async function executeIntegrationDeliveryJob(
     config: connection.config,
     credentials: connection.credentials,
   };
+
+  if (job.provider === "melipayamak" && job.capability === "sms.send") {
+    if (adapter.sendSms === undefined) {
+      return { ok: false, error: { code: "MELIPAYAMAK_ADAPTER_UNSUPPORTED" } };
+    }
+    const recipient = typeof job.payload.recipient === "string" ? job.payload.recipient : "";
+    const templateId = typeof job.payload.smsTemplateId === "string" ? job.payload.smsTemplateId : "";
+    const plainVariables = Array.isArray(job.payload.smsVariables)
+      ? job.payload.smsVariables.filter((value): value is string => typeof value === "string")
+      : [];
+    const encryptedOtp =
+      typeof job.payload.smsEncryptedVariables === "string"
+        ? job.payload.smsEncryptedVariables
+        : null;
+    let variables = plainVariables;
+    if (encryptedOtp !== null) {
+      try {
+        variables = [decryptOtpDeliveryCode(encryptedOtp)];
+      } catch {
+        return { ok: false, error: { code: "SMS_DELIVERY_SECRET_INVALID" } };
+      }
+    }
+    const result = await adapter.sendSms(ctx, { recipient, templateId, variables });
+    await safelyRecordSmsUsageAttempt({
+      job,
+      recipient,
+      status: result.ok ? "sent" : "failed",
+      ...(result.providerMessageId === undefined ? {} : { providerMessageId: result.providerMessageId }),
+      ...(result.errorCode === undefined ? {} : { errorCode: result.errorCode }),
+    });
+    return result.ok
+      ? { ok: true }
+      : { ok: false, error: { code: result.errorCode, message: result.errorMessage } };
+  }
 
   const channelId = resolveIntegrationDeliveryChannelId({
     provider: job.provider,
