@@ -11,6 +11,7 @@ import {
 import { createMobileOtpChallenge, verifyMobileOtp } from "./otp.service";
 import { getOperatorProfile, type OperatorProfileResponse } from "./me.service";
 import { signSessionToken } from "./sign-session-token";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 
 export class MobileUnchangedError extends Error {
   readonly code = "MOBILE_UNCHANGED" as const;
@@ -54,7 +55,11 @@ export async function requestIdentityMobileChangeOtp(
     throw new MobileAlreadyRegisteredError();
   }
 
-  return createMobileOtpChallenge(mobile, repo);
+  return createMobileOtpChallenge(mobile, repo, {
+    tenantId: auth.tenantId,
+    workspaceType: await resolveWorkspaceTypeForTenant(auth.tenantId),
+    purpose: "mobile_change",
+  });
 }
 
 export async function verifyIdentityMobileChangeAndCommit(

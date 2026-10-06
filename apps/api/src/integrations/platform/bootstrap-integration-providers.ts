@@ -1,6 +1,7 @@
 import { isIntegrationSubsystemReady } from "../../health/integration-subsystem-gate";
 import { registerIntegrationProvider } from "./integration-provider-registry";
 import { createTelegramProviderAdapter } from "../providers/telegram";
+import { createMelipayamakSmsProviderAdapter } from "../providers/melipayamak/melipayamak-sms-provider.adapter";
 
 let bootstrapped = false;
 
@@ -13,6 +14,7 @@ export function bootstrapIntegrationProviders(): void {
     return;
   }
   registerIntegrationProvider(createTelegramProviderAdapter());
+  registerIntegrationProvider(createMelipayamakSmsProviderAdapter());
   bootstrapped = true;
 }
 

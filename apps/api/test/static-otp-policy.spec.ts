@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   isLocalDevStaticOtpEnabled,
+  isProductionStaticOtpExplicitlyEnabled,
   isStagingStaticOtpExplicitlyEnabled,
   isStaticOtpEnabled,
 } from "../src/identity/static-otp-policy";
@@ -50,6 +51,35 @@ describe("static-otp-policy", () => {
         AUTH_ALLOW_DEV_STATIC_OTP: "true",
       }),
       false
+    );
+  });
+
+  it("OTP-PROD-01 production static OTP requires the explicit single-VPS opt-in", () => {
+    assert.equal(
+      isProductionStaticOtpExplicitlyEnabled({
+        NODE_ENV: "production",
+        APP_INFRA_PROFILE: "production",
+        AUTH_ALLOW_DEV_STATIC_OTP: "true",
+      }),
+      false
+    );
+    assert.equal(
+      isProductionStaticOtpExplicitlyEnabled({
+        NODE_ENV: "production",
+        APP_INFRA_PROFILE: "production",
+        AUTH_ALLOW_DEV_STATIC_OTP: "true",
+        ALLOW_PRODUCTION_STATIC_OTP: "true",
+      }),
+      true
+    );
+    assert.equal(
+      isStaticOtpEnabled({
+        NODE_ENV: "production",
+        APP_INFRA_PROFILE: "production",
+        AUTH_ALLOW_DEV_STATIC_OTP: "true",
+        ALLOW_PRODUCTION_STATIC_OTP: "true",
+      }),
+      true
     );
   });
 });

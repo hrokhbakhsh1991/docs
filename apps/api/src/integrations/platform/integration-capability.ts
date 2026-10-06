@@ -1,12 +1,14 @@
 /** Atomic operation a provider adapter may expose. */
 export type IntegrationCapability =
   | "message.send"
+  | "sms.send"
   | "channel.create"
   | "message.delete"
   | "group.manage";
 
 export const INTEGRATION_CAPABILITIES = [
   "message.send",
+  "sms.send",
   "channel.create",
   "message.delete",
   "group.manage",
