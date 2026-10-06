@@ -1771,6 +1771,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: { id: current.id, tenantId: input.tenantId },
       });
       await appendRegistrationCancellationAuditEvent(tx, {
+        tenantId: input.tenantId,
         registrationId: updated.id,
         source: input.cancelSource ?? "unknown",
         reasonCode: input.cancellationReasonCode ?? "unspecified",

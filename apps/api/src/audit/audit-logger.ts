@@ -2,8 +2,8 @@ import type { Prisma } from "@prisma/client";
 
 import {
   getActiveActorId,
+  getActiveTenantId,
   getActiveWorkspaceType,
-  requireActiveTenantId,
 } from "../tenant/tenant-request-context";
 import { pseudonymizeAuditActorId } from "./audit-pseudonym";
 
@@ -28,6 +28,8 @@ const AUDIT_METADATA_ALLOWLIST = [
 ] as const;
 
 export type AppendAuditEventInput = {
+  /** Explicit tenant from a repository transaction; must match ALS when bound. */
+  readonly tenantId?: string;
   readonly action: string;
   readonly entityType: string;
   readonly entityId: string;
@@ -43,6 +45,7 @@ export type AppendTourAuditEventInput = {
 };
 
 export type AppendRegistrationCancellationAuditInput = {
+  readonly tenantId: string;
   readonly registrationId: string;
   readonly source: string;
   readonly reasonCode: string;
@@ -56,6 +59,7 @@ export async function appendRegistrationCancellationAuditEvent(
   input: AppendRegistrationCancellationAuditInput
 ): Promise<void> {
   await appendAuditEvent(tx, {
+    tenantId: input.tenantId,
     action: AUDIT_ACTION_REGISTRATION_CANCELLED,
     entityType: "registration",
     entityId: input.registrationId,
@@ -69,6 +73,7 @@ export async function appendRegistrationCancellationAuditEvent(
 }
 
 export type AppendRefundStatusAuditInput = {
+  readonly tenantId: string;
   readonly refundId: string;
   readonly registrationId: string;
   readonly fromStatus: string;
@@ -82,6 +87,7 @@ export async function appendRefundStatusAuditEvent(
   input: AppendRefundStatusAuditInput
 ): Promise<void> {
   await appendAuditEvent(tx, {
+    tenantId: input.tenantId,
     action: AUDIT_ACTION_REFUND_STATUS_CHANGED,
     entityType: "refund",
     entityId: input.refundId,
@@ -171,7 +177,14 @@ export async function appendAuditEvent(
   tx: Prisma.TransactionClient,
   input: AppendAuditEventInput
 ): Promise<void> {
-  const tenantId = requireActiveTenantId();
+  const activeTenantId = getActiveTenantId();
+  const tenantId = input.tenantId ?? activeTenantId;
+  if (tenantId === undefined) {
+    throw new Error("TENANT_CONTEXT_NOT_BOUND");
+  }
+  if (activeTenantId !== undefined && activeTenantId !== tenantId) {
+    throw new Error("TENANT_CONTEXT_MISMATCH");
+  }
   const rawActorId = getActiveActorId();
   const actorId = rawActorId === undefined ? null : pseudonymizeAuditActorId(rawActorId, tenantId);
 

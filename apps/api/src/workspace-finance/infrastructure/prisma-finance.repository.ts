@@ -1912,6 +1912,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         },
       });
       await appendRefundStatusAuditEvent(tx, {
+        tenantId: input.tenantId,
         refundId: updated.id,
         registrationId: updated.registrationId,
         fromStatus: existing.status,

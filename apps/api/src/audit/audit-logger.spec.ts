@@ -98,6 +98,7 @@ describe("audit logger privacy (LOG-COL-03)", () => {
   });
 
   it("registration cancellation writer keeps only approved metadata", async () => {
+    const tenantId = integrationTenantId();
     let captured:
       | { action: string; entityType: string; entityId: string; metadata: unknown }
       | undefined;
@@ -110,9 +111,10 @@ describe("audit logger privacy (LOG-COL-03)", () => {
     };
 
     await runWithTenantContext(
-      integrationTenantId(),
+      tenantId,
       () =>
         appendRegistrationCancellationAuditEvent(tx as never, {
+          tenantId,
           registrationId: "00000000-0000-4000-8000-000000000003",
           source: "operator",
           reasonCode: "operator_correction",
@@ -132,6 +134,7 @@ describe("audit logger privacy (LOG-COL-03)", () => {
   });
 
   it("refund transition writer records status transition without payment payload", async () => {
+    const tenantId = integrationTenantId();
     let captured:
       | { action: string; entityType: string; entityId: string; metadata: unknown }
       | undefined;
@@ -144,9 +147,10 @@ describe("audit logger privacy (LOG-COL-03)", () => {
     };
 
     await runWithTenantContext(
-      integrationTenantId(),
+      tenantId,
       () =>
         appendRefundStatusAuditEvent(tx as never, {
+          tenantId,
           refundId: "00000000-0000-4000-8000-000000000004",
           registrationId: "00000000-0000-4000-8000-000000000005",
           fromStatus: "Requested",
