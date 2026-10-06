@@ -34,27 +34,27 @@ runs:
       # No version: — action reads packageManager from package.json
 
     - name: Setup Node.js
-      if: ${{ inputs.node-version != '' && inputs.cache-enabled == 'true' }}
+      if: ${{ inputs.node-version != '' && inputs.cache-enabled == 'true' && inputs.install-dependencies == 'true' }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
 
     - name: Setup Node.js
-      if: ${{ inputs.node-version != '' && inputs.cache-enabled != 'true' }}
+      if: ${{ inputs.node-version != '' && (inputs.cache-enabled != 'true' || inputs.install-dependencies != 'true') }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup Node.js
-      if: ${{ inputs.node-version == '' && inputs.cache-enabled == 'true' }}
+      if: ${{ inputs.node-version == '' && inputs.cache-enabled == 'true' && inputs.install-dependencies == 'true' }}
       uses: actions/setup-node@v4
       with:
         node-version-file: ${{ inputs.node-version-file }}
         cache: pnpm
 
     - name: Setup Node.js
-      if: ${{ inputs.node-version == '' && inputs.cache-enabled != 'true' }}
+      if: ${{ inputs.node-version == '' && (inputs.cache-enabled != 'true' || inputs.install-dependencies != 'true') }}
       uses: actions/setup-node@v4
       with:
         node-version-file: ${{ inputs.node-version-file }}
