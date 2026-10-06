@@ -49,6 +49,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  classify:
+    name: Classify Phase 8 impact
+    runs-on: ubuntu-latest
+    outputs:
+      run_urban_regression: ${{ steps.impact.outputs.run_phase8_urban_regression }}
+      run_browser: ${{ steps.impact.outputs.run_phase8_browser }}
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref || 'dev' }}
+      HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup platform
+        uses: ./.github/actions/setup-platform
+        with:
+          install-dependencies: "false"
+
+      - name: Classify changed paths
+        id: impact
+        run: |
+          node scripts/ci/ci-impact.mjs \
+            --base "origin/${BASE_REF}" \
+            --head "${HEAD_REF}" \
+            --github-output "$GITHUB_OUTPUT" \
+            > ci-impact-phase-8.json
+
   guard:
     name: Phase 8 guard (doc + boundary)
     runs-on: ubuntu-latest
@@ -103,7 +133,8 @@ jobs:
     name: Phase 8 urban regression (memory + contract)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: guard
+    needs: [guard, classify]
+    if: ${{ github.event_name != 'pull_request' || needs.classify.outputs.run_urban_regression == 'true' }}
 
     env:
       NODE_ENV: test
@@ -160,9 +191,10 @@ jobs:
     name: Phase 8 urban Playwright E2E (SMK-P8)
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: guard
+    needs: [guard, classify]
     if: >-
-      github.event_name != 'workflow_dispatch' || inputs.run_urban_e2e
+      (github.event_name != 'pull_request' || needs.classify.outputs.run_browser == 'true') &&
+      (github.event_name != 'workflow_dispatch' || inputs.run_urban_e2e)
 
     env:
       CI: "true"
