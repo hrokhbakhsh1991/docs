@@ -67,10 +67,18 @@ test("Phase 6 expensive jobs consume the classifier plan", () => {
 });
 
 test("ordinary operator web changes skip Urban regression and browser jobs", () => {
-  const result = classifyPaths(["apps/web/app/(app)/tours/tours-page-client.tsx"]);
+  const result = classifyPaths(["apps/web/test/fixtures/operator-tour-navigation-fixture.ts"]);
   assert.deepEqual(result.phase8, {
     runUrbanRegression: false,
     runBrowser: false,
+  });
+});
+
+test("shared web changes retain Urban regression and browser coverage", () => {
+  const result = classifyPaths(["apps/web/src/components/ui/SurfaceButton.tsx"]);
+  assert.deepEqual(result.phase8, {
+    runUrbanRegression: true,
+    runBrowser: true,
   });
 });
 
