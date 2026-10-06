@@ -1777,6 +1777,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tourId: updated.tourId,
           status: "cancelled",
           cancelledAt: cancelledAt.toISOString(),
+          guestUserId: updated.submittedByUserId,
           previousStatus,
           previousFinalizationStatus: current.finalizationStatus,
           previousPaymentStatus: current.paymentStatus,

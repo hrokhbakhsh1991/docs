@@ -1033,12 +1033,16 @@ export class BookingsService {
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
     }
+    const isWaivedCollection =
+      before.financialDisplayState === "WAIVED" ||
+      before.registrationIntake?.freeCollectionApplied === true;
     return {
       id: updated.id,
       status: updated.status,
       cancellationStatus: updated.cancellationStatus,
       refundStatus:
-        updated.paymentStatus === "paid" || updated.paymentStatus === "partial"
+        !isWaivedCollection &&
+        (before.paymentStatus === "paid" || before.paymentStatus === "partial")
           ? "pending_finance_approval"
           : "not_required",
       settlementStatus,

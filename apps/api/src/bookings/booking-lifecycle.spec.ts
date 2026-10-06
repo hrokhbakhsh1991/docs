@@ -161,6 +161,17 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     );
   });
 
+  it("waived finalization does not create a refund obligation on operator cancellation", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Waived Then Cancel"));
+    await approveBooking(opsAuth(TENANT_DENALI), created.id);
+    await waiveAndFinalizeBooking(opsAuth(TENANT_DENALI), created.id);
+
+    const cancelled = await cancelBooking(opsAuth(TENANT_DENALI), created.id);
+
+    assert.equal(cancelled.status, "cancelled");
+    assert.equal(cancelled.refundStatus, "not_required");
+  });
+
   it("lifecycle transitions clear stale finalization metadata", async () => {
     const waitlistCandidate = await createBooking(
       opsAuth(TENANT_DENALI),
