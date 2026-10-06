@@ -52,6 +52,8 @@ jobs:
             `- Domains: ${result.domains.join(', ') || 'none'}`,
             `- Tiers: ${Object.entries(result.tiers).filter(([, enabled]) => enabled).map(([name]) => name).join(', ')}`,
             `- Planned gate nodes: ${result.gateNodes.join(', ') || 'none'}`,
+            `- Phase 6 jobs: fast-closure=${result.phase6.runFastClosure ? 'run' : 'skip'}, MinIO=${result.phase6.runMinio ? 'run' : 'skip'}, browser=${result.phase6.runBrowser ? 'run' : 'skip'}`,
+            `- Phase 8 jobs: Urban regression=${result.phase8.runUrbanRegression ? 'run' : 'skip'}, browser=${result.phase8.runBrowser ? 'run' : 'skip'}`,
             `- Changed paths: **${result.changedPaths.length}**`,
           ];
           if (result.unknownPaths.length) lines.push(`- Unknown paths (fail-closed): ${result.unknownPaths.join(', ')}`);

@@ -11,6 +11,10 @@ const PHASE_8_WORKFLOW = readFileSync(
   new URL("../../.github/workflows/phase-8-gate.yml", import.meta.url),
   "utf8"
 );
+const SHADOW_WORKFLOW = readFileSync(
+  new URL("../../.github/workflows/pr-ci-impact-shadow.yml", import.meta.url),
+  "utf8"
+);
 
 test("documentation-only changes stay narrow", () => {
   const result = classifyPaths(["docs/dev/README.md"]);
@@ -83,6 +87,13 @@ test("Phase 8 expensive jobs consume the classifier plan", () => {
   assert.match(PHASE_8_WORKFLOW, /needs: \[guard, classify\]/);
   assert.match(PHASE_8_WORKFLOW, /run_urban_regression/);
   assert.match(PHASE_8_WORKFLOW, /run_browser/);
+});
+
+test("shadow summary exposes Phase 6 and Phase 8 routing decisions", () => {
+  assert.match(SHADOW_WORKFLOW, /Phase 6 jobs:/);
+  assert.match(SHADOW_WORKFLOW, /result\.phase6\.runFastClosure/);
+  assert.match(SHADOW_WORKFLOW, /Phase 8 jobs:/);
+  assert.match(SHADOW_WORKFLOW, /result\.phase8\.runUrbanRegression/);
 });
 
 test("API finance changes include database-aware finance coverage", () => {
