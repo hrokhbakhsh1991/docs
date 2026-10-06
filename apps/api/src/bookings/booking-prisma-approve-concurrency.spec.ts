@@ -262,21 +262,33 @@ describe("booking prisma approve concurrency", { concurrency: false, skip: postg
 
   after(async () => {
     const admin = getPrismaAdmin();
-    await admin.outboxEvent.deleteMany({
-      where: { tenantId: { in: [tenantDenali, tenantWs2] } },
-    });
-    await admin.operatorRegistration.deleteMany({
-      where: { tenantId: { in: [tenantDenali, tenantWs2] } },
-    });
-    await admin.tenant.deleteMany({
-      where: { id: { in: [tenantDenali, tenantWs2] } },
-    });
-    await disconnectPrisma();
-    resetBookingsRepositorySingletonForTests();
-    if (priorStorageDriver === undefined) {
-      delete process.env.STORAGE_DRIVER;
-    } else {
-      process.env.STORAGE_DRIVER = priorStorageDriver;
+    try {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+      );
+      await admin.auditEvent.deleteMany({
+        where: { tenantId: { in: [tenantDenali, tenantWs2] } },
+      });
+      await admin.outboxEvent.deleteMany({
+        where: { tenantId: { in: [tenantDenali, tenantWs2] } },
+      });
+      await admin.operatorRegistration.deleteMany({
+        where: { tenantId: { in: [tenantDenali, tenantWs2] } },
+      });
+      await admin.tenant.deleteMany({
+        where: { id: { in: [tenantDenali, tenantWs2] } },
+      });
+    } finally {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+      );
+      await disconnectPrisma();
+      resetBookingsRepositorySingletonForTests();
+      if (priorStorageDriver === undefined) {
+        delete process.env.STORAGE_DRIVER;
+      } else {
+        process.env.STORAGE_DRIVER = priorStorageDriver;
+      }
     }
   });
 

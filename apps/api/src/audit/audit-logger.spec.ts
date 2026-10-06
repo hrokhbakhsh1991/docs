@@ -3,7 +3,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { buildAuditMetadata, appendAuditEvent } from "./audit-logger";
+import {
+  appendAuditEvent,
+  appendRefundStatusAuditEvent,
+  appendRegistrationCancellationAuditEvent,
+  buildAuditMetadata,
+} from "./audit-logger";
 import { pseudonymizeAuditActorId } from "./audit-pseudonym";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { integrationTenantId } from "../../test/test-helpers";
@@ -90,5 +95,77 @@ describe("audit logger privacy (LOG-COL-03)", () => {
     assert.ok(captured);
     assert.equal(captured!.actorId, pseudonymizeAuditActorId(actorId, tenantId));
     assert.deepEqual(captured!.metadata, { workspaceType: "starter" });
+  });
+
+  it("registration cancellation writer keeps only approved metadata", async () => {
+    const tenantId = integrationTenantId();
+    let captured:
+      | { action: string; entityType: string; entityId: string; metadata: unknown }
+      | undefined;
+    const tx = {
+      auditEvent: {
+        create: async (args: { data: typeof captured }) => {
+          captured = args.data;
+        },
+      },
+    };
+
+    await runWithTenantContext(
+      tenantId,
+      () =>
+        appendRegistrationCancellationAuditEvent(tx as never, {
+          tenantId,
+          registrationId: "00000000-0000-4000-8000-000000000003",
+          source: "operator",
+          reasonCode: "operator_correction",
+          correlationId: "registration.cancelled:00000000-0000-4000-8000-000000000003",
+        }),
+      { workspaceType: "denali" }
+    );
+
+    assert.equal(captured?.action, "REGISTRATION_CANCELLED");
+    assert.equal(captured?.entityType, "registration");
+    assert.deepEqual(captured?.metadata, {
+      workspaceType: "denali",
+      source: "operator",
+      reasonCode: "operator_correction",
+      correlationId: "registration.cancelled:00000000-0000-4000-8000-000000000003",
+    });
+  });
+
+  it("refund transition writer records status transition without payment payload", async () => {
+    const tenantId = integrationTenantId();
+    let captured:
+      | { action: string; entityType: string; entityId: string; metadata: unknown }
+      | undefined;
+    const tx = {
+      auditEvent: {
+        create: async (args: { data: typeof captured }) => {
+          captured = args.data;
+        },
+      },
+    };
+
+    await runWithTenantContext(
+      tenantId,
+      () =>
+        appendRefundStatusAuditEvent(tx as never, {
+          tenantId,
+          refundId: "00000000-0000-4000-8000-000000000004",
+          registrationId: "00000000-0000-4000-8000-000000000005",
+          fromStatus: "Requested",
+          toStatus: "Approved",
+        }),
+      { workspaceType: "denali" }
+    );
+
+    assert.equal(captured?.action, "REFUND_STATUS_CHANGED");
+    assert.equal(captured?.entityType, "refund");
+    assert.deepEqual(captured?.metadata, {
+      workspaceType: "denali",
+      registrationId: "00000000-0000-4000-8000-000000000005",
+      fromStatus: "Requested",
+      toStatus: "Approved",
+    });
   });
 });

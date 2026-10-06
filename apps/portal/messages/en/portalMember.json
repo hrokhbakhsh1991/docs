@@ -481,13 +481,20 @@
   },
   "cancellation": {
     "withdrawHint": "You can withdraw this registration before the club approves it.",
+    "selfCancelHint": "This approved registration has no payment due; cancelling it takes effect immediately.",
     "requestHint": "Paid registrations require club review. Submit a cancellation request.",
     "freeRequestHint": "This free registration cancellation will be sent to the club for review.",
     "withdrawAction": "Withdraw registration",
+    "selfCancelAction": "Cancel registration",
     "requestAction": "Request cancellation",
     "blocked": "Cancellation is not available ({reason}).",
     "error": "Could not submit cancellation ({code}).",
-    "refundEligible": "Eligible refund: {amount}"
+    "refundEligible": "Eligible refund: {amount}",
+    "requestSubmitted": "Your cancellation request was submitted and is waiting for club review.",
+    "cancelled": "Registration cancelled.",
+    "cancelledRefundPending": "Registration cancelled; the refund was sent for finance approval.",
+    "cancelledCorrectionPending": "Registration cancelled; settlement correction is awaiting review.",
+    "cancelledManualReview": "Registration cancelled; part of the financial operation needs manual review."
   },
   "intakeAmend": {
     "eyebrow": "Before approval",
@@ -539,11 +546,13 @@
       "paymentScheduled": "Payment scheduled",
       "paymentExpired": "Payment deadline passed",
       "receiptApproved": "Payment receipt approved",
+      "receiptRejected": "Payment receipt rejected",
       "engagementBadgeEarned": "New badge: {badge}",
       "walletUpdated": "Wallet updated"
     },
     "eventBodies": {
       "receiptApproved": "Your payment receipt was approved; your registration is complete.",
+      "receiptRejected": "Your payment receipt was rejected; review the note and resubmit if needed.",
       "engagementBadgeEarned": "You earned the {badge} badge."
     },
     "engagementBadges": {

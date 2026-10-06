@@ -22,7 +22,9 @@ describe("portal member notification labels", () => {
     assert.match(panel, /payload\?\.ticketId/);
     assert.match(panel, /eventTitles\.registrationApproved/);
     assert.match(panel, /eventTitles\.receiptApproved/);
+    assert.match(panel, /eventTitles\.receiptRejected/);
     assert.match(panel, /eventBodies\.receiptApproved/);
+    assert.match(panel, /eventBodies\.receiptRejected/);
   });
 
   it("keeps notifications without a destination read-only", () => {

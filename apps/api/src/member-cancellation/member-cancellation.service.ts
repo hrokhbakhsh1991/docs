@@ -32,7 +32,13 @@ export type MemberCancellationEligibilityResponse = {
 };
 
 export type MemberCancellationResult =
-  | { readonly kind: "cancelled"; readonly bookingId: string; readonly status: "cancelled" }
+  | {
+      readonly kind: "cancelled";
+      readonly bookingId: string;
+      readonly status: "cancelled";
+      readonly refundStatus: "not_required" | "pending_finance_approval";
+      readonly settlementStatus: "not_affected" | "correction_pending" | "manual_review";
+    }
   | {
       readonly kind: "request_submitted";
       readonly bookingId: string;
@@ -122,21 +128,40 @@ async function executeMemberCancel(
     tenantId: auth.tenantId,
     outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
     cancelSource: "member",
-    cancellationStatus: Date.parse(booking.departureAt) <= Date.now() ? "late_correction" : "applied",
+    cancellationStatus:
+      Date.parse(booking.departureAt) <= Date.now() ? "late_correction" : "applied",
     cancellationReasonCode: "member_withdrawal",
     cancellationApprovedByUserId: auth.userId,
     cancellationCorrelationId: `registration.cancelled:${booking.id}`,
   });
 
-  await runPostCancelSideEffects({
-    auth,
-    booking: { ...booking, status: "cancelled", cancelSource: "member" },
-    previousStatus,
-    cancelDomainEventId: `registration.cancelled:${booking.id}`,
-    cancelSource: "member",
-  });
+  const refundStatus =
+    booking.paymentStatus === "paid" || booking.paymentStatus === "partial"
+      ? "pending_finance_approval"
+      : "not_required";
+  let settlementStatus: "not_affected" | "correction_pending" | "manual_review" = "not_affected";
+  try {
+    const effects = await runPostCancelSideEffects({
+      auth,
+      booking: { ...booking, status: "cancelled", cancelSource: "member" },
+      previousStatus,
+      cancelDomainEventId: `registration.cancelled:${booking.id}`,
+      cancelSource: "member",
+    });
+    settlementStatus = effects.settlementStatus;
+  } catch {
+    // The lifecycle transition is already persisted. Never turn a successful
+    // cancellation into a retry-shaped 500 when Finance/settlement needs review.
+    settlementStatus = "manual_review";
+  }
 
-  return { kind: "cancelled", bookingId: booking.id, status: "cancelled" };
+  return {
+    kind: "cancelled",
+    bookingId: booking.id,
+    status: "cancelled",
+    refundStatus,
+    settlementStatus,
+  };
 }
 
 export async function submitMemberCancellation(
@@ -157,14 +182,11 @@ export async function submitMemberCancellation(
   });
   const eligibility = resolveMemberCancellationEligibilityForBooking(booking, {
     nowIso: new Date().toISOString(),
-    cancellationDeadlineHours:
-      cancellationDeadlineHours ?? policy.cancellationDeadlineHours,
+    cancellationDeadlineHours: cancellationDeadlineHours ?? policy.cancellationDeadlineHours,
   });
 
   if (!eligibility.eligible) {
-    throw new Error(
-      `MEMBER_CANCELLATION_DENIED:${eligibility.reasonCode ?? "not_eligible"}`
-    );
+    throw new Error(`MEMBER_CANCELLATION_DENIED:${eligibility.reasonCode ?? "not_eligible"}`);
   }
 
   if (eligibility.mode === "request") {

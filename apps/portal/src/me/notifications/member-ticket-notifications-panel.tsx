@@ -87,6 +87,7 @@ function resolveNotificationTitle(
     "payment.hold.scheduled": "eventTitles.paymentScheduled",
     "payment.hold.expired": "eventTitles.paymentExpired",
     "finance.receipt.approved": "eventTitles.receiptApproved",
+    "receipt.rejected": "eventTitles.receiptRejected",
     "wallet.transaction.posted": "eventTitles.walletUpdated",
     "wallet.balance.updated": "eventTitles.walletUpdated",
     "wallet.refund.credited": "eventTitles.walletUpdated",
@@ -348,8 +349,12 @@ export function MemberNotificationsPanel() {
             const displayBody =
               item.eventType === "engagement.badge.earned"
                 ? resolveEngagementBadgeBody(item, body, t)
-                : item.eventType === "finance.receipt.approved" && isRawTranslationKey(copy.body)
-                  ? t("eventBodies.receiptApproved")
+                : (item.eventType === "finance.receipt.approved" ||
+                      item.eventType === "receipt.rejected") &&
+                    isRawTranslationKey(copy.body)
+                  ? item.eventType === "receipt.rejected"
+                    ? t("eventBodies.receiptRejected")
+                    : t("eventBodies.receiptApproved")
                   : body;
             const unread = item.readAt === null;
             const Icon = resolveNotificationSourceIcon(item.sourceModule, item.eventType);

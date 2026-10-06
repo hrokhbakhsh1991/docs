@@ -34,10 +34,15 @@ async function finishHostAuthenticated(
 ): Promise<void> {
   try {
     // Bounded cookie probe (same-origin portal). Marketing CORS GET is often
-    // 3PCD-hidden; Domain= cookie is already first-party — still reload.
-    await host.transport.probeSession();
+    // 3PCD-hidden; do not report success until the session is observable.
+    const session = await host.transport.probeSession();
+    if (!session.ready) {
+      setError(resolveError("network"));
+      return;
+    }
   } catch {
-    // PCMS-MKT-AUTH-03 — probe throw must not skip host continuation.
+    setError(resolveError("network"));
+    return;
   }
   try {
     await host.onAuthenticated();
@@ -179,7 +184,12 @@ export function CatalogRegistrationPhoneStep({
           {error}
         </p>
       ) : null}
-      <button type="button" onClick={() => void requestOtp()} disabled={loading} data-action="send-code">
+      <button
+        type="button"
+        onClick={() => void requestOtp()}
+        disabled={loading}
+        data-action="send-code"
+      >
         {loading ? t("phone.sending") : t("phone.sendCode")}
       </button>
     </div>
@@ -292,7 +302,12 @@ export function CatalogRegistrationOtpStep({
         </p>
       ) : null}
       <div data-portal-otp-actions>
-        <button type="button" onClick={() => void verifyOtp()} disabled={loading} data-action="verify-otp">
+        <button
+          type="button"
+          onClick={() => void verifyOtp()}
+          disabled={loading}
+          data-action="verify-otp"
+        >
           {loading ? t("otp.verifying") : t("otp.verify")}
         </button>
         <div data-portal-otp-secondary-actions>

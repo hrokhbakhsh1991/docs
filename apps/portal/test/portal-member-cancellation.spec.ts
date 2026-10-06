@@ -37,6 +37,28 @@ describe("DP4 portal member cancellation contract", () => {
     assert.match(panel, /freeRequestHint/);
   });
 
+  it("keeps approved unpaid self-cancel distinct from withdrawal and refund request", () => {
+    const panel = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-cancellation-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panel, /eligibility\.mode === "self_cancel"/);
+    assert.match(panel, /selfCancelHint/);
+    assert.match(panel, /selfCancelAction/);
+  });
+
+  it("renders the API result so refund and settlement follow-up is visible", () => {
+    const panel = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-cancellation-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panel, /data-portal-member-cancel-result/);
+    assert.match(panel, /cancelledRefundPending/);
+    assert.match(panel, /cancelledCorrectionPending/);
+    assert.match(panel, /cancelledManualReview/);
+    assert.match(panel, /requestSubmitted/);
+  });
+
   it("BFF exposes member cancellation route", () => {
     const route = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/[id]/cancellation/route.ts"),

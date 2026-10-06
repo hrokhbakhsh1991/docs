@@ -214,6 +214,9 @@ describe(
 
     after(async () => {
       try {
+        await admin.$executeRawUnsafe(
+          `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+        );
         for (const tenantId of [tenantA, tenantB]) {
           await admin.financePaymentHold.deleteMany({ where: { tenantId } });
           await admin.paymentReceipt.deleteMany({ where: { tenantId } });
@@ -221,9 +224,13 @@ describe(
           await admin.outboxEvent.deleteMany({ where: { tenantId } });
           await admin.operatorRegistration.deleteMany({ where: { tenantId } });
         }
+        await admin.auditEvent.deleteMany({ where: { tenantId: { in: [tenantA, tenantB] } } });
         await admin.tour.deleteMany({ where: { id: { in: [tourId, ...extraTourIds] } } });
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
+        await admin.$executeRawUnsafe(
+          `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+        );
         await admin.$disconnect();
         await disconnectPrisma();
         resetBookingsRepositorySingletonForTests();
@@ -557,7 +564,8 @@ describe(
     });
 
     it("X1 POST /bookings/:id/cancel → 200 + registration.cancelled outbox", async () => {
-      const id = await createPending({ guestLabel: "X1 Guest" });
+      const cancellationUserId = randomUUID();
+      const id = await createPending({ guestLabel: "X1 Guest", userId: cancellationUserId });
       const response = await requestJson(listener, {
         method: "POST",
         path: `/bookings/${id}/cancel`,
@@ -574,6 +582,11 @@ describe(
         where: { tenantId: tenantA, aggregateId: id, eventType: "registration.cancelled" },
       });
       assert.equal(outbox, 1);
+      const cancellationEvent = await admin.outboxEvent.findFirst({
+        where: { tenantId: tenantA, aggregateId: id, eventType: "registration.cancelled" },
+      });
+      const cancellationPayload = cancellationEvent?.payload as { guestUserId?: unknown } | null;
+      assert.equal(cancellationPayload?.guestUserId, cancellationUserId);
     });
 
     // ─── 6. bulk-approve ─────────────────────────────────────────────────
