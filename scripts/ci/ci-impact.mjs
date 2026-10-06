@@ -268,6 +268,24 @@ export function classifyPaths(paths) {
     result.tiers.security = true;
   }
   result.gateNodes = deriveGateNodes(result);
+  const phase6BroadDomains = [
+    "api",
+    "web",
+    "portal",
+    "booking",
+    "finance",
+    "ticketing",
+    "workspace-denali",
+  ];
+  const phase6BrowserDomains = ["api", "web", "portal", "booking", "workspace-denali"];
+  result.phase6 = {
+    runFastClosure:
+      result.full || result.domains.some((domain) => phase6BroadDomains.includes(domain)),
+    runMinio:
+      result.full || result.domains.some((domain) => ["api", "workspace-denali"].includes(domain)),
+    runBrowser:
+      result.full || result.domains.some((domain) => phase6BrowserDomains.includes(domain)),
+  };
   return result;
 }
 
@@ -310,7 +328,7 @@ function main(argv) {
   console.log(json);
   if (args.githubOutput) {
     const escaped = json.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
-    const output = `impact_json=${escaped}\nfull=${result.full}\ndomains=${result.domains.join(",")}\ngate_nodes=${result.gateNodes.join(",")}\n`;
+    const output = `impact_json=${escaped}\nfull=${result.full}\ndomains=${result.domains.join(",")}\ngate_nodes=${result.gateNodes.join(",")}\nrun_fast_closure=${result.phase6.runFastClosure}\nrun_minio=${result.phase6.runMinio}\nrun_browser=${result.phase6.runBrowser}\n`;
     appendFileSync(args.githubOutput, output);
   }
 }

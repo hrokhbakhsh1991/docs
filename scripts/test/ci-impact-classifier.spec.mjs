@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { classifyPaths } from "../ci/ci-impact.mjs";
+
+const PHASE_6_WORKFLOW = readFileSync(
+  new URL("../../.github/workflows/phase-6-gate.yml", import.meta.url),
+  "utf8"
+);
 
 test("documentation-only changes stay narrow", () => {
   const result = classifyPaths(["docs/dev/README.md"]);
@@ -8,6 +14,11 @@ test("documentation-only changes stay narrow", () => {
   assert.deepEqual(result.domains, ["docs"]);
   assert.equal(result.tiers.postgres, false);
   assert.deepEqual(result.gateNodes, []);
+  assert.deepEqual(result.phase6, {
+    runFastClosure: false,
+    runMinio: false,
+    runBrowser: false,
+  });
 });
 
 test("operator booking changes select booking and browser coverage", () => {
@@ -19,6 +30,32 @@ test("operator booking changes select booking and browser coverage", () => {
   assert.equal(result.tiers.playwright, true);
   assert.equal(result.full, false);
   assert.ok(result.gateNodes.includes("l3.e2e"));
+  assert.deepEqual(result.phase6, {
+    runFastClosure: true,
+    runMinio: false,
+    runBrowser: true,
+  });
+});
+
+test("marketing-only changes use the marketing rail instead of broad Phase 6 jobs", () => {
+  const result = classifyPaths([
+    "apps/marketing/src/home/home-marketing-assets.ts",
+    "apps/marketing/test/home-section-gates-v4.spec.ts",
+  ]);
+  assert.deepEqual(result.domains, ["marketing"]);
+  assert.equal(result.tiers.playwright, true);
+  assert.deepEqual(result.phase6, {
+    runFastClosure: false,
+    runMinio: false,
+    runBrowser: false,
+  });
+});
+
+test("Phase 6 expensive jobs consume the classifier plan", () => {
+  assert.match(PHASE_6_WORKFLOW, /name: Classify Phase 6 impact/);
+  assert.match(PHASE_6_WORKFLOW, /needs: classify\n\s+if:.*run_fast_closure/);
+  assert.match(PHASE_6_WORKFLOW, /needs: classify\n\s+if:.*run_minio/);
+  assert.match(PHASE_6_WORKFLOW, /needs: classify\n\s+if:.*run_browser/);
 });
 
 test("API finance changes include database-aware finance coverage", () => {
@@ -26,6 +63,8 @@ test("API finance changes include database-aware finance coverage", () => {
   assert.deepEqual(result.domains, ["api", "finance"]);
   assert.equal(result.tiers.postgres, true);
   assert.ok(result.gateNodes.includes("l3.postgres"));
+  assert.equal(result.phase6.runFastClosure, true);
+  assert.equal(result.phase6.runMinio, true);
 });
 
 test("Denali workspace changes fan out to all Denali surfaces", () => {
@@ -63,6 +102,11 @@ test("guest surface host changes cover its three consumers", () => {
   assert.deepEqual(result.domains, ["web", "portal", "marketing"]);
   assert.equal(result.full, false);
   assert.deepEqual(result.unknownPaths, []);
+  assert.deepEqual(result.phase6, {
+    runFastClosure: true,
+    runMinio: false,
+    runBrowser: true,
+  });
 });
 
 test("deployment environment changes are full impact but not unknown", () => {
