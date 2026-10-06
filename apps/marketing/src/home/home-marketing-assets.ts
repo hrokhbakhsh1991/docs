@@ -1,4 +1,5 @@
 /** Default tour card cover when catalog has no photos (PR-9). */
+// CI routing validation fixture: intentionally marketing-only and behavior-neutral.
 export const MARKETING_FALLBACK_TOUR_COVER_PATH = "/home/fallback-tour-cover.webp";
 /** Smaller cover fallback for repeated card surfaces; detail/hero keeps the full asset. */
 export const MARKETING_FALLBACK_TOUR_CARD_COVER_PATH =
