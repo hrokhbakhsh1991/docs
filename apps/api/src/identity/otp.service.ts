@@ -16,9 +16,10 @@ import {
 import { assertOtpRequestRateLimit } from "./otp-rate-limit";
 import { isStaticOtpEnabled, STAGING_STATIC_OTP_CODE } from "./static-otp-policy";
 import { encryptOtpDeliveryCode } from "./otp-delivery-secret";
-import { createIntegrationConnectionRepository } from "../integrations/infrastructure/prisma-integration-connection.repository";
-import { enqueueIntegrationDeliveryJob } from "../integrations/application/enqueue-integration-delivery-job";
-import { PrismaIntegrationDeliveryRepository } from "../integrations/infrastructure/prisma-integration-delivery.repository";
+import {
+  enqueueOtpDeliveryJob,
+  resolveOtpDeliveryConnection,
+} from "../integrations/application/otp-delivery-dependencies";
 import type { IntegrationConnectionRecord } from "../integrations/platform/integration-connection.types";
 import type { EnqueueIntegrationDeliveryJobInput } from "../integrations/platform/integration-delivery.types";
 
@@ -53,16 +54,10 @@ async function enqueueRealOtpDelivery(
     deliverOtpCode(mobile, code);
     return;
   }
-  const connection = await (dependencies.resolveConnection ?? (async (input) =>
-    createIntegrationConnectionRepository().findEnabledForTenant({
-      tenantId: input.tenantId,
-      provider: "melipayamak",
-      workspaceType: input.workspaceType,
-    })))(context);
+  const connection = await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)(context);
   if (connection === null) throw new Error("MELIPAYAMAK_CONNECTION_NOT_CONFIGURED");
   const encryptedCode = encryptOtpDeliveryCode(code);
-  const enqueueJob = dependencies.enqueueJob ?? ((input: EnqueueIntegrationDeliveryJobInput) =>
-    enqueueIntegrationDeliveryJob(new PrismaIntegrationDeliveryRepository(), input));
+  const enqueueJob = dependencies.enqueueJob ?? enqueueOtpDeliveryJob;
   const created = await enqueueJob({
       tenantId: context.tenantId,
       provider: "melipayamak",
