@@ -7,6 +7,10 @@ const PHASE_6_WORKFLOW = readFileSync(
   new URL("../../.github/workflows/phase-6-gate.yml", import.meta.url),
   "utf8"
 );
+const PHASE_8_WORKFLOW = readFileSync(
+  new URL("../../.github/workflows/phase-8-gate.yml", import.meta.url),
+  "utf8"
+);
 
 test("documentation-only changes stay narrow", () => {
   const result = classifyPaths(["docs/dev/README.md"]);
@@ -56,6 +60,29 @@ test("Phase 6 expensive jobs consume the classifier plan", () => {
   assert.match(PHASE_6_WORKFLOW, /needs: classify\n\s+if:.*run_fast_closure/);
   assert.match(PHASE_6_WORKFLOW, /needs: classify\n\s+if:.*run_minio/);
   assert.match(PHASE_6_WORKFLOW, /needs: classify\n\s+if:.*run_browser/);
+});
+
+test("ordinary operator web changes skip Urban regression and browser jobs", () => {
+  const result = classifyPaths(["apps/web/app/(app)/tours/tours-page-client.tsx"]);
+  assert.deepEqual(result.phase8, {
+    runUrbanRegression: false,
+    runBrowser: false,
+  });
+});
+
+test("Urban changes retain Phase 8 regression and browser coverage", () => {
+  const result = classifyPaths(["apps/web/tests/e2e/urban-catalog-access.spec.ts"]);
+  assert.deepEqual(result.phase8, {
+    runUrbanRegression: true,
+    runBrowser: true,
+  });
+});
+
+test("Phase 8 expensive jobs consume the classifier plan", () => {
+  assert.match(PHASE_8_WORKFLOW, /name: Classify Phase 8 impact/);
+  assert.match(PHASE_8_WORKFLOW, /needs: \[guard, classify\]/);
+  assert.match(PHASE_8_WORKFLOW, /run_urban_regression/);
+  assert.match(PHASE_8_WORKFLOW, /run_browser/);
 });
 
 test("API finance changes include database-aware finance coverage", () => {

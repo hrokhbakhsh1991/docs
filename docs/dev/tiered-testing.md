@@ -49,6 +49,12 @@ closure, MinIO, and generic Denali Playwright smoke are skipped for
 Marketing-only changes, while the dedicated Marketing rail remains active.
 Pushes to `main`, schedules, and manual runs retain the full Phase 6 path.
 
+Phase 8 now uses the classifier for its expensive Urban jobs as well. The
+Phase 8 guard remains active, while Urban regression and Urban Playwright are
+skipped for ordinary operator-web changes that do not touch the Urban surface.
+API, Urban, tenant-kernel, Phase 8, and explicit Urban browser changes retain
+both jobs; pushes, schedules, and manual runs retain the full path.
+
 The classifier is currently introduced as a shadow signal. Existing phase
 workflows remain authoritative until the signal has been compared against
 several real pull requests. The intended migration order is:

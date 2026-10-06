@@ -286,6 +286,24 @@ export function classifyPaths(paths) {
     runBrowser:
       result.full || result.domains.some((domain) => phase6BrowserDomains.includes(domain)),
   };
+  const phase8UrbanPath = /(^|\/)(urban(?:[-/.]|$)|tenant-kernel(?:\/|$)|phase-8(?:\/|$))/;
+  const phase8AlwaysRelevant = result.changedPaths.some(
+    (path) =>
+      result.full ||
+      path.startsWith("apps/api/") ||
+      path.startsWith("packages/workspaces/urban/") ||
+      path.startsWith("packages/tenant-kernel/") ||
+      path.startsWith("docs/phase-8/") ||
+      path.startsWith(".github/workflows/phase-8-gate.yml") ||
+      path.startsWith("scripts/guards/phase-8-")
+  );
+  const phase8WebUrbanPath = result.changedPaths.some(
+    (path) => path.startsWith("apps/web/") && phase8UrbanPath.test(path)
+  );
+  result.phase8 = {
+    runUrbanRegression: phase8AlwaysRelevant || phase8WebUrbanPath,
+    runBrowser: phase8AlwaysRelevant || phase8WebUrbanPath,
+  };
   return result;
 }
 
@@ -328,7 +346,7 @@ function main(argv) {
   console.log(json);
   if (args.githubOutput) {
     const escaped = json.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
-    const output = `impact_json=${escaped}\nfull=${result.full}\ndomains=${result.domains.join(",")}\ngate_nodes=${result.gateNodes.join(",")}\nrun_fast_closure=${result.phase6.runFastClosure}\nrun_minio=${result.phase6.runMinio}\nrun_browser=${result.phase6.runBrowser}\n`;
+    const output = `impact_json=${escaped}\nfull=${result.full}\ndomains=${result.domains.join(",")}\ngate_nodes=${result.gateNodes.join(",")}\nrun_fast_closure=${result.phase6.runFastClosure}\nrun_minio=${result.phase6.runMinio}\nrun_browser=${result.phase6.runBrowser}\nrun_phase8_urban_regression=${result.phase8.runUrbanRegression}\nrun_phase8_browser=${result.phase8.runBrowser}\n`;
     appendFileSync(args.githubOutput, output);
   }
 }
