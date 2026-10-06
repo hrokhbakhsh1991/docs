@@ -51,9 +51,10 @@ Pushes to `main`, schedules, and manual runs retain the full Phase 6 path.
 
 Phase 8 now uses the classifier for its expensive Urban jobs as well. The
 Phase 8 guard remains active, while Urban regression and Urban Playwright are
-skipped for ordinary operator-web changes that do not touch the Urban surface.
-API, Urban, tenant-kernel, Phase 8, and explicit Urban browser changes retain
-both jobs; pushes, schedules, and manual runs retain the full path.
+skipped only for explicitly operator-only fixture, operator-E2E, operator
+config, and operator smoke-script paths. Shared web paths, API, Urban,
+tenant-kernel, Phase 8, and unknown changes retain both jobs; pushes,
+schedules, and manual runs retain the full path.
 
 The classifier is currently introduced as a shadow signal. Existing phase
 workflows remain authoritative until the signal has been compared against

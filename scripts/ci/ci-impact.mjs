@@ -286,7 +286,6 @@ export function classifyPaths(paths) {
     runBrowser:
       result.full || result.domains.some((domain) => phase6BrowserDomains.includes(domain)),
   };
-  const phase8UrbanPath = /(^|\/)(urban(?:[-/.]|$)|tenant-kernel(?:\/|$)|phase-8(?:\/|$))/;
   const phase8AlwaysRelevant = result.changedPaths.some(
     (path) =>
       result.full ||
@@ -297,12 +296,13 @@ export function classifyPaths(paths) {
       path.startsWith(".github/workflows/phase-8-gate.yml") ||
       path.startsWith("scripts/guards/phase-8-")
   );
-  const phase8WebUrbanPath = result.changedPaths.some(
-    (path) => path.startsWith("apps/web/") && phase8UrbanPath.test(path)
+  const operatorOnlyWebPath = /^apps\/web\/(?:test\/fixtures\/operator-|tests\/e2e\/operator-|playwright\.operator[^/]*\.config\.ts$|scripts\/(?:operator-smoke|smoke-operator))/;
+  const sharedWebPath = result.changedPaths.some(
+    (path) => path.startsWith("apps/web/") && !operatorOnlyWebPath.test(path)
   );
   result.phase8 = {
-    runUrbanRegression: phase8AlwaysRelevant || phase8WebUrbanPath,
-    runBrowser: phase8AlwaysRelevant || phase8WebUrbanPath,
+    runUrbanRegression: phase8AlwaysRelevant || sharedWebPath,
+    runBrowser: phase8AlwaysRelevant || sharedWebPath,
   };
   return result;
 }
