@@ -30,6 +30,7 @@ import {
 import { MobileInvalidError, MobileRequiredError } from "./phone-preflight.errors";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { signSessionToken } from "./sign-session-token";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 
 function readStringField(body: unknown, key: string): string {
   if (typeof body !== "object" || body === null) return "";
@@ -95,12 +96,16 @@ export async function handlePublicRequestOtp(
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<void> {
   try {
-    await resolveTenantIdFromRequest(req);
+    const tenantId = await resolveTenantIdFromRequest(req);
     const mobile = await readMobileFromBody(req);
     assertLoginMobilePresent(mobile);
     assertLoginMobileFormat(mobile);
 
-    const { challengeId } = await createMobileOtpChallenge(mobile, repo);
+    const { challengeId } = await createMobileOtpChallenge(mobile, repo, {
+      tenantId,
+      workspaceType: await resolveWorkspaceTypeForTenant(tenantId),
+      purpose: "member_login",
+    });
     sendJson(res, 200, { challengeId });
   } catch (error) {
     if (error instanceof MobileRequiredError || error instanceof MobileInvalidError) {
