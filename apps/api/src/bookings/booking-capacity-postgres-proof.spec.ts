@@ -268,15 +268,25 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false, skip
 
   after(async () => {
     const admin = getPrismaAdmin();
-    await admin.outboxEvent.deleteMany({ where: { tenantId } });
-    await admin.operatorRegistration.deleteMany({ where: { tenantId } });
-    await admin.tenant.deleteMany({ where: { id: tenantId } });
-    await disconnectPrisma();
-    resetBookingsRepositorySingletonForTests();
-    if (priorStorage === undefined) {
-      delete process.env.STORAGE_DRIVER;
-    } else {
-      process.env.STORAGE_DRIVER = priorStorage;
+    try {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+      );
+      await admin.auditEvent.deleteMany({ where: { tenantId } });
+      await admin.outboxEvent.deleteMany({ where: { tenantId } });
+      await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+      await admin.tenant.deleteMany({ where: { id: tenantId } });
+    } finally {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+      );
+      await disconnectPrisma();
+      resetBookingsRepositorySingletonForTests();
+      if (priorStorage === undefined) {
+        delete process.env.STORAGE_DRIVER;
+      } else {
+        process.env.STORAGE_DRIVER = priorStorage;
+      }
     }
   });
 

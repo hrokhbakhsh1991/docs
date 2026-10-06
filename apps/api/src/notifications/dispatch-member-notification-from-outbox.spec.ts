@@ -56,4 +56,33 @@ describe("member notification outbox mapping", () => {
     assert.equal(result.items[0]?.entityId, REGISTRATION_ID);
     assert.equal(result.items[0]?.payload.socialMediaLink, "https://t.me/example-group");
   });
+
+  it("maps rejected receipt to the member registration", async () => {
+    await dispatchMemberNotificationFromOutbox({
+      tenantId: TENANT_ID,
+      aggregateType: "receipt",
+      aggregateId: "receipt-2",
+      eventType: "receipt.rejected",
+      domainEventId: "receipt.rejected:receipt-2",
+      payload: {
+        receiptId: "receipt-2",
+        registrationId: REGISTRATION_ID,
+        guestUserId: USER_ID,
+        reviewNote: "proof is unreadable",
+      },
+      createdAt: new Date(),
+      correlationId: "receipt.rejected:receipt-2",
+    });
+
+    const result = await listMemberNotifications({
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+      limit: 20,
+    });
+    assert.equal(result.items.length, 1);
+    assert.equal(result.items[0]?.eventType, "receipt.rejected");
+    assert.equal(result.items[0]?.entityType, "registration");
+    assert.equal(result.items[0]?.entityId, REGISTRATION_ID);
+    assert.equal(result.items[0]?.payload.reviewNote, "proof is unreadable");
+  });
 });

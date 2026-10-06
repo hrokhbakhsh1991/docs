@@ -37,8 +37,20 @@ Eligibility is evaluated **only** on the API (`evaluateDenaliMemberCancellationE
 2. Payment hold `voided` when present
 3. `paymentDueAt` projection cleared
 4. FIFO waitlist promote **one** guest (same as payment-deadline expiry)
-5. Outbox `registration.cancelled` payload `source=member`
+5. Outbox `registration.cancelled` payload `source=member` and the member recipient identity (`guestUserId`, with `submittedByUserId` accepted as the compatibility alias)
 6. Member notification inbox row (DP-4 / DEN-PROD-12)
+
+The cancellation outbox event is the notification contract boundary. Every
+writer, including the Prisma-backed operator path, must carry the booking's
+`submittedByUserId` as `guestUserId`; an event without a recipient is not a
+complete cancellation event because the dispatcher cannot create the member
+inbox row.
+
+If the booking was finalized through the free/waived collection path, the
+cancel response must report `refundStatus=not_required`. A paid projection
+alone is not sufficient evidence that money was collected: the
+`financialDisplayState=WAIVED` projection and the `freeCollectionApplied`
+intake marker take precedence.
 
 ## Cancellation request (paid / partial)
 

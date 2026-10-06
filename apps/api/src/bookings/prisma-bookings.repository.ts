@@ -5,6 +5,8 @@ import {
 } from "@app-tour/finance-core";
 import { Prisma } from "@prisma/client";
 
+import { appendRegistrationCancellationAuditEvent } from "../audit/audit-logger";
+
 import {
   canTransitionBookingStatus,
   listBookingSourceStatusesForTarget,
@@ -214,7 +216,8 @@ function toBookingRecord(row: {
       ? { rejectReason: row.rejectReason }
       : {}),
     cancelSource: row.cancelSource ?? null,
-    cancellationStatus: (row.cancellationStatus as BookingRecord["cancellationStatus"] | undefined) ?? "none",
+    cancellationStatus:
+      (row.cancellationStatus as BookingRecord["cancellationStatus"] | undefined) ?? "none",
     cancellationReasonCode: row.cancellationReasonCode ?? null,
     cancellationReasonNote: row.cancellationReasonNote ?? null,
     cancellationRequestedAt: row.cancellationRequestedAt?.toISOString() ?? null,
@@ -1767,6 +1770,16 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const updated = await tx.operatorRegistration.findFirstOrThrow({
         where: { id: current.id, tenantId: input.tenantId },
       });
+      await appendRegistrationCancellationAuditEvent(tx, {
+        tenantId: input.tenantId,
+        registrationId: updated.id,
+        source: input.cancelSource ?? "unknown",
+        reasonCode: input.cancellationReasonCode ?? "unspecified",
+        ...(input.cancellationCorrelationId !== undefined
+          ? { correlationId: input.cancellationCorrelationId }
+          : {}),
+        createdAt: cancelledAt,
+      });
       await enqueueOutboxEvent(tx, {
         tenantId: input.tenantId,
         aggregateType: "registration",
@@ -1777,6 +1790,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tourId: updated.tourId,
           status: "cancelled",
           cancelledAt: cancelledAt.toISOString(),
+          guestUserId: updated.submittedByUserId,
           previousStatus,
           previousFinalizationStatus: current.finalizationStatus,
           previousPaymentStatus: current.paymentStatus,
@@ -1790,8 +1804,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             : {}),
         },
         correlationId: input.cancellationCorrelationId,
-        domainEventId:
-          input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
+        domainEventId: input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
         createdAt: cancelledAt,
       });
       return toBookingRecord(updated);

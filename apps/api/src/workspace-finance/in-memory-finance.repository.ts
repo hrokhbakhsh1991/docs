@@ -120,7 +120,10 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
      * Prisma parity for D1 candidates. Composition-root memory factory must inject
      * bookings. Payment-first unit fixtures may omit this and fall back to payment clocks.
      */
-    private readonly bookings: Pick<BookingRepositoryPort, "listByTenantPage"> | null = null
+    private readonly bookings: Pick<
+      BookingRepositoryPort,
+      "getById" | "listByTenantPage"
+    > | null = null
   ) {}
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     const tenantPayments = [...paymentsById.values()].filter((row) => row.tenantId === tenantId);
@@ -623,6 +626,11 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     };
     receiptsById.set(receiptId, updated);
     if (input.status === "Approved" || input.status === "Rejected") {
+      const registrationId = updated.payment?.registrationId ?? "";
+      const booking =
+        this.bookings !== null && registrationId.length > 0
+          ? await this.bookings.getById(registrationId, tenantId)
+          : null;
       ledgerEvents.push({
         id: randomUUID(),
         tenantId,
@@ -636,6 +644,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
           currency: updated.payment?.currency ?? "",
           reviewedAt: now.toISOString(),
           reviewNote: updated.reviewNote ?? "بدون توضیح",
+          ...(booking === null ? {} : { guestUserId: booking.submittedByUserId }),
         },
         createdAt: now,
         domainEventId: `receipt.${input.status.toLowerCase()}:${updated.id}:${now.toISOString()}`,
