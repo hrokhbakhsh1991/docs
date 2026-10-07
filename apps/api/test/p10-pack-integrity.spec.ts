@@ -121,9 +121,12 @@ describe("p10-pack-integrity", () => {
 
   it("P10-CADDY-01 Profile C install + port-param Caddyfile", () => {
     const caddy = readFileSync(join(ROOT, "deploy/vps/caddy/Caddyfile"), "utf8");
-    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$WEB_PORT\}/);
-    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$MARKETING_PORT\}/);
-    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$PORTAL_PORT\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$PROD_WEB_PORT\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$PROD_MARKETING_PORT\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$PROD_PORTAL_PORT\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$STAGING_WEB_PORT\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$STAGING_MARKETING_PORT\}/);
+    assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$STAGING_PORTAL_PORT\}/);
     assert.ok(existsSync(join(ROOT, "scripts/vps-deploy/install-caddy-profile-c.sh")));
     assert.ok(existsSync(join(ROOT, "scripts/vps-deploy/render-caddy-env.sh")));
   });
