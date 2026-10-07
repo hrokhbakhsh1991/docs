@@ -2308,7 +2308,7 @@ async function runProviderTest(input: {
       {
         recipient,
         templateId,
-        variables: ["1234", ...(workspaceName === null ? [] : [workspaceName])],
+        variables: [workspaceName === null ? "1234" : `1234 ${workspaceName}`],
       }
     );
     if (!result.ok) {
