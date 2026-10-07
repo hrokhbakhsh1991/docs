@@ -11,5 +11,5 @@ set -a
 source "${ENV_DIR}/marketing.env"
 set +a
 
-WEB_BIND_HOST="${WEB_BIND_HOST:-0.0.0.0}"
+WEB_BIND_HOST="${WEB_BIND_HOST:-127.0.0.1}"
 exec /usr/local/bin/pnpm exec next start -p "${PORT:-3002}" -H "$WEB_BIND_HOST"

@@ -102,6 +102,8 @@ for app in marketing portal web; do
   set_env_kv "$target" SESSION_COOKIE_SECURE true
 done
 set_env_kv "${ENV_DIR}/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+set_env_kv "${ENV_DIR}/api.env" AUTH_ALLOW_DEV_STATIC_OTP false
+set_env_kv "${ENV_DIR}/api.env" STAGING_ALLOW_STATIC_OTP true
 
 set_env_kv "${ENV_DIR}/web.env" ALLOW_DEV_WEB_SESSION true
 set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
