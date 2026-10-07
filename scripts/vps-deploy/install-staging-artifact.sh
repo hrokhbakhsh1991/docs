@@ -115,6 +115,10 @@ ARTIFACT_TOOLING="${RELEASES_DIR}/${SHA}/tooling/scripts/vps-deploy"
 }
 cp -a "${ARTIFACT_TOOLING}/." "${TOOLING}/scripts/vps-deploy/"
 chmod +x "${TOOLING}/scripts/vps-deploy/"*.sh
+# systemd starts these helpers as APP_USER; preserve executable access even
+# when the artifact was assembled by root and its files arrive mode 750.
+chown root:"${APP_USER}" "${TOOLING}/scripts/vps-deploy/"*.sh
+chmod 750 "${TOOLING}/scripts/vps-deploy/"*.sh
 
 chown -R "${APP_USER}:${APP_USER}" "${RELEASES_DIR}/${SHA}"
 
