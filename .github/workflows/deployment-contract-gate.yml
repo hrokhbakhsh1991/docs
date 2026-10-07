@@ -1,0 +1,63 @@
+name: deployment-contract-gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: deployment-contract-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Deployment contract gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Detect deployment contract changes
+        id: scope
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}...HEAD")"
+          if grep -Eq '^(deploy/vps/caddy/|scripts/vps-deploy/|scripts/ops/|apps/api/test/p10-pack-integrity\.spec\.ts|scripts/test/deployment-branch-contract\.spec\.mjs|\.github/workflows/deployment-contract-gate\.yml)' <<<"$changed"; then
+            echo "run_contract=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_contract=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip non-deployment change
+        if: github.event_name == 'pull_request' && steps.scope.outputs.run_contract != 'true'
+        run: echo "No deployment contract changes; fast gate passed."
+
+      - name: Install dependencies
+        if: github.event_name != 'pull_request' || steps.scope.outputs.run_contract == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: P10 deployment contract tests
+        if: github.event_name != 'pull_request' || steps.scope.outputs.run_contract == 'true'
+        run: pnpm --filter @apps/api exec node --import ./test/set-test-env.mjs --import tsx --test test/p10-pack-integrity.spec.ts
+
+      - name: Deployment branch contract tests
+        if: github.event_name != 'pull_request' || steps.scope.outputs.run_contract == 'true'
+        run: node --test scripts/test/deployment-branch-contract.spec.mjs scripts/test/staging-ci-build-order.spec.mjs
