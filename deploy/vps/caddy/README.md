@@ -52,8 +52,9 @@ sudo apt install caddy
 ### 2. Deploy Caddyfile + ports from env
 
 ```bash
-# Reads PORT from /etc/app-tour-staging/*.env (e.g. 23000–23003)
-ENV_DIR=/etc/app-tour-staging \
+# Reads both stacks: production 3000–3003 and staging 23000–23003.
+PROD_ENV_DIR=/etc/app-tour \
+STAGING_ENV_DIR=/etc/app-tour-staging \
 PLATFORM_ROOT_DOMAIN=your.staging.apex \
 bash /opt/app-tour-staging/scripts/vps-deploy/install-caddy-profile-c.sh
 ```
@@ -62,12 +63,13 @@ Or step-by-step:
 
 ```bash
 sudo cp deploy/vps/caddy/Caddyfile /etc/caddy/Caddyfile
-ENV_DIR=/etc/app-tour-staging PLATFORM_ROOT_DOMAIN=your.staging.apex \
+PROD_ENV_DIR=/etc/app-tour STAGING_ENV_DIR=/etc/app-tour-staging \
+PLATFORM_ROOT_DOMAIN=your.staging.apex \
   bash scripts/vps-deploy/render-caddy-env.sh
 sudo systemctl restart caddy
 ```
 
-**Staging ports:** `render-caddy-env.sh` reads `PORT=` from each app env file — production `3000–3003`, staging `23000–23003`. It reads `PORTAL_PUBLIC_BASE_URL` from `portal.env` (falling back to `marketing.env`) so custom hosts such as `portal.denali.club` route to the Portal upstream instead of the marketing wildcard. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` and `X-Forwarded-Host` remain set for the applications. Provisioning another workspace must update the public URL/env and reload Caddy; it does not broaden the session cookie to the platform root.
+**Port mapping:** `render-caddy-env.sh` reads both env directories and writes explicit `PROD_*_PORT` and `STAGING_*_PORT` values. Production domains route to `3000–3003`; staging domains route to `23000–23003`. It reads the production `PORTAL_PUBLIC_BASE_URL` (falling back to `marketing.env`) so custom production portal hosts route to the Portal upstream instead of the marketing wildcard. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` and `X-Forwarded-Host` remain set for the applications. Provisioning another workspace must update the public URL/env and reload Caddy; it does not broaden the session cookie to the platform root.
 
 ### 3. Configure DNS
 

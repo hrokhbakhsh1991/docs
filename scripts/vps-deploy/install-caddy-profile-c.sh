@@ -5,6 +5,8 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
+PROD_ENV_DIR="${PROD_ENV_DIR:-/etc/app-tour}"
+STAGING_ENV_DIR="${STAGING_ENV_DIR:-/etc/app-tour-staging}"
 CADDY_CONFIG="${CADDY_CONFIG:-/etc/caddy/Caddyfile}"
 CADDY_ENV="${CADDY_ENV_FILE:-/etc/caddy/caddy.env}"
 CADDY_SOURCE_CONFIG="${CADDY_SOURCE_CONFIG:-$DEPLOY_PATH/deploy/vps/caddy/Caddyfile}"
@@ -24,8 +26,8 @@ if ! command -v caddy >/dev/null 2>&1; then
   apt-get install -y caddy
 fi
 
-log "render caddy.env from $ENV_DIR"
-ENV_DIR="$ENV_DIR" PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-}" \
+log "render caddy.env from production=$PROD_ENV_DIR staging=$STAGING_ENV_DIR"
+PROD_ENV_DIR="$PROD_ENV_DIR" STAGING_ENV_DIR="$STAGING_ENV_DIR" PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-}" \
   bash "$DEPLOY_PATH/scripts/vps-deploy/render-caddy-env.sh"
 
 log "deploy Caddyfile"
