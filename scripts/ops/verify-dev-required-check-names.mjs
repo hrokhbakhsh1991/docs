@@ -15,6 +15,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const WORKFLOW_EXPECTATIONS = [
   {
+    file: ".github/workflows/deployment-contract-gate.yml",
+    requiredNames: ["Deployment contract gate"],
+  },
+  {
     file: ".github/workflows/phase-0-gate.yml",
     requiredNames: ["Phase 0 foundation gate", "Phase 0 integration gate"],
   },
