@@ -20,6 +20,7 @@ import { emitSettingsResourceAudit } from "../../settings/settings-audit-emitter
 import { shouldWarnTourPublishedPolicyDrift } from "../../health/tour-published-policy-drift";
 import { isIntegrationSubsystemReady } from "../../health/integration-subsystem-gate";
 import { resolveWorkspaceTypeForTenant } from "../../tenant/resolve-workspace-type";
+import { resolveOtpWorkspaceName } from "../../identity/resolve-otp-workspace-name";
 import { runWithTenantContext } from "../../tenant/tenant-request-context";
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
 import type { IntegrationCapability } from "../platform/integration-capability";
@@ -217,7 +218,8 @@ function parseProvider(value: unknown): IntegrationProviderId {
     value !== "slack" &&
     value !== "whatsapp" &&
     value !== "discord" &&
-    value !== "email"
+    value !== "email" &&
+    value !== "melipayamak"
   ) {
     throw new IntegrationInvalidBodyError("INTEGRATION_PROVIDER_INVALID");
   }
@@ -871,7 +873,7 @@ export async function patchIntegration(
       throw new IntegrationNotFoundError();
     }
 
-    const normalizedConfig =
+    const config =
       typeof record.config === "object" && record.config !== null
         ? ((await normalizeIntegrationPatchConfigFromSurface({
             workspaceType: existing.workspaceType,
@@ -879,18 +881,12 @@ export async function patchIntegration(
             rawConfig: record.config as Record<string, unknown>,
           })) as Prisma.InputJsonValue)
         : undefined;
-    const config =
-      existing.provider === "telegram" && normalizedConfig !== undefined
-        ? ({
-            ...(existing.config as Record<string, unknown>),
-            ...(normalizedConfig as Record<string, unknown>),
-            // Keep the canonical binding until the explicit Telegram
-            // provisioning step validates the replacement destination.
-            chatId:
-              (existing.config as Record<string, unknown>).chatId ??
-              (normalizedConfig as Record<string, unknown>).channelId,
-          } as Prisma.InputJsonValue)
-        : normalizedConfig;
+    if (existing.provider === "telegram" && config !== undefined) {
+      assertTelegramBindingUnchanged(
+        existing.config as Record<string, unknown>,
+        config as Record<string, unknown>
+      );
+    }
     const capabilities =
       record.capabilities !== undefined
         ? (parseCapabilities(record.capabilities) as Prisma.InputJsonValue)
@@ -941,6 +937,27 @@ export async function patchIntegration(
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt,
   });
+}
+
+function assertTelegramBindingUnchanged(
+  currentConfig: Record<string, unknown>,
+  nextConfig: Record<string, unknown>
+): void {
+  const currentChatId = typeof currentConfig.chatId === "string" ? currentConfig.chatId.trim() : "";
+  const nextChatId = typeof nextConfig.chatId === "string" ? nextConfig.chatId.trim() : "";
+  if (currentChatId.length > 0 && nextChatId.length > 0 && currentChatId !== nextChatId) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_ALREADY_BOUND");
+  }
+  const currentGroupName =
+    typeof currentConfig.groupName === "string" ? currentConfig.groupName.trim() : "";
+  const nextGroupName = typeof nextConfig.groupName === "string" ? nextConfig.groupName.trim() : "";
+  if (
+    currentGroupName.length > 0 &&
+    nextGroupName.length > 0 &&
+    currentGroupName !== nextGroupName
+  ) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND");
+  }
 }
 
 export async function patchIntegrationEventPolicy(
@@ -1463,9 +1480,9 @@ export async function provisionTelegramIntegration(
   }
   const boundGroupName =
     typeof connection.config.groupName === "string" ? connection.config.groupName.trim() : "";
-  const isRebind =
-    (boundChatId.length > 0 && boundChatId !== chatId) ||
-    (boundGroupName.length > 0 && boundGroupName !== groupName);
+  if (boundGroupName.length > 0 && boundGroupName !== groupName) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND");
+  }
 
   const leaseToken = randomUUID();
   if (
@@ -1477,24 +1494,22 @@ export async function provisionTelegramIntegration(
   try {
     const currentConfig = createTelegramForumConfig({
       groupName,
-      chatId,
-      ...(isRebind ? {} : { topics: readTelegramTopicConfig(connection.config) }),
+      chatId: connection.config.chatId,
+      topics: readTelegramTopicConfig(connection.config),
     });
     const provisioned = await provisionTelegramForum({
       api: createTelegramApiClient(botToken),
       config: currentConfig,
       chatId,
-      onTopicCreated: isRebind
-        ? undefined
-        : (key, topic) =>
-            persistTelegramTopicProgress({
-              tenantId: auth.tenantId,
-              integrationId: connection.id,
-              groupName,
-              chatId,
-              key,
-              topic,
-            }),
+      onTopicCreated: (key, topic) =>
+        persistTelegramTopicProgress({
+          tenantId: auth.tenantId,
+          integrationId: connection.id,
+          groupName,
+          chatId,
+          key,
+          topic,
+        }),
       loadConfig: async () => {
         const latest = await createIntegrationConnectionRepository().findByTenantAndId(
           auth.tenantId,
@@ -1505,11 +1520,11 @@ export async function provisionTelegramIntegration(
         }
         return createTelegramForumConfig({
           groupName:
-            !isRebind && typeof latest.config.groupName === "string"
+            typeof latest.config.groupName === "string"
               ? latest.config.groupName
-              : groupName,
-          chatId,
-          ...(isRebind ? {} : { topics: readTelegramTopicConfig(latest.config) }),
+              : currentConfig.groupName,
+          chatId: latest.config.chatId,
+          topics: readTelegramTopicConfig(latest.config),
         });
       },
       saveConfig: async (config) => {
@@ -1868,8 +1883,7 @@ async function processTelegramConnectCommand(input: {
   if (typeof botToken !== "string" || botToken.trim().length === 0) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
   }
-  // The connect command is only used for initial Telegram onboarding. Existing
-  // connections use the explicit provisioning endpoint, which supports rebind.
+  assertTelegramBindingUnchanged(connection.config, { chatId: command.chatId, groupName });
 
   const leaseToken = randomUUID();
   if (!(await claimTelegramProvisionLease({ tenantId, integrationId, leaseToken }))) {
@@ -2281,6 +2295,7 @@ async function runProviderTest(input: {
         backingSource: input.backingSource,
       };
     }
+    const workspaceName = await resolveOtpWorkspaceName(input.tenantId);
     const result = await adapter.sendSms(
       {
         tenantId: input.tenantId,
@@ -2290,7 +2305,11 @@ async function runProviderTest(input: {
         config: input.config,
         credentials: input.credentials,
       },
-      { recipient, templateId, variables: ["1234"] }
+      {
+        recipient,
+        templateId,
+        variables: ["1234", ...(workspaceName === null ? [] : [workspaceName])],
+      }
     );
     if (!result.ok) {
       if (input.persistStatusForConnectionId !== null) {

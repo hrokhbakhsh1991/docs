@@ -33,10 +33,12 @@ provider adapter.
 2. Store the Melipayamak web-service username and APIKey through the existing
    secret store. The `password` credential field carries the APIKey shown under
    the panel's Web service settings; it is not the panel login password.
-3. If a Pattern is approved later, configure its `bodyId` and keep its variable
-   order aligned with `smsVariables`; otherwise standard SendSMS is used.
-4. Configure a test recipient and use the connection test; it sends `1234` and
-   incurs the provider's normal SMS charge.
+3. If a Pattern is approved later, configure its `bodyId` with one variable;
+   the variable contains the numeric code `1234` followed by the
+   Admin-configured workspace display name. This keeps the existing one-variable
+   Pattern compatible; otherwise standard SendSMS is used.
+4. Configure a test recipient and use the connection test; it sends `1234` plus
+   the Admin-configured workspace name and incurs the provider's normal SMS charge.
 5. Set a unique 32-byte `SMS_DELIVERY_ENCRYPTION_KEY` for each environment.
 6. Set `SMS_OTP_ENABLED=true` only after the connection and key are verified.
 7. Run one staging OTP and inspect the delivery result plus `sms_usage_events`.
