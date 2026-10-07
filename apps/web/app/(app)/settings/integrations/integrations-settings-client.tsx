@@ -358,6 +358,10 @@ export function IntegrationsSettingsClient({
     return createValues[fieldKey(scope, fieldId)] ?? "";
   }
 
+  function createProviderIs(providerId: string): boolean {
+    return providerToCreate?.id === providerId;
+  }
+
   function setFieldInputValue(
     scope: "config" | "credentials",
     fieldId: string,
@@ -377,6 +381,13 @@ export function IntegrationsSettingsClient({
     if (field.id === "botToken") {
       return t("create.botTokenLabel");
     }
+    if (createProviderIs("melipayamak")) {
+      if (field.id === "sender") return t("create.smsSenderLabel");
+      if (field.id === "bodyId") return t("create.smsBodyIdLabel");
+      if (field.id === "testRecipient") return t("create.smsTestRecipientLabel");
+      if (field.id === "username") return t("create.smsUsernameLabel");
+      if (field.id === "password") return t("create.smsPasswordLabel");
+    }
     return field.id;
   }
 
@@ -387,6 +398,13 @@ export function IntegrationsSettingsClient({
     }
     if (field.id === "botToken") {
       return t("create.botTokenPlaceholder");
+    }
+    if (createProviderIs("melipayamak")) {
+      if (field.id === "sender") return t("create.smsSenderPlaceholder");
+      if (field.id === "bodyId") return t("create.smsBodyIdPlaceholder");
+      if (field.id === "testRecipient") return t("create.smsTestRecipientPlaceholder");
+      if (field.id === "username") return t("create.smsUsernamePlaceholder");
+      if (field.id === "password") return t("create.smsPasswordPlaceholder");
     }
     return undefined;
   }
@@ -399,7 +417,37 @@ export function IntegrationsSettingsClient({
     if (field.id === "botToken") {
       return t("create.botTokenHint");
     }
+    if (createProviderIs("melipayamak")) {
+      if (field.id === "sender") return t("create.smsSenderHint");
+      if (field.id === "bodyId") return t("create.smsBodyIdHint");
+      if (field.id === "testRecipient") return t("create.smsTestRecipientHint");
+      if (field.id === "username" || field.id === "password") {
+        return t("create.smsCredentialsHint");
+      }
+    }
     return null;
+  }
+
+  function createTitle(): string {
+    return createProviderIs("melipayamak") ? t("create.smsTitle") : t("create.title");
+  }
+
+  function createDescription(): string {
+    return createProviderIs("melipayamak") ? t("create.smsDescription") : t("create.description");
+  }
+
+  function createSubmitLabel(): string {
+    return createProviderIs("melipayamak") ? t("create.smsSubmit") : t("create.submit");
+  }
+
+  function createSuccessMessage(): string {
+    return createProviderIs("melipayamak") ? t("create.smsSuccess") : t("create.success");
+  }
+
+  function createValidationMessage(): string {
+    return createProviderIs("melipayamak")
+      ? t("create.smsValidationRequired")
+      : t("create.validationRequired");
   }
 
   function editFieldValue(scope: "config" | "credentials", fieldId: string): string {
@@ -539,7 +587,24 @@ export function IntegrationsSettingsClient({
     setPatchError(null);
     setPatchSuccess(false);
     try {
-      let updated = await patchIntegration(activeItem.id, patchInput);
+      const isTelegramRebind =
+        activeItem.provider === "telegram" &&
+        (editFieldValue("config", "channelId").trim() !==
+          (typeof activeItem.config.channelId === "string"
+            ? activeItem.config.channelId.trim()
+            : "") ||
+          editFieldValue("config", "groupName").trim() !==
+            (typeof activeItem.config.groupName === "string"
+              ? activeItem.config.groupName.trim()
+              : ""));
+      let updated = isTelegramRebind
+        ? activeItem
+        : await patchIntegration(activeItem.id, patchInput);
+      if (isTelegramRebind && patchInput.credentials !== undefined) {
+        updated = await patchIntegration(activeItem.id, {
+          credentials: patchInput.credentials,
+        });
+      }
       if (activeItem.provider === "telegram") {
         const chatId = editFieldValue("config", "channelId").trim();
         const groupName = editFieldValue("config", "groupName").trim();
@@ -826,8 +891,8 @@ export function IntegrationsSettingsClient({
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.addForm}
         >
           <CardHeader>
-            <CardTitle>{t("create.title")}</CardTitle>
-            <CardDescription>{t("create.description")}</CardDescription>
+            <CardTitle>{createTitle()}</CardTitle>
+            <CardDescription>{createDescription()}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {providerToCreate?.configFields.map((field) => {
@@ -881,13 +946,13 @@ export function IntegrationsSettingsClient({
             {createError !== null ? (
               <p className="text-sm text-destructive">
                 {createError === "INTEGRATION_CREATE_VALIDATION_REQUIRED"
-                  ? t("create.validationRequired")
+                  ? createValidationMessage()
                   : resolveCodedErrorMessage(tErrors, createError)}
               </p>
             ) : null}
             {createSuccess ? (
               <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-900 dark:text-emerald-100">
-                {t("create.success")}
+                {createSuccessMessage()}
               </p>
             ) : null}
             <Button
@@ -895,7 +960,7 @@ export function IntegrationsSettingsClient({
               disabled={createLoading || actionLoading}
               onClick={() => void handleCreateIntegration()}
             >
-              {createLoading ? t("create.submitting") : t("create.submit")}
+              {createLoading ? t("create.submitting") : createSubmitLabel()}
             </Button>
           </CardContent>
         </Card>

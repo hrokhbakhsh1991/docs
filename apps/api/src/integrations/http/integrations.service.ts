@@ -871,7 +871,7 @@ export async function patchIntegration(
       throw new IntegrationNotFoundError();
     }
 
-    const config =
+    const normalizedConfig =
       typeof record.config === "object" && record.config !== null
         ? ((await normalizeIntegrationPatchConfigFromSurface({
             workspaceType: existing.workspaceType,
@@ -879,12 +879,18 @@ export async function patchIntegration(
             rawConfig: record.config as Record<string, unknown>,
           })) as Prisma.InputJsonValue)
         : undefined;
-    if (existing.provider === "telegram" && config !== undefined) {
-      assertTelegramBindingUnchanged(
-        existing.config as Record<string, unknown>,
-        config as Record<string, unknown>
-      );
-    }
+    const config =
+      existing.provider === "telegram" && normalizedConfig !== undefined
+        ? ({
+            ...(existing.config as Record<string, unknown>),
+            ...(normalizedConfig as Record<string, unknown>),
+            // Keep the canonical binding until the explicit Telegram
+            // provisioning step validates the replacement destination.
+            chatId:
+              (existing.config as Record<string, unknown>).chatId ??
+              (normalizedConfig as Record<string, unknown>).channelId,
+          } as Prisma.InputJsonValue)
+        : normalizedConfig;
     const capabilities =
       record.capabilities !== undefined
         ? (parseCapabilities(record.capabilities) as Prisma.InputJsonValue)
@@ -935,29 +941,6 @@ export async function patchIntegration(
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt,
   });
-}
-
-function assertTelegramBindingUnchanged(
-  currentConfig: Record<string, unknown>,
-  nextConfig: Record<string, unknown>
-): void {
-  const currentChatId =
-    typeof currentConfig.chatId === "string" ? currentConfig.chatId.trim() : "";
-  const nextChatId = typeof nextConfig.chatId === "string" ? nextConfig.chatId.trim() : "";
-  if (currentChatId.length > 0 && nextChatId.length > 0 && currentChatId !== nextChatId) {
-    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_ALREADY_BOUND");
-  }
-  const currentGroupName =
-    typeof currentConfig.groupName === "string" ? currentConfig.groupName.trim() : "";
-  const nextGroupName =
-    typeof nextConfig.groupName === "string" ? nextConfig.groupName.trim() : "";
-  if (
-    currentGroupName.length > 0 &&
-    nextGroupName.length > 0 &&
-    currentGroupName !== nextGroupName
-  ) {
-    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND");
-  }
 }
 
 export async function patchIntegrationEventPolicy(
@@ -1480,34 +1463,38 @@ export async function provisionTelegramIntegration(
   }
   const boundGroupName =
     typeof connection.config.groupName === "string" ? connection.config.groupName.trim() : "";
-  if (boundGroupName.length > 0 && boundGroupName !== groupName) {
-    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_GROUP_NAME_ALREADY_BOUND");
-  }
+  const isRebind =
+    (boundChatId.length > 0 && boundChatId !== chatId) ||
+    (boundGroupName.length > 0 && boundGroupName !== groupName);
 
   const leaseToken = randomUUID();
-  if (!(await claimTelegramProvisionLease({ tenantId: auth.tenantId, integrationId, leaseToken }))) {
+  if (
+    !(await claimTelegramProvisionLease({ tenantId: auth.tenantId, integrationId, leaseToken }))
+  ) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_PROVISION_IN_PROGRESS");
   }
 
   try {
     const currentConfig = createTelegramForumConfig({
       groupName,
-      chatId: connection.config.chatId,
-      topics: readTelegramTopicConfig(connection.config),
+      chatId,
+      ...(isRebind ? {} : { topics: readTelegramTopicConfig(connection.config) }),
     });
     const provisioned = await provisionTelegramForum({
       api: createTelegramApiClient(botToken),
       config: currentConfig,
       chatId,
-      onTopicCreated: (key, topic) =>
-        persistTelegramTopicProgress({
-          tenantId: auth.tenantId,
-          integrationId: connection.id,
-          groupName,
-          chatId,
-          key,
-          topic,
-        }),
+      onTopicCreated: isRebind
+        ? undefined
+        : (key, topic) =>
+            persistTelegramTopicProgress({
+              tenantId: auth.tenantId,
+              integrationId: connection.id,
+              groupName,
+              chatId,
+              key,
+              topic,
+            }),
       loadConfig: async () => {
         const latest = await createIntegrationConnectionRepository().findByTenantAndId(
           auth.tenantId,
@@ -1518,11 +1505,11 @@ export async function provisionTelegramIntegration(
         }
         return createTelegramForumConfig({
           groupName:
-            typeof latest.config.groupName === "string"
+            !isRebind && typeof latest.config.groupName === "string"
               ? latest.config.groupName
-              : currentConfig.groupName,
-          chatId: latest.config.chatId,
-          topics: readTelegramTopicConfig(latest.config),
+              : groupName,
+          chatId,
+          ...(isRebind ? {} : { topics: readTelegramTopicConfig(latest.config) }),
         });
       },
       saveConfig: async (config) => {
@@ -1834,10 +1821,8 @@ export async function processTelegramWebhook(
         }),
       {
         actorId,
-        ...(connection.workspaceType === null
-          ? {}
-          : { workspaceType: connection.workspaceType }),
-      },
+        ...(connection.workspaceType === null ? {} : { workspaceType: connection.workspaceType }),
+      }
     );
   }
   return { accepted: true, connected: false };
@@ -1883,7 +1868,8 @@ async function processTelegramConnectCommand(input: {
   if (typeof botToken !== "string" || botToken.trim().length === 0) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
   }
-  assertTelegramBindingUnchanged(connection.config, { chatId: command.chatId, groupName });
+  // The connect command is only used for initial Telegram onboarding. Existing
+  // connections use the explicit provisioning endpoint, which supports rebind.
 
   const leaseToken = randomUUID();
   if (!(await claimTelegramProvisionLease({ tenantId, integrationId, leaseToken }))) {
