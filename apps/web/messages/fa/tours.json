@@ -508,6 +508,11 @@
       "followPayment": "پیگیری پرداخت",
       "finalizeParticipantSuccess": "شرکت‌کننده نهایی شد؛ وضعیت پرداخت جداگانه باقی می‌ماند.",
       "finalizeParticipantFailed": "نهایی‌کردن شرکت‌کننده انجام نشد.",
+      "cancelParticipant": "لغو رزرو",
+      "cancelParticipantSuccess": "رزرو شرکت‌کننده از لیست نهایی لغو شد.",
+      "cancelParticipantRefundPending": "بازپرداخت در انتظار تأیید مالی است.",
+      "cancelParticipantSettlementReview": "اصلاح تسویه نیازمند بررسی دستی است.",
+      "cancelParticipantFailed": "لغو رزرو شرکت‌کننده انجام نشد.",
       "stages": {
         "approved_payment_required": "تاییدشده؛ پرداخت لازم است",
         "approved_ready_to_finalize": "تاییدشده؛ آماده افزودن به فهرست نهایی",

@@ -10,25 +10,66 @@ Preferred local discovery commands: `pnpm verify:fast`, `pnpm verify:product`, `
 
 ## Tiers
 
-| Tier                             | Command                                      | When                                                       | What runs                                                                                                                                                                            |
-| -------------------------------- | -------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh`         | Every `git commit` (when hooks not suspended)              | Path-gated guards, `lint-staged` (batched eslint + prettier), `test-changed --mode pre-commit` (direct packages, API spec-level) — see [Pre-commit fast path](#pre-commit-fast-path) |
-| **Changed tests**                | `pnpm run test:changed`                      | Manual / CI selective                                      | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                                                        |
-| **Pre-commit dry-run**           | `pnpm run pre-commit:fast`                   | Before commit                                              | Same as Husky fast path                                                                                                                                                              |
-| **Full**                         | `pnpm run test:full`                         | Before PR / Phase 4–5 closure                              | `phase-5:gate` — **denested Wave A**: `db:test-reset` + build + full `pnpm test` + `phase-4:guard` + `phase-5:guard` (**does not** nest `phase-4:gate` / `phase-3:gate`)                                      |
-| **Phase 5 runtime proof**        | `pnpm run phase-5:runtime-proof`             | Postgres available; additive (does not replace `:gate`)  | `db:test-reset` + `phase-4:guard` + targeted perf (`P5_PERF_GATE_MS=850`, `MIN_THROUGHPUT=100`, `BASELINE_RATIO_MAX=1.25`) — see [`phase-5-runtime-proof.mdoc`](../phase-5/phase-5-runtime-proof.mdoc) |
-| **Phase 6 full closure**         | `pnpm run phase-6:gate`                      | Phase 6 DoD / GHA `full-gate`                          | build + test + `phase-5:runtime-proof` + `phase-5:guard` + residual apps-cert (`post-test` + `floors`) + `phase-6:guard` (Option B; **not** nested `phase-5:gate`; **PASS ≠** full `phase-3:apps-cert`) |
-| **Phase 3 apps-cert post-test**  | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:post-test` | After root `build && test` in same recipe; wired into `phase-6:gate` | Residual: web lint + canonical-sync + admin `next build` — **not** full apps-cert / leaf-gate PASS |
-| **Phase 3 apps-cert floors**     | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:floors` | After root `build && test` in same recipe; wired into `phase-6:gate` | Sdk ≥100 + starter ≥15 count floors — **not** api/web floors or leaf-gate PASS |
-| **CI integrity**                 | `pnpm run ci:integrity`                      | **`main` push / `workflow_dispatch`** (not every PR)     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — Wave A removed duplicate PR runs from Phase 7+8 workflows                                                                                                         |
-| **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`                     | PR / local                                                 | 25 doc + boundary charter gates — under 10s                                                                                                                                          |
-| **Phase 8 urban regression**     | GHA job `urban-regression`                   | GitHub PR (`phase-8-gate.yml`)                             | Contract + urban proof bundle (memory driver)                                                                                                                                        |
-| **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban` | GHA job `urban-e2e`                                        | Playwright SMK-P8-01..04                                                                                                                                                             |
-| **Phase 8 full closure**         | `pnpm run phase-8:gate`                      | GHA `phase-8-gate-full` on **main** or `workflow_dispatch` | build + full `pnpm test` + `phase-7:guard` + `phase-8:guard` (~90–150 min; denested)                                                                                                     |
-| **Nightly (API probes)**         | `pnpm run test:nightly`                      | Scheduled / pre-release                                    | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                                                 |
-| **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`           | Scheduled (`api-nightly.yml`) / pre-release                | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                                                |
+| Tier                             | Command                                                                 | When                                                                 | What runs                                                                                                                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh`                                    | Every `git commit` (when hooks not suspended)                        | Path-gated guards, `lint-staged` (batched eslint + prettier), `test-changed --mode pre-commit` (direct packages, API spec-level) — see [Pre-commit fast path](#pre-commit-fast-path)                    |
+| **Changed tests**                | `pnpm run test:changed`                                                 | Manual / CI selective                                                | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                                                                           |
+| **Pre-commit dry-run**           | `pnpm run pre-commit:fast`                                              | Before commit                                                        | Same as Husky fast path                                                                                                                                                                                 |
+| **Full**                         | `pnpm run test:full`                                                    | Before PR / Phase 4–5 closure                                        | `phase-5:gate` — **denested Wave A**: `db:test-reset` + build + full `pnpm test` + `phase-4:guard` + `phase-5:guard` (**does not** nest `phase-4:gate` / `phase-3:gate`)                                |
+| **Phase 5 runtime proof**        | `pnpm run phase-5:runtime-proof`                                        | Postgres available; additive (does not replace `:gate`)              | `db:test-reset` + `phase-4:guard` + targeted perf (`P5_PERF_GATE_MS=850`, `MIN_THROUGHPUT=100`, `BASELINE_RATIO_MAX=1.25`) — see [`phase-5-runtime-proof.mdoc`](../phase-5/phase-5-runtime-proof.mdoc)  |
+| **Phase 6 full closure**         | `pnpm run phase-6:gate`                                                 | Phase 6 DoD / GHA `full-gate`                                        | build + test + `phase-5:runtime-proof` + `phase-5:guard` + residual apps-cert (`post-test` + `floors`) + `phase-6:guard` (Option B; **not** nested `phase-5:gate`; **PASS ≠** full `phase-3:apps-cert`) |
+| **Phase 3 apps-cert post-test**  | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:post-test` | After root `build && test` in same recipe; wired into `phase-6:gate` | Residual: web lint + canonical-sync + admin `next build` — **not** full apps-cert / leaf-gate PASS                                                                                                      |
+| **Phase 3 apps-cert floors**     | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:floors`    | After root `build && test` in same recipe; wired into `phase-6:gate` | Sdk ≥100 + starter ≥15 count floors — **not** api/web floors or leaf-gate PASS                                                                                                                          |
+| **CI integrity**                 | `pnpm run ci:integrity`                                                 | **`main` push / `workflow_dispatch`** (not every PR)                 | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — Wave A removed duplicate PR runs from Phase 7+8 workflows                                                                                        |
+| **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`                                                | PR / local                                                           | 25 doc + boundary charter gates — under 10s                                                                                                                                                             |
+| **Phase 8 urban regression**     | GHA job `urban-regression`                                              | GitHub PR (`phase-8-gate.yml`)                                       | Contract + urban proof bundle (memory driver)                                                                                                                                                           |
+| **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban`                            | GHA job `urban-e2e`                                                  | Playwright SMK-P8-01..04                                                                                                                                                                                |
+| **Phase 8 full closure**         | `pnpm run phase-8:gate`                                                 | GHA `phase-8-gate-full` on **main** or `workflow_dispatch`           | build + full `pnpm test` + `phase-7:guard` + `phase-8:guard` (~90–150 min; denested)                                                                                                                    |
+| **Nightly (API probes)**         | `pnpm run test:nightly`                                                 | Scheduled / pre-release                                              | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                                                                    |
+| **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`                                      | Scheduled (`api-nightly.yml`) / pre-release                          | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                                                                   |
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
+
+## CI impact classifier (shadow rollout)
+
+Pull-request CI uses a conservative, pure change classifier at
+[`scripts/ci/ci-impact.mjs`](../../scripts/ci/ci-impact.mjs). It maps changed
+paths to affected surfaces and test tiers, and fails closed to the full impact
+set for shared control-plane files, database contracts, workflow/configuration
+changes, or an unknown path. This prevents a new package or cross-surface file
+from silently bypassing coverage.
+
+The JSON decision also includes `gateNodes`, using the node IDs from
+[`PROD-3-GATE-CATALOG.json`](../platform/PROD-3-GATE-CATALOG.json). The future
+orchestrator will consume these IDs instead of duplicating path rules in each
+workflow.
+
+Phase 6 now consumes the same decision for its expensive PR jobs: fast
+closure, MinIO, and generic Denali Playwright smoke are skipped for
+Marketing-only changes, while the dedicated Marketing rail remains active.
+Pushes to `main`, schedules, and manual runs retain the full Phase 6 path.
+
+Phase 8 now uses the classifier for its expensive Urban jobs as well. The
+Phase 8 guard remains active, while Urban regression and Urban Playwright are
+skipped only for explicitly operator-only fixture, operator-E2E, operator
+config, and operator smoke-script paths. Shared web paths, API, Urban,
+tenant-kernel, Phase 8, and unknown changes retain both jobs; pushes,
+schedules, and manual runs retain the full path.
+
+The classifier is currently introduced as a shadow signal. Existing phase
+workflows remain authoritative until the signal has been compared against
+several real pull requests. The intended migration order is:
+
+1. Run the classifier on every pull request and publish its JSON decision.
+2. Compare its selected domains/tiers with the existing phase checks on at
+   least three representative pull requests.
+3. Move the selected jobs behind the classifier while keeping a stable,
+   always-created required summary check.
+4. Only then update branch protection and retire duplicate PR workflows.
+
+The contract is tested with `pnpm run test:ci-impact`. Full/nightly and
+merge-queue certification remain separate from the PR fast path; this change
+does not weaken those rails.
 
 ## Wave A — PR denest (2026-08)
 
@@ -36,15 +77,15 @@ Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the n
 
 **Logic (ownership):**
 
-| Surface | PR | `main` / manual |
-| --- | --- | --- |
-| Phase 0 foundation | `test:phase-0` (unchanged) | same |
-| Phase 0 integration | `phase-0:integration-gate:pr` = build + **`test:changed`** + contracts/adversarial/guards | full `phase-0:integration-gate` (`pnpm test`) |
-| Phase 1 | build + **platform-core tests only** + `phase-1:guard` (no monorepo `pnpm test`) | same script (still scoped) |
-| Phase 4 GHA | resilience + **`phase-4:guard` only** | full `phase-4:gate` (build + test + guard; **no** nested `phase-3:gate`) |
-| Phase 5 GHA | denested `phase-5:gate` (build + test + `phase-4:guard` + `phase-5:guard`) | same |
-| Phase 7 / 8 `ci:integrity` | **skipped** | run once on `main` / `workflow_dispatch` |
-| Phase 7 adversarial P0 | stays on PR (Postgres, ~5 min) | same |
+| Surface                    | PR                                                                                        | `main` / manual                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Phase 0 foundation         | `test:phase-0` (unchanged)                                                                | same                                                                     |
+| Phase 0 integration        | `phase-0:integration-gate:pr` = build + **`test:changed`** + contracts/adversarial/guards | full `phase-0:integration-gate` (`pnpm test`)                            |
+| Phase 1                    | build + **platform-core tests only** + `phase-1:guard` (no monorepo `pnpm test`)          | same script (still scoped)                                               |
+| Phase 4 GHA                | resilience + **`phase-4:guard` only**                                                     | full `phase-4:gate` (build + test + guard; **no** nested `phase-3:gate`) |
+| Phase 5 GHA                | denested `phase-5:gate` (build + test + `phase-4:guard` + `phase-5:guard`)                | same                                                                     |
+| Phase 7 / 8 `ci:integrity` | **skipped**                                                                               | run once on `main` / `workflow_dispatch`                                 |
+| Phase 7 adversarial P0     | stays on PR (Postgres, ~5 min)                                                            | same                                                                     |
 
 `MAIN_BRANCH_REQUIRED_CHECKS` job **names** are unchanged (PSR-3b freeze). Only recipes and `if:` conditions changed.
 
@@ -144,13 +185,13 @@ cd apps/api && node --import tsx --test --test-force-exit --test-concurrency=1 \
 
 Heavy verification runs on **ubuntu-latest** with service containers — not on the developer laptop.
 
-| Job                 | When                                            | Services         | Command                                                             |
-| ------------------- | ----------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
-| `guard`             | Every PR / push (path filter)                   | —                | `phase-8:guard` + `guard:p8-boundary-diff`                          |
-| `urban-regression`  | After guard green                               | —                | `phase-8.contract` + urban API proof specs + `workspace-urban` test |
-| `urban-e2e`         | After guard green                               | —                | Playwright `test:e2e:urban`                                         |
+| Job                 | When                                                                | Services         | Command                                                             |
+| ------------------- | ------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| `guard`             | Every PR / push (path filter)                                       | —                | `phase-8:guard` + `guard:p8-boundary-diff`                          |
+| `urban-regression`  | After guard green                                                   | —                | `phase-8.contract` + urban API proof specs + `workspace-urban` test |
+| `urban-e2e`         | After guard green                                                   | —                | Playwright `test:e2e:urban`                                         |
 | `ci-integrity`      | **`main` push or `workflow_dispatch` only** (Wave A — not every PR) | Postgres 16      | `pnpm run ci:integrity`                                             |
-| `phase-8-gate-full` | **main** push or manual `run_full_phase_8_gate` | Postgres + Redis | `pnpm run phase-8:gate`                                             |
+| `phase-8-gate-full` | **main** push or manual `run_full_phase_8_gate`                     | Postgres + Redis | `pnpm run phase-8:gate`                                             |
 
 **PR fast path (typical):** guard → urban-regression → urban-e2e (~15–45 min on GHA). Full `ci:integrity` is trunk/manual (avoids double-running Phase 7+8 integrity on the same tip).
 

@@ -106,6 +106,15 @@ Async email/SMS channel retries keyed to `member_notifications`. Same retry sema
 
 All dispatchers call `insertMemberNotificationRow` in `member-notification.repository.ts`.
 
+### Recipient identity invariant
+
+Booking events that target a member must include `payload.guestUserId`. The
+legacy `payload.submittedByUserId` name remains a dispatcher compatibility
+fallback, but new writers must emit the canonical `guestUserId` value from the
+booking's `submittedByUserId`. A booking event without either value is not
+deliverable to the member inbox and must be treated as an incomplete outbox
+contract.
+
 ---
 
 ## 6. Portal integration

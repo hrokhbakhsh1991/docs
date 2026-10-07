@@ -6,12 +6,23 @@ import { after, before, beforeEach, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app.ts";
 import { getBookingsRepository } from "../../src/bookings/create-bookings-repository.ts";
-import { approveBooking, createBooking, waitlistBooking } from "../../src/bookings/create-bookings-service.ts";
+import {
+  approveBooking,
+  createBooking,
+  waitlistBooking,
+} from "../../src/bookings/create-bookings-service.ts";
 import { cancelTourRegistrations } from "../../src/bookings/tour-cancellation.service.ts";
 import { OPERATOR_SMOKE } from "../fixtures/operator-smoke-e2e-tenant.ts";
-import { operatorAuthHeaders, seedOperatorIdentityFixture } from "../fixtures/operator-identity-fixture.ts";
+import {
+  operatorAuthHeaders,
+  seedOperatorIdentityFixture,
+} from "../fixtures/operator-identity-fixture.ts";
 import { installHttpTestClient } from "../http-test-client.ts";
-import { createSharedMemoryTourStoreForHttpTests, createTestToursService, installMemoryStorageDriverForDescribe } from "../test-helpers.ts";
+import {
+  createSharedMemoryTourStoreForHttpTests,
+  createTestToursService,
+  installMemoryStorageDriverForDescribe,
+} from "../test-helpers.ts";
 import { dp1BookingBody } from "../dp1/dp1-test-harness.ts";
 import {
   dp6CancelBooking,
@@ -45,7 +56,8 @@ describe("DP6 refund orchestration", () => {
   before(async () => {
     seedOperatorIdentityFixture();
     resetDp6Harness();
-    const { getIdentityRepository } = await import("../../src/identity/create-identity-repository.ts");
+    const { getIdentityRepository } =
+      await import("../../src/identity/create-identity-repository.ts");
     const idRepo = getIdentityRepository();
     idRepo.seedUser({ id: OPERATOR_SMOKE.memberUserId, mobile: OPERATOR_SMOKE.memberMobile });
     idRepo.seedMembership({
@@ -124,8 +136,67 @@ describe("DP6 refund orchestration", () => {
     const result = await cancelTourRegistrations(dp6OpsAuth(), tourId);
     assert.ok(result.cancelledRegistrationIds.includes(bookingId));
     assert.ok(result.refundDraftCount >= 1);
+    assert.deepEqual(result.manualReviewRegistrationIds, []);
+    assert.deepEqual(result.failedRegistrationIds, []);
+    assert.equal(result.settlementStatus, "completed");
     const refunds = await dp6ListRefundsForRegistration(bookingId);
     assert.equal(refunds.items.length, 1);
+  });
+
+  it("tour cancellation result cannot report completed when any row needs review", async () => {
+    const bookingId = await dp6CreateApprovedBooking();
+    const row = await getBookingsRepository().getById(bookingId, dp6OpsAuth().tenantId);
+    assert.ok(row);
+    const result = await cancelTourRegistrations(dp6OpsAuth(), row.tourId, {
+      repository: {
+        listByTenant: async () => [row],
+        cancelBooking: async () => {
+          throw new Error("SIMULATED_CANCEL_FAILURE");
+        },
+      },
+      handleTourCancelledForSettlement: async () => undefined,
+    });
+    assert.deepEqual(result.cancelledRegistrationIds, []);
+    assert.deepEqual(result.failedRegistrationIds, [bookingId]);
+    assert.deepEqual(result.manualReviewRegistrationIds, []);
+    assert.equal(result.settlementStatus, "manual_review");
+  });
+
+  it("tour cancellation result marks side-effect failure for manual review", async () => {
+    const bookingId = await dp6CreateApprovedBooking();
+    const row = await getBookingsRepository().getById(bookingId, dp6OpsAuth().tenantId);
+    assert.ok(row);
+    const result = await cancelTourRegistrations(dp6OpsAuth(), row.tourId, {
+      repository: getBookingsRepository(),
+      postCancelSideEffects: async () => {
+        throw new Error("SIMULATED_SIDE_EFFECT_FAILURE");
+      },
+      handleTourCancelledForSettlement: async () => undefined,
+    });
+    assert.deepEqual(result.cancelledRegistrationIds, [bookingId]);
+    assert.deepEqual(result.failedRegistrationIds, []);
+    assert.deepEqual(result.manualReviewRegistrationIds, [bookingId]);
+    assert.equal(result.settlementStatus, "manual_review");
+  });
+
+  it("tour cancellation result surfaces a non-throwing settlement correction", async () => {
+    const bookingId = await dp6CreateApprovedBooking();
+    const row = await getBookingsRepository().getById(bookingId, dp6OpsAuth().tenantId);
+    assert.ok(row);
+    const result = await cancelTourRegistrations(dp6OpsAuth(), row.tourId, {
+      repository: getBookingsRepository(),
+      postCancelSideEffects: async () => ({
+        refundDrafted: false,
+        refundId: null,
+        eligibleRefundMinor: "0",
+        waitlistPromoted: false,
+        waitlistCandidate: false,
+        settlementStatus: "correction_pending",
+      }),
+      handleTourCancelledForSettlement: async () => undefined,
+    });
+    assert.deepEqual(result.manualReviewRegistrationIds, [bookingId]);
+    assert.equal(result.settlementStatus, "manual_review");
   });
 
   it("S12 waitlist withdraw frees no seat; approved cancel leaves waitlist for operator promotion", async () => {
@@ -169,9 +240,13 @@ describe("DP6 refund orchestration", () => {
       tenantId: OPERATOR_SMOKE.tenantId,
       paymentStatus: "paid",
     });
-    const memberCancel = await client.requestJson("POST", `/bookings/${bookingId}/member-cancellation`, {
-      headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member"),
-    });
+    const memberCancel = await client.requestJson(
+      "POST",
+      `/bookings/${bookingId}/member-cancellation`,
+      {
+        headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member"),
+      }
+    );
     assert.equal(memberCancel.status, 200);
     assert.equal((memberCancel.body as { kind?: string }).kind, "request_submitted");
     const approve = await client.requestJson(
@@ -216,9 +291,8 @@ describe("DP6 member cancellation eligibility includes refund preview", () => {
     const repo = getBookingsRepository();
     const row = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
     assert.ok(row);
-    const { getMemberCancellationEligibility } = await import(
-      "../../src/member-cancellation/member-cancellation.service.ts"
-    );
+    const { getMemberCancellationEligibility } =
+      await import("../../src/member-cancellation/member-cancellation.service.ts");
     const result = await getMemberCancellationEligibility(
       {
         tenantId: OPERATOR_SMOKE.tenantId,

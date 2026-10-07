@@ -10,6 +10,7 @@
  * - reject persists with zero outbox (silent ≠ cancel)
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { after, before, beforeEach, describe, it } from "node:test";
 
 import {
@@ -95,6 +96,34 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
     assert.ok(outbox.some((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE));
   });
 
+  it("second cancel is a conflict and does not emit a second cancellation event", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Cancel Retry"));
+    await cancelBooking(opsAuth(TENANT_DENALI), created.id);
+
+    await assert.rejects(
+      () => cancelBooking(opsAuth(TENANT_DENALI), created.id),
+      (error: unknown) => error instanceof BookingStatusConflictError
+    );
+
+    const outbox = await peekOutboxByAggregateForTests({
+      tenantId: TENANT_DENALI,
+      aggregateId: created.id,
+    });
+    assert.equal(
+      outbox.filter((row) => row.eventType === BOOKING_CANCEL_OUTBOX_EVENT_TYPE).length,
+      1
+    );
+  });
+
+  it("Prisma cancellation contract records an append-only registration audit in the same transaction", () => {
+    const source = readFileSync(
+      new URL("./prisma-bookings.repository.ts", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /appendRegistrationCancellationAuditEvent/);
+    assert.match(source, /registrationId: updated\.id/);
+  });
+
   it("finalizes approved unpaid booking without waiving payment and preserves finality after payment", async () => {
     const created = await createBooking(opsAuth(TENANT_DENALI), body("Finalize Open Payment"));
     await approveBooking(opsAuth(TENANT_DENALI), created.id);
@@ -159,6 +188,17 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
       retriedOutbox.filter((event) => event.eventType === "registration.waived_finalized").length,
       1
     );
+  });
+
+  it("waived finalization does not create a refund obligation on operator cancellation", async () => {
+    const created = await createBooking(opsAuth(TENANT_DENALI), body("Waived Then Cancel"));
+    await approveBooking(opsAuth(TENANT_DENALI), created.id);
+    await waiveAndFinalizeBooking(opsAuth(TENANT_DENALI), created.id);
+
+    const cancelled = await cancelBooking(opsAuth(TENANT_DENALI), created.id);
+
+    assert.equal(cancelled.status, "cancelled");
+    assert.equal(cancelled.refundStatus, "not_required");
   });
 
   it("lifecycle transitions clear stale finalization metadata", async () => {

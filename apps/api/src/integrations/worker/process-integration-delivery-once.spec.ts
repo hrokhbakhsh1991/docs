@@ -94,11 +94,18 @@ describe("Telegram worker delivery", () => {
             readonly body?: Uint8Array;
             readonly contentType?: string;
             readonly fileName?: string;
+            readonly caption?: string;
           }
         | undefined;
 
       const result = await executeIntegrationDeliveryJob(
-        deliveryJob({ payload: { ...deliveryJob().payload, fileKey: storageKey } }),
+        deliveryJob({
+          payload: {
+            ...deliveryJob().payload,
+            fileKey: storageKey,
+            note: `رسید کارت به کارت\n${"جزئیات ".repeat(300)}`,
+          },
+        }),
         {
           resolveConnection: async () => ({
             id: "connection-1",
@@ -128,6 +135,8 @@ describe("Telegram worker delivery", () => {
       assert.deepEqual(result, { ok: true });
       assert.equal(capturedMedia?.kind, "photo");
       assert.equal(capturedMedia?.contentType, "image/jpeg");
+      assert.match(capturedMedia?.caption ?? "", /رسید کارت به کارت/);
+      assert.ok((capturedMedia?.caption ?? "").length <= 1024);
       assert.match(capturedMedia?.fileName ?? "", /^payment-proof\.jpg-[a-f0-9]{32}$/);
       assert.deepEqual(
         [...((capturedMedia?.body ?? new Uint8Array()) as Uint8Array)],
@@ -142,7 +151,11 @@ describe("Telegram worker delivery", () => {
   });
 
   it("sends a receipt to the persisted forum topic when the connection stores chatId", async () => {
-    const sent: Array<{ channelId: string; messageThreadId?: number }> = [];
+    const sent: Array<{
+      channelId: string;
+      messageThreadId?: number;
+      hasMedia: boolean;
+    }> = [];
     const result = await executeIntegrationDeliveryJob(deliveryJob(), {
       resolveConnection: async () => ({
         id: "connection-1",
@@ -162,14 +175,20 @@ describe("Telegram worker delivery", () => {
         id: "telegram",
         supportedCapabilities: ["message.send"],
         async sendMessage(_ctx, input) {
-          sent.push({ channelId: input.channelId, messageThreadId: input.messageThreadId });
+          sent.push({
+            channelId: input.channelId,
+            messageThreadId: input.messageThreadId,
+            hasMedia: input.media !== undefined,
+          });
           return { ok: true };
         },
       }),
     });
 
     assert.deepEqual(result, { ok: true });
-    assert.deepEqual(sent, [{ channelId: "-1004292581496", messageThreadId: 202 }]);
+    assert.deepEqual(sent, [
+      { channelId: "-1004292581496", messageThreadId: 202, hasMedia: false },
+    ]);
   });
 
   it("does not send a mapped event when its forum topic is missing and auto-create fails", async () => {

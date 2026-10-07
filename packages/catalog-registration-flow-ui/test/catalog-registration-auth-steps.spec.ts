@@ -121,11 +121,8 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.match(authSteps, /useGuestAuthHost/);
     assert.match(authSteps, /probeSession/);
     assert.match(authSteps, /onAuthenticated/);
-    assert.doesNotMatch(authSteps, /if \(!ready\)/);
-    assert.match(
-      authSteps,
-      /probe throw must not skip host continuation/
-    );
+    assert.match(authSteps, /if \(!session\.ready\)/);
+    assert.match(authSteps, /setError\(resolveError\("network"\)\)/);
     assert.match(authSteps, /transport\.requestOtp/);
     assert.match(authSteps, /transport\.verifyOtp/);
     assert.match(authSteps, /transport\.completeProfile/);

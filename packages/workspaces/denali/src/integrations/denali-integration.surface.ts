@@ -158,7 +158,7 @@ export const denaliIntegrationSurface = Object.freeze({
     "registration.approved":
       "ثبت‌نام تأیید شد\nشناسه ثبت‌نام: {{bookingId}}\nتاریخ تأیید: {{approvedAt}}",
     "receipt.submitted":
-      "فیش جدید برای بررسی\nشناسه ثبت‌نام: {{registrationId}}\nشناسه پرداخت: {{paymentId}}\nمبلغ قابل پرداخت: {{amount}} {{currency}}\nتاریخ ارسال: {{submittedAt}}",
+      "فیش جدید برای بررسی\nارسال‌کننده: {{submittedByDisplayName}}\nشناسه ثبت‌نام: {{registrationId}}\nشناسه پرداخت: {{paymentId}}\nمبلغ قابل پرداخت: {{amount}} {{currency}}\nتاریخ ارسال: {{submittedAt}}",
     "receipt.approved":
       "فیش تأیید شد\nشناسه فیش: {{receiptId}}\nشناسه ثبت‌نام: {{registrationId}}\nتاریخ بررسی: {{reviewedAt}}",
     "receipt.rejected":

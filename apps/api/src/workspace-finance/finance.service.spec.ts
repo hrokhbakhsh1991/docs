@@ -109,7 +109,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
   }> {
     const bookingPayments =
       input.bookingPayments ?? new BookingPaymentAdapter(getBookingsRepository());
-    const financeRepo = new InMemoryFinanceRepository(bookingPayments);
+    const financeRepo = new InMemoryFinanceRepository(bookingPayments, getBookingsRepository());
     const obligation =
       input.obligationMinor === undefined
         ? fakeNullObligation
@@ -244,6 +244,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     );
     assert.equal(events.length, 1);
     assert.equal(events[0]?.eventType, "receipt.rejected");
+    assert.equal(events[0]?.payload.guestUserId, OPERATOR_SMOKE.memberUserId);
   });
 
   it("PR20-B underpay approve → booking partial (obligation 2500000, payment 1500000)", async () => {

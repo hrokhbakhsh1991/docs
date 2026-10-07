@@ -28,6 +28,14 @@ import { resolveTourPublishedPdpUrl } from "../application/resolve-tour-publishe
 import { logger } from "../../observability/logger";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
+const TELEGRAM_MEDIA_CAPTION_MAX_LENGTH = 1024;
+
+function telegramMediaCaption(text: string): string {
+  if (text.length <= TELEGRAM_MEDIA_CAPTION_MAX_LENGTH) {
+    return text;
+  }
+  return `${text.slice(0, TELEGRAM_MEDIA_CAPTION_MAX_LENGTH - 1)}…`;
+}
 
 export type ProcessIntegrationDeliveryDeps = {
   readonly deliveryRepository: IntegrationDeliveryRepository;
@@ -222,7 +230,9 @@ function deliveryFailureReason(error: Record<string, unknown> | undefined): stri
     : "INTEGRATION_DELIVERY_FAILED";
 }
 
-async function safelyRecordSmsUsageAttempt(input: Parameters<typeof recordSmsUsageAttempt>[0]): Promise<void> {
+async function safelyRecordSmsUsageAttempt(
+  input: Parameters<typeof recordSmsUsageAttempt>[0]
+): Promise<void> {
   try {
     await recordSmsUsageAttempt(input);
   } catch (error: unknown) {
@@ -288,7 +298,8 @@ export async function executeIntegrationDeliveryJob(
       return { ok: false, error: { code: "MELIPAYAMAK_ADAPTER_UNSUPPORTED" } };
     }
     const recipient = typeof job.payload.recipient === "string" ? job.payload.recipient : "";
-    const templateId = typeof job.payload.smsTemplateId === "string" ? job.payload.smsTemplateId : "";
+    const templateId =
+      typeof job.payload.smsTemplateId === "string" ? job.payload.smsTemplateId : "";
     const plainVariables = Array.isArray(job.payload.smsVariables)
       ? job.payload.smsVariables.filter((value): value is string => typeof value === "string")
       : [];
@@ -299,7 +310,14 @@ export async function executeIntegrationDeliveryJob(
     let variables = plainVariables;
     if (encryptedOtp !== null) {
       try {
-        variables = [decryptOtpDeliveryCode(encryptedOtp)];
+        const workspaceName =
+          typeof job.payload.smsWorkspaceName === "string"
+            ? job.payload.smsWorkspaceName.trim()
+            : "";
+        const code = decryptOtpDeliveryCode(encryptedOtp);
+        // Keep the existing one-placeholder Pattern compatible: the provider
+        // receives one clean variable containing the numeric code and name.
+        variables = [workspaceName.length === 0 ? code : `${code} ${workspaceName}`];
       } catch {
         return { ok: false, error: { code: "SMS_DELIVERY_SECRET_INVALID" } };
       }
@@ -309,7 +327,9 @@ export async function executeIntegrationDeliveryJob(
       job,
       recipient,
       status: result.ok ? "sent" : "failed",
-      ...(result.providerMessageId === undefined ? {} : { providerMessageId: result.providerMessageId }),
+      ...(result.providerMessageId === undefined
+        ? {}
+        : { providerMessageId: result.providerMessageId }),
       ...(result.errorCode === undefined ? {} : { errorCode: result.errorCode }),
     });
     return result.ok
@@ -366,6 +386,7 @@ export async function executeIntegrationDeliveryJob(
           readonly body?: Uint8Array;
           readonly contentType?: string;
           readonly fileName?: string;
+          readonly caption?: string;
         }
       | undefined;
     if (
@@ -388,6 +409,7 @@ export async function executeIntegrationDeliveryJob(
           body: proof.body,
           contentType: proof.contentType,
           fileName: proof.fileName,
+          caption: telegramMediaCaption(text),
         };
       } catch {
         return { ok: false, error: { code: "INTEGRATION_MEDIA_READ_FAILED" } };
@@ -396,7 +418,11 @@ export async function executeIntegrationDeliveryJob(
       typeof job.payload.telegramMediaUrl === "string" &&
       (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
     ) {
-      media = { kind: job.payload.telegramMediaKind, url: job.payload.telegramMediaUrl };
+      media = {
+        kind: job.payload.telegramMediaKind,
+        url: job.payload.telegramMediaUrl,
+        caption: telegramMediaCaption(text),
+      };
     }
     const tourPdpUrl =
       job.provider === "telegram" && job.eventType === "TourPublished"

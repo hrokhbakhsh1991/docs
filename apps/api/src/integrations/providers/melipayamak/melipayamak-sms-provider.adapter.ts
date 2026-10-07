@@ -44,25 +44,10 @@ function classifyProviderResponse(status: number, body: MelipayamakResponse): In
   }
 
   if (body !== null) {
-    const providerMessageId = readString(
-      body,
-      "recId",
-      "RecId",
-      "messageId",
-      "MessageId",
-      "value",
-      "Value"
-    );
+    const providerMessageId = readString(body, "recId", "RecId", "messageId", "MessageId", "value");
     const errorCode = readString(body, "errorCode", "ErrorCode", "code", "Code", "RetStatus");
     const errorMessage = readString(body, "errorMessage", "ErrorMessage", "message", "Message");
-    const providerStatus = readString(body, "RetStatus", "retStatus");
-    const providerStatusMessage = readString(body, "StrRetStatus", "strRetStatus");
-    const success =
-      body.success === true ||
-      body.Success === true ||
-      providerStatus === "1" ||
-      providerStatusMessage?.toLowerCase() === "ok" ||
-      providerMessageId !== undefined;
+    const success = body.success === true || body.Success === true || providerMessageId !== undefined;
     if (success) return { ok: true, ...(providerMessageId ? { providerMessageId } : {}) };
     return {
       ok: false,

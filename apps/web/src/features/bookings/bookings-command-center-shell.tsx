@@ -798,7 +798,9 @@ export function BookingsPageClient({
         throw new Error(`BOOKINGS_${action.toUpperCase()}_HTTP_${response.status}`);
       }
       if (
-        (action === "approve" || action === "promote-waitlist-with-capacity-increase") &&
+        (action === "approve" ||
+          action === "cancel" ||
+          action === "promote-waitlist-with-capacity-increase") &&
         embedded &&
         lockedTour.trim().length > 0
       ) {
@@ -1465,9 +1467,9 @@ export function BookingsPageClient({
               setCancelTargetId(null);
               setCancelReasonDraft("operator_correction");
             }
-        }}
-        onConfirm={() => void confirmCancel()}
-      />
+          }}
+          onConfirm={() => void confirmCancel()}
+        />
 
       <BookingsBulkConfirmDialog
         open={bulkConfirmOpen}

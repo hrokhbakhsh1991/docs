@@ -121,11 +121,22 @@ describe("booking capacity stress (PostgreSQL)", { concurrency: false, skip: pos
   });
 
   after(async () => {
-    await getPrismaAdmin().outboxEvent.deleteMany({ where: { tenantId } });
-    await getPrismaAdmin().operatorRegistration.deleteMany({ where: { tenantId } });
-    await getPrismaAdmin().tenant.deleteMany({ where: { id: tenantId } });
-    resetBookingsRepositorySingletonForTests();
-    await disconnectPrisma();
+    const admin = getPrismaAdmin();
+    try {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+      );
+      await admin.auditEvent.deleteMany({ where: { tenantId } });
+      await admin.outboxEvent.deleteMany({ where: { tenantId } });
+      await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+      await admin.tenant.deleteMany({ where: { id: tenantId } });
+    } finally {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+      );
+      resetBookingsRepositorySingletonForTests();
+      await disconnectPrisma();
+    }
   });
 
   it(`invariant holds across ${STRESS_ITERATIONS} random waves × ${CONCURRENCY} ops`, async () => {

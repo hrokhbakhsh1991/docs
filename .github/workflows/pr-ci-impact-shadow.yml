@@ -1,0 +1,69 @@
+name: PR CI impact (shadow)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: pr-ci-impact-shadow-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    name: Classify affected CI surface
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref || 'dev' }}
+      HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup platform
+        uses: ./.github/actions/setup-platform
+        with:
+          install-dependencies: "false"
+
+      - name: Classify changed paths
+        run: |
+          node scripts/ci/ci-impact.mjs \
+            --base "origin/${BASE_REF}" \
+            --head "${HEAD_REF}" \
+            --github-output "$GITHUB_OUTPUT" \
+            > ci-impact.json
+
+      - name: Publish classification summary
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const result = JSON.parse(fs.readFileSync('ci-impact.json', 'utf8'));
+          const lines = [
+            '## CI impact classifier (shadow)',
+            '',
+            `- Full impact: **${result.full ? 'yes' : 'no'}**`,
+            `- Domains: ${result.domains.join(', ') || 'none'}`,
+            `- Tiers: ${Object.entries(result.tiers).filter(([, enabled]) => enabled).map(([name]) => name).join(', ')}`,
+            `- Planned gate nodes: ${result.gateNodes.join(', ') || 'none'}`,
+            `- Phase 6 jobs: fast-closure=${result.phase6.runFastClosure ? 'run' : 'skip'}, MinIO=${result.phase6.runMinio ? 'run' : 'skip'}, browser=${result.phase6.runBrowser ? 'run' : 'skip'}`,
+            `- Phase 8 jobs: Urban regression=${result.phase8.runUrbanRegression ? 'run' : 'skip'}, browser=${result.phase8.runBrowser ? 'run' : 'skip'}`,
+            `- Changed paths: **${result.changedPaths.length}**`,
+          ];
+          if (result.unknownPaths.length) lines.push(`- Unknown paths (fail-closed): ${result.unknownPaths.join(', ')}`);
+          lines.push('', 'This is a non-required shadow signal; existing CI remains authoritative during rollout.');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\\n')}\\n`);
+          NODE
+
+      - name: Upload classification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-impact-${{ github.run_id }}
+          path: ci-impact.json
+          if-no-files-found: error

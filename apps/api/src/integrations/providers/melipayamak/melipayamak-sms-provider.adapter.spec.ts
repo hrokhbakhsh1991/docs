@@ -27,13 +27,13 @@ describe("Melipayamak SMS provider adapter", () => {
       const result = await new MelipayamakSmsProviderAdapter().sendSms(context, {
         recipient: "989121234567",
         templateId: "12345",
-        variables: ["4821"],
+        variables: ["4821 دنالی"],
       });
       assert.deepEqual(result, { ok: true, providerMessageId: "1234567890123456" });
       assert.equal(requestUrl, "https://sms.test/BaseServiceNumber");
       assert.match(requestBody, /username=api-user/);
       assert.match(requestBody, /bodyId=12345/);
-      assert.match(requestBody, /text=4821/);
+      assert.match(requestBody, /text=4821\+%D8%AF%D9%86%D8%A7%D9%84%DB%8C/);
       assert.match(requestBody, /to=989121234567/);
     } finally {
       globalThis.fetch = originalFetch;
@@ -43,19 +43,25 @@ describe("Melipayamak SMS provider adapter", () => {
   it("fails closed when credentials or sender line are missing", async () => {
     const adapter = new MelipayamakSmsProviderAdapter();
     assert.deepEqual(
-      await adapter.sendSms({ ...context, credentials: {} }, {
-        recipient: "989121234567",
-        templateId: "12345",
-        variables: ["4821"],
-      }),
+      await adapter.sendSms(
+        { ...context, credentials: {} },
+        {
+          recipient: "989121234567",
+          templateId: "12345",
+          variables: ["4821"],
+        }
+      ),
       { ok: false, errorCode: "MELIPAYAMAK_CREDENTIALS_MISSING" }
     );
     assert.deepEqual(
-      await adapter.sendSms({ ...context, config: {} }, {
-        recipient: "989121234567",
-        templateId: "",
-        variables: ["4821"],
-      }),
+      await adapter.sendSms(
+        { ...context, config: {} },
+        {
+          recipient: "989121234567",
+          templateId: "",
+          variables: ["4821"],
+        }
+      ),
       { ok: false, errorCode: "MELIPAYAMAK_SENDER_MISSING" }
     );
   });
@@ -81,23 +87,6 @@ describe("Melipayamak SMS provider adapter", () => {
       assert.match(requestBody, /text=1234/);
       assert.match(requestBody, /isFlash=false/);
       assert.doesNotMatch(requestBody, /bodyId=/);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it("classifies Melipayamak's successful RetStatus response", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () =>
-      new Response(JSON.stringify({ Value: "11", RetStatus: 1, StrRetStatus: "Ok" }), {
-        status: 200,
-      })) as typeof fetch;
-    try {
-      const result = await new MelipayamakSmsProviderAdapter().sendSms(
-        { ...context, config: { sender: "50002710052870" } },
-        { recipient: "989121234567", templateId: "", variables: ["1234"] }
-      );
-      assert.deepEqual(result, { ok: true, providerMessageId: "11" });
     } finally {
       globalThis.fetch = originalFetch;
     }

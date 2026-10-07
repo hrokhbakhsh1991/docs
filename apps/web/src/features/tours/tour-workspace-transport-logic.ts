@@ -92,6 +92,7 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   activeFilters: "operator-tour-workspace-transport-active-filters",
   finalBadge: "operator-tour-workspace-operational-roster-final",
   finalizeParticipantButton: "operator-tour-workspace-finalize-participant",
+  cancelParticipantButton: "operator-tour-workspace-cancel-participant",
   amountDue: "operator-tour-workspace-operational-roster-amount-due",
   paymentDeadline: "operator-tour-workspace-operational-roster-deadline",
   driverBadge: "operator-tour-workspace-operational-roster-driver",
