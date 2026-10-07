@@ -1,6 +1,5 @@
 # Caddyfile — Profile C HTTPS (P10-1-N-001)
-# Env: PLATFORM_ROOT_DOMAIN, WEB_PORT, MARKETING_PORT, PORTAL_PORT (from /etc/caddy/caddy.env)
-# Staging example: WEB_PORT=23000 MARKETING_PORT=23002 PORTAL_PORT=23003
+# Env: production and staging ports from /etc/caddy/caddy.env.
 # Arvan terminates public HTTPS. The origin stays HTTP while applications must
 # still receive X-Forwarded-Proto=https to avoid secure-session redirect loops.
 
@@ -27,6 +26,21 @@ http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
 # legacy {club}.admin.{root} address working during migration.
 http://admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$WEB_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/admin-access.log
+		format json
+	}
+}
+
+# Isolated staging stack. Exact host match must win over the marketing wildcard.
+http://staging-admin-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
@@ -70,6 +84,20 @@ http://{$CANONICAL_PORTAL_HOST} {
 	}
 }
 
+http://staging-portal-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$STAGING_PORTAL_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/portal-access.log
+		format json
+	}
+}
+
 # Public HTTPS origin for browser-reachable MinIO presigned URLs. Arvan
 # terminates TLS; Caddy forwards the request to loopback MinIO without
 # exposing port 9002 or an IP address to the browser.
@@ -89,6 +117,20 @@ http://{$MINIO_PUBLIC_HOST} {
 
 http://*.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$MARKETING_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/marketing-access.log
+		format json
+	}
+}
+
+http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$STAGING_MARKETING_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
