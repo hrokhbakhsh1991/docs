@@ -1,35 +1,43 @@
 #!/usr/bin/env bash
-# Render /etc/caddy/caddy.env from VPS app env ports (P10-1-N-001)
+# Render /etc/caddy/caddy.env from both VPS app stacks (P10-1-N-001)
 set -euo pipefail
 
-ENV_DIR="${ENV_DIR:-/etc/app-tour}"
+PROD_ENV_DIR="${PROD_ENV_DIR:-/etc/app-tour}"
+STAGING_ENV_DIR="${STAGING_ENV_DIR:-/etc/app-tour-staging}"
 OUT="${CADDY_ENV_FILE:-/etc/caddy/caddy.env}"
 PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/ports.sh
 source "${SCRIPT_DIR}/lib/ports.sh"
-collect_app_ports "$ENV_DIR"
+collect_app_ports "$PROD_ENV_DIR"
+PROD_API_PORT="${API_PORT:-3001}"
+PROD_WEB_PORT="${WEB_PORT:-3000}"
+PROD_MARKETING_PORT="${MARKETING_PORT:-3002}"
+PROD_PORTAL_PORT="${PORTAL_PORT:-3003}"
 
-API_PORT="${API_PORT:-3001}"
-WEB_PORT="${WEB_PORT:-3000}"
-MARKETING_PORT="${MARKETING_PORT:-3002}"
-PORTAL_PORT="${PORTAL_PORT:-3003}"
+collect_app_ports "$STAGING_ENV_DIR"
+STAGING_API_PORT="${API_PORT:-23001}"
+STAGING_WEB_PORT="${WEB_PORT:-23000}"
+STAGING_MARKETING_PORT="${MARKETING_PORT:-23002}"
+STAGING_PORTAL_PORT="${PORTAL_PORT:-23003}"
 
 if [[ -z "$PLATFORM_ROOT_DOMAIN" ]]; then
-  PLATFORM_ROOT_DOMAIN="$(read_env_var "${ENV_DIR}/web.env" PLATFORM_ROOT_DOMAIN 2>/dev/null || true)"
+  PLATFORM_ROOT_DOMAIN="$(read_env_var "${PROD_ENV_DIR}/web.env" PLATFORM_ROOT_DOMAIN 2>/dev/null || true)"
 fi
 if [[ -z "$PLATFORM_ROOT_DOMAIN" ]]; then
-  PLATFORM_ROOT_DOMAIN="$(read_env_var "${ENV_DIR}/api.env" PLATFORM_ROOT_DOMAIN 2>/dev/null || true)"
+  PLATFORM_ROOT_DOMAIN="$(read_env_var "${PROD_ENV_DIR}/api.env" PLATFORM_ROOT_DOMAIN 2>/dev/null || true)"
 fi
 PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-staging.example.com}"
-CANONICAL_TENANT_LABEL="${CANONICAL_TENANT_LABEL:-$(read_env_var "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_LABEL 2>/dev/null || true)}"
+CANONICAL_TENANT_LABEL="${CANONICAL_TENANT_LABEL:-$(read_env_var "${PROD_ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_LABEL 2>/dev/null || true)}"
 CANONICAL_TENANT_LABEL="${CANONICAL_TENANT_LABEL:-denali}"
-MINIO_PUBLIC_HOST="$(read_env_var "${ENV_DIR}/api.env" MINIO_PUBLIC_HOST 2>/dev/null || true)"
+MINIO_PUBLIC_HOST="$(read_env_var "${PROD_ENV_DIR}/api.env" MINIO_PUBLIC_HOST 2>/dev/null || true)"
 MINIO_PUBLIC_HOST="${MINIO_PUBLIC_HOST:-storage.${CANONICAL_TENANT_LABEL}.${PLATFORM_ROOT_DOMAIN}}"
 MINIO_PORT="${MINIO_PORT:-9002}"
-PORTAL_PUBLIC_BASE_URL="$(read_env_var "${ENV_DIR}/portal.env" PORTAL_PUBLIC_BASE_URL 2>/dev/null || true)"
-PORTAL_PUBLIC_BASE_URL="${PORTAL_PUBLIC_BASE_URL:-$(read_env_var "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL 2>/dev/null || true)}"
+PORTAL_PUBLIC_BASE_URL="$(read_env_var "${PROD_ENV_DIR}/portal.env" PORTAL_PUBLIC_BASE_URL 2>/dev/null || true)"
+PORTAL_PUBLIC_BASE_URL="${PORTAL_PUBLIC_BASE_URL:-$(read_env_var "${PROD_ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL 2>/dev/null || true)}"
+# Env files may use shell-style double quotes around URL values.
+PORTAL_PUBLIC_BASE_URL="$(printf '%s' "$PORTAL_PUBLIC_BASE_URL" | sed -E 's/^"//; s/"$//')"
 CANONICAL_PORTAL_HOST="${CANONICAL_PORTAL_HOST:-}"
 if [[ -z "$CANONICAL_PORTAL_HOST" && -n "$PORTAL_PUBLIC_BASE_URL" ]]; then
   CANONICAL_PORTAL_HOST="$(printf '%s' "$PORTAL_PUBLIC_BASE_URL" | sed -E 's#^[[:alpha:]][[:alnum:].+-]*://([^/:]+)(:[0-9]+)?(/.*)?$#\1#')"
@@ -52,12 +60,22 @@ CANONICAL_TENANT_LABEL=${CANONICAL_TENANT_LABEL}
 CANONICAL_PORTAL_HOST=${CANONICAL_PORTAL_HOST}
 MINIO_PUBLIC_HOST=${MINIO_PUBLIC_HOST}
 MINIO_PORT=${MINIO_PORT}
-API_PORT=${API_PORT}
-WEB_PORT=${WEB_PORT}
-MARKETING_PORT=${MARKETING_PORT}
-PORTAL_PORT=${PORTAL_PORT}
+PROD_API_PORT=${PROD_API_PORT}
+PROD_WEB_PORT=${PROD_WEB_PORT}
+PROD_MARKETING_PORT=${PROD_MARKETING_PORT}
+PROD_PORTAL_PORT=${PROD_PORTAL_PORT}
+STAGING_API_PORT=${STAGING_API_PORT}
+STAGING_WEB_PORT=${STAGING_WEB_PORT}
+STAGING_MARKETING_PORT=${STAGING_MARKETING_PORT}
+STAGING_PORTAL_PORT=${STAGING_PORTAL_PORT}
+# Backward-compatible aliases for diagnostics; Caddy routes use the explicit
+# PROD_* and STAGING_* variables above.
+API_PORT=${PROD_API_PORT}
+WEB_PORT=${PROD_WEB_PORT}
+MARKETING_PORT=${PROD_MARKETING_PORT}
+PORTAL_PORT=${PROD_PORTAL_PORT}
 CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL:-ops@example.com}
 EOF
 
 chmod 640 "$OUT"
-echo "[caddy-env] wrote $OUT (root=${PLATFORM_ROOT_DOMAIN} tenant=${CANONICAL_TENANT_LABEL} portal=${CANONICAL_PORTAL_HOST} web=${WEB_PORT} mkt=${MARKETING_PORT} ptl=${PORTAL_PORT})"
+echo "[caddy-env] wrote $OUT (prod=${PROD_WEB_PORT}/${PROD_API_PORT}/${PROD_MARKETING_PORT}/${PROD_PORTAL_PORT} staging=${STAGING_WEB_PORT}/${STAGING_API_PORT}/${STAGING_MARKETING_PORT}/${STAGING_PORTAL_PORT})"

@@ -57,7 +57,8 @@ sudo caddy list-certificates | head -40
 `caddy.env` uses app `PORT=` values (e.g. staging `23000–23003`, prod `3000–3003`). Regenerate after port change:
 
 ```bash
-ENV_DIR=/etc/app-tour-staging bash /opt/app-tour-staging/scripts/vps-deploy/render-caddy-env.sh
+PROD_ENV_DIR=/etc/app-tour STAGING_ENV_DIR=/etc/app-tour-staging \
+  bash /opt/app-tour-staging/scripts/vps-deploy/render-caddy-env.sh
 sudo systemctl reload caddy
 ```
 

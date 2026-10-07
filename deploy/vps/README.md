@@ -130,7 +130,7 @@ Infra on the VPS (already running): Postgres `:5433`, Redis `:6379`, MinIO `:900
 | Units | `app-tour-*` | `app-tour-staging-*` |
 | Web / API / M / P | `3000` / `3001` / `3002` / `3003` | `23000` / `23001` / `23002` / `23003` |
 | Public IP (Profile B) | `:13000–13003` optional | `:23000–23003` |
-| Edge (Profile C) | Caddy `:443` → loopback | same pattern · `render-caddy-env.sh` reads staging ports |
+| Edge (Profile C) | Caddy `:443` → loopback | same pattern · `render-caddy-env.sh` writes separate production/staging upstream ports |
 
 ## P7 four-process templates (production ports)
 
