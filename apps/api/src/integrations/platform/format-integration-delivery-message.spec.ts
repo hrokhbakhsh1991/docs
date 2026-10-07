@@ -72,9 +72,10 @@ describe("format integration delivery message", () => {
           amount: "2500000",
           currency: "IRR",
           submittedAt: "2026-09-14T10:00:00.000Z",
+          submittedByDisplayName: "Ali Test",
         },
       }),
-      "فیش جدید برای بررسی\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
+      "فیش جدید برای بررسی\nارسال‌کننده: Ali Test\nشناسه ثبت‌نام: reg-1\nشناسه پرداخت: pay-1\nمبلغ قابل پرداخت: 2500000 IRR\nتاریخ ارسال: ۱۴۰۵/۰۶/۲۳, ۱۳:۳۰"
     );
     assert.match(
       await formatIntegrationDeliveryMessage({

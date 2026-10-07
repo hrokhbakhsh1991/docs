@@ -78,6 +78,21 @@ provider is never called inside the booking or finance transaction.
 | `receipt.submitted`, `receipt.approved`, `receipt.rejected`          | `receipts`               | Receipt submitted and review result                       |
 | `ticket.*`                                                           | `tickets`                | Ticket creation, messages, assignment, status and closure |
 
+### Receipt submission payload contract
+
+`receipt.submitted` accepts exactly three evidence shapes: text-only, file-only,
+or text plus file. An empty submission is invalid. The event carries the
+tenant-scoped `fileKey` when a proof exists, `telegramMediaKind` for image vs
+document routing, the optional `note`, and a submitter snapshot containing
+`submittedByUserId` plus the registration display name. The Telegram worker
+loads private proof bytes at delivery time and sends them with `sendPhoto` or
+`sendDocument`; it must not persist signed URLs in the durable event.
+
+Receipt review has one pending state followed by exactly one decision:
+`Approved` or `Rejected`. Telegram exposes only the corresponding approve and
+reject callback buttons. Replayed callbacks must be idempotent and must not
+change an already reviewed receipt.
+
 The topic key is resolved from the Denali workspace integration surface, then
 resolved to the persisted `topicThreadIds` belonging to the same Telegram
 connection. A missing thread ID is a configuration error for that delivery job;

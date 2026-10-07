@@ -28,6 +28,14 @@ import { resolveTourPublishedPdpUrl } from "../application/resolve-tour-publishe
 import { logger } from "../../observability/logger";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
+const TELEGRAM_MEDIA_CAPTION_MAX_LENGTH = 1024;
+
+function telegramMediaCaption(text: string): string {
+  if (text.length <= TELEGRAM_MEDIA_CAPTION_MAX_LENGTH) {
+    return text;
+  }
+  return `${text.slice(0, TELEGRAM_MEDIA_CAPTION_MAX_LENGTH - 1)}…`;
+}
 
 export type ProcessIntegrationDeliveryDeps = {
   readonly deliveryRepository: IntegrationDeliveryRepository;
@@ -378,6 +386,7 @@ export async function executeIntegrationDeliveryJob(
           readonly body?: Uint8Array;
           readonly contentType?: string;
           readonly fileName?: string;
+          readonly caption?: string;
         }
       | undefined;
     if (
@@ -400,6 +409,7 @@ export async function executeIntegrationDeliveryJob(
           body: proof.body,
           contentType: proof.contentType,
           fileName: proof.fileName,
+          caption: telegramMediaCaption(text),
         };
       } catch {
         return { ok: false, error: { code: "INTEGRATION_MEDIA_READ_FAILED" } };
@@ -408,7 +418,11 @@ export async function executeIntegrationDeliveryJob(
       typeof job.payload.telegramMediaUrl === "string" &&
       (job.payload.telegramMediaKind === "photo" || job.payload.telegramMediaKind === "document")
     ) {
-      media = { kind: job.payload.telegramMediaKind, url: job.payload.telegramMediaUrl };
+      media = {
+        kind: job.payload.telegramMediaKind,
+        url: job.payload.telegramMediaUrl,
+        caption: telegramMediaCaption(text),
+      };
     }
     const tourPdpUrl =
       job.provider === "telegram" && job.eventType === "TourPublished"

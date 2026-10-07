@@ -894,6 +894,11 @@ export class FinanceService {
       }
     }
     const submittedAt = new Date().toISOString();
+    const registrationDisplay = await this.registrationDisplay.getByRegistrationIds(auth.tenantId, [
+      payment.registrationId,
+    ]);
+    const submittedByDisplayName =
+      registrationDisplay.get(payment.registrationId)?.memberDisplayName?.trim() || auth.userId;
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
@@ -928,6 +933,7 @@ export class FinanceService {
               }),
           ...(note === undefined ? {} : { note }),
           submittedByUserId: auth.userId,
+          submittedByDisplayName,
         },
       },
       ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
