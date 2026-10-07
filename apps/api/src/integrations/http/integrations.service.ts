@@ -217,7 +217,8 @@ function parseProvider(value: unknown): IntegrationProviderId {
     value !== "slack" &&
     value !== "whatsapp" &&
     value !== "discord" &&
-    value !== "email"
+    value !== "email" &&
+    value !== "melipayamak"
   ) {
     throw new IntegrationInvalidBodyError("INTEGRATION_PROVIDER_INVALID");
   }
