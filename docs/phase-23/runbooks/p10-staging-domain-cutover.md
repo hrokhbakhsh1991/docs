@@ -5,13 +5,13 @@
 
 ## Prerequisites
 
-| Item | Example |
-| ---- | ------- |
-| Apex domain you control | `staging.yourclub.ir` |
-| DNS A records | `*.staging.yourclub.ir` → VPS IP (`89.42.210.252`) |
-| ACME email | `ops@yourclub.ir` |
-| VPS path | `/opt/app-tour-staging` |
-| Env dir | `/etc/app-tour-staging` |
+| Item                    | Example                                            |
+| ----------------------- | -------------------------------------------------- |
+| Apex domain you control | `staging.yourclub.ir`                              |
+| DNS A records           | `*.staging.yourclub.ir` → VPS IP (`89.42.210.252`) |
+| ACME email              | `ops@yourclub.ir`                                  |
+| VPS path                | `/opt/app-tour-staging`                            |
+| Env dir                 | `/etc/app-tour-staging`                            |
 
 Wildcard `*.apex` is required for `operator.admin.apex`, `operator.portal.apex`, and `operator.apex` in the current Caddyfile.
 
@@ -30,6 +30,16 @@ Set on VPS in `/etc/app-tour-staging/{api,web,marketing,portal}.env`:
 PLATFORM_ROOT_DOMAIN=staging.yourclub.ir
 TENANT_ROOT_DOMAIN=staging.yourclub.ir
 SESSION_COOKIE_SECURE=true
+```
+
+When staging uses sibling public hosts such as `staging-denali.shenski.com`
+and `staging-portal-denali.shenski.com`, set the member session namespace on
+both `marketing.env` and `portal.env` so the two surfaces share only the
+staging cookie and never reuse production's cookie:
+
+```env
+MEMBER_SESSION_COOKIE_NAME=atour_mb_session_staging
+MEMBER_SESSION_COOKIE_DOMAIN=shenski.com
 ```
 
 Keep `TOUR_OPS_API_URL=http://127.0.0.1:23001` (staging ports).
@@ -99,9 +109,9 @@ Profile B (IP HTTP on `23000–23003`) remains available — see [p10-incident-f
 
 ## Common failures
 
-| Symptom | Fix |
-| ------- | --- |
-| ACME invalid email | Real `CADDY_ACME_EMAIL` |
-| Certificate not issued | DNS wildcard not pointing to VPS |
-| `curl` HTTPS 000 | Caddy down or wrong `PLATFORM_ROOT_DOMAIN` in `caddy.env` |
-| Session lost after HTTPS | `SESSION_COOKIE_SECURE=true` on all four env files |
+| Symptom                  | Fix                                                       |
+| ------------------------ | --------------------------------------------------------- |
+| ACME invalid email       | Real `CADDY_ACME_EMAIL`                                   |
+| Certificate not issued   | DNS wildcard not pointing to VPS                          |
+| `curl` HTTPS 000         | Caddy down or wrong `PLATFORM_ROOT_DOMAIN` in `caddy.env` |
+| Session lost after HTTPS | `SESSION_COOKIE_SECURE=true` on all four env files        |
