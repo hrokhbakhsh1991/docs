@@ -222,7 +222,9 @@ function deliveryFailureReason(error: Record<string, unknown> | undefined): stri
     : "INTEGRATION_DELIVERY_FAILED";
 }
 
-async function safelyRecordSmsUsageAttempt(input: Parameters<typeof recordSmsUsageAttempt>[0]): Promise<void> {
+async function safelyRecordSmsUsageAttempt(
+  input: Parameters<typeof recordSmsUsageAttempt>[0]
+): Promise<void> {
   try {
     await recordSmsUsageAttempt(input);
   } catch (error: unknown) {
@@ -288,7 +290,8 @@ export async function executeIntegrationDeliveryJob(
       return { ok: false, error: { code: "MELIPAYAMAK_ADAPTER_UNSUPPORTED" } };
     }
     const recipient = typeof job.payload.recipient === "string" ? job.payload.recipient : "";
-    const templateId = typeof job.payload.smsTemplateId === "string" ? job.payload.smsTemplateId : "";
+    const templateId =
+      typeof job.payload.smsTemplateId === "string" ? job.payload.smsTemplateId : "";
     const plainVariables = Array.isArray(job.payload.smsVariables)
       ? job.payload.smsVariables.filter((value): value is string => typeof value === "string")
       : [];
@@ -299,7 +302,14 @@ export async function executeIntegrationDeliveryJob(
     let variables = plainVariables;
     if (encryptedOtp !== null) {
       try {
-        variables = [decryptOtpDeliveryCode(encryptedOtp)];
+        const workspaceName =
+          typeof job.payload.smsWorkspaceName === "string"
+            ? job.payload.smsWorkspaceName.trim()
+            : "";
+        const code = decryptOtpDeliveryCode(encryptedOtp);
+        // Keep the existing one-placeholder Pattern compatible: the provider
+        // receives one clean variable containing the numeric code and name.
+        variables = [workspaceName.length === 0 ? code : `${code} ${workspaceName}`];
       } catch {
         return { ok: false, error: { code: "SMS_DELIVERY_SECRET_INVALID" } };
       }
@@ -309,7 +319,9 @@ export async function executeIntegrationDeliveryJob(
       job,
       recipient,
       status: result.ok ? "sent" : "failed",
-      ...(result.providerMessageId === undefined ? {} : { providerMessageId: result.providerMessageId }),
+      ...(result.providerMessageId === undefined
+        ? {}
+        : { providerMessageId: result.providerMessageId }),
       ...(result.errorCode === undefined ? {} : { errorCode: result.errorCode }),
     });
     return result.ok

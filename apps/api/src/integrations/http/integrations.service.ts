@@ -20,6 +20,7 @@ import { emitSettingsResourceAudit } from "../../settings/settings-audit-emitter
 import { shouldWarnTourPublishedPolicyDrift } from "../../health/tour-published-policy-drift";
 import { isIntegrationSubsystemReady } from "../../health/integration-subsystem-gate";
 import { resolveWorkspaceTypeForTenant } from "../../tenant/resolve-workspace-type";
+import { resolveOtpWorkspaceName } from "../../identity/resolve-otp-workspace-name";
 import { runWithTenantContext } from "../../tenant/tenant-request-context";
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
 import type { IntegrationCapability } from "../platform/integration-capability";
@@ -942,16 +943,14 @@ function assertTelegramBindingUnchanged(
   currentConfig: Record<string, unknown>,
   nextConfig: Record<string, unknown>
 ): void {
-  const currentChatId =
-    typeof currentConfig.chatId === "string" ? currentConfig.chatId.trim() : "";
+  const currentChatId = typeof currentConfig.chatId === "string" ? currentConfig.chatId.trim() : "";
   const nextChatId = typeof nextConfig.chatId === "string" ? nextConfig.chatId.trim() : "";
   if (currentChatId.length > 0 && nextChatId.length > 0 && currentChatId !== nextChatId) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_ALREADY_BOUND");
   }
   const currentGroupName =
     typeof currentConfig.groupName === "string" ? currentConfig.groupName.trim() : "";
-  const nextGroupName =
-    typeof nextConfig.groupName === "string" ? nextConfig.groupName.trim() : "";
+  const nextGroupName = typeof nextConfig.groupName === "string" ? nextConfig.groupName.trim() : "";
   if (
     currentGroupName.length > 0 &&
     nextGroupName.length > 0 &&
@@ -1486,7 +1485,9 @@ export async function provisionTelegramIntegration(
   }
 
   const leaseToken = randomUUID();
-  if (!(await claimTelegramProvisionLease({ tenantId: auth.tenantId, integrationId, leaseToken }))) {
+  if (
+    !(await claimTelegramProvisionLease({ tenantId: auth.tenantId, integrationId, leaseToken }))
+  ) {
     throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_PROVISION_IN_PROGRESS");
   }
 
@@ -1835,10 +1836,8 @@ export async function processTelegramWebhook(
         }),
       {
         actorId,
-        ...(connection.workspaceType === null
-          ? {}
-          : { workspaceType: connection.workspaceType }),
-      },
+        ...(connection.workspaceType === null ? {} : { workspaceType: connection.workspaceType }),
+      }
     );
   }
   return { accepted: true, connected: false };
@@ -2296,6 +2295,7 @@ async function runProviderTest(input: {
         backingSource: input.backingSource,
       };
     }
+    const workspaceName = await resolveOtpWorkspaceName(input.tenantId);
     const result = await adapter.sendSms(
       {
         tenantId: input.tenantId,
@@ -2305,7 +2305,11 @@ async function runProviderTest(input: {
         config: input.config,
         credentials: input.credentials,
       },
-      { recipient, templateId, variables: ["1234"] }
+      {
+        recipient,
+        templateId,
+        variables: ["1234", ...(workspaceName === null ? [] : [workspaceName])],
+      }
     );
     if (!result.ok) {
       if (input.persistStatusForConnectionId !== null) {
