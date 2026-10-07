@@ -41,9 +41,9 @@ http://admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 # Isolated staging stack. Exact host match must win over the marketing wildcard.
 http://staging-admin-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
-		header_up Host {host}
+		header_up Host {$CANONICAL_TENANT_LABEL}.admin.{$PLATFORM_ROOT_DOMAIN}
 		header_up X-Forwarded-Proto https
-		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Host {$CANONICAL_TENANT_LABEL}.admin.{$PLATFORM_ROOT_DOMAIN}
 		header_up X-Real-IP {remote_host}
 	}
 
@@ -86,9 +86,9 @@ http://{$CANONICAL_PORTAL_HOST} {
 
 http://staging-portal-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$STAGING_PORTAL_PORT} {
-		header_up Host {host}
+		header_up Host {$CANONICAL_TENANT_LABEL}.portal.{$PLATFORM_ROOT_DOMAIN}
 		header_up X-Forwarded-Proto https
-		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Host {$CANONICAL_TENANT_LABEL}.portal.{$PLATFORM_ROOT_DOMAIN}
 		header_up X-Real-IP {remote_host}
 	}
 
@@ -131,9 +131,9 @@ http://*.{$PLATFORM_ROOT_DOMAIN} {
 
 http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$STAGING_MARKETING_PORT} {
-		header_up Host {host}
+		header_up Host {$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}
 		header_up X-Forwarded-Proto https
-		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Host {$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}
 		header_up X-Real-IP {remote_host}
 	}
 
