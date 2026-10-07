@@ -91,6 +91,7 @@ describe("Denali Telegram registration/receipt delivery chain", () => {
           amount: "2500000",
           currency: "IRR",
           submittedAt: "2026-09-19T10:00:00.000Z",
+          submittedByDisplayName: "QA Member",
         },
       },
       {
