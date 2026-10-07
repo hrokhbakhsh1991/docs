@@ -86,6 +86,23 @@ describe("Melipayamak SMS provider adapter", () => {
     }
   });
 
+  it("classifies Melipayamak's successful RetStatus response", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ Value: "11", RetStatus: 1, StrRetStatus: "Ok" }), {
+        status: 200,
+      })) as typeof fetch;
+    try {
+      const result = await new MelipayamakSmsProviderAdapter().sendSms(
+        { ...context, config: { sender: "50002710052870" } },
+        { recipient: "989121234567", templateId: "", variables: ["1234"] }
+      );
+      assert.deepEqual(result, { ok: true, providerMessageId: "11" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("classifies provider failures without returning secret material", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () =>
