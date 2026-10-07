@@ -9,6 +9,7 @@
  *   GH_TOKEN / GITHUB_TOKEN
  *   WAIT_CHECKS_TIMEOUT_SEC  default 2400 (40m)
  *   WAIT_CHECKS_POLL_SEC     default 30
+ *   WAIT_CHECKS_API_RETRIES  default 5 (transient GitHub API failures)
  *
  * @see scripts/ops/main-branch-required-checks.mjs
  * @see docs/phase-20/p7/appendices/BOOKING_BRANCH_PROTECTION_GATE.md
@@ -20,6 +21,7 @@ const sha = (process.env.GITHUB_SHA || process.env.GITHUB_HEAD_SHA || "").trim()
 const token = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || "").trim();
 const timeoutSec = Number(process.env.WAIT_CHECKS_TIMEOUT_SEC || "2400");
 const pollSec = Number(process.env.WAIT_CHECKS_POLL_SEC || "30");
+const apiRetries = Number(process.env.WAIT_CHECKS_API_RETRIES || "5");
 
 if (!repo || !sha) {
   console.error("ERROR: GITHUB_REPOSITORY and GITHUB_SHA are required");
@@ -39,19 +41,45 @@ if (!owner || !name) {
 const required = [...MAIN_BRANCH_REQUIRED_CHECKS];
 
 async function gh(pathname) {
-  const res = await fetch(`https://api.github.com${pathname}`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "app-cloud-wait-required-checks",
-    },
-  });
-  if (!res.ok) {
+  for (let attempt = 0; attempt <= apiRetries; attempt += 1) {
+    let res;
+    try {
+      res = await fetch(`https://api.github.com${pathname}`, {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "app-cloud-wait-required-checks",
+        },
+      });
+    } catch (error) {
+      if (attempt === apiRetries) throw error;
+      const delaySec = Math.min(30, 2 ** attempt);
+      console.warn(
+        `[wait-checks] transient GitHub network error; retry ${attempt + 1}/${apiRetries} in ${delaySec}s`,
+      );
+      await sleep(delaySec * 1000);
+      continue;
+    }
+
+    if (res.ok) return res.json();
+
     const body = await res.text();
-    throw new Error(`GitHub API ${res.status} ${pathname}: ${body.slice(0, 400)}`);
+    const transient = res.status === 429 || res.status >= 500;
+    if (!transient || attempt === apiRetries) {
+      throw new Error(`GitHub API ${res.status} ${pathname}: ${body.slice(0, 400)}`);
+    }
+
+    const retryAfter = Number(res.headers.get("retry-after"));
+    const delaySec = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter
+      : Math.min(30, 2 ** attempt);
+    console.warn(
+      `[wait-checks] transient GitHub API ${res.status}; retry ${attempt + 1}/${apiRetries} in ${delaySec}s`,
+    );
+    await sleep(delaySec * 1000);
   }
-  return res.json();
+  throw new Error(`GitHub API request exhausted retries: ${pathname}`);
 }
 
 /** @returns {Map<string, { state: string, conclusion: string | null }>} */
