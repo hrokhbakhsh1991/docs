@@ -80,6 +80,7 @@ model Tenant {
   ticketNotificationDeliveries TicketNotificationDelivery[]
   memberNotifications         MemberNotification[]
   memberNotificationDeliveries MemberNotificationDelivery[]
+  smsUsageEvents              SmsUsageEvent[]
   ticketSlaPolicies           TicketSlaPolicy[]
   ticketSlaStates             TicketSlaState[]
   ticketSlaEscalationActivations TicketSlaEscalationActivation[]
@@ -1155,6 +1156,32 @@ model IntegrationDeliveryJob {
   @@index([status, nextAttemptAt, createdAt], map: "idx_integration_delivery_jobs_claim")
   @@index([tenantId, status, createdAt], map: "idx_integration_delivery_jobs_tenant_status")
   @@map("integration_delivery_jobs")
+}
+
+/// SMS send accounting — one immutable row per provider delivery attempt.
+model SmsUsageEvent {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  workspaceType     String?  @map("workspace_type")
+  deliveryJobId     String   @map("delivery_job_id") @db.Uuid
+  attemptNumber     Int      @map("attempt_number")
+  provider          String
+  purpose           String
+  templateKey       String?  @map("template_key")
+  recipientHash     String   @map("recipient_hash")
+  providerMessageId String?  @map("provider_message_id")
+  segmentCount      Int?     @map("segment_count")
+  unitCost          Int?     @map("unit_cost")
+  totalCost         Int?     @map("total_cost")
+  status            String
+  errorCode         String?  @map("error_code")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryJobId, attemptNumber], map: "uq_sms_usage_delivery_attempt")
+  @@index([tenantId, workspaceType, createdAt(sort: Desc)], map: "idx_sms_usage_tenant_workspace_created")
+  @@index([tenantId, purpose, createdAt(sort: Desc)], map: "idx_sms_usage_tenant_purpose_created")
+  @@map("sms_usage_events")
 }
 
 /// Denali relative-time reminder feed activations — idempotent per tour + offset.

@@ -87,6 +87,21 @@ export function testConnectionMessageForCode(code: string | undefined): string {
       return "Provider adapter is not registered on this API instance.";
     case "INTEGRATION_CONFIG_INCOMPLETE":
       return "Channel ID is missing from integration config.";
+    case "MELIPAYAMAK_ADAPTER_UNSUPPORTED":
+      return "Melipayamak SMS adapter is not available on this API instance.";
+    case "MELIPAYAMAK_TEST_RECIPIENT_REQUIRED":
+      return "A test recipient is required before testing the Melipayamak connection.";
+    case "MELIPAYAMAK_HTTP_ERROR":
+    case "MELIPAYAMAK_PROVIDER_ERROR":
+    case "MELIPAYAMAK_NETWORK_ERROR":
+    case "MELIPAYAMAK_CREDENTIALS_MISSING":
+    case "MELIPAYAMAK_BODY_ID_MISSING":
+    case "MELIPAYAMAK_SENDER_MISSING":
+    case "MELIPAYAMAK_SMS_PAYLOAD_INVALID":
+    case "MELIPAYAMAK_SERVER_ERROR":
+    case "MELIPAYAMAK_EMPTY_RESPONSE":
+    case "MELIPAYAMAK_SEND_FAILED":
+      return "Melipayamak rejected or could not receive the test SMS.";
     case "INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING":
       return "Telegram registration forum topic is missing from integration config.";
     case "INTEGRATION_TELEGRAM_GROUP_NAME_REQUIRED":

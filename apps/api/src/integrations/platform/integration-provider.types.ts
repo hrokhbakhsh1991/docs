@@ -1,7 +1,13 @@
 import type { IntegrationCapability } from "./integration-capability";
 
 /** Registry identifier for an external integration provider plugin. */
-export type IntegrationProviderId = "telegram" | "slack" | "whatsapp" | "discord" | "email";
+export type IntegrationProviderId =
+  | "telegram"
+  | "slack"
+  | "whatsapp"
+  | "discord"
+  | "email"
+  | "melipayamak";
 
 export type IntegrationDeliveryContext = {
   readonly tenantId: string;
@@ -28,6 +34,12 @@ export type IntegrationSendMessageInput = {
   readonly replyMarkup?: Readonly<Record<string, unknown>>;
 };
 
+export type IntegrationSendSmsInput = {
+  readonly recipient: string;
+  readonly templateId: string;
+  readonly variables: readonly string[];
+};
+
 export type IntegrationCreateChannelLinkInput = {
   readonly title: string;
   readonly tourId: string;
@@ -51,6 +63,10 @@ export type IntegrationProviderAdapter = {
   sendMessage(
     ctx: IntegrationDeliveryContext,
     input: IntegrationSendMessageInput
+  ): Promise<IntegrationDeliveryResult>;
+  sendSms?(
+    ctx: IntegrationDeliveryContext,
+    input: IntegrationSendSmsInput
   ): Promise<IntegrationDeliveryResult>;
   createChannelLink?(
     ctx: IntegrationDeliveryContext,

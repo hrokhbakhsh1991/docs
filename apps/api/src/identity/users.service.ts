@@ -17,6 +17,7 @@ import {
 } from "./in-memory-identity.repository";
 import { getIdentityRepository } from "./create-identity-repository";
 import { createMobileOtpChallenge } from "./otp.service";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import type { PendingInviteRecord } from "./in-memory-identity.repository";
 import { OPERATOR_INVITE_STATUS_INVITED } from "./invite-lifecycle";
 import {
@@ -354,7 +355,11 @@ export async function resendPendingInvite(
   if (mapped === null) {
     throw new InviteNotFoundError(inviteId);
   }
-  await createMobileOtpChallenge(row.phone, repo);
+  await createMobileOtpChallenge(row.phone, repo, {
+    tenantId: auth.tenantId,
+    workspaceType: await resolveWorkspaceTypeForTenant(auth.tenantId),
+    purpose: "invite",
+  });
   return { ...mapped, otpSent: true };
 }
 

@@ -1,4 +1,4 @@
-/** Staging-only static OTP (1234) — explicit opt-in; never enabled in production profile. */
+/** Static OTP (1234) — explicit opt-in for staging and the approved single-VPS production profile. */
 export const STAGING_STATIC_OTP_CODE = "1234";
 
 export function isStagingInfraProfile(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -24,6 +24,25 @@ export function isStagingStaticOtpExplicitlyEnabled(env: NodeJS.ProcessEnv = pro
   );
 }
 
+/**
+ * Single-VPS production exception: the operator explicitly accepts the fixed
+ * OTP contract. Keep this separate from the dev flag so ordinary production
+ * deployments remain fail-closed by default.
+ */
+export function isProductionStaticOtpExplicitlyEnabled(
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  return (
+    env.APP_INFRA_PROFILE?.trim() === "production" &&
+    env.ALLOW_PRODUCTION_STATIC_OTP?.trim() === "true" &&
+    env.AUTH_ALLOW_DEV_STATIC_OTP?.trim() === "true"
+  );
+}
+
 export function isStaticOtpEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isLocalDevStaticOtpEnabled(env) || isStagingStaticOtpExplicitlyEnabled(env);
+  return (
+    isLocalDevStaticOtpEnabled(env) ||
+    isStagingStaticOtpExplicitlyEnabled(env) ||
+    isProductionStaticOtpExplicitlyEnabled(env)
+  );
 }

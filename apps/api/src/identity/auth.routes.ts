@@ -36,6 +36,7 @@ import { createMobileOtpChallenge, verifyMobileOtp } from "./otp.service";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { requireOperatorSession } from "./require-operator-session";
 import { signSessionToken } from "./sign-session-token";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 
 function readStringField(body: unknown, key: string): string {
   if (typeof body !== "object" || body === null) return "";
@@ -127,7 +128,11 @@ export async function handleRequestOtp(
       throw new AuthPhoneNotAuthorizedError();
     }
 
-    const { challengeId } = await createMobileOtpChallenge(mobile, repo);
+    const { challengeId } = await createMobileOtpChallenge(mobile, repo, {
+      tenantId,
+      workspaceType: await resolveWorkspaceTypeForTenant(tenantId),
+      purpose: "operator_login",
+    });
     sendJson(res, 200, { challengeId });
   } catch (error) {
     if (error instanceof MobileRequiredError || error instanceof MobileInvalidError) {

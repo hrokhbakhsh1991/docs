@@ -4,7 +4,11 @@ import {
 } from "./auth-errors";
 import { isJwtVerifyConfigured } from "./jwt-env";
 import { assertProductionAuthHarnessAbsent } from "../test/production-auth-harness";
-import { isStagingInfraProfile } from "../identity/static-otp-policy";
+import {
+  isProductionStaticOtpExplicitlyEnabled,
+  isStagingInfraProfile,
+} from "../identity/static-otp-policy";
+import { isOtpDeliveryEncryptionKeyConfigured } from "../identity/otp-delivery-secret";
 
 /**
  * Fail closed: unsigned dev bearer must never be enabled outside automated test runs.
@@ -23,11 +27,20 @@ export function assertAuthEnvironmentIntegrity(): void {
     if (process.env.OTP_FIXTURE_CODE?.trim()) {
       throw new Error("OTP_FIXTURE_CODE_FORBIDDEN_IN_PRODUCTION");
     }
-    if (process.env.AUTH_ALLOW_DEV_STATIC_OTP?.trim() === "true") {
+    if (
+      process.env.AUTH_ALLOW_DEV_STATIC_OTP?.trim() === "true" &&
+      !isProductionStaticOtpExplicitlyEnabled()
+    ) {
       throw new Error("AUTH_ALLOW_DEV_STATIC_OTP_FORBIDDEN_IN_PRODUCTION");
     }
     if (process.env.STAGING_ALLOW_STATIC_OTP?.trim() === "true" && !isStagingInfraProfile()) {
       throw new Error("STAGING_ALLOW_STATIC_OTP_FORBIDDEN_OUTSIDE_STAGING_PROFILE");
+    }
+    if (
+      process.env.SMS_OTP_ENABLED?.trim() === "true" &&
+      !isOtpDeliveryEncryptionKeyConfigured()
+    ) {
+      throw new Error("SMS_DELIVERY_ENCRYPTION_KEY_REQUIRED");
     }
   }
 }
