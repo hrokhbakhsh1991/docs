@@ -23,7 +23,9 @@ runtime_json="${RELEASE_ROOT}/${APP_KEY}/RUNTIME.json"
 }
 
 server_js=$(python3 -c "import json;print(json.load(open('$runtime_json'))['serverJs'])")
-bind_host="${WEB_BIND_HOST:-0.0.0.0}"
+# The edge proxy is the only public listener. Keep application ports private
+# even when a deploy env omits WEB_BIND_HOST.
+bind_host="${WEB_BIND_HOST:-127.0.0.1}"
 
 set -a
 # shellcheck source=/dev/null
