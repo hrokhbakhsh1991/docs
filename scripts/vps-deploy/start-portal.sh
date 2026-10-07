@@ -16,5 +16,5 @@ if [[ -f "$portal_snapshot" ]]; then
   export MEMBER_PROFILE_CONTRACT_SNAPSHOT_PATH="$portal_snapshot"
 fi
 
-WEB_BIND_HOST="${WEB_BIND_HOST:-0.0.0.0}"
+WEB_BIND_HOST="${WEB_BIND_HOST:-127.0.0.1}"
 exec /usr/local/bin/pnpm exec next start -p "${PORT:-3003}" -H "$WEB_BIND_HOST"
