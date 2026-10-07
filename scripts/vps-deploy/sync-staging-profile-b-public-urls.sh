@@ -95,6 +95,10 @@ for app in marketing portal web; do
   set_env_kv "$target" SESSION_COOKIE_SECURE true
 done
 set_env_kv "${ENV_DIR}/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+# Staging hosts live under the production DNS root but are registered as
+# custom tenant domains. Prevent the API from parsing staging-denali as a
+# platform tenant label before it checks tenant_domains.
+set_env_kv "${ENV_DIR}/api.env" TENANT_ROOT_DOMAIN "staging.invalid"
 
 set_env_kv "${ENV_DIR}/web.env" ALLOW_DEV_WEB_SESSION true
 set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"

@@ -12,8 +12,10 @@ UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
 VPS_IP="${VPS_IP:-89.42.210.252}"
 PUBLIC_ROOT_DOMAIN="${PUBLIC_ROOT_DOMAIN:-shenski.com}"
 PUBLIC_TENANT_LABEL="${PUBLIC_TENANT_LABEL:-denali}"
-PUBLIC_MARKETING_BASE_URL="${PUBLIC_MARKETING_BASE_URL:-https://${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
-PUBLIC_PORTAL_BASE_URL="${PUBLIC_PORTAL_BASE_URL:-https://portal.${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+# Staging must remain on its own public origins. Falling back to the canonical
+# production hosts makes SSR tenant resolution fail while /health still passes.
+PUBLIC_MARKETING_BASE_URL="${PUBLIC_MARKETING_BASE_URL:-https://staging-${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+PUBLIC_PORTAL_BASE_URL="${PUBLIC_PORTAL_BASE_URL:-https://staging-portal-${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 
 log() { printf '[bootstrap-staging] %s\n' "$*"; }
 
@@ -109,6 +111,7 @@ done
 # deploys, so only creating them once would leave a host in localhost/dev mode
 # forever. Values are configurable per staging tenant for future workspaces.
 ensure_env_value "$ENV_DIR/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/api.env" TENANT_ROOT_DOMAIN staging.invalid
 ensure_env_value "$ENV_DIR/web.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
 ensure_env_value "$ENV_DIR/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/web.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
