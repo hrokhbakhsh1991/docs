@@ -1,18 +1,7 @@
-import {
-  OtpChallengeInvalidError,
-  OtpExpiredError,
-  OtpInvalidError,
-} from "./identity.errors";
-import {
-  getIdentityRepository,
-  type IdentityRepository,
-} from "./create-identity-repository";
+import { OtpChallengeInvalidError, OtpExpiredError, OtpInvalidError } from "./identity.errors";
+import { getIdentityRepository, type IdentityRepository } from "./create-identity-repository";
 import { deliverOtpCode } from "./otp-delivery";
-import {
-  hashOtpCode,
-  resolveOtpCodeForChallenge,
-  verifyOtpCodeHash,
-} from "./otp-code";
+import { hashOtpCode, resolveOtpCodeForChallenge, verifyOtpCodeHash } from "./otp-code";
 import { assertOtpRequestRateLimit } from "./otp-rate-limit";
 import { isStaticOtpEnabled, STAGING_STATIC_OTP_CODE } from "./static-otp-policy";
 import { encryptOtpDeliveryCode } from "./otp-delivery-secret";
@@ -22,6 +11,7 @@ import {
 } from "../integrations/application/otp-delivery-dependencies";
 import type { IntegrationConnectionRecord } from "../integrations/platform/integration-connection.types";
 import type { EnqueueIntegrationDeliveryJobInput } from "../integrations/platform/integration-delivery.types";
+import { resolveOtpWorkspaceName } from "./resolve-otp-workspace-name";
 
 const DEV_STATIC_OTP = STAGING_STATIC_OTP_CODE;
 
@@ -41,6 +31,7 @@ export type OtpDeliveryDependencies = {
     readonly workspaceType: string;
   }) => Promise<IntegrationConnectionRecord | null>;
   readonly enqueueJob?: (input: EnqueueIntegrationDeliveryJobInput) => Promise<boolean>;
+  readonly resolveWorkspaceName?: (tenantId: string) => Promise<string | null>;
 };
 
 async function enqueueRealOtpDelivery(
@@ -54,26 +45,32 @@ async function enqueueRealOtpDelivery(
     deliverOtpCode(mobile, code);
     return;
   }
-  const connection = await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)(context);
+  const connection = await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)(
+    context
+  );
   if (connection === null) throw new Error("MELIPAYAMAK_CONNECTION_NOT_CONFIGURED");
   const encryptedCode = encryptOtpDeliveryCode(code);
   const enqueueJob = dependencies.enqueueJob ?? enqueueOtpDeliveryJob;
+  const workspaceName = await (dependencies.resolveWorkspaceName ?? resolveOtpWorkspaceName)(
+    context.tenantId
+  );
   const created = await enqueueJob({
-      tenantId: context.tenantId,
-      provider: "melipayamak",
-      capability: "sms.send",
-      domainEventId: challengeId,
-      eventType: "auth.otp.requested",
-      payload: {
-        workspaceType: context.workspaceType,
-        integrationConnectionId: connection.id,
-        recipient: mobile,
-        smsPurpose: context.purpose,
-        smsTemplateKey: "auth.otp",
-        smsTemplateId: typeof connection.config.bodyId === "string" ? connection.config.bodyId : "",
-        smsEncryptedVariables: encryptedCode,
-      },
-    });
+    tenantId: context.tenantId,
+    provider: "melipayamak",
+    capability: "sms.send",
+    domainEventId: challengeId,
+    eventType: "auth.otp.requested",
+    payload: {
+      workspaceType: context.workspaceType,
+      integrationConnectionId: connection.id,
+      recipient: mobile,
+      smsPurpose: context.purpose,
+      smsTemplateKey: "auth.otp",
+      smsTemplateId: typeof connection.config.bodyId === "string" ? connection.config.bodyId : "",
+      smsEncryptedVariables: encryptedCode,
+      ...(workspaceName === null ? {} : { smsWorkspaceName: workspaceName }),
+    },
+  });
   if (!created) return;
 }
 
@@ -90,7 +87,8 @@ export async function createMobileOtpChallenge(
   const codeHash = await hashOtpCode(code);
   const { challengeId } = await repo.createOtpChallenge(mobile, codeHash);
   if (deliveryContext === undefined) deliverOtpCode(mobile, code);
-  else await enqueueRealOtpDelivery(mobile, code, challengeId, deliveryContext, deliveryDependencies);
+  else
+    await enqueueRealOtpDelivery(mobile, code, challengeId, deliveryContext, deliveryDependencies);
   return { challengeId };
 }
 

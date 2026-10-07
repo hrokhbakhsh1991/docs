@@ -2,11 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import { decryptOtpDeliveryCode } from "./otp-delivery-secret";
-import {
-  createMobileOtpChallenge,
-  verifyMobileOtp,
-  type OtpDeliveryContext,
-} from "./otp.service";
+import { createMobileOtpChallenge, verifyMobileOtp, type OtpDeliveryContext } from "./otp.service";
 import { InMemoryIdentityRepository } from "./in-memory-identity.repository";
 
 const ENV_NAMES = [
@@ -37,37 +33,34 @@ describe("real OTP SMS enqueue", () => {
     process.env.SMS_DELIVERY_ENCRYPTION_KEY = "22".repeat(32);
 
     const repo = new InMemoryIdentityRepository();
-    const jobs: Array<{ provider: string; capability: string; payload: Record<string, unknown> }> = [];
+    const jobs: Array<{ provider: string; capability: string; payload: Record<string, unknown> }> =
+      [];
     const context: OtpDeliveryContext = {
       tenantId: "tenant-denali",
       workspaceType: "denali",
       purpose: "member_login",
     };
-    const result = await createMobileOtpChallenge(
-      "+989121234567",
-      repo,
-      context,
-      {
-        resolveConnection: async () => ({
-          id: "connection-melipayamak",
-          tenantId: context.tenantId,
-          workspaceType: context.workspaceType,
-          provider: "melipayamak",
-          status: "enabled",
-          enabled: true,
-          capabilities: ["sms.send"],
-          config: { bodyId: "98765" },
-          secretRef: "secret-melipayamak",
-          credentials: {},
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-        }),
-        enqueueJob: async (input) => {
-          jobs.push(input);
-          return true;
-        },
-      }
-    );
+    const result = await createMobileOtpChallenge("+989121234567", repo, context, {
+      resolveConnection: async () => ({
+        id: "connection-melipayamak",
+        tenantId: context.tenantId,
+        workspaceType: context.workspaceType,
+        provider: "melipayamak",
+        status: "enabled",
+        enabled: true,
+        capabilities: ["sms.send"],
+        config: { bodyId: "98765" },
+        secretRef: "secret-melipayamak",
+        credentials: {},
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
+      enqueueJob: async (input) => {
+        jobs.push(input);
+        return true;
+      },
+      resolveWorkspaceName: async () => "دنالی تور",
+    });
 
     assert.equal(jobs.length, 1);
     const job = jobs[0];
@@ -76,11 +69,9 @@ describe("real OTP SMS enqueue", () => {
     const payload = job?.payload ?? {};
     assert.equal(payload.recipient, "+989121234567");
     assert.equal(payload.smsTemplateId, "98765");
+    assert.equal(payload.smsWorkspaceName, "دنالی تور");
     assert.equal(payload.smsEncryptedVariables?.toString().includes("1234"), false);
-    assert.equal(
-      decryptOtpDeliveryCode(String(payload.smsEncryptedVariables)),
-      "1234"
-    );
+    assert.equal(decryptOtpDeliveryCode(String(payload.smsEncryptedVariables)), "1234");
     await verifyMobileOtp(result.challengeId, "1234", repo);
   });
 });
