@@ -94,7 +94,16 @@ async function loadCheckMap() {
       `/repos/${owner}/${name}/commits/${sha}/check-runs?per_page=100&page=${page}`
     );
     for (const run of data.check_runs ?? []) {
-      map.set(run.name, { state: run.status, conclusion: run.conclusion });
+      const entry = { state: run.status, conclusion: run.conclusion };
+      const current = map.get(run.name);
+
+      // A workflow can publish duplicate check names on the same SHA (for
+      // example, a real booking gate plus a path-filtered skipped job). Keep
+      // a successful run authoritative instead of letting a later skipped
+      // record overwrite it and block deployment indefinitely.
+      if (!current || entry.conclusion === "success" || current.conclusion !== "success") {
+        map.set(run.name, entry);
+      }
     }
     if ((data.check_runs?.length ?? 0) < 100) break;
     page += 1;
