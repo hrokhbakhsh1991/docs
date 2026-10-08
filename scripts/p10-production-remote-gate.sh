@@ -3,8 +3,9 @@
 # @see scripts/p10-staging-remote-gate.sh
 set -euo pipefail
 
-# Durable bind path — see app-tour-ensure-bind / deploy-vps.yml ( /opt pathname flake ).
-export VPS_DEPLOY_PATH="${VPS_DEPLOY_PATH:-/srv/app-tour}"
+# Match the production VPS checkout.  A /srv bind remains supported when the
+# caller explicitly supplies VPS_DEPLOY_PATH, but it is not assumed to exist.
+export VPS_DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour}"
 export ENV_DIR="${ENV_DIR:-/etc/app-tour}"
 export UNIT_PREFIX="${UNIT_PREFIX:-app-tour}"
 
