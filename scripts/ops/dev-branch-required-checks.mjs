@@ -11,6 +11,7 @@ export { BOOKING_POSTGRES_REQUIRED_CHECKS };
 
 /** PR/staging gates — excludes trunk-only jobs (ci:integrity, full gates, scheduled E2E). */
 export const DEV_BRANCH_REQUIRED_CHECKS = [
+  "Deployment contract gate",
   "Phase 0 foundation gate",
   "Phase 0 integration gate",
   "Phase 1 platform-core gate",
