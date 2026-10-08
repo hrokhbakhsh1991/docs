@@ -102,7 +102,22 @@ function redirectToLogin(
   clearCookie: boolean,
   accessReason?: "tenant-mismatch" | "owner-only"
 ): NextResponse {
+  const ingressHost =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
+    request.headers.get("host")?.trim();
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const loginUrl = request.nextUrl.clone();
+  // Behind Caddy, Next may model request.nextUrl as the loopback upstream.
+  // Keep protected-route redirects on the public admin ingress instead.
+  if (ingressHost !== undefined && /^[A-Za-z0-9.-]+(?::\d+)?$/.test(ingressHost)) {
+    loginUrl.host = ingressHost;
+    if (!ingressHost.includes(":")) {
+      loginUrl.port = "";
+    }
+  }
+  if (forwardedProto === "http" || forwardedProto === "https") {
+    loginUrl.protocol = `${forwardedProto}:`;
+  }
   loginUrl.pathname = OPERATOR_LOGIN_PATH;
   const returnUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`;
   const params = new URLSearchParams({ returnUrl });
