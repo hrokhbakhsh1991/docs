@@ -35,6 +35,10 @@ build_web_production() {
       export NODE_ENV=production
       export CI=true
       export NEXT_FONT_OFFLINE=1
+      # The production operator surface is the Denali admin.  This flag is
+      # consumed at build time by Next's IgnorePlugin and must also be present
+      # in web.env for the runtime loader (remote-deploy ensures that value).
+      export ALLOW_DENALI_WEB_PLUGIN="${ALLOW_DENALI_WEB_PLUGIN:-true}"
       ${PNPM_BIN} exec next build
       status=$?
       if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then

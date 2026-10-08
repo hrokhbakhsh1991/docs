@@ -36,6 +36,20 @@ ensure_api_env_default() {
 ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
 ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
 
+ensure_web_env_default() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_DIR/web.env" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$ENV_DIR/web.env"
+  log "added missing ${key} to ${ENV_DIR}/web.env"
+}
+
+# Denali is the production operator workspace.  Keep the build-time and
+# runtime gates aligned so /auth/login cannot start with a disabled bundle.
+ensure_web_env_default ALLOW_DENALI_WEB_PLUGIN true
+
 chmod +x "$DEPLOY_PATH"/scripts/vps-deploy/*.sh 2>/dev/null || true
 
 log "verify database credentials"
