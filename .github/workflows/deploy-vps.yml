@@ -82,6 +82,10 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Verify SSH key fingerprint
+        run: |
+          ssh-keygen -y -f ~/.ssh/id_ed25519 | ssh-keygen -lf -
+
       - name: Run remote deploy
         # Prefer durable /srv/app-tour bind (app-tour-ensure-bind). /opt/app-tour can
         # flake with ENOENT from a stale negative dentry and block SSH script start.
