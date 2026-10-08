@@ -7,7 +7,7 @@
  *   GITHUB_REPOSITORY  owner/repo (Actions default)
  *   GITHUB_SHA         commit to inspect (Actions default)
  *   GH_TOKEN / GITHUB_TOKEN
- *   WAIT_CHECKS_TIMEOUT_SEC  default 2400 (40m)
+ *   WAIT_CHECKS_TIMEOUT_SEC  default 7500 (125m; longer than the 120m L3 gate)
  *   WAIT_CHECKS_POLL_SEC     default 30
  *   WAIT_CHECKS_API_RETRIES  default 5 (transient GitHub API failures)
  *
@@ -19,7 +19,7 @@ import { MAIN_BRANCH_REQUIRED_CHECKS } from "./main-branch-required-checks.mjs";
 const repo = process.env.GITHUB_REPOSITORY?.trim();
 const sha = (process.env.GITHUB_SHA || process.env.GITHUB_HEAD_SHA || "").trim();
 const token = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || "").trim();
-const timeoutSec = Number(process.env.WAIT_CHECKS_TIMEOUT_SEC || "2400");
+const timeoutSec = Number(process.env.WAIT_CHECKS_TIMEOUT_SEC || "7500");
 const pollSec = Number(process.env.WAIT_CHECKS_POLL_SEC || "30");
 const apiRetries = Number(process.env.WAIT_CHECKS_API_RETRIES || "5");
 
@@ -183,6 +183,8 @@ while (Date.now() < deadline) {
   console.log(
     `[wait-checks] passed=${passed.length}/${required.length} pending=${pending.length} missing=${missing.length} failed=${failed.length}`
   );
+  if (pending.length) console.log(`[wait-checks] pending: ${pending.join(", ")}`);
+  if (missing.length) console.log(`[wait-checks] missing: ${missing.join(", ")}`);
 
   if (failed.length) {
     console.error("ERROR: required check(s) failed:");

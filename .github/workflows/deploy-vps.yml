@@ -18,7 +18,10 @@ jobs:
   require-release-checks:
     name: Require release checks
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Required gates can legitimately run for up to 120 minutes (PROD-3 L3).
+    # Keep the waiter slightly longer so it observes the terminal gate result
+    # instead of failing first and skipping the deploy job.
+    timeout-minutes: 130
     if: github.repository == 'hrokhbakhsh1991/docs'
     steps:
       - name: Checkout
@@ -34,7 +37,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
-          WAIT_CHECKS_TIMEOUT_SEC: "2400"
+          WAIT_CHECKS_TIMEOUT_SEC: "7500"
           WAIT_CHECKS_POLL_SEC: "30"
         run: node scripts/ops/wait-for-required-checks.mjs
 
