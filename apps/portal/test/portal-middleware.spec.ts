@@ -38,6 +38,23 @@ describe("portal middleware — P8-1-N-003", () => {
 });
 
 describe("portal middleware — PCMS-COOK-05 legacy host 308", () => {
+  it("preserves the public staging host for protected-route login redirects", async () => {
+    const request = new NextRequest("http://localhost:23003/me/registrations", {
+      method: "GET",
+      headers: {
+        host: "staging-portal-denali.shenski.com",
+        "x-forwarded-host": "staging-portal-denali.shenski.com",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const response = await middleware(request);
+    assert.equal(response.status, 307);
+    assert.equal(
+      response.headers.get("location"),
+      "https://staging-portal-denali.shenski.com/login?portalReturn=%2Fme%2Fregistrations"
+    );
+  });
+
   it("GET /login on legacy host redirects 308 with query preserved", async () => {
     const req = new NextRequest(
       "http://denali.portal.localhost:3003/login?portalReturn=%2Fme%2Fregistrations",

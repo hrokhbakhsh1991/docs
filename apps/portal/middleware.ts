@@ -44,8 +44,21 @@ function redirectToMemberLogin(
     resolvePortalMemberLoginPath(host, returnPath) ??
     resolvePortalMemberLoginPath(host) ??
     "/login?portalReturn=%2Fme%2Fregistrations";
-  const parsed = new URL(loginPath, request.nextUrl.origin);
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const target = request.nextUrl.clone();
+  // Next's upstream URL can be the loopback origin behind Caddy. Preserve the
+  // public ingress origin so unauthenticated members are not sent to
+  // localhost:23003 (or localhost:3003) after a protected-route redirect.
+  if (/^[A-Za-z0-9.-]+(?::\d+)?$/.test(host)) {
+    target.host = host;
+    if (!host.includes(":")) {
+      target.port = "";
+    }
+  }
+  if (forwardedProto === "http" || forwardedProto === "https") {
+    target.protocol = `${forwardedProto}:`;
+  }
+  const parsed = new URL(loginPath, target.origin);
   target.pathname = parsed.pathname;
   target.search = parsed.search;
   const response = NextResponse.redirect(target);
