@@ -13,19 +13,19 @@ const EXPORT_PAGE_SIZE = 100;
 
 const DATA_COLUMNS = [
   { header: "ردیف", key: "rowNumber", width: 8 },
-  { header: "نام و نام خانوادگی", key: "guestLabel", width: 28 },
+  { header: "نام و نام خانوادگی", key: "guestLabel", width: 32 },
   { header: "شماره تماس", key: "phone", width: 18 },
   { header: "تعداد نفرات", key: "partySize", width: 12 },
   { header: "وضعیت نهایی", key: "finalizationStatus", width: 18 },
   { header: "وضعیت مالی", key: "paymentStatus", width: 20 },
-  { header: "مبلغ کل", key: "totalAmount", width: 22 },
-  { header: "مبلغ پرداخت‌شده", key: "paidAmount", width: 22 },
-  { header: "مانده", key: "remainingAmount", width: 22 },
-  { header: "مهلت پرداخت", key: "paymentDueAt", width: 24 },
-  { header: "نوع حمل‌ونقل", key: "transportKind", width: 28 },
-  { header: "ظرفیت قابل سوارکردن", key: "personalCarOccupants", width: 24 },
-  { header: "تاریخ ثبت‌نام", key: "submittedAt", width: 24 },
-  { header: "تاریخ نهایی‌شدن", key: "finalizedAt", width: 24 },
+  { header: "مبلغ کل", key: "totalAmount", width: 25 },
+  { header: "مبلغ پرداخت‌شده", key: "paidAmount", width: 25 },
+  { header: "مانده", key: "remainingAmount", width: 25 },
+  { header: "مهلت پرداخت", key: "paymentDueAt", width: 27 },
+  { header: "نوع حمل‌ونقل", key: "transportKind", width: 30 },
+  { header: "ظرفیت حمل‌ونقل", key: "transportCapacity", width: 30 },
+  { header: "تاریخ ثبت‌نام", key: "submittedAt", width: 27 },
+  { header: "تاریخ نهایی‌شدن", key: "finalizedAt", width: 27 },
 ] as const;
 
 export type FinalRosterExportResult = {
@@ -64,6 +64,7 @@ export async function listAllOperationalRosterRowsForExport(
 export async function buildFinalRosterWorkbook(input: {
   readonly tourId: string;
   readonly tourTitle?: string | null;
+  readonly tourCapacityMax?: number | null;
   readonly generatedAt?: Date;
   readonly rows: readonly TourOperationalRosterRow[];
 }): Promise<Buffer> {
@@ -111,10 +112,15 @@ export async function buildFinalRosterWorkbook(input: {
   summary.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   summary.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
 
-  addDataSheet(workbook, "لیست نهایی", finalRows, exportCurrency);
-  addDataSheet(workbook, "منتظر پرداخت", unpaidRows, exportCurrency);
-  addDataSheet(workbook, "پرداخت‌شده", paidRows, exportCurrency);
-  addDataSheet(workbook, "بدون دریافت وجه", waivedRows, exportCurrency);
+  const occupiedSeats = finalRows
+    .filter((row) => row.occupiesCapacity)
+    .reduce((sum, row) => sum + row.partySize, 0);
+  const transportCapacity = formatTransportCapacity(input.tourCapacityMax, occupiedSeats);
+
+  addDataSheet(workbook, "لیست نهایی", finalRows, exportCurrency, transportCapacity);
+  addDataSheet(workbook, "منتظر پرداخت", unpaidRows, exportCurrency, transportCapacity);
+  addDataSheet(workbook, "پرداخت‌شده", paidRows, exportCurrency, transportCapacity);
+  addDataSheet(workbook, "بدون دریافت وجه", waivedRows, exportCurrency, transportCapacity);
 
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
@@ -122,7 +128,8 @@ export async function buildFinalRosterWorkbook(input: {
 export async function createFinalRosterExport(
   auth: BookingActorContext,
   tourId: string,
-  tourTitle?: string | null
+  tourTitle?: string | null,
+  tourCapacityMax?: number | null
 ): Promise<FinalRosterExportResult> {
   const normalizedTourId = tourId.trim();
   if (normalizedTourId.length === 0) {
@@ -140,6 +147,7 @@ export async function createFinalRosterExport(
     body: await buildFinalRosterWorkbook({
       tourId: normalizedTourId,
       tourTitle,
+      tourCapacityMax,
       generatedAt,
       rows,
     }),
@@ -150,12 +158,20 @@ function addDataSheet(
   workbook: ExcelJS.Workbook,
   name: string,
   rows: readonly TourOperationalRosterRow[],
-  fallbackCurrency: string | null
+  fallbackCurrency: string | null,
+  transportCapacity: string
 ): void {
   const sheet = workbook.addWorksheet(name);
   sheet.views = [{ rightToLeft: true }];
   sheet.columns = [...DATA_COLUMNS];
-  sheet.addRows(rows.map((row, index) => toExportRow(row, index + 1, fallbackCurrency)));
+  sheet.addRows(rows.map((row, index) => toExportRow(row, index + 1, fallbackCurrency, transportCapacity)));
+  sheet.getRow(1).height = 32;
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getRow(1).alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+  for (let rowNumber = 2; rowNumber <= rows.length + 1; rowNumber += 1) {
+    sheet.getRow(rowNumber).height = 30;
+    sheet.getRow(rowNumber).alignment = { vertical: "middle", wrapText: true };
+  }
   const tableEnd = Math.max(2, rows.length + 1);
   sheet.addTable({
     name: `Roster${tableNameSuffix(name)}`,
@@ -165,7 +181,9 @@ function addDataSheet(
     style: { theme: "TableStyleMedium2", showRowStripes: true },
     columns: DATA_COLUMNS.map((column) => ({ name: column.header })),
     rows: rows.map((row, index) =>
-      DATA_COLUMNS.map((column) => toExportRow(row, index + 1, fallbackCurrency)[column.key])
+      DATA_COLUMNS.map((column) =>
+        toExportRow(row, index + 1, fallbackCurrency, transportCapacity)[column.key]
+      )
     ),
   });
   sheet.autoFilter = { from: "A1", to: `N${tableEnd}` };
@@ -174,7 +192,8 @@ function addDataSheet(
 function toExportRow(
   row: TourOperationalRosterRow,
   rowNumber: number,
-  fallbackCurrency: string | null
+  fallbackCurrency: string | null,
+  transportCapacity: string
 ): Record<string, string | number> {
   const paid = parseMinorUnits(row.paidMinor) ?? BigInt(0);
   const remaining = parseMinorUnits(row.remainingMinor) ?? BigInt(0);
@@ -191,7 +210,7 @@ function toExportRow(
     remainingAmount: formatAmount(remaining.toString(), row.currency ?? fallbackCurrency),
     paymentDueAt: formatAdminDate(row.paymentDueAt),
     transportKind: transportKindLabel(row.transportKind),
-    personalCarOccupants: formatOccupants(row),
+    transportCapacity: formatTransportRow(row, transportCapacity),
     submittedAt: formatAdminDate(row.submittedAt),
     finalizedAt: row.finalizationStatus === "finalized" ? formatFinalizedAt(row.finalizedAt) : "—",
   };
@@ -262,6 +281,20 @@ function formatOccupants(row: TourOperationalRosterRow): string {
     return "—";
   }
   return `${new Intl.NumberFormat("fa-IR").format(row.personalCarOccupants)} نفر`;
+}
+
+function formatTransportRow(row: TourOperationalRosterRow, capacity: string): string {
+  if (row.transportKind === "primary") return capacity;
+  return formatOccupants(row);
+}
+
+function formatTransportCapacity(capacityMax: number | null | undefined, occupiedSeats: number): string {
+  if (capacityMax === null || capacityMax === undefined || !Number.isFinite(capacityMax)) {
+    return "ظرفیت ثبت نشده";
+  }
+  const remaining = Math.max(0, Math.trunc(capacityMax) - occupiedSeats);
+  const format = new Intl.NumberFormat("fa-IR");
+  return `اتوبوس: ${format.format(Math.trunc(capacityMax))} نفر · باقی‌مانده: ${format.format(remaining)} نفر`;
 }
 
 function formatAmount(value: string | null, currency: string | null): string {

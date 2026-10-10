@@ -67,7 +67,12 @@ export async function handleExportTourFinalRoster(
         if (tour === null) {
           throw new Error("TOUR_NOT_FOUND");
         }
-        const result = await createFinalRosterExport(auth, tourId, tour.projection.title);
+        const result = await createFinalRosterExport(
+          auth,
+          tourId,
+          tour.projection.title,
+          tour.projection.totalCapacity
+        );
         res.statusCode = 200;
         res.setHeader("Content-Type", result.contentType);
         res.setHeader("Content-Disposition", `attachment; filename=\"${result.filename}\"`);
