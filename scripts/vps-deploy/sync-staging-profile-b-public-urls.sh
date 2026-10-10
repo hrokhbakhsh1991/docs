@@ -75,6 +75,11 @@ PUBLIC_ROOT_DOMAIN="$(resolve_root_domain)"
 MINIO_PUBLIC_HOST="${STAGING_PUBLIC_MINIO_HOST:-storage.${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_MARKETING_BASE_URL="${STAGING_PUBLIC_MARKETING_BASE_URL:-https://staging-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://staging-portal-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+# Profile B uses sibling hosts instead of portal.{tenant}.{root}. Keep the
+# member cookie scoped to the staging marketing host so Portal and Marketing
+# share the session without sharing the production cookie or whole root.
+MEMBER_SESSION_COOKIE_DOMAIN="${PUBLIC_MARKETING_BASE_URL#*://}"
+MEMBER_SESSION_COOKIE_DOMAIN="${MEMBER_SESSION_COOKIE_DOMAIN%%/*}"
 MKT_PORT="23002"
 PTL_PORT="23003"
 if [[ -f "${ENV_DIR}/marketing.env" ]]; then
@@ -115,11 +120,15 @@ set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "https://${MINIO_PUBLIC_HO
 set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
+set_env_kv "${ENV_DIR}/marketing.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
+set_env_kv "${ENV_DIR}/marketing.env" MEMBER_SESSION_COOKIE_DOMAIN "$MEMBER_SESSION_COOKIE_DOMAIN"
 set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
+set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
+set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_DOMAIN "$MEMBER_SESSION_COOKIE_DOMAIN"
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"

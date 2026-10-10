@@ -78,4 +78,18 @@ describe("staging-env-contract", () => {
     assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$MINIO_PORT\}/);
     assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
   });
+
+  it("REG-STG-ENV-06 scopes sibling-host member sessions to staging", () => {
+    const sync = read("scripts/vps-deploy/sync-staging-profile-b-public-urls.sh");
+    assert.match(sync, /MEMBER_SESSION_COOKIE_DOMAIN="\$\{PUBLIC_MARKETING_BASE_URL#\*:\/\/}"/);
+    assert.match(sync, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);
+    assert.match(sync, /MEMBER_SESSION_COOKIE_DOMAIN \"\$MEMBER_SESSION_COOKIE_DOMAIN\"/);
+    assert.match(sync, /marketing\.env.*MEMBER_SESSION_COOKIE_NAME/);
+    assert.match(sync, /portal\.env.*MEMBER_SESSION_COOKIE_NAME/);
+    assert.match(sync, /marketing\.env.*MEMBER_SESSION_COOKIE_DOMAIN/);
+    assert.match(sync, /portal\.env.*MEMBER_SESSION_COOKIE_DOMAIN/);
+    const bootstrap = read("scripts/vps-deploy/bootstrap-staging.sh");
+    assert.match(bootstrap, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);
+    assert.match(bootstrap, /MEMBER_SESSION_COOKIE_DOMAIN/);
+  });
 });

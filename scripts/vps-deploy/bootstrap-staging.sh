@@ -16,6 +16,8 @@ PUBLIC_TENANT_LABEL="${PUBLIC_TENANT_LABEL:-denali}"
 # production hosts makes SSR tenant resolution fail while /health still passes.
 PUBLIC_MARKETING_BASE_URL="${PUBLIC_MARKETING_BASE_URL:-https://staging-${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_PORTAL_BASE_URL="${PUBLIC_PORTAL_BASE_URL:-https://staging-portal-${PUBLIC_TENANT_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+MEMBER_SESSION_COOKIE_DOMAIN="${PUBLIC_MARKETING_BASE_URL#*://}"
+MEMBER_SESSION_COOKIE_DOMAIN="${MEMBER_SESSION_COOKIE_DOMAIN%%/*}"
 
 log() { printf '[bootstrap-staging] %s\n' "$*"; }
 
@@ -119,11 +121,15 @@ ensure_env_value "$ENV_DIR/marketing.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOM
 ensure_env_value "$ENV_DIR/marketing.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/marketing.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
+ensure_env_value "$ENV_DIR/marketing.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
+ensure_env_value "$ENV_DIR/marketing.env" MEMBER_SESSION_COOKIE_DOMAIN "$MEMBER_SESSION_COOKIE_DOMAIN"
 ensure_env_value "$ENV_DIR/marketing.env" SESSION_COOKIE_SECURE true
 ensure_env_value "$ENV_DIR/portal.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
 ensure_env_value "$ENV_DIR/portal.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
 ensure_env_value "$ENV_DIR/portal.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/portal.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
+ensure_env_value "$ENV_DIR/portal.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
+ensure_env_value "$ENV_DIR/portal.env" MEMBER_SESSION_COOKIE_DOMAIN "$MEMBER_SESSION_COOKIE_DOMAIN"
 ensure_env_value "$ENV_DIR/portal.env" SESSION_COOKIE_SECURE true
 
 grep -qE '^MINIO_PUBLIC_ENDPOINT=' "$ENV_DIR/api.env" 2>/dev/null || \

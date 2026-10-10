@@ -46,6 +46,21 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     assert.match(setCookie, /Domain=denali\.club/);
   });
 
+  it("PCMS-COOK-05b explicit staging sibling domain shares only staging", async () => {
+    const { setSessionCookieOnResponse } = await import("../src/auth/build-session-cookie");
+    const previous = process.env.MEMBER_SESSION_COOKIE_DOMAIN;
+    process.env.MEMBER_SESSION_COOKIE_DOMAIN = "staging-denali.shenski.com";
+    try {
+      const headers = new Headers();
+      setSessionCookieOnResponse(headers, "jwt-token", "staging-portal-denali.shenski.com");
+      assert.match(headers.get("set-cookie") ?? "", /Domain=staging-denali\.shenski\.com/);
+      assert.doesNotMatch(headers.get("set-cookie") ?? "", /Domain=shenski\.com/);
+    } finally {
+      if (previous === undefined) delete process.env.MEMBER_SESSION_COOKIE_DOMAIN;
+      else process.env.MEMBER_SESSION_COOKIE_DOMAIN = previous;
+    }
+  });
+
   it("PCMS-COOK-06 dev denali.portal.localhost auth BFF is host-only", async () => {
     const priorNode = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
