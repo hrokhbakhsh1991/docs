@@ -79,18 +79,16 @@ describe("staging-env-contract", () => {
     assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
   });
 
-  it("REG-STG-ENV-06 keeps sibling-host member sessions host-only", () => {
+  it("REG-STG-ENV-06 shares sibling-host member sessions through the staging parent", () => {
     const sync = read("scripts/vps-deploy/sync-staging-profile-b-public-urls.sh");
     assert.match(sync, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);
-    assert.match(sync, /MEMBER_SESSION_COOKIE_HOST_ONLY true/);
-    assert.match(sync, /sed -i .*MEMBER_SESSION_COOKIE_DOMAIN=.*marketing\.env/);
+    assert.match(sync, /MEMBER_SESSION_COOKIE_DOMAIN shenski\.com/);
+    assert.match(sync, /sed -i .*MEMBER_SESSION_COOKIE_HOST_ONLY=.*marketing\.env/);
     assert.match(sync, /marketing\.env.*MEMBER_SESSION_COOKIE_NAME/);
     assert.match(sync, /portal\.env.*MEMBER_SESSION_COOKIE_NAME/);
-    assert.doesNotMatch(sync, /set_env_kv .*MEMBER_SESSION_COOKIE_DOMAIN/);
     const bootstrap = read("scripts/vps-deploy/bootstrap-staging.sh");
     assert.match(bootstrap, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);
-    assert.match(bootstrap, /MEMBER_SESSION_COOKIE_HOST_ONLY true/);
-    assert.match(bootstrap, /sed -i .*MEMBER_SESSION_COOKIE_DOMAIN=.*marketing\.env/);
-    assert.doesNotMatch(bootstrap, /ensure_env_value .*MEMBER_SESSION_COOKIE_DOMAIN/);
+    assert.match(bootstrap, /MEMBER_SESSION_COOKIE_DOMAIN shenski\.com/);
+    assert.match(bootstrap, /sed -i .*MEMBER_SESSION_COOKIE_HOST_ONLY=.*marketing\.env/);
   });
 });

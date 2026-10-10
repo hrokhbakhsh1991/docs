@@ -46,15 +46,16 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     assert.match(setCookie, /Domain=denali\.club/);
   });
 
-  it("PCMS-COOK-05b staging sibling host remains host-only", async () => {
+  it("PCMS-COOK-05b staging sibling hosts share the staging cookie parent", async () => {
     const { setSessionCookieOnResponse } = await import("../src/auth/build-session-cookie");
     const previous = process.env.MEMBER_SESSION_COOKIE_DOMAIN;
     const previousHostOnly = process.env.MEMBER_SESSION_COOKIE_HOST_ONLY;
-    process.env.MEMBER_SESSION_COOKIE_HOST_ONLY = "true";
+    process.env.MEMBER_SESSION_COOKIE_DOMAIN = "shenski.com";
+    delete process.env.MEMBER_SESSION_COOKIE_HOST_ONLY;
     try {
       const headers = new Headers();
       setSessionCookieOnResponse(headers, "jwt-token", "staging-portal-denali.shenski.com");
-      assert.doesNotMatch(headers.get("set-cookie") ?? "", /Domain=/);
+      assert.match(headers.get("set-cookie") ?? "", /Domain=shenski\.com/);
     } finally {
       if (previous === undefined) delete process.env.MEMBER_SESSION_COOKIE_DOMAIN;
       else process.env.MEMBER_SESSION_COOKIE_DOMAIN = previous;
