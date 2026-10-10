@@ -14,6 +14,10 @@ export const resolveSessionCookieSecure = helpers.resolveSessionCookieSecure;
 export const buildSessionCookieOptions = helpers.buildSessionCookieOptions;
 
 function resolveCustomApexCookieDomain(host: string): SessionCookieWriteOptions | undefined {
+  const hostOnly = process.env.MEMBER_SESSION_COOKIE_HOST_ONLY?.trim().toLowerCase();
+  if (hostOnly === "true" || hostOnly === "1" || hostOnly === "yes") {
+    return undefined;
+  }
   const configuredDomain = process.env.MEMBER_SESSION_COOKIE_DOMAIN?.trim().toLowerCase();
   if (
     configuredDomain !== undefined &&
