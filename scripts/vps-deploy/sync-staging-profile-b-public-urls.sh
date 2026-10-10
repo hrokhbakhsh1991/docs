@@ -75,10 +75,10 @@ PUBLIC_ROOT_DOMAIN="$(resolve_root_domain)"
 MINIO_PUBLIC_HOST="${STAGING_PUBLIC_MINIO_HOST:-storage.${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_MARKETING_BASE_URL="${STAGING_PUBLIC_MARKETING_BASE_URL:-https://staging-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://staging-portal-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
-# Profile B uses sibling hosts instead of portal.{tenant}.{root}. A browser
-# cannot set a cookie for a sibling host, so the Portal BFF must keep the
-# member cookie host-only on staging-portal-*. Marketing calls that BFF with
-# credentials included; no Domain attribute is needed here.
+# Profile B uses sibling hosts instead of portal.{tenant}.{root}. The common
+# parent is explicit so the member session is readable by both staging
+# marketing and staging portal. The staging-only cookie name prevents it from
+# being consumed as the production member session.
 MKT_PORT="23002"
 PTL_PORT="23003"
 if [[ -f "${ENV_DIR}/marketing.env" ]]; then
@@ -119,17 +119,17 @@ set_env_kv "${ENV_DIR}/api.env" MINIO_PUBLIC_ENDPOINT "https://${MINIO_PUBLIC_HO
 set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/marketing.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
-sed -i '/^MEMBER_SESSION_COOKIE_DOMAIN=/d' "${ENV_DIR}/marketing.env"
+sed -i '/^MEMBER_SESSION_COOKIE_HOST_ONLY=/d' "${ENV_DIR}/marketing.env"
 set_env_kv "${ENV_DIR}/marketing.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
-set_env_kv "${ENV_DIR}/marketing.env" MEMBER_SESSION_COOKIE_HOST_ONLY true
+set_env_kv "${ENV_DIR}/marketing.env" MEMBER_SESSION_COOKIE_DOMAIN shenski.com
 set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/web.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 set_env_kv "${ENV_DIR}/portal.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_URL"
-sed -i '/^MEMBER_SESSION_COOKIE_DOMAIN=/d' "${ENV_DIR}/portal.env"
+sed -i '/^MEMBER_SESSION_COOKIE_HOST_ONLY=/d' "${ENV_DIR}/portal.env"
 set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
-set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_HOST_ONLY true
+set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_DOMAIN shenski.com
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
