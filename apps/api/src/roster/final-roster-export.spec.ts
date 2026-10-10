@@ -79,6 +79,7 @@ describe("final roster Excel export", () => {
     const workbook = await buildFinalRosterWorkbook({
       tourId: "tour-1",
       tourTitle: "Denali test tour",
+      tourCapacityMax: 20,
       generatedAt: new Date("2026-09-18T08:00:00.000Z"),
       rows: [
         row({
@@ -148,6 +149,10 @@ describe("final roster Excel export", () => {
     assert.match(finalSheet.getCell("G3").text, /۰ تومان/);
     assert.match(finalSheet.getCell("N3").text, /۱۴۰۵|2026/);
     assert.equal(finalSheet.getCell("K2").text, "حمل سازمان‌یافته");
+    assert.equal(finalSheet.getCell("L1").text, "ظرفیت حمل‌ونقل");
+    assert.equal(finalSheet.getCell("L2").text, "اتوبوس: ۲۰ نفر · باقی‌مانده: ۱۷ نفر");
+    assert.equal(finalSheet.getRow(1).height, 32);
+    assert.equal(finalSheet.getRow(2).alignment?.wrapText, true);
     assert.equal(unpaidSheet.getCell("B2").text.startsWith("'="), true);
     assert.equal(finalSheet.getCell("L4").text, "۳ نفر");
     assert.equal(finalSheet.tables["RosterFinal"]?.name, "RosterFinal");
