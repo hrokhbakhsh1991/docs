@@ -1291,7 +1291,12 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
 
         const registration = await tx.operatorRegistration.findFirst({
           where: { id: input.registrationId, tenantId: input.tenantId },
-          select: { id: true, tourId: true, submittedByUserId: true },
+          select: {
+            id: true,
+            tourId: true,
+            submittedByUserId: true,
+            finalizationStatus: true,
+          },
         });
         if (registration !== null) {
           const approvedTour = await tx.tour.findFirst({
@@ -1310,6 +1315,8 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
               paymentId: input.paymentId,
               tourId: registration.tourId,
               guestUserId: registration.submittedByUserId,
+              status: "approved",
+              finalizationStatus: registration.finalizationStatus,
               ...(socialMediaLink !== null ? { socialMediaLink } : {}),
               approvedAt: updated.reviewedAt?.toISOString() ?? new Date().toISOString(),
             },

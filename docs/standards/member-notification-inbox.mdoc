@@ -127,6 +127,14 @@ contract.
 
 ## 7. Testing requirements
 
+### Finalized-registration private links
+
+Tour social links are private registration benefits. Approval events may carry
+the link for downstream processing, but portal rendering must require both an
+`approved` lifecycle and `finalized` finalization status. Public catalog pages
+must not render the link. Payment state alone does not grant access: free,
+waived, paid, and open-payment registrations are eligible only after finalization.
+
 | Suite                                   | Proves                                                                                                                                                                 |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `member-notifications.postgres.spec.ts` | RLS, dedupe, cross-module list; **relay** proofs for booking (`registration.approved`), finance (`payment.hold.scheduled`), wallet (`operatorCredit` → outbox → inbox) |

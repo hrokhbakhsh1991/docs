@@ -39,6 +39,8 @@ describe("member notification outbox mapping", () => {
       payload: {
         registrationId: REGISTRATION_ID,
         guestUserId: USER_ID,
+        status: "approved",
+        finalizationStatus: "finalized",
         socialMediaLink: "https://t.me/example-group",
       },
       createdAt: new Date(),

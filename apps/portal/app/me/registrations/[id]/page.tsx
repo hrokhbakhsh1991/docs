@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
+import { canShowMemberSocialLink } from "@/me/can-show-member-social-link";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import {
   formatMemberRegistrationDeparture,
@@ -128,6 +129,13 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     finalizationStatus: row.finalizationStatus,
     receiptStatus: receiptPanel.status,
   });
+  const socialMediaHref = canShowMemberSocialLink({
+    lifecycleStatus,
+    finalizationStatus: row.finalizationStatus,
+    socialMediaLink: tour?.socialMediaLink,
+  })
+    ? (tour?.socialMediaLink ?? null)
+    : null;
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main
@@ -204,10 +212,10 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </section>
-        {lifecycleStatus === "approved" && tour?.socialMediaLink ? (
+        {socialMediaHref !== null ? (
           <section data-portal-member-registration-social-link>
             <a
-              href={tour.socialMediaLink}
+              href={socialMediaHref}
               target="_blank"
               rel="noreferrer noopener"
               data-portal-member-registration-social-link-anchor

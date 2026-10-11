@@ -7,8 +7,35 @@ import {
   resolveMemberFinalizationStatusKey,
 } from "../src/me/format-member-registration-display.server";
 import { resolveMemberRegistrationDetailStatus } from "../src/me/resolve-member-registration-detail-status";
+import { canShowMemberSocialLink } from "../src/me/can-show-member-social-link";
 
 describe("member registration departure display", () => {
+  it("shows the social link only for finalized approved registrations", () => {
+    assert.equal(
+      canShowMemberSocialLink({
+        lifecycleStatus: "approved",
+        finalizationStatus: "not_final",
+        socialMediaLink: "https://t.me/example-group",
+      }),
+      false
+    );
+    assert.equal(
+      canShowMemberSocialLink({
+        lifecycleStatus: "approved",
+        finalizationStatus: "finalized",
+        socialMediaLink: "https://t.me/example-group",
+      }),
+      true
+    );
+    assert.equal(
+      canShowMemberSocialLink({
+        lifecycleStatus: "waitlisted",
+        finalizationStatus: "finalized",
+        socialMediaLink: "https://t.me/example-group",
+      }),
+      false
+    );
+  });
   it("BUG-STG-035 formats the stored instant in the Denali business timezone", () => {
     const iso = "2026-10-13T04:30:00.000Z";
     const expected = new Intl.DateTimeFormat("fa-IR", {
