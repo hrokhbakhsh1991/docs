@@ -12,6 +12,7 @@ import {
   resolveNotificationSourceIcon,
   sanitizeNotificationTitle,
 } from "@/me/notifications/member-notifications-format";
+import { canShowMemberSocialLink } from "@/me/can-show-member-social-link";
 
 type NotificationItem = {
   readonly id: string;
@@ -361,12 +362,23 @@ export function MemberNotificationsPanel() {
             const href = resolveNotificationHref(item);
             const readOnly = href === "/me/notifications";
             const sourceLabel = resolveSourceLabel(item.sourceModule, t);
-            const socialMediaLink =
-              item.eventType === "registration.approved" &&
-              typeof item.payload?.socialMediaLink === "string" &&
-              /^https?:\/\//i.test(item.payload.socialMediaLink)
+            const payloadSocialLink =
+              typeof item.payload?.socialMediaLink === "string"
                 ? item.payload.socialMediaLink
                 : null;
+            const socialMediaLink = canShowMemberSocialLink({
+              lifecycleStatus:
+                typeof item.payload?.status === "string" ? item.payload.status : null,
+              finalizationStatus:
+                item.payload?.finalizationStatus === "finalized" ? "finalized" : "not_final",
+              socialMediaLink:
+                item.eventType === "registration.approved" ||
+                item.eventType === "finance.receipt.approved"
+                  ? payloadSocialLink
+                  : null,
+            })
+              ? payloadSocialLink
+              : null;
 
             return (
               <li
