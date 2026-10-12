@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import worker, { buildUpstreamUrl } from "../src/index.js";
+import worker, { buildUpstreamUrl, fetchTelegramApi } from "../src/index.js";
 
 test("builds a fixed API target without changing the webhook path", () => {
   const result = buildUpstreamUrl(
@@ -90,11 +90,126 @@ test("forwards authenticated outbound Telegram API requests without exposing tok
         body: JSON.stringify({ token: "test-token", method: "getMe", body: {} }),
       }),
       { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
-    );
-    assert.equal(response.status, 200);
-    assert.equal(captured.url, "https://api.telegram.org/bottest-token/getMe");
+      );
+      assert.equal(response.status, 200);
+      assert.ok(response.headers.get("x-correlation-id"));
+      assert.equal(captured.url, "https://api.telegram.org/bottest-token/getMe");
     assert.equal(captured.init.headers["content-type"], "application/json");
     assert.deepEqual(JSON.parse(captured.init.body), {});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("allows getWebhookInfo and preserves a bounded correlation id", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ ok: true, result: { url: "", pending_update_count: 0 } }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  try {
+    const response = await worker.fetch(
+      new Request("https://relay.example/telegram-api", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer relay-secret",
+          "content-type": "application/json",
+          "x-correlation-id": "phase1-get-webhook-info",
+        },
+        body: JSON.stringify({ token: "test-token", method: "getWebhookInfo", body: {} }),
+      }),
+      { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("x-correlation-id"), "phase1-get-webhook-info");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("maps an upstream timeout to a bounded timeout error", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Promise(() => {});
+  try {
+    await assert.rejects(
+      fetchTelegramApi("https://api.telegram.org/bottest-token/getMe", { method: "POST" }, 1),
+      (error) => error?.code === "TELEGRAM_UPSTREAM_TIMEOUT"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("relay logs contain method and outcome but never token or payload", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const logs = [];
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ ok: true, result: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  console.log = (line) => logs.push(String(line));
+  try {
+    await worker.fetch(
+      new Request("https://relay.example/telegram-api", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer relay-secret",
+          "content-type": "application/json",
+          "x-correlation-id": "phase1-redaction",
+        },
+        body: JSON.stringify({
+          token: "sensitive-token",
+          method: "sendMessage",
+          body: { chat_id: "-1001", text: "sensitive-message" },
+        }),
+      }),
+      { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
+    );
+    assert.equal(logs.length, 1);
+    assert.match(logs[0], /telegram\.relay\.request/);
+    assert.doesNotMatch(logs[0], /sensitive-token|sensitive-message/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+  }
+});
+
+test("allows the non-persistent sendChatAction topic health probe", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = { url: String(url), init };
+    return new Response(JSON.stringify({ ok: true, result: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  try {
+    const response = await worker.fetch(
+      new Request("https://relay.example/telegram-api", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer relay-secret",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          token: "test-token",
+          method: "sendChatAction",
+          body: { chat_id: "-1001", action: "typing", message_thread_id: 42 },
+        }),
+      }),
+      { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(captured.url, "https://api.telegram.org/bottest-token/sendChatAction");
+    assert.deepEqual(JSON.parse(captured.init.body), {
+      chat_id: "-1001",
+      action: "typing",
+      message_thread_id: 42,
+    });
   } finally {
     globalThis.fetch = originalFetch;
   }
