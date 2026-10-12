@@ -1,6 +1,14 @@
 const TELEGRAM_WEBHOOK_PATH = /^\/webhooks\/telegram\/[^/]+\/[^/]+$/;
 const TELEGRAM_API_PATH = "/telegram-api";
 const TELEGRAM_UPSTREAM_TIMEOUT_MS = 25_000;
+const TELEGRAM_READ_ONLY_TIMEOUT_MS = 8_000;
+const TELEGRAM_READ_ONLY_ATTEMPTS = 3;
+const TELEGRAM_READ_ONLY_METHODS = new Set([
+  "getMe",
+  "getChat",
+  "getChatMember",
+  "getWebhookInfo",
+]);
 const TELEGRAM_API_METHODS = new Set([
   "getMe",
   "getChat",
@@ -81,30 +89,48 @@ export async function fetchTelegramApi(url, init, timeoutMs = TELEGRAM_UPSTREAM_
 }
 
 async function forwardTelegramApi({ requestId, method, token, init }) {
-  const startedAt = Date.now();
-  try {
-    const response = await fetchTelegramApi(buildTelegramApiUrl(token, method), init);
-    logRelayEvent({
-      requestId,
-      method,
-      outcome: response.ok ? "success" : "telegram_error",
-      status: response.status,
-      durationMs: Date.now() - startedAt,
-      timeout: false,
-    });
-    return response;
-  } catch (error) {
-    const timeout = error?.code === "TELEGRAM_UPSTREAM_TIMEOUT";
-    logRelayEvent({
-      requestId,
-      method,
-      outcome: timeout ? "timeout" : "upstream_error",
-      status: timeout ? 504 : 502,
-      durationMs: Date.now() - startedAt,
-      timeout,
-    });
-    throw error;
+  const readOnly = TELEGRAM_READ_ONLY_METHODS.has(method);
+  const attempts = readOnly ? TELEGRAM_READ_ONLY_ATTEMPTS : 1;
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const startedAt = Date.now();
+    try {
+      const response = await fetchTelegramApi(
+        buildTelegramApiUrl(token, method),
+        init,
+        readOnly ? TELEGRAM_READ_ONLY_TIMEOUT_MS : TELEGRAM_UPSTREAM_TIMEOUT_MS
+      );
+      logRelayEvent({
+        requestId,
+        method,
+        outcome: response.ok ? "success" : "telegram_error",
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+        timeout: false,
+        attempt,
+      });
+      return response;
+    } catch (error) {
+      lastError = error;
+      const timeout = error?.code === "TELEGRAM_UPSTREAM_TIMEOUT";
+      if (attempt === attempts) {
+        logRelayEvent({
+          requestId,
+          method,
+          outcome: timeout ? "timeout" : "upstream_error",
+          status: timeout ? 504 : 502,
+          durationMs: Date.now() - startedAt,
+          timeout,
+          attempt,
+        });
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+      }
+    }
   }
+
+  throw lastError;
 }
 
 function proxyTelegramResponse(upstream, requestId) {
