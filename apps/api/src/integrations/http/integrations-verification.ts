@@ -108,6 +108,18 @@ export function testConnectionMessageForCode(code: string | undefined): string {
       return "Telegram group name is required before testing the connection.";
     case "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED":
       return "Telegram bot token is required before testing the connection.";
+    case "INTEGRATION_TELEGRAM_BOT_TOKEN_INVALID":
+      return "Telegram rejected the bot token. Create or copy a valid token from BotFather.";
+    case "INTEGRATION_TELEGRAM_CHAT_INVALID":
+      return "Telegram could not resolve this group. Check the chat ID and add the bot to the group.";
+    case "INTEGRATION_TELEGRAM_BOT_ACCESS_INVALID":
+      return "Telegram could not verify the bot in this group. Add it as an administrator and check its permissions.";
+    case "INTEGRATION_TELEGRAM_API_UNREACHABLE":
+      return "The server could not reach Telegram. Check outbound network access or configure the Telegram relay.";
+    case "INTEGRATION_TELEGRAM_RATE_LIMITED":
+      return "Telegram temporarily rate-limited this connection. Wait briefly and try again.";
+    case "INTEGRATION_TELEGRAM_API_REQUEST_FAILED":
+      return "Telegram rejected the request. Check the group, bot permissions, and forum settings.";
     case "INTEGRATION_TELEGRAM_GROUP_MUST_BE_SUPERGROUP":
       return "Telegram notifications require a supergroup.";
     case "INTEGRATION_TELEGRAM_GROUP_MUST_BE_FORUM":
@@ -118,8 +130,13 @@ export function testConnectionMessageForCode(code: string | undefined): string {
       return "Telegram bot must be an administrator with permission to manage topics.";
     case "INTEGRATION_TELEGRAM_TOPIC_CREATE_FAILED":
       return "Telegram forum topics could not be created.";
+    case "INTEGRATION_TELEGRAM_TOPIC_CREATE_OUTCOME_UNKNOWN":
+      return "A previous topic creation may have succeeded but its response was lost. Rebind explicitly instead of retrying automatically.";
     case "TELEGRAM_HTTP_ERROR":
       return "Telegram API rejected the test message.";
+    case "TELEGRAM_SEND_FAILED":
+    case "TELEGRAM_API_ERROR":
+      return "Telegram API rejected the test message. Check the group ID, token, and bot permissions.";
     case "TELEGRAM_NETWORK_ERROR":
       return "Network error while calling Telegram.";
     default:

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { buildTelegramApiRequest } from "./telegram-api.transport";
 
 type TelegramApiResponse<T> = {
@@ -7,7 +9,18 @@ type TelegramApiResponse<T> = {
   readonly error_code?: number;
 };
 
-const TELEGRAM_API_TIMEOUT_MS = 15_000;
+// The Cloudflare relay can cold-start before forwarding the first Bot API call.
+// Keep the timeout bounded, but allow that first request to complete without
+// turning a healthy relay into a false "unreachable" provisioning failure.
+const TELEGRAM_API_TIMEOUT_MS = 30_000;
+const TELEGRAM_READ_ONLY_METHODS = new Set([
+  "getMe",
+  "getChat",
+  "getChatMember",
+  "getWebhookInfo",
+]);
+const TELEGRAM_MAX_ATTEMPTS = 3;
+const TELEGRAM_RETRY_BASE_DELAY_MS = 100;
 
 export type TelegramBotIdentity = {
   readonly id: number;
@@ -34,6 +47,14 @@ export type TelegramChatMember = {
   readonly can_manage_topics?: boolean;
 };
 
+export type TelegramWebhookInfo = {
+  readonly url: string;
+  readonly has_custom_certificate: boolean;
+  readonly pending_update_count: number;
+  readonly last_error_date?: number;
+  readonly last_error_message?: string;
+};
+
 export type TelegramSentMessage = {
   readonly message_id: number;
 };
@@ -42,20 +63,51 @@ export class TelegramApiError extends Error {
   constructor(
     readonly method: string,
     readonly errorCode?: number,
-    readonly description?: string
+    readonly description?: string,
+    readonly httpStatus?: number
   ) {
     super(description ?? `Telegram API request failed: ${method}`);
     this.name = "TelegramApiError";
   }
 }
 
+export function classifyTelegramApiError(error: TelegramApiError): string {
+  if (
+    error.errorCode === undefined ||
+    error.httpStatus === 502 ||
+    error.httpStatus === 503 ||
+    error.httpStatus === 504
+  ) {
+    return "INTEGRATION_TELEGRAM_API_UNREACHABLE";
+  }
+  if (error.errorCode === 401) {
+    return "INTEGRATION_TELEGRAM_BOT_TOKEN_INVALID";
+  }
+  if (error.method === "getChat" && (error.errorCode === 400 || error.errorCode === 403)) {
+    return "INTEGRATION_TELEGRAM_CHAT_INVALID";
+  }
+  if (error.method === "getChatMember" && (error.errorCode === 400 || error.errorCode === 403)) {
+    return "INTEGRATION_TELEGRAM_BOT_ACCESS_INVALID";
+  }
+  if (error.errorCode === 429 || error.httpStatus === 429) {
+    return "INTEGRATION_TELEGRAM_RATE_LIMITED";
+  }
+  return "INTEGRATION_TELEGRAM_API_REQUEST_FAILED";
+}
+
 export type TelegramApiClient = {
   getMe(): Promise<TelegramBotIdentity>;
   getChat(chatId: string): Promise<TelegramChat>;
   getChatMember(chatId: string, userId: number): Promise<TelegramChatMember>;
+  getWebhookInfo(): Promise<TelegramWebhookInfo>;
   createForumTopic(chatId: string, name: string): Promise<TelegramForumTopic>;
   setWebhook(url: string, secretToken?: string): Promise<void>;
   answerCallbackQuery(callbackQueryId: string, text?: string): Promise<void>;
+  sendChatAction?(input: {
+    readonly chatId: string;
+    readonly action: "typing";
+    readonly messageThreadId?: number;
+  }): Promise<void>;
   sendMessage(input: {
     readonly chatId: string;
     readonly text: string;
@@ -63,17 +115,33 @@ export type TelegramApiClient = {
   }): Promise<TelegramSentMessage>;
 };
 
+export type TelegramApiClientOptions = {
+  readonly sleep?: (milliseconds: number) => Promise<void>;
+  readonly random?: () => number;
+  readonly requestId?: () => string;
+};
+
 export function createTelegramApiClient(
   botToken: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  options: TelegramApiClientOptions = {}
 ): TelegramApiClient {
   const token = botToken.trim();
   if (token.length === 0) {
     throw new TelegramApiError("client", undefined, "Telegram bot token is required");
   }
 
-  async function call<T>(method: string, body: Record<string, unknown>): Promise<T> {
-    const request = buildTelegramApiRequest(token, method, body);
+  const sleep = options.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => {
+    setTimeout(resolve, milliseconds);
+  }));
+  const random = options.random ?? Math.random;
+
+  async function callOnce<T>(
+    method: string,
+    body: Record<string, unknown>,
+    requestId: string
+  ): Promise<T> {
+    const request = buildTelegramApiRequest(token, method, body, requestId);
     let response: Response;
     try {
       response = await fetchImpl(request.url, {
@@ -85,11 +153,48 @@ export function createTelegramApiClient(
     } catch {
       throw new TelegramApiError(method, undefined, "Telegram API is unreachable");
     }
-    const result = (await response.json()) as TelegramApiResponse<T>;
+
+    let result: TelegramApiResponse<T>;
+    try {
+      result = (await response.json()) as TelegramApiResponse<T>;
+    } catch {
+      throw new TelegramApiError(method, undefined, "Telegram API returned invalid JSON", response.status);
+    }
     if (!response.ok || result.ok !== true || result.result === undefined) {
-      throw new TelegramApiError(method, result.error_code, result.description);
+      throw new TelegramApiError(
+        method,
+        result.error_code,
+        result.description ?? `Telegram API request failed: ${method}`,
+        response.status
+      );
     }
     return result.result;
+  }
+
+  async function call<T>(method: string, body: Record<string, unknown>): Promise<T> {
+    const requestId = options.requestId?.() ?? randomUUID();
+    const retryable = TELEGRAM_READ_ONLY_METHODS.has(method);
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await callOnce<T>(method, body, requestId);
+      } catch (error: unknown) {
+        const telegramError =
+          error instanceof TelegramApiError
+            ? error
+            : new TelegramApiError(method, undefined, "Telegram API is unreachable");
+        const transportFailure =
+          telegramError.errorCode === undefined &&
+          (telegramError.httpStatus === undefined ||
+            telegramError.httpStatus === 502 ||
+            telegramError.httpStatus === 503 ||
+            telegramError.httpStatus === 504);
+        if (!retryable || !transportFailure || attempt >= TELEGRAM_MAX_ATTEMPTS) {
+          throw telegramError;
+        }
+        const backoff = TELEGRAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        await sleep(Math.round(backoff + random() * TELEGRAM_RETRY_BASE_DELAY_MS));
+      }
+    }
   }
 
   return {
@@ -97,6 +202,7 @@ export function createTelegramApiClient(
     getChat: (chatId) => call<TelegramChat>("getChat", { chat_id: chatId }),
     getChatMember: (chatId, userId) =>
       call<TelegramChatMember>("getChatMember", { chat_id: chatId, user_id: userId }),
+    getWebhookInfo: () => call<TelegramWebhookInfo>("getWebhookInfo", {}),
     createForumTopic: (chatId, name) =>
       call<TelegramForumTopic>("createForumTopic", { chat_id: chatId, name }),
     setWebhook: async (url, secretToken) => {
@@ -109,6 +215,15 @@ export function createTelegramApiClient(
       await call<boolean>("answerCallbackQuery", {
         callback_query_id: callbackQueryId,
         ...(text === undefined ? {} : { text }),
+      });
+    },
+    sendChatAction: async (input) => {
+      await call<boolean>("sendChatAction", {
+        chat_id: input.chatId,
+        action: input.action,
+        ...(input.messageThreadId === undefined
+          ? {}
+          : { message_thread_id: input.messageThreadId }),
       });
     },
     sendMessage: (input) =>

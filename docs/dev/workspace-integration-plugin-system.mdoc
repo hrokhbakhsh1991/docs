@@ -376,24 +376,122 @@ test messages but never call back into the API. The one-time `/connect <code>`
 flow remains available as a recovery path for deployments where direct
 provisioning cannot resolve the target chat. The API receives callbacks at
 `/webhooks/telegram/:tenantId/:integrationId`.
-The first successful chat/group binding is immutable: later provision, connect,
-or settings updates cannot silently redirect the integration to another chat or
-group with the same-looking name. Each newly created forum topic is checkpointed
-before the next topic is created, and a short database-backed provisioning lease
-serializes concurrent replicas; an expired lease can be reclaimed safely.
+The first successful chat/group binding is immutable for the Telegram `/connect`
+recovery command, so a webhook callback cannot silently redirect a connection.
+An authenticated operator may explicitly rebind the connection from the settings
+page: the API verifies the new group, clears the old group's topic thread IDs,
+provisions the standard topics in the new forum, and only then allows testing or
+enabling delivery. Each newly created forum topic is checkpointed before the next
+topic is created, and a short database-backed provisioning lease serializes
+concurrent replicas; an expired lease can be reclaimed safely.
+The forum title is display metadata only; `chatId` and persisted thread IDs are
+the binding identity, so a human rename must not invalidate a healthy mapping.
 Testing an existing native Telegram connection also refreshes the webhook secret
 after the outbound test message succeeds, so older rows can be repaired without
 recreating the connection.
 
-The shared Cloudflare Worker also exposes an authenticated outbound Telegram
-relay for deployments whose server egress cannot reach `api.telegram.org`.
+The Telegram Bot API does not expose a bot-callable list/search operation for forum
+topics. Consequently, a topic name is display metadata rather than an idempotency
+key. The routing identity is `(tenantId, connectionId, chatId, topicKey)` and its
+persisted `message_thread_id` is the source of truth. Application code must never
+discard a healthy checkpoint merely to retry provisioning; losing that checkpoint
+would make an existing remote topic indistinguishable from a topic that was never
+created.
+
+### Telegram connection and topic readiness contract
+
+A native Telegram connection has separate lifecycle and readiness dimensions:
+
+```text
+draft -> provisioning -> ready -> enabled
+                    \-> degraded -> repairing -> ready
+```
+
+`enabled` is legal only when the bot token, forum supergroup binding, webhook and
+all workspace-declared topic mappings are ready. Enabling must fail closed with a
+stable readiness code when any requirement is missing; it must never turn an
+incomplete row into an active delivery source. The four Denali topic keys are
+`registration`, `receipts`, `tickets`, and `tours`, but platform code consumes the
+workspace/provider topic contract rather than hardcoding Denali event rules.
+
+Provision, connection test, delivery and repair all use one idempotent `ensureTopic`
+operation:
+
+1. Reload the authoritative connection under a database-backed per-topic lease.
+2. Reuse a persisted positive thread ID without calling `createForumTopic`.
+3. If no checkpoint exists and no ambiguous remote outcome exists, create exactly
+   one topic and checkpoint its returned thread ID before releasing the lease.
+4. If Telegram definitively rejects a persisted thread ID as missing/deleted,
+   invalidate only that `(chatId, topicKey)` checkpoint, recreate it once under the
+   same lease, and retry the original delivery exactly once.
+5. If a remote create has an unknown outcome (timeout/network loss), persist
+   `ambiguous` and stop automatic creation. An operator must resolve that state;
+   automatic retry could create a duplicate topic.
+6. A concurrent caller that loses the lease reloads and reuses the winner's stored
+   thread ID. It never performs a second remote create.
+
+Changing `chatId` is an explicit rebind: disable delivery, archive the old mapping
+as history, provision the full topic set in the new forum, register the webhook,
+and only then allow enablement. Changing only the Telegram group title does not
+invalidate thread IDs. Renaming a topic in Telegram also does not change its routing
+identity because the thread ID remains authoritative.
+
+Provisioning the same `chatId` is an idempotent readiness operation, not a rebind.
+It must preserve an already-enabled connection while refreshing its ready/error
+state. A disabled connection remains disabled after provisioning and still requires
+an explicit enable action. This prevents a routine repair or settings save from
+silently stopping delivery while keeping rebind safety explicit.
+
+The repair action operates on every declared topic. A topic with a checkpoint is
+probed without leaving a persistent group message; only Telegram's definitive
+missing/deleted response permits recreation. A missing checkpoint is created via
+`ensureTopic`. An ambiguous checkpoint is never cleared by a generic retry: the
+repair API rejects the operation until the UI identifies the exact topic and
+requires an explicit operator acknowledgement that the remote topic was not
+created (or binds the replacement thread ID). Healthy topics remain untouched.
+
+Every outbound Telegram event uses the same topic-resolution path. Denali maps
+manual tour announcements to `tours`, registration lifecycle events to
+`registration`, receipt lifecycle events to `receipts`, and tickets to `tickets`.
+No mapped event may fall back to General. Inbound registration, receipt and ticket
+actions must verify the configured chat, the expected topic thread and an
+administrator/creator Telegram membership before mutating application state.
+
+Provisioning failures are returned as stable operator-facing codes rather than
+one generic Telegram error: an invalid bot token, an inaccessible/invalid chat,
+and unreachable Telegram API are reported separately. The connection remains
+disabled when provisioning fails, while any checkpointed forum topics are kept
+so a retry can resume idempotently. Raw Telegram descriptions and credentials
+are never returned to the admin UI or written to application logs.
+
+The shared Cloudflare Worker exposes the authenticated outbound Telegram relay
+used by every server-side deployment; the API does not call `api.telegram.org`
+directly.
 Set `TELEGRAM_API_RELAY_URL` and the server-only
 `TELEGRAM_API_RELAY_SHARED_SECRET` on the API. The API keeps each workspace bot
 token in `integration_secrets` and sends it over HTTPS per request; the Worker
 does not persist or log tokens and only forwards the allowlisted Telegram Bot
-API methods. Adding a workspace requires no Worker change or new Worker.
-When the relay URL is unset, local development keeps using the direct Telegram
-API path.
+API methods. All server-side Telegram calls use the relay; the server does not
+fall back to a direct Telegram connection when the relay URL is absent. The API
+gives relay calls a bounded 30-second timeout, while the Worker bounds its
+upstream Telegram fetch at 25 seconds so a cold start has room to complete
+without leaving an operator action pending indefinitely. Read-only calls
+(`getMe`, `getChat`, `getChatMember`, and `getWebhookInfo`) may be retried up to
+three times with short backoff on network, timeout, and 502/503/504 failures.
+Side-effecting calls are never retried automatically; an unknown
+`createForumTopic` outcome remains ambiguous to prevent duplicate topics.
+
+Relay requests carry a correlation ID. The Worker logs only method, outcome,
+status, duration, timeout, and correlation ID; it never logs tokens, message
+text, media, or request bodies. Transport failures are returned as controlled
+502/504 responses and Telegram 401/403/429 responses remain distinguishable to
+the API error mapper.
+Adding a workspace requires no Worker change or new Worker.
+
+Webhook route parameters are connection identifiers, not free-form test labels:
+the API validates the tenant and integration UUIDs before querying Prisma.
+Invalid probe paths return a controlled client error and never reach a
+UUID-typed database predicate.
 
 Keep the API and outbox relay as separate deployments when scaling; the relay
 needs `WORKER_ROLE=outbox-relay`, `OUTBOX_RELAY_ENABLED=true`, and, for a
@@ -405,7 +503,7 @@ decide event routing.
 
 - Bot tokens stored via `secret_ref` → `integration_secrets` (never in HTTP responses).
 - Legacy `integration_connections.credentials` column deprecated; dual-read during migration.
-- Direct outbound URLs pass `assertSafeOutboundUrl` with provider host allowlist (`api.telegram.org`); relay requests pass a fixed HTTPS relay URL and an API-to-Worker shared secret.
+- Relay requests pass a fixed HTTPS relay URL and an API-to-Worker shared secret; Telegram credentials are never placed in the relay URL.
 - Telegram webhook ingress uses a per-connection secret header and one-time connect codes; callback actions additionally verify the Telegram user is still a member of the configured group. Payment webhooks retain their separate HMAC + replay-cache path.
 
 ## Verification

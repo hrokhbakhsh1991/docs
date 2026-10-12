@@ -111,6 +111,21 @@ describe("integrations verification helpers", () => {
       testConnectionMessageForCode("INTEGRATION_TELEGRAM_TOPIC_THREAD_ID_MISSING"),
       /registration forum topic/
     );
+    assert.match(testConnectionMessageForCode("TELEGRAM_SEND_FAILED"), /Telegram API rejected/);
+    assert.match(testConnectionMessageForCode("TELEGRAM_API_ERROR"), /Telegram API rejected/);
+    assert.match(
+      testConnectionMessageForCode("INTEGRATION_TELEGRAM_BOT_TOKEN_INVALID"),
+      /valid token/
+    );
+    assert.match(testConnectionMessageForCode("INTEGRATION_TELEGRAM_CHAT_INVALID"), /chat ID/);
+    assert.match(
+      testConnectionMessageForCode("INTEGRATION_TELEGRAM_API_UNREACHABLE"),
+      /could not reach Telegram/
+    );
+    assert.match(
+      testConnectionMessageForCode("INTEGRATION_TELEGRAM_RATE_LIMITED"),
+      /rate-limited/
+    );
   });
 
   it("requires the registration forum topic for Telegram integration connection tests", () => {

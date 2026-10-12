@@ -1,14 +1,29 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { TelegramProviderAdapter } from "./telegram-provider.adapter";
+
+const previousRelayUrl = process.env.TELEGRAM_API_RELAY_URL;
+const previousRelaySecret = process.env.TELEGRAM_API_RELAY_SHARED_SECRET;
+
+before(() => {
+  process.env.TELEGRAM_API_RELAY_URL = "https://relay.example/telegram-api";
+  process.env.TELEGRAM_API_RELAY_SHARED_SECRET = "relay-secret";
+});
+
+after(() => {
+  if (previousRelayUrl === undefined) delete process.env.TELEGRAM_API_RELAY_URL;
+  else process.env.TELEGRAM_API_RELAY_URL = previousRelayUrl;
+  if (previousRelaySecret === undefined) delete process.env.TELEGRAM_API_RELAY_SHARED_SECRET;
+  else process.env.TELEGRAM_API_RELAY_SHARED_SECRET = previousRelaySecret;
+});
 
 describe("Telegram provider adapter", () => {
   it("sends an inline URL button with a text message", async () => {
     const originalFetch = globalThis.fetch;
     let body: Record<string, unknown> | undefined;
     globalThis.fetch = (async (_url, init) => {
-      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      body = (JSON.parse(String(init?.body)) as { body: Record<string, unknown> }).body;
       return new Response(JSON.stringify({ ok: true, result: { message_id: 11 } }), {
         status: 200,
       });
@@ -68,7 +83,7 @@ describe("Telegram provider adapter", () => {
     globalThis.fetch = (async (url, init) => {
       calls.push({
         url: String(url),
-        body: JSON.parse(String(init?.body)) as Record<string, unknown>,
+        body: (JSON.parse(String(init?.body)) as { body: Record<string, unknown> }).body,
       });
       return new Response(JSON.stringify({ ok: true, result: { message_id: 12 } }), {
         status: 200,
@@ -97,7 +112,7 @@ describe("Telegram provider adapter", () => {
       );
 
       assert.deepEqual(result, { ok: true, providerMessageId: "12" });
-      assert.equal(calls[0]?.url, "https://api.telegram.org/bottest-token/sendDocument");
+      assert.equal(calls[0]?.url, "https://relay.example/telegram-api");
       assert.deepEqual(calls[0]?.body, {
         chat_id: "-1001",
         message_thread_id: 42,
@@ -153,7 +168,7 @@ describe("Telegram provider adapter", () => {
 
       assert.deepEqual(result, { ok: true, providerMessageId: "13" });
       assert.equal(calls.length, 1);
-      assert.equal(calls[0]?.url, "https://api.telegram.org/bottest-token/sendDocument");
+      assert.equal(calls[0]?.url, "https://relay.example/telegram-api");
       assert.ok(calls[0]?.body instanceof FormData);
       const form = calls[0]?.body as FormData;
       assert.equal(form.get("chat_id"), "-1001");

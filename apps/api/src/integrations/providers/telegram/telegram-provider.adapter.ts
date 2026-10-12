@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { IntegrationCapability } from "../../platform/integration-capability";
 import type {
   IntegrationCreateChannelLinkInput,
@@ -11,7 +13,7 @@ import {
   buildTelegramApiRequest,
 } from "./telegram-api.transport";
 
-const TELEGRAM_API_TIMEOUT_MS = 15_000;
+const TELEGRAM_API_TIMEOUT_MS = 30_000;
 
 const TELEGRAM_CAPABILITIES = [
   "message.send",
@@ -29,7 +31,9 @@ function readBotToken(ctx: IntegrationDeliveryContext): string | null {
  * created/stale). Callers use this specific code to trigger auto-create +
  * retry instead of treating it as a generic transient send failure.
  */
-function isTelegramTopicThreadNotFoundDescription(description: string | undefined): boolean {
+export function isTelegramTopicThreadNotFoundDescription(
+  description: string | undefined
+): boolean {
   if (typeof description !== "string") {
     return false;
   }
@@ -58,6 +62,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
       chat_id: input.channelId,
       ...(input.messageThreadId === undefined ? {} : { message_thread_id: input.messageThreadId }),
     };
+    const requestId = randomUUID();
     let response: Response;
     try {
       if (media?.body !== undefined) {
@@ -76,7 +81,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
         if (input.replyMarkup !== undefined) {
           form.set("reply_markup", JSON.stringify(input.replyMarkup));
         }
-        const request = buildTelegramApiMultipartRequest(botToken, method, form);
+        const request = buildTelegramApiMultipartRequest(botToken, method, form, requestId);
         response = await fetch(request.url, {
           method: "POST",
           headers: request.headers,
@@ -103,7 +108,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
           ...(media === undefined && input.replyMarkup !== undefined
             ? { reply_markup: input.replyMarkup }
             : {}),
-        });
+        }, requestId);
         response = await fetch(request.url, {
           method: "POST",
           headers: request.headers,
