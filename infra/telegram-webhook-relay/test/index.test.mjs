@@ -128,6 +128,66 @@ test("allows getWebhookInfo and preserves a bounded correlation id", async () =>
   }
 });
 
+test("retries transient read-only Telegram requests", async () => {
+  const originalFetch = globalThis.fetch;
+  let attempts = 0;
+  globalThis.fetch = async () => {
+    attempts += 1;
+    if (attempts === 1) throw new Error("temporary upstream failure");
+    return new Response(JSON.stringify({ ok: true, result: { id: 7 } }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  try {
+    const response = await worker.fetch(
+      new Request("https://relay.example/telegram-api", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer relay-secret",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ token: "test-token", method: "getMe", body: {} }),
+      }),
+      { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(attempts, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("does not retry Telegram side effects after an upstream failure", async () => {
+  const originalFetch = globalThis.fetch;
+  let attempts = 0;
+  globalThis.fetch = async () => {
+    attempts += 1;
+    throw new Error("temporary upstream failure");
+  };
+  try {
+    const response = await worker.fetch(
+      new Request("https://relay.example/telegram-api", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer relay-secret",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          token: "test-token",
+          method: "sendMessage",
+          body: { chat_id: "-1001", text: "test" },
+        }),
+      }),
+      { TELEGRAM_API_RELAY_SHARED_SECRET: "relay-secret" }
+    );
+    assert.equal(response.status, 502);
+    assert.equal(attempts, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("maps an upstream timeout to a bounded timeout error", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Promise(() => {});
