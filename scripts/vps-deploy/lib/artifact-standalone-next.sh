@@ -28,6 +28,32 @@ package_next_standalone() {
   # contains an absolute developer-machine path (which would make `next`
   # disappear on the VPS).
   cp -aL "${standalone_root}/." "$out_dir/"
+
+  # Next's standalone tracer can leave pnpm's virtual-store packages under
+  # node_modules/.pnpm while the top-level node_modules entry still points at
+  # the build workspace. That is not a portable runtime layout: the VPS has
+  # no workspace symlink and Next's require-hook loads styled-jsx by package
+  # name. Materialize the small runtime-only closure at the artifact root.
+  ensure_runtime_package() {
+    local package_name="$1"
+    local package_json=""
+    package_json="$(find "${standalone_root}/node_modules/.pnpm" \
+      -type f -path "*/node_modules/${package_name}/package.json" \
+      -print -quit 2>/dev/null || true)"
+    [[ -n "$package_json" ]] || {
+      echo "artifact-standalone: missing traced runtime package ${package_name} for ${app_rel}" >&2
+      return 1
+    }
+    local package_dir
+    package_dir="$(dirname "$package_json")"
+    local target_dir="${out_dir}/node_modules/${package_name}"
+    rm -rf "$target_dir"
+    mkdir -p "$target_dir"
+    cp -aL "${package_dir}/." "$target_dir/"
+  }
+
+  ensure_runtime_package "styled-jsx"
+  ensure_runtime_package "client-only"
   local static_root
   if [[ "$server_js" == "${app_rel}/"* ]]; then
     static_root="${out_dir}/${app_rel}/.next"
