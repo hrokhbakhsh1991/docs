@@ -1851,11 +1851,11 @@ export async function provisionTelegramIntegration(
       throw new IntegrationInvalidBodyError(error.code);
     }
     if (error instanceof TelegramApiError) {
-      console.error("telegram.provision.api_error", {
+      logger.error({
         method: error.method,
         errorCode: error.errorCode,
         description: error.description,
-      });
+      }, "telegram.provision.api_error");
       throw new IntegrationInvalidBodyError(classifyTelegramApiError(error));
     }
     throw error;
