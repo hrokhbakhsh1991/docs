@@ -225,6 +225,15 @@ describe("wallet-staging-deploy-guards", () => {
     assert.match(verify, /SCRIPT_DIR}\/lib\/ports\.sh/);
   });
 
+  it("WSD-17 requires portable Next runtime dependencies in the artifact", () => {
+    const packager = read("scripts/vps-deploy/lib/artifact-standalone-next.sh");
+    const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
+    assert.match(packager, /ensure_runtime_package \"styled-jsx\"/);
+    assert.match(packager, /ensure_runtime_package \"client-only\"/);
+    assert.match(selfCheck, /require\.resolve\("styled-jsx\/package\.json"/);
+    assert.match(selfCheck, /require\.resolve\("client-only\/package\.json"/);
+  });
+
   it("WSD-12 runbook documents VPS-side command and production block", () => {
     const doc = read("docs/phase-23/runbooks/denali-wallet-v1-staging-deploy.md");
     assert.match(doc, /DENALI_WALLET_DEPLOY_TARGET=staging/);
