@@ -49,6 +49,27 @@ describe("Telegram forum onboarding", () => {
     assert.equal(result.config.topics.registration.threadId, 11);
   });
 
+  it("keeps a persisted binding valid when the forum title is renamed", async () => {
+    const result = await provisionTelegramForum({
+      api: fakeApi({
+        getChat: async () => ({
+          id: -1001,
+          type: "supergroup",
+          title: "Renamed by an admin",
+          is_forum: true,
+        }),
+      }),
+      chatId: "-1001",
+      config: createTelegramForumConfig({
+        groupName: "Old display name",
+        topics: { registration: { name: "ثبت‌نام", threadId: 11 } },
+      }),
+    });
+
+    assert.equal(result.chat.id, -1001);
+    assert.equal(result.config.topics.registration.threadId, 11);
+  });
+
   it("persists the mapping inside the provisioning lock", async () => {
     let creates = 0;
     let persisted = createTelegramForumConfig({ groupName: "denaliadmins" });
@@ -95,6 +116,32 @@ describe("Telegram forum onboarding", () => {
       `tickets:${"تیکت‌ها".length}`,
       `tours:${"تورهای جدید".length}`,
     ]);
+  });
+
+  it("records create intent before the remote call and records an unknown failure", async () => {
+    const events: string[] = [];
+    await assert.rejects(
+      provisionTelegramForum({
+        api: fakeApi({
+          createForumTopic: async () => {
+            events.push("remote");
+            throw new Error("response lost");
+          },
+        }),
+        chatId: "-1001",
+        config: createTelegramForumConfig({ groupName: "denaliadmins" }),
+        onTopicCreateStarted: async (key) => {
+          events.push(`started:${key}`);
+        },
+        onTopicCreateFailed: async (key) => {
+          events.push(`failed:${key}`);
+        },
+      }),
+      (error: unknown) =>
+        error instanceof TelegramForumOnboardingError &&
+        error.code === "INTEGRATION_TELEGRAM_TOPIC_CREATE_FAILED"
+    );
+    assert.deepEqual(events, ["started:registration", "remote", "failed:registration"]);
   });
 
   it("fails closed when the bot lacks topic-management permission", async () => {

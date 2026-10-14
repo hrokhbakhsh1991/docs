@@ -22,6 +22,7 @@ import {
   patchConnectionExposureIntentForIntegration,
   patchIntegration,
   provisionTelegramIntegration,
+  recoverTelegramTopicProvision,
   startTelegramForumConnect,
   testIntegrationConnection,
 } from "./integrations.service";
@@ -326,6 +327,27 @@ export async function handleProvisionTelegramIntegration(
       auth,
       async () => {
         const result = await provisionTelegramIntegration(auth, integrationId, body);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handleRecoverTelegramTopicProvision(
+  req: IncomingMessage,
+  res: ServerResponse,
+  integrationId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await recoverTelegramTopicProvision(auth, integrationId);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }

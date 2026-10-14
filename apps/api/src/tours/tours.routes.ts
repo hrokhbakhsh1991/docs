@@ -24,6 +24,11 @@ import { parseListToursQuery } from "./list-tours-query";
 import { readTourRequestBody } from "./read-tour-request-body";
 import type { ToursService } from "./tours.service";
 import { parseUpdateTourBody } from "./update-tour.schema";
+import {
+  requestTourTelegramAnnouncement,
+  TourTelegramAnnouncementNotFoundError,
+  TourTelegramAnnouncementNotPublishedError,
+} from "../integrations/application/request-tour-telegram-announcement";
 
 export type ToursRouteDeps = {
   readonly toursService: ToursService;
@@ -134,6 +139,42 @@ export async function handlePatchTour(
       }
     );
   } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleRequestTourTelegramAnnouncement(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: ToursRouteDeps,
+  tourId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const idempotencyKey = readIdempotencyKey(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await requestTourTelegramAnnouncement(auth, deps.toursService, tourId, {
+          ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
+        });
+        sendJson(res, 202, { ok: true, ...result, status: "queued" });
+      },
+      {
+        rateLimit: "write",
+        resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+      }
+    );
+  } catch (error) {
+    if (error instanceof TourTelegramAnnouncementNotFoundError) {
+      sendHttpError(res, 404, { error: "not_found", code: error.code });
+      return;
+    }
+    if (error instanceof TourTelegramAnnouncementNotPublishedError) {
+      sendHttpError(res, 409, { error: "conflict", code: error.code });
+      return;
+    }
     handleHttpError(res, error);
   }
 }

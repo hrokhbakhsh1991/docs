@@ -4,10 +4,18 @@ import { describe, it } from "node:test";
 import { integrationMappingsForEvent } from "./integration-event-mapping";
 
 describe("integration event mappings", () => {
-  it("maps TourPublished from Denali integration surface", async () => {
+  it("keeps the legacy route and adds an explicit tour announcement route", async () => {
     assert.deepEqual(await integrationMappingsForEvent("TourPublished", "denali"), [
       {
         eventType: "TourPublished",
+        capability: "message.send",
+        providers: ["telegram"],
+        topicKey: "tours",
+      },
+    ]);
+    assert.deepEqual(await integrationMappingsForEvent("TourAnnouncementRequested", "denali"), [
+      {
+        eventType: "TourAnnouncementRequested",
         capability: "message.send",
         providers: ["telegram"],
         topicKey: "tours",

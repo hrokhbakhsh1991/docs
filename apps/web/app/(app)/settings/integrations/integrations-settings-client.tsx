@@ -23,6 +23,7 @@ import {
 import {
   createWorkspaceIntegration,
   provisionTelegramIntegration,
+  recoverTelegramTopicProvision,
   disableIntegration,
   enableIntegration,
   fetchIntegrationDetail,
@@ -587,24 +588,7 @@ export function IntegrationsSettingsClient({
     setPatchError(null);
     setPatchSuccess(false);
     try {
-      const isTelegramRebind =
-        activeItem.provider === "telegram" &&
-        (editFieldValue("config", "channelId").trim() !==
-          (typeof activeItem.config.channelId === "string"
-            ? activeItem.config.channelId.trim()
-            : "") ||
-          editFieldValue("config", "groupName").trim() !==
-            (typeof activeItem.config.groupName === "string"
-              ? activeItem.config.groupName.trim()
-              : ""));
-      let updated = isTelegramRebind
-        ? activeItem
-        : await patchIntegration(activeItem.id, patchInput);
-      if (isTelegramRebind && patchInput.credentials !== undefined) {
-        updated = await patchIntegration(activeItem.id, {
-          credentials: patchInput.credentials,
-        });
-      }
+      let updated = await patchIntegration(activeItem.id, patchInput);
       if (activeItem.provider === "telegram") {
         const chatId = editFieldValue("config", "channelId").trim();
         const groupName = editFieldValue("config", "groupName").trim();
@@ -692,6 +676,35 @@ export function IntegrationsSettingsClient({
         errorCode === "Failed to fetch"
           ? "TELEGRAM_NETWORK_ERROR"
           : errorCode || "INTEGRATION_TEST_FAILED"
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleRecoverTelegramTopics(): Promise<void> {
+    if (
+      activeItem === null ||
+      activeItem.provider !== "telegram" ||
+      isLegacyBackedIntegration(activeItem) ||
+      !activeItem.actionsAllowed.patch ||
+      activeProviderSurface === null
+    ) {
+      return;
+    }
+    if (!window.confirm(t("actions.recoverTopicsConfirm"))) {
+      return;
+    }
+    setActionLoading(true);
+    setDetailError(null);
+    try {
+      const updated = await recoverTelegramTopicProvision(activeItem.id);
+      setDetail(updated);
+      setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
+      await refreshList(updated.id);
+    } catch (actionError: unknown) {
+      setDetailError(
+        actionError instanceof Error ? actionError.message : "INTEGRATION_PROVISION_FAILED"
       );
     } finally {
       setActionLoading(false);
@@ -1261,6 +1274,19 @@ export function IntegrationsSettingsClient({
                     >
                       {t("actions.testConnection")}
                     </Button>
+                    {activeItem.provider === "telegram" &&
+                    !isLegacyBackedIntegration(activeItem) &&
+                    activeItem.actionsAllowed.patch ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={actionLoading}
+                        onClick={() => void handleRecoverTelegramTopics()}
+                      >
+                        {t("actions.recoverTopics")}
+                      </Button>
+                    ) : null}
                   </div>
 
                   {testResult !== null ? (
@@ -1277,6 +1303,8 @@ export function IntegrationsSettingsClient({
                       </p>
                       {testResult.ok ? (
                         <p>{t("test.successMessage")}</p>
+                      ) : testResult.code !== undefined ? (
+                        <p>{resolveCodedErrorMessage(tErrors, testResult.code)}</p>
                       ) : testResult.message !== undefined ? (
                         <p>{testResult.message}</p>
                       ) : null}

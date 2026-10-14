@@ -1,13 +1,22 @@
 import type { IntegrationConnectionRecord } from "../platform/integration-connection.types";
 import type { IntegrationProviderId } from "../platform/integration-provider.types";
 
+export type TelegramTopicProvisionClaim =
+  | { readonly status: "claimed"; readonly leaseToken: string }
+  | { readonly status: "existing"; readonly threadId: number }
+  | { readonly status: "busy" }
+  | { readonly status: "ambiguous" };
+
 export type IntegrationConnectionRepository = {
   findEnabledForTenant(input: {
     readonly tenantId: string;
     readonly provider: IntegrationProviderId;
     readonly workspaceType: string | null;
   }): Promise<IntegrationConnectionRecord | null>;
-  findByTenantAndId(tenantId: string, connectionId: string): Promise<IntegrationConnectionRecord | null>;
+  findByTenantAndId(
+    tenantId: string,
+    connectionId: string
+  ): Promise<IntegrationConnectionRecord | null>;
   listForWorkspace(input: {
     readonly tenantId: string;
     readonly workspaceType: string | null;
@@ -24,5 +33,27 @@ export type IntegrationConnectionRepository = {
     readonly topicKey: string;
     readonly topicName: string;
     readonly threadId: number;
+  }): Promise<void>;
+  claimTelegramTopicProvision(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly leaseToken: string;
+    readonly staleThreadId: number;
+  }): Promise<TelegramTopicProvisionClaim>;
+  completeTelegramTopicProvision(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly topicName: string;
+    readonly threadId: number;
+    readonly leaseToken: string;
+  }): Promise<void>;
+  finishTelegramTopicProvisionFailure(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly leaseToken: string;
+    readonly outcomeUnknown: boolean;
   }): Promise<void>;
 };

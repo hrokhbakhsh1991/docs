@@ -307,7 +307,9 @@ async function dispatchRequest(
     return;
   }
 
-  const telegramWebhookMatch = url.pathname.match(/^\/webhooks\/telegram\/([^/]+)\/([^/]+)$/);
+  const telegramWebhookMatch = url.pathname.match(
+    /^\/webhooks\/telegram\/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+  );
   if (method === "POST" && telegramWebhookMatch) {
     await handleTelegramWebhook(
       req,
@@ -1173,6 +1175,19 @@ async function dispatchRequest(
     return;
   }
 
+  const tourTelegramAnnouncementMatch = url.pathname?.match(
+    /^\/tours\/([^/]+)\/telegram-announcement$/
+  );
+  if (method === "POST" && tourTelegramAnnouncementMatch) {
+    await handlers.handleRequestTourTelegramAnnouncement(
+      req,
+      res,
+      tourDeps,
+      tourTelegramAnnouncementMatch[1]!
+    );
+    return;
+  }
+
   const tourOperationalRosterMatch = url.pathname?.match(/^\/tours\/([^/]+)\/operational-roster$/);
   const tourOperationalRosterExportMatch = url.pathname?.match(
     /^\/tours\/([^/]+)\/operational-roster\/export$/
@@ -1656,6 +1671,20 @@ async function dispatchRequest(
       req,
       res,
       decodeURIComponent(telegramProvisionMatch[1]!)
+    );
+    return;
+  }
+
+  const telegramTopicRecoveryMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/telegram\/topic-provision\/recover$/
+  );
+  if (method === "POST" && telegramTopicRecoveryMatch) {
+    const { handleRecoverTelegramTopicProvision } =
+      await import("./integrations/http/integrations.routes");
+    await handleRecoverTelegramTopicProvision(
+      req,
+      res,
+      decodeURIComponent(telegramTopicRecoveryMatch[1]!)
     );
     return;
   }

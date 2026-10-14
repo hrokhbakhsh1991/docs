@@ -1,0 +1,29 @@
+services:
+  forwarder:
+    image: node:24-alpine
+    container_name: denali-telegram-relay-forwarder
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - ./relay.env
+    command: ["node", "/app/server.mjs"]
+    ports:
+      # Only the reverse SSH tunnel may reach the forwarder from the host.
+      - "127.0.0.1:18080:18080"
+    volumes:
+      - ./server.mjs:/app/server.mjs:ro
+
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: denali-telegram-relay
+    restart: unless-stopped
+    depends_on:
+      - forwarder
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8888:8888"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data:/data
+      - ./config:/config

@@ -21,8 +21,13 @@ describe("integration surface meta", () => {
       telegram.messageTemplates.TourPublished,
       "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
     );
+    assert.equal(
+      telegram.messageTemplates.TourAnnouncementRequested,
+      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
+    );
     assert.deepEqual(telegram.defaultEventPolicies, [
       { eventType: "TourPublished", enabled: true },
+      { eventType: "TourAnnouncementRequested", enabled: true },
       { eventType: "member.registered", enabled: true },
       { eventType: "registration.created", enabled: true },
       { eventType: "registration.waitlisted", enabled: true },

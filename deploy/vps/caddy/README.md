@@ -18,12 +18,13 @@ Apps (loopback 127.0.0.1)
 
 ## URL Patterns
 
-| Surface | Pattern | Backend |
-|---------|---------|---------|
-| Admin | `https://admin.{club}.{root}` | 127.0.0.1:3000 |
-| Portal | `https://portal.{club}.{root}` | 127.0.0.1:3003 |
-| Marketing | `https://{club}.{root}` | 127.0.0.1:3002 |
-| API | Internal only | 127.0.0.1:3001 |
+| Surface        | Pattern                             | Backend         |
+| -------------- | ----------------------------------- | --------------- |
+| Admin          | `https://admin.{club}.{root}`       | 127.0.0.1:3000  |
+| Portal         | `https://portal.{club}.{root}`      | 127.0.0.1:3003  |
+| Marketing      | `https://{club}.{root}`             | 127.0.0.1:3002  |
+| Production API | `https://api.{root}`                | 127.0.0.1:3001  |
+| Staging API    | `https://staging-api-{club}.{root}` | 127.0.0.1:23001 |
 
 **Example:** `https://operator.admin.staging.example.com` → `127.0.0.1:3000`
 
@@ -79,6 +80,7 @@ For wildcard TLS, you need DNS records:
 *.staging.example.com        A    <VPS_IP>
 <club>.admin.staging.example.com  A    <VPS_IP>  # legacy compatibility
 <club>.portal.staging.example.com A    <VPS_IP>  # legacy compatibility
+staging-api-<club>.staging.example.com A <VPS_IP>
 admin.<club>.staging.example.com  A    <VPS_IP>
 portal.<club>.staging.example.com A    <VPS_IP>
 ```
@@ -104,12 +106,14 @@ sudo journalctl -u caddy -f
 Apps must bind to `127.0.0.1` (not `0.0.0.0`) for security:
 
 **Before (Profile B - exposed):**
+
 ```bash
 # Apps listen on all interfaces
 0.0.0.0:3000-3003
 ```
 
 **After (Profile C - loopback):**
+
 ```bash
 # Apps listen on loopback only
 127.0.0.1:3000-3003

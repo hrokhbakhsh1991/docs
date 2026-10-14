@@ -1,4 +1,9 @@
-import type { TelegramApiClient, TelegramBotIdentity, TelegramChat } from "./telegram-api.client";
+import {
+  TelegramApiError,
+  type TelegramApiClient,
+  type TelegramBotIdentity,
+  type TelegramChat,
+} from "./telegram-api.client";
 import {
   createTelegramForumConfig,
   type TelegramForumConfig,
@@ -56,6 +61,16 @@ export async function provisionTelegramForum(input: {
     key: string,
     topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]]
   ) => Promise<void>;
+  /** Persist intent before the remote side effect so a lost response is not retried blindly. */
+  readonly onTopicCreateStarted?: (
+    key: string,
+    topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]]
+  ) => Promise<void>;
+  readonly onTopicCreateFailed?: (
+    key: string,
+    topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]],
+    error: unknown
+  ) => Promise<void>;
 }): Promise<ProvisionedTelegramForum> {
   return withProvisioningLock(input.chatId, async () => {
     const config = input.loadConfig === undefined ? input.config : await input.loadConfig();
@@ -72,6 +87,15 @@ async function provisionTelegramForumLocked(input: {
     key: string,
     topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]]
   ) => Promise<void>;
+  readonly onTopicCreateStarted?: (
+    key: string,
+    topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]]
+  ) => Promise<void>;
+  readonly onTopicCreateFailed?: (
+    key: string,
+    topic: TelegramForumConfig["topics"][keyof TelegramForumConfig["topics"]],
+    error: unknown
+  ) => Promise<void>;
 }): Promise<ProvisionedTelegramForum> {
   const bot = await input.api.getMe();
   const chat = await input.api.getChat(input.chatId);
@@ -81,9 +105,8 @@ async function provisionTelegramForumLocked(input: {
   if (chat.is_forum !== true) {
     throw new TelegramForumOnboardingError("INTEGRATION_TELEGRAM_GROUP_MUST_BE_FORUM");
   }
-  if (chat.title !== undefined && chat.title.trim() !== input.config.groupName) {
-    throw new TelegramForumOnboardingError("INTEGRATION_TELEGRAM_GROUP_NAME_MISMATCH");
-  }
+  // chatId is the Telegram binding identity. The title is mutable metadata;
+  // a human renaming the forum must not invalidate healthy topic thread IDs.
 
   const member = await input.api.getChatMember(input.chatId, bot.id);
   if (member.status !== "administrator" || member.can_manage_topics !== true) {
@@ -100,11 +123,16 @@ async function provisionTelegramForumLocked(input: {
       continue;
     }
     try {
+      await input.onTopicCreateStarted?.(key, topic);
       const created = await input.api.createForumTopic(input.chatId, topic.name);
       const createdTopic = { ...topic, threadId: created.message_thread_id };
       topicEntries.push([key, createdTopic]);
       await input.onTopicCreated?.(key, createdTopic);
-    } catch {
+    } catch (error: unknown) {
+      await input.onTopicCreateFailed?.(key, topic, error);
+      if (error instanceof TelegramApiError) {
+        throw error;
+      }
       throw new TelegramForumOnboardingError("INTEGRATION_TELEGRAM_TOPIC_CREATE_FAILED");
     }
   }

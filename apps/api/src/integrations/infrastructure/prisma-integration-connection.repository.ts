@@ -6,11 +6,24 @@ import { isIntegrationCapability } from "../platform/integration-capability";
 import type { IntegrationConnectionRecord } from "../platform/integration-connection.types";
 import type { IntegrationProviderId } from "../platform/integration-provider.types";
 import type { IntegrationConnectionRepository } from "./integration-connection.repository";
+import type { TelegramTopicProvisionClaim } from "./integration-connection.repository";
 import {
   INTEGRATION_CONNECTION_LIST_SELECT,
   MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
 } from "./integration-list-projection";
 import { resolveLegacyTelegramConnectionRecord } from "./resolve-legacy-telegram-connection";
+
+const TELEGRAM_TOPIC_PROVISION_LEASE_MS = 120_000;
+
+type TelegramTopicProvisionState = {
+  readonly token?: unknown;
+  readonly startedAt?: unknown;
+  readonly outcome?: unknown;
+};
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+}
 
 function parseCapabilities(raw: unknown): IntegrationCapability[] {
   if (!Array.isArray(raw)) {
@@ -182,6 +195,158 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
             topicThreadIds: { ...topicThreadIds, [input.topicKey]: input.threadId },
             topicNames: { ...topicNames, [input.topicKey]: preservedName },
           } as Prisma.InputJsonValue,
+        },
+      });
+    });
+  }
+
+  async claimTelegramTopicProvision(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly leaseToken: string;
+    readonly staleThreadId: number;
+  }): Promise<TelegramTopicProvisionClaim> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`telegram-topic:${input.tenantId}:${input.connectionId}:${input.topicKey}`}))`;
+      const current = await tx.integrationConnection.findFirst({
+        where: { id: input.connectionId, tenantId: input.tenantId },
+        select: { config: true },
+      });
+      if (current === null) return { status: "busy" } as const;
+
+      const config = readRecord(current.config);
+      const topicThreadIds = readRecord(config.topicThreadIds);
+      const authoritativeThreadId = topicThreadIds[input.topicKey];
+      if (
+        typeof authoritativeThreadId === "number" &&
+        Number.isSafeInteger(authoritativeThreadId) &&
+        authoritativeThreadId > 0 &&
+        authoritativeThreadId !== input.staleThreadId
+      ) {
+        return { status: "existing", threadId: authoritativeThreadId } as const;
+      }
+
+      const provisions = readRecord(config.telegramTopicProvisions);
+      const state = readRecord(provisions[input.topicKey]) as TelegramTopicProvisionState;
+      if (state.outcome === "ambiguous") return { status: "ambiguous" } as const;
+      const startedAt =
+        typeof state.startedAt === "string" ? Date.parse(state.startedAt) : Number.NaN;
+      if (
+        typeof state.token === "string" &&
+        Number.isFinite(startedAt) &&
+        Date.now() - startedAt < TELEGRAM_TOPIC_PROVISION_LEASE_MS
+      ) {
+        return { status: "busy" } as const;
+      }
+      // An expired in-flight attempt may have reached Telegram before this
+      // process died. Treat it as ambiguous instead of risking a duplicate.
+      if (typeof state.token === "string") {
+        await tx.integrationConnection.update({
+          where: { id: input.connectionId },
+          data: {
+            config: {
+              ...config,
+              telegramTopicProvisions: {
+                ...provisions,
+                [input.topicKey]: { ...state, outcome: "ambiguous" },
+              },
+            } as Prisma.InputJsonValue,
+          },
+        });
+        return { status: "ambiguous" } as const;
+      }
+
+      await tx.integrationConnection.update({
+        where: { id: input.connectionId },
+        data: {
+          config: {
+            ...config,
+            telegramTopicProvisions: {
+              ...provisions,
+              [input.topicKey]: {
+                token: input.leaseToken,
+                startedAt: new Date().toISOString(),
+                outcome: "in_flight",
+              },
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return { status: "claimed", leaseToken: input.leaseToken } as const;
+    });
+  }
+
+  async completeTelegramTopicProvision(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly topicName: string;
+    readonly threadId: number;
+    readonly leaseToken: string;
+  }): Promise<void> {
+    await withTenantRls(input.tenantId, async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`telegram-topic:${input.tenantId}:${input.connectionId}:${input.topicKey}`}))`;
+      const current = await tx.integrationConnection.findFirst({
+        where: { id: input.connectionId, tenantId: input.tenantId },
+        select: { config: true },
+      });
+      if (current === null) return;
+      const config = readRecord(current.config);
+      const provisions = readRecord(config.telegramTopicProvisions);
+      const state = readRecord(provisions[input.topicKey]);
+      if (state.token !== input.leaseToken) return;
+      const { [input.topicKey]: _finished, ...remainingProvisions } = provisions;
+      const topicThreadIds = readRecord(config.topicThreadIds);
+      const topicNames = readRecord(config.topicNames);
+      await tx.integrationConnection.update({
+        where: { id: input.connectionId },
+        data: {
+          config: {
+            ...config,
+            topicThreadIds: { ...topicThreadIds, [input.topicKey]: input.threadId },
+            topicNames: {
+              ...topicNames,
+              [input.topicKey]:
+                typeof topicNames[input.topicKey] === "string"
+                  ? topicNames[input.topicKey]
+                  : input.topicName,
+            },
+            telegramTopicProvisions: remainingProvisions,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    });
+  }
+
+  async finishTelegramTopicProvisionFailure(input: {
+    readonly tenantId: string;
+    readonly connectionId: string;
+    readonly topicKey: string;
+    readonly leaseToken: string;
+    readonly outcomeUnknown: boolean;
+  }): Promise<void> {
+    await withTenantRls(input.tenantId, async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`telegram-topic:${input.tenantId}:${input.connectionId}:${input.topicKey}`}))`;
+      const current = await tx.integrationConnection.findFirst({
+        where: { id: input.connectionId, tenantId: input.tenantId },
+        select: { config: true },
+      });
+      if (current === null) return;
+      const config = readRecord(current.config);
+      const provisions = readRecord(config.telegramTopicProvisions);
+      const state = readRecord(provisions[input.topicKey]);
+      if (state.token !== input.leaseToken) return;
+      const nextProvisions = { ...provisions };
+      if (input.outcomeUnknown) {
+        nextProvisions[input.topicKey] = { ...state, outcome: "ambiguous" };
+      } else {
+        delete nextProvisions[input.topicKey];
+      }
+      await tx.integrationConnection.update({
+        where: { id: input.connectionId },
+        data: {
+          config: { ...config, telegramTopicProvisions: nextProvisions } as Prisma.InputJsonValue,
         },
       });
     });

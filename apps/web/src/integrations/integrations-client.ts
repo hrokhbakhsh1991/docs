@@ -106,6 +106,24 @@ export async function provisionTelegramIntegration(
   return parseIntegrationConnectionPublic(payload);
 }
 
+export async function recoverTelegramTopicProvision(
+  integrationId: string
+): Promise<IntegrationConnectionPublic> {
+  const res = await fetch(
+    `/api/integrations/${encodeURIComponent(integrationId)}/telegram/topic-provision/recover`,
+    { method: "POST" }
+  );
+  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const code = readIntegrationHttpErrorCode(
+      payload,
+      `INTEGRATION_TELEGRAM_TOPIC_RECOVERY_HTTP_${res.status}`
+    );
+    throw new Error(code);
+  }
+  return parseIntegrationConnectionPublic(payload);
+}
+
 export type PatchIntegrationInput = {
   readonly config?: Record<string, string>;
   readonly credentials?: Record<string, string>;

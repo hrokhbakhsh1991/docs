@@ -394,6 +394,16 @@ export async function dispatchIntegrationDomainEvent(
   let enqueued = 0;
 
   for (const decision of decisions) {
+    // A publish transition is internal lifecycle state. Denali Telegram
+    // announcements require the operator's explicit request event so a publish
+    // cannot accidentally send an external message or create a forum topic.
+    if (
+      workspaceType === "denali" &&
+      row.eventType === "TourPublished" &&
+      decision.provider === "telegram"
+    ) {
+      continue;
+    }
     if (
       payload.sourceChannel === "telegram" &&
       payload.sourceIntegrationId === decision.connectionId &&

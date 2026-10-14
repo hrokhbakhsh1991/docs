@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily App Tour backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+Persistent=true
+Unit=app-tour-backup.service
+
+[Install]
+WantedBy=timers.target

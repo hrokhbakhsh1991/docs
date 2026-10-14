@@ -191,7 +191,7 @@ describe("Telegram worker delivery", () => {
     ]);
   });
 
-  it("does not send a mapped event when its forum topic is missing and auto-create fails", async () => {
+  it("attempts to create a missing forum topic and fails closed when creation is unavailable", async () => {
     let sendCount = 0;
     let autoCreateAttempted = false;
     const result = await executeIntegrationDeliveryJob(deliveryJob(), {
@@ -223,6 +223,12 @@ describe("Telegram worker delivery", () => {
           throw new Error("telegram unavailable");
         },
       }),
+      claimTelegramTopicProvision: async (input) => ({
+        status: "claimed",
+        leaseToken: input.leaseToken,
+      }),
+      completeTelegramTopicProvision: async () => undefined,
+      finishTelegramTopicProvisionFailure: async () => undefined,
     });
 
     assert.deepEqual(result, {
@@ -236,9 +242,9 @@ describe("Telegram worker delivery", () => {
     assert.equal(autoCreateAttempted, true);
   });
 
-  it("auto-creates a missing forum topic, persists it, and delivers the message", async () => {
-    const sent: Array<{ channelId: string; messageThreadId?: number }> = [];
-    const persisted: Array<{ topicKey: string; topicName: string; threadId: number }> = [];
+  it("creates a missing forum topic once and sends through its persisted thread", async () => {
+    let createCount = 0;
+    const sentThreadIds: Array<number | undefined> = [];
     const result = await executeIntegrationDeliveryJob(deliveryJob(), {
       resolveConnection: async () => ({
         id: "connection-1",
@@ -258,29 +264,27 @@ describe("Telegram worker delivery", () => {
         id: "telegram",
         supportedCapabilities: ["message.send"],
         async sendMessage(_ctx, input) {
-          sent.push({ channelId: input.channelId, messageThreadId: input.messageThreadId });
+          sentThreadIds.push(input.messageThreadId);
           return { ok: true };
         },
       }),
       createTelegramTopicApi: () => ({
         async createForumTopic() {
+          createCount += 1;
           return { message_thread_id: 909 };
         },
       }),
-      persistTelegramTopicThreadId: async (input) => {
-        persisted.push({
-          topicKey: input.topicKey,
-          topicName: input.topicName,
-          threadId: input.threadId,
-        });
-      },
+      claimTelegramTopicProvision: async (input) => ({
+        status: "claimed",
+        leaseToken: input.leaseToken,
+      }),
+      completeTelegramTopicProvision: async () => undefined,
+      finishTelegramTopicProvisionFailure: async () => undefined,
     });
 
     assert.deepEqual(result, { ok: true });
-    assert.deepEqual(sent, [{ channelId: "-1004292581496", messageThreadId: 909 }]);
-    assert.deepEqual(persisted, [
-      { topicKey: "receipts", topicName: "بررسی فیش‌ها", threadId: 909 },
-    ]);
+    assert.equal(createCount, 1);
+    assert.deepEqual(sentThreadIds, [909]);
   });
 
   it("recreates a stale forum topic and retries once after Telegram reports it missing", async () => {
@@ -316,11 +320,101 @@ describe("Telegram worker delivery", () => {
           return { message_thread_id: 303 };
         },
       }),
-      persistTelegramTopicThreadId: async () => undefined,
+      claimTelegramTopicProvision: async (input) => ({
+        status: "claimed",
+        leaseToken: input.leaseToken,
+      }),
+      completeTelegramTopicProvision: async () => undefined,
+      finishTelegramTopicProvisionFailure: async () => undefined,
     });
 
     assert.deepEqual(result, { ok: true });
     assert.deepEqual(sendAttempts, [{ messageThreadId: 202 }, { messageThreadId: 303 }]);
+  });
+
+  it("reuses the thread persisted by a concurrent recovery instead of creating a duplicate", async () => {
+    const sendAttempts: Array<number | undefined> = [];
+    let createCount = 0;
+    const result = await executeIntegrationDeliveryJob(deliveryJob(), {
+      resolveConnection: async () => ({
+        id: "connection-1",
+        tenantId: "tenant-denali",
+        workspaceType: "denali",
+        provider: "telegram",
+        status: "enabled",
+        enabled: true,
+        capabilities: ["message.send"],
+        config: { chatId: "-1004292581496", topicThreadIds: { receipts: 202 } },
+        secretRef: "secret-1",
+        credentials: { botToken: "test-token" },
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
+      getProvider: () => ({
+        id: "telegram",
+        supportedCapabilities: ["message.send"],
+        async sendMessage(_ctx, input) {
+          sendAttempts.push(input.messageThreadId);
+          return input.messageThreadId === 202
+            ? { ok: false, errorCode: "TELEGRAM_TOPIC_THREAD_NOT_FOUND" }
+            : { ok: true };
+        },
+      }),
+      claimTelegramTopicProvision: async () => ({ status: "existing", threadId: 404 }),
+      createTelegramTopicApi: () => ({
+        async createForumTopic() {
+          createCount += 1;
+          return { message_thread_id: 505 };
+        },
+      }),
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(sendAttempts, [202, 404]);
+    assert.equal(createCount, 0);
+  });
+
+  it("marks an unknown create outcome and does not retry the message", async () => {
+    let outcomeUnknown: boolean | undefined;
+    const result = await executeIntegrationDeliveryJob(deliveryJob(), {
+      resolveConnection: async () => ({
+        id: "connection-1",
+        tenantId: "tenant-denali",
+        workspaceType: "denali",
+        provider: "telegram",
+        status: "enabled",
+        enabled: true,
+        capabilities: ["message.send"],
+        config: { chatId: "-1004292581496", topicThreadIds: { receipts: 202 } },
+        secretRef: "secret-1",
+        credentials: { botToken: "test-token" },
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
+      getProvider: () => ({
+        id: "telegram",
+        supportedCapabilities: ["message.send"],
+        async sendMessage() {
+          return { ok: false, errorCode: "TELEGRAM_TOPIC_THREAD_NOT_FOUND" };
+        },
+      }),
+      claimTelegramTopicProvision: async (input) => ({
+        status: "claimed",
+        leaseToken: input.leaseToken,
+      }),
+      createTelegramTopicApi: () => ({
+        async createForumTopic() {
+          throw new Error("response lost after request");
+        },
+      }),
+      completeTelegramTopicProvision: async () => undefined,
+      finishTelegramTopicProvisionFailure: async (input) => {
+        outcomeUnknown = input.outcomeUnknown;
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(outcomeUnknown, true);
   });
 
   it("never auto-creates topics for legacy WorkspaceTelegramBot-backed connections", async () => {
@@ -534,7 +628,7 @@ describe("Telegram worker delivery", () => {
     ]);
   });
 
-  it("attaches a public PDP URL button to TourPublished in the tours topic", async () => {
+  it("attaches a public PDP URL button to a manual tour announcement", async () => {
     const sent: Array<{
       messageThreadId?: number;
       text: string;
@@ -542,8 +636,8 @@ describe("Telegram worker delivery", () => {
     }> = [];
     const result = await executeIntegrationDeliveryJob(
       deliveryJob({
-        domainEventId: "TourPublished:tour-1:2",
-        eventType: "TourPublished",
+        domainEventId: "TourAnnouncementRequested:tour-1:2",
+        eventType: "TourAnnouncementRequested",
         payload: {
           workspaceType: "denali",
           integrationConnectionId: "connection-1",
