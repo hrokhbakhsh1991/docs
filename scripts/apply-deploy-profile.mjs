@@ -20,6 +20,8 @@ import {
   resolveWorkspaceDeployProfile,
   syncGuestWorkspaceRuntimePackageJsonForDeploy,
 } from "./codegen/workspace-registry/domains/theme.mjs";
+import { generateWebLoaders } from "./codegen/workspace-registry/domains/core-registry.mjs";
+import { filterManifestsByDeployProfile } from "./codegen/workspace-registry/domains/deploy-profile.mjs";
 import {
   generatePortalRegisterOutputs,
   portalRegisterOutputKey,
@@ -35,6 +37,11 @@ export const DEPLOY_PROFILE_TRANSPILE_OUTPUTS = Object.freeze({
     "apps/marketing/src/bootstrap/guest-transpile-packages.generated.mjs"
   ),
   admin: join(REPO_ROOT, "apps/web/src/bootstrap/admin-transpile-packages.generated.mjs"),
+});
+
+/** Deploy-profile web loader registry. Keeps cold workspaces out of the admin graph. */
+export const DEPLOY_PROFILE_WEB_OUTPUTS = Object.freeze({
+  loaders: join(REPO_ROOT, "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"),
 });
 
 /** Gap Closure C.3b — theme loader artifacts rewritten on --write. */
@@ -83,6 +90,7 @@ export function resolveDeployProfileRegisterPaths(manifests, repoRoot = REPO_ROO
  *   readonly env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
  *   readonly write?: boolean;
  *   readonly outputs?: typeof DEPLOY_PROFILE_TRANSPILE_OUTPUTS;
+ *   readonly webOutputs?: typeof DEPLOY_PROFILE_WEB_OUTPUTS;
  *   readonly themeOutputs?: typeof DEPLOY_PROFILE_THEME_OUTPUTS;
  *   readonly registerPaths?: Record<string, string>;
  *   readonly syncGuestRuntime?: typeof syncGuestWorkspaceRuntimePackageJsonForDeploy;
@@ -93,6 +101,7 @@ export function applyDeployProfile(input) {
   const env = input.env ?? process.env;
   const write = input.write === true;
   const outputs = input.outputs ?? DEPLOY_PROFILE_TRANSPILE_OUTPUTS;
+  const webOutputs = input.webOutputs ?? DEPLOY_PROFILE_WEB_OUTPUTS;
   const themeOutputs = input.themeOutputs ?? DEPLOY_PROFILE_THEME_OUTPUTS;
   const registerPaths =
     input.registerPaths ?? resolveDeployProfileRegisterPaths(input.manifests);
@@ -120,6 +129,15 @@ export function applyDeployProfile(input) {
   const adminThemeSrc = generateAdminThemeStylesheetLoader(input.manifests, env);
   const portalThemeSrc = generateGuestThemeStylesheetLoader(input.manifests, "portal", env);
   const marketingThemeSrc = generateGuestThemeStylesheetLoader(input.manifests, "marketing", env);
+  const selectedWebManifests = filterManifestsByDeployProfile(input.manifests, env);
+  // The shell resolves starter as its neutral fallback even on a product-specific image.
+  // Keep that single baseline loader without reintroducing the full workspace graph.
+  const starter = input.manifests.find((manifest) => manifest.id === "starter");
+  const webManifests =
+    starter && !selectedWebManifests.some((manifest) => manifest.id === "starter")
+      ? [...selectedWebManifests, starter]
+      : selectedWebManifests;
+  const webLoaderSrc = generateWebLoaders(webManifests);
   const registerOutputs = generatePortalRegisterOutputs(input.manifests, env);
   const allowExports = formatDeployProfileAllowEnvExports(plan);
 
@@ -135,6 +153,8 @@ export function applyDeployProfile(input) {
     written.push({ path: outputs.marketing, bytes: Buffer.byteLength(marketingSrc) });
     writeFile(outputs.admin, adminSrc);
     written.push({ path: outputs.admin, bytes: Buffer.byteLength(adminSrc) });
+    writeFile(webOutputs.loaders, webLoaderSrc);
+    written.push({ path: webOutputs.loaders, bytes: Buffer.byteLength(webLoaderSrc) });
     writeFile(themeOutputs.adminTheme, adminThemeSrc);
     written.push({ path: themeOutputs.adminTheme, bytes: Buffer.byteLength(adminThemeSrc) });
     writeFile(themeOutputs.portalTheme, portalThemeSrc);
@@ -168,6 +188,7 @@ export function applyDeployProfile(input) {
     portalSrc,
     marketingSrc,
     adminSrc,
+    webLoaderSrc,
     adminThemeSrc,
     portalThemeSrc,
     marketingThemeSrc,

@@ -44,11 +44,23 @@ http://admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 # blocks must precede the marketing wildcard; otherwise staging-admin and
 # staging-portal are incorrectly served by the marketing process.
 http://staging-admin-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
-	reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
-		header_up Host {host}
-		header_up X-Forwarded-Proto https
-		header_up X-Forwarded-Host {host}
-		header_up X-Real-IP {remote_host}
+	# Keep the API loopback-only except for the single Telegram webhook path.
+	@stagingTelegramWebhook path /webhooks/telegram/*
+	handle @stagingTelegramWebhook {
+		reverse_proxy 127.0.0.1:{$STAGING_API_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+	handle {
+		reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
 	}
 }
 
@@ -134,6 +146,12 @@ http://*.{$PLATFORM_ROOT_DOMAIN} {
 
 # Public API endpoint for Telegram webhooks and external integrations.
 http://api.{$PLATFORM_ROOT_DOMAIN} {
+    # Telegram API egress is terminated on the dedicated relay VPS through a
+    # reverse SSH tunnel. Keep this route before the API catch-all.
+    handle /telegram-api {
+        reverse_proxy 127.0.0.1:18443
+    }
+
     reverse_proxy 127.0.0.1:{$PROD_API_PORT} {
         header_up Host {host}
         header_up X-Forwarded-Proto https
@@ -143,6 +161,23 @@ http://api.{$PLATFORM_ROOT_DOMAIN} {
 
     log {
         output file /var/log/caddy/api-access.log
+        format json
+    }
+}
+
+# Staging API endpoint for Telegram webhooks and external integrations. Keep
+# this host separate from production so a staging update cannot reach the
+# production database or delivery worker.
+http://staging-api-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+    reverse_proxy 127.0.0.1:{$STAGING_API_PORT} {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    log {
+        output file /var/log/caddy/staging-api-access.log
         format json
     }
 }

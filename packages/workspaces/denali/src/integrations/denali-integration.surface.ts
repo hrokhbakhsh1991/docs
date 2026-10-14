@@ -55,7 +55,11 @@ export const denaliIntegrationSurface = Object.freeze({
       credentialFields: [{ id: "botToken", kind: "secret" as const, requiredOnCreate: true }],
       defaultCapabilities: ["message.send"] as const,
       defaultEventPolicies: [
+        // Keep the legacy policy and route visible for compatibility with
+        // existing settings. The dispatcher suppresses this automatic route;
+        // announcements use TourAnnouncementRequested instead.
         { eventType: "TourPublished", enabled: true },
+        { eventType: "TourAnnouncementRequested", enabled: true },
         { eventType: "member.registered", enabled: true },
         { eventType: "registration.created", enabled: true },
         { eventType: "registration.waitlisted", enabled: true },
@@ -74,7 +78,17 @@ export const denaliIntegrationSurface = Object.freeze({
         { eventType: "ticket.closed", enabled: true },
       ],
       eventMappings: [
-        { eventType: "TourPublished", capability: "message.send", topicKey: "tours" },
+        {
+          eventType: "TourPublished",
+          capability: "message.send",
+          topicKey: "tours",
+          automaticDelivery: false,
+        },
+        {
+          eventType: "TourAnnouncementRequested",
+          capability: "message.send",
+          topicKey: "tours",
+        },
         {
           eventType: "member.registered",
           capability: "message.send",
@@ -149,6 +163,7 @@ export const denaliIntegrationSurface = Object.freeze({
   ],
   messageTemplates: {
     TourPublished: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
+    TourAnnouncementRequested: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
     "member.registered":
       "عضو جدید دنالی\nنام: {{displayName}}\nشماره تماس: {{mobile}}\nتاریخ ثبت‌نام: {{registeredAt}}",
     "registration.created":

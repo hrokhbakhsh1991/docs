@@ -394,6 +394,12 @@ export async function dispatchIntegrationDomainEvent(
   let enqueued = 0;
 
   for (const decision of decisions) {
+    // Some workspace surfaces expose a manual announcement event alongside a
+    // lifecycle event. The mapping declares that policy; the dispatcher stays
+    // workspace-agnostic and never branches on a workspace identity.
+    if (decision.automaticDelivery === false) {
+      continue;
+    }
     if (
       payload.sourceChannel === "telegram" &&
       payload.sourceIntegrationId === decision.connectionId &&

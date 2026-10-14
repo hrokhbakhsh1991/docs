@@ -9,6 +9,7 @@ import {
 
 const DENALI_TELEGRAM_EVENT_TYPES = [
   "TourPublished",
+  "TourAnnouncementRequested",
   "member.registered",
   "registration.created",
   "registration.waitlisted",

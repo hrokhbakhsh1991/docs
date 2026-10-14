@@ -24,6 +24,7 @@ const DENALI_TELEGRAM_EVENT_TYPES = [
   "ticket.reopened",
   "ticket.resolved",
   "ticket.status.changed",
+  "TourAnnouncementRequested",
   "TourPublished",
 ];
 

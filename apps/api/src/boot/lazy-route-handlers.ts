@@ -46,6 +46,12 @@ export type LazyRouteHandlers = {
     deps: ToursRouteDeps,
     tourId: string
   ) => Promise<void>;
+  readonly handleRequestTourTelegramAnnouncement: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: ToursRouteDeps,
+    tourId: string
+  ) => Promise<void>;
   readonly handleCloneTour: (
     req: IncomingMessage,
     res: ServerResponse,
@@ -95,6 +101,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         handleListTours: tours.handleListTours,
         handleGetTour: tours.handleGetTour,
         handlePatchTour: tours.handlePatchTour,
+        handleRequestTourTelegramAnnouncement: tours.handleRequestTourTelegramAnnouncement,
         handleCloneTour: tours.handleCloneTour,
       })
     );

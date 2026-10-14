@@ -241,7 +241,7 @@ describe(
       assert.ok(tour.publishedAt instanceof Date);
     });
 
-    it("dispatches TourPublished into an idempotent integration delivery job", async () => {
+    it("keeps TourPublished manual and dispatches an announcement idempotently", async () => {
       const outbox = await admin.outboxEvent.findFirstOrThrow({
         where: {
           tenantId,
@@ -262,16 +262,26 @@ describe(
         createdAt: outbox.createdAt,
       };
 
-      const first = await dispatchIntegrationDomainEvent(row);
-      const second = await dispatchIntegrationDomainEvent(row);
+      // Publishing a tour only creates the domain outbox record. The workspace
+      // surface marks TourPublished as manual so an operator can review/edit
+      // the announcement before it reaches Telegram.
+      assert.equal(await dispatchIntegrationDomainEvent(row), 0);
+
+      const announcementRow = {
+        ...row,
+        eventType: "TourAnnouncementRequested",
+        domainEventId: `TourAnnouncementRequested:${tourId}:2`,
+      };
+      const first = await dispatchIntegrationDomainEvent(announcementRow);
+      const second = await dispatchIntegrationDomainEvent(announcementRow);
       assert.equal(first, 1);
       assert.equal(second, 0, "replay of the same domainEventId must not enqueue again");
 
       const jobs = await admin.integrationDeliveryJob.findMany({
         where: {
           tenantId,
-          domainEventId: outbox.domainEventId,
-          eventType: "TourPublished",
+          domainEventId: announcementRow.domainEventId,
+          eventType: "TourAnnouncementRequested",
         },
       });
       assert.equal(jobs.length, 1);

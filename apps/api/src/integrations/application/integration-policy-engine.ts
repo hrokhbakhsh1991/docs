@@ -21,6 +21,7 @@ export type IntegrationPolicyDecision = {
   readonly capability: IntegrationCapability;
   /** Provider surface destination selector, e.g. Telegram forum topic key. */
   readonly topicKey?: string;
+  readonly automaticDelivery?: boolean;
   readonly workspaceType: string | null;
   /** Effective exposure coordinate used by native intent/profile lookup for this route. */
   readonly exposureCoordinate: FieldExposureRuntimeCoordinate;
@@ -95,6 +96,9 @@ export class IntegrationPolicyEngine {
             provider: connection.provider,
             capability: mapping.capability,
             ...(mapping.topicKey === undefined ? {} : { topicKey: mapping.topicKey }),
+            ...(mapping.automaticDelivery === undefined
+              ? {}
+              : { automaticDelivery: mapping.automaticDelivery }),
             workspaceType: connection.workspaceType,
             exposureCoordinate: resolution.exposureCoordinate,
             exposureIntent: resolution.exposureIntent,

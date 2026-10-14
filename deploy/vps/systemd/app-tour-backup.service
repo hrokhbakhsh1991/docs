@@ -1,0 +1,8 @@
+[Unit]
+Description=App Tour PostgreSQL and MinIO backup
+After=postgresql.service docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/app-tour/scripts/vps-deploy/backup-vps.sh
+User=root

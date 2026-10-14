@@ -21,6 +21,10 @@ if (isDevBoot() && process.env.DATABASE_URL?.trim()) {
   applyDevDefault("OUTBOX_RELAY_ENABLED", "true");
   applyDevDefault("INTEGRATION_DELIVERY_ENABLED", "true");
   applyDevDefault("INTEGRATION_DELIVERY_WORKER_ENABLED", "true");
+  // The integration worker needs a deterministic public-looking marketing
+  // origin to build PDP buttons for local Telegram announcements. The
+  // explicit MARKETING_PUBLIC_BASE_URL override still wins when provided.
+  applyDevDefault("PLATFORM_ROOT_DOMAIN", "localhost");
   applyDevDefault("MINIO_ENDPOINT", "http://127.0.0.1:9002");
   applyDevDefault("MINIO_ACCESS_KEY", "minioadmin");
   applyDevDefault("MINIO_SECRET_KEY", "minioadmin");

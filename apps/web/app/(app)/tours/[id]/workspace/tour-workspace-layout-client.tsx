@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Loader2, MoreHorizontal, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -117,6 +117,9 @@ function TourWorkspaceLayoutInner({
   const [opsCountsError, setOpsCountsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(() => readCachedTourDetail(tourId) === null);
   const [error, setError] = useState<string | null>(null);
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
+  const [announcementNotice, setAnnouncementNotice] = useState<string | null>(null);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     void fetchTourDetailCached(tourId, { force: reloadNonce > 0 })
@@ -250,6 +253,37 @@ function TourWorkspaceLayoutInner({
           open: (accepted) => tFormat("seatsOpen", { accepted }),
         })
       : null;
+  const tourIsPublished =
+    detail !== null &&
+    ["active", "published"].includes(String(detail.projection.uiStatus).toLowerCase());
+  const requestTelegramAnnouncement = async () => {
+    if (!tourIsPublished || announcementBusy) return;
+    setAnnouncementBusy(true);
+    setAnnouncementNotice(null);
+    setAnnouncementError(null);
+    try {
+      const response = await fetch(
+        `/api/tours/${encodeURIComponent(tourId)}/telegram-announcement`,
+        {
+          method: "POST",
+          headers: { "Idempotency-Key": crypto.randomUUID() },
+          cache: "no-store",
+        }
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        readonly error?: { readonly code?: string };
+      };
+      if (!response.ok) {
+        setAnnouncementError(payload.error?.code ?? "TOUR_TELEGRAM_ANNOUNCEMENT_FAILED");
+        return;
+      }
+      setAnnouncementNotice(t("telegramAnnouncement.queued"));
+    } catch {
+      setAnnouncementError("TOUR_TELEGRAM_ANNOUNCEMENT_FAILED");
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-none space-y-4" data-testid={TOUR_WORKSPACE_TEST_IDS.page}>
@@ -303,14 +337,45 @@ function TourWorkspaceLayoutInner({
           </DropdownMenu>
 
           {canManage ? (
-            <Button asChild variant="default" size="sm" className="shrink-0">
-              <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/register`}>
-                {tNav("registerGuest")}
-              </TourInternalLink>
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1"
+                data-testid="tour-workspace-send-telegram"
+                disabled={!tourIsPublished || announcementBusy}
+                onClick={() => void requestTelegramAnnouncement()}
+              >
+                {announcementBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Send className="h-4 w-4" aria-hidden />
+                )}
+                {announcementBusy
+                  ? t("telegramAnnouncement.sending")
+                  : t("telegramAnnouncement.send")}
+              </Button>
+              <Button asChild variant="default" size="sm" className="shrink-0">
+                <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/register`}>
+                  {tNav("registerGuest")}
+                </TourInternalLink>
+              </Button>
+            </div>
           ) : null}
         </div>
       </div>
+
+      {announcementNotice !== null ? (
+        <p className="text-sm text-emerald-700" role="status">
+          {announcementNotice}
+        </p>
+      ) : null}
+      {announcementError !== null ? (
+        <p className="text-sm text-destructive" role="alert">
+          {t("telegramAnnouncement.error")}
+        </p>
+      ) : null}
 
       {loading ? <Skeleton className="h-20 w-full rounded-xl" /> : null}
       {localizedError !== null ? (

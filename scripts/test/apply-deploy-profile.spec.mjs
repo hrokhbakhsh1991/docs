@@ -67,6 +67,20 @@ describe("applyDeployProfile (Gap Closure D.3 / C.3c)", () => {
     );
   });
 
+  it("keeps starter fallback while filtering the admin loader registry", () => {
+    const result = applyDeployProfile({
+      manifests: FIXTURES,
+      env: {
+        WORKSPACE_DEPLOY_PROFILE_APPLY: "1",
+        WORKSPACE_DEPLOY_PROFILE: "denali",
+      },
+      write: false,
+    });
+    assert.match(result.webLoaderSrc, /case "denali"/);
+    assert.match(result.webLoaderSrc, /case "starter"/);
+    assert.doesNotMatch(result.webLoaderSrc, /case "urban"/);
+  });
+
   it("--write with APPLY filters emit and records writes", () => {
     /** @type {string[]} */
     const writes = [];
@@ -82,6 +96,9 @@ describe("applyDeployProfile (Gap Closure D.3 / C.3c)", () => {
         portal: "/tmp/portal.mjs",
         marketing: "/tmp/marketing.mjs",
         admin: "/tmp/admin.mjs",
+      },
+      webOutputs: {
+        loaders: "/tmp/web-loaders.ts",
       },
       themeOutputs: {
         adminTheme: "/tmp/admin-theme.ts",
@@ -114,6 +131,7 @@ describe("applyDeployProfile (Gap Closure D.3 / C.3c)", () => {
       "/tmp/portal.mjs",
       "/tmp/marketing.mjs",
       "/tmp/admin.mjs",
+      "/tmp/web-loaders.ts",
       "/tmp/admin-theme.ts",
       "/tmp/portal-theme.ts",
       "/tmp/marketing-theme.ts",

@@ -206,6 +206,12 @@
     "openFinance": "Open payment follow-up",
     "openWorkspace": "Open tour workspace",
     "secondaryActions": "More",
+    "telegramAnnouncement": {
+      "send": "Send Telegram announcement",
+      "sending": "Sending…",
+      "queued": "Telegram announcement queued.",
+      "error": "Telegram announcement could not be queued."
+    },
     "readOnlyBanner": "Limited actions — only admin or owner can approve, reject, or register guests.",
     "header": {
       "departure": "Departure",

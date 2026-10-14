@@ -23,7 +23,11 @@ package_next_standalone() {
 
   rm -rf "$out_dir"
   mkdir -p "$out_dir"
-  cp -a "${standalone_root}/." "$out_dir/"
+  # pnpm can leave the standalone node_modules entry as a symlink to the
+  # workspace root. Dereference it while packaging so the release never
+  # contains an absolute developer-machine path (which would make `next`
+  # disappear on the VPS).
+  cp -aL "${standalone_root}/." "$out_dir/"
   local static_root
   if [[ "$server_js" == "${app_rel}/"* ]]; then
     static_root="${out_dir}/${app_rel}/.next"
