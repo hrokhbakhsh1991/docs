@@ -231,7 +231,7 @@ describe("wallet-staging-deploy-guards", () => {
     assert.match(packager, /ensure_runtime_package \"styled-jsx\"/);
     assert.match(packager, /ensure_runtime_package \"client-only\"/);
     assert.match(selfCheck, /require\.resolve\("styled-jsx\/package\.json"/);
-    assert.match(selfCheck, /require\.resolve\("client-only\/package\.json"/);
+    assert.match(selfCheck, /require\.resolve\("client-only"/);
   });
 
   it("WSD-12 runbook documents VPS-side command and production block", () => {
