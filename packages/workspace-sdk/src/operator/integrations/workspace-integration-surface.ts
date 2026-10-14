@@ -21,6 +21,8 @@ export type WorkspaceIntegrationEventMapping = {
   readonly capability: string;
   /** Optional provider-specific destination selector, e.g. a Telegram forum topic key. */
   readonly topicKey?: string;
+  /** Whether this mapping is dispatched automatically from its domain event. */
+  readonly automaticDelivery?: boolean;
 };
 
 export type WorkspaceIntegrationProviderSurface = {

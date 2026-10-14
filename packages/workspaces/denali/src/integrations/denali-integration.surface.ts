@@ -82,6 +82,7 @@ export const denaliIntegrationSurface = Object.freeze({
           eventType: "TourPublished",
           capability: "message.send",
           topicKey: "tours",
+          automaticDelivery: false,
         },
         {
           eventType: "TourAnnouncementRequested",

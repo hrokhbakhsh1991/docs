@@ -8,6 +8,7 @@ export type IntegrationEventMapping = {
   readonly capability: IntegrationCapability;
   readonly providers: readonly IntegrationProviderId[];
   readonly topicKey?: string;
+  readonly automaticDelivery?: boolean;
 };
 
 export async function integrationMappingsForEvent(
@@ -34,7 +35,11 @@ export async function integrationMappingsForEvent(
         typeof (mapping as { readonly topicKey?: unknown }).topicKey === "string"
           ? (mapping as unknown as { readonly topicKey: string }).topicKey
           : undefined;
-      const key = `${mapping.eventType}:${mapping.capability}:${topicKey ?? ""}`;
+      const automaticDelivery =
+        typeof (mapping as { readonly automaticDelivery?: unknown }).automaticDelivery === "boolean"
+          ? (mapping as { readonly automaticDelivery: boolean }).automaticDelivery
+          : undefined;
+      const key = `${mapping.eventType}:${mapping.capability}:${topicKey ?? ""}:${automaticDelivery ?? ""}`;
       const existing = grouped.get(key);
       if (existing === undefined) {
         grouped.set(key, {
@@ -42,6 +47,7 @@ export async function integrationMappingsForEvent(
           capability: mapping.capability,
           providers: [providerId],
           ...(topicKey === undefined ? {} : { topicKey }),
+          ...(automaticDelivery === undefined ? {} : { automaticDelivery }),
         });
         continue;
       }
