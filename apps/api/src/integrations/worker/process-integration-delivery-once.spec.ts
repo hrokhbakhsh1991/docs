@@ -374,6 +374,53 @@ describe("Telegram worker delivery", () => {
     assert.equal(createCount, 0);
   });
 
+  it("does not send through a topic whose completion became stale after a rebind", async () => {
+    const sendAttempts: Array<number | undefined> = [];
+    const result = await executeIntegrationDeliveryJob(deliveryJob(), {
+      resolveConnection: async () => ({
+        id: "connection-1",
+        tenantId: "tenant-denali",
+        workspaceType: "denali",
+        provider: "telegram",
+        status: "enabled",
+        enabled: true,
+        capabilities: ["message.send"],
+        config: { chatId: "-1004292581496", topicThreadIds: { receipts: 202 } },
+        secretRef: "secret-1",
+        credentials: { botToken: "test-token" },
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
+      getProvider: () => ({
+        id: "telegram",
+        supportedCapabilities: ["message.send"],
+        async sendMessage(_ctx, input) {
+          sendAttempts.push(input.messageThreadId);
+          return { ok: false, errorCode: "TELEGRAM_TOPIC_THREAD_NOT_FOUND" };
+        },
+      }),
+      claimTelegramTopicProvision: async (input) => ({
+        status: "claimed",
+        leaseToken: input.leaseToken,
+      }),
+      createTelegramTopicApi: () => ({
+        async createForumTopic() {
+          return { message_thread_id: 505 };
+        },
+      }),
+      completeTelegramTopicProvision: async () => "stale",
+    });
+
+    assert.deepEqual(result, {
+      ok: false,
+      error: {
+        code: "TELEGRAM_TOPIC_THREAD_NOT_FOUND",
+        message: undefined,
+      },
+    });
+    assert.deepEqual(sendAttempts, [202]);
+  });
+
   it("marks an unknown create outcome and does not retry the message", async () => {
     let outcomeUnknown: boolean | undefined;
     const result = await executeIntegrationDeliveryJob(deliveryJob(), {

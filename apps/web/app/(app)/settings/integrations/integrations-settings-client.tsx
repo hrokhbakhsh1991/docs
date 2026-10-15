@@ -703,9 +703,35 @@ export function IntegrationsSettingsClient({
       setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
       await refreshList(updated.id);
     } catch (actionError: unknown) {
-      setDetailError(
-        actionError instanceof Error ? actionError.message : "INTEGRATION_PROVISION_FAILED"
-      );
+      const errorCode = actionError instanceof Error ? actionError.message : "";
+      if (errorCode === "INTEGRATION_TELEGRAM_TOPIC_CREATE_OUTCOME_UNKNOWN") {
+        const confirmed = window.prompt(
+          "برای Topicهایی که مطمئن هستید ساخته نشده‌اند، کلیدها را با کاما وارد کنید: registration,receipts,tickets,tours"
+        );
+        const keys = (confirmed ?? "")
+          .split(",")
+          .map((key) => key.trim())
+          .filter(Boolean);
+        if (keys.length > 0) {
+          try {
+            const updated = await recoverTelegramTopicProvision(activeItem.id, {
+              confirmMissingTopicKeys: keys,
+            });
+            setDetail(updated);
+            setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
+            await refreshList(updated.id);
+            return;
+          } catch (confirmedError: unknown) {
+            setDetailError(
+              confirmedError instanceof Error
+                ? confirmedError.message
+                : "INTEGRATION_PROVISION_FAILED"
+            );
+            return;
+          }
+        }
+      }
+      setDetailError(errorCode || "INTEGRATION_PROVISION_FAILED");
     } finally {
       setActionLoading(false);
     }

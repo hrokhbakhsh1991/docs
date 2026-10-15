@@ -343,11 +343,12 @@ export async function handleRecoverTelegramTopicProvision(
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
+    const body = await readJsonBody(req);
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const result = await recoverTelegramTopicProvision(auth, integrationId);
+        const result = await recoverTelegramTopicProvision(auth, integrationId, body);
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }

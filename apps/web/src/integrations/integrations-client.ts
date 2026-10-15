@@ -107,11 +107,16 @@ export async function provisionTelegramIntegration(
 }
 
 export async function recoverTelegramTopicProvision(
-  integrationId: string
+  integrationId: string,
+  input: { readonly confirmMissingTopicKeys?: readonly string[] } = {}
 ): Promise<IntegrationConnectionPublic> {
   const res = await fetch(
     `/api/integrations/${encodeURIComponent(integrationId)}/telegram/topic-provision/recover`,
-    { method: "POST" }
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    }
   );
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {

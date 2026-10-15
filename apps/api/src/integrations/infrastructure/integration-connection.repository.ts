@@ -40,6 +40,7 @@ export type IntegrationConnectionRepository = {
     readonly topicKey: string;
     readonly leaseToken: string;
     readonly staleThreadId: number;
+    readonly chatId?: string;
   }): Promise<TelegramTopicProvisionClaim>;
   completeTelegramTopicProvision(input: {
     readonly tenantId: string;
@@ -48,12 +49,14 @@ export type IntegrationConnectionRepository = {
     readonly topicName: string;
     readonly threadId: number;
     readonly leaseToken: string;
-  }): Promise<void>;
+    readonly chatId?: string;
+  }): Promise<"committed" | "stale">;
   finishTelegramTopicProvisionFailure(input: {
     readonly tenantId: string;
     readonly connectionId: string;
     readonly topicKey: string;
     readonly leaseToken: string;
     readonly outcomeUnknown: boolean;
+    readonly chatId?: string;
   }): Promise<void>;
 };

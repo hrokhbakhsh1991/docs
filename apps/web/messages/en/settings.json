@@ -659,7 +659,7 @@
       "disable": "Disable",
       "testConnection": "Test connection",
       "recoverTopics": "Recover topic provisioning",
-      "recoverTopicsConfirm": "Check all four Telegram topics, preserve healthy topics, recreate deleted topics, and complete missing mappings. Previously ambiguous creates are retried only with this confirmation. Continue?"
+      "recoverTopicsConfirm": "Check all four Telegram topics, preserve healthy topics, recreate deleted topics, and complete missing mappings. Ambiguous creates are not cleared without exact topic confirmation. Continue?"
     },
     "create": {
       "title": "Add Telegram bot",
