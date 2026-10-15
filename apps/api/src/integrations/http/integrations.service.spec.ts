@@ -8,6 +8,7 @@ import {
   isTelegramOperatorStatus,
   mergeTelegramPatchConfig,
   probeTelegramTopicMappings,
+  reconcileTelegramTopicMappings,
   readBoundTelegramTopicThreadIds,
   resolveTelegramPatchResetState,
   resolveIntegrationEnableReadinessError,
@@ -131,6 +132,59 @@ describe("Telegram topic repair probe", () => {
         api: {
           sendChatAction: async () => {
             throw new TelegramApiError("sendChatAction", 403, "Forbidden");
+          },
+        },
+      }),
+      /INTEGRATION_TELEGRAM_API_REQUEST_FAILED/
+    );
+  });
+
+  it("releases only definitively deleted mappings for the next provisioning pass", async () => {
+    const result = await reconcileTelegramTopicMappings({
+      chatId: "-100111",
+      config: {
+        chatId: "-100111",
+        topicThreadIds,
+        topicNames: { receipts: "فیش‌ها" },
+        telegramTopicProvisions: {
+          receipts: { outcome: "ambiguous" },
+          tours: { outcome: "ambiguous" },
+        },
+      },
+      api: {
+        sendChatAction: async (input) => {
+          if (input.messageThreadId === 11) {
+            throw new TelegramApiError(
+              "sendChatAction",
+              400,
+              "Bad Request: message thread not found"
+            );
+          }
+        },
+      },
+    });
+
+    assert.deepEqual(result.removedTopicKeys, ["receipts"]);
+    assert.deepEqual(result.config.topicThreadIds, {
+      registration: 10,
+      tickets: 12,
+      tours: 13,
+    });
+    assert.deepEqual(result.config.topicNames, { receipts: "فیش‌ها" });
+    assert.deepEqual(result.config.telegramTopicProvisions, {
+      tours: { outcome: "ambiguous" },
+    });
+  });
+
+  it("does not change mappings when Telegram is unreachable", async () => {
+    const config = { chatId: "-100111", topicThreadIds };
+    await assert.rejects(
+      reconcileTelegramTopicMappings({
+        chatId: "-100111",
+        config,
+        api: {
+          sendChatAction: async () => {
+            throw new TelegramApiError("sendChatAction", 504, "Gateway Timeout");
           },
         },
       }),
