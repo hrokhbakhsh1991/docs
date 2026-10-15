@@ -108,7 +108,10 @@ export async function provisionTelegramIntegration(
 
 export async function recoverTelegramTopicProvision(
   integrationId: string,
-  input: { readonly confirmMissingTopicKeys?: readonly string[] } = {}
+  input: {
+    readonly confirmMissingTopicKeys?: readonly string[];
+    readonly bindTopicThreadIds?: Readonly<Record<string, number>>;
+  } = {}
 ): Promise<IntegrationConnectionPublic> {
   const res = await fetch(
     `/api/integrations/${encodeURIComponent(integrationId)}/telegram/topic-provision/recover`,

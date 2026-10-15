@@ -448,9 +448,12 @@ missing/deleted response permits recreation. A missing checkpoint is created via
 `ensureTopic`. An ambiguous checkpoint is never cleared by a generic retry: the
 repair API rejects the operation until the UI identifies the exact topic and
 requires an explicit operator acknowledgement that the remote topic was not
-created (or binds the replacement thread ID). The current HTTP acknowledgement
-shape is `confirmMissingTopicKeys`; it is restricted to known topic keys and
-never clears unrelated ambiguous states. Healthy topics remain untouched.
+created (or binds the replacement thread ID). The HTTP recovery shape is
+`confirmMissingTopicKeys` for confirmed absence and `bindTopicThreadIds` for
+an existing replacement mapping, both restricted to known topic keys and
+positive Telegram thread IDs. A binding is probed in the current chat before
+it is persisted. Neither operation clears unrelated ambiguous states; healthy
+topics remain untouched.
 
 The database completion of an automatic topic create is fenced by the current
 chat binding and lease token. If the connection was rebound while Telegram was

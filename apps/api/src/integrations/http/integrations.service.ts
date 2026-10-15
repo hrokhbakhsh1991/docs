@@ -1905,6 +1905,7 @@ export async function recoverTelegramTopicProvision(
       ? (row.config as Record<string, unknown>)
       : {};
   const confirmedTopicKeys = readConfirmedTelegramTopicKeys(body);
+  const boundTopicThreadIds = readBoundTelegramTopicThreadIds(body);
   const chatId = readTelegramChatId(config);
   const groupName = readTelegramGroupName(config);
   if (chatId.length === 0 || groupName.length === 0) {
@@ -1926,6 +1927,18 @@ export async function recoverTelegramTopicProvision(
     chatId,
     topicThreadIds,
   });
+  const boundTopicKeys = Object.keys(boundTopicThreadIds);
+  if (boundTopicKeys.length > 0) {
+    const probedBindings = await probeTelegramTopicMappings({
+      api,
+      chatId,
+      topicThreadIds: boundTopicThreadIds,
+    });
+    if (Object.keys(probedBindings).length !== boundTopicKeys.length) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_BINDING_INVALID");
+    }
+    Object.assign(remainingTopicThreadIds, probedBindings);
+  }
 
   const provisions =
     typeof config.telegramTopicProvisions === "object" && config.telegramTopicProvisions !== null
@@ -1938,6 +1951,9 @@ export async function recoverTelegramTopicProvision(
     delete provisions[key];
   }
   for (const key of confirmedTopicKeys) {
+    delete provisions[key];
+  }
+  for (const key of boundTopicKeys) {
     delete provisions[key];
   }
   if (Object.keys(provisions).length > 0) {
@@ -1966,12 +1982,36 @@ function readConfirmedTelegramTopicKeys(body: unknown): Set<string> {
   if (typeof body !== "object" || body === null) return new Set();
   const raw = (body as Record<string, unknown>).confirmMissingTopicKeys;
   if (!Array.isArray(raw)) return new Set();
-  return new Set(
-    raw.filter(
-      (key): key is string =>
-        typeof key === "string" && (TELEGRAM_FORUM_TOPIC_KEYS as readonly string[]).includes(key)
-    )
+  const invalid = raw.some(
+    (key) =>
+      typeof key !== "string" || !(TELEGRAM_FORUM_TOPIC_KEYS as readonly string[]).includes(key)
   );
+  if (invalid) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_KEYS_INVALID");
+  }
+  return new Set(raw);
+}
+
+export function readBoundTelegramTopicThreadIds(body: unknown): Record<string, number> {
+  if (typeof body !== "object" || body === null) return {};
+  const raw = (body as Record<string, unknown>).bindTopicThreadIds;
+  if (raw === undefined) return {};
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_BINDINGS_INVALID");
+  }
+  const result: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (
+      !(TELEGRAM_FORUM_TOPIC_KEYS as readonly string[]).includes(key) ||
+      typeof value !== "number" ||
+      !Number.isSafeInteger(value) ||
+      value <= 0
+    ) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_BINDINGS_INVALID");
+    }
+    result[key] = value;
+  }
+  return result;
 }
 
 export async function probeTelegramTopicMappings(input: {

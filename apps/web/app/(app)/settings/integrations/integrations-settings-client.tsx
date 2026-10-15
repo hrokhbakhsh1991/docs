@@ -706,16 +706,31 @@ export function IntegrationsSettingsClient({
       const errorCode = actionError instanceof Error ? actionError.message : "";
       if (errorCode === "INTEGRATION_TELEGRAM_TOPIC_CREATE_OUTCOME_UNKNOWN") {
         const confirmed = window.prompt(
-          "برای Topicهایی که مطمئن هستید ساخته نشده‌اند، کلیدها را با کاما وارد کنید: registration,receipts,tickets,tours"
+          "کلیدهای Topic حذف‌شده را با کاما وارد کنید یا برای اتصال Topic موجود به شکل key=threadId بنویسید؛ مثال: tours=12345"
         );
-        const keys = (confirmed ?? "")
+        const values = (confirmed ?? "")
           .split(",")
-          .map((key) => key.trim())
+          .map((value) => value.trim())
           .filter(Boolean);
-        if (keys.length > 0) {
+        const bindTopicThreadIds: Record<string, number> = {};
+        const keys: string[] = [];
+        for (const value of values) {
+          const separator = value.indexOf("=");
+          if (separator > 0) {
+            const key = value.slice(0, separator).trim();
+            const threadId = Number(value.slice(separator + 1).trim());
+            if (Number.isSafeInteger(threadId) && threadId > 0) {
+              bindTopicThreadIds[key] = threadId;
+              continue;
+            }
+          }
+          keys.push(value);
+        }
+        if (keys.length > 0 || Object.keys(bindTopicThreadIds).length > 0) {
           try {
             const updated = await recoverTelegramTopicProvision(activeItem.id, {
-              confirmMissingTopicKeys: keys,
+              ...(keys.length > 0 ? { confirmMissingTopicKeys: keys } : {}),
+              ...(Object.keys(bindTopicThreadIds).length > 0 ? { bindTopicThreadIds } : {}),
             });
             setDetail(updated);
             setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
