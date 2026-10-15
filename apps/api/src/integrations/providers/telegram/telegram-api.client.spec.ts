@@ -4,6 +4,7 @@ import { after, before, describe, it } from "node:test";
 import {
   classifyTelegramApiError,
   createTelegramApiClient,
+  runTelegramReadOnlyDiagnostics,
   TelegramApiError,
 } from "./telegram-api.client";
 
@@ -126,13 +127,66 @@ describe("Telegram API client", () => {
       return new Response(
         JSON.stringify({
           ok: true,
-          result: { url: "https://api.example/webhook", has_custom_certificate: false, pending_update_count: 0 },
+          result: {
+            url: "https://api.example/webhook",
+            has_custom_certificate: false,
+            pending_update_count: 0,
+          },
         }),
         { status: 200 }
       );
     });
 
     assert.equal((await client.getWebhookInfo()).pending_update_count, 0);
+  });
+
+  it("runs read-only diagnostics without invoking side-effecting methods", async () => {
+    const calls: string[] = [];
+    const client = {
+      getMe: async () => {
+        calls.push("getMe");
+        return { id: 7, is_bot: true, first_name: "Test", username: "test_bot" };
+      },
+      getChat: async () => {
+        calls.push("getChat");
+        return { id: -1001, type: "supergroup", title: "Test", is_forum: true };
+      },
+      getChatMember: async () => {
+        calls.push("getChatMember");
+        return { status: "administrator", can_manage_topics: true };
+      },
+      getWebhookInfo: async () => {
+        calls.push("getWebhookInfo");
+        return { url: "", has_custom_certificate: false, pending_update_count: 0 };
+      },
+      createForumTopic: async () => {
+        throw new Error("must not be called");
+      },
+      setWebhook: async () => {
+        throw new Error("must not be called");
+      },
+      answerCallbackQuery: async () => {
+        throw new Error("must not be called");
+      },
+      sendMessage: async () => {
+        throw new Error("must not be called");
+      },
+    };
+
+    assert.deepEqual(await runTelegramReadOnlyDiagnostics(client, "-1001"), {
+      ok: true,
+      methods: {
+        getMe: { status: "ok" },
+        getChat: { status: "ok" },
+        getChatMember: { status: "ok" },
+        getWebhookInfo: { status: "ok" },
+      },
+      bot: { id: 7, username: "test_bot" },
+      chat: { id: -1001, type: "supergroup", isForum: true },
+      member: { status: "administrator", canManageTopics: true },
+      webhook: { configured: false, pendingUpdateCount: 0 },
+    });
+    assert.deepEqual(calls, ["getMe", "getChat", "getChatMember", "getWebhookInfo"]);
   });
 
   it("classifies token, chat, access, and network failures without exposing details", () => {

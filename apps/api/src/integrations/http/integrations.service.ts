@@ -72,8 +72,10 @@ import {
 import {
   classifyTelegramApiError,
   createTelegramApiClient,
+  runTelegramReadOnlyDiagnostics,
   TelegramApiError,
   type TelegramApiClient,
+  type TelegramReadOnlyDiagnostics,
 } from "../providers/telegram/telegram-api.client";
 import { isTelegramTopicThreadNotFoundDescription } from "../providers/telegram/telegram-provider.adapter";
 import {
@@ -1398,6 +1400,45 @@ export function resolveIntegrationEnableReadinessError(input: {
     return "INTEGRATION_TELEGRAM_TOPIC_CREATE_OUTCOME_UNKNOWN";
   }
   return null;
+}
+
+export async function diagnoseTelegramConnection(
+  auth: TenantAuthContext,
+  integrationId: string
+): Promise<TelegramReadOnlyDiagnostics> {
+  assertIntegrationSystemReady();
+
+  let credentials: Record<string, unknown>;
+  let chatId: string;
+  if (isLegacyTelegramConnectionId(integrationId)) {
+    const legacy = await findLegacyTelegramBotBySyntheticId(auth.tenantId, integrationId);
+    if (legacy === null) {
+      throw new IntegrationNotFoundError();
+    }
+    credentials = { botToken: legacy.botToken };
+    chatId = legacy.channelId;
+  } else {
+    const repository = createIntegrationConnectionRepository();
+    const connection = await repository.findByTenantAndId(auth.tenantId, integrationId);
+    if (connection === null) {
+      throw new IntegrationNotFoundError();
+    }
+    if (connection.provider !== "telegram") {
+      throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_PROVIDER_REQUIRED");
+    }
+    const resolved = await import("../application/resolve-integration-connection-credentials");
+    credentials = await resolved.resolveIntegrationConnectionCredentials(connection);
+    chatId = readTelegramChatId(connection.config);
+  }
+
+  if (typeof credentials.botToken !== "string" || credentials.botToken.trim().length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED");
+  }
+  if (chatId.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_CHAT_ID_REQUIRED");
+  }
+
+  return runTelegramReadOnlyDiagnostics(createTelegramApiClient(credentials.botToken), chatId);
 }
 
 export async function testIntegrationConnection(
