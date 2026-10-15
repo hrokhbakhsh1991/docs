@@ -653,6 +653,15 @@ Successful create **must** leave `/tours/new` immediately:
 
 Contract guard: `pnpm run guard:wizard-post-submit` (wired in `pre-commit:fast`)
 
+## Telegram integration credential rebinding
+
+When an operator saves a new Telegram credential for the existing forum, the
+connection must be treated as unverified until the operator runs the connection
+test again. Saving the credential must clear any previous `error` state by
+persisting `enabled: false` and `status: "disabled"`; it must not send a
+Telegram message or provision topics. The same rule applies when the forum
+Chat ID changes. Delivery may resume only after a successful connection test.
+
 ## Verification
 
 ```bash
