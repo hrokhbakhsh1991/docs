@@ -497,6 +497,12 @@ status, duration, timeout, and correlation ID; it never logs tokens, message
 text, media, or request bodies. Transport failures are returned as controlled
 502/504 responses and Telegram 401/403/429 responses remain distinguishable to
 the API error mapper.
+Operators can use the authenticated `GET
+/integrations/:integrationId/telegram/diagnostics` endpoint for a read-only
+relay probe. It calls only `getMe`, `getChat`, `getChatMember`, and
+`getWebhookInfo`, returns sanitized per-method codes and capability facts, and
+never creates topics, sends messages, changes webhook state, or persists
+integration state.
 Adding a workspace requires no Worker change or new Worker.
 
 Webhook route parameters are connection identifiers, not free-form test labels:

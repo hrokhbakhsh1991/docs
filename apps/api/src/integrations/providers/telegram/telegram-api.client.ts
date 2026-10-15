@@ -13,12 +13,7 @@ type TelegramApiResponse<T> = {
 // Keep the timeout bounded, but allow that first request to complete without
 // turning a healthy relay into a false "unreachable" provisioning failure.
 const TELEGRAM_API_TIMEOUT_MS = 30_000;
-const TELEGRAM_READ_ONLY_METHODS = new Set([
-  "getMe",
-  "getChat",
-  "getChatMember",
-  "getWebhookInfo",
-]);
+const TELEGRAM_READ_ONLY_METHODS = new Set(["getMe", "getChat", "getChatMember", "getWebhookInfo"]);
 const TELEGRAM_MAX_ATTEMPTS = 3;
 const TELEGRAM_RETRY_BASE_DELAY_MS = 100;
 
@@ -121,6 +116,115 @@ export type TelegramApiClientOptions = {
   readonly requestId?: () => string;
 };
 
+export type TelegramReadOnlyDiagnostic = {
+  readonly status: "ok" | "error" | "skipped";
+  readonly code?: string;
+};
+
+export type TelegramReadOnlyDiagnostics = {
+  readonly ok: boolean;
+  readonly methods: {
+    readonly getMe: TelegramReadOnlyDiagnostic;
+    readonly getChat: TelegramReadOnlyDiagnostic;
+    readonly getChatMember: TelegramReadOnlyDiagnostic;
+    readonly getWebhookInfo: TelegramReadOnlyDiagnostic;
+  };
+  readonly bot?: {
+    readonly id: number;
+    readonly username?: string;
+  };
+  readonly chat?: {
+    readonly id: number;
+    readonly type: string;
+    readonly isForum: boolean;
+  };
+  readonly member?: {
+    readonly status: string;
+    readonly canManageTopics: boolean;
+  };
+  readonly webhook?: {
+    readonly configured: boolean;
+    readonly pendingUpdateCount: number;
+  };
+};
+
+function diagnosticError(error: unknown): TelegramReadOnlyDiagnostic {
+  if (error instanceof TelegramApiError) {
+    return { status: "error", code: classifyTelegramApiError(error) };
+  }
+  return { status: "error", code: "INTEGRATION_TELEGRAM_API_UNREACHABLE" };
+}
+
+export async function runTelegramReadOnlyDiagnostics(
+  client: TelegramApiClient,
+  chatId: string
+): Promise<TelegramReadOnlyDiagnostics> {
+  let bot: TelegramBotIdentity | undefined;
+  let chat: TelegramChat | undefined;
+  let member: TelegramChatMember | undefined;
+  let webhook: TelegramWebhookInfo | undefined;
+
+  let getMe: TelegramReadOnlyDiagnostic = { status: "skipped" };
+  let getChat: TelegramReadOnlyDiagnostic = { status: "skipped" };
+  let getChatMember: TelegramReadOnlyDiagnostic = { status: "skipped" };
+  let getWebhookInfo: TelegramReadOnlyDiagnostic = { status: "skipped" };
+
+  try {
+    bot = await client.getMe();
+    getMe = { status: "ok" };
+  } catch (error: unknown) {
+    getMe = diagnosticError(error);
+  }
+  try {
+    chat = await client.getChat(chatId);
+    getChat = { status: "ok" };
+  } catch (error: unknown) {
+    getChat = diagnosticError(error);
+  }
+  if (bot !== undefined) {
+    try {
+      member = await client.getChatMember(chatId, bot.id);
+      getChatMember = { status: "ok" };
+    } catch (error: unknown) {
+      getChatMember = diagnosticError(error);
+    }
+  }
+  try {
+    webhook = await client.getWebhookInfo();
+    getWebhookInfo = { status: "ok" };
+  } catch (error: unknown) {
+    getWebhookInfo = diagnosticError(error);
+  }
+
+  const methods = { getMe, getChat, getChatMember, getWebhookInfo };
+  return {
+    ok: Object.values(methods).every((method) => method.status === "ok"),
+    methods,
+    ...(bot === undefined
+      ? {}
+      : { bot: { id: bot.id, ...(bot.username ? { username: bot.username } : {}) } }),
+    ...(chat === undefined
+      ? {}
+      : { chat: { id: chat.id, type: chat.type, isForum: chat.is_forum === true } }),
+    ...(member === undefined
+      ? {}
+      : {
+          member: {
+            status: member.status,
+            canManageTopics: member.can_manage_topics === true,
+          },
+        }),
+    ...(webhook === undefined
+      ? {}
+      : {
+          webhook: {
+            configured: webhook.url.length > 0,
+            pendingUpdateCount: webhook.pending_update_count,
+          },
+        }),
+  };
+}
+
 export function createTelegramApiClient(
   botToken: string,
   fetchImpl: typeof fetch = fetch,
@@ -131,9 +235,12 @@ export function createTelegramApiClient(
     throw new TelegramApiError("client", undefined, "Telegram bot token is required");
   }
 
-  const sleep = options.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => {
-    setTimeout(resolve, milliseconds);
-  }));
+  const sleep =
+    options.sleep ??
+    ((milliseconds: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, milliseconds);
+      }));
   const random = options.random ?? Math.random;
 
   async function callOnce<T>(
@@ -158,7 +265,12 @@ export function createTelegramApiClient(
     try {
       result = (await response.json()) as TelegramApiResponse<T>;
     } catch {
-      throw new TelegramApiError(method, undefined, "Telegram API returned invalid JSON", response.status);
+      throw new TelegramApiError(
+        method,
+        undefined,
+        "Telegram API returned invalid JSON",
+        response.status
+      );
     }
     if (!response.ok || result.ok !== true || result.result === undefined) {
       throw new TelegramApiError(

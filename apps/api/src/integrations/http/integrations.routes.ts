@@ -6,6 +6,7 @@ import { handleHttpError, sendHttpError } from "../../middleware/error-intercept
 import { requireOperatorSession } from "../../identity/require-operator-session";
 import {
   createWorkspaceIntegration,
+  diagnoseTelegramConnection,
   deleteIntegration,
   disableIntegration,
   enableIntegration,
@@ -308,6 +309,27 @@ export async function handleTestIntegrationConnection(
         sendJson(res, 200, result);
       },
       { rateLimit: "write" }
+    );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handleDiagnoseTelegramConnection(
+  req: IncomingMessage,
+  res: ServerResponse,
+  integrationId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await diagnoseTelegramConnection(auth, integrationId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "read" }
     );
   } catch (error) {
     mapIntegrationRouteError(res, error);

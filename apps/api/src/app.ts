@@ -1661,6 +1661,20 @@ async function dispatchRequest(
     return;
   }
 
+  const integrationTelegramDiagnosticsMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/telegram\/diagnostics$/
+  );
+  if (method === "GET" && integrationTelegramDiagnosticsMatch) {
+    const { handleDiagnoseTelegramConnection } =
+      await import("./integrations/http/integrations.routes");
+    await handleDiagnoseTelegramConnection(
+      req,
+      res,
+      decodeURIComponent(integrationTelegramDiagnosticsMatch[1]!)
+    );
+    return;
+  }
+
   const telegramProvisionMatch = url.pathname.match(
     /^\/integrations\/([^/]+)\/telegram\/provision$/
   );
