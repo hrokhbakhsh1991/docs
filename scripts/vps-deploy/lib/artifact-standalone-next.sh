@@ -55,6 +55,7 @@ package_next_standalone() {
   ensure_runtime_package "styled-jsx"
   ensure_runtime_package "client-only"
   ensure_runtime_package "@swc/helpers"
+  ensure_runtime_package "@next/env"
   local static_root
   if [[ "$server_js" == "${app_rel}/"* ]]; then
     static_root="${out_dir}/${app_rel}/.next"
