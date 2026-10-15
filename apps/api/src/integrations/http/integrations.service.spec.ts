@@ -9,9 +9,26 @@ import {
   mergeTelegramPatchConfig,
   probeTelegramTopicMappings,
   readBoundTelegramTopicThreadIds,
+  resolveTelegramPatchResetState,
   resolveIntegrationEnableReadinessError,
   resolveTelegramProvisionConnectionState,
 } from "./integrations.service";
+
+describe("Telegram credential rebinding", () => {
+  it("clears a stale error when credentials change on the same forum", () => {
+    assert.deepEqual(
+      resolveTelegramPatchResetState({ chatChanged: false, credentialsChanged: true }),
+      { enabled: false, status: "disabled" }
+    );
+  });
+
+  it("does not reset status for unrelated patches", () => {
+    assert.deepEqual(
+      resolveTelegramPatchResetState({ chatChanged: false, credentialsChanged: false }),
+      {}
+    );
+  });
+});
 
 describe("Telegram integration rebind config", () => {
   it("clears old forum topics when the Chat ID changes", () => {
