@@ -91,6 +91,7 @@ PY
       const server = process.argv[1];
       require.resolve("styled-jsx/package.json", { paths: [path.dirname(server)] });
       require.resolve("client-only", { paths: [path.dirname(server)] });
+      require.resolve("@swc/helpers/_/_interop_require_default", { paths: [path.dirname(server)] });
     ' "${vroot}/${k}/${server_rel}" >/dev/null || {
       echo "artifact-self-check: ${k} Next runtime dependency closure is incomplete" >&2
       return 1
