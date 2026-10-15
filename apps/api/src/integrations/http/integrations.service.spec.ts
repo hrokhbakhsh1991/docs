@@ -8,6 +8,7 @@ import {
   isTelegramOperatorStatus,
   mergeTelegramPatchConfig,
   probeTelegramTopicMappings,
+  readBoundTelegramTopicThreadIds,
   resolveIntegrationEnableReadinessError,
   resolveTelegramProvisionConnectionState,
 } from "./integrations.service";
@@ -138,6 +139,20 @@ describe("Telegram provisioning connection state", () => {
 });
 
 describe("Telegram ambiguous topic recovery", () => {
+  it("accepts only known positive thread bindings", () => {
+    assert.deepEqual(readBoundTelegramTopicThreadIds({ bindTopicThreadIds: { tours: 12345 } }), {
+      tours: 12345,
+    });
+    assert.throws(
+      () => readBoundTelegramTopicThreadIds({ bindTopicThreadIds: { unknown: 12345 } }),
+      /INTEGRATION_TELEGRAM_TOPIC_BINDINGS_INVALID/
+    );
+    assert.throws(
+      () => readBoundTelegramTopicThreadIds({ bindTopicThreadIds: { tours: -1 } }),
+      /INTEGRATION_TELEGRAM_TOPIC_BINDINGS_INVALID/
+    );
+  });
+
   it("does not allow a generic repair to clear an unknown remote create outcome", () => {
     assert.throws(
       () =>

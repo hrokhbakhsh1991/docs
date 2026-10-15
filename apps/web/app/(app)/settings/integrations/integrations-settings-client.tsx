@@ -703,9 +703,50 @@ export function IntegrationsSettingsClient({
       setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
       await refreshList(updated.id);
     } catch (actionError: unknown) {
-      setDetailError(
-        actionError instanceof Error ? actionError.message : "INTEGRATION_PROVISION_FAILED"
-      );
+      const errorCode = actionError instanceof Error ? actionError.message : "";
+      if (errorCode === "INTEGRATION_TELEGRAM_TOPIC_CREATE_OUTCOME_UNKNOWN") {
+        const confirmed = window.prompt(
+          "کلیدهای Topic حذف‌شده را با کاما وارد کنید یا برای اتصال Topic موجود به شکل key=threadId بنویسید؛ مثال: tours=12345"
+        );
+        const values = (confirmed ?? "")
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean);
+        const bindTopicThreadIds: Record<string, number> = {};
+        const keys: string[] = [];
+        for (const value of values) {
+          const separator = value.indexOf("=");
+          if (separator > 0) {
+            const key = value.slice(0, separator).trim();
+            const threadId = Number(value.slice(separator + 1).trim());
+            if (Number.isSafeInteger(threadId) && threadId > 0) {
+              bindTopicThreadIds[key] = threadId;
+              continue;
+            }
+          }
+          keys.push(value);
+        }
+        if (keys.length > 0 || Object.keys(bindTopicThreadIds).length > 0) {
+          try {
+            const updated = await recoverTelegramTopicProvision(activeItem.id, {
+              ...(keys.length > 0 ? { confirmMissingTopicKeys: keys } : {}),
+              ...(Object.keys(bindTopicThreadIds).length > 0 ? { bindTopicThreadIds } : {}),
+            });
+            setDetail(updated);
+            setEditValues(seedEditValuesFromConnection(updated, activeProviderSurface));
+            await refreshList(updated.id);
+            return;
+          } catch (confirmedError: unknown) {
+            setDetailError(
+              confirmedError instanceof Error
+                ? confirmedError.message
+                : "INTEGRATION_PROVISION_FAILED"
+            );
+            return;
+          }
+        }
+      }
+      setDetailError(errorCode || "INTEGRATION_PROVISION_FAILED");
     } finally {
       setActionLoading(false);
     }

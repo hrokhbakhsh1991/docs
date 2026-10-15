@@ -206,6 +206,7 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
     readonly topicKey: string;
     readonly leaseToken: string;
     readonly staleThreadId: number;
+    readonly chatId?: string;
   }): Promise<TelegramTopicProvisionClaim> {
     return withTenantRls(input.tenantId, async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`telegram-topic:${input.tenantId}:${input.connectionId}:${input.topicKey}`}))`;
@@ -216,6 +217,9 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
       if (current === null) return { status: "busy" } as const;
 
       const config = readRecord(current.config);
+      if (input.chatId !== undefined && readRecord(config).chatId !== input.chatId) {
+        return { status: "ambiguous" } as const;
+      }
       const topicThreadIds = readRecord(config.topicThreadIds);
       const authoritativeThreadId = topicThreadIds[input.topicKey];
       if (
@@ -284,18 +288,20 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
     readonly topicName: string;
     readonly threadId: number;
     readonly leaseToken: string;
-  }): Promise<void> {
-    await withTenantRls(input.tenantId, async (tx) => {
+    readonly chatId?: string;
+  }): Promise<"committed" | "stale"> {
+    return withTenantRls(input.tenantId, async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`telegram-topic:${input.tenantId}:${input.connectionId}:${input.topicKey}`}))`;
       const current = await tx.integrationConnection.findFirst({
         where: { id: input.connectionId, tenantId: input.tenantId },
         select: { config: true },
       });
-      if (current === null) return;
+      if (current === null) return "stale" as const;
       const config = readRecord(current.config);
+      if (input.chatId !== undefined && config.chatId !== input.chatId) return "stale" as const;
       const provisions = readRecord(config.telegramTopicProvisions);
       const state = readRecord(provisions[input.topicKey]);
-      if (state.token !== input.leaseToken) return;
+      if (state.token !== input.leaseToken) return "stale" as const;
       const { [input.topicKey]: _finished, ...remainingProvisions } = provisions;
       const topicThreadIds = readRecord(config.topicThreadIds);
       const topicNames = readRecord(config.topicNames);
@@ -316,6 +322,7 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
           } as Prisma.InputJsonValue,
         },
       });
+      return "committed" as const;
     });
   }
 
@@ -325,6 +332,7 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
     readonly topicKey: string;
     readonly leaseToken: string;
     readonly outcomeUnknown: boolean;
+    readonly chatId?: string;
   }): Promise<void> {
     await withTenantRls(input.tenantId, async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`telegram-topic:${input.tenantId}:${input.connectionId}:${input.topicKey}`}))`;
@@ -334,6 +342,7 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
       });
       if (current === null) return;
       const config = readRecord(current.config);
+      if (input.chatId !== undefined && config.chatId !== input.chatId) return;
       const provisions = readRecord(config.telegramTopicProvisions);
       const state = readRecord(provisions[input.topicKey]);
       if (state.token !== input.leaseToken) return;

@@ -65,6 +65,7 @@ export type ExecuteIntegrationDeliveryDeps = {
     readonly topicKey: string;
     readonly leaseToken: string;
     readonly staleThreadId: number;
+    readonly chatId?: string;
   }) => Promise<TelegramTopicProvisionClaim>;
   readonly completeTelegramTopicProvision?: (input: {
     readonly tenantId: string;
@@ -73,13 +74,15 @@ export type ExecuteIntegrationDeliveryDeps = {
     readonly topicName: string;
     readonly threadId: number;
     readonly leaseToken: string;
-  }) => Promise<void>;
+    readonly chatId?: string;
+  }) => Promise<"committed" | "stale" | void>;
   readonly finishTelegramTopicProvisionFailure?: (input: {
     readonly tenantId: string;
     readonly connectionId: string;
     readonly topicKey: string;
     readonly leaseToken: string;
     readonly outcomeUnknown: boolean;
+    readonly chatId?: string;
   }) => Promise<void>;
   /** Injectable seam for resolving the anonymous public PDP URL in TourPublished messages. */
   readonly resolveTourPublishedPdpUrl?: typeof resolveTourPublishedPdpUrl;
@@ -184,6 +187,7 @@ async function defaultClaimTelegramTopicProvision(input: {
   readonly topicKey: string;
   readonly leaseToken: string;
   readonly staleThreadId: number;
+  readonly chatId?: string;
 }): Promise<TelegramTopicProvisionClaim> {
   const { createIntegrationConnectionRepository } =
     await import("../infrastructure/prisma-integration-connection.repository");
@@ -197,10 +201,11 @@ async function defaultCompleteTelegramTopicProvision(input: {
   readonly topicName: string;
   readonly threadId: number;
   readonly leaseToken: string;
-}): Promise<void> {
+  readonly chatId?: string;
+}): Promise<"committed" | "stale"> {
   const { createIntegrationConnectionRepository } =
     await import("../infrastructure/prisma-integration-connection.repository");
-  await createIntegrationConnectionRepository().completeTelegramTopicProvision(input);
+  return createIntegrationConnectionRepository().completeTelegramTopicProvision(input);
 }
 
 async function defaultFinishTelegramTopicProvisionFailure(input: {
@@ -209,6 +214,7 @@ async function defaultFinishTelegramTopicProvisionFailure(input: {
   readonly topicKey: string;
   readonly leaseToken: string;
   readonly outcomeUnknown: boolean;
+  readonly chatId?: string;
 }): Promise<void> {
   const { createIntegrationConnectionRepository } =
     await import("../infrastructure/prisma-integration-connection.repository");
@@ -258,6 +264,7 @@ async function autoCreateTelegramTopic(input: {
     topicKey: input.topicKey,
     leaseToken,
     staleThreadId: input.staleThreadId,
+    chatId: input.chatId,
   });
   if (claim.status === "existing") return claim.threadId;
   if (claim.status !== "claimed") return null;
@@ -267,15 +274,20 @@ async function autoCreateTelegramTopic(input: {
       botToken
     );
     const created = await api.createForumTopic(input.chatId, topicName);
-    await (input.deps.completeTelegramTopicProvision ?? defaultCompleteTelegramTopicProvision)({
+    const completion = await (
+      input.deps.completeTelegramTopicProvision ?? defaultCompleteTelegramTopicProvision
+    )({
       tenantId: input.job.tenantId,
       connectionId: input.connectionId,
       topicKey: input.topicKey,
       topicName,
       threadId: created.message_thread_id,
       leaseToken,
+      chatId: input.chatId,
     });
-    return created.message_thread_id;
+    // A late completion means the connection changed while Telegram was being
+    // called. Do not send to the newly-created topic or persist it locally.
+    return completion === "stale" ? null : created.message_thread_id;
   } catch (error: unknown) {
     const outcomeUnknown = !(error instanceof TelegramApiError) || error.errorCode === undefined;
     await (
@@ -286,6 +298,7 @@ async function autoCreateTelegramTopic(input: {
       topicKey: input.topicKey,
       leaseToken,
       outcomeUnknown,
+      chatId: input.chatId,
     });
     return null;
   }

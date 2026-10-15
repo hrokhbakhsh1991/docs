@@ -895,7 +895,7 @@ export async function patchIntegration(
       );
       config = rebinding.config as Prisma.InputJsonValue;
 
-      if (rebinding.chatChanged || rebinding.groupChanged) {
+      if (rebinding.chatChanged) {
         // Do not leave the old delivery source enabled while the new forum is being provisioned.
         await tx.integrationConnection.update({
           where: { id: existing.id },
@@ -1851,11 +1851,13 @@ export async function provisionTelegramIntegration(
       throw new IntegrationInvalidBodyError(error.code);
     }
     if (error instanceof TelegramApiError) {
-      logger.error({
-        method: error.method,
-        errorCode: error.errorCode,
-        description: error.description,
-      }, "telegram.provision.api_error");
+      logger.error(
+        {
+          method: error.method,
+          errorCode: error.errorCode,
+        },
+        "telegram.provision.api_error"
+      );
       throw new IntegrationInvalidBodyError(classifyTelegramApiError(error));
     }
     throw error;
@@ -1879,7 +1881,8 @@ export function resolveTelegramProvisionConnectionState(input: { readonly enable
 
 export async function recoverTelegramTopicProvision(
   auth: TenantAuthContext,
-  integrationId: string
+  integrationId: string,
+  body: unknown = undefined
 ): Promise<IntegrationConnectionPublicDto> {
   assertIntegrationSystemReady();
   assertLegacyReadOnly(integrationId);
@@ -1901,6 +1904,8 @@ export async function recoverTelegramTopicProvision(
     typeof row.config === "object" && row.config !== null
       ? (row.config as Record<string, unknown>)
       : {};
+  const confirmedTopicKeys = readConfirmedTelegramTopicKeys(body);
+  const boundTopicThreadIds = readBoundTelegramTopicThreadIds(body);
   const chatId = readTelegramChatId(config);
   const groupName = readTelegramGroupName(config);
   if (chatId.length === 0 || groupName.length === 0) {
@@ -1922,6 +1927,38 @@ export async function recoverTelegramTopicProvision(
     chatId,
     topicThreadIds,
   });
+  const boundTopicKeys = Object.keys(boundTopicThreadIds);
+  if (boundTopicKeys.length > 0) {
+    const probedBindings = await probeTelegramTopicMappings({
+      api,
+      chatId,
+      topicThreadIds: boundTopicThreadIds,
+    });
+    if (Object.keys(probedBindings).length !== boundTopicKeys.length) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_BINDING_INVALID");
+    }
+    Object.assign(remainingTopicThreadIds, probedBindings);
+  }
+
+  const provisions =
+    typeof config.telegramTopicProvisions === "object" && config.telegramTopicProvisions !== null
+      ? { ...(config.telegramTopicProvisions as Record<string, unknown>) }
+      : {};
+  const missingTopicKeys = TELEGRAM_FORUM_TOPIC_KEYS.filter(
+    (key) => topicThreadIds[key] !== undefined && remainingTopicThreadIds[key] === undefined
+  );
+  for (const key of missingTopicKeys) {
+    delete provisions[key];
+  }
+  for (const key of confirmedTopicKeys) {
+    delete provisions[key];
+  }
+  for (const key of boundTopicKeys) {
+    delete provisions[key];
+  }
+  if (Object.keys(provisions).length > 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_CREATE_OUTCOME_UNKNOWN");
+  }
 
   await withTenantRls(auth.tenantId, async (tx) =>
     tx.integrationConnection.update({
@@ -1930,14 +1967,51 @@ export async function recoverTelegramTopicProvision(
         config: {
           ...config,
           topicThreadIds: remainingTopicThreadIds,
-          // This endpoint is an explicit, confirmed recovery action. Unknown
-          // create outcomes without a checkpoint may be retried only here.
-          telegramTopicProvisions: {},
+          // Only a Telegram-confirmed missing thread or an operator-confirmed
+          // topic is released for reprovisioning. Ambiguous creates remain
+          // durable and block automatic recreation.
+          telegramTopicProvisions: provisions,
         } as Prisma.InputJsonValue,
       },
     })
   );
   return provisionTelegramIntegration(auth, integrationId, { chatId, groupName });
+}
+
+function readConfirmedTelegramTopicKeys(body: unknown): Set<string> {
+  if (typeof body !== "object" || body === null) return new Set();
+  const raw = (body as Record<string, unknown>).confirmMissingTopicKeys;
+  if (!Array.isArray(raw)) return new Set();
+  const invalid = raw.some(
+    (key) =>
+      typeof key !== "string" || !(TELEGRAM_FORUM_TOPIC_KEYS as readonly string[]).includes(key)
+  );
+  if (invalid) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_KEYS_INVALID");
+  }
+  return new Set(raw);
+}
+
+export function readBoundTelegramTopicThreadIds(body: unknown): Record<string, number> {
+  if (typeof body !== "object" || body === null) return {};
+  const raw = (body as Record<string, unknown>).bindTopicThreadIds;
+  if (raw === undefined) return {};
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_BINDINGS_INVALID");
+  }
+  const result: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (
+      !(TELEGRAM_FORUM_TOPIC_KEYS as readonly string[]).includes(key) ||
+      typeof value !== "number" ||
+      !Number.isSafeInteger(value) ||
+      value <= 0
+    ) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_TELEGRAM_TOPIC_BINDINGS_INVALID");
+    }
+    result[key] = value;
+  }
+  return result;
 }
 
 export async function probeTelegramTopicMappings(input: {
@@ -2267,6 +2341,45 @@ async function processTelegramConnectCommand(input: {
           key,
           topic,
         }),
+      onTopicCreateStarted: (key) =>
+        persistTelegramTopicProvisionState({
+          tenantId,
+          integrationId,
+          key,
+          state: {
+            token: leaseToken,
+            startedAt: new Date().toISOString(),
+            outcome: "in_flight",
+          },
+        }),
+      onTopicCreateFailed: (key, _topic, error) =>
+        persistTelegramTopicProvisionState({
+          tenantId,
+          integrationId,
+          key,
+          state:
+            error instanceof TelegramApiError && error.errorCode !== undefined
+              ? null
+              : {
+                  token: leaseToken,
+                  startedAt: new Date().toISOString(),
+                  outcome: "ambiguous",
+                },
+        }),
+      loadConfig: async () => {
+        const latest = await createIntegrationConnectionRepository().findByTenantAndId(
+          tenantId,
+          integrationId
+        );
+        if (latest === null) throw new IntegrationNotFoundError();
+        assertTelegramTopicProvisionRetrySafe(latest.config);
+        return createTelegramForumConfig({
+          groupName:
+            typeof latest.config.groupName === "string" ? latest.config.groupName : groupName,
+          chatId: latest.config.chatId,
+          topics: readTelegramTopicConfig(latest.config),
+        });
+      },
     });
   } finally {
     await releaseTelegramProvisionLease({ tenantId, integrationId, leaseToken });
@@ -2279,12 +2392,17 @@ async function processTelegramConnectCommand(input: {
   const topicNames = Object.fromEntries(
     Object.entries(provisioned.config.topics).map(([key, topic]) => [key, topic.name])
   );
+  const latestConnection = await createIntegrationConnectionRepository().findByTenantAndId(
+    tenantId,
+    integrationId
+  );
+  if (latestConnection === null) throw new IntegrationNotFoundError();
   await withTenantRls(tenantId, async (tx) => {
     await tx.integrationConnection.update({
       where: { id: integrationId },
       data: {
         config: {
-          ...connection.config,
+          ...latestConnection.config,
           chatId: command.chatId,
           topicThreadIds,
           topicNames,
