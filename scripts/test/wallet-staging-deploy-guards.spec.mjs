@@ -230,8 +230,10 @@ describe("wallet-staging-deploy-guards", () => {
     const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
     assert.match(packager, /ensure_runtime_package \"styled-jsx\"/);
     assert.match(packager, /ensure_runtime_package \"client-only\"/);
+    assert.match(packager, /ensure_runtime_package \"@swc\/helpers\"/);
     assert.match(selfCheck, /require\.resolve\("styled-jsx\/package\.json"/);
     assert.match(selfCheck, /require\.resolve\("client-only"/);
+    assert.match(selfCheck, /require\.resolve\("@swc\/helpers\/_\/_interop_require_default"/);
   });
 
   it("WSD-12 runbook documents VPS-side command and production block", () => {
