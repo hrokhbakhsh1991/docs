@@ -179,6 +179,39 @@ LIMIT 5;
 
 5. Confirm Telegram channel received message (or worker log `integration.delivery.done`).
 
+## Forum group and topic rebind contract
+
+The Telegram forum binding has two different update operations:
+
+1. **Rename metadata only:** changing `groupName` does not change the Telegram
+   chat identity or its topic thread IDs. Existing mappings remain valid.
+2. **Move to another forum:** changing `chatId` is an explicit rebind. The old
+   thread IDs must never be reused in the new chat. The connection is disabled,
+   the old mappings are cleared, and the new forum is validated before the four
+   required topics are provisioned. The connection becomes usable only after
+   all required mappings are persisted.
+
+Topic keys (`registration`, `receipts`, `tickets`, `tours`) are stable routing
+keys. A healthy persisted mapping is reused; a definitively deleted thread is
+released for repair and recreated under a durable per-topic lease. A timeout or
+unknown Telegram response is treated as **ambiguous** and must not be retried
+blindly, because Telegram may already have created the topic.
+
+The system does not infer remote topics by name when the local mapping is lost:
+the Bot API client has no remote topic inventory contract. Therefore a lost
+mapping requires operator-confirmed binding or a controlled rebind; automatic
+"same-name" matching is intentionally not used.
+
+### Rebind acceptance checks
+
+- same forum update preserves all healthy topic mappings;
+- new forum update clears old mappings and creates each missing required topic;
+- a partial failure leaves the connection disabled and recoverable;
+- a deleted topic is recreated once, without duplicate concurrent creation;
+- delivery never falls back to General when a topic key is configured;
+- concurrent update and delivery cannot commit a topic belonging to an older
+  `chatId`.
+
 **Stuck `processing` jobs (dev / crash recovery):**
 
 ```sql

@@ -890,11 +890,13 @@ export async function patchIntegration(
             rawConfig: record.config as Record<string, unknown>,
           })) as Prisma.InputJsonValue)
         : undefined;
+    let chatChanged = false;
     if (existing.provider === "telegram" && config !== undefined) {
       const rebinding = mergeTelegramPatchConfig(
         existing.config as Record<string, unknown>,
         config as Record<string, unknown>
       );
+      chatChanged = rebinding.chatChanged;
       config = rebinding.config as Prisma.InputJsonValue;
 
       if (rebinding.chatChanged) {
@@ -916,6 +918,7 @@ export async function patchIntegration(
       record,
     });
     let secretRef = existing.secretRef;
+    const credentialsChanged = Object.keys(secretPayload).length > 0;
     if (Object.keys(secretPayload).length > 0) {
       secretRef = buildIntegrationSecretRef(existing.id);
       await putIntegrationSecretInTransaction(tx, auth.tenantId, secretRef, secretPayload);
@@ -943,6 +946,10 @@ export async function patchIntegration(
     return tx.integrationConnection.update({
       where: { id: existing.id },
       data: {
+        ...resolveTelegramPatchResetState({
+          chatChanged: existing.provider === "telegram" && chatChanged,
+          credentialsChanged: existing.provider === "telegram" && credentialsChanged,
+        }),
         ...(config !== undefined ? { config } : {}),
         ...(capabilities !== undefined ? { capabilities } : {}),
         ...(secretRef !== undefined ? { secretRef } : {}),
@@ -955,6 +962,15 @@ export async function patchIntegration(
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt,
   });
+}
+
+export function resolveTelegramPatchResetState(input: {
+  readonly chatChanged: boolean;
+  readonly credentialsChanged: boolean;
+}): { readonly enabled: false; readonly status: "disabled" } | Record<string, never> {
+  return input.chatChanged || input.credentialsChanged
+    ? { enabled: false, status: "disabled" }
+    : {};
 }
 
 function readTelegramChatId(config: Record<string, unknown>): string {
@@ -1618,6 +1634,16 @@ export async function testIntegrationConnection(
     credentials,
     persistStatusForConnectionId: shouldRefreshTelegramWebhook ? null : connection.id,
   });
+  logger.warn(
+    {
+      event: "integrations.telegram.test_result",
+      integrationId: connection.id,
+      ok: result.ok,
+      code: result.code,
+      backingSource: result.backingSource,
+    },
+    "telegram integration test result"
+  );
   if (result.ok && connection.provider === "telegram") {
     await requeueTelegramTopicRecoveryJobs({
       tenantId: connection.tenantId,
@@ -1745,13 +1771,38 @@ export async function provisionTelegramIntegration(
   }
 
   try {
+    const api = createTelegramApiClient(botToken);
+    let provisionConfig = connection.config;
+    if (!chatChanged) {
+      const reconciled = await reconcileTelegramTopicMappings({
+        api,
+        chatId,
+        config: connection.config,
+      });
+      provisionConfig = reconciled.config;
+      if (reconciled.removedTopicKeys.length > 0) {
+        // Do not allow delivery to race with a deleted topic while the
+        // provisioning pass recreates it. A successful pass restores the
+        // previous enabled state below; a failure remains disabled.
+        await withTenantRls(auth.tenantId, async (tx) => {
+          await tx.integrationConnection.update({
+            where: { id: connection.id },
+            data: {
+              enabled: false,
+              status: "disabled",
+              config: provisionConfig as Prisma.InputJsonValue,
+            },
+          });
+        });
+      }
+    }
     const currentConfig = createTelegramForumConfig({
       groupName,
       chatId,
-      topics: chatChanged ? {} : readTelegramTopicConfig(connection.config),
+      topics: chatChanged ? {} : readTelegramTopicConfig(provisionConfig),
     });
     const provisioned = await provisionTelegramForum({
-      api: createTelegramApiClient(botToken),
+      api,
       config: currentConfig,
       chatId,
       onTopicCreated: (key, topic) =>
@@ -2091,6 +2142,53 @@ export async function probeTelegramTopicMappings(input: {
     }
   }
   return remaining;
+}
+
+/**
+ * Reconciles only persisted topic mappings that Telegram can positively prove
+ * stale. Network, timeout, and permission failures must abort the operation
+ * instead of erasing healthy mappings and creating duplicates.
+ */
+export async function reconcileTelegramTopicMappings(input: {
+  readonly api: Pick<TelegramApiClient, "sendChatAction">;
+  readonly chatId: string;
+  readonly config: Record<string, unknown>;
+}): Promise<{
+  readonly config: Record<string, unknown>;
+  readonly removedTopicKeys: readonly string[];
+}> {
+  const topicThreadIds =
+    typeof input.config.topicThreadIds === "object" && input.config.topicThreadIds !== null
+      ? (input.config.topicThreadIds as Record<string, unknown>)
+      : {};
+  const remainingTopicThreadIds = await probeTelegramTopicMappings({
+    api: input.api,
+    chatId: input.chatId,
+    topicThreadIds,
+  });
+  const removedTopicKeys = TELEGRAM_FORUM_TOPIC_KEYS.filter(
+    (key) => topicThreadIds[key] !== undefined && remainingTopicThreadIds[key] === undefined
+  );
+  if (removedTopicKeys.length === 0) {
+    return { config: input.config, removedTopicKeys };
+  }
+
+  const topicProvisions =
+    typeof input.config.telegramTopicProvisions === "object" &&
+    input.config.telegramTopicProvisions !== null
+      ? { ...(input.config.telegramTopicProvisions as Record<string, unknown>) }
+      : {};
+  for (const key of removedTopicKeys) {
+    delete topicProvisions[key];
+  }
+  return {
+    config: {
+      ...input.config,
+      topicThreadIds: remainingTopicThreadIds,
+      telegramTopicProvisions: topicProvisions,
+    },
+    removedTopicKeys,
+  };
 }
 
 export async function startTelegramForumConnect(

@@ -1,7 +1,5 @@
 import { resolveIntegrationSurfaceForWorkspaceType } from "./resolve-integration-surface";
 
-const FIELD_PLACEHOLDER_PATTERN = /\{\{field:([^}]+)\}\}/g;
-
 // Same locale/timezone convention as enrich-canonical-delivery-payload.ts, applied
 // here so raw ISO timestamps in {{...}} placeholders (createdAt, submittedAt, etc.)
 // render as readable Tehran-local Persian dates instead of literal ISO strings.
@@ -162,7 +160,8 @@ async function renderSurfaceHeaderTemplate(input: {
  */
 export async function applyFieldPolicyPlaceholders(
   template: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  options: { readonly omitLinesWithEmptyFields?: boolean } = {}
 ): Promise<string> {
   if (!template.includes("{{field:")) {
     return template;
@@ -170,13 +169,31 @@ export async function applyFieldPolicyPlaceholders(
   const eligibleFieldIds = readDeliveryFieldIds(payload);
   const fieldValues = readDeliveryFieldValues(payload);
 
-  return template.replaceAll(FIELD_PLACEHOLDER_PATTERN, (_match, rawId: string) => {
+  const resolveField = (_match: string, rawId: string): string => {
     const fieldId = rawId.trim();
     if (eligibleFieldIds === null || !eligibleFieldIds.has(fieldId)) {
       return "";
     }
     return fieldValues[fieldId] ?? "";
-  });
+  };
+
+  if (options.omitLinesWithEmptyFields) {
+    return template
+      .split("\n")
+      .filter((line) => {
+        const placeholders = [...line.matchAll(/\{\{field:([^}]+)\}\}/g)];
+        return (
+          placeholders.length === 0 ||
+          placeholders.every((match) => resolveField(match[0], match[1]).trim().length > 0)
+        );
+      })
+      .join("\n")
+      .replace(/\{\{field:([^}]+)\}\}/g, resolveField)
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  return template.replace(/\{\{field:([^}]+)\}\}/g, resolveField);
 }
 
 export async function formatIntegrationDeliveryMessage(input: {
@@ -205,7 +222,10 @@ export async function formatIntegrationDeliveryMessage(input: {
       : null;
 
   if (overrideTemplate !== null) {
-    const resolved = await applyFieldPolicyPlaceholders(overrideTemplate, input.payload);
+    const resolved = await applyFieldPolicyPlaceholders(overrideTemplate, input.payload, {
+      omitLinesWithEmptyFields:
+        input.eventType === "TourPublished" || input.eventType === "TourAnnouncementRequested",
+    });
     return appendReceiptEvidenceDetails(
       applyPayloadPlaceholders(resolved, input.payload, input.eventType)
     );
@@ -220,7 +240,10 @@ export async function formatIntegrationDeliveryMessage(input: {
   const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
   const template = surface?.messageTemplates?.[input.eventType] ?? "{{eventType}}: {{title}}";
 
-  const resolved = await applyFieldPolicyPlaceholders(template, input.payload);
+  const resolved = await applyFieldPolicyPlaceholders(template, input.payload, {
+    omitLinesWithEmptyFields:
+      input.eventType === "TourPublished" || input.eventType === "TourAnnouncementRequested",
+  });
   const message = applyPayloadPlaceholders(resolved, input.payload, input.eventType);
   return appendReceiptEvidenceDetails(message);
 }
