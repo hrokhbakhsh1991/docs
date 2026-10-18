@@ -256,6 +256,23 @@ describe("format integration delivery message", () => {
     );
   });
 
+  it("omits optional tour-template rows when their field values are empty", async () => {
+    const message = await formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "TourAnnouncementRequested",
+      payload: {
+        title: "تور تست",
+        integrationDeliveryMessageTemplate:
+          "اعلان تور\n\n⏰ زمان بازگشت: {{field:denali.approximate-return-time}}\n📍 مقصد: {{field:denali.destination}}\n\nثبت‌نام",
+        integrationDeliveryFieldIds: ["denali.destination"],
+        integrationDeliveryFieldValues: { "denali.destination": "توچال" },
+      },
+    });
+
+    assert.equal(message, "اعلان تور\n\n📍 مقصد: توچال\n\nثبت‌نام");
+    assert.doesNotMatch(message, /زمان بازگشت/);
+  });
+
   it("falls back when workspace has no template", async () => {
     assert.equal(
       await formatIntegrationDeliveryMessage({

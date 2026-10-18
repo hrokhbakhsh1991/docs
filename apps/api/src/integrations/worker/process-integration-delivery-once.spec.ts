@@ -691,6 +691,10 @@ describe("Telegram worker delivery", () => {
           telegramTopicKey: "tours",
           tourId: "tour-1",
           title: "تور شمال",
+          integrationDeliveryMessageTemplate:
+            "🏕 عنوان تور: {{field:title}}\n⏰ زمان تقریبی بازگشت: {{field:denali.approximate-return-time}}\n🔗 اطلاعات بیشتر: {{field:denali.registration-url}}",
+          integrationDeliveryFieldIds: ["title"],
+          integrationDeliveryFieldValues: { title: "تور شمال" },
         },
       }),
       {
@@ -728,7 +732,7 @@ describe("Telegram worker delivery", () => {
     assert.deepEqual(sent, [
       {
         messageThreadId: 404,
-        text: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: تور شمال",
+        text: "🏕 عنوان تور: تور شمال\n\n🔗 اطلاعات بیشتر: https://denali.shenski.com/tours/tour-1",
         replyMarkup: {
           inline_keyboard: [
             [{ text: "مشاهده تور و ثبت‌نام", url: "https://denali.shenski.com/tours/tour-1" }],

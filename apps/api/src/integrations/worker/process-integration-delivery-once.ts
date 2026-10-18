@@ -476,11 +476,38 @@ export async function executeIntegrationDeliveryJob(
         },
       };
     }
-    const text = await formatIntegrationDeliveryMessage({
+    const isTourAnnouncementEvent =
+      job.eventType === "TourPublished" || job.eventType === "TourAnnouncementRequested";
+    const tourPdpUrl =
+      job.provider === "telegram" && isTourAnnouncementEvent
+        ? await (deps.resolveTourPublishedPdpUrl ?? resolveTourPublishedPdpUrl)({
+            tenantId: job.tenantId,
+            tourId:
+              typeof job.payload.tourId === "string"
+                ? job.payload.tourId
+                : String(job.payload.aggregateId ?? ""),
+          })
+        : null;
+    if (job.provider === "telegram" && isTourAnnouncementEvent && tourPdpUrl === null) {
+      return { ok: false, error: { code: "INTEGRATION_TOUR_PDP_URL_UNAVAILABLE" } };
+    }
+
+    const textPayload = tourPdpUrl === null ? job.payload : { ...job.payload, tourUrl: tourPdpUrl };
+    let text = await formatIntegrationDeliveryMessage({
       workspaceType,
       eventType: job.eventType,
-      payload: job.payload,
+      payload: textPayload,
     });
+    if (tourPdpUrl !== null && !text.includes(tourPdpUrl)) {
+      text = text
+        .replace(/^[\t ]*(?:🔗[\t ]*)?اطلاعات بیشتر[\t ]*[:：]?[\t ]*$/gmu, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      text =
+        text.length === 0
+          ? `🔗 اطلاعات بیشتر: ${tourPdpUrl}`
+          : `${text}\n\n🔗 اطلاعات بیشتر: ${tourPdpUrl}`;
+    }
     let media:
       | {
           readonly kind: "photo" | "document";
@@ -525,21 +552,6 @@ export async function executeIntegrationDeliveryJob(
         url: job.payload.telegramMediaUrl,
         caption: telegramMediaCaption(text),
       };
-    }
-    const isTourAnnouncementEvent =
-      job.eventType === "TourPublished" || job.eventType === "TourAnnouncementRequested";
-    const tourPdpUrl =
-      job.provider === "telegram" && isTourAnnouncementEvent
-        ? await (deps.resolveTourPublishedPdpUrl ?? resolveTourPublishedPdpUrl)({
-            tenantId: job.tenantId,
-            tourId:
-              typeof job.payload.tourId === "string"
-                ? job.payload.tourId
-                : String(job.payload.aggregateId ?? ""),
-          })
-        : null;
-    if (job.provider === "telegram" && isTourAnnouncementEvent && tourPdpUrl === null) {
-      return { ok: false, error: { code: "INTEGRATION_TOUR_PDP_URL_UNAVAILABLE" } };
     }
     const replyMarkup =
       tourPdpUrl !== null
