@@ -242,6 +242,8 @@ export async function createDenaliRegistration(params: {
     capacity !== null &&
     approvedOccupancy !== null &&
     approvedOccupancy + params.body.partySize > capacity;
+  const waitlistFallbackAllowed =
+    params.bookingPort.createWaitlistedBooking !== undefined && denaliWaitlistAllowed();
 
   // Own-other identity collision → reclassify same row to self (tour-global guest uniques).
   if (registrantTarget === "self" && params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID) {
@@ -291,6 +293,7 @@ export async function createDenaliRegistration(params: {
             tenantId: params.tenantId,
             bookingId: reclassified.id,
             actorUserId: params.guestUserId,
+            ...(waitlistFallbackAllowed ? { capacityFallback: "waitlist" as const } : {}),
           });
         }
       }
@@ -339,7 +342,34 @@ export async function createDenaliRegistration(params: {
     return params.bookingPort.createWaitlistedBooking!(createInput);
   }
 
-  const created = await params.bookingPort.createPendingBooking(createInput);
+  let created: { readonly id: string; readonly status: string };
+  try {
+    created = await params.bookingPort.createPendingBooking(createInput);
+  } catch (error) {
+    // The occupancy read above is advisory. The API re-checks capacity under the tour lock;
+    // if another request won the last seats meanwhile, make this request a waitlist entry.
+    if (
+      !waitlistFallbackAllowed ||
+      !(error instanceof Error) ||
+      !/^BOOKING_CAPACITY_REJECTED: occupied=\d+ partySize=\d+ capacityMax=\d+/.test(error.message)
+    ) {
+      throw error;
+    }
+    const waitlistPayload = {
+      ...createInput.outboxEvent.payload,
+      approvalRequired: false,
+      approvalStatus: "waitlisted",
+      approvalPrompt: "🕒 ظرفیت این تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شد.",
+    };
+    return params.bookingPort.createWaitlistedBooking!({
+      ...createInput,
+      outboxEvent: {
+        ...createInput.outboxEvent,
+        eventType: "registration.waitlisted",
+        payload: waitlistPayload,
+      },
+    });
+  }
 
   // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).
   // Never trust client intake; mode comes only from loaded tour SoT.
@@ -351,5 +381,6 @@ export async function createDenaliRegistration(params: {
     tenantId: params.tenantId,
     bookingId: created.id,
     actorUserId: params.guestUserId,
+    ...(waitlistFallbackAllowed ? { capacityFallback: "waitlist" as const } : {}),
   });
 }

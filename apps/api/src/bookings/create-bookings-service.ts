@@ -326,6 +326,7 @@ export async function autoApprovePublicBooking(input: {
   readonly tenantId: string;
   readonly bookingId: string;
   readonly actorUserId: string;
+  readonly capacityFallback?: "waitlist";
 }): Promise<{ readonly id: string; readonly status: string }> {
   const result = await (
     await resolveBookingsServiceForTenant(input.tenantId)
