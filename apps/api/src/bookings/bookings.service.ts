@@ -946,13 +946,14 @@ export class BookingsService {
   /**
    * Tour-policy public auto-approve — no ops CASL.
    * Ownership: actorUserId must equal submittedByUserId.
-   * Capacity reject → move to the waitlist so the public registration flow
-   * reports the same full-tour outcome as direct waitlist admission.
+   * A workspace can opt in to waitlisting only after a concrete capacity decision.
+   * Other failures remain pending for a safe operator decision.
    */
   async autoApprovePublicBooking(input: {
     readonly tenantId: string;
     readonly bookingId: string;
     readonly actorUserId: string;
+    readonly capacityFallback?: "waitlist";
   }): Promise<{ readonly id: string; readonly status: string }> {
     await this.assertTenantBound(input.tenantId);
     this.assertApprovalCapability();
@@ -974,17 +975,21 @@ export class BookingsService {
       await this.promoteWaitlistAfterAutoApproval(input.tenantId, booking.tourId);
       return { id: updated.id, status: updated.status };
     } catch (error) {
-      if (
+      const capacityRejected =
         error instanceof Error &&
-        (error.message.startsWith("BOOKING_CAPACITY_REJECTED") ||
-          error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED))
-      ) {
+        (error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED) ||
+          (error.message.startsWith("BOOKING_CAPACITY_REJECTED") &&
+            /occupied=\d+ partySize=\d+ capacityMax=\d+/.test(error.message)));
+      if (input.capacityFallback === "waitlist" && capacityRejected) {
         const waitlisted = await this.repository.waitlistBooking({
           bookingId: booking.id,
           tenantId: input.tenantId,
           outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
         });
         return { id: waitlisted.id, status: waitlisted.status };
+      }
+      if (capacityRejected) {
+        return { id: booking.id, status: booking.status };
       }
       throw error;
     }

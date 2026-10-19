@@ -228,6 +228,8 @@ export async function createDenaliRegistration(params: {
     ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
   };
   const approvalRequired = resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto";
+  const waitlistFallbackAllowed =
+    params.bookingPort.createWaitlistedBooking !== undefined && denaliWaitlistAllowed();
 
   const approvedOccupancy =
     capacity !== null
@@ -238,8 +240,7 @@ export async function createDenaliRegistration(params: {
         )[params.body.tourId] ?? 0)
       : null;
   const shouldWaitlist =
-    params.bookingPort.createWaitlistedBooking !== undefined &&
-    denaliWaitlistAllowed() &&
+    waitlistFallbackAllowed &&
     capacity !== null &&
     approvedOccupancy !== null &&
     approvedOccupancy + params.body.partySize > capacity;
@@ -292,6 +293,7 @@ export async function createDenaliRegistration(params: {
             tenantId: params.tenantId,
             bookingId: reclassified.id,
             actorUserId: params.guestUserId,
+            ...(waitlistFallbackAllowed ? { capacityFallback: "waitlist" as const } : {}),
           });
         }
       }
@@ -350,13 +352,16 @@ export async function createDenaliRegistration(params: {
         error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED));
     if (
       !capacityRejected ||
-      params.bookingPort.createWaitlistedBooking === undefined ||
-      !denaliWaitlistAllowed()
+      !waitlistFallbackAllowed
     ) {
       throw error;
     }
+    const createWaitlistedBooking = params.bookingPort.createWaitlistedBooking;
+    if (createWaitlistedBooking === undefined) {
+      throw error;
+    }
     const waitlistEvent = createInput.outboxEvent;
-    return params.bookingPort.createWaitlistedBooking({
+    return createWaitlistedBooking({
       ...createInput,
       ...(waitlistEvent === undefined
         ? {}
@@ -386,5 +391,6 @@ export async function createDenaliRegistration(params: {
     tenantId: params.tenantId,
     bookingId: created.id,
     actorUserId: params.guestUserId,
+    ...(waitlistFallbackAllowed ? { capacityFallback: "waitlist" as const } : {}),
   });
 }

@@ -182,6 +182,37 @@ describe("booking public auto-approve", { concurrency: false }, () => {
     assert.equal(owned?.status, "waitlisted");
   });
 
+  it("P3-BA-05 Denali opt-in moves the same capacity-rejected booking to waitlist", async () => {
+    const first = await createPublicGuestBooking(
+      publicAuth(GUEST_A),
+      body("Waitlist Filler For Auto Fallback", 20)
+    );
+    const second = await createPublicGuestBooking(
+      publicAuth(GUEST_B),
+      body("Auto Fallback Waitlist Candidate", 1)
+    );
+    await autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: first.id,
+      actorUserId: GUEST_A,
+    });
+
+    const result = await autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: second.id,
+      actorUserId: GUEST_B,
+      capacityFallback: "waitlist",
+    });
+
+    assert.deepEqual(result, { id: second.id, status: "waitlisted" });
+    const owned = await createHostBookingPublicAdapter().findOwnedBooking(
+      TENANT_DENALI,
+      second.id,
+      GUEST_B
+    );
+    assert.equal(owned?.status, "waitlisted");
+  });
+
   it("P3-BA-04 public waitlist create bypasses approved-capacity assertion", async () => {
     const first = await createPublicGuestBooking(publicAuth(GUEST_A), body("Waitlist Filler", 20));
     await autoApprovePublicBooking({

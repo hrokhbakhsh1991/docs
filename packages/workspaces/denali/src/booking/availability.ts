@@ -80,7 +80,7 @@ export function computeDenaliAvailability(
 
 export function evaluateDenaliCreateCapacity(
   ctx: BookingCreatePolicyContext,
-  rule: DenaliCapacityRule = DEFAULT_DENALI_CAPACITY_RULE
+  _rule: DenaliCapacityRule = DEFAULT_DENALI_CAPACITY_RULE
 ): DenaliCreateCapacityEvaluation {
   if (!Number.isInteger(ctx.partySize) || ctx.partySize < 1) {
     return Object.freeze({
