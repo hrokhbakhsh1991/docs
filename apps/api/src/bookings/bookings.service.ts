@@ -854,12 +854,13 @@ export class BookingsService {
   /**
    * Tour-policy public auto-approve — no ops CASL.
    * Ownership: actorUserId must equal submittedByUserId.
-   * Capacity reject → leave pending (fail closed to manual queue).
+   * Capacity reject → leave pending by default; an explicitly opted-in workspace may waitlist it.
    */
   async autoApprovePublicBooking(input: {
     readonly tenantId: string;
     readonly bookingId: string;
     readonly actorUserId: string;
+    readonly capacityFallback?: "waitlist";
   }): Promise<{ readonly id: string; readonly status: string }> {
     await this.assertTenantBound(input.tenantId);
     this.assertApprovalCapability();
@@ -881,6 +882,19 @@ export class BookingsService {
       return { id: updated.id, status: updated.status };
     } catch (error) {
       if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
+        // Only a concrete occupied/partySize/capacity decision means sold out. A missing
+        // authoritative capacity must remain pending and fail closed, not masquerade as full.
+        if (
+          input.capacityFallback === "waitlist" &&
+          /occupied=\d+ partySize=\d+ capacityMax=\d+/.test(error.message)
+        ) {
+          const waitlisted = await this.repository.waitlistBooking({
+            bookingId: input.bookingId,
+            tenantId: input.tenantId,
+            outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
+          });
+          return { id: waitlisted.id, status: waitlisted.status };
+        }
         return { id: booking.id, status: booking.status };
       }
       throw error;

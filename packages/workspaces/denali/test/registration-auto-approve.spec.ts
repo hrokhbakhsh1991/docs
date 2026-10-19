@@ -46,13 +46,29 @@ function storeWithPolicy(
   };
 }
 
-function trackingPort(): {
+function trackingPort(
+  options: {
+    readonly approvedOccupancy?: number;
+    readonly createCapacityRace?: boolean;
+    readonly autoApproveStatus?: string;
+  } = {}
+): {
   readonly port: BookingPublicPort;
   readonly createCalls: number[];
-  readonly autoCalls: Array<{ bookingId: string; actorUserId: string }>;
+  readonly waitlistCalls: Array<{ id: string; eventType?: string }>;
+  readonly autoCalls: Array<{
+    bookingId: string;
+    actorUserId: string;
+    capacityFallback?: "waitlist";
+  }>;
 } {
   const createCalls: number[] = [];
-  const autoCalls: Array<{ bookingId: string; actorUserId: string }> = [];
+  const waitlistCalls: Array<{ id: string; eventType?: string }> = [];
+  const autoCalls: Array<{
+    bookingId: string;
+    actorUserId: string;
+    capacityFallback?: "waitlist";
+  }> = [];
   const port: BookingPublicPort = {
     async findDuplicateByTourGuest() {
       return null;
@@ -80,17 +96,35 @@ function trackingPort(): {
     },
     async createPendingBooking() {
       createCalls.push(1);
+      if (options.createCapacityRace) {
+        throw new Error("BOOKING_CAPACITY_REJECTED: occupied=12 partySize=1 capacityMax=12");
+      }
       return { id: "booking-auto", status: "pending" };
     },
+    async createWaitlistedBooking(input) {
+      waitlistCalls.push({
+        id: "booking-waitlisted",
+        ...(input.outboxEvent !== undefined ? { eventType: input.outboxEvent.eventType } : {}),
+      });
+      return { id: "booking-waitlisted", status: "waitlisted" };
+    },
     async autoApprovePublicBooking(input) {
-      autoCalls.push({ bookingId: input.bookingId, actorUserId: input.actorUserId });
-      return { id: input.bookingId, status: "approved" };
+      autoCalls.push({
+        bookingId: input.bookingId,
+        actorUserId: input.actorUserId,
+        ...(input.capacityFallback !== undefined
+          ? { capacityFallback: input.capacityFallback }
+          : {}),
+      });
+      return { id: input.bookingId, status: options.autoApproveStatus ?? "approved" };
     },
     async sumApprovedPartySizeByTourIds() {
-      return {};
+      return options.approvedOccupancy === undefined
+        ? {}
+        : { [TOUR_ID]: options.approvedOccupancy };
     },
   };
-  return { port, createCalls, autoCalls };
+  return { port, createCalls, waitlistCalls, autoCalls };
 }
 
 describe("registration-auto-approve — Denali Phase 3", () => {
@@ -115,7 +149,7 @@ describe("registration-auto-approve — Denali Phase 3", () => {
     assert.equal(created.status, "approved");
   });
 
-  it("DN-P3-R05 retries the same committed booking after a post-commit failure", async () => {
+  it("DN-P3-R08 retries the same committed booking after a post-commit failure", async () => {
     const { port, createCalls } = trackingPort();
     let status = "pending";
     let autoApproveCalls = 0;
@@ -170,7 +204,7 @@ describe("registration-auto-approve — Denali Phase 3", () => {
     assert.equal(autoApproveCalls, 2);
   });
 
-  it("DN-P3-R06 does not retry approval if no committed approved booking exists", async () => {
+  it("DN-P3-R09 does not retry approval if no committed approved booking exists", async () => {
     const { port, createCalls } = trackingPort();
     let autoApproveCalls = 0;
     const preCommitFailurePort: BookingPublicPort = {
@@ -283,5 +317,49 @@ describe("registration-auto-approve — Denali Phase 3", () => {
         `${scenario.paymentCollection}:${scenario.mode}`
       );
     }
+  });
+
+  it("DN-P3-R05 sends a registration to waitlist when capacity read already shows full", async () => {
+    const { port, createCalls, waitlistCalls } = trackingPort({ approvedOccupancy: 12 });
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: { tourId: TOUR_ID, contact: { fullName: "Already Full Guest" }, partySize: 1 },
+      store: storeWithPolicy("auto"),
+      bookingPort: port,
+    });
+    assert.equal(created.status, "waitlisted");
+    assert.equal(createCalls.length, 0);
+    assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
+  });
+
+  it("DN-P3-R06 recovers a capacity race at create as waitlist instead of generic failure", async () => {
+    const { port, createCalls, waitlistCalls } = trackingPort({ createCapacityRace: true });
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: { tourId: TOUR_ID, contact: { fullName: "Create Race Guest" }, partySize: 1 },
+      store: storeWithPolicy("auto"),
+      bookingPort: port,
+    });
+    assert.equal(created.status, "waitlisted");
+    assert.equal(createCalls.length, 1);
+    assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
+  });
+
+  it("DN-P3-R07 requests capacity fallback when auto-approval loses the final-seat race", async () => {
+    const { port, autoCalls } = trackingPort({ autoApproveStatus: "pending" });
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: { tourId: TOUR_ID, contact: { fullName: "Approval Race Guest" }, partySize: 1 },
+      store: storeWithPolicy("auto"),
+      bookingPort: port,
+    });
+    assert.equal(created.status, "pending");
+    assert.equal(autoCalls[0]?.capacityFallback, "waitlist");
   });
 });
