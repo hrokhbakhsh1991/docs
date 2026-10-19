@@ -34,6 +34,8 @@ export type BookingPublicAutoApproveInput = {
   readonly bookingId: string;
   /** Must match the booking submitter (public guest). */
   readonly actorUserId: string;
+  /** Workspace opted-in fallback for an actual sold-out decision; other failures stay pending. */
+  readonly capacityFallback?: "waitlist";
 };
 
 /** Active self-registration row (registrantTarget ≠ other). */
