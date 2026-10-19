@@ -46,6 +46,42 @@ export type DenaliGuestProfilePatch = {
 
 const PUBLIC_CATALOG_GUEST_USER_ID = WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID;
 
+async function autoApproveWithPostCommitRecovery(params: {
+  readonly bookingPort: BookingPublicPort;
+  readonly tenantId: string;
+  readonly bookingId: string;
+  readonly guestUserId: string;
+}): Promise<{ readonly id: string; readonly status: string }> {
+  const input = {
+    tenantId: params.tenantId,
+    bookingId: params.bookingId,
+    actorUserId: params.guestUserId,
+  };
+
+  try {
+    return await params.bookingPort.autoApprovePublicBooking(input);
+  } catch (error) {
+    // Approval commits before its finance/projection side effects. If one of those
+    // fails transiently, retry only when this same booking is already approved;
+    // this never creates another booking or consumes another seat.
+    let owned;
+    try {
+      owned = await params.bookingPort.findOwnedBooking(
+        params.tenantId,
+        params.bookingId,
+        params.guestUserId
+      );
+    } catch {
+      throw error;
+    }
+    if (owned?.status !== "approved") {
+      throw error;
+    }
+
+    return params.bookingPort.autoApprovePublicBooking(input);
+  }
+}
+
 export async function createDenaliRegistration(params: {
   readonly tenantId: string;
   readonly workspaceType: string;
@@ -287,10 +323,11 @@ export async function createDenaliRegistration(params: {
           if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
             return reclassified;
           }
-          return params.bookingPort.autoApprovePublicBooking({
+          return autoApproveWithPostCommitRecovery({
+            bookingPort: params.bookingPort,
             tenantId: params.tenantId,
             bookingId: reclassified.id,
-            actorUserId: params.guestUserId,
+            guestUserId: params.guestUserId,
           });
         }
       }
@@ -347,9 +384,10 @@ export async function createDenaliRegistration(params: {
     return created;
   }
 
-  return params.bookingPort.autoApprovePublicBooking({
+  return autoApproveWithPostCommitRecovery({
+    bookingPort: params.bookingPort,
     tenantId: params.tenantId,
     bookingId: created.id,
-    actorUserId: params.guestUserId,
+    guestUserId: params.guestUserId,
   });
 }
