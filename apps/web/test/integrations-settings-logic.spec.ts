@@ -107,6 +107,17 @@ describe("integrations-settings-logic", () => {
         summary: {
           integrationConnectionCount: 1,
           legacyConnectionCount: 0,
+          activeDeliverySource: null,
+        },
+      }),
+      "new_system_configured"
+    );
+    assert.equal(
+      resolveIntegrationsWorkspaceScenario({
+        items: [sampleItem()],
+        summary: {
+          integrationConnectionCount: 1,
+          legacyConnectionCount: 0,
           activeDeliverySource: "integration_connection",
         },
       }),

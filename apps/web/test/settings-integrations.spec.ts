@@ -77,6 +77,20 @@ describe("settings-integrations.spec.ts — Denali wiring", () => {
     assert.match(client, /min-h-\[6\.5rem\]/);
   });
 
+  it("WEB-INT-TELEGRAM-01 separates read-only diagnostics from side-effectful test send", () => {
+    const client = readFileSync(
+      join(
+        import.meta.dirname,
+        "../app/(app)/settings/integrations/integrations-settings-client.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(client, /diagnoseTelegramConnection\(activeItem\.id\)/);
+    assert.match(client, /window\.confirm\(t\("test\.telegramSideEffectConfirm"\)\)/);
+    assert.match(client, /actions\.telegramSendTest/);
+    assert.match(client, /actions\.telegramDiagnostics/);
+  });
+
   it("WEB-INT-03 parses list response with legacy + integration rows", () => {
     const parsed = parseWorkspaceIntegrationsListResponse({
       items: [

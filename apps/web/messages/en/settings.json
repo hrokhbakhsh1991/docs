@@ -601,11 +601,15 @@
       },
       "legacy_only": {
         "title": "Legacy Telegram only",
-        "description": "Delivery still uses the legacy Telegram bot. Enable the new connection after migration."
+        "description": "Only a legacy connection is registered; the active delivery source is shown in the overview below."
       },
       "migration_ready": {
-        "title": "Migration-ready (dual visibility)",
-        "description": "Both a new connection and a legacy bot exist. When the new connection is enabled, delivery uses the new path."
+        "title": "Legacy and new connections registered",
+        "description": "Both connections exist; the overview below shows which source is actually active for delivery."
+      },
+      "new_system_configured": {
+        "title": "New connection configured",
+        "description": "A new connection exists, but no active delivery source is confirmed. See the overview below for the actual delivery state."
       },
       "active_new_system": {
         "title": "Active integration platform",
@@ -658,6 +662,8 @@
       "enable": "Enable",
       "disable": "Disable",
       "testConnection": "Test connection",
+      "telegramDiagnostics": "Read-only Telegram check",
+      "telegramSendTest": "Send Telegram test message",
       "recoverTopics": "Recover topic provisioning",
       "recoverTopicsConfirm": "Check all four Telegram topics, preserve healthy topics, recreate deleted topics, and complete missing mappings. Ambiguous creates are not cleared without exact topic confirmation. Continue?"
     },
@@ -720,7 +726,31 @@
       "successTitle": "Test succeeded",
       "successMessage": "Test message delivered successfully.",
       "failureTitle": "Test failed",
-      "meta": "Backing: {backing} · Tested at {testedAt}"
+      "meta": "Backing: {backing} · Tested at {testedAt}",
+      "telegramSideEffectConfirm": "This is not a read-only connection check. It may create or recover required Telegram topics, send a real test message to the group, and update the webhook. Continue?",
+      "telegramActionsDescription": "Read-only check only reads bot, group, membership, and webhook status. Sending a test message may post to the group or change topics and the webhook."
+    },
+    "diagnostics": {
+      "successTitle": "Read-only check succeeded",
+      "failureTitle": "Read-only check found a problem",
+      "unknown": "Unknown",
+      "yes": "Yes",
+      "no": "No",
+      "methods": {
+        "getMe": "Bot identity",
+        "getChat": "Group access",
+        "getChatMember": "Bot membership and permissions",
+        "getWebhookInfo": "Webhook status"
+      },
+      "status": {
+        "ok": "Succeeded",
+        "error": "Failed",
+        "skipped": "Skipped"
+      },
+      "bot": "Bot: {username}",
+      "chat": "Group: {type} · Forum: {forum}",
+      "member": "Membership: {status} · Manage topics: {canManageTopics}",
+      "webhook": "Webhook configured: {configured} · Pending updates: {pending}"
     },
     "deliveryPolicy": {
       "title": "Telegram messages",

@@ -30,6 +30,7 @@ import {
   fetchWorkspaceIntegrationMeta,
   fetchWorkspaceIntegrations,
   patchIntegration,
+  diagnoseTelegramConnection,
   testIntegrationConnection,
 } from "@/integrations/integrations-client";
 import {
@@ -53,6 +54,7 @@ import type {
   IntegrationProviderSurfaceMeta,
   IntegrationSurfaceFieldMeta,
   IntegrationTestConnectionResult,
+  TelegramReadOnlyDiagnostics,
   WorkspaceIntegrationSurfaceMetaResponse,
   WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
@@ -67,6 +69,7 @@ export const INTEGRATIONS_SETTINGS_TEST_IDS = {
   detail: "integrations-settings-detail",
   emptyState: "integrations-settings-empty",
   testResult: "integrations-settings-test-result",
+  telegramDiagnostics: "integrations-settings-telegram-diagnostics",
   scenario: "integrations-settings-scenario",
   workspaceScope: "integrations-settings-workspace-scope",
   addForm: "integrations-settings-add-form",
@@ -112,6 +115,8 @@ export function IntegrationsSettingsClient({
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<IntegrationTestConnectionResult | null>(null);
+  const [telegramDiagnostics, setTelegramDiagnostics] =
+    useState<TelegramReadOnlyDiagnostics | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
   const [createValues, setCreateValues] = useState<Record<string, string>>({});
   const [enableAfterSave, setEnableAfterSave] = useState(true);
@@ -269,6 +274,7 @@ export function IntegrationsSettingsClient({
     setDetailLoading(true);
     setDetailError(null);
     setTestResult(null);
+    setTelegramDiagnostics(null);
     void fetchIntegrationDetail(selectedId)
       .then((payload) => {
         if (!cancelled) {
@@ -659,9 +665,16 @@ export function IntegrationsSettingsClient({
     if (activeItem === null || !activeItem.actionsAllowed.test) {
       return;
     }
+    if (
+      activeItem.provider === "telegram" &&
+      !window.confirm(t("test.telegramSideEffectConfirm"))
+    ) {
+      return;
+    }
     setActionLoading(true);
     setDetailError(null);
     setTestResult(null);
+    setTelegramDiagnostics(null);
     try {
       const result = await testIntegrationConnection(activeItem.id);
       setTestResult(result);
@@ -676,6 +689,29 @@ export function IntegrationsSettingsClient({
         errorCode === "Failed to fetch"
           ? "TELEGRAM_NETWORK_ERROR"
           : errorCode || "INTEGRATION_TEST_FAILED"
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDiagnoseTelegramConnection(): Promise<void> {
+    if (activeItem === null || activeItem.provider !== "telegram") {
+      return;
+    }
+    setActionLoading(true);
+    setDetailError(null);
+    setTestResult(null);
+    setTelegramDiagnostics(null);
+    try {
+      const result = await diagnoseTelegramConnection(activeItem.id);
+      setTelegramDiagnostics(result);
+    } catch (actionError: unknown) {
+      const errorCode = actionError instanceof Error ? actionError.message : "";
+      setDetailError(
+        errorCode === "Failed to fetch"
+          ? "TELEGRAM_NETWORK_ERROR"
+          : errorCode || "TELEGRAM_DIAGNOSTICS_FAILED"
       );
     } finally {
       setActionLoading(false);
@@ -1306,6 +1342,17 @@ export function IntegrationsSettingsClient({
                     >
                       {t("actions.disable")}
                     </Button>
+                    {activeItem.provider === "telegram" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={actionLoading}
+                        onClick={() => void handleDiagnoseTelegramConnection()}
+                      >
+                        {t("actions.telegramDiagnostics")}
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       size="sm"
@@ -1313,7 +1360,9 @@ export function IntegrationsSettingsClient({
                       disabled={actionLoading || !activeItem.actionsAllowed.test}
                       onClick={() => void handleTestConnection()}
                     >
-                      {t("actions.testConnection")}
+                      {activeItem.provider === "telegram"
+                        ? t("actions.telegramSendTest")
+                        : t("actions.testConnection")}
                     </Button>
                     {activeItem.provider === "telegram" &&
                     !isLegacyBackedIntegration(activeItem) &&
@@ -1329,6 +1378,91 @@ export function IntegrationsSettingsClient({
                       </Button>
                     ) : null}
                   </div>
+
+                  {activeItem.provider === "telegram" ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t("test.telegramActionsDescription")}
+                    </p>
+                  ) : null}
+
+                  {telegramDiagnostics !== null && activeItem.provider === "telegram" ? (
+                    <div
+                      data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.telegramDiagnostics}
+                      className={`rounded-md border p-3 text-sm ${
+                        telegramDiagnostics.ok
+                          ? "border-emerald-500/40 bg-emerald-500/10"
+                          : "border-destructive/40 bg-destructive/10"
+                      }`}
+                    >
+                      <p className="font-medium">
+                        {telegramDiagnostics.ok
+                          ? t("diagnostics.successTitle")
+                          : t("diagnostics.failureTitle")}
+                      </p>
+                      <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {(["getMe", "getChat", "getChatMember", "getWebhookInfo"] as const).map(
+                          (method) => {
+                            const result = telegramDiagnostics.methods[method];
+                            return (
+                              <div key={method} className="rounded-md bg-background/70 p-2">
+                                <dt className="font-medium">
+                                  {t(`diagnostics.methods.${method}`)}
+                                </dt>
+                                <dd>
+                                  {t(`diagnostics.status.${result.status}`)}
+                                  {result.code !== undefined ? (
+                                    <span className="ms-1 text-muted-foreground">
+                                      ({resolveCodedErrorMessage(tErrors, result.code)})
+                                    </span>
+                                  ) : null}
+                                </dd>
+                              </div>
+                            );
+                          }
+                        )}
+                      </dl>
+                      {telegramDiagnostics.bot !== undefined ? (
+                        <p className="mt-2">
+                          {t("diagnostics.bot", {
+                            username:
+                              telegramDiagnostics.bot.username === undefined
+                                ? t("diagnostics.unknown")
+                                : `@${telegramDiagnostics.bot.username}`,
+                          })}
+                        </p>
+                      ) : null}
+                      {telegramDiagnostics.chat !== undefined ? (
+                        <p>
+                          {t("diagnostics.chat", {
+                            type: telegramDiagnostics.chat.type,
+                            forum: telegramDiagnostics.chat.isForum
+                              ? t("diagnostics.yes")
+                              : t("diagnostics.no"),
+                          })}
+                        </p>
+                      ) : null}
+                      {telegramDiagnostics.member !== undefined ? (
+                        <p>
+                          {t("diagnostics.member", {
+                            status: telegramDiagnostics.member.status,
+                            canManageTopics: telegramDiagnostics.member.canManageTopics
+                              ? t("diagnostics.yes")
+                              : t("diagnostics.no"),
+                          })}
+                        </p>
+                      ) : null}
+                      {telegramDiagnostics.webhook !== undefined ? (
+                        <p>
+                          {t("diagnostics.webhook", {
+                            configured: telegramDiagnostics.webhook.configured
+                              ? t("diagnostics.yes")
+                              : t("diagnostics.no"),
+                            pending: telegramDiagnostics.webhook.pendingUpdateCount,
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {testResult !== null ? (
                     <div
