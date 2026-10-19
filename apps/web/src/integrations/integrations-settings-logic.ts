@@ -15,6 +15,7 @@ export type IntegrationsWorkspaceScenario =
   | "empty"
   | "legacy_only"
   | "migration_ready"
+  | "new_system_configured"
   | "active_new_system";
 
 export type IntegrationFallbackLabel = "active" | "suppressed" | "inactive" | "not_applicable";
@@ -57,7 +58,9 @@ export function resolveIntegrationsWorkspaceScenario(
   if (integrationConnectionCount > 0 && legacyConnectionCount > 0) {
     return "migration_ready";
   }
-  return "active_new_system";
+  return list.summary.activeDeliverySource === "integration_connection"
+    ? "active_new_system"
+    : "new_system_configured";
 }
 
 export function resolveIntegrationFallbackLabel(

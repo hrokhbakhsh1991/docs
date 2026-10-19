@@ -81,6 +81,108 @@ export type IntegrationTestConnectionResult = {
   readonly backingSource: IntegrationBackingSource;
 };
 
+export type TelegramReadOnlyDiagnostic = {
+  readonly status: "ok" | "error" | "skipped";
+  readonly code?: string;
+};
+
+export type TelegramReadOnlyDiagnostics = {
+  readonly ok: boolean;
+  readonly methods: {
+    readonly getMe: TelegramReadOnlyDiagnostic;
+    readonly getChat: TelegramReadOnlyDiagnostic;
+    readonly getChatMember: TelegramReadOnlyDiagnostic;
+    readonly getWebhookInfo: TelegramReadOnlyDiagnostic;
+  };
+  readonly bot?: { readonly id: number; readonly username?: string };
+  readonly chat?: { readonly id: number; readonly type: string; readonly isForum: boolean };
+  readonly member?: { readonly status: string; readonly canManageTopics: boolean };
+  readonly webhook?: { readonly configured: boolean; readonly pendingUpdateCount: number };
+};
+
+export function parseTelegramReadOnlyDiagnostics(payload: unknown): TelegramReadOnlyDiagnostics {
+  if (typeof payload !== "object" || payload === null) {
+    throw new Error("INTEGRATION_TELEGRAM_DIAGNOSTICS_INVALID");
+  }
+  const record = payload as Record<string, unknown>;
+  const methodsRecord = record.methods;
+  if (
+    typeof record.ok !== "boolean" ||
+    typeof methodsRecord !== "object" ||
+    methodsRecord === null
+  ) {
+    throw new Error("INTEGRATION_TELEGRAM_DIAGNOSTICS_INVALID");
+  }
+  const readMethod = (
+    key: keyof TelegramReadOnlyDiagnostics["methods"]
+  ): TelegramReadOnlyDiagnostic => {
+    const method = (methodsRecord as Record<string, unknown>)[key];
+    if (typeof method !== "object" || method === null) {
+      throw new Error("INTEGRATION_TELEGRAM_DIAGNOSTICS_INVALID");
+    }
+    const methodRecord = method as Record<string, unknown>;
+    if (
+      methodRecord.status !== "ok" &&
+      methodRecord.status !== "error" &&
+      methodRecord.status !== "skipped"
+    ) {
+      throw new Error("INTEGRATION_TELEGRAM_DIAGNOSTICS_INVALID");
+    }
+    return {
+      status: methodRecord.status,
+      ...(typeof methodRecord.code === "string" ? { code: methodRecord.code } : {}),
+    };
+  };
+  const methods = {
+    getMe: readMethod("getMe"),
+    getChat: readMethod("getChat"),
+    getChatMember: readMethod("getChatMember"),
+    getWebhookInfo: readMethod("getWebhookInfo"),
+  };
+  const bot =
+    typeof record.bot === "object" && record.bot !== null
+      ? (record.bot as Record<string, unknown>)
+      : null;
+  const chat =
+    typeof record.chat === "object" && record.chat !== null
+      ? (record.chat as Record<string, unknown>)
+      : null;
+  const member =
+    typeof record.member === "object" && record.member !== null
+      ? (record.member as Record<string, unknown>)
+      : null;
+  const webhook =
+    typeof record.webhook === "object" && record.webhook !== null
+      ? (record.webhook as Record<string, unknown>)
+      : null;
+  return {
+    ok: record.ok,
+    methods,
+    ...(bot !== null && typeof bot.id === "number"
+      ? {
+          bot: {
+            id: bot.id,
+            ...(typeof bot.username === "string" ? { username: bot.username } : {}),
+          },
+        }
+      : {}),
+    ...(chat !== null && typeof chat.id === "number" && typeof chat.type === "string"
+      ? { chat: { id: chat.id, type: chat.type, isForum: chat.isForum === true } }
+      : {}),
+    ...(member !== null && typeof member.status === "string"
+      ? { member: { status: member.status, canManageTopics: member.canManageTopics === true } }
+      : {}),
+    ...(webhook !== null && typeof webhook.pendingUpdateCount === "number"
+      ? {
+          webhook: {
+            configured: webhook.configured === true,
+            pendingUpdateCount: webhook.pendingUpdateCount,
+          },
+        }
+      : {}),
+  };
+}
+
 export type IntegrationSurfaceFieldMeta = {
   readonly id: string;
   readonly kind: "string" | "secret";

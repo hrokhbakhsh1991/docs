@@ -1,10 +1,12 @@
 import {
   parseIntegrationConnectionPublic,
   parseIntegrationTestConnectionResult,
+  parseTelegramReadOnlyDiagnostics,
   parseWorkspaceIntegrationSurfaceMetaResponse,
   parseWorkspaceIntegrationsListResponse,
   type IntegrationConnectionPublic,
   type IntegrationTestConnectionResult,
+  type TelegramReadOnlyDiagnostics,
   type WorkspaceIntegrationSurfaceMetaResponse,
   type WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
@@ -267,4 +269,20 @@ export async function testIntegrationConnection(
     throw new Error(code);
   }
   return parseIntegrationTestConnectionResult(payload);
+}
+
+export async function diagnoseTelegramConnection(
+  integrationId: string
+): Promise<TelegramReadOnlyDiagnostics> {
+  const res = await fetch(
+    `/api/integrations/${encodeURIComponent(integrationId)}/telegram/diagnostics`,
+    { cache: "no-store" }
+  );
+  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    throw new Error(
+      readIntegrationHttpErrorCode(payload, `TELEGRAM_DIAGNOSTICS_HTTP_${res.status}`)
+    );
+  }
+  return parseTelegramReadOnlyDiagnostics(payload);
 }
