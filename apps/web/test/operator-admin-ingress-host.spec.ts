@@ -5,16 +5,16 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import { resolveOperatorAdminRootRedirect } from "../src/admin/resolve-operator-admin-root-redirect";
-import {
-  isOperatorAdminHost,
-  isOperatorAdminIngressHost,
-} from "../src/tenant/operator-admin-host";
+import { isOperatorAdminHost, isOperatorAdminIngressHost } from "../src/tenant/operator-admin-host";
 
 const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
   NODE_ENV: env.NODE_ENV,
+  PLATFORM_ROOT_DOMAIN: env.PLATFORM_ROOT_DOMAIN,
+  TENANT_ROOT_DOMAIN: env.TENANT_ROOT_DOMAIN,
   PUBLIC_TENANT_FALLBACK_LABEL: env.PUBLIC_TENANT_FALLBACK_LABEL,
   PUBLIC_TENANT_FALLBACK_HOSTS: env.PUBLIC_TENANT_FALLBACK_HOSTS,
+  OPERATOR_ADMIN_ROOT_HOSTS: env.OPERATOR_ADMIN_ROOT_HOSTS,
 };
 
 afterEach(() => {
@@ -56,5 +56,36 @@ describe("operator-admin-ingress-host.spec.ts", () => {
     env.PUBLIC_TENANT_FALLBACK_LABEL = "denali";
     env.PUBLIC_TENANT_FALLBACK_HOSTS = "89.42.210.252";
     assert.equal(isOperatorAdminIngressHost("203.0.113.50:23000"), false);
+  });
+
+  it("WEB-P8-INGRESS-05 explicit staging admin alias redirects without claiming the marketing apex", () => {
+    env.NODE_ENV = "production";
+    env.PLATFORM_ROOT_DOMAIN = "shenski.com";
+    env.TENANT_ROOT_DOMAIN = "staging.invalid";
+    env.PUBLIC_TENANT_FALLBACK_LABEL = "denali";
+    env.PUBLIC_TENANT_FALLBACK_HOSTS = "staging-denali.shenski.com";
+    env.OPERATOR_ADMIN_ROOT_HOSTS = "staging-admin-denali.shenski.com";
+
+    assert.equal(
+      resolveOperatorAdminRootRedirect({
+        pathname: "/",
+        host: "staging-admin-denali.shenski.com:443",
+      }),
+      "/dashboard"
+    );
+    assert.equal(
+      resolveOperatorAdminRootRedirect({
+        pathname: "/",
+        host: "staging-denali.shenski.com",
+      }),
+      null
+    );
+    assert.equal(
+      resolveOperatorAdminRootRedirect({
+        pathname: "/settings",
+        host: "staging-admin-denali.shenski.com",
+      }),
+      null
+    );
   });
 });
