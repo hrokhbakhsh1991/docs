@@ -149,6 +149,91 @@ describe("registration-auto-approve — Denali Phase 3", () => {
     assert.equal(created.status, "approved");
   });
 
+  it("DN-P3-R08 retries the same committed booking after a post-commit failure", async () => {
+    const { port, createCalls } = trackingPort();
+    let status = "pending";
+    let autoApproveCalls = 0;
+    const recoveryPort: BookingPublicPort = {
+      ...port,
+      async findOwnedBooking() {
+        if (status !== "approved") {
+          return null;
+        }
+        return {
+          id: "booking-auto",
+          status,
+          tourId: TOUR_ID,
+          tourTitle: "Approval Mode Tour",
+          guestLabel: "Recovered Guest",
+          registrantTarget: "self",
+          finalizationStatus: "not_final",
+          paymentStatus: "unpaid",
+          departureAt: "2031-06-01T08:00:00.000Z",
+          submittedAt: "2030-01-01T00:00:00.000Z",
+          partySize: 1,
+        };
+      },
+      async autoApprovePublicBooking(input) {
+        autoApproveCalls += 1;
+        assert.equal(input.bookingId, "booking-auto");
+        if (autoApproveCalls === 1) {
+          // Simulates approval committed, then a finance/projection side effect failed.
+          status = "approved";
+          throw new Error("TRANSIENT_POST_COMMIT_FAILURE");
+        }
+        return { id: input.bookingId, status };
+      },
+    };
+
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: {
+        tourId: TOUR_ID,
+        contact: { fullName: "Recovered Guest" },
+        partySize: 1,
+      },
+      store: storeWithPolicy("auto"),
+      bookingPort: recoveryPort,
+    });
+
+    assert.equal(created.id, "booking-auto");
+    assert.equal(created.status, "approved");
+    assert.equal(createCalls.length, 1);
+    assert.equal(autoApproveCalls, 2);
+  });
+
+  it("DN-P3-R09 does not retry approval if no committed approved booking exists", async () => {
+    const { port, createCalls } = trackingPort();
+    let autoApproveCalls = 0;
+    const preCommitFailurePort: BookingPublicPort = {
+      ...port,
+      async autoApprovePublicBooking() {
+        autoApproveCalls += 1;
+        throw new Error("APPROVAL_PRE_COMMIT_FAILURE");
+      },
+    };
+
+    await assert.rejects(
+      createDenaliRegistration({
+        tenantId: TENANT_ID,
+        workspaceType: "denali",
+        guestUserId: GUEST_USER_ID,
+        body: {
+          tourId: TOUR_ID,
+          contact: { fullName: "Uncommitted Guest" },
+          partySize: 1,
+        },
+        store: storeWithPolicy("auto"),
+        bookingPort: preCommitFailurePort,
+      }),
+      /APPROVAL_PRE_COMMIT_FAILURE/
+    );
+    assert.equal(createCalls.length, 1);
+    assert.equal(autoApproveCalls, 1);
+  });
+
   it("DN-P3-R02 manual mode never auto-approves", async () => {
     const { port, createCalls, autoCalls } = trackingPort();
     const created = await createDenaliRegistration({

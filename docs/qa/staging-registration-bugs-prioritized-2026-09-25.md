@@ -28,7 +28,7 @@
 | اولویت | تعداد | تعریف |
 | --- | ---: | --- |
 | P0 | ۴ | خطر تأیید/ثبت‌نام اشتباه، ظرفیت بیش‌ازحد یا ناسازگاری جدی مالی |
-| P1 | ۱۲ | اختلال مستقیم در مسیر ثبت‌نام، پرداخت، waitlist یا نمایش وضعیت نهایی |
+| P1 | ۱۳ | اختلال مستقیم در مسیر ثبت‌نام، پرداخت، waitlist یا نمایش وضعیت نهایی |
 | P2 | ۱۰ | ناسازگاری مهم UI، زمان، ترجمه یا خروجی گزارش |
 | P3 | ۳ | نقص قراردادی/آزمون یا بهبود کم‌خطرتر |
 
@@ -40,7 +40,7 @@
 | --- | --- | --- |
 | قرارداد PDP برای شروع و policy پرداخت | `BUG-STG-008/013`، `BUG-STG-EXPOSURE-PDP-START-PAYMENT-CURRENT-2026-09-25`، `BUG-STG-025` | یک تشخیص و یک قرارداد egress/renderer؛ `BUG-STG-025` alias حالت رایگان است، نه fix مستقل |
 | state و CTA مربوط به waitlist | `BUG-STG-062/047`، `BUG-STG-064/065`، `BUG-STG-WAITLIST-TRANSPORT-STATUS-LABEL-FRESH-2026-09-25-1220` | یک state mapping و renderer مشترک؛ فقط تفاوت مالکیت در همان پرونده ثبت شود |
-| هم‌ترازی projection مالی | `BUG-STG-080`، `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH-CURRENT-2026-09-25`، `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE-FRESH-2026-09-25-1150`، `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE-FRESH-2026-09-25-1205` | ابتدا state contract و منبع projection مشخص شود؛ برای هر صفحه patch جدا ساخته نشود |
+| هم‌ترازی projection مالی و پاسخ post-commit | `BUG-STG-080`، `BUG-STG-FREE-MANUAL-PENDING-PAYMENT-PATH-CURRENT-2026-09-25`، `BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE-FRESH-2026-09-25-1150`، `BUG-STG-ADMIN-BOOKING-PROJECTION-AFTER-RECEIPT-APPROVE-FRESH-2026-09-25-1205`، `BUG-STG-PUBLIC-AUTO-APPROVE-POST-COMMIT-ERROR-2026-10-20` | ابتدا state contract و منبع projection مشخص شود؛ برای هر صفحه patch جدا ساخته نشود |
 | receipt و status presentation | `BUG-STG-RECEIPT-RESUBMIT-STALE-STATUS-CURRENT-2026-09-25`، `BUG-STG-RECEIPT-STATUS-LABEL-MIXED-FRESH-2026-09-25-1135`، `BUG-STG-040` | receipt status و registration status جدا اما از یک response معتبر مصرف شوند |
 | ترجمه و locale registry | `BUG-STG-ADMIN-WAITLIST`، `BUG-STG-ADMIN-TELEGRAM-EVENT-LABELS`، `BUG-STG-ADMIN-EXPOSURE-LOCATION-ZONES-LOCALE-CURRENT-2026-09-25-1132` | یک registry/fallback locale؛ هر صفحه locale مستقل نسازد |
 | parity قیمت و حمل | `BUG-STG-081`، `BUG-STG-082`، `BUG-STG-REGISTRATION-TRANSPORT-COST-LABEL-CURRENT-2026-09-25` | منبع canonical قیمت و enum حمل تعیین شود؛ label یا preview موازی اضافه نشود |
@@ -68,6 +68,7 @@
 10. **BUG-STG-022** — محاسبهٔ حمل و دُنگ در فرم چندنفره فقط participant اول و `partySize=1` را لحاظ می‌کند.
 11. **BUG-STG-021** — ثبت مهمان برای برخی حساب‌ها duplicate رد می‌شود، اما با حساب کنترل موفق است؛ payload، پاسخ 409 و fixture داده باید مقایسه شوند.
 12. **BUG-STG-039/072** — متن و eligibility لغو ثبت‌نام با وضعیت‌های approved/unpaid سازگار نیست.
+13. **BUG-STG-PUBLIC-AUTO-APPROVE-POST-COMMIT-ERROR-2026-10-20** — یک خطای پس از commit به Portal می‌رسد، درحالی‌که همان رزرو approved و صندلی اشغال شده است؛ recovery باید فقط روی همان `bookingId` و پس از تأیید مالکیت/وضعیت انجام شود.
 
 ## P2 — متوسط
 
