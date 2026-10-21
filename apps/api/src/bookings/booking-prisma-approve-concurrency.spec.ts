@@ -211,8 +211,14 @@ function assertOutboxConsistent(input: {
   readonly approvedIds: readonly string[];
   readonly outbox: readonly { aggregateId: string; domainEventId: string | null }[];
 }): void {
-  assert.equal(input.outbox.length, input.approvedIds.length, "outbox rows must equal approved winners");
-  const ids = input.outbox.map((row) => row.domainEventId).filter((id): id is string => id !== null);
+  assert.equal(
+    input.outbox.length,
+    input.approvedIds.length,
+    "outbox rows must equal approved winners"
+  );
+  const ids = input.outbox
+    .map((row) => row.domainEventId)
+    .filter((id): id is string => id !== null);
   assert.equal(ids.length, input.outbox.length, "every outbox row must have domainEventId");
   assert.equal(new Set(ids).size, ids.length, "domainEventId must be unique");
   const aggregates = new Set(input.outbox.map((row) => row.aggregateId));
@@ -222,7 +228,6 @@ function assertOutboxConsistent(input: {
 }
 
 describe("booking prisma approve concurrency", { concurrency: false, skip: postgresSkip }, () => {
-
   const tenantDenali = integrationTenantId();
   const tenantWs2 = integrationTenantId();
   const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -318,7 +323,12 @@ describe("booking prisma approve concurrency", { concurrency: false, skip: postg
       lockAt >= 0 && assertCallAt > lockAt,
       "tour lock must precede capacity assert invocation"
     );
-    assert.match(approve, /sumApprovedPartySizeInTx/);
+    const transportFactsAt = approve.indexOf("listApprovedCapacityTransportFactsInTx");
+    assert.ok(
+      lockAt >= 0 && transportFactsAt > lockAt && assertCallAt > transportFactsAt,
+      "tour lock must precede locked transport facts, which must precede the capacity assert"
+    );
+    assert.match(approve, /approvedTransportFacts\.reduce/);
     assert.doesNotMatch(src, /approveTxChain/);
     assert.doesNotMatch(src, /withMemoryApproveTx/);
     assert.doesNotMatch(approve, /FOR UPDATE/);
@@ -351,7 +361,10 @@ describe("booking prisma approve concurrency", { concurrency: false, skip: postg
     assert.equal(raced.fulfilled, 1);
     assert.equal(raced.rejected, 1);
     assert.match(
-      String((raced.results.find((r) => r.status === "rejected") as PromiseRejectedResult).reason?.message ?? ""),
+      String(
+        (raced.results.find((r) => r.status === "rejected") as PromiseRejectedResult).reason
+          ?.message ?? ""
+      ),
       /BOOKING_CAPACITY_REJECTED/
     );
     assert.equal(await countApproved(tenantDenali, tourId), 1);
@@ -592,7 +605,8 @@ describe("booking prisma approve concurrency", { concurrency: false, skip: postg
         endedAtMs: Date.now() - t0,
         durationMs: Date.now() - t0,
         outcome: results[0]?.status === "fulfilled" ? "fulfilled" : "rejected",
-        detail: results[0]?.status === "fulfilled" ? results[0].value.id : String(results[0]?.reason),
+        detail:
+          results[0]?.status === "fulfilled" ? results[0].value.id : String(results[0]?.reason),
       },
       {
         label: "booking-ws2",
@@ -600,7 +614,8 @@ describe("booking prisma approve concurrency", { concurrency: false, skip: postg
         endedAtMs: Date.now() - t0,
         durationMs: Date.now() - t0,
         outcome: results[1]?.status === "fulfilled" ? "fulfilled" : "rejected",
-        detail: results[1]?.status === "fulfilled" ? results[1].value.id : String(results[1]?.reason),
+        detail:
+          results[1]?.status === "fulfilled" ? results[1].value.id : String(results[1]?.reason),
       },
     ]);
 

@@ -10,6 +10,7 @@ import type { BookingFinancialDisplayStatePort } from "./ports/booking-financial
 import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking-http-contracts";
 import type {
   ApproveBookingResponse,
+  BookingCapacityReleasePolicyContext,
   BookingCapacityTransportFact,
   BookingCapacityPolicyPort,
   BookingCreatePolicyContext,
@@ -36,11 +37,11 @@ import {
   BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
+  toBookingCapacityTransportFact,
 } from "@app-tour/booking-http-contracts";
 import type { BookingRecord, WaitlistCapacityAdmissionResponse } from "./bookings.types";
-import { toBookingCapacityTransportFact } from "./read-transport-kind-from-intake";
-import { assertDenaliDongSeatReassignment } from "./assert-denali-dong-seat-reassignment.ts";
 import {
+  BookingCapacityReleaseRejectedError,
   BookingCapabilityViolationError,
   BookingNotFoundError,
   BookingWaitlistCapacityAdmissionNotAllowedError,
@@ -55,6 +56,12 @@ import type { BookingRegistrationSloPort } from "./ports/booking-registration-sl
 import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
 
 const BULK_APPROVE_MAX_BATCH = 25;
+
+type CapacityReleaseTransactionContext = {
+  readonly booking: BookingRecord;
+  readonly bookingCapacityFact: BookingCapacityTransportFact;
+  readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+};
 
 export type BookingsServiceDeps = {
   readonly repository: BookingRepositoryPort;
@@ -290,9 +297,9 @@ export class BookingsService {
   private async recheckWaitlistAfterCapacityChange(
     tenantId: string,
     tourId: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (this.waitlistPromotion === undefined) {
-      return;
+      return false;
     }
     const startedAt = this.clock.now().getTime();
     try {
@@ -303,6 +310,7 @@ export class BookingsService {
         outcome: "success",
         durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
       });
+      return true;
     } catch {
       // The lifecycle write is already committed; keep its success response honest and
       // record the failed follow-up for operational visibility.
@@ -312,7 +320,36 @@ export class BookingsService {
         outcome: "error",
         durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
       });
+      // Do not invoke a second promoter after a configured policy callback failed.
+      return true;
     }
+  }
+
+  /** Tenant-validated entry point for lifecycle modules outside BookingsService. */
+  async recheckWaitlistAfterCapacityChangeForTenant(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+  }): Promise<boolean> {
+    await this.assertTenantBound(input.tenantId);
+    return this.recheckWaitlistAfterCapacityChange(input.tenantId, input.tourId);
+  }
+
+  /** Prepare the workspace-owned release rule before entering a repository transaction. */
+  async createCapacityReleaseAssertion(
+    tenantId: string
+  ): Promise<(ctx: CapacityReleaseTransactionContext) => void> {
+    await this.assertTenantBound(tenantId);
+    return (ctx) => {
+      const policyContext: BookingCapacityReleasePolicyContext = {
+        bookingStatus: ctx.booking.status,
+        booking: ctx.bookingCapacityFact,
+        approvedTransportFacts: ctx.approvedTransportFacts,
+      };
+      const decision = this.capacityPolicy.evaluateCapacityRelease(policyContext);
+      if (!decision.allowed) {
+        throw new BookingCapacityReleaseRejectedError(decision.reasonCode);
+      }
+    };
   }
 
   private assertPublicCreateCapability(): void {
@@ -1161,6 +1198,7 @@ export class BookingsService {
     }
     const previousStatus = before.status;
     const correlationId = `registration.cancelled:${bookingId}`;
+    const assertCapacityInTx = await this.createCapacityReleaseAssertion(auth.tenantId);
     const updated = await this.repository.cancelBooking({
       bookingId,
       tenantId: auth.tenantId,
@@ -1172,11 +1210,7 @@ export class BookingsService {
       cancellationReasonNote: input.reasonNote,
       cancellationApprovedByUserId: auth.userId,
       cancellationCorrelationId: correlationId,
-      assertCapacityInTx: (ctx) => {
-        if (this.workspaceType === "denali" && previousStatus === "approved") {
-          assertDenaliDongSeatReassignment(ctx);
-        }
-      },
+      assertCapacityInTx,
     });
     let settlementStatus: CancelBookingResponse["settlementStatus"] = "not_affected";
     try {

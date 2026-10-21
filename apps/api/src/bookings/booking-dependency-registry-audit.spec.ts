@@ -160,7 +160,11 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
         supportsPublicCreate: () => false,
       },
       validationPolicy: { kind: "test", assertCreateValid: () => undefined },
-      capacityPolicy: { kind: "test", assertCreateCapacity: () => undefined },
+      capacityPolicy: {
+        kind: "test",
+        assertCreateCapacity: () => undefined,
+        evaluateCapacityRelease: () => ({ allowed: true }),
+      },
       assistedRegistrationMembers: {
         findTenantMember: async () => null,
       },

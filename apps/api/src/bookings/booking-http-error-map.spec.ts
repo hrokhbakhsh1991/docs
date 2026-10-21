@@ -13,6 +13,7 @@ import {
 } from "./booking-http-error-map.ts";
 import {
   BookingCapabilityViolationError,
+  BookingCapacityReleaseRejectedError,
   BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
@@ -75,6 +76,11 @@ describe("booking HTTP error map", () => {
         }),
         status: 422,
         code: "BOOKING_CAPABILITY_VIOLATION",
+      },
+      {
+        error: new BookingCapacityReleaseRejectedError("BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED"),
+        status: 409,
+        code: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",
       },
       {
         error: new BookingPublicCreateUnsupportedError("off"),

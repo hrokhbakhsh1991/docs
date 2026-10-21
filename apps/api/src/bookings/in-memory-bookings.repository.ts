@@ -1185,6 +1185,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     alreadyWithinSerialMutation?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
+      readonly bookingCapacityFact: BookingCapacityTransportFact;
       readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
@@ -1199,6 +1200,10 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       if (input.assertCapacityInTx !== undefined) {
         input.assertCapacityInTx({
           booking: cloneBooking(current),
+          bookingCapacityFact: toBookingCapacityTransportFact({
+            partySize: current.partySize,
+            registrationIntake: current.registrationIntake,
+          }),
           approvedTransportFacts: listApprovedCapacityTransportFacts(
             input.tenantId,
             current.tourId

@@ -181,6 +181,21 @@ export async function resolveBookingsServiceForTenant(tenantId: string): Promise
   return getOrCreateBookingRuntimeForWorkspaceType(workspaceType).service;
 }
 
+/** Resolve a tenant-owned release policy for a locked cancellation callback. */
+export async function createCapacityReleaseAssertionForTenant(tenantId: string) {
+  return (await resolveBookingsServiceForTenant(tenantId)).createCapacityReleaseAssertion(tenantId);
+}
+
+/** Apply the tenant's configured post-capacity-change waitlist policy, if any. */
+export async function recheckWaitlistAfterCapacityChangeForTenant(input: {
+  readonly tenantId: string;
+  readonly tourId: string;
+}): Promise<boolean> {
+  return (
+    await resolveBookingsServiceForTenant(input.tenantId)
+  ).recheckWaitlistAfterCapacityChangeForTenant(input);
+}
+
 export function resetBookingsServiceCompositionForTests(): void {
   bookingRuntimeByWorkspaceType.clear();
   sharedAuthorization = null;

@@ -1741,6 +1741,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     alreadyWithinSerialMutation?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
+      readonly bookingCapacityFact: BookingCapacityTransportFact;
       readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
@@ -1763,8 +1764,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
       if (input.assertCapacityInTx !== undefined && current.status === "approved") {
+        const booking = toBookingRecord(current);
         input.assertCapacityInTx({
-          booking: toBookingRecord(current),
+          booking,
+          bookingCapacityFact: toBookingCapacityTransportFact({
+            partySize: booking.partySize,
+            registrationIntake: booking.registrationIntake,
+          }),
           approvedTransportFacts: await listApprovedCapacityTransportFactsInTx(
             tx,
             input.tenantId,

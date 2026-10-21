@@ -4,7 +4,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
+import type {
+  BookingCapacityReleasePolicyContext,
+  BookingCreatePolicyContext,
+} from "@app-tour/booking-http-contracts";
 
 import {
   DEFAULT_DENALI_CAPACITY_RULE,
@@ -20,6 +23,7 @@ import {
   decideDenaliReject,
   decideDenaliWaitlist,
   evaluateDenaliCreateCapacity,
+  evaluateDenaliCapacityRelease,
 } from "../src/booking/index.ts";
 
 function ctx(overrides: Partial<BookingCreatePolicyContext> = {}): BookingCreatePolicyContext {
@@ -157,6 +161,39 @@ describe("booking-capacity-policy.spec.ts — Denali Phase 1", () => {
         { ...DEFAULT_DENALI_CAPACITY_RULE, overbookAllowed: true }
       ).decision,
       "deny"
+    );
+  });
+
+  it("DN-B1-C09 car cancellation preserves confirmed dong seats, but releases surplus offers", () => {
+    const booking: BookingCapacityReleasePolicyContext["booking"] = {
+      partySize: 1,
+      transportKind: "personal_car",
+      offeredPassengerSeats: 2,
+    };
+    const approvedTransportFacts: BookingCapacityReleasePolicyContext["approvedTransportFacts"] = [
+      booking,
+      { partySize: 1, transportKind: "personal_car", offeredPassengerSeats: 2 },
+      { partySize: 3, transportKind: "no_car_dong", offeredPassengerSeats: null },
+    ];
+    const release = (facts: BookingCapacityReleasePolicyContext["approvedTransportFacts"]) =>
+      evaluateDenaliCapacityRelease({
+        bookingStatus: "approved",
+        booking,
+        approvedTransportFacts: facts,
+      });
+
+    assert.deepEqual(release(approvedTransportFacts), {
+      allowed: false,
+      reasonCode: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",
+    });
+    assert.deepEqual(release(approvedTransportFacts.slice(0, 2)), { allowed: true });
+    assert.deepEqual(
+      evaluateDenaliCapacityRelease({
+        bookingStatus: "pending",
+        booking,
+        approvedTransportFacts,
+      }),
+      { allowed: true }
     );
   });
 });

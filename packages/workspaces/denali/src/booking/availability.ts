@@ -2,7 +2,11 @@
  * Denali availability + create/approve capacity decisions (pure).
  */
 
-import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
+import type {
+  BookingCapacityReleasePolicyContext,
+  BookingCreatePolicyContext,
+  BookingCapacityReleaseDecision,
+} from "@app-tour/booking-http-contracts";
 import { BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE } from "@app-tour/booking-http-contracts";
 
 import { DEFAULT_DENALI_CAPACITY_RULE, type DenaliCapacityRule } from "./capacity-rule";
@@ -145,6 +149,38 @@ export function assertDenaliTransitionCapacity(
   rule: DenaliCapacityRule = DEFAULT_DENALI_CAPACITY_RULE
 ): void {
   assertDenaliCreateCapacity(ctx, rule);
+}
+
+/**
+ * Do not remove an approved car offer when doing so would strand approved dong guests.
+ * The host supplies only locked, capacity-only facts; no lifecycle/API types cross the boundary.
+ */
+export function evaluateDenaliCapacityRelease(
+  ctx: BookingCapacityReleasePolicyContext
+): BookingCapacityReleaseDecision {
+  if (ctx.bookingStatus !== "approved" || ctx.booking.transportKind !== "personal_car") {
+    return Object.freeze({ allowed: true as const });
+  }
+
+  const confirmedDongSeats = sumApprovedTransportFacts(
+    ctx.approvedTransportFacts,
+    (kind) => kind === "no_car_dong",
+    (fact) => fact.partySize
+  );
+  const offeredCarSeats = sumApprovedTransportFacts(
+    ctx.approvedTransportFacts,
+    (kind) => kind === "personal_car",
+    (fact) => fact.offeredPassengerSeats ?? 0
+  );
+  const remainingCarSeats = Math.max(0, offeredCarSeats - (ctx.booking.offeredPassengerSeats ?? 0));
+
+  if (confirmedDongSeats > remainingCarSeats) {
+    return Object.freeze({
+      allowed: false as const,
+      reasonCode: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",
+    });
+  }
+  return Object.freeze({ allowed: true as const });
 }
 
 export function denaliWaitlistAllowed(

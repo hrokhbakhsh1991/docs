@@ -7,6 +7,7 @@
  */
 import {
   BookingCapabilityViolationError,
+  BookingCapacityReleaseRejectedError,
   BookingFinalizationRequiresSettlementError,
   BookingOpenPaymentFinalizationNotAllowedError,
   BookingWaiveAndFinalizeNotAllowedError,
@@ -15,7 +16,6 @@ import {
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
   BookingStatusConflictError,
-  BookingDongSeatReassignmentRequiredError,
   BookingWorkspaceTenantMismatchError,
   BookingWorkspaceUnsupportedError,
   BulkApproveBatchLimitError,
@@ -254,7 +254,7 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (error instanceof BookingWaitlistCapacityAdmissionNotAllowedError) {
     return resolutionFromCode(error.code, error.message);
   }
-  if (error instanceof BookingDongSeatReassignmentRequiredError) {
+  if (error instanceof BookingCapacityReleaseRejectedError) {
     return resolutionFromCode(error.code, error.message);
   }
   if (error instanceof BulkApproveBatchLimitError) {
@@ -268,6 +268,16 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
     return null;
   }
   const message = error.message;
+
+  // Keep the matrix authoritative for generic domain errors too. Workspace
+  // policies can reject lifecycle changes without needing an API-owned error
+  // subclass for each workspace-specific rule.
+  const matrixCode = BOOKING_HTTP_ERROR_MATRIX.find(
+    ({ domainError }) => message === domainError || message.startsWith(`${domainError}:`)
+  )?.domainError;
+  if (matrixCode !== undefined) {
+    return resolutionFromCode(matrixCode, message);
+  }
 
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) {
     return resolutionFromCode("BOOKING_CAPACITY_REJECTED", message);

@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-08-18-v10"
+version: "2026-10-21-v11"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -65,12 +65,17 @@ must never silently increase the tour's overall participant ceiling.
   operator cancellation, member cancellation, and payment-hold expiry. The
   cancellation must be blocked or routed through an explicit
   reassignment/review outcome; it must not silently invalidate existing
-  passenger arrangements.
+  passenger arrangements. The host supplies the locked booking/capacity facts
+  to the workspace capacity policy; API lifecycle services must not branch on a
+  workspace name to implement this rule.
 - Releasing capacity through payment-hold expiry follows the tour's approval
   mode: auto-approval tours may promote eligible waitlist rows, while manual
   approval tours retain them for an operator decision. Expiry, booking
   cancellation, payment-hold state, and the expiry outbox event must be
-  idempotently recoverable if one post-commit step fails.
+  idempotently recoverable if one post-commit step fails. Operator/member
+  cancellation and payment-hold expiry use the same tenant-aware
+  post-capacity-change façade so each workspace's promotion policy is applied
+  consistently after the locked lifecycle mutation commits.
 - A transport-seat rejection must not create an approval, payment hold, receipt
   obligation, final-roster row, or success notification. Payment status and
   roster finalization remain independent lifecycle axes.

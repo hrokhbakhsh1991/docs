@@ -8,9 +8,10 @@ import {
   setBookingPaymentDueAtProjection,
 } from "../bookings/in-memory-bookings.repository.ts";
 import { promoteOldestWaitlistedGuest } from "../bookings/promote-waitlist-after-seat-release.ts";
-import { assertDenaliDongSeatReassignment } from "../bookings/assert-denali-dong-seat-reassignment.ts";
-import { reconcileDenaliWaitlistAfterCapacityChange } from "../bookings/denali-waitlist-reconciliation.ts";
-import { resolveBookingWorkspaceTypeForTenant } from "../bookings/resolve-booking-workspace-type-for-tenant.ts";
+import {
+  createCapacityReleaseAssertionForTenant,
+  recheckWaitlistAfterCapacityChangeForTenant,
+} from "../bookings/create-bookings-service.ts";
 import type { BookingRecord } from "../bookings/bookings.types.ts";
 import {
   isPaymentHoldEnabled,
@@ -97,18 +98,14 @@ async function expirePaymentHoldForRegistrationImpl(input: {
     return null;
   }
 
-  const workspaceType = await resolveBookingWorkspaceTypeForTenant(input.tenantId);
+  const assertCapacityInTx = await createCapacityReleaseAssertionForTenant(input.tenantId);
   await repo.cancelBooking({
     bookingId: input.registrationId,
     tenantId: input.tenantId,
     outboxEvent: "registration.cancelled",
     cancelSource: "payment_deadline",
     alreadyWithinSerialMutation: true,
-    assertCapacityInTx: (ctx) => {
-      if (workspaceType === "denali") {
-        assertDenaliDongSeatReassignment(ctx);
-      }
-    },
+    assertCapacityInTx,
   });
   await finishPaymentHoldExpiry({
     ...input,
@@ -143,10 +140,8 @@ export async function expirePaymentHoldForRegistration(input: {
     expirePaymentHoldForRegistrationImpl(input)
   );
   if (promoteHint !== null) {
-    const workspaceType = await resolveBookingWorkspaceTypeForTenant(promoteHint.tenantId);
-    if (workspaceType === "denali") {
-      await reconcileDenaliWaitlistAfterCapacityChange(promoteHint);
-    } else {
+    const handled = await recheckWaitlistAfterCapacityChangeForTenant(promoteHint);
+    if (!handled) {
       await promoteOldestWaitlistedGuest(promoteHint);
     }
   }

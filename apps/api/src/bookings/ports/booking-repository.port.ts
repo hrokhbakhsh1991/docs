@@ -227,6 +227,7 @@ export interface BookingRepositoryPort {
     alreadyWithinSerialMutation?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
+      readonly bookingCapacityFact: BookingCapacityTransportFact;
       readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord>;

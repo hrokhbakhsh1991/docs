@@ -135,13 +135,11 @@ export class BookingWaitlistCapacityAdmissionNotAllowedError extends Error {
   }
 }
 
-/** Cancelling this car would strand already-approved Denali dong passengers. */
-export class BookingDongSeatReassignmentRequiredError extends Error {
-  readonly code = "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED" as const;
-
-  constructor() {
-    super("BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED");
-    this.name = "BookingDongSeatReassignmentRequiredError";
+/** Workspace capacity policy rejected a capacity-affecting release. */
+export class BookingCapacityReleaseRejectedError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = "BookingCapacityReleaseRejectedError";
   }
 }
 
