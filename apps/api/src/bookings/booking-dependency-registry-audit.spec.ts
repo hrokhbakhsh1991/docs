@@ -64,7 +64,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       "workspaceType",
     ]);
     const generated = readFileSync(
-      join(here, "workspace-booking-dependency-bindings.generated.ts"),
+      join(here, "../workspace-booking-dependency-bindings.generated.ts"),
       "utf8"
     );
     assert.doesNotMatch(generated, /opsCapability|OpsCapability|createOpsCapability/);
@@ -222,7 +222,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
     const deps = resolveBookingWorkspaceDependencies("denali");
     assert.equal("eventReaction" in deps, false);
     const depsSrc = readFileSync(
-      join(here, "workspace-booking-dependency-bindings.generated.ts"),
+      join(here, "../workspace-booking-dependency-bindings.generated.ts"),
       "utf8"
     );
     assert.doesNotMatch(depsSrc, /EventReaction|eventReaction/);

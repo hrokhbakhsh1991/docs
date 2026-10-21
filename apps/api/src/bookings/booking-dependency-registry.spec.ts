@@ -27,10 +27,7 @@ describe("BK-B1.1 booking dependency registry", () => {
     ]);
     assert.equal(resolveBookingWorkspaceDependencies("denali").workspaceType, "denali");
     assert.equal(resolveBookingWorkspaceDependencies("DENALI").workspaceType, "denali");
-    assert.equal(
-      resolveBookingWorkspaceDependencies("booking-ws2").workspaceType,
-      "booking-ws2"
-    );
+    assert.equal(resolveBookingWorkspaceDependencies("booking-ws2").workspaceType, "booking-ws2");
     assert.throws(
       () => resolveBookingWorkspaceDependencies("urban"),
       (error: unknown) =>
@@ -74,7 +71,7 @@ describe("BK-B1.1 booking dependency registry", () => {
   });
 
   it("generated file is AUTO-GENERATED and imports manifest-declared Denali adapters", () => {
-    const src = read("workspace-booking-dependency-bindings.generated.ts");
+    const src = read("../workspace-booking-dependency-bindings.generated.ts");
     assert.match(src, /AUTO-GENERATED/);
     assert.match(src, /export function resolveBookingWorkspaceDependencies/);
     assert.match(src, /DenaliBookingPublicAdapter/);

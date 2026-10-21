@@ -6,4 +6,4 @@
 export {
   resolveBookingWorkspaceDependencies,
   WORKSPACE_BOOKING_DEPENDENCY_BINDINGS,
-} from "./workspace-booking-dependency-bindings.generated";
+} from "../workspace-booking-dependency-bindings.generated";

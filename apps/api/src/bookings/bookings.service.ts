@@ -1,7 +1,10 @@
 import type { BookingActorContext } from "./ports/booking-actor-context";
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port";
 import type { BookingClockPort } from "./ports/booking-clock.port";
-import type { BookingRepositoryPort } from "./ports/booking-repository.port";
+import type {
+  BookingRepositoryCapacityTransportFact,
+  BookingRepositoryPort,
+} from "./ports/booking-repository.port";
 import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabilities.port";
 import type { BookingAssistedRegistrationMembersPort } from "./ports/booking-assisted-registration-members.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
@@ -11,7 +14,6 @@ import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking
 import type {
   ApproveBookingResponse,
   BookingCapacityReleasePolicyContext,
-  BookingCapacityTransportFact,
   BookingCapacityPolicyPort,
   BookingCreatePolicyContext,
   BookingsListQuery,
@@ -37,7 +39,6 @@ import {
   BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
-  toBookingCapacityTransportFact,
 } from "@app-tour/booking-http-contracts";
 import type { BookingRecord, WaitlistCapacityAdmissionResponse } from "./bookings.types";
 import {
@@ -51,6 +52,7 @@ import {
   resolveUtcApprovedWithinDaysWindow,
 } from "./booking-list-query";
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
+import { toBookingCapacityTransportFact } from "./read-transport-kind-from-intake";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
 import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
@@ -59,8 +61,8 @@ const BULK_APPROVE_MAX_BATCH = 25;
 
 type CapacityReleaseTransactionContext = {
   readonly booking: BookingRecord;
-  readonly bookingCapacityFact: BookingCapacityTransportFact;
-  readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+  readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
+  readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
 };
 
 export type BookingsServiceDeps = {
@@ -742,7 +744,7 @@ export class BookingsService {
                 readonly tourId: string;
                 readonly partySize: number;
                 readonly occupiedApprovedPartySize: number;
-                readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+                readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
               }) => {
                 this.capacityPolicy.assertCreateCapacity({
                   ...baseCtx,
@@ -788,7 +790,7 @@ export class BookingsService {
     },
     occupiedApprovedPartySize: number,
     tourCapacityMax: number,
-    approvedTransportFacts: readonly BookingCapacityTransportFact[] = []
+    approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[] = []
   ): BookingCreatePolicyContext {
     const guestEmail =
       source.guestEmail !== undefined && source.guestEmail !== null && source.guestEmail.length > 0
@@ -824,7 +826,7 @@ export class BookingsService {
     return async (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }): Promise<void> => {
       const booking = ctx.booking;
       const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(

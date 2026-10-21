@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { BookingCapacityTransportFact } from "@app-tour/booking-http-contracts";
 
 import {
   buildObligationOverrideIntakeValue,
@@ -45,7 +44,10 @@ import {
   resolveFinancialDisplayStateForListRecord,
 } from "./booking-list-intake-scalars";
 import { finalizeBookingTourChips } from "./booking-tour-chips";
-import type { BookingRepositoryPort } from "./ports/booking-repository.port";
+import type {
+  BookingRepositoryCapacityTransportFact,
+  BookingRepositoryPort,
+} from "./ports/booking-repository.port";
 import {
   BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
@@ -73,7 +75,7 @@ let outboxStore: BookingOutboxRecord[] = [];
 function listApprovedCapacityTransportFacts(
   tenantId: string,
   tourId: string
-): BookingCapacityTransportFact[] {
+): BookingRepositoryCapacityTransportFact[] {
   return [...bookingsStore.values()]
     .filter(
       (row) => row.tenantId === tenantId && row.tourId === tourId && row.status === "approved"
@@ -866,7 +868,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
     outboxEvent?: {
       readonly eventType: string;
@@ -937,7 +939,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
     return withMemoryApproveTx(async () => {
@@ -1020,7 +1022,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord[]> {
     if (input.ids.length > input.maxBatch) {
@@ -1185,8 +1187,8 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     alreadyWithinSerialMutation?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
-      readonly bookingCapacityFact: BookingCapacityTransportFact;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
     const cancel = async () => {

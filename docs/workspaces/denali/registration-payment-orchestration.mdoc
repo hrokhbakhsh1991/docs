@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-10-21-v11"
+version: "2026-10-22-v12"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -81,6 +81,14 @@ must never silently increase the tour's overall participant ceiling.
 - A transport-seat rejection must not create an approval, payment hold, receipt
   obligation, final-roster row, or success notification. Payment status and
   roster finalization remain independent lifecycle axes.
+
+Capacity facts are projected as minimal domain scalars at the persistence
+boundary. Booking repositories must not depend on the HTTP-contract package;
+the application service adapts repository facts to the workspace capacity
+policy contract. Generated workspace-specific adapters belong to the API
+composition root, outside the workspace-neutral Booking application directory.
+This keeps the capacity rule injectable and prevents repository or lifecycle
+code from acquiring Denali-specific imports.
 
 The operator transport workspace must show a server-derived capacity snapshot:
 approved tour-wide participants versus `capacityMax`, approved driver passenger

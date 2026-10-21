@@ -1,5 +1,3 @@
-import type { BookingCapacityTransportFact } from "@app-tour/booking-http-contracts";
-
 import type {
   BookingListPageInput,
   BookingListPageOutput,
@@ -8,6 +6,13 @@ import type {
   BookingOutboxEventInput,
   CreateBookingRequest,
 } from "../bookings.types";
+
+/** Minimal persistence-owned facts used by capacity assertions under the tour lock. */
+export type BookingRepositoryCapacityTransportFact = {
+  readonly partySize: number;
+  readonly transportKind: string | null;
+  readonly offeredPassengerSeats: number | null;
+};
 
 /**
  * Booking persistence port (Phase B0.4) — Finance `FinanceRepositoryPort` mirror.
@@ -139,7 +144,7 @@ export interface BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
     outboxEvent?: BookingOutboxEventInput;
     initialStatus?: "pending" | "waitlisted";
@@ -157,7 +162,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void | Promise<void>;
   }): Promise<BookingRecord>;
   bulkApproveWithOutbox(input: {
@@ -168,7 +173,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
   /** Explicit operator finalization after financial settlement. */
@@ -227,8 +232,8 @@ export interface BookingRepositoryPort {
     alreadyWithinSerialMutation?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
-      readonly bookingCapacityFact: BookingCapacityTransportFact;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;

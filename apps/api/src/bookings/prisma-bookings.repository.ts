@@ -4,7 +4,6 @@ import {
   OBLIGATION_OVERRIDE_INTAKE_KEY,
 } from "@app-tour/finance-core";
 import { Prisma } from "@prisma/client";
-import type { BookingCapacityTransportFact } from "@app-tour/booking-http-contracts";
 
 import { appendRegistrationCancellationAuditEvent } from "../audit/audit-logger";
 
@@ -49,6 +48,7 @@ import {
   toBookingCapacityTransportFact,
 } from "./read-transport-kind-from-intake";
 import { readTourSocialMediaLink } from "./read-tour-social-media-link";
+import type { BookingRepositoryCapacityTransportFact } from "./ports/booking-repository.port";
 
 /**
  * Serialize capacity + status decisions for one tour inside an open tenant TX.
@@ -76,7 +76,7 @@ async function listApprovedCapacityTransportFactsInTx(
   tx: Prisma.TransactionClient,
   tenantId: string,
   tourId: string
-): Promise<BookingCapacityTransportFact[]> {
+): Promise<BookingRepositoryCapacityTransportFact[]> {
   const rows = await tx.operatorRegistration.findMany({
     where: {
       tenantId,
@@ -1281,7 +1281,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
     outboxEvent?: {
       readonly eventType: string;
@@ -1365,7 +1365,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
@@ -1485,7 +1485,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord[]> {
     if (input.ids.length > input.maxBatch) {
@@ -1513,7 +1513,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const approvedAt = new Date();
       const approvedIds: string[] = [];
       const runningOccupied = new Map<string, number>();
-      const runningTransportFacts = new Map<string, BookingCapacityTransportFact[]>();
+      const runningTransportFacts = new Map<string, BookingRepositoryCapacityTransportFact[]>();
 
       for (const preview of eligiblePreview) {
         const row = await tx.operatorRegistration.findFirst({
@@ -1741,8 +1741,8 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     alreadyWithinSerialMutation?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
-      readonly bookingCapacityFact: BookingCapacityTransportFact;
-      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
