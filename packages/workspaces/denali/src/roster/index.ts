@@ -31,5 +31,11 @@ export {
   type OperationalRosterFilter,
   type OperationalRosterListQuery,
   type OperationalRosterListResponse,
+  type OperationalRosterCapacitySummary,
+  type OperationalRosterTransportParticipant,
   type TourOperationalRosterRow,
 } from "./operational-roster-contract";
+export {
+  summarizeOperationalRosterCapacity,
+  type OperationalRosterCapacityFact,
+} from "./operational-roster-capacity-summary";

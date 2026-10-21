@@ -41,7 +41,10 @@ describe("DP-5 web contract", () => {
     assert.match(panel, /unitAmountInvalid/);
     assert.match(panel, /inputMode="numeric"/);
     assert.doesNotMatch(panel, /Per-seat \(minor\)|Finalize roster|No settlement yet/);
-    assert.match(panel, /formatMinorAmount\(primary\.totalMinor, primary\.currency, locale\)/);
+    assert.match(
+      panel,
+      /formatMinorAmount\(settlement\.totalMinor, settlement\.currency, locale\)/
+    );
     assert.match(panel, /settlement\.status\.draft/);
     assert.match(panel, /settlementLoadError/);
     assert.match(panel, /settlement\.loadFailed/);

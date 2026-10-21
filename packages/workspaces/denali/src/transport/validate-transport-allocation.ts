@@ -61,6 +61,13 @@ export function validateTransportAllocations(
         message: `Passenger ${alloc.passengerRegistrationId} must be approved`,
       };
     }
+    if (passenger.transportKind !== "no_car_dong") {
+      return {
+        ok: false,
+        code: "NOT_DONG_PASSENGER",
+        message: `Registration ${alloc.passengerRegistrationId} is not a shared-car dong passenger`,
+      };
+    }
     if (alloc.driverRegistrationId === alloc.passengerRegistrationId) {
       return {
         ok: false,
@@ -79,7 +86,11 @@ export function validateTransportAllocations(
 
     const offered = driver.personalCarOccupants ?? 0;
     const current = driverPassengerCounts.get(alloc.driverRegistrationId) ?? 0;
-    const next = current + 1;
+    const passengerPartySize =
+      typeof passenger.partySize === "number" && Number.isFinite(passenger.partySize)
+        ? Math.max(1, Math.trunc(passenger.partySize))
+        : 1;
+    const next = current + passengerPartySize;
     if (next > offered) {
       return {
         ok: false,
@@ -95,7 +106,21 @@ export function validateTransportAllocations(
 
 export function countAssignedPassengers(
   allocations: readonly TransportAllocationInput[],
-  driverRegistrationId: string
+  driverRegistrationId: string,
+  participants?: readonly RosterParticipant[]
 ): number {
-  return allocations.filter((a) => a.driverRegistrationId === driverRegistrationId).length;
+  const participantsById = new Map(
+    participants?.map((participant) => [participant.registrationId, participant])
+  );
+  return allocations
+    .filter((allocation) => allocation.driverRegistrationId === driverRegistrationId)
+    .reduce(
+      (total, allocation) =>
+        total +
+        Math.max(
+          1,
+          Math.trunc(participantsById.get(allocation.passengerRegistrationId)?.partySize ?? 1)
+        ),
+      0
+    );
 }

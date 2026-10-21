@@ -40,7 +40,8 @@ describe("DP-2 tour workspace operational roster contract", () => {
       /const \{ reloadNonce, reloadWorkspaceChrome \} = useTourWorkspaceChrome\(\)/
     );
     assert.match(client, /fetchTourDetailCached\(tourId, \{ force: reloadNonce > 0 \}\)/);
-    assert.match(client, /\}, \[filter, reloadNonce, tourId\]\)/);
+    assert.match(client, /\}, \[canManage, filter, reloadNonce, tourId\]\)/);
+    assert.match(client, /buildTourOperationalRosterHref\(tourId, filter, canManage\)/);
   });
 
   it("keeps the Transport badge in the same scope as the final roster rows", () => {
@@ -183,6 +184,13 @@ describe("DP-2 tour workspace operational roster contract", () => {
       buildTourOperationalRosterHref("tour-abc"),
       "/api/tours/tour-abc/operational-roster?view=ops&filter=final"
     );
+  });
+
+  it("requests the full capacity snapshot only for operator-managed transport views", () => {
+    const operatorHref = buildTourOperationalRosterHref("tour-abc", "final", true);
+    const publicHref = buildTourOperationalRosterHref("tour-abc", "final", false);
+    assert.match(operatorHref, /includeCapacitySummary=true/);
+    assert.doesNotMatch(publicHref, /includeCapacitySummary/);
   });
 
   it("amount due formatter respects financial display state", () => {

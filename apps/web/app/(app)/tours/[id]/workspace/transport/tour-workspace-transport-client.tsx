@@ -32,6 +32,7 @@ import {
   type OperationalRosterFilter,
   type TourOperationalRosterResponse,
   type TourOperationalRosterRow,
+  type TourTransportParticipant,
 } from "@/features/tours/tour-workspace-transport-logic";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { resolveWizardTransportModeLabel } from "@/wizard/wizard-label-surface-registry";
@@ -63,6 +64,11 @@ export function TourWorkspaceTransportClient({
   const { reloadNonce, reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const [modes, setModes] = useState<string[]>([]);
   const [items, setItems] = useState<TourOperationalRosterRow[]>([]);
+  const [capacitySummary, setCapacitySummary] =
+    useState<TourOperationalRosterResponse["capacitySummary"]>();
+  const [transportParticipants, setTransportParticipants] = useState<
+    readonly TourTransportParticipant[]
+  >([]);
   const [filter, setFilter] = useState<OperationalRosterFilter>("final");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,12 +88,14 @@ export function TourWorkspaceTransportClient({
     try {
       const [tourPayload, rosterResponse] = await Promise.all([
         fetchTourDetailCached(tourId, { force: reloadNonce > 0 }),
-        fetch(buildTourOperationalRosterHref(tourId, filter), { cache: "no-store" }),
+        fetch(buildTourOperationalRosterHref(tourId, filter, canManage), { cache: "no-store" }),
       ]);
       if (!rosterResponse.ok) {
         throw new Error(`TOUR_TRANSPORT_BOOKINGS_HTTP_${rosterResponse.status}`);
       }
       const rosterPayload = (await rosterResponse.json()) as TourOperationalRosterResponse;
+      setCapacitySummary(rosterPayload.capacitySummary);
+      setTransportParticipants(rosterPayload.transportParticipants ?? []);
       setModes(
         extractTransportModesFromTourPayload(tourPayload as unknown as Record<string, unknown>)
       );
@@ -96,10 +104,12 @@ export function TourWorkspaceTransportClient({
       setError(loadError instanceof Error ? loadError.message : "TOUR_TRANSPORT_FETCH_FAILED");
       setModes([]);
       setItems([]);
+      setCapacitySummary(undefined);
+      setTransportParticipants([]);
     } finally {
       setLoading(false);
     }
-  }, [filter, reloadNonce, tourId]);
+  }, [canManage, filter, reloadNonce, tourId]);
 
   useEffect(() => {
     void loadTransport();
@@ -223,10 +233,9 @@ export function TourWorkspaceTransportClient({
     }
   };
 
-  const driverRow = items.find((row) => row.transportKind === "personal_car");
-  const passengerRows = items.filter(
-    (row) =>
-      row.transportKind !== "personal_car" && row.registrationId !== driverRow?.registrationId
+  const driverRows = transportParticipants.filter((row) => row.transportKind === "personal_car");
+  const dongPassengerRows = transportParticipants.filter(
+    (row) => row.transportKind === "no_car_dong"
   );
 
   function formatRowTransportLabel(row: TourOperationalRosterRow): string | null {
@@ -394,6 +403,59 @@ export function TourWorkspaceTransportClient({
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {canManage && capacitySummary ? (
+          <section
+            className="space-y-2 rounded-lg border p-3"
+            aria-label={t("capacitySummary.title")}
+            data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.capacitySummary}
+          >
+            <h3 className="text-sm font-semibold">{t("capacitySummary.title")}</h3>
+            <div className="flex flex-wrap gap-2 text-sm">
+              <Badge variant="outline">
+                {t("capacitySummary.tour", {
+                  approved: formatLocalizedNumber(capacitySummary.approvedParticipants, locale),
+                  capacity:
+                    capacitySummary.capacityMax === null
+                      ? "—"
+                      : formatLocalizedNumber(capacitySummary.capacityMax, locale),
+                  remaining:
+                    capacitySummary.remainingTourSeats === null
+                      ? "—"
+                      : formatLocalizedNumber(capacitySummary.remainingTourSeats, locale),
+                })}
+              </Badge>
+              <Badge variant="outline">
+                {t("capacitySummary.dong", {
+                  offered: formatLocalizedNumber(capacitySummary.approvedDriverOffers, locale),
+                  used: formatLocalizedNumber(capacitySummary.approvedDongParticipants, locale),
+                  remaining: formatLocalizedNumber(capacitySummary.remainingDongSeats, locale),
+                })}
+              </Badge>
+              <Badge variant="outline">
+                {t("capacitySummary.waitlist", {
+                  count: formatLocalizedNumber(capacitySummary.waitlistedDongParticipants, locale),
+                })}
+              </Badge>
+              {capacitySummary.pendingParticipants > 0 ? (
+                <Badge variant="secondary">
+                  {t("capacitySummary.pending", {
+                    participants: formatLocalizedNumber(
+                      capacitySummary.pendingParticipants,
+                      locale
+                    ),
+                    dong: formatLocalizedNumber(capacitySummary.pendingDongParticipants, locale),
+                    offers: formatLocalizedNumber(capacitySummary.pendingDriverOffers, locale),
+                  })}
+                </Badge>
+              ) : null}
+            </div>
+            {capacitySummary.dongWaitlistBlockedByCarSeats ? (
+              <p className="text-sm text-amber-700 dark:text-amber-400" role="status">
+                {t("capacitySummary.dongSeatsExhausted")}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
         {finalizationMessage !== null ? (
           <p
             className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm"
@@ -503,11 +565,11 @@ export function TourWorkspaceTransportClient({
           </div>
         ) : null}
 
-        {!loading && driverRow ? (
+        {!loading && canManage && driverRows.length > 0 ? (
           <DriverSettlementPanel
             tourId={tourId}
-            driverRegistrationId={driverRow.registrationId}
-            passengerIds={passengerRows.slice(0, 2).map((r) => r.registrationId)}
+            drivers={driverRows}
+            passengers={dongPassengerRows}
           />
         ) : null}
 

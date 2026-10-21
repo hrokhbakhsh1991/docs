@@ -63,6 +63,30 @@ export type OperationalRosterListQuery = {
   readonly cursor?: string;
   /** Return only the exact filtered total for workspace KPI/count requests. */
   readonly countOnly?: boolean;
+  /** Include a full-tour, status-aware capacity snapshot for the operator workspace. */
+  readonly includeCapacitySummary?: boolean;
+};
+
+export type OperationalRosterCapacitySummary = {
+  readonly capacityMax: number | null;
+  readonly approvedParticipants: number;
+  readonly remainingTourSeats: number | null;
+  readonly approvedDriverOffers: number;
+  readonly approvedDongParticipants: number;
+  readonly remainingDongSeats: number;
+  readonly waitlistedDongParticipants: number;
+  readonly pendingParticipants: number;
+  readonly pendingDongParticipants: number;
+  readonly pendingDriverOffers: number;
+  readonly dongWaitlistBlockedByCarSeats: boolean;
+};
+
+export type OperationalRosterTransportParticipant = {
+  readonly registrationId: string;
+  readonly guestLabel: string;
+  readonly partySize: number;
+  readonly transportKind: string | null;
+  readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
 };
 
 export type OperationalRosterListResponse = {
@@ -71,6 +95,8 @@ export type OperationalRosterListResponse = {
   readonly items: readonly TourOperationalRosterRow[];
   readonly total: number;
   readonly nextCursor: string | null;
+  readonly capacitySummary?: OperationalRosterCapacitySummary;
+  readonly transportParticipants?: readonly OperationalRosterTransportParticipant[];
 };
 
 const ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
@@ -116,6 +142,11 @@ export function parseOperationalRosterListQuery(url: URL): OperationalRosterList
   const cursor = url.searchParams.get("cursor")?.trim();
   const countOnlyRaw = (url.searchParams.get("countOnly") ?? "").trim().toLowerCase();
   const countOnly = countOnlyRaw === "1" || countOnlyRaw === "true";
+  const includeCapacitySummaryRaw = (url.searchParams.get("includeCapacitySummary") ?? "")
+    .trim()
+    .toLowerCase();
+  const includeCapacitySummary =
+    includeCapacitySummaryRaw === "1" || includeCapacitySummaryRaw === "true";
   const viewRaw = (url.searchParams.get("view") ?? "ops").trim().toLowerCase();
 
   return {
@@ -125,5 +156,6 @@ export function parseOperationalRosterListQuery(url: URL): OperationalRosterList
     limit,
     ...(cursor !== undefined && cursor.length > 0 ? { cursor } : {}),
     ...(countOnly ? { countOnly: true } : {}),
+    ...(includeCapacitySummary ? { includeCapacitySummary: true } : {}),
   };
 }

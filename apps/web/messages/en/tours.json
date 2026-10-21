@@ -494,6 +494,14 @@
     "transport": {
       "title": "Final attendance roster",
       "description": "Finalized participants; track payment and transport status here.",
+      "capacitySummary": {
+        "title": "Tour and shared-car capacity",
+        "tour": "Tour: {approved}/{capacity} participants; {remaining} places left",
+        "dong": "Shared-car seats: {used}/{offered} used; {remaining} left",
+        "waitlist": "Dong waitlist: {count} people",
+        "pending": "Pending (provisional): {participants} people; dong {dong}; driver offers {offers}",
+        "dongSeatsExhausted": "The tour still has places, but current car seats cannot fit any of the waiting dong groups."
+      },
       "exportFinalRoster": "Export final roster to Excel",
       "exporting": "Building file…",
       "exportSucceeded": "The Excel file is ready and has been downloaded.",
@@ -564,6 +572,19 @@
         "paymentDeadline": "Payment follow-up by {date}"
       },
       "settlement": {
+        "carAssignmentsTitle": "Shared-car passenger assignments",
+        "carAssignmentsDescription": "Assign each approved dong registration to one approved driver. A group uses one seat per person in its party size.",
+        "assignPassenger": "Assign {name} to a shared car",
+        "unassigned": "Not assigned to a car",
+        "driverOption": "{name} — {remaining}/{seats} seats available",
+        "partySeats": "({count} people)",
+        "assignedSeats": "Assigned {assigned}/{offered} seats",
+        "noDongPassengers": "There are no approved dong registrations to assign.",
+        "assignmentCapacityExceeded": "That assignment exceeds the driver's offered passenger seats.",
+        "allocationsSaved": "Shared-car assignments saved.",
+        "allocationsLoadFailed": "Saved shared-car assignments could not be loaded. Editing and finalization are disabled for safety.",
+        "saveAssignments": "Save assignments",
+        "rosterAlreadyFrozen": "The vehicle roster is finalized; assignments can no longer be changed.",
         "unitPerSeat": "Amount per seat (toman)",
         "unitAmountHint": "Enter a positive whole amount.",
         "unitAmountInvalid": "Enter a positive whole amount before finalizing the vehicle roster.",

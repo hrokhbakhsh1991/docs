@@ -177,6 +177,55 @@ describe("booking capacity ownership (single decision point)", () => {
     assert.deepEqual(bulkResult.skippedIds, [extraDong.id]);
   });
 
+  it("four car offers share five dong seats while the tour keeps its independent ten-person ceiling", async () => {
+    const offeredSeats = [2, 1, 1, 1] as const;
+    for (const [index, passengerSeats] of offeredSeats.entries()) {
+      const driver = await createBooking(opsAuth(TENANT_DENALI), {
+        ...baseBody({ guestLabel: `Capacity driver ${index + 1}`, tourCapacityMax: 10 }),
+        registrationIntake: {
+          tourCapacityMax: 10,
+          transport: { kind: "personal_car", personalCarOccupants: passengerSeats },
+        },
+      });
+      await approveBooking(opsAuth(TENANT_DENALI), driver.id);
+    }
+
+    for (let index = 0; index < 5; index += 1) {
+      const passenger = await createBooking(opsAuth(TENANT_DENALI), {
+        ...baseBody({ guestLabel: `Dong passenger ${index + 1}`, tourCapacityMax: 10 }),
+        registrationIntake: { tourCapacityMax: 10, transport: { kind: "no_car_dong" } },
+      });
+      await approveBooking(opsAuth(TENANT_DENALI), passenger.id);
+    }
+
+    // Four drivers + five dong riders = nine tour participants, but all five
+    // offered car seats are consumed. The sixth dong request cannot be approved.
+    const sixthDongPassenger = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Sixth dong passenger", tourCapacityMax: 10 }),
+      registrationIntake: { tourCapacityMax: 10, transport: { kind: "no_car_dong" } },
+    });
+    await assert.rejects(
+      () => approveBooking(opsAuth(TENANT_DENALI), sixthDongPassenger.id),
+      /constraint=personal_car_dong/
+    );
+    assert.equal(
+      (await getBooking(opsAuth(TENANT_DENALI), sixthDongPassenger.id))?.status,
+      "pending"
+    );
+
+    // The remaining tour-wide place is still usable by someone who does not
+    // require a shared-car seat.
+    const selfTransport = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Independent transport", tourCapacityMax: 10 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "no_car_acquaintance" },
+      },
+    });
+    await approveBooking(opsAuth(TENANT_DENALI), selfTransport.id);
+    assert.equal((await getBooking(opsAuth(TENANT_DENALI), selfTransport.id))?.status, "approved");
+  });
+
   it("auto-approval tours promote eligible dong waitlist rows when a car adds seats", async () => {
     await createTourStorageRepository().save({
       id: TOUR_ID,

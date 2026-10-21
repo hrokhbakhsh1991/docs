@@ -3,14 +3,17 @@
  */
 import {
   filterOperationalRosterRows,
+  summarizeOperationalRosterCapacity,
   type OperationalRosterListQuery,
   type OperationalRosterListResponse,
+  type OperationalRosterTransportParticipant,
 } from "@app-tour/workspace-denali/roster";
 import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service.ts";
 import { listBookings } from "../bookings/create-bookings-service.ts";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
+import { HostBookingTourCapacityAdapter } from "../bookings/infrastructure/host-booking-tour-capacity.adapter.ts";
 import { getPaymentHoldRepository } from "../finance/payment-hold.repository.ts";
 import { enrichOperationalRosterRowsBudgetSafe } from "./operational-roster-enrichment.ts";
 
@@ -61,12 +64,71 @@ export async function listTourOperationalRoster(
     nowIso,
   });
 
+  const capacitySnapshot = query.includeCapacitySummary
+    ? await resolveCapacitySummary(auth, normalizedTourId)
+    : undefined;
+
   return {
     tourId: normalizedTourId,
     filter: query.filter,
     items: query.countOnly ? [] : filtered,
     total: filtered.length,
     nextCursor: query.countOnly ? null : bookings.nextCursor,
+    ...(capacitySnapshot !== undefined
+      ? {
+          capacitySummary: capacitySnapshot.summary,
+          transportParticipants: capacitySnapshot.transportParticipants,
+        }
+      : {}),
+  };
+}
+
+async function resolveCapacitySummary(
+  auth: BookingActorContext,
+  tourId: string
+): Promise<{
+  readonly summary: Awaited<ReturnType<typeof summarizeOperationalRosterCapacity>>;
+  readonly transportParticipants: readonly OperationalRosterTransportParticipant[];
+}> {
+  const items: Array<Awaited<ReturnType<typeof listBookings>>["items"][number]> = [];
+  let cursor: string | undefined;
+  do {
+    const page = await listBookings(auth, {
+      view: "ops",
+      tourId,
+      statuses: ["pending", "approved", "waitlisted"],
+      limit: 100,
+      ...(cursor !== undefined ? { cursor } : {}),
+      sort: "submittedAt",
+    });
+    items.push(...page.items);
+    cursor = page.nextCursor ?? undefined;
+  } while (cursor !== undefined);
+
+  const capacityMax = await new HostBookingTourCapacityAdapter().resolveTourCapacityMax(
+    auth.tenantId,
+    tourId
+  );
+  const summary = summarizeOperationalRosterCapacity({
+    capacityMax,
+    bookings: items.map((item) => ({
+      partySize: item.partySize,
+      status: item.status,
+      transportKind: item.transportKind,
+      personalCarOccupants: item.personalCarOccupants,
+    })),
+  });
+  return {
+    summary,
+    transportParticipants: items
+      .filter((item) => item.status === "approved")
+      .map((item) => ({
+        registrationId: item.id,
+        guestLabel: item.guestLabel,
+        partySize: item.partySize,
+        transportKind: item.transportKind,
+        personalCarOccupants: item.personalCarOccupants,
+      })),
   };
 }
 

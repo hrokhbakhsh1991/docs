@@ -82,6 +82,16 @@ must never silently increase the tour's overall participant ceiling.
   obligation, final-roster row, or success notification. Payment status and
   roster finalization remain independent lifecycle axes.
 
+The operator transport workspace must show a server-derived capacity snapshot:
+approved tour-wide participants versus `capacityMax`, approved driver passenger
+seats offered versus approved dong seats used, remaining seats in each pool, and
+the number of waitlisted dong participants. Pending registrations are shown as
+provisional and do not reserve seats or supply offers. If the tour-wide ceiling
+has room but the remaining dong seats cannot fit any whole waitlisted dong
+party, show that exact reason; do not label the whole tour full. This snapshot is not the same as
+vehicle assignment: an offered seat is not considered assigned to a named
+passenger until the operational allocation is saved and validated.
+
 The current transport intake already records the four transport choices and
 each driver's passenger-seat offer. This rule does not define a separate
 numeric capacity for a bus/train/plane: those choices continue to consume the

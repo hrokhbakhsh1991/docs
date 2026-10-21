@@ -51,9 +51,19 @@ describe("DP-2 operational roster API contract", () => {
         paymentDueAt?: string;
         passengerAssignmentStatus?: string;
       }>;
-    }>("GET", `/tours/${DP1_TOUR_ID}/operational-roster?filter=operational&view=ops`, {
-      headers: operatorAuthHeaders(),
-    });
+      capacitySummary?: {
+        capacityMax?: number | null;
+        approvedParticipants?: number;
+        remainingTourSeats?: number | null;
+        approvedDriverOffers?: number;
+      };
+    }>(
+      "GET",
+      `/tours/${DP1_TOUR_ID}/operational-roster?filter=operational&view=ops&includeCapacitySummary=true`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
 
     assert.equal(response.status, 200);
     assert.equal(response.body.tourId, DP1_TOUR_ID);
@@ -64,6 +74,10 @@ describe("DP-2 operational roster API contract", () => {
     assert.equal(row.isFinalParticipant, true);
     assert.equal(row.passengerAssignmentStatus, "not_implemented");
     assert.ok(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0);
+    assert.equal(response.body.capacitySummary?.capacityMax, 12);
+    assert.equal(response.body.capacitySummary?.approvedParticipants, 2);
+    assert.equal(response.body.capacitySummary?.remainingTourSeats, 10);
+    assert.equal(response.body.capacitySummary?.approvedDriverOffers, 0);
   });
 
   it("supports filter query tokens", async () => {
