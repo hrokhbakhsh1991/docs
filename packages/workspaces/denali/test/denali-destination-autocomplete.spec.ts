@@ -54,19 +54,17 @@ describe("denali-destination-autocomplete.spec.ts", () => {
     assert.deepEqual(filtered, []);
   });
 
-  it("DN-DEST-AUTO-05 long catalog does not return unbounded options", () => {
+  it("DN-DEST-AUTO-05 long catalog shows a bounded browse list before search", () => {
     const options = Array.from({ length: 500 }, (_, index) => ({
       value: `dest-${index}`,
       label: `Region ${index}`,
     }));
-    const filtered = filterSelectOptionsByQuery(options, "region 1", {
-      requireQuery: true,
-      maxVisible: 50,
-    });
-    assert.ok(filtered.length <= 50);
+    const visible = filterSelectOptionsByQuery(options, "", { maxVisible: 50 });
+    assert.equal(visible.length, 50);
+    assert.equal(visible[0]?.value, "dest-0");
   });
 
-  it("DN-DEST-AUTO-06 create and edit share requireQueryToBrowse destination field", () => {
+  it("DN-DEST-AUTO-06 create and edit browse active destinations on open", () => {
     const destinationField = readFileSync(
       join(SRC_ROOT, "ui/fields/denali-destination-field.tsx"),
       "utf8"
@@ -76,7 +74,7 @@ describe("denali-destination-autocomplete.spec.ts", () => {
       "utf8"
     );
     for (const src of [destinationField, itineraryField]) {
-      assert.match(src, /requireQueryToBrowse/);
+      assert.doesNotMatch(src, /requireQueryToBrowse/);
       assert.match(src, /searchableThreshold=\{0\}/);
       assert.match(src, /setCanonicalStringValue|buildItinerarySegmentDestinationSelection/);
     }
