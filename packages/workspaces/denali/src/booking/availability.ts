@@ -5,10 +5,7 @@
 import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
 import { BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE } from "@app-tour/booking-http-contracts";
 
-import {
-  DEFAULT_DENALI_CAPACITY_RULE,
-  type DenaliCapacityRule,
-} from "./capacity-rule";
+import { DEFAULT_DENALI_CAPACITY_RULE, type DenaliCapacityRule } from "./capacity-rule";
 
 export type DenaliAvailability = {
   readonly tourCapacityMax: number;
@@ -23,6 +20,31 @@ export type DenaliCreateCapacityEvaluation = {
   readonly availability: DenaliAvailability | null;
   readonly reasonCode: string | null;
 };
+
+function readCandidateTransportKind(
+  intake: Readonly<Record<string, unknown>> | undefined
+): string | null {
+  const transport = intake?.transport;
+  if (typeof transport !== "object" || transport === null || Array.isArray(transport)) {
+    return null;
+  }
+  const kind = (transport as Readonly<Record<string, unknown>>).kind;
+  return typeof kind === "string" ? kind : null;
+}
+
+function sumApprovedTransportFacts(
+  facts: BookingCreatePolicyContext["approvedTransportFacts"],
+  predicate: (kind: string | null) => boolean,
+  value: (fact: NonNullable<BookingCreatePolicyContext["approvedTransportFacts"]>[number]) => number
+): number {
+  return (facts ?? []).reduce((sum, fact) => {
+    if (!predicate(fact.transportKind)) {
+      return sum;
+    }
+    const amount = value(fact);
+    return sum + (Number.isFinite(amount) ? Math.max(0, Math.trunc(amount)) : 0);
+  }, 0);
+}
 
 /**
  * Remaining seats against approved occupancy (host SoT).
@@ -46,7 +68,7 @@ export function computeDenaliAvailability(
 
 export function evaluateDenaliCreateCapacity(
   ctx: BookingCreatePolicyContext,
-  rule: DenaliCapacityRule = DEFAULT_DENALI_CAPACITY_RULE
+  _rule: DenaliCapacityRule = DEFAULT_DENALI_CAPACITY_RULE
 ): DenaliCreateCapacityEvaluation {
   const availability = computeDenaliAvailability(
     ctx.occupiedApprovedPartySize,
@@ -60,13 +82,36 @@ export function evaluateDenaliCreateCapacity(
     });
   }
 
-  if (rule.overbookAllowed !== true) {
-    const next = availability.occupiedApprovedPartySize + ctx.partySize;
-    if (next > availability.tourCapacityMax) {
+  // Denali's published capacity is a hard participant ceiling. Generic
+  // overbooking configuration must not exceed the physical tour maximum.
+  const next = availability.occupiedApprovedPartySize + ctx.partySize;
+  if (next > availability.tourCapacityMax) {
+    return Object.freeze({
+      decision: "deny" as const,
+      availability,
+      reasonCode: `BOOKING_CAPACITY_REJECTED: occupied=${availability.occupiedApprovedPartySize} partySize=${ctx.partySize} capacityMax=${availability.tourCapacityMax}`,
+    });
+  }
+
+  // Personal-car seats form a separate, physical pool. They never expand the
+  // tour-wide ceiling, and overbooking policy cannot override missing seats.
+  if (readCandidateTransportKind(ctx.registrationIntake) === "no_car_dong") {
+    const approvedFacts = ctx.approvedTransportFacts ?? [];
+    const offeredDongSeats = sumApprovedTransportFacts(
+      approvedFacts,
+      (kind) => kind === "personal_car",
+      (fact) => fact.offeredPassengerSeats ?? 0
+    );
+    const occupiedDongSeats = sumApprovedTransportFacts(
+      approvedFacts,
+      (kind) => kind === "no_car_dong",
+      (fact) => fact.partySize
+    );
+    if (occupiedDongSeats + ctx.partySize > offeredDongSeats) {
       return Object.freeze({
         decision: "deny" as const,
         availability,
-        reasonCode: `BOOKING_CAPACITY_REJECTED: occupied=${availability.occupiedApprovedPartySize} partySize=${ctx.partySize} capacityMax=${availability.tourCapacityMax}`,
+        reasonCode: `BOOKING_CAPACITY_REJECTED: occupied=${occupiedDongSeats} partySize=${ctx.partySize} capacityMax=${offeredDongSeats} constraint=personal_car_dong`,
       });
     }
   }
@@ -88,9 +133,7 @@ export function assertDenaliCreateCapacity(
 ): void {
   const evaluation = evaluateDenaliCreateCapacity(ctx, rule);
   if (evaluation.decision === "deny") {
-    throw new Error(
-      evaluation.reasonCode ?? "BOOKING_CAPACITY_REJECTED: capacity decision deny"
-    );
+    throw new Error(evaluation.reasonCode ?? "BOOKING_CAPACITY_REJECTED: capacity decision deny");
   }
 }
 

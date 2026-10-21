@@ -15,6 +15,7 @@ import {
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
   BookingStatusConflictError,
+  BookingDongSeatReassignmentRequiredError,
   BookingWorkspaceTenantMismatchError,
   BookingWorkspaceUnsupportedError,
   BulkApproveBatchLimitError,
@@ -38,6 +39,12 @@ export type BookingHttpErrorMatrixRow = {
 
 /** Documentation + audit SoT (must stay aligned with {@link resolveBookingHttpError}). */
 export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
+  {
+    domainError: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",
+    status: 409,
+    reason: "Cancelling this personal car would leave approved dong passengers without seats",
+    clientAction: "Reassign the passengers or add enough approved car seats before cancelling",
+  },
   {
     domainError: "BOOKING_WORKSPACE_TENANT_MISMATCH",
     status: 403,
@@ -245,6 +252,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
     return resolutionFromCode(error.code, error.message);
   }
   if (error instanceof BookingWaitlistCapacityAdmissionNotAllowedError) {
+    return resolutionFromCode(error.code, error.message);
+  }
+  if (error instanceof BookingDongSeatReassignmentRequiredError) {
     return resolutionFromCode(error.code, error.message);
   }
   if (error instanceof BulkApproveBatchLimitError) {

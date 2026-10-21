@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
+  toBookingCapacityTransportFact,
 } from "./read-transport-kind-from-intake.js";
 
 describe("read-transport-kind-from-intake", () => {
@@ -49,5 +50,28 @@ describe("read-transport-kind-from-intake", () => {
       null
     );
     assert.equal(readPersonalCarOccupantsFromIntake({ transport: { kind: "primary" } }), null);
+  });
+
+  it("projects only the approved capacity facts, never the full intake", () => {
+    assert.deepEqual(
+      toBookingCapacityTransportFact({
+        partySize: 2,
+        registrationIntake: {
+          registrantTarget: "other",
+          nationalId: "sensitive",
+          transport: { kind: "personal_car", personalCarOccupants: 3 },
+        },
+      }),
+      {
+        partySize: 2,
+        transportKind: "personal_car",
+        offeredPassengerSeats: 3,
+      }
+    );
+    assert.deepEqual(toBookingCapacityTransportFact({ partySize: 1, registrationIntake: null }), {
+      partySize: 1,
+      transportKind: null,
+      offeredPassengerSeats: null,
+    });
   });
 });

@@ -49,11 +49,7 @@ export type Dp1PaymentHoldPort = {
   }): Promise<Dp1PaymentHoldRecord>;
   satisfy(tenantId: string, registrationId: string): Promise<Dp1PaymentHoldRecord>;
   expire(tenantId: string, registrationId: string): Promise<Dp1PaymentHoldRecord>;
-  extend(
-    tenantId: string,
-    registrationId: string,
-    newDueAt: string
-  ): Promise<Dp1PaymentHoldRecord>;
+  extend(tenantId: string, registrationId: string, newDueAt: string): Promise<Dp1PaymentHoldRecord>;
   scanDueOpenHolds(nowIso: string): Promise<readonly Dp1PaymentHoldRecord[]>;
 };
 
@@ -77,12 +73,14 @@ export function dp1OpsAuth(tenantId = DP1_TENANT_DENALI): BookingActorContext {
   };
 }
 
-export function dp1BookingBody(over: {
-  readonly guestLabel?: string;
-  readonly partySize?: number;
-  readonly tourCapacityMax?: number;
-  readonly tourId?: string;
-} = {}) {
+export function dp1BookingBody(
+  over: {
+    readonly guestLabel?: string;
+    readonly partySize?: number;
+    readonly tourCapacityMax?: number;
+    readonly tourId?: string;
+  } = {}
+) {
   const label = over.guestLabel ?? `DP1 Guest ${randomUUID().slice(0, 8)}`;
   return {
     tourId: over.tourId ?? DP1_TOUR_ID,
@@ -110,6 +108,25 @@ export function resetDp1MemoryHarness(): void {
   }
   process.env.PAYMENT_HOLD_ENABLED = "true";
   process.env.PAYMENT_HOLD_EXPIRY_ENABLED = "true";
+}
+
+export async function setDp1RegistrationApprovalMode(mode: "manual" | "auto"): Promise<void> {
+  const tourStore = createTourStorageRepository();
+  const tour = await tourStore.getById(DP1_TOUR_ID, DP1_TENANT_DENALI);
+  assert.ok(tour !== null, "DP1 tour fixture must exist before setting approval mode");
+  const data = tour.canonical.data as Record<string, unknown>;
+  const pricing =
+    typeof data.pricing === "object" && data.pricing !== null && !Array.isArray(data.pricing)
+      ? (data.pricing as Record<string, unknown>)
+      : {};
+  await tourStore.save({
+    ...tour,
+    rowVersion: tour.rowVersion + 1,
+    canonical: {
+      ...tour.canonical,
+      data: { ...data, pricing: { ...pricing, registrationApproval: mode } },
+    },
+  });
 }
 
 export function addHoursUtc(iso: string, hours: number): string {
@@ -149,7 +166,11 @@ export function assertDp1ApproveSideEffects(
     addHoursUtc(approvedAt, DP1_DEFAULT_POLICY_HOURS),
     "DP1-EXPECTED-FAIL: paymentDueAt must be approvedAt + 24h policy"
   );
-  assert.equal(approved.holdStatus, "open", "DP1-EXPECTED-FAIL: holdStatus must be open on approve");
+  assert.equal(
+    approved.holdStatus,
+    "open",
+    "DP1-EXPECTED-FAIL: holdStatus must be open on approve"
+  );
   assert.ok(
     typeof approved.commercialQuotePayableMinor === "string",
     "DP1-EXPECTED-FAIL: commercialQuotePayableMinor missing on approve"
@@ -198,7 +219,10 @@ export async function requirePaymentHoldPort(): Promise<Dp1PaymentHoldPort> {
 
 export async function requireCommercialQuoteApprovePort(): Promise<Dp1CommercialQuotePort> {
   const port = await loadCommercialQuoteApprovePort();
-  assert.ok(port !== null, "DP1-EXPECTED-FAIL: CommercialQuote approve freeze port not implemented");
+  assert.ok(
+    port !== null,
+    "DP1-EXPECTED-FAIL: CommercialQuote approve freeze port not implemented"
+  );
   return port;
 }
 
@@ -209,7 +233,8 @@ export async function dp1GetBooking(bookingId: string): Promise<{
   readonly cancelSource?: string | null;
   readonly paymentDueAt?: string | null;
 }> {
-  const { getBookingsRepository } = await import("../../src/bookings/create-bookings-repository.ts");
+  const { getBookingsRepository } =
+    await import("../../src/bookings/create-bookings-repository.ts");
   const row = await getBookingsRepository().getById(bookingId, DP1_TENANT_DENALI);
   assert.ok(row !== null, `booking ${bookingId} not found`);
   return row as {
@@ -221,8 +246,11 @@ export async function dp1GetBooking(bookingId: string): Promise<{
   };
 }
 
-export async function dp1ListBookingsByStatus(status: string): Promise<readonly { readonly id: string; readonly status: string }[]> {
-  const { getBookingsRepository } = await import("../../src/bookings/create-bookings-repository.ts");
+export async function dp1ListBookingsByStatus(
+  status: string
+): Promise<readonly { readonly id: string; readonly status: string }[]> {
+  const { getBookingsRepository } =
+    await import("../../src/bookings/create-bookings-repository.ts");
   const rows = await getBookingsRepository().listByTenant(DP1_TENANT_DENALI);
   return rows.filter((row) => row.status === status);
 }
@@ -232,9 +260,6 @@ export async function dp1CreateAndApprovePending(input?: {
   readonly tourCapacityMax?: number;
 }): Promise<{ readonly bookingId: string; readonly approved: Dp1ApproveSideEffects }> {
   const created = await createBooking(dp1OpsAuth(), dp1BookingBody(input));
-  const approved = (await approveBooking(
-    dp1OpsAuth(),
-    created.id
-  )) as Dp1ApproveSideEffects;
+  const approved = (await approveBooking(dp1OpsAuth(), created.id)) as Dp1ApproveSideEffects;
   return { bookingId: created.id, approved };
 }

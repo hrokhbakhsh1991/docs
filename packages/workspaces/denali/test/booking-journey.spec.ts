@@ -215,7 +215,7 @@ describe("booking-journey.spec.ts — Denali Phase 1 exit path", () => {
     assert.equal(booking.history.at(-1)?.reason, "weather");
   });
 
-  it("DN-B1-J08 overbookAllowed accepts otherwise-denied create", () => {
+  it("DN-B1-J08 overbookAllowed cannot exceed Denali's hard tour ceiling", () => {
     const over = buildDenaliBookingCreatePolicyContext({
       tenantId: "ten-denali",
       tourId: "tour-1",
@@ -232,7 +232,7 @@ describe("booking-journey.spec.ts — Denali Phase 1 exit path", () => {
         ...DEFAULT_DENALI_CAPACITY_RULE,
         overbookAllowed: true,
       }).decision,
-      "accept"
+      "deny"
     );
   });
 

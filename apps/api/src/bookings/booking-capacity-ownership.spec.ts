@@ -13,12 +13,16 @@ import { BOOKING_POLICY_CASE_A_GUEST_LABEL } from "@app-tour/booking-http-contra
 import { resetBookingsRepositoryForTests } from "./create-bookings-repository.ts";
 import {
   approveBooking,
+  bulkApproveBookings,
+  cancelBooking,
   createBooking,
   createPublicGuestBooking,
+  getBooking,
   getOrCreateBookingRuntimeForWorkspaceType,
   resetBookingsServiceCompositionForTests,
   waitlistBooking,
 } from "./create-bookings-service.ts";
+import { createTourStorageRepository } from "../storage/create-tour-storage.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";
 
 const TENANT_DENALI = "00000000-0000-4000-8000-000000000014";
@@ -128,6 +132,104 @@ describe("booking capacity ownership (single decision point)", () => {
       () => approveBooking(opsAuth(TENANT_DENALI), second.id),
       (err: unknown) => err instanceof Error && err.message.startsWith("BOOKING_CAPACITY_REJECTED")
     );
+  });
+
+  it("Denali dong seat offers are enforced on locked approval without blocking non-dong transport", async () => {
+    const dongGroup = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Dong seats", partySize: 2, tourCapacityMax: 10 }),
+      registrationIntake: { tourCapacityMax: 10, transport: { kind: "no_car_dong" } },
+    });
+    await waitlistBooking(opsAuth(TENANT_DENALI), dongGroup.id);
+
+    const carDriver = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Car driver", tourCapacityMax: 10 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "personal_car", personalCarOccupants: 2 },
+      },
+    });
+    await approveBooking(opsAuth(TENANT_DENALI), carDriver.id);
+    assert.equal((await getBooking(opsAuth(TENANT_DENALI), dongGroup.id))?.status, "waitlisted");
+    // A capacity event must not bypass the tour's safe manual-approval default.
+    await approveBooking(opsAuth(TENANT_DENALI), dongGroup.id);
+    assert.equal((await getBooking(opsAuth(TENANT_DENALI), dongGroup.id))?.status, "approved");
+
+    const extraDong = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Dong overflow", tourCapacityMax: 10 }),
+      registrationIntake: { tourCapacityMax: 10, transport: { kind: "no_car_dong" } },
+    });
+    await assert.rejects(
+      () => approveBooking(opsAuth(TENANT_DENALI), extraDong.id),
+      /constraint=personal_car_dong/
+    );
+
+    const selfTransport = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Self transport", tourCapacityMax: 10 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "no_car_acquaintance" },
+      },
+    });
+    const bulkResult = await bulkApproveBookings(opsAuth(TENANT_DENALI), {
+      ids: [extraDong.id, selfTransport.id],
+    });
+    assert.deepEqual(bulkResult.approvedIds, [selfTransport.id]);
+    assert.deepEqual(bulkResult.skippedIds, [extraDong.id]);
+  });
+
+  it("auto-approval tours promote eligible dong waitlist rows when a car adds seats", async () => {
+    await createTourStorageRepository().save({
+      id: TOUR_ID,
+      tenantId: TENANT_DENALI,
+      rowVersion: 1,
+      createdAt: new Date(0).toISOString(),
+      canonical: {
+        schemaVersion: 1,
+        roots: [],
+        data: {
+          capacityMax: 10,
+          pricing: { registrationApproval: "auto" },
+        },
+      },
+    });
+
+    const dongGuest = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Auto-mode dong guest", tourCapacityMax: 10 }),
+      registrationIntake: { tourCapacityMax: 10, transport: { kind: "no_car_dong" } },
+    });
+    await waitlistBooking(opsAuth(TENANT_DENALI), dongGuest.id);
+    const driver = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Auto-mode driver", tourCapacityMax: 10 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "personal_car", personalCarOccupants: 1 },
+      },
+    });
+
+    await approveBooking(opsAuth(TENANT_DENALI), driver.id);
+    assert.equal((await getBooking(opsAuth(TENANT_DENALI), dongGuest.id))?.status, "approved");
+  });
+
+  it("does not cancel an approved car when that would strand approved dong passengers", async () => {
+    const driver = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Protected car driver", tourCapacityMax: 10 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "personal_car", personalCarOccupants: 1 },
+      },
+    });
+    await approveBooking(opsAuth(TENANT_DENALI), driver.id);
+    const passenger = await createBooking(opsAuth(TENANT_DENALI), {
+      ...baseBody({ guestLabel: "Protected dong passenger", tourCapacityMax: 10 }),
+      registrationIntake: { tourCapacityMax: 10, transport: { kind: "no_car_dong" } },
+    });
+    await approveBooking(opsAuth(TENANT_DENALI), passenger.id);
+
+    await assert.rejects(
+      () => cancelBooking(opsAuth(TENANT_DENALI), driver.id),
+      /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/
+    );
+    assert.equal((await getBooking(opsAuth(TENANT_DENALI), driver.id))?.status, "approved");
   });
 
   it("same process: denali vs booking-ws2 capacity markers stay independent", async () => {

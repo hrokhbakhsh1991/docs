@@ -10,6 +10,8 @@ import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancella
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import { BookingNotFoundError } from "../bookings/bookings.errors.ts";
 import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
+import { assertDenaliDongSeatReassignment } from "../bookings/assert-denali-dong-seat-reassignment.ts";
+import { resolveBookingWorkspaceTypeForTenant } from "../bookings/resolve-booking-workspace-type-for-tenant.ts";
 import { runPostCancelSideEffects } from "../bookings/post-cancel-side-effects.ts";
 import type { BookingRecord } from "../bookings/bookings.types.ts";
 import {
@@ -122,6 +124,7 @@ async function executeMemberCancel(
   booking: BookingRecord
 ): Promise<MemberCancellationResult> {
   const previousStatus = booking.status;
+  const workspaceType = await resolveBookingWorkspaceTypeForTenant(auth.tenantId);
 
   await getBookingsRepository().cancelBooking({
     bookingId: booking.id,
@@ -133,6 +136,11 @@ async function executeMemberCancel(
     cancellationReasonCode: "member_withdrawal",
     cancellationApprovedByUserId: auth.userId,
     cancellationCorrelationId: `registration.cancelled:${booking.id}`,
+    assertCapacityInTx: (ctx) => {
+      if (workspaceType === "denali" && previousStatus === "approved") {
+        assertDenaliDongSeatReassignment(ctx);
+      }
+    },
   });
 
   const refundStatus =

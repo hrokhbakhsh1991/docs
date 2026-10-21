@@ -1,3 +1,5 @@
+import type { BookingCapacityTransportFact } from "@app-tour/booking-http-contracts";
+
 import type {
   BookingListPageInput,
   BookingListPageOutput,
@@ -137,6 +139,7 @@ export interface BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }) => void;
     outboxEvent?: BookingOutboxEventInput;
     initialStatus?: "pending" | "waitlisted";
@@ -154,6 +157,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }) => void | Promise<void>;
   }): Promise<BookingRecord>;
   bulkApproveWithOutbox(input: {
@@ -164,6 +168,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
   /** Explicit operator finalization after financial settlement. */
@@ -218,6 +223,12 @@ export interface BookingRepositoryPort {
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
     cancellationRequestedAt?: string;
+    /** Set only when the caller already owns the shared serial booking-mutation lock. */
+    alreadyWithinSerialMutation?: boolean;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+    }) => void;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

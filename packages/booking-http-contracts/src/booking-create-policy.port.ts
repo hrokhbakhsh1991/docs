@@ -4,6 +4,15 @@
  */
 
 /** Context for validation + capacity at public create time. */
+export type BookingCapacityTransportFact = {
+  /** Approved party size represented by this booking. */
+  readonly partySize: number;
+  /** Opaque workspace-selected transport key; the host does not interpret it. */
+  readonly transportKind: string | null;
+  /** Optional passenger-seat offer attached to the selected transport. */
+  readonly offeredPassengerSeats: number | null;
+};
+
 export type BookingCreatePolicyContext = {
   readonly tenantId: string;
   readonly tourId: string;
@@ -16,6 +25,8 @@ export type BookingCreatePolicyContext = {
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
   /** Approved party-size already on this tour (host/repository). */
   readonly occupiedApprovedPartySize: number;
+  /** Minimal approved transport facts; excludes names/contact/profile data. */
+  readonly approvedTransportFacts?: readonly BookingCapacityTransportFact[];
   /**
    * Tour capacity ceiling when known.
    * `null` = unknown — Denali treats as unlimited; workspaces may still apply markers.

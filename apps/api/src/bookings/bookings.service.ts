@@ -10,6 +10,7 @@ import type { BookingFinancialDisplayStatePort } from "./ports/booking-financial
 import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking-http-contracts";
 import type {
   ApproveBookingResponse,
+  BookingCapacityTransportFact,
   BookingCapacityPolicyPort,
   BookingCreatePolicyContext,
   BookingsListQuery,
@@ -37,6 +38,8 @@ import {
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
 import type { BookingRecord, WaitlistCapacityAdmissionResponse } from "./bookings.types";
+import { toBookingCapacityTransportFact } from "./read-transport-kind-from-intake";
+import { assertDenaliDongSeatReassignment } from "./assert-denali-dong-seat-reassignment.ts";
 import {
   BookingCapabilityViolationError,
   BookingNotFoundError,
@@ -78,6 +81,13 @@ export type BookingsServiceDeps = {
   readonly registrationSlo: BookingRegistrationSloPort;
   readonly financialDisplayState: BookingFinancialDisplayStatePort;
   readonly serialMutation: BookingSerialMutationPort;
+  /** Re-evaluate FIFO waitlist after a capacity-affecting mutation. */
+  readonly waitlistPromotion?: {
+    afterCapacityChange(input: {
+      readonly tenantId: string;
+      readonly tourId: string;
+    }): Promise<unknown>;
+  };
 };
 
 /** Booking-owned capacity: missing max is never a silent allow. */
@@ -192,6 +202,7 @@ export class BookingsService {
   private readonly registrationSlo: BookingRegistrationSloPort;
   private readonly financialDisplayState: BookingFinancialDisplayStatePort;
   private readonly serialMutation: BookingSerialMutationPort;
+  private readonly waitlistPromotion: BookingsServiceDeps["waitlistPromotion"];
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -263,6 +274,7 @@ export class BookingsService {
     this.registrationSlo = deps.registrationSlo;
     this.financialDisplayState = deps.financialDisplayState;
     this.serialMutation = deps.serialMutation;
+    this.waitlistPromotion = deps.waitlistPromotion;
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -272,6 +284,35 @@ export class BookingsService {
 
   private async assertTenantBound(tenantId: string): Promise<void> {
     await this.tenantWorkspaceBinding.assertTenantBoundToRuntime(tenantId, this.workspaceType);
+  }
+
+  /** Post-commit waitlist reconciliation must not turn a successful write into a retry-shaped error. */
+  private async recheckWaitlistAfterCapacityChange(
+    tenantId: string,
+    tourId: string
+  ): Promise<void> {
+    if (this.waitlistPromotion === undefined) {
+      return;
+    }
+    const startedAt = this.clock.now().getTime();
+    try {
+      await this.waitlistPromotion.afterCapacityChange({ tenantId, tourId });
+      this.registrationSlo.record({
+        workspaceType: this.workspaceType,
+        tenantId,
+        outcome: "success",
+        durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
+      });
+    } catch {
+      // The lifecycle write is already committed; keep its success response honest and
+      // record the failed follow-up for operational visibility.
+      this.registrationSlo.record({
+        workspaceType: this.workspaceType,
+        tenantId,
+        outcome: "error",
+        durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
+      });
+    }
   }
 
   private assertPublicCreateCapability(): void {
@@ -664,10 +705,12 @@ export class BookingsService {
                 readonly tourId: string;
                 readonly partySize: number;
                 readonly occupiedApprovedPartySize: number;
+                readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
               }) => {
                 this.capacityPolicy.assertCreateCapacity({
                   ...baseCtx,
                   occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
+                  approvedTransportFacts: ctx.approvedTransportFacts,
                 });
               },
             }
@@ -707,7 +750,8 @@ export class BookingsService {
       readonly registrationIntake: Readonly<Record<string, unknown>> | undefined;
     },
     occupiedApprovedPartySize: number,
-    tourCapacityMax: number
+    tourCapacityMax: number,
+    approvedTransportFacts: readonly BookingCapacityTransportFact[] = []
   ): BookingCreatePolicyContext {
     const guestEmail =
       source.guestEmail !== undefined && source.guestEmail !== null && source.guestEmail.length > 0
@@ -730,6 +774,7 @@ export class BookingsService {
         ? { registrationIntake: source.registrationIntake }
         : {}),
       occupiedApprovedPartySize,
+      approvedTransportFacts,
       tourCapacityMax,
     };
   }
@@ -742,6 +787,7 @@ export class BookingsService {
     return async (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
     }): Promise<void> => {
       const booking = ctx.booking;
       const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
@@ -766,7 +812,8 @@ export class BookingsService {
             ),
           },
           ctx.occupiedApprovedPartySize,
-          tourCapacityMax
+          tourCapacityMax,
+          ctx.approvedTransportFacts
         )
       );
     };
@@ -787,6 +834,7 @@ export class BookingsService {
       assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
     });
     await this.invokeApproveReaction(auth.tenantId, updated.id);
+    await this.recheckWaitlistAfterCapacityChange(auth.tenantId, updated.tourId);
     return {
       id: updated.id,
       status: updated.status,
@@ -879,6 +927,7 @@ export class BookingsService {
         assertCapacityInTx: this.buildApproveCapacityAssert(input.tenantId),
       });
       await this.invokeApproveReaction(input.tenantId, updated.id);
+      await this.recheckWaitlistAfterCapacityChange(input.tenantId, updated.tourId);
       return { id: updated.id, status: updated.status };
     } catch (error) {
       if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
@@ -974,25 +1023,117 @@ export class BookingsService {
       if (increaseTourCapacity === undefined) {
         throw new Error("BOOKING_CAPACITY_INCREMENT_UNSUPPORTED");
       }
+      const currentCapacity = await this.resolveEffectiveTourCapacityMax(
+        auth.tenantId,
+        current.tourId,
+        current.registrationIntake
+      );
+      const approvedTransportFacts = (await this.repository.listByTenant(auth.tenantId))
+        .filter(
+          (row) =>
+            row.tourId === current.tourId && row.status === "approved" && row.id !== current.id
+        )
+        .map((row) =>
+          toBookingCapacityTransportFact({
+            partySize: row.partySize,
+            registrationIntake: row.registrationIntake,
+          })
+        );
+      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
+        (sum, fact) => sum + fact.partySize,
+        0
+      );
+      // This action deliberately raises only the tour-wide ceiling. It must not
+      // manufacture personal-car dong seats for an otherwise ineligible row.
+      this.capacityPolicy.assertCreateCapacity(
+        this.buildCapacityPolicyContext(
+          auth.tenantId,
+          {
+            tourId: current.tourId,
+            tourTitle: current.tourTitle,
+            guestLabel: current.guestLabel,
+            guestEmail: current.guestEmail,
+            guestPhone: current.guestPhone,
+            partySize: current.partySize,
+            departureAt: current.departureAt,
+            registrationIntake: current.registrationIntake,
+          },
+          occupiedApprovedPartySize,
+          currentCapacity + current.partySize,
+          approvedTransportFacts
+        )
+      );
       const expansion = await increaseTourCapacity({
         tenantId: auth.tenantId,
         tourId: current.tourId,
         delta: current.partySize,
       });
-      const approved = await this.repository.approveWithOutbox({
-        bookingId,
-        tenantId: auth.tenantId,
-        outboxEvent: "registration.waitlist_promoted_with_capacity_increase",
-        assertCapacityInTx: () => undefined,
-        registrationIntakePatch: {
-          waitlistCapacityAdmission: {
-            capacityAdded: current.partySize,
-            previousCapacity: expansion.previousCapacity,
-            nextCapacity: expansion.nextCapacity,
+      let approved: BookingRecord;
+      try {
+        approved = await this.repository.approveWithOutbox({
+          bookingId,
+          tenantId: auth.tenantId,
+          outboxEvent: "registration.waitlist_promoted_with_capacity_increase",
+          assertCapacityInTx: (ctx) => {
+            this.capacityPolicy.assertCreateCapacity(
+              this.buildCapacityPolicyContext(
+                auth.tenantId,
+                {
+                  tourId: ctx.booking.tourId,
+                  tourTitle: ctx.booking.tourTitle,
+                  guestLabel: ctx.booking.guestLabel,
+                  guestEmail: ctx.booking.guestEmail,
+                  guestPhone: ctx.booking.guestPhone,
+                  partySize: ctx.booking.partySize,
+                  departureAt: ctx.booking.departureAt,
+                  registrationIntake: this.withServerTourCapacityMax(
+                    ctx.booking.registrationIntake,
+                    expansion.nextCapacity
+                  ),
+                },
+                ctx.occupiedApprovedPartySize,
+                expansion.nextCapacity,
+                ctx.approvedTransportFacts
+              )
+            );
           },
-        },
-      });
+          registrationIntakePatch: {
+            waitlistCapacityAdmission: {
+              capacityAdded: current.partySize,
+              previousCapacity: expansion.previousCapacity,
+              nextCapacity: expansion.nextCapacity,
+            },
+          },
+        });
+      } catch (error) {
+        const restore = this.tourCapacity.restoreTourCapacityIfUnchanged;
+        if (restore !== undefined) {
+          try {
+            const restored = await restore.call(this.tourCapacity, {
+              tenantId: auth.tenantId,
+              tourId: current.tourId,
+              expectedCapacity: expansion.nextCapacity,
+              restoreCapacity: expansion.previousCapacity,
+            });
+            if (!restored) {
+              this.registrationSlo.record({
+                workspaceType: this.workspaceType,
+                tenantId: auth.tenantId,
+                outcome: "error",
+              });
+            }
+          } catch {
+            this.registrationSlo.record({
+              workspaceType: this.workspaceType,
+              tenantId: auth.tenantId,
+              outcome: "error",
+            });
+          }
+        }
+        throw error;
+      }
       await this.invokeApproveReaction(auth.tenantId, approved.id);
+      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, approved.tourId);
       const result = approved;
       return {
         id: result.id,
@@ -1031,6 +1172,11 @@ export class BookingsService {
       cancellationReasonNote: input.reasonNote,
       cancellationApprovedByUserId: auth.userId,
       cancellationCorrelationId: correlationId,
+      assertCapacityInTx: (ctx) => {
+        if (this.workspaceType === "denali" && previousStatus === "approved") {
+          assertDenaliDongSeatReassignment(ctx);
+        }
+      },
     });
     let settlementStatus: CancelBookingResponse["settlementStatus"] = "not_affected";
     try {
@@ -1046,6 +1192,9 @@ export class BookingsService {
       // The lifecycle transition is already persisted. Surface a recoverable
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
+    }
+    if (previousStatus === "approved" && this.waitlistPromotion !== undefined) {
+      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, before.tourId);
     }
     const isWaivedCollection =
       before.financialDisplayState === "WAIVED" ||
@@ -1085,6 +1234,7 @@ export class BookingsService {
     // WHEN: after bulk approve TX — one reaction per approved id (adapter enforces idempotency).
     for (const row of approved) {
       await this.invokeApproveReaction(auth.tenantId, row.id);
+      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, row.tourId);
     }
     const approvedIds = approved.map((row) => row.id);
     const approvedSet = new Set(approvedIds);

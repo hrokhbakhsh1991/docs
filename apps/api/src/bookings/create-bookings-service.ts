@@ -32,6 +32,7 @@ import { recordRegistrationSloEvent } from "../observability/workspace-slo-telem
 import { readObligationOverrideFromIntake } from "@app-tour/finance-core";
 import { resolveFinancialDisplayStateForListRecord } from "./booking-list-intake-scalars";
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
+import { reconcileDenaliWaitlistAfterCapacityChange } from "./denali-waitlist-reconciliation.ts";
 import type {
   ApproveBookingResponse,
   BookingListItem,
@@ -158,6 +159,9 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
       },
     },
     serialMutation: { run: runSerialBookingMutation },
+    ...(normalized === "denali"
+      ? { waitlistPromotion: { afterCapacityChange: reconcileDenaliWaitlistAfterCapacityChange } }
+      : {}),
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,

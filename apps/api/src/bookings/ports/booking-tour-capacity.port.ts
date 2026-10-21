@@ -27,4 +27,12 @@ export type BookingTourCapacityPort = {
     readonly previousCapacity: number;
     readonly nextCapacity: number;
   }>;
+
+  /** Best-effort CAS compensation when a capacity admission fails after expansion. */
+  readonly restoreTourCapacityIfUnchanged?: (input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly expectedCapacity: number;
+    readonly restoreCapacity: number;
+  }) => Promise<boolean>;
 };

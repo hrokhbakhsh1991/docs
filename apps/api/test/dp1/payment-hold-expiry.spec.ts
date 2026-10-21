@@ -8,6 +8,7 @@ import { registrationOccupiesSeat } from "@app-tour/tour-core";
 
 import { peekOutboxByAggregateForTests } from "../../src/bookings/in-memory-bookings.repository.ts";
 import {
+  approveBooking,
   cancelBooking,
   createBooking,
   sumApprovedPartySizeByTourIds,
@@ -82,6 +83,45 @@ describe("DP1-E payment hold expiry", { concurrency: false }, () => {
     await expireHold(bookingId);
     const waitlisted = await dp1ListBookingsByStatus("approved");
     assert.equal(waitlisted.length, 0);
+  });
+
+  it("does not expire a car driver's payment hold when cancellation would strand approved dong passengers", async () => {
+    const driver = await createBooking(dp1OpsAuth(), {
+      ...dp1BookingBody({ guestLabel: "Expiry protected driver", partySize: 1 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "personal_car", personalCarOccupants: 1 },
+      },
+    });
+    await approveBooking(dp1OpsAuth(), driver.id);
+    const dongGuest = await createBooking(dp1OpsAuth(), {
+      ...dp1BookingBody({ guestLabel: "Expiry protected dong", partySize: 1 }),
+      registrationIntake: {
+        tourCapacityMax: 10,
+        transport: { kind: "no_car_dong" },
+      },
+    });
+    await approveBooking(dp1OpsAuth(), dongGuest.id);
+
+    const holdPort = await requirePaymentHoldPort();
+    await holdPort.extend(DP1_TENANT_DENALI, driver.id, "2030-01-01T00:00:00.000Z");
+    await assert.rejects(() => expireHold(driver.id), /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/);
+
+    assert.equal((await dp1GetBooking(driver.id)).status, "approved");
+    assert.equal((await dp1GetBooking(dongGuest.id)).status, "approved");
+    assert.equal(
+      (await holdPort.getByRegistrationId(DP1_TENANT_DENALI, driver.id))?.status,
+      "extended"
+    );
+    assert.equal(
+      (
+        await peekOutboxByAggregateForTests({
+          tenantId: DP1_TENANT_DENALI,
+          aggregateId: driver.id,
+        })
+      ).some((row) => row.eventType === "payment.hold.expired"),
+      false
+    );
   });
 
   it("S13: operator cancel before payment closes hold without payment_deadline source", async () => {

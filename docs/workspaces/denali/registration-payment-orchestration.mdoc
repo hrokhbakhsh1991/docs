@@ -21,6 +21,66 @@ Denali uses two independent axes by design:
 
 Without a bridge, members can upload offline receipts while the club has not yet approved the registration. That breaks the product path for screened mountain tours.
 
+## Denali registration capacity pools (2026-10)
+
+Denali capacity is evaluated against two independent limits; a transport option
+must never silently increase the tour's overall participant ceiling.
+
+- **Tour-wide ceiling (`capacityMax`)** counts every approved participant,
+  including a driver. It is a hard maximum for Denali; generic overbooking
+  configuration must not bypass it.
+- **Personal-car dong seats** are a separate pool. The pool is the sum of
+  `personalCarOccupants` offered by approved `personal_car` registrations;
+  this value means passenger seats, not the driver's own place. Approved
+  `no_car_dong` participants consume one dong seat per party member.
+- `primary` and `no_car_acquaintance` consume the tour-wide ceiling but do not
+  consume personal-car dong seats. Choosing a personal car as transport does
+  not grant extra tour-wide places.
+- A driver consumes their own place from `capacityMax` and contributes only
+  their declared passenger seats to the dong pool. Unapproved, waitlisted,
+  rejected, cancelled, or expired registrations do not contribute seats.
+- A registration/approval is eligible only when both the tour-wide ceiling and
+  its applicable transport pool can accommodate its full `partySize`. When the
+  global ceiling still has room but dong seats are exhausted, a dong request
+  must waitlist (when enabled); an eligible non-dong request may still proceed.
+- `pending` registrations do not reserve a seat under the existing approval
+  lifecycle. In manual-approval tours they remain provisional; the locked
+  approval check is authoritative and must reject/waitlist a request that no
+  longer fits. A waitlisted row must never be silently auto-approved when the
+  tour requires manual approval.
+- These checks must run atomically under the existing per-tour capacity lock
+  for create, approval, and waitlist promotion. Promotion preserves FIFO among
+  eligible candidates but skips a candidate that cannot use the newly available
+  pool so it does not block a later eligible candidate.
+- In auto-approval tours, an approval that adds dong seats re-evaluates the
+  waitlist against updated facts and promotes eligible rows in FIFO order. In
+  manual-approval tours, a driver approval must not approve other people; those
+  rows remain available for an explicit operator decision and are revalidated
+  under the same lock when the operator acts. A capacity-increase promotion
+  may expand only the tour-wide ceiling; it must still pass the transport-pool
+  check before approval and must not leave an unintended capacity increase if
+  that approval fails.
+- Cancelling a car that supplied dong seats must not leave more approved dong
+  passengers than the remaining approved car offers. This invariant applies to
+  operator cancellation, member cancellation, and payment-hold expiry. The
+  cancellation must be blocked or routed through an explicit
+  reassignment/review outcome; it must not silently invalidate existing
+  passenger arrangements.
+- Releasing capacity through payment-hold expiry follows the tour's approval
+  mode: auto-approval tours may promote eligible waitlist rows, while manual
+  approval tours retain them for an operator decision. Expiry, booking
+  cancellation, payment-hold state, and the expiry outbox event must be
+  idempotently recoverable if one post-commit step fails.
+- A transport-seat rejection must not create an approval, payment hold, receipt
+  obligation, final-roster row, or success notification. Payment status and
+  roster finalization remain independent lifecycle axes.
+
+The current transport intake already records the four transport choices and
+each driver's passenger-seat offer. This rule does not define a separate
+numeric capacity for a bus/train/plane: those choices continue to consume the
+tour-wide capacity unless a future product contract adds an explicit, separate
+primary-vehicle seat pool.
+
 ## Locked product policy (phase 1)
 
 **Default Denali policy:** `approve_then_offline_pay`
