@@ -67,7 +67,9 @@ must never silently increase the tour's overall participant ceiling.
   reassignment/review outcome; it must not silently invalidate existing
   passenger arrangements. The host supplies the locked booking/capacity facts
   to the workspace capacity policy; API lifecycle services must not branch on a
-  workspace name to implement this rule.
+  workspace name to implement this rule. Whole-tour cancellation is a distinct
+  operation: it cancels every active registration, including waitlisted rows,
+  and must not promote the waitlist while the tour itself is being cancelled.
 - Releasing capacity through payment-hold expiry follows the tour's approval
   mode: auto-approval tours may promote eligible waitlist rows, while manual
   approval tours retain them for an operator decision. Expiry, booking
