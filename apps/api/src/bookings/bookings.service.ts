@@ -52,7 +52,6 @@ import {
   resolveUtcApprovedWithinDaysWindow,
 } from "./booking-list-query";
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
-import { toBookingCapacityTransportFact } from "./read-transport-kind-from-intake";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
 import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
@@ -1067,17 +1066,10 @@ export class BookingsService {
         current.tourId,
         current.registrationIntake
       );
-      const approvedTransportFacts = (await this.repository.listByTenant(auth.tenantId))
-        .filter(
-          (row) =>
-            row.tourId === current.tourId && row.status === "approved" && row.id !== current.id
-        )
-        .map((row) =>
-          toBookingCapacityTransportFact({
-            partySize: row.partySize,
-            registrationIntake: row.registrationIntake,
-          })
-        );
+      const approvedTransportFacts = await this.repository.listApprovedCapacityTransportFacts(
+        auth.tenantId,
+        current.tourId
+      );
       const occupiedApprovedPartySize = approvedTransportFacts.reduce(
         (sum, fact) => sum + fact.partySize,
         0

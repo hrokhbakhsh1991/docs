@@ -747,6 +747,16 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     return totals;
   }
 
+  async listApprovedCapacityTransportFacts(
+    tenantId: string,
+    tourId: string
+  ): Promise<BookingRepositoryCapacityTransportFact[]> {
+    assertTenantId(tenantId);
+    return withTenantRls(tenantId, (tx) =>
+      listApprovedCapacityTransportFactsInTx(tx, tenantId, tourId)
+    );
+  }
+
   async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     assertTenantId(tenantId);
     return withTenantRls(tenantId, async (tx) => {

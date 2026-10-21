@@ -576,6 +576,13 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return totals;
   }
 
+  async listApprovedCapacityTransportFacts(
+    tenantId: string,
+    tourId: string
+  ): Promise<BookingRepositoryCapacityTransportFact[]> {
+    return listApprovedCapacityTransportFacts(tenantId, tourId);
+  }
+
   async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     const row = bookingsStore.get(id);
     if (row === undefined || row.tenantId !== tenantId) {

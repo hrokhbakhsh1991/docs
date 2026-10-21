@@ -85,10 +85,13 @@ must never silently increase the tour's overall participant ceiling.
 Capacity facts are projected as minimal domain scalars at the persistence
 boundary. Booking repositories must not depend on the HTTP-contract package;
 the application service adapts repository facts to the workspace capacity
-policy contract. Generated workspace-specific adapters belong to the API
-composition root, outside the workspace-neutral Booking application directory.
-This keeps the capacity rule injectable and prevents repository or lifecycle
-code from acquiring Denali-specific imports.
+policy contract. For capacity expansion from the waitlist, the repository must
+provide a tenant- and tour-scoped read of _all_ approved capacity facts rather
+than deriving them from the capped general booking-list projection. Generated
+workspace-specific adapters belong to the API composition root, outside the
+workspace-neutral Booking application directory. This keeps capacity reads
+complete, the policy injectable, and repository/lifecycle code free of
+Denali-specific imports.
 
 The operator transport workspace must show a server-derived capacity snapshot:
 approved tour-wide participants versus `capacityMax`, approved driver passenger

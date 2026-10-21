@@ -81,6 +81,11 @@ export interface BookingRepositoryPort {
     tenantId: string,
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number>>>;
+  /** Approved party and transport capacity facts for one tour, without loading intake/list projections. */
+  listApprovedCapacityTransportFacts(
+    tenantId: string,
+    tourId: string
+  ): Promise<BookingRepositoryCapacityTransportFact[]>;
   getById(id: string, tenantId: string): Promise<BookingRecord | null>;
   /** Batch identity projection for finance lists — same tenant scope as getById. */
   getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]>;
