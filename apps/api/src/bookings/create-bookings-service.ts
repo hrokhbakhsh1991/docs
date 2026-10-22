@@ -32,6 +32,7 @@ import { recordRegistrationSloEvent } from "../observability/workspace-slo-telem
 import { readObligationOverrideFromIntake } from "@app-tour/finance-core";
 import { resolveFinancialDisplayStateForListRecord } from "./booking-list-intake-scalars";
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
+import { resolveWorkspaceBookingWaitlistPromotion } from "../workspace-booking-waitlist-promotion.ts";
 import type {
   ApproveBookingResponse,
   BookingListItem,
@@ -132,6 +133,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     capacityPolicy: dependencies.capacityPolicy,
     eventReaction,
   });
+  const waitlistPromotion = resolveWorkspaceBookingWaitlistPromotion(normalized);
   const service = createBookingsService({
     repository: getBookingsRepository(),
     authorization: getSharedAuthorization(),
@@ -158,6 +160,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
       },
     },
     serialMutation: { run: runSerialBookingMutation },
+    ...(waitlistPromotion !== undefined ? { waitlistPromotion } : {}),
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,
@@ -175,6 +178,21 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
 export async function resolveBookingsServiceForTenant(tenantId: string): Promise<BookingsService> {
   const workspaceType = await resolveBookingWorkspaceTypeForTenant(tenantId);
   return getOrCreateBookingRuntimeForWorkspaceType(workspaceType).service;
+}
+
+/** Resolve a tenant-owned release policy for a locked cancellation callback. */
+export async function createCapacityReleaseAssertionForTenant(tenantId: string) {
+  return (await resolveBookingsServiceForTenant(tenantId)).createCapacityReleaseAssertion(tenantId);
+}
+
+/** Apply the tenant's configured post-capacity-change waitlist policy, if any. */
+export async function recheckWaitlistAfterCapacityChangeForTenant(input: {
+  readonly tenantId: string;
+  readonly tourId: string;
+}): Promise<boolean> {
+  return (
+    await resolveBookingsServiceForTenant(input.tenantId)
+  ).recheckWaitlistAfterCapacityChangeForTenant(input);
 }
 
 export function resetBookingsServiceCompositionForTests(): void {

@@ -77,7 +77,12 @@ import {
   generateWorkspaceFinanceChartOfAccountsBindings,
   generateWorkspaceFinanceObligationBindings,
 } from "./domains/finance.mjs";
-import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
+import {
+  generateWorkspaceBookingBindings,
+  generateWorkspaceBookingCapabilities,
+  generateWorkspaceBookingDependencyBindings,
+  generateWorkspaceBookingEventReactionBindings,
+} from "./domains/booking.mjs";
 import {
   assertWorkspaceWalletManifest,
   generateWorkspaceWalletBindings,
@@ -181,7 +186,10 @@ import {
   assertWorkspacePricingManifest,
   generateWorkspacePricingBindings,
 } from "./domains/pricing.mjs";
-import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
+import {
+  generateWorkspaceCapabilityValidationBindings,
+  generateWorkspacePolicyValidationBindings,
+} from "./domains/validation-pipeline.mjs";
 import {
   generateWorkspaceCapabilityRevisionRegistry,
   generateWorkspaceProfileVersionRegistry,
@@ -191,7 +199,17 @@ import {
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
   "core-registry": ["sdk", "api", "web", "manifestBoundaryAllowlist"],
-  "tour-api": ["tourWrite", "canonicalTour", "publishVisibility", "publishLabelMapping", "tourListProjection", "tourListProjectionWeb", "outbox", "catalogRefResolvers", "apiWizardRules"],
+  "tour-api": [
+    "tourWrite",
+    "canonicalTour",
+    "publishVisibility",
+    "publishLabelMapping",
+    "tourListProjection",
+    "tourListProjectionWeb",
+    "outbox",
+    "catalogRefResolvers",
+    "apiWizardRules",
+  ],
   "wizard-admin": [
     "wizardMedia",
     "wizardMediaRoutes",
@@ -226,9 +244,20 @@ export const DOMAIN_OUTPUT_KEYS = {
   registration: [
     // P5.1 — portal/host register keys resolved dynamically via resolveRegistrationOutputKeys()
   ],
-  member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces", "memberPortalRegistrationStatusDisplay"],
+  member: [
+    "memberProfileCapabilities",
+    "memberPortalContracts",
+    "memberPortalSurfaces",
+    "memberPortalRegistrationStatusDisplay",
+  ],
   http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap", "productHttpHostBindings"],
-  "settings-api": ["settingsEnrichers", "equipmentIconKeyValidator", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
+  "settings-api": [
+    "settingsEnrichers",
+    "equipmentIconKeyValidator",
+    "devBootstrap",
+    "wizardTemplateEnforcement",
+    "wizardTemplatePathAliases",
+  ],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities", "ownerSettingsPanelLoaders", "workspaceCommerceFreeze"],
   finance: [
@@ -239,7 +268,12 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspaceFinanceChartOfAccounts",
     "workspaceFinanceObligation",
   ],
-  booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingEventReactions"],
+  booking: [
+    "workspaceBooking",
+    "workspaceBookingCapabilities",
+    "workspaceBookingDependencies",
+    "workspaceBookingEventReactions",
+  ],
   wallet: ["workspaceWallet", "workspaceWalletCapabilities"],
   ticketing: ["workspaceTicketing", "workspaceTicketingCapabilities"],
   engagement: ["workspaceEngagement", "workspaceEngagementCapabilities"],
@@ -248,7 +282,11 @@ export const DOMAIN_OUTPUT_KEYS = {
   integration: ["integrationCapabilities"],
   "profile-expansion": ["profileExpansionAudit"],
   "wizard-resume": ["wizardResumeAudit"],
-  equipment: ["workspaceEquipmentCapabilities", "equipmentIconKeyValidator", "workspaceEquipmentFieldModule"],
+  equipment: [
+    "workspaceEquipmentCapabilities",
+    "equipmentIconKeyValidator",
+    "workspaceEquipmentFieldModule",
+  ],
   transport: [
     "workspaceTransportCapabilities",
     "catalogTransportSnapshotReaders",
@@ -473,7 +511,8 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
     memberPortalSurfaces: generateWorkspaceMemberPortalSurfaces(manifests),
-    memberPortalRegistrationStatusDisplay: generateWorkspaceMemberRegistrationStatusDisplay(manifests),
+    memberPortalRegistrationStatusDisplay:
+      generateWorkspaceMemberRegistrationStatusDisplay(manifests),
     guestCrossSurfaceNav: generateWorkspaceGuestCrossSurfaceNav(manifests),
     guestConformance: generateWorkspaceGuestConformance(manifests),
     productionCertification: generateWorkspaceProductionCertification(manifests),
@@ -521,7 +560,10 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
 }
 
 export const OUTPUT_PATHS = {
-  sdk: join(REPO_ROOT, "packages/workspace-sdk/src/plugin/workspace-manifest-bindings.generated.ts"),
+  sdk: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/plugin/workspace-manifest-bindings.generated.ts"
+  ),
   api: join(REPO_ROOT, "apps/api/src/workspace/workspace-plugin-registry.generated.ts"),
   web: join(REPO_ROOT, "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"),
   manifestBoundaryAllowlist: MANIFEST_BOUNDARY_ALLOWLIST_PATH,
@@ -665,7 +707,7 @@ export const OUTPUT_PATHS = {
   ),
   workspaceBookingDependencies: join(
     REPO_ROOT,
-    "apps/api/src/bookings/workspace-booking-dependency-bindings.generated.ts"
+    "apps/api/src/workspace-booking-dependency-bindings.generated.ts"
   ),
   workspaceBookingEventReactions: join(
     REPO_ROOT,
@@ -747,10 +789,7 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts"
   ),
-  guestSeo: join(
-    REPO_ROOT,
-    "packages/workspace-sdk/src/catalog/workspace-guest-seo.generated.ts"
-  ),
+  guestSeo: join(REPO_ROOT, "packages/workspace-sdk/src/catalog/workspace-guest-seo.generated.ts"),
   guestLanding: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts"
@@ -789,10 +828,7 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/api/src/http/workspace-http-handler-loaders.generated.ts"
   ),
-  httpErrorMap: join(
-    REPO_ROOT,
-    "apps/api/src/middleware/workspace-http-error-map.generated.ts"
-  ),
+  httpErrorMap: join(REPO_ROOT, "apps/api/src/middleware/workspace-http-error-map.generated.ts"),
   productHttpHostBindings: join(
     REPO_ROOT,
     "apps/api/src/http/workspace-product-http-host-bindings.generated.ts"
@@ -1064,7 +1100,9 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
   }
 
   if (syncGuestWorkspaceRuntimePackageJson(manifests)) {
-    console.log("generate:workspace-registry — synced packages/guest-workspace-runtime/package.json product deps");
+    console.log(
+      "generate:workspace-registry — synced packages/guest-workspace-runtime/package.json product deps"
+    );
   }
 
   if (syncAdminWebPackageJson(manifests)) {
@@ -1072,7 +1110,9 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
   }
 
   if (syncApiPackageJson(manifests)) {
-    console.log("generate:workspace-registry — synced apps/api/package.json workspace product deps");
+    console.log(
+      "generate:workspace-registry — synced apps/api/package.json workspace product deps"
+    );
   }
 
   console.log(

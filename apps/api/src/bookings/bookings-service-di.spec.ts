@@ -58,6 +58,7 @@ function stubCapacity(): import("@app-tour/booking-http-contracts").BookingCapac
   return {
     kind: "test-capacity",
     assertCreateCapacity: () => undefined,
+    evaluateCapacityRelease: () => ({ allowed: true }),
   };
 }
 

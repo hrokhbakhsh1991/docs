@@ -50,7 +50,7 @@ import { cancelTourRegistrations } from "./tour-cancellation.service.ts";
 import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
 import { getPaymentDestinationMemberProjection } from "../settings/settings-config.service";
-import { BookingsOpsForbiddenError } from "./bookings.errors";
+import { BookingCapacityReleaseRejectedError, BookingsOpsForbiddenError } from "./bookings.errors";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -507,6 +507,13 @@ export async function handleGetBookingReceiptStatus(
 
 function mapMemberCancellationError(res: ServerResponse, error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
+  if (error instanceof BookingCapacityReleaseRejectedError) {
+    sendHttpError(res, 409, {
+      error: "member_cancellation_denied",
+      code: error.code,
+    });
+    return true;
+  }
   if (message.startsWith("MEMBER_CANCELLATION_DENIED:")) {
     sendHttpError(res, 409, {
       error: "member_cancellation_denied",

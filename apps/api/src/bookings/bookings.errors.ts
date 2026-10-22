@@ -135,6 +135,14 @@ export class BookingWaitlistCapacityAdmissionNotAllowedError extends Error {
   }
 }
 
+/** Workspace capacity policy rejected a capacity-affecting release. */
+export class BookingCapacityReleaseRejectedError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = "BookingCapacityReleaseRejectedError";
+  }
+}
+
 export class BulkApproveBatchLimitError extends Error {
   readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
 

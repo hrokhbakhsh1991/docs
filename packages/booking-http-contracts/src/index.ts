@@ -95,6 +95,10 @@ export {
 
 export {
   BOOKING_POLICY_CASE_A_GUEST_LABEL,
+  toBookingCapacityTransportFact,
+  type BookingCapacityReleaseDecision,
+  type BookingCapacityReleasePolicyContext,
+  type BookingCapacityTransportFact,
   type BookingCapacityPolicyPort,
   type BookingCreatePolicyContext,
   type BookingPublicCapabilityPort,

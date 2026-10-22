@@ -17,6 +17,7 @@ import {
   dp1OpsAuth,
   requirePaymentHoldPort,
   resetDp1MemoryHarness,
+  setDp1RegistrationApprovalMode,
 } from "./dp1-test-harness.ts";
 
 describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
@@ -25,6 +26,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
   after(() => resetDp1MemoryHarness());
 
   it("S6: expiry promotes one waitlisted guest with new hold + quote", async () => {
+    await setDp1RegistrationApprovalMode("auto");
     const guestA = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Guest A", partySize: 2, tourCapacityMax: 2 })
@@ -62,11 +64,35 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
         } | null>;
       };
     };
-    const quote = await quotePort.createCommercialQuoteApproveServiceForTests().getActiveQuote(
-      DP1_TENANT_DENALI,
-      guestB.id
-    );
+    const quote = await quotePort
+      .createCommercialQuoteApproveServiceForTests()
+      .getActiveQuote(DP1_TENANT_DENALI, guestB.id);
     assert.equal(quote?.status, "FROZEN");
+  });
+
+  it("keeps a waitlisted guest pending after expiry when registration approval is manual", async () => {
+    await setDp1RegistrationApprovalMode("manual");
+    const approvedGuest = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "Manual expiry A", partySize: 1, tourCapacityMax: 2 })
+    );
+    const waitlistedGuest = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "Manual expiry B", partySize: 1, tourCapacityMax: 2 })
+    );
+    await approveBooking(dp1OpsAuth(), approvedGuest.id);
+    await waitlistBooking(dp1OpsAuth(), waitlistedGuest.id);
+
+    const holdPort = await requirePaymentHoldPort();
+    await holdPort.extend(DP1_TENANT_DENALI, approvedGuest.id, "2030-01-01T00:00:00.000Z");
+    const expiry = await import("../../src/finance/payment-hold-expiry.ts");
+    await expiry.expirePaymentHoldForRegistration({
+      tenantId: DP1_TENANT_DENALI,
+      registrationId: approvedGuest.id,
+    });
+
+    assert.equal((await dp1GetBooking(waitlistedGuest.id)).status, "waitlisted");
+    assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedGuest.id), null);
   });
 
   it("BUG-STG-063: promotion keeps a group waitlisted when released seats do not fit its partySize", async () => {

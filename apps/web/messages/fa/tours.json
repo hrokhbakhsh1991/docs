@@ -494,6 +494,14 @@
     "transport": {
       "title": "لیست نهایی حضور",
       "description": "افراد نهایی‌شدهٔ تور؛ وضعیت پرداخت و حمل‌ونقل را از اینجا پیگیری کنید.",
+      "capacitySummary": {
+        "title": "ظرفیت تور و صندلی‌های دنگی",
+        "tour": "تور: {approved} از {capacity} نفر؛ {remaining} ظرفیت باقی‌مانده",
+        "dong": "صندلی دنگی: {used} از {offered} استفاده‌شده؛ {remaining} باقی‌مانده",
+        "waitlist": "صف انتظار دنگی: {count} نفر",
+        "pending": "در انتظار بررسی (موقت): {participants} نفر؛ دنگ {dong}؛ پیشنهاد راننده {offers}",
+        "dongSeatsExhausted": "ظرفیت کلی تور هنوز جا دارد، اما صندلی خودروهای موجود برای هیچ‌یک از گروه‌های دنگیِ در انتظار کافی نیست."
+      },
       "exportFinalRoster": "خروجی Excel لیست نهایی",
       "exporting": "در حال ساخت فایل…",
       "exportSucceeded": "فایل Excel آماده و دانلود شد.",
@@ -563,6 +571,19 @@
         "paymentDeadline": "پیگیری پرداخت تا {date}"
       },
       "settlement": {
+        "carAssignmentsTitle": "تخصیص مسافران دنگی به ماشین‌ها",
+        "carAssignmentsDescription": "هر ثبت‌نام دنگیِ تأییدشده را به یک رانندهٔ تأییدشده وصل کنید؛ هر گروه به‌اندازهٔ تعداد اعضایش صندلی می‌گیرد.",
+        "assignPassenger": "تخصیص {name} به ماشین مشترک",
+        "unassigned": "بدون تخصیص به ماشین",
+        "driverOption": "{name} — {remaining} از {seats} صندلی خالی",
+        "partySeats": "({count} نفر)",
+        "assignedSeats": "تخصیص {assigned} از {offered} صندلی",
+        "noDongPassengers": "ثبت‌نام دنگیِ تأییدشده‌ای برای تخصیص وجود ندارد.",
+        "assignmentCapacityExceeded": "این تخصیص از ظرفیت صندلی پیشنهادی راننده بیشتر است.",
+        "allocationsSaved": "تخصیص ماشین‌ها ذخیره شد.",
+        "allocationsLoadFailed": "تخصیص‌های ذخیره‌شده بارگیری نشد؛ برای جلوگیری از حذف یا بازنویسی ناخواسته، ویرایش و نهایی‌سازی غیرفعال شد.",
+        "saveAssignments": "ذخیرهٔ تخصیص‌ها",
+        "rosterAlreadyFrozen": "فهرست ماشین‌ها نهایی شده و تخصیص‌ها دیگر قابل تغییر نیستند.",
         "unitPerSeat": "مبلغ هر صندلی (تومان)",
         "unitAmountHint": "یک مبلغ صحیح و بزرگ‌تر از صفر وارد کنید.",
         "unitAmountInvalid": "پیش از نهایی‌سازی فهرست خودرو، یک مبلغ صحیح و بزرگ‌تر از صفر وارد کنید.",

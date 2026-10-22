@@ -10,6 +10,10 @@ import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancella
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import { BookingNotFoundError } from "../bookings/bookings.errors.ts";
 import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
+import {
+  createCapacityReleaseAssertionForTenant,
+  recheckWaitlistAfterCapacityChangeForTenant,
+} from "../bookings/create-bookings-service.ts";
 import { runPostCancelSideEffects } from "../bookings/post-cancel-side-effects.ts";
 import type { BookingRecord } from "../bookings/bookings.types.ts";
 import {
@@ -122,6 +126,7 @@ async function executeMemberCancel(
   booking: BookingRecord
 ): Promise<MemberCancellationResult> {
   const previousStatus = booking.status;
+  const assertCapacityInTx = await createCapacityReleaseAssertionForTenant(auth.tenantId);
 
   await getBookingsRepository().cancelBooking({
     bookingId: booking.id,
@@ -133,6 +138,7 @@ async function executeMemberCancel(
     cancellationReasonCode: "member_withdrawal",
     cancellationApprovedByUserId: auth.userId,
     cancellationCorrelationId: `registration.cancelled:${booking.id}`,
+    assertCapacityInTx,
   });
 
   const refundStatus =
@@ -153,6 +159,12 @@ async function executeMemberCancel(
     // The lifecycle transition is already persisted. Never turn a successful
     // cancellation into a retry-shaped 500 when Finance/settlement needs review.
     settlementStatus = "manual_review";
+  }
+  if (previousStatus === "approved") {
+    await recheckWaitlistAfterCapacityChangeForTenant({
+      tenantId: auth.tenantId,
+      tourId: booking.tourId,
+    });
   }
 
   return {

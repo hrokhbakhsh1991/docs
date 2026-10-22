@@ -37,13 +37,17 @@ import {
 import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
+  toBookingCapacityTransportFact,
 } from "./read-transport-kind-from-intake";
 import {
   enrichInMemoryBookingListRecord,
   resolveFinancialDisplayStateForListRecord,
 } from "./booking-list-intake-scalars";
 import { finalizeBookingTourChips } from "./booking-tour-chips";
-import type { BookingRepositoryPort } from "./ports/booking-repository.port";
+import type {
+  BookingRepositoryCapacityTransportFact,
+  BookingRepositoryPort,
+} from "./ports/booking-repository.port";
 import {
   BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
@@ -67,6 +71,23 @@ type RepositorySnapshot = {
 
 let bookingsStore = new Map<string, BookingRecord>();
 let outboxStore: BookingOutboxRecord[] = [];
+
+function listApprovedCapacityTransportFacts(
+  tenantId: string,
+  tourId: string
+): BookingRepositoryCapacityTransportFact[] {
+  return [...bookingsStore.values()]
+    .filter(
+      (row) => row.tenantId === tenantId && row.tourId === tourId && row.status === "approved"
+    )
+    .map((row) =>
+      toBookingCapacityTransportFact({
+        partySize: row.partySize,
+        registrationIntake: row.registrationIntake,
+      })
+    );
+}
+
 /** Serialize memory approve TX so occupancy re-read is race-safe under parallel awaits. */
 let approveTxChain: Promise<void> = Promise.resolve();
 
@@ -555,6 +576,13 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return totals;
   }
 
+  async listApprovedCapacityTransportFacts(
+    tenantId: string,
+    tourId: string
+  ): Promise<BookingRepositoryCapacityTransportFact[]> {
+    return listApprovedCapacityTransportFacts(tenantId, tourId);
+  }
+
   async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     const row = bookingsStore.get(id);
     if (row === undefined || row.tenantId !== tenantId) {
@@ -847,6 +875,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
     outboxEvent?: {
       readonly eventType: string;
@@ -855,56 +884,57 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     };
     initialStatus?: "pending" | "waitlisted";
   }): Promise<BookingRecord> {
-    let occupiedApprovedPartySize = 0;
-    for (const row of bookingsStore.values()) {
-      if (
-        row.tenantId === input.tenantId &&
-        row.tourId === input.body.tourId &&
-        row.status === "approved"
-      ) {
-        occupiedApprovedPartySize += row.partySize;
-      }
-    }
-    if (input.assertCapacityInTx !== undefined) {
-      await Promise.resolve(
-        input.assertCapacityInTx({
-          tourId: input.body.tourId,
-          partySize: input.body.partySize,
-          occupiedApprovedPartySize,
-        })
+    return withMemoryApproveTx(async () => {
+      const approvedTransportFacts = listApprovedCapacityTransportFacts(
+        input.tenantId,
+        input.body.tourId
       );
-    }
-    const now = new Date().toISOString();
-    const record: BookingRecord = {
-      id: randomUUID(),
-      tenantId: input.tenantId,
-      tourId: input.body.tourId,
-      tourTitle: input.body.tourTitle,
-      guestLabel: input.body.guestLabel,
-      guestEmail: input.body.guestEmail ?? null,
-      guestPhone: input.body.guestPhone ?? null,
-      partySize: input.body.partySize,
-      status: input.initialStatus ?? "pending",
-      paymentStatus: input.body.paymentStatus ?? "unpaid",
-      departureAt: input.body.departureAt,
-      submittedAt: now,
-      submittedByUserId: input.submittedByUserId,
-      approvedAt: null,
-      ...(input.body.registrationIntake !== undefined
-        ? { registrationIntake: input.body.registrationIntake }
-        : {}),
-    };
-    bookingsStore.set(record.id, record);
-    if (input.outboxEvent !== undefined) {
-      appendBookingOutboxEventIfAbsent({
+      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
+        (sum, fact) => sum + fact.partySize,
+        0
+      );
+      if (input.assertCapacityInTx !== undefined) {
+        await Promise.resolve(
+          input.assertCapacityInTx({
+            tourId: input.body.tourId,
+            partySize: input.body.partySize,
+            occupiedApprovedPartySize,
+            approvedTransportFacts,
+          })
+        );
+      }
+      const now = new Date().toISOString();
+      const record: BookingRecord = {
+        id: randomUUID(),
         tenantId: input.tenantId,
-        aggregateId: record.id,
-        eventType: input.outboxEvent.eventType,
-        payload: { ...input.outboxEvent.payload, bookingId: record.id },
-        domainEventId: `${input.outboxEvent.eventType}:${record.id}`,
-      });
-    }
-    return cloneBooking(record);
+        tourId: input.body.tourId,
+        tourTitle: input.body.tourTitle,
+        guestLabel: input.body.guestLabel,
+        guestEmail: input.body.guestEmail ?? null,
+        guestPhone: input.body.guestPhone ?? null,
+        partySize: input.body.partySize,
+        status: input.initialStatus ?? "pending",
+        paymentStatus: input.body.paymentStatus ?? "unpaid",
+        departureAt: input.body.departureAt,
+        submittedAt: now,
+        submittedByUserId: input.submittedByUserId,
+        approvedAt: null,
+        ...(input.body.registrationIntake !== undefined
+          ? { registrationIntake: input.body.registrationIntake }
+          : {}),
+      };
+      bookingsStore.set(record.id, record);
+      if (input.outboxEvent !== undefined) {
+        appendBookingOutboxEventIfAbsent({
+          tenantId: input.tenantId,
+          aggregateId: record.id,
+          eventType: input.outboxEvent.eventType,
+          payload: { ...input.outboxEvent.payload, bookingId: record.id },
+          domainEventId: `${input.outboxEvent.eventType}:${record.id}`,
+        });
+      }
+      return cloneBooking(record);
+    });
   }
 
   async approveWithOutbox(input: {
@@ -916,6 +946,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
     return withMemoryApproveTx(async () => {
@@ -929,21 +960,20 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           throw new BookingStatusConflictError(current.status);
         }
 
-        let occupiedApprovedPartySize = 0;
-        for (const row of bookingsStore.values()) {
-          if (
-            row.tenantId === input.tenantId &&
-            row.tourId === current.tourId &&
-            row.status === "approved"
-          ) {
-            occupiedApprovedPartySize += row.partySize;
-          }
-        }
+        const approvedTransportFacts = listApprovedCapacityTransportFacts(
+          input.tenantId,
+          current.tourId
+        );
+        const occupiedApprovedPartySize = approvedTransportFacts.reduce(
+          (sum, fact) => sum + fact.partySize,
+          0
+        );
         if (input.assertCapacityInTx !== undefined) {
           await Promise.resolve(
             input.assertCapacityInTx({
               booking: cloneBooking(current),
               occupiedApprovedPartySize,
+              approvedTransportFacts,
             })
           );
         }
@@ -999,6 +1029,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord[]> {
     if (input.ids.length > input.maxBatch) {
@@ -1018,30 +1049,30 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
             continue;
           }
 
-          let occupiedApprovedPartySize = 0;
-          for (const row of bookingsStore.values()) {
-            if (
-              row.tenantId === input.tenantId &&
-              row.tourId === current.tourId &&
-              row.status === "approved"
-            ) {
-              occupiedApprovedPartySize += row.partySize;
-            }
-          }
-          // Count earlier approvals in this same bulk TX.
-          for (const row of approved) {
-            if (row.tourId === current.tourId) {
-              occupiedApprovedPartySize += row.partySize;
-            }
-          }
+          const approvedTransportFacts = listApprovedCapacityTransportFacts(
+            input.tenantId,
+            current.tourId
+          );
+          const occupiedApprovedPartySize = approvedTransportFacts.reduce(
+            (sum, fact) => sum + fact.partySize,
+            0
+          );
 
           if (input.assertCapacityInTx !== undefined) {
-            await Promise.resolve(
-              input.assertCapacityInTx({
-                booking: cloneBooking(current),
-                occupiedApprovedPartySize,
-              })
-            );
+            try {
+              await Promise.resolve(
+                input.assertCapacityInTx({
+                  booking: cloneBooking(current),
+                  occupiedApprovedPartySize,
+                  approvedTransportFacts,
+                })
+              );
+            } catch (error) {
+              if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
+                continue;
+              }
+              throw error;
+            }
           }
 
           const approvedAt = new Date().toISOString();
@@ -1160,58 +1191,80 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
+    alreadyWithinSerialMutation?: boolean;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+    }) => void;
   }): Promise<BookingRecord> {
-    const current = bookingsStore.get(input.bookingId);
-    if (current === undefined || current.tenantId !== input.tenantId) {
-      throw new BookingNotFoundError();
-    }
-    if (!canTransitionBookingStatus(current.status, "cancelled")) {
-      throw new BookingStatusConflictError(current.status);
-    }
-    const cancelledAt = new Date().toISOString();
-    const updated: BookingRecord = {
-      ...current,
-      status: "cancelled",
-      approvedAt: null,
-      paymentDueAt: null,
-      finalizationStatus: "not_final",
-      finalizedAt: null,
-      finalizedByUserId: null,
-      cancellationStatus: input.cancellationStatus ?? "applied",
-      cancellationReasonCode: input.cancellationReasonCode ?? null,
-      cancellationReasonNote: input.cancellationReasonNote ?? null,
-      cancellationRequestedAt: cancelledAt,
-      cancellationApprovedAt: cancelledAt,
-      cancellationApprovedByUserId: input.cancellationApprovedByUserId ?? null,
-      cancellationCorrelationId: input.cancellationCorrelationId ?? null,
-      ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
+    const cancel = async () => {
+      const current = bookingsStore.get(input.bookingId);
+      if (current === undefined || current.tenantId !== input.tenantId) {
+        throw new BookingNotFoundError();
+      }
+      if (!canTransitionBookingStatus(current.status, "cancelled")) {
+        throw new BookingStatusConflictError(current.status);
+      }
+      if (input.assertCapacityInTx !== undefined) {
+        input.assertCapacityInTx({
+          booking: cloneBooking(current),
+          bookingCapacityFact: toBookingCapacityTransportFact({
+            partySize: current.partySize,
+            registrationIntake: current.registrationIntake,
+          }),
+          approvedTransportFacts: listApprovedCapacityTransportFacts(
+            input.tenantId,
+            current.tourId
+          ),
+        });
+      }
+      const cancelledAt = new Date().toISOString();
+      const updated: BookingRecord = {
+        ...current,
+        status: "cancelled",
+        approvedAt: null,
+        paymentDueAt: null,
+        finalizationStatus: "not_final",
+        finalizedAt: null,
+        finalizedByUserId: null,
+        cancellationStatus: input.cancellationStatus ?? "applied",
+        cancellationReasonCode: input.cancellationReasonCode ?? null,
+        cancellationReasonNote: input.cancellationReasonNote ?? null,
+        cancellationRequestedAt: cancelledAt,
+        cancellationApprovedAt: cancelledAt,
+        cancellationApprovedByUserId: input.cancellationApprovedByUserId ?? null,
+        cancellationCorrelationId: input.cancellationCorrelationId ?? null,
+        ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
+      };
+      bookingsStore.set(updated.id, updated);
+      outboxStore.push({
+        id: randomUUID(),
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: updated.id,
+        eventType: input.outboxEvent,
+        payload: {
+          bookingId: updated.id,
+          tourId: updated.tourId,
+          status: updated.status,
+          cancelledAt,
+          previousStatus: current.status,
+          previousFinalizationStatus: current.finalizationStatus ?? "not_final",
+          previousPaymentStatus: current.paymentStatus,
+          partySize: current.partySize,
+          guestUserId: updated.submittedByUserId,
+          ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
+          ...(input.cancellationReasonCode !== undefined
+            ? { reasonCode: input.cancellationReasonCode }
+            : {}),
+        },
+        correlationId: input.cancellationCorrelationId,
+        domainEventId: input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
+        createdAt: cancelledAt,
+      });
+      return cloneBooking(updated);
     };
-    bookingsStore.set(updated.id, updated);
-    outboxStore.push({
-      id: randomUUID(),
-      tenantId: input.tenantId,
-      aggregateType: "registration",
-      aggregateId: updated.id,
-      eventType: input.outboxEvent,
-      payload: {
-        bookingId: updated.id,
-        tourId: updated.tourId,
-        status: updated.status,
-        cancelledAt,
-        previousStatus: current.status,
-        previousFinalizationStatus: current.finalizationStatus ?? "not_final",
-        previousPaymentStatus: current.paymentStatus,
-        partySize: current.partySize,
-        guestUserId: updated.submittedByUserId,
-        ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
-        ...(input.cancellationReasonCode !== undefined
-          ? { reasonCode: input.cancellationReasonCode }
-          : {}),
-      },
-      correlationId: input.cancellationCorrelationId,
-      domainEventId: input.cancellationCorrelationId ?? `registration.cancelled:${updated.id}`,
-      createdAt: cancelledAt,
-    });
-    return cloneBooking(updated);
+    return input.alreadyWithinSerialMutation === true ? cancel() : withMemoryApproveTx(cancel);
   }
 }

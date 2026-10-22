@@ -50,12 +50,13 @@ function trackingPort(
   options: {
     readonly approvedOccupancy?: number;
     readonly createCapacityRace?: boolean;
+    readonly createCapacityError?: string;
     readonly autoApproveStatus?: string;
   } = {}
 ): {
   readonly port: BookingPublicPort;
   readonly createCalls: number[];
-  readonly waitlistCalls: Array<{ id: string; eventType?: string }>;
+  readonly waitlistCalls: Array<{ id: string; eventType?: string; approvalPrompt?: string }>;
   readonly autoCalls: Array<{
     bookingId: string;
     actorUserId: string;
@@ -99,12 +100,18 @@ function trackingPort(
       if (options.createCapacityRace) {
         throw new Error("BOOKING_CAPACITY_REJECTED: occupied=12 partySize=1 capacityMax=12");
       }
+      if (options.createCapacityError !== undefined) {
+        throw new Error(options.createCapacityError);
+      }
       return { id: "booking-auto", status: "pending" };
     },
     async createWaitlistedBooking(input) {
       waitlistCalls.push({
         id: "booking-waitlisted",
         ...(input.outboxEvent !== undefined ? { eventType: input.outboxEvent.eventType } : {}),
+        ...(typeof input.outboxEvent?.payload.approvalPrompt === "string"
+          ? { approvalPrompt: input.outboxEvent.payload.approvalPrompt }
+          : {}),
       });
       return { id: "booking-waitlisted", status: "waitlisted" };
     },
@@ -347,6 +354,26 @@ describe("registration-auto-approve — Denali Phase 3", () => {
     assert.equal(created.status, "waitlisted");
     assert.equal(createCalls.length, 1);
     assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
+  });
+
+  it("DN-P3-R09 waitlists dong when car seats are exhausted but tour places remain", async () => {
+    const { port, createCalls, waitlistCalls } = trackingPort({
+      approvedOccupancy: 5,
+      createCapacityError:
+        "BOOKING_CAPACITY_REJECTED: occupied=5 partySize=1 capacityMax=5 constraint=personal_car_dong",
+    });
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: { tourId: TOUR_ID, contact: { fullName: "Dong Waitlist Guest" }, partySize: 1 },
+      store: storeWithPolicy("auto"),
+      bookingPort: port,
+    });
+    assert.equal(created.status, "waitlisted");
+    assert.equal(createCalls.length, 1);
+    assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
+    assert.match(waitlistCalls[0]?.approvalPrompt ?? "", /صندلی خودرو/);
   });
 
   it("DN-P3-R07 requests capacity fallback when auto-approval loses the final-seat race", async () => {

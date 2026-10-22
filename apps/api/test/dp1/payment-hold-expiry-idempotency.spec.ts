@@ -19,6 +19,7 @@ import {
   dp1OpsAuth,
   requirePaymentHoldPort,
   resetDp1MemoryHarness,
+  setDp1RegistrationApprovalMode,
 } from "./dp1-test-harness.ts";
 
 async function expireTwice(registrationId: string): Promise<void> {
@@ -58,6 +59,7 @@ describe("DP1-F payment hold expiry idempotency", { concurrency: false }, () => 
   });
 
   it("S20: at most one waitlist promote per freed seat on double expiry", async () => {
+    await setDp1RegistrationApprovalMode("auto");
     const approvedGuest = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Expire A", partySize: 2, tourCapacityMax: 2 })

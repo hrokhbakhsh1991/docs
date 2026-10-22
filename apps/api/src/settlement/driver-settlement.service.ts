@@ -74,6 +74,7 @@ async function loadOperationalParticipants(
     status: row.status,
     transportKind: row.transportKind ?? null,
     personalCarOccupants: row.personalCarOccupants ?? null,
+    partySize: row.partySize,
   }));
 }
 
@@ -145,7 +146,11 @@ export async function freezeTourRosterAndGenerateSettlements(
   const settlements: DriverSettlement[] = [];
   for (const driver of drivers) {
     const offeredSeats = driver.personalCarOccupants ?? 0;
-    const assignedPassengers = countAssignedPassengers(allocInputs, driver.registrationId);
+    const assignedPassengers = countAssignedPassengers(
+      allocInputs,
+      driver.registrationId,
+      participants
+    );
     const calc = calculateDriverSettlement({
       offeredSeats,
       assignedPassengers,
@@ -216,7 +221,10 @@ export async function confirmDriverSettlement(
 ): Promise<DriverSettlement> {
   const row = findSettlementById(auth.tenantId, settlementId);
   if (row === null || row.tourId !== tourId) {
-    throw Object.assign(new Error("Settlement not found"), { code: "SETTLEMENT_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Settlement not found"), {
+      code: "SETTLEMENT_NOT_FOUND",
+      statusCode: 404,
+    });
   }
   if (row.status === "confirmed") {
     return row;
@@ -234,10 +242,17 @@ export async function approveDriverSettlementPayable(
   auth: BookingActorContext,
   tourId: string,
   settlementId: string
-): Promise<{ readonly settlement: DriverSettlement; readonly payable: DriverPayable; readonly replay: boolean }> {
+): Promise<{
+  readonly settlement: DriverSettlement;
+  readonly payable: DriverPayable;
+  readonly replay: boolean;
+}> {
   let settlement = findSettlementById(auth.tenantId, settlementId);
   if (settlement === null || settlement.tourId !== tourId) {
-    throw Object.assign(new Error("Settlement not found"), { code: "SETTLEMENT_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Settlement not found"), {
+      code: "SETTLEMENT_NOT_FOUND",
+      statusCode: 404,
+    });
   }
 
   if (settlement.status === "draft") {
@@ -289,7 +304,12 @@ export async function approveDriverSettlementPayable(
     financePayableId: payableId,
     approvedByUserId: auth.userId,
     finalizedAt: nowIso,
-    auditAppend: { at: nowIso, actorUserId: auth.userId, action: "payable_opened", detail: payableId },
+    auditAppend: {
+      at: nowIso,
+      actorUserId: auth.userId,
+      action: "payable_opened",
+      detail: payableId,
+    },
   });
 
   return { settlement: updated, payable, replay: false };
@@ -299,10 +319,17 @@ export async function completeDriverPayable(
   auth: BookingActorContext,
   payableId: string,
   input: { readonly evidenceNote?: string; readonly evidenceFileKey?: string }
-): Promise<{ readonly payable: DriverPayable; readonly settlement: DriverSettlement; readonly replay: boolean }> {
+): Promise<{
+  readonly payable: DriverPayable;
+  readonly settlement: DriverSettlement;
+  readonly replay: boolean;
+}> {
   const row = findPayableById(auth.tenantId, payableId);
   if (row === null) {
-    throw Object.assign(new Error("Payable not found"), { code: "DRIVER_PAYABLE_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Payable not found"), {
+      code: "DRIVER_PAYABLE_NOT_FOUND",
+      statusCode: 404,
+    });
   }
 
   if (row.status === "Completed") {
@@ -387,11 +414,18 @@ export async function createCorrectionSettlement(
   auth: BookingActorContext,
   tourId: string,
   originalSettlementId: string,
-  input: { readonly billableQuantity: number; readonly unitAmountMinor: string; readonly currency: string }
+  input: {
+    readonly billableQuantity: number;
+    readonly unitAmountMinor: string;
+    readonly currency: string;
+  }
 ): Promise<DriverSettlement> {
   const original = findSettlementById(auth.tenantId, originalSettlementId);
   if (original === null || original.tourId !== tourId) {
-    throw Object.assign(new Error("Settlement not found"), { code: "SETTLEMENT_NOT_FOUND", statusCode: 404 });
+    throw Object.assign(new Error("Settlement not found"), {
+      code: "SETTLEMENT_NOT_FOUND",
+      statusCode: 404,
+    });
   }
   if (original.status !== "paid" && original.status !== "payable") {
     throw Object.assign(new Error("Correction requires paid or payable settlement"), {
@@ -481,7 +515,11 @@ export async function recalculateDraftSettlementsBeforePayable(
       if (row.driverRegistrationId !== driver.registrationId || row.status !== "draft") {
         continue;
       }
-      const assignedPassengers = countAssignedPassengers(allocInputs, driver.registrationId);
+      const assignedPassengers = countAssignedPassengers(
+        allocInputs,
+        driver.registrationId,
+        participants
+      );
       const calc = calculateDriverSettlement({
         offeredSeats: row.offeredSeats,
         assignedPassengers,

@@ -12,7 +12,7 @@ import {
   type WorkspaceBookingEventReactionPort,
 } from "@app-tour/booking-http-contracts";
 
-import { assertDenaliCreateCapacity } from "./availability";
+import { assertDenaliCreateCapacity, evaluateDenaliCapacityRelease } from "./availability";
 import { DEFAULT_DENALI_CAPACITY_RULE } from "./capacity-rule";
 import { assertDenaliCreateValid } from "./validation";
 
@@ -30,6 +30,8 @@ export class DenaliBookingCapacityPolicyAdapter implements BookingCapacityPolicy
   assertCreateCapacity(ctx: BookingCreatePolicyContext): void {
     assertDenaliCreateCapacity(ctx, DEFAULT_DENALI_CAPACITY_RULE);
   }
+
+  evaluateCapacityRelease = evaluateDenaliCapacityRelease;
 }
 
 export class DenaliBookingValidationPolicyAdapter implements BookingValidationPolicyPort {

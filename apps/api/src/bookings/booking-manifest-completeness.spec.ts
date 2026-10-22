@@ -88,7 +88,10 @@ describe("BK-B1.8 booking manifest completeness", () => {
           wt.trim().toLowerCase() in WORKSPACE_BOOKING_DEPENDENCY_BINDINGS,
           `${m.id} workspaceType ${wt} should have dependency bindings`
         );
-        assert.equal(resolveBookingWorkspaceDependencies(wt).workspaceType, wt.trim().toLowerCase());
+        assert.equal(
+          resolveBookingWorkspaceDependencies(wt).workspaceType,
+          wt.trim().toLowerCase()
+        );
       }
     }
 
@@ -96,7 +99,7 @@ describe("BK-B1.8 booking manifest completeness", () => {
   });
 
   it("generated dependency / eventReaction artifacts contain manifest export names; web ops binder deleted", () => {
-    const depsSrc = readGenerated("workspace-booking-dependency-bindings.generated.ts");
+    const depsSrc = readGenerated("../workspace-booking-dependency-bindings.generated.ts");
     const reactionSrc = readGenerated("workspace-booking-event-reaction-bindings.generated.ts");
     const gateSrc = readGenerated("workspace-booking-bindings.generated.ts");
 
@@ -146,7 +149,10 @@ describe("BK-B1.8 booking manifest completeness", () => {
       // Dual-SOT: packaging still declares opsManifest; runtime is capabilities.bookingOps.
       if (booking.opsManifest !== undefined) {
         const ops = booking.opsManifest;
-        assert.ok(typeof ops.module === "string" && ops.module.length > 0, `${m.id} opsManifest.module`);
+        assert.ok(
+          typeof ops.module === "string" && ops.module.length > 0,
+          `${m.id} opsManifest.module`
+        );
         assert.ok(
           typeof ops.defaultExport === "string" && ops.defaultExport.length > 0,
           `${m.id} opsManifest.defaultExport`
@@ -179,10 +185,7 @@ describe("BK-B1.8 booking manifest completeness", () => {
   });
 
   it("hand-written registries have no workspace package imports", () => {
-    for (const rel of [
-      "booking-dependency-registry.ts",
-      "booking-event-reaction-registry.ts",
-    ]) {
+    for (const rel of ["booking-dependency-registry.ts", "booking-event-reaction-registry.ts"]) {
       const src = readGenerated(rel);
       assert.doesNotMatch(src, /@app-tour\/workspace-/);
     }
@@ -196,9 +199,7 @@ describe("BK-B1.8 booking manifest completeness", () => {
     ];
     const files = readdirSync(here).filter(
       (name) =>
-        name.endsWith(".ts") &&
-        !name.endsWith(".generated.ts") &&
-        !name.endsWith(".spec.ts")
+        name.endsWith(".ts") && !name.endsWith(".generated.ts") && !name.endsWith(".spec.ts")
     );
     for (const name of files) {
       const src = readGenerated(name);

@@ -4,7 +4,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
+import type {
+  BookingCapacityReleasePolicyContext,
+  BookingCreatePolicyContext,
+} from "@app-tour/booking-http-contracts";
 
 import {
   DEFAULT_DENALI_CAPACITY_RULE,
@@ -20,11 +23,10 @@ import {
   decideDenaliReject,
   decideDenaliWaitlist,
   evaluateDenaliCreateCapacity,
+  evaluateDenaliCapacityRelease,
 } from "../src/booking/index.ts";
 
-function ctx(
-  overrides: Partial<BookingCreatePolicyContext> = {}
-): BookingCreatePolicyContext {
+function ctx(overrides: Partial<BookingCreatePolicyContext> = {}): BookingCreatePolicyContext {
   return {
     tenantId: "ten-1",
     tourId: "tour-1",
@@ -67,23 +69,131 @@ describe("booking-capacity-policy.spec.ts — Denali Phase 1", () => {
     const adapter = new DenaliBookingValidationPolicyAdapter();
     adapter.assertCreateValid(ctx());
     assert.throws(
-      () => assertDenaliCreateValid(ctx({ partySize: DEFAULT_DENALI_CAPACITY_RULE.maxPartySize + 1 })),
+      () =>
+        assertDenaliCreateValid(ctx({ partySize: DEFAULT_DENALI_CAPACITY_RULE.maxPartySize + 1 })),
       /partySize must be <=/
     );
     assert.throws(
       () => assertDenaliCreateValid(ctx({ departureAt: "   " })),
       /departureAt is required/
     );
-    assert.throws(
-      () => assertDenaliCreateValid(ctx({ partySize: 1.5 })),
-      /integer/
-    );
+    assert.throws(() => assertDenaliCreateValid(ctx({ partySize: 1.5 })), /integer/);
   });
 
   it("DN-B1-C05 missing capacity max still rejected", () => {
     assert.throws(
       () => assertDenaliCreateCapacity(ctx({ tourCapacityMax: null })),
       /tourCapacityMax required/
+    );
+  });
+
+  it("DN-B1-C06 dong registrations consume only approved personal-car passenger seats", () => {
+    const carOffer = {
+      partySize: 1,
+      transportKind: "personal_car",
+      offeredPassengerSeats: 2,
+    } as const;
+    const oneDongPassenger = {
+      partySize: 1,
+      transportKind: "no_car_dong",
+      offeredPassengerSeats: null,
+    } as const;
+    const request = {
+      registrationIntake: { transport: { kind: "no_car_dong" } },
+      approvedTransportFacts: [carOffer, oneDongPassenger],
+      occupiedApprovedPartySize: 2,
+      partySize: 1,
+      tourCapacityMax: 10,
+    } satisfies Partial<BookingCreatePolicyContext>;
+
+    assert.equal(evaluateDenaliCreateCapacity(ctx(request)).decision, "accept");
+    assert.throws(
+      () =>
+        assertDenaliCreateCapacity(ctx({ ...request, partySize: 2, occupiedApprovedPartySize: 2 })),
+      /constraint=personal_car_dong/
+    );
+  });
+
+  it("DN-B1-C07 non-dong transport does not consume dong seats but still respects tour ceiling", () => {
+    const noDongSeats = {
+      registrationIntake: { transport: { kind: "no_car_acquaintance" } },
+      approvedTransportFacts: [],
+      occupiedApprovedPartySize: 1,
+      partySize: 1,
+    } satisfies Partial<BookingCreatePolicyContext>;
+    assert.equal(evaluateDenaliCreateCapacity(ctx(noDongSeats)).decision, "accept");
+    assert.equal(
+      evaluateDenaliCreateCapacity(
+        ctx({
+          ...noDongSeats,
+          occupiedApprovedPartySize: 10,
+        })
+      ).decision,
+      "deny"
+    );
+  });
+
+  it("DN-B1-C08 overbooking configuration bypasses neither global nor dong seats", () => {
+    const request = ctx({
+      registrationIntake: { transport: { kind: "no_car_dong" } },
+      approvedTransportFacts: [
+        { partySize: 1, transportKind: "personal_car", offeredPassengerSeats: 1 },
+        { partySize: 1, transportKind: "no_car_dong", offeredPassengerSeats: null },
+      ],
+      occupiedApprovedPartySize: 2,
+      partySize: 1,
+      tourCapacityMax: 10,
+    });
+    assert.equal(
+      evaluateDenaliCreateCapacity(ctx(request), {
+        ...DEFAULT_DENALI_CAPACITY_RULE,
+        overbookAllowed: true,
+      }).decision,
+      "deny"
+    );
+    assert.equal(
+      evaluateDenaliCreateCapacity(
+        ctx({
+          occupiedApprovedPartySize: 10,
+          partySize: 1,
+          registrationIntake: { transport: { kind: "primary" } },
+        }),
+        { ...DEFAULT_DENALI_CAPACITY_RULE, overbookAllowed: true }
+      ).decision,
+      "deny"
+    );
+  });
+
+  it("DN-B1-C09 car cancellation preserves confirmed dong seats, but releases surplus offers", () => {
+    const booking: BookingCapacityReleasePolicyContext["booking"] = {
+      partySize: 1,
+      transportKind: "personal_car",
+      offeredPassengerSeats: 2,
+    };
+    const approvedTransportFacts: BookingCapacityReleasePolicyContext["approvedTransportFacts"] = [
+      booking,
+      { partySize: 1, transportKind: "personal_car", offeredPassengerSeats: 2 },
+      { partySize: 3, transportKind: "no_car_dong", offeredPassengerSeats: null },
+    ];
+    const release = (facts: BookingCapacityReleasePolicyContext["approvedTransportFacts"]) =>
+      evaluateDenaliCapacityRelease({
+        bookingStatus: "approved",
+        booking,
+        approvedTransportFacts: facts,
+      });
+
+    assert.deepEqual(release(approvedTransportFacts), {
+      allowed: false,
+      reasonCode: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",
+    });
+    assert.deepEqual(release(approvedTransportFacts.slice(0, 2)), { allowed: true });
+    assert.deepEqual(
+      evaluateDenaliCapacityRelease({
+        bookingStatus: "pending",
+        booking,
+        approvedTransportFacts,
+      }),
+      { allowed: true }
     );
   });
 });
@@ -107,12 +217,7 @@ describe("booking-operator-decisions.spec.ts — Denali Phase 1", () => {
       partySize: 2,
     });
     assert.throws(
-      () =>
-        decideDenaliApprove(
-          pending,
-          {},
-          ctx({ occupiedApprovedPartySize: 9, partySize: 2 })
-        ),
+      () => decideDenaliApprove(pending, {}, ctx({ occupiedApprovedPartySize: 9, partySize: 2 })),
       /BOOKING_CAPACITY_REJECTED/
     );
   });
@@ -152,7 +257,11 @@ describe("booking-operator-decisions.spec.ts — Denali Phase 1", () => {
     });
     assert.throws(
       () =>
-        decideDenaliWaitlist(pending, {}, { ...DEFAULT_DENALI_CAPACITY_RULE, waitlistEnabled: false }),
+        decideDenaliWaitlist(
+          pending,
+          {},
+          { ...DEFAULT_DENALI_CAPACITY_RULE, waitlistEnabled: false }
+        ),
       /WAITLIST_DISABLED/
     );
   });

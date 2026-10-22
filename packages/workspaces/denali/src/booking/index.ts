@@ -18,16 +18,14 @@ export {
   type BuildDenaliBookingCreatePolicyContextInput,
 } from "./build-create-policy-context";
 
-export {
-  DEFAULT_DENALI_CAPACITY_RULE,
-  type DenaliCapacityRule,
-} from "./capacity-rule";
+export { DEFAULT_DENALI_CAPACITY_RULE, type DenaliCapacityRule } from "./capacity-rule";
 
 export {
   assertDenaliCreateCapacity,
   assertDenaliTransitionCapacity,
   computeDenaliAvailability,
   denaliWaitlistAllowed,
+  evaluateDenaliCapacityRelease,
   evaluateDenaliCreateCapacity,
   type DenaliAvailability,
   type DenaliCreateCapacityDecision,
@@ -63,10 +61,7 @@ export {
   type DenaliOperatorDecisionMeta,
 } from "./operator-decisions";
 
-export {
-  denaliPartySizeFromParticipants,
-  type DenaliBookingParticipant,
-} from "./participant";
+export { denaliPartySizeFromParticipants, type DenaliBookingParticipant } from "./participant";
 
 export {
   DENALI_BOOKING_STATUS_PIPELINE,

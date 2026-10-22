@@ -11,10 +11,7 @@ export type DenaliCapacityRule = {
    * operators may also transition pending → waitlisted through the ops path.
    */
   readonly waitlistEnabled: boolean;
-  /**
-   * When true, approve/promote may exceed tourCapacityMax (not used on create).
-   * Default false — fail closed.
-   */
+  /** Legacy generic flag. Denali always treats capacityMax as a hard ceiling. */
   readonly overbookAllowed: boolean;
 };
 

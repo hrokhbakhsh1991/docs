@@ -80,7 +80,11 @@ describe("booking runtime capability levels (executable)", { concurrency: false 
         assertBookingRuntimeCapabilitiesMatchAdapters("denali", missingValidation, {
           publicBooking: { kind: "x", supportsPublicCreate: () => true },
           validationPolicy: { kind: "x", assertCreateValid: () => undefined },
-          capacityPolicy: { kind: "x", assertCreateCapacity: () => undefined },
+          capacityPolicy: {
+            kind: "x",
+            assertCreateCapacity: () => undefined,
+            evaluateCapacityRelease: () => ({ allowed: true }),
+          },
           eventReaction: {
             kind: "x",
             approveOutboxEventType: "registration.approved",
@@ -149,7 +153,11 @@ describe("booking runtime capability levels (executable)", { concurrency: false 
         assertBookingRuntimeCapabilitiesMatchAdapters("denali", hollowPublic, {
           publicBooking: { kind: "hollow", supportsPublicCreate: () => false },
           validationPolicy: { kind: "x", assertCreateValid: () => undefined },
-          capacityPolicy: { kind: "x", assertCreateCapacity: () => undefined },
+          capacityPolicy: {
+            kind: "x",
+            assertCreateCapacity: () => undefined,
+            evaluateCapacityRelease: () => ({ allowed: true }),
+          },
           eventReaction: {
             kind: "x",
             approveOutboxEventType: "registration.approved",
@@ -170,7 +178,11 @@ describe("booking runtime capability levels (executable)", { concurrency: false 
         assertBookingRuntimeCapabilitiesMatchAdapters("urban-fake", missingReactionBinding, {
           publicBooking: { kind: "x", supportsPublicCreate: () => true },
           validationPolicy: { kind: "x", assertCreateValid: () => undefined },
-          capacityPolicy: { kind: "x", assertCreateCapacity: () => undefined },
+          capacityPolicy: {
+            kind: "x",
+            assertCreateCapacity: () => undefined,
+            evaluateCapacityRelease: () => ({ allowed: true }),
+          },
           eventReaction: {
             kind: "x",
             approveOutboxEventType: "registration.approved",

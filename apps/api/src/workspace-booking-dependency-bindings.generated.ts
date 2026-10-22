@@ -22,7 +22,7 @@ export const WORKSPACE_BOOKING_DEPENDENCY_BINDINGS = {
     createCapacityPolicy: () => new booking_ws2_CapacityPolicy(),
     createValidationPolicy: () => new booking_ws2_ValidationPolicy(),
   },
-  "denali": {
+  denali: {
     createPublicBooking: () => new denali_PublicBooking(),
     createCapacityPolicy: () => new denali_CapacityPolicy(),
     createValidationPolicy: () => new denali_ValidationPolicy(),

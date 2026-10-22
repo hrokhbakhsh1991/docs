@@ -77,10 +77,79 @@ export type TourOperationalRosterResponse = {
   readonly items: readonly TourOperationalRosterRow[];
   readonly total: number;
   readonly nextCursor: string | null;
+  readonly capacitySummary?: {
+    readonly capacityMax: number | null;
+    readonly approvedParticipants: number;
+    readonly remainingTourSeats: number | null;
+    readonly approvedDriverOffers: number;
+    readonly approvedDongParticipants: number;
+    readonly remainingDongSeats: number;
+    readonly waitlistedDongParticipants: number;
+    readonly pendingParticipants: number;
+    readonly pendingDongParticipants: number;
+    readonly pendingDriverOffers: number;
+    readonly dongWaitlistBlockedByCarSeats: boolean;
+  };
+  readonly transportParticipants?: readonly TourTransportParticipant[];
 };
+
+export type TourTransportParticipant = {
+  readonly registrationId: string;
+  readonly guestLabel: string;
+  readonly partySize: number;
+  readonly transportKind: string | null;
+  readonly personalCarOccupants: number | null;
+};
+
+export type TourTransportAllocationInput = {
+  readonly driverRegistrationId: string;
+  readonly passengerRegistrationId: string;
+};
+
+export function buildTourTransportAllocations(
+  assignments: Readonly<Record<string, string>>
+): TourTransportAllocationInput[] {
+  return Object.entries(assignments)
+    .filter(([, driverRegistrationId]) => driverRegistrationId.length > 0)
+    .map(([passengerRegistrationId, driverRegistrationId]) => ({
+      driverRegistrationId,
+      passengerRegistrationId,
+    }))
+    .sort(
+      (a, b) =>
+        a.driverRegistrationId.localeCompare(b.driverRegistrationId) ||
+        a.passengerRegistrationId.localeCompare(b.passengerRegistrationId)
+    );
+}
+
+export function canAssignDongParticipantToDriver(input: {
+  readonly driver: TourTransportParticipant;
+  readonly passenger: TourTransportParticipant;
+  readonly passengerRows: readonly TourTransportParticipant[];
+  readonly assignments: Readonly<Record<string, string>>;
+}): boolean {
+  if (
+    input.driver.transportKind !== "personal_car" ||
+    input.passenger.transportKind !== "no_car_dong"
+  ) {
+    return false;
+  }
+  const alreadyAssigned = input.passengerRows
+    .filter(
+      (passenger) =>
+        passenger.registrationId !== input.passenger.registrationId &&
+        input.assignments[passenger.registrationId] === input.driver.registrationId
+    )
+    .reduce((total, passenger) => total + Math.max(1, Math.trunc(passenger.partySize)), 0);
+  return (
+    alreadyAssigned + Math.max(1, Math.trunc(input.passenger.partySize)) <=
+    Math.max(0, Math.trunc(input.driver.personalCarOccupants ?? 0))
+  );
+}
 
 export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   modes: "operator-tour-workspace-transport-modes",
+  capacitySummary: "operator-tour-workspace-transport-capacity-summary",
   modeCounts: "operator-tour-workspace-transport-mode-counts",
   table: "operator-tour-workspace-transport-table",
   mobileList: "operator-tour-workspace-transport-mobile-list",
@@ -98,6 +167,8 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   driverBadge: "operator-tour-workspace-operational-roster-driver",
   rowAvatar: "operator-tour-workspace-operational-roster-avatar",
   settlementPanel: "operator-tour-workspace-driver-settlement",
+  carAssignment: "operator-tour-workspace-car-assignment",
+  saveAllocationsButton: "operator-tour-workspace-save-car-assignments",
   settlementTotal: "operator-tour-workspace-driver-settlement-total",
   settlementStatus: "operator-tour-workspace-driver-settlement-status",
   freezeButton: "operator-tour-workspace-roster-freeze",
@@ -118,7 +189,8 @@ export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
 export function buildTourOperationalRosterQuery(
   tourId: string,
   filter: OperationalRosterFilter = "final",
-  transportKind?: string
+  transportKind?: string,
+  includeCapacitySummary = false
 ): string {
   const params = new URLSearchParams();
   params.set("view", "ops");
@@ -126,15 +198,17 @@ export function buildTourOperationalRosterQuery(
   if (transportKind !== undefined && transportKind.trim().length > 0) {
     params.set("transportKind", transportKind.trim());
   }
+  if (includeCapacitySummary) params.set("includeCapacitySummary", "true");
   void tourId;
   return params.toString();
 }
 
 export function buildTourOperationalRosterHref(
   tourId: string,
-  filter: OperationalRosterFilter = "final"
+  filter: OperationalRosterFilter = "final",
+  includeCapacitySummary = false
 ): string {
-  return `/api/tours/${encodeURIComponent(tourId)}/operational-roster?${buildTourOperationalRosterQuery(tourId, filter)}`;
+  return `/api/tours/${encodeURIComponent(tourId)}/operational-roster?${buildTourOperationalRosterQuery(tourId, filter, undefined, includeCapacitySummary)}`;
 }
 
 export type DriverSettlementRow = {

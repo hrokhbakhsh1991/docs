@@ -45,8 +45,10 @@ import { readRegistrantTargetFromIntake } from "./read-registrant-target";
 import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
+  toBookingCapacityTransportFact,
 } from "./read-transport-kind-from-intake";
 import { readTourSocialMediaLink } from "./read-tour-social-media-link";
+import type { BookingRepositoryCapacityTransportFact } from "./ports/booking-repository.port";
 
 /**
  * Serialize capacity + status decisions for one tour inside an open tenant TX.
@@ -70,20 +72,25 @@ async function acquireTourCapacityLock(
   `;
 }
 
-async function sumApprovedPartySizeInTx(
+async function listApprovedCapacityTransportFactsInTx(
   tx: Prisma.TransactionClient,
   tenantId: string,
   tourId: string
-): Promise<number> {
-  const occupancy = await tx.operatorRegistration.aggregate({
+): Promise<BookingRepositoryCapacityTransportFact[]> {
+  const rows = await tx.operatorRegistration.findMany({
     where: {
       tenantId,
       tourId,
       status: "approved",
     },
-    _sum: { partySize: true },
+    select: { partySize: true, registrationIntake: true },
   });
-  return occupancy._sum.partySize ?? 0;
+  return rows.map((row) =>
+    toBookingCapacityTransportFact({
+      partySize: row.partySize,
+      registrationIntake: row.registrationIntake,
+    })
+  );
 }
 
 /** List projection — omits `registrationIntake` (BK-SAFE-01 / list-projection guards). */
@@ -740,6 +747,16 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     return totals;
   }
 
+  async listApprovedCapacityTransportFacts(
+    tenantId: string,
+    tourId: string
+  ): Promise<BookingRepositoryCapacityTransportFact[]> {
+    assertTenantId(tenantId);
+    return withTenantRls(tenantId, (tx) =>
+      listApprovedCapacityTransportFactsInTx(tx, tenantId, tourId)
+    );
+  }
+
   async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     assertTenantId(tenantId);
     return withTenantRls(tenantId, async (tx) => {
@@ -1274,6 +1291,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
     outboxEvent?: {
       readonly eventType: string;
@@ -1284,10 +1302,14 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       await acquireTourCapacityLock(tx, input.tenantId, input.body.tourId);
-      const occupiedApprovedPartySize = await sumApprovedPartySizeInTx(
+      const approvedTransportFacts = await listApprovedCapacityTransportFactsInTx(
         tx,
         input.tenantId,
         input.body.tourId
+      );
+      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
+        (sum, fact) => sum + fact.partySize,
+        0
       );
       if (input.assertCapacityInTx !== undefined) {
         await Promise.resolve(
@@ -1295,6 +1317,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             tourId: input.body.tourId,
             partySize: input.body.partySize,
             occupiedApprovedPartySize,
+            approvedTransportFacts,
           })
         );
       }
@@ -1352,6 +1375,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
@@ -1374,16 +1398,21 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
 
-      const occupiedApprovedPartySize = await sumApprovedPartySizeInTx(
+      const approvedTransportFacts = await listApprovedCapacityTransportFactsInTx(
         tx,
         input.tenantId,
         current.tourId
+      );
+      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
+        (sum, fact) => sum + fact.partySize,
+        0
       );
       if (input.assertCapacityInTx !== undefined) {
         await Promise.resolve(
           input.assertCapacityInTx({
             booking: toBookingRecord(current),
             occupiedApprovedPartySize,
+            approvedTransportFacts,
           })
         );
       }
@@ -1466,6 +1495,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
     }) => void;
   }): Promise<BookingRecord[]> {
     if (input.ids.length > input.maxBatch) {
@@ -1493,6 +1523,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       const approvedAt = new Date();
       const approvedIds: string[] = [];
       const runningOccupied = new Map<string, number>();
+      const runningTransportFacts = new Map<string, BookingRepositoryCapacityTransportFact[]>();
 
       for (const preview of eligiblePreview) {
         const row = await tx.operatorRegistration.findFirst({
@@ -1506,15 +1537,24 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         }
 
         let occupied = runningOccupied.get(row.tourId);
+        let approvedTransportFacts = runningTransportFacts.get(row.tourId);
         if (occupied === undefined) {
-          occupied = await sumApprovedPartySizeInTx(tx, input.tenantId, row.tourId);
+          approvedTransportFacts = await listApprovedCapacityTransportFactsInTx(
+            tx,
+            input.tenantId,
+            row.tourId
+          );
+          occupied = approvedTransportFacts.reduce((sum, fact) => sum + fact.partySize, 0);
+          runningTransportFacts.set(row.tourId, [...approvedTransportFacts]);
         }
+        approvedTransportFacts ??= [];
         if (input.assertCapacityInTx !== undefined) {
           try {
             await Promise.resolve(
               input.assertCapacityInTx({
                 booking: toBookingRecord(row),
                 occupiedApprovedPartySize: occupied,
+                approvedTransportFacts,
               })
             );
           } catch (error) {
@@ -1537,6 +1577,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           continue;
         }
         runningOccupied.set(row.tourId, occupied + row.partySize);
+        runningTransportFacts.set(row.tourId, [
+          ...approvedTransportFacts,
+          toBookingCapacityTransportFact({
+            partySize: row.partySize,
+            registrationIntake: row.registrationIntake,
+          }),
+        ]);
         approvedIds.push(row.id);
 
         const domainEventId = `registration.approved:${row.id}:${approvedAt.toISOString()}`;
@@ -1701,6 +1748,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
+    alreadyWithinSerialMutation?: boolean;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
+      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+    }) => void;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1719,6 +1772,21 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       }
       if (!canTransitionBookingStatus(current.status as BookingStatus, "cancelled")) {
         throw new BookingStatusConflictError(current.status as BookingStatus);
+      }
+      if (input.assertCapacityInTx !== undefined && current.status === "approved") {
+        const booking = toBookingRecord(current);
+        input.assertCapacityInTx({
+          booking,
+          bookingCapacityFact: toBookingCapacityTransportFact({
+            partySize: booking.partySize,
+            registrationIntake: booking.registrationIntake,
+          }),
+          approvedTransportFacts: await listApprovedCapacityTransportFactsInTx(
+            tx,
+            input.tenantId,
+            current.tourId
+          ),
+        });
       }
       const previousStatus = current.status;
       const cancelledAt = new Date();

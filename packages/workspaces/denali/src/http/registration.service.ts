@@ -57,9 +57,7 @@ async function autoApproveWithPostCommitRecovery(params: {
     tenantId: params.tenantId,
     bookingId: params.bookingId,
     actorUserId: params.guestUserId,
-    ...(params.capacityFallback !== undefined
-      ? { capacityFallback: params.capacityFallback }
-      : {}),
+    ...(params.capacityFallback !== undefined ? { capacityFallback: params.capacityFallback } : {}),
   };
 
   try {
@@ -396,11 +394,14 @@ export async function createDenaliRegistration(params: {
     ) {
       throw error;
     }
+    const waitlistReason = error.message.includes("constraint=personal_car_dong")
+      ? "🕒 صندلی خودرو برای ثبت‌نام دُنگ کافی نیست؛ درخواست شما در لیست انتظار ثبت شد."
+      : "🕒 ظرفیت این تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شد.";
     const waitlistPayload = {
       ...createInput.outboxEvent.payload,
       approvalRequired: false,
       approvalStatus: "waitlisted",
-      approvalPrompt: "🕒 ظرفیت این تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شد.",
+      approvalPrompt: waitlistReason,
     };
     return params.bookingPort.createWaitlistedBooking!({
       ...createInput,

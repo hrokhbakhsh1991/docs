@@ -76,7 +76,7 @@ export async function dp5SeedDriverAndPassengers(input?: {
       guestPhone: `+1555000301${i}`,
       partySize: 1,
       departureAt,
-      registrationIntake: { tourCapacityMax: 20, transport: { kind: "primary" } },
+      registrationIntake: { tourCapacityMax: 20, transport: { kind: "no_car_dong" } },
     });
     const approved = await approveBooking(auth, passenger.id);
     passengerIds.push(approved.id);

@@ -37,8 +37,9 @@ function passenger(id: string): RosterParticipant {
   return {
     registrationId: id,
     status: "approved",
-    transportKind: "primary",
+    transportKind: "no_car_dong",
     personalCarOccupants: null,
+    partySize: 1,
   };
 }
 
@@ -128,6 +129,22 @@ describe("DP-5 transport allocation validation", () => {
     if (!result.ok) {
       assert.equal(result.code, "CAPACITY_EXCEEDED");
     }
+  });
+
+  it("counts an assigned registration party against each offered passenger seat", () => {
+    const group = { ...passenger("passenger-group"), partySize: 2 };
+    const allocations: TransportAllocationInput[] = [
+      { driverRegistrationId: DRIVER_ID, passengerRegistrationId: group.registrationId },
+    ];
+    const validation = validateTransportAllocations({
+      tourId,
+      allocations,
+      participants: [driverParticipant({ personalCarOccupants: 1 }), group],
+      rosterFrozen: false,
+    });
+    assert.equal(validation.ok, false);
+    if (!validation.ok) assert.equal(validation.code, "CAPACITY_EXCEEDED");
+    assert.equal(countAssignedPassengers(allocations, DRIVER_ID, [group]), 2);
   });
 
   it("rejects duplicate passenger assignment", () => {

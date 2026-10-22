@@ -38,6 +38,10 @@ export class BookingWs2CapacityPolicyAdapter implements BookingCapacityPolicyPor
     assertBookingWs2CaseAAllowed(ctx);
     assertBookingStandardCapacity(ctx);
   }
+
+  evaluateCapacityRelease(): { readonly allowed: true } {
+    return { allowed: true };
+  }
 }
 
 export class BookingWs2ValidationPolicyAdapter implements BookingValidationPolicyPort {

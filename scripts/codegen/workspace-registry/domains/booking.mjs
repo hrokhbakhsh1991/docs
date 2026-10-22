@@ -2,11 +2,7 @@ import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
 /** Runtime-owned dependency bag (ops UI is opsManifest → web bindings, not this bag). */
-const BOOKING_DEPENDENCY_FIELDS = [
-  "publicBooking",
-  "capacityPolicy",
-  "validationPolicy",
-];
+const BOOKING_DEPENDENCY_FIELDS = ["publicBooking", "capacityPolicy", "validationPolicy"];
 
 /** @type {Readonly<Record<string, ReadonlySet<string>>>} */
 const BOOKING_CAPABILITY_MODES = {
@@ -406,10 +402,14 @@ function assertBookingModuleExport(block, workspaceId, field) {
   }
   const rec = /** @type {Record<string, unknown>} */ (block);
   if (typeof rec.module !== "string" || rec.module.length === 0) {
-    throw new Error(`workspace.manifest.json ${workspaceId}: workspaceBooking.${field}.module required`);
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceBooking.${field}.module required`
+    );
   }
   if (typeof rec.export !== "string" || rec.export.length === 0) {
-    throw new Error(`workspace.manifest.json ${workspaceId}: workspaceBooking.${field}.export required`);
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceBooking.${field}.export required`
+    );
   }
   return { module: rec.module, export: rec.export };
 }
@@ -449,11 +449,17 @@ export function generateWorkspaceBookingDependencyBindings(manifests) {
 
     const publicBooking = assertBookingModuleExport(booking.publicBooking, m.id, "publicBooking");
     const capacity = assertBookingModuleExport(booking.capacityPolicy, m.id, "capacityPolicy");
-    const validation = assertBookingModuleExport(booking.validationPolicy, m.id, "validationPolicy");
+    const validation = assertBookingModuleExport(
+      booking.validationPolicy,
+      m.id,
+      "validationPolicy"
+    );
 
     const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
     if (workspaceTypes.length === 0) {
-      throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for booking dependency bindings`);
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceTypes required for booking dependency bindings`
+      );
     }
 
     const safeId = m.id.replace(/[^a-zA-Z0-9]/g, "_");
@@ -487,9 +493,15 @@ export function generateWorkspaceBookingDependencyBindings(manifests) {
 
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
-        throw new Error(`workspace.manifest.json ${m.id}: invalid workspaceType in booking dependency bindings`);
+        throw new Error(
+          `workspace.manifest.json ${m.id}: invalid workspaceType in booking dependency bindings`
+        );
       }
-      bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
+      const normalizedWorkspaceType = wt.trim().toLowerCase();
+      const key = /^[A-Za-z_$][\w$]*$/.test(normalizedWorkspaceType)
+        ? normalizedWorkspaceType
+        : JSON.stringify(normalizedWorkspaceType);
+      bindingEntries.push(`  ${key}: {
     createPublicBooking: () => new ${aliases.publicBooking}(),
     createCapacityPolicy: () => new ${aliases.capacityPolicy}(),
     createValidationPolicy: () => new ${aliases.validationPolicy}(),

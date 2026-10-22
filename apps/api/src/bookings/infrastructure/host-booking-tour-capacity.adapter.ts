@@ -76,4 +76,31 @@ export class HostBookingTourCapacityAdapter implements BookingTourCapacityPort {
     });
     return { previousCapacity, nextCapacity: previousCapacity + delta };
   }
+
+  async restoreTourCapacityIfUnchanged(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly expectedCapacity: number;
+    readonly restoreCapacity: number;
+  }): Promise<boolean> {
+    const storage = createTourStorageRepository();
+    const current = await storage.getById(input.tourId, input.tenantId);
+    if (
+      current === null ||
+      readCapacityMaxFromTourData(current.canonical.data) !== input.expectedCapacity
+    ) {
+      return false;
+    }
+    const data = {
+      ...(current.canonical.data as Record<string, unknown>),
+      capacityMax: input.restoreCapacity,
+    };
+    await storage.updateIfRowVersion({
+      tenantId: input.tenantId,
+      id: input.tourId,
+      canonical: { ...current.canonical, data },
+      expectedRowVersion: current.rowVersion,
+    });
+    return true;
+  }
 }

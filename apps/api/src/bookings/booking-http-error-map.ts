@@ -7,6 +7,7 @@
  */
 import {
   BookingCapabilityViolationError,
+  BookingCapacityReleaseRejectedError,
   BookingFinalizationRequiresSettlementError,
   BookingOpenPaymentFinalizationNotAllowedError,
   BookingWaiveAndFinalizeNotAllowedError,
@@ -38,6 +39,12 @@ export type BookingHttpErrorMatrixRow = {
 
 /** Documentation + audit SoT (must stay aligned with {@link resolveBookingHttpError}). */
 export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
+  {
+    domainError: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",
+    status: 409,
+    reason: "Cancelling this personal car would leave approved dong passengers without seats",
+    clientAction: "Reassign the passengers or add enough approved car seats before cancelling",
+  },
   {
     domainError: "BOOKING_WORKSPACE_TENANT_MISMATCH",
     status: 403,
@@ -247,6 +254,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (error instanceof BookingWaitlistCapacityAdmissionNotAllowedError) {
     return resolutionFromCode(error.code, error.message);
   }
+  if (error instanceof BookingCapacityReleaseRejectedError) {
+    return resolutionFromCode(error.code, error.message);
+  }
   if (error instanceof BulkApproveBatchLimitError) {
     return resolutionFromCode(error.code, error.message, { maxBatch: error.maxBatch });
   }
@@ -258,6 +268,16 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
     return null;
   }
   const message = error.message;
+
+  // Keep the matrix authoritative for generic domain errors too. Workspace
+  // policies can reject lifecycle changes without needing an API-owned error
+  // subclass for each workspace-specific rule.
+  const matrixCode = BOOKING_HTTP_ERROR_MATRIX.find(
+    ({ domainError }) => message === domainError || message.startsWith(`${domainError}:`)
+  )?.domainError;
+  if (matrixCode !== undefined) {
+    return resolutionFromCode(matrixCode, message);
+  }
 
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) {
     return resolutionFromCode("BOOKING_CAPACITY_REJECTED", message);
