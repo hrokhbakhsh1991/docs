@@ -41,6 +41,8 @@
   },
   "success": {
     "message": "Registration received for {tourTitle}. Thank you!",
+    "partialWaitlistTitle": "Registration results are mixed",
+    "partialWaitlistMessage": "For {tourTitle}, some participant requests have a place while others are on the waitlist. View your registrations to check each person's status.",
     "backToTour": "Back to tour"
   },
   "errors": {

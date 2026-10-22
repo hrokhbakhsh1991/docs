@@ -32,6 +32,7 @@ import {
   denaliIntakeNationalIdChecksumIssue,
   findDuplicateOtherGuestMobile,
   parseCatalogRegistrationResponseBody,
+  resolveDenaliRegistrationSubmissionOutcome,
 } from "./denali-registration-intake-client-logic";
 import { DenaliRenderIntakeForm } from "./denali-intake-form";
 import { sumParticipantPayableMinor } from "./denali-registration-pricing";
@@ -797,11 +798,10 @@ export function DenaliIntakeStep({
       }
       return;
     }
-    const submissionOutcome = results.some((result) => result.status === "waitlisted")
-      ? "waitlisted"
-      : results.some((result) => result.status === "approved")
-        ? "approved"
-        : "pending";
+    const submittedStatuses = results
+      .map((result) => result.status)
+      .filter((status): status is "pending" | "approved" | "waitlisted" => status !== undefined);
+    const submissionOutcome = resolveDenaliRegistrationSubmissionOutcome(submittedStatuses);
     dispatch({ type: "merge", patch: { submissionOutcome } });
     transitionFlowStep(dispatch, "done");
   }
