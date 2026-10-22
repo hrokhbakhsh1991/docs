@@ -263,6 +263,7 @@
     "BOOKINGS_OPS_FORBIDDEN": "Bookings ops queue access is not allowed.",
     "BOOKINGS_LIST_HTTP_ERROR": "Failed to load bookings (HTTP {status}).",
     "BOOKINGS_FETCH_FAILED": "Failed to load bookings.",
+    "BOOKINGS_FETCH_TIMEOUT": "Loading bookings took too long. Check your connection and try again.",
     "BOOKINGS_BULK_APPROVE_HTTP_ERROR": "Bulk approve failed (HTTP {status}).",
     "BOOKINGS_BULK_APPROVE_FAILED": "Bulk approve failed.",
     "BOOKINGS_APPROVE_HTTP_ERROR": "Approve booking failed (HTTP {status}).",

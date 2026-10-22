@@ -93,6 +93,7 @@ import { workspaceBasePath } from "@/features/tours/tour-workspace-logic";
 import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { isTourCapacityFull } from "@/features/tours/tour-workspace-waitlist-logic";
+import { createAbortTimeout } from "@/utils/create-abort-timeout";
 
 import type { AppLocale } from "@/i18n/routing";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
@@ -382,6 +383,7 @@ export function BookingsPageClient({
       return;
     }
     let cancelled = false;
+    const request = createAbortTimeout(25_000);
     if (listDataRef.current === null) {
       setLoading(true);
     }
@@ -391,12 +393,15 @@ export function BookingsPageClient({
       cursor: query.page > 1 ? query.listCursor : undefined,
       limit: BOOKINGS_LIST_PAGE_SIZE,
     });
-    const listPromise = fetch(`/api/bookings?${apiQuery}`, { cache: "no-store" });
+    const listPromise = fetch(`/api/bookings?${apiQuery}`, {
+      cache: "no-store",
+      signal: request.signal,
+    });
     const summaryQs = buildBookingsSummaryApiQuery(query);
     const summaryPromise = canManageOps
       ? fetch(
           summaryQs.length > 0 ? `/api/bookings/summary?${summaryQs}` : "/api/bookings/summary",
-          { cache: "no-store" }
+          { cache: "no-store", signal: request.signal }
         )
       : Promise.resolve(null);
 
@@ -437,8 +442,11 @@ export function BookingsPageClient({
       })
       .catch((fetchError: unknown) => {
         if (!cancelled) {
-          const message =
-            fetchError instanceof Error ? fetchError.message : "BOOKINGS_FETCH_FAILED";
+          const message = request.timedOut()
+            ? "BOOKINGS_FETCH_TIMEOUT"
+            : fetchError instanceof Error
+              ? fetchError.message
+              : "BOOKINGS_FETCH_FAILED";
           if (listDataRef.current === null) {
             setError(message);
           } else {
@@ -447,6 +455,7 @@ export function BookingsPageClient({
         }
       })
       .finally(() => {
+        request.dispose();
         if (!cancelled) {
           setLoading(false);
         }
@@ -454,6 +463,7 @@ export function BookingsPageClient({
 
     return () => {
       cancelled = true;
+      request.dispose();
     };
   }, [canManageOps, fetchNonce, query]);
 
@@ -1446,7 +1456,7 @@ export function BookingsPageClient({
         onConfirm={() => void confirmReject()}
       />
 
-        <BookingsCancelConfirmDialog
+      <BookingsCancelConfirmDialog
         open={cancelDialogOpen}
         busy={actionBusy}
         guestLabel={
@@ -1454,22 +1464,22 @@ export function BookingsPageClient({
           inspectionTarget?.guestLabel ??
           ""
         }
-          tourTitle={
+        tourTitle={
           findSelectedBooking(displayItems, cancelTargetId)?.tourTitle ??
           inspectionTarget?.tourTitle ??
           ""
+        }
+        reason={cancelReasonDraft}
+        onReasonChange={setCancelReasonDraft}
+        onOpenChange={(open) => {
+          setCancelDialogOpen(open);
+          if (!open) {
+            setCancelTargetId(null);
+            setCancelReasonDraft("operator_correction");
           }
-          reason={cancelReasonDraft}
-          onReasonChange={setCancelReasonDraft}
-          onOpenChange={(open) => {
-            setCancelDialogOpen(open);
-            if (!open) {
-              setCancelTargetId(null);
-              setCancelReasonDraft("operator_correction");
-            }
-          }}
-          onConfirm={() => void confirmCancel()}
-        />
+        }}
+        onConfirm={() => void confirmCancel()}
+      />
 
       <BookingsBulkConfirmDialog
         open={bulkConfirmOpen}

@@ -263,6 +263,7 @@
     "BOOKINGS_OPS_FORBIDDEN": "دسترسی به صف عملیات رزروها مجاز نیست.",
     "BOOKINGS_LIST_HTTP_ERROR": "بارگذاری رزروها ناموفق بود (HTTP {status}).",
     "BOOKINGS_FETCH_FAILED": "بارگذاری رزروها ناموفق بود.",
+    "BOOKINGS_FETCH_TIMEOUT": "بارگذاری رزروها بیش از حد طول کشید. اتصال را بررسی و دوباره تلاش کنید.",
     "BOOKINGS_BULK_APPROVE_HTTP_ERROR": "تأیید گروهی ناموفق بود (HTTP {status}).",
     "BOOKINGS_BULK_APPROVE_FAILED": "تأیید گروهی ناموفق بود.",
     "BOOKINGS_APPROVE_HTTP_ERROR": "تأیید رزرو ناموفق بود (HTTP {status}).",
