@@ -8,9 +8,9 @@ import { describe, it } from "node:test";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 const syncScript = join(repoRoot, "scripts/vps-deploy/sync-staging-surface-auth-env.sh");
+const verifyScript = join(repoRoot, "scripts/vps-deploy/verify-env-coherence.sh");
 
-const TEST_PEM =
-  "-----BEGIN PUBLIC KEY-----\\nSTAGING_SYNC_TEST_KEY\\n-----END PUBLIC KEY-----";
+const TEST_PEM = "-----BEGIN PUBLIC KEY-----\\nSTAGING_SYNC_TEST_KEY\\n-----END PUBLIC KEY-----";
 
 function fingerprintFromEnvLine(line) {
   const raw = line.replace(/^AUTH_JWT_PUBLIC_KEY=/, "").trim();
@@ -26,6 +26,47 @@ function readEnvKey(file, key) {
     .filter((row) => row.startsWith(`${key}=`))
     .at(-1);
   return line ?? "";
+}
+
+function writeCoherentEnvFixtures(envDir, { mismatchMarketingKey = false } = {}) {
+  const apiLine = `AUTH_JWT_PUBLIC_KEY="${TEST_PEM}"`;
+  writeFileSync(
+    join(envDir, "api.env"),
+    [
+      "PORT=3001",
+      apiLine,
+      "AUTH_JWT_ISSUER=tour-ops",
+      "AUTH_JWT_AUDIENCE=tour-ops-api",
+      "PUBLIC_TENANT_FALLBACK_LABEL=denali",
+    ].join("\n") + "\n"
+  );
+  const surfaceEnv = (name) => {
+    const key =
+      mismatchMarketingKey && name === "marketing"
+        ? 'AUTH_JWT_PUBLIC_KEY="stale-key"\n'
+        : apiLine + "\n";
+    return (
+      [
+        "PORT=3000",
+        "TOUR_OPS_API_URL=http://127.0.0.1:3001",
+        key.trimEnd(),
+        "AUTH_JWT_ISSUER=tour-ops",
+        "AUTH_JWT_AUDIENCE=tour-ops-api",
+        ...(name === "web" || name === "portal" ? ["SESSION_COOKIE_SECURE=true"] : []),
+      ].join("\n") + "\n"
+    );
+  };
+  for (const surface of ["web", "portal", "marketing"]) {
+    writeFileSync(join(envDir, `${surface}.env`), surfaceEnv(surface));
+  }
+}
+
+function runVerifier(envDir) {
+  return execFileSync("bash", [verifyScript, "--all"], {
+    cwd: repoRoot,
+    env: { ...process.env, ENV_DIR: envDir },
+    encoding: "utf8",
+  });
 }
 
 describe("sync-staging-surface-auth-env", () => {
@@ -52,22 +93,30 @@ describe("sync-staging-surface-auth-env", () => {
       const pubLine = readEnvKey(join(envDir, `${surface}.env`), "AUTH_JWT_PUBLIC_KEY");
       assert.ok(pubLine.length > 0, `${surface} missing AUTH_JWT_PUBLIC_KEY`);
       assert.equal(fingerprintFromEnvLine(pubLine), apiFp, `${surface} fingerprint mismatch`);
-      assert.match(readFileSync(join(envDir, `${surface}.env`), "utf8"), /AUTH_JWT_ISSUER=tour-ops/);
-      assert.match(readFileSync(join(envDir, `${surface}.env`), "utf8"), /AUTH_JWT_AUDIENCE=tour-ops-api/);
+      assert.match(
+        readFileSync(join(envDir, `${surface}.env`), "utf8"),
+        /AUTH_JWT_ISSUER=tour-ops/
+      );
+      assert.match(
+        readFileSync(join(envDir, `${surface}.env`), "utf8"),
+        /AUTH_JWT_AUDIENCE=tour-ops-api/
+      );
     }
   });
 
-  it("REG-STG-AUTH-02 leaves non-stub surface keys unchanged", () => {
-    const envDir = mkdtempSync(join(tmpdir(), "staging-auth-sync-keep-"));
+  it("REG-STG-AUTH-02 replaces stale complete surface keys with the API source of truth", () => {
+    const envDir = mkdtempSync(join(tmpdir(), "staging-auth-sync-stale-"));
     const apiLine = `AUTH_JWT_PUBLIC_KEY="${TEST_PEM}"`;
     const portalPem =
       "-----BEGIN PUBLIC KEY-----\\nEXISTING_SURFACE_KEY_LINE_2\\nEXISTING_SURFACE_KEY_LINE_3\\nEXISTING_SURFACE_KEY_LINE_4\\nEXISTING_SURFACE_KEY_LINE_5\\nEXISTING_SURFACE_KEY_LINE_6\\nEXISTING_SURFACE_KEY_LINE_7\\nEXISTING_SURFACE_KEY_LINE_8\\n-----END PUBLIC KEY-----";
     const portalLine = `AUTH_JWT_PUBLIC_KEY="${portalPem}"`;
-    const portalFp = fingerprintFromEnvLine(portalLine);
-
-    writeFileSync(join(envDir, "api.env"), `${apiLine}\nAUTH_JWT_ISSUER=tour-ops\n`);
+    const stalePreviousLine = 'AUTH_JWT_PUBLIC_KEY_PREVIOUS="stale-previous-key"';
+    writeFileSync(
+      join(envDir, "api.env"),
+      `${apiLine}\nAUTH_JWT_ISSUER=tour-ops\nAUTH_JWT_AUDIENCE=tour-ops-api\n`
+    );
     writeFileSync(join(envDir, "web.env"), "NODE_ENV=production\n");
-    writeFileSync(join(envDir, "portal.env"), `${portalLine}\n`);
+    writeFileSync(join(envDir, "portal.env"), `${portalLine}\n${stalePreviousLine}\n`);
     writeFileSync(join(envDir, "marketing.env"), "\n");
 
     execFileSync("bash", [syncScript], {
@@ -77,6 +126,32 @@ describe("sync-staging-surface-auth-env", () => {
     });
 
     const portalAfter = readEnvKey(join(envDir, "portal.env"), "AUTH_JWT_PUBLIC_KEY");
-    assert.equal(fingerprintFromEnvLine(portalAfter), portalFp);
+    assert.equal(fingerprintFromEnvLine(portalAfter), fingerprintFromEnvLine(apiLine));
+    assert.equal(readEnvKey(join(envDir, "portal.env"), "AUTH_JWT_PUBLIC_KEY_PREVIOUS"), "");
+    assert.match(readEnvKey(join(envDir, "portal.env"), "AUTH_JWT_ISSUER"), /tour-ops/);
+    assert.match(readEnvKey(join(envDir, "portal.env"), "AUTH_JWT_AUDIENCE"), /tour-ops-api/);
+  });
+
+  it("REG-STG-AUTH-03 rejects surface JWT drift without printing key material", () => {
+    const envDir = mkdtempSync(join(tmpdir(), "staging-auth-guard-drift-"));
+    writeCoherentEnvFixtures(envDir, { mismatchMarketingKey: true });
+
+    let error;
+    try {
+      runVerifier(envDir);
+    } catch (caught) {
+      error = caught;
+    }
+
+    assert.ok(error, "expected JWT parity guard to reject the environment");
+    assert.match(error.stderr.toString(), /AUTH_JWT_PUBLIC_KEY differs.*marketing\.env/);
+    assert.doesNotMatch(error.stderr.toString(), /STAGING_SYNC_TEST_KEY|stale-key/);
+  });
+
+  it("REG-STG-AUTH-04 accepts synchronized verifier config", () => {
+    const envDir = mkdtempSync(join(tmpdir(), "staging-auth-guard-clean-"));
+    writeCoherentEnvFixtures(envDir);
+    const output = runVerifier(envDir);
+    assert.match(output, /verify-env-coherence: OK/);
   });
 });
