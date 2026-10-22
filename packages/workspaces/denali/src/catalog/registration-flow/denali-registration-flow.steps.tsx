@@ -8,6 +8,7 @@ import {
   CatalogRegistrationProfileStep,
 } from "@app-tour/catalog-registration-flow-ui";
 import {
+  isPublicCatalogOrganizedTransportMode,
   resolveEffectiveIntakeSchema,
   resolveIntakeSubmitValues,
   transitionFlowStep,
@@ -200,7 +201,9 @@ export function DenaliIntakeStep({
         : null;
   const selfTabLocked = effectiveSelfRegistrationId !== null || selfLockedWithoutId;
 
-  type TransportState = typeof data.transportState;
+  type TransportState = typeof data.transportState & {
+    readonly usePrimaryTransport?: boolean | null;
+  };
 
   type ParticipantDraft = Readonly<{
     readonly draftId: string;
@@ -1141,17 +1144,43 @@ export function DenaliIntakeStep({
                     <legend>{t("intake.transportLegend")}</legend>
                     <p>{t("intake.hasPersonalCarQuestion")}</p>
 
+                    {context.tourTransport !== undefined &&
+                    isPublicCatalogOrganizedTransportMode(context.tourTransport.mode) ? (
+                      <label>
+                        <input
+                          type="radio"
+                          name="transportChoice-self"
+                          checked={selfDraft.transportState.usePrimaryTransport === true}
+                          onChange={() =>
+                            setSelfDraft((prev) => ({
+                              ...prev,
+                              transportState: {
+                                ...prev.transportState,
+                                usePrimaryTransport: true,
+                                hasPersonalCar: null,
+                                personalCarOccupants: null,
+                                paysDong: null,
+                              },
+                            }))
+                          }
+                        />
+                        {t("intake.usePrimaryTransport")}
+                      </label>
+                    ) : null}
+
                     <label>
                       <input
                         type="radio"
-                        name="hasPersonalCar-self"
+                        name="transportChoice-self"
                         checked={selfDraft.transportState.hasPersonalCar === true}
                         onChange={() =>
                           setSelfDraft((prev) => ({
                             ...prev,
                             transportState: {
                               ...prev.transportState,
+                              usePrimaryTransport: false,
                               hasPersonalCar: true,
+                              personalCarOccupants: null,
                               paysDong: null,
                             },
                           }))
@@ -1163,13 +1192,14 @@ export function DenaliIntakeStep({
                     <label>
                       <input
                         type="radio"
-                        name="hasPersonalCar-self"
+                        name="transportChoice-self"
                         checked={selfDraft.transportState.hasPersonalCar === false}
                         onChange={() =>
                           setSelfDraft((prev) => ({
                             ...prev,
                             transportState: {
                               ...prev.transportState,
+                              usePrimaryTransport: false,
                               hasPersonalCar: false,
                               personalCarOccupants: null,
                               paysDong: null,
@@ -1370,10 +1400,40 @@ export function DenaliIntakeStep({
                           <legend>{t("intake.transportLegend")}</legend>
                           <p>{t("intake.hasPersonalCarQuestion")}</p>
 
+                          {context.tourTransport !== undefined &&
+                          isPublicCatalogOrganizedTransportMode(context.tourTransport.mode) ? (
+                            <label>
+                              <input
+                                type="radio"
+                                name={`transportChoice-${guestIdx}`}
+                                checked={guest.transportState.usePrimaryTransport === true}
+                                onChange={() =>
+                                  setOtherGuests((prev) =>
+                                    prev.map((g, idx) =>
+                                      idx === guestIdx
+                                        ? {
+                                            ...g,
+                                            transportState: {
+                                              ...g.transportState,
+                                              usePrimaryTransport: true,
+                                              hasPersonalCar: null,
+                                              personalCarOccupants: null,
+                                              paysDong: null,
+                                            },
+                                          }
+                                        : g
+                                    )
+                                  )
+                                }
+                              />
+                              {t("intake.usePrimaryTransport")}
+                            </label>
+                          ) : null}
+
                           <label>
                             <input
                               type="radio"
-                              name={`hasPersonalCar-${guestIdx}`}
+                              name={`transportChoice-${guestIdx}`}
                               checked={guest.transportState.hasPersonalCar === true}
                               onChange={() =>
                                 setOtherGuests((prev) =>
@@ -1383,7 +1443,9 @@ export function DenaliIntakeStep({
                                           ...g,
                                           transportState: {
                                             ...g.transportState,
+                                            usePrimaryTransport: false,
                                             hasPersonalCar: true,
+                                            personalCarOccupants: null,
                                             paysDong: null,
                                           },
                                         }
@@ -1398,7 +1460,7 @@ export function DenaliIntakeStep({
                           <label>
                             <input
                               type="radio"
-                              name={`hasPersonalCar-${guestIdx}`}
+                              name={`transportChoice-${guestIdx}`}
                               checked={guest.transportState.hasPersonalCar === false}
                               onChange={() =>
                                 setOtherGuests((prev) =>
@@ -1408,6 +1470,7 @@ export function DenaliIntakeStep({
                                           ...g,
                                           transportState: {
                                             ...g.transportState,
+                                            usePrimaryTransport: false,
                                             hasPersonalCar: false,
                                             personalCarOccupants: null,
                                             paysDong: null,

@@ -35,6 +35,12 @@ function buildPayload(
       readonly personalCarOccupants?: 0 | 1 | 2 | 3;
     }
   | undefined {
+  if (state.usePrimaryTransport === true) {
+    return transport !== undefined && isPublicCatalogOrganizedTransportMode(transport.mode)
+      ? { kind: "primary" }
+      : undefined;
+  }
+
   if (!showTransportFollowUp(transport, state)) {
     return transport !== undefined && isPublicCatalogOrganizedTransportMode(transport.mode)
       ? { kind: "primary" }
@@ -100,6 +106,7 @@ function computePricePerPerson(input: {
 export const denaliCatalogTransportIntakeSurface: WorkspaceCatalogIntakeTransportSurface =
   Object.freeze({
     initialState: () => ({
+      usePrimaryTransport: null,
       hasPersonalCar: null,
       personalCarOccupants: null,
       paysDong: null,

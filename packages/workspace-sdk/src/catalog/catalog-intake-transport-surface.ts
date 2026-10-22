@@ -14,6 +14,8 @@ export const PUBLIC_CATALOG_REGISTRATION_TRANSPORT_KINDS = [
 ] as const;
 
 export type PublicCatalogTransportIntakeState = {
+  /** Explicit choice of the tour's organized transport when private cars are also offered. */
+  readonly usePrimaryTransport?: boolean | null;
   readonly hasPersonalCar: boolean | null;
   readonly personalCarOccupants: 0 | 1 | 2 | 3 | null;
   readonly paysDong: boolean | null;

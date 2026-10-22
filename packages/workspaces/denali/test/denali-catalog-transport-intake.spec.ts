@@ -15,6 +15,32 @@ describe("denali catalog transport intake", () => {
     assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), false);
   });
 
+  it("DEN-TR-01c mixed bus and personal-car tour can explicitly choose organized transport", () => {
+    const transport = {
+      mode: "bus" as const,
+      allowPersonalCar: true,
+      transportCostAmount: 200_000,
+      dongAmount: 100_000,
+    };
+    const state = {
+      ...denaliCatalogTransportIntakeSurface.initialState(transport),
+      usePrimaryTransport: true,
+    };
+
+    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+      kind: "primary",
+    });
+    assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
+    assert.equal(
+      denaliCatalogTransportIntakeSurface.computePricePerPerson({
+        basePrice: 500_000,
+        transport,
+        transportKind: "primary",
+      }),
+      700_000
+    );
+  });
+
   it("DEN-TR-01b organized transport without personal-car choices defaults to primary", () => {
     const transport = { mode: "minibus" as const, allowPersonalCar: false };
     const state = denaliCatalogTransportIntakeSurface.initialState(transport);
