@@ -51,6 +51,25 @@ check_env_url() {
   fi
 }
 
+check_auth_env_parity() {
+  local key="$1" required="$2" api_value app file surface_value
+  api_value="$(read_env_var "$api_env" "$key" || true)"
+  if [[ "$required" == "1" && -z "$api_value" ]]; then
+    echo "verify-env-coherence: required ${key} missing in api.env" >&2
+    errors=$((errors + 1))
+  fi
+
+  for app in web portal marketing; do
+    file="${ENV_DIR}/${app}.env"
+    [[ -f "$file" ]] || continue
+    surface_value="$(read_env_var "$file" "$key" || true)"
+    if [[ "$surface_value" != "$api_value" ]]; then
+      echo "verify-env-coherence: ${key} differs between api.env and ${app}.env" >&2
+      errors=$((errors + 1))
+    fi
+  done
+}
+
 check_env_url "$web_env" TOUR_OPS_API_URL
 check_env_url "$web_env" API_INTERNAL_URL
 
@@ -83,6 +102,13 @@ if [[ "$CHECK_ALL" -eq 1 ]]; then
       errors=$((errors + 1))
     fi
   done
+
+  # API owns the canonical member-session verifier configuration. Report only
+  # key names; never emit the public-key material or other env values.
+  check_auth_env_parity AUTH_JWT_PUBLIC_KEY 1
+  check_auth_env_parity AUTH_JWT_ISSUER 1
+  check_auth_env_parity AUTH_JWT_AUDIENCE 1
+  check_auth_env_parity AUTH_JWT_PUBLIC_KEY_PREVIOUS 0
 
   if ! grep -qE '^PUBLIC_TENANT_FALLBACK_LABEL=' "$api_env" 2>/dev/null; then
     echo "verify-env-coherence: PUBLIC_TENANT_FALLBACK_LABEL missing in api.env (P8 env contract)" >&2

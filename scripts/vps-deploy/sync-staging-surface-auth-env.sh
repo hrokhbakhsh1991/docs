@@ -15,21 +15,6 @@ read_api_env_line() {
   grep -E "^${key}=" "$API_ENV" 2>/dev/null | tail -1 | tr -d '\r' || true
 }
 
-surface_key_is_stub() {
-  local file="$1" key="$2"
-  local line value
-  line="$(grep -E "^${key}=" "$file" 2>/dev/null | tail -1 | tr -d '\r' || true)"
-  [[ -n "$line" ]] || return 0
-  value="${line#*=}"
-  value="${value%\"}"
-  value="${value#\"}"
-  if [[ "$key" == "AUTH_JWT_PUBLIC_KEY" ]]; then
-    [[ ${#value} -lt 200 || "$value" == *"..."* ]]
-    return
-  fi
-  return 1
-}
-
 upsert_env_line() {
   local file="$1" line="$2"
   local key="${line%%=*}"
@@ -45,15 +30,28 @@ upsert_env_line() {
 sync_jwt_keys_from_api() {
   local target="$1"
   [[ -f "$target" ]] || return 0
-  for key in AUTH_JWT_PUBLIC_KEY AUTH_JWT_ISSUER AUTH_JWT_AUDIENCE; do
+  for key in AUTH_JWT_PUBLIC_KEY AUTH_JWT_ISSUER AUTH_JWT_AUDIENCE AUTH_JWT_PUBLIC_KEY_PREVIOUS; do
     local api_line
     api_line="$(read_api_env_line "$key")"
-    [[ -n "$api_line" ]] || continue
-    if surface_key_is_stub "$target" "$key" || ! grep -q "^${key}=" "$target" 2>/dev/null; then
+    if [[ -n "$api_line" ]]; then
       upsert_env_line "$target" "$api_line"
+    elif [[ "$key" == "AUTH_JWT_PUBLIC_KEY_PREVIOUS" ]]; then
+      # API is the verifier source of truth; never leave a surface-only key
+      # that could make the same member token validate on only some surfaces.
+      local tmp
+      tmp="$(mktemp)"
+      grep -v -E "^${key}=" "$target" >"$tmp" || true
+      mv "$tmp" "$target"
     fi
   done
 }
+
+for key in AUTH_JWT_PUBLIC_KEY AUTH_JWT_ISSUER AUTH_JWT_AUDIENCE; do
+  if [[ -z "$(read_api_env_line "$key")" ]]; then
+    echo "sync-staging-surface-auth-env: missing required ${key} in api.env" >&2
+    exit 1
+  fi
+done
 
 ensure_line() {
   local key="$1" value="$2" target="$3"
