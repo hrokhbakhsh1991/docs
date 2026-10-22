@@ -36,7 +36,32 @@ describe("Denali telegram tour published profile parity", () => {
     assert.deepEqual(profile?.defaultFieldIds, selectableIds);
     assert.equal(
       profile?.defaultTemplateId,
-      "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
+      `🔴🟠🟡🟢🔵 اعلام برنامه دنالی 🔵🟢🟡🟠🔴
+
+🏕️ {{field:title}}
+
+✨ یک برنامه متفاوت در طبیعت، همراه با دنالی ✨
+
+📍 مقصد برنامه: {{field:denali.destination}}
+📅 تاریخ و شروع حرکت: {{field:denali.datetime}}
+⏰ زمان تقریبی بازگشت: {{field:denali.approximate-return-time}}
+🚌 حمل‌ونقل: {{field:denali.transport-mode}}
+👥 ظرفیت برنامه: {{field:capacityMax}}
+🎂 حداقل سن: {{field:denali.pricing-participants}}
+💰 هزینه شرکت در برنامه: {{field:denali.pricing-payment}} تومان
+
+━━━━━━━━━━━━━━━━━━
+
+🌿 درباره برنامه
+جزئیات کامل برنامه، زمان و مکان دقیق حرکت، خدمات و وسایل مورد نیاز در صفحه تور قابل مشاهده است.
+
+📲 ثبت‌نام و هماهنگی
+لطفاً قبل از ثبت‌نام توضیحات کامل را مطالعه کنید.
+برای ثبت‌نام از دکمه «مشاهده تور و ثبت‌نام» استفاده کنید.
+
+━━━━━━━━━━━━━━━━━━
+
+🔔 ظرفیت برنامه محدود است و اولویت با ثبت‌نام‌های زودتر خواهد بود.`
     );
     assert.equal(profile?.source, "registry_deliverable_migration_seed");
   });

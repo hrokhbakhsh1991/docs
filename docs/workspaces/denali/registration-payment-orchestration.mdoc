@@ -342,7 +342,7 @@ Commercial obligation **must match** what the member saw at catalog intake and w
 | `transport.dongAmount`                    | Transport kind `no_car_dong`                                   |
 | Personal car / acquaintance               | Trip only (no dong / no organized transport add-on)            |
 
-Formula: `(per-person due) × partySize` in minor units (`IRR`). Free collection (`pricing.paymentCollection=free`) → `0`.
+Formula: `(per-person due) × partySize` in minor units (`IRR`). Free collection waives the tour price, but a configured personal-car dong remains payable only for `no_car_dong` registrations. A free tour with no dong obligation still resolves to `0`.
 
 Resolver input includes booking `registrationIntake.transport` (kind) so dong/transport add-ons are not dropped. Operator override still wins when present.
 
@@ -408,16 +408,17 @@ Canonical path (Denali tour document):
 
 ```text
 offline (default): approved → member receipt → finance approve → paid
-free:              approved → host marks booking.paymentStatus=paid (no receipt, no ledger capture)
+free:              approved + zero obligation → host marks booking.paymentStatus=paid (no receipt, no ledger capture)
+                   approved + positive dong obligation → offline receipt flow for dong only
 ```
 
 Rules:
 
 - Pure Denali resolver reads `pricing.paymentCollection` (also accepts `pricingPayment.paymentCollection`).
-- When `free`, commercial obligation resolves to `obligationMinor: "0"` (no offline default amount).
+- When `free`, the trip-price component is waived. If the approved registration chose `no_car_dong` and the tour has a positive `transport.dongAmount`, that add-on remains a payable offline obligation; other free registrations resolve to zero (no offline default amount).
 - After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition runs the same post-approval finance orchestration: schedule/refresh the payment hold for payable registrations, then call Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved. Bulk approval must not skip the payment-hold step.
 - Free paid is a **booking payment projection only** (`IBookingPaymentPort.syncStatus` → `paid`). No `PaymentIntent`, no receipt, no double-entry journal (zero money).
-- Member receipt submit: blocked when remaining is already 0 or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
+- Member receipt submit: blocked when remaining is already 0 or the resolved obligation is zero (`FINANCE_RECEIPT_NOT_REQUIRED`). A free tour with a positive dong obligation follows the ordinary offline-receipt path.
 - Member receipt status GET: remaining = 0 and free/zero-obligation → `{ status: "waived" }`. Remaining = 0 after capture → `{ status: "paid" }`. Remaining > 0 never returns `paid`.
 - Wizard UI for the field is **out of scope** — set via canonical / fixtures.
 - PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
@@ -430,7 +431,8 @@ Portal List and Detail must consume the same member financial projection for an
 owned registration. The projection is resolved in this order: lifecycle state,
 `paymentCollection`, `financialDisplayState`, booking `paymentStatus`, and
 `paymentDueAt`; `receiptStatus` remains an independent receipt-review axis.
-`paymentCollection=free` or `financialDisplayState=WAIVED` always clears a
+`paymentCollection=free` with no positive due, or `financialDisplayState=WAIVED`
+with no positive due, always clears a
 payment deadline and payment action. `paymentStatus=paid` also clears a stale
 deadline. A receipt that is approved without a settled booking payment must
 not be converted to `paid`; it may only render the independent receipt state.
@@ -520,7 +522,14 @@ After approve (or when override lands on an approved booking):
 
 | Condition                                                          | Effect                                                                        |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `paymentCollection=free` **or** resolved `obligationMinor` is zero | `paymentStatus=paid`; member receipt blocked (`FINANCE_RECEIPT_NOT_REQUIRED`) |
+| Resolved `obligationMinor` is zero | `paymentStatus=paid`; member receipt blocked (`FINANCE_RECEIPT_NOT_REQUIRED`) |
+| Free collection with positive dong obligation | Remains unpaid until the dong receipt is reviewed; free trip price is not collected |
+
+### Member receipt submission diagnostics
+
+- Offline receipt evidence may be a file, text note, or both. A text-only submission is sent as JSON and must create the same pending receipt/outbox transition as file evidence, with `evidenceKind: "text"` and no stored file key.
+- The portal must not discard a failed BFF response. Keep user-facing copy localized and safe, map known receipt/auth/storage errors to actionable messages, and retain a validated stable error code for unknown failures so staging and support can distinguish API validation, authorization, storage, and connectivity failures.
+- A failed response must leave the receipt panel in its prior state. Retrying an unchanged submission reuses its idempotency key; changing the note or file starts a new request identity.
 
 ### Out of scope (later)
 

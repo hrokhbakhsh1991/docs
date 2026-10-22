@@ -7,10 +7,7 @@ describe("denali catalog transport intake", () => {
   it("DEN-TR-01 bus tour exposes the personal-car choice without an opt-in checkbox", () => {
     const transport = { mode: "bus" as const, allowPersonalCar: true, transportCostAmount: 50000 };
     const state = denaliCatalogTransportIntakeSurface.initialState(transport);
-    assert.equal(
-      denaliCatalogTransportIntakeSurface.showTransportFollowUp(transport, state),
-      true
-    );
+    assert.equal(denaliCatalogTransportIntakeSurface.showTransportFollowUp(transport, state), true);
     assert.equal(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), undefined);
     assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), false);
   });
@@ -63,6 +60,15 @@ describe("denali catalog transport intake", () => {
       transportKind: "primary",
     });
     assert.equal(price, 2_650_000);
+  });
+
+  it("DEN-PRICE-02 dong rider owes configured share even when tour price is free", () => {
+    const price = denaliCatalogTransportIntakeSurface.computePricePerPerson({
+      basePrice: null,
+      transport: { mode: "shared_cars", dongAmount: 200_000 },
+      transportKind: "no_car_dong",
+    });
+    assert.equal(price, 200_000);
   });
 
   it("DEN-TR-03 bus without dong maps no-car to acquaintance", () => {

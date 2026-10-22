@@ -90,6 +90,53 @@ describe("finance-obligation-denali.spec.ts — FC-2", () => {
     assert.equal(obligation.discountableBaseMinor, "1000000");
   });
 
+  it("CP-FC2-05 free tour with a positive dong obligation resolves to offline collection", async () => {
+    const booking = {
+      tourId: "tour-free-dong",
+      partySize: 1,
+      registrationIntake: { transport: { kind: "no_car_dong" } },
+    };
+    const tour = {
+      canonical: {
+        data: {
+          pricing: { requiresPayment: false, paymentCollection: "free" },
+          transport: { mode: "shared_cars", dongAmount: 200_000 },
+        },
+        schemaVersion: 1,
+      },
+    };
+    const adapter = new RegistrationFinanceObligationAdapter(
+      {
+        async getById() {
+          return booking;
+        },
+        async mergeRegistrationIntake() {
+          return null;
+        },
+      },
+      {
+        async getById() {
+          return tour;
+        },
+      },
+      () => ({
+        currency: "IRR",
+        obligationMinor: "200000",
+        source: "tour_canonical",
+      }),
+      () => "IRR",
+      () => "free"
+    );
+
+    assert.equal(
+      await adapter.resolveRegistrationPaymentCollection({
+        tenantId: "tenant-1",
+        registrationId: "reg-dong",
+      }),
+      "offline"
+    );
+  });
+
   it("CP-FC2-03 FinanceService wires obligation checks (create warn + approve block)", () => {
     const src = readFileSync(
       resolve(REPO_ROOT, "packages/finance-core/src/application/finance.service.ts"),

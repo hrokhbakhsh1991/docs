@@ -61,4 +61,33 @@ describe("resolveDenaliRegistrationDueBreakdown", () => {
       { code: "transport", amountMinor: "150000" },
     ]);
   });
+
+  it("DN-DUE-04 free tour still collects the configured dong from a dong rider", () => {
+    const due = resolveDenaliRegistrationDueBreakdown({
+      tourCanonical: tourCanonical({
+        pricing: { requiresPayment: false, paymentCollection: "free" },
+        transport: { mode: "shared_cars", dongAmount: 200_000 },
+      }),
+      partySize: 1,
+      registrationIntake: { transport: { kind: "no_car_dong" } },
+    });
+    assert.ok(due !== null);
+    assert.equal(due.obligationMinor, "200000");
+    assert.equal(due.discountableBaseMinor, "0");
+    assert.deepEqual(due.lines, [{ code: "dong", amountMinor: "200000" }]);
+  });
+
+  it("DN-DUE-05 free tour without a dong rider remains zero and waived", () => {
+    const due = resolveDenaliRegistrationDueBreakdown({
+      tourCanonical: tourCanonical({
+        pricing: { requiresPayment: false, paymentCollection: "free" },
+        transport: { mode: "shared_cars", dongAmount: 200_000 },
+      }),
+      partySize: 1,
+      registrationIntake: { transport: { kind: "personal_car", personalCarOccupants: 1 } },
+    });
+    assert.ok(due !== null);
+    assert.equal(due.obligationMinor, "0");
+    assert.deepEqual(due.lines, []);
+  });
 });

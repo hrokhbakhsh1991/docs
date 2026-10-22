@@ -11,10 +11,35 @@ import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-re
 import { formatMemberMoney } from "../src/me/format-member-money";
 import { hydrateMemberRegistrationListFinancialProjection } from "../src/me/hydrate-member-registration-list-financial-projection.server";
 import { resolveMemberFinancialProjection } from "../src/me/resolve-member-financial-projection";
+import {
+  readMemberReceiptUploadErrorCode,
+  resolveMemberReceiptUploadError,
+} from "../src/me/resolve-member-receipt-upload-error";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal-member-registrations", () => {
+  it("MEM-RECEIPT-ERROR-01 preserves safe API codes and maps known failures", () => {
+    assert.equal(
+      readMemberReceiptUploadErrorCode({ code: "RECEIPT_STORAGE_UNAVAILABLE" }),
+      "RECEIPT_STORAGE_UNAVAILABLE"
+    );
+    assert.equal(readMemberReceiptUploadErrorCode({ code: "<script>" }), "RECEIPT_UPLOAD_FAILED");
+    assert.equal(readMemberReceiptUploadErrorCode(null), "RECEIPT_UPLOAD_FAILED");
+
+    const translate = (key: string, values?: Record<string, string | number>) =>
+      values?.code ? `${key}:${values.code}` : key;
+    assert.equal(
+      resolveMemberReceiptUploadError(translate, "RECEIPT_EVIDENCE_REQUIRED"),
+      "errorEvidenceRequired"
+    );
+    assert.equal(
+      resolveMemberReceiptUploadError(translate, "UNRECOGNIZED_SAFE_CODE"),
+      "failedWithCode:UNRECOGNIZED_SAFE_CODE"
+    );
+    assert.equal(resolveMemberReceiptUploadError(translate, "unsafe <code>"), "failed");
+  });
+
   it("MEM-FIN-01 formats IRR with the member-facing toman label", () => {
     assert.equal(formatMemberMoney("1344444", "IRR"), "۱٬۳۴۴٬۴۴۴ تومان");
   });
@@ -176,6 +201,24 @@ describe("portal-member-registrations", () => {
         paymentStatus: "paid",
         paymentCollection: "offline",
         paymentDueAt: null,
+      }
+    );
+  });
+
+  it("keeps a positive dong obligation payable when the tour collection is free", () => {
+    assert.deepEqual(
+      resolveMemberFinancialProjection({
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "free",
+        financialDisplayState: "WAIVED",
+        dueTotalMinor: "200000",
+        paymentDueAt: "2026-10-30T12:00:00.000Z",
+      }),
+      {
+        paymentStatus: "unpaid",
+        paymentCollection: "offline",
+        paymentDueAt: "2026-10-30T12:00:00.000Z",
       }
     );
   });

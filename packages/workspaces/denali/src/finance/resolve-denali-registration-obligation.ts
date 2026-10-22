@@ -129,8 +129,20 @@ export function resolveDenaliRegistrationDueBreakdown(
   }
 
   const currency = (input.currency ?? "IRR").toUpperCase();
+  const transport = readDenaliCatalogTransportSnapshot(data);
+  const kind = readTransportKind(input.registrationIntake);
 
   if (waiveFreeCollection && resolveDenaliPaymentCollectionMode(input.tourCanonical) === "free") {
+    const dongPerPerson = kind === "no_car_dong" ? (transport.dongAmount ?? 0) : 0;
+    if (dongPerPerson > 0) {
+      return {
+        currency,
+        obligationMinor: scaleMinor(dongPerPerson, input.partySize),
+        discountableBaseMinor: "0",
+        source: "tour_canonical",
+        lines: [{ code: "dong", amountMinor: scaleMinor(dongPerPerson, input.partySize) }],
+      };
+    }
     return {
       currency,
       obligationMinor: "0",
@@ -149,13 +161,12 @@ export function resolveDenaliRegistrationDueBreakdown(
     return null;
   }
 
-  const basePerPerson = readInteger(readCanonicalPath(data, "pricing.basePricePerPerson"));
-  if (basePerPerson === null || basePerPerson <= 0) {
+  const resolvedBasePerPerson = readInteger(readCanonicalPath(data, "pricing.basePricePerPerson"));
+  const basePerPerson = resolvedBasePerPerson ?? 0;
+  if (basePerPerson <= 0 && kind !== "no_car_dong") {
     return null;
   }
 
-  const transport = readDenaliCatalogTransportSnapshot(data);
-  const kind = readTransportKind(input.registrationIntake);
   const perPerson = estimatePerPerson({
     basePrice: basePerPerson,
     transport,
@@ -165,9 +176,10 @@ export function resolveDenaliRegistrationDueBreakdown(
     return null;
   }
 
-  const lines: DenaliRegistrationDueLine[] = [
-    { code: "trip", amountMinor: scaleMinor(basePerPerson, input.partySize) },
-  ];
+  const lines: DenaliRegistrationDueLine[] =
+    basePerPerson > 0
+      ? [{ code: "trip", amountMinor: scaleMinor(basePerPerson, input.partySize) }]
+      : [];
 
   const addOnPerPerson = perPerson - basePerPerson;
   if (addOnPerPerson > 0) {

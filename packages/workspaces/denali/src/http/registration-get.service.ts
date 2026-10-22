@@ -129,9 +129,6 @@ export async function getDenaliRegistrationOwned(params: {
     return base;
   }
 
-  const paymentCollection = resolveDenaliPaymentCollectionMode(tour.canonical);
-  const withPaymentCollection = { ...base, paymentCollection };
-
   const due = resolveDenaliRegistrationDueBreakdown({
     tourCanonical: tour.canonical,
     partySize: owned.partySize,
@@ -139,6 +136,13 @@ export async function getDenaliRegistrationOwned(params: {
       ? { registrationIntake: owned.registrationIntake }
       : {}),
   });
+  const configuredPaymentCollection = resolveDenaliPaymentCollectionMode(tour.canonical);
+  const paymentCollection =
+    configuredPaymentCollection === "free" && due !== null && due.obligationMinor !== "0"
+      ? "offline"
+      : configuredPaymentCollection;
+  const withPaymentCollection = { ...base, paymentCollection };
+
   if (due === null || due.obligationMinor === "0") {
     return withPaymentCollection;
   }

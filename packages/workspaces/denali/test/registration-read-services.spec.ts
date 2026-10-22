@@ -233,6 +233,88 @@ describe("registration-read-services", () => {
     assert.equal(detail.dueTotalMinor, undefined);
   });
 
+  it("DN-READ-08 free tour keeps a positive dong obligation in the owned detail", async () => {
+    const bookingPort: BookingPublicPort = {
+      async findDuplicateByTourGuest() {
+        return null;
+      },
+      async findDuplicateByTourGuestLabel() {
+        return null;
+      },
+      async findDuplicateByTourGuestNationalId() {
+        return null;
+      },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
+      async findDuplicateByTourEmail() {
+        return null;
+      },
+      async findOwnedBooking() {
+        return {
+          id: REG_ID,
+          status: "approved",
+          tourId: TOUR_ID,
+          tourTitle: "Read Services Tour",
+          guestLabel: "Member",
+          registrantTarget: "self",
+          paymentStatus: "unpaid",
+          financialDisplayState: "PAYMENT_DUE",
+          departureAt: "2026-06-01T08:00:00.000Z",
+          submittedAt: "2026-05-01T08:00:00.000Z",
+          partySize: 1,
+          registrationIntake: { transport: { kind: "no_car_dong" } },
+        };
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
+      async createPendingBooking() {
+        return { id: REG_ID, status: "pending" };
+      },
+      async autoApprovePublicBooking() {
+        return { id: REG_ID, status: "approved" };
+      },
+      async sumApprovedPartySizeByTourIds() {
+        return {};
+      },
+    };
+
+    const detail = await getDenaliRegistrationOwned({
+      tenantId: TENANT,
+      guestUserId: GUEST,
+      registrationId: REG_ID,
+      bookingPort,
+      store: {
+        ...pricedTourStore(),
+        async findFirst() {
+          const tour = await pricedTourStore().findFirst({ tenantId: TENANT, id: TOUR_ID });
+          return tour === null
+            ? null
+            : {
+                ...tour,
+                canonical: {
+                  ...tour.canonical,
+                  data: {
+                    ...tour.canonical.data,
+                    pricing: { paymentCollection: "free" },
+                    transport: { mode: "shared_cars", dongAmount: 200_000 },
+                  },
+                },
+              };
+        },
+      },
+    });
+
+    assert.equal(detail.paymentCollection, "offline");
+    assert.equal(detail.paymentStatus, "unpaid");
+    assert.equal(detail.dueTotalMinor, "200000");
+    assert.deepEqual(detail.dueLines, [{ code: "dong", amountMinor: "200000" }]);
+  });
+
   it("DN-READ-06 owned detail exposes personal_car occupants without registrationIntake blob", async () => {
     const bookingPort: BookingPublicPort = {
       async findDuplicateByTourGuest() {

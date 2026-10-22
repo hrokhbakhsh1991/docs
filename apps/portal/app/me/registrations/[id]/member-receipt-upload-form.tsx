@@ -12,6 +12,10 @@ import type {
 } from "@/me/member-receipt-status";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { formatMemberMoney } from "@/me/format-member-money";
+import {
+  readMemberReceiptUploadErrorCode,
+  resolveMemberReceiptUploadError,
+} from "@/me/resolve-member-receipt-upload-error";
 import { dispatchMemberReceiptStatusChanged } from "./member-receipt-status-events";
 
 export type MemberReceiptDueLine = {
@@ -130,6 +134,7 @@ export function MemberReceiptUploadForm({
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(null);
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
+  const [uploadErrorCode, setUploadErrorCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (
@@ -217,6 +222,7 @@ export function MemberReceiptUploadForm({
     idempotencyKeyRef.current = null;
     setSelectedFile(file);
     setUploadPhase("idle");
+    setUploadErrorCode(null);
     replaceLocalPreview(file);
   }
 
@@ -243,6 +249,7 @@ export function MemberReceiptUploadForm({
     }
     const idempotencyKey = (idempotencyKeyRef.current ??= globalThis.crypto.randomUUID());
     setUploadPhase("uploading");
+    setUploadErrorCode(null);
     try {
       const destinationRevision = panel.paymentDestination?.revision;
       const commonHeaders = {
@@ -271,6 +278,8 @@ export function MemberReceiptUploadForm({
             }
       );
       if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        setUploadErrorCode(readMemberReceiptUploadErrorCode(payload));
         setUploadPhase("error");
         return;
       }
@@ -284,6 +293,7 @@ export function MemberReceiptUploadForm({
       router.refresh();
       setUploadPhase("idle");
     } catch {
+      setUploadErrorCode("NETWORK_ERROR");
       setUploadPhase("error");
     }
   }
@@ -580,6 +590,8 @@ export function MemberReceiptUploadForm({
           onChange={(event) => {
             idempotencyKeyRef.current = null;
             setReceiptNote(event.target.value);
+            setUploadErrorCode(null);
+            setUploadPhase("idle");
           }}
           data-portal-member-receipt-note
         />
@@ -601,7 +613,7 @@ export function MemberReceiptUploadForm({
       </div>
       {uploadPhase === "error" ? (
         <p role="alert" data-portal-member-receipt-error>
-          {t("failed")}
+          {resolveMemberReceiptUploadError(t, uploadErrorCode)}
         </p>
       ) : null}
     </div>
