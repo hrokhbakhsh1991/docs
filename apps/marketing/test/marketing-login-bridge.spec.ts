@@ -69,6 +69,7 @@ describe("marketing login Quiet Ledger bridge", () => {
     assert.doesNotMatch(css, /\[data-portal-login-modal\]/);
     assert.doesNotMatch(css, /92dvh/);
     assert.doesNotMatch(css, /swipe/);
+    assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}\b/);
   });
 
   it("AB-P3-04 FA/EN Quiet Ledger strings", () => {
