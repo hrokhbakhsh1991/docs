@@ -83,10 +83,10 @@ export function estimateDenaliRegistrationPricePerPerson(input: {
   readonly transport: PublicCatalogTransportSnapshot | undefined;
   readonly intake: DenaliRegistrationTransportIntake;
 }): number | null {
-  if (input.basePrice === null) {
+  if (input.basePrice === null && input.intake.kind !== "no_car_dong") {
     return null;
   }
-  const base = input.basePrice;
+  const base = input.basePrice ?? 0;
   const transport = input.transport;
   const transportCost = transport?.transportCostAmount ?? 0;
   const dongAmount = transport?.dongAmount ?? 0;
@@ -101,7 +101,7 @@ export function estimateDenaliRegistrationPricePerPerson(input: {
     case "no_car_acquaintance":
       return base;
     case "no_car_dong":
-      return base + dongAmount;
+      return dongAmount > 0 ? base + dongAmount : input.basePrice;
     default:
       return base;
   }

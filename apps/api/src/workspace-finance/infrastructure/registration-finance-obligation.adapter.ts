@@ -191,7 +191,18 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
     if (canonical === null) {
       return "offline";
     }
-    return this.resolvePaymentCollection(canonical);
+    const collection = this.resolvePaymentCollection(canonical);
+    if (collection !== "free") {
+      return collection;
+    }
+
+    // A free tour waives its trip price, not an explicitly payable personal-car
+    // dong. Preserve the offline receipt flow whenever the resolved payable is
+    // positive; zero/unknown obligations retain the existing free behavior.
+    const obligation = await this.resolveRegistrationObligation(input);
+    return obligation !== null && !isZeroObligationMinor(obligation.obligationMinor)
+      ? "offline"
+      : "free";
   }
 
   async resolveRegistrationPaymentPlan(input: {

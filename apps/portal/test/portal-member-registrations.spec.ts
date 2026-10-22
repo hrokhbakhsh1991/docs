@@ -180,6 +180,24 @@ describe("portal-member-registrations", () => {
     );
   });
 
+  it("keeps a positive dong obligation payable when the tour collection is free", () => {
+    assert.deepEqual(
+      resolveMemberFinancialProjection({
+        status: "approved",
+        paymentStatus: "unpaid",
+        paymentCollection: "free",
+        financialDisplayState: "WAIVED",
+        dueTotalMinor: "200000",
+        paymentDueAt: "2026-10-30T12:00:00.000Z",
+      }),
+      {
+        paymentStatus: "unpaid",
+        paymentCollection: "offline",
+        paymentDueAt: "2026-10-30T12:00:00.000Z",
+      }
+    );
+  });
+
   it("MEM-BFF-01 fetchMemberRegistrations uses same-origin registrations BFF", () => {
     const fetchModule = readFileSync(
       join(repoRoot, "apps/portal/src/me/fetch-member-registrations.server.ts"),

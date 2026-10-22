@@ -79,10 +79,10 @@ function computePricePerPerson(input: {
   readonly transport: PublicCatalogTransportSnapshot | undefined;
   readonly transportKind: PublicCatalogRegistrationTransportKind;
 }): number | null {
-  if (input.basePrice === null) {
+  if (input.basePrice === null && input.transportKind !== "no_car_dong") {
     return null;
   }
-  const base = input.basePrice;
+  const base = input.basePrice ?? 0;
   const transport = input.transport;
   const transportCost = transport?.transportCostAmount ?? 0;
   const dongAmount = transport?.dongAmount ?? 0;
@@ -97,7 +97,7 @@ function computePricePerPerson(input: {
     case "no_car_acquaintance":
       return base;
     case "no_car_dong":
-      return base + dongAmount;
+      return dongAmount > 0 ? base + dongAmount : input.basePrice;
     default:
       return base;
   }
