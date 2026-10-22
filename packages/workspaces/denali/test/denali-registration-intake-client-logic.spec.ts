@@ -6,6 +6,7 @@ import {
   denaliIntakeNationalIdChecksumIssue,
   findDuplicateOtherGuestMobile,
   parseCatalogRegistrationResponseBody,
+  resolveDenaliRegistrationSubmissionOutcome,
 } from "../src/catalog/registration-flow/denali-registration-intake-client-logic";
 
 describe("denali registration intake client logic", () => {
@@ -27,6 +28,17 @@ describe("denali registration intake client logic", () => {
       ),
       { ok: true, registrationId: "reg-1", status: "waitlisted" }
     );
+  });
+
+  it("DN-INTAKE-OUTCOME-01 does not label an entire party waitlisted when outcomes are mixed", () => {
+    assert.equal(resolveDenaliRegistrationSubmissionOutcome(["approved", "waitlisted"]), "partial");
+    assert.equal(resolveDenaliRegistrationSubmissionOutcome(["pending", "waitlisted"]), "partial");
+    assert.equal(
+      resolveDenaliRegistrationSubmissionOutcome(["waitlisted", "waitlisted"]),
+      "waitlisted"
+    );
+    assert.equal(resolveDenaliRegistrationSubmissionOutcome(["approved", "approved"]), "approved");
+    assert.equal(resolveDenaliRegistrationSubmissionOutcome(["pending", "pending"]), "pending");
   });
 
   it("DN-INTAKE-DUP-01 detects two guest cards with the same IR mobile", () => {

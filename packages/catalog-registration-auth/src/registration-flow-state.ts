@@ -41,7 +41,7 @@ export type CatalogRegistrationFlowState = Readonly<{
   readonly registrantTarget: "self" | "other";
   readonly transportState: CatalogRegistrationTransportIntakeState;
   /** Final status returned by the registration POST, used by the success step. */
-  readonly submissionOutcome: "pending" | "approved" | "waitlisted" | null;
+  readonly submissionOutcome: "pending" | "approved" | "waitlisted" | "partial" | null;
 }>;
 
 export class CatalogRegistrationFlowStateError extends Error {
@@ -220,7 +220,8 @@ export function assertCatalogRegistrationFlowState(
     record.submissionOutcome !== null &&
     record.submissionOutcome !== "pending" &&
     record.submissionOutcome !== "approved" &&
-    record.submissionOutcome !== "waitlisted"
+    record.submissionOutcome !== "waitlisted" &&
+    record.submissionOutcome !== "partial"
   ) {
     throw new CatalogRegistrationFlowStateError(`${label}: submissionOutcome invalid`);
   }

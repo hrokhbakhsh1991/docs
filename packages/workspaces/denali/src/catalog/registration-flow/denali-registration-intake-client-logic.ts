@@ -13,6 +13,26 @@ export type DenaliRequiredIntakeCopyField =
   | "birthDate"
   | "partySize";
 
+export type DenaliRegistrationSubmissionOutcome = "pending" | "approved" | "waitlisted" | "partial";
+
+export function resolveDenaliRegistrationSubmissionOutcome(
+  statuses: readonly ("pending" | "approved" | "waitlisted")[]
+): DenaliRegistrationSubmissionOutcome {
+  const hasWaitlisted = statuses.includes("waitlisted");
+  const hasNonWaitlisted = statuses.some((status) => status !== "waitlisted");
+
+  if (hasWaitlisted && hasNonWaitlisted) {
+    return "partial";
+  }
+  if (hasWaitlisted) {
+    return "waitlisted";
+  }
+  if (statuses.includes("approved")) {
+    return "approved";
+  }
+  return "pending";
+}
+
 export function denaliRequiredIntakeCopyField(fieldId: string): DenaliRequiredIntakeCopyField {
   switch (fieldId) {
     case "fullName":

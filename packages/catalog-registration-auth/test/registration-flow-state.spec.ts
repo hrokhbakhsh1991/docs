@@ -21,6 +21,11 @@ describe("catalog registration flow state (canonical-v1)", () => {
     assertCatalogRegistrationFlowState(state.data);
   });
 
+  it("accepts the mixed participant outcome for a multi-person registration", () => {
+    const data = createCatalogRegistrationFlowInitialData();
+    assertCatalogRegistrationFlowState({ ...data, submissionOutcome: "partial" });
+  });
+
   it("rejects drifted bags (schema snapshot)", () => {
     const data = createCatalogRegistrationFlowInitialData();
     const snapshot = JSON.stringify(data);
