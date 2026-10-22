@@ -23,10 +23,20 @@ function isProfileBFallbackAdminRootHost(host: string): boolean {
     readWebReservedHostLabels()
   );
   return (
-    outcome.kind !== "club_admin" &&
-    outcome.kind !== "club_portal" &&
-    outcome.kind !== "club_apex"
+    outcome.kind !== "club_admin" && outcome.kind !== "club_portal" && outcome.kind !== "club_apex"
   );
+}
+
+/** Exact custom admin roots for Profile B sibling-host deployments. */
+function isConfiguredOperatorAdminRootHost(host: string): boolean {
+  const hostname = normalizeHostHeader(host).split(":")[0]?.trim().toLowerCase() ?? "";
+  if (!hostname) return false;
+
+  const allowedHosts = process.env.OPERATOR_ADMIN_ROOT_HOSTS?.split(",") ?? [];
+  return allowedHosts.some((entry) => {
+    const allowedHostname = entry.trim().toLowerCase().split(":")[0] ?? "";
+    return allowedHostname.length > 0 && allowedHostname === hostname;
+  });
 }
 
 /**
@@ -40,7 +50,11 @@ export function resolveOperatorAdminRootRedirect(input: {
   if (input.pathname !== "/") {
     return null;
   }
-  if (!isOperatorAdminHost(input.host) && !isProfileBFallbackAdminRootHost(input.host)) {
+  if (
+    !isOperatorAdminHost(input.host) &&
+    !isProfileBFallbackAdminRootHost(input.host) &&
+    !isConfiguredOperatorAdminRootHost(input.host)
+  ) {
     return null;
   }
   return OPERATOR_DASHBOARD_PATH;

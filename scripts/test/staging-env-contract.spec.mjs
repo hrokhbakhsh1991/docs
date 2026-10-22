@@ -35,6 +35,8 @@ describe("staging-env-contract", () => {
     assert.match(sh, /PORTAL_INTERNAL_URL/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_LABEL "\$CLUB_LABEL"/);
     assert.match(sh, /PUBLIC_TENANT_FALLBACK_HOSTS/);
+    assert.match(sh, /STAGING_ADMIN_HOST=.*staging-admin-\$\{CLUB_LABEL\}/);
+    assert.match(sh, /web\.env" OPERATOR_ADMIN_ROOT_HOSTS "\$STAGING_ADMIN_HOST"/);
     assert.match(sh, /PORTAL_INTERNAL_URL "http:\/\/127\.0\.0\.1:\$\{PTL_PORT\}"/);
     assert.match(sh, /MARKETING_PUBLIC_BASE_URL/);
     assert.match(sh, /marketing\.env.*MARKETING_PUBLIC_BASE_URL/);
@@ -60,9 +62,11 @@ describe("staging-env-contract", () => {
   it("REG-STG-ENV-04 staging env examples document denali + canonical IP", () => {
     const apiExample = read("deploy/vps/env/api.env.example");
     const marketingExample = read("deploy/vps/env/marketing.env.example");
+    const webExample = read("deploy/vps/env/web.env.example");
     assert.match(apiExample, /PUBLIC_TENANT_FALLBACK_LABEL=denali/);
     assert.match(apiExample, new RegExp(`${STAGING_IP},127\\.0\\.0\\.1`));
     assert.match(marketingExample, new RegExp(STAGING_IP));
+    assert.match(webExample, /OPERATOR_ADMIN_ROOT_HOSTS/);
     assert.doesNotMatch(apiExample, new RegExp(LEGACY_IP));
     assert.doesNotMatch(marketingExample, new RegExp(LEGACY_IP));
   });

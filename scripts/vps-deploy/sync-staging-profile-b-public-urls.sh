@@ -75,6 +75,7 @@ PUBLIC_ROOT_DOMAIN="$(resolve_root_domain)"
 MINIO_PUBLIC_HOST="${STAGING_PUBLIC_MINIO_HOST:-storage.${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_MARKETING_BASE_URL="${STAGING_PUBLIC_MARKETING_BASE_URL:-https://staging-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://staging-portal-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+STAGING_ADMIN_HOST="${STAGING_ADMIN_HOST:-staging-admin-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 # Profile B uses sibling hosts instead of portal.{tenant}.{root}. The common
 # parent is explicit so the member session is readable by both staging
 # marketing and staging portal. The staging-only cookie name prevents it from
@@ -106,6 +107,7 @@ set_env_kv "${ENV_DIR}/api.env" TENANT_ROOT_DOMAIN "staging.invalid"
 
 set_env_kv "${ENV_DIR}/web.env" ALLOW_DEV_WEB_SESSION true
 set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
+set_env_kv "${ENV_DIR}/web.env" OPERATOR_ADMIN_ROOT_HOSTS "$STAGING_ADMIN_HOST"
 set_env_kv "${ENV_DIR}/web.env" TOUR_OPS_DEV_TENANT_ID 00000000-0000-4000-8000-000000000003
 set_env_kv "${ENV_DIR}/web.env" TOUR_OPS_PUBLIC_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
 set_env_kv "${ENV_DIR}/web.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
