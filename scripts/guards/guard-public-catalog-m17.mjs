@@ -155,7 +155,11 @@ for (const route of [
   "/public/auth/verify-otp",
   "/public/auth/register/complete",
 ]) {
-  assertCheck(`m17_dispatch_${route}`, dispatch.includes(route), `dispatch-routes missing ${route}`);
+  assertCheck(
+    `m17_dispatch_${route}`,
+    dispatch.includes(route),
+    `dispatch-routes missing ${route}`
+  );
 }
 
 const openapiOverrides = read("apps/api/src/openapi/public-auth-openapi.ts");
@@ -165,7 +169,11 @@ for (const op of [
   "publicVerifyOtp",
   "publicRegisterComplete",
 ]) {
-  assertCheck(`m17_openapi_${op}`, openapiOverrides.includes(op), `public-auth-openapi missing ${op}`);
+  assertCheck(
+    `m17_openapi_${op}`,
+    openapiOverrides.includes(op),
+    `public-auth-openapi missing ${op}`
+  );
 }
 
 const webRegisterRedirect = read("apps/web/app/(public)/catalog/[tourId]/register/page.tsx");
@@ -193,12 +201,12 @@ const portalRegistrations = read("apps/portal/app/api/catalog/registrations/rout
 assertCheck(
   "m17_portal_intake_denali_and_urban",
   portalRegistrations.includes("buildCatalogRegistrationUpstreamRequest") &&
-    read("packages/workspace-sdk/src/catalog/build-catalog-registration-upstream-request.ts").includes(
-      "getWorkspaceIntakePlugin"
-    ) &&
-    read("packages/workspace-sdk/src/catalog/build-catalog-registration-upstream-request.ts").includes(
-      "buildUpstreamRequest"
-    ) &&
+    read(
+      "packages/workspace-sdk/src/catalog/build-catalog-registration-upstream-request.ts"
+    ).includes("getWorkspaceIntakePlugin") &&
+    read(
+      "packages/workspace-sdk/src/catalog/build-catalog-registration-upstream-request.ts"
+    ).includes("buildUpstreamRequest") &&
     read("packages/workspaces/denali/src/catalog/denali-catalog-intake.ts").includes(
       "buildDenaliContactV1"
     ) &&
@@ -216,10 +224,8 @@ assertCheck(
     read("packages/workspaces/denali/theme/denali-marketing.css").includes(
       "./marketing/tokens.css"
     ) &&
-    read("packages/workspaces/denali/theme/marketing/tokens.css").includes(
-      "./semantic-tokens.css"
-    ),
-  "denali marketing skin must use DTCG semantic-tokens.css",
+    read("packages/workspaces/denali/theme/marketing/tokens.css").includes("./semantic-tokens.css"),
+  "denali marketing skin must use DTCG semantic-tokens.css"
 );
 
 assertCheck(
@@ -227,8 +233,10 @@ assertCheck(
   denaliGuestSemanticUsesEmeraldPrimary(
     read("packages/workspaces/denali/theme/portal-semantic-tokens.css")
   ) &&
-    read("packages/workspaces/denali/theme/denali-portal.css").includes("portal-semantic-tokens.css"),
-  "denali-portal.css must import DTCG portal-semantic-tokens.css",
+    read("packages/workspaces/denali/theme/denali-portal.css").includes(
+      "portal-semantic-tokens.css"
+    ),
+  "denali-portal.css must import DTCG portal-semantic-tokens.css"
 );
 
 const portalRegistrationDoc = read("docs/workspaces/denali/portal-registration-ui.md");
@@ -236,7 +244,7 @@ assertCheck(
   "m17_portal_registration_ui_doc",
   portalRegistrationDoc.includes("data-public-registration-success") &&
     portalRegistrationDoc.includes("SMK-PTL-01"),
-  "portal-registration-ui.md must document registration hooks and SMK-PTL-01",
+  "portal-registration-ui.md must document registration hooks and SMK-PTL-01"
 );
 
 const portalNextConfig = read("apps/portal/next.config.ts");
@@ -245,7 +253,7 @@ assertCheck(
   portalNextConfig.includes("allowedDevOrigins") &&
     portalNextConfig.includes("*.portal.localhost") &&
     portalNextConfig.includes("portal.denali.localhost"),
-  "portal next.config must allow *.portal.localhost and portal.denali.localhost for Playwright / M↔P",
+  "portal next.config must allow *.portal.localhost and portal.denali.localhost for Playwright / M↔P"
 );
 
 const publicCatalogDoc = read("docs/workspaces/denali/public-catalog.md");
@@ -349,7 +357,8 @@ const otpFixture = read("apps/portal/tests/e2e/fixtures/catalog-registration-otp
 assertCheck(
   "m17_e2e_fixture_transport_intake",
   otpFixture.includes("data-public-registration-transport") &&
-    otpFixture.includes("hasPersonalCar"),
+    otpFixture.includes("transportChoice-") &&
+    otpFixture.includes("transportChoiceRadios.last().click()"),
   "E2E fixture must complete transport intake when visible"
 );
 
@@ -382,9 +391,9 @@ assertCheck(
     read("packages/workspace-sdk/src/catalog/resolve-catalog-registration-api-path.ts").includes(
       "resolveCatalogRegistrationApiPath"
     ) &&
-    read("packages/workspace-sdk/src/catalog/build-catalog-registration-upstream-request.ts").includes(
-      "buildCatalogRegistrationUpstreamRequest"
-    ) &&
+    read(
+      "packages/workspace-sdk/src/catalog/build-catalog-registration-upstream-request.ts"
+    ).includes("buildCatalogRegistrationUpstreamRequest") &&
     read("packages/workspace-sdk/src/catalog/workspace-intake-plugin-registry.ts").includes(
       "registerWorkspaceIntakePlugin"
     ) &&
@@ -487,9 +496,7 @@ assertCheck(
 
 assertCheck(
   "m17_seo_marketing_metadata_plugin_resolver",
-  read("apps/marketing/src/seo/build-marketing-metadata.ts").includes(
-    "resolveGuestSeoForPlugin"
-  ) &&
+  read("apps/marketing/src/seo/build-marketing-metadata.ts").includes("resolveGuestSeoForPlugin") &&
     read("apps/marketing/src/seo/build-marketing-metadata.ts").includes("MARKETING_OG_IMAGE_WIDTH"),
   "build-marketing-metadata must read guest SEO policy and declare OG image dimensions"
 );
