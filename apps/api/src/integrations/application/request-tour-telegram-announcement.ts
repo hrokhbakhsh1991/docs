@@ -73,9 +73,9 @@ export async function requestTourTelegramAnnouncement(
         requestedAt: new Date().toISOString(),
         deliverySnapshot: data,
         ...(telegramMediaUrl === null ? {} : { telegramMediaKind: "photo", telegramMediaUrl }),
-        // Keep the first version deterministic and compact. The workspace
-        // renderer can replace this template without touching Telegram code.
-        integrationDeliveryMessageTemplate: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
+        // Message content is resolved from the tenant-scoped exposure intent
+        // during dispatch. Do not put a template override in this snapshot:
+        // it would bypass the administrator's saved Telegram configuration.
       } as Prisma.InputJsonValue,
     });
   });

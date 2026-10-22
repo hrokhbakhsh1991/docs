@@ -22,6 +22,7 @@ export type IntegrationProviderSurfaceMeta = {
   readonly defaultCapabilities: readonly string[];
   readonly defaultEventPolicies: readonly IntegrationEventPolicySurfaceMeta[];
   readonly messageTemplates: Readonly<Record<string, string>>;
+  readonly adminDefaultMessageTemplates: Readonly<Record<string, string>>;
 };
 
 /** Registry-backed exposure field catalog entry exposed to integration UI/API. */
@@ -69,6 +70,12 @@ export async function buildWorkspaceIntegrationSurfaceMeta(
       })),
       messageTemplates: Object.fromEntries(
         Object.entries(surface.messageTemplates ?? {}).map(([eventType, template]) => [
+          eventType,
+          template,
+        ])
+      ),
+      adminDefaultMessageTemplates: Object.fromEntries(
+        Object.entries(surface.adminDefaultMessageTemplates ?? {}).map(([eventType, template]) => [
           eventType,
           template,
         ])

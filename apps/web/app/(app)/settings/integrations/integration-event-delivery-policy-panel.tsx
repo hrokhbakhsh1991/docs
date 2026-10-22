@@ -129,7 +129,7 @@ function TelegramMessagePreview(props: TelegramMessagePreviewProps) {
           },
         })}
       </pre>
-      {props.eventType === "TourPublished" ? (
+      {props.eventType === "TourPublished" || props.eventType === "TourAnnouncementRequested" ? (
         <div className="mt-3 inline-flex rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
           {props.labels.pdpButton}
         </div>
@@ -191,7 +191,11 @@ function initialEventState(
     catalogFieldIds(exposureCandidateFields)
   );
   const hydratedTemplate = hydrateTelegramTemplateState({
-    template: persistedIntent?.templateId ?? providerSurface?.messageTemplates?.[eventType] ?? "",
+    template:
+      persistedIntent?.templateId ??
+      providerSurface?.adminDefaultMessageTemplates?.[eventType] ??
+      providerSurface?.messageTemplates?.[eventType] ??
+      "",
     legacyFieldDecorations: persistedIntent?.fieldDecorations,
     fields: exposureCandidateFields,
     selectedFieldIds,

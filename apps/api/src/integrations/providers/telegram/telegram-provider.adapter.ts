@@ -11,6 +11,7 @@ import type {
 import {
   buildTelegramApiMultipartRequest,
   buildTelegramApiRequest,
+  type TelegramApiRequest,
 } from "./telegram-api.transport";
 
 const TELEGRAM_API_TIMEOUT_MS = 30_000;
@@ -64,6 +65,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
     };
     const requestId = randomUUID();
     let response: Response;
+    let request: TelegramApiRequest;
     try {
       if (media?.body !== undefined) {
         const form = new FormData();
@@ -81,7 +83,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
         if (input.replyMarkup !== undefined) {
           form.set("reply_markup", JSON.stringify(input.replyMarkup));
         }
-        const request = buildTelegramApiMultipartRequest(botToken, method, form, requestId);
+        request = buildTelegramApiMultipartRequest(botToken, method, form, requestId);
         response = await fetch(request.url, {
           method: "POST",
           headers: request.headers,
@@ -92,7 +94,7 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
         if (media !== undefined && typeof media.url !== "string") {
           return { ok: false, errorCode: "TELEGRAM_MEDIA_PAYLOAD_INVALID" };
         }
-        const request = buildTelegramApiRequest(botToken, method, {
+        request = buildTelegramApiRequest(botToken, method, {
           ...common,
           ...(media === undefined
             ? {
@@ -116,7 +118,10 @@ export class TelegramProviderAdapter implements IntegrationProviderAdapter {
           signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
         });
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("relay")) {
+        return { ok: false, errorCode: "TELEGRAM_RELAY_CONFIG_INVALID" };
+      }
       return { ok: false, errorCode: "TELEGRAM_NETWORK_ERROR" };
     }
 

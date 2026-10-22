@@ -137,7 +137,17 @@ function applyGlobalStructuralInvariant(
   switch (rule.kind) {
     case "clearFieldWhenTransportMode": {
       const mode = form.transport.transportMode;
-      if (mode != null && (rule.modes as readonly string[]).includes(mode)) {
+      const preserveForEnabledOption =
+        rule.unlessBooleanCanonicalPathIsTrue != null &&
+        getDenaliFormPathValue(
+          form,
+          mapDenaliCanonicalToFormPath(rule.unlessBooleanCanonicalPathIsTrue)
+        ) === true;
+      if (
+        mode != null &&
+        (rule.modes as readonly string[]).includes(mode) &&
+        !preserveForEnabledOption
+      ) {
         clearDenaliCanonicalLeaf(form, rule.targetCanonical);
       }
       return;

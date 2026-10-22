@@ -50,6 +50,8 @@ export type WorkspaceIntegrationSurface = {
   readonly providers: readonly WorkspaceIntegrationProviderSurface[];
   /** Outbound message templates keyed by domain event type. Supports `{{title}}`, `{{aggregateId}}`, `{{eventType}}`. */
   readonly messageTemplates?: Readonly<Record<string, string>>;
+  /** Editable operator-facing templates seeded into new exposure intents. */
+  readonly adminDefaultMessageTemplates?: Readonly<Record<string, string>>;
   readonly projectCanonicalDeliveryFields?: (
     input: WorkspaceCanonicalDeliveryProjectionInput
   ) => Readonly<Record<string, string>>;
@@ -124,6 +126,12 @@ export function validateIntegrationSurface(surface: WorkspaceIntegrationSurface)
     for (const [eventType, template] of Object.entries(surface.messageTemplates)) {
       assertNonEmptyString(eventType, "messageTemplates.eventType");
       assertNonEmptyString(template, `messageTemplates.${eventType}`);
+    }
+  }
+  if (surface.adminDefaultMessageTemplates !== undefined) {
+    for (const [eventType, template] of Object.entries(surface.adminDefaultMessageTemplates)) {
+      assertNonEmptyString(eventType, "adminDefaultMessageTemplates.eventType");
+      assertNonEmptyString(template, `adminDefaultMessageTemplates.${eventType}`);
     }
   }
 }

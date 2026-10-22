@@ -163,7 +163,7 @@
     "test:soak": "NODE_ENV=test RUN_SOAK=1 node --expose-gc --import tsx --test --test-concurrency=1 test/3-performance/soak-memory-leak.spec.ts",
     "start": "node dist/main.js",
     "predev": "node ../../scripts/ci/build-api-workspace-deps.mjs",
-    "dev": "NODE_ENV=development node --import tsx --import ./scripts/bootstrap-dev-env.ts --env-file=.env --env-file=.env.local src/main.ts",
+    "dev": "NODE_ENV=development node --env-file=.env --env-file=.env.local --import tsx --import ./scripts/bootstrap-dev-env.ts src/main.ts",
     "bootstrap:dev-jwt": "node ./scripts/bootstrap-dev-jwt-keys.mjs"
   },
   "dependencies": {

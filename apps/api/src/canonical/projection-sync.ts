@@ -24,14 +24,17 @@ export function deriveTourProjections(
     readonly previousPublishedAt?: Date | null;
   }
 ): TourProjectionFields {
-  const basics = canonical.data?.basics;
+  const data = canonical.data;
+  const basics = data?.basics;
   const title =
-    basics !== null &&
-    typeof basics === "object" &&
-    "title" in basics &&
-    typeof (basics as { title?: unknown }).title === "string"
-      ? (basics as { title: string }).title
-      : null;
+    typeof data?.title === "string"
+      ? data.title
+      : basics !== null &&
+          typeof basics === "object" &&
+          "title" in basics &&
+          typeof (basics as { title?: unknown }).title === "string"
+        ? (basics as { title: string }).title
+        : null;
   const publishStatusLabel = readTourPublishStatusLabel(options?.workspaceType, canonical);
   const isPublic = isPublicPublishStatusLabel(publishStatusLabel);
 
