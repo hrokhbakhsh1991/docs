@@ -113,6 +113,12 @@ Spec: `apps/portal/test/portal-catalog-registration-bff.spec.ts` (REG-BFF-01).
 
 Transport UI is **card-driven**: when `PublicCatalogCard.transport` is absent, portal shows no transport controls even if `transportIntake` capability is true.
 
+For Denali tours that offer both an organized mode (bus/minibus/train) and personal cars, the
+intake asks each participant to choose one transport path explicitly. The organized option
+submits `transport.kind=primary` and includes the configured organized transport cost; personal
+car options continue through the dong/occupant questions. Choosing one path clears stale fields
+from the other path. This applies independently to the registrant and each guest.
+
 ### Intake field widgets (digit strings)
 
 `IntakeFieldWidget` values `numeric-text` and `localized-digits` both render as HTML `type="text"` + `inputMode="numeric"` via `@app-cloud/catalog-intake-ui` (`RenderIntakeField`). Do **not** map them to `type="number"` — that strips leading zeros (guest mobile) and breaks validation after a self-registration lock. Only `IntakeFieldType` `"number"` uses a number input.
@@ -174,6 +180,7 @@ Workspace-specific validation of `transport.kind` remains in `packages/workspace
 | API persistence | `apps/api/test/denali-registration.spec.ts` · `DREG-19-01` |
 | Identity profile | `apps/api/test/identity-me.spec.ts` · `API-9.6-ME-04d` (`fatherName` / `birthDate` PATCH) |
 | Workspace rules | `packages/workspaces/denali/test/resolve-denali-registration-transport.spec.ts` · `denali-registration-validation.spec.ts` |
+| Mixed transport intake | `packages/workspaces/denali/test/denali-catalog-transport-intake.spec.ts` · `denali-intake-a11y.spec.ts` |
 | Portal BFF | `apps/portal/test/portal-catalog-registrations-dispatch.spec.ts` |
 | Static closure | `pnpm run guard:public-catalog-m17` |
 | CI / product gate | `pnpm run p6:gate` · `pnpm run p4:gate` — SDK registration specs · `denali-registration.spec.ts` · portal intake contract specs · web `format-registration-intake` · `platform-club-product-exit.spec.ts` (EX-02c) |

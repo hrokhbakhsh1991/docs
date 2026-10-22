@@ -195,9 +195,10 @@ async function fillIntakeFieldInRootIfVisible(
 async function selectNoPersonalCarAndPayDong(cardRoot: Locator): Promise<void> {
   const transportRoot = cardRoot.locator("[data-public-registration-transport]");
   const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
-  const hasPersonalCarRadios = scope.locator('input[type="radio"][name^="hasPersonalCar-"]');
-  if ((await hasPersonalCarRadios.count()) > 0) {
-    await hasPersonalCarRadios.nth(1).click();
+  const transportChoiceRadios = scope.locator('input[type="radio"][name^="transportChoice-"]');
+  if ((await transportChoiceRadios.count()) > 0) {
+    // The final option remains "someone else's car" for both two- and three-choice groups.
+    await transportChoiceRadios.last().click();
   }
 
   const paysDongRadios = cardRoot.locator('input[type="radio"][name^="paysDong-"]');
@@ -208,7 +209,7 @@ async function selectNoPersonalCarAndPayDong(cardRoot: Locator): Promise<void> {
 
 /**
  * Complete portal intake after OTP. Aligned with apps/portal fixture:
- * Denali self + transport radios (`hasPersonalCar-self`), then wait for success
+ * Denali self + transport radios (`transportChoice-self`), then wait for success
  * (not only POST — native constraint validation can swallow submit with no fetch).
  */
 export async function completeCatalogRegistrationIntake(

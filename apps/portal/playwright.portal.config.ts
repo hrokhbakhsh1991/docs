@@ -40,6 +40,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: [
     "portal-registration-smoke.spec.ts",
+    "portal-registration-transport-smoke.spec.ts",
     "portal-registration-resume-smoke.spec.ts",
     "portal-member-profile-smoke.spec.ts",
     "portal-member-smoke.spec.ts",

@@ -12,7 +12,9 @@ on:
       - "apps/web/app/(public)/catalog/**"
       - "apps/web/src/auth/identity-bff-headers.ts"
       - "apps/portal/tests/e2e/portal-registration-smoke.spec.ts"
+      - "apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts"
       - "apps/portal/tests/e2e/fixtures/catalog-registration-otp.ts"
+      - "apps/portal/playwright.portal.config.ts"
       - "apps/portal/app/catalog/**"
       - "apps/portal/app/api/catalog/registrations/**"
       - "apps/portal/test/portal-catalog-registration-bff.spec.ts"
@@ -173,6 +175,12 @@ jobs:
         run: |
           grep -q 'portal.denali.localhost' /etc/hosts || \
             echo '127.0.0.1 denali.localhost portal.denali.localhost denali.portal.localhost operator.localhost portal.operator.localhost operator.portal.localhost' | sudo tee -a /etc/hosts
+      - name: DEN-TRANS-01..03 portal registration transport smoke
+        env:
+          CI: "true"
+          STORAGE_DRIVER: memory
+          PW_NO_REUSE_SERVER: "1"
+        run: pnpm --filter @apps/portal exec playwright test -c playwright.portal.config.ts -g DEN-TRANS
       - name: SMK-MKT-01..04, SMK-MKT-16
         env:
           CI: "true"

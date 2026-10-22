@@ -26,4 +26,19 @@ describe("denali intake a11y — unique field ids", () => {
     assert.doesNotMatch(steps, /hasError=\{error !== null\}/);
     assert.doesNotMatch(steps, /schema-intake-\$\{field\.id\}/);
   });
+
+  it("offers the tour's primary transport for both self and guest in mixed tours", () => {
+    const steps = readFileSync(
+      join(denaliRoot, "src/catalog/registration-flow/denali-registration-flow.steps.tsx"),
+      "utf8"
+    );
+    assert.equal(
+      (steps.match(/isPublicCatalogOrganizedTransportMode\(context\.tourTransport\.mode\)/g) ?? [])
+        .length,
+      2
+    );
+    assert.equal((steps.match(/t\("intake\.usePrimaryTransport"\)/g) ?? []).length, 2);
+    assert.match(steps, /usePrimaryTransport === true/);
+    assert.match(steps, /usePrimaryTransport: true/);
+  });
 });

@@ -31,7 +31,11 @@ export async function gotoPortalRegistration(page: Page, tourId: string): Promis
     // A cold Next compile can expose the dialog before its phone step is ready.
     // Never click the underlying CTA while that dialog is already open.
     const dialogIsOpen = (await openLoginDialog.count()) > 0;
-    if (!modalOpened && !dialogIsOpen && (await continueRegistration.isVisible().catch(() => false))) {
+    if (
+      !modalOpened &&
+      !dialogIsOpen &&
+      (await continueRegistration.isVisible().catch(() => false))
+    ) {
       // The dialog may open between the count check and the click. The CTA only
       // opens the same modal, so force the event to make this transition race-safe.
       await continueRegistration.click({ force: true });
@@ -242,10 +246,10 @@ export async function completeCatalogRegistrationIntake(
     // to the card root for older fixture surfaces.
     const transportRoot = cardRoot.locator("[data-public-registration-transport]");
     const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
-    const hasPersonalCarRadios = scope.locator('input[type="radio"][name^="hasPersonalCar-"]');
-    if ((await hasPersonalCarRadios.count()) > 0) {
-      // Convention: we render "has car" then "no car"; pick the second.
-      await hasPersonalCarRadios.nth(1).click();
+    const transportChoiceRadios = scope.locator('input[type="radio"][name^="transportChoice-"]');
+    if ((await transportChoiceRadios.count()) > 0) {
+      // The final option remains "someone else's car" for both two- and three-choice groups.
+      await transportChoiceRadios.last().click();
     }
 
     const paysDongRadios = cardRoot.locator('input[type="radio"][name^="paysDong-"]');
