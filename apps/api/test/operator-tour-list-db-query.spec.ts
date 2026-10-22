@@ -79,6 +79,13 @@ describe("operator-tour-list-db-query", () => {
       { title: { contains: "پیش", mode: "insensitive" } },
       {
         canonical: {
+          path: ["data", "title"],
+          string_contains: "پیش",
+          mode: "insensitive",
+        },
+      },
+      {
+        canonical: {
           path: ["data", "basics", "title"],
           string_contains: "پیش",
           mode: "insensitive",

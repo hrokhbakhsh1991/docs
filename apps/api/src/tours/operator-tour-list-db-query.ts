@@ -144,6 +144,13 @@ export function buildOperatorTourWhere(input: {
             { title: { contains: search, mode: "insensitive" } },
             {
               canonical: {
+                path: ["data", "title"],
+                string_contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              canonical: {
                 path: ["data", "basics", "title"],
                 string_contains: search,
                 mode: "insensitive",
