@@ -25,6 +25,14 @@ describe("integration surface meta", () => {
       telegram.messageTemplates.TourAnnouncementRequested,
       "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}"
     );
+    assert.match(
+      telegram.adminDefaultMessageTemplates.TourAnnouncementRequested,
+      /برای ثبت‌نام از دکمه «مشاهده تور و ثبت‌نام» استفاده کنید/
+    );
+    assert.doesNotMatch(
+      telegram.adminDefaultMessageTemplates.TourAnnouncementRequested,
+      /social-media-link/
+    );
     assert.deepEqual(telegram.defaultEventPolicies, [
       { eventType: "TourPublished", enabled: true },
       { eventType: "TourAnnouncementRequested", enabled: true },

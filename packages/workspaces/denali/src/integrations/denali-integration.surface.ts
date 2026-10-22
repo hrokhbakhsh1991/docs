@@ -43,6 +43,87 @@ function projectDenaliLocationZones(
   return labels.length === 0 ? {} : { [DENALI_LOCATION_ZONES_FIELD_ID]: labels.join("، ") };
 }
 
+function toPersianDigits(value: string): string {
+  return value.replace(/[0-9]/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)] ?? digit);
+}
+
+function formatDenaliNumber(value: unknown): string | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return new Intl.NumberFormat("fa-IR").format(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return toPersianDigits(value.trim());
+  }
+  return undefined;
+}
+
+function formatDenaliTransport(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    bus: "اتوبوس",
+    minibus: "مینی‌بوس",
+    car: "خودروی شخصی",
+    personal_car: "خودروی شخصی",
+    train: "قطار",
+    plane: "هواپیما",
+  };
+  return labels[normalized] ?? value.trim();
+}
+
+function projectDenaliAnnouncementFields(
+  input: WorkspaceCanonicalDeliveryProjectionInput
+): Readonly<Record<string, string>> {
+  const projected: Record<string, string> = { ...projectDenaliLocationZones(input) };
+  const read = (path: string) => getCanonicalValue(input.payload, path);
+  if (input.eligibleFieldIds.includes("capacityMax")) {
+    const value = formatDenaliNumber(read("capacityMax"));
+    if (value !== undefined) projected.capacityMax = value;
+  }
+  if (input.eligibleFieldIds.includes("denali.pricing-participants")) {
+    const value = formatDenaliNumber(read("participants.minimumAge"));
+    if (value !== undefined) projected["denali.pricing-participants"] = value;
+  }
+  if (input.eligibleFieldIds.includes("denali.pricing-payment")) {
+    const value = formatDenaliNumber(read("pricing.basePricePerPerson"));
+    if (value !== undefined) projected["denali.pricing-payment"] = value;
+  }
+  if (input.eligibleFieldIds.includes("denali.transport-mode")) {
+    const value = formatDenaliTransport(read("transport.mode"));
+    if (value !== undefined) projected["denali.transport-mode"] = value;
+  }
+  return projected;
+}
+
+const denaliTourAnnouncementAdminDefaultTemplate = `🔴🟠🟡🟢🔵 اعلام برنامه دنالی 🔵🟢🟡🟠🔴
+
+🏕️ {{field:title}}
+
+✨ یک برنامه متفاوت در طبیعت، همراه با دنالی ✨
+
+📍 مقصد برنامه: {{field:denali.destination}}
+📅 تاریخ و شروع حرکت: {{field:denali.datetime}}
+⏰ زمان تقریبی بازگشت: {{field:denali.approximate-return-time}}
+🚌 حمل‌ونقل: {{field:denali.transport-mode}}
+👥 ظرفیت برنامه: {{field:capacityMax}}
+🎂 حداقل سن: {{field:denali.pricing-participants}}
+💰 هزینه شرکت در برنامه: {{field:denali.pricing-payment}} تومان
+
+━━━━━━━━━━━━━━━━━━
+
+🌿 درباره برنامه
+جزئیات کامل برنامه، زمان و مکان دقیق حرکت، خدمات و وسایل مورد نیاز در صفحه تور قابل مشاهده است.
+
+📲 ثبت‌نام و هماهنگی
+لطفاً قبل از ثبت‌نام توضیحات کامل را مطالعه کنید.
+برای ثبت‌نام از دکمه «مشاهده تور و ثبت‌نام» استفاده کنید.
+
+━━━━━━━━━━━━━━━━━━
+
+🔔 ظرفیت برنامه محدود است و اولویت با ثبت‌نام‌های زودتر خواهد بود.`;
+
 export const denaliIntegrationSurface = Object.freeze({
   manifestVersion: 1 as const,
   providers: [
@@ -161,6 +242,8 @@ export const denaliIntegrationSurface = Object.freeze({
       eventMappings: [],
     },
   ],
+  // Runtime fallback stays intentionally small. New operator settings receive
+  // the rich template below and saved settings always take precedence.
   messageTemplates: {
     TourPublished: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
     TourAnnouncementRequested: "🆕 تور جدید منتشر شد\n\n🏕 عنوان تور: {{title}}",
@@ -193,7 +276,11 @@ export const denaliIntegrationSurface = Object.freeze({
       "اولویت تیکت تغییر کرد\nشناسه: {{ticketId}}\nموضوع: {{subject}}\nاولویت: {{priority}}",
     "ticket.closed": "تیکت بسته شد\nشناسه: {{ticketId}}\nموضوع: {{subject}}",
   },
-  projectCanonicalDeliveryFields: projectDenaliLocationZones,
+  adminDefaultMessageTemplates: {
+    TourPublished: denaliTourAnnouncementAdminDefaultTemplate,
+    TourAnnouncementRequested: denaliTourAnnouncementAdminDefaultTemplate,
+  },
+  projectCanonicalDeliveryFields: projectDenaliAnnouncementFields,
 }) satisfies WorkspaceIntegrationSurface;
 
 validateIntegrationSurface(denaliIntegrationSurface);

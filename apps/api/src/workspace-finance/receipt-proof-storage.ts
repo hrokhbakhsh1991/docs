@@ -93,7 +93,7 @@ export function rethrowMemberReceiptProofStorageError(error: unknown): never {
   }
   if (
     error instanceof Error &&
-    /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(error.message)
+    /EAI_AGAIN|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(error.message)
   ) {
     throw new Error("RECEIPT_STORAGE_UNAVAILABLE");
   }

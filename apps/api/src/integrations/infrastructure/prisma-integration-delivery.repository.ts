@@ -69,7 +69,7 @@ export class PrismaIntegrationDeliveryRepository implements IntegrationDeliveryR
     await withTenantRls(tenantId, async (tx) => {
       await tx.integrationDeliveryJob.update({
         where: { id: jobId },
-        data: { status: "done", processedAt: new Date() },
+        data: { status: "done", processedAt: new Date(), lastError: Prisma.DbNull },
       });
     });
   }

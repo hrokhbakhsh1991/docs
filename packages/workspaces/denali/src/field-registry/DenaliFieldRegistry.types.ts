@@ -37,4 +37,5 @@ export type DenaliGlobalStructuralInvariant =
       readonly kind: "clearFieldWhenTransportMode";
       readonly targetCanonical: string;
       readonly modes: readonly string[];
+      readonly unlessBooleanCanonicalPathIsTrue?: string;
     };

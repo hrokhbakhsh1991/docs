@@ -902,6 +902,8 @@
       "INTEGRATION_TELEGRAM_CHAT_INVALID": "Telegram could not resolve this group. Check the chat ID and add the bot to the group.",
       "INTEGRATION_TELEGRAM_BOT_ACCESS_INVALID": "Telegram could not verify the bot in this group. Add it as an administrator and check its permissions.",
       "INTEGRATION_TELEGRAM_API_UNREACHABLE": "The server could not reach Telegram. Check outbound network access or configure the Telegram relay.",
+      "INTEGRATION_TELEGRAM_WEBHOOK_BASE_URL_REQUIRED": "A public HTTPS URL for receiving Telegram updates is not configured.",
+      "INTEGRATION_TELEGRAM_WEBHOOK_MUST_USE_HTTPS": "The Telegram webhook URL must use HTTPS.",
       "TELEGRAM_TOPIC_THREAD_NOT_FOUND": "A stored Telegram topic no longer exists. Use “Recover topic setup” to preserve healthy topics and recreate only deleted ones.",
       "INTEGRATION_TELEGRAM_API_REQUEST_FAILED": "Telegram API could not be reached. Check server connectivity and the bot token.",
       "TELEGRAM_NETWORK_ERROR": "The server could not reach Telegram. Check the relay or network egress.",

@@ -29,6 +29,16 @@ describe("deriveTourProjections (unit)", () => {
     assert.equal(projections.publishedAt, null);
   });
 
+  it("maps the current canonical data.title field to the projection", () => {
+    const projections = deriveTourProjections({
+      schemaVersion: 2,
+      roots: ["basics"],
+      data: { title: "Current schema title", basics: { title: "Legacy title" } },
+    });
+
+    assert.equal(projections.title, "Current schema title");
+  });
+
   it("derives public publish columns for denali active canonicals", () => {
     const observedAt = new Date("2026-08-13T09:00:00.000Z");
     const projections = deriveTourProjections(

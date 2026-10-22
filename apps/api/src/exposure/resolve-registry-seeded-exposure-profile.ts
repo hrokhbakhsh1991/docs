@@ -9,11 +9,11 @@ import {
 
 async function resolveWorkspaceMessageTemplateSeed(
   workspaceType: string,
-  eventType: string,
+  eventType: string
 ): Promise<string | null> {
   try {
     const plugin = await resolveWorkspacePluginForType(workspaceType);
-    const template = plugin.integrationSurface?.messageTemplates?.[eventType];
+    const template = plugin.integrationSurface?.adminDefaultMessageTemplates?.[eventType];
     return typeof template === "string" && template.trim().length > 0 ? template.trim() : null;
   } catch {
     return null;
@@ -24,7 +24,7 @@ async function resolveWorkspaceMessageTemplateSeed(
  * Phase 4 — builds an in-memory ExposureProfile from registry deliverable seed metadata.
  */
 export function resolveDeliveryExposureProfileContext(
-  eventType?: string,
+  eventType?: string
 ): Partial<ExposureProfileContext> {
   return {
     entityType: "tour",
@@ -35,7 +35,7 @@ export function resolveDeliveryExposureProfileContext(
 }
 
 export async function resolveRegistrySeededExposureProfile(
-  context: ExposureProfileContext,
+  context: ExposureProfileContext
 ): Promise<ExposureProfile | null> {
   if (context.workspaceType === null || context.workspaceType.trim().length === 0) {
     return null;
@@ -44,7 +44,7 @@ export async function resolveRegistrySeededExposureProfile(
   const defaultFieldIds = await exposureSelectableFieldIds(context.workspaceType);
   const defaultTemplateId = await resolveWorkspaceMessageTemplateSeed(
     context.workspaceType,
-    context.trigger,
+    context.trigger
   );
 
   return resolveSeededExposureProfile({
@@ -60,7 +60,7 @@ export async function resolveRegistrySeededExposureProfile(
 
 export async function resolveExposureProfileDefaultFieldIds(
   workspaceType: string | null,
-  context: Partial<ExposureProfileContext> = {},
+  context: Partial<ExposureProfileContext> = {}
 ): Promise<readonly string[]> {
   const profile = await resolveRegistrySeededExposureProfile({
     workspaceType,
@@ -75,7 +75,7 @@ export async function resolveExposureProfileDefaultFieldIds(
 export async function resolveExposureRequestedFieldIds(
   adminSelectedFieldIds: readonly string[] | null | undefined,
   workspaceType: string | null,
-  context: Partial<ExposureProfileContext> = {},
+  context: Partial<ExposureProfileContext> = {}
 ): Promise<readonly string[]> {
   if (adminSelectedFieldIds != null) {
     return adminSelectedFieldIds;

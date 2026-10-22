@@ -902,6 +902,8 @@
       "INTEGRATION_TELEGRAM_CHAT_INVALID": "تلگرام این گروه را پیدا نکرد. شناسه گروه را بررسی کنید و ربات را به گروه اضافه کنید.",
       "INTEGRATION_TELEGRAM_BOT_ACCESS_INVALID": "تلگرام دسترسی ربات به این گروه را تأیید نکرد. ربات را ادمین کنید و مجوزهایش را بررسی کنید.",
       "INTEGRATION_TELEGRAM_API_UNREACHABLE": "سرور به تلگرام دسترسی ندارد. خروجی شبکه یا تنظیم رله تلگرام را بررسی کنید.",
+      "INTEGRATION_TELEGRAM_WEBHOOK_BASE_URL_REQUIRED": "آدرس عمومی HTTPS برای دریافت پاسخ‌های تلگرام تنظیم نشده است.",
+      "INTEGRATION_TELEGRAM_WEBHOOK_MUST_USE_HTTPS": "آدرس webhook تلگرام باید با HTTPS باشد.",
       "TELEGRAM_TOPIC_THREAD_NOT_FOUND": "یکی از Topicهای ذخیره‌شده در تلگرام دیگر وجود ندارد. از «بازیابی ساخت Topicها» استفاده کنید تا Topicهای سالم بررسی و فقط موارد حذف‌شده بازسازی شوند.",
       "INTEGRATION_TELEGRAM_API_REQUEST_FAILED": "ارتباط با API تلگرام ناموفق بود. اتصال سرور به تلگرام و توکن ربات را بررسی کنید.",
       "TELEGRAM_NETWORK_ERROR": "اتصال سرور به تلگرام برقرار نشد. مسیر رله یا دسترسی شبکه را بررسی کنید.",

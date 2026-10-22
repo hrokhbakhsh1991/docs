@@ -187,6 +187,61 @@ describe("enrichCanonicalDeliveryPayload", () => {
     });
   });
 
+  it("projects Denali announcement values into operator-facing Persian labels", () => {
+    const enriched = enrichCanonicalDeliveryPayload({
+      payload: {
+        capacityMax: 20,
+        participants: { minimumAge: 10 },
+        pricing: { requiresPayment: true, basePricePerPerson: 1865000 },
+        transport: { mode: "bus" },
+      },
+      eligibleFieldIds: [
+        "capacityMax",
+        "denali.pricing-participants",
+        "denali.pricing-payment",
+        "denali.transport-mode",
+      ],
+      projectCanonicalDeliveryFields: DENALI_DELIVERY_PROJECTOR,
+      definitions: [
+        {
+          id: "capacityMax",
+          workspaceType: "denali",
+          canonicalPath: "capacityMax",
+          kind: "number",
+          version: 1,
+        },
+        {
+          id: "denali.pricing-participants",
+          workspaceType: "denali",
+          canonicalPath: "participants.minimumAge",
+          kind: "number",
+          version: 1,
+        },
+        {
+          id: "denali.pricing-payment",
+          workspaceType: "denali",
+          canonicalPath: "pricing.requiresPayment",
+          kind: "boolean",
+          version: 1,
+        },
+        {
+          id: "denali.transport-mode",
+          workspaceType: "denali",
+          canonicalPath: "transport.mode",
+          kind: "enum",
+          version: 1,
+        },
+      ],
+    });
+
+    assert.deepEqual(enriched.fieldValues, {
+      capacityMax: "۲۰",
+      "denali.pricing-participants": "۱۰",
+      "denali.pricing-payment": "۱٬۸۶۵٬۰۰۰",
+      "denali.transport-mode": "اتوبوس",
+    });
+  });
+
   it("falls back to tripDetails.overview zones after form-profile ghost strip", () => {
     const enriched = enrichCanonicalDeliveryPayload({
       payload: {

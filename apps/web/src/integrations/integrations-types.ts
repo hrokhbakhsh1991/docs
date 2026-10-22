@@ -201,6 +201,7 @@ export type IntegrationProviderSurfaceMeta = {
   readonly defaultCapabilities: readonly string[];
   readonly defaultEventPolicies: readonly IntegrationEventPolicySurfaceMeta[];
   readonly messageTemplates?: Readonly<Record<string, string>>;
+  readonly adminDefaultMessageTemplates?: Readonly<Record<string, string>>;
 };
 
 export type IntegrationDeliveryCandidateFieldMeta = {
@@ -455,6 +456,18 @@ function parseIntegrationProviderSurfaceMeta(payload: unknown): IntegrationProvi
       ? {
           messageTemplates: Object.fromEntries(
             Object.entries(record.messageTemplates as Record<string, unknown>).filter(
+              (entry): entry is [string, string] =>
+                typeof entry[0] === "string" && typeof entry[1] === "string"
+            )
+          ),
+        }
+      : {}),
+    ...(typeof record.adminDefaultMessageTemplates === "object" &&
+    record.adminDefaultMessageTemplates !== null &&
+    !Array.isArray(record.adminDefaultMessageTemplates)
+      ? {
+          adminDefaultMessageTemplates: Object.fromEntries(
+            Object.entries(record.adminDefaultMessageTemplates as Record<string, unknown>).filter(
               (entry): entry is [string, string] =>
                 typeof entry[0] === "string" && typeof entry[1] === "string"
             )

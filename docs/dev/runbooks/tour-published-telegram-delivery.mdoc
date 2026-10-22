@@ -14,6 +14,7 @@ adr_ref: docs/architecture/adr/ADR-INT-001-tour-published-telegram.mdoc
 implementation:
   - apps/api/src/canonical/atomic-canonical-tour-persist.ts
   - apps/api/src/integrations/application/dispatch-integration-domain-event.ts
+  - apps/api/src/integrations/application/request-tour-telegram-announcement.ts
   - packages/workspaces/denali/src/integrations/denali-integration.surface.ts
   - apps/api/src/integrations/migration/run-tour-published-exposure-remap.ts
   - apps/api/src/health/tour-published-policy-drift.ts
@@ -25,33 +26,39 @@ Operators expect a Telegram channel message when a Denali tour is **published** 
 
 **Admin UI paths:**
 
-| Surface | Path | What to check |
-| ------- | ---- | ------------- |
-| Connections | Settings → Integrations | Telegram enabled, test connection OK |
-| Field exposure | Settings → Exposure | `TourPublished` route, field checklist |
-| Drift banner | Integrations or Exposure detail | Amber banner when `TOUR_PUBLISHED_POLICY_DRIFT` in `loadWarnings` |
-| Deprecated notice | Exposure → Telegram panel | `TourCreated` deprecated → configure `TourPublished` |
+The Telegram announcement template has two separate contracts: the workspace registry
+provides `adminDefaultMessageTemplates` as the prefilled, editable operator setting;
+`messageTemplates` remains a small runtime fallback only. A saved exposure intent always
+wins over both defaults, so deploying a new recommended template never overwrites an
+operator's customization.
+
+| Surface           | Path                            | What to check                                                     |
+| ----------------- | ------------------------------- | ----------------------------------------------------------------- |
+| Connections       | Settings → Integrations         | Telegram enabled, test connection OK                              |
+| Field exposure    | Settings → Exposure             | `TourPublished` route, field checklist                            |
+| Drift banner      | Integrations or Exposure detail | Amber banner when `TOUR_PUBLISHED_POLICY_DRIFT` in `loadWarnings` |
+| Deprecated notice | Exposure → Telegram panel       | `TourCreated` deprecated → configure `TourPublished`              |
 
 ## Preconditions
 
-| Check | Command / signal |
-| ----- | ---------------- |
-| Integration gate open | `GET /health` — integration subsystem ready |
-| Migrations applied | `pnpm --filter @apps/api run db:migrate:deploy` |
-| Denali package built | `pnpm --filter @app-tour/workspace-denali build` |
-| Policy drift zero | consistency report — no `TOUR_PUBLISHED_POLICY_DRIFT` |
-| Intent remap clean | `integrations:verify-tour-published-exposure` exit 0 |
-| Flags enabled | see Env matrix below |
+| Check                 | Command / signal                                      |
+| --------------------- | ----------------------------------------------------- |
+| Integration gate open | `GET /health` — integration subsystem ready           |
+| Migrations applied    | `pnpm --filter @apps/api run db:migrate:deploy`       |
+| Denali package built  | `pnpm --filter @app-tour/workspace-denali build`      |
+| Policy drift zero     | consistency report — no `TOUR_PUBLISHED_POLICY_DRIFT` |
+| Intent remap clean    | `integrations:verify-tour-published-exposure` exit 0  |
+| Flags enabled         | see Env matrix below                                  |
 
 ## Env matrix
 
-| Variable | Required value | Role |
-| -------- | -------------- | ---- |
-| `OUTBOX_RELAY_ENABLED` | `true` | Relay publishes outbox → dispatcher |
-| `INTEGRATION_DELIVERY_ENABLED` | `true` | Dispatcher enqueues delivery jobs |
-| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `true` | Worker sends Telegram HTTP |
-| `STORAGE_DRIVER` | `prisma` | Persisted tours + outbox |
-| `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL` | `true` (staging only) | Block integration mutations if policy backfill missing |
+| Variable                              | Required value        | Role                                                   |
+| ------------------------------------- | --------------------- | ------------------------------------------------------ |
+| `OUTBOX_RELAY_ENABLED`                | `true`                | Relay publishes outbox → dispatcher                    |
+| `INTEGRATION_DELIVERY_ENABLED`        | `true`                | Dispatcher enqueues delivery jobs                      |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `true`                | Worker sends Telegram HTTP                             |
+| `STORAGE_DRIVER`                      | `prisma`              | Persisted tours + outbox                               |
+| `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL`   | `true` (staging only) | Block integration mutations if policy backfill missing |
 
 See also [integration gate blocked](./integration-gate-blocked.mdoc).
 
@@ -132,12 +139,12 @@ pnpm --filter @apps/api run db:migrate:deploy
 
 `pnpm --filter @apps/api run dev` loads `scripts/bootstrap-dev-env.ts` **before** `main.ts`. When `NODE_ENV=development` and `DATABASE_URL` is set (via `.env.local` or shell), unset flags default to:
 
-| Variable | Dev default |
-| -------- | ----------- |
-| `STORAGE_DRIVER` | `prisma` |
-| `OUTBOX_RELAY_ENABLED` | `true` |
-| `INTEGRATION_DELIVERY_ENABLED` | `true` |
-| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `true` |
+| Variable                              | Dev default |
+| ------------------------------------- | ----------- |
+| `STORAGE_DRIVER`                      | `prisma`    |
+| `OUTBOX_RELAY_ENABLED`                | `true`      |
+| `INTEGRATION_DELIVERY_ENABLED`        | `true`      |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `true`      |
 
 Explicit env values always win — set `OUTBOX_RELAY_ENABLED=false` to debug without relay. **Merge** new vars into existing `apps/api/.env.local`; never replace the file wholesale (JWT keys + custom domain env would be lost). Copy [`apps/api/.env.example`](../../../apps/api/.env.example) lines you need, or run `pnpm --filter @apps/api run bootstrap:dev-jwt >> apps/api/.env.local`.
 
@@ -150,6 +157,31 @@ STORAGE_DRIVER=prisma NODE_ENV=test \
   pnpm --filter @apps/api exec node --import tsx --test \
   test/4-integration/tour-published-outbox.spec.ts
 ```
+
+## Manual announcement and message configuration
+
+The operator button **Send to Telegram** emits `TourAnnouncementRequested`. It
+is a separate, intentional event from the automatic `TourPublished` lifecycle
+event. Both events use the tenant-scoped exposure intent configured in
+**Settings → Exposure**.
+
+The manual announcement payload must contain the frozen tour snapshot and
+optional cover photo only. It must not contain
+`integrationDeliveryMessageTemplate`: that field is the resolved admin
+override and would otherwise take precedence over the saved exposure intent.
+The dispatcher resolves the saved template and eligible fields, then the
+worker adds the public PDP registration button for either tour event.
+
+Recommended operator flow:
+
+1. Open **Settings → Exposure → Telegram**.
+2. Configure the `TourAnnouncementRequested` event (or the effective
+   `TourPublished` route when automatic publication is enabled).
+3. Select only public tour fields, arrange their order, edit the template, and
+   save. The preview shows the selected field values and the PDP button.
+4. Publish the tour or use the manual announcement button once. Verify the
+   resulting job payload and Telegram message; do not configure both routes to
+   send the same lifecycle event.
 
 ## Smoke test (happy path)
 
@@ -231,18 +263,18 @@ WHERE status = 'processing';
 
 ## Failure matrix
 
-| Symptom | Likely cause | Fix |
-| ------- | ------------ | --- |
-| Outbox row missing | Publish transition not detected; wrong workspace context | Denali `canonicalTour` in manifest; tenant `workspaceType=denali`; validation gate before persist |
-| Outbox OK, no job | Policy drift; `TourPublished` disabled | Run migration backfill; enable policy in UI; check drift SQL |
-| Amber drift banner in UI | Missing enabled `TourPublished` policy row | `db:migrate:deploy`; manual INSERT if restore gap |
-| Job `processing` forever | API restart/HMR mid-worker tick | Restart API (reclaim each tick); SQL in smoke section; `INTEGRATION_DELIVERY_PROCESSING_RECLAIM_MS` (default 120s) |
-| Job pending forever | Worker off or flag false | `INTEGRATION_DELIVERY_WORKER_ENABLED=true`; restart API |
-| Job dead | Telegram token/channel | Test connection; check `last_error` on job |
-| Wrong message fields | Exposure intent still on `TourCreated` | Run intent remap CLI (INT-002c) |
-| UI shows TourCreated tab | Legacy intent before remap | Run remap; web hides deprecated routes after policy marks `TourCreated` deprecated |
-| Duplicate on republish | Expected | Each publish transition = new `rowVersion` = new message |
-| Replay duplicate job | Should not happen | Same `domainEventId` → idempotent enqueue skip (count 0) |
+| Symptom                  | Likely cause                                             | Fix                                                                                                                |
+| ------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Outbox row missing       | Publish transition not detected; wrong workspace context | Denali `canonicalTour` in manifest; tenant `workspaceType=denali`; validation gate before persist                  |
+| Outbox OK, no job        | Policy drift; `TourPublished` disabled                   | Run migration backfill; enable policy in UI; check drift SQL                                                       |
+| Amber drift banner in UI | Missing enabled `TourPublished` policy row               | `db:migrate:deploy`; manual INSERT if restore gap                                                                  |
+| Job `processing` forever | API restart/HMR mid-worker tick                          | Restart API (reclaim each tick); SQL in smoke section; `INTEGRATION_DELIVERY_PROCESSING_RECLAIM_MS` (default 120s) |
+| Job pending forever      | Worker off or flag false                                 | `INTEGRATION_DELIVERY_WORKER_ENABLED=true`; restart API                                                            |
+| Job dead                 | Telegram token/channel                                   | Test connection; check `last_error` on job                                                                         |
+| Wrong message fields     | Exposure intent still on `TourCreated`                   | Run intent remap CLI (INT-002c)                                                                                    |
+| UI shows TourCreated tab | Legacy intent before remap                               | Run remap; web hides deprecated routes after policy marks `TourCreated` deprecated                                 |
+| Duplicate on republish   | Expected                                                 | Each publish transition = new `rowVersion` = new message                                                           |
+| Replay duplicate job     | Should not happen                                        | Same `domainEventId` → idempotent enqueue skip (count 0)                                                           |
 
 ## Republish semantics
 
