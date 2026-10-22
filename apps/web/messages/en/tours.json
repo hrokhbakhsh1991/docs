@@ -629,6 +629,7 @@
       "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "Transport bookings not found.",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_503": "The transport bookings service is temporarily unavailable. Please try again.",
       "TOUR_ROSTER_HTTP_503": "The approved guest roster is temporarily unavailable. Pending registrations still appear below.",
+      "TOUR_ROSTER_FETCH_TIMEOUT": "Loading the financial roster took too long. Check your connection and try again.",
       "TOUR_TRANSPORT_TOUR_HTTP_500": "Failed to load transport tour (server error).",
       "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "Failed to load transport bookings (server error)."
     }

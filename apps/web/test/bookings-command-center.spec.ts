@@ -237,8 +237,14 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.pagination, "operator-bookings-pagination");
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.controls, "operator-bookings-controls");
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.queueStatus, "operator-bookings-queue-status");
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersToggle, "operator-bookings-filters-toggle");
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.activeFilters, "operator-bookings-active-filters");
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersToggle,
+      "operator-bookings-filters-toggle"
+    );
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.activeFilters,
+      "operator-bookings-active-filters"
+    );
     assert.equal(BOOKINGS_LIST_PAGE_SIZE, 25);
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.actionError, "operator-bookings-action-error");
     assert.equal(
@@ -268,10 +274,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(resolveBookingsListTotalPages(26, BOOKINGS_LIST_PAGE_SIZE), 2);
 
     assert.equal(
-      shouldResetBookingsPagination(
-        DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
-        { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, search: "ali" }
-      ),
+      shouldResetBookingsPagination(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, {
+        ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
+        search: "ali",
+      }),
       true
     );
     assert.equal(
@@ -1375,10 +1381,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
 
     // UX-BKG-53 — directory controls + pagination shell wiring.
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersPanel,
-      "operator-bookings-filters-panel"
-    );
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersPanel, "operator-bookings-filters-panel");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.filtersDirtyBadge,
       "operator-bookings-filters-dirty"
@@ -1430,6 +1433,9 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(pageSource, /BookingsDirectoryPagination/);
     assert.match(pageSource, /goToBookingsPage/);
     assert.match(pageSource, /BOOKINGS_LIST_PAGE_SIZE/);
+    assert.match(pageSource, /createAbortTimeout\(25_000\)/);
+    assert.match(pageSource, /BOOKINGS_FETCH_TIMEOUT/);
+    assert.match(pageSource, /signal: request\.signal/);
     assert.match(pageSource, /resolveBookingsKpiValue/);
     assert.match(pageSource, /summary !== null && !embedded && !loading/);
     assert.doesNotMatch(pageSource, /loadMore/);

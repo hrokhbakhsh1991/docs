@@ -11,6 +11,7 @@ import {
   resolvePaymentFollowUpLoadOutcome,
   toPaymentFollowUpHttpError,
 } from "@/features/tours/tour-workspace-payment-follow-up-load";
+import { createAbortTimeout } from "@/utils/create-abort-timeout";
 
 type PaymentFollowUpListState = {
   readonly loading: boolean;
@@ -59,7 +60,8 @@ export function useTourWorkspacePaymentFollowUpList(
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
+    const request = createAbortTimeout(25_000);
     setLoading(true);
     setError(null);
     setRosterDegraded(false);
@@ -67,10 +69,16 @@ export function useTourWorkspacePaymentFollowUpList(
     void (async () => {
       try {
         const rosterResult = await Promise.allSettled([
-          loadOperationalRosterForFollowUp(normalizedTourId, controller.signal),
+          loadOperationalRosterForFollowUp(normalizedTourId, request.signal),
         ]);
 
-        if (controller.signal.aborted) {
+        if (cancelled) {
+          return;
+        }
+        if (request.timedOut()) {
+          setRows([]);
+          setError("TOUR_ROSTER_FETCH_TIMEOUT");
+          setRosterDegraded(false);
           return;
         }
 
@@ -90,20 +98,30 @@ export function useTourWorkspacePaymentFollowUpList(
         setError(outcome.error);
         setRosterDegraded(outcome.rosterDegraded);
       } catch (loadError: unknown) {
-        if (controller.signal.aborted) {
+        if (cancelled) {
           return;
         }
         setRows([]);
-        setError(loadError instanceof Error ? loadError.message : "PAYMENT_FOLLOW_UP_LIST_FAILED");
+        setError(
+          request.timedOut()
+            ? "TOUR_ROSTER_FETCH_TIMEOUT"
+            : loadError instanceof Error
+              ? loadError.message
+              : "PAYMENT_FOLLOW_UP_LIST_FAILED"
+        );
         setRosterDegraded(false);
       } finally {
-        if (!controller.signal.aborted) {
+        request.dispose();
+        if (!cancelled) {
           setLoading(false);
         }
       }
     })();
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      request.dispose();
+    };
   }, [fetchNonce, refreshNonce, tourId]);
 
   return { loading, error, rosterDegraded, rows, refresh };

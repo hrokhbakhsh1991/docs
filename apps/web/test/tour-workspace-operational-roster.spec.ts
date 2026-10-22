@@ -136,6 +136,9 @@ describe("DP-2 tour workspace operational roster contract", () => {
     assert.match(hook, /buildTourOperationalRosterHref/);
     assert.match(hook, /resolvePaymentFollowUpLoadOutcome/);
     assert.match(hook, /Promise\.allSettled/);
+    assert.match(hook, /createAbortTimeout\(25_000\)/);
+    assert.match(hook, /TOUR_ROSTER_FETCH_TIMEOUT/);
+    assert.match(hook, /request\.timedOut\(\)/);
     assert.match(hook, /refreshNonce/);
     assert.match(load, /rosterDegraded/);
     assert.match(hook, /toPaymentFollowUpHttpError\("TOUR_ROSTER_HTTP"/);
