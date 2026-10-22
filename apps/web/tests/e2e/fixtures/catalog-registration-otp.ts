@@ -3,9 +3,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 export const CATALOG_DEV_OTP = "1234";
 
 export async function fillCatalogPhone(page: Page, phone: string): Promise<void> {
-  const phoneStep = page.locator(
-    "[data-public-registration-phone][data-registration-ready]"
-  );
+  const phoneStep = page.locator("[data-public-registration-phone][data-registration-ready]");
   await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
   const input = phoneStep.locator("#phone");
   await input.click();
@@ -22,8 +20,7 @@ export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promi
   const [response] = await Promise.all([
     page.waitForResponse(
       (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/public-auth/request-otp"),
+        res.request().method() === "POST" && res.url().includes("/api/public-auth/request-otp"),
       { timeout: 90_000 }
     ),
     sendCode.click(),
@@ -44,9 +41,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const digits = code.replace(/\D/g, "");
 
   const responsePromise = page.waitForResponse(
-    (res) =>
-      res.request().method() === "POST" &&
-      res.url().includes("/api/public-auth/verify-otp"),
+    (res) => res.request().method() === "POST" && res.url().includes("/api/public-auth/verify-otp"),
     { timeout: 90_000 }
   );
 
@@ -103,11 +98,10 @@ async function fillIntakeFieldIfPresent(
 async function selectNoPersonalCarAndPayDong(cardRoot: Locator): Promise<void> {
   const transportRoot = cardRoot.locator("[data-public-registration-transport]");
   const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
-  const hasPersonalCarRadios = scope.locator(
-    'input[type="radio"][name^="hasPersonalCar-"]'
-  );
-  if ((await hasPersonalCarRadios.count()) > 0) {
-    await hasPersonalCarRadios.nth(1).click();
+  const transportChoiceRadios = scope.locator('input[type="radio"][name^="transportChoice-"]');
+  if ((await transportChoiceRadios.count()) > 0) {
+    // The final option remains "someone else's car" for both two- and three-choice groups.
+    await transportChoiceRadios.last().click();
   }
   const paysDongRadios = cardRoot.locator('input[type="radio"][name^="paysDong-"]');
   if ((await paysDongRadios.count()) > 0) {
@@ -129,9 +123,7 @@ export async function completeCatalogRegistrationIntake(
     await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
   }
 
-  const intakeRoot = page.locator(
-    "[data-public-registration-intake][data-registration-ready]"
-  );
+  const intakeRoot = page.locator("[data-public-registration-intake][data-registration-ready]");
   await intakeRoot.waitFor({ state: "visible", timeout: 120_000 });
 
   // Urban requires these three; Denali may hide some when session already has them.
@@ -179,8 +171,7 @@ export async function completeCatalogRegistrationIntake(
   const [response] = await Promise.all([
     page.waitForResponse(
       (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/catalog/registrations"),
+        res.request().method() === "POST" && res.url().includes("/api/catalog/registrations"),
       { timeout: 90_000 }
     ),
     submit.click({ noWaitAfter: true }),
