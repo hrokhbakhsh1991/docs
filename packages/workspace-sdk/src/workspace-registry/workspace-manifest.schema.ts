@@ -37,7 +37,12 @@ export function parseWorkspaceManifest(
 ): WorkspaceManifestRecord {
   const parsed = WorkspaceManifestSchema.safeParse(raw);
   if (!parsed.success) {
-    const detail = parsed.error.issues.map((issue) => issue.message).join("; ");
+    const detail = parsed.error.issues
+      .map((issue) => {
+        const field = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
+        return `${field}${issue.message}`;
+      })
+      .join("; ");
     throw new Error(`WORKSPACE_MANIFEST_INVALID:${context}:${detail}`);
   }
   return parsed.data;
