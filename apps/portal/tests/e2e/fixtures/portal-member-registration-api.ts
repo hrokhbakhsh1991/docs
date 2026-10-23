@@ -9,7 +9,7 @@ type MemberRegistrationListItem = {
 
 export async function fetchMemberRegistrationId(
   page: Page,
-  input?: { readonly tourTitle?: string },
+  input?: { readonly tourTitle?: string }
 ): Promise<string> {
   const res = await page.request.get("/api/me/registrations");
   const bodyText = await res.text();
@@ -35,7 +35,7 @@ export async function fetchMemberRegistrationId(
 export function minimalReceiptPngBuffer(): Buffer {
   return Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-    "base64",
+    "base64"
   );
 }
 
@@ -48,15 +48,17 @@ export async function attachMemberReceiptFile(page: Page): Promise<void> {
     mimeType: "image/png",
     buffer: minimalReceiptPngBuffer(),
   });
-  await fileInput.evaluate((element) => {
-    element.dispatchEvent(new Event("change", { bubbles: true }));
+  // Playwright's setInputFiles already dispatches input/change. The form
+  // intentionally clears the native input after onChange and retains the
+  // selected File in React state, so assert the observable submit contract.
+  await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled({
+    timeout: 20_000,
   });
-  await expect(fileInput).toHaveJSProperty("files.length", 1);
 }
 
 export async function submitMemberReceiptUpload(
   page: Page,
-  registrationId: string,
+  registrationId: string
 ): Promise<{ readonly id?: string }> {
   // The form intentionally clears the native input after onChange and keeps
   // the selected File in React state. The enabled submit button is therefore
@@ -70,7 +72,7 @@ export async function submitMemberReceiptUpload(
       (res) =>
         res.request().method() === "POST" &&
         res.url().includes(`/api/me/registrations/${registrationId}/receipt`),
-      { timeout: 20_000 },
+      { timeout: 20_000 }
     )
     .catch(() => null);
 

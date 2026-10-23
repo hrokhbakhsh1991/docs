@@ -7,7 +7,8 @@ import { parseMultiLevelTenantHost } from "./parse-multi-level-tenant-host";
  * PCMS-COOK-01 — optional share-parent for member cookie Domain attribute.
  * - Canonical platform portal: portal.denali.shenski.com → Domain=denali.shenski.com
  * - Custom apex: portal.denali.club → Domain=denali.club
- * - Local inverted portal: portal.denali.localhost → Domain=denali.localhost
+ * - Local portal hosts: host-only (Chromium does not reliably persist a
+ *   parent-domain session cookie beneath the reserved `.localhost` suffix)
  * - Legacy {club}.portal.{root} / other platform hosts: undefined (host-only)
  */
 export function resolveMemberSessionCookieDomain(
@@ -24,15 +25,14 @@ export function resolveMemberSessionCookieDomain(
   const reserved =
     reservedLabels ?? new Set<string>(DEFAULT_TENANT_HOST_RESERVED_LABELS);
 
-  // PCMS-COOK-03 — portal.{club}.localhost shares with {club}.localhost (Chromium-accepted).
-  // Never Domain=.localhost / Domain=localhost (PSL).
+  // Keep every local development session host-only. A Domain attribute below
+  // `.localhost` is not a portable browser contract; in particular, Chromium
+  // can discard it during the first authenticated navigation. Marketing is
+  // intentionally anonymous (PCMS), so dev does not need a shared member
+  // cookie between local subdomains.
   if (root === "localhost") {
-    const outcome = parseMultiLevelTenantHost(hostname, root, reserved);
-    if (
-      outcome.kind === "club_portal" &&
-      hostname === `portal.${outcome.subdomain}.localhost`
-    ) {
-      return `${outcome.subdomain}.localhost`;
+    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+      return undefined;
     }
   }
 

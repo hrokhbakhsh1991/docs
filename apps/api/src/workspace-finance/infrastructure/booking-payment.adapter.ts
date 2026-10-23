@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { raiseBookingPaymentStatus } from "../../bookings/booking-payment-status";
 import type { BookingPaymentStatus } from "../../bookings/bookings.types";
+import { acquireTourCapacityLock } from "../../bookings/prisma-bookings.repository";
 import type { BookingRepositoryPort } from "../../bookings/ports/booking-repository.port";
 import type {
   BookingPaymentMemberOwnershipInput,
@@ -43,23 +44,44 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
     try {
       const booking = await prismaTx.operatorRegistration.findFirst({
         where: { id: registrationId, tenantId },
-        select: { id: true, status: true, paymentStatus: true, finalizationStatus: true },
+        select: { id: true, tourId: true },
       });
       if (booking === null) {
         throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
       }
-      const current = booking.paymentStatus as BookingPaymentStatus;
+      // Serialize payment capture with capacity-changing operations such as
+      // personal-car driver hold expiry. Re-read only after acquiring the lock.
+      await acquireTourCapacityLock(prismaTx, tenantId, booking.tourId);
+      const currentBooking = await prismaTx.operatorRegistration.findFirst({
+        where: { id: registrationId, tenantId },
+        select: { id: true, status: true, paymentStatus: true, finalizationStatus: true },
+      });
+      if (currentBooking === null) {
+        throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+      }
+      const current = currentBooking.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
+      // A receipt/payment sync that arrives after a deadline cancellation must
+      // not turn a cancelled registration into a paid one. Repeated syncs for
+      // an already-paid booking remain idempotent.
+      if (currentBooking.status === "cancelled" && next !== current) {
+        throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+      }
       const shouldFinalize =
-        booking.status === "approved" &&
+        currentBooking.status === "approved" &&
         next === "paid" &&
-        booking.finalizationStatus !== "finalized";
+        currentBooking.finalizationStatus !== "finalized";
       if (next !== current || shouldFinalize) {
         const updated = await prismaTx.operatorRegistration.updateMany({
-          where: { id: registrationId, tenantId },
+          where: {
+            id: registrationId,
+            tenantId,
+            paymentStatus: current,
+            status: currentBooking.status,
+          },
           data: {
             paymentStatus: next,
-            ...(booking.status === "approved" && next === "paid"
+            ...(currentBooking.status === "approved" && next === "paid"
               ? { finalizationStatus: "finalized", finalizedAt: new Date() }
               : {}),
           },

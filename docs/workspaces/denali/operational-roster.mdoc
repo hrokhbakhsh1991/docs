@@ -32,7 +32,19 @@ Financial display states (projection only — not persisted on Bookings):
 
 Refund badge is orthogonal (`FinanceRefund` aggregate): `in_flight` \| `completed` \| `none`.
 
-Passenger-to-vehicle assignment is **not implemented** (TW-C-06). Roster exposes `passengerAssignmentStatus: "not_implemented"` until DP-5.
+Passenger-to-vehicle assignment is **not yet exposed by the roster projection** (TW-C-06/DP-5), which continues to report `passengerAssignmentStatus: "not_implemented"`. The API now has a tenant-scoped Prisma allocation repository and an unapplied migration; the in-memory adapter remains for local tests. Do not treat persistence as production-ready until migration and PostgreSQL multi-instance/isolation proofs pass.
+
+### Driver payment-hold expiry with dependent carpool passengers
+
+Accepted behavior for a driver's payment-hold expiry:
+
+- A carpool passenger may be moved from `approved` back to `waitlisted` only when a durable allocation proves that the passenger depends on the expiring driver's vehicle and the passenger's booking is strictly `unpaid`.
+- Paid and partially paid passengers must never be demoted automatically. Strictly-unpaid dependents may still be moved to waitlist independently; while any paid/partial passenger remains assigned to the vehicle, driver cancellation and driver-hold expiry are deferred until an operator resolves/reassigns that dependency.
+- Preserve each registration as an indivisible party; never split `partySize` to fit another vehicle.
+- Demotion must close/expire that passenger's open payment hold (not mark it satisfied), clear the payment-due projection, and emit idempotent lifecycle/outbox events. Retrying expiry must not create duplicate transitions or events.
+- Only after the displaced seats no longer depend on the expiring vehicle may that driver's booking be cancelled for payment deadline and normal waitlist promotion be attempted against the updated transport capacity.
+
+The implementation reads and writes durable tenant-scoped allocations on the Prisma path. Expiry transfers only approved, strictly unpaid dependents and closes their holds/outbox records. If all dependencies are unpaid, the driver and its hold expire atomically. If paid/partial dependents remain, only unpaid dependents are detached; paid/partial rows and assignments stay unchanged, the driver and driver hold remain approved/open, and the scheduler emits a structured deferred warning on each due tick. Local tests cover the mixed-payment retry/idempotency path and transient expiry retries, but PostgreSQL transaction/isolation, crash-restart, multi-instance, and an operator-facing resolution workflow remain open; this behavior is not release-certified until those proofs and the operator workflow are addressed.
 
 ## Read model
 
@@ -144,10 +156,10 @@ participant's notification only after success.
 
 The cancellation workflow is outbox-backed and reports these independent axes:
 
-| Axis | Values |
-| --- | --- |
-| `cancellationStatus` | `none` · `request_pending` · `approved` · `rejected` · `applied` · `late_correction` · `manual_review` · `completed` |
-| Refund | `not_required` · `pending_finance_approval` · `approved` · `rejected` · `processing` · `completed` · `failed` |
+| Axis                  | Values                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `cancellationStatus`  | `none` · `request_pending` · `approved` · `rejected` · `applied` · `late_correction` · `manual_review` · `completed`     |
+| Refund                | `not_required` · `pending_finance_approval` · `approved` · `rejected` · `processing` · `completed` · `failed`            |
 | Settlement correction | `not_affected` · `correction_pending` · `correction_approved` · `adjust_on_next_payable` · `manual_review` · `completed` |
 
 The cancellation event payload carries the immutable cancellation/correlation id,
@@ -176,3 +188,332 @@ The Waitlist tab also exposes a separate operator command for a waitlisted parti
 - repeated clicks/retries return the existing result and must not increase capacity or create a second registration;
 - the capacity increase is an explicit tour-setting change and is not automatically reversed by cancellation; reversing it requires a separate operator action;
 - after success, Waitlist, Finance, operational counts, tour-capacity projection, and relevant caches are refreshed together, with an audit record and idempotent outbox event.
+
+## Registration-flow regression matrix (QA-RF)
+
+This matrix is the acceptance plan for end-to-end registration QA. A scenario is
+not considered passed from an API response alone: booking lifecycle, occupied
+capacity, finance projection, final roster, member portal, and export must agree
+where applicable. Run destructive or externally visible scenarios only in an
+isolated test workspace and retain their IDs for cleanup/review.
+
+### RF-5 personal-car capacity contract
+
+The tour's `capacityMax` remains the hard total-participant limit regardless of
+transport. Separately, a carpool/dong registration may be approved only when the
+active declared passenger seats offered by approved driver registrations can
+accommodate its entire `partySize`. `personalCarOccupants` means seats offered to
+other participants; it does not count the driver. A self-arriving participant
+consumes tour capacity but not carpool seats. Bus/train/plane capacity is a
+separate fixed-transport pool and must not be merged with the carpool pool.
+
+Waitlist admission must check both constraints atomically: a party is admitted
+only if total tour capacity and the selected transport pool both fit. Parties
+are never split. Cancelling/withdrawing a driver removes that driver's unused
+offered seats; it must not silently strand already-approved passengers or admit
+new ones beyond remaining offers. Simultaneous registrations must not oversell
+either pool. If a dong passenger cannot be placed, leave the party waitlisted
+with an operator-visible transport-capacity reason; self-arrival remains a
+separate choice and must not be assumed on the member's behalf.
+
+When a create attempt loses capacity but a seat is released before its waitlist
+row is persisted, public waitlist creation must make a follow-up FIFO promotion
+attempt after the row is committed. The response must reflect the persisted
+status after that attempt. A failed promotion must leave the row waitlisted and
+must not turn the successful waitlist submission into an HTTP failure.
+
+The repository remains workspace-agnostic: while holding the tour-capacity
+lock, it supplies the policy with the approved registrations' `partySize` and
+opaque `registrationIntake` snapshots. Denali interprets those snapshots to
+compute offered seats and dong demand. The same policy input is required on
+create/auto-approval, operator approval, waitlist promotion, and validation of
+an approved driver's cancellation or seat reduction; a check performed before
+acquiring the tour lock is insufficient.
+
+This contract does not implement automatic vehicle assignment. It only accounts
+for declared seat capacity; assigning named passengers to a specific car remains
+out of scope until a separate assignment feature is approved.
+
+| Phase                             | Scenarios                                                                                                                                                                 | Required assertions                                                                                                                                                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RF-1 Registration and capacity    | Free/paid tours; auto-approval and manual approval; capacities 1, 5, and 10; single/group `partySize`; duplicate submit and retry                                         | Exactly one registration per idempotency key; capacity never exceeds policy; pending/approved states and member-facing status agree                                                                                                                       |
+| RF-2 Waitlist and cancellation    | Fill capacity then submit; group larger than released seats; cancellation request rejected/approved; driver cancellation; explicit promotion/capacity increase            | Waitlist order is stable; rejected cancellation changes no projections; approved cancellation releases only safe capacity and never silently strands dong riders; admission is explicit and capacity-checked                                              |
+| RF-3 Payment and receipt          | Offline text, image, and document receipt; approve, reject, and resubmit; partial/full payment; hold expiry and FIFO promotion                                            | Receipt status is independent from booking finalization; balances and holds are correct; expiry promotes at most one fitting party per released seat; cancellation is not treated as hold expiry                                                          |
+| RF-4 Finalization                 | Approved unpaid, partially paid, paid, free/`WAIVED`; finalize with open balance; waive-and-finalize; reject/cancel/waitlisted controls                                   | Only explicitly finalized approved rows appear in final roster; `WAIVED` is reserved for zero-obligation/free collection; unpaid/partial balances remain visible                                                                                          |
+| RF-5 Transport and dong           | Bus/train/plane; personal-car-only; mixed fixed transport + cars; dong versus self-arrival/driver; insufficient seats; party sizes >1; seat edits and driver cancellation | Fixed-transport and total-tour capacity remain distinct; only dong passengers consume offered car seats; no party is split or admitted beyond supply; an unsafe driver cancellation/seat reduction is blocked or enters an explicit reassignment workflow |
+| RF-6 Cross-surface and resilience | Admin, Portal, Marketing entry; roster and Excel export; concurrent last-seat submissions; repeated approve/cancel/payment callbacks; outbox retry                        | All surfaces agree on lifecycle/finalization/payment; Excel matches final roster and finance sheets; concurrency cannot oversell; retries do not duplicate side effects                                                                                   |
+
+### Evidence and coverage status
+
+- Existing API coverage includes booking lifecycle/payment transitions
+  (`apps/api/test/tour-booking-management-matrix.spec.ts`), hold expiry/payment
+  idempotency (`apps/api/test/dp1/`), member receipt upload/read/ownership and
+  operator approval (`apps/api/test/p6-member-receipt-flow.spec.ts`), roster
+  projections (`apps/api/test/dp2/operational-roster-projection.spec.ts`), and
+  authenticated XLSX contract (`apps/api/test/dp2/operational-roster-api-contract.spec.ts`).
+- Finance service tests cover receipt rejection notification, approve/sync failure
+  safety, partial/full settlement, and overpayment rejection
+  (`apps/api/src/workspace-finance/finance.service.spec.ts`). DP6 covers approved
+  cancellation/refund behavior and operator-only waitlist promotion after a
+  cancelled seat (`apps/api/test/dp6/refund-orchestration.spec.ts`).
+- `apps/api/test/dp1/payment-hold-waitlist.spec.ts` verifies hold-expiry promotion,
+  cancellation leaving a fitting candidate waitlisted, and a group that cannot
+  fit released seats. It also verifies a cancelled dong rider's car seat is only
+  reused after explicit operator approval, with a payment hold created on that
+  approval, and rejects a stale amendment that tries to reduce an approved
+  driver's offered seats. It now covers the race where capacity opens between a
+  failed create and waitlist persistence, then confirms the FIFO follow-up
+  promotion, returned persisted status, payment hold, and both lifecycle outbox
+  events. A blocked driver-hold expiry is also retried after replacement vehicle
+  supply is approved; the original driver is then cancelled and its hold expires
+  without displacing the dong rider. `apps/api/src/bookings/booking-tour-capacity-authority.spec.ts`
+  verifies tour capacity source-of-truth; `read-transport-kind-from-intake.spec.ts`
+  validates personal-car occupancy input bounds.
+- `apps/api/test/dp2/operational-roster-api-contract.spec.ts` now parses the
+  generated XLSX and checks a finalized unpaid registration appears in both the
+  final roster and payment-follow-up sheets, with the participant count and
+  finalization label matching the API roster. This is a targeted parity proof,
+  not yet a full multi-status workbook reconciliation.
+- `apps/api/src/roster/final-roster-export-matrix.spec.ts` now parses a generated
+  workbook across finalized unpaid/partial/paid/waived rows, an approved but
+  non-final row, and waitlisted/cancelled rows. It checks row membership in all
+  four data sheets and reconciles summary counts and monetary totals. It also
+  verifies Persian bus/car capacity cells, formula-like guest-name escaping,
+  and cursor pagination across 205 rows. This verifies workbook generation and
+  pagination, but is not yet endpoint-to-Finance row-by-row parity.
+- `packages/finance-core/test/member-receipt-reject-status.spec.ts` now verifies
+  that a member can resubmit file-plus-note evidence after a rejected text-only
+  receipt, a distinct pending receipt is attached to the existing unpaid manual payment, and the member
+  panel shows the active attempt as pending even when receipt timestamps tie.
+  Approving the resubmitted receipt then settles the same payment and updates
+  the member/booking payment projection to paid.
+  `apps/api/src/workspace-finance/infrastructure/prisma-finance-repository-latest-receipt.spec.ts`
+  uses a fake transaction client to verify pending-attempt precedence and the
+  reviewed-receipt fallback without opening a database connection. This is not
+  a substitute for PostgreSQL persistence verification.
+- Vehicle allocations now reject approved registrations whose transport mode is
+  not `no_car_dong`, keeping assignment eligibility aligned with the capacity
+  policy's definition of car-seat demand. Focused tests cover incompatible
+  fixed transport and party-size capacity.
+- `apps/api/test/dp5/driver-settlement.spec.ts` now races in-memory allocation
+  replacement against roster freeze and asserts both valid serial outcomes:
+  either the persisted allocation is in the immutable settlement snapshot, or
+  replacement is rejected after freeze and settlement uses the empty snapshot.
+  `apps/api/src/transport/prisma-transport-roster-freeze-concurrency.spec.ts`
+  now repeats the race against PostgreSQL and verifies the persisted allocation
+  count equals the immutable snapshot in either serial outcome. Run it with
+  `pnpm --filter @apps/api run test:transport-roster-freeze-postgres` and
+  isolated `DATABASE_URL` / `DATABASE_URL_ADMIN` values.
+- All payment-status writes now take the tour-capacity advisory lock before
+  their final booking-state read. A payment-state change after the registration
+  has been cancelled is rejected, while an unchanged repeat remains idempotent.
+  `apps/api/test/booking-payment-cancelled-registration.spec.ts` verifies lock
+  ordering and that a late payment cannot mark a cancelled booking paid. A
+  payment-deadline cancellation now rechecks the locked booking payment state;
+  if capture already won, expiry preserves the approved/paid row and satisfies
+  its hold instead of cancelling it. The opposite order still cancels unpaid
+  and rejects late capture. `apps/api/src/bookings/prisma-payment-deadline-payment-race.spec.ts`
+  verifies both serial outcomes against PostgreSQL; run it with
+  `pnpm --filter @apps/api run test:payment-deadline-race-postgres` and isolated
+  `DATABASE_URL` / `DATABASE_URL_ADMIN` values.
+- `apps/api/test/finance-receipt-resubmission.postgres.spec.ts` runs the real
+  Prisma repository against PostgreSQL: it persists and rejects a text-only
+  attempt, persists a distinct file-plus-note retry against the same payment,
+  forces a timestamp tie, and verifies the retry is still the active persisted
+  attempt. Run with
+  `pnpm --filter @apps/api run test:finance-receipt-resubmission-postgres` and
+  isolated `DATABASE_URL` / `DATABASE_URL_ADMIN` values. The test uses a QA-only
+  object key and does not verify an actual object-storage upload/download.
+- Current full unit-suite evidence: `pnpm --filter @apps/marketing test`
+  passes 363 tests and `pnpm --filter @apps/portal test` passes 404 tests.
+  These cover their URL/session/receipt contracts but do not certify a rendered
+  cross-surface browser session or the deployed staging SHA.
+- Still requiring targeted verification: real image/document object storage;
+  cross-surface Admin/Portal/Marketing parity; fixed-transport and endpoint-to-
+  Finance Excel row-by-row parity; and last-seat concurrency against the
+  supported persistence driver.
+- The current work adds a capacity-policy path for approved personal-car offers
+  and dong demand across create, auto-approval, operator approval, waitlist
+  promotion, operator cancellation, member cancellation, and payment-deadline
+  expiry. Focused regressions now reject cancellation that would strand approved
+  dong riders; cancellation requests remain pending when guarded approval fails.
+  Registration amendments now share the tour-capacity lock and are restricted to
+  pending/waitlisted bookings, so an approved driver cannot lose offered seats
+  through a stale concurrent edit. That status guard is opt-in at the repository
+  boundary so finance obligation metadata can still be merged for approved rows.
+  A waitlist promotion after a dong cancellation is covered through the in-memory
+  API path. The browser and supported-database paths still need dedicated
+  regressions before release.
+- The operator's explicit waitlist admission/capacity-increase command now
+  compensates a failed approval only after re-reading and confirming the booking
+  is still waitlisted; tour capacity is restored by row-version CAS and only
+  while the expected expanded capacity remains current. If approval committed
+  but its response was lost, the durable admission marker is recognized and
+  capacity is retained. Unknown/changed states fail closed without rollback and
+  emit a registration SLO error. In-memory regressions cover pre-commit failure
+  and post-commit lost-response recovery. PostgreSQL concurrency, compensation
+  conflict, and multi-instance recovery proofs remain required before release.
+- Driver payment-hold expiry has a defined mixed-payment policy: strictly-unpaid
+  assigned riders are moved to waitlist, their open holds are expired, and their
+  vehicle allocations are removed. Paid/partial riders and their assignments
+  remain untouched. If any paid/partial rider still depends on the driver, the
+  driver's own expiry is deferred and a structured scheduler warning is logged;
+  an operator-visible resolution/reassignment workflow is still needed. A
+  disposable PostgreSQL run now covers both mixed and all-unpaid cases (2/2).
+- Passing unit tests do not certify staging. Staging acceptance requires the
+  exact deployed SHA plus fresh browser-visible evidence for the relevant flow.
+
+### Selected execution plan
+
+Use the following order; do not start with a staging data run until the local
+invariants pass. Keep each test tour isolated and record its tour/registration
+IDs so a failed assertion can be traced without guessing from the UI.
+
+### Registration QA scenario matrix
+
+Use this matrix as the acceptance ledger. "Local proof" means a focused unit or
+database test only; it is not a substitute for a complete UI journey or staging
+acceptance. Add a separate fixture/tour ID for any staging row before executing
+it, and record the exact deployed SHA and cleanup/retention decision.
+
+| Scenario family                         | Required behavioral assertions                                                                                                                                                                                                                                           | Current evidence                                                                                                                                                                                                                                                                                                                                                                                                      | Status / next proof                                                                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Free vs. paid; auto vs. manual approval | Free registration finalizes without a payment hold; paid registration follows the configured approval path; pending/rejected rows do not consume approved capacity; reject/resubmit retains the correct payment and receipt history.                                     | Focused lifecycle, free/paid, approval and receipt tests exist.                                                                                                                                                                                                                                                                                                                                                       | Local unit coverage is partial; replay each path through Admin + Portal and compare persisted Finance state.                                        |
+| Tour seats vs. transport seats          | Bus/train/plane/self-arrival use tour capacity only; dong uses both tour capacity and the offered car-seat pool; a full car-seat pool must not silently admit the next dong party; increasing global capacity alone cannot create car seats.                             | PostgreSQL Scenario F models 4 drivers offering 5 car seats, races the final dong seat, adds driver supply, admits a 2-person dong party, admits self-arrival/bus without consuming car seats, and rejects the next dong approval without status/outbox change. Denali car-seat and party-allocation tests passed 7/7; PostgreSQL capacity and approval-concurrency suites passed 7/7 each in the existing proof set. | Core approval-capacity scenario is covered locally. Still prove tour-capacity increase compensation/CAS and browser behavior for hybrid transport.  |
+| Party size and vehicle assignment       | Count people, not booking rows; do not split a party; validate driver supply, multiple vehicles, stale edits, vehicle/passenger transport compatibility, duplicate assignment, and cross-tenant IDs.                                                                     | Focused party-size/allocation tests and PostgreSQL freeze/allocation/approval race proof passed.                                                                                                                                                                                                                                                                                                                      | Verify durable assignment across two API processes and exercise Admin edit/replacement in a browser.                                                |
+| Waitlist and seat release               | Capacity overflow queues in FIFO order; cancellation/rejection/seat release promotes only a party that fully fits; failed promotion is retryable and never duplicates approval, hold, or outbox effects.                                                                 | Waitlist/expiry/idempotency set passed 21/21; seat-release/create-waitlist interleaving has a focused regression.                                                                                                                                                                                                                                                                                                     | Broader direct operator admission, capacity-increase CAS/conflict, and multi-instance recovery remain open.                                         |
+| Payment holds and expiry                | Expired unpaid dependent dong parties move to waitlist and lose only their own open hold/allocation; paid/partial riders are preserved; driver expiry is deferred while dependencies remain; retry and payment-capture races do not lose paid state or duplicate events. | PostgreSQL driver-expiry proof passed 2/2; payment-hold local suite passed 21/21; payment-capture/expiry race passed 2/2.                                                                                                                                                                                                                                                                                             | Add PostgreSQL scheduler/orchestrator failure-after-commit proof, then test replacement-vehicle/operator resolution.                                |
+| Receipt submission/review               | Text-only, image-only, and document-only receipts; replacement/resubmission; reject then resubmit; tenant/owner checks; latest proof is used; invalid/oversized uploads fail safely.                                                                                     | Memory receipt storage path passed 5/5; targeted receipt lifecycle and latest-proof tests exist.                                                                                                                                                                                                                                                                                                                      | Real MinIO/S3 upload and cross-process read are unverified; replay receipt cases through Portal and Admin.                                          |
+| Finalization and export                 | Initial approval is distinct from finalization; final unpaid/partial/paid states are represented correctly; waitlisted/rejected rows are excluded; workbook rows, counts, amounts, transport and payment sheets reconcile with persisted roster/Finance.                 | Export matrix passed 3/3; freeze/approval concurrency proof passed 1/1; settlement partial replay regression passed 1/1.                                                                                                                                                                                                                                                                                              | Download through Admin in a fresh browser session and compare workbook content to source rows; durable multi-driver settlement remains uncertified. |
+| Cross-surface and release               | Marketing entry, Portal registration/status/payment, Admin review/transport/export agree for member and guest sessions; no stale cookie/session or tenant leak; all flows run against the exact deployed artifact.                                                       | No fresh browser-visible acceptance has been produced in this QA pass.                                                                                                                                                                                                                                                                                                                                                | Open: Admin/Portal/Marketing browser journeys, staging SHA/health, storage and export parity.                                                       |
+
+| Phase                             | Work and concrete scenarios                                                                                                                                                                                                                                                                                                                                       | Exit evidence                                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Baseline and reproducibility   | Pin current branch/local HEAD; run focused lifecycle, waitlist, payment, receipt, roster, and export suites. Preserve bus/train/plane and self-arrival behavior.                                                                                                                                                                                                  | Exact source SHA and per-suite evidence; no claims from stale tabs.                                                                                     |
+| 2. Durable vehicle assignment     | Validate the new tenant-scoped Prisma allocation repository/migration: uniqueness/FKs, audit actor/time, atomic replace/read behavior; preserve the current API contract. Verify two API instances see the same assignment and cross-tenant IDs cannot be attached.                                                                                               | PostgreSQL tests prove persistence, tenant isolation, uniqueness, validation against approved driver/passenger rows, and concurrent replace safety.     |
+| 3. Capacity-policy closure        | Separately test tour capacity and car-seat supply: 4 drivers offering 5 passenger seats + 5 dong passengers fit; next dong party waits; self-arrival consumes only tour capacity. Cover party size >1, zero offers, mixed/fixed transport, added supply, and stale edits.                                                                                         | Policy + create/approval/waitlist tests prove no oversell, stable errors, no party splitting, and no payment/finalization side effects.                 |
+| 4. Atomic expiry and retry        | Under the tour lock, expire a driver hold only after checking durable allocations. Move only approved, strictly unpaid dependent dong parties to waitlist; expire their holds and clear due projections in the same recoverable workflow. Preserve paid/partial rows and fail closed if they depend on the driver. Retry and race expiry against payment capture. | Database-backed tests prove one transition/outbox per row, no lost paid state, no dangling allocation, safe retry/recovery, and capacity remains valid. |
+| 5. Full-flow and artifact parity  | Replay auto/manual approval, receipts as text/image/document, reject/resubmit, finalization/open balance, waitlist, assignment, expiry, roster, and Excel through Admin/Portal; verify Marketing entry/status. Include direct operator capacity-admission partial-failure/replay coverage.                                                                        | Browser/API records agree; workbook rows/totals match roster/Finance; operator admission cannot expand capacity twice after partial failure.            |
+| 6. Staging acceptance and release | Only after phases 2–5 pass locally, verify deployed SHA/health and run isolated tours through registration, receipt/payment, admin decision, waitlist, driver expiry, allocation, and export.                                                                                                                                                                     | Fresh browser-visible proof against exact runtime SHA; test IDs and cleanup/retention recorded.                                                         |
+
+PostgreSQL transport proof must exercise `PrismaBookingsRepository.approveWithOutbox`
+with the production Denali capacity adapter inside its transaction callback.
+Persist driver/dong intake first, fill the offered car-seat pool while leaving
+tour capacity available, verify the next dong approval is rejected without
+changing status or emitting outbox, then add driver supply and verify a group
+that fits the newly offered seats can be approved. This supplements—not
+replaces—the registration-create, waitlist, self-arrival, and browser checks.
+
+Current execution position: local DP1 covers the safe unpaid-rider transfer,
+paid/partial fail-closed behavior, and a transient driver-cancel failure followed
+by a scheduler retry without duplicate waitlist events. Payment sync rejects a
+new payment-state change after cancellation, and transport assignment rejects
+non-dong passengers. The scheduler now catches
+per-hold failures so one transient fault neither aborts the remaining due holds
+nor escapes as an unhandled interval rejection. Party-size, capacity, stale
+driver-seat edits, dong cancellation, explicit admission, and waitlist promotion
+have focused tests. Capacity-admission tests also cover pre-commit compensation
+and post-commit lost-response recovery; they do not certify PostgreSQL CAS or
+multi-instance races. The production capacity adapter's compare-and-set
+compensation is separately covered by a storage-backed unit test (1/1).
+PostgreSQL capacity correctness then passed 7/7 and Prisma
+approve concurrency passed 7/7 against the local test database; the advisory-lock
+wait was observed in `pg_locks`, including separate repository workers. A fresh,
+disposable PostgreSQL database was built from the current checkout migrations;
+the transport allocation and roster-snapshot migrations applied successfully.
+Driver-expiry mixed/all-unpaid cases passed 2/2 and the concurrent allocation,
+freeze, and approval proof passed 1/1. That race test exposed and fixed a missing
+freeze guard in single-booking approval: an approval serialized after freeze now
+returns `BOOKING_ROSTER_FROZEN`, while an approval serialized first is included
+in the immutable snapshot. These are local proofs only, not staging/browser
+acceptance. The disposable PostgreSQL container was stopped after tests.
+Receipt storage's memory-driver path now has focused upload/read/local-URL/delete,
+idempotency, size/type validation, tenant-scope, and production-disable tests
+(`receipt-proof-storage.spec.ts`, 5/5). This does not prove MinIO/S3 persistence or
+cross-process retrieval. Payment-hold waitlist/expiry/idempotency suites passed
+21/21, including pre-transition retry, failure after booking transition, mixed
+paid/partial dependencies, stale deadline extension, duplicate expiry, and FIFO
+promotion. The freeze/settlement replay test passed 1/1 and exposed/fixed a
+partial-replay bug described below. Other gaps remain: real object-storage
+upload/download, broader direct waitlist admission/capacity-increase coverage,
+full cross-surface and workbook parity, and browser acceptance. Phases 2 and 4–6
+remain open; staging is not certified until database proofs, exact deployed SHA,
+and fresh browser evidence are available.
+
+In the current QA continuation, the Denali personal-car seat policy and party
+allocation tests passed 7/7. Against a fresh disposable PostgreSQL instance
+migrated from this checkout, booking-capacity Scenario F passed within the
+7/7 capacity suite, roster-freeze/allocation concurrency passed 1/1,
+payment-capture-versus-expiry passed 2/2, and mixed/all-unpaid driver expiry
+passed 2/2. The 16/16 booking HTTP PostgreSQL certification, TypeScript check,
+settlement replay test (1/1), and formatting/diff checks also passed. The
+disposable database was stopped after verification.
+
+A local Admin browser attempt could not reach usable page evidence: the usual
+API command targets an unavailable Prisma database at `127.0.0.1:5434`; with
+the in-memory API and background workers disabled, API health did return 200,
+but the Admin dev server expanded to roughly 2.7 GiB RSS during route compilation
+and timed out before responding. The app processes started for this attempt were
+stopped. This is an environment/resource limitation, not proof of an application
+regression. Existing staging browser tabs show an authenticated Admin workspace,
+but no staging data was changed in this pass; exact-SHA browser acceptance is
+still open.
+
+The public waitlist adapter now performs a post-commit FIFO promotion attempt and
+returns the booking's persisted status, closing the seat-release/create-waitlist
+interleaving. The API regression proves that this attempt uses the ordinary
+approval/hold/outbox path. On driver expiry, unpaid assigned riders are moved to
+waitlist first. If paid/partial rider allocations still require that vehicle,
+the driver's hold and booking remain open/approved until an operator resolves
+the dependency; an operator-visible resolution workflow remains open, and the
+safe retry path after replacement vehicle supply is tested.
+
+### Remaining gates and scope boundaries
+
+- **Driver-expiry orchestration:** memory-backed fault injection proves retry
+  after the booking transition and after rider-hold expiry fails; PostgreSQL
+  tests prove the repository's mixed/all-unpaid atomic transitions. A
+  PostgreSQL-backed scheduler/orchestrator failure-after-commit test remains
+  open, including the external hold, due projection, allocations, and outbox.
+- **Operator capacity-admission ambiguous expansion:** current tests cover a
+  definite approval failure (compensate the tour-capacity increase) and a lost
+  approval response after booking commit (recognize the admission marker). They
+  do not cover a lost response/process crash after the tour-capacity update has
+  committed but before `approveWithOutbox` begins. The tour update and booking
+  approval are separate transactions, so retry could expand capacity twice or
+  leave capacity expanded without admitting the party. Before release, make
+  expansion + approval/outbox atomic on the Prisma path, or introduce a durable
+  idempotent admission operation; prove commit-then-disconnect, restart/retry,
+  and concurrent different waitlisted admissions. This is a code-derived risk
+  that still needs an explicit regression before calling it a confirmed runtime
+  failure.
+- **Roster freeze and approval:** the Prisma race proof now covers allocation
+  replacement, freeze, and approval. The shared advisory lock plus the freeze
+  guard ensures the snapshot either contains a pre-freeze approval or the
+  post-freeze approval is rejected. This is a local database proof, not staging
+  or browser acceptance.
+- **Settlement partial replay:** a simulated partial settlement commit found a
+  bug: the old replay shortcut returned as soon as any settlement existed,
+  leaving other drivers without a settlement. Snapshot-backed retry now fills
+  missing per-driver rows idempotently and uses the compensation amount/currency
+  captured at freeze, even if the retry request carries changed form values.
+  Memory regression passes 1/1. DP-5 settlement storage remains the documented
+  in-memory v1 and optional for bus-only first launch; this test does not prove
+  durable settlement persistence or multi-instance recovery. Treat in-product
+  driver compensation as uncertified until its launch scope and durable store
+  are addressed.
+- **Remaining end-to-end acceptance:** run fresh Admin/Portal/Marketing browser
+  flows for member/guest, free/paid, auto/manual approval, text/image/document
+  receipt, reject/resubmit, waitlist promotion, personal-car seat supply,
+  cancellation, and finalization. Verify the downloaded Excel against persisted
+  roster/Finance rows, and separately prove MinIO/S3 receipt retrieval across
+  API processes. Then verify staging's deployed SHA and repeat isolated browser
+  scenarios. Do not treat the local tests above as deployment acceptance.
+
+The current local proof set is targeted rather than a full certification.
+PostgreSQL tests used a disposable database migrated from this checkout; no
+staging/production data or deployment was changed. The feature remains open
+until the end-to-end, durable-store, export-parity, and exact-staging-SHA gates
+above pass.
+
+Architect, documentation status: Updated. Link to docs: [operational-roster.mdoc](/home/hamed/Music/docs/docs/workspaces/denali/operational-roster.mdoc).

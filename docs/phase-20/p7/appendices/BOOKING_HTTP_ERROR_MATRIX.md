@@ -22,19 +22,20 @@ Booking composition wraps the same fault as `BookingWorkspaceUnsupportedError` s
 
 ## Matrix
 
-| Domain Error | HTTP | Reason | Client Action |
-| ------------ | ---- | ------ | ------------- |
-| `BOOKING_WORKSPACE_TENANT_MISMATCH` | **403** | Tenant’s workspaceType ≠ Booking runtime | Fix composition / tenant binding; do not retry same runtime |
-| `BOOKING_CAPABILITY_VIOLATION` | **422** | Graded capability claim ≠ adapters | Fix manifest/codegen; do not retry |
-| `BOOKING_PUBLIC_CREATE_UNSUPPORTED` | **403** | Public create disabled for workspace | Use ops create or enable publicCreate |
-| `BOOKING_CAPACITY_REJECTED` | **409** | Occupancy / tourCapacityMax rule failed | Adjust party size / capacity; do **not** treat as rate-limit |
-| `BOOKING_ALREADY_APPROVED` | **409** | Booking already approved | Treat as success/idempotent; refresh state |
-| `BOOKING_ALREADY_CANCELLED` | **409** | Booking already cancelled (terminal) | Stop lifecycle writes; refresh state |
-| `BOOKING_NOT_FOUND` | **404** | Registration missing / wrong tenant | Check id + tenant |
-| `BOOKING_FORBIDDEN` / `BOOKINGS_OPS_FORBIDDEN` | **403** | Ops role / ownership denied | Authenticate as admin\|owner |
-| `BOOKING_VALIDATION_FAILED` / `BOOKING_VALIDATION_REJECTED` | **400** | Create validation failed | Fix request body |
-| `BOOKING_WAITLIST_REQUIRED` | **409** | Transition requires waitlist path | `POST …/waitlist` instead |
-| `BOOKING_WORKSPACE_UNSUPPORTED` | **404** | Workspace not booking-supported | Use supported tenant/workspace |
+| Domain Error                                                | HTTP    | Reason                                                                | Client Action                                                         |
+| ----------------------------------------------------------- | ------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `BOOKING_WORKSPACE_TENANT_MISMATCH`                         | **403** | Tenant’s workspaceType ≠ Booking runtime                              | Fix composition / tenant binding; do not retry same runtime           |
+| `BOOKING_CAPABILITY_VIOLATION`                              | **422** | Graded capability claim ≠ adapters                                    | Fix manifest/codegen; do not retry                                    |
+| `BOOKING_PUBLIC_CREATE_UNSUPPORTED`                         | **403** | Public create disabled for workspace                                  | Use ops create or enable publicCreate                                 |
+| `BOOKING_CAPACITY_REJECTED`                                 | **409** | Occupancy / tourCapacityMax rule failed                               | Adjust party size / capacity; do **not** treat as rate-limit          |
+| `BOOKING_TRANSPORT_CAPACITY_REJECTED`                       | **409** | Approved dong passengers exceed approved personal-car passenger seats | Add/approve sufficient car-seat offers or keep the request waitlisted |
+| `BOOKING_ALREADY_APPROVED`                                  | **409** | Booking already approved                                              | Treat as success/idempotent; refresh state                            |
+| `BOOKING_ALREADY_CANCELLED`                                 | **409** | Booking already cancelled (terminal)                                  | Stop lifecycle writes; refresh state                                  |
+| `BOOKING_NOT_FOUND`                                         | **404** | Registration missing / wrong tenant                                   | Check id + tenant                                                     |
+| `BOOKING_FORBIDDEN` / `BOOKINGS_OPS_FORBIDDEN`              | **403** | Ops role / ownership denied                                           | Authenticate as admin\|owner                                          |
+| `BOOKING_VALIDATION_FAILED` / `BOOKING_VALIDATION_REJECTED` | **400** | Create validation failed                                              | Fix request body                                                      |
+| `BOOKING_WAITLIST_REQUIRED`                                 | **409** | Transition requires waitlist path                                     | `POST …/waitlist` instead                                             |
+| `BOOKING_WORKSPACE_UNSUPPORTED`                             | **404** | Workspace not booking-supported                                       | Use supported tenant/workspace                                        |
 
 Operator tour `acceptedCount` enrichment (`enrichTourListProjectionsWithAcceptedCount`) **fail-softs** on `BookingWorkspaceUnsupportedError` → `acceptedCount=0`. Booking write/lifecycle routes still return the 404 matrix row above.
 | `BOOKING_STATUS_CONFLICT` | **409** | Illegal status transition (other statuses) | Refresh status; choose valid transition |

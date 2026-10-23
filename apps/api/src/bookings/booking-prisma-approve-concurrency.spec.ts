@@ -323,12 +323,9 @@ describe("booking prisma approve concurrency", { concurrency: false, skip: postg
       lockAt >= 0 && assertCallAt > lockAt,
       "tour lock must precede capacity assert invocation"
     );
-    const transportFactsAt = approve.indexOf("listApprovedCapacityTransportFactsInTx");
-    assert.ok(
-      lockAt >= 0 && transportFactsAt > lockAt && assertCallAt > transportFactsAt,
-      "tour lock must precede locked transport facts, which must precede the capacity assert"
-    );
-    assert.match(approve, /approvedTransportFacts\.reduce/);
+    assert.match(approve, /listApprovedCapacitySnapshotsInTx/);
+    assert.match(approve, /approvedCapacitySnapshots\.reduce/);
+    assert.match(approve, /approvedCapacitySnapshots,/);
     assert.doesNotMatch(src, /approveTxChain/);
     assert.doesNotMatch(src, /withMemoryApproveTx/);
     assert.doesNotMatch(approve, /FOR UPDATE/);

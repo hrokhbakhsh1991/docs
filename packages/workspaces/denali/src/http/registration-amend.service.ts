@@ -1,7 +1,4 @@
-import {
-  assertWorkspaceTypeOrThrow,
-  requireWorkspacePublishedTour,
-} from "@app-tour/workspace-sdk";
+import { assertWorkspaceTypeOrThrow, requireWorkspacePublishedTour } from "@app-tour/workspace-sdk";
 
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
@@ -38,7 +35,7 @@ export async function amendDenaliRegistrationIntake(params: {
   assertWorkspaceTypeOrThrow(
     params.workspaceType,
     DENALI_WORKSPACE_TYPE,
-    () => new DenaliWorkspaceRequiredError(),
+    () => new DenaliWorkspaceRequiredError()
   );
 
   const owned = await params.bookingPort.findOwnedBooking(
@@ -88,6 +85,14 @@ export async function amendDenaliRegistrationIntake(params: {
     patch: { transport: normalizedTransport },
   });
   if (updated === null) {
+    const latest = await params.bookingPort.findOwnedBooking(
+      params.tenantId,
+      params.registrationId,
+      params.guestUserId
+    );
+    if (latest !== null) {
+      throw new DenaliRegistrationNotAmendableError();
+    }
     throw new DenaliRegistrationNotFoundError();
   }
   return { id: updated.id, status: updated.status };

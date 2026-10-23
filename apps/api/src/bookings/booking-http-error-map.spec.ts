@@ -31,6 +31,7 @@ describe("booking HTTP error map", () => {
       "BOOKING_CAPABILITY_VIOLATION",
       "BOOKING_PUBLIC_CREATE_UNSUPPORTED",
       "BOOKING_CAPACITY_REJECTED",
+      "BOOKING_TRANSPORT_CAPACITY_REJECTED",
       "BOOKING_ALREADY_APPROVED",
       "BOOKING_ALREADY_CANCELLED",
       "BOOKING_NOT_FOUND",
@@ -39,6 +40,7 @@ describe("booking HTTP error map", () => {
       "BOOKING_VALIDATION_FAILED",
       "BOOKING_WORKSPACE_UNSUPPORTED",
       "BOOKING_STATUS_CONFLICT",
+      "BOOKING_ROSTER_FROZEN",
       "BULK_APPROVE_BATCH_LIMIT",
     ];
     for (const code of required) {
@@ -144,6 +146,12 @@ describe("booking HTTP error map", () => {
     );
     assert.equal(capacity?.status, 409);
     assert.equal(capacity?.code, "BOOKING_CAPACITY_REJECTED");
+
+    const transportCapacity = resolveBookingHttpError(
+      new Error("BOOKING_TRANSPORT_CAPACITY_REJECTED: dongSeatsRequired=2 carSeatsOffered=1")
+    );
+    assert.equal(transportCapacity?.status, 409);
+    assert.equal(transportCapacity?.code, "BOOKING_TRANSPORT_CAPACITY_REJECTED");
 
     const validationFailed = resolveBookingHttpError(
       new Error("BOOKING_VALIDATION_FAILED: guestLabel required")

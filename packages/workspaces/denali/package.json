@@ -2,7 +2,7 @@
   "name": "@app-tour/workspace-denali",
   "version": "0.1.0",
   "private": true,
-  "description": "Denali workspace plugin \u2014 registry, rules, composites, finance hooks (Phase 6)",
+  "description": "Denali workspace plugin — registry, rules, composites, finance hooks (Phase 6)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -318,7 +318,6 @@
       "types": "./dist/settlement/index.d.ts",
       "default": "./dist/settlement/index.js"
     },
-
     "./settings/denaliFullWizardTemplate": {
       "types": "./dist/settings/denaliFullWizardTemplate.d.ts",
       "default": "./dist/settings/denaliFullWizardTemplate.js"
@@ -788,6 +787,7 @@
     "lucide-react": "^1.17.0",
     "next-intl": "^4.11.1",
     "tsx": "^4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "fast-check": "^3.23.2"
   }
 }

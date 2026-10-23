@@ -130,9 +130,9 @@ export function dp5SeedBookingsDirect(input: {
       submittedAt: now,
       submittedByUserId: OPERATOR_SMOKE.memberUserId,
       approvedAt: now,
-      transportKind: "primary",
+      transportKind: "no_car_dong",
       personalCarOccupants: null,
-      registrationIntake: { tourCapacityMax: 20, transport: { kind: "primary" } },
+      registrationIntake: { tourCapacityMax: 20, transport: { kind: "no_car_dong" } },
     });
   }
 }

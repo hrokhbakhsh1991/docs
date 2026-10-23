@@ -3,6 +3,7 @@
  */
 import { createTourStorageRepository } from "../../storage/create-tour-storage";
 import type { BookingTourCapacityPort } from "../ports/booking-tour-capacity.port";
+import { isTourVersionConflictError } from "../../tours/tour-version-conflict";
 
 function readCapacityMaxFromTourData(data: unknown): number | null {
   if (data === null || typeof data !== "object" || Array.isArray(data)) {
@@ -85,22 +86,25 @@ export class HostBookingTourCapacityAdapter implements BookingTourCapacityPort {
   }): Promise<boolean> {
     const storage = createTourStorageRepository();
     const current = await storage.getById(input.tourId, input.tenantId);
-    if (
-      current === null ||
-      readCapacityMaxFromTourData(current.canonical.data) !== input.expectedCapacity
-    ) {
+    if (current === null) return false;
+    if (readCapacityMaxFromTourData(current.canonical.data) !== input.expectedCapacity) {
       return false;
     }
     const data = {
       ...(current.canonical.data as Record<string, unknown>),
       capacityMax: input.restoreCapacity,
     };
-    await storage.updateIfRowVersion({
-      tenantId: input.tenantId,
-      id: input.tourId,
-      canonical: { ...current.canonical, data },
-      expectedRowVersion: current.rowVersion,
-    });
-    return true;
+    try {
+      await storage.updateIfRowVersion({
+        tenantId: input.tenantId,
+        id: input.tourId,
+        canonical: { ...current.canonical, data },
+        expectedRowVersion: current.rowVersion,
+      });
+      return true;
+    } catch (error) {
+      if (isTourVersionConflictError(error)) return false;
+      throw error;
+    }
   }
 }

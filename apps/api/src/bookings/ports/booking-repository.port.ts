@@ -6,13 +6,7 @@ import type {
   BookingOutboxEventInput,
   CreateBookingRequest,
 } from "../bookings.types";
-
-/** Minimal persistence-owned facts used by capacity assertions under the tour lock. */
-export type BookingRepositoryCapacityTransportFact = {
-  readonly partySize: number;
-  readonly transportKind: string | null;
-  readonly offeredPassengerSeats: number | null;
-};
+import type { BookingApprovedCapacitySnapshot } from "@app-tour/booking-http-contracts";
 
 /**
  * Booking persistence port (Phase B0.4) — Finance `FinanceRepositoryPort` mirror.
@@ -81,11 +75,6 @@ export interface BookingRepositoryPort {
     tenantId: string,
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number>>>;
-  /** Approved party and transport capacity facts for one tour, without loading intake/list projections. */
-  listApprovedCapacityTransportFacts(
-    tenantId: string,
-    tourId: string
-  ): Promise<BookingRepositoryCapacityTransportFact[]>;
   getById(id: string, tenantId: string): Promise<BookingRecord | null>;
   /** Batch identity projection for finance lists — same tenant scope as getById. */
   getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]>;
@@ -111,6 +100,8 @@ export interface BookingRepositoryPort {
     readonly bookingId: string;
     readonly tenantId: string;
     readonly patch: Readonly<Record<string, unknown>>;
+    /** Optional compare-and-merge state guard for lifecycle-sensitive edits. */
+    readonly allowedStatuses?: readonly string[];
   }): Promise<BookingRecord | null>;
   /**
    * Update guest projection columns + merge intake in one write (reclassify other→self).
@@ -149,7 +140,7 @@ export interface BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
     }) => void;
     outboxEvent?: BookingOutboxEventInput;
     initialStatus?: "pending" | "waitlisted";
@@ -167,7 +158,22 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
+    }) => void | Promise<void>;
+  }): Promise<BookingRecord>;
+  /**
+   * Atomically raise the tour ceiling by the waitlisted party size and approve
+   * the booking with its outbox event. Implemented by transactional stores.
+   */
+  approveWaitlistedWithCapacityIncrease?(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly outboxEvent: string;
+    readonly assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
+      readonly tourCapacityMax: number;
     }) => void | Promise<void>;
   }): Promise<BookingRecord>;
   bulkApproveWithOutbox(input: {
@@ -178,7 +184,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
     }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
   /** Explicit operator finalization after financial settlement. */
@@ -217,6 +223,43 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
   }): Promise<BookingRecord>;
+  /** Atomically move an approved, strictly unpaid set to waitlist and expire their holds. */
+  waitlistApprovedUnpaidBookings(input: {
+    readonly bookingIds: readonly string[];
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly outboxEvent: string;
+    /** Stable identity of the driver hold-expiry attempt, so a later re-waitlist is observable. */
+    readonly eventKeySuffix?: string;
+    readonly serialBookingMutationAlreadyHeld?: boolean;
+  }): Promise<readonly BookingRecord[]>;
+  /**
+   * In one database transaction, expire an unpaid personal-car driver's hold,
+   * waitlist all strictly-unpaid assigned riders, remove assignments, and emit
+   * lifecycle/outbox events. Paid/partial dependencies fail closed.
+   */
+  expireDriverHoldWithUnpaidPassengers(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly driverBookingId: string;
+    readonly driverHoldId: string;
+    readonly expectedDueAt: string;
+    readonly serialBookingMutationAlreadyHeld?: boolean;
+    /** Used only by the in-memory test adapter; Prisma reads allocations in-TX. */
+    readonly knownDependentBookingIds?: readonly string[];
+    /** Test-adapter guard; production verifies the hold row in the Prisma transaction. */
+    readonly assertDriverHoldStillCurrent?: () => Promise<boolean>;
+    readonly assertCapacityAfterRemovalInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
+    }) => void | Promise<void>;
+  }): Promise<{
+    readonly status: "expired" | "deferred";
+    readonly driver: BookingRecord;
+    /** Strictly-unpaid dependents detached from this driver's vehicle. */
+    readonly passengers: readonly BookingRecord[];
+  } | null>;
   /**
    * pending|waitlisted|approved → cancelled in one tenant TX + outbox (`registration.cancelled`).
    * Takes the same tour advisory lock as approve (occupancy-safe vs concurrent approve).
@@ -227,19 +270,20 @@ export interface BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
-    cancellationStatus?: string;
+    cancellationStatus?: BookingRecord["cancellationStatus"];
     cancellationReasonCode?: string;
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
     cancellationRequestedAt?: string;
-    /** Set only when the caller already owns the shared serial booking-mutation lock. */
-    alreadyWithinSerialMutation?: boolean;
-    assertCapacityInTx?: (ctx: {
+    /** Caller already owns runSerialBookingMutation (payment capture/expiry path). */
+    serialBookingMutationAlreadyHeld?: boolean;
+    /** Re-checks capacity after removing the approved booking, under the tour lock. */
+    assertCapacityAfterRemovalInTx?: (ctx: {
       readonly booking: BookingRecord;
-      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
-    }) => void;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
+    }) => void | Promise<void>;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

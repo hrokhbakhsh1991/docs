@@ -13,14 +13,15 @@ scope: cancel + waitlist + terminal consistency
 
 ## Transition ownership (runtime)
 
-| Transition | Trigger | Auth | Validation | Side effects | Event | Tenant/ws |
-| ---------- | ------- | ---- | ---------- | ------------ | ----- | --------- |
-| → pending (create) | Booking service | ops / publicCreate | validation+capacity | persist | none | yes |
-| pending → waitlisted | Booking `waitlistBooking` | ops | status=pending | persist + outbox | `registration.waitlisted` | yes |
-| pending\|waitlisted → approved | Booking approve | ops | capacity in TX | outbox (`registration.approved`); in-process reaction only if capability `mode=in-process` (Option A: off) | `registration.approved` | yes |
-| pending\|waitlisted → rejected | Booking reject | ops | status gate | persist only | **none** (decision B — intentionally silent; see `BOOKING_REJECT_LIFECYCLE_OWNERSHIP`) | yes |
-| pending\|waitlisted\|approved → cancelled | Booking `cancelBooking` | ops | status gate | persist + outbox | `registration.cancelled` | yes |
-| rejected\|cancelled → * | forbidden | — | terminal | — | — | — |
+| Transition                                | Trigger                    | Auth                | Validation                             | Side effects                                                                                               | Event                                                                                  | Tenant/ws |
+| ----------------------------------------- | -------------------------- | ------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------- |
+| → pending (create)                        | Booking service            | ops / publicCreate  | validation+capacity                    | persist                                                                                                    | none                                                                                   | yes       |
+| pending → waitlisted                      | Booking `waitlistBooking`  | ops                 | status=pending                         | persist + outbox                                                                                           | `registration.waitlisted`                                                              | yes       |
+| approved → waitlisted (exception)         | driver payment-hold expiry | Finance expiry only | assigned + strictly unpaid + tour lock | waitlist + expire hold + remove assignment + outbox                                                        | `registration.waitlisted`, `payment.hold.expired`                                      | yes       |
+| pending\|waitlisted → approved            | Booking approve            | ops                 | capacity in TX                         | outbox (`registration.approved`); in-process reaction only if capability `mode=in-process` (Option A: off) | `registration.approved`                                                                | yes       |
+| pending\|waitlisted → rejected            | Booking reject             | ops                 | status gate                            | persist only                                                                                               | **none** (decision B — intentionally silent; see `BOOKING_REJECT_LIFECYCLE_OWNERSHIP`) | yes       |
+| pending\|waitlisted\|approved → cancelled | Booking `cancelBooking`    | ops                 | status gate                            | persist + outbox                                                                                           | `registration.cancelled`                                                               | yes       |
+| rejected\|cancelled → \*                  | forbidden                  | —                   | terminal                               | —                                                                                                          | —                                                                                      | —         |
 
 ## HTTP
 
@@ -36,4 +37,4 @@ scope: cancel + waitlist + terminal consistency
 ## Terminal consistency
 
 Approve / waitlist / reject / cancel refuse `rejected` and `cancelled` sources (`BookingStatusConflictError`).
-Waitlist only from `pending`. Cancel from `pending|waitlisted|approved`.
+The generic lifecycle/API waitlist action remains `pending`-only. Finance expiry has a separate, guarded exception that atomically displaces assigned, strictly unpaid riders from `approved` to `waitlisted`. Cancel from `pending|waitlisted|approved`.

@@ -60,11 +60,17 @@ type StoredLedgerEvent = FinanceLedgerOutboxRow & {
 let paymentsById = new Map<string, StoredPayment>();
 let receiptsById = new Map<string, StoredReceipt>();
 let ledgerEvents: StoredLedgerEvent[] = [];
-let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
+let prepaymentsByDomainEventId = new Map<
+  string,
+  FinancePrepaymentListRow & { readonly tenantId: string }
+>();
 let refundsById = new Map<string, FinanceRefundRow>();
 let destinationRevisionsByTenant = new Map<string, Map<string, PaymentDestinationRevision>>();
 let currentDestinationRevisionByTenant = new Map<string, string>();
-let receiptDestinationSnapshots = new Map<string, PaymentReceiptDestinationSnapshot & { tenantId: string }>();
+let receiptDestinationSnapshots = new Map<
+  string,
+  PaymentReceiptDestinationSnapshot & { tenantId: string }
+>();
 let registrationCandidateClocksById = new Map<
   string,
   { readonly tenantId: string; readonly occurredAt: Date }
@@ -231,10 +237,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     creationIdempotencyKey: string
   ): Promise<FinancePaymentRow | null> {
     for (const row of paymentsById.values()) {
-      if (
-        row.tenantId === tenantId &&
-        row.creationIdempotencyKey === creationIdempotencyKey
-      ) {
+      if (row.tenantId === tenantId && row.creationIdempotencyKey === creationIdempotencyKey) {
         return row;
       }
     }
@@ -244,7 +247,11 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   async countPendingReceiptsForPayment(tenantId: string, paymentId: string): Promise<number> {
     let count = 0;
     for (const receipt of receiptsById.values()) {
-      if (receipt.tenantId === tenantId && receipt.paymentId === paymentId && receipt.status === "Pending") {
+      if (
+        receipt.tenantId === tenantId &&
+        receipt.paymentId === paymentId &&
+        receipt.status === "Pending"
+      ) {
         count += 1;
       }
     }
@@ -265,6 +272,10 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       return null;
     }
     matching.sort((a, b) => {
+      const byActiveAttempt = Number(b.status === "Pending") - Number(a.status === "Pending");
+      if (byActiveAttempt !== 0) {
+        return byActiveAttempt;
+      }
       const byCreated = b.createdAt.getTime() - a.createdAt.getTime();
       if (byCreated !== 0) {
         return byCreated;
@@ -307,10 +318,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     if (payment === null) {
       throw new Error("FINANCE_PAYMENT_NOT_FOUND");
     }
-    const pendingCount = await this.countPendingReceiptsForPayment(
-      input.tenantId,
-      input.paymentId
-    );
+    const pendingCount = await this.countPendingReceiptsForPayment(input.tenantId, input.paymentId);
     if (pendingCount > 0) {
       throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
     }
@@ -427,9 +435,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     });
   }
 
-  async listFinanceExceptionSources(
-    tenantId: string
-  ): Promise<ListFinanceExceptionSourcesResult> {
+  async listFinanceExceptionSources(tenantId: string): Promise<ListFinanceExceptionSourcesResult> {
     const pendingPayments = [...paymentsById.values()].filter(
       (row) => row.tenantId === tenantId && row.status === "Pending"
     );
@@ -477,7 +483,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         const occurredAt =
           payload?.occurredAt !== undefined
             ? new Date(payload.occurredAt)
-            : cancelEvent?.createdAt ?? payment.createdAt;
+            : (cancelEvent?.createdAt ?? payment.createdAt);
         return {
           paymentId: payment.id,
           registrationId: payment.registrationId,
@@ -625,8 +631,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     // Fake-only: drop the provisional capture row so compensate does not leave orphan ledger facts.
     const captureDomainEventId = `payment:${paymentId}:ledger-capture-anchor`;
     ledgerEvents = ledgerEvents.filter(
-      (event) =>
-        !(event.tenantId === tenantId && event.domainEventId === captureDomainEventId)
+      (event) => !(event.tenantId === tenantId && event.domainEventId === captureDomainEventId)
     );
     return updated;
   }
@@ -655,9 +660,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         paymentAmountsMinor: facts.paymentAmountsMinor,
         scheduleAmountsMinor: input.scheduleAmountsMinor,
         refundedCompletedMinor: facts.refundedCompletedMinor,
-        ...(input.obligationMinor !== undefined
-          ? { obligationMinor: input.obligationMinor }
-          : {}),
+        ...(input.obligationMinor !== undefined ? { obligationMinor: input.obligationMinor } : {}),
       });
       bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(
         {},
@@ -758,9 +761,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
           event.eventType === "finance.payment.cancelled"
       );
       const auditPayload =
-        prior !== undefined &&
-        typeof prior.payload === "object" &&
-        prior.payload !== null
+        prior !== undefined && typeof prior.payload === "object" && prior.payload !== null
           ? (prior.payload as CancelPendingManualPaymentAtomicResult["auditPayload"])
           : buildAudit(existing);
       return {
@@ -796,8 +797,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
 
     const auditPayload = buildAudit(updated);
     const already = ledgerEvents.some(
-      (event) =>
-        event.tenantId === input.tenantId && event.domainEventId === domainEventId
+      (event) => event.tenantId === input.tenantId && event.domainEventId === domainEventId
     );
     if (!already) {
       ledgerEvents.push({
@@ -829,9 +829,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       .map(({ tenantId: _t, ...row }) => row);
   }
 
-  async recordPrepaymentAtomic(
-    input: RecordPrepaymentAtomicInput
-  ): Promise<{
+  async recordPrepaymentAtomic(input: RecordPrepaymentAtomicInput): Promise<{
     readonly created: boolean;
     readonly id: string;
     readonly registrationId: string;
@@ -1033,10 +1031,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     creationIdempotencyKey: string
   ): Promise<FinanceRefundRow | null> {
     for (const row of refundsById.values()) {
-      if (
-        row.tenantId === tenantId &&
-        row.creationIdempotencyKey === creationIdempotencyKey
-      ) {
+      if (row.tenantId === tenantId && row.creationIdempotencyKey === creationIdempotencyKey) {
         return row;
       }
     }

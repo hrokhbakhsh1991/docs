@@ -113,7 +113,11 @@ const portalEnv = {
 const webEnv = {
   ...process.env,
   ...jwtEnv,
-  NODE_ENV: "development",
+  // A production portal smoke must not keep the operator app in `next dev`.
+  // The latter recompiles operator routes on demand and can dominate RAM long
+  // before the browser matrix starts. Keep API memory-backed, but exercise the
+  // built browser artifacts for both user-facing surfaces.
+  NODE_ENV: process.env.PORTAL_SMOKE_MODE === "production" ? "production" : "development",
   ALLOW_DENALI_WEB_PLUGIN: "true",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -173,17 +177,29 @@ function spawnTracked(command, args, options, label) {
 
 void waitForUrl("http://127.0.0.1:3001/health")
   .then(() => {
+    if (
+      process.env.PORTAL_SMOKE_MODE === "production" &&
+      process.env.PORTAL_SMOKE_SKIP_BUILD !== "1"
+    ) {
+      execSync("pnpm run build", {
+        cwd: webDir,
+        env: webEnv,
+        stdio: "inherit",
+      });
+    }
     web = spawnTracked(
       process.execPath,
       [
         path.join(webDir, "node_modules/next/dist/bin/next"),
-        "dev",
+        process.env.PORTAL_SMOKE_MODE === "production" ? "start" : "dev",
         "--port",
         "3000",
         "--hostname",
         "127.0.0.1",
       ],
-      { cwd: webDir, env: webEnv, stdio: "inherit" },
+      // Dev servers are non-interactive under Playwright. Inheriting the
+      // runner's stdin can deliver EOF/SIGINT-style shutdowns mid-compilation.
+      { cwd: webDir, env: webEnv, stdio: ["ignore", "inherit", "inherit"] },
       "web"
     );
     return waitForUrl("http://127.0.0.1:3000/bookings");
@@ -207,7 +223,7 @@ void waitForUrl("http://127.0.0.1:3001/health")
         "--port",
         "3003",
       ],
-      { cwd: portalDir, env: portalEnv, stdio: "inherit" },
+      { cwd: portalDir, env: portalEnv, stdio: ["ignore", "inherit", "inherit"] },
       "portal"
     );
     return waitForUrl("http://127.0.0.1:3003/health");

@@ -12,6 +12,7 @@ import {
   BookingOpenPaymentFinalizationNotAllowedError,
   BookingWaiveAndFinalizeNotAllowedError,
   BookingWaitlistCapacityAdmissionNotAllowedError,
+  BookingRosterFrozenError,
   BookingNotFoundError,
   BookingPublicCreateUnsupportedError,
   BookingsOpsForbiddenError,
@@ -20,6 +21,7 @@ import {
   BookingWorkspaceUnsupportedError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
+import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "@app-tour/booking-http-contracts";
 
 export type BookingHttpErrorResolution = {
   readonly status: number;
@@ -70,6 +72,13 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     clientAction: "Adjust party size or capacity; do not treat as rate-limit",
   },
   {
+    domainError: BOOKING_TRANSPORT_CAPACITY_REJECTED,
+    status: 409,
+    reason: "Available personal-car passenger seats do not cover approved or requested dong seats",
+    clientAction:
+      "Wait for or add an approved personal-car seat offer before approving this registration",
+  },
+  {
     domainError: "BOOKING_GUEST_DUPLICATE",
     status: 409,
     reason: "Active guest already registered on this tour (MR-P0-011 unique index)",
@@ -116,6 +125,12 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     status: 409,
     reason: "Waitlist capacity admission requires a waitlisted, non-empty booking",
     clientAction: "Refresh the waitlist row and choose an eligible registration",
+  },
+  {
+    domainError: "BOOKING_ROSTER_FROZEN",
+    status: 409,
+    reason: "Registration approval is closed after the operational roster is frozen",
+    clientAction: "Do not approve after roster freeze; refresh the tour workspace",
   },
   {
     domainError: "BOOKING_FORBIDDEN",
@@ -257,6 +272,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (error instanceof BookingCapacityReleaseRejectedError) {
     return resolutionFromCode(error.code, error.message);
   }
+  if (error instanceof BookingRosterFrozenError) {
+    return resolutionFromCode(error.code, error.message);
+  }
   if (error instanceof BulkApproveBatchLimitError) {
     return resolutionFromCode(error.code, error.message, { maxBatch: error.maxBatch });
   }
@@ -269,9 +287,8 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   }
   const message = error.message;
 
-  // Keep the matrix authoritative for generic domain errors too. Workspace
-  // policies can reject lifecycle changes without needing an API-owned error
-  // subclass for each workspace-specific rule.
+  // Workspace policies may reject lifecycle changes without an API-owned
+  // error subclass. Keep this matrix authoritative for those typed codes.
   const matrixCode = BOOKING_HTTP_ERROR_MATRIX.find(
     ({ domainError }) => message === domainError || message.startsWith(`${domainError}:`)
   )?.domainError;
@@ -282,8 +299,14 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) {
     return resolutionFromCode("BOOKING_CAPACITY_REJECTED", message);
   }
+  if (message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED)) {
+    return resolutionFromCode(BOOKING_TRANSPORT_CAPACITY_REJECTED, message);
+  }
   if (message.startsWith("BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED")) {
     return resolutionFromCode("BOOKING_WAITLIST_CAPACITY_ADMISSION_NOT_ALLOWED", message);
+  }
+  if (message.startsWith("BOOKING_ROSTER_FROZEN")) {
+    return resolutionFromCode("BOOKING_ROSTER_FROZEN", message);
   }
   if (message === "BOOKING_GUEST_DUPLICATE" || message.startsWith("BOOKING_GUEST_DUPLICATE:")) {
     return resolutionFromCode("BOOKING_GUEST_DUPLICATE", message);

@@ -2,7 +2,10 @@
  * Build BookingCreatePolicyContext for Denali domain asserts (orchestration helpers).
  */
 
-import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
+import type {
+  BookingApprovedCapacitySnapshot,
+  BookingCreatePolicyContext,
+} from "@app-tour/booking-http-contracts";
 
 export type BuildDenaliBookingCreatePolicyContextInput = {
   readonly tenantId: string;
@@ -16,6 +19,7 @@ export type BuildDenaliBookingCreatePolicyContextInput = {
   readonly occupiedApprovedPartySize?: number;
   readonly tourCapacityMax: number | null;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  readonly approvedCapacitySnapshots?: readonly BookingApprovedCapacitySnapshot[];
 };
 
 export function buildDenaliBookingCreatePolicyContext(
@@ -38,6 +42,9 @@ export function buildDenaliBookingCreatePolicyContext(
     tourCapacityMax: input.tourCapacityMax,
     ...(input.registrationIntake !== undefined
       ? { registrationIntake: input.registrationIntake }
+      : {}),
+    ...(input.approvedCapacitySnapshots !== undefined
+      ? { approvedCapacitySnapshots: input.approvedCapacitySnapshots }
       : {}),
   };
 }

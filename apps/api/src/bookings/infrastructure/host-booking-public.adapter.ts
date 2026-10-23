@@ -14,6 +14,8 @@ import {
 } from "../create-bookings-service";
 import { readRegistrantTargetFromIntake } from "../read-registrant-target";
 import { resolvePaymentDueAtForProjection } from "../resolve-payment-due-at-projection";
+import { promoteOldestWaitlistedGuest } from "../promote-waitlist-after-seat-release";
+import { BookingStatusConflictError } from "../bookings.errors";
 
 function toOwnedDetail(row: {
   readonly id: string;
@@ -153,7 +155,25 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
         },
         input.outboxEvent
       );
-      return { id: created.id, status: created.status };
+      try {
+        // Capacity may have been released after the initial create was rejected
+        // but before this waitlist row acquired the tour lock. Re-run FIFO
+        // promotion after commit so that interleaving cannot strand a fitting
+        // registrant behind newly available capacity.
+        await promoteOldestWaitlistedGuest({
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+        });
+      } catch (error) {
+        // A concurrent release/promotion can win the status transition after
+        // this create commits. The registration itself is still successful;
+        // return its persisted status rather than turning it into a failed POST.
+        if (!(error instanceof BookingStatusConflictError)) {
+          throw error;
+        }
+      }
+      const persisted = await getBookingsRepository().getById(created.id, input.tenantId);
+      return { id: created.id, status: persisted?.status ?? created.status };
     },
     async autoApprovePublicBooking(input) {
       return autoApprovePublicBookingService(input);
@@ -178,6 +198,7 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
         bookingId: input.bookingId,
         tenantId: input.tenantId,
         patch: input.patch,
+        allowedStatuses: ["pending", "waitlisted"],
       });
       if (updated === null) {
         return null;

@@ -5,6 +5,7 @@ import {
   requireWorkspacePublishedTour,
   WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID,
 } from "@app-tour/workspace-sdk";
+import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "@app-tour/booking-http-contracts";
 
 import {
   assertDenaliCreateValid,
@@ -45,44 +46,6 @@ export type DenaliGuestProfilePatch = {
 };
 
 const PUBLIC_CATALOG_GUEST_USER_ID = WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID;
-
-async function autoApproveWithPostCommitRecovery(params: {
-  readonly bookingPort: BookingPublicPort;
-  readonly tenantId: string;
-  readonly bookingId: string;
-  readonly guestUserId: string;
-  readonly capacityFallback?: "waitlist";
-}): Promise<{ readonly id: string; readonly status: string }> {
-  const input = {
-    tenantId: params.tenantId,
-    bookingId: params.bookingId,
-    actorUserId: params.guestUserId,
-    ...(params.capacityFallback !== undefined ? { capacityFallback: params.capacityFallback } : {}),
-  };
-
-  try {
-    return await params.bookingPort.autoApprovePublicBooking(input);
-  } catch (error) {
-    // Approval commits before its finance/projection side effects. If one of those
-    // fails transiently, retry only when this same booking is already approved;
-    // this never creates another booking or consumes another seat.
-    let owned;
-    try {
-      owned = await params.bookingPort.findOwnedBooking(
-        params.tenantId,
-        params.bookingId,
-        params.guestUserId
-      );
-    } catch {
-      throw error;
-    }
-    if (owned?.status !== "approved") {
-      throw error;
-    }
-
-    return params.bookingPort.autoApprovePublicBooking(input);
-  }
-}
 
 export async function createDenaliRegistration(params: {
   readonly tenantId: string;
@@ -280,8 +243,6 @@ export async function createDenaliRegistration(params: {
     capacity !== null &&
     approvedOccupancy !== null &&
     approvedOccupancy + params.body.partySize > capacity;
-  const waitlistFallbackAllowed =
-    params.bookingPort.createWaitlistedBooking !== undefined && denaliWaitlistAllowed();
 
   // Own-other identity collision → reclassify same row to self (tour-global guest uniques).
   if (registrantTarget === "self" && params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID) {
@@ -327,12 +288,10 @@ export async function createDenaliRegistration(params: {
           if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
             return reclassified;
           }
-          return autoApproveWithPostCommitRecovery({
-            bookingPort: params.bookingPort,
+          return params.bookingPort.autoApprovePublicBooking({
             tenantId: params.tenantId,
             bookingId: reclassified.id,
-            guestUserId: params.guestUserId,
-            ...(waitlistFallbackAllowed ? { capacityFallback: "waitlist" as const } : {}),
+            actorUserId: params.guestUserId,
           });
         }
       }
@@ -385,31 +344,35 @@ export async function createDenaliRegistration(params: {
   try {
     created = await params.bookingPort.createPendingBooking(createInput);
   } catch (error) {
-    // The occupancy read above is advisory. The API re-checks capacity under the tour lock;
-    // if another request won the last seats meanwhile, make this request a waitlist entry.
+    const capacityRejected =
+      error instanceof Error &&
+      (error.message.startsWith("BOOKING_CAPACITY_REJECTED") ||
+        error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED));
     if (
-      !waitlistFallbackAllowed ||
-      !(error instanceof Error) ||
-      !/^BOOKING_CAPACITY_REJECTED: occupied=\d+ partySize=\d+ capacityMax=\d+/.test(error.message)
+      !capacityRejected ||
+      params.bookingPort.createWaitlistedBooking === undefined ||
+      !denaliWaitlistAllowed()
     ) {
       throw error;
     }
-    const waitlistReason = error.message.includes("constraint=personal_car_dong")
-      ? "🕒 صندلی خودرو برای ثبت‌نام دُنگ کافی نیست؛ درخواست شما در لیست انتظار ثبت شد."
-      : "🕒 ظرفیت این تور تکمیل است؛ درخواست شما در لیست انتظار ثبت شد.";
-    const waitlistPayload = {
-      ...createInput.outboxEvent.payload,
-      approvalRequired: false,
-      approvalStatus: "waitlisted",
-      approvalPrompt: waitlistReason,
-    };
-    return params.bookingPort.createWaitlistedBooking!({
+    const waitlistEvent = createInput.outboxEvent;
+    return params.bookingPort.createWaitlistedBooking({
       ...createInput,
-      outboxEvent: {
-        ...createInput.outboxEvent,
-        eventType: "registration.waitlisted",
-        payload: waitlistPayload,
-      },
+      ...(waitlistEvent === undefined
+        ? {}
+        : {
+            outboxEvent: {
+              ...waitlistEvent,
+              eventType: "registration.waitlisted",
+              payload: {
+                ...waitlistEvent.payload,
+                approvalRequired: false,
+                approvalStatus: "waitlisted",
+                approvalPrompt:
+                  "🕒 ظرفیت متناسب با درخواست شما در دسترس نیست؛ درخواست در لیست انتظار ثبت شد.",
+              },
+            },
+          }),
     });
   }
 
@@ -419,11 +382,9 @@ export async function createDenaliRegistration(params: {
     return created;
   }
 
-  return autoApproveWithPostCommitRecovery({
-    bookingPort: params.bookingPort,
+  return params.bookingPort.autoApprovePublicBooking({
     tenantId: params.tenantId,
     bookingId: created.id,
-    guestUserId: params.guestUserId,
-    ...(waitlistFallbackAllowed ? { capacityFallback: "waitlist" as const } : {}),
+    actorUserId: params.guestUserId,
   });
 }

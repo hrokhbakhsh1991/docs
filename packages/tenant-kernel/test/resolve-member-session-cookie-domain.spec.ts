@@ -18,10 +18,10 @@ describe("resolveMemberSessionCookieDomain", () => {
     );
   });
 
-  it("PCMS-COOK-03 inverted portal localhost returns club.localhost share parent", () => {
+  it("PCMS-COOK-03 local portal remains host-only", () => {
     assert.equal(
       resolveMemberSessionCookieDomain("portal.denali.localhost:3003", "localhost"),
-      "denali.localhost"
+      undefined
     );
   });
 

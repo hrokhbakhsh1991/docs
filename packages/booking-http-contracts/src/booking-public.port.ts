@@ -103,7 +103,7 @@ export interface BookingPublicPort {
   createWaitlistedBooking?: (input: BookingPublicCreateInput) => Promise<BookingPublicCreateResult>;
   /**
    * Tour-policy auto-approve after public create (no ops CASL).
-   * Capacity failure → leave pending and return current status.
+   * Capacity failure → atomically move the owned pending record to waitlist.
    */
   autoApprovePublicBooking(
     input: BookingPublicAutoApproveInput

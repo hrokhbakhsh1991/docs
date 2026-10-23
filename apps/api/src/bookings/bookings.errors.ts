@@ -143,6 +143,16 @@ export class BookingCapacityReleaseRejectedError extends Error {
   }
 }
 
+/** Registration approval is closed after the operational roster snapshot is frozen. */
+export class BookingRosterFrozenError extends Error {
+  readonly code = "BOOKING_ROSTER_FROZEN" as const;
+
+  constructor() {
+    super("BOOKING_ROSTER_FROZEN");
+    this.name = "BookingRosterFrozenError";
+  }
+}
+
 export class BulkApproveBatchLimitError extends Error {
   readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
 
@@ -170,5 +180,13 @@ export class BookingStatusConflictError extends Error {
     super(`${code}:${status}`);
     this.name = "BookingStatusConflictError";
     this.code = code;
+  }
+}
+
+/** A payment deadline worker observed stale unpaid state before acquiring the tour lock. */
+export class PaymentDeadlinePaymentAlreadySettledError extends Error {
+  constructor() {
+    super("PAYMENT_DEADLINE_PAYMENT_ALREADY_SETTLED");
+    this.name = "PaymentDeadlinePaymentAlreadySettledError";
   }
 }

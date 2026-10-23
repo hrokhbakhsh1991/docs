@@ -79,6 +79,7 @@ export function dp1BookingBody(
     readonly partySize?: number;
     readonly tourCapacityMax?: number;
     readonly tourId?: string;
+    readonly registrationIntake?: Readonly<Record<string, unknown>>;
   } = {}
 ) {
   const label = over.guestLabel ?? `DP1 Guest ${randomUUID().slice(0, 8)}`;
@@ -90,7 +91,10 @@ export function dp1BookingBody(
     guestPhone: "+15550001234",
     partySize: over.partySize ?? 2,
     departureAt: "2031-08-01T10:00:00.000Z",
-    registrationIntake: { tourCapacityMax: over.tourCapacityMax ?? 10 },
+    registrationIntake: {
+      ...(over.registrationIntake ?? {}),
+      tourCapacityMax: over.tourCapacityMax ?? 10,
+    },
   };
 }
 

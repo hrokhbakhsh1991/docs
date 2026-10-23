@@ -28,6 +28,38 @@ type RegistrationSubmission = {
 };
 
 async function reachTransportIntake(page: Page, tourId: string, phone: string): Promise<void> {
+  const profileProbes: string[] = [];
+  const sessionCookieWrites: string[] = [];
+  const registrationDocumentCookie: string[] = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "document" && request.url().includes("/catalog/")) {
+      void request.allHeaders().then((headers) => {
+        registrationDocumentCookie.push(`cookie=${String(Boolean(headers.cookie))}`);
+      });
+    }
+  });
+  const captureProfileProbe = async (response: import("@playwright/test").Response) => {
+    if (response.url().includes("/api/public-auth/register-complete")) {
+      const setCookie = response.headers()["set-cookie"] ?? "";
+      const attributes = setCookie
+        .split(";")
+        .slice(1)
+        .map((part) => part.trim().split("=")[0]?.toLowerCase())
+        .filter(Boolean)
+        .join(",");
+      sessionCookieWrites.push(`set-cookie=${Boolean(setCookie)};attrs=${attributes}`);
+    }
+    if (!response.url().includes("/api/me/profile")) return;
+    let bodyOk = "unreadable";
+    try {
+      const body = (await response.json()) as { ok?: unknown };
+      bodyOk = String(body.ok === true);
+    } catch {
+      // Keep diagnostics non-sensitive; status and the `ok` bit are sufficient.
+    }
+    profileProbes.push(`${response.status()}:ok=${bodyOk}`);
+  };
+  page.on("response", captureProfileProbe);
   await page.context().clearCookies();
   await gotoPortalRegistration(page, tourId);
   await requestRegistrationOtp(page, phone);
@@ -36,13 +68,42 @@ async function reachTransportIntake(page: Page, tourId: string, phone: string): 
   const profileStep = page.locator("[data-public-registration-profile]");
   if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await page.locator("#displayName").fill("Transport Smoke Guest");
-    await page.locator('[data-action="profile-continue"]').click();
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          res.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      // The auth host intentionally reloads the register route after the
+      // session cookie is verified. We still wait for the BFF response so a
+      // failed profile completion is not misreported as an intake timeout.
+      page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true }),
+    ]);
+    const body = await response.text();
+    expect(
+      response.ok(),
+      `register-complete failed (${response.status()}): ${body.slice(0, 240)}`
+    ).toBeTruthy();
   }
 
-  await page.locator("[data-public-registration-intake]").waitFor({
-    state: "visible",
-    timeout: 60_000,
-  });
+  try {
+    await page.locator("[data-public-registration-intake]").waitFor({
+      state: "visible",
+      timeout: 60_000,
+    });
+  } catch (error) {
+    const authAlert = await page
+      .locator('[role="alert"]')
+      .allTextContents()
+      .catch(() => []);
+    throw new Error(
+      `transport intake did not appear; profile probes=[${profileProbes.join(", ")}], session cookie=[${sessionCookieWrites.join(", ")}], document cookies=[${registrationDocumentCookie.join(", ")}], alerts=[${authAlert.join(" | ")}]`,
+      { cause: error }
+    );
+  } finally {
+    page.off("response", captureProfileProbe);
+  }
 }
 
 async function submitAndReadBody(page: Page): Promise<RegistrationSubmission> {

@@ -94,11 +94,11 @@ export {
 } from "./booking-lifecycle-transitions";
 
 export {
+  BOOKING_TRANSPORT_CAPACITY_REJECTED,
   BOOKING_POLICY_CASE_A_GUEST_LABEL,
-  toBookingCapacityTransportFact,
   type BookingCapacityReleaseDecision,
   type BookingCapacityReleasePolicyContext,
-  type BookingCapacityTransportFact,
+  type BookingApprovedCapacitySnapshot,
   type BookingCapacityPolicyPort,
   type BookingCreatePolicyContext,
   type BookingPublicCapabilityPort,

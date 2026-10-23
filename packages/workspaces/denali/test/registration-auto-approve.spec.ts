@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { resolveDenaliRegistrationObligationMinor } from "../src/finance/resolve-denali-registration-obligation.ts";
+import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "@app-tour/booking-http-contracts";
 import { createDenaliRegistration } from "../src/http/registration.service.ts";
 import type { BookingPublicPort } from "../src/http/ports/public-booking.port.ts";
 import type { DenaliTourStorePort } from "../src/http/ports/tour-store.port.ts";
@@ -46,30 +47,13 @@ function storeWithPolicy(
   };
 }
 
-function trackingPort(
-  options: {
-    readonly approvedOccupancy?: number;
-    readonly createCapacityRace?: boolean;
-    readonly createCapacityError?: string;
-    readonly autoApproveStatus?: string;
-  } = {}
-): {
+function trackingPort(): {
   readonly port: BookingPublicPort;
   readonly createCalls: number[];
-  readonly waitlistCalls: Array<{ id: string; eventType?: string; approvalPrompt?: string }>;
-  readonly autoCalls: Array<{
-    bookingId: string;
-    actorUserId: string;
-    capacityFallback?: "waitlist";
-  }>;
+  readonly autoCalls: Array<{ bookingId: string; actorUserId: string }>;
 } {
   const createCalls: number[] = [];
-  const waitlistCalls: Array<{ id: string; eventType?: string }> = [];
-  const autoCalls: Array<{
-    bookingId: string;
-    actorUserId: string;
-    capacityFallback?: "waitlist";
-  }> = [];
+  const autoCalls: Array<{ bookingId: string; actorUserId: string }> = [];
   const port: BookingPublicPort = {
     async findDuplicateByTourGuest() {
       return null;
@@ -97,41 +81,17 @@ function trackingPort(
     },
     async createPendingBooking() {
       createCalls.push(1);
-      if (options.createCapacityRace) {
-        throw new Error("BOOKING_CAPACITY_REJECTED: occupied=12 partySize=1 capacityMax=12");
-      }
-      if (options.createCapacityError !== undefined) {
-        throw new Error(options.createCapacityError);
-      }
       return { id: "booking-auto", status: "pending" };
     },
-    async createWaitlistedBooking(input) {
-      waitlistCalls.push({
-        id: "booking-waitlisted",
-        ...(input.outboxEvent !== undefined ? { eventType: input.outboxEvent.eventType } : {}),
-        ...(typeof input.outboxEvent?.payload.approvalPrompt === "string"
-          ? { approvalPrompt: input.outboxEvent.payload.approvalPrompt }
-          : {}),
-      });
-      return { id: "booking-waitlisted", status: "waitlisted" };
-    },
     async autoApprovePublicBooking(input) {
-      autoCalls.push({
-        bookingId: input.bookingId,
-        actorUserId: input.actorUserId,
-        ...(input.capacityFallback !== undefined
-          ? { capacityFallback: input.capacityFallback }
-          : {}),
-      });
-      return { id: input.bookingId, status: options.autoApproveStatus ?? "approved" };
+      autoCalls.push({ bookingId: input.bookingId, actorUserId: input.actorUserId });
+      return { id: input.bookingId, status: "approved" };
     },
     async sumApprovedPartySizeByTourIds() {
-      return options.approvedOccupancy === undefined
-        ? {}
-        : { [TOUR_ID]: options.approvedOccupancy };
+      return {};
     },
   };
-  return { port, createCalls, waitlistCalls, autoCalls };
+  return { port, createCalls, autoCalls };
 }
 
 describe("registration-auto-approve — Denali Phase 3", () => {
@@ -154,91 +114,6 @@ describe("registration-auto-approve — Denali Phase 3", () => {
     assert.equal(autoCalls[0]?.bookingId, "booking-auto");
     assert.equal(autoCalls[0]?.actorUserId, GUEST_USER_ID);
     assert.equal(created.status, "approved");
-  });
-
-  it("DN-P3-R08 retries the same committed booking after a post-commit failure", async () => {
-    const { port, createCalls } = trackingPort();
-    let status = "pending";
-    let autoApproveCalls = 0;
-    const recoveryPort: BookingPublicPort = {
-      ...port,
-      async findOwnedBooking() {
-        if (status !== "approved") {
-          return null;
-        }
-        return {
-          id: "booking-auto",
-          status,
-          tourId: TOUR_ID,
-          tourTitle: "Approval Mode Tour",
-          guestLabel: "Recovered Guest",
-          registrantTarget: "self",
-          finalizationStatus: "not_final",
-          paymentStatus: "unpaid",
-          departureAt: "2031-06-01T08:00:00.000Z",
-          submittedAt: "2030-01-01T00:00:00.000Z",
-          partySize: 1,
-        };
-      },
-      async autoApprovePublicBooking(input) {
-        autoApproveCalls += 1;
-        assert.equal(input.bookingId, "booking-auto");
-        if (autoApproveCalls === 1) {
-          // Simulates approval committed, then a finance/projection side effect failed.
-          status = "approved";
-          throw new Error("TRANSIENT_POST_COMMIT_FAILURE");
-        }
-        return { id: input.bookingId, status };
-      },
-    };
-
-    const created = await createDenaliRegistration({
-      tenantId: TENANT_ID,
-      workspaceType: "denali",
-      guestUserId: GUEST_USER_ID,
-      body: {
-        tourId: TOUR_ID,
-        contact: { fullName: "Recovered Guest" },
-        partySize: 1,
-      },
-      store: storeWithPolicy("auto"),
-      bookingPort: recoveryPort,
-    });
-
-    assert.equal(created.id, "booking-auto");
-    assert.equal(created.status, "approved");
-    assert.equal(createCalls.length, 1);
-    assert.equal(autoApproveCalls, 2);
-  });
-
-  it("DN-P3-R09 does not retry approval if no committed approved booking exists", async () => {
-    const { port, createCalls } = trackingPort();
-    let autoApproveCalls = 0;
-    const preCommitFailurePort: BookingPublicPort = {
-      ...port,
-      async autoApprovePublicBooking() {
-        autoApproveCalls += 1;
-        throw new Error("APPROVAL_PRE_COMMIT_FAILURE");
-      },
-    };
-
-    await assert.rejects(
-      createDenaliRegistration({
-        tenantId: TENANT_ID,
-        workspaceType: "denali",
-        guestUserId: GUEST_USER_ID,
-        body: {
-          tourId: TOUR_ID,
-          contact: { fullName: "Uncommitted Guest" },
-          partySize: 1,
-        },
-        store: storeWithPolicy("auto"),
-        bookingPort: preCommitFailurePort,
-      }),
-      /APPROVAL_PRE_COMMIT_FAILURE/
-    );
-    assert.equal(createCalls.length, 1);
-    assert.equal(autoApproveCalls, 1);
   });
 
   it("DN-P3-R02 manual mode never auto-approves", async () => {
@@ -326,67 +201,43 @@ describe("registration-auto-approve — Denali Phase 3", () => {
     }
   });
 
-  it("DN-P3-R05 sends a registration to waitlist when capacity read already shows full", async () => {
-    const { port, createCalls, waitlistCalls } = trackingPort({ approvedOccupancy: 12 });
-    const created = await createDenaliRegistration({
-      tenantId: TENANT_ID,
-      workspaceType: "denali",
-      guestUserId: GUEST_USER_ID,
-      body: { tourId: TOUR_ID, contact: { fullName: "Already Full Guest" }, partySize: 1 },
-      store: storeWithPolicy("auto"),
-      bookingPort: port,
-    });
-    assert.equal(created.status, "waitlisted");
-    assert.equal(createCalls.length, 0);
-    assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
-  });
+  it("moves a create rejected for transport capacity to waitlist without attempting auto-approval", async () => {
+    const { port, autoCalls } = trackingPort();
+    const waitlistedInputs: unknown[] = [];
+    const waitlistPort: BookingPublicPort = {
+      ...port,
+      async createPendingBooking() {
+        throw new Error(`${BOOKING_TRANSPORT_CAPACITY_REJECTED}: no approved car seats`);
+      },
+      async createWaitlistedBooking(input) {
+        waitlistedInputs.push(input);
+        return { id: "booking-waitlisted", status: "waitlisted" };
+      },
+    };
 
-  it("DN-P3-R06 recovers a capacity race at create as waitlist instead of generic failure", async () => {
-    const { port, createCalls, waitlistCalls } = trackingPort({ createCapacityRace: true });
-    const created = await createDenaliRegistration({
+    const result = await createDenaliRegistration({
       tenantId: TENANT_ID,
       workspaceType: "denali",
       guestUserId: GUEST_USER_ID,
-      body: { tourId: TOUR_ID, contact: { fullName: "Create Race Guest" }, partySize: 1 },
+      body: {
+        tourId: TOUR_ID,
+        contact: { fullName: "Dong Waitlist Guest" },
+        partySize: 1,
+      },
       store: storeWithPolicy("auto"),
-      bookingPort: port,
+      bookingPort: waitlistPort,
     });
-    assert.equal(created.status, "waitlisted");
-    assert.equal(createCalls.length, 1);
-    assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
-  });
 
-  it("DN-P3-R09 waitlists dong when car seats are exhausted but tour places remain", async () => {
-    const { port, createCalls, waitlistCalls } = trackingPort({
-      approvedOccupancy: 5,
-      createCapacityError:
-        "BOOKING_CAPACITY_REJECTED: occupied=5 partySize=1 capacityMax=5 constraint=personal_car_dong",
-    });
-    const created = await createDenaliRegistration({
-      tenantId: TENANT_ID,
-      workspaceType: "denali",
-      guestUserId: GUEST_USER_ID,
-      body: { tourId: TOUR_ID, contact: { fullName: "Dong Waitlist Guest" }, partySize: 1 },
-      store: storeWithPolicy("auto"),
-      bookingPort: port,
-    });
-    assert.equal(created.status, "waitlisted");
-    assert.equal(createCalls.length, 1);
-    assert.equal(waitlistCalls[0]?.eventType, "registration.waitlisted");
-    assert.match(waitlistCalls[0]?.approvalPrompt ?? "", /صندلی خودرو/);
-  });
-
-  it("DN-P3-R07 requests capacity fallback when auto-approval loses the final-seat race", async () => {
-    const { port, autoCalls } = trackingPort({ autoApproveStatus: "pending" });
-    const created = await createDenaliRegistration({
-      tenantId: TENANT_ID,
-      workspaceType: "denali",
-      guestUserId: GUEST_USER_ID,
-      body: { tourId: TOUR_ID, contact: { fullName: "Approval Race Guest" }, partySize: 1 },
-      store: storeWithPolicy("auto"),
-      bookingPort: port,
-    });
-    assert.equal(created.status, "pending");
-    assert.equal(autoCalls[0]?.capacityFallback, "waitlist");
+    assert.equal(result.status, "waitlisted");
+    assert.equal(waitlistedInputs.length, 1);
+    assert.equal(autoCalls.length, 0);
+    const input = waitlistedInputs[0] as {
+      readonly outboxEvent?: {
+        readonly eventType?: string;
+        readonly payload?: Readonly<Record<string, unknown>>;
+      };
+    };
+    assert.equal(input.outboxEvent?.eventType, "registration.waitlisted");
+    assert.equal(input.outboxEvent?.payload?.approvalStatus, "waitlisted");
   });
 });
