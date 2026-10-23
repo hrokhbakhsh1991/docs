@@ -47,6 +47,6 @@ export function parseWorkspaceCommerceConfig(input: unknown): WorkspaceCommerceC
 
 export function safeParseWorkspaceCommerceConfig(
   input: unknown
-): z.SafeParseReturnType<unknown, WorkspaceCommerceConfig> {
+): z.ZodSafeParseResult<WorkspaceCommerceConfig> {
   return workspaceCommerceConfigSchema.safeParse(input);
 }

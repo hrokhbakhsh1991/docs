@@ -48,7 +48,9 @@ export const WorkspaceVersionPinCapabilitySchema = z.object({
 
 export const WorkspaceVersionPinsSchema = z.object({
   profilePin: WorkspaceVersionPinProfileSchema.optional(),
-  capabilityPins: z.record(WorkspaceVersionPinCapabilitySchema).optional(),
+  capabilityPins: z
+    .record(z.string(), WorkspaceVersionPinCapabilitySchema)
+    .optional(),
 });
 
 const workspaceEquipmentModuleBindingSchema = workspaceModuleBindingSchema;

@@ -776,7 +776,7 @@
     "@app-tour/wizard-navigation": "workspace:*",
     "leaflet": "^1.9.4",
     "minio": "^8.0.4",
-    "zod": "^3.24.2"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
