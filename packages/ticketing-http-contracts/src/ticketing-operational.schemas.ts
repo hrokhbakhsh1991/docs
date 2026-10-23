@@ -44,7 +44,7 @@ export const ticketQueueCreateInputSchema = z
     description: z.string().trim().max(500).optional(),
     enabled: z.boolean().optional(),
     sortOrder: z.number().int().min(0).max(10_000).optional(),
-    filterJson: z.record(z.unknown()).optional(),
+    filterJson: z.record(z.string(), z.unknown()).optional(),
     teamCode: operationalCodeSchema.optional(),
     isDefault: z.boolean().optional(),
   })
@@ -58,7 +58,7 @@ export const ticketQueueUpdateInputSchema = z
     description: z.string().trim().max(500).nullable().optional(),
     enabled: z.boolean().optional(),
     sortOrder: z.number().int().min(0).max(10_000).optional(),
-    filterJson: z.record(z.unknown()).optional(),
+    filterJson: z.record(z.string(), z.unknown()).optional(),
     teamCode: operationalCodeSchema.nullable().optional(),
     isDefault: z.boolean().optional(),
     archived: z.boolean().optional(),
