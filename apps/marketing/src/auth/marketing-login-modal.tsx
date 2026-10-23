@@ -80,6 +80,7 @@ export type MarketingLoginModalProviderProps = {
   readonly tenantId: string;
   readonly defaultTourId: string;
   readonly defaultTourTitle: string;
+  readonly registrationHref: string | null;
   readonly backHref: string;
   readonly memberModuleHref: string | null;
   readonly children: ReactNode;
@@ -91,6 +92,7 @@ export function MarketingLoginModalProvider({
   tenantId,
   defaultTourId,
   defaultTourTitle,
+  registrationHref,
   backHref,
   memberModuleHref,
   children,
@@ -223,10 +225,10 @@ export function MarketingLoginModalProvider({
   }, [openLoginModal]);
 
   const onAuthenticated = useCallback(async () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("auth");
-    window.location.assign(`${url.pathname}${url.search}${url.hash}`);
-  }, []);
+    // Portal owns the member session. Continue on that same origin instead of
+    // reloading marketing and depending on its read-only cookie probe.
+    window.location.assign(registrationHref ?? memberModuleHref ?? backHref);
+  }, [backHref, memberModuleHref, registrationHref]);
 
   const onDialogKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDialogElement>) => {

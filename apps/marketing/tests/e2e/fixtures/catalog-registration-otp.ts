@@ -3,8 +3,10 @@ import { expect, type Locator, type Page } from "@playwright/test";
 export const CATALOG_DEV_OTP = "1234";
 
 /**
- * Guest PDP buy path (Phase 6 / DL-49): click «ثبت‌نام», stay on `/tours/{id}`,
- * complete marketing OTP modal, reload as member, then continue to portal intake.
+ * Guest PDP buy path (Phase 6 / DL-49): complete auth in Marketing's modal,
+ * then continue directly to the Portal-owned registration intake. Portal owns
+ * the member session, so the successful flow must resume there without a
+ * marketing reload or a second CTA click.
  */
 export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
   page: Page,
@@ -57,23 +59,14 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
     ]);
   }
 
-  await expect(page.locator("[data-marketing-member-authenticated]")).toBeVisible({
+  await expect(page).toHaveURL(/\/catalog\/[^/]+\/register/, { timeout: 180_000 });
+  await expect(page.locator('[data-registration-resume="intake"]')).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toHaveCount(0);
-
-  await page.reload({ waitUntil: "domcontentloaded" });
-  const continueLink = page
-    .locator("[data-marketing-tour-detail-cta-mode='member-continue'] [data-marketing-register]")
-    .first();
-  await expect(continueLink).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/catalog\/[^/]+\/register/, {
-      waitUntil: "domcontentloaded",
-      timeout: 180_000,
-    }),
-    continueLink.click(),
-  ]);
+  await expect(page.locator("[data-portal-register-auth-gate]")).toHaveCount(0);
+  await expect(page.locator("[data-public-registration-intake][data-registration-ready]")).toBeVisible({
+    timeout: 60_000,
+  });
 }
 
 /** Portal registration phone step — wait for client hydration before interacting. */
