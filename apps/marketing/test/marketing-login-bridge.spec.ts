@@ -16,16 +16,21 @@ function read(rel: string): string {
 }
 
 describe("marketing login Quiet Ledger bridge", () => {
-  it("AB-P3-01 trigger still preventDefault + stays in PDP context", () => {
+  it("AB-P3-01 trigger opens PDP modal and returns to Portal registration after auth", () => {
     const trigger = read("apps/marketing/src/auth/marketing-login-modal-trigger.tsx");
     const modal = read("apps/marketing/src/auth/marketing-login-modal.tsx");
     const flow = read("apps/marketing/src/auth/marketing-login-auth-flow.tsx");
+    const detailPage = read("apps/marketing/app/tours/[tourId]/page.tsx");
     assert.match(trigger, /preventDefault/);
     assert.match(trigger, /openLoginModal/);
     assert.match(modal, /data-member-login-egress/);
     assert.match(flow, /memberLoginEgress: true/);
-    assert.match(modal, /searchParams\.delete\("auth"\)/);
-    assert.match(modal, /location\.assign/);
+    assert.match(detailPage, /registrationHref=\{registrationUrl\}/);
+    assert.match(
+      modal,
+      /window\.location\.assign\(registrationHref \?\? memberModuleHref \?\? backHref\)/
+    );
+    assert.doesNotMatch(modal, /searchParams\.delete\("auth"\)/);
     assert.doesNotMatch(modal, /completeMemberLoginEgress/);
     assert.doesNotMatch(flow, /completeMemberLoginEgress/);
     assert.doesNotMatch(modal, /window\.innerWidth/);

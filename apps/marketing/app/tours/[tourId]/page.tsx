@@ -104,6 +104,7 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
       tenantId={bootstrap.tenantId}
       defaultTourId={tourId}
       defaultTourTitle={tour.title?.trim() || t("detail.defaultTourTitle")}
+      registrationHref={registrationUrl}
       backHref={resolveMarketingLocalePath("/", locale)}
       memberModuleHref={resolvePortalMemberModuleUrl(host)}
     >

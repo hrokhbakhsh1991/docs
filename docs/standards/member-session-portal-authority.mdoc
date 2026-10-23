@@ -64,7 +64,7 @@ mandatory_for:
 
 | Surface | Session | Registration auth |
 | ------- | ------- | ----------------- |
-| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP (Phase 6):** «ثبت‌نام» and «ورود» open the **marketing** login modal (Portal-origin OTP). JS `preventDefault` — stay on `/tours/{id}` even when the origin transport is missing (show `BACKEND_UNREACHABLE` in the dialog). `href` is **no-JS only** (portal `/catalog/{id}/register`, optional `?auth=login` on «ورود»). **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`, no modal). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). **Header Sign in** navigates to Portal `/login?portalReturn=/me/registrations` (**page** phone/OTP/profile — **not** a portal modal, **not** the marketing modal). Authenticated header → profile chip via `resolveMarketingMemberHeader`. Future marketing login hosts may reuse the PDP modal; header stays a page egress until product asks. |
+| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP (Phase 6):** «ثبت‌نام» and «ورود» open the **marketing** login modal (Portal-origin OTP). JS `preventDefault` — stay on `/tours/{id}` while authenticating (show `BACKEND_UNREACHABLE` if the origin transport is missing). Once the auth flow signals `session_ready`, the host navigates to that tour's Portal `/catalog/{id}/register` route; Portal validates the session and resumes registration or waitlist. Do not reload marketing or depend on a cross-surface cookie read to resume. `href` remains the **no-JS fallback** (portal registration route, optional `?auth=login` on «ورود»). **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`, no modal). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). **Header Sign in** navigates to Portal `/login?portalReturn=/me/registrations` (**page** phone/OTP/profile — **not** a portal modal, **not** the marketing modal). Authenticated header → profile chip via `resolveMarketingMemberHeader`. Future marketing login hosts may reuse the PDP modal; header stays a page egress until product asks. |
 | Portal | `atour_mb_session` read/write | **`/login`:** page phone/OTP/profile (`data-portal-login-full-page` — **not** a portal modal). **Register guests:** OTP in the **register-only** login modal (PCMS-UX-MODAL-04). Session members: tour intake full-page on `/catalog/{id}/register`. |
 | Web admin | `atour_op_session` | Operator invite login — never member cookie |
 
@@ -218,7 +218,7 @@ Two factories (do **not** merge; do **not** add `baseUrl` to the Portal factory)
 
 Cookie `Set-Cookie` remains Portal BFF. Adapters **must not** persist JSON `session_token`. **Phase 4 (PCMS-CORS-01):** CORS on Portal `/api/public-auth/*` only — see §5.4. **Phase 5 (§5.5):** Marketing **may** host the same OTP/profile UI via the origin factory. Marketing still **must not** write `atour_mb_session`, expose `app/api/me/*` / `app/api/public-auth/*`, CORS `/api/me/*`, rewrite OTP/profile UI, create `packages/guest-auth`, move session ownership, or delete `/login`.
 
-**Cross-intent after login:** Marketing **header** Sign in navigates to Portal `/login` (page OTP). Guest PDP `[data-marketing-register]` (primaryKind `register`) and `[data-marketing-tour-sign-in]` open the **marketing** modal; after OTP, marketing **reloads** the current URL so SSR chrome/CTA can see the cookie. Member `[data-marketing-register]` (primaryKind `continue` / register-another) navigates to portal `/catalog/{id}/register` for **intake**. Portal `/login` remains the `/me/*` middleware gate.
+**Cross-intent after login:** Marketing **header** Sign in navigates to Portal `/login` (page OTP). Guest PDP `[data-marketing-register]` (primaryKind `register`) and `[data-marketing-tour-sign-in]` open the **marketing** modal; when the OTP flow signals `session_ready`, the modal host navigates to the same tour's Portal `/catalog/{id}/register` route. This keeps continuation on the surface that owns and can read the session, avoiding a marketing SSR dependency on cross-site cookie visibility. Member `[data-marketing-register]` (primaryKind `continue` / register-another) uses the same Portal route for **intake**. Portal `/login` remains the `/me/*` middleware gate.
 
 ### 5.2 Marketing authenticated header (PCMS-03 — 2026-07-14)
 
@@ -316,16 +316,16 @@ flowchart TD
   CORS["Portal /api/public-auth/* + CORS"]
   COOKIE["Set-Cookie atour_mb_session · COOK-03"]
   PROBE["GET portalOrigin/api/public-auth/session"]
-  RELOAD["window.location reload current marketing URL"]
-  SSR["Next marketing SSR · header chip + PDP CTA"]
+  EGRESS["window.location.assign Portal /catalog/{id}/register"]
+  PORTAL["Portal SSR · validate member session + resume intake"]
   HEADER --> LOGIN
   PDP --> MODAL
   MODAL --> ORIGIN
   ORIGIN --> CORS
   CORS --> COOKIE
   ORIGIN --> PROBE
-  PROBE --> RELOAD
-  RELOAD --> SSR
+  PROBE --> EGRESS
+  EGRESS --> PORTAL
 ```
 
 | Invariant | Rule |
@@ -333,11 +333,11 @@ flowchart TD
 | **PCMS-MKT-AUTH-01** | `tryCreatePortalOriginGuestAuthTransport(portalPublicBaseUrl)` parses `http(s)` origin only (no `*`, no userinfo, no relative). Invalid → `null`. `createPortalOriginGuestAuthTransport` throws `GuestAuthTransportError("network")` on invalid. Do **not** add `baseUrl` to `createPortalSameOriginGuestAuthTransport` (arity 0, Portal-only). |
 | **PCMS-MKT-AUTH-02** | Origin adapter POSTs `{origin}/api/public-auth/{phone-preflight,request-otp,verify-otp,register-complete}` with `credentials: "include"`. Ignore JSON `session_token` — never persist it. |
 | **PCMS-MKT-AUTH-03** | Origin `probeSession` retries `GET {origin}/api/public-auth/session` until `{ ok: true, ready: true }` (bounded, same anti-hang budget as `waitForMemberSessionCookie`). **Zero** `GET /api/me/profile` from marketing. After `session_ready` from verify/register-complete, auth steps **always** call host `onAuthenticated` even when the probe returns `ready: false` **or throws** (network / AbortError / 3PCD). Wrap the probe in its own try; do not skip `onAuthenticated` from the probe catch. Chromium Tracking Protection (3PCD) treats `fetch` from `{club}.localhost` to `portal.{club}.localhost` as third-party, so the session GET may not see `Domain={club}.localhost` while the cookie is already in the jar for the first-party marketing reload. Blocking on `!ready` or a thrown probe leaves the OTP modal stuck (SMK-MKT-03). |
-| **PCMS-MKT-AUTH-04** | Marketing modal uses `GuestAuthHostProvider` + `catalogRegistrationAuthFlowSteps` with `memberLoginEgress: true`. Host `onAuthenticated` reloads the **current marketing URL** (strip `auth=login` if present). Not `completeMemberLoginEgress`, not intake hydrate. |
+| **PCMS-MKT-AUTH-04** | Marketing modal uses `GuestAuthHostProvider` + `catalogRegistrationAuthFlowSteps` with `memberLoginEgress: true`. When the auth flow signals `session_ready`, host `onAuthenticated` navigates to the same tour's Portal registration URL (`registrationHref`), even if its bounded cross-origin probe cannot observe the cookie (per AUTH-03). Portal then validates the session on first-party navigation and either resumes registration/waitlist or presents its auth gate. Do not reload marketing or use marketing SSR to infer the new session. Not `completeMemberLoginEgress`, not intake hydrate. |
 | **PCMS-MKT-AUTH-05** | **Header** `[data-marketing-header-sign-in]` is a plain `<a href={resolvePortalMemberLoginUrl}>` — full navigation to Portal `/login` (no `preventDefault`, no marketing modal). **PDP guest** `[data-marketing-register]` (primaryKind `register`) and `[data-marketing-tour-sign-in]` use `MarketingLoginModalTrigger` with client `preventDefault` whenever `MarketingLoginModalProvider` is mounted so the guest **stays on `/tours/{id}`**. Missing origin transport still opens the dialog and shows `catalogRegistration.errors.BACKEND_UNREACHABLE` — do **not** navigate to portal register with JS. `href` is no-JS / no-provider only (`/catalog/{id}/register` on «ثبت‌نام»; `register?auth=login` on «ورود»). Do **not** put `canHostAuth` on the public modal context (that invites a trigger to skip `preventDefault`). Transport null is an internal render branch (`[data-marketing-login-unavailable]`). Optional marketing `?auth=login` auto-opens the modal **only** on a tour-detail pathname (including when transport is null). `host="header"` on the marketing modal is reserved for a future marketing login surface — do not wire the chrome Sign in to it. |
 | **PCMS-MKT-AUTH-06** | Member `[data-marketing-register]` (primaryKind `continue` / `register-another`) **navigates** to portal `/catalog/{id}/register` for intake. Guest primaryKind `register` must **not**. Portal `/login` is **not** deleted. No `apps/marketing/app/api/public-auth/*`, no `app/api/me/*`, no cookie Domain helper changes. Intake never mounts on marketing. |
 
-**Why reload instead of client hydrate?** Marketing header chip and PDP CTA matrix are **SSR** (PCMS-03 / §5.3). After CORS `Set-Cookie` on the Portal host, the next marketing document request is what COOK-03 sharing is designed for. Client-only state would lie on `*.localhost` host-only cookies.
+**Why Portal egress instead of client hydrate or marketing reload?** Portal is the member-session authority. After the Portal-origin transport verifies the new session, navigating to the tour's Portal registration route lets Portal perform its normal SSR/session validation and resume the intake or waitlist flow. Marketing remains read-only and does not need to observe a just-written cross-surface cookie (which may be unavailable under browser third-party-cookie protections or host-only development cookies).
 
 **Why a second factory?** Portal same-origin `probeSession` must keep using `/api/me/profile` (no CORS on `/api/me/*`). Marketing must use the boolean public-auth session probe. Sharing one `baseUrl` argument would tempt `/api/me/profile` across origin.
 

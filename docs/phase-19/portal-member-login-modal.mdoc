@@ -143,7 +143,7 @@ apps/portal
 | Register page | Session → intake flow. Guest → auth gate + auto modal (PCMS-UX-MODAL-04); reopen via Sign-in · `?auth=login` compatible |
 | `@app-tour/catalog-registration-flow-ui` `GuestAuthTransport` | Phone/OTP/profile **network + session probe** only. Portal factory: same-origin `/api/public-auth/*` + `GET /api/me/profile`. Marketing factory: absolute portal `/api/public-auth/*` + `GET {origin}/api/public-auth/session`. No cookie write, no tenant, no intake. |
 | `GuestAuthHostProvider` | Injects `{ transport, onAuthenticated }` into auth steps. Steps throw if mounted outside the provider. |
-| Host `onAuthenticated` | Login: `completeMemberLoginEgress`. Register modal: close + reload register URL. **Marketing modal:** reload current marketing URL. Portal register resume (non-login-egress): `hydrateCatalogRegistrationIntakeAfterSession` on the **flow host**, never inside OTP/profile steps. |
+| Host `onAuthenticated` | Login: `completeMemberLoginEgress`. Register modal: close + reload register URL. **Marketing modal:** after the auth flow signals `session_ready`, navigate to the same tour's Portal registration URL; do not depend on the marketing-origin session probe to observe a cross-surface cookie. Portal validates the session and resumes registration/waitlist. Portal register resume (non-login-egress): `hydrateCatalogRegistrationIntakeAfterSession` on the **flow host**, never inside OTP/profile steps. |
 | Marketing | Phase 5/6: `MarketingLoginModalProvider` in layout (needed for PDP). Trigger is **PDP-only** (`[data-marketing-tour-sign-in]` + guest `[data-marketing-register]`). Header Sign in is a plain GSH `/login` `<a>`. Hooks `data-marketing-login-modal*`. No `PublicCatalogRegistrationFlow`. No marketing public-auth BFF. Phase 4 CORS remains Portal `/api/public-auth/*` only. |
 
 **Presentation hooks (stable for smoke/CSS):**
@@ -345,7 +345,7 @@ Marketing **may** host OTP UI. Cookie write stays Portal BFF. Marketing still **
 - Marketing modal mounts `catalogRegistrationAuthFlowSteps` + `GuestAuthHostProvider` — **not** `PublicCatalogRegistrationFlow`.
 - Header `[data-marketing-header-sign-in]` **navigates** to Portal `/login` (plain `<a href={resolvePortalMemberLoginUrl}>`). PDP `[data-marketing-tour-sign-in]` **and guest** `[data-marketing-register]` (primaryKind `register`) open the marketing modal; `href` is no-JS only (JS must `preventDefault` whenever the provider is mounted).
 - Marketing `?auth=login` auto-opens the modal **only** on `/tours/{id}` (optional locale prefix). Other marketing routes ignore it so header Sign in cannot be re-captured by a query string.
-- Host `onAuthenticated` → reload current marketing URL (strip `auth=login`).
+- Host `onAuthenticated` → when the OTP flow signals `session_ready`, navigate to the same tour's Portal `/catalog/{id}/register` URL. The bounded cross-origin probe is advisory; Portal validates the cookie on first-party navigation. Never rely on marketing SSR to observe a just-written member cookie.
 - `createPortalSameOriginGuestAuthTransport` remains Portal-only, arity 0.
 - Denali skin: `37-mkt-login-modal.css` scoped to `body[data-app-surface="marketing"]` + `data-marketing-login-modal*` (not `data-portal-login-modal`).
 

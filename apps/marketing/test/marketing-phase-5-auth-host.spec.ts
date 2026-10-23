@@ -65,6 +65,7 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
       "utf8"
     );
     const modal = readFileSync(join(marketingRoot, "src/auth/marketing-login-modal.tsx"), "utf8");
+    const detailPage = readFileSync(join(marketingRoot, "app/tours/[tourId]/page.tsx"), "utf8");
     assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
     assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.match(trigger, /preventDefault/);
@@ -86,6 +87,12 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.match(cta, /resolveMarketingTourDetailAuthModalHref/);
     assert.doesNotMatch(cta, /tryCreatePortalOriginGuestAuthTransport/);
     assert.match(modal, /isMarketingTourDetailPathname/);
+    assert.match(detailPage, /registrationHref=\{registrationUrl\}/);
+    assert.match(
+      modal,
+      /window\.location\.assign\(registrationHref \?\? memberModuleHref \?\? backHref\)/
+    );
+    assert.doesNotMatch(modal, /url\.searchParams\.delete\("auth"\)/);
     assert.match(modal, /host: "pdp"/);
     assert.match(modal, /data-marketing-login-unavailable/);
     assert.match(modal, /errors\.BACKEND_UNREACHABLE/);
