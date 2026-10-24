@@ -143,6 +143,7 @@ describe("booking public auto-approve", { concurrency: false }, () => {
       tenantId: TENANT_DENALI,
       bookingId: second.id,
       actorUserId: GUEST_B,
+      capacityFallback: "waitlist",
     });
     assert.equal(result.status, "waitlisted");
     assert.equal(

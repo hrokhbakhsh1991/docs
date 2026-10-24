@@ -47,3 +47,22 @@ export function readPersonalCarOccupantsFromIntake(
   }
   return null;
 }
+
+/**
+ * Capacity policy receives only the transport facts it needs; never the raw
+ * registration intake, which may include identity or profile fields.
+ */
+export function toBookingCapacityTransportFact(input: {
+  readonly partySize: number;
+  readonly registrationIntake: Readonly<Record<string, unknown>> | null | undefined;
+}): {
+  readonly partySize: number;
+  readonly transportKind: BookingTransportKind | null;
+  readonly offeredPassengerSeats: 0 | 1 | 2 | 3 | null;
+} {
+  return {
+    partySize: input.partySize,
+    transportKind: readTransportKindFromIntake(input.registrationIntake),
+    offeredPassengerSeats: readPersonalCarOccupantsFromIntake(input.registrationIntake),
+  };
+}

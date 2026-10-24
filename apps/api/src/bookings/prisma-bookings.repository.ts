@@ -1,5 +1,4 @@
 import { buildIranMobileSearchPatterns } from "@app-tour/iran-mobile";
-import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "@app-tour/booking-http-contracts";
 import {
   buildObligationOverrideIntakeValue,
   OBLIGATION_OVERRIDE_INTAKE_KEY,
@@ -42,6 +41,7 @@ import {
   BookingStatusConflictError,
   BookingRosterFrozenError,
   BulkApproveBatchLimitError,
+  BOOKING_TRANSPORT_CAPACITY_REJECTED,
 } from "./bookings.errors";
 import { enrichBookingListRecordsWithIntakeScalars } from "./booking-list-intake-scalars";
 import { readRegistrantTargetFromIntake } from "./read-registrant-target";

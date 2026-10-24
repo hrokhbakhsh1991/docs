@@ -1,4 +1,4 @@
-import type { BookingApprovedCapacitySnapshot } from "@app-tour/booking-http-contracts";
+import type { BookingApprovedCapacitySnapshot } from "./booking-capacity.types";
 
 /**
  * Projects only the capacity-relevant portion of registration intake.

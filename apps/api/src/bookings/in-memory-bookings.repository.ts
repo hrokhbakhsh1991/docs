@@ -4,7 +4,6 @@ import {
   buildObligationOverrideIntakeValue,
   OBLIGATION_OVERRIDE_INTAKE_KEY,
 } from "@app-tour/finance-core";
-import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "@app-tour/booking-http-contracts";
 
 import { canTransitionBookingStatus } from "./booking-status-transitions";
 
@@ -24,6 +23,7 @@ import type {
   BookingRecord,
   CreateBookingRequest,
 } from "./bookings.types";
+import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "./bookings.errors";
 import { MAX_OUTBOX_EVENTS_PER_AGGREGATE } from "./bookings-outbox-projection";
 import {
   CANCELLED_BOOKING_STATUSES,

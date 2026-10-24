@@ -18,10 +18,10 @@ describe("resolveMemberSessionCookieDomain", () => {
     );
   });
 
-  it("PCMS-COOK-03 local portal remains host-only", () => {
+  it("PCMS-COOK-03 local inverted portal shares with workspace apex", () => {
     assert.equal(
       resolveMemberSessionCookieDomain("portal.denali.localhost:3003", "localhost"),
-      undefined
+      "denali.localhost"
     );
   });
 

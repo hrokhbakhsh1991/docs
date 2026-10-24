@@ -190,6 +190,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
       tenantId: DP1_TENANT_DENALI,
       bookingId: secondDong.id,
       actorUserId: secondOwner.submittedByUserId,
+      capacityFallback: "waitlist",
     });
     assert.equal(secondResult.status, "waitlisted");
     const holdPort = await requirePaymentHoldPort();
@@ -247,6 +248,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
       tenantId: DP1_TENANT_DENALI,
       bookingId: sixthDong.id,
       actorUserId: sixthOwner.submittedByUserId,
+      capacityFallback: "waitlist",
     });
     assert.equal(sixthResult.status, "waitlisted");
     assert.equal((await dp1GetBooking(sixthDong.id)).status, "waitlisted");
@@ -339,6 +341,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
       tenantId: DP1_TENANT_DENALI,
       bookingId: waitlistedDong.id,
       actorUserId: waitlistedOwner.submittedByUserId,
+      capacityFallback: "waitlist",
     });
     assert.equal(waitlistResult.status, "waitlisted");
 
@@ -390,6 +393,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
           tenantId: DP1_TENANT_DENALI,
           bookingId: candidate.id,
           actorUserId: owner.submittedByUserId,
+          capacityFallback: "waitlist",
         });
       })
     );
@@ -432,7 +436,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
 
     await assert.rejects(
       cancelBooking(dp1OpsAuth(), driver.id),
-      /BOOKING_TRANSPORT_CAPACITY_REJECTED/
+      /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/
     );
     assert.equal((await dp1GetBooking(driver.id)).status, "approved");
     assert.equal((await dp1GetBooking(rider.id)).status, "approved");

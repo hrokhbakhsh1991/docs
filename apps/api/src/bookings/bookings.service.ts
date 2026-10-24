@@ -50,8 +50,6 @@ import {
   resolveUtcApprovedWithinDaysWindow,
 } from "./booking-list-query";
 import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
-import { promoteOldestWaitlistedGuest } from "./promote-waitlist-after-seat-release";
-import { createTourStorageRepository } from "../storage/create-tour-storage";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
 import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
@@ -878,7 +876,7 @@ export class BookingsService {
       assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
     });
     await this.invokeApproveReaction(auth.tenantId, updated.id);
-    await this.promoteWaitlistAfterAutoApproval(auth.tenantId, updated.tourId);
+    await this.recheckWaitlistAfterCapacityChange(auth.tenantId, updated.tourId);
     return {
       id: updated.id,
       status: updated.status,
@@ -972,7 +970,7 @@ export class BookingsService {
         assertCapacityInTx: this.buildApproveCapacityAssert(input.tenantId),
       });
       await this.invokeApproveReaction(input.tenantId, updated.id);
-      await this.promoteWaitlistAfterAutoApproval(input.tenantId, booking.tourId);
+      await this.recheckWaitlistAfterCapacityChange(input.tenantId, booking.tourId);
       return { id: updated.id, status: updated.status };
     } catch (error) {
       const capacityRejected =
@@ -1308,7 +1306,7 @@ export class BookingsService {
     // WHEN: after bulk approve TX — one reaction per approved id (adapter enforces idempotency).
     for (const row of approved) {
       await this.invokeApproveReaction(auth.tenantId, row.id);
-      await this.promoteWaitlistAfterAutoApproval(auth.tenantId, row.tourId);
+      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, row.tourId);
     }
     const approvedIds = approved.map((row) => row.id);
     const approvedSet = new Set(approvedIds);
@@ -1333,21 +1331,6 @@ export class BookingsService {
     });
   }
 
-  private async promoteWaitlistAfterAutoApproval(tenantId: string, tourId: string): Promise<void> {
-    const tour = await createTourStorageRepository().getById(tourId, tenantId);
-    const data = tour?.canonical.data;
-    const pricing =
-      data !== undefined && typeof data === "object" && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>).pricing
-        : undefined;
-    const approvalMode =
-      typeof pricing === "object" && pricing !== null && !Array.isArray(pricing)
-        ? (pricing as Record<string, unknown>).registrationApproval
-        : undefined;
-    if (approvalMode === "auto") {
-      await promoteOldestWaitlistedGuest({ tenantId, tourId });
-    }
-  }
 }
 
 export function createBookingsService(deps: BookingsServiceDeps): BookingsService {

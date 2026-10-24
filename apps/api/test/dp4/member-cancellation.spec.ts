@@ -178,7 +178,7 @@ describe("DP4 member cancellation API", () => {
       { headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member") }
     );
     assert.equal(cancellation.status, 409);
-    assert.match(cancellation.body.code ?? "", /BOOKING_TRANSPORT_CAPACITY_REJECTED/);
+    assert.match(cancellation.body.code ?? "", /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/);
     assert.equal((await repo.getById(driverId, OPERATOR_SMOKE.tenantId))?.status, "approved");
     assert.equal(
       (await repo.getById("00000000-0000-4000-8000-000000000913", OPERATOR_SMOKE.tenantId))?.status,
@@ -267,7 +267,7 @@ describe("DP4 member cancellation API", () => {
         },
         driverId
       ),
-      /BOOKING_TRANSPORT_CAPACITY_REJECTED/
+      /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/
     );
     assert.equal(
       findPendingMemberCancellationRequest(OPERATOR_SMOKE.tenantId, driverId)?.status,

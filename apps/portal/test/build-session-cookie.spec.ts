@@ -103,13 +103,13 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     }
   });
 
-  it("PCMS-COOK-06c local portal stays host-only", async () => {
+  it("PCMS-COOK-06c inverted portal.denali.localhost shares with denali.localhost", async () => {
     const { setSessionCookieOnResponse, shouldRefreshDevMemberSessionCookieDomain } =
       await import("../src/auth/build-session-cookie");
-    assert.equal(shouldRefreshDevMemberSessionCookieDomain("portal.denali.localhost:3003"), false);
+    assert.equal(shouldRefreshDevMemberSessionCookieDomain("portal.denali.localhost:3003"), true);
     const headers = new Headers();
     setSessionCookieOnResponse(headers, "jwt-token", "portal.denali.localhost:3003");
-    assert.doesNotMatch(headers.get("set-cookie") ?? "", /Domain=/);
+    assert.match(headers.get("set-cookie") ?? "", /Domain=denali\.localhost/);
   });
 
   it("PCMS-COOK-08 shared refresh on marketing localhost ingress stays host-only", async () => {

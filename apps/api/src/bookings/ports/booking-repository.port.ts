@@ -6,7 +6,7 @@ import type {
   BookingOutboxEventInput,
   CreateBookingRequest,
 } from "../bookings.types";
-import type { BookingApprovedCapacitySnapshot } from "@app-tour/booking-http-contracts";
+import type { BookingApprovedCapacitySnapshot } from "../booking-capacity.types";
 
 /**
  * Booking persistence port (Phase B0.4) — Finance `FinanceRepositoryPort` mirror.

@@ -2,6 +2,13 @@ import type { BookingStatus } from "./bookings.types";
 
 /** Application-owned booking domain errors (Phase B0.6). */
 
+/**
+ * Stable domain code for a registration that cannot fit the approved
+ * transport allocation. Infrastructure must not import HTTP contracts to
+ * classify this persistence-time rejection.
+ */
+export const BOOKING_TRANSPORT_CAPACITY_REJECTED = "BOOKING_TRANSPORT_CAPACITY_REJECTED";
+
 /** Tenant workspace is missing, empty, or not in workspaceBooking capability bindings. */
 export class BookingWorkspaceUnsupportedError extends Error {
   readonly code = "BOOKING_WORKSPACE_UNSUPPORTED" as const;
