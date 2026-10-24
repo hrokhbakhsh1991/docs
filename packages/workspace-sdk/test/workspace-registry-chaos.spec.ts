@@ -66,7 +66,7 @@ describe("workspace registry chaos — corrupted manifests", () => {
     assert.equal(registry.isLoaded(), false);
     assert.equal(telemetry.events.length, 1);
     assert.equal(telemetry.events[0]?.code, "WORKSPACE_MANIFEST_INVALID");
-    assert.match(telemetry.events[0]?.message ?? "", /Required/);
+    assert.match(telemetry.events[0]?.message ?? "", /\bid\b/);
     telemetry.restore();
   });
 

@@ -1,12 +1,15 @@
 /**
- * Phase 3 — public auto-approve (no ops CASL); capacity fail → stay pending.
+ * Phase 3 — public auto-approve (no ops CASL); capacity fail → waitlist.
  */
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 
 import { BOOKING_POLICY_CASE_A_GUEST_LABEL } from "@app-tour/booking-http-contracts";
 
-import { resetBookingsRepositoryForTests } from "./create-bookings-repository.ts";
+import {
+  getBookingsRepository,
+  resetBookingsRepositoryForTests,
+} from "./create-bookings-repository.ts";
 import {
   autoApprovePublicBooking,
   createPublicGuestBooking,
@@ -122,7 +125,7 @@ describe("booking public auto-approve", { concurrency: false }, () => {
     );
   });
 
-  it("P3-BA-03 capacity reject leaves pending", async () => {
+  it("P3-BA-03 capacity reject moves the booking to waitlist", async () => {
     // Soft create: pending does not consume seats — both fit while unapproved.
     const first = await createPublicGuestBooking(publicAuth(GUEST_A), body("Seat Hogger A", 15));
     const second = await createPublicGuestBooking(publicAuth(GUEST_B), body("Seat Hogger B", 10));
@@ -140,8 +143,44 @@ describe("booking public auto-approve", { concurrency: false }, () => {
       tenantId: TENANT_DENALI,
       bookingId: second.id,
       actorUserId: GUEST_B,
+      capacityFallback: "waitlist",
     });
-    assert.equal(result.status, "pending");
+    assert.equal(result.status, "waitlisted");
+    assert.equal(
+      (await getBookingsRepository().getById(second.id, TENANT_DENALI))?.status,
+      "waitlisted"
+    );
+  });
+
+  it("P3-BA-05 Denali opt-in moves the same capacity-rejected booking to waitlist", async () => {
+    const first = await createPublicGuestBooking(
+      publicAuth(GUEST_A),
+      body("Waitlist Filler For Auto Fallback", 20)
+    );
+    const second = await createPublicGuestBooking(
+      publicAuth(GUEST_B),
+      body("Auto Fallback Waitlist Candidate", 1)
+    );
+    await autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: first.id,
+      actorUserId: GUEST_A,
+    });
+
+    const result = await autoApprovePublicBooking({
+      tenantId: TENANT_DENALI,
+      bookingId: second.id,
+      actorUserId: GUEST_B,
+      capacityFallback: "waitlist",
+    });
+
+    assert.deepEqual(result, { id: second.id, status: "waitlisted" });
+    const owned = await createHostBookingPublicAdapter().findOwnedBooking(
+      TENANT_DENALI,
+      second.id,
+      GUEST_B
+    );
+    assert.equal(owned?.status, "waitlisted");
   });
 
   it("P3-BA-05 Denali opt-in moves the same capacity-rejected booking to waitlist", async () => {

@@ -24,8 +24,8 @@ export function resolveMemberSessionCookieDomain(
   const reserved =
     reservedLabels ?? new Set<string>(DEFAULT_TENANT_HOST_RESERVED_LABELS);
 
-  // PCMS-COOK-03 — portal.{club}.localhost shares with {club}.localhost (Chromium-accepted).
-  // Never Domain=.localhost / Domain=localhost (PSL).
+  // Canonical local portal shares with the paired workspace marketing host.
+  // Never return .localhost / localhost: those are public-suffix invalid.
   if (root === "localhost") {
     const outcome = parseMultiLevelTenantHost(hostname, root, reserved);
     if (

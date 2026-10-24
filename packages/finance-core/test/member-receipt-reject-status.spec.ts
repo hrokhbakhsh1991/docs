@@ -189,6 +189,60 @@ describe("member receipt status after reject (remaining SoT)", () => {
     assert.equal(hit.bookingPaymentStatus, "unpaid");
   });
 
+  it("allows member to resubmit file-plus-note evidence after a rejected text receipt", async () => {
+    const registrationId = randomUUID();
+    const booking = createBookingPort("unpaid");
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createService(repo, booking);
+    const payment = await finance.createManualPayment(
+      OPERATOR,
+      { registrationId, amount: "2500000", currency: "IRR" },
+      `idem-resubmit-pay-${registrationId}`
+    );
+
+    const rejected = await finance.submitMemberReceiptForRegistration(
+      MEMBER,
+      { registrationId, note: "رسید اولیه" },
+      `idem-resubmit-first-${registrationId}`
+    );
+    await finance.reviewReceipt(OPERATOR, rejected.id, {
+      decision: "reject",
+      reviewNote: "اطلاعات پرداخت خوانا نیست",
+    });
+
+    const resubmitted = await finance.submitMemberReceiptForRegistration(
+      MEMBER,
+      {
+        registrationId,
+        fileKey: `receipts/${TENANT}/${registrationId}/resubmitted.jpg`,
+        note: "رسید تصویری اصلاح‌شده",
+      },
+      `idem-resubmit-second-${registrationId}`
+    );
+    const status = await finance.getMemberReceiptStatusForRegistration(MEMBER, registrationId);
+
+    assert.notEqual(resubmitted.id, rejected.id);
+    assert.equal(resubmitted.paymentId, payment.id);
+    assert.equal(resubmitted.status, "Pending");
+    assert.equal(status.status, "pending");
+    assert.equal(resubmitted.fileKey, `receipts/${TENANT}/${registrationId}/resubmitted.jpg`);
+    assert.equal(resubmitted.note, "رسید تصویری اصلاح‌شده");
+    assert.equal(status.previewKind, "image");
+    assert.equal(booking.paymentStatus, "unpaid");
+    assert.equal(payment.status, "Pending");
+
+    await finance.reviewReceipt(OPERATOR, resubmitted.id, {
+      decision: "approve",
+      reviewNote: "رسید تصویری اصلاح‌شده تأیید شد",
+    });
+    const settled = await finance.getMemberReceiptStatusForRegistration(MEMBER, registrationId);
+    const persistedPayment = await repo.findPaymentById(TENANT, payment.id);
+
+    assert.equal(settled.status, "paid");
+    assert.equal(booking.paymentStatus, "paid");
+    assert.equal(persistedPayment?.status, "Paid");
+  });
+
   it("B — leftover Paid payment + later rejected receipt: member status is rejected while remaining unpaid", async () => {
     const registrationId = randomUUID();
     const booking = createBookingPort("unpaid");

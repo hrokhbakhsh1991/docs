@@ -19,15 +19,15 @@ SELECT pg_advisory_xact_lock(
 );
 ```
 
-Then: re-read booking → sum `status=approved` party sizes → capacity assert → update status → enqueue outbox (`domain_event_id` unique per tenant).
+Then: re-read booking → load approved capacity snapshots (`status=approved`) → compute occupied `partySize` and pass both the total and snapshots to the capacity policy → update status → enqueue outbox (`domain_event_id` unique per tenant). Keeping snapshots in the policy context lets workspace rules enforce extra pools (such as Denali carpool seats) under the same tour lock.
 
 ### Why advisory (not multi-row FOR UPDATE)
 
-| Mechanism | Role |
-| --------- | ---- |
-| `pg_advisory_xact_lock(tenant, tour)` | Single key serializes all capacity decisions for `(tenant, tour)`; released on COMMIT/ROLLBACK |
-| Occupancy re-read after lock | Loser sees winner’s approved seats |
-| `@@unique([tenantId, domainEventId])` on outbox | At-most-once insert of `registration.approved:{id}:{ts}` |
+| Mechanism                                       | Role                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pg_advisory_xact_lock(tenant, tour)`           | Single key serializes all capacity decisions for `(tenant, tour)`; released on COMMIT/ROLLBACK |
+| Occupancy re-read after lock                    | Loser sees winner’s approved seats                                                             |
+| `@@unique([tenantId, domainEventId])` on outbox | At-most-once insert of `registration.approved:{id}:{ts}`                                       |
 
 **FOR UPDATE on all tour rows** deadlocked under 10-way concurrent approve (unordered multi-row locks → `40P01`). Advisory lock replaces that strategy.
 
@@ -64,4 +64,3 @@ Scenario matrix A–E (bulk, approve∥cancel, multi-worker) + `pg_locks` eviden
 
 - Doc: [`BOOKING_CAPACITY_CORRECTNESS_POSTGRES.md`](./BOOKING_CAPACITY_CORRECTNESS_POSTGRES.md)
 - Command: `pnpm run test:booking-capacity-postgres`
-

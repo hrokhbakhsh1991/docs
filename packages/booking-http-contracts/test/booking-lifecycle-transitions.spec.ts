@@ -21,39 +21,33 @@ describe("booking-lifecycle-transitions.spec.ts", () => {
   });
 
   it("CW4-01 host-aligned edges", () => {
-    assert.deepEqual([...listBookingTransitionsFrom("pending")], [
-      "approved",
-      "waitlisted",
-      "rejected",
-      "cancelled",
-    ]);
-    assert.deepEqual([...listBookingTransitionsFrom("waitlisted")], [
-      "approved",
-      "rejected",
-      "cancelled",
-    ]);
+    assert.deepEqual(
+      [...listBookingTransitionsFrom("pending")],
+      ["approved", "waitlisted", "rejected", "cancelled"]
+    );
+    assert.deepEqual(
+      [...listBookingTransitionsFrom("waitlisted")],
+      ["approved", "rejected", "cancelled"]
+    );
     assert.deepEqual([...listBookingTransitionsFrom("approved")], ["cancelled"]);
     assert.deepEqual([...listBookingTransitionsFrom("rejected")], []);
     assert.deepEqual([...listBookingTransitionsFrom("cancelled")], []);
   });
 
   it("listBookingSourceStatusesForTarget matches host repository guards", () => {
-    assert.deepEqual([...listBookingSourceStatusesForTarget("approved")], [
-      "pending",
-      "waitlisted",
-    ]);
-    assert.deepEqual([...listBookingSourceStatusesForTarget("rejected")], [
-      "pending",
-      "waitlisted",
-    ]);
-    assert.deepEqual([...listBookingSourceStatusesForTarget("waitlisted")], [
-      "pending",
-    ]);
-    assert.deepEqual([...listBookingSourceStatusesForTarget("cancelled")], [
-      "pending",
-      "approved",
-      "waitlisted",
-    ]);
+    assert.deepEqual(
+      [...listBookingSourceStatusesForTarget("approved")],
+      ["pending", "waitlisted"]
+    );
+    assert.deepEqual(
+      [...listBookingSourceStatusesForTarget("rejected")],
+      ["pending", "waitlisted"]
+    );
+    assert.deepEqual([...listBookingSourceStatusesForTarget("waitlisted")], ["pending"]);
+    assert.deepEqual(
+      [...listBookingSourceStatusesForTarget("cancelled")],
+      ["pending", "approved", "waitlisted"]
+    );
   });
 
   it("illegal edges rejected", () => {
@@ -64,9 +58,6 @@ describe("booking-lifecycle-transitions.spec.ts", () => {
   });
 
   it("BOOKING_LIFECYCLE_TRANSITIONS frozen adjacency", () => {
-    assert.equal(
-      BOOKING_LIFECYCLE_TRANSITIONS.pending.includes("approved"),
-      true
-    );
+    assert.equal(BOOKING_LIFECYCLE_TRANSITIONS.pending.includes("approved"), true);
   });
 });

@@ -25,8 +25,18 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
 function chromiumLaunchOptions(): { args?: string[]; executablePath?: string } {
   const staging = stagingLaunchOptions();
   const executablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
+  const localHostResolverRules = [
+    "MAP portal.operator.localhost 127.0.0.1",
+    "MAP operator.portal.localhost 127.0.0.1",
+    "MAP operator.admin.localhost 127.0.0.1",
+    "MAP operator.localhost 127.0.0.1",
+  ].join(", ");
   return {
-    ...(staging?.args ? { args: staging.args } : {}),
+    ...(staging?.args
+      ? { args: staging.args }
+      : !useExternalServers
+        ? { args: [`--host-resolver-rules=${localHostResolverRules}`] }
+        : {}),
     ...(executablePath ? { executablePath } : {}),
   };
 }
@@ -34,7 +44,9 @@ function chromiumLaunchOptions(): { args?: string[]; executablePath?: string } {
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["portal-booking-purchase-matrix.browser.spec.ts"],
-  globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
+  ...(process.env.PW_SKIP_GLOBAL_SETUP === "1"
+    ? {}
+    : { globalSetup: "./tests/e2e/portal-smoke-global-setup.ts" }),
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,

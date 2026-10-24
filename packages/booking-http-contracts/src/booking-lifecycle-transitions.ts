@@ -4,10 +4,7 @@
  * Host repositories and workspace ops manifests derive from this module.
  * Outbox: approve / waitlist / cancel observable; reject silent (CW0-04).
  */
-import {
-  BOOKING_STATUSES,
-  type BookingStatus,
-} from "./booking-status";
+import { BOOKING_STATUSES, type BookingStatus } from "./booking-status";
 
 /** Ordered operator / manifest vocabulary (not a transition order). */
 export const BOOKING_STATUS_PIPELINE = Object.freeze([
@@ -34,24 +31,17 @@ const BOOKING_LIFECYCLE_TRANSITIONS_TABLE: {
   cancelled: [],
 };
 
-export const BOOKING_LIFECYCLE_TRANSITIONS = Object.freeze(
-  BOOKING_LIFECYCLE_TRANSITIONS_TABLE
-);
+export const BOOKING_LIFECYCLE_TRANSITIONS = Object.freeze(BOOKING_LIFECYCLE_TRANSITIONS_TABLE);
 
 export function isBookingTerminalStatus(status: BookingStatus): boolean {
   return (BOOKING_TERMINAL_STATUSES as readonly string[]).includes(status);
 }
 
-export function listBookingTransitionsFrom(
-  from: BookingStatus
-): readonly BookingStatus[] {
+export function listBookingTransitionsFrom(from: BookingStatus): readonly BookingStatus[] {
   return BOOKING_LIFECYCLE_TRANSITIONS[from];
 }
 
-export function canTransitionBookingStatus(
-  from: BookingStatus,
-  to: BookingStatus
-): boolean {
+export function canTransitionBookingStatus(from: BookingStatus, to: BookingStatus): boolean {
   if (from === to) {
     return false;
   }
@@ -62,9 +52,7 @@ export function canTransitionBookingStatus(
 }
 
 /** Source statuses that may transition to `to` (for repository WHERE in clauses). */
-export function listBookingSourceStatusesForTarget(
-  to: BookingStatus
-): readonly BookingStatus[] {
+export function listBookingSourceStatusesForTarget(to: BookingStatus): readonly BookingStatus[] {
   const sources: BookingStatus[] = [];
   for (const status of BOOKING_STATUSES) {
     if (canTransitionBookingStatus(status, to)) {
@@ -74,13 +62,8 @@ export function listBookingSourceStatusesForTarget(
   return Object.freeze(sources);
 }
 
-export function assertCanTransitionBookingStatus(
-  from: BookingStatus,
-  to: BookingStatus
-): void {
+export function assertCanTransitionBookingStatus(from: BookingStatus, to: BookingStatus): void {
   if (!canTransitionBookingStatus(from, to)) {
-    throw new Error(
-      `BOOKING_TRANSITION_REJECTED: ${from} → ${to} is not allowed`
-    );
+    throw new Error(`BOOKING_TRANSITION_REJECTED: ${from} → ${to} is not allowed`);
   }
 }

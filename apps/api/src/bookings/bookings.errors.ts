@@ -2,6 +2,13 @@ import type { BookingStatus } from "./bookings.types";
 
 /** Application-owned booking domain errors (Phase B0.6). */
 
+/**
+ * Stable domain code for a registration that cannot fit the approved
+ * transport allocation. Infrastructure must not import HTTP contracts to
+ * classify this persistence-time rejection.
+ */
+export const BOOKING_TRANSPORT_CAPACITY_REJECTED = "BOOKING_TRANSPORT_CAPACITY_REJECTED";
+
 /** Tenant workspace is missing, empty, or not in workspaceBooking capability bindings. */
 export class BookingWorkspaceUnsupportedError extends Error {
   readonly code = "BOOKING_WORKSPACE_UNSUPPORTED" as const;
@@ -143,6 +150,16 @@ export class BookingCapacityReleaseRejectedError extends Error {
   }
 }
 
+/** Registration approval is closed after the operational roster snapshot is frozen. */
+export class BookingRosterFrozenError extends Error {
+  readonly code = "BOOKING_ROSTER_FROZEN" as const;
+
+  constructor() {
+    super("BOOKING_ROSTER_FROZEN");
+    this.name = "BookingRosterFrozenError";
+  }
+}
+
 export class BulkApproveBatchLimitError extends Error {
   readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
 
@@ -170,5 +187,13 @@ export class BookingStatusConflictError extends Error {
     super(`${code}:${status}`);
     this.name = "BookingStatusConflictError";
     this.code = code;
+  }
+}
+
+/** A payment deadline worker observed stale unpaid state before acquiring the tour lock. */
+export class PaymentDeadlinePaymentAlreadySettledError extends Error {
+  constructor() {
+    super("PAYMENT_DEADLINE_PAYMENT_ALREADY_SETTLED");
+    this.name = "PaymentDeadlinePaymentAlreadySettledError";
   }
 }

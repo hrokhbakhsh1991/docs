@@ -35,6 +35,11 @@ import {
   waitlistBooking,
 } from "./create-bookings-service.ts";
 import { BookingStatusConflictError } from "./bookings.errors.ts";
+import { BookingRosterFrozenError } from "./bookings.errors.ts";
+import {
+  freezeTourRoster,
+  resetTransportAllocationStoreForTests,
+} from "../transport/transport-allocation.repository.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";
 
 const TENANT_DENALI = "00000000-0000-4000-8000-000000000014";
@@ -71,11 +76,49 @@ describe("booking lifecycle ownership", { concurrency: false }, () => {
   beforeEach(() => {
     resetBookingsRepositoryForTests();
     resetBookingsServiceCompositionForTests();
+    resetTransportAllocationStoreForTests();
   });
 
   after(() => {
     resetBookingsRepositoryForTests();
     resetBookingsServiceCompositionForTests();
+    resetTransportAllocationStoreForTests();
+  });
+
+  it("rejects single and bulk approval after the tour roster has been frozen", async () => {
+    const single = await createBooking(opsAuth(TENANT_DENALI), body("Frozen Single Approval", 1));
+    const bulk = await createBooking(opsAuth(TENANT_DENALI), body("Frozen Bulk Approval", 1));
+    freezeTourRoster({
+      tenantId: TENANT_DENALI,
+      tourId: TOUR_DENALI,
+      actorUserId: opsAuth(TENANT_DENALI).userId,
+      driverCompensationPerSeatMinor: "0",
+      currency: "IRR",
+      nowIso: "2031-05-31T00:00:00.000Z",
+      rosterSnapshot: { participants: [], allocations: [] },
+    });
+
+    await assert.rejects(
+      approveBooking(opsAuth(TENANT_DENALI), single.id),
+      BookingRosterFrozenError
+    );
+    await assert.rejects(
+      getBookingsRepository().bulkApproveWithOutbox({
+        ids: [bulk.id],
+        tenantId: TENANT_DENALI,
+        outboxEvent: "registration.approved",
+        maxBatch: 10,
+      }),
+      BookingRosterFrozenError
+    );
+    assert.equal(
+      (await getBookingsRepository().getById(single.id, TENANT_DENALI))?.status,
+      "pending"
+    );
+    assert.equal(
+      (await getBookingsRepository().getById(bulk.id, TENANT_DENALI))?.status,
+      "pending"
+    );
   });
 
   it("approve → cancel emits registration.cancelled and frees approve path", async () => {

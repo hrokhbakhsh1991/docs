@@ -38,6 +38,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
   test.describe.configure({ mode: "serial" });
 
   test("BOOK-BQC-01 fresh catalog registration awaits club approval", async ({ page }) => {
+    page.on("pageerror", (error) => console.error("BOOK-BQC pageerror:", error));
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        console.error("BOOK-BQC browser console:", message.text());
+      }
+    });
     const contact = uniqueContact("book-bqc-01");
     await completePortalCatalogRegistration(page, {
       email: contact.email,
@@ -209,6 +215,7 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
 
   test("BOOK-BQC-06 rejected receipt can be corrected and resubmitted", async ({
     page,
+    browser,
   }) => {
     const contact = uniqueContact("book-bqc-06");
     const guestName = "BOOK BQC 06 Receipt Resubmit";
@@ -222,20 +229,12 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
     });
 
-    const apiBase = process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001";
-    const operatorHeaders = {
-      "x-tenant-id": "00000000-0000-4000-8000-000000000014",
-      "x-authenticated-tenant-id": "00000000-0000-4000-8000-000000000014",
-      "x-user-id": "00000000-0000-4000-8000-000000000101",
-      "x-actor-role": "owner",
-      "x-membership-status": "ACTIVE",
-      "x-workspace-id": "ws-operator-smoke",
-    };
-    const approved = await page.request.post(
-      `${apiBase}/bookings/${encodeURIComponent(registrationId)}/approve`,
-      { headers: operatorHeaders },
-    );
-    expect(approved.ok(), await approved.text()).toBeTruthy();
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorApproveBookingViaUi(operatorPage, {
+        guestLabel: guestName,
+        bookingId: registrationId,
+      });
+    });
 
     await openMemberRegistrationDetailById(page, registrationId);
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
@@ -251,14 +250,13 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
       timeout: 60_000,
     });
     expect(firstReceipt.id).toBeTruthy();
-    const rejected = await page.request.patch(
-      `${apiBase}/finance/receipts/${encodeURIComponent(firstReceipt.id!)}/review`,
-      {
-        headers: operatorHeaders,
-        data: { decision: "reject", reviewNote: "BQC rejected receipt correction path" },
-      },
-    );
-    expect(rejected.ok(), await rejected.text()).toBeTruthy();
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      const rejected = await operatorPage.request.patch(
+        `/api/finance/receipts/${encodeURIComponent(firstReceipt.id!)}/review`,
+        { data: { decision: "reject", reviewNote: "BQC rejected receipt correction path" } }
+      );
+      expect(rejected.ok(), await rejected.text()).toBeTruthy();
+    });
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-portal-member-receipt-rejected-hint]")).toBeVisible({

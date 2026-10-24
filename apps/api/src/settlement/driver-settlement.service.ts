@@ -16,6 +16,7 @@ import {
 } from "@app-tour/workspace-denali/transport";
 
 import { listBookings } from "../bookings/create-bookings-service.ts";
+import { runSerialBookingMutation } from "../bookings/in-memory-bookings.repository.ts";
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import {
   createPayableId,
@@ -45,8 +46,35 @@ import {
   removeAllocationsForPassenger,
   removeAllocationsForDriver,
   clearAllocationsForTour,
+  setTourRosterSnapshotIfMissing,
   type TourRosterFreeze,
+  type TourRosterSnapshot,
 } from "../transport/transport-allocation.repository.ts";
+import { resolveStorageDriver } from "../storage/production-storage-driver-assert.ts";
+import {
+  clearPrismaAllocationsForTour,
+  freezePrismaTourRosterWithSnapshot,
+  getPrismaTourRosterFreeze,
+  isPrismaTourRosterFrozen,
+  listPrismaTransportAllocations,
+  removePrismaAllocationsForDriver,
+  removePrismaAllocationsForPassenger,
+  replacePrismaTransportAllocations,
+} from "../transport/prisma-transport-allocation.repository.ts";
+
+const usesPrismaTransportStore = () => resolveStorageDriver() === "prisma";
+
+async function readAllocations(tenantId: string, tourId: string) {
+  return usesPrismaTransportStore()
+    ? listPrismaTransportAllocations(tenantId, tourId)
+    : listTransportAllocations(tenantId, tourId);
+}
+
+async function readRosterFreeze(tenantId: string, tourId: string) {
+  return usesPrismaTransportStore()
+    ? getPrismaTourRosterFreeze(tenantId, tourId)
+    : getTourRosterFreeze(tenantId, tourId);
+}
 
 export type ReplaceAllocationsResult = {
   readonly allocations: readonly TransportAllocation[];
@@ -82,7 +110,7 @@ export async function getTransportAllocationsForTour(
   auth: BookingActorContext,
   tourId: string
 ): Promise<readonly TransportAllocation[]> {
-  return listTransportAllocations(auth.tenantId, tourId);
+  return readAllocations(auth.tenantId, tourId);
 }
 
 export async function putTransportAllocations(
@@ -90,25 +118,37 @@ export async function putTransportAllocations(
   tourId: string,
   allocations: readonly TransportAllocationInput[]
 ): Promise<ReplaceAllocationsResult> {
-  const participants = await loadOperationalParticipants(auth, tourId);
-  const validation = validateTransportAllocations({
-    tourId,
-    allocations,
-    participants,
-    rosterFrozen: isTourRosterFrozen(auth.tenantId, tourId),
-  });
-  if (!validation.ok) {
-    throw Object.assign(new Error(validation.message), { code: validation.code, statusCode: 409 });
-  }
-  const nowIso = new Date().toISOString();
-  const created = replaceTransportAllocations({
-    tenantId: auth.tenantId,
-    tourId,
-    actorUserId: auth.userId,
-    allocations,
-    nowIso,
-  });
-  return { allocations: created };
+  const replace = async (): Promise<ReplaceAllocationsResult> => {
+    const participants = await loadOperationalParticipants(auth, tourId);
+    const rosterFrozen = usesPrismaTransportStore()
+      ? await isPrismaTourRosterFrozen(auth.tenantId, tourId)
+      : isTourRosterFrozen(auth.tenantId, tourId);
+    const validation = validateTransportAllocations({
+      tourId,
+      allocations,
+      participants,
+      rosterFrozen,
+    });
+    if (!validation.ok) {
+      throw Object.assign(new Error(validation.message), {
+        code: validation.code,
+        statusCode: 409,
+      });
+    }
+    const nowIso = new Date().toISOString();
+    const replaceInput = {
+      tenantId: auth.tenantId,
+      tourId,
+      actorUserId: auth.userId,
+      allocations,
+      nowIso,
+    };
+    const created = usesPrismaTransportStore()
+      ? await replacePrismaTransportAllocations(replaceInput)
+      : replaceTransportAllocations(replaceInput);
+    return { allocations: created };
+  };
+  return usesPrismaTransportStore() ? replace() : runSerialBookingMutation(replace);
 }
 
 export async function freezeTourRosterAndGenerateSettlements(
@@ -117,31 +157,72 @@ export async function freezeTourRosterAndGenerateSettlements(
   input: { readonly driverCompensationPerSeatMinor: string; readonly currency: string }
 ): Promise<FreezeRosterResult> {
   const nowIso = new Date().toISOString();
-  const existingFreeze = getTourRosterFreeze(auth.tenantId, tourId);
-  if (existingFreeze !== null) {
+  const existingFreeze = await readRosterFreeze(auth.tenantId, tourId);
+  const existingSettlements = listSettlementsForTour(auth.tenantId, tourId);
+  // Legacy freezes created before roster snapshots were persisted cannot safely
+  // be replayed from live registrations. Preserve their old read-only replay;
+  // snapshot-backed freezes continue below so missing per-driver settlements
+  // can be repaired idempotently after a partial failure.
+  if (
+    existingFreeze !== null &&
+    existingFreeze.rosterSnapshot === null &&
+    existingSettlements.length > 0
+  ) {
     return {
       freeze: existingFreeze,
-      settlements: listSettlementsForTour(auth.tenantId, tourId),
+      settlements: existingSettlements,
       replay: true,
     };
   }
 
-  const participants = await loadOperationalParticipants(auth, tourId);
-  const drivers = participants.filter((p) => p.transportKind === "personal_car");
-  const allocations = listTransportAllocations(auth.tenantId, tourId);
-  const allocInputs: TransportAllocationInput[] = allocations.map((a) => ({
-    driverRegistrationId: a.driverRegistrationId,
-    passengerRegistrationId: a.passengerRegistrationId,
-  }));
-
-  const freeze = freezeTourRoster({
+  const freezeInput = {
     tenantId: auth.tenantId,
     tourId,
     actorUserId: auth.userId,
     driverCompensationPerSeatMinor: input.driverCompensationPerSeatMinor,
     currency: input.currency,
     nowIso,
-  });
+  };
+  let freeze: TourRosterFreeze;
+  let snapshot: TourRosterSnapshot;
+  let replay: boolean;
+  if (usesPrismaTransportStore()) {
+    const frozen = await freezePrismaTourRosterWithSnapshot(freezeInput);
+    freeze = frozen.freeze;
+    snapshot = frozen.snapshot;
+    replay = frozen.replay;
+  } else {
+    const frozen = await runSerialBookingMutation(async () => {
+      const current = getTourRosterFreeze(auth.tenantId, tourId);
+      if (current?.rosterSnapshot !== null && current?.rosterSnapshot !== undefined) {
+        return { freeze: current, snapshot: current.rosterSnapshot, replay: true };
+      }
+      const participants = await loadOperationalParticipants(auth, tourId);
+      const allocations = listTransportAllocations(auth.tenantId, tourId).map((row) => ({
+        driverRegistrationId: row.driverRegistrationId,
+        passengerRegistrationId: row.passengerRegistrationId,
+      }));
+      const nextSnapshot = { participants, allocations };
+      const nextFreeze =
+        current === null
+          ? freezeTourRoster({ ...freezeInput, rosterSnapshot: nextSnapshot })
+          : (setTourRosterSnapshotIfMissing(auth.tenantId, tourId, nextSnapshot) ?? current);
+      return { freeze: nextFreeze, snapshot: nextSnapshot, replay: current !== null };
+    });
+    freeze = frozen.freeze;
+    snapshot = frozen.snapshot;
+    replay = frozen.replay;
+  }
+  const drivers = snapshot.participants.filter((p) => p.transportKind === "personal_car");
+  const allocInputs: TransportAllocationInput[] = snapshot.allocations.map((allocation) => ({
+    driverRegistrationId: allocation.driverRegistrationId,
+    passengerRegistrationId: allocation.passengerRegistrationId,
+  }));
+  // The freeze-time terms are authoritative on retries. A later request may
+  // carry edited form values, but must not split one frozen roster across
+  // different compensation rates or currencies after a partial failure.
+  const settlementUnitAmountMinor = freeze.driverCompensationPerSeatMinor;
+  const settlementCurrency = freeze.currency;
 
   const settlements: DriverSettlement[] = [];
   for (const driver of drivers) {
@@ -149,13 +230,13 @@ export async function freezeTourRosterAndGenerateSettlements(
     const assignedPassengers = countAssignedPassengers(
       allocInputs,
       driver.registrationId,
-      participants
+      snapshot.participants
     );
     const calc = calculateDriverSettlement({
       offeredSeats,
       assignedPassengers,
-      unitAmountMinor: input.driverCompensationPerSeatMinor,
-      currency: input.currency,
+      unitAmountMinor: settlementUnitAmountMinor,
+      currency: settlementCurrency,
     });
     const idempotencyKey = buildSettlementIdempotencyKey({
       tourId,
@@ -176,8 +257,8 @@ export async function freezeTourRosterAndGenerateSettlements(
       offeredSeats,
       assignedPassengers,
       billableQuantity: calc.billableQuantity,
-      unitAmountMinor: input.driverCompensationPerSeatMinor,
-      currency: input.currency,
+      unitAmountMinor: settlementUnitAmountMinor,
+      currency: settlementCurrency,
       totalMinor: calc.totalMinor,
       status: "draft",
       basis: "assigned_at_freeze",
@@ -204,7 +285,7 @@ export async function freezeTourRosterAndGenerateSettlements(
     settlements.push(insertSettlement(row));
   }
 
-  return { freeze, settlements, replay: false };
+  return { freeze, settlements, replay };
 }
 
 export async function listDriverSettlementsForTour(
@@ -378,7 +459,11 @@ export async function handlePassengerCancelledForSettlement(
   auth: BookingActorContext,
   passengerRegistrationId: string
 ): Promise<void> {
-  removeAllocationsForPassenger(auth.tenantId, passengerRegistrationId);
+  if (usesPrismaTransportStore()) {
+    await removePrismaAllocationsForPassenger(auth.tenantId, passengerRegistrationId);
+  } else {
+    removeAllocationsForPassenger(auth.tenantId, passengerRegistrationId);
+  }
 }
 
 export async function handleDriverCancelledForSettlement(
@@ -386,7 +471,11 @@ export async function handleDriverCancelledForSettlement(
   tourId: string,
   driverRegistrationId: string
 ): Promise<void> {
-  removeAllocationsForDriver(auth.tenantId, tourId, driverRegistrationId);
+  if (usesPrismaTransportStore()) {
+    await removePrismaAllocationsForDriver(auth.tenantId, tourId, driverRegistrationId);
+  } else {
+    removeAllocationsForDriver(auth.tenantId, tourId, driverRegistrationId);
+  }
   const nowIso = new Date().toISOString();
   for (const row of listSettlementsForTour(auth.tenantId, tourId)) {
     if (row.driverRegistrationId !== driverRegistrationId) {
@@ -406,7 +495,11 @@ export async function handleTourCancelledForSettlement(
   auth: BookingActorContext,
   tourId: string
 ): Promise<void> {
-  clearAllocationsForTour(auth.tenantId, tourId);
+  if (usesPrismaTransportStore()) {
+    await clearPrismaAllocationsForTour(auth.tenantId, tourId);
+  } else {
+    clearAllocationsForTour(auth.tenantId, tourId);
+  }
   voidSettlementsForTour(auth.tenantId, tourId, auth.userId);
 }
 
@@ -434,7 +527,7 @@ export async function createCorrectionSettlement(
     });
   }
 
-  const freeze = getTourRosterFreeze(auth.tenantId, tourId);
+  const freeze = await readRosterFreeze(auth.tenantId, tourId);
   const rosterFrozenAt = freeze?.frozenAt ?? original.rosterFrozenAt ?? new Date().toISOString();
   const calc = calculateDriverSettlement({
     offeredSeats: original.offeredSeats,
@@ -504,7 +597,7 @@ export async function recalculateDraftSettlementsBeforePayable(
   }
   const participants = await loadOperationalParticipants(auth, tourId);
   const drivers = participants.filter((p) => p.transportKind === "personal_car");
-  const allocations = listTransportAllocations(auth.tenantId, tourId);
+  const allocations = await readAllocations(auth.tenantId, tourId);
   const allocInputs = allocations.map((a) => ({
     driverRegistrationId: a.driverRegistrationId,
     passengerRegistrationId: a.passengerRegistrationId,

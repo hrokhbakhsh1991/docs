@@ -18,7 +18,7 @@ export const DenaliWizardDraftMetaSchema = z.object({
 });
 
 export const DenaliWizardDraftEnvelopeSchema = z.object({
-  form: z.object({ data: z.record(z.unknown()) }),
+  form: z.object({ data: z.record(z.string(), z.unknown()) }),
   meta: DenaliWizardDraftMetaSchema,
 });
 

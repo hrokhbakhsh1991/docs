@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20261006150000_sms_usage_events";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20261023130000_denali_roster_snapshot";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
@@ -21,6 +21,7 @@ export const REQUIRED_PRISMA_MIGRATION_NAMES = [
   "20260826120000_workspace_tour_theme_icon_key",
   "20260902120000_wallet_member_accounts_rls",
   "20260904180000_member_notifications_platform",
+  "20261023120000_denali_transport_allocations",
   EXPECTED_PRISMA_MIGRATION_HEAD,
 ] as const;
 

@@ -3,6 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
+import ExcelJS from "exceljs";
 
 import { createRequestListener } from "../../src/app.ts";
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
@@ -105,7 +106,23 @@ describe("DP-2 operational roster API contract", () => {
   });
 
   it("returns an XLSX attachment for an authorized tour export", async () => {
-    await dp1CreateAndApprovePending();
+    const { bookingId } = await dp1CreateAndApprovePending();
+    await finalizeBookingWithOpenPayment(dp1OpsAuth(), bookingId);
+    const roster = await client.requestJson<{
+      items?: Array<{
+        registrationId?: string;
+        guestLabel?: string;
+        partySize?: number;
+        isFinalParticipant?: boolean;
+      }>;
+    }>("GET", `/tours/${DP1_TOUR_ID}/operational-roster?filter=final`, {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(roster.status, 200);
+    const rosterRow = roster.body.items?.find((item) => item.registrationId === bookingId);
+    assert.ok(rosterRow?.guestLabel);
+    assert.equal(rosterRow.isFinalParticipant, true);
+
     const response = await client.requestRaw(
       "GET",
       `/tours/${DP1_TOUR_ID}/operational-roster/export?filter=final&format=xlsx`,
@@ -118,6 +135,23 @@ describe("DP-2 operational roster API contract", () => {
     );
     assert.match(String(response.headers["content-disposition"]), /denali-final-roster-.*\.xlsx/);
     assert.equal(response.body.subarray(0, 2).toString("hex"), "504b");
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.body);
+    const finalSheet = workbook.getWorksheet("لیست نهایی");
+    const paymentFollowupSheet = workbook.getWorksheet("منتظر پرداخت");
+    assert.ok(finalSheet, "final roster worksheet must exist");
+    assert.ok(paymentFollowupSheet, "payment follow-up worksheet must exist");
+    const finalRow = finalSheet
+      .getRows(2, Math.max(0, finalSheet.rowCount - 1))
+      ?.find((row) => row.getCell(2).value === rosterRow.guestLabel);
+    const paymentFollowupRow = paymentFollowupSheet
+      .getRows(2, Math.max(0, paymentFollowupSheet.rowCount - 1))
+      ?.find((row) => row.getCell(2).value === rosterRow.guestLabel);
+    assert.ok(finalRow, "finalized registration must appear in the final roster sheet");
+    assert.ok(paymentFollowupRow, "open balance must remain in the payment follow-up sheet");
+    assert.equal(finalRow.getCell(4).value, rosterRow.partySize);
+    assert.equal(finalRow.getCell(5).value, "نهایی‌شده");
   });
 
   it("returns not found for an authorized export of an unknown tour", async () => {

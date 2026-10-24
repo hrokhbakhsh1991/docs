@@ -36,19 +36,21 @@ import {
   BookingFinalizationRequiresSettlementError,
   BookingNotFoundError,
   BookingOpenPaymentFinalizationNotAllowedError,
+  PaymentDeadlinePaymentAlreadySettledError,
   BookingWaiveAndFinalizeNotAllowedError,
   BookingStatusConflictError,
+  BookingRosterFrozenError,
   BulkApproveBatchLimitError,
+  BOOKING_TRANSPORT_CAPACITY_REJECTED,
 } from "./bookings.errors";
 import { enrichBookingListRecordsWithIntakeScalars } from "./booking-list-intake-scalars";
 import { readRegistrantTargetFromIntake } from "./read-registrant-target";
 import {
   readPersonalCarOccupantsFromIntake,
   readTransportKindFromIntake,
-  toBookingCapacityTransportFact,
 } from "./read-transport-kind-from-intake";
 import { readTourSocialMediaLink } from "./read-tour-social-media-link";
-import type { BookingRepositoryCapacityTransportFact } from "./ports/booking-repository.port";
+import { toBookingApprovedCapacitySnapshot } from "./booking-capacity-snapshot";
 
 /**
  * Serialize capacity + status decisions for one tour inside an open tenant TX.
@@ -57,7 +59,7 @@ import type { BookingRepositoryCapacityTransportFact } from "./ports/booking-rep
  * not independent hashtext(tenant) / hashtext(tour) (cross-pair collision class).
  * Transaction-scoped: released on COMMIT/ROLLBACK. READ COMMITTED isolation.
  */
-async function acquireTourCapacityLock(
+export async function acquireTourCapacityLock(
   tx: Prisma.TransactionClient,
   tenantId: string,
   tourId: string
@@ -72,25 +74,78 @@ async function acquireTourCapacityLock(
   `;
 }
 
-async function listApprovedCapacityTransportFactsInTx(
+async function sumApprovedPartySizeInTx(
   tx: Prisma.TransactionClient,
   tenantId: string,
   tourId: string
-): Promise<BookingRepositoryCapacityTransportFact[]> {
-  const rows = await tx.operatorRegistration.findMany({
+): Promise<number> {
+  const occupancy = await tx.operatorRegistration.aggregate({
     where: {
       tenantId,
       tourId,
       status: "approved",
     },
+    _sum: { partySize: true },
+  });
+  return occupancy._sum.partySize ?? 0;
+}
+
+async function listApprovedCapacitySnapshotsInTx(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  tourId: string,
+  excludeBookingId?: string
+): Promise<ReturnType<typeof toBookingApprovedCapacitySnapshot>[]> {
+  const rows = await tx.operatorRegistration.findMany({
+    where: {
+      tenantId,
+      tourId,
+      status: "approved",
+      ...(excludeBookingId !== undefined ? { id: { not: excludeBookingId } } : {}),
+    },
     select: { partySize: true, registrationIntake: true },
   });
   return rows.map((row) =>
-    toBookingCapacityTransportFact({
+    toBookingApprovedCapacitySnapshot({
       partySize: row.partySize,
       registrationIntake: row.registrationIntake,
     })
   );
+}
+
+function increaseCanonicalTourCapacity(
+  canonical: Prisma.JsonValue,
+  delta: number
+): {
+  readonly canonical: Prisma.InputJsonValue;
+  readonly previousCapacity: number;
+  readonly nextCapacity: number;
+} {
+  if (canonical === null || typeof canonical !== "object" || Array.isArray(canonical)) {
+    throw new Error("BOOKING_CAPACITY_MAX_REQUIRED");
+  }
+  const document = canonical as Record<string, Prisma.JsonValue>;
+  const rawData = document.data;
+  if (rawData === null || typeof rawData !== "object" || Array.isArray(rawData)) {
+    throw new Error("BOOKING_CAPACITY_MAX_REQUIRED");
+  }
+  const data = rawData as Record<string, Prisma.JsonValue>;
+  const rawCapacity = data.capacityMax;
+  if (typeof rawCapacity !== "number" || !Number.isSafeInteger(rawCapacity) || rawCapacity < 1) {
+    throw new Error("BOOKING_CAPACITY_MAX_REQUIRED");
+  }
+  const nextCapacity = rawCapacity + delta;
+  if (!Number.isSafeInteger(nextCapacity)) {
+    throw new Error("BOOKING_CAPACITY_INCREMENT_INVALID");
+  }
+  return {
+    canonical: {
+      ...document,
+      data: { ...data, capacityMax: nextCapacity },
+    } as Prisma.InputJsonValue,
+    previousCapacity: rawCapacity,
+    nextCapacity,
+  };
 }
 
 /** List projection — omits `registrationIntake` (BK-SAFE-01 / list-projection guards). */
@@ -747,16 +802,6 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     return totals;
   }
 
-  async listApprovedCapacityTransportFacts(
-    tenantId: string,
-    tourId: string
-  ): Promise<BookingRepositoryCapacityTransportFact[]> {
-    assertTenantId(tenantId);
-    return withTenantRls(tenantId, (tx) =>
-      listApprovedCapacityTransportFactsInTx(tx, tenantId, tourId)
-    );
-  }
-
   async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     assertTenantId(tenantId);
     return withTenantRls(tenantId, async (tx) => {
@@ -801,15 +846,28 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
   }): Promise<BookingRecord | null> {
     assertTenantId(input.tenantId);
     return withTenantRls(input.tenantId, async (tx) => {
+      const preliminary = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (preliminary === null) {
+        return null;
+      }
+      await acquireTourCapacityLock(tx, input.tenantId, preliminary.tourId);
+
+      const rosterFreeze = await tx.transportRosterFreeze.findUnique({
+        where: { tenantId_tourId: { tenantId: input.tenantId, tourId: preliminary.tourId } },
+        select: { tourId: true },
+      });
+      if (rosterFreeze !== null) throw new BookingRosterFrozenError();
       const existing = await tx.operatorRegistration.findFirst({
         where: { id: input.bookingId, tenantId: input.tenantId },
         select: BOOKING_LIST_SELECT,
       });
-      if (existing === null) {
-        return null;
-      }
+      if (existing === null) return null;
       const current = existing.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, input.paymentStatus);
+      if (existing.status === "cancelled" && next !== current) return null;
       const shouldFinalize = existing.status === "approved" && next === "paid";
       if (next === current && (!shouldFinalize || existing.finalizationStatus === "finalized")) {
         const [enriched] = await enrichBookingListRecordsWithIntakeScalars(tx, input.tenantId, [
@@ -818,7 +876,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         return enriched ?? null;
       }
       const updated = await tx.operatorRegistration.updateMany({
-        where: { id: input.bookingId, tenantId: input.tenantId },
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          status: existing.status,
+          paymentStatus: current,
+        },
         data: {
           paymentStatus: next,
           ...(shouldFinalize ? { finalizationStatus: "finalized", finalizedAt: new Date() } : {}),
@@ -1157,13 +1220,25 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     readonly bookingId: string;
     readonly tenantId: string;
     readonly patch: Readonly<Record<string, unknown>>;
+    readonly allowedStatuses?: readonly string[];
   }): Promise<BookingRecord | null> {
     assertTenantId(input.tenantId);
     return withTenantRls(input.tenantId, async (tx) => {
+      const preliminary = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (preliminary === null) {
+        return null;
+      }
+      await acquireTourCapacityLock(tx, input.tenantId, preliminary.tourId);
+
       const existing = await tx.operatorRegistration.findFirst({
         where: { id: input.bookingId, tenantId: input.tenantId },
       });
-      if (existing === null) {
+      if (
+        existing === null ||
+        (input.allowedStatuses !== undefined && !input.allowedStatuses.includes(existing.status))
+      ) {
         return null;
       }
       const currentIntake =
@@ -1174,7 +1249,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           : {};
       const nextIntake = { ...currentIntake, ...input.patch };
       const updated = await tx.operatorRegistration.updateMany({
-        where: { id: input.bookingId, tenantId: input.tenantId },
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          ...(input.allowedStatuses !== undefined
+            ? { status: { in: [...input.allowedStatuses] } }
+            : {}),
+        },
         data: { registrationIntake: nextIntake as Prisma.InputJsonValue },
       });
       if (updated.count !== 1) {
@@ -1291,7 +1372,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       readonly tourId: string;
       readonly partySize: number;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+      readonly approvedCapacitySnapshots: ReturnType<typeof toBookingApprovedCapacitySnapshot>[];
     }) => void;
     outboxEvent?: {
       readonly eventType: string;
@@ -1302,13 +1383,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       await acquireTourCapacityLock(tx, input.tenantId, input.body.tourId);
-      const approvedTransportFacts = await listApprovedCapacityTransportFactsInTx(
+      const approvedCapacitySnapshots = await listApprovedCapacitySnapshotsInTx(
         tx,
         input.tenantId,
         input.body.tourId
       );
-      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
-        (sum, fact) => sum + fact.partySize,
+      const occupiedApprovedPartySize = approvedCapacitySnapshots.reduce(
+        (total, snapshot) => total + snapshot.partySize,
         0
       );
       if (input.assertCapacityInTx !== undefined) {
@@ -1317,7 +1398,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             tourId: input.body.tourId,
             partySize: input.body.partySize,
             occupiedApprovedPartySize,
-            approvedTransportFacts,
+            approvedCapacitySnapshots,
           })
         );
       }
@@ -1372,11 +1453,15 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     outboxEvent: string;
     correlationId?: string;
     registrationIntakePatch?: Readonly<Record<string, unknown>>;
+    increaseWaitlistedCapacityByPartySize?: boolean;
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
-    }) => void;
+      readonly approvedCapacitySnapshots: readonly ReturnType<
+        typeof toBookingApprovedCapacitySnapshot
+      >[];
+      readonly tourCapacityMax?: number;
+    }) => void | Promise<void>;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1388,6 +1473,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
 
       await acquireTourCapacityLock(tx, input.tenantId, preliminary.tourId);
 
+      const rosterFreeze = await tx.transportRosterFreeze.findUnique({
+        where: { tenantId_tourId: { tenantId: input.tenantId, tourId: preliminary.tourId } },
+        select: { tourId: true },
+      });
+      if (rosterFreeze !== null) throw new BookingRosterFrozenError();
+
       const current = await tx.operatorRegistration.findFirst({
         where: { id: input.bookingId, tenantId: input.tenantId },
       });
@@ -1398,21 +1489,73 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
 
-      const approvedTransportFacts = await listApprovedCapacityTransportFactsInTx(
+      let capacityAdmission: {
+        readonly capacityAdded: number;
+        readonly previousCapacity: number;
+        readonly nextCapacity: number;
+      } | null = null;
+      if (input.increaseWaitlistedCapacityByPartySize === true) {
+        if (current.status !== "waitlisted" || current.partySize < 1) {
+          throw new BookingStatusConflictError(current.status as BookingStatus);
+        }
+        const tour = await tx.tour.findFirst({
+          where: { tenantId: input.tenantId, id: current.tourId },
+          select: { canonical: true, rowVersion: true },
+        });
+        if (tour === null) throw new BookingNotFoundError();
+        const expanded = increaseCanonicalTourCapacity(tour.canonical, current.partySize);
+        const updatedTour = await tx.tour.updateMany({
+          where: {
+            tenantId: input.tenantId,
+            id: current.tourId,
+            rowVersion: tour.rowVersion,
+          },
+          data: {
+            canonical: expanded.canonical,
+            rowVersion: tour.rowVersion + 1,
+          },
+        });
+        if (updatedTour.count !== 1) {
+          throw new Error("TOUR_VERSION_CONFLICT");
+        }
+        capacityAdmission = {
+          capacityAdded: current.partySize,
+          previousCapacity: expanded.previousCapacity,
+          nextCapacity: expanded.nextCapacity,
+        };
+      }
+
+      const approvedCapacitySnapshots = await listApprovedCapacitySnapshotsInTx(
         tx,
         input.tenantId,
         current.tourId
       );
-      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
-        (sum, fact) => sum + fact.partySize,
+      const occupiedApprovedPartySize = approvedCapacitySnapshots.reduce(
+        (total, snapshot) => total + snapshot.partySize,
         0
       );
       if (input.assertCapacityInTx !== undefined) {
+        const currentIntakeForAssert =
+          current.registrationIntake !== null &&
+          typeof current.registrationIntake === "object" &&
+          !Array.isArray(current.registrationIntake)
+            ? (current.registrationIntake as Record<string, unknown>)
+            : {};
+        const admissionPatch =
+          capacityAdmission === null ? {} : { waitlistCapacityAdmission: capacityAdmission };
         await Promise.resolve(
           input.assertCapacityInTx({
-            booking: toBookingRecord(current),
+            booking: {
+              ...toBookingRecord(current),
+              ...(capacityAdmission === null
+                ? {}
+                : { registrationIntake: { ...currentIntakeForAssert, ...admissionPatch } }),
+            },
             occupiedApprovedPartySize,
-            approvedTransportFacts,
+            approvedCapacitySnapshots,
+            ...(capacityAdmission === null
+              ? {}
+              : { tourCapacityMax: capacityAdmission.nextCapacity }),
           })
         );
       }
@@ -1438,9 +1581,19 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
                 registrationIntake: {
                   ...currentIntake,
                   ...input.registrationIntakePatch,
+                  ...(capacityAdmission === null
+                    ? {}
+                    : { waitlistCapacityAdmission: capacityAdmission }),
                 } as Prisma.InputJsonValue,
               }
-            : {}),
+            : capacityAdmission !== null
+              ? {
+                  registrationIntake: {
+                    ...currentIntake,
+                    waitlistCapacityAdmission: capacityAdmission,
+                  } as Prisma.InputJsonValue,
+                }
+              : {}),
         },
       });
       if (transitioned.count !== 1) {
@@ -1487,6 +1640,25 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     });
   }
 
+  async approveWaitlistedWithCapacityIncrease(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly outboxEvent: string;
+    readonly assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: readonly ReturnType<
+        typeof toBookingApprovedCapacitySnapshot
+      >[];
+      readonly tourCapacityMax?: number;
+    }) => void | Promise<void>;
+  }): Promise<BookingRecord> {
+    return this.approveWithOutbox({
+      ...input,
+      increaseWaitlistedCapacityByPartySize: true,
+    });
+  }
+
   async bulkApproveWithOutbox(input: {
     ids: readonly string[];
     tenantId: string;
@@ -1495,7 +1667,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+      readonly approvedCapacitySnapshots: ReturnType<typeof toBookingApprovedCapacitySnapshot>[];
     }) => void;
   }): Promise<BookingRecord[]> {
     if (input.ids.length > input.maxBatch) {
@@ -1519,11 +1691,15 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       for (const tourId of tourIds) {
         await acquireTourCapacityLock(tx, input.tenantId, tourId);
       }
+      const frozenTour = await tx.transportRosterFreeze.findFirst({
+        where: { tenantId: input.tenantId, tourId: { in: tourIds } },
+        select: { tourId: true },
+      });
+      if (frozenTour !== null) throw new BookingRosterFrozenError();
 
       const approvedAt = new Date();
       const approvedIds: string[] = [];
       const runningOccupied = new Map<string, number>();
-      const runningTransportFacts = new Map<string, BookingRepositoryCapacityTransportFact[]>();
 
       for (const preview of eligiblePreview) {
         const row = await tx.operatorRegistration.findFirst({
@@ -1537,29 +1713,30 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         }
 
         let occupied = runningOccupied.get(row.tourId);
-        let approvedTransportFacts = runningTransportFacts.get(row.tourId);
         if (occupied === undefined) {
-          approvedTransportFacts = await listApprovedCapacityTransportFactsInTx(
-            tx,
-            input.tenantId,
-            row.tourId
-          );
-          occupied = approvedTransportFacts.reduce((sum, fact) => sum + fact.partySize, 0);
-          runningTransportFacts.set(row.tourId, [...approvedTransportFacts]);
+          occupied = await sumApprovedPartySizeInTx(tx, input.tenantId, row.tourId);
         }
-        approvedTransportFacts ??= [];
         if (input.assertCapacityInTx !== undefined) {
           try {
+            const approvedCapacitySnapshots = await listApprovedCapacitySnapshotsInTx(
+              tx,
+              input.tenantId,
+              row.tourId
+            );
             await Promise.resolve(
               input.assertCapacityInTx({
                 booking: toBookingRecord(row),
                 occupiedApprovedPartySize: occupied,
-                approvedTransportFacts,
+                approvedCapacitySnapshots,
               })
             );
           } catch (error) {
             // Bulk must fill up to capacity then skip — throwing would ROLLBACK winners.
-            if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
+            if (
+              error instanceof Error &&
+              (error.message.startsWith("BOOKING_CAPACITY_REJECTED") ||
+                error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED))
+            ) {
               continue;
             }
             throw error;
@@ -1577,13 +1754,6 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           continue;
         }
         runningOccupied.set(row.tourId, occupied + row.partySize);
-        runningTransportFacts.set(row.tourId, [
-          ...approvedTransportFacts,
-          toBookingCapacityTransportFact({
-            partySize: row.partySize,
-            registrationIntake: row.registrationIntake,
-          }),
-        ]);
         approvedIds.push(row.id);
 
         const domainEventId = `registration.approved:${row.id}:${approvedAt.toISOString()}`;
@@ -1738,22 +1908,478 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     });
   }
 
+  async waitlistApprovedUnpaidBookings(input: {
+    readonly bookingIds: readonly string[];
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly outboxEvent: string;
+    readonly eventKeySuffix?: string;
+    readonly serialBookingMutationAlreadyHeld?: boolean;
+  }): Promise<readonly BookingRecord[]> {
+    const bookingIds = [...new Set(input.bookingIds)];
+    if (bookingIds.length === 0) return [];
+    return withTenantRls(input.tenantId, async (tx) => {
+      await acquireTourCapacityLock(tx, input.tenantId, input.tourId);
+      const rows = await tx.operatorRegistration.findMany({
+        where: { tenantId: input.tenantId, tourId: input.tourId, id: { in: bookingIds } },
+      });
+      if (rows.length !== bookingIds.length) throw new BookingNotFoundError();
+      if (rows.some((row) => row.status !== "approved" || row.paymentStatus !== "unpaid")) {
+        throw Object.assign(new Error("Only approved, unpaid registrations can be waitlisted"), {
+          code: "BOOKING_NOT_STRICTLY_UNPAID",
+          statusCode: 409,
+        });
+      }
+      const now = new Date();
+      const transitioned = await tx.operatorRegistration.updateMany({
+        where: {
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+          id: { in: bookingIds },
+          status: "approved",
+          paymentStatus: "unpaid",
+        },
+        data: {
+          status: "waitlisted",
+          approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
+        },
+      });
+      if (transitioned.count !== bookingIds.length) {
+        throw Object.assign(
+          new Error("Registration payment state changed during waitlist transfer"),
+          {
+            code: "BOOKING_NOT_STRICTLY_UNPAID",
+            statusCode: 409,
+          }
+        );
+      }
+
+      const openHolds = await tx.financePaymentHold.findMany({
+        where: { tenantId: input.tenantId, registrationId: { in: bookingIds }, status: "open" },
+        select: { id: true, registrationId: true, dueAt: true },
+      });
+      if (openHolds.length > 0) {
+        await tx.financePaymentHold.updateMany({
+          where: {
+            tenantId: input.tenantId,
+            id: { in: openHolds.map((hold) => hold.id) },
+            status: "open",
+          },
+          data: { status: "expired", expiredAt: now },
+        });
+      }
+      await tx.transportAllocation.deleteMany({
+        where: { tenantId: input.tenantId, passengerRegistrationId: { in: bookingIds } },
+      });
+
+      const updatedRows = await tx.operatorRegistration.findMany({
+        where: { tenantId: input.tenantId, tourId: input.tourId, id: { in: bookingIds } },
+      });
+      for (const row of updatedRows) {
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: row.id,
+          eventType: input.outboxEvent,
+          payload: {
+            bookingId: row.id,
+            tourId: row.tourId,
+            status: "waitlisted",
+            waitlistedAt: now.toISOString(),
+            guestUserId: row.submittedByUserId,
+            reason: "driver_payment_hold_expired",
+          },
+          domainEventId: `registration.waitlisted.driver_hold_expired:${row.id}:${input.eventKeySuffix ?? "default"}`,
+          createdAt: now,
+        });
+      }
+      for (const hold of openHolds) {
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: hold.registrationId,
+          eventType: "payment.hold.expired",
+          payload: {
+            registrationId: hold.registrationId,
+            holdId: hold.id,
+            expiredAt: now.toISOString(),
+            dueAt: hold.dueAt.toISOString(),
+          },
+          domainEventId: `payment.hold.expired:${hold.id}:${hold.dueAt.toISOString()}`,
+          createdAt: now,
+        });
+      }
+      return updatedRows.map(toBookingRecord);
+    });
+  }
+
+  async expireDriverHoldWithUnpaidPassengers(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly driverBookingId: string;
+    readonly driverHoldId: string;
+    readonly expectedDueAt: string;
+    readonly knownDependentBookingIds?: readonly string[];
+    readonly assertCapacityAfterRemovalInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: ReturnType<typeof toBookingApprovedCapacitySnapshot>[];
+    }) => void | Promise<void>;
+  }): Promise<{
+    readonly status: "expired" | "deferred";
+    readonly driver: BookingRecord;
+    readonly passengers: readonly BookingRecord[];
+  } | null> {
+    const expectedDueAt = new Date(input.expectedDueAt);
+    if (Number.isNaN(expectedDueAt.getTime())) throw new Error("PAYMENT_HOLD_DUE_AT_INVALID");
+    return withTenantRls(input.tenantId, async (tx) => {
+      await acquireTourCapacityLock(tx, input.tenantId, input.tourId);
+      const now = new Date();
+      const driver = await tx.operatorRegistration.findFirst({
+        where: {
+          id: input.driverBookingId,
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+        },
+      });
+      if (
+        driver === null ||
+        driver.status !== "approved" ||
+        driver.paymentStatus !== "unpaid" ||
+        !canTransitionBookingStatus(driver.status as BookingStatus, "cancelled")
+      ) {
+        return null;
+      }
+      const driverHold = await tx.financePaymentHold.findFirst({
+        where: {
+          id: input.driverHoldId,
+          tenantId: input.tenantId,
+          registrationId: input.driverBookingId,
+          status: "open",
+          dueAt: { equals: expectedDueAt, lte: now },
+        },
+      });
+      if (driverHold === null) return null;
+
+      const allocations = await tx.transportAllocation.findMany({
+        where: {
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+          driverRegistrationId: input.driverBookingId,
+        },
+        select: { passengerRegistrationId: true },
+      });
+      const passengerIds = [...new Set(allocations.map((row) => row.passengerRegistrationId))];
+      const passengers = passengerIds.length
+        ? await tx.operatorRegistration.findMany({
+            where: { tenantId: input.tenantId, tourId: input.tourId, id: { in: passengerIds } },
+          })
+        : [];
+      if (
+        passengers.length !== passengerIds.length ||
+        passengers.some((row) => row.status !== "approved" && row.status !== "waitlisted")
+      ) {
+        return null;
+      }
+
+      const unpaidPassengers = passengers.filter((row) => row.paymentStatus === "unpaid");
+      const blockingPassengers = passengers.filter((row) => row.paymentStatus !== "unpaid");
+      const unpaidPassengerIds = unpaidPassengers.map((row) => row.id);
+      const approvedPassengerIds = unpaidPassengers
+        .filter((row) => row.status === "approved")
+        .map((row) => row.id);
+      if (approvedPassengerIds.length > 0) {
+        const moved = await tx.operatorRegistration.updateMany({
+          where: {
+            tenantId: input.tenantId,
+            tourId: input.tourId,
+            id: { in: approvedPassengerIds },
+            status: "approved",
+            paymentStatus: "unpaid",
+          },
+          data: {
+            status: "waitlisted",
+            approvedAt: null,
+            finalizationStatus: "not_final",
+            finalizedAt: null,
+            finalizedByUserId: null,
+          },
+        });
+        if (moved.count !== approvedPassengerIds.length) {
+          throw Object.assign(new Error("Assigned passenger state changed during driver expiry"), {
+            code: "BOOKING_NOT_STRICTLY_UNPAID",
+            statusCode: 409,
+          });
+        }
+      }
+
+      // Capacity-after-removal is relevant only when this transaction will
+      // actually cancel the driver. With paid/partial dependent riders the
+      // expiry is deferred and the driver remains approved, so asserting a
+      // hypothetical removal here would diverge from the in-memory path and
+      // could reject a state that this transaction does not create.
+      if (blockingPassengers.length === 0 && input.assertCapacityAfterRemovalInTx !== undefined) {
+        const approvedCapacitySnapshots = await listApprovedCapacitySnapshotsInTx(
+          tx,
+          input.tenantId,
+          input.tourId,
+          input.driverBookingId
+        );
+        await input.assertCapacityAfterRemovalInTx({
+          booking: toBookingRecord(driver),
+          occupiedApprovedPartySize: approvedCapacitySnapshots.reduce(
+            (total, snapshot) => total + snapshot.partySize,
+            0
+          ),
+          approvedCapacitySnapshots,
+        });
+      }
+
+      const holdIds = await tx.financePaymentHold.findMany({
+        where: {
+          tenantId: input.tenantId,
+          registrationId: { in: unpaidPassengerIds },
+          status: "open",
+        },
+        select: { id: true, registrationId: true, dueAt: true },
+      });
+      if (holdIds.length > 0) {
+        const expired = await tx.financePaymentHold.updateMany({
+          where: {
+            tenantId: input.tenantId,
+            id: { in: holdIds.map((row) => row.id) },
+            status: "open",
+          },
+          data: { status: "expired", expiredAt: now },
+        });
+        if (expired.count !== holdIds.length) {
+          throw new Error("ASSIGNED_PASSENGER_HOLD_CHANGED_DURING_DRIVER_EXPIRY");
+        }
+        for (const hold of holdIds) {
+          await enqueueOutboxEvent(tx, {
+            tenantId: input.tenantId,
+            aggregateType: "registration",
+            aggregateId: hold.registrationId,
+            eventType: "payment.hold.expired",
+            payload: {
+              registrationId: hold.registrationId,
+              holdId: hold.id,
+              expiredAt: now.toISOString(),
+              dueAt: hold.dueAt.toISOString(),
+            },
+            domainEventId: `payment.hold.expired:${hold.id}:${hold.dueAt.toISOString()}`,
+            createdAt: now,
+          });
+        }
+      }
+
+      if (blockingPassengers.length > 0) {
+        // Preserve paid/partial riders, their holds and assignments. Only
+        // strictly-unpaid dependents are detached; driver expiry waits until
+        // an operator supplies replacement capacity or resolves the blockers.
+        if (unpaidPassengerIds.length > 0) {
+          await tx.transportAllocation.deleteMany({
+            where: {
+              tenantId: input.tenantId,
+              driverRegistrationId: input.driverBookingId,
+              passengerRegistrationId: { in: unpaidPassengerIds },
+            },
+          });
+        }
+        const cancellationCorrelationId = `${driverHold.id}:${expectedDueAt.toISOString()}`;
+        for (const passengerId of approvedPassengerIds) {
+          const passenger = passengers.find((row) => row.id === passengerId)!;
+          await enqueueOutboxEvent(tx, {
+            tenantId: input.tenantId,
+            aggregateType: "registration",
+            aggregateId: passenger.id,
+            eventType: "registration.waitlisted",
+            payload: {
+              bookingId: passenger.id,
+              tourId: passenger.tourId,
+              status: "waitlisted",
+              waitlistedAt: now.toISOString(),
+              guestUserId: passenger.submittedByUserId,
+              reason: "driver_payment_hold_expired",
+            },
+            domainEventId: `registration.waitlisted.driver_hold_expired:${passenger.id}:${cancellationCorrelationId}`,
+            createdAt: now,
+          });
+        }
+        const updatedPassengers = unpaidPassengerIds.length
+          ? await tx.operatorRegistration.findMany({
+              where: {
+                tenantId: input.tenantId,
+                tourId: input.tourId,
+                id: { in: unpaidPassengerIds },
+              },
+            })
+          : [];
+        return {
+          status: "deferred" as const,
+          driver: toBookingRecord(driver),
+          passengers: updatedPassengers.map(toBookingRecord),
+        };
+      }
+
+      const driverHoldUpdate = await tx.financePaymentHold.updateMany({
+        where: {
+          id: driverHold.id,
+          tenantId: input.tenantId,
+          registrationId: input.driverBookingId,
+          status: "open",
+          dueAt: expectedDueAt,
+        },
+        data: { status: "expired", expiredAt: now },
+      });
+      if (driverHoldUpdate.count !== 1) {
+        throw new Error("DRIVER_PAYMENT_HOLD_CHANGED_DURING_EXPIRY");
+      }
+
+      const cancellationCorrelationId = `${driverHold.id}:${expectedDueAt.toISOString()}`;
+      const cancelled = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.driverBookingId,
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+          status: "approved",
+          paymentStatus: "unpaid",
+        },
+        data: {
+          status: "cancelled",
+          approvedAt: null,
+          finalizationStatus: "not_final",
+          finalizedAt: null,
+          finalizedByUserId: null,
+          cancelSource: "payment_deadline",
+          cancellationStatus: "applied",
+          cancellationReasonCode: "PAYMENT_DEADLINE",
+          cancellationRequestedAt: now,
+          cancellationApprovedAt: now,
+          cancellationSnapshot: {
+            previousStatus: driver.status,
+            previousFinalizationStatus: driver.finalizationStatus,
+            previousPaymentStatus: driver.paymentStatus,
+            partySize: driver.partySize,
+            finalizedAt: driver.finalizedAt?.toISOString() ?? null,
+          },
+        },
+      });
+      if (cancelled.count !== 1) {
+        throw Object.assign(new Error("Driver state changed during payment-hold expiry"), {
+          code: "BOOKING_NOT_STRICTLY_UNPAID",
+          statusCode: 409,
+        });
+      }
+      const cancelledDriver = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.driverBookingId, tenantId: input.tenantId, tourId: input.tourId },
+      });
+      await appendRegistrationCancellationAuditEvent(tx, {
+        tenantId: input.tenantId,
+        registrationId: cancelledDriver.id,
+        source: "payment_deadline",
+        reasonCode: "PAYMENT_DEADLINE",
+        correlationId: cancellationCorrelationId,
+        createdAt: now,
+      });
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: cancelledDriver.id,
+        eventType: "registration.cancelled",
+        payload: {
+          bookingId: cancelledDriver.id,
+          tourId: cancelledDriver.tourId,
+          status: "cancelled",
+          cancelledAt: now.toISOString(),
+          guestUserId: cancelledDriver.submittedByUserId,
+          previousStatus: driver.status,
+          previousFinalizationStatus: driver.finalizationStatus,
+          previousPaymentStatus: driver.paymentStatus,
+          partySize: driver.partySize,
+          source: "payment_deadline",
+          reasonCode: "PAYMENT_DEADLINE",
+        },
+        correlationId: cancellationCorrelationId,
+        domainEventId: `registration.cancelled:${cancelledDriver.id}:${cancellationCorrelationId}`,
+        createdAt: now,
+      });
+      for (const passengerId of approvedPassengerIds) {
+        const passenger = passengers.find((row) => row.id === passengerId)!;
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: passenger.id,
+          eventType: "registration.waitlisted",
+          payload: {
+            bookingId: passenger.id,
+            tourId: passenger.tourId,
+            status: "waitlisted",
+            waitlistedAt: now.toISOString(),
+            guestUserId: passenger.submittedByUserId,
+            reason: "driver_payment_hold_expired",
+          },
+          domainEventId: `registration.waitlisted.driver_hold_expired:${passenger.id}:${cancellationCorrelationId}`,
+          createdAt: now,
+        });
+      }
+      for (const hold of [driverHold]) {
+        await enqueueOutboxEvent(tx, {
+          tenantId: input.tenantId,
+          aggregateType: "registration",
+          aggregateId: hold.registrationId,
+          eventType: "payment.hold.expired",
+          payload: {
+            registrationId: hold.registrationId,
+            holdId: hold.id,
+            expiredAt: now.toISOString(),
+            dueAt: hold.dueAt.toISOString(),
+          },
+          domainEventId: `payment.hold.expired:${hold.id}:${hold.dueAt.toISOString()}`,
+          createdAt: now,
+        });
+      }
+      if (passengerIds.length > 0) {
+        await tx.transportAllocation.deleteMany({
+          where: { tenantId: input.tenantId, passengerRegistrationId: { in: passengerIds } },
+        });
+      }
+      await tx.transportAllocation.deleteMany({
+        where: { tenantId: input.tenantId, driverRegistrationId: input.driverBookingId },
+      });
+
+      const updatedPassengers = passengerIds.length
+        ? await tx.operatorRegistration.findMany({
+            where: { tenantId: input.tenantId, tourId: input.tourId, id: { in: passengerIds } },
+          })
+        : [];
+      return {
+        status: "expired" as const,
+        driver: toBookingRecord(cancelledDriver),
+        passengers: updatedPassengers.map(toBookingRecord),
+      };
+    });
+  }
+
   async cancelBooking(input: {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
-    cancellationStatus?: string;
+    cancellationStatus?: BookingRecord["cancellationStatus"];
     cancellationReasonCode?: string;
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
     cancellationCorrelationId?: string;
-    alreadyWithinSerialMutation?: boolean;
-    assertCapacityInTx?: (ctx: {
+    serialBookingMutationAlreadyHeld?: boolean;
+    assertCapacityAfterRemovalInTx?: (ctx: {
       readonly booking: BookingRecord;
-      readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
-    }) => void;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: ReturnType<typeof toBookingApprovedCapacitySnapshot>[];
+    }) => void | Promise<void>;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1773,19 +2399,23 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (!canTransitionBookingStatus(current.status as BookingStatus, "cancelled")) {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
-      if (input.assertCapacityInTx !== undefined && current.status === "approved") {
-        const booking = toBookingRecord(current);
-        input.assertCapacityInTx({
-          booking,
-          bookingCapacityFact: toBookingCapacityTransportFact({
-            partySize: booking.partySize,
-            registrationIntake: booking.registrationIntake,
-          }),
-          approvedTransportFacts: await listApprovedCapacityTransportFactsInTx(
-            tx,
-            input.tenantId,
-            current.tourId
+      if (input.cancelSource === "payment_deadline" && current.paymentStatus === "paid") {
+        throw new PaymentDeadlinePaymentAlreadySettledError();
+      }
+      if (current.status === "approved" && input.assertCapacityAfterRemovalInTx !== undefined) {
+        const approvedCapacitySnapshots = await listApprovedCapacitySnapshotsInTx(
+          tx,
+          input.tenantId,
+          current.tourId,
+          current.id
+        );
+        await input.assertCapacityAfterRemovalInTx({
+          booking: toBookingRecord(current),
+          occupiedApprovedPartySize: approvedCapacitySnapshots.reduce(
+            (total, snapshot) => total + snapshot.partySize,
+            0
           ),
+          approvedCapacitySnapshots,
         });
       }
       const previousStatus = current.status;

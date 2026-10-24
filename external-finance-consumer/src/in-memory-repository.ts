@@ -52,9 +52,11 @@ type StoredReceipt = FinanceReceiptRow & {
 let paymentsById = new Map<string, StoredPayment>();
 let receiptsById = new Map<string, StoredReceipt>();
 let ledgerEvents: FinanceLedgerOutboxRow[] = [];
-let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
+let prepaymentsByDomainEventId = new Map<
+  string,
+  FinancePrepaymentListRow & { readonly tenantId: string }
+>();
 let refundsById = new Map<string, FinanceRefundRow>();
-
 
 export function resetExternalFinanceRepository(): void {
   paymentsById = new Map();
@@ -185,10 +187,7 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
     creationIdempotencyKey: string
   ): Promise<FinancePaymentRow | null> {
     for (const row of paymentsById.values()) {
-      if (
-        row.tenantId === tenantId &&
-        row.creationIdempotencyKey === creationIdempotencyKey
-      ) {
+      if (row.tenantId === tenantId && row.creationIdempotencyKey === creationIdempotencyKey) {
         return row;
       }
     }
@@ -198,7 +197,11 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
   async countPendingReceiptsForPayment(tenantId: string, paymentId: string): Promise<number> {
     let count = 0;
     for (const receipt of receiptsById.values()) {
-      if (receipt.tenantId === tenantId && receipt.paymentId === paymentId && receipt.status === "Pending") {
+      if (
+        receipt.tenantId === tenantId &&
+        receipt.paymentId === paymentId &&
+        receipt.status === "Pending"
+      ) {
         count += 1;
       }
     }
@@ -218,7 +221,14 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
     if (matching.length === 0) {
       return null;
     }
-    matching.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    matching.sort((a, b) => {
+      const byActiveAttempt = Number(b.status === "Pending") - Number(a.status === "Pending");
+      if (byActiveAttempt !== 0) {
+        return byActiveAttempt;
+      }
+      const byCreated = b.createdAt.getTime() - a.createdAt.getTime();
+      return byCreated !== 0 ? byCreated : b.id.localeCompare(a.id);
+    });
     return matching[0] ?? null;
   }
 
@@ -244,10 +254,7 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
     if (payment === null) {
       throw new Error("FINANCE_PAYMENT_NOT_FOUND");
     }
-    const pendingCount = await this.countPendingReceiptsForPayment(
-      input.tenantId,
-      input.paymentId
-    );
+    const pendingCount = await this.countPendingReceiptsForPayment(input.tenantId, input.paymentId);
     if (pendingCount > 0) {
       throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
     }
@@ -429,9 +436,7 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
         paymentAmountsMinor: facts.paymentAmountsMinor,
         scheduleAmountsMinor: input.scheduleAmountsMinor,
         refundedCompletedMinor: facts.refundedCompletedMinor,
-        ...(input.obligationMinor !== undefined
-          ? { obligationMinor: input.obligationMinor }
-          : {}),
+        ...(input.obligationMinor !== undefined ? { obligationMinor: input.obligationMinor } : {}),
       });
       bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(
         {},
@@ -483,7 +488,6 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
       bookingPaymentStatus,
     };
   }
-
 
   async cancelPendingManualPaymentAtomic(
     input: CancelPendingManualPaymentAtomicInput
@@ -572,9 +576,7 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
       .map(({ tenantId: _t, ...row }) => row);
   }
 
-  async recordPrepaymentAtomic(
-    input: RecordPrepaymentAtomicInput
-  ): Promise<{
+  async recordPrepaymentAtomic(input: RecordPrepaymentAtomicInput): Promise<{
     readonly created: boolean;
     readonly id: string;
     readonly registrationId: string;
@@ -774,10 +776,7 @@ export class ExternalFinanceRepository implements FinanceRepositoryPort {
     creationIdempotencyKey: string
   ): Promise<FinanceRefundRow | null> {
     for (const row of refundsById.values()) {
-      if (
-        row.tenantId === tenantId &&
-        row.creationIdempotencyKey === creationIdempotencyKey
-      ) {
+      if (row.tenantId === tenantId && row.creationIdempotencyKey === creationIdempotencyKey) {
         return row;
       }
     }

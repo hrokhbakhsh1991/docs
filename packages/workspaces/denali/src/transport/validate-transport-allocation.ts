@@ -64,8 +64,8 @@ export function validateTransportAllocations(
     if (passenger.transportKind !== "no_car_dong") {
       return {
         ok: false,
-        code: "NOT_DONG_PASSENGER",
-        message: `Registration ${alloc.passengerRegistrationId} is not a shared-car dong passenger`,
+        code: "PASSENGER_TRANSPORT_INCOMPATIBLE",
+        message: `Passenger ${alloc.passengerRegistrationId} must be registered for shared car transport`,
       };
     }
     if (alloc.driverRegistrationId === alloc.passengerRegistrationId) {
@@ -85,12 +85,23 @@ export function validateTransportAllocations(
     passengerToDriver.set(alloc.passengerRegistrationId, alloc.driverRegistrationId);
 
     const offered = driver.personalCarOccupants ?? 0;
+    if (!Number.isInteger(offered) || offered < 0) {
+      return {
+        ok: false,
+        code: "INVALID_DRIVER_CAPACITY",
+        message: `Driver ${alloc.driverRegistrationId} has an invalid offered seat count`,
+      };
+    }
     const current = driverPassengerCounts.get(alloc.driverRegistrationId) ?? 0;
-    const passengerPartySize =
-      typeof passenger.partySize === "number" && Number.isFinite(passenger.partySize)
-        ? Math.max(1, Math.trunc(passenger.partySize))
-        : 1;
-    const next = current + passengerPartySize;
+    const passengerSeats = passenger.partySize ?? 1;
+    if (!Number.isInteger(passengerSeats) || passengerSeats < 1) {
+      return {
+        ok: false,
+        code: "INVALID_PARTY_SIZE",
+        message: `Passenger ${alloc.passengerRegistrationId} has an invalid party size`,
+      };
+    }
+    const next = current + passengerSeats;
     if (next > offered) {
       return {
         ok: false,
@@ -109,18 +120,17 @@ export function countAssignedPassengers(
   driverRegistrationId: string,
   participants?: readonly RosterParticipant[]
 ): number {
-  const participantsById = new Map(
-    participants?.map((participant) => [participant.registrationId, participant])
+  const partySizeByRegistrationId = new Map(
+    (participants ?? []).map((participant) => [
+      participant.registrationId,
+      participant.partySize ?? 1,
+    ])
   );
   return allocations
     .filter((allocation) => allocation.driverRegistrationId === driverRegistrationId)
     .reduce(
-      (total, allocation) =>
-        total +
-        Math.max(
-          1,
-          Math.trunc(participantsById.get(allocation.passengerRegistrationId)?.partySize ?? 1)
-        ),
+      (sum, allocation) =>
+        sum + (partySizeByRegistrationId.get(allocation.passengerRegistrationId) ?? 1),
       0
     );
 }

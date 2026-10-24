@@ -523,28 +523,39 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     registrationId: string
   ): Promise<FinanceReceiptRow | null> {
     return withTenantRls(tenantId, async (tx) => {
-      const row = await tx.paymentReceipt.findFirst({
-        where: {
-          tenantId,
-          payment: { tenantId, registrationId },
-        },
-        orderBy: [{ createdAt: "desc" }, { reviewedAt: "desc" }, { id: "desc" }],
-        include: {
-          payment: {
-            select: {
-              id: true,
-              registrationId: true,
-              amount: true,
-              currency: true,
-              method: true,
-              status: true,
-              provider: true,
-              paidAt: true,
-              createdAt: true,
-            },
+      const registrationReceiptWhere = {
+        tenantId,
+        payment: { tenantId, registrationId },
+      };
+      const include = {
+        payment: {
+          select: {
+            id: true,
+            registrationId: true,
+            amount: true,
+            currency: true,
+            method: true,
+            status: true,
+            provider: true,
+            paidAt: true,
+            createdAt: true,
           },
         },
+      } as const;
+      // A pending receipt is the member's active attempt. Prefer it over a
+      // rejected attempt even when both were created within the same clock tick.
+      const pending = await tx.paymentReceipt.findFirst({
+        where: { ...registrationReceiptWhere, status: "Pending" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include,
       });
+      const row =
+        pending ??
+        (await tx.paymentReceipt.findFirst({
+          where: registrationReceiptWhere,
+          orderBy: [{ createdAt: "desc" }, { reviewedAt: "desc" }, { id: "desc" }],
+          include,
+        }));
       return row === null ? null : toFinanceReceiptRow(row);
     });
   }

@@ -1,5 +1,3 @@
-import type { BookingRepositoryCapacityTransportFact } from "./ports/booking-repository.port";
-
 /**
  * Derive transport intake scalars from registrationIntake JSON without exposing the blob on list.
  * @see docs/dev/list-projection-guards.mdoc · H5-T3 / BK-SAFE-01
@@ -50,20 +48,21 @@ export function readPersonalCarOccupantsFromIntake(
   return null;
 }
 
+/**
+ * Capacity policy receives only the transport facts it needs; never the raw
+ * registration intake, which may include identity or profile fields.
+ */
 export function toBookingCapacityTransportFact(input: {
   readonly partySize: number;
-  readonly registrationIntake: unknown;
-}): BookingRepositoryCapacityTransportFact {
-  const intake =
-    input.registrationIntake !== null &&
-    typeof input.registrationIntake === "object" &&
-    !Array.isArray(input.registrationIntake)
-      ? (input.registrationIntake as Readonly<Record<string, unknown>>)
-      : null;
-
+  readonly registrationIntake: Readonly<Record<string, unknown>> | null | undefined;
+}): {
+  readonly partySize: number;
+  readonly transportKind: BookingTransportKind | null;
+  readonly offeredPassengerSeats: 0 | 1 | 2 | 3 | null;
+} {
   return {
-    partySize: Math.max(0, Math.trunc(input.partySize)),
-    transportKind: readTransportKindFromIntake(intake),
-    offeredPassengerSeats: readPersonalCarOccupantsFromIntake(intake),
+    partySize: input.partySize,
+    transportKind: readTransportKindFromIntake(input.registrationIntake),
+    offeredPassengerSeats: readPersonalCarOccupantsFromIntake(input.registrationIntake),
   };
 }

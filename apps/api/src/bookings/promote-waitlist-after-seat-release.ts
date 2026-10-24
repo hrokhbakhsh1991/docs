@@ -8,8 +8,7 @@ import { HostBookingTourCapacityAdapter } from "./infrastructure/host-booking-to
 import { setBookingPaymentDueAtProjection } from "./in-memory-bookings.repository.ts";
 import { applyPaymentHoldAfterBookingApprove } from "../finance/apply-payment-hold-after-booking-approve.ts";
 import type { BookingRecord } from "./bookings.types.ts";
-import type { BookingCapacityTransportFact } from "@app-tour/booking-http-contracts";
-import { BookingStatusConflictError } from "./bookings.errors.ts";
+import { BOOKING_TRANSPORT_CAPACITY_REJECTED } from "@app-tour/booking-http-contracts";
 
 async function buildPromotionCapacityAssert(tenantId: string, candidate: BookingRecord) {
   const [workspaceType, tourCapacityMax] = await Promise.all([
@@ -24,7 +23,7 @@ async function buildPromotionCapacityAssert(tenantId: string, candidate: Booking
   return (ctx: {
     readonly booking: BookingRecord;
     readonly occupiedApprovedPartySize: number;
-    readonly approvedTransportFacts: readonly BookingCapacityTransportFact[];
+    readonly approvedCapacitySnapshots: readonly import("@app-tour/booking-http-contracts").BookingApprovedCapacitySnapshot[];
   }) =>
     capacityPolicy.assertCreateCapacity({
       tenantId,
@@ -37,26 +36,24 @@ async function buildPromotionCapacityAssert(tenantId: string, candidate: Booking
       departureAt: ctx.booking.departureAt,
       registrationIntake,
       occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
-      approvedTransportFacts: ctx.approvedTransportFacts,
+      approvedCapacitySnapshots: ctx.approvedCapacitySnapshots,
       tourCapacityMax,
     });
 }
 
-async function listWaitlistedCandidates(input: {
+export async function promoteOldestWaitlistedGuest(input: {
   readonly tenantId: string;
   readonly tourId: string;
-}): Promise<BookingRecord[]> {
+}): Promise<string | null> {
   const repo = getBookingsRepository();
-  return (await repo.listByTenant(input.tenantId))
+  const waitlisted = (await repo.listByTenant(input.tenantId))
     .filter((row) => row.tourId === input.tourId && row.status === "waitlisted")
-    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt) || a.id.localeCompare(b.id));
-}
+    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+  const candidate = waitlisted[0];
+  if (candidate === undefined) {
+    return null;
+  }
 
-async function tryPromoteCandidate(
-  input: { readonly tenantId: string; readonly tourId: string },
-  candidate: BookingRecord
-): Promise<string | null> {
-  const repo = getBookingsRepository();
   const assertCapacityInTx = await buildPromotionCapacityAssert(input.tenantId, candidate);
   let approved;
   try {
@@ -67,16 +64,15 @@ async function tryPromoteCandidate(
       assertCapacityInTx,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
-      return null;
-    }
-    if (error instanceof BookingStatusConflictError) {
-      // Another serialized approval/promotion won this waitlist row after our snapshot.
+    if (
+      error instanceof Error &&
+      (error.message.startsWith("BOOKING_CAPACITY_REJECTED") ||
+        error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED))
+    ) {
       return null;
     }
     throw error;
   }
-
   const sideEffects = await applyPaymentHoldAfterBookingApprove({
     tenantId: input.tenantId,
     bookingId: approved.id,
@@ -92,49 +88,52 @@ async function tryPromoteCandidate(
   return approved.id;
 }
 
-export async function promoteOldestWaitlistedGuest(input: {
-  readonly tenantId: string;
-  readonly tourId: string;
-}): Promise<string | null> {
-  for (const candidate of await listWaitlistedCandidates(input)) {
-    const promotedId = await tryPromoteCandidate(input, candidate);
-    if (promotedId !== null) {
-      return promotedId;
-    }
-  }
-  return null;
-}
-
-/** Re-evaluate an initial waitlist snapshot after any approval that can add capacity. */
+/**
+ * Promote every currently eligible FIFO waitlist row. Each attempt rechecks
+ * capacity in its own locked transaction, so an older row that needs a car
+ * seat cannot block a later independently transportable guest forever.
+ */
 export async function promoteAvailableWaitlistedGuests(input: {
   readonly tenantId: string;
   readonly tourId: string;
 }): Promise<readonly string[]> {
+  const repo = getBookingsRepository();
   const promoted: string[] = [];
-  const rows = await getBookingsRepository().listByTenant(input.tenantId);
-  const approvedPartySize = rows
-    .filter((row) => row.tourId === input.tourId && row.status === "approved")
-    .reduce((sum, row) => sum + row.partySize, 0);
-  const tourCapacityMax = await new HostBookingTourCapacityAdapter().resolveTourCapacityMax(
-    input.tenantId,
-    input.tourId
-  );
-  if (tourCapacityMax !== null && approvedPartySize >= tourCapacityMax) {
-    return promoted;
-  }
-
-  let occupied = approvedPartySize;
-  const waitlisted = rows
+  const candidates = (await repo.listByTenant(input.tenantId))
     .filter((row) => row.tourId === input.tourId && row.status === "waitlisted")
-    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt) || a.id.localeCompare(b.id));
-  for (const candidate of waitlisted) {
-    if (tourCapacityMax !== null && occupied + candidate.partySize > tourCapacityMax) {
-      continue;
-    }
-    const promotedId = await tryPromoteCandidate(input, candidate);
-    if (promotedId !== null) {
-      promoted.push(promotedId);
-      occupied += candidate.partySize;
+    .sort((left, right) => left.submittedAt.localeCompare(right.submittedAt) || left.id.localeCompare(right.id));
+
+  for (const candidate of candidates) {
+    const assertCapacityInTx = await buildPromotionCapacityAssert(input.tenantId, candidate);
+    try {
+      const approved = await repo.approveWithOutbox({
+        bookingId: candidate.id,
+        tenantId: input.tenantId,
+        outboxEvent: "registration.approved",
+        assertCapacityInTx,
+      });
+      const sideEffects = await applyPaymentHoldAfterBookingApprove({
+        tenantId: input.tenantId,
+        bookingId: approved.id,
+        approvedAt: approved.approvedAt ?? new Date().toISOString(),
+      });
+      if (sideEffects.paymentDueAt !== undefined) {
+        setBookingPaymentDueAtProjection({
+          tenantId: input.tenantId,
+          bookingId: approved.id,
+          paymentDueAt: sideEffects.paymentDueAt,
+        });
+      }
+      promoted.push(approved.id);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.startsWith("BOOKING_CAPACITY_REJECTED") ||
+          error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED))
+      ) {
+        continue;
+      }
+      throw error;
     }
   }
   return promoted;

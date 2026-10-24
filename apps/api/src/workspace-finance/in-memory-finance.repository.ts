@@ -284,6 +284,10 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       return null;
     }
     matching.sort((a, b) => {
+      const byActiveAttempt = Number(b.status === "Pending") - Number(a.status === "Pending");
+      if (byActiveAttempt !== 0) {
+        return byActiveAttempt;
+      }
       const byCreated = b.createdAt.getTime() - a.createdAt.getTime();
       if (byCreated !== 0) {
         return byCreated;

@@ -5,6 +5,7 @@
  */
 import { execSync, spawn } from "node:child_process";
 import http from "node:http";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -79,31 +80,23 @@ function waitForUrl(url, timeoutMs = 600_000, childProcess) {
   });
 }
 
-function freePort(port) {
+async function assertPortAvailable(port) {
+  const server = net.createServer();
   try {
-    execSync(`fuser -k ${port}/tcp`, { stdio: "ignore" });
-  } catch {
-    // The port is already free, or fuser is unavailable.
-  }
-}
-
-async function waitForPortFree(port, timeoutMs = 10_000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const listeners = execSync(`lsof -nP -tiTCP:${port} -sTCP:LISTEN`, {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim();
-      if (listeners.length === 0) {
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    } catch {
-      return;
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(port, "127.0.0.1", () => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    });
+  } catch (error) {
+    if (error?.code === "EADDRINUSE") {
+      throw new Error(
+        `smoke-portal-e2e-servers: port ${port} is already in use; stop that service explicitly or reuse the existing smoke stack`
+      );
     }
+    throw error;
   }
-  throw new Error(`smoke-portal-e2e-servers: port ${port} still in use`);
 }
 
 const jwtEnv = await resolveSmokeApiJwtEnv();
@@ -164,16 +157,11 @@ const webEnv = {
 };
 
 const withAdmin = process.env.PORTAL_SMOKE_WITH_ADMIN === "1";
-freePort(3001);
 if (withAdmin) {
-  freePort(3000);
+  await assertPortAvailable(3000);
 }
-freePort(3003);
-if (withAdmin) {
-  await waitForPortFree(3000);
-}
-await waitForPortFree(3001);
-await waitForPortFree(3003);
+await assertPortAvailable(3001);
+await assertPortAvailable(3003);
 
 const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
   cwd: path.join(repoRoot, "apps/api"),

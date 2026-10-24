@@ -9,17 +9,15 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
   });
 
   it("P8-SES-02 differs from operator web cookie name", async () => {
-    const { SESSION_TOKEN_COOKIE: operatorCookie } = await import(
-      "../../web/src/auth/build-session-cookie"
-    );
+    const { SESSION_TOKEN_COOKIE: operatorCookie } =
+      await import("../../web/src/auth/build-session-cookie");
     assert.notEqual(SESSION_TOKEN_COOKIE, operatorCookie);
     assert.equal(operatorCookie, "atour_op_session");
   });
 
   it("P8-1-N-004 SESSION_COOKIE_SECURE=false on Profile B HTTP", async () => {
-    const { resolveSessionCookieSecure, buildSessionCookieOptions } = await import(
-      "../src/auth/build-session-cookie"
-    );
+    const { resolveSessionCookieSecure, buildSessionCookieOptions } =
+      await import("../src/auth/build-session-cookie");
     const prior = process.env.SESSION_COOKIE_SECURE;
     const priorNode = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
@@ -36,9 +34,8 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
   });
 
   it("PCMS-COOK-05 custom apex host sets Domain on Set-Cookie", async () => {
-    const { setSessionCookieOnResponse, resolveMemberSessionCookieDomainForHost } = await import(
-      "../src/auth/build-session-cookie"
-    );
+    const { setSessionCookieOnResponse, resolveMemberSessionCookieDomainForHost } =
+      await import("../src/auth/build-session-cookie");
     assert.equal(resolveMemberSessionCookieDomainForHost("portal.denali.club:3003"), "denali.club");
     const headers = new Headers();
     setSessionCookieOnResponse(headers, "jwt-token", "portal.denali.club:3003");
@@ -86,11 +83,12 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     const priorNode = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     try {
-      const {
-        setSessionCookieOnResponse,
-        shouldRefreshDevMemberSessionCookieDomain,
-      } = await import("../src/auth/build-session-cookie");
-      assert.equal(shouldRefreshDevMemberSessionCookieDomain("denali.portal.localhost:3003"), false);
+      const { setSessionCookieOnResponse, shouldRefreshDevMemberSessionCookieDomain } =
+        await import("../src/auth/build-session-cookie");
+      assert.equal(
+        shouldRefreshDevMemberSessionCookieDomain("denali.portal.localhost:3003"),
+        false
+      );
       const headers = new Headers();
       setSessionCookieOnResponse(headers, "jwt-token", "denali.portal.localhost:3003", "shared");
       const setCookie = headers.get("set-cookie") ?? "";
@@ -105,10 +103,9 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     }
   });
 
-  it("PCMS-COOK-06c inverted portal.denali.localhost sets Domain=denali.localhost", async () => {
-    const { setSessionCookieOnResponse, shouldRefreshDevMemberSessionCookieDomain } = await import(
-      "../src/auth/build-session-cookie"
-    );
+  it("PCMS-COOK-06c inverted portal.denali.localhost shares with denali.localhost", async () => {
+    const { setSessionCookieOnResponse, shouldRefreshDevMemberSessionCookieDomain } =
+      await import("../src/auth/build-session-cookie");
     assert.equal(shouldRefreshDevMemberSessionCookieDomain("portal.denali.localhost:3003"), true);
     const headers = new Headers();
     setSessionCookieOnResponse(headers, "jwt-token", "portal.denali.localhost:3003");
@@ -119,10 +116,8 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     const priorNode = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
     try {
-      const {
-        setSessionCookieOnResponse,
-        shouldRefreshDevMemberSessionCookieDomain,
-      } = await import("../src/auth/build-session-cookie");
+      const { setSessionCookieOnResponse, shouldRefreshDevMemberSessionCookieDomain } =
+        await import("../src/auth/build-session-cookie");
       assert.equal(shouldRefreshDevMemberSessionCookieDomain("denali.localhost:3002"), false);
       const headers = new Headers();
       setSessionCookieOnResponse(headers, "jwt-token", "denali.localhost:3002", "shared");
@@ -138,10 +133,8 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
   });
 
   it("PCMS-COOK-08b apex shared refresh re-issues Domain=denali.club", async () => {
-    const {
-      setSessionCookieOnResponse,
-      shouldRefreshDevMemberSessionCookieDomain,
-    } = await import("../src/auth/build-session-cookie");
+    const { setSessionCookieOnResponse, shouldRefreshDevMemberSessionCookieDomain } =
+      await import("../src/auth/build-session-cookie");
     assert.equal(shouldRefreshDevMemberSessionCookieDomain("portal.denali.club:3003"), true);
     const headers = new Headers();
     setSessionCookieOnResponse(headers, "jwt-token", "portal.denali.club:3003", "shared");
@@ -161,11 +154,7 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
       assert.match(setCookie, /Domain=denali\.example\.com/);
 
       const legacyHeaders = new Headers();
-      setSessionCookieOnResponse(
-        legacyHeaders,
-        "jwt-token",
-        "denali.portal.example.com:3003"
-      );
+      setSessionCookieOnResponse(legacyHeaders, "jwt-token", "denali.portal.example.com:3003");
       assert.doesNotMatch(legacyHeaders.get("set-cookie") ?? "", /Domain=/);
     } finally {
       if (priorNode === undefined) {
@@ -185,9 +174,8 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     const priorNode = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     try {
-      const { clearSessionCookieOnResponse, SESSION_TOKEN_COOKIE } = await import(
-        "../src/auth/build-session-cookie"
-      );
+      const { clearSessionCookieOnResponse, SESSION_TOKEN_COOKIE } =
+        await import("../src/auth/build-session-cookie");
       const headers = new Headers();
       clearSessionCookieOnResponse(headers, "denali.portal.localhost:3003");
       const setCookies = headers.getSetCookie();
@@ -205,9 +193,8 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
   });
 
   it("PCMS-COOK-07b logout on custom apex clears host-only and Domain=apex", async () => {
-    const { clearSessionCookieOnResponse, SESSION_TOKEN_COOKIE } = await import(
-      "../src/auth/build-session-cookie"
-    );
+    const { clearSessionCookieOnResponse, SESSION_TOKEN_COOKIE } =
+      await import("../src/auth/build-session-cookie");
     const headers = new Headers();
     clearSessionCookieOnResponse(headers, "portal.denali.club:3003");
     const setCookies = headers.getSetCookie();

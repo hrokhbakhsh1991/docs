@@ -101,7 +101,7 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
   it("FIN-P1.9-01 API infrastructure keeps booking + host finance adapters (no workspace policy)", () => {
     const infra = readdirSync(resolve(REPO_ROOT, INFRA));
     assert.deepEqual(
-      [...infra].filter((n) => n.endsWith(".ts")).sort(),
+      [...infra].filter((n) => n.endsWith(".ts") && !n.endsWith(".spec.ts")).sort(),
       [
         "booking-payment.adapter.ts",
         "booking-registration-display.adapter.ts",

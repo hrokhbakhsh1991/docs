@@ -10,10 +10,7 @@ import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancella
 import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
 import { BookingNotFoundError } from "../bookings/bookings.errors.ts";
 import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
-import {
-  createCapacityReleaseAssertionForTenant,
-  recheckWaitlistAfterCapacityChangeForTenant,
-} from "../bookings/create-bookings-service.ts";
+import { resolveBookingsServiceForTenant } from "../bookings/create-bookings-service.ts";
 import { runPostCancelSideEffects } from "../bookings/post-cancel-side-effects.ts";
 import type { BookingRecord } from "../bookings/bookings.types.ts";
 import {
@@ -126,7 +123,7 @@ async function executeMemberCancel(
   booking: BookingRecord
 ): Promise<MemberCancellationResult> {
   const previousStatus = booking.status;
-  const assertCapacityInTx = await createCapacityReleaseAssertionForTenant(auth.tenantId);
+  const bookingsService = await resolveBookingsServiceForTenant(auth.tenantId);
 
   await getBookingsRepository().cancelBooking({
     bookingId: booking.id,
@@ -138,7 +135,7 @@ async function executeMemberCancel(
     cancellationReasonCode: "member_withdrawal",
     cancellationApprovedByUserId: auth.userId,
     cancellationCorrelationId: `registration.cancelled:${booking.id}`,
-    assertCapacityInTx,
+    assertCapacityAfterRemovalInTx: await bookingsService.createCapacityReleaseAssertion(auth.tenantId),
   });
 
   const refundStatus =
@@ -159,12 +156,6 @@ async function executeMemberCancel(
     // The lifecycle transition is already persisted. Never turn a successful
     // cancellation into a retry-shaped 500 when Finance/settlement needs review.
     settlementStatus = "manual_review";
-  }
-  if (previousStatus === "approved") {
-    await recheckWaitlistAfterCapacityChangeForTenant({
-      tenantId: auth.tenantId,
-      tourId: booking.tourId,
-    });
   }
 
   return {
@@ -231,6 +222,12 @@ export async function approveMemberCancellationRequestForBooking(
   if (pending === null) {
     throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
   }
-  approveMemberCancellationRequest(auth.tenantId, pending.id);
-  return executeMemberCancel(auth, booking);
+  const result = await executeMemberCancel(auth, booking);
+  const approved = approveMemberCancellationRequest(auth.tenantId, pending.id);
+  if (approved === null) {
+    // Cancellation is already persisted; do not make the API response look
+    // retryable if another action transitioned the request concurrently.
+    return result;
+  }
+  return result;
 }

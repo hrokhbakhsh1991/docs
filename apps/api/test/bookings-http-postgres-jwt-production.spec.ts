@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import http from "node:http";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 import { exportPKCS8, exportSPKI, generateKeyPair, SignJWT } from "jose";
 import { PrismaClient } from "@prisma/client";
@@ -23,6 +23,11 @@ import { resetLazyRouteHandlersForTests } from "../src/boot/lazy-route-handlers"
 import { disconnectPrisma } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { resetSessionTokenKeyCacheForTests } from "../src/identity/sign-session-token";
+import {
+  buildMemberReceiptProofObjectKey,
+  deleteMemberReceiptProof,
+  readMemberReceiptProof,
+} from "../src/workspace-finance/receipt-proof-storage";
 import { integrationTenantId } from "./test-helpers";
 
 const hasDatabase =
@@ -31,6 +36,15 @@ const hasDatabase =
 const postgresSkip = hasDatabase
   ? false
   : "BOOKING_HTTP_POSTGRES_JWT_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-001)";
+const hasMinio = Boolean(
+  process.env.MINIO_ENDPOINT?.trim() &&
+  process.env.MINIO_ACCESS_KEY?.trim() &&
+  process.env.MINIO_SECRET_KEY?.trim() &&
+  process.env.MINIO_BUCKET?.trim()
+);
+const minioSkip = hasMinio
+  ? false
+  : "BOOKING_HTTP_POSTGRES_JWT_MINIO_REQUIRED: set MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, and MINIO_BUCKET";
 
 const ENV_KEYS = [
   "NODE_ENV",
@@ -68,6 +82,8 @@ async function requestJson(
     readonly path: string;
     readonly headers: Record<string, string>;
     readonly body?: unknown;
+    readonly rawBody?: Buffer;
+    readonly contentType?: string;
   }
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
@@ -79,7 +95,9 @@ async function requestJson(
         reject(new Error("no listen address"));
         return;
       }
-      const payload = input.body === undefined ? undefined : JSON.stringify(input.body);
+      const payload =
+        input.rawBody ??
+        (input.body === undefined ? undefined : Buffer.from(JSON.stringify(input.body)));
       const req = http.request(
         {
           hostname: "127.0.0.1",
@@ -87,9 +105,11 @@ async function requestJson(
           path: input.path,
           method: input.method,
           headers: {
-            ...(payload
+            ...(payload !== undefined
               ? {
-                  "Content-Type": "application/json",
+                  "Content-Type":
+                    input.contentType ??
+                    (input.rawBody === undefined ? "application/json" : "application/octet-stream"),
                   "Content-Length": String(Buffer.byteLength(payload)),
                 }
               : {}),
@@ -205,6 +225,11 @@ describe(
               title: "JWT Prod Cert Tour",
               publishStatus: "published",
               capacityMax: 20,
+              pricing: {
+                basePricePerPerson: 2_500_000,
+                paymentMode: "offline_receipt",
+                paymentCollection: "offline",
+              },
             },
           },
         },
@@ -218,8 +243,10 @@ describe(
     after(async () => {
       try {
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
+        await admin.paymentReceipt.deleteMany({ where: { tenantId } });
+        await admin.payment.deleteMany({ where: { tenantId } });
         await admin.operatorRegistration.deleteMany({ where: { tenantId } });
-        await admin.tour.deleteMany({ where: { id: tourId } });
+        await admin.tour.deleteMany({ where: { tenantId } });
         await admin.userTenant.deleteMany({ where: { tenantId } });
         await admin.user.deleteMany({ where: { id: userId } });
         await admin.tenant.deleteMany({ where: { id: tenantId } });
@@ -249,9 +276,9 @@ describe(
         .sign(privateKey);
     }
 
-    function createBody(guestLabel: string): Record<string, unknown> {
+    function createBody(guestLabel: string, targetTourId = tourId): Record<string, unknown> {
       return {
-        tourId,
+        tourId: targetTourId,
         tourTitle: "JWT Prod Cert Tour",
         guestLabel,
         partySize: 1,
@@ -336,7 +363,7 @@ describe(
               {
                 hostname: "127.0.0.1",
                 port: addr.port,
-                path: `/bookings/${foreignBookingId}/receipt`,
+                path: `/bookings/${foreignBookingId}/receipts`,
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -379,5 +406,166 @@ describe(
       const blob = JSON.stringify(response.body);
       assert.doesNotMatch(blob, /MINIO_NOT_CONFIGURED/);
     });
+
+    it(
+      "binary receipt crosses JWT HTTP → ownership → MinIO → PostgreSQL",
+      { skip: minioSkip },
+      async () => {
+        const token = await signJwt(1);
+        const receiptTourId = randomUUID();
+        await admin.tour.create({
+          data: {
+            id: receiptTourId,
+            tenantId,
+            title: "JWT Prod Cert Tour",
+            publishStatus: "published",
+            canonical: {
+              schemaVersion: 1,
+              roots: ["basics"],
+              data: {
+                title: "JWT Prod Cert Tour",
+                publishStatus: "published",
+                capacityMax: 20,
+                pricing: {
+                  basePricePerPerson: 2_500_000,
+                  paymentMode: "offline_receipt",
+                  paymentCollection: "offline",
+                },
+              },
+            },
+          },
+        });
+        const created = await requestJson(listener, {
+          method: "POST",
+          path: "/bookings",
+          headers: { Authorization: `Bearer ${token}` },
+          body: createBody(`Binary Receipt ${randomUUID().slice(0, 8)}`, receiptTourId),
+        });
+        assert.equal(created.status, 201, JSON.stringify(created.body));
+        const registrationId = String(created.body.id);
+        assert.ok(registrationId.length > 0);
+
+        await admin.operatorRegistration.update({
+          where: { id: registrationId },
+          data: { submittedByUserId: userId },
+        });
+        const approved = await requestJson(listener, {
+          method: "POST",
+          path: `/bookings/${registrationId}/approve`,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        assert.equal(approved.status, 200, JSON.stringify(approved.body));
+
+        const proof = Buffer.from("%PDF-1.7\nDenali integration receipt\n%%EOF\n");
+        const uploaded = await requestJson(listener, {
+          method: "POST",
+          path: `/bookings/${registrationId}/receipts`,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-receipt-file-name": "denali-test-receipt.pdf",
+            "x-receipt-note": "disposable integration test",
+          },
+          contentType: "application/pdf",
+          rawBody: proof,
+        });
+        assert.equal(uploaded.status, 201, JSON.stringify(uploaded.body));
+        assert.equal(uploaded.body.status, "Pending");
+        assert.equal(uploaded.body.note, "disposable integration test");
+        const fileKey = String(uploaded.body.fileKey);
+        const paymentId = String(uploaded.body.paymentId);
+        assert.match(fileKey, new RegExp(`^receipts/${tenantId}/${registrationId}/`));
+
+        try {
+          const storedProof = await readMemberReceiptProof({ tenantId, storageKey: fileKey });
+          assert.deepEqual(storedProof.body, proof);
+          assert.equal(storedProof.contentType, "application/pdf");
+
+          const persisted = await admin.paymentReceipt.findFirst({ where: { tenantId, fileKey } });
+          assert.ok(persisted, "expected a persisted finance receipt referencing the MinIO key");
+          assert.equal(persisted?.status, "Pending");
+          assert.equal(persisted?.note, "disposable integration test");
+        } finally {
+          await deleteMemberReceiptProof({ tenantId, storageKey: fileKey });
+        }
+        const paymentReceiptCount = await admin.paymentReceipt.count({
+          where: { tenantId, paymentId },
+        });
+        assert.equal(paymentReceiptCount, 1);
+
+        const rejectedProof = Buffer.from("%PDF-1.7\nRejected receipt must be cleaned\n%%EOF\n");
+        const rejectedFileName = "finance-rejection-cleanup.pdf";
+        const rejectedFileKey = buildMemberReceiptProofObjectKey({
+          tenantId,
+          registrationId,
+          fileName: rejectedFileName,
+          contentHash: createHash("sha256").update(rejectedProof).digest("hex"),
+        });
+        const rejected = await requestJson(listener, {
+          method: "POST",
+          path: `/bookings/${registrationId}/receipts`,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-receipt-file-name": rejectedFileName,
+            "x-payment-destination-revision": "missing-revision-for-cleanup-test",
+          },
+          contentType: "application/pdf",
+          rawBody: rejectedProof,
+        });
+        assert.equal(rejected.status, 409, JSON.stringify(rejected.body));
+        assert.equal(rejected.body.code, "PAYMENT_DESTINATION_REVISION_UNAVAILABLE");
+        assert.equal(
+          await admin.paymentReceipt.count({ where: { tenantId, paymentId } }),
+          paymentReceiptCount,
+          "a failed finance submit must not persist another receipt"
+        );
+        try {
+          await assert.rejects(
+            readMemberReceiptProof({ tenantId, storageKey: rejectedFileKey }),
+            /RECEIPT_STORAGE_UNAVAILABLE/
+          );
+        } finally {
+          await deleteMemberReceiptProof({ tenantId, storageKey: rejectedFileKey });
+        }
+
+        const minioEnv = {
+          endpoint: process.env.MINIO_ENDPOINT,
+          accessKey: process.env.MINIO_ACCESS_KEY,
+          secretKey: process.env.MINIO_SECRET_KEY,
+          bucket: process.env.MINIO_BUCKET,
+        };
+        delete process.env.MINIO_ENDPOINT;
+        delete process.env.MINIO_ACCESS_KEY;
+        delete process.env.MINIO_SECRET_KEY;
+        delete process.env.MINIO_BUCKET;
+        try {
+          const unavailable = await requestJson(listener, {
+            method: "POST",
+            path: `/bookings/${registrationId}/receipts`,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "x-receipt-file-name": "storage-unavailable.pdf",
+            },
+            contentType: "application/pdf",
+            rawBody: Buffer.from("%PDF-1.7\nstorage unavailable\n%%EOF\n"),
+          });
+          assert.equal(unavailable.status, 503, JSON.stringify(unavailable.body));
+          assert.equal(unavailable.body.code, "MINIO_NOT_CONFIGURED");
+          assert.equal(
+            await admin.paymentReceipt.count({ where: { tenantId, paymentId } }),
+            paymentReceiptCount,
+            "storage failure must not create a receipt"
+          );
+        } finally {
+          if (minioEnv.endpoint === undefined) delete process.env.MINIO_ENDPOINT;
+          else process.env.MINIO_ENDPOINT = minioEnv.endpoint;
+          if (minioEnv.accessKey === undefined) delete process.env.MINIO_ACCESS_KEY;
+          else process.env.MINIO_ACCESS_KEY = minioEnv.accessKey;
+          if (minioEnv.secretKey === undefined) delete process.env.MINIO_SECRET_KEY;
+          else process.env.MINIO_SECRET_KEY = minioEnv.secretKey;
+          if (minioEnv.bucket === undefined) delete process.env.MINIO_BUCKET;
+          else process.env.MINIO_BUCKET = minioEnv.bucket;
+        }
+      }
+    );
   }
 );

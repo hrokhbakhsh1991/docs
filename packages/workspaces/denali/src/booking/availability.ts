@@ -2,10 +2,12 @@
  * Denali availability + create/approve capacity decisions (pure).
  */
 
-import type {
-  BookingCapacityReleasePolicyContext,
-  BookingCreatePolicyContext,
-  BookingCapacityReleaseDecision,
+import {
+  BOOKING_TRANSPORT_CAPACITY_REJECTED,
+  type BookingApprovedCapacitySnapshot,
+  type BookingCapacityReleaseDecision,
+  type BookingCapacityReleasePolicyContext,
+  type BookingCreatePolicyContext,
 } from "@app-tour/booking-http-contracts";
 import { BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE } from "@app-tour/booking-http-contracts";
 
@@ -25,28 +27,28 @@ export type DenaliCreateCapacityEvaluation = {
   readonly reasonCode: string | null;
 };
 
-function readCandidateTransportKind(
-  intake: Readonly<Record<string, unknown>> | undefined
-): string | null {
-  const transport = intake?.transport;
-  if (typeof transport !== "object" || transport === null || Array.isArray(transport)) {
-    return null;
-  }
-  const kind = (transport as Readonly<Record<string, unknown>>).kind;
-  return typeof kind === "string" ? kind : null;
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function sumApprovedTransportFacts(
-  facts: BookingCreatePolicyContext["approvedTransportFacts"],
-  predicate: (kind: string | null) => boolean,
-  value: (fact: NonNullable<BookingCreatePolicyContext["approvedTransportFacts"]>[number]) => number
-): number {
-  return (facts ?? []).reduce((sum, fact) => {
-    if (!predicate(fact.transportKind)) {
-      return sum;
-    }
-    const amount = value(fact);
-    return sum + (Number.isFinite(amount) ? Math.max(0, Math.trunc(amount)) : 0);
+function readTransportIntake(intake: Readonly<Record<string, unknown>> | undefined) {
+  const transport = intake?.transport;
+  return isRecord(transport) ? transport : undefined;
+}
+
+function offeredCarSeats(snapshots: readonly BookingApprovedCapacitySnapshot[]): number {
+  return snapshots.reduce((total, snapshot) => {
+    const transport = readTransportIntake(snapshot.registrationIntake);
+    if (transport?.kind !== "personal_car") return total;
+    const seats = transport.personalCarOccupants;
+    return total + (typeof seats === "number" && Number.isInteger(seats) && seats >= 0 ? seats : 0);
+  }, 0);
+}
+
+function occupiedCarSeats(snapshots: readonly BookingApprovedCapacitySnapshot[]): number {
+  return snapshots.reduce((total, snapshot) => {
+    const transport = readTransportIntake(snapshot.registrationIntake);
+    return transport?.kind === "no_car_dong" ? total + Math.max(0, snapshot.partySize) : total;
   }, 0);
 }
 
@@ -58,11 +60,17 @@ export function computeDenaliAvailability(
   occupiedApprovedPartySize: number,
   tourCapacityMax: number | null
 ): DenaliAvailability | null {
-  if (tourCapacityMax === null || !Number.isFinite(tourCapacityMax) || tourCapacityMax < 1) {
+  if (
+    !Number.isInteger(occupiedApprovedPartySize) ||
+    occupiedApprovedPartySize < 0 ||
+    tourCapacityMax === null ||
+    !Number.isInteger(tourCapacityMax) ||
+    tourCapacityMax < 1
+  ) {
     return null;
   }
-  const occupied = Math.max(0, Math.trunc(occupiedApprovedPartySize));
-  const max = Math.trunc(tourCapacityMax);
+  const occupied = occupiedApprovedPartySize;
+  const max = tourCapacityMax;
   return Object.freeze({
     tourCapacityMax: max,
     occupiedApprovedPartySize: occupied,
@@ -74,6 +82,34 @@ export function evaluateDenaliCreateCapacity(
   ctx: BookingCreatePolicyContext,
   _rule: DenaliCapacityRule = DEFAULT_DENALI_CAPACITY_RULE
 ): DenaliCreateCapacityEvaluation {
+  if (!Number.isInteger(ctx.partySize) || ctx.partySize < 1) {
+    return Object.freeze({
+      decision: "deny" as const,
+      availability: null,
+      reasonCode: "BOOKING_VALIDATION_REJECTED: partySize must be a positive integer",
+    });
+  }
+
+  if (
+    (ctx.approvedCapacitySnapshots ?? []).some(
+      (snapshot) => !Number.isInteger(snapshot.partySize) || snapshot.partySize < 1
+    )
+  ) {
+    return Object.freeze({
+      decision: "deny" as const,
+      availability: null,
+      reasonCode: "BOOKING_CAPACITY_REJECTED: invalid approved occupancy snapshot",
+    });
+  }
+
+  if (!Number.isInteger(ctx.occupiedApprovedPartySize) || ctx.occupiedApprovedPartySize < 0) {
+    return Object.freeze({
+      decision: "deny" as const,
+      availability: null,
+      reasonCode: "BOOKING_CAPACITY_REJECTED: invalid approved occupancy",
+    });
+  }
+
   const availability = computeDenaliAvailability(
     ctx.occupiedApprovedPartySize,
     ctx.tourCapacityMax
@@ -86,8 +122,9 @@ export function evaluateDenaliCreateCapacity(
     });
   }
 
-  // Denali's published capacity is a hard participant ceiling. Generic
-  // overbooking configuration must not exceed the physical tour maximum.
+  // Denali's published capacity is a product invariant.  The generic legacy
+  // flag remains in the rule contract for compatibility, but it must never
+  // bypass this workspace's hard ceiling.
   const next = availability.occupiedApprovedPartySize + ctx.partySize;
   if (next > availability.tourCapacityMax) {
     return Object.freeze({
@@ -97,27 +134,18 @@ export function evaluateDenaliCreateCapacity(
     });
   }
 
-  // Personal-car seats form a separate, physical pool. They never expand the
-  // tour-wide ceiling, and overbooking policy cannot override missing seats.
-  if (readCandidateTransportKind(ctx.registrationIntake) === "no_car_dong") {
-    const approvedFacts = ctx.approvedTransportFacts ?? [];
-    const offeredDongSeats = sumApprovedTransportFacts(
-      approvedFacts,
-      (kind) => kind === "personal_car",
-      (fact) => fact.offeredPassengerSeats ?? 0
-    );
-    const occupiedDongSeats = sumApprovedTransportFacts(
-      approvedFacts,
-      (kind) => kind === "no_car_dong",
-      (fact) => fact.partySize
-    );
-    if (occupiedDongSeats + ctx.partySize > offeredDongSeats) {
-      return Object.freeze({
-        decision: "deny" as const,
-        availability,
-        reasonCode: `BOOKING_CAPACITY_REJECTED: occupied=${occupiedDongSeats} partySize=${ctx.partySize} capacityMax=${offeredDongSeats} constraint=personal_car_dong`,
-      });
-    }
+  const candidateTransport = readTransportIntake(ctx.registrationIntake);
+  const snapshots = ctx.approvedCapacitySnapshots ?? [];
+  const offered = offeredCarSeats(snapshots);
+  const occupied = occupiedCarSeats(snapshots);
+  const dongSeatsRequired =
+    occupied + (candidateTransport?.kind === "no_car_dong" ? ctx.partySize : 0);
+  if (dongSeatsRequired > offered) {
+    return Object.freeze({
+      decision: "deny" as const,
+      availability,
+      reasonCode: `${BOOKING_TRANSPORT_CAPACITY_REJECTED}: dongSeatsRequired=${dongSeatsRequired} carSeatsOffered=${offered} constraint=personal_car_dong`,
+    });
   }
 
   return Object.freeze({
@@ -152,29 +180,27 @@ export function assertDenaliTransitionCapacity(
 }
 
 /**
- * Do not remove an approved car offer when doing so would strand approved dong guests.
- * The host supplies only locked, capacity-only facts; no lifecycle/API types cross the boundary.
+ * A driver cancellation must not leave already-approved dong passengers without a seat.
+ * All values come from the booking repository's lock-scoped, capacity-only snapshots.
  */
 export function evaluateDenaliCapacityRelease(
   ctx: BookingCapacityReleasePolicyContext
 ): BookingCapacityReleaseDecision {
-  if (ctx.bookingStatus !== "approved" || ctx.booking.transportKind !== "personal_car") {
+  const bookingTransport = readTransportIntake(ctx.booking.registrationIntake);
+  if (ctx.bookingStatus !== "approved" || bookingTransport?.kind !== "personal_car") {
     return Object.freeze({ allowed: true as const });
   }
 
-  const confirmedDongSeats = sumApprovedTransportFacts(
-    ctx.approvedTransportFacts,
-    (kind) => kind === "no_car_dong",
-    (fact) => fact.partySize
-  );
-  const offeredCarSeats = sumApprovedTransportFacts(
-    ctx.approvedTransportFacts,
-    (kind) => kind === "personal_car",
-    (fact) => fact.offeredPassengerSeats ?? 0
-  );
-  const remainingCarSeats = Math.max(0, offeredCarSeats - (ctx.booking.offeredPassengerSeats ?? 0));
+  const confirmedDongSeats = occupiedCarSeats(ctx.approvedCapacitySnapshots);
+  const offeredSeats = offeredCarSeats(ctx.approvedCapacitySnapshots);
+  const currentOffer =
+    typeof bookingTransport.personalCarOccupants === "number" &&
+    Number.isInteger(bookingTransport.personalCarOccupants) &&
+    bookingTransport.personalCarOccupants >= 0
+      ? bookingTransport.personalCarOccupants
+      : 0;
 
-  if (confirmedDongSeats > remainingCarSeats) {
+  if (confirmedDongSeats > Math.max(0, offeredSeats - currentOffer)) {
     return Object.freeze({
       allowed: false as const,
       reasonCode: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",

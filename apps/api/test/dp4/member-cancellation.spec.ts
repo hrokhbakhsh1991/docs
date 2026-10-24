@@ -6,7 +6,14 @@ import { before, beforeEach, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app.ts";
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
-import { resetMemberCancellationRequestsForTests } from "../../src/bookings/member-cancellation-request.repository.ts";
+import {
+  findPendingMemberCancellationRequest,
+  resetMemberCancellationRequestsForTests,
+} from "../../src/bookings/member-cancellation-request.repository.ts";
+import {
+  approveMemberCancellationRequestForBooking,
+  submitMemberCancellation,
+} from "../../src/member-cancellation/member-cancellation.service.ts";
 import { resetMemberNotificationInboxForTests } from "../../src/notifications/member-notification-inbox.repository.ts";
 import { resetPaymentHoldRepositoryForTests } from "../../src/finance/payment-hold.repository.ts";
 import { getIdentityRepository } from "../../src/identity/create-identity-repository.ts";
@@ -72,14 +79,18 @@ describe("DP4 member cancellation API", () => {
 
   async function createPendingRegistration(): Promise<string> {
     const stamp = Date.now();
-    const reg = await client.requestJson<{ data?: { id?: string } }>("POST", "/denali/registrations", {
-      headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member"),
-      body: {
-        tourId: OPERATOR_SMOKE.seedTourId,
-        contact: { email: `dp4-${stamp}@denali-smoke.local`, fullName: "DP4 Guest" },
-        partySize: 1,
-      },
-    });
+    const reg = await client.requestJson<{ data?: { id?: string } }>(
+      "POST",
+      "/denali/registrations",
+      {
+        headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member"),
+        body: {
+          tourId: OPERATOR_SMOKE.seedTourId,
+          contact: { email: `dp4-${stamp}@denali-smoke.local`, fullName: "DP4 Guest" },
+          partySize: 1,
+        },
+      }
+    );
     assert.equal(reg.status, 201);
     const bookingId = reg.body.data?.id ?? "";
     assert.ok(bookingId.length > 0);
@@ -93,7 +104,7 @@ describe("DP4 member cancellation API", () => {
       `/bookings/${bookingId}/member-cancellation`,
       { headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member") }
     );
-    assert.equal(eligibility.status, 200);
+    assert.equal(eligibility.status, 200, JSON.stringify(eligibility.body));
     assert.equal(eligibility.body.eligible, true);
     assert.equal(eligibility.body.mode, "withdraw");
 
@@ -130,12 +141,59 @@ describe("DP4 member cancellation API", () => {
     assert.equal(booking.body.cancelSource, "member");
   });
 
+  it("rejects member cancellation of a driver that would strand an approved dong rider", async () => {
+    const driverId = await createPendingRegistration();
+    const repo = (
+      await import("../../src/bookings/create-bookings-repository.ts")
+    ).getBookingsRepository();
+    await repo.mergeRegistrationIntake({
+      bookingId: driverId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      patch: { transport: { kind: "personal_car", personalCarOccupants: 1 } },
+    });
+    await client.requestJson("POST", `/bookings/${driverId}/approve`, {
+      headers: operatorAuthHeaders(),
+    });
+    repo.seedBooking({
+      id: "00000000-0000-4000-8000-000000000913",
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourTitle: "Member cancellation carpool guard",
+      guestLabel: "Approved Dong Rider",
+      guestEmail: null,
+      guestPhone: "+15550009913",
+      partySize: 1,
+      status: "approved",
+      paymentStatus: "unpaid",
+      departureAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      submittedAt: new Date().toISOString(),
+      submittedByUserId: "member-dong-rider",
+      approvedAt: new Date().toISOString(),
+      registrationIntake: { tourCapacityMax: 12, transport: { kind: "no_car_dong" } },
+    });
+
+    const cancellation = await client.requestJson<{ code?: string }>(
+      "POST",
+      `/bookings/${driverId}/member-cancellation`,
+      { headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member") }
+    );
+    assert.equal(cancellation.status, 409);
+    assert.match(cancellation.body.code ?? "", /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/);
+    assert.equal((await repo.getById(driverId, OPERATOR_SMOKE.tenantId))?.status, "approved");
+    assert.equal(
+      (await repo.getById("00000000-0000-4000-8000-000000000913", OPERATOR_SMOKE.tenantId))?.status,
+      "approved"
+    );
+  });
+
   it("S5 paid registration → request only", async () => {
     const bookingId = await createPendingRegistration();
     await client.requestJson("POST", `/bookings/${bookingId}/approve`, {
       headers: operatorAuthHeaders(),
     });
-    const repo = (await import("../../src/bookings/create-bookings-repository.ts")).getBookingsRepository();
+    const repo = (
+      await import("../../src/bookings/create-bookings-repository.ts")
+    ).getBookingsRepository();
     const row = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
     assert.ok(row);
     await repo.updatePaymentStatus?.({
@@ -151,6 +209,71 @@ describe("DP4 member cancellation API", () => {
     );
     assert.equal(result.status, 200);
     assert.equal(result.body.kind, "request_submitted");
+  });
+
+  it("keeps a paid driver's cancellation request pending when approval would strand dong riders", async () => {
+    const driverId = await createPendingRegistration();
+    const repo = (
+      await import("../../src/bookings/create-bookings-repository.ts")
+    ).getBookingsRepository();
+    await repo.mergeRegistrationIntake({
+      bookingId: driverId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      patch: { transport: { kind: "personal_car", personalCarOccupants: 1 } },
+    });
+    await client.requestJson("POST", `/bookings/${driverId}/approve`, {
+      headers: operatorAuthHeaders(),
+    });
+    await repo.updatePaymentStatus({
+      bookingId: driverId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentStatus: "paid",
+    });
+    const memberAuth = {
+      userId: OPERATOR_SMOKE.memberUserId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      role: "member" as const,
+      status: "ACTIVE" as const,
+      workspaceId: "ws-operator-smoke-member",
+    };
+    const requested = await submitMemberCancellation(memberAuth, driverId);
+    assert.equal(requested.kind, "request_submitted");
+
+    repo.seedBooking({
+      id: "00000000-0000-4000-8000-000000000914",
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourTitle: "Cancellation approval carpool guard",
+      guestLabel: "Approved Dong Rider",
+      guestEmail: null,
+      guestPhone: "+15550009914",
+      partySize: 1,
+      status: "approved",
+      paymentStatus: "unpaid",
+      departureAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      submittedAt: new Date().toISOString(),
+      submittedByUserId: "member-dong-rider-approval",
+      approvedAt: new Date().toISOString(),
+      registrationIntake: { tourCapacityMax: 12, transport: { kind: "no_car_dong" } },
+    });
+
+    await assert.rejects(
+      approveMemberCancellationRequestForBooking(
+        {
+          userId: OPERATOR_SMOKE.ownerUserId,
+          tenantId: OPERATOR_SMOKE.tenantId,
+          role: "owner",
+          status: "ACTIVE",
+        },
+        driverId
+      ),
+      /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/
+    );
+    assert.equal(
+      findPendingMemberCancellationRequest(OPERATOR_SMOKE.tenantId, driverId)?.status,
+      "pending"
+    );
+    assert.equal((await repo.getById(driverId, OPERATOR_SMOKE.tenantId))?.status, "approved");
   });
 });
 

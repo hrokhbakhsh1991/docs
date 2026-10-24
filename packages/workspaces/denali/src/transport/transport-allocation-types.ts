@@ -22,7 +22,7 @@ export type RosterParticipant = {
   readonly status: string;
   readonly transportKind: string | null;
   readonly personalCarOccupants: number | null;
-  /** Number of people represented by this registration; defaults to one for legacy callers. */
+  /** Number of people covered by this registration; defaults to one for legacy callers. */
   readonly partySize?: number;
 };
 

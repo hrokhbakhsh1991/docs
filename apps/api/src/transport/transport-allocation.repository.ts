@@ -3,7 +3,16 @@
  */
 import { randomUUID } from "node:crypto";
 
-import type { TransportAllocation, TransportAllocationInput } from "@app-tour/workspace-denali/transport";
+import type {
+  RosterParticipant,
+  TransportAllocation,
+  TransportAllocationInput,
+} from "@app-tour/workspace-denali/transport";
+
+export type TourRosterSnapshot = {
+  readonly participants: readonly RosterParticipant[];
+  readonly allocations: readonly TransportAllocationInput[];
+};
 
 export type TourRosterFreeze = {
   readonly tenantId: string;
@@ -12,6 +21,7 @@ export type TourRosterFreeze = {
   readonly frozenByUserId: string;
   readonly driverCompensationPerSeatMinor: string;
   readonly currency: string;
+  readonly rosterSnapshot: TourRosterSnapshot | null;
 };
 
 type Store = {
@@ -37,10 +47,7 @@ export function resetTransportAllocationStoreForTests(): void {
   store.freezes.clear();
 }
 
-export function getTourRosterFreeze(
-  tenantId: string,
-  tourId: string
-): TourRosterFreeze | null {
+export function getTourRosterFreeze(tenantId: string, tourId: string): TourRosterFreeze | null {
   return store.freezes.get(tourKey(tenantId, tourId)) ?? null;
 }
 
@@ -129,6 +136,7 @@ export function freezeTourRoster(input: {
   readonly driverCompensationPerSeatMinor: string;
   readonly currency: string;
   readonly nowIso: string;
+  readonly rosterSnapshot?: TourRosterSnapshot;
 }): TourRosterFreeze {
   const key = tourKey(input.tenantId, input.tourId);
   const existing = store.freezes.get(key);
@@ -142,7 +150,22 @@ export function freezeTourRoster(input: {
     frozenByUserId: input.actorUserId,
     driverCompensationPerSeatMinor: input.driverCompensationPerSeatMinor,
     currency: input.currency,
+    rosterSnapshot: input.rosterSnapshot ?? null,
   };
   store.freezes.set(key, freeze);
   return freeze;
+}
+
+export function setTourRosterSnapshotIfMissing(
+  tenantId: string,
+  tourId: string,
+  snapshot: TourRosterSnapshot
+): TourRosterFreeze | null {
+  const key = tourKey(tenantId, tourId);
+  const current = store.freezes.get(key);
+  if (current === undefined) return null;
+  if (current.rosterSnapshot !== null) return current;
+  const updated = { ...current, rosterSnapshot: snapshot };
+  store.freezes.set(key, updated);
+  return updated;
 }

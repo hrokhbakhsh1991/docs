@@ -165,6 +165,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
         "host-finance-schedule.adapter.ts",
         "identity-membership-discount-read.adapter.ts",
         "prisma-commercial-quote.repository.ts",
+        "prisma-finance-repository-latest-receipt.spec.ts",
         "prisma-finance.repository.ts",
         "prisma-workspace-outbox-writer.ts",
         "read-tour-membership-discount-gate.ts",

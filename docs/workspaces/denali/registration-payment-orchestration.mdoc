@@ -153,6 +153,45 @@ UI must not rely on this alone — portal stages the panel from `booking.status`
 
 Phase 1 **does not** purge or auto-reject historical receipts uploaded before the gate. New submits are blocked. Operator review of an already-Pending receipt is unchanged.
 
+### Binary receipt proof acceptance
+
+The member file path is accepted only for an owned, approved registration with an outstanding
+offline-payment obligation. The API must check ownership and receipt eligibility before writing
+the object, then persist the returned tenant-scoped storage key with the pending receipt. If the
+finance submit fails after the object write, the object is cleaned up so rejected requests do not
+leave orphan proofs.
+
+Acceptance for the binary path requires a real S3-compatible Object Storage integration, not only
+the in-memory proof store:
+
+| Check                                                         | Expected result                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------- |
+| Valid PDF/image upload through `POST /bookings/{id}/receipts` | `201`, pending receipt, scoped `fileKey`                |
+| Read proof using the persisted `fileKey` and same tenant      | Exact uploaded bytes and normalized content type        |
+| Foreign/unknown registration upload                           | Rejected before object write; no orphan object          |
+| Finance submit fails after object write                       | Object is deleted; no pending receipt is persisted      |
+| Storage is unavailable                                        | Upload fails clearly; no receipt is reported as pending |
+
+The mixed personal-car boundary also needs a service-level acceptance case: tour capacity 10,
+four approved drivers offering five combined dong seats, five approved dong riders, then a sixth
+dong rider. The sixth must stay waitlisted while total-tour occupancy is only 9; a self-arrival
+may still use the remaining tour seat without consuming a car seat. Canceling one dong rider must
+free both one tour place and one car seat without auto-promoting the waitlist; explicit operator
+approval must then promote the queued rider, with the seat and payment hold revalidated.
+
+The upload acceptance test must run against disposable PostgreSQL and a disposable local
+MinIO-compatible service. The ordinary memory-store test remains useful for fast unit coverage but
+does not certify persistence, object cleanup, or the HTTP-to-storage boundary.
+
+### Fast browser transport gate
+
+Run the focused local browser flow with `pnpm --filter @apps/portal run test:smoke:transport`.
+This gate starts only the in-memory API and Portal, exercises bus-with-car-choice, driver occupancy,
+driver-only, invalid transport input, and shared-car dong registration, then cancels successful
+smoke registrations. It is not a staging deployment proof or an Admin tour-creation test. The
+server launcher must fail safely when a required port is already occupied; it must never terminate
+an unrelated local process to make a port available.
+
 ## Portal UX stages (member)
 
 Detail `/me/registrations/{id}` resolves panel from **both** axes:
@@ -200,6 +239,11 @@ The API coalesces concurrent outstanding-AR and tour-collection reads per tenant
 Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
 
 For free collection, `freeCollectionApplied` is the canonical zero-collection marker. Booking list and detail projections must both resolve this marker to `financialDisplayState: "WAIVED"` before Portal derives payment copy; receipt status remains a separate axis.
+
+Operator booking badges follow the same separation: a cancelled or rejected
+registration does not rewrite its recorded `paymentStatus`. The booking
+lifecycle label and the payment/settlement label are rendered independently so
+historical paid, partial, unpaid, and waived states remain auditable.
 
 ### Telegram registration decision message
 
@@ -520,9 +564,9 @@ Body: `{ obligationMinor: string, reason?: string }`
 
 After approve (or when override lands on an approved booking):
 
-| Condition                                                          | Effect                                                                        |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| Resolved `obligationMinor` is zero | `paymentStatus=paid`; member receipt blocked (`FINANCE_RECEIPT_NOT_REQUIRED`) |
+| Condition                                     | Effect                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Resolved `obligationMinor` is zero            | `paymentStatus=paid`; member receipt blocked (`FINANCE_RECEIPT_NOT_REQUIRED`)       |
 | Free collection with positive dong obligation | Remains unpaid until the dong receipt is reviewed; free trip price is not collected |
 
 ### Member receipt submission diagnostics
@@ -560,3 +604,5 @@ PC-07 remains: Denali paid ingress is `offline_receipt` only.
 - OTP verification must remain single-use and additionally enforce bounded attempts per challenge plus a phone/IP failure window. Static OTP `1234` is permitted only in development/test or with the explicit staging profile flag; ordinary production must fail closed.
 - Registration and receipt notifications are emitted through the durable outbox. `registration.created`, `registration.waitlisted`, `receipt.submitted`, `receipt.approved`, and `receipt.rejected` are delivery inputs; Telegram delivery is best effort and must never roll back the financial mutation.
 - Anonymous registration keeps the modal-first experience as progressive enhancement, with a server-rendered login/retry escape path. CTA variants must not leave hidden rail/sticky controls keyboard-focusable.
+
+Architect, documentation status: Updated. Link to docs: docs/workspaces/denali/registration-payment-orchestration.mdoc.

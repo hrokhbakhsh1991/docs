@@ -1,19 +1,16 @@
 import type { BookingActorContext } from "./ports/booking-actor-context";
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port";
 import type { BookingClockPort } from "./ports/booking-clock.port";
-import type {
-  BookingRepositoryCapacityTransportFact,
-  BookingRepositoryPort,
-} from "./ports/booking-repository.port";
+import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabilities.port";
 import type { BookingAssistedRegistrationMembersPort } from "./ports/booking-assisted-registration-members.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
 import type { BookingTourCapacityPort } from "./ports/booking-tour-capacity.port";
 import type { BookingFinancialDisplayStatePort } from "./ports/booking-financial-display-state.port";
 import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking-http-contracts";
+import type { BookingApprovedCapacitySnapshot } from "@app-tour/booking-http-contracts";
 import type {
   ApproveBookingResponse,
-  BookingCapacityReleasePolicyContext,
   BookingCapacityPolicyPort,
   BookingCreatePolicyContext,
   BookingsListQuery,
@@ -35,6 +32,7 @@ import type {
   WorkspaceBookingEventReactionPort,
 } from "@app-tour/booking-http-contracts";
 import {
+  BOOKING_TRANSPORT_CAPACITY_REJECTED,
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
   BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
@@ -42,8 +40,8 @@ import {
 } from "@app-tour/booking-http-contracts";
 import type { BookingRecord, WaitlistCapacityAdmissionResponse } from "./bookings.types";
 import {
-  BookingCapacityReleaseRejectedError,
   BookingCapabilityViolationError,
+  BookingCapacityReleaseRejectedError,
   BookingNotFoundError,
   BookingWaitlistCapacityAdmissionNotAllowedError,
 } from "./bookings.errors";
@@ -57,12 +55,6 @@ import type { BookingRegistrationSloPort } from "./ports/booking-registration-sl
 import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.port";
 
 const BULK_APPROVE_MAX_BATCH = 25;
-
-type CapacityReleaseTransactionContext = {
-  readonly booking: BookingRecord;
-  readonly bookingCapacityFact: BookingRepositoryCapacityTransportFact;
-  readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
-};
 
 export type BookingsServiceDeps = {
   readonly repository: BookingRepositoryPort;
@@ -89,7 +81,7 @@ export type BookingsServiceDeps = {
   readonly registrationSlo: BookingRegistrationSloPort;
   readonly financialDisplayState: BookingFinancialDisplayStatePort;
   readonly serialMutation: BookingSerialMutationPort;
-  /** Re-evaluate FIFO waitlist after a capacity-affecting mutation. */
+  /** Optional workspace-owned policy invoked after capacity-affecting writes. */
   readonly waitlistPromotion?: {
     afterCapacityChange(input: {
       readonly tenantId: string;
@@ -294,7 +286,7 @@ export class BookingsService {
     await this.tenantWorkspaceBinding.assertTenantBoundToRuntime(tenantId, this.workspaceType);
   }
 
-  /** Post-commit waitlist reconciliation must not turn a successful write into a retry-shaped error. */
+  /** A post-commit reconciliation never turns an already-persisted write into a false failure. */
   private async recheckWaitlistAfterCapacityChange(
     tenantId: string,
     tourId: string
@@ -311,46 +303,23 @@ export class BookingsService {
         outcome: "success",
         durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
       });
-      return true;
     } catch {
-      // The lifecycle write is already committed; keep its success response honest and
-      // record the failed follow-up for operational visibility.
       this.registrationSlo.record({
         workspaceType: this.workspaceType,
         tenantId,
         outcome: "error",
         durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
       });
-      // Do not invoke a second promoter after a configured policy callback failed.
-      return true;
     }
+    return true;
   }
 
-  /** Tenant-validated entry point for lifecycle modules outside BookingsService. */
   async recheckWaitlistAfterCapacityChangeForTenant(input: {
     readonly tenantId: string;
     readonly tourId: string;
   }): Promise<boolean> {
     await this.assertTenantBound(input.tenantId);
     return this.recheckWaitlistAfterCapacityChange(input.tenantId, input.tourId);
-  }
-
-  /** Prepare the workspace-owned release rule before entering a repository transaction. */
-  async createCapacityReleaseAssertion(
-    tenantId: string
-  ): Promise<(ctx: CapacityReleaseTransactionContext) => void> {
-    await this.assertTenantBound(tenantId);
-    return (ctx) => {
-      const policyContext: BookingCapacityReleasePolicyContext = {
-        bookingStatus: ctx.booking.status,
-        booking: ctx.bookingCapacityFact,
-        approvedTransportFacts: ctx.approvedTransportFacts,
-      };
-      const decision = this.capacityPolicy.evaluateCapacityRelease(policyContext);
-      if (!decision.allowed) {
-        throw new BookingCapacityReleaseRejectedError(decision.reasonCode);
-      }
-    };
   }
 
   private assertPublicCreateCapability(): void {
@@ -743,12 +712,12 @@ export class BookingsService {
                 readonly tourId: string;
                 readonly partySize: number;
                 readonly occupiedApprovedPartySize: number;
-                readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+                readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
               }) => {
                 this.capacityPolicy.assertCreateCapacity({
                   ...baseCtx,
                   occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
-                  approvedTransportFacts: ctx.approvedTransportFacts,
+                  approvedCapacitySnapshots: ctx.approvedCapacitySnapshots,
                 });
               },
             }
@@ -789,7 +758,7 @@ export class BookingsService {
     },
     occupiedApprovedPartySize: number,
     tourCapacityMax: number,
-    approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[] = []
+    approvedCapacitySnapshots?: readonly BookingApprovedCapacitySnapshot[]
   ): BookingCreatePolicyContext {
     const guestEmail =
       source.guestEmail !== undefined && source.guestEmail !== null && source.guestEmail.length > 0
@@ -812,8 +781,8 @@ export class BookingsService {
         ? { registrationIntake: source.registrationIntake }
         : {}),
       occupiedApprovedPartySize,
-      approvedTransportFacts,
       tourCapacityMax,
+      ...(approvedCapacitySnapshots !== undefined ? { approvedCapacitySnapshots } : {}),
     };
   }
 
@@ -825,14 +794,17 @@ export class BookingsService {
     return async (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-      readonly approvedTransportFacts: readonly BookingRepositoryCapacityTransportFact[];
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
+      readonly tourCapacityMax?: number;
     }): Promise<void> => {
       const booking = ctx.booking;
-      const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
-        tenantId,
-        booking.tourId,
-        booking.registrationIntake
-      );
+      const tourCapacityMax =
+        ctx.tourCapacityMax ??
+        (await this.resolveEffectiveTourCapacityMax(
+          tenantId,
+          booking.tourId,
+          booking.registrationIntake
+        ));
       this.capacityPolicy.assertCreateCapacity(
         this.buildCapacityPolicyContext(
           tenantId,
@@ -851,10 +823,42 @@ export class BookingsService {
           },
           ctx.occupiedApprovedPartySize,
           tourCapacityMax,
-          ctx.approvedTransportFacts
+          ctx.approvedCapacitySnapshots
         )
       );
     };
+  }
+
+  /**
+   * Verify a capacity release while the repository still holds the tour lock.
+   * This is not a create/approve decision: a driver removal can invalidate
+   * seats already consumed by dong passengers even though it frees tour seats.
+   */
+  buildPostRemovalCapacityAssert() {
+    return async (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+      readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
+    }): Promise<void> => {
+      const decision = this.capacityPolicy.evaluateCapacityRelease({
+        bookingStatus: ctx.booking.status,
+        booking: {
+          partySize: ctx.booking.partySize,
+          ...(ctx.booking.registrationIntake !== undefined
+            ? { registrationIntake: ctx.booking.registrationIntake }
+            : {}),
+        },
+        approvedCapacitySnapshots: ctx.approvedCapacitySnapshots,
+      });
+      if (!decision.allowed) {
+        throw new BookingCapacityReleaseRejectedError(decision.reasonCode);
+      }
+    };
+  }
+
+  async createCapacityReleaseAssertion(tenantId: string) {
+    await this.assertTenantBound(tenantId);
+    return this.buildPostRemovalCapacityAssert();
   }
 
   async approveBooking(
@@ -940,7 +944,8 @@ export class BookingsService {
   /**
    * Tour-policy public auto-approve — no ops CASL.
    * Ownership: actorUserId must equal submittedByUserId.
-   * Capacity reject → leave pending by default; an explicitly opted-in workspace may waitlist it.
+   * A workspace can opt in to waitlisting only after a concrete capacity decision.
+   * Other failures remain pending for a safe operator decision.
    */
   async autoApprovePublicBooking(input: {
     readonly tenantId: string;
@@ -965,23 +970,23 @@ export class BookingsService {
         assertCapacityInTx: this.buildApproveCapacityAssert(input.tenantId),
       });
       await this.invokeApproveReaction(input.tenantId, updated.id);
-      await this.recheckWaitlistAfterCapacityChange(input.tenantId, updated.tourId);
+      await this.recheckWaitlistAfterCapacityChange(input.tenantId, booking.tourId);
       return { id: updated.id, status: updated.status };
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith("BOOKING_CAPACITY_REJECTED")) {
-        // Only a concrete occupied/partySize/capacity decision means sold out. A missing
-        // authoritative capacity must remain pending and fail closed, not masquerade as full.
-        if (
-          input.capacityFallback === "waitlist" &&
-          /occupied=\d+ partySize=\d+ capacityMax=\d+/.test(error.message)
-        ) {
-          const waitlisted = await this.repository.waitlistBooking({
-            bookingId: input.bookingId,
-            tenantId: input.tenantId,
-            outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
-          });
-          return { id: waitlisted.id, status: waitlisted.status };
-        }
+      const capacityRejected =
+        error instanceof Error &&
+        (error.message.startsWith(BOOKING_TRANSPORT_CAPACITY_REJECTED) ||
+          (error.message.startsWith("BOOKING_CAPACITY_REJECTED") &&
+            /occupied=\d+ partySize=\d+ capacityMax=\d+/.test(error.message)));
+      if (input.capacityFallback === "waitlist" && capacityRejected) {
+        const waitlisted = await this.repository.waitlistBooking({
+          bookingId: booking.id,
+          tenantId: input.tenantId,
+          outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
+        });
+        return { id: waitlisted.id, status: waitlisted.status };
+      }
+      if (capacityRejected) {
         return { id: booking.id, status: booking.status };
       }
       throw error;
@@ -1057,43 +1062,66 @@ export class BookingsService {
       if (current.status !== "waitlisted" || current.partySize < 1) {
         throw new BookingWaitlistCapacityAdmissionNotAllowedError();
       }
+      const atomicPromotion = this.repository.approveWaitlistedWithCapacityIncrease;
+      if (atomicPromotion !== undefined) {
+        let approved: BookingRecord;
+        try {
+          approved = await atomicPromotion.call(this.repository, {
+            bookingId,
+            tenantId: auth.tenantId,
+            outboxEvent: "registration.waitlist_promoted_with_capacity_increase",
+            // The repository commits capacity, booking state, and outbox as one
+            // transaction, then supplies the new ceiling to this policy check.
+            assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
+          });
+        } catch (error) {
+          // A committed transaction can lose its response. Read the durable
+          // admission marker before deciding whether this is a failed attempt.
+          let afterFailure: BookingRecord | null;
+          try {
+            afterFailure = await this.repository.getById(bookingId, auth.tenantId);
+          } catch {
+            this.registrationSlo.record({
+              workspaceType: this.workspaceType,
+              tenantId: auth.tenantId,
+              outcome: "error",
+            });
+            throw error;
+          }
+          const committedMarker = afterFailure?.registrationIntake?.waitlistCapacityAdmission;
+          if (
+            afterFailure === null ||
+            afterFailure.status !== "approved" ||
+            committedMarker === null ||
+            typeof committedMarker !== "object"
+          ) {
+            throw error;
+          }
+          approved = afterFailure;
+        }
+        const committedMarker = approved.registrationIntake?.waitlistCapacityAdmission;
+        const admission =
+          committedMarker !== null && typeof committedMarker === "object"
+            ? (committedMarker as Record<string, unknown>)
+            : {};
+        await this.invokeApproveReaction(auth.tenantId, approved.id);
+        return {
+          id: approved.id,
+          status: approved.status,
+          paymentStatus: approved.paymentStatus,
+          capacityAdded:
+            typeof admission.capacityAdded === "number"
+              ? admission.capacityAdded
+              : current.partySize,
+          previousCapacity:
+            typeof admission.previousCapacity === "number" ? admission.previousCapacity : 0,
+          nextCapacity: typeof admission.nextCapacity === "number" ? admission.nextCapacity : 0,
+        };
+      }
       const increaseTourCapacity = this.tourCapacity.increaseTourCapacity;
       if (increaseTourCapacity === undefined) {
         throw new Error("BOOKING_CAPACITY_INCREMENT_UNSUPPORTED");
       }
-      const currentCapacity = await this.resolveEffectiveTourCapacityMax(
-        auth.tenantId,
-        current.tourId,
-        current.registrationIntake
-      );
-      const approvedTransportFacts = await this.repository.listApprovedCapacityTransportFacts(
-        auth.tenantId,
-        current.tourId
-      );
-      const occupiedApprovedPartySize = approvedTransportFacts.reduce(
-        (sum, fact) => sum + fact.partySize,
-        0
-      );
-      // This action deliberately raises only the tour-wide ceiling. It must not
-      // manufacture personal-car dong seats for an otherwise ineligible row.
-      this.capacityPolicy.assertCreateCapacity(
-        this.buildCapacityPolicyContext(
-          auth.tenantId,
-          {
-            tourId: current.tourId,
-            tourTitle: current.tourTitle,
-            guestLabel: current.guestLabel,
-            guestEmail: current.guestEmail,
-            guestPhone: current.guestPhone,
-            partySize: current.partySize,
-            departureAt: current.departureAt,
-            registrationIntake: current.registrationIntake,
-          },
-          occupiedApprovedPartySize,
-          currentCapacity + current.partySize,
-          approvedTransportFacts
-        )
-      );
       const expansion = await increaseTourCapacity({
         tenantId: auth.tenantId,
         tourId: current.tourId,
@@ -1105,29 +1133,10 @@ export class BookingsService {
           bookingId,
           tenantId: auth.tenantId,
           outboxEvent: "registration.waitlist_promoted_with_capacity_increase",
-          assertCapacityInTx: (ctx) => {
-            this.capacityPolicy.assertCreateCapacity(
-              this.buildCapacityPolicyContext(
-                auth.tenantId,
-                {
-                  tourId: ctx.booking.tourId,
-                  tourTitle: ctx.booking.tourTitle,
-                  guestLabel: ctx.booking.guestLabel,
-                  guestEmail: ctx.booking.guestEmail,
-                  guestPhone: ctx.booking.guestPhone,
-                  partySize: ctx.booking.partySize,
-                  departureAt: ctx.booking.departureAt,
-                  registrationIntake: this.withServerTourCapacityMax(
-                    ctx.booking.registrationIntake,
-                    expansion.nextCapacity
-                  ),
-                },
-                ctx.occupiedApprovedPartySize,
-                expansion.nextCapacity,
-                ctx.approvedTransportFacts
-              )
-            );
-          },
+          // Increasing the tour's global ceiling does not add personal-car
+          // seats. Re-run the normal workspace capacity policy against the
+          // locked approved snapshot before admitting the waitlisted party.
+          assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
           registrationIntakePatch: {
             waitlistCapacityAdmission: {
               capacityAdded: current.partySize,
@@ -1137,34 +1146,73 @@ export class BookingsService {
           },
         });
       } catch (error) {
-        const restore = this.tourCapacity.restoreTourCapacityIfUnchanged;
-        if (restore !== undefined) {
-          try {
-            const restored = await restore.call(this.tourCapacity, {
-              tenantId: auth.tenantId,
-              tourId: current.tourId,
-              expectedCapacity: expansion.nextCapacity,
-              restoreCapacity: expansion.previousCapacity,
-            });
-            if (!restored) {
+        // The DB may have committed while the response was lost. Confirm the
+        // durable booking state before compensating the separately stored tour.
+        let afterFailure: BookingRecord | null;
+        try {
+          afterFailure = await this.repository.getById(bookingId, auth.tenantId);
+        } catch {
+          this.registrationSlo.record({
+            workspaceType: this.workspaceType,
+            tenantId: auth.tenantId,
+            outcome: "error",
+          });
+          throw error;
+        }
+        const admission = afterFailure?.registrationIntake?.waitlistCapacityAdmission;
+        const committed =
+          afterFailure !== null &&
+          afterFailure.status === "approved" &&
+          admission !== null &&
+          typeof admission === "object" &&
+          (admission as Record<string, unknown>).nextCapacity === expansion.nextCapacity;
+        if (committed && afterFailure !== null) {
+          approved = afterFailure;
+        } else {
+          if (afterFailure?.status === "waitlisted") {
+            const restore = this.tourCapacity.restoreTourCapacityIfUnchanged;
+            if (restore !== undefined) {
+              try {
+                const restored = await restore({
+                  tenantId: auth.tenantId,
+                  tourId: current.tourId,
+                  expectedCapacity: expansion.nextCapacity,
+                  restoreCapacity: expansion.previousCapacity,
+                });
+                if (!restored) {
+                  this.registrationSlo.record({
+                    workspaceType: this.workspaceType,
+                    tenantId: auth.tenantId,
+                    outcome: "error",
+                  });
+                }
+              } catch {
+                this.registrationSlo.record({
+                  workspaceType: this.workspaceType,
+                  tenantId: auth.tenantId,
+                  outcome: "error",
+                });
+              }
+            } else {
               this.registrationSlo.record({
                 workspaceType: this.workspaceType,
                 tenantId: auth.tenantId,
                 outcome: "error",
               });
             }
-          } catch {
+          } else {
+            // Unknown/changed state: never risk removing capacity relied on by
+            // a possibly committed registration. Emit an operational signal.
             this.registrationSlo.record({
               workspaceType: this.workspaceType,
               tenantId: auth.tenantId,
               outcome: "error",
             });
           }
+          throw error;
         }
-        throw error;
       }
       await this.invokeApproveReaction(auth.tenantId, approved.id);
-      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, approved.tourId);
       const result = approved;
       return {
         id: result.id,
@@ -1192,7 +1240,6 @@ export class BookingsService {
     }
     const previousStatus = before.status;
     const correlationId = `registration.cancelled:${bookingId}`;
-    const assertCapacityInTx = await this.createCapacityReleaseAssertion(auth.tenantId);
     const updated = await this.repository.cancelBooking({
       bookingId,
       tenantId: auth.tenantId,
@@ -1204,7 +1251,7 @@ export class BookingsService {
       cancellationReasonNote: input.reasonNote,
       cancellationApprovedByUserId: auth.userId,
       cancellationCorrelationId: correlationId,
-      assertCapacityInTx,
+      assertCapacityAfterRemovalInTx: this.buildPostRemovalCapacityAssert(),
     });
     let settlementStatus: CancelBookingResponse["settlementStatus"] = "not_affected";
     try {
@@ -1220,9 +1267,6 @@ export class BookingsService {
       // The lifecycle transition is already persisted. Surface a recoverable
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
-    }
-    if (previousStatus === "approved" && this.waitlistPromotion !== undefined) {
-      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, before.tourId);
     }
     const isWaivedCollection =
       before.financialDisplayState === "WAIVED" ||
@@ -1286,6 +1330,7 @@ export class BookingsService {
       outboxEventType: this.eventReaction.approveOutboxEventType,
     });
   }
+
 }
 
 export function createBookingsService(deps: BookingsServiceDeps): BookingsService {
