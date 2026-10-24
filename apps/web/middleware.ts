@@ -7,6 +7,7 @@ import {
   OPERATOR_WIZARD_PATH,
 } from "@/admin/require-operator-session";
 import { resolveOperatorAdminRootRedirect } from "@/admin/resolve-operator-admin-root-redirect";
+import { resolveAdminRootLocation } from "@/admin/resolve-admin-root-location";
 import { SESSION_TOKEN_COOKIE, clearSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@app-tour/session-client";
 import {
@@ -289,7 +290,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const operatorAdminHome = resolveOperatorAdminRootRedirect({ pathname, host });
   if (operatorAdminHome !== null) {
-    return NextResponse.redirect(new URL(operatorAdminHome, request.url));
+    const location = resolveAdminRootLocation({
+      pathname: operatorAdminHome,
+      host,
+      forwardedProtocol: request.headers.get("x-forwarded-proto"),
+      requestProtocol: request.nextUrl.protocol,
+    });
+    return NextResponse.redirect(location);
   }
 
   const platformOnClubAdmin = blockPlatformOnClubAdminHost(request, host);
