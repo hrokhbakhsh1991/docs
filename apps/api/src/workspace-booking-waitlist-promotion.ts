@@ -7,10 +7,13 @@ import { createTourStorageRepository } from "./storage/create-tour-storage.ts";
 async function reconcileDenaliWaitlistAfterCapacityChange(input: {
   readonly tenantId: string;
   readonly tourId: string;
+  readonly reason: "capacity_released" | "capacity_increased";
 }): Promise<readonly string[]> {
-  const tour = await createTourStorageRepository().getById(input.tourId, input.tenantId);
-  if (resolveDenaliRegistrationApprovalMode(tour?.canonical) !== "auto") {
-    return [];
+  if (input.reason === "capacity_increased") {
+    const tour = await createTourStorageRepository().getById(input.tourId, input.tenantId);
+    if (resolveDenaliRegistrationApprovalMode(tour?.canonical) !== "auto") {
+      return [];
+    }
   }
   return promoteAvailableWaitlistedGuests(input);
 }

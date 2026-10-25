@@ -135,7 +135,9 @@ async function executeMemberCancel(
     cancellationReasonCode: "member_withdrawal",
     cancellationApprovedByUserId: auth.userId,
     cancellationCorrelationId: `registration.cancelled:${booking.id}`,
-    assertCapacityAfterRemovalInTx: await bookingsService.createCapacityReleaseAssertion(auth.tenantId),
+    assertCapacityAfterRemovalInTx: await bookingsService.createCapacityReleaseAssertion(
+      auth.tenantId
+    ),
   });
 
   const refundStatus =
@@ -156,6 +158,13 @@ async function executeMemberCancel(
     // The lifecycle transition is already persisted. Never turn a successful
     // cancellation into a retry-shaped 500 when Finance/settlement needs review.
     settlementStatus = "manual_review";
+  }
+  if (previousStatus === "approved" && Date.parse(booking.departureAt) > Date.now()) {
+    await bookingsService.recheckWaitlistAfterCapacityChangeForTenant({
+      tenantId: auth.tenantId,
+      tourId: booking.tourId,
+      reason: "capacity_released",
+    });
   }
 
   return {

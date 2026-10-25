@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-10-22-v12"
+version: "2026-10-25-v13"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -46,8 +46,10 @@ must never silently increase the tour's overall participant ceiling.
 - `pending` registrations do not reserve a seat under the existing approval
   lifecycle. In manual-approval tours they remain provisional; the locked
   approval check is authoritative and must reject/waitlist a request that no
-  longer fits. A waitlisted row must never be silently auto-approved when the
-  tour requires manual approval.
+  longer fits. Manual approval governs initial admission. Once a person is
+  waitlisted, a genuinely released seat automatically promotes the oldest
+  eligible waitlisted registration; the promotion must still pass the same
+  locked tour and transport capacity checks.
 - These checks must run atomically under the existing per-tour capacity lock
   for create, approval, and waitlist promotion. Promotion preserves FIFO among
   eligible candidates but skips a candidate that cannot use the newly available
@@ -55,8 +57,9 @@ must never silently increase the tour's overall participant ceiling.
 - In auto-approval tours, an approval that adds dong seats re-evaluates the
   waitlist against updated facts and promotes eligible rows in FIFO order. In
   manual-approval tours, a driver approval must not approve other people; those
-  rows remain available for an explicit operator decision and are revalidated
-  under the same lock when the operator acts. A capacity-increase promotion
+  rows remain available for an explicit operator decision at that point. A
+  later release of capacity automatically promotes the oldest eligible
+  waitlisted row. A capacity-increase promotion
   may expand only the tour-wide ceiling; it must still pass the transport-pool
   check before approval and must not leave an unintended capacity increase if
   that approval fails.
@@ -70,9 +73,13 @@ must never silently increase the tour's overall participant ceiling.
   workspace name to implement this rule. Whole-tour cancellation is a distinct
   operation: it cancels every active registration, including waitlisted rows,
   and must not promote the waitlist while the tour itself is being cancelled.
-- Releasing capacity through payment-hold expiry follows the tour's approval
-  mode: auto-approval tours may promote eligible waitlist rows, while manual
-  approval tours retain them for an operator decision. Expiry, booking
+- Releasing capacity through an approved-registration cancellation or
+  payment-hold expiry automatically promotes eligible waitlist rows in FIFO
+  order, including on manual-approval tours. The promotion is attempted only
+  after the locked lifecycle mutation commits and any cancelled passenger's
+  transport allocations are removed. A candidate that does not fit the actual
+  remaining tour and transport capacity stays waitlisted; no extra capacity is
+  assigned. Expiry, booking
   cancellation, payment-hold state, and the expiry outbox event must be
   idempotently recoverable if one post-commit step fails. Operator/member
   cancellation and payment-hold expiry use the same tenant-aware
@@ -176,8 +183,9 @@ The mixed personal-car boundary also needs a service-level acceptance case: tour
 four approved drivers offering five combined dong seats, five approved dong riders, then a sixth
 dong rider. The sixth must stay waitlisted while total-tour occupancy is only 9; a self-arrival
 may still use the remaining tour seat without consuming a car seat. Canceling one dong rider must
-free both one tour place and one car seat without auto-promoting the waitlist; explicit operator
-approval must then promote the queued rider, with the seat and payment hold revalidated.
+free both one tour place and one car seat, then automatically promote the oldest compatible
+queued rider, with the seat and payment hold revalidated. If another compatible rider is queued,
+that rider remains waitlisted until capacity is genuinely released again.
 
 The upload acceptance test must run against disposable PostgreSQL and a disposable local
 MinIO-compatible service. The ordinary memory-store test remains useful for fast unit coverage but

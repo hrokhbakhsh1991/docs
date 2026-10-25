@@ -141,6 +141,38 @@ describe("DP4 member cancellation API", () => {
     assert.equal(booking.body.cancelSource, "member");
   });
 
+  it("member self-cancel automatically promotes the oldest waitlisted booking", async () => {
+    const bookingId = await createPendingRegistration();
+    await client.requestJson("POST", `/bookings/${bookingId}/approve`, {
+      headers: operatorAuthHeaders(),
+    });
+    const repo = (
+      await import("../../src/bookings/create-bookings-repository.ts")
+    ).getBookingsRepository();
+    const approved = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
+    assert.ok(approved);
+    const waitlistedId = "00000000-0000-4000-8000-000000000914";
+    repo.seedBooking({
+      ...approved,
+      id: waitlistedId,
+      guestLabel: "DP4 Waitlisted Guest",
+      guestEmail: "dp4-waitlisted@denali-smoke.local",
+      status: "waitlisted",
+      approvedAt: null,
+      submittedAt: new Date(Date.now() + 1).toISOString(),
+    });
+
+    const cancelled = await client.requestJson<{ kind?: string }>(
+      "POST",
+      `/bookings/${bookingId}/member-cancellation`,
+      { headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member") }
+    );
+
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.body.kind, "cancelled");
+    assert.equal((await repo.getById(waitlistedId, OPERATOR_SMOKE.tenantId))?.status, "approved");
+  });
+
   it("rejects member cancellation of a driver that would strand an approved dong rider", async () => {
     const driverId = await createPendingRegistration();
     const repo = (

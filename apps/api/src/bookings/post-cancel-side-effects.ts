@@ -40,10 +40,7 @@ function shouldApplyPenalty(input: {
   if (input.tourCancelled || input.paymentStatus === "unpaid") {
     return false;
   }
-  if (
-    input.cancellationPenaltyPercentage === null ||
-    input.cancellationPenaltyPercentage <= 0
-  ) {
+  if (input.cancellationPenaltyPercentage === null || input.cancellationPenaltyPercentage <= 0) {
     return false;
   }
   const nowMs = Date.parse(new Date().toISOString());
@@ -67,7 +64,9 @@ export async function runPostCancelSideEffects(
   const { auth, booking, previousStatus, cancelDomainEventId } = input;
   let waitlistPromoted = false;
   const waitlistCandidate =
-    previousStatus === "approved" && Date.parse(booking.departureAt) > Date.now();
+    input.tourCancelled !== true &&
+    previousStatus === "approved" &&
+    Date.parse(booking.departureAt) > Date.now();
   let settlementStatus: PostCancelSideEffectsResult["settlementStatus"] = "not_affected";
 
   if (previousStatus === "approved") {
@@ -100,13 +99,13 @@ export async function runPostCancelSideEffects(
   const applyPenalty = isLateCorrection
     ? false
     : shouldApplyPenalty({
-    previousStatus,
-    paymentStatus: booking.paymentStatus,
-    departureAt: booking.departureAt,
-    paymentDueAt: booking.paymentDueAt ?? null,
-    cancellationDeadlineHours: policy.cancellationDeadlineHours,
-    cancellationPenaltyPercentage: policy.cancellationPenaltyPercentage,
-    tourCancelled: input.tourCancelled === true,
+        previousStatus,
+        paymentStatus: booking.paymentStatus,
+        departureAt: booking.departureAt,
+        paymentDueAt: booking.paymentDueAt ?? null,
+        cancellationDeadlineHours: policy.cancellationDeadlineHours,
+        cancellationPenaltyPercentage: policy.cancellationPenaltyPercentage,
+        tourCancelled: input.tourCancelled === true,
       });
 
   const refund = await orchestrateRefundAfterCancellation({

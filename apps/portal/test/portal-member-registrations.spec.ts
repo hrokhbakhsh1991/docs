@@ -387,7 +387,7 @@ describe("portal-member-registrations", () => {
       form,
       /onChange=\{\(event\) => \{[\s\S]*idempotencyKeyRef\.current = null;[\s\S]*setReceiptNote\(event\.target\.value\)/
     );
-    const uploadAt = form.indexOf("<div data-portal-member-receipt-upload>");
+    const uploadAt = form.indexOf("<div data-portal-member-receipt-upload");
     const uploadDestinationAt = form.indexOf("{paymentDestinationBlock}", uploadAt);
     assert.ok(uploadAt > 0 && uploadDestinationAt > uploadAt);
     assert.match(form, /selectedFile === undefined/);
