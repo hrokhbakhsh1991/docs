@@ -71,6 +71,27 @@ async function createDenaliAdminPage(
   return { context, page };
 }
 
+function registrationIdFromPage(page: Page): string {
+  const registrationId = page.url().match(/\/me\/registrations\/([^/?#]+)/)?.[1];
+  expect(registrationId, "member detail URL must expose registration id").toBeTruthy();
+  return registrationId!;
+}
+
+async function expectMemberReceiptDestination(page: Page, registrationId: string): Promise<void> {
+  const response = await page.request.get(
+    `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`
+  );
+  expect(response.status()).toBe(200);
+  const panel = (await response.json()) as {
+    paymentDestination?: { enabled?: unknown; revision?: unknown } | null;
+  };
+  expect(
+    panel.paymentDestination?.enabled,
+    "member receipt API must enable the seeded destination"
+  ).toBe(true);
+  expect(panel.paymentDestination?.revision).toEqual(expect.any(String));
+}
+
 test("SMK-PTL-02 member /me lists registration after catalog intake (VS-04)", async ({ page }) => {
   await completePortalCatalogRegistration(page, {
     email: REGISTRATION_EMAIL,
@@ -542,13 +563,15 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   });
   await openMemberRegistrationsFromSuccess(page);
   await openMemberRegistrationDetailByTitle(page, title);
+  const registrationId = registrationIdFromPage(page);
+  await expectMemberReceiptDestination(page, registrationId);
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
-  await page
-    .locator("[data-portal-member-receipt-note]")
-    .fill("پرداخت از طریق انتقال بانکی انجام شد.");
+  const receiptNote = "پرداخت از طریق انتقال بانکی انجام شد.";
+  await page.locator("[data-portal-member-receipt-note]").fill(receiptNote);
+  await expect(page.locator("[data-portal-member-receipt-note]")).toHaveValue(receiptNote);
   await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled();
   await expect(page.locator("#receipt-file")).toHaveValue("");
   const receiptResponse = page.waitForResponse(
@@ -567,10 +590,6 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
     timeout: 60_000,
   });
-
-  const registrationMatch = page.url().match(/\/me\/registrations\/([^/?#]+)/);
-  expect(registrationMatch?.[1], "member detail URL must expose registration id").toBeTruthy();
-  const registrationId = registrationMatch![1]!;
 
   // Use a separate browser context: the member portal and operator admin are
   // different authorities and must not share cookies or session state.
@@ -706,6 +725,8 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
   });
   await openMemberRegistrationsFromSuccess(page);
   await openMemberRegistrationDetailByTitle(page, "Denali paid auto member discount");
+  const registrationId = registrationIdFromPage(page);
+  await expectMemberReceiptDestination(page, registrationId);
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
@@ -715,6 +736,9 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
     mimeType: "image/png",
     buffer: Buffer.from("denali-smoke-paid-auto-discount-receipt"),
   });
+  await expect(page.locator("[data-portal-member-receipt-file-name]")).toHaveText(
+    "denali-paid-auto-discount-receipt.png"
+  );
   await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled();
   const receiptResponse = page.waitForResponse(
     (response) =>
@@ -728,9 +752,6 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
     timeout: 60_000,
   });
 
-  const registrationMatch = page.url().match(/\/me\/registrations\/([^/?#]+)/);
-  expect(registrationMatch?.[1], "member detail URL must expose registration id").toBeTruthy();
-  const registrationId = registrationMatch![1]!;
   const { context: adminContext, page: adminPage } = await createDenaliAdminPage(browser);
   try {
     const invoiceResponse = await adminPage.request.get(
@@ -820,6 +841,7 @@ test("DEN-BOOK-CORE paid manual booking reaches approval, payment, and finance",
     expect(approvedBooking.status(), await approvedBooking.text()).toBe(200);
 
     await page.reload({ waitUntil: "domcontentloaded" });
+    await expectMemberReceiptDestination(page, registrationId);
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
       timeout: 60_000,
     });
@@ -829,6 +851,9 @@ test("DEN-BOOK-CORE paid manual booking reaches approval, payment, and finance",
       mimeType: "image/png",
       buffer: Buffer.from("denali-smoke-paid-manual-receipt"),
     });
+    await expect(page.locator("[data-portal-member-receipt-file-name]")).toHaveText(
+      "denali-paid-manual-receipt.png"
+    );
     await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled();
     const receiptResponse = page.waitForResponse(
       (response) =>
