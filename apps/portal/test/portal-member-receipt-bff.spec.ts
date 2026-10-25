@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-registration-headers.server";
+import { encodeMemberReceiptNoteHeader } from "../src/me/member-receipt-note-header";
 import { parseMemberReceiptPanel } from "../src/me/member-receipt-status";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -22,8 +23,25 @@ describe("portal-member-receipt-bff", () => {
     assert.match(route, /AUTH_UNAUTHENTICATED/);
     assert.match(route, /\/bookings\/\$\{encodeURIComponent\(registrationId\)\}\/receipts/);
     assert.match(route, /x-receipt-file-name/);
+    assert.match(route, /x-receipt-note-base64url/);
     assert.match(route, /Content-Type/);
     assert.doesNotMatch(route, /\/finance\/receipts/);
+  });
+
+  it("encodes Persian note text into a browser-safe binary receipt header", () => {
+    const note = "QA TEST ONLY — توضیح ساختگی staging";
+    const encoded = encodeMemberReceiptNoteHeader(note);
+
+    assert.match(encoded, /^[A-Za-z0-9_-]+$/);
+    assert.doesNotThrow(
+      () =>
+        new Request("https://example.test/receipt", {
+          method: "POST",
+          headers: { "x-receipt-note-base64url": encoded },
+          body: new Uint8Array([1, 2, 3]),
+        })
+    );
+    assert.equal(Buffer.from(encoded, "base64url").toString("utf8"), note);
   });
 
   it("MEM-BFF-03b POST route requires a non-empty evidence body", () => {

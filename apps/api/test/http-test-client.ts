@@ -5,6 +5,7 @@ import { after, before } from "node:test";
 export type HttpTestJsonOptions = {
   readonly headers?: Record<string, string>;
   readonly body?: unknown;
+  readonly rawBody?: Buffer | string;
 };
 
 export type HttpTestJsonResult<T extends Record<string, unknown> = Record<string, unknown>> = {
@@ -91,7 +92,8 @@ export function installHttpTestClient(createListener: () => RequestListener): Ht
     path: string,
     options?: HttpTestJsonOptions
   ): Promise<HttpTestRawResult> {
-    const payload = options?.body === undefined ? undefined : JSON.stringify(options.body);
+    const payload =
+      options?.rawBody ?? (options?.body === undefined ? undefined : JSON.stringify(options.body));
     return new Promise<HttpTestRawResult>((resolve, reject) => {
       const req = http.request(
         {
@@ -102,11 +104,9 @@ export function installHttpTestClient(createListener: () => RequestListener): Ht
           headers: {
             Connection: "close",
             ...options?.headers,
-            ...(payload
-              ? {
-                  "Content-Type": "application/json",
-                  "Content-Length": String(Buffer.byteLength(payload)),
-                }
+            ...(options?.body !== undefined ? { "Content-Type": "application/json" } : {}),
+            ...(payload !== undefined
+              ? { "Content-Length": String(Buffer.byteLength(payload)) }
               : {}),
           },
         },

@@ -113,6 +113,62 @@ describe("p6-member-receipt-flow", () => {
     assert.ok(BigInt(String(response.body.remainingMinor ?? "0").replace(/\D/g, "") || "0") > 0n);
   });
 
+  it("P6-MR-01d accepts a binary receipt with a Persian note in the ASCII-safe header", async () => {
+    const idRepo = getIdentityRepository();
+    const { user, membership } = await idRepo.registerPublicGuest({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      mobile: "+15559001127",
+      displayName: "P6 Binary Receipt Member",
+      email: "p6-binary-receipt-member@denali-smoke.local",
+    });
+    const workspaceId = membership.workspaceId ?? "ws-public-binary-receipt";
+    const reg = await client.requestJson<{ data?: { id?: string } }>(
+      "POST",
+      "/denali/registrations",
+      {
+        headers: memberHeaders(user.id, workspaceId),
+        body: {
+          tourId: OPERATOR_SMOKE.seedTourId,
+          contact: {
+            email: "p6-binary-receipt-member@denali-smoke.local",
+            fullName: "P6 Binary Receipt Member",
+          },
+          partySize: 1,
+        },
+      }
+    );
+    assert.equal(reg.status, 201);
+    const bookingId = reg.body.data?.id ?? "";
+    assert.ok(bookingId.length > 0);
+
+    const approved = await client.requestJson<{ id?: string }>(
+      "POST",
+      `/bookings/${bookingId}/approve`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(approved.status, 200);
+
+    const note = "QA TEST ONLY — توضیح رسید ساختگی؛ پرداخت واقعی انجام نشده.";
+    const upload = await client.requestRaw("POST", `/bookings/${bookingId}/receipts`, {
+      headers: {
+        ...memberHeaders(user.id, workspaceId),
+        "content-type": "image/png",
+        "x-receipt-file-name": "qa-synthetic.png",
+        "x-receipt-note-base64url": Buffer.from(note, "utf8").toString("base64url"),
+      },
+      rawBody: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    });
+    assert.equal(upload.status, 201, upload.body.toString("utf8"));
+    const receipt = JSON.parse(upload.body.toString("utf8")) as {
+      status?: string;
+      note?: string;
+      fileKey?: string;
+    };
+    assert.equal(receipt.status, "Pending");
+    assert.equal(receipt.note, note);
+    assert.match(receipt.fileKey ?? "", /\/qa-synthetic\.png-[a-f0-9]+$/);
+  });
+
   it("P6-MR-01c pending booking cannot upload receipt (approve-then-pay)", async () => {
     const idRepo = getIdentityRepository();
     const { user, membership } = await idRepo.registerPublicGuest({
