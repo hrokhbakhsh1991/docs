@@ -126,9 +126,10 @@ test.describe("p6-operator-receipt-approve-smoke.spec.ts — P6 VS-07", () => {
     await approveFreshBooking(page, booking.bookingId);
     await seedMemberReceiptViaApi(page.request, {
       bookingId: booking.bookingId,
+      tenantId: booking.tenantId,
       memberUserId: booking.memberUserId,
       memberWorkspaceId: booking.memberWorkspaceId,
-      fileKey: `receipts/${booking.bookingId}/p6-vs07-smoke.jpg`,
+      fileKey: `receipts/${booking.tenantId}/${booking.bookingId}/p6-vs07-smoke.jpg`,
     });
 
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });

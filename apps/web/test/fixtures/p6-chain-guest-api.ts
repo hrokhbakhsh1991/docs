@@ -18,6 +18,7 @@ const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-0000-000000000001";
 
 export type ChainGuestRegistration = {
   readonly bookingId: string;
+  readonly tenantId: string;
   readonly guestName: string;
   readonly memberUserId: string;
   readonly memberWorkspaceId: string;
@@ -91,8 +92,11 @@ export function resolveChainSmokePublishedTourId(): string {
     : OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
 }
 
-function guestReceiptHeaders(userId: string, workspaceId: string): Record<string, string> {
-  const tenantId = resolveChainSmokeTenantId();
+function guestReceiptHeaders(
+  userId: string,
+  workspaceId: string,
+  tenantId: string
+): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
@@ -142,6 +146,7 @@ export async function seedChainGuestRegistrationViaApi(
 
   return {
     bookingId,
+    tenantId,
     guestName: input.guestName,
     memberUserId: PUBLIC_CATALOG_GUEST_USER_ID,
     memberWorkspaceId: "ws-public-catalog-guest",
@@ -152,6 +157,7 @@ export async function seedMemberReceiptViaApi(
   request: APIRequestContext,
   input: {
     readonly bookingId: string;
+    readonly tenantId: string;
     readonly memberUserId: string;
     readonly memberWorkspaceId: string;
     readonly fileKey: string;
@@ -160,7 +166,7 @@ export async function seedMemberReceiptViaApi(
   const res = await request.post(
     `${tourOpsApiBase()}/bookings/${encodeURIComponent(input.bookingId)}/receipts`,
     {
-      headers: guestReceiptHeaders(input.memberUserId, input.memberWorkspaceId),
+      headers: guestReceiptHeaders(input.memberUserId, input.memberWorkspaceId, input.tenantId),
       data: { fileKey: input.fileKey },
     }
   );
