@@ -182,6 +182,9 @@ jobs:
 
       - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
+      - name: Allow API migration consistency preflight
+        run: psql "$DATABASE_URL_ADMIN" -c 'GRANT SELECT ON TABLE public."_prisma_migrations" TO app_tour;'
+
       - run: pnpm --filter @apps/api run prisma:generate
 
       - name: Touch optional env files for node --env-file
