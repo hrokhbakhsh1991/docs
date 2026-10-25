@@ -347,7 +347,8 @@ test("DEN-BOOK-CORE admin cancellation reaches the member terminal state", async
     // confidence suite. Use the authenticated admin request here so this
     // cross-surface test isolates persisted cancellation → member projection.
     const cancelled = await adminPage.request.post(
-      `/api/bookings/${encodeURIComponent(registrationId)}/cancel`
+      `/api/bookings/${encodeURIComponent(registrationId)}/cancel`,
+      { data: { reason: "Denali admin cancellation cross-surface test" } }
     );
     expect(cancelled.status(), await cancelled.text()).toBe(200);
   } finally {
@@ -537,6 +538,7 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   await openMemberRegistrationsFromSuccess(page);
   await openMemberRegistrationDetailByTitle(page, title);
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
+  await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
   await page
@@ -699,6 +701,7 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
   await openMemberRegistrationsFromSuccess(page);
   await openMemberRegistrationDetailByTitle(page, "Denali paid auto member discount");
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
+  await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
   await page.locator("#receipt-file").setInputFiles({
@@ -813,6 +816,7 @@ test("DEN-BOOK-CORE paid manual booking reaches approval, payment, and finance",
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
       timeout: 60_000,
     });
+    await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
     await page.locator("#receipt-file").setInputFiles({
       name: "denali-paid-manual-receipt.png",
       mimeType: "image/png",
