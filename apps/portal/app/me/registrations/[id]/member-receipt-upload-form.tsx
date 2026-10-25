@@ -135,6 +135,11 @@ export function MemberReceiptUploadForm({
   const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(null);
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
   const [uploadErrorCode, setUploadErrorCode] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (
@@ -543,7 +548,7 @@ export function MemberReceiptUploadForm({
   }
 
   return (
-    <div data-portal-member-receipt-upload>
+    <div data-portal-member-receipt-upload data-portal-member-receipt-hydrated={hydrated}>
       <div data-portal-member-detail-section-heading>
         <p data-portal-member-receipt-upload-eyebrow>{eyebrow}</p>
         <h2>{t("label")}</h2>

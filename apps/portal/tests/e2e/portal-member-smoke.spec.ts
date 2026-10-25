@@ -92,6 +92,13 @@ async function expectMemberReceiptDestination(page: Page, registrationId: string
   expect(panel.paymentDestination?.revision).toEqual(expect.any(String));
 }
 
+async function expectMemberReceiptFormHydrated(page: Page): Promise<void> {
+  await expect(page.locator("[data-portal-member-receipt-upload]")).toHaveAttribute(
+    "data-portal-member-receipt-hydrated",
+    "true"
+  );
+}
+
 test("SMK-PTL-02 member /me lists registration after catalog intake (VS-04)", async ({ page }) => {
   await completePortalCatalogRegistration(page, {
     email: REGISTRATION_EMAIL,
@@ -566,6 +573,7 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   const registrationId = registrationIdFromPage(page);
   await expectMemberReceiptDestination(page, registrationId);
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
+  await expectMemberReceiptFormHydrated(page);
   await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
@@ -728,6 +736,7 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
   const registrationId = registrationIdFromPage(page);
   await expectMemberReceiptDestination(page, registrationId);
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible();
+  await expectMemberReceiptFormHydrated(page);
   await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
   await expect(page.locator("[data-portal-member-payment-due-at]")).toBeVisible();
 
@@ -845,6 +854,7 @@ test("DEN-BOOK-CORE paid manual booking reaches approval, payment, and finance",
     await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
       timeout: 60_000,
     });
+    await expectMemberReceiptFormHydrated(page);
     await expect(page.locator("[data-portal-member-payment-destination]")).toBeVisible();
     await page.locator("#receipt-file").setInputFiles({
       name: "denali-paid-manual-receipt.png",
