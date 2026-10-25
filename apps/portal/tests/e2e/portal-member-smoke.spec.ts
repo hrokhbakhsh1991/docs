@@ -715,7 +715,7 @@ test("DEN-BOOK-CORE member deadline watcher reloads after terminal BFF state", a
   expect(terminalBffResponseServed).toBeTruthy();
 });
 
-test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid", async ({
+test("DEN-BOOK-CORE paid auto other guest keeps canonical price through finance and returns paid", async ({
   page,
   browser,
 }) => {
@@ -724,8 +724,9 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
     tourId: DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
     email: `den-book-paid-auto-discount-${stamp}@denali-smoke.local`,
     fullName: `Denali Paid Auto Discount ${stamp}`,
-    // This deterministic dev member carries the seeded 20% Denali membership
-    // discount; use an other-guest card so reruns remain duplicate-safe.
+    // The member has a seeded discount, but the selected recipient is another
+    // guest. Denali applies the membership discount only when the member books
+    // for themself; keep the recipient unique so retries remain duplicate-safe.
     phone: "+15550001003",
     guestPhone: `+1555${String(stamp).slice(-7)}`,
     nationalId: String(stamp).slice(-10).padStart(10, "0"),
@@ -771,9 +772,9 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
       invoiceTotalMinor?: string;
       balanceDueMinor?: string;
     };
-    // 2,500,000/person × 1 seat − the seeded 20% Denali member discount.
-    expect(invoice.invoiceTotalMinor).toBe("2000000");
-    expect(invoice.balanceDueMinor).toBe("2000000");
+    // Membership discount is not transferable to another guest.
+    expect(invoice.invoiceTotalMinor).toBe("2500000");
+    expect(invoice.balanceDueMinor).toBe("2500000");
 
     await adminPage.goto(
       `/finance?tab=receipts&registrationId=${encodeURIComponent(registrationId)}`,
