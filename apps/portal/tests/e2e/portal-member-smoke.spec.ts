@@ -348,7 +348,12 @@ test("DEN-BOOK-CORE admin cancellation reaches the member terminal state", async
     // cross-surface test isolates persisted cancellation → member projection.
     const cancelled = await adminPage.request.post(
       `/api/bookings/${encodeURIComponent(registrationId)}/cancel`,
-      { data: { reason: "Denali admin cancellation cross-surface test" } }
+      {
+        data: {
+          reasonCode: "operator_correction",
+          reasonNote: "Denali admin cancellation cross-surface test",
+        },
+      }
     );
     expect(cancelled.status(), await cancelled.text()).toBe(200);
   } finally {
@@ -544,6 +549,7 @@ test("DEN-BOOK-CORE paid auto booking reaches finance approval and returns paid"
   await page
     .locator("[data-portal-member-receipt-note]")
     .fill("پرداخت از طریق انتقال بانکی انجام شد.");
+  await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled();
   await expect(page.locator("#receipt-file")).toHaveValue("");
   const receiptResponse = page.waitForResponse(
     (response) =>
@@ -709,6 +715,7 @@ test("DEN-BOOK-CORE paid auto member discount reaches finance and returns paid",
     mimeType: "image/png",
     buffer: Buffer.from("denali-smoke-paid-auto-discount-receipt"),
   });
+  await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled();
   const receiptResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
@@ -822,6 +829,7 @@ test("DEN-BOOK-CORE paid manual booking reaches approval, payment, and finance",
       mimeType: "image/png",
       buffer: Buffer.from("denali-smoke-paid-manual-receipt"),
     });
+    await expect(page.locator("[data-portal-member-receipt-submit]")).toBeEnabled();
     const receiptResponse = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
