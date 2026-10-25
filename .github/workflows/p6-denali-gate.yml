@@ -137,10 +137,29 @@ jobs:
     timeout-minutes: 45
     needs: p6-product-gate
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       CI: "true"
       PW_NO_REUSE_SERVER: "1"
       NEXT_FONT_OFFLINE: "1"
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
@@ -152,10 +171,24 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - run: pnpm install --frozen-lockfile
 
       - name: Build workspace dist deps
         run: bash scripts/ci/build-api-workspace-deps.sh
+
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Allow API migration consistency preflight
+        run: psql "$DATABASE_URL_ADMIN" -c 'GRANT SELECT ON TABLE public."_prisma_migrations" TO app_tour;'
+
+      - run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Touch optional env files for node --env-file
+        run: touch apps/api/.env apps/api/.env.local
 
       - name: Configure operator dev hosts
         run: |

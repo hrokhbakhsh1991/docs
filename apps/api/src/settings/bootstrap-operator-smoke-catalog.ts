@@ -3,6 +3,7 @@ import { logger } from "../observability/logger";
 
 import { getSettingsResourcesRepository } from "./create-settings-resources-repository";
 import { OPERATOR_SMOKE_TENANT_ID, seedOperatorSmokeCatalog } from "./seed-operator-smoke-catalog";
+import { ensureDenaliSmokePaymentDestination } from "./seed-operator-smoke-published-tour";
 
 /** Dev/memory operator smoke — non-empty equipment/locations/themes for wizard + SMK-P9-08. */
 export async function bootstrapOperatorSmokeCatalogIfNeeded(): Promise<void> {
@@ -16,6 +17,7 @@ export async function bootstrapOperatorSmokeCatalogIfNeeded(): Promise<void> {
   try {
     const repo = getSettingsResourcesRepository();
     await seedOperatorSmokeCatalog(repo);
+    await ensureDenaliSmokePaymentDestination(OPERATOR_SMOKE_TENANT_ID);
     logger.info(
       { event: "settings.operator_smoke_catalog.bootstrapped", tenantId: OPERATOR_SMOKE_TENANT_ID },
       "operator smoke reference catalog seeded"

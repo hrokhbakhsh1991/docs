@@ -25,6 +25,7 @@ import {
   dp1OpsAuth,
   requirePaymentHoldPort,
   resetDp1MemoryHarness,
+  setDp1RegistrationApprovalMode,
 } from "./dp1-test-harness.ts";
 
 describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
@@ -76,7 +77,8 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     assert.equal(quote?.status, "FROZEN");
   });
 
-  it("cancellation releases capacity without automatically admitting a fitting waitlisted guest", async () => {
+  it("cancellation automatically promotes the fitting waitlisted guest", async () => {
+    await setDp1RegistrationApprovalMode("manual");
     const blockingGuest = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Cancellation Blocker", partySize: 1, tourCapacityMax: 1 })
@@ -91,9 +93,11 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     await cancelBooking(dp1OpsAuth(), blockingGuest.id);
 
     const candidate = await dp1GetBooking(waitlistedGuest.id);
-    assert.equal(candidate.status, "waitlisted");
+    assert.equal(candidate.status, "approved");
     const holdPort = await requirePaymentHoldPort();
-    assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedGuest.id), null);
+    const promotedHold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedGuest.id);
+    assert.ok(promotedHold !== null);
+    assert.equal(promotedHold.status, "open");
   });
 
   it("rechecks FIFO waitlist after capacity opens before the waitlist row is committed", async () => {
@@ -197,7 +201,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, secondDong.id), null);
   });
 
-  it("waitlists the sixth dong rider with one tour seat still available across four cars", async () => {
+  it("waitlists the sixth dong rider until cancellation releases tour and car capacity", async () => {
     for (const [index, seats] of [2, 1, 1, 1].entries()) {
       const driver = await createBooking(
         dp1OpsAuth(),
@@ -261,17 +265,11 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     );
 
     await cancelBooking(dp1OpsAuth(), dongRiders[0]!);
-    assert.equal(
-      (await dp1GetBooking(sixthDong.id)).status,
-      "waitlisted",
-      "releasing a car seat must not silently approve the waitlist"
-    );
-    const promoted = await approveBooking(dp1OpsAuth(), sixthDong.id);
-    assert.equal(promoted.status, "approved");
+    assert.equal((await dp1GetBooking(sixthDong.id)).status, "approved");
     const promotedHold = await requirePaymentHoldPort().then((port) =>
       port.getByRegistrationId(DP1_TENANT_DENALI, sixthDong.id)
     );
-    assert.ok(promotedHold !== null, "operator promotion applies a payment hold");
+    assert.ok(promotedHold !== null, "automatic promotion applies a payment hold");
     assert.equal(promotedHold.status, "open");
 
     const selfArrival = await createBooking(
@@ -296,7 +294,8 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     );
   });
 
-  it("releases a car seat on dong cancellation and admits waitlist only after operator approval", async () => {
+  it("releases a car seat on dong cancellation and automatically promotes the waitlist", async () => {
+    await setDp1RegistrationApprovalMode("manual");
     const driver = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({
@@ -349,11 +348,7 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedDong.id), null);
 
     await cancelBooking(dp1OpsAuth(), firstDong.id);
-    assert.equal((await dp1GetBooking(waitlistedDong.id)).status, "waitlisted");
-    assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedDong.id), null);
-
-    const promoted = await approveBooking(dp1OpsAuth(), waitlistedDong.id);
-    assert.equal(promoted.status, "approved");
+    assert.equal((await dp1GetBooking(waitlistedDong.id)).status, "approved");
     const promotedHold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedDong.id);
     assert.ok(promotedHold !== null);
     assert.equal(promotedHold.status, "open");

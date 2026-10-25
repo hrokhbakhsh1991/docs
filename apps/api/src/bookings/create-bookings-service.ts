@@ -189,6 +189,7 @@ export async function createCapacityReleaseAssertionForTenant(tenantId: string) 
 export async function recheckWaitlistAfterCapacityChangeForTenant(input: {
   readonly tenantId: string;
   readonly tourId: string;
+  readonly reason: "capacity_released" | "capacity_increased";
 }): Promise<boolean> {
   return (
     await resolveBookingsServiceForTenant(input.tenantId)

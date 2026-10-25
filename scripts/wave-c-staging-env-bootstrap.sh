@@ -26,6 +26,7 @@ sudo chmod 750 "$ENV_DIR"
 sudo tee "$ENV_DIR/api.env" >/dev/null <<EOF
 NODE_ENV=production
 APP_INFRA_PROFILE=staging
+STAGING_ALLOW_STATIC_OTP=true
 PORT=23001
 STORAGE_DRIVER=prisma
 DATABASE_URL=postgresql://app_tour:${DB_APP_PASS}@127.0.0.1:5432/tour_db_staging?connection_limit=32

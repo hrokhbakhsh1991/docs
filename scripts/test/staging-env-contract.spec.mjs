@@ -95,4 +95,12 @@ describe("staging-env-contract", () => {
     assert.match(bootstrap, /MEMBER_SESSION_COOKIE_DOMAIN shenski\.com/);
     assert.match(bootstrap, /sed -i .*MEMBER_SESSION_COOKIE_HOST_ONLY=.*marketing\.env/);
   });
+
+  it("REG-STG-ENV-07 explicitly enables the staging OTP policy for the staging API", () => {
+    const apiBootstrap = read("scripts/wave-c-staging-env-bootstrap.sh");
+    assert.match(apiBootstrap, /^APP_INFRA_PROFILE=staging$/m);
+    assert.match(apiBootstrap, /^STAGING_ALLOW_STATIC_OTP=true$/m);
+    const p6Bootstrap = read("scripts/vps-deploy/bootstrap-staging.sh");
+    assert.match(p6Bootstrap, /ensure_api_env_default STAGING_ALLOW_STATIC_OTP true/);
+  });
 });

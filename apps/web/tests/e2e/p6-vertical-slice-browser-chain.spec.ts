@@ -86,9 +86,10 @@ test.describe("p6-vertical-slice-browser-chain.spec.ts — P6 VS-CHAIN browser",
       timeout: 15_000,
     });
 
-    const fileKey = `receipts/${chain.bookingId}/p6-chain-browser.jpg`;
+    const fileKey = `receipts/${chain.tenantId}/${chain.bookingId}/p6-chain-browser.jpg`;
     await seedMemberReceiptViaApi(request, {
       bookingId: chain.bookingId,
+      tenantId: chain.tenantId,
       memberUserId: chain.memberUserId,
       memberWorkspaceId: chain.memberWorkspaceId,
       fileKey,

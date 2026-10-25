@@ -86,6 +86,7 @@ export type BookingsServiceDeps = {
     afterCapacityChange(input: {
       readonly tenantId: string;
       readonly tourId: string;
+      readonly reason: "capacity_released" | "capacity_increased";
     }): Promise<unknown>;
   };
 };
@@ -289,20 +290,26 @@ export class BookingsService {
   /** A post-commit reconciliation never turns an already-persisted write into a false failure. */
   private async recheckWaitlistAfterCapacityChange(
     tenantId: string,
-    tourId: string
+    tourId: string,
+    reason: "capacity_released" | "capacity_increased"
   ): Promise<boolean> {
     if (this.waitlistPromotion === undefined) {
       return false;
     }
     const startedAt = this.clock.now().getTime();
     try {
-      await this.waitlistPromotion.afterCapacityChange({ tenantId, tourId });
+      const promoted = await this.waitlistPromotion.afterCapacityChange({
+        tenantId,
+        tourId,
+        reason,
+      });
       this.registrationSlo.record({
         workspaceType: this.workspaceType,
         tenantId,
         outcome: "success",
         durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
       });
+      return Array.isArray(promoted) && promoted.length > 0;
     } catch {
       this.registrationSlo.record({
         workspaceType: this.workspaceType,
@@ -311,15 +318,16 @@ export class BookingsService {
         durationMs: Math.max(0, this.clock.now().getTime() - startedAt),
       });
     }
-    return true;
+    return false;
   }
 
   async recheckWaitlistAfterCapacityChangeForTenant(input: {
     readonly tenantId: string;
     readonly tourId: string;
+    readonly reason: "capacity_released" | "capacity_increased";
   }): Promise<boolean> {
     await this.assertTenantBound(input.tenantId);
-    return this.recheckWaitlistAfterCapacityChange(input.tenantId, input.tourId);
+    return this.recheckWaitlistAfterCapacityChange(input.tenantId, input.tourId, input.reason);
   }
 
   private assertPublicCreateCapability(): void {
@@ -876,7 +884,11 @@ export class BookingsService {
       assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
     });
     await this.invokeApproveReaction(auth.tenantId, updated.id);
-    await this.recheckWaitlistAfterCapacityChange(auth.tenantId, updated.tourId);
+    await this.recheckWaitlistAfterCapacityChange(
+      auth.tenantId,
+      updated.tourId,
+      "capacity_increased"
+    );
     return {
       id: updated.id,
       status: updated.status,
@@ -970,7 +982,11 @@ export class BookingsService {
         assertCapacityInTx: this.buildApproveCapacityAssert(input.tenantId),
       });
       await this.invokeApproveReaction(input.tenantId, updated.id);
-      await this.recheckWaitlistAfterCapacityChange(input.tenantId, booking.tourId);
+      await this.recheckWaitlistAfterCapacityChange(
+        input.tenantId,
+        booking.tourId,
+        "capacity_increased"
+      );
       return { id: updated.id, status: updated.status };
     } catch (error) {
       const capacityRejected =
@@ -1268,6 +1284,13 @@ export class BookingsService {
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
     }
+    if (previousStatus === "approved" && Date.parse(before.departureAt) > Date.now()) {
+      await this.recheckWaitlistAfterCapacityChange(
+        auth.tenantId,
+        before.tourId,
+        "capacity_released"
+      );
+    }
     const isWaivedCollection =
       before.financialDisplayState === "WAIVED" ||
       before.registrationIntake?.freeCollectionApplied === true;
@@ -1306,7 +1329,11 @@ export class BookingsService {
     // WHEN: after bulk approve TX — one reaction per approved id (adapter enforces idempotency).
     for (const row of approved) {
       await this.invokeApproveReaction(auth.tenantId, row.id);
-      await this.recheckWaitlistAfterCapacityChange(auth.tenantId, row.tourId);
+      await this.recheckWaitlistAfterCapacityChange(
+        auth.tenantId,
+        row.tourId,
+        "capacity_increased"
+      );
     }
     const approvedIds = approved.map((row) => row.id);
     const approvedSet = new Set(approvedIds);
@@ -1330,7 +1357,6 @@ export class BookingsService {
       outboxEventType: this.eventReaction.approveOutboxEventType,
     });
   }
-
 }
 
 export function createBookingsService(deps: BookingsServiceDeps): BookingsService {
