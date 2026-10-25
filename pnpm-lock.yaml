@@ -345,6 +345,9 @@ importers:
       '@app-tour/engagement-http-contracts':
         specifier: workspace:*
         version: link:../../packages/engagement-http-contracts
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/finance-http-contracts
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host

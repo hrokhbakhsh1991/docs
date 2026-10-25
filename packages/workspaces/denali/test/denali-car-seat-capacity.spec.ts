@@ -5,6 +5,7 @@ import {
   buildDenaliBookingCreatePolicyContext,
   evaluateDenaliCreateCapacity,
 } from "../src/booking";
+import { normalizeDenaliRegistrationTransportIntake } from "../src/http/resolve-denali-registration-transport";
 
 const driver = (seats: number) => ({
   partySize: 1,
@@ -37,6 +38,36 @@ function evaluate(input: {
 }
 
 describe("Denali personal-car seat capacity", () => {
+  it("applies the tour-wide capacity limit across every supported transport mode", () => {
+    const modes = ["organizer_vehicle", "bus", "minibus", "train", "shared_cars", "none"] as const;
+
+    for (const mode of modes) {
+      const registrationTransport = normalizeDenaliRegistrationTransportIntake(
+        mode === "shared_cars" ? { kind: "no_car_acquaintance" } : undefined,
+        { transport: { mode, dongAmount: mode === "shared_cars" ? 50_000 : undefined } }
+      );
+      const evaluateOccupancy = (occupiedApprovedPartySize: number) => {
+        const context = buildDenaliBookingCreatePolicyContext({
+          tenantId: "denali-test",
+          tourId: `tour-test-${mode}`,
+          tourTitle: "Capacity test",
+          guestLabel: "Test guest",
+          partySize: 1,
+          departureAt: "2031-08-01T10:00:00.000Z",
+          occupiedApprovedPartySize,
+          tourCapacityMax: 2,
+          registrationIntake: { transport: registrationTransport },
+          approvedCapacitySnapshots: [],
+        });
+        return evaluateDenaliCreateCapacity(context);
+      };
+
+      assert.equal(evaluateOccupancy(1).decision, "accept", `${mode} should accept the last seat`);
+      assert.equal(evaluateOccupancy(2).decision, "deny", `${mode} should reject over-capacity`);
+      assert.equal(evaluateOccupancy(1).availability?.tourCapacityMax, 2);
+    }
+  });
+
   it("accepts dong riders up to the offered seats and denies the next seat", () => {
     const snapshots = [
       driver(2),

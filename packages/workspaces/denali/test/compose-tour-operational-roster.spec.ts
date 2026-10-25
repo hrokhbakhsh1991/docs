@@ -50,6 +50,7 @@ describe("DP-2 compose tour operational roster", () => {
       refundStatuses: [],
       nowIso: NOW,
     });
+    assert.equal(row.finalizationStatus, "not_final");
     assert.equal(row.isOperationalParticipant, true);
     assert.equal(row.isFinalParticipant, false);
     assert.equal(row.financialDisplayState, "UNPAID");

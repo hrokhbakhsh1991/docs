@@ -11,6 +11,7 @@ import {
   buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
   buildDenaliBookingScenarioTour,
+  buildDenaliStagingFinalApprovalTour,
   buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
@@ -26,6 +27,8 @@ import {
   DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID,
   DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID,
   DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID,
+  DENALI_STAGING_FINAL_APPROVAL_TOUR_ID,
+  isOwnedDenaliStagingFinalApprovalTour,
   isOperatorSmokePublishedTourEditReady,
   OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
 } from "../fixtures/operator-smoke-published-tour.fixture";
@@ -101,6 +104,36 @@ export async function seedDenaliClubDevPublishedTour(tenantId: string): Promise<
       tourId: DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
     },
     "denali club dev published tour seeded"
+  );
+}
+
+/** Create one explicitly owned, staging-only tour for the full booking-to-finance smoke. */
+export async function seedDenaliStagingFinalApprovalTour(
+  tenantId: string
+): Promise<"created" | "already-seeded"> {
+  if (process.env.APP_INFRA_PROFILE?.trim().toLowerCase() !== "staging") {
+    throw new Error("DENALI_STAGING_FINAL_APPROVAL_PROFILE_REQUIRED");
+  }
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    throw new Error("DENALI_STAGING_FINAL_APPROVAL_TENANT_MISMATCH");
+  }
+
+  return runWithTenantContext(
+    tenantId,
+    async () => {
+      const repo = new PrismaTourRepository();
+      const existing = await repo.getById(DENALI_STAGING_FINAL_APPROVAL_TOUR_ID, tenantId);
+      if (existing !== null) {
+        if (!isOwnedDenaliStagingFinalApprovalTour(existing, tenantId)) {
+          throw new Error("DENALI_STAGING_FINAL_APPROVAL_FIXTURE_ID_COLLISION");
+        }
+        return "already-seeded";
+      }
+
+      await repo.save(buildDenaliStagingFinalApprovalTour({ tenantId }));
+      return "created";
+    },
+    { workspaceType: "denali", tenantTier: "pool" }
   );
 }
 

@@ -206,6 +206,7 @@
         "bus": "Bus",
         "minibus": "Minibus",
         "train": "Train",
+        "airplane": "Airplane",
         "sharedCars": "Shared cars",
         "none": "No transport"
       }

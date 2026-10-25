@@ -56,7 +56,7 @@ function enumOptionsForZodKind(zodKind: DenaliZodFieldKind): readonly string[] |
     case "tourType":
       return DENALI_TOUR_KIND_VALUES;
     case "transportMode":
-      return ["organizer_vehicle", "bus", "minibus", "train", "shared_cars", "none"];
+      return ["organizer_vehicle", "bus", "minibus", "train", "airplane", "shared_cars", "none"];
     case "paymentMode":
       return ["offline_receipt"];
     case "registrationApproval":

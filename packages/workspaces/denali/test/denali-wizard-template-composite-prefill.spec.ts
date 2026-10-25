@@ -53,5 +53,7 @@ describe("denali-wizard-template-composite-prefill", () => {
       coerceDenaliWizardTemplateDefaultValue("transport.transportCost", "150000"),
       "150000"
     );
+    assert.equal(coerceDenaliWizardTemplateDefaultValue("transport.mode", "airplane"), "airplane");
+    assert.equal(isDenaliWizardTemplateDefaultValueCoercible("transport.mode", "airplane"), true);
   });
 });

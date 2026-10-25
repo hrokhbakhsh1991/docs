@@ -3,6 +3,7 @@ export type DenaliTransportMode =
   | "bus"
   | "minibus"
   | "train"
+  | "airplane"
   | "shared_cars"
   | "none";
 
@@ -11,6 +12,7 @@ export const DENALI_TRANSPORT_MODE_VALUES = [
   "bus",
   "minibus",
   "train",
+  "airplane",
   "shared_cars",
   "none",
 ] as const satisfies readonly DenaliTransportMode[];
@@ -25,7 +27,13 @@ export function parseDenaliTransportMode(value: string): DenaliTransportMode {
 }
 
 export function isDenaliTransportCostVisible(mode: DenaliTransportMode): boolean {
-  return mode === "organizer_vehicle" || mode === "bus" || mode === "minibus" || mode === "train";
+  return (
+    mode === "organizer_vehicle" ||
+    mode === "bus" ||
+    mode === "minibus" ||
+    mode === "train" ||
+    mode === "airplane"
+  );
 }
 
 export function isDenaliPersonalCarOptionVisible(mode: DenaliTransportMode): boolean {

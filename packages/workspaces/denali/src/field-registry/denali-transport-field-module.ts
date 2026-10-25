@@ -26,6 +26,7 @@ export const denaliTransportFieldRegistryFragment: WorkspaceTransportFieldRegist
           "bus",
           "minibus",
           "train",
+          "airplane",
           "shared_cars",
           "none",
         ] as const,

@@ -189,6 +189,125 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(response.body.code, "BOOKINGS_FORBIDDEN");
   });
 
+  it("P6-MR-04 text-only receipt can be rejected, resubmitted, and finally approved", async () => {
+    const idRepo = getIdentityRepository();
+    const { user, membership } = await idRepo.registerPublicGuest({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      mobile: "+15559001127",
+      displayName: "P6 Text Receipt Member",
+      email: "p6-text-receipt@denali-smoke.local",
+    });
+    const workspaceId = membership.workspaceId ?? "ws-public-text-receipt";
+    const registration = await client.requestJson<{ data?: { id?: string } }>(
+      "POST",
+      "/denali/registrations",
+      {
+        headers: memberHeaders(user.id, workspaceId),
+        body: {
+          tourId: OPERATOR_SMOKE.seedTourId,
+          contact: {
+            email: "p6-text-receipt@denali-smoke.local",
+            fullName: "P6 Text Receipt Member",
+          },
+          partySize: 1,
+        },
+      }
+    );
+    assert.equal(registration.status, 201);
+    const bookingId = registration.body.data?.id ?? "";
+    assert.ok(bookingId.length > 0);
+
+    const bookingApproval = await client.requestJson<{ id?: string }>(
+      "POST",
+      `/bookings/${bookingId}/approve`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(bookingApproval.status, 200);
+
+    const textReceiptNote = "رسید متنی آزمایشی بدون فایل";
+    const textReceipt = await client.requestJson<{
+      id?: string;
+      status?: string;
+      fileKey?: string | null;
+      note?: string | null;
+    }>("POST", `/bookings/${bookingId}/receipts`, {
+      headers: memberHeaders(user.id, workspaceId),
+      body: { note: textReceiptNote },
+    });
+    assert.equal(textReceipt.status, 201);
+    assert.equal(textReceipt.body.status, "Pending");
+    assert.equal(textReceipt.body.fileKey ?? null, null);
+    assert.equal(textReceipt.body.note, textReceiptNote);
+    const receiptId = textReceipt.body.id ?? "";
+    assert.ok(receiptId.length > 0);
+
+    const rejection = await client.requestJson<{ status?: string }>(
+      "PATCH",
+      `/finance/receipts/${receiptId}/review`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "content-type": "application/json",
+          "Idempotency-Key": `p6-text-receipt-reject-${receiptId}`,
+        },
+        body: { decision: "reject", reviewNote: "لطفاً تصویر رسید را هم ارسال کنید" },
+      }
+    );
+    assert.equal(rejection.status, 200);
+    assert.equal(rejection.body.status, "Rejected");
+
+    const rejectedStatus = await client.requestJson<{ status?: string }>(
+      "GET",
+      `/bookings/${bookingId}/receipts`,
+      { headers: memberHeaders(user.id, workspaceId) }
+    );
+    assert.equal(rejectedStatus.status, 200);
+    assert.equal(rejectedStatus.body.status, "rejected");
+
+    const retryFileKey = `receipts/${OPERATOR_SMOKE.tenantId}/${bookingId}/retry.png`;
+    const retry = await client.requestJson<{
+      id?: string;
+      status?: string;
+      fileKey?: string | null;
+      note?: string | null;
+    }>("POST", `/bookings/${bookingId}/receipts`, {
+      headers: memberHeaders(user.id, workspaceId),
+      body: { fileKey: retryFileKey },
+    });
+    assert.equal(retry.status, 201);
+    assert.equal(retry.body.status, "Pending");
+    assert.equal(retry.body.fileKey, retryFileKey);
+    const retryReceiptId = retry.body.id ?? "";
+    assert.ok(retryReceiptId.length > 0);
+    assert.notEqual(retryReceiptId, receiptId);
+
+    const finalApproval = await client.requestJson<{
+      status?: string;
+      bookingPaymentStatus?: string;
+    }>("PATCH", `/finance/receipts/${retryReceiptId}/review`, {
+      headers: {
+        ...operatorAuthHeaders(),
+        "content-type": "application/json",
+        "Idempotency-Key": `p6-text-receipt-approve-${retryReceiptId}`,
+      },
+      body: { decision: "approve", reviewNote: "verified after resubmission" },
+    });
+    assert.equal(finalApproval.status, 200);
+    assert.equal(finalApproval.body.status, "Approved");
+    assert.equal(finalApproval.body.bookingPaymentStatus, "paid");
+
+    const booking = await getBookingsRepository().getById(bookingId, OPERATOR_SMOKE.tenantId);
+    assert.equal(booking?.status, "approved");
+    assert.equal(booking?.paymentStatus, "paid");
+    const finalMemberStatus = await client.requestJson<{ status?: string }>(
+      "GET",
+      `/bookings/${bookingId}/receipts`,
+      { headers: memberHeaders(user.id, workspaceId) }
+    );
+    assert.equal(finalMemberStatus.status, 200);
+    assert.equal(finalMemberStatus.body.status, "paid");
+  });
+
   it("BUG-STG-PAID-LIST-PROJECTION-AFTER-APPROVE / P6-MR-03 operator approval updates booking and member list projection", async () => {
     const idRepo = getIdentityRepository();
     const { user, membership } = await idRepo.registerPublicGuest({

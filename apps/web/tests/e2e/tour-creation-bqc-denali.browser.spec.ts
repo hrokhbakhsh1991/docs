@@ -71,7 +71,7 @@ test.describe("BQC Denali tour creation — TC-TOUR", () => {
     const title = `TC-TOUR-04 ${Date.now()}`;
     await prepareDenaliAdminWizard(page);
     await fillDenaliMultiDayWizardThroughReview(page, title, DENALI_DEV_DEFAULT_DESTINATION_LABEL);
-    const tourId = await submitDenaliWizardDraftCreate(page);
+    const tourId = await submitDenaliWizardDraftCreate(page, title);
     await openFlatEditForTour(page, tourId);
     await expect(page.getByRole("textbox", { name: /نام تور|tour name|^title$/i })).toHaveValue(
       title,

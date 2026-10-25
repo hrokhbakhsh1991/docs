@@ -106,6 +106,23 @@ describe("denali-catalog-card", () => {
     });
   });
 
+  it("DN-CAT-AIR-01 preserves airplane mode and its transport cost in public egress", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical("active", {
+        transport: {
+          mode: "airplane",
+          transportCost: 4_000_000,
+        },
+      }),
+    });
+
+    assert.deepEqual(card.transport, {
+      mode: "airplane",
+      transportCostAmount: 4_000_000,
+    });
+  });
+
   it("BUG-STG-082 reads the persisted legacy organized transport amount", () => {
     const card = toDenaliCatalogCard({
       id: TOUR_ID,

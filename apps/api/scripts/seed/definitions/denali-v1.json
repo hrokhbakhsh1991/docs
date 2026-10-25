@@ -360,6 +360,7 @@
             "bus",
             "minibus",
             "train",
+            "airplane",
             "shared_cars",
             "none"
           ]

@@ -102,6 +102,12 @@ Distinct from **operator** `TourListProjection` — no draft rows, no ops-only f
 | `listDescription` | normalized egress — Denali: `program.shortDescription` |
 | `showListPrice` | normalized egress — Denali: `true`; Urban: `false` |
 
+### Transport modes
+
+The Denali tour wizard and public catalog support `organizer_vehicle`, `bus`, `minibus`, `train`, `airplane`, `shared_cars`, and `none`. `airplane` is an organized transport mode: it may show the organizer's transport cost and is displayed in the public tour card/detail and registration flow. It uses the tour's single `totalCapacity`/`spotsRemaining` value; it does not introduce a separate aircraft or seat-capacity counter. Registration remains subject to the same tour capacity, approval, payment, and waitlist rules as other transport modes.
+
+This is a Denali product capability carried through the workspace SDK's public transport snapshot. It does not add airplane-specific allocation or seat assignment semantics.
+
 ### PR-D detail egress (2026-07-04)
 
 Outdoor PDP fields on `PublicCatalogCard` — Denali mapper only; Urban omits. Marketing renders when present (fail-soft). Exposure redaction in `denali-catalog-exposure-bindings.ts`.

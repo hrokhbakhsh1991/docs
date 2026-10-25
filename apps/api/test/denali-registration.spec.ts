@@ -24,6 +24,7 @@ const OPERATOR_SMOKE_FREE_MANUAL_TOUR_ID = "00000000-0000-4000-8000-000000000215
 const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
 const OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000217";
 const OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000218";
+const OPERATOR_SMOKE_AIRPLANE_CAPACITY_TOUR_ID = "00000000-0000-4000-8000-000000000219";
 const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
@@ -219,6 +220,22 @@ describe("denali-registration (M16)", () => {
         },
       },
     });
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_AIRPLANE_CAPACITY_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          capacityMax: 1,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "auto",
+          },
+          transport: { mode: "airplane", transportCost: 4_000_000 },
+        },
+      },
+    });
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
     seedDenaliRegistrationSessionMembers();
@@ -258,6 +275,41 @@ describe("denali-registration (M16)", () => {
     const data = (response.body as { data?: { id?: string; status?: string } }).data;
     assert.ok(data?.id);
     assert.equal(data?.status, "approved");
+  });
+
+  it("DREG-AIR-01 airplane registrations use primary transport and global tour capacity", async () => {
+    const first = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_AIRPLANE_CAPACITY_TOUR_ID,
+        contact: { fullName: "Airplane Capacity Guest One", phone: "+15550003201" },
+        partySize: 1,
+      },
+    });
+    assert.equal(first.status, 201);
+    const firstData = (first.body as { data?: { id?: string; status?: string } }).data;
+    assert.ok(firstData?.id);
+    assert.equal(firstData.status, "approved");
+
+    const second = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_AIRPLANE_CAPACITY_TOUR_ID,
+        contact: { fullName: "Airplane Capacity Guest Two", phone: "+15550003202" },
+        partySize: 1,
+      },
+    });
+    assert.equal(second.status, 201);
+    const secondData = (second.body as { data?: { id?: string; status?: string } }).data;
+    assert.ok(secondData?.id);
+    assert.equal(secondData.status, "waitlisted");
+
+    const persisted = await getBookingsRepository().getById(firstData.id, OPERATOR_SMOKE_TENANT_ID);
+    assert.ok(persisted);
+    assert.equal(
+      (persisted.registrationIntake as { transport?: { kind?: string } }).transport?.kind,
+      "primary"
+    );
   });
 
   it("DREG-20-02 HTTP matrix persists the four free/paid × manual/auto outcomes", async () => {

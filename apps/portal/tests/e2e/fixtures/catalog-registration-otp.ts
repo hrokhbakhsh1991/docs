@@ -204,6 +204,8 @@ export async function completeCatalogRegistrationIntake(
      * - `false`: expect partial failure UI (`data-denali-submit-results`) instead.
      */
     readonly expectSuccess?: boolean;
+    /** Simulate a physical double-click and assert the UI emits one registration request. */
+    readonly rapidDoubleClick?: boolean;
   }
 ): Promise<void> {
   const profileStep = page.locator("[data-public-registration-profile]");
@@ -349,8 +351,29 @@ export async function completeCatalogRegistrationIntake(
   }
 
   const expectSuccess = input.expectSuccess ?? true;
-
-  await page.locator('[data-action="intake-submit"]').click({ noWaitAfter: true });
+  const submitButton = page.locator('[data-action="intake-submit"]');
+  let registrationPostCount = 0;
+  const countRegistrationPosts = (request: import("@playwright/test").Request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname.endsWith("/api/catalog/registrations")
+    ) {
+      registrationPostCount += 1;
+    }
+  };
+  if (input.rapidDoubleClick) page.on("request", countRegistrationPosts);
+  try {
+    if (input.rapidDoubleClick) {
+      await submitButton.dblclick({ delay: 0, noWaitAfter: true });
+      expect(registrationPostCount, "rapid double-click must send one registration request").toBe(
+        1
+      );
+    } else {
+      await submitButton.click({ noWaitAfter: true });
+    }
+  } finally {
+    if (input.rapidDoubleClick) page.off("request", countRegistrationPosts);
+  }
 
   if (expectSuccess) {
     await page.waitForSelector("[data-public-registration-success]", { timeout: 90_000 });

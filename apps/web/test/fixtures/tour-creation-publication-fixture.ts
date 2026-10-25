@@ -6,6 +6,7 @@ import { expect, type Page } from "@playwright/test";
 import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detail-types";
 import { TOURS_LIST_TEST_IDS } from "../../src/features/tours/query-model";
 import {
+  type DenaliWizardPricingE2EOptions,
   fillDenaliMultiDayWizardThroughReview,
   resetOperatorWizardToBasic,
   submitDenaliWizardDraftCreate,
@@ -29,10 +30,20 @@ export async function prepareDenaliTourWizard(page: Page): Promise<void> {
 
 export async function createDenaliMultiDayDraftTour(
   page: Page,
-  title: string
+  title: string,
+  options: {
+    readonly pricing?: DenaliWizardPricingE2EOptions;
+    readonly capacityMax?: number;
+  } = {}
 ): Promise<string> {
-  await fillDenaliMultiDayWizardThroughReview(page, title);
-  return submitDenaliWizardDraftCreate(page);
+  await fillDenaliMultiDayWizardThroughReview(
+    page,
+    title,
+    undefined,
+    options.pricing,
+    options.capacityMax
+  );
+  return submitDenaliWizardDraftCreate(page, title);
 }
 
 export async function openFlatEditForTour(page: Page, tourId: string): Promise<void> {
@@ -55,9 +66,7 @@ export async function publishTourFromFlatEdit(page: Page, tourId: string): Promi
   await openFlatEditForTour(page, tourId);
 
   await page.getByTestId(TOUR_EDIT_TEST_IDS.lifecycleMenu).click();
-  await page
-    .getByRole("menuitem", { name: /انتشار تور|Publish tour/i })
-    .click();
+  await page.getByRole("menuitem", { name: /انتشار تور|Publish tour/i }).click();
 
   const validationList = page.getByTestId("denali-flat-edit-validation-list");
 
@@ -89,10 +98,7 @@ export async function publishTourFromFlatEdit(page: Page, tourId: string): Promi
   ).toBeVisible({ timeout: 20_000 });
 }
 
-export async function expectTourListedAsActive(
-  page: Page,
-  tourTitle: string
-): Promise<void> {
+export async function expectTourListedAsActive(page: Page, tourTitle: string): Promise<void> {
   await page.goto("/tours", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId(TOURS_LIST_TEST_IDS.page)).toBeVisible({ timeout: 15_000 });
   const tourCard = page.locator('[data-operator-surface="card"]').filter({
@@ -102,10 +108,7 @@ export async function expectTourListedAsActive(
   await expect(tourCard.locator('[data-tour-status="active"]')).toBeVisible({ timeout: 15_000 });
 }
 
-export async function expectTourInDenaliCatalog(
-  page: Page,
-  tourTitle: string
-): Promise<void> {
+export async function expectTourInDenaliCatalog(page: Page, tourTitle: string): Promise<void> {
   await expect
     .poll(
       async () => {

@@ -351,6 +351,7 @@
       "bus": "Bus",
       "minibus": "Minibus",
       "train": "Train",
+      "airplane": "Airplane",
       "shared_cars": "Shared cars"
     },
     "transportHint": "Tour transport setup: {mode}",

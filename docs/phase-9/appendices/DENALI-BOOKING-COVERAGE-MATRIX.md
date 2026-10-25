@@ -41,6 +41,90 @@ Each applicable combination must verify all of these outputs:
 7. Operator-facing status, finance state, and CTA.
 8. Refresh/reload consistency and idempotent retry behavior.
 
+## Execution-ready scenario matrix
+
+This table distinguishes existing local evidence from the staging smoke. The
+current worktree's new PostgreSQL run is reported separately below; historical
+suite results are not rerun just to refresh this table.
+
+| Scenario                           | Preconditions and action                                                                                                                                                                                       | Expected state / proof                                                                                                                                                                                                   | Test boundary and current evidence                                                                                                                                                                                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Core B-01..B-08                    | Use an independent published tour and identity for each free/paid × manual/auto path; create, approve, reject, pay, or cancel as applicable.                                                                   | Booking and payment projections agree in storage, member detail, and operator list after reload.                                                                                                                         | API + PostgreSQL: focused matrix 7/7 this run; B-07 receipt/finance and reload are covered by the existing PostgreSQL member smoke. Browser: local lifecycle and portal suites recorded below. Staging: one paid/manual final-approval path passed; remaining cross-product rows pending. |
+| Tour capacity and waitlist         | Exercise available, exact-full, over-capacity, grouped party, full with/without waitlist, and simultaneous last-seat requests. Release capacity by cancellation/expiry.                                        | Tour occupancy never exceeds `capacityMax`; one fitting waitlisted party is promoted only when space is truly available.                                                                                                 | Domain/property, API/PostgreSQL race and waitlist suites, and local operator E02/E04 evidence are already recorded below. Added table-driven unit coverage across all currently supported transport modes (`denali-car-seat-capacity.spec.ts`, 5/5). Targeted API hold expiry + waitlist rerun passed 22/22 locally. Staging: exact-full 1/1 observed; waitlist and concurrency pending. Standard policy in code: the capacity-change reconciler promotes the oldest fitting party only for auto-approval tours; manual-approval tours retain operator approval, and waitlisted promotion goes through the operator decision/capacity check. |
+| Shared-car seats                   | Approve drivers with 0..N offered seats; register `no_car_dong` parties up to, exactly at, and beyond the remaining seats; also register personal-car, acquaintance/no-dong, and fixed-transport participants. | Every party consumes tour capacity; only approved personal-car drivers offer shared seats; dong parties consume `partySize` seats and are never split. No shared seats means deny or waitlist per the existing fallback. | `denali-car-seat-capacity.spec.ts`, `denali-capacity-properties.spec.ts` (500 generated cases), registration auto-approval and Playwright transport-choice tests; driver cancellation/expiry protection in API tests. These are local automated suites, not staging proof.                 |
+| Offline payment and final approval | Create a paid booking; submit receipt evidence; approve/reject it in Finance; exercise expiry/cancel where applicable.                                                                                         | Receipt review and payment state persist; settled booking becomes paid; rejected/expired/cancelled rows have no actionable payment state; capacity and waitlist effects match the terminal outcome.                      | Finance PostgreSQL suite, payment-hold race/waitlist suites, portal smoke, and the local closure E2E are recorded below. Latest built-server closure run: 7 passed, 1 opt-in expiry case skipped; the expiry case then passed separately with its isolated local scheduler enabled. Staging: note-only receipt submission → Finance approval → refreshed final member state passed; file upload, rejection, expiry, cancellation pending. |
+| Receipt pending at hold expiry      | Submit a receipt while an approved paid booking's hold is open; let its due time pass before Finance reviews it, then attempt approval.                                                                            | Product must decide whether timely receipt submission suspends the hold. In either policy, Finance, receipt, booking, payment, capacity, and waitlist states must reach a consistent terminal outcome.                 | New local service-level characterization passed in `apps/api/test/dp1/payment-hold-expiry.spec.ts`: expiry cancels the booking/releases capacity, leaves the receipt pending and payment unpaid, and later Finance approval fails with `FINANCE_BOOKING_PAYMENT_SYNC_MISS`. Product policy remains open. |
+| Member discount persistence        | Register with an independent active member on a paid auto-approval tour; vary gate on/off and same-tenant, absent, or other-tenant membership.                                                                 | The frozen PostgreSQL quote persists canonical gross/payable, discount percentage/amount and member reference only for eligible same-tenant members when the tour gate is open.                                    | Additive HTTP→PostgreSQL matrix `BDISC-PG-01..04` passed 4/4 on local `app_tour_dev`; proves same-tenant eligibility, closed gate, guest/no membership, and no discount leakage from another tenant. Staging: pending.                                                                          |
+| Replay and concurrency             | Repeat the same guest registration/payment action or race independent requests; exercise reload/back/forward and separate browser contexts.                                                                    | A retry/replay does not double-create or double-apply a payment; concurrent capacity/duplicate requests have one valid winner and consistent projections.                                                                | PostgreSQL duplicate-registration race and finance idempotency/concurrency suites are recorded below. Built-server Playwright `TC-CL-REG-01` passed rapid double-click with one registration POST, same-session second-tab, and back/forward assertions. Staging multi-user replay remains open. |
+| Deadline expiry → waitlist across surfaces | Create a capacity-full paid/auto tour, place an independent member in the waitlist, shorten the approved booking's hold through the operator API, then allow the local expiry scheduler to run. Reload both members and inspect Admin. | The original registration is cancelled with `payment_deadline`; only the oldest fitting party is approved and receives a fresh payment deadline; member, operator, and capacity views agree after reload. | Local built-server Playwright `TC-CL-REG-02` passed 1/1 after restoring the missing Admin Finance BFF route. Staging smoke is now available, but this expiry/promotion sequence has not been run there. |
+| Admin, member, and roster          | Change booking state in Admin, reload the Member portal, query roster, and export Excel.                                                                                                                       | Lifecycle, finalization, financial totals, capacity and roster membership agree. Explicitly finalized approved rows may remain in final roster with unpaid/partial balance; unfinalized or terminal rows do not.         | B-09/B-10/B-12 PostgreSQL reload and roster assertions pass in the focused matrix; B-09 also matches both final-roster and payment-follow-up XLSX sheets. B-11 missing-field fallback is projection-tested because the DB column is non-null with a default.                                      |
+| Staging smoke                      | Confirm staging host/tenant, published test tour, and test Owner/Member sessions; run a small registration → admin approval → receipt → Finance approval journey.                                              | Deployed artifact SHA is identified; browser actions and persisted/member/admin state agree on that deployed runtime.                                                                                                    | Passed on 2026-10-25 against staging release `4fab7d3786f784375c0019b58894b32367769fd4` (run `40120284260`): created isolated paid/manual test tour `160d09aa-3f67-46db-88a0-baee4a504cba`, registered once, admin-approved, submitted a test-only text note (no file or bank transfer), approved in Finance, then refreshed member detail. Member showed final registration + approved receipt; Admin showed capacity 1/1 and one finalized participant. A subsequent member cancellation request appeared as pending review; Admin still showed 1/1, so request submission alone did not release capacity. Excel export control was visible; workbook contents were not downloaded or inspected. This proves only the happy path plus pending-cancellation capacity behavior, not the other rows in this matrix. |
+
+### Fresh verification — 2026-10-25
+
+Against the current local worktree (base SHA `4fab7d3786f784375c0019b58894b32367769fd4`),
+130 focused unit/in-memory tests passed across API registration/receipt,
+payment-hold and waitlist, Denali capacity/catalog/roster (including 500
+generated property cases), admin-assisted registration, marketing transport, and
+receipt-note encoding. The PostgreSQL matrix passed 14/14 against a fresh
+temporary database after applying all 108 migrations; a separate HTTP duplicate
+race passed 1/1 on another fresh database. Both databases were dropped after
+their tests. The matrix covered B-01..B-06, B-08, discount isolation, and
+finalization/roster reloads; the race produced one `201` and one `409` for
+concurrent duplicate guest registration. B-07 remains covered by the separately
+recorded member Finance PostgreSQL smoke.
+
+API, web, portal, and marketing production builds exited successfully. The API
+build printed existing duplicate-key warnings from the root `package.json`;
+Portal printed the existing Next.js ESLint-plugin notice. These builds and tests
+are local evidence for the uncommitted worktree only; they do not change the
+staging release SHA or prove the airplane feature on staging.
+
+### Staging fixture diagnosis — 2026-10-25
+
+The rendered public pages resolve to Denali smoke tenant `…000003`; both the
+published-catalog seed id `…0220` and booking-matrix id `…0223` return the
+public “tour not found” page. The successful deploy log contains
+`DENALI_DEV_CATALOG_SEED_OK` but no booking-scenario seed marker. The standard
+staging seed calls `seedDenaliDevCatalogStaging`, which seeds the wizard,
+catalog references, and the `…0220` tour; it does not call
+`seedDenaliBookingScenarioTours`. That latter call is in the development
+bootstrap, which exits under production-auth mode. The marker only proves that
+the seed script returned successfully; it does not prove that a public tour
+was created or is currently visible.
+
+The existing `…0220` row is insert-only in the seed helper, and its current
+database contents cannot be inspected through the public staging surfaces.
+Do not overwrite it or any existing registration/payment/receipt rows based on
+the public 404. A staging fixture improvement must use reserved, independently
+checked test ids, fail closed on an unmarked collision, and preserve all rows
+from previous runs. This initial fixture/login blocker was resolved for the
+browser smoke above using a newly created test tour and the staging Owner
+session. Keep the original diagnosis as historical context; it is not the
+current staging status.
+
+The staging-only full-lifecycle fixture will use a separate reserved tour id,
+carry a visible TEST label plus an internal ownership marker, and be created
+only when `APP_INFRA_PROFILE=staging`. Re-runs must leave an already marked
+fixture and its bookings unchanged; an id collision without the marker must
+stop before any write. The fixture is paid/manual and uses the product's global
+tour capacity, so it can support the final-approval smoke without coupling
+airplane transport to aircraft-seat capacity.
+
+### Verified Denali shared-car policy
+
+`packages/workspaces/denali/src/booking/availability.ts` is authoritative for
+the shared-car capacity rule: approved `personal_car` registrations contribute
+their declared `personalCarOccupants`; approved `no_car_dong` registrations
+consume seats equal to their full `partySize`; other transport choices do not
+consume those shared-car seats. All accepted participants still consume the
+tour's general capacity. A dong request that exceeds offered seats is rejected
+with `BOOKING_TRANSPORT_CAPACITY_REJECTED` and can follow the configured
+waitlist fallback. An operator may not cancel a driver if that would strand
+approved dong riders (`BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED`); after riders
+are cancelled/reassigned the driver may be cancelled. These rules are already
+covered by the tests listed in the matrix and were not changed in this work.
+
 ## Core acceptance matrix
 
 | ID   | Collection | Approval         | Expected registration | Expected finance                                 |
@@ -59,12 +143,18 @@ Each applicable combination must verify all of these outputs:
 Final-roster membership is gated by payment settlement and must be asserted at
 the roster projection boundary:
 
-| ID   | Lifecycle                     | Finalization input                       | Expected final roster          | Expected payment view                     |
-| ---- | ----------------------------- | ---------------------------------------- | ------------------------------ | ----------------------------------------- |
-| B-09 | `approved`                    | explicit `finalized`, balance > 0        | excluded                       | remains unpaid/debtor                     |
-| B-10 | `approved`                    | explicit `not_final`, balance = 0        | included                       | settled state is sufficient for finality  |
-| B-11 | `approved`                    | legacy missing finalization, balance = 0 | included                       | paid                                      |
-| B-12 | waitlisted/rejected/cancelled | stale `finalized` metadata               | excluded                       | non-operational                           |
+| ID   | Lifecycle                     | Finalization input                       | Expected final roster | Expected payment view                   |
+| ---- | ----------------------------- | ---------------------------------------- | --------------------- | --------------------------------------- |
+| B-09 | `approved`                    | explicit `finalized`, balance > 0        | included              | remains unpaid/debtor                   |
+| B-10 | `approved`                    | explicit `not_final`, balance = 0        | excluded              | settled; finalization is still required |
+| B-11 | `approved`                    | legacy missing finalization, balance = 0 | excluded              | paid; missing defaults to `not_final`   |
+| B-12 | waitlisted/rejected/cancelled | stale `finalized` metadata               | excluded              | non-operational                         |
+
+These rows reflect the implemented contract: final roster membership depends
+on operational lifecycle plus explicit finalization, while payment remains a
+separate projection. The roster semantics and workbook tests cover this split.
+If product policy instead requires settlement before roster inclusion, that is
+a behavior change and needs an explicit product decision before code changes.
 
 ## Discount cross-product
 
@@ -121,6 +211,22 @@ are tenant-scoped, idempotent, and use the existing `offline_receipt`/free
 collection paths; they are not gateway fixtures.
 
 ### Current browser evidence (local only)
+
+The closure E2E `TC-CL-REG-01` passed on a fresh local built-server run (1/1;
+8.0 minutes including builds and server startup) with a unique paid/manual tour
+and member identity: create/publish in the operator UI, register in the member
+portal, approve the booking in the admin UI, submit an image receipt with a
+Persian note, approve the receipt in Finance, then reload the member detail and
+assert the paid state. This is local cross-surface lifecycle evidence; it does
+not prove staging deployment or staging behavior. Specialized portal/admin
+suites remain the owners of individual payment, waitlist, and capacity cases.
+
+A subsequent built-server rerun after adding rapid double-click, same-session
+second-tab, and browser-history replay assertions also passed `TC-CL-REG-01`
+(1/1, 37.2 seconds in the latest local built-server run; an earlier run took
+6.6 minutes including builds and startup). The replay returned the member to the existing
+registration detail and the operator list contained one guest registration;
+this remains local-only evidence.
 
 The confidence suite was executed against a built production Next server with
 the DB-backed operator smoke stack: E02 (over-capacity rejection), E03
@@ -324,13 +430,100 @@ contracts, but is not substituted for runtime browser or PostgreSQL evidence.
   eligible-member, non-member, wrong-tenant, free-collection, and quote-freeze
   rules are covered by the core/API/persistence suites and the applicable
   Denali browser journeys.
-- Browser-level deadline race against payment, cancellation, and waitlist promotion;
-  the member watcher now has a direct browser reload assertion, and the domain
-  race and waitlist overlay are proven, but the combined member/admin browser
-  race for every terminal winner is not yet executed.
-- PostgreSQL persistence/reload for every row and every discount cross-product;
-  the quote metadata and tenant-isolation persistence overlay is proven, but
-  not every booking row has a dedicated database reload assertion.
+- A combined member/admin browser journey for payment deadline expiry and
+  waitlist promotion was missing; existing API race/waitlist suites and the
+  member deadline watcher covered the underlying boundaries separately.
+  `TC-CL-REG-02` now closes the local cross-surface gap without repeating those
+  suites. Its first run uncovered a real Admin BFF gap:
+  `extendOperatorPaymentDeadline` posts to
+  `/api/finance/payment-holds/:registrationId/extend`, the API endpoint exists,
+  but the web app had no matching Next route; the built Admin server returned
+  404. A matching Finance BFF proxy route is now added; rebuild and rerun of
+  the lifecycle E2E passed locally (`TC-CL-REG-02`, 1/1): the first booking's
+  deadline expired, only the oldest waitlisted member was promoted, the third
+  stayed waitlisted, and API/admin/member projections agreed within capacity.
+  This is local-only evidence; it does not establish staging behavior.
+- PostgreSQL finalization overlay B-09/B-10/B-12 passed in the focused matrix;
+  B-11's missing-field fallback passed at the projection boundary because the
+  database column is non-null with a default. Core B-01..B-08 have per-path
+  reload evidence. The member-discount persistence gap is now covered by
+  `BDISC-PG-01..04`: actual registration HTTP calls joined against Postgres
+  membership rows and persisted frozen quote fields, using separate users and
+  tours for each case.
+- A browser retry journey asserting duplicate-submit protection after a rapid
+  double-click, opening the same registration in a second tab, and navigating
+  back/forward passed in local built-server Playwright (`TC-CL-REG-01`, 1/1).
+  Staging multi-user replay remains open; API duplicate races and payment
+  idempotency are independently proven.
+- Text-only offline receipt rejection and file retry are now covered through
+  both the API route (`P6-MR-04`, 1/1 on the local memory driver) and a local
+  built-server multi-surface browser journey (`TC-CL-REG-03`, 1/1): the member
+  submits a note without a file, Finance sees and rejects it, the member
+  resubmits an image, Finance approves it, and the member sees paid status after
+  reload. The browser test deliberately asserts persisted note/proof in Finance
+  rather than fields omitted from the portal BFF response. The API test uses a
+  scoped mock file key and does not prove object storage; existing
+  `TC-CL-REG-01` covers a local image upload. These are local-only results.
+- A new local payment-hold characterization covers expiry after member receipt
+  submission but before Finance review. The test uses an independent memory tour
+  and member; it confirms the current behavior, not the product decision. Hold
+  expiry cancels the approved booking and frees capacity while the receipt stays
+  pending and payment remains unpaid. A later Finance approval fails with
+  `FINANCE_BOOKING_PAYMENT_SYNC_MISS`; the review is rolled back and the receipt
+  remains pending. Root cause: `expirePaymentHoldForRegistrationImpl` considers
+  booking payment status/hold status but does not account for a pending receipt;
+  the Finance booking-payment sync then cannot update a cancelled booking. Do
+  not change expiry semantics until Product decides whether a receipt submitted
+  before its due time must keep the booking on hold through review.
+- Staging now has one completed registration → manual admin approval → text-only
+  receipt submission → Finance approval → refreshed member/admin/roster smoke,
+  documented above. The earlier public-catalog and login failures were resolved
+  by using the correct `staging-*` hosts and a fresh test tour; they are not the
+  current blocker. Remaining staging gaps include free/auto combinations,
+  receipt-file upload/rejection, expiry/cancellation and waitlist promotion,
+  multi-user replay/concurrency, transport edge cases, and inspection of the
+  downloaded Excel workbook. The current deployed SHA is still
+  `4fab7d3786f784375c0019b58894b32367769fd4`; the local BFF and airplane
+  changes are absent from it. Do not change staging authentication policy to
+  make the smoke pass.
+- Airplane transport is implemented on this local branch as an organized mode
+  with the same global tour capacity and approval/payment/waitlist rules. It has
+  no aircraft seat counter or personal-car/dong semantics. Local unit/API/UI
+  tests pass; this capability is not in the current staging SHA and does not
+  become staging proof until that exact code is deployed and a public test tour
+  is visible there.
+
+### Focused gap-closure run
+
+The latest additive PostgreSQL certification in
+`apps/api/test/denali-booking-matrix-postgres.spec.ts` passed 14/14 against the
+fresh, dedicated local database `codex_denali_qa_20261025`. It uses independent
+tenant/tour/guest fixtures for B-01..B-06, B-08, BDISC-PG-01..04, and B-09/B-10/B-12;
+it exercises Denali registration over HTTP and applicable operator transitions,
+then verifies persisted rows, operator projections, and roster/XLSX output.
+B-07 is covered by the existing PostgreSQL member smoke, which submits and
+reviews its receipt, then reloads both member and admin payment projections.
+The first run exposed two incorrect test expectations (free/manual payment is
+unpaid while pending, and operator cancellation requires `reasonCode`); these
+matched existing contracts, so the fixture expectations were corrected without
+changing product behavior. The isolated database was created solely for this
+run and removed afterward.
+
+The targeted PostgreSQL rerun `--test-name-pattern='B-09|B-10|B-12'` passed 3/3
+without rerunning B-01..B-08. B-09 uses the real `finalize-with-open-payment`
+API, verifies the persisted approved/unpaid/finalized row, checks both `final`
+and `unpaid` roster reads, then parses the exported XLSX and confirms the same
+participant is in both the final and payment-follow-up sheets. B-10 seeds an
+approved/paid but not-final legacy projection and confirms it stays out of the
+final roster. B-12 seeds waitlisted/rejected/cancelled rows with stale finalized
+metadata and confirms none leak into either operational or final roster views.
+B-11 is covered at the projection boundary: a missing legacy
+`finalizationStatus` defaults to `not_final`; the PostgreSQL column itself is
+non-null with that default, so a database-null case is not representable.
+
+This test complements existing discount persistence, payment/expiry race,
+capacity, receipt-finance, and browser suites; it does not replace their
+assertions.
 
 The release claim is complete only when every required row has an executed test
 at the relevant boundary and the three surfaces agree after reload.

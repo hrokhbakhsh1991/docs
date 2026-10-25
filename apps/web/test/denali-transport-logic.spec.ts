@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  DENALI_TRANSPORT_MODE_VALUES,
   isDenaliDongAmountVisible,
   isDenaliPersonalCarOptionVisible,
   isDenaliTransportCostVisible,
+  parseDenaliTransportMode,
 } from "@app-tour/workspace-denali/host/ui/logic/denali-transport-logic";
 
 describe("denali-transport-logic.spec.ts", () => {
@@ -25,5 +27,13 @@ describe("denali-transport-logic.spec.ts", () => {
     assert.equal(isDenaliDongAmountVisible("bus", true), true);
     assert.equal(isDenaliDongAmountVisible("train", true), true);
     assert.equal(isDenaliDongAmountVisible("organizer_vehicle", true), false);
+  });
+
+  it("WEB-DENALI-TR-04 accepts airplane as organized transport without carpool options", () => {
+    assert.ok(DENALI_TRANSPORT_MODE_VALUES.includes("airplane"));
+    assert.equal(parseDenaliTransportMode("airplane"), "airplane");
+    assert.equal(isDenaliTransportCostVisible("airplane"), true);
+    assert.equal(isDenaliPersonalCarOptionVisible("airplane"), false);
+    assert.equal(isDenaliDongAmountVisible("airplane"), false);
   });
 });

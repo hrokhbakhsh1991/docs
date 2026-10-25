@@ -72,6 +72,15 @@ describe("MAT-002 capability validators", () => {
     assert.equal(violation, null);
   });
 
+  it("transport — airplane is accepted as an organized Denali mode", () => {
+    const violation = validateWorkspaceTransportCapability(
+      baseCtx("denali", {
+        transport: { mode: "airplane", allowPersonalCar: false, transportCost: 4000000 },
+      })
+    );
+    assert.equal(violation, null);
+  });
+
   it("transport — invalid mode fails", () => {
     const violation = validateWorkspaceTransportCapability(
       baseCtx("denali", {
