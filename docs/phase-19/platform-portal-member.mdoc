@@ -84,7 +84,7 @@ API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 **POST receipt BFF steps (2026-07-17 — bytes to MinIO):**
 
 1. Read multipart `file` from member (image/* or PDF).
-2. Forward **raw file bytes** to `POST /bookings/{registrationId}/receipts` with the file `Content-Type` and `x-receipt-file-name` (not JSON-only `fileKey`).
+2. Forward **raw file bytes** to `POST /bookings/{registrationId}/receipts` with the file `Content-Type` and `x-receipt-file-name` (not JSON-only `fileKey`). Optional note text travels in the ASCII-safe `x-receipt-note-base64url` header (UTF-8 bytes encoded as unpadded base64url); do not put Unicode note text directly in an HTTP header. The API also accepts the legacy ASCII `x-receipt-note` header.
 3. API stores the object in MinIO under `receipts/{tenantId}/{registrationId}/{sanitizedFileName}`, ensures pending manual payment, creates receipt with that `fileKey`.
 4. **Legacy/smoke JSON path** still accepted: `Content-Type: application/json` + `{ fileKey }` (no object write — memory E2E).
 

@@ -49,6 +49,7 @@ import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancella
 import { cancelTourRegistrations } from "./tour-cancellation.service.ts";
 import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
+import { resolveMemberReceiptNoteHeaders } from "./member-receipt-note-header";
 import { getPaymentDestinationMemberProjection } from "../settings/settings-config.service";
 import { BookingCapacityReleaseRejectedError, BookingsOpsForbiddenError } from "./bookings.errors";
 
@@ -392,7 +393,14 @@ export async function handlePostBookingReceipt(
     const auth = await requireOperatorSession(req);
     const contentType = readHeader(req, "content-type");
     const idempotencyKey = readHeader(req, "idempotency-key");
-    const receiptNote = readHeader(req, "x-receipt-note");
+    const receiptNote = resolveMemberReceiptNoteHeaders(
+      readHeader(req, "x-receipt-note-base64url"),
+      readHeader(req, "x-receipt-note")
+    );
+    if (receiptNote === null) {
+      sendHttpError(res, 400, { error: "invalid_header", code: "RECEIPT_NOTE_ENCODING_INVALID" });
+      return;
+    }
     if (receiptNote.length > 2000) {
       sendHttpError(res, 400, { error: "invalid_body", code: "RECEIPT_NOTE_MAX" });
       return;

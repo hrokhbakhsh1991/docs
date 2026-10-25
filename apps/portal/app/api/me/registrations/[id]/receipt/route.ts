@@ -102,6 +102,11 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
         "Content-Type": contentType,
         "Content-Length": String(body.byteLength),
         ...(isJson ? {} : { "x-receipt-file-name": fileName }),
+        ...(req.headers.get("x-receipt-note-base64url") !== null
+          ? {
+              "x-receipt-note-base64url": req.headers.get("x-receipt-note-base64url") as string,
+            }
+          : {}),
         ...(req.headers.get("x-receipt-note") !== null
           ? { "x-receipt-note": req.headers.get("x-receipt-note") as string }
           : {}),

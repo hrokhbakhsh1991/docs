@@ -10,6 +10,7 @@ import type {
   MemberReceiptPreviewKind,
   MemberReceiptStatus,
 } from "@/me/member-receipt-status";
+import { encodeMemberReceiptNoteHeader } from "@/me/member-receipt-note-header";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { formatMemberMoney } from "@/me/format-member-money";
 import {
@@ -271,7 +272,9 @@ export function MemberReceiptUploadForm({
               headers: {
                 "Content-Type": file.type || "application/octet-stream",
                 "x-receipt-file-name": file.name,
-                ...(note.length > 0 ? { "x-receipt-note": note } : {}),
+                ...(note.length > 0
+                  ? { "x-receipt-note-base64url": encodeMemberReceiptNoteHeader(note) }
+                  : {}),
                 ...commonHeaders,
               },
               body: file,
