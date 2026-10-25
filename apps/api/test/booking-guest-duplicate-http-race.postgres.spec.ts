@@ -91,85 +91,152 @@ async function requestJson(
   });
 }
 
-describe("TODO-007 parallel HTTP guest duplicate race", { concurrency: false, skip: postgresSkip }, () => {
-  const tenantId = integrationTenantId();
-  const tourId = randomUUID();
-  const userA = randomUUID();
-  const userB = randomUUID();
-  const guestLabel = `RaceGuest-${randomUUID().slice(0, 8)}`;
-  let admin: PrismaClient;
-  const listener = createRequestListener();
+describe(
+  "TODO-007 parallel HTTP guest duplicate race",
+  { concurrency: false, skip: postgresSkip },
+  () => {
+    const tenantId = integrationTenantId();
+    const tourId = randomUUID();
+    const userA = randomUUID();
+    const userB = randomUUID();
+    const guestLabel = `RaceGuest-${randomUUID().slice(0, 8)}`;
+    let admin: PrismaClient;
+    const listener = createRequestListener();
 
-  before(async () => {
-    assert.equal(process.env.STORAGE_DRIVER?.trim().toLowerCase(), "prisma");
-    process.env.OUTBOX_RELAY_ENABLED = "false";
-    resetLazyRouteHandlersForTests();
-    resetLazyFinanceServiceForTests();
-    resetBookingsRepositorySingletonForTests();
-    resetBookingsServiceCompositionForTests();
-    admin = new PrismaClient({
-      datasources: { db: { url: process.env.DATABASE_URL_ADMIN!.trim() } },
+    before(async () => {
+      assert.equal(process.env.STORAGE_DRIVER?.trim().toLowerCase(), "prisma");
+      process.env.OUTBOX_RELAY_ENABLED = "false";
+      resetLazyRouteHandlersForTests();
+      resetLazyFinanceServiceForTests();
+      resetBookingsRepositorySingletonForTests();
+      resetBookingsServiceCompositionForTests();
+      admin = new PrismaClient({
+        datasources: { db: { url: process.env.DATABASE_URL_ADMIN!.trim() } },
+      });
+      await admin.tenant.create({
+        data: {
+          id: tenantId,
+          subdomain: `race-${tenantId.slice(0, 8)}`,
+          workspaceType: "denali",
+          theme: {},
+        },
+      });
+      assert.ok(getBookingsRepository() instanceof PrismaBookingsRepository);
     });
-    await admin.tenant.create({
-      data: {
-        id: tenantId,
-        subdomain: `race-${tenantId.slice(0, 8)}`,
-        workspaceType: "denali",
-        theme: {},
-      },
-    });
-    assert.ok(getBookingsRepository() instanceof PrismaBookingsRepository);
-  });
 
-  after(async () => {
-    try {
-      await admin.outboxEvent.deleteMany({ where: { tenantId } });
-      await admin.operatorRegistration.deleteMany({ where: { tenantId } });
-      await admin.tenant.deleteMany({ where: { id: tenantId } });
-    } finally {
-      await admin.$disconnect();
-      await disconnectPrisma();
-    }
-  });
-
-  it("two concurrent POST /bookings same guestLabel → one 201 and one 409", async () => {
-    const body = {
-      tourId,
-      tourTitle: "Race Tour",
-      guestLabel,
-      partySize: 1,
-      departureAt: new Date(Date.now() + 86400000).toISOString(),
-      registrationIntake: { tourCapacityMax: 50 },
-    };
-    const [a, b] = await Promise.all([
-      requestJson(listener, {
-        method: "POST",
-        path: "/bookings",
-        tenantId,
-        userId: userA,
-        body,
-      }),
-      requestJson(listener, {
-        method: "POST",
-        path: "/bookings",
-        tenantId,
-        userId: userB,
-        body,
-      }),
-    ]);
-    const statuses = [a.status, b.status].sort((x, y) => x - y);
-    assert.deepEqual(statuses, [201, 409], JSON.stringify({ a, b }));
-    const loser = a.status === 409 ? a : b;
-    assert.ok(
-      loser.body.code === "BOOKING_GUEST_DUPLICATE" ||
-        String(loser.body.error ?? "").includes("BOOKING_GUEST_DUPLICATE") ||
-        String(loser.body.message ?? "").includes("BOOKING_GUEST_DUPLICATE") ||
-        loser.body.code === "UNIQUE_CONSTRAINT_VIOLATION",
-      JSON.stringify(loser.body)
-    );
-    const count = await admin.operatorRegistration.count({
-      where: { tenantId, tourId, guestLabel },
+    after(async () => {
+      try {
+        await admin.outboxEvent.deleteMany({ where: { tenantId } });
+        await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+        await admin.tour.deleteMany({ where: { tenantId } });
+        await admin.tenant.deleteMany({ where: { id: tenantId } });
+      } finally {
+        await admin.$disconnect();
+        await disconnectPrisma();
+      }
     });
-    assert.equal(count, 1);
-  });
-});
+
+    it("two concurrent POST /bookings same guestLabel → one 201 and one 409", async () => {
+      const body = {
+        tourId,
+        tourTitle: "Race Tour",
+        guestLabel,
+        partySize: 1,
+        departureAt: new Date(Date.now() + 86400000).toISOString(),
+        registrationIntake: { tourCapacityMax: 50 },
+      };
+      const [a, b] = await Promise.all([
+        requestJson(listener, {
+          method: "POST",
+          path: "/bookings",
+          tenantId,
+          userId: userA,
+          body,
+        }),
+        requestJson(listener, {
+          method: "POST",
+          path: "/bookings",
+          tenantId,
+          userId: userB,
+          body,
+        }),
+      ]);
+      const statuses = [a.status, b.status].sort((x, y) => x - y);
+      assert.deepEqual(statuses, [201, 409], JSON.stringify({ a, b }));
+      const loser = a.status === 409 ? a : b;
+      assert.ok(
+        loser.body.code === "BOOKING_GUEST_DUPLICATE" ||
+          String(loser.body.error ?? "").includes("BOOKING_GUEST_DUPLICATE") ||
+          String(loser.body.message ?? "").includes("BOOKING_GUEST_DUPLICATE") ||
+          loser.body.code === "UNIQUE_CONSTRAINT_VIOLATION",
+        JSON.stringify(loser.body)
+      );
+      const count = await admin.operatorRegistration.count({
+        where: { tenantId, tourId, guestLabel },
+      });
+      assert.equal(count, 1);
+    });
+
+    it("two concurrent Denali guest registrations do not create the same guest twice", async () => {
+      const denaliTourId = randomUUID();
+      const denaliGuest = `DenaliRace-${randomUUID().slice(0, 8)}`;
+      const startDateTime = "2030-06-01T08:00:00.000Z";
+      await admin.tour.create({
+        data: {
+          id: denaliTourId,
+          tenantId,
+          title: "Denali duplicate race tour",
+          publishStatus: "published",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["basics", "program", "pricing", "transport"],
+            data: {
+              title: "Denali duplicate race tour",
+              publishStatus: "active",
+              startDateTime,
+              endDateTime: "2030-06-02T08:00:00.000Z",
+              category: "mountain_multi",
+              capacityMax: 10,
+              program: { shortDescription: "race test" },
+              pricing: { basePricePerPerson: 0, paymentMode: "offline_receipt" },
+              transport: { mode: "none" },
+              photos: [],
+              basics: { title: "Denali duplicate race tour" },
+            },
+          },
+        },
+      });
+      const body = {
+        tourId: denaliTourId,
+        registrantTarget: "other",
+        contact: { fullName: denaliGuest, phone: "+15550002000" },
+        partySize: 1,
+      };
+      const [a, b] = await Promise.all([
+        requestJson(listener, {
+          method: "POST",
+          path: "/denali/registrations",
+          tenantId,
+          userId: userA,
+          body,
+        }),
+        requestJson(listener, {
+          method: "POST",
+          path: "/denali/registrations",
+          tenantId,
+          userId: userB,
+          body,
+        }),
+      ]);
+      assert.deepEqual(
+        [a.status, b.status].sort((x, y) => x - y),
+        [201, 409],
+        JSON.stringify({ a, b })
+      );
+      const count = await admin.operatorRegistration.count({
+        where: { tenantId, tourId: denaliTourId, guestLabel: denaliGuest },
+      });
+      assert.equal(count, 1);
+    });
+  }
+);

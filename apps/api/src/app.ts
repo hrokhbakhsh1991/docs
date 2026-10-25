@@ -7,6 +7,8 @@ import {
   handleWaiveAndFinalizeBooking,
   handleBulkApproveBookings,
   handleApproveMemberCancellation,
+  handleListMemberCancellationRequests,
+  handleRejectMemberCancellation,
   handleCancelBooking,
   handleCancelTour,
   handleCreateBooking,
@@ -541,6 +543,11 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "GET" && url.pathname === "/bookings/member-cancellation-requests") {
+    await handleListMemberCancellationRequests(req, res);
+    return;
+  }
+
   const bookingGetMatch = url.pathname.match(/^\/bookings\/([^/]+)$/);
   if (method === "GET" && bookingGetMatch) {
     await handleGetBooking(req, res, bookingGetMatch[1]!);
@@ -615,6 +622,14 @@ async function dispatchRequest(
       await handlePostMemberCancellation(req, res, memberCancellationMatch[1]!);
       return;
     }
+  }
+
+  const memberCancellationRejectMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/member-cancellation\/reject$/
+  );
+  if (method === "POST" && memberCancellationRejectMatch) {
+    await handleRejectMemberCancellation(req, res, memberCancellationRejectMatch[1]!);
+    return;
   }
 
   const memberCancellationApproveMatch = url.pathname.match(

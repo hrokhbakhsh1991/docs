@@ -13,15 +13,15 @@ authority: DEN-PROD-09 (approved 2026-08-24) · dp-4-execution-plan.md
 
 Composite **D + B + C**:
 
-| Registration state | Member action | Server mode |
-| ------------------ | ------------- | ----------- |
-| `pending` | Withdraw | `withdraw` — immediate `cancelled`, `cancelSource=member` |
-| `waitlisted` | Withdraw | `withdraw` — immediate cancel; no seat was held |
-| `approved` + `unpaid` | Self-cancel | `self_cancel` — before `min(paymentDueAt, cancellationDeadlineInstant)` |
-| `approved` + `partial` | Request | `request` — creates cancellation request; operator completes via DP-6 |
-| `approved` + `paid` | Request | `request` — same as partial |
-| Terminal (`cancelled`, `rejected`) | Denied | `denied` |
-| After `cancellationDeadlineHours` before `departureAt` | Denied | `denied`, reason `cancellation_cutoff_passed` |
+| Registration state                                     | Member action | Server mode                                                             |
+| ------------------------------------------------------ | ------------- | ----------------------------------------------------------------------- |
+| `pending`                                              | Withdraw      | `withdraw` — immediate `cancelled`, `cancelSource=member`               |
+| `waitlisted`                                           | Withdraw      | `withdraw` — immediate cancel; no seat was held                         |
+| `approved` + `unpaid`                                  | Self-cancel   | `self_cancel` — before `min(paymentDueAt, cancellationDeadlineInstant)` |
+| `approved` + `partial`                                 | Request       | `request` — creates cancellation request; operator completes via DP-6   |
+| `approved` + `paid`                                    | Request       | `request` — same as partial                                             |
+| Terminal (`cancelled`, `rejected`)                     | Denied        | `denied`                                                                |
+| After `cancellationDeadlineHours` before `departureAt` | Denied        | `denied`, reason `cancellation_cutoff_passed`                           |
 
 **Cutoff:** `cancellationDeadlineInstant = departureAt − policies.cancellationDeadlineHours` (UTC). When hours omitted, only `paymentDueAt` gates approved-unpaid self-cancel.
 
@@ -57,6 +57,11 @@ intake marker take precedence.
 1. Persist `member_cancellation_requests` row (status `pending`)
 2. Outbox `registration.cancellation_requested`
 3. No seat release until operator approves cancel (DP-6)
+4. The request and its decision survive API process restarts and are scoped by tenant.
+5. The member portal reloads the current request state; refresh must not make a pending request look unsubmitted or offer a misleading duplicate action.
+6. Operators can list pending requests and open the associated booking from the admin surface.
+7. Approval transitions the booking to `cancelled` and starts the separate finance-refund workflow; it does not transfer money or silently promote a waitlisted guest.
+8. Rejection marks only the request rejected and records `registration.cancellation_request_rejected` with the operator identity. Booking lifecycle, finalization, transport, payment/refund, capacity, and waitlist projections remain unchanged.
 
 ## Transport
 
@@ -64,8 +69,11 @@ Registration-level cancel only. No per-passenger cancel until DP-5 assignment So
 
 ## HTTP surfaces
 
-| Method | Path | Actor |
-| ------ | ---- | ----- |
-| `GET` | `/bookings/:id/member-cancellation` | Member (owner) |
-| `POST` | `/bookings/:id/member-cancellation` | Member (owner) |
-| Portal BFF | `GET/POST /api/me/registrations/:id/cancellation` | Member session |
+| Method     | Path                                                    | Actor            |
+| ---------- | ------------------------------------------------------- | ---------------- |
+| `GET`      | `/bookings/:id/member-cancellation`                     | Member (owner)   |
+| `POST`     | `/bookings/:id/member-cancellation`                     | Member (owner)   |
+| `GET`      | `/bookings/member-cancellation-requests?status=pending` | Operator / owner |
+| `POST`     | `/bookings/:id/member-cancellation/approve`             | Operator / owner |
+| `POST`     | `/bookings/:id/member-cancellation/reject`              | Operator / owner |
+| Portal BFF | `GET/POST /api/me/registrations/:id/cancellation`       | Member session   |

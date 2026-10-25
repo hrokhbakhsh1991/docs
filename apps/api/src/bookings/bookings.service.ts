@@ -1268,6 +1268,7 @@ export class BookingsService {
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
     }
+    await this.recheckWaitlistAfterCapacityChange(auth.tenantId, updated.tourId);
     const isWaivedCollection =
       before.financialDisplayState === "WAIVED" ||
       before.registrationIntake?.freeCollectionApplied === true;
@@ -1330,7 +1331,6 @@ export class BookingsService {
       outboxEventType: this.eventReaction.approveOutboxEventType,
     });
   }
-
 }
 
 export function createBookingsService(deps: BookingsServiceDeps): BookingsService {

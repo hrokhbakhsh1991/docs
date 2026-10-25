@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 
 import { captureBqcArtifact } from "./fixtures/capture-bqc-artifact";
 import {
+  OPERATOR_PUBLISHED_TOUR_ID,
   OPERATOR_PUBLISHED_TOUR_TITLE,
   completePortalCatalogRegistration,
 } from "./fixtures/complete-portal-registration";
@@ -62,6 +63,72 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await expect(page.locator("[data-portal-member-receipt-back-trips]")).toBeVisible();
 
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-01-awaiting-approval.png");
+  });
+
+  test("BOOK-BQC-01A refresh, back/forward, and a second tab keep one booking consistent", async ({
+    page,
+  }) => {
+    const contact = uniqueContact("book-bqc-01a");
+    await completePortalCatalogRegistration(page, {
+      email: contact.email,
+      fullName: "BOOK BQC 01A History",
+      phone: contact.phone,
+    });
+
+    const registrationId = await fetchMemberRegistrationId(page, {
+      tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
+    });
+    await openMemberRegistrationsFromSuccess(page);
+    await expect(
+      page.locator("[data-portal-member-registrations-list] a").filter({
+        hasText: OPERATOR_PUBLISHED_TOUR_TITLE,
+      })
+    ).toHaveCount(1);
+
+    await openMemberRegistrationDetailById(page, registrationId);
+    const detailUrl = new RegExp(`/me/registrations/${registrationId}(?:\\?.*)?$`);
+    await expect(page).toHaveURL(detailUrl);
+    await expect(page.locator("[data-portal-member-receipt-awaiting-approval]")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const secondTab = await page.context().newPage();
+    try {
+      await secondTab.goto(`/me/registrations/${registrationId}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await expect(secondTab.locator("[data-portal-member-registration-detail]")).toBeVisible({
+        timeout: 60_000,
+      });
+      await expect(
+        secondTab.locator("[data-portal-member-receipt-awaiting-approval]")
+      ).toBeVisible();
+      await secondTab.reload({ waitUntil: "domcontentloaded" });
+      await expect(secondTab.locator("[data-portal-member-receipt-awaiting-approval]")).toBeVisible(
+        { timeout: 60_000 }
+      );
+
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(/\/me\/registrations$/);
+      await expect(
+        page.locator("[data-portal-member-registrations-list] a").filter({
+          hasText: OPERATOR_PUBLISHED_TOUR_TITLE,
+        })
+      ).toHaveCount(1);
+      await page.goForward({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(detailUrl);
+      await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
+        timeout: 60_000,
+      });
+      await expect(page.locator("[data-portal-member-receipt-awaiting-approval]")).toBeVisible();
+
+      const registrations = await fetchMemberRegistrationId(page, {
+        tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
+      });
+      expect(registrations).toBe(registrationId);
+    } finally {
+      await secondTab.close();
+    }
   });
 
   test("BOOK-BQC-02 operator approve unlocks member receipt upload form", async ({
@@ -275,5 +342,184 @@ test.describe("portal booking purchase matrix — BOOK-BQC", () => {
     await expect(page.locator("[data-portal-member-receipt-rejected-hint]")).toHaveCount(0);
 
     await captureBqcArtifact(page, "/opt/cursor/artifacts/bqc-booking-06-receipt-resubmit.png");
+  });
+
+  test("BOOK-BQC-07 booking reaches final approval across member, admin, and roster", async ({
+    page,
+    browser,
+  }) => {
+    const contact = uniqueContact("book-bqc-07");
+    const guestName = "BOOK BQC 07 Finalized";
+    await completePortalCatalogRegistration(page, {
+      email: contact.email,
+      fullName: guestName,
+      phone: contact.phone,
+    });
+
+    const registrationId = await fetchMemberRegistrationId(page, {
+      tourTitle: OPERATOR_PUBLISHED_TOUR_TITLE,
+    });
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorApproveBookingViaUi(operatorPage, {
+        guestLabel: guestName,
+        bookingId: registrationId,
+      });
+    });
+
+    await openMemberRegistrationDetailById(page, registrationId);
+    await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.locator("#receipt-file").setInputFiles({
+      name: "bqc-finalized-receipt.png",
+      mimeType: "image/png",
+      buffer: minimalReceiptPngBuffer(),
+    });
+    const receipt = await submitMemberReceiptUpload(page, registrationId);
+    expect(receipt.id, "member receipt submission must return its receipt id").toBeTruthy();
+    await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorPage.goto(
+        `/finance?tab=receipts&registrationId=${encodeURIComponent(registrationId)}`,
+        { waitUntil: "domcontentloaded" }
+      );
+      await expect(operatorPage.getByTestId("finance-receipts-panel")).toBeVisible({
+        timeout: 60_000,
+      });
+      const receiptRow = operatorPage
+        .getByTestId("finance-receipts-list")
+        .getByRole("listitem")
+        .filter({ has: operatorPage.locator(`a[title="${registrationId}"]`) });
+      const reviewForm = receiptRow.getByTestId("finance-receipt-review-form");
+      await expect(reviewForm).toBeVisible({ timeout: 60_000 });
+
+      const approveResponse = operatorPage.waitForResponse(
+        (response) =>
+          response.request().method() === "PATCH" &&
+          response.url().includes(`/api/finance/receipts/${receipt.id}/review`)
+      );
+      await reviewForm.getByRole("button", { name: /approve|تأیید/i }).click();
+      const approved = await approveResponse;
+      expect(approved.ok(), await approved.text()).toBeTruthy();
+      await expect(receiptRow).toHaveCount(0, { timeout: 60_000 });
+
+      await operatorPage.goto("/bookings?status=all", { waitUntil: "domcontentloaded" });
+      const bookingRow = operatorPage.locator("[data-booking-row]").filter({ hasText: guestName });
+      await expect(bookingRow).toBeVisible({ timeout: 60_000 });
+      await expect(bookingRow.getByTestId("operator-bookings-payment-badge-inbox")).toHaveAttribute(
+        "data-payment-status",
+        "paid"
+      );
+
+      const finalizeResponse = await operatorPage.request.post(
+        `/api/bookings/${encodeURIComponent(registrationId)}/finalize`
+      );
+      expect(finalizeResponse.ok(), await finalizeResponse.text()).toBeTruthy();
+
+      const rosterResponse = await operatorPage.request.get(
+        `/api/tours/${encodeURIComponent(OPERATOR_PUBLISHED_TOUR_ID)}/operational-roster?filter=final&view=ops`
+      );
+      expect(rosterResponse.ok(), await rosterResponse.text()).toBeTruthy();
+      const roster = (await rosterResponse.json()) as {
+        items?: Array<{
+          registrationId?: string;
+          finalizationStatus?: string;
+          financialDisplayState?: string;
+        }>;
+        data?: {
+          items?: Array<{
+            registrationId?: string;
+            finalizationStatus?: string;
+            financialDisplayState?: string;
+          }>;
+        };
+      };
+      const rosterRow = (roster.items ?? roster.data?.items ?? []).find(
+        (item) => item.registrationId === registrationId
+      );
+      expect(rosterRow).toMatchObject({
+        registrationId,
+        finalizationStatus: "finalized",
+        financialDisplayState: "PAID",
+      });
+    });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-paid]")).toBeVisible();
+    await expect(page.locator("[data-portal-member-detail-status-copy]")).toContainText(
+      "سفر شما نهایی شده است"
+    );
+
+    await expect(page.locator("[data-portal-member-cancel-submit]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.locator("[data-portal-member-cancel-submit]").click();
+    await expect(page.locator("[data-portal-member-cancel-pending]")).toBeVisible();
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-cancel-pending]")).toBeVisible({
+      timeout: 60_000,
+    });
+
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorPage.goto("/bookings?status=all", { waitUntil: "domcontentloaded" });
+      const queue = operatorPage.getByTestId("member-cancellation-queue");
+      await expect(queue).toContainText(registrationId, { timeout: 60_000 });
+      await expect(queue.getByRole("link", { name: new RegExp(registrationId) })).toHaveAttribute(
+        "href",
+        `/bookings?bookingId=${registrationId}`
+      );
+      await queue.getByRole("button", { name: /رد درخواست|reject request/i }).click();
+      await expect(queue).not.toContainText(registrationId, { timeout: 60_000 });
+    });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-cancel-rejected]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-receipt-paid]")).toBeVisible();
+
+    await page.locator("[data-portal-member-cancel-submit]").click();
+    await expect(page.locator("[data-portal-member-cancel-pending]")).toBeVisible();
+    await withOperatorBookingsUi(browser, async (operatorPage) => {
+      await operatorPage.goto("/bookings?status=all", { waitUntil: "domcontentloaded" });
+      const queue = operatorPage.getByTestId("member-cancellation-queue");
+      await expect(queue).toContainText(registrationId, { timeout: 60_000 });
+      const approvalResponse = operatorPage.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes(`/api/bookings/${registrationId}/member-cancellation/approve`)
+      );
+      await queue.getByRole("button", { name: /تأیید لغو|approve cancellation/i }).click();
+      const approvedCancellation = await approvalResponse;
+      expect(approvedCancellation.ok(), await approvedCancellation.text()).toBeTruthy();
+      const outcome = (await approvedCancellation.json()) as {
+        kind?: string;
+        status?: string;
+        refundStatus?: string;
+      };
+      expect(outcome).toMatchObject({
+        kind: "cancelled",
+        status: "cancelled",
+        refundStatus: "pending_finance_approval",
+      });
+      await expect(queue).not.toContainText(registrationId, { timeout: 60_000 });
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("[data-portal-member-detail-status-card]")).toHaveAttribute(
+      "data-status-tone",
+      "closed"
+    );
+    await expect(page.locator("[data-portal-member-detail-status-copy]")).toContainText(
+      "ثبت‌نام شما بسته شده است"
+    );
   });
 });

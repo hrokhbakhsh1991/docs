@@ -10,6 +10,14 @@ type CancellationEligibility = {
   readonly eligible: boolean;
   readonly mode: string;
   readonly reasonCode?: string;
+  readonly cancellationStatus?:
+    | "none"
+    | "request_pending"
+    | "rejected"
+    | "applied"
+    | "completed"
+    | string;
+  readonly cancellationRequestedAt?: string | null;
   readonly refund?: {
     readonly eligibleRefundMinor: string;
     readonly penaltyMinor: string;
@@ -87,6 +95,13 @@ export function MemberCancellationPanel({
       if (payload !== null) {
         setResult(payload);
       }
+      const stateResponse = await fetch(
+        `/api/me/registrations/${encodeURIComponent(registrationId)}/cancellation`,
+        { cache: "no-store" }
+      );
+      if (stateResponse.ok) {
+        setEligibility((await stateResponse.json()) as CancellationEligibility);
+      }
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -127,37 +142,50 @@ export function MemberCancellationPanel({
               })}
             </p>
           ) : null}
-          {eligibility.eligible ? (
-            <>
-              <p data-portal-member-cancel-hint>
-                {eligibility.mode === "request"
-                  ? paymentCollection === "free"
-                    ? t("freeRequestHint")
-                    : t("requestHint")
-                  : eligibility.mode === "self_cancel"
-                    ? t("selfCancelHint")
-                    : t("withdrawHint")}
-              </p>
-              <button
-                type="button"
-                data-portal-member-cancel-submit
-                disabled={submitting}
-                onClick={() => void onCancel()}
-              >
-                {eligibility.mode === "request"
-                  ? t("requestAction")
-                  : eligibility.mode === "self_cancel"
-                    ? t("selfCancelAction")
-                    : t("withdrawAction")}
-              </button>
-            </>
-          ) : (
-            <p
-              data-portal-member-cancel-blocked
-              data-reason={eligibility.reasonCode ?? "not_eligible"}
-            >
-              {t("blocked", { reason: eligibility.reasonCode ?? "not_eligible" })}
+          {eligibility.cancellationStatus === "request_pending" ? (
+            <p role="status" data-portal-member-cancel-pending>
+              {t("requestPending")}
             </p>
+          ) : (
+            <>
+              {eligibility.cancellationStatus === "rejected" ? (
+                <p role="status" data-portal-member-cancel-rejected>
+                  {t("requestRejected")}
+                </p>
+              ) : null}
+              {eligibility.eligible ? (
+                <>
+                  <p data-portal-member-cancel-hint>
+                    {eligibility.mode === "request"
+                      ? paymentCollection === "free"
+                        ? t("freeRequestHint")
+                        : t("requestHint")
+                      : eligibility.mode === "self_cancel"
+                        ? t("selfCancelHint")
+                        : t("withdrawHint")}
+                  </p>
+                  <button
+                    type="button"
+                    data-portal-member-cancel-submit
+                    disabled={submitting}
+                    onClick={() => void onCancel()}
+                  >
+                    {eligibility.mode === "request"
+                      ? t("requestAction")
+                      : eligibility.mode === "self_cancel"
+                        ? t("selfCancelAction")
+                        : t("withdrawAction")}
+                  </button>
+                </>
+              ) : eligibility.cancellationStatus === "rejected" ? null : (
+                <p
+                  data-portal-member-cancel-blocked
+                  data-reason={eligibility.reasonCode ?? "not_eligible"}
+                >
+                  {t("blocked", { reason: eligibility.reasonCode ?? "not_eligible" })}
+                </p>
+              )}
+            </>
           )}
           {error !== null ? (
             <p role="alert" data-portal-member-cancel-error>

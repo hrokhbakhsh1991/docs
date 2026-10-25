@@ -15,6 +15,8 @@ import { getBookingsRepository } from "../../src/bookings/create-bookings-reposi
 import { getPaymentHoldRepository } from "../../src/finance/payment-hold.repository.ts";
 import { peekOutboxByAggregateForTests } from "../../src/bookings/in-memory-bookings.repository.ts";
 import { createHostBookingPublicAdapter } from "../../src/bookings/infrastructure/host-booking-public.adapter.ts";
+import { submitMemberCancellation } from "../../src/member-cancellation/member-cancellation.service.ts";
+import { createTourStorageRepository } from "../../src/storage/create-tour-storage.ts";
 import { putTransportAllocations } from "../../src/settlement/driver-settlement.service.ts";
 import { listTransportAllocations } from "../../src/transport/transport-allocation.repository.ts";
 import {
@@ -25,11 +27,15 @@ import {
   dp1OpsAuth,
   requirePaymentHoldPort,
   resetDp1MemoryHarness,
+  setDp1RegistrationApprovalMode,
 } from "./dp1-test-harness.ts";
 
 describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
   before(() => resetDp1MemoryHarness());
-  beforeEach(() => resetDp1MemoryHarness());
+  beforeEach(async () => {
+    resetDp1MemoryHarness();
+    await setDp1RegistrationApprovalMode("manual", 12);
+  });
   after(() => resetDp1MemoryHarness());
 
   it("S6: expiry promotes one waitlisted guest with new hold + quote", async () => {
@@ -94,6 +100,89 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     assert.equal(candidate.status, "waitlisted");
     const holdPort = await requirePaymentHoldPort();
     assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, waitlistedGuest.id), null);
+  });
+
+  it("auto-approval tour cancellation promotes only the oldest fitting waitlisted guest", async () => {
+    await setDp1RegistrationApprovalMode("auto", 1);
+    const configuredTour = await createTourStorageRepository().getById(
+      DP1_TOUR_ID,
+      DP1_TENANT_DENALI
+    );
+    assert.equal(
+      (configuredTour?.canonical.data as { pricing?: { registrationApproval?: string } }).pricing
+        ?.registrationApproval,
+      "auto"
+    );
+    assert.equal((configuredTour?.canonical.data as { capacityMax?: number }).capacityMax, 1);
+    const blocker = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({
+        guestLabel: "DP1 Auto Cancellation Blocker",
+        partySize: 1,
+        tourCapacityMax: 1,
+      })
+    );
+    const first = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "DP1 Auto Waitlist First", partySize: 1, tourCapacityMax: 1 })
+    );
+    const second = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({ guestLabel: "DP1 Auto Waitlist Second", partySize: 1, tourCapacityMax: 1 })
+    );
+    await approveBooking(dp1OpsAuth(), blocker.id);
+    await waitlistBooking(dp1OpsAuth(), first.id);
+    await waitlistBooking(dp1OpsAuth(), second.id);
+
+    await cancelBooking(dp1OpsAuth(), blocker.id);
+
+    assert.equal((await dp1GetBooking(first.id)).status, "approved");
+    assert.equal((await dp1GetBooking(second.id)).status, "waitlisted");
+    const holdPort = await requirePaymentHoldPort();
+    assert.equal((await holdPort.getByRegistrationId(DP1_TENANT_DENALI, first.id))?.status, "open");
+    assert.equal(await holdPort.getByRegistrationId(DP1_TENANT_DENALI, second.id), null);
+  });
+
+  it("member self-cancellation reconciles the auto-approval waitlist after capacity release", async () => {
+    await setDp1RegistrationApprovalMode("auto", 1);
+    const blocker = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({
+        guestLabel: "DP1 Member Cancellation Blocker",
+        partySize: 1,
+        tourCapacityMax: 1,
+      })
+    );
+    const waiting = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({
+        guestLabel: "DP1 Member Cancellation Waitlist",
+        partySize: 1,
+        tourCapacityMax: 1,
+      })
+    );
+    await approveBooking(dp1OpsAuth(), blocker.id);
+    await waitlistBooking(dp1OpsAuth(), waiting.id);
+
+    const blockerRecord = await getBookingsRepository().getById(blocker.id, DP1_TENANT_DENALI);
+    assert.ok(blockerRecord?.submittedByUserId);
+    const cancelled = await submitMemberCancellation(
+      {
+        tenantId: DP1_TENANT_DENALI,
+        userId: blockerRecord.submittedByUserId,
+        role: "member",
+        status: "ACTIVE",
+      },
+      blocker.id
+    );
+
+    assert.equal(cancelled.kind, "cancelled");
+    assert.equal((await dp1GetBooking(blocker.id)).status, "cancelled");
+    assert.equal((await dp1GetBooking(waiting.id)).status, "approved");
+    const promotedHold = await requirePaymentHoldPort().then((port) =>
+      port.getByRegistrationId(DP1_TENANT_DENALI, waiting.id)
+    );
+    assert.equal(promotedHold?.status, "open");
   });
 
   it("rechecks FIFO waitlist after capacity opens before the waitlist row is committed", async () => {

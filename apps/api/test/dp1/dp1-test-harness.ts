@@ -114,11 +114,16 @@ export function resetDp1MemoryHarness(): void {
   process.env.PAYMENT_HOLD_EXPIRY_ENABLED = "true";
 }
 
-export async function setDp1RegistrationApprovalMode(mode: "manual" | "auto"): Promise<void> {
+export async function setDp1RegistrationApprovalMode(
+  mode: "manual" | "auto",
+  capacityMax?: number
+): Promise<void> {
   const tourStore = createTourStorageRepository();
   const tour = await tourStore.getById(DP1_TOUR_ID, DP1_TENANT_DENALI);
   assert.ok(tour !== null, "DP1 tour fixture must exist before setting approval mode");
   const data = tour.canonical.data as Record<string, unknown>;
+  const capacity = capacityMax ?? data.capacityMax;
+  assert.equal(typeof capacity, "number", "DP1 tour capacity must be numeric");
   const pricing =
     typeof data.pricing === "object" && data.pricing !== null && !Array.isArray(data.pricing)
       ? (data.pricing as Record<string, unknown>)
@@ -128,7 +133,11 @@ export async function setDp1RegistrationApprovalMode(mode: "manual" | "auto"): P
     rowVersion: tour.rowVersion + 1,
     canonical: {
       ...tour.canonical,
-      data: { ...data, pricing: { ...pricing, registrationApproval: mode } },
+      data: {
+        ...data,
+        ...(capacityMax !== undefined ? { capacityMax } : {}),
+        pricing: { ...pricing, registrationApproval: mode },
+      },
     },
   });
 }
