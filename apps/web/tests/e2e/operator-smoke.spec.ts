@@ -193,7 +193,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 120_000 });
     await fillDenaliMultiDayWizardThroughReview(page, tourTitle);
-    await submitDenaliWizardDraftCreate(page);
+    await submitDenaliWizardDraftCreate(page, tourTitle);
 
     await page.goto("/tours");
     await expect(page.getByTestId(TOURS_LIST_TEST_IDS.page)).toBeVisible({ timeout: 15_000 });

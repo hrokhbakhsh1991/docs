@@ -132,6 +132,7 @@
     "bus": "Bus",
     "minibus": "Minibus",
     "train": "Train",
+    "airplane": "Airplane",
     "shared_cars": "Shared cars (carpool)",
     "none": "No organized transport"
   },

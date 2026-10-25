@@ -10,7 +10,7 @@ export const DENALI_GLOBAL_STRUCTURAL_INVARIANTS: readonly DenaliGlobalStructura
   {
     kind: "clearFieldWhenTransportMode",
     targetCanonical: "transport.dongAmount",
-    modes: ["organizer_vehicle", "bus", "minibus", "train", "none"],
+    modes: ["organizer_vehicle", "bus", "minibus", "train", "airplane", "none"],
     unlessBooleanCanonicalPathIsTrue: "transport.allowPersonalCar",
   },
   { kind: "syncProgramItineraryToDayCount" },

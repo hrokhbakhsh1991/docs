@@ -10,6 +10,10 @@ import {
   parseCreateBookingBody,
   parseRejectBookingBody,
 } from "@app-tour/booking-http-contracts";
+import {
+  decodeMemberReceiptNoteHeader,
+  MEMBER_RECEIPT_NOTE_HEADER_PREFIX,
+} from "@app-tour/finance-http-contracts";
 
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";
@@ -392,8 +396,14 @@ export async function handlePostBookingReceipt(
     const auth = await requireOperatorSession(req);
     const contentType = readHeader(req, "content-type");
     const idempotencyKey = readHeader(req, "idempotency-key");
-    const receiptNote = readHeader(req, "x-receipt-note");
-    if (receiptNote.length > 2000) {
+    const rawReceiptNote = readHeader(req, "x-receipt-note");
+    const receiptNote =
+      rawReceiptNote.length > 0 ? decodeMemberReceiptNoteHeader(rawReceiptNote) : null;
+    if (rawReceiptNote.startsWith(MEMBER_RECEIPT_NOTE_HEADER_PREFIX) && receiptNote === null) {
+      sendHttpError(res, 400, { error: "invalid_body", code: "INVALID_RECEIPT_NOTE" });
+      return;
+    }
+    if ((receiptNote?.length ?? 0) > 2000) {
       sendHttpError(res, 400, { error: "invalid_body", code: "RECEIPT_NOTE_MAX" });
       return;
     }
@@ -460,7 +470,7 @@ export async function handlePostBookingReceipt(
               {
                 registrationId: bookingId,
                 fileKey,
-                ...(receiptNote.length > 0 ? { note: receiptNote } : {}),
+                ...(receiptNote !== null && receiptNote.length > 0 ? { note: receiptNote } : {}),
                 ...(readHeader(req, "x-payment-destination-revision").trim().length > 0
                   ? {
                       destinationRevision: readHeader(req, "x-payment-destination-revision").trim(),

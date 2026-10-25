@@ -4,6 +4,7 @@ export type PublicCatalogTransportMode =
   | "bus"
   | "minibus"
   | "train"
+  | "airplane"
   | "shared_cars"
   | "none";
 
@@ -19,6 +20,7 @@ export function isPublicCatalogOrganizedTransportMode(mode: PublicCatalogTranspo
     mode === "organizer_vehicle" ||
     mode === "bus" ||
     mode === "minibus" ||
-    mode === "train"
+    mode === "train" ||
+    mode === "airplane"
   );
 }

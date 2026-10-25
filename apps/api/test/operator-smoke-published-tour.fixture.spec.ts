@@ -11,14 +11,20 @@ import {
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_TITLE,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_TITLE,
+  DENALI_STAGING_FINAL_APPROVAL_TOUR_ID,
+  DENALI_STAGING_FINAL_APPROVAL_TOUR_MARKER,
+  DENALI_STAGING_FINAL_APPROVAL_TOUR_TITLE,
   applyOperatorSmokePublishedTourEditReadyPatch,
+  buildDenaliStagingFinalApprovalTour,
   buildOperatorSmokeParticipantRequirementsTourCanonical,
   buildOperatorSmokePublishedTourCanonical,
   buildOperatorSmokeTransportBusTourCanonical,
   buildOperatorSmokeTransportSharedCarsTourCanonical,
   isOperatorSmokePublishedTourEditReady,
+  isOwnedDenaliStagingFinalApprovalTour,
   resolveOperatorSmokePublishedTourWindow,
 } from "../src/fixtures/operator-smoke-published-tour.fixture";
+import { seedDenaliStagingFinalApprovalTour } from "../src/settings/seed-operator-smoke-published-tour";
 
 describe("operator-smoke-published-tour.fixture.ts", () => {
   it("API-SMOKE-TPL-01 published tour canonical includes 3-day itinerary (ED-SEED-01)", () => {
@@ -118,5 +124,58 @@ describe("operator-smoke-published-tour.fixture.ts", () => {
     assert.equal(transport.mode, "shared_cars");
     assert.equal(transport.dongAmount, 80_000);
     assert.equal(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID, "00000000-0000-4000-8000-000000000214");
+  });
+
+  it("DENALI-STAGING-FINAL-APPROVAL-01 builds an owned paid/manual airplane tour", () => {
+    const tenantId = "00000000-0000-4000-8000-000000000003";
+    const tour = buildDenaliStagingFinalApprovalTour({ tenantId });
+    const data = tour.canonical.data as Record<string, unknown>;
+    const transport = data.transport as Record<string, unknown>;
+    const pricing = data.pricing as Record<string, unknown>;
+    const details = data.details as Record<string, unknown>;
+
+    assert.equal(tour.id, DENALI_STAGING_FINAL_APPROVAL_TOUR_ID);
+    assert.equal(data.title, DENALI_STAGING_FINAL_APPROVAL_TOUR_TITLE);
+    assert.equal(data.publishStatus, "active");
+    assert.equal(data.capacityMax, 100);
+    assert.equal(transport.mode, "airplane");
+    assert.equal(transport.transportCost, 350_000);
+    assert.equal(pricing.registrationApproval, "manual");
+    assert.equal(pricing.paymentCollection, "offline");
+    assert.equal(details.summary, DENALI_STAGING_FINAL_APPROVAL_TOUR_MARKER);
+    assert.equal(isOwnedDenaliStagingFinalApprovalTour(tour, tenantId), true);
+    assert.equal(isOwnedDenaliStagingFinalApprovalTour(tour, "other-tenant"), false);
+    const unmarked = {
+      ...tour,
+      canonical: {
+        ...tour.canonical,
+        data: { ...tour.canonical.data, details: { summary: "existing unowned data" } },
+      },
+    };
+    assert.equal(isOwnedDenaliStagingFinalApprovalTour(unmarked, tenantId), false);
+  });
+
+  it("DENALI-STAGING-FINAL-APPROVAL-02 refuses to seed outside staging before database access", async () => {
+    const previousProfile = process.env.APP_INFRA_PROFILE;
+    delete process.env.APP_INFRA_PROFILE;
+    try {
+      await assert.rejects(
+        seedDenaliStagingFinalApprovalTour("00000000-0000-4000-8000-000000000003"),
+        /DENALI_STAGING_FINAL_APPROVAL_PROFILE_REQUIRED/
+      );
+      process.env.APP_INFRA_PROFILE = "production";
+      await assert.rejects(
+        seedDenaliStagingFinalApprovalTour("00000000-0000-4000-8000-000000000003"),
+        /DENALI_STAGING_FINAL_APPROVAL_PROFILE_REQUIRED/
+      );
+      process.env.APP_INFRA_PROFILE = "staging";
+      await assert.rejects(
+        seedDenaliStagingFinalApprovalTour("other-tenant"),
+        /DENALI_STAGING_FINAL_APPROVAL_TENANT_MISMATCH/
+      );
+    } finally {
+      if (previousProfile === undefined) delete process.env.APP_INFRA_PROFILE;
+      else process.env.APP_INFRA_PROFILE = previousProfile;
+    }
   });
 });

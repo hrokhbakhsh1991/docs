@@ -84,6 +84,22 @@ describe("admin-assisted-registration-logic", () => {
     assert.equal(requirements.transport.transportCostAmount, 150000);
   });
 
+  it("keeps airplane requirements in the admin registration flow with global transport only", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements({
+      ...TOUR_DETAIL,
+      canonical: {
+        data: {
+          ...TOUR_DETAIL.canonical.data,
+          transport: { mode: "airplane", transportCost: 4_000_000 },
+        },
+      },
+    });
+
+    assert.equal(requirements.transport.mode, "airplane");
+    assert.deepEqual(resolveTransportChoices(requirements), ["primary"]);
+    assert.equal(requirements.capacityMax, 12);
+  });
+
   it("defaults the form to the workspace's preferred approval and transport flow", () => {
     const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
     const form = createDefaultAdminAssistedRegistrationForm(requirements);

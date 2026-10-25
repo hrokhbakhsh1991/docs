@@ -1,4 +1,7 @@
-import type { PublicCatalogTransportSnapshot } from "@app-tour/workspace-sdk";
+import {
+  isPublicCatalogOrganizedTransportMode,
+  type PublicCatalogTransportSnapshot,
+} from "@app-tour/workspace-sdk";
 
 import { resolveCatalogTransportLabelKey } from "./resolve-catalog-transport-label-key";
 
@@ -32,12 +35,7 @@ export function resolveCatalogTransportCostAmount(
     return null;
   }
 
-  if (
-    transport.mode === "organizer_vehicle" ||
-    transport.mode === "bus" ||
-    transport.mode === "minibus" ||
-    transport.mode === "train"
-  ) {
+  if (isPublicCatalogOrganizedTransportMode(transport.mode)) {
     return transport.transportCostAmount ?? null;
   }
 

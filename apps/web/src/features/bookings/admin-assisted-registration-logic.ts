@@ -7,6 +7,7 @@ export type WorkspaceRegistrationTransportMode =
   | "bus"
   | "minibus"
   | "train"
+  | "airplane"
   | "shared_cars";
 
 export type WorkspaceRegistrationTransportKind =
@@ -119,7 +120,7 @@ export function extractWorkspaceAdminRegistrationRequirements(
     readString(readCanonicalPath(data, "details.tripDetails.transportModes")) ??
     "none";
   const transportMode = (
-    ["none", "organizer_vehicle", "bus", "minibus", "train", "shared_cars"] as const
+    ["none", "organizer_vehicle", "bus", "minibus", "train", "airplane", "shared_cars"] as const
   ).includes(transportModeRaw as WorkspaceRegistrationTransportMode)
     ? (transportModeRaw as WorkspaceRegistrationTransportMode)
     : "none";

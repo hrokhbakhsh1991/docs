@@ -25,7 +25,15 @@ function coerceByZodKind(zodKind: DenaliZodFieldKind, trimmed: string): unknown 
         : null;
     case "transportMode":
       if (
-        ["organizer_vehicle", "bus", "minibus", "train", "shared_cars", "none"].includes(trimmed)
+        [
+          "organizer_vehicle",
+          "bus",
+          "minibus",
+          "train",
+          "airplane",
+          "shared_cars",
+          "none",
+        ].includes(trimmed)
       ) {
         return trimmed;
       }

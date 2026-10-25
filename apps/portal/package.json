@@ -38,6 +38,7 @@
     "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/finance-http-contracts": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/guest-workspace-runtime": "workspace:*",
     "@app-tour/localized-calendar": "workspace:*",

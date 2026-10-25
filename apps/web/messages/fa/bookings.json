@@ -351,6 +351,7 @@
       "bus": "اتوبوس",
       "minibus": "مینی‌بوس",
       "train": "قطار",
+      "airplane": "هواپیما",
       "shared_cars": "ماشین‌های مشترک"
     },
     "transportHint": "تنظیم حمل‌ونقل تور: {mode}",

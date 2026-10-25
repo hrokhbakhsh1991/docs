@@ -81,6 +81,12 @@ export type {
 } from "./finance-case-encounter.contracts";
 export { parseCaseEncounterCounterpartyId } from "./finance-case-encounter.contracts";
 
+export {
+  decodeMemberReceiptNoteHeader,
+  encodeMemberReceiptNoteHeader,
+  MEMBER_RECEIPT_NOTE_HEADER_PREFIX,
+} from "./member-receipt-note-header";
+
 export type {
   FinanceCaseCommandHttpErrorCode,
   FinanceCaseCommandHttpOk,

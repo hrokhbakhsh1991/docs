@@ -46,6 +46,17 @@ describe("catalog transport display", () => {
     );
   });
 
+  it("labels airplane and uses its organized transport amount", () => {
+    assert.equal(
+      formatCatalogTransportMode({ mode: "airplane" }, translate),
+      "detail.transport.modes.airplane"
+    );
+    assert.equal(
+      resolveCatalogTransportCostAmount({ mode: "airplane", transportCostAmount: 4_000_000 }),
+      4_000_000
+    );
+  });
+
   it("uses the fuel-share amount for shared-car tours", () => {
     assert.equal(
       resolveCatalogTransportCostAmount({

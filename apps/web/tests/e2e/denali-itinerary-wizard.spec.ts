@@ -106,7 +106,7 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
 
     await resetOperatorWizardToBasic(page);
     await fillDenaliMultiDayWizardThroughReview(page, tourTitle);
-    await submitDenaliWizardDraftCreate(page);
+    await submitDenaliWizardDraftCreate(page, tourTitle);
   });
 
   test("SMK-P9-ITIN-06 back and next preserve multi-day basic values", async ({ page }) => {

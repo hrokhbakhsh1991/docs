@@ -17,6 +17,7 @@ const KNOWN_TRANSPORT_MODES: readonly PublicCatalogTransportMode[] = [
   "bus",
   "minibus",
   "train",
+  "airplane",
   "shared_cars",
   "none",
 ];

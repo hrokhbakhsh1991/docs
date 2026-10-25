@@ -97,9 +97,9 @@ export function composeTourOperationalRosterRow(
     waived,
   });
   const holdStatus = input.hold?.status ?? null;
-  // Final-roster membership is based on approved registration lifecycle. Keep
-  // payment/finalization metadata as independent projections so an approved
-  // participant who is still unpaid or partially paid remains visible.
+  // Final-roster membership requires an operational lifecycle and explicit
+  // finalization. Payment remains separate, so finalized unpaid/partial rows
+  // stay visible with their outstanding balance.
   const finalizationStatus = input.booking.finalizationStatus ?? "not_final";
 
   return {

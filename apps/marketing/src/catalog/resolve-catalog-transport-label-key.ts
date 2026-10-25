@@ -5,6 +5,7 @@ const TRANSPORT_LABEL_KEYS: Record<PublicCatalogTransportMode, string> = {
   bus: "detail.transport.modes.bus",
   minibus: "detail.transport.modes.minibus",
   train: "detail.transport.modes.train",
+  airplane: "detail.transport.modes.airplane",
   shared_cars: "detail.transport.modes.sharedCars",
   none: "detail.transport.modes.none",
 };

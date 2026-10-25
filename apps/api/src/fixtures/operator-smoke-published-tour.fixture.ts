@@ -26,6 +26,14 @@ export const DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID =
 export const DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID =
   "00000000-0000-4000-8000-000000000228" as const;
 
+/** Dedicated staging-only final-approval tour; never reuse local booking fixture ids. */
+export const DENALI_STAGING_FINAL_APPROVAL_TOUR_ID =
+  "00000000-0000-4000-8000-000000000230" as const;
+export const DENALI_STAGING_FINAL_APPROVAL_TOUR_TITLE =
+  "TEST — Denali final approval airplane tour" as const;
+export const DENALI_STAGING_FINAL_APPROVAL_TOUR_MARKER =
+  "STAGING TEST FIXTURE [denali-final-approval-v1]" as const;
+
 export const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211" as const;
 
 /** Participant-requirements smoke — DEN-INTAKE E2E (nationalId + fatherName + birthDate). */
@@ -393,11 +401,14 @@ export function buildDenaliBookingScenarioTour(input: {
     | typeof DENALI_BOOKING_FREE_AUTO_TOUR_ID
     | typeof DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID
     | typeof DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID
-    | typeof DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID;
+    | typeof DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID
+    | typeof DENALI_STAGING_FINAL_APPROVAL_TOUR_ID;
   readonly title: string;
   readonly registrationApproval: "manual" | "auto";
   readonly paymentCollection: "offline" | "free";
   readonly allowMembershipDiscount?: boolean;
+  readonly transportMode?: "none" | "airplane";
+  readonly transportCost?: number;
   readonly catalog?: OperatorSmokePublishedTourCatalogRefs;
   readonly createdAt?: string;
 }): Tour {
@@ -418,6 +429,15 @@ export function buildDenaliBookingScenarioTour(input: {
       paymentCollection: input.paymentCollection,
       ...(input.allowMembershipDiscount === true ? { allowMembershipDiscount: true } : {}),
     },
+    ...(input.transportMode === undefined
+      ? {}
+      : {
+          transport: {
+            ...(base.data.transport as Record<string, unknown>),
+            mode: input.transportMode,
+            ...(input.transportCost === undefined ? {} : { transportCost: input.transportCost }),
+          },
+        }),
   };
   return {
     id: input.id,
@@ -426,6 +446,45 @@ export function buildDenaliBookingScenarioTour(input: {
     createdAt: input.createdAt ?? new Date().toISOString(),
     canonical: toCanonicalDocument(data),
   };
+}
+
+export function buildDenaliStagingFinalApprovalTour(input: {
+  readonly tenantId: string;
+  readonly createdAt?: string;
+}): Tour {
+  const tour = buildDenaliBookingScenarioTour({
+    tenantId: input.tenantId,
+    id: DENALI_STAGING_FINAL_APPROVAL_TOUR_ID,
+    title: DENALI_STAGING_FINAL_APPROVAL_TOUR_TITLE,
+    registrationApproval: "manual",
+    paymentCollection: "offline",
+    transportMode: "airplane",
+    transportCost: 350_000,
+    createdAt: input.createdAt,
+  });
+  return {
+    ...tour,
+    canonical: {
+      ...tour.canonical,
+      data: {
+        ...tour.canonical.data,
+        details: { summary: DENALI_STAGING_FINAL_APPROVAL_TOUR_MARKER },
+      },
+    },
+  };
+}
+
+export function isOwnedDenaliStagingFinalApprovalTour(tour: Tour, tenantId: string): boolean {
+  const details = tour.canonical.data.details;
+  return (
+    tour.id === DENALI_STAGING_FINAL_APPROVAL_TOUR_ID &&
+    tour.tenantId === tenantId &&
+    tour.canonical.data.title === DENALI_STAGING_FINAL_APPROVAL_TOUR_TITLE &&
+    details !== null &&
+    typeof details === "object" &&
+    !Array.isArray(details) &&
+    (details as Record<string, unknown>).summary === DENALI_STAGING_FINAL_APPROVAL_TOUR_MARKER
+  );
 }
 
 export function buildOperatorSmokeParticipantRequirementsTourCanonical(): CanonicalDocument {

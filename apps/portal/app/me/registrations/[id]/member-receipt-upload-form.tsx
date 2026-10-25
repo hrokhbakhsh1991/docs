@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { encodeMemberReceiptNoteHeader } from "@app-tour/finance-http-contracts";
 
 import type {
   MemberReceiptPanel,
@@ -271,7 +272,9 @@ export function MemberReceiptUploadForm({
               headers: {
                 "Content-Type": file.type || "application/octet-stream",
                 "x-receipt-file-name": file.name,
-                ...(note.length > 0 ? { "x-receipt-note": note } : {}),
+                ...(note.length > 0
+                  ? { "x-receipt-note": encodeMemberReceiptNoteHeader(note) }
+                  : {}),
                 ...commonHeaders,
               },
               body: file,

@@ -27,6 +27,7 @@ describe("denali-transport-field-parity (CW7-07)", () => {
     );
     assert.ok(transportFromFull);
     assert.deepEqual(denaliTransportFieldRegistryFragment.fields[0], transportFromFull);
+    assert.ok(transportFromFull.enumOptions?.includes("airplane"));
   });
 
   it("codegen binding resolves denali fragment; starter isolated", () => {

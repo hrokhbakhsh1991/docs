@@ -8,7 +8,10 @@
 import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 
 import { getSettingsResourcesRepository } from "../src/settings/create-settings-resources-repository.ts";
-import { seedDenaliClubDevPublishedTour } from "../src/settings/seed-operator-smoke-published-tour.ts";
+import {
+  seedDenaliClubDevPublishedTour,
+  seedDenaliStagingFinalApprovalTour,
+} from "../src/settings/seed-operator-smoke-published-tour.ts";
 import { seedOperatorSmokeCatalog } from "../src/settings/seed-operator-smoke-catalog.ts";
 import { seedWorkspaceWizardTemplateForTenant } from "../src/settings/seed-workspace-wizard-template.ts";
 
@@ -18,6 +21,8 @@ export async function seedDenaliDevCatalogStaging(): Promise<void> {
     tenantId: DENALI_SMOKE_TENANT_ID,
   });
   await seedDenaliClubDevPublishedTour(DENALI_SMOKE_TENANT_ID);
+  const finalApprovalTour = await seedDenaliStagingFinalApprovalTour(DENALI_SMOKE_TENANT_ID);
+  console.log("DENALI_STAGING_FINAL_APPROVAL_TOUR_SEED_OK", finalApprovalTour);
 }
 
 async function main(): Promise<void> {

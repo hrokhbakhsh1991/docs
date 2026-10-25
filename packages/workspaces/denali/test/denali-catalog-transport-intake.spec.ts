@@ -62,6 +62,27 @@ describe("denali catalog transport intake", () => {
     assert.equal(price, 2_650_000);
   });
 
+  it("DEN-TR-AIR-01 airplane uses primary intake and the tour transport cost", () => {
+    const transport = { mode: "airplane" as const, transportCostAmount: 4_000_000 };
+    const state = denaliCatalogTransportIntakeSurface.initialState(transport);
+
+    assert.equal(
+      denaliCatalogTransportIntakeSurface.showTransportFollowUp(transport, state),
+      false
+    );
+    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+      kind: "primary",
+    });
+    assert.equal(
+      denaliCatalogTransportIntakeSurface.computePricePerPerson({
+        basePrice: 10_000_000,
+        transport,
+        transportKind: "primary",
+      }),
+      14_000_000
+    );
+  });
+
   it("DEN-PRICE-02 dong rider owes configured share even when tour price is free", () => {
     const price = denaliCatalogTransportIntakeSurface.computePricePerPerson({
       basePrice: null,

@@ -8,11 +8,11 @@ import {
   fillCatalogOtp,
   requestRegistrationOtp,
 } from "../../../portal/tests/e2e/fixtures/catalog-registration-otp";
-import { buildTourTitlePatch } from "../../src/features/tours/build-tour-title-patch";
 import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detail-types";
 import { SESSION_TOKEN_COOKIE } from "../../src/auth/build-session-cookie";
 import { OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M } from "./denali-itinerary-wizard-fixture";
 import {
+  type DenaliWizardPricingE2EOptions,
   createDenaliMultiDayDraftTour,
   expectTourInDenaliCatalog,
   fetchDenaliTourCanonicalData,
@@ -85,10 +85,14 @@ export type PublishedTourClosureContext = {
 
 export async function publishTourForClosure(
   page: Page,
-  title: string
+  title: string,
+  options: {
+    readonly pricing?: DenaliWizardPricingE2EOptions;
+    readonly capacityMax?: number;
+  } = {}
 ): Promise<PublishedTourClosureContext> {
   await prepareDenaliTourWizard(page);
-  const tourId = await createDenaliMultiDayDraftTour(page, title);
+  const tourId = await createDenaliMultiDayDraftTour(page, title, options);
   const canonical = await fetchDenaliTourCanonicalData(page, tourId);
   await publishTourFromFlatEdit(page, tourId);
   await expectTourInDenaliCatalog(page, title);
@@ -170,12 +174,15 @@ export function readCanonicalBasePriceMinor(canonical: Record<string, unknown>):
 export async function completePortalRegistrationForTour(
   page: Page,
   tourId: string,
-  input: { readonly phone: string; readonly fullName: string }
+  input: {
+    readonly phone: string;
+    readonly fullName: string;
+    readonly rapidDoubleClick?: boolean;
+  }
 ): Promise<void> {
-  await page.goto(
-    `${PORTAL_OPERATOR_BASE_URL}/catalog/${encodeURIComponent(tourId)}/register`,
-    { waitUntil: "domcontentloaded" }
-  );
+  await page.goto(`${PORTAL_OPERATOR_BASE_URL}/catalog/${encodeURIComponent(tourId)}/register`, {
+    waitUntil: "domcontentloaded",
+  });
   await page
     .locator(
       "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready], [data-public-registration-intake][data-registration-ready]"
@@ -191,9 +198,10 @@ export async function completePortalRegistrationForTour(
 
   await completeCatalogRegistrationIntake(page, {
     fullName: input.fullName,
-    partySize: "2",
+    partySize: "1",
     phone: input.phone,
     registrantTarget: "self",
+    rapidDoubleClick: input.rapidDoubleClick,
   });
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 90_000,
@@ -221,31 +229,21 @@ export async function assertViewerCannotMutateTour(
   await page.goto(`/tours/${encodeURIComponent(tourId)}/edit`, {
     waitUntil: "domcontentloaded",
   });
-  await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.page)).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.title)).toBeDisabled();
-  await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.save)).toHaveCount(0);
-  await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.lifecycleMenu)).toHaveCount(0);
+  await expect(page.locator("body")).toContainText(/مالک سازمان|organization owner only/i);
 
-  const detailRes = await page.request.get(`/api/tours/${encodeURIComponent(tourId)}`);
-  expect(detailRes.ok()).toBeTruthy();
-  const detail = (await detailRes.json()) as Parameters<typeof buildTourTitlePatch>[0];
   const patchRes = await page.request.patch(`/api/tours/${encodeURIComponent(tourId)}`, {
-    data: buildTourTitlePatch(detail, `${originalTitle} Viewer Hack`),
+    data: { rowVersion: 1, data: { title: `${originalTitle} Viewer Hack` } },
   });
-  expect(
-    patchRes.status(),
-    `viewer PATCH must be rejected; body=${await patchRes.text()}`
-  ).toBe(403);
+  expect(patchRes.status(), `viewer PATCH must be rejected; body=${await patchRes.text()}`).toBe(
+    403
+  );
 
+  await loginOperatorOwner(page);
   const after = await fetchOperatorTourDetail(page, tourId);
   expect(after.projection?.title).toBe(originalTitle);
 }
 
-async function loginOperatorOwnerOnHost(
-  page: Page,
-  baseUrl: string,
-  host: string
-): Promise<void> {
+async function loginOperatorOwnerOnHost(page: Page, baseUrl: string, host: string): Promise<void> {
   await page.context().clearCookies();
   const otpRes = await page.request.post(`${baseUrl}/api/auth/request-otp`, {
     headers: { host },

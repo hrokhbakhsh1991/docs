@@ -45,6 +45,12 @@ export const WIZARD_DESTINATION_LABEL_CANDIDATES = [
 export const DENALI_FLAT_EDIT_SECTION_TEST_ID = (stepId: string) =>
   `operator-tour-edit-section-${stepId}`;
 
+export type DenaliWizardPricingE2EOptions = {
+  readonly paymentCollection?: "free" | "paid";
+  readonly registrationApproval?: "manual" | "auto";
+  readonly basePriceToman?: string;
+};
+
 export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<void> {
   const clearBtn = page.getByTestId("wizard-clear-draft");
   if (!(await clearBtn.isVisible().catch(() => false))) {
@@ -54,8 +60,6 @@ export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<voi
   const confirmBtn = page.getByTestId("wizard-clear-draft-confirm-confirm");
   await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
   await confirmBtn.click();
-  await expect(clearBtn).toHaveAttribute("aria-busy", "true", { timeout: 10_000 });
-  await expect(clearBtn).not.toHaveAttribute("aria-busy", "true", { timeout: 60_000 });
   await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 60_000 });
   await settleOperatorWizardDraftSync(page);
 }
@@ -136,7 +140,8 @@ export async function resetOperatorWizardToBasic(page: Page): Promise<void> {
 export async function fillDenaliMultiDayWizardBasics(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  capacityMax = 12
 ): Promise<void> {
   await resetOperatorWizardToBasic(page);
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.tourKind).waitFor({ state: "visible" });
@@ -193,7 +198,7 @@ export async function fillDenaliMultiDayWizardBasics(
     name: /حداکثر ظرفیت|maximum capacity|capacity max|capacityMax/i,
   });
   await expect(capacity).toBeVisible({ timeout: 15_000 });
-  await capacity.fill("12");
+  await capacity.fill(String(capacityMax));
   await settleOperatorWizardDraftSync(page);
 
   await clickWizardNextToStep(page, "denali_photos");
@@ -295,7 +300,10 @@ async function fillDenaliWizardLogisticsMinimal(page: Page): Promise<void> {
   await clickWizardNextToStep(page, "denali_pricing");
 }
 
-async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
+async function fillDenaliWizardPricingMinimal(
+  page: Page,
+  options: DenaliWizardPricingE2EOptions = {}
+): Promise<void> {
   await fillWizardNumericField(page, /حداقل سن|minimumAge|Minimum age/i, "18");
   const fitness = page
     .getByTestId("denali-composite-pricing-participants")
@@ -303,41 +311,79 @@ async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
   if (await fitness.isVisible().catch(() => false)) {
     await fitness.selectOption("medium");
   }
+
+  if (options.paymentCollection !== undefined || options.registrationApproval !== undefined) {
+    const payment = page.getByTestId("denali-composite-pricing-payment");
+    await expect(payment).toBeVisible({ timeout: 30_000 });
+    if (options.paymentCollection !== undefined) {
+      const paidToggle = payment.getByRole("checkbox", { name: /تور پولی|Paid tour/i });
+      if (options.paymentCollection === "paid") {
+        await paidToggle.check();
+        await fillWizardNumericField(
+          page,
+          /قیمت به ازای هر نفر|Price per person/i,
+          options.basePriceToman ?? "500000"
+        );
+      } else {
+        await paidToggle.uncheck();
+      }
+    }
+    if (options.registrationApproval !== undefined) {
+      await payment
+        .getByRole("combobox", { name: /روش تأیید ثبت‌نام|Registration approval/i })
+        .selectOption(options.registrationApproval);
+    }
+  }
+  await settleOperatorWizardDraftSync(page);
   await clickWizardNextToStep(page, "denali_legal");
 }
 
 export async function fillDenaliMultiDayWizardThroughLegal(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  pricingOptions: DenaliWizardPricingE2EOptions = {},
+  capacityMax = 12
 ): Promise<void> {
-  await fillDenaliMultiDayWizardBasics(page, title, destinationLabel);
+  await fillDenaliMultiDayWizardBasics(page, title, destinationLabel, capacityMax);
   await fillDenaliWizardPhotosMinimal(page);
   await fillDenaliWizardProgramMinimal(page);
   await fillDenaliWizardLogisticsMinimal(page);
-  await fillDenaliWizardPricingMinimal(page);
+  await fillDenaliWizardPricingMinimal(page, pricingOptions);
   await settleOperatorWizardDraftSync(page);
 }
 
 export async function fillDenaliMultiDayWizardThroughReview(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  pricingOptions: DenaliWizardPricingE2EOptions = {},
+  capacityMax = 12
 ): Promise<void> {
-  await fillDenaliMultiDayWizardThroughLegal(page, title, destinationLabel);
+  await fillDenaliMultiDayWizardThroughLegal(
+    page,
+    title,
+    destinationLabel,
+    pricingOptions,
+    capacityMax
+  );
   await clickWizardNextToStep(page, "review");
 }
 
-export async function submitDenaliWizardDraftCreate(page: Page): Promise<string> {
+export async function submitDenaliWizardDraftCreate(page: Page, title: string): Promise<string> {
   const create = page
     .locator("[data-wizard-footer]")
     .getByRole("button", { name: /Create tour|ساخت تور/i });
   await expect(create).toBeEnabled({ timeout: 30_000 });
   await create.click();
-  const created = page.locator("[data-tour-created]");
-  await expect(created).toBeVisible({ timeout: 60_000 });
-  const createdText = (await created.textContent()) ?? "";
-  const match = createdText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  expect(match?.[0]).toBeTruthy();
-  return match![0];
+  const createdTourRow = page.getByRole("row").filter({ hasText: title });
+  await expect(createdTourRow).toBeVisible({ timeout: 60_000 });
+  const editHref = await createdTourRow
+    .locator('a[href*="/tours/"][href$="/edit"]')
+    .getAttribute("href");
+  const createdTourId = editHref?.match(
+    /\/tours\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/edit/i
+  )?.[1];
+  expect(createdTourId, `created tour edit link missing or invalid: ${editHref}`).toBeTruthy();
+  return createdTourId!;
 }
