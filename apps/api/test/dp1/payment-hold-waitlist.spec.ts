@@ -126,10 +126,18 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Auto Waitlist First", partySize: 1, tourCapacityMax: 1 })
     );
+    const firstRecord = await getBookingsRepository().getById(first.id, DP1_TENANT_DENALI);
+    assert.ok(firstRecord !== null);
+    // submittedAt has millisecond precision; make the intended FIFO order explicit
+    // instead of letting random UUID tie-breaking decide between same-ms fixtures.
+    await new Promise<void>((resolve) => setTimeout(resolve, 2));
     const second = await createBooking(
       dp1OpsAuth(),
       dp1BookingBody({ guestLabel: "DP1 Auto Waitlist Second", partySize: 1, tourCapacityMax: 1 })
     );
+    const secondRecord = await getBookingsRepository().getById(second.id, DP1_TENANT_DENALI);
+    assert.ok(secondRecord !== null);
+    assert.ok(firstRecord.submittedAt < secondRecord.submittedAt);
     await approveBooking(dp1OpsAuth(), blocker.id);
     await waitlistBooking(dp1OpsAuth(), first.id);
     await waitlistBooking(dp1OpsAuth(), second.id);
