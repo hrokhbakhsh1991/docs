@@ -100,5 +100,7 @@ describe("staging-env-contract", () => {
     const apiBootstrap = read("scripts/wave-c-staging-env-bootstrap.sh");
     assert.match(apiBootstrap, /^APP_INFRA_PROFILE=staging$/m);
     assert.match(apiBootstrap, /^STAGING_ALLOW_STATIC_OTP=true$/m);
+    const p6Bootstrap = read("scripts/vps-deploy/bootstrap-staging.sh");
+    assert.match(p6Bootstrap, /ensure_api_env_default STAGING_ALLOW_STATIC_OTP true/);
   });
 });

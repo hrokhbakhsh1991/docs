@@ -78,6 +78,8 @@ ensure_api_env_default() {
 
 ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
 ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
+# The API requires this explicit flag together with APP_INFRA_PROFILE=staging.
+ensure_api_env_default STAGING_ALLOW_STATIC_OTP true
 
 if [[ ! -f "$ENV_DIR/web.env" ]]; then
   sed -e 's/^PORT=13000/PORT=23000/' \
