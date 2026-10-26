@@ -13,6 +13,8 @@ import { formatBookingDeparture } from "@/features/bookings/bookings-command-cen
 import { BookingsCancelConfirmDialog } from "@/features/bookings/bookings-ops-dialogs";
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
+import { resolveCancelParticipantErrorKey } from "@/features/tours/resolve-cancel-participant-error";
+import { parseTourApiErrorBody } from "@/tours/parse-tour-api-error-body";
 import {
   formatRegistrationIntakeTransportLabel,
   type PublicCatalogRegistrationTransportKind,
@@ -169,6 +171,13 @@ export function TourWorkspaceTransportClient({
         }
       );
       if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        const parsedError = parseTourApiErrorBody(payload);
+        const errorKey = resolveCancelParticipantErrorKey(parsedError.code);
+        if (errorKey !== null) {
+          setFinalizationMessage(t(errorKey));
+          return;
+        }
         throw new Error(`CANCEL_HTTP_${response.status}`);
       }
       const result = (await response.json().catch(() => null)) as {

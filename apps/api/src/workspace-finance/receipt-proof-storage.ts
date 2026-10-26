@@ -51,7 +51,13 @@ export function buildMemberReceiptProofObjectKey(input: {
 }): string {
   const safeName = sanitizeReceiptProofFileName(input.fileName);
   const suffix = input.contentHash === undefined ? "" : `-${input.contentHash.slice(0, 32)}`;
-  return `receipts/${input.tenantId}/${input.registrationId}/${safeName}${suffix}`;
+  const extensionIndex = safeName.lastIndexOf(".");
+  const hasExtension = extensionIndex > 0;
+  const fileName =
+    suffix.length > 0 && hasExtension
+      ? `${safeName.slice(0, extensionIndex)}${suffix}${safeName.slice(extensionIndex)}`
+      : `${safeName}${suffix}`;
+  return `receipts/${input.tenantId}/${input.registrationId}/${fileName}`;
 }
 
 export function assertMemberReceiptProofKeyScope(storageKey: string, tenantId: string): void {
@@ -213,7 +219,8 @@ export async function readMemberReceiptProof(input: {
   readonly storageKey: string;
 }): Promise<{ readonly body: Buffer; readonly contentType: string; readonly fileName: string }> {
   assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
-  const fileName = input.storageKey.split("/").pop() || "receipt";
+  const storedFileName = input.storageKey.split("/").pop() || "receipt";
+  const fileName = storedFileName.replace(/-[a-f0-9]{32}(?=\.[^.]+$)/i, "");
   const contentType = receiptProofContentTypeFromKey(input.storageKey);
 
   const config = readTenantBrandLogoMinioConfigFromEnv();

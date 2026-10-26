@@ -55,11 +55,14 @@ test("receipt proof can be uploaded, read, signed for local access, and deleted"
   });
 
   original.fill(0);
-  assert.match(storageKey, new RegExp(`^receipts/${tenantId}/${registrationId}/receipt\\.pdf-`));
+  assert.match(
+    storageKey,
+    new RegExp(`^receipts/${tenantId}/${registrationId}/receipt-[a-f0-9]{32}\\.pdf$`)
+  );
   const read = await readMemberReceiptProof({ tenantId, storageKey });
   assert.deepEqual(read.body, Buffer.from("fake-pdf-proof"));
   assert.equal(read.contentType, "application/pdf");
-  assert.match(read.fileName, /^receipt\.pdf-/);
+  assert.equal(read.fileName, "receipt.pdf");
   assert.equal(
     await getMemberReceiptProofSignedReadUrl({ tenantId, storageKey }),
     `http://127.0.0.1:3001/internal/dev/receipt-proof/${encodeURIComponent(storageKey)}`

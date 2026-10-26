@@ -5,10 +5,16 @@ on:
     branches:
       - dev
   workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: "Open PR targeting dev; required for the Denali QA branch dispatch"
+        required: false
+        type: number
 
 permissions:
   contents: read
-  actions: write
+  pull-requests: read
+  checks: read
 
 concurrency:
   group: deploy-staging-${{ github.ref }}
@@ -21,7 +27,10 @@ env:
 jobs:
   build:
     name: Build and verify immutable staging artifact
-    if: github.repository == 'hrokhbakhsh1991/docs' && github.ref == 'refs/heads/dev'
+    if: >-
+      github.repository == 'hrokhbakhsh1991/docs' &&
+      (github.ref == 'refs/heads/dev' ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/denali-final-approval-e2e'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:
@@ -32,6 +41,51 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          persist-credentials: false
+      - name: Validate manually selected PR branch
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/dev'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+        with:
+          script: |
+            const number = Number(process.env.PR_NUMBER);
+            if (!Number.isSafeInteger(number) || number <= 0) {
+              core.setFailed('A valid open PR number is required for this staging dispatch.');
+              return;
+            }
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: number,
+            });
+            const expectedBranch = context.ref.replace('refs/heads/', '');
+            if (
+              pr.state !== 'open' ||
+              pr.base.ref !== 'dev' ||
+              pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+              pr.head.ref !== expectedBranch ||
+              pr.head.sha !== context.sha
+            ) {
+              core.setFailed('Dispatch must use the exact head SHA of an open same-repository PR targeting dev.');
+              return;
+            }
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              per_page: 100,
+            });
+            if (
+              checks.total_count === 0 ||
+              checks.check_runs.some((check) =>
+                check.status !== 'completed' || !['success', 'skipped'].includes(check.conclusion)
+              )
+            ) {
+              core.setFailed('All checks for the exact PR head SHA must be completed successfully or skipped.');
+              return;
+            }
+            core.notice(`Validated staging candidate PR #${number} at ${context.sha}.`);
       - uses: pnpm/action-setup@v4
         with:
           version: 9.12.0
@@ -120,7 +174,10 @@ jobs:
   deploy:
     name: Deploy and verify staging
     needs: build
-    if: github.repository == 'hrokhbakhsh1991/docs' && github.ref == 'refs/heads/dev'
+    if: >-
+      github.repository == 'hrokhbakhsh1991/docs' &&
+      (github.ref == 'refs/heads/dev' ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/denali-final-approval-e2e'))
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment:
@@ -139,13 +196,18 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_USER: ${{ vars.VPS_USER }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
         run: |
           set -euo pipefail
           test -n "$VPS_HOST" || { echo "Missing staging secret VPS_HOST"; exit 1; }
           test -n "$VPS_SSH_KEY" || { echo "Missing staging secret VPS_SSH_KEY"; exit 1; }
           test "${STAGING_DEPLOY_ROOT}" = "/opt/app-tour-staging"
           test "${STAGING_ENV_DIR}" = "/etc/app-tour-staging"
-          test "${GITHUB_REF}" = "refs/heads/dev"
+          if [[ "${GITHUB_REF}" != "refs/heads/dev" ]]; then
+            test "${GITHUB_EVENT_NAME}" = "workflow_dispatch"
+            [[ "${GITHUB_REF}" == "refs/heads/codex/denali-final-approval-e2e" ]]
+            [[ "${PR_NUMBER}" =~ ^[1-9][0-9]*$ ]]
+          fi
           test -z "${PRODUCTION_TARGET:-}" || { echo "Production target rejected"; exit 1; }
       - name: Verify downloaded artifact
         run: |
@@ -222,6 +284,7 @@ jobs:
           STAGING_DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
           STAGING_ENV_DIR: ${{ env.STAGING_ENV_DIR }}
           DEPLOY_TARGET: staging
+          STAGING_DISPATCH_EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           test -n "$STAGING_ADAPTER_PATH" || { echo "Missing staging adapter path"; exit 1; }

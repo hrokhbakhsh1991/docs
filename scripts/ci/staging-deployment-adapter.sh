@@ -23,7 +23,10 @@ fail() {
   exit 1
 }
 
-[[ "${GITHUB_REF:-}" == "refs/heads/dev" ]] || fail "ref must be refs/heads/dev"
+if [[ "${GITHUB_REF:-}" != "refs/heads/dev" ]]; then
+  [[ "${STAGING_DISPATCH_EVENT:-}" == "workflow_dispatch" ]] || fail "non-dev ref must use workflow_dispatch"
+  [[ "${GITHUB_REF:-}" == "refs/heads/codex/denali-final-approval-e2e" ]] || fail "manual staging ref is not the approved Denali QA branch"
+fi
 [[ "$DEPLOY_TARGET" == "staging" ]] || fail "deployment target must be staging"
 [[ "$STAGING_DEPLOY_ROOT" == "/opt/app-tour-staging" ]] || fail "deployment root is not staging"
 [[ "$STAGING_ENV_DIR" == "/etc/app-tour-staging" ]] || fail "environment directory is not staging"

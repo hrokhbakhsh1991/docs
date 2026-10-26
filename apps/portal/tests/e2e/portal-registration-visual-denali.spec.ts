@@ -9,7 +9,7 @@ import {
   gotoPortalRegistration,
   requestRegistrationOtp,
 } from "./fixtures/catalog-registration-otp";
-import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "./fixtures/complete-portal-registration";
+import { OPERATOR_SMOKE_PARTICIPANT_TOUR_ID } from "./fixtures/complete-portal-registration";
 
 const ARTIFACT_DIR = join(process.cwd(), "apps/portal/.artifacts/2026-08-15-registration-audit");
 
@@ -20,7 +20,7 @@ async function reachRegistrationIntake(page: import("@playwright/test").Page, ph
     window.localStorage.clear();
     window.sessionStorage.clear();
   });
-  await gotoPortalRegistration(page, DENALI_SMOKE_PUBLISHED_TOUR_ID);
+  await gotoPortalRegistration(page, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID);
   await requestRegistrationOtp(page, phone);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
 
