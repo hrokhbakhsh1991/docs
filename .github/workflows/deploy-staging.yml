@@ -44,48 +44,56 @@ jobs:
           persist-credentials: false
       - name: Validate manually selected PR branch
         if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/dev'
-        uses: actions/github-script@v7
+        shell: bash
         env:
           PR_NUMBER: ${{ inputs.pull_request_number }}
-        with:
-          script: |
-            const number = Number(process.env.PR_NUMBER);
-            if (!Number.isSafeInteger(number) || number <= 0) {
-              core.setFailed('A valid open PR number is required for this staging dispatch.');
-              return;
-            }
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: number,
-            });
-            const expectedBranch = context.ref.replace('refs/heads/', '');
-            if (
-              pr.state !== 'open' ||
-              pr.base.ref !== 'dev' ||
-              pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
-              pr.head.ref !== expectedBranch ||
-              pr.head.sha !== context.sha
-            ) {
-              core.setFailed('Dispatch must use the exact head SHA of an open same-repository PR targeting dev.');
-              return;
-            }
-            const { data: checks } = await github.rest.checks.listForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              per_page: 100,
-            });
-            if (
-              checks.total_count === 0 ||
-              checks.check_runs.some((check) =>
-                check.status !== 'completed' || !['success', 'skipped'].includes(check.conclusion)
-              )
-            ) {
-              core.setFailed('All checks for the exact PR head SHA must be completed successfully or skipped.');
-              return;
-            }
-            core.notice(`Validated staging candidate PR #${number} at ${context.sha}.`);
+          STAGING_READ_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          const fail = (message) => {
+            console.error(`staging-dispatch: ${message}`);
+            process.exit(1);
+          };
+          const number = Number(process.env.PR_NUMBER);
+          if (!Number.isSafeInteger(number) || number <= 0) {
+            fail('A valid open PR number is required for this staging dispatch.');
+          }
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const headers = {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${process.env.STAGING_READ_TOKEN}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+          };
+          const getJson = async (path) => {
+            const response = await fetch(`https://api.github.com${path}`, { headers });
+            if (!response.ok) fail(`GitHub API returned ${response.status}.`);
+            return response.json();
+          };
+          const pr = await getJson(`/repos/${owner}/${repo}/pulls/${number}`);
+          const expectedBranch = process.env.GITHUB_REF.replace('refs/heads/', '');
+          if (
+            pr.state !== 'open' ||
+            pr.base.ref !== 'dev' ||
+            pr.base.repo?.full_name !== process.env.GITHUB_REPOSITORY ||
+            pr.head.repo?.full_name !== process.env.GITHUB_REPOSITORY ||
+            pr.head.ref !== expectedBranch ||
+            pr.head.sha !== process.env.GITHUB_SHA
+          ) {
+            fail('Dispatch must use the exact head SHA of an open same-repository PR targeting dev.');
+          }
+          const checks = await getJson(
+            `/repos/${owner}/${repo}/commits/${process.env.GITHUB_SHA}/check-runs?per_page=100`
+          );
+          if (
+            checks.total_count === 0 ||
+            checks.check_runs.some(
+              (check) => check.status !== 'completed' || !['success', 'skipped'].includes(check.conclusion)
+            )
+          ) {
+            fail('All checks for the exact PR head SHA must be completed successfully or skipped.');
+          }
+          console.log(`Validated staging candidate PR #${number} at ${process.env.GITHUB_SHA}.`);
+          NODE
       - uses: pnpm/action-setup@v4
         with:
           version: 9.12.0

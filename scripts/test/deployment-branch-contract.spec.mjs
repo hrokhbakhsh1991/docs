@@ -17,11 +17,14 @@ test("dev deploys staging and manual dispatch admits only the validated Denali Q
     /github\.event_name == 'workflow_dispatch'.*github\.ref == 'refs\/heads\/codex\/denali-final-approval-e2e'/s
   );
   assert.match(staging, /pull_request_number:/);
+  assert.match(staging, /pulls\/\$\{number\}/);
   assert.match(staging, /pr\.state !== 'open'/);
   assert.match(staging, /pr\.base\.ref !== 'dev'/);
-  assert.match(staging, /pr\.head\.sha !== context\.sha/);
-  assert.match(staging, /github\.rest\.checks\.listForRef/);
+  assert.match(staging, /pr\.head\.sha !== process\.env\.GITHUB_SHA/);
+  assert.match(staging, /check-runs\?per_page=100/);
   assert.match(staging, /check\.status !== 'completed'/);
+  assert.match(staging, /STAGING_READ_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.doesNotMatch(staging, /actions\/github-script/);
   assert.match(adapter, /STAGING_DISPATCH_EVENT.*workflow_dispatch/s);
   assert.match(adapter, /refs\/heads\/codex\/denali-final-approval-e2e/);
   assert.match(staging, /\/opt\/app-tour-staging/);
