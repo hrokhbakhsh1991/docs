@@ -145,7 +145,8 @@ jobs:
   marketing-smoke:
     name: Marketing Playwright smoke (SMK-MKT-01..04, SMK-MKT-16)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # This job runs several sequential Playwright suites after setup and guards.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
