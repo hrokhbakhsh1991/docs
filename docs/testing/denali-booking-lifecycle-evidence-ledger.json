@@ -6,7 +6,7 @@
       "status": "PASS",
       "reason": "Repository instructions, worktree, branch, preservation baseline, and relevant graph entries were inspected.",
       "evidence": [
-        "Worktree branch codex/denali-final-approval-e2e at source HEAD e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1; unrelated phase-19 JSON edit preserved",
+        "Worktree branch codex/denali-final-approval-e2e at source HEAD 621f30a48ab33f75b0f98c7aa7b364a5c093dfbe; unrelated phase-19 JSON edit preserved",
         "Codebase graph project denali-e2e-lifecycle; scheduler symbols found in apps/api/src/main.ts and apps/api/src/finance/start-payment-hold-expiry-scheduler.ts"
       ]
     },
@@ -48,14 +48,14 @@
       "status": "PASS",
       "reason": "Repeatable browser coverage and production scheduler startup/shutdown behavior are implemented in the worktree.",
       "evidence": [
-        "Worktree source at e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1 plus the focused Phase 3.2 audit allow-list correction; see PR #327 and current diff",
+        "Worktree source at 621f30a48ab33f75b0f98c7aa7b364a5c093dfbe includes the focused Phase 3.2 audit allow-list correction; see PR #327",
         "docs/testing/denali-booking-lifecycle-qa-matrix.md: local scheduler fix description"
       ]
     },
     {
       "id": "G",
       "status": "BLOCKED",
-      "reason": "The deployed staging SHA ee10ca28ca3990be857982d7ab65a781ed25086a does not contain the local scheduler fix; explicit expiry check failed on staging. The user has now authorized continued staging work; deployment follows exact-PR-head checks.",
+      "reason": "The deployed staging SHA ee10ca28ca3990be857982d7ab65a does not contain the scheduler fix; explicit expiry check failed on staging. Authorized dispatch run 40394929208 stopped before build because its validation counted its own check runs; a scoped workflow correction is pending exact-head CI and guarded retry.",
       "evidence": [
         "docs/testing/denali-booking-lifecycle-qa-matrix.md: live expiry poll remained approved after 2.5 minutes; staging release SHA and health checks documented",
         "TC-CL-VEHICLE-01 and publication/closure runs passed on current staging, but do not prove local-source scheduler behavior"
@@ -74,10 +74,11 @@
     {
       "id": "I",
       "status": "BLOCKED",
-      "reason": "Focused local and staging suites passed, but PostgreSQL-backed integration is unavailable and the complete scenario matrix is not yet covered; the deployed scheduler scenario fails.",
+      "reason": "Focused local and staging suites passed. Local PostgreSQL integration is not configured, while exact-head CI Phase 5 with PostgreSQL passes. The complete scenario matrix is still incomplete and the deployed scheduler scenario fails.",
       "evidence": [
         "docs/testing/denali-booking-lifecycle-qa-matrix.md: local API scheduler/runtime/waitlist/expiry suites 27/27 PASS; typecheck, source lint and build PASS",
-        "PR #327 Phase 5 at e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1: 3712/3713 tests passed; sole Phase 3.2 audit false positive was corrected locally and focused audit now passes 2/2; exact-head CI after correction pending",
+        "PR #327 Phase 5 at e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1: 3712/3713 tests passed; sole Phase 3.2 audit false positive was corrected in 621f30a48ab33f75b0f98c7aa7b364a5c093dfbe and focused audit passes 2/2; exact-head CI for 621f30a completed 38/38 checks with 29 success, 9 skipped, 0 failure, including Phase 5 PR fast/runtime-proof PASS",
+        "Authorized staging dispatch run 40394929208 failed before build because its own in-progress workflow checks were included in the prerequisite check list; workflow correction is pending fresh CI and guarded dispatch",
         "PR #327 checks on earlier SHA b8e6e87 passed Booking HTTP PostgreSQL and Booking PostgreSQL capacity; all scenario gaps listed in the QA matrix remain",
         "docs/testing/denali-booking-lifecycle-qa-matrix.md: remaining train/airplane, tenant isolation, full export and current-source staging gaps"
       ]

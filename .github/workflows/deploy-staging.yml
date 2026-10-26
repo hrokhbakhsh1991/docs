@@ -84,9 +84,18 @@ jobs:
           const checks = await getJson(
             `/repos/${owner}/${repo}/commits/${process.env.GITHUB_SHA}/check-runs?per_page=100`
           );
+          // GitHub creates these check runs for the current workflow before this
+          // step executes. They cannot be prerequisites for their own dispatch.
+          const prerequisiteChecks = checks.check_runs.filter(
+            (check) =>
+              ![
+                'Build and verify immutable staging artifact',
+                'Deploy and verify staging',
+              ].includes(check.name)
+          );
           if (
-            checks.total_count === 0 ||
-            checks.check_runs.some(
+            prerequisiteChecks.length === 0 ||
+            prerequisiteChecks.some(
               (check) => check.status !== 'completed' || !['success', 'skipped'].includes(check.conclusion)
             )
           ) {
