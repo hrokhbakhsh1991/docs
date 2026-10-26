@@ -550,6 +550,77 @@ describe("DP1-G payment deadline waitlist", { concurrency: false }, () => {
     assert.equal((await dp1GetBooking(driver.id)).status, "cancelled");
   });
 
+  it("allows driver cancellation after assigned dong riders are reassigned to another approved car", async () => {
+    const originalDriver = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({
+        guestLabel: "DP1 Reassigned Original Driver",
+        partySize: 1,
+        tourCapacityMax: 10,
+        registrationIntake: {
+          transport: { kind: "personal_car", personalCarOccupants: 1 },
+        },
+      })
+    );
+    const replacementDriver = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({
+        guestLabel: "DP1 Reassigned Replacement Driver",
+        partySize: 1,
+        tourCapacityMax: 10,
+        registrationIntake: {
+          transport: { kind: "personal_car", personalCarOccupants: 1 },
+        },
+      })
+    );
+    await approveBooking(dp1OpsAuth(), originalDriver.id);
+    await approveBooking(dp1OpsAuth(), replacementDriver.id);
+
+    const rider = await createBooking(
+      dp1OpsAuth(),
+      dp1BookingBody({
+        guestLabel: "DP1 Reassigned Dong Rider",
+        partySize: 1,
+        tourCapacityMax: 10,
+        registrationIntake: { transport: { kind: "no_car_dong" } },
+      })
+    );
+    const riderOwner = await dp1GetBooking(rider.id);
+    await autoApprovePublicBooking({
+      tenantId: DP1_TENANT_DENALI,
+      bookingId: rider.id,
+      actorUserId: riderOwner.submittedByUserId,
+    });
+
+    await putTransportAllocations(dp1OpsAuth(), DP1_TOUR_ID, [
+      { driverRegistrationId: originalDriver.id, passengerRegistrationId: rider.id },
+    ]);
+    await putTransportAllocations(dp1OpsAuth(), DP1_TOUR_ID, [
+      { driverRegistrationId: replacementDriver.id, passengerRegistrationId: rider.id },
+    ]);
+
+    assert.deepEqual(
+      listTransportAllocations(DP1_TENANT_DENALI, DP1_TOUR_ID).map((allocation) => ({
+        driverRegistrationId: allocation.driverRegistrationId,
+        passengerRegistrationId: allocation.passengerRegistrationId,
+      })),
+      [{ driverRegistrationId: replacementDriver.id, passengerRegistrationId: rider.id }]
+    );
+
+    await cancelBooking(dp1OpsAuth(), originalDriver.id);
+
+    assert.equal((await dp1GetBooking(originalDriver.id)).status, "cancelled");
+    assert.equal((await dp1GetBooking(replacementDriver.id)).status, "approved");
+    assert.equal((await dp1GetBooking(rider.id)).status, "approved");
+    assert.deepEqual(
+      listTransportAllocations(DP1_TENANT_DENALI, DP1_TOUR_ID).map((allocation) => ({
+        driverRegistrationId: allocation.driverRegistrationId,
+        passengerRegistrationId: allocation.passengerRegistrationId,
+      })),
+      [{ driverRegistrationId: replacementDriver.id, passengerRegistrationId: rider.id }]
+    );
+  });
+
   it("does not let a stale registration amendment reduce seats after driver approval", async () => {
     const driver = await createBooking(
       dp1OpsAuth(),
