@@ -137,7 +137,7 @@ describe("Telegram worker delivery", () => {
       assert.equal(capturedMedia?.contentType, "image/jpeg");
       assert.match(capturedMedia?.caption ?? "", /رسید کارت به کارت/);
       assert.ok((capturedMedia?.caption ?? "").length <= 1024);
-      assert.match(capturedMedia?.fileName ?? "", /^payment-proof\.jpg-[a-f0-9]{32}$/);
+      assert.equal(capturedMedia?.fileName, "payment-proof.jpg");
       assert.deepEqual(
         [...((capturedMedia?.body ?? new Uint8Array()) as Uint8Array)],
         [0xff, 0xd8, 0xff, 0xd9]
