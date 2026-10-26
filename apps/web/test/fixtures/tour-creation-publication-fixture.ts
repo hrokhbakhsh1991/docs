@@ -7,6 +7,7 @@ import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detai
 import { TOURS_LIST_TEST_IDS } from "../../src/features/tours/query-model";
 import {
   type DenaliWizardPricingE2EOptions,
+  type DenaliWizardTransportE2EOptions,
   fillDenaliMultiDayWizardThroughReview,
   resetOperatorWizardToBasic,
   submitDenaliWizardDraftCreate,
@@ -34,14 +35,18 @@ export async function createDenaliMultiDayDraftTour(
   options: {
     readonly pricing?: DenaliWizardPricingE2EOptions;
     readonly capacityMax?: number;
+    readonly destinationLabel?: string;
+    readonly transport?: DenaliWizardTransportE2EOptions;
   } = {}
 ): Promise<string> {
   await fillDenaliMultiDayWizardThroughReview(
     page,
     title,
-    undefined,
+    options.destinationLabel,
     options.pricing,
-    options.capacityMax
+    options.capacityMax,
+    false,
+    options.transport
   );
   return submitDenaliWizardDraftCreate(page, title);
 }
@@ -101,29 +106,46 @@ export async function publishTourFromFlatEdit(page: Page, tourId: string): Promi
 export async function expectTourListedAsActive(page: Page, tourTitle: string): Promise<void> {
   await page.goto("/tours", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId(TOURS_LIST_TEST_IDS.page)).toBeVisible({ timeout: 15_000 });
-  const tourCard = page.locator('[data-operator-surface="card"]').filter({
+  await page.getByTestId(TOURS_LIST_TEST_IDS.search).fill(tourTitle);
+  const tourRow = page.getByRole("row").filter({ hasText: tourTitle });
+  const tourCard = page.locator("article").filter({
     has: page.getByRole("heading", { name: tourTitle, exact: true }),
   });
-  await expect(tourCard).toBeVisible({ timeout: 15_000 });
-  await expect(tourCard.locator('[data-tour-status="active"]')).toBeVisible({ timeout: 15_000 });
+  const tourSurface = tourRow.or(tourCard).first();
+  await expect(tourSurface).toBeVisible({ timeout: 15_000 });
+  const activeStatus = tourSurface
+    .getByText(/فعال|active/i)
+    .or(tourSurface.locator('[data-tour-status="active"]'))
+    .first();
+  await expect(activeStatus).toBeVisible({ timeout: 15_000 });
 }
 
-export async function expectTourInDenaliCatalog(page: Page, tourTitle: string): Promise<void> {
+export async function expectTourInDenaliCatalog(
+  page: Page,
+  tourTitle: string,
+  tourId?: string
+): Promise<void> {
+  const catalogBase = (
+    process.env.SMOKE_MARKETING_OPERATOR_BASE_URL ?? "http://operator.localhost:3002"
+  ).replace(/\/$/, "");
+  const catalogHost = new URL(catalogBase).host;
   await expect
     .poll(
       async () => {
-        const res = await page.request.get(`${tourOpsApiBase()}/denali/catalog`, {
-          headers: { "x-tenant-id": OPERATOR_SMOKE_TENANT_ID },
+        const catalogPath = tourId ? `/api/catalog/${encodeURIComponent(tourId)}` : "/api/catalog";
+        const res = await page.request.get(`${catalogBase}${catalogPath}`, {
+          headers: { host: catalogHost },
         });
         if (!res.ok()) {
           return [];
         }
         const body = (await res.json()) as {
-          data?: { items?: readonly { title?: string }[] };
+          data?: { title?: string; items?: readonly { title?: string }[] };
         };
-        return (body.data?.items ?? [])
-          .map((item) => item.title?.trim() ?? "")
-          .filter((title) => title.length > 0);
+        if (tourId) {
+          return body.data?.title?.trim() === tourTitle ? [tourTitle] : [];
+        }
+        return (body.data?.items ?? []).map((item) => item.title?.trim() ?? "");
       },
       { timeout: 30_000 }
     )
@@ -190,6 +212,6 @@ export async function runTourCreationPublicationJourney(
   const tourId = await createDenaliMultiDayDraftTour(page, title);
   await publishTourFromFlatEdit(page, tourId);
   await expectTourListedAsActive(page, title);
-  await expectTourInDenaliCatalog(page, title);
+  await expectTourInDenaliCatalog(page, title, tourId);
   return tourId;
 }

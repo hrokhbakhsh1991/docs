@@ -38,9 +38,53 @@ export function resolveLockedPeakHeightForDestination(label: string): number {
 }
 
 export const WIZARD_DESTINATION_LABEL_CANDIDATES = [
-  ...DENALI_DEV_DESTINATION_LABELS,
   OPERATOR_SMOKE_DESTINATION_LABEL,
+  ...DENALI_DEV_DESTINATION_LABELS,
 ] as const;
+
+export type DenaliWizardDestination = {
+  readonly id: string;
+  readonly name: string;
+  readonly altitudeM: number;
+};
+
+export async function resolveDenaliWizardDestination(
+  page: Page,
+  requestedLabel?: string
+): Promise<DenaliWizardDestination> {
+  const response = await page.request.get("/api/settings/resources/locations");
+  expect(response.ok(), `destination lookup failed (${response.status()})`).toBeTruthy();
+  const body = (await response.json()) as {
+    destinations?: readonly {
+      id?: string;
+      name?: string;
+      locationType?: string;
+      altitudeM?: number | null;
+      isActive?: boolean;
+    }[];
+  };
+  const peaks = (body.destinations ?? []).filter(
+    (item): item is typeof item & { id: string; name: string; altitudeM: number } =>
+      item.isActive === true &&
+      item.locationType === "peak" &&
+      typeof item.id === "string" &&
+      typeof item.name === "string" &&
+      typeof item.altitudeM === "number" &&
+      Number.isFinite(item.altitudeM)
+  );
+  const selected = requestedLabel
+    ? peaks.find((item) => item.name === requestedLabel)
+    : (WIZARD_DESTINATION_LABEL_CANDIDATES.flatMap((candidate) =>
+        peaks.filter((item) => item.name === candidate)
+      )[0] ?? peaks[0]);
+  expect(
+    selected,
+    requestedLabel
+      ? `active peak destination ${requestedLabel} must exist in this tenant`
+      : "the current tenant must expose at least one active peak destination"
+  ).toBeTruthy();
+  return { id: selected!.id, name: selected!.name, altitudeM: selected!.altitudeM };
+}
 
 export const DENALI_FLAT_EDIT_SECTION_TEST_ID = (stepId: string) =>
   `operator-tour-edit-section-${stepId}`;
@@ -49,6 +93,19 @@ export type DenaliWizardPricingE2EOptions = {
   readonly paymentCollection?: "free" | "paid";
   readonly registrationApproval?: "manual" | "auto";
   readonly basePriceToman?: string;
+};
+
+export type DenaliWizardTransportE2EOptions = {
+  readonly mode?:
+    | "organizer_vehicle"
+    | "bus"
+    | "minibus"
+    | "train"
+    | "airplane"
+    | "shared_cars"
+    | "none";
+  readonly allowPersonalCar?: boolean;
+  readonly dongAmountToman?: string;
 };
 
 export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<void> {
@@ -140,10 +197,14 @@ export async function resetOperatorWizardToBasic(page: Page): Promise<void> {
 export async function fillDenaliMultiDayWizardBasics(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
-  capacityMax = 12
+  destinationLabel?: string,
+  capacityMax = 12,
+  resetToBasic = true
 ): Promise<void> {
-  await resetOperatorWizardToBasic(page);
+  const selectedDestination = await resolveDenaliWizardDestination(page, destinationLabel);
+  if (resetToBasic) {
+    await resetOperatorWizardToBasic(page);
+  }
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.tourKind).waitFor({ state: "visible" });
   const mountain = page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.category("mountain"));
   const multiDay = page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.duration("multi_day"));
@@ -166,12 +227,16 @@ export async function fillDenaliMultiDayWizardBasics(
   const searchableTrigger = destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.trigger);
   if (await searchableTrigger.isVisible().catch(() => false)) {
     await searchableTrigger.click();
-    await destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.search).fill(destinationLabel);
-    await destination.getByRole("option", { name: destinationLabel }).click();
+    await destination
+      .getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.search)
+      .fill(selectedDestination.name);
+    await destination
+      .getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.option(selectedDestination.id))
+      .click();
   } else {
     const destinationSelect = destination.getByRole("combobox");
     await expect(destinationSelect).toBeEnabled({ timeout: 60_000 });
-    await destinationSelect.selectOption({ label: destinationLabel });
+    await destinationSelect.selectOption({ value: selectedDestination.id });
   }
   await settleOperatorWizardDraftSync(page);
 
@@ -187,7 +252,7 @@ export async function fillDenaliMultiDayWizardBasics(
   await expect(peakHeight).toBeDisabled();
   await expect
     .poll(async () => toAsciiDigits(await peakHeight.inputValue()))
-    .toBe(String(resolveLockedPeakHeightForDestination(destinationLabel)));
+    .toBe(String(selectedDestination.altitudeM));
 
   await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.start, 1, "08", "00");
   await settleOperatorWizardDraftSync(page);
@@ -293,10 +358,30 @@ export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> 
   await clickWizardNextToStep(page, "denali_logistics");
 }
 
-async function fillDenaliWizardLogisticsMinimal(page: Page): Promise<void> {
+async function fillDenaliWizardLogisticsMinimal(
+  page: Page,
+  options: DenaliWizardTransportE2EOptions = {}
+): Promise<void> {
   const transport = page.getByTestId("denali-composite-transport");
   await expect(transport).toBeVisible({ timeout: 30_000 });
-  await transport.getByRole("combobox").selectOption("none");
+  await transport.getByRole("combobox").selectOption(options.mode ?? "none");
+  if (options.allowPersonalCar !== undefined) {
+    const personalCar = transport.getByRole("checkbox", {
+      name: /اجازه استفاده از ماشین شخصی|allow personal car/i,
+    });
+    if (options.allowPersonalCar) {
+      await personalCar.check();
+    } else {
+      await personalCar.uncheck();
+    }
+  }
+  if (options.dongAmountToman !== undefined) {
+    const dongAmount = transport.getByRole("textbox", {
+      name: /مبلغ دنگ|carpool share amount/i,
+    });
+    await expect(dongAmount).toBeVisible({ timeout: 15_000 });
+    await dongAmount.fill(options.dongAmountToman);
+  }
   await clickWizardNextToStep(page, "denali_pricing");
 }
 
@@ -341,14 +426,16 @@ async function fillDenaliWizardPricingMinimal(
 export async function fillDenaliMultiDayWizardThroughLegal(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  destinationLabel: string | undefined = undefined,
   pricingOptions: DenaliWizardPricingE2EOptions = {},
-  capacityMax = 12
+  capacityMax = 12,
+  resetToBasic = true,
+  transportOptions: DenaliWizardTransportE2EOptions = {}
 ): Promise<void> {
-  await fillDenaliMultiDayWizardBasics(page, title, destinationLabel, capacityMax);
+  await fillDenaliMultiDayWizardBasics(page, title, destinationLabel, capacityMax, resetToBasic);
   await fillDenaliWizardPhotosMinimal(page);
   await fillDenaliWizardProgramMinimal(page);
-  await fillDenaliWizardLogisticsMinimal(page);
+  await fillDenaliWizardLogisticsMinimal(page, transportOptions);
   await fillDenaliWizardPricingMinimal(page, pricingOptions);
   await settleOperatorWizardDraftSync(page);
 }
@@ -356,16 +443,20 @@ export async function fillDenaliMultiDayWizardThroughLegal(
 export async function fillDenaliMultiDayWizardThroughReview(
   page: Page,
   title: string,
-  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL,
+  destinationLabel: string | undefined = undefined,
   pricingOptions: DenaliWizardPricingE2EOptions = {},
-  capacityMax = 12
+  capacityMax = 12,
+  resetToBasic = true,
+  transportOptions: DenaliWizardTransportE2EOptions = {}
 ): Promise<void> {
   await fillDenaliMultiDayWizardThroughLegal(
     page,
     title,
     destinationLabel,
     pricingOptions,
-    capacityMax
+    capacityMax,
+    resetToBasic,
+    transportOptions
   );
   await clickWizardNextToStep(page, "review");
 }
@@ -376,9 +467,16 @@ export async function submitDenaliWizardDraftCreate(page: Page, title: string): 
     .getByRole("button", { name: /Create tour|ساخت تور/i });
   await expect(create).toBeEnabled({ timeout: 30_000 });
   await create.click();
+  const listSearch = page.getByTestId("operator-tours-search");
+  await expect(listSearch).toBeVisible({ timeout: 60_000 });
+  await listSearch.fill(title);
   const createdTourRow = page.getByRole("row").filter({ hasText: title });
-  await expect(createdTourRow).toBeVisible({ timeout: 60_000 });
-  const editHref = await createdTourRow
+  const createdTourCard = page.locator("article").filter({
+    has: page.getByRole("heading", { name: title, exact: true }),
+  });
+  const createdTourSurface = createdTourRow.or(createdTourCard).first();
+  await expect(createdTourSurface).toBeVisible({ timeout: 60_000 });
+  const editHref = await createdTourSurface
     .locator('a[href*="/tours/"][href$="/edit"]')
     .getAttribute("href");
   const createdTourId = editHref?.match(

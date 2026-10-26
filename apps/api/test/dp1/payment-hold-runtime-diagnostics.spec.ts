@@ -36,10 +36,15 @@ describe("payment-hold-runtime-diagnostics", () => {
     assert.equal(diag.expiryIntervalMs, 45_000);
   });
 
-  it("main bootstrap imports expiry scheduler", async () => {
+  it("production bootstrap starts expiry scheduler and stops it on shutdown", async () => {
     const mainSource = await import("node:fs/promises").then((fs) =>
       fs.readFile(new URL("../../src/main.ts", import.meta.url), "utf8")
     );
-    assert.match(mainSource, /startPaymentHoldExpiryScheduler/);
+    const productionWorkerBlock = mainSource
+      .split("if (productionBoot) {")
+      .find((block) => block.includes("startOutboxRelayIfEnabled"));
+    assert.ok(productionWorkerBlock, "production worker startup block must exist");
+    assert.match(productionWorkerBlock, /startPaymentHoldExpiryScheduler/);
+    assert.match(mainSource, /paymentHoldExpiryScheduler\.stop\(\)/);
   });
 });

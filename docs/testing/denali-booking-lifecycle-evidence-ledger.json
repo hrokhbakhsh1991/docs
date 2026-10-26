@@ -1,0 +1,95 @@
+{
+  "complete": false,
+  "phases": [
+    {
+      "id": "A",
+      "status": "PASS",
+      "reason": "Repository instructions, worktree, branch, preservation baseline, and relevant graph entries were inspected.",
+      "evidence": [
+        "git status --short; git rev-parse HEAD = b8e6e87cc679e6bc70e743ad521717e0094d1b21; git diff --check",
+        "Codebase graph project denali-e2e-lifecycle; scheduler symbols found in apps/api/src/main.ts and apps/api/src/finance/start-payment-hold-expiry-scheduler.ts"
+      ]
+    },
+    {
+      "id": "B",
+      "status": "PASS",
+      "reason": "Acceptance is repeatable tour create/publish and booking lifecycle QA with explicit current-source versus deployed-source evidence.",
+      "evidence": [
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md scenario matrix and latest staging status"
+      ]
+    },
+    {
+      "id": "C",
+      "status": "PASS",
+      "reason": "Existing wizard patterns and desktop/mobile RTL publication flows were exercised; this change adds test support and coverage, not product UI.",
+      "evidence": [
+        "apps/web/tests/e2e/tour-creation-publication.spec.ts: desktop/mobile RTL and persistence scenarios; staging rerun 6/6 PASS as recorded in QA matrix"
+      ]
+    },
+    {
+      "id": "D",
+      "status": "PASS",
+      "reason": "Relevant API scheduler and registration contracts were traced and checked through focused tests and real staging requests.",
+      "evidence": [
+        "Codebase graph: warmPostListen calls startPaymentHoldExpiryScheduler; scheduler source and tests inspected",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md: TC-CL-VEHICLE-01 catalog/registration/roster results and expiry failure"
+      ]
+    },
+    {
+      "id": "E",
+      "status": "PASS",
+      "reason": "Transport configuration was traced from wizard input through canonical tour, marketing catalog, registration request, and operator roster.",
+      "evidence": [
+        "apps/web/tests/e2e/tour-creation-closure.spec.ts: TC-CL-VEHICLE-01 asserts shared_cars, dong amount, no_car_dong, approved roster row"
+      ]
+    },
+    {
+      "id": "F",
+      "status": "PASS",
+      "reason": "Repeatable browser coverage and production scheduler startup/shutdown behavior are implemented in the worktree.",
+      "evidence": [
+        "Worktree source at b8e6e87cc679e6bc70e743ad521717e0094d1b21 plus uncommitted changes; see git status and diff",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md: local scheduler fix description"
+      ]
+    },
+    {
+      "id": "G",
+      "status": "BLOCKED",
+      "reason": "The deployed staging SHA ee10ca28ca3990be857982d7ab65a781ed25086a does not contain the local scheduler fix; explicit expiry check failed on staging. The user has now authorized continued staging work; deployment follows exact-PR-head checks.",
+      "evidence": [
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md: live expiry poll remained approved after 2.5 minutes; staging release SHA and health checks documented",
+        "TC-CL-VEHICLE-01 and publication/closure runs passed on current staging, but do not prove local-source scheduler behavior"
+      ],
+      "depends_on": ["D", "E", "F"]
+    },
+    {
+      "id": "H",
+      "status": "BLOCKED",
+      "reason": "The matrix records desktop/mobile browser runs, but this pass did not freshly inspect and retain their rendered screenshot artifacts.",
+      "evidence": [
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md records desktop and mobile RTL publication runs; screenshot artifacts are produced under apps/web/test-results/artifacts"
+      ],
+      "depends_on": ["C"]
+    },
+    {
+      "id": "I",
+      "status": "BLOCKED",
+      "reason": "Focused local and staging suites passed, but PostgreSQL-backed integration is unavailable and the complete scenario matrix is not yet covered; the deployed scheduler scenario fails.",
+      "evidence": [
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md: fresh local API scheduler/runtime/waitlist/expiry suites 27/27 PASS; typecheck, source lint and build PASS",
+        "PR #327 checks for previous SHA b8e6e87 passed Booking HTTP PostgreSQL and Booking PostgreSQL capacity; current worktree changes still require fresh CI",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md: remaining train/airplane, tenant isolation, full export and current-source staging gaps"
+      ]
+    },
+    {
+      "id": "J",
+      "status": "PASS",
+      "reason": "Fresh scoped diff review found no whitespace errors; formatter issue in the QA matrix was corrected. Unrelated phase-19 JSON edit remains untouched.",
+      "evidence": [
+        "git diff --check PASS",
+        "pnpm exec prettier --check changed API/web files and docs/testing/denali-booking-lifecycle-qa-matrix.md PASS after formatting",
+        "git status --short shows docs/phase-19/architecture-truth-drift-report.json preserved as unrelated"
+      ]
+    }
+  ]
+}

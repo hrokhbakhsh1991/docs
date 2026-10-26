@@ -15,6 +15,8 @@ import { OPERATOR_WELCOME_ARMED_COOKIE } from "../../src/auth/operator-welcome-c
 export const OPERATOR_OWNER_MOBILE = resolveOperatorSmokeOwnerMobile();
 export const OPERATOR_ADMIN_MOBILE = "+15550001002";
 export const OPERATOR_MEMBER_MOBILE = "+15550001003";
+export const OPERATOR_VIEWER_TEST_MOBILE =
+  process.env.OPERATOR_SMOKE_VIEWER_MOBILE?.trim() || "+15550001004";
 export const OPERATOR_MEMBER_DISPLAY_NAME = "Smoke Member";
 export const OPERATOR_ADMIN_DISPLAY_NAME = "Smoke Admin";
 export const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
@@ -233,7 +235,131 @@ export async function loginOperatorAdmin(page: Page): Promise<void> {
 }
 
 export async function loginOperatorViewer(page: Page): Promise<void> {
-  await loginOperatorTeamSessionViaBff(page, "+15550001004", true);
+  const phone = OPERATOR_VIEWER_TEST_MOBILE;
+
+  // Ensure the dedicated synthetic phone has an active viewer membership in
+  // this tenant. Public registration creates a member first; the owner then
+  // assigns the test-only viewer role through the normal users API.
+  await loginOperatorOwner(page);
+
+  const pendingInvitesRes = await page.request.get("/api/users/invites");
+  const pendingInvitesText = await pendingInvitesRes.text();
+  expect(
+    pendingInvitesRes.ok(),
+    `pending invite list failed (${pendingInvitesRes.status()}): ${pendingInvitesText}`
+  ).toBeTruthy();
+  const pendingInvitesBody = JSON.parse(pendingInvitesText) as {
+    items?: readonly { inviteId?: string; phone?: string; role?: string }[];
+  };
+  const pendingViewerInvite = pendingInvitesBody.items?.find(
+    (invite) => invite.phone === phone && invite.role === "viewer"
+  );
+  if (pendingViewerInvite?.inviteId) {
+    const revokeRes = await page.request.delete(
+      `/api/users/invites/${encodeURIComponent(pendingViewerInvite.inviteId)}`
+    );
+    expect(
+      revokeRes.status(),
+      `stale viewer invite revoke failed (${revokeRes.status()}): ${await revokeRes.text()}`
+    ).toBe(204);
+  }
+
+  const readViewerUser = async (): Promise<{
+    readonly userId: string;
+    readonly role: string;
+  } | null> => {
+    const response = await page.request.get(
+      `/api/users?search=${encodeURIComponent(phone)}&limit=10`
+    );
+    const responseText = await response.text();
+    expect(
+      response.ok(),
+      `viewer test user lookup failed (${response.status()}): ${responseText}`
+    ).toBeTruthy();
+    const body = JSON.parse(responseText) as {
+      items?: readonly {
+        readonly userId?: string;
+        readonly id?: string;
+        readonly mobile?: string;
+        readonly phone?: string;
+        readonly role?: string;
+      }[];
+    };
+    const user = body.items?.find((item) => item.mobile === phone || item.phone === phone);
+    const userId = user?.userId ?? user?.id;
+    return userId && user?.role ? { userId, role: user.role } : null;
+  };
+
+  let viewerUser = await readViewerUser();
+  if (viewerUser === null) {
+    const portalBase = (
+      process.env.SMOKE_PORTAL_OPERATOR_BASE_URL ?? "http://operator.portal.localhost:3003"
+    ).replace(/\/$/, "");
+    const portalHost = new URL(portalBase).host;
+    const requestOtpRes = await page.request.post(`${portalBase}/api/public-auth/request-otp`, {
+      headers: { host: portalHost },
+      data: { phone },
+    });
+    const requestOtpText = await requestOtpRes.text();
+    expect(
+      requestOtpRes.ok(),
+      `viewer public OTP request failed (${requestOtpRes.status()}): ${requestOtpText}`
+    ).toBeTruthy();
+    const requestOtpBody = JSON.parse(requestOtpText) as { challenge_id?: string };
+    expect(typeof requestOtpBody.challenge_id).toBe("string");
+
+    const verifyOtpRes = await page.request.post(`${portalBase}/api/public-auth/verify-otp`, {
+      headers: { host: portalHost },
+      data: {
+        phone,
+        otp: OPERATOR_DEV_OTP,
+        challenge_id: requestOtpBody.challenge_id,
+      },
+    });
+    const verifyOtpText = await verifyOtpRes.text();
+    expect(
+      verifyOtpRes.ok(),
+      `viewer public OTP verification failed (${verifyOtpRes.status()}): ${verifyOtpText}`
+    ).toBeTruthy();
+    const verifyOtpBody = JSON.parse(verifyOtpText) as {
+      requires_registration?: boolean;
+      onboarding_token?: string;
+    };
+    expect(verifyOtpBody.requires_registration).toBe(true);
+    expect(typeof verifyOtpBody.onboarding_token).toBe("string");
+
+    const registerRes = await page.request.post(`${portalBase}/api/public-auth/register-complete`, {
+      headers: { host: portalHost },
+      data: {
+        onboarding_token: verifyOtpBody.onboarding_token,
+        display_name: "Automated staging E2E viewer",
+      },
+    });
+    const registerText = await registerRes.text();
+    expect(
+      registerRes.ok(),
+      `viewer public registration failed (${registerRes.status()}): ${registerText}`
+    ).toBeTruthy();
+    viewerUser = await readViewerUser();
+  }
+
+  expect(
+    viewerUser,
+    "registered viewer test identity must appear in the tenant users list"
+  ).toBeTruthy();
+  if (viewerUser!.role !== "viewer") {
+    const roleRes = await page.request.patch(
+      `/api/users/${encodeURIComponent(viewerUser!.userId)}/role`,
+      { data: { role: "viewer" } }
+    );
+    const roleText = await roleRes.text();
+    expect(
+      roleRes.ok(),
+      `viewer test role assignment failed (${roleRes.status()}): ${roleText}`
+    ).toBeTruthy();
+  }
+
+  await loginOperatorTeamSessionViaBff(page, phone, true);
   await page.goto("/tickets", { waitUntil: "load" });
 }
 
