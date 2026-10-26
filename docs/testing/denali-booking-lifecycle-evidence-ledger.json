@@ -6,7 +6,7 @@
       "status": "PASS",
       "reason": "Repository instructions, worktree, branch, preservation baseline, and relevant graph entries were inspected.",
       "evidence": [
-        "git status --short; git rev-parse HEAD = b8e6e87cc679e6bc70e743ad521717e0094d1b21; git diff --check",
+        "Worktree branch codex/denali-final-approval-e2e at source HEAD e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1; unrelated phase-19 JSON edit preserved",
         "Codebase graph project denali-e2e-lifecycle; scheduler symbols found in apps/api/src/main.ts and apps/api/src/finance/start-payment-hold-expiry-scheduler.ts"
       ]
     },
@@ -48,7 +48,7 @@
       "status": "PASS",
       "reason": "Repeatable browser coverage and production scheduler startup/shutdown behavior are implemented in the worktree.",
       "evidence": [
-        "Worktree source at b8e6e87cc679e6bc70e743ad521717e0094d1b21 plus uncommitted changes; see git status and diff",
+        "Worktree source at e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1 plus the focused Phase 3.2 audit allow-list correction; see PR #327 and current diff",
         "docs/testing/denali-booking-lifecycle-qa-matrix.md: local scheduler fix description"
       ]
     },
@@ -76,8 +76,9 @@
       "status": "BLOCKED",
       "reason": "Focused local and staging suites passed, but PostgreSQL-backed integration is unavailable and the complete scenario matrix is not yet covered; the deployed scheduler scenario fails.",
       "evidence": [
-        "docs/testing/denali-booking-lifecycle-qa-matrix.md: fresh local API scheduler/runtime/waitlist/expiry suites 27/27 PASS; typecheck, source lint and build PASS",
-        "PR #327 checks for previous SHA b8e6e87 passed Booking HTTP PostgreSQL and Booking PostgreSQL capacity; current worktree changes still require fresh CI",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md: local API scheduler/runtime/waitlist/expiry suites 27/27 PASS; typecheck, source lint and build PASS",
+        "PR #327 Phase 5 at e7c6feaaa6a1362c2490ecd7ce0e11f973e514d1: 3712/3713 tests passed; sole Phase 3.2 audit false positive was corrected locally and focused audit now passes 2/2; exact-head CI after correction pending",
+        "PR #327 checks on earlier SHA b8e6e87 passed Booking HTTP PostgreSQL and Booking PostgreSQL capacity; all scenario gaps listed in the QA matrix remain",
         "docs/testing/denali-booking-lifecycle-qa-matrix.md: remaining train/airplane, tenant isolation, full export and current-source staging gaps"
       ]
     },
@@ -86,8 +87,9 @@
       "status": "PASS",
       "reason": "Fresh scoped diff review found no whitespace errors; formatter issue in the QA matrix was corrected. Unrelated phase-19 JSON edit remains untouched.",
       "evidence": [
-        "git diff --check PASS",
-        "pnpm exec prettier --check changed API/web files and docs/testing/denali-booking-lifecycle-qa-matrix.md PASS after formatting",
+        "git diff --check PASS after the focused audit allow-list correction",
+        "pnpm exec prettier --check apps/api/test/integrity-audit-3.2.spec.ts PASS",
+        "Focused Phase 3.2 integrity audit: 2/2 PASS",
         "git status --short shows docs/phase-19/architecture-truth-drift-report.json preserved as unrelated"
       ]
     }
