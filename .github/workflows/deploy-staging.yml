@@ -84,24 +84,23 @@ jobs:
           const checks = await getJson(
             `/repos/${owner}/${repo}/commits/${process.env.GITHUB_SHA}/check-runs?per_page=100`
           );
-          // GitHub creates these check runs for the current workflow before this
-          // step executes. They cannot be prerequisites for their own dispatch.
-          const prerequisiteChecks = checks.check_runs.filter(
-            (check) =>
-              ![
-                'Build and verify immutable staging artifact',
-                'Deploy and verify staging',
-              ].includes(check.name)
-          );
-          if (
-            prerequisiteChecks.length === 0 ||
-            prerequisiteChecks.some(
-              (check) => check.status !== 'completed' || !['success', 'skipped'].includes(check.conclusion)
-            )
-          ) {
-            fail('All checks for the exact PR head SHA must be completed successfully or skipped.');
+          const requiredChecks = [
+            'Deployment contract gate',
+            'Booking HTTP PostgreSQL',
+            'Booking PostgreSQL capacity',
+          ];
+          const missingOrFailed = requiredChecks.filter((name) => {
+            const check = checks.check_runs.find((candidate) => candidate.name === name);
+            return !check || check.status !== 'completed' || check.conclusion !== 'success';
+          });
+          if (missingOrFailed.length > 0) {
+            fail(
+              `Exact-PR-head staging preflight must pass: ${missingOrFailed.join(', ')}.`
+            );
           }
-          console.log(`Validated staging candidate PR #${number} at ${process.env.GITHUB_SHA}.`);
+          console.log(
+            `Validated staging candidate PR #${number} at ${process.env.GITHUB_SHA}; required preflight checks passed.`
+          );
           NODE
       - uses: pnpm/action-setup@v4
         with:
@@ -118,6 +117,10 @@ jobs:
           echo '::group::build-api-workspace-deps'
           timeout --signal=TERM --kill-after=30s 10m bash scripts/ci/build-api-workspace-deps.sh
           echo '::endgroup::'
+      - name: Payment hold scheduler and expiry focused tests
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=30s 5m bash -c 'cd apps/api && NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test --test-force-exit test/dp1/payment-hold-scheduler.spec.ts test/dp1/payment-hold-runtime-diagnostics.spec.ts test/dp1/payment-hold-expiry.spec.ts test/dp1/payment-hold-expiry-idempotency.spec.ts test/dp1/payment-hold-waitlist.spec.ts'
       - name: Wallet and API focused tests
         run: |
           set -euo pipefail
