@@ -90,7 +90,13 @@ jobs:
             'Booking PostgreSQL capacity',
           ];
           const missingOrFailed = requiredChecks.filter((name) => {
-            const check = checks.check_runs.find((candidate) => candidate.name === name);
+            const check = checks.check_runs
+              .filter((candidate) => candidate.name === name)
+              .sort(
+                (left, right) =>
+                  Date.parse(right.started_at ?? right.created_at) -
+                  Date.parse(left.started_at ?? left.created_at)
+              )[0];
             return !check || check.status !== 'completed' || check.conclusion !== 'success';
           });
           if (missingOrFailed.length > 0) {
