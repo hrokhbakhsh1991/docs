@@ -23,10 +23,11 @@ describe("DP1-E payment hold scheduler", { concurrency: false }, () => {
     const holdPort = await requirePaymentHoldPort();
     await holdPort.extend(DP1_TENANT_DENALI, bookingId, "2030-01-01T00:00:00.000Z");
 
-    const scheduler = (await import("../../src/finance/start-payment-hold-expiry-scheduler.ts")) as {
-      runPaymentHoldExpiryTickForTests(nowIso: string): Promise<number>;
-      resetPaymentHoldExpirySchedulerForTests(): void;
-    };
+    const scheduler =
+      (await import("../../src/finance/start-payment-hold-expiry-scheduler.ts")) as {
+        runPaymentHoldExpiryTickForTests(nowIso: string): Promise<number>;
+        resetPaymentHoldExpirySchedulerForTests(): void;
+      };
     assert.equal(typeof scheduler.runPaymentHoldExpiryTickForTests, "function");
     scheduler.resetPaymentHoldExpirySchedulerForTests?.();
     const processed = await scheduler.runPaymentHoldExpiryTickForTests("2031-01-01T00:00:00.000Z");
@@ -41,9 +42,10 @@ describe("DP1-E payment hold scheduler", { concurrency: false }, () => {
     const holdPort = await requirePaymentHoldPort();
     await holdPort.satisfy(DP1_TENANT_DENALI, bookingId);
 
-    const scheduler = (await import("../../src/finance/start-payment-hold-expiry-scheduler.ts")) as {
-      runPaymentHoldExpiryTickForTests(nowIso: string): Promise<number>;
-    };
+    const scheduler =
+      (await import("../../src/finance/start-payment-hold-expiry-scheduler.ts")) as {
+        runPaymentHoldExpiryTickForTests(nowIso: string): Promise<number>;
+      };
     const processed = await scheduler.runPaymentHoldExpiryTickForTests("2031-01-01T00:00:00.000Z");
     assert.equal(processed, 0);
 
@@ -51,9 +53,33 @@ describe("DP1-E payment hold scheduler", { concurrency: false }, () => {
       tenantId: DP1_TENANT_DENALI,
       aggregateId: bookingId,
     });
-    assert.equal(
-      outbox.filter((row) => row.eventType === "payment.hold.expired").length,
-      0
-    );
+    assert.equal(outbox.filter((row) => row.eventType === "payment.hold.expired").length, 0);
+  });
+
+  it("returns a stoppable interval handle when expiry is enabled", async () => {
+    const prior = {
+      paymentHoldEnabled: process.env.PAYMENT_HOLD_ENABLED,
+      paymentHoldExpiryEnabled: process.env.PAYMENT_HOLD_EXPIRY_ENABLED,
+      intervalMs: process.env.PAYMENT_HOLD_EXPIRY_INTERVAL_MS,
+    };
+    process.env.PAYMENT_HOLD_ENABLED = "true";
+    process.env.PAYMENT_HOLD_EXPIRY_ENABLED = "true";
+    process.env.PAYMENT_HOLD_EXPIRY_INTERVAL_MS = "60000";
+    try {
+      const scheduler = await import("../../src/finance/start-payment-hold-expiry-scheduler.ts");
+      const handle = scheduler.startPaymentHoldExpiryScheduler();
+      assert.equal(typeof handle.stop, "function");
+      handle.stop();
+    } finally {
+      if (prior.paymentHoldEnabled === undefined) delete process.env.PAYMENT_HOLD_ENABLED;
+      else process.env.PAYMENT_HOLD_ENABLED = prior.paymentHoldEnabled;
+      if (prior.paymentHoldExpiryEnabled === undefined) {
+        delete process.env.PAYMENT_HOLD_EXPIRY_ENABLED;
+      } else {
+        process.env.PAYMENT_HOLD_EXPIRY_ENABLED = prior.paymentHoldExpiryEnabled;
+      }
+      if (prior.intervalMs === undefined) delete process.env.PAYMENT_HOLD_EXPIRY_INTERVAL_MS;
+      else process.env.PAYMENT_HOLD_EXPIRY_INTERVAL_MS = prior.intervalMs;
+    }
   });
 });

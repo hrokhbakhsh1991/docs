@@ -527,6 +527,7 @@
       "cancelParticipantRefundPending": "بازپرداخت در انتظار تأیید مالی است.",
       "cancelParticipantSettlementReview": "اصلاح تسویه نیازمند بررسی دستی است.",
       "cancelParticipantFailed": "لغو رزرو شرکت‌کننده انجام نشد.",
+      "cancelParticipantDongRiderReassignmentRequired": "برای لغو خودروی راننده، ابتدا مسافران دنگیِ تأییدشده را به خودروی دیگری با ظرفیت کافی تخصیص دهید.",
       "stages": {
         "approved_payment_required": "تاییدشده؛ پرداخت لازم است",
         "approved_ready_to_finalize": "تاییدشده؛ آماده افزودن به فهرست نهایی",

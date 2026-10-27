@@ -74,6 +74,8 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "tenant/tenant-registry-admin.port.ts",
   "bookings/",
   "finance/payment-hold-expiry.ts",
+  // Scheduled entrypoint delegates to the payment-hold service; it is not an HTTP handler.
+  "finance/start-payment-hold-expiry-scheduler.ts",
   "settlement/driver-settlement.service.ts",
   "transport/prisma-transport-allocation.repository.ts",
   "identity/create-identity-repository.ts",

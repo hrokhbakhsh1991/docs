@@ -1467,12 +1467,89 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return input.serialBookingMutationAlreadyHeld ? execute() : withMemoryApproveTx(execute);
   }
 
+  async requestMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly requestedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) throw new BookingNotFoundError();
+    if (row.cancellationStatus === "request_pending") return cloneBooking(row);
+    if (row.cancellationStatus === "applied" || row.cancellationStatus === "completed") {
+      throw new BookingStatusConflictError(row.status);
+    }
+    const now = new Date().toISOString();
+    const updated = {
+      ...row,
+      cancellationStatus: "request_pending" as const,
+      cancellationReasonCode: "member_cancellation_request",
+      cancellationReasonNote: input.reasonNote ?? null,
+      cancellationRequestedAt: now,
+    };
+    bookingsStore.set(row.id, updated);
+    outboxStore.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      aggregateType: "registration",
+      aggregateId: row.id,
+      eventType: "registration.cancellation_requested",
+      payload: {
+        bookingId: row.id,
+        tourId: row.tourId,
+        requestedByUserId: input.requestedByUserId,
+        requestedAt: now,
+      },
+      domainEventId: `registration.cancellation_requested:${row.id}:${now}`,
+      createdAt: now,
+    });
+    return cloneBooking(updated);
+  }
+
+  async rejectMemberCancellationRequest(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly rejectedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) throw new BookingNotFoundError();
+    if (row.cancellationStatus !== "request_pending")
+      throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
+    const updated = {
+      ...row,
+      cancellationStatus: "rejected" as const,
+      cancellationReasonCode: "member_cancellation_rejected",
+      cancellationReasonNote: input.reasonNote ?? null,
+    };
+    bookingsStore.set(row.id, updated);
+    const now = new Date().toISOString();
+    outboxStore.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      aggregateType: "registration",
+      aggregateId: row.id,
+      eventType: "registration.cancellation_request_rejected",
+      payload: {
+        bookingId: row.id,
+        tourId: row.tourId,
+        rejectedByUserId: input.rejectedByUserId,
+        rejectedAt: now,
+        ...(input.reasonNote !== undefined ? { reasonNote: input.reasonNote } : {}),
+      },
+      domainEventId: `registration.cancellation_request_rejected:${row.id}:${now}`,
+      createdAt: now,
+    });
+    return cloneBooking(updated);
+  }
+
   async cancelBooking(input: {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
     cancellationStatus?: BookingRecord["cancellationStatus"];
+    expectedCancellationStatus?: BookingRecord["cancellationStatus"];
     cancellationReasonCode?: string;
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
@@ -1493,6 +1570,12 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         }
         if (!canTransitionBookingStatus(current.status, "cancelled")) {
           throw new BookingStatusConflictError(current.status);
+        }
+        if (
+          input.expectedCancellationStatus !== undefined &&
+          current.cancellationStatus !== input.expectedCancellationStatus
+        ) {
+          throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
         }
         if (input.cancelSource === "payment_deadline" && current.paymentStatus === "paid") {
           throw new PaymentDeadlinePaymentAlreadySettledError();

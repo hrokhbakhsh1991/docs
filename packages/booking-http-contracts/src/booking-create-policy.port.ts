@@ -18,7 +18,7 @@ export type BookingCapacityReleasePolicyContext = {
   readonly bookingStatus: string;
   /** Capacity-only snapshot for the booking being removed. */
   readonly booking: BookingApprovedCapacitySnapshot;
-  /** Approved capacity snapshots re-read under the same tour lock. */
+  /** Approved capacity snapshots excluding `booking`, re-read under the same tour lock. */
   readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
 };
 

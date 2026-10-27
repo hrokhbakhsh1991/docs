@@ -7,6 +7,7 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 
 const OPERATOR_SMOKE_BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.operator.localhost:3000";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 const readinessUrl = `http://127.0.0.1:${process.env.TOUR_CLOSURE_SMOKE_READY_PORT ?? "3016"}/ready`;
 
@@ -41,7 +42,10 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
-    launchOptions: { args: chromiumLaunchArgs() },
+    launchOptions: {
+      args: chromiumLaunchArgs(),
+      ...(chromiumExecutablePath ? { executablePath: chromiumExecutablePath } : {}),
+    },
     ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
   },
   ...(useExternalServers

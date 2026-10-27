@@ -68,6 +68,7 @@ import { BookingsDirectoryControls } from "@/features/bookings/bookings-director
 import { BookingsDirectoryPagination } from "@/features/bookings/bookings-directory-pagination";
 import { BookingsWorkspaceEmbeddedControls } from "@/features/bookings/bookings-workspace-embedded-controls";
 import { BookingsKpiCard } from "@/features/bookings/bookings-kpi-card";
+import { MemberCancellationQueue } from "@/features/bookings/member-cancellation-queue";
 import {
   BookingsBulkConfirmDialog,
   BookingsCancelConfirmDialog,
@@ -1029,6 +1030,9 @@ export function BookingsPageClient({
           }
         />
       )}
+      {canManageOps && !embedded && session.workspaceType === "denali" ? (
+        <MemberCancellationQueue />
+      ) : null}
       {!embedded && query.tourId.trim().length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button

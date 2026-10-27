@@ -1,5 +1,13 @@
 {
   "pageTitle": "Bookings",
+  "memberCancellationQueue": {
+    "title": "Cancellation requests ({count, number})",
+    "empty": "No cancellation requests are waiting for review.",
+    "openBooking": "Open booking {id}",
+    "approve": "Approve cancellation",
+    "reject": "Reject request",
+    "error": "Could not load or update requests ({code})."
+  },
   "detailTitle": "Booking details",
   "pageSubtitle": "Decide who’s in — pending and waitlisted registrations need action",
   "newBooking": "New booking",

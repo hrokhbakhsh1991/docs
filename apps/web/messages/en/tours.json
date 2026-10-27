@@ -527,6 +527,7 @@
       "cancelParticipantRefundPending": "The refund is pending finance approval.",
       "cancelParticipantSettlementReview": "Settlement correction requires manual review.",
       "cancelParticipantFailed": "Could not cancel this participant booking.",
+      "cancelParticipantDongRiderReassignmentRequired": "Reassign the approved dong passengers to another car with enough seats before cancelling this driver.",
       "stages": {
         "approved_payment_required": "Approved; payment required",
         "approved_ready_to_finalize": "Approved; ready for final roster",

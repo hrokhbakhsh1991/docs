@@ -7,6 +7,7 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 
 const OPERATOR_SMOKE_BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.operator.localhost:3000";
+const chromiumExecutablePath = process.env.PW_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 export default defineConfig({
   globalSetup: useExternalServers ? undefined : "./tests/e2e/operator-smoke-global-setup.ts",
@@ -21,6 +22,9 @@ export default defineConfig({
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
     ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
+    ...(chromiumExecutablePath
+      ? { launchOptions: { executablePath: chromiumExecutablePath } }
+      : {}),
   },
   ...(useExternalServers
     ? {}

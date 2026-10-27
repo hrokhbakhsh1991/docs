@@ -1,0 +1,246 @@
+{
+  "complete": false,
+  "phases": [
+    {
+      "id": "A",
+      "status": "PASS",
+      "reason": "Repository instructions, source graph, PR, current worktree and exact staging provenance were checked; the unrelated architecture drift report was preserved. Current worktree also contains an uncommitted prepayment canonical-envelope fix, not yet deployed.",
+      "evidence": [
+        "AGENTS.md",
+        "git rev-parse HEAD = fd06a5c0dd9f941656a19a3bed03b012818f41cd",
+        "PR #327 exact-SHA staging deploy run 40435952704 succeeded",
+        "Current local edits include the prepayment resolver regression fix; not deployed"
+      ]
+    },
+    {
+      "id": "B",
+      "status": "PASS",
+      "reason": "Acceptance remains scenario based; the current ledger distinguishes staging, CI/PostgreSQL, synthetic payment, blocked and unimplemented cases.",
+      "evidence": [
+        "docs/testing/denali-booking-lifecycle-ledger.md",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md",
+        "Current staging release SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd"
+      ]
+    },
+    {
+      "id": "C",
+      "status": "NOT APPLICABLE",
+      "reason": "No visual redesign or Figma design acceptance is in scope; this change is API lifecycle behavior.",
+      "evidence": [
+        "Booking waitlist capacity fix only"
+      ]
+    },
+    {
+      "id": "D",
+      "status": "PASS",
+      "reason": "Trace found that waitlist promotion used privacy-safe list projections that strip registrationIntake; implementation now rehydrates rows and builds policy context from the current transaction booking.",
+      "evidence": [
+        "apps/api/src/bookings/promote-waitlist-after-seat-release.ts",
+        "packages/workspaces/denali/src/booking/availability.ts",
+        "Codebase Memory trace for createDenaliRegistration and promotion"
+      ]
+    },
+    {
+      "id": "E",
+      "status": "PASS",
+      "reason": "The public registration path falls back to a waitlisted row when requested transport capacity is unavailable; promotion rechecks persisted transport intake before approval.",
+      "evidence": [
+        "packages/workspaces/denali/src/http/registration.service.ts",
+        "apps/api/src/bookings/infrastructure/host-booking-public.adapter.ts",
+        "apps/api/src/bookings/promote-waitlist-after-seat-release.ts",
+        "Staging no-car boundary: 201 waitlisted; one waitlisted roster row"
+      ]
+    },
+    {
+      "id": "F",
+      "status": "PASS",
+      "reason": "Local regression verifies a no-car zero-offer waitlist row is not auto-promoted; current staging confirms it persists as waitlisted. The browser assertions were corrected to the implemented contract.",
+      "evidence": [
+        "apps/api/src/bookings/no-car-dong-zero-offer.local.spec.ts: 4/4 PASS",
+        "apps/web/tests/e2e/tour-creation-no-car-dong-boundary.spec.ts: 1/1 staging PASS",
+        "apps/web/tests/e2e/tour-creation-closure.spec.ts: TC-CL-VEHICLE-01 focused rerun PASS"
+      ]
+    },
+    {
+      "id": "G",
+      "status": "PASS",
+      "reason": "Exact release fd06a5c was deployed and verified. Focused current-SHA staging flows pass, including the BQC wizard matrix (5/5) and payment-expiry/FIFO promotion (1/1); the latest full closure run passed all 13 runnable cases with 2 intentional skips.",
+      "evidence": [
+        "Deployment workflow 40435952704: success on fd06a5c0dd9f941656a19a3bed03b012818f41cd",
+        "Publication/maps 9/9; BQC wizard state matrix 5/5; payment expiry/FIFO promotion 1/1; free approval 2/2; remaining focused scenarios listed in ledger",
+        "No-car dong waitlist 1/1; corrected shared-car closure scenario passes",
+        "Latest closure full run: 13 pass, 0 fail, 2 intentional skips in 8.5 minutes",
+        "Focused reruns: TC-CL-REG-03 plus TC-CL-VEHICLE-CANCEL-01 passed 2/2; TC-CL-REG-05 passed 1/1"
+      ]
+    },
+    {
+      "id": "H",
+      "status": "NOT APPLICABLE",
+      "reason": "No visual changes were made.",
+      "evidence": [
+        "Scope: API registration and waitlist promotion"
+      ]
+    },
+    {
+      "id": "I",
+      "status": "BLOCKED",
+      "reason": "Current-SHA staging and local offline-receipt lifecycle checks pass, including generic partial-balance-to-paid browser settlement. A newly prepared true-prepayment browser case confirms the wizard persists 50 percent, but the latest recorded staging release returns initialPaymentDueMinor=0 and amountDueNowMinor=2,500,000; the test stops before receipt upload. The persisted-envelope resolver fix and regression tests pass locally but are not deployed. Remaining items include second-tenant staging proof, same-national-ID product policy, unimplemented seat/flight assignment, and passenger-driver XLSX mapping. Denali gateway/PSP settlement is out of scope; refunds use a manual payout outside the app.",
+      "evidence": [
+        "Phase 5 gate 40435480636: success",
+        "Booking HTTP PostgreSQL and Booking PostgreSQL capacity CI checks: pass",
+        "Latest closure full run: 13 pass, 0 fail, 2 skip in 8.5 minutes",
+        "Current-SHA BQC staging wizard matrix: 5/5 PASS; test command uses playwright.tour-creation-bqc-staging.config.ts",
+        "Current-SHA payment expiry and FIFO promotion staging: 1/1 PASS; synthetic bookings, no money transfer",
+        "Local API lifecycle matrices: 18/18 PASS; payment-hold/waitlist/expiry matrices: 29/29 PASS; memory driver, not staging or PostgreSQL",
+        "2026-10-27 focused local runs on current API source: capacity/auto-approval 14/14, no-car/lifecycle 17/17, Denali registration 20/20, web transport/assisted registration 14/14; 65 pass, 0 fail, 0 skip",
+        "Earlier local PostgreSQL scratch run: 40 tests PASS and 1 MinIO receipt test SKIP across 12 suites; superseded by the newer 55 PASS / 1 intentional SKIP run across 13 suites recorded in latestRefresh.",
+        "Local in-process host and mixed-tenant HTTP tests: 6/6 PASS; this does not prove staging cross-tenant isolation",
+        "Combination audit: payment × approval has all four single-member cells; all four free/paid × manual/automatic group capacity-one cells, paid groups at capacity 2, free/auto two-guest bus, and paid/manual bus/train receipt approval are covered; transport is not fully crossed with group/payment/capacity",
+        "TC-CL-VEHICLE-CANCEL-01 isolated rerun: 1/1 pass",
+        "Local refund orchestration and payment webhook tests: 25/25 PASS",
+        "Local final roster export matrix: 3/3",
+        "Staging SSH host/key are not configured in this runner; active VPS process fingerprint was not freshly read",
+        "git diff --check and Prettier checks for TypeScript/JSON: pass",
+        "2026-10-27 staging paid group × manual and automatic approval: 2/2 PASS; separate guest registrations and synthetic receipt review reached approved/paid, no gateway or funds",
+        "2026-10-27 staging same-national-ID group probe: 201 + 201 and success UI; partial-failure expectation was disproven; expected product policy remains undecided",
+        "The new paid-group staging spec/config and evidence edits remain uncommitted; mutable harness revision",
+        "2026-10-27 fresh staging no-car/dong capacity boundary: 1/1 PASS; POST 201 and single waitlisted roster row (tour bdd3ad52-6f82-48a3-a88f-b9c249154aeb)",
+        "2026-10-27 fresh staging bus intake-to-roster scenario TC-CL-TRANSPORT-BUS-01: 1/1 PASS",
+        "2026-10-27 fresh staging group-capacity boundary TC-CL-GROUP-CAPACITY-01: 1/1 PASS; two POST 201, one approved and one waitlisted, portal/admin roster agree, capacity 1/1",
+        "2026-10-27 staging paid/manual shared-car no-seat case: 1/1 PASS; response, member view, and roster all waitlisted; no receipt/payment action",
+        "2026-10-27 staging manual group capacity-one case: 1/1 PASS; first approval succeeded, second returned 409 BOOKING_CAPACITY_REJECTED, capacity and roster remained 1/1",
+        "2026-10-27 staging paid/manual bus receipt/finance case: rerun 1/1 PASS in 45.1s; synthetic receipt reached finance-approved final state, no gateway/funds; earlier portal detail 404 was transient and is retained as flaky evidence",
+        "2026-10-27 local memory-driver Denali/API/web batch: 124/124 PASS (63 + 45 + 16); does not prove browser SSR or staging behavior",
+        "2026-10-27 staging paid/automatic group capacity-one case TC-CL-GROUP-CAPACITY-03: 1/1 PASS in 36.7s; one approved, one waitlisted, capacity 1/1, no receipt or gateway; exact deployed app SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd, local harness uncommitted",
+        "2026-10-27 staging free/automatic two-guest bus group: 1/1 PASS in 38.6s; both registrations and roster rows approved with bus transport, capacity 2/2; exact deployed app SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd, local harness uncommitted",
+        "2026-10-27 staging paid/manual train receipt/finance case: 1/1 PASS in 46.8s; pending registration approved, synthetic receipt reviewed, member API and roster approved/paid; no gateway or funds; exact deployed app SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd, local harness uncommitted",
+        "2026-10-27 staging paid/manual two-guest group capacity-one case TC-CL-GROUP-CAPACITY-04: corrected rerun 1/1 PASS in 42.7s; both pending, first approval succeeded, second rejected 409 BOOKING_CAPACITY_REJECTED, roster/portal/capacity 1/1; corrected assertion excludes read-only GETs; no receipt/gateway/funds",
+        "2026-10-27 focused free/manual bus group exact-fit: 1/1 staging PASS; wizard-created tour, two registrations, operator approval, member/roster bus state and 2/2 capacity agree; no gateway writes.",
+        "2026-10-27 paid/manual bus group with synthetic receipts and finance review: 1/1 staging PASS; both guest rows approved/paid and roster/capacity agree; no gateway or funds.",
+        "Newer local PostgreSQL scratch run supersedes the earlier 40+1/12-suite count: 55 PASS, 1 intentional MinIO skip across 13 suites; plus wallet 30/30. Scratch databases were dropped; shared tour_db untouched.",
+        "2026-10-27 staging offline partial-to-paid path: 1/1 PASS in 1.2m on app SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd with local harness; admin-recorded synthetic half-payment moved invoice/portal/roster to partial, member uploaded the remaining synthetic receipt, Finance approval moved invoice/member/roster/XLSX to paid with zero balance. No gateway or money transfer. This does not prove two member-uploaded installments; staging auto-finalized the admin entry, while source wrapper creates and approves a synthetic receipt when payment-hold is enabled. Registration 37ac7c87-c598-4174-a21c-3dfbf4c33859, receipt 2aa20272-1863-4589-98e5-89babead2ec6.",
+        "2026-10-27 staging rerun of offline partial-to-paid browser path: 1/1 PASS in 1.2m, app SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd, synthetic registration f67a372a-66c1-44f4-abd6-3aca3acac909, first installment 1,250,000 IRR then member balance receipt and Finance approval. Invoice/portal/roster/XLSX reached paid with zero due; initialPaymentDueMinor was 0 because this rerun used the generic non-prepayment fixture. No gateway/funds. A stricter 50%-prepayment two-member-receipt spec is now prepared but NOT RUN on staging; it requires a deployed SHA containing the resolver fix.",
+        "2026-10-27 local persisted-prepayment regression: canonical envelope data.pricing with 50 percent prepayment now resolves enabled and suggests 5,000 on a 10,000 minor-unit invoice; Denali workspace suite 877/877 PASS, API finance service 13/13 PASS, Denali obligation 5/5 PASS, focused resolver 5/5 PASS, Denali TypeScript checks exit 0. Fix is uncommitted and absent from the latest recorded staging SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd.",
+        "2026-10-28 local finance-core member receipt obligation suite: 5/5 PASS, including exact pending manual payment association and configured first-stage amount.",
+        "2026-10-28 Tehran staging true-prepayment browser diagnostic on latest recorded release SHA fd06a5c0dd9f941656a19a3bed03b012818f41cd: wizard canonical data confirmed prepaymentEnabled=true and prepaymentPercent=50, but invoice returned initialPaymentDueMinor=0 and amountDueNowMinor=2500000 instead of 1250000. Test failed at this assertion before any receipt upload/payment write; synthetic registration 8079238e-b2a6-4181-8b75-09d27ae039fb was created. This confirms the staging bug; process-level runtime fingerprint remains unverified. Local source fix and focused test pass; deploy/retest needed.",
+        "Deployment contract inspected: .github/workflows/deploy-staging.yml requires an open same-repository PR targeting dev from the exact branch/SHA and passing Deployment contract gate, Booking HTTP PostgreSQL, and Booking PostgreSQL capacity before manual dispatch. Current worktree changes are uncommitted; no push, PR, merge, or deploy was performed."
+      ]
+    },
+    {
+      "id": "J",
+      "status": "PASS",
+      "reason": "Fresh review corrected the stale no-car expectation, captured the registration POST ID for precise list diagnostics, avoided repeated operator OTP requests by reusing the worker session, and reran the complete closure suite successfully. The unrelated architecture report remains untouched.",
+      "evidence": [
+        "apps/web/tests/e2e/tour-creation-no-car-dong-boundary.spec.ts",
+        "apps/web/tests/e2e/tour-creation-closure.spec.ts: updated waitlisted expectation; isolated driver-cancel reruns pass",
+        "docs/testing/denali-booking-lifecycle-ledger.md",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md",
+        "Current full closure latest status: 13 pass, 0 fail, 2 skip",
+        "BQC wizard staging suite: 5/5 PASS",
+        "Payment expiry/FIFO staging scenario: 1/1 PASS"
+      ]
+    }
+  ],
+  "latestRefresh": {
+    "exactSha": "fd06a5c0dd9f941656a19a3bed03b012818f41cd",
+    "refreshedAt": "2026-10-28",
+    "staging": [
+      {
+        "scenario": "three-guest free group, capacity 2, automatic and manual",
+        "result": "PASS 2/2",
+        "evidence": "auto: 2 approved + 1 waitlisted; manual: 2 approvals + third 409 BOOKING_CAPACITY_REJECTED; member API, roster, bus transport and capacity 2/2 agreed"
+      },
+      {
+        "scenario": "two-guest free/manual exact-fit capacity 2",
+        "result": "PASS 1/1 (39.9s)",
+        "evidence": "Both POST registrations 201/pending; both authenticated operator approval API calls 200; member API and roster both approved; primary transport, partySize 1, capacitySnapshot occupied 2/max 2. Initial UI-helper attempt timed out before any approval because row selection did not trigger booking detail GET; rerun intentionally used the authenticated operator API and kept all state assertions."
+      },
+      {
+        "scenario": "free/manual two-guest bus group, exact-fit capacity 2",
+        "result": "PASS 1/1 (54.5s)",
+        "evidence": "wizard-created and published capacity-2 bus tour; two distinct synthetic registrations initially pending; sequential authenticated operator approvals; member API and operator roster approved, roster transportKind primary for bus, capacitySnapshot occupied 2/max 2; no payment/receipt/gateway writes; one synthetic tour and two approved registrations intentionally remain in staging"
+      },
+      {
+        "scenario": "paid/automatic two-guest bus group at exact capacity 2",
+        "result": "PASS 1/1 (50.0s test, 59.5s process)",
+        "evidence": "Real wizard created/published the tour; two distinct synthetic registrations returned 201 and were automatically approved; member API and roster agreed, bus transport kind primary, capacity occupied 2/max 2, unpaid; receipt, gateway, checkout, payment-session and intent writes were all absent. No money, Telegram/outbox or third-party calls; synthetic tour/bookings remain in staging."
+      },
+      {
+        "scenario": "paid/manual two-guest bus group, exact capacity 2 with receipt and finance approval",
+        "result": "PASS 1/1",
+        "evidence": "Wizard-created and published bus tour; two distinct synthetic registrations pending then operator-approved; two synthetic receipts reviewed by finance; member API and roster approved/paid, bus transport primary and capacity occupied 2/max 2. No gateway or payment-provider calls; no funds transferred."
+      }
+    ],
+    "localMemoryDriver": [
+      {
+        "scope": "Denali/API/web fast batch",
+        "result": "PASS 124/124",
+        "note": "63 Denali, 45 API, 16 web; not browser or PostgreSQL proof"
+      },
+      {
+        "scope": "T06 registration/receipt/finalization/roster/fake Telegram provider suites",
+        "result": "PASS 102/102 across 11 suites",
+        "note": "memory driver and fake provider only; no external Telegram or staging calls; MINIO_NOT_CONFIGURED warning and fixture exposure shadow/engine_missing remain outside what this proves"
+      },
+      {
+        "scope": "additional capacity/waitlist/roster targeted refresh",
+        "result": "PASS 56/56",
+        "suites": [
+          "waitlist-promotion composition 1",
+          "capacity correctness 6",
+          "public registration capacity/throttle 8",
+          "approval capacity 4",
+          "capacity ownership 9",
+          "tour capacity authority and promotion 6",
+          "payment hold/waitlist expiry 19",
+          "final roster export matrix 3"
+        ],
+        "note": "separate focused run; may overlap prior memory-driver batches"
+      },
+      {
+        "scope": "receipt proof storage memory suite",
+        "result": "PASS 5/5",
+        "note": "Upload/read/sign/delete, idempotency and defensive copies, type/size validation, tenant scoping, and production/no-driver fail-safe; memory-only, no provider or DB proof"
+      }
+    ],
+    "localPostgresScratch": {
+      "database": "denali_lifecycle_qa_20261027_01",
+      "migrations": 108,
+      "result": "PASS 55, FAIL 0, intentional SKIP 1",
+      "suites": 13,
+      "suiteBreakdown": [
+        "booking capacity 8",
+        "approval concurrency 7",
+        "guest duplicate race 2",
+        "booking HTTP 16",
+        "JWT booking HTTP 4 + 1 MinIO-only skip",
+        "transport freeze 1",
+        "payment deadline race 2",
+        "driver payment expiry 2",
+        "capacity stress 3 (100 waves x 200 operations)",
+        "tenant RLS completeness 3",
+        "finance reconciliation RLS 5",
+        "approval outbox relay 1",
+        "receipt resubmission 1"
+      ],
+      "cleanup": "scratch database dropped after confirming no active sessions; shared tour_db untouched",
+      "walletCertification": {
+        "database": "denali_lifecycle_wallet_qa_20261027_01",
+        "migrations": 108,
+        "result": "PASS 30, FAIL 0, SKIP 0",
+        "suites": 4,
+        "coverage": [
+          "wallet persistence and RLS",
+          "WS1 wallet certification",
+          "Denali wallet pilot",
+          "refund-to-wallet credit idempotency and concurrency"
+        ],
+        "cleanup": "scratch database dropped after confirming no active sessions; no provider payment or real refund transfer"
+      }
+    },
+    "localHarnessDiscovery": {
+      "configs": "PASS 15/15",
+      "result": "Playwright --list loaded every staging config and discovered its expected tests; no test case executed and no staging request was made"
+    }
+  }
+}

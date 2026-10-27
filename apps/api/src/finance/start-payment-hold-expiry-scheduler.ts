@@ -1,11 +1,15 @@
 /**
- * DP1-E — payment hold expiry scheduler (memory driver).
+ * DP1-E — payment hold expiry scheduler (memory or Prisma driver).
  */
 import { expirePaymentHoldForRegistration } from "./payment-hold-expiry.ts";
 import { isPaymentHoldEnabled, PaymentHoldService } from "./payment-hold.service.ts";
 import { logger } from "../observability/logger.ts";
 
 let schedulerEnabled = true;
+
+export type PaymentHoldExpirySchedulerHandle = {
+  readonly stop: () => void;
+};
 
 export function resetPaymentHoldExpirySchedulerForTests(): void {
   schedulerEnabled = true;
@@ -52,12 +56,12 @@ export async function runPaymentHoldExpiryTickForTests(nowIso: string): Promise<
   return processed;
 }
 
-export function startPaymentHoldExpiryScheduler(): void {
+export function startPaymentHoldExpiryScheduler(): PaymentHoldExpirySchedulerHandle {
   if (!isPaymentHoldEnabled() || !isPaymentHoldExpiryEnabled()) {
-    return;
+    return { stop: () => {} };
   }
   const intervalMs = Number(process.env.PAYMENT_HOLD_EXPIRY_INTERVAL_MS) || 60_000;
-  setInterval(() => {
+  const interval = setInterval(() => {
     void runPaymentHoldExpiryTickForTests(new Date().toISOString()).catch((error: unknown) => {
       const failure = error as { code?: unknown; name?: unknown };
       logger.error({
@@ -67,4 +71,9 @@ export function startPaymentHoldExpiryScheduler(): void {
       });
     });
   }, intervalMs).unref?.();
+  logger.info(
+    { event: "payment_hold.expiry_scheduler_started", intervalMs },
+    "payment hold expiry scheduler started"
+  );
+  return { stop: () => clearInterval(interval) };
 }

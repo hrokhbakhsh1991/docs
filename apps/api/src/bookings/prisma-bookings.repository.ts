@@ -342,6 +342,9 @@ function buildBookingListWhere(
         : {}),
     ...(input.tourId !== undefined && input.tourId.length > 0 ? { tourId: input.tourId } : {}),
     ...(input.paymentStatus !== undefined ? { paymentStatus: input.paymentStatus } : {}),
+    ...(input.cancellationStatus !== undefined
+      ? { cancellationStatus: input.cancellationStatus }
+      : {}),
     ...(input.submittedByUserId !== undefined
       ? { submittedByUserId: input.submittedByUserId }
       : {}),
@@ -2364,12 +2367,114 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     });
   }
 
+  async requestMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly requestedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const current = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (current === null) throw new BookingNotFoundError();
+      if (current.cancellationStatus === "request_pending") return toBookingRecord(current);
+      if (current.status === "cancelled" || current.status === "rejected")
+        throw new BookingStatusConflictError(current.status as BookingStatus);
+      const now = new Date();
+      const changed = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          cancellationStatus: current.cancellationStatus,
+        },
+        data: {
+          cancellationStatus: "request_pending",
+          cancellationReasonCode: "member_cancellation_request",
+          cancellationReasonNote: input.reasonNote ?? null,
+          cancellationRequestedAt: now,
+        },
+      });
+      if (changed.count !== 1) {
+        const raced = await tx.operatorRegistration.findFirst({
+          where: { id: input.bookingId, tenantId: input.tenantId },
+        });
+        if (raced?.cancellationStatus === "request_pending") return toBookingRecord(raced);
+        throw new BookingStatusConflictError((raced?.status ?? current.status) as BookingStatus);
+      }
+      const updated = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: updated.id,
+        eventType: "registration.cancellation_requested",
+        payload: {
+          bookingId: updated.id,
+          tourId: updated.tourId,
+          requestedByUserId: input.requestedByUserId,
+          requestedAt: now.toISOString(),
+        },
+        domainEventId: `registration.cancellation_requested:${updated.id}:${now.toISOString()}`,
+        createdAt: now,
+      });
+      return toBookingRecord(updated);
+    });
+  }
+
+  async rejectMemberCancellationRequest(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly rejectedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const now = new Date();
+      const changed = await tx.operatorRegistration.updateMany({
+        where: {
+          id: input.bookingId,
+          tenantId: input.tenantId,
+          cancellationStatus: "request_pending",
+        },
+        data: {
+          cancellationStatus: "rejected",
+          cancellationReasonCode: "member_cancellation_rejected",
+          cancellationReasonNote: input.reasonNote ?? null,
+        },
+      });
+      if (changed.count !== 1) throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
+      const row = await tx.operatorRegistration.findFirstOrThrow({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: row.id,
+        eventType: "registration.cancellation_request_rejected",
+        payload: {
+          bookingId: row.id,
+          tourId: row.tourId,
+          rejectedByUserId: input.rejectedByUserId,
+          rejectedAt: now.toISOString(),
+          ...(input.reasonNote !== undefined ? { reasonNote: input.reasonNote } : {}),
+        },
+        domainEventId: `registration.cancellation_request_rejected:${row.id}:${now.toISOString()}`,
+        createdAt: now,
+      });
+      return toBookingRecord(row);
+    });
+  }
+
   async cancelBooking(input: {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
     cancelSource?: string;
     cancellationStatus?: BookingRecord["cancellationStatus"];
+    expectedCancellationStatus?: BookingRecord["cancellationStatus"];
     cancellationReasonCode?: string;
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
@@ -2399,6 +2504,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (!canTransitionBookingStatus(current.status as BookingStatus, "cancelled")) {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
+      if (
+        input.expectedCancellationStatus !== undefined &&
+        current.cancellationStatus !== input.expectedCancellationStatus
+      ) {
+        throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
+      }
       if (input.cancelSource === "payment_deadline" && current.paymentStatus === "paid") {
         throw new PaymentDeadlinePaymentAlreadySettledError();
       }
@@ -2425,6 +2536,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           id: current.id,
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("cancelled")] },
+          ...(input.expectedCancellationStatus !== undefined
+            ? { cancellationStatus: input.expectedCancellationStatus }
+            : {}),
         },
         data: {
           status: "cancelled",

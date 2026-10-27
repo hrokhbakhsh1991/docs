@@ -40,6 +40,16 @@ function memberAuth(): FinanceActorContext {
   };
 }
 
+function operatorAuth(): FinanceActorContext {
+  return {
+    userId: OWNER,
+    tenantId: TENANT,
+    role: "admin",
+    status: "ACTIVE",
+    workspaceId: "ws-obl",
+  };
+}
+
 function approvedBookingPort(): IBookingPaymentPort {
   return {
     async syncStatus(input) {
@@ -169,5 +179,87 @@ describe("FIN-RECEIPT-OBL member receipt payment amount", () => {
     const payment = await repo.findFirstPendingManualPayment(TENANT, registrationId);
     assert.ok(payment !== null);
     assert.equal(payment.amount, "300000");
+  });
+
+  it("attaches a member receipt to the exact pending manual payment created by Finance", async () => {
+    const registrationId = randomUUID();
+    const obligation: FinanceObligationPort = {
+      async resolveRegistrationObligation() {
+        return {
+          currency: "IRR",
+          obligationMinor: "2500000",
+          source: "tour_canonical",
+        };
+      },
+      async resolveRegistrationPaymentCollection() {
+        return "offline";
+      },
+      async setRegistrationObligationOverride() {
+        return false;
+      },
+    };
+    const admin = createService(obligation);
+    const member = createService(obligation);
+
+    const pendingPayment = await admin.finance.createManualPayment(
+      operatorAuth(),
+      { registrationId, amount: "1250000", currency: "IRR" },
+      `member-partial-${registrationId}`
+    );
+    assert.equal(pendingPayment.status, "Pending");
+
+    const receipt = await member.finance.submitMemberReceiptForRegistration(memberAuth(), {
+      registrationId,
+      fileKey: `receipts/${TENANT}/${registrationId}/partial-proof.jpg`,
+      note: "Synthetic proof; no funds transferred",
+    });
+
+    assert.equal(receipt.paymentId, pendingPayment.id);
+    const linkedPayment = await member.repo.findPaymentById(TENANT, receipt.paymentId);
+    assert.equal(linkedPayment?.amount, "1250000");
+    assert.equal(linkedPayment?.status, "Pending");
+  });
+
+  it("keeps the selected pending payment ID when multiple manual payments exist", async () => {
+    const registrationId = randomUUID();
+    const { finance, repo } = createService({
+      async resolveRegistrationObligation() {
+        return {
+          currency: "IRR",
+          obligationMinor: "2500000",
+          source: "tour_canonical",
+        };
+      },
+      async resolveRegistrationPaymentCollection() {
+        return "offline";
+      },
+      async setRegistrationObligationOverride() {
+        return false;
+      },
+    });
+    const candidates = await Promise.all(
+      ["1250000", "1250000"].map((amount) =>
+        repo.createManualPayment({
+          tenantId: TENANT,
+          registrationId,
+          amount,
+          currency: "IRR",
+          method: "Manual",
+          provider: "manual",
+          status: "Pending",
+        })
+      )
+    );
+
+    const receipt = await finance.submitMemberReceiptForRegistration(memberAuth(), {
+      registrationId,
+      fileKey: `receipts/${TENANT}/${registrationId}/multiple-pending.jpg`,
+    });
+
+    assert.ok(candidates.some((candidate) => candidate.id === receipt.paymentId));
+    const selected = await repo.findPaymentById(TENANT, receipt.paymentId);
+    assert.equal(selected?.registrationId, registrationId);
+    assert.equal(selected?.amount, "1250000");
+    assert.equal(selected?.status, "Pending");
   });
 });

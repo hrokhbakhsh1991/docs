@@ -193,14 +193,10 @@ export function evaluateDenaliCapacityRelease(
 
   const confirmedDongSeats = occupiedCarSeats(ctx.approvedCapacitySnapshots);
   const offeredSeats = offeredCarSeats(ctx.approvedCapacitySnapshots);
-  const currentOffer =
-    typeof bookingTransport.personalCarOccupants === "number" &&
-    Number.isInteger(bookingTransport.personalCarOccupants) &&
-    bookingTransport.personalCarOccupants >= 0
-      ? bookingTransport.personalCarOccupants
-      : 0;
 
-  if (confirmedDongSeats > Math.max(0, offeredSeats - currentOffer)) {
+  // The host's post-removal snapshot already excludes the driver being
+  // cancelled, so `offeredSeats` is the full remaining vehicle capacity.
+  if (confirmedDongSeats > offeredSeats) {
     return Object.freeze({
       allowed: false as const,
       reasonCode: "BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED",

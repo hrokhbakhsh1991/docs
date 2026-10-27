@@ -121,6 +121,7 @@ export type BookingListPageInput = {
   readonly statuses?: readonly BookingStatus[];
   readonly tourId?: string;
   readonly paymentStatus?: BookingPaymentStatus;
+  readonly cancellationStatus?: BookingRecord["cancellationStatus"];
   readonly q?: string;
   /** Inclusive lower bound (ISO) for departureAt filter. */
   readonly departureFrom?: string;

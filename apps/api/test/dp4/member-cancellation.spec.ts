@@ -7,10 +7,6 @@ import { before, beforeEach, describe, it } from "node:test";
 import { createRequestListener } from "../../src/app.ts";
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
 import {
-  findPendingMemberCancellationRequest,
-  resetMemberCancellationRequestsForTests,
-} from "../../src/bookings/member-cancellation-request.repository.ts";
-import {
   approveMemberCancellationRequestForBooking,
   submitMemberCancellation,
 } from "../../src/member-cancellation/member-cancellation.service.ts";
@@ -54,7 +50,6 @@ describe("DP4 member cancellation API", () => {
     resetBookingsRepositoryForTests();
     resetBookingsServiceCompositionForTests();
     resetPaymentHoldRepositoryForTests();
-    resetMemberCancellationRequestsForTests();
     resetMemberNotificationInboxForTests();
     seedOperatorIdentityFixture();
     const idRepo = getIdentityRepository();
@@ -74,7 +69,6 @@ describe("DP4 member cancellation API", () => {
   beforeEach(() => {
     resetBookingsRepositoryForTests();
     resetPaymentHoldRepositoryForTests();
-    resetMemberCancellationRequestsForTests();
   });
 
   async function createPendingRegistration(): Promise<string> {
@@ -211,6 +205,96 @@ describe("DP4 member cancellation API", () => {
     assert.equal(result.body.kind, "request_submitted");
   });
 
+  it("S5b paid cancellation request is reloadable by the member and discoverable by operators", async () => {
+    const bookingId = await createPendingRegistration();
+    await client.requestJson("POST", `/bookings/${bookingId}/approve`, {
+      headers: operatorAuthHeaders(),
+    });
+    const repo = (
+      await import("../../src/bookings/create-bookings-repository.ts")
+    ).getBookingsRepository();
+    await repo.updatePaymentStatus({
+      bookingId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentStatus: "paid",
+    });
+
+    const requested = await client.requestJson<{ kind?: string; requestId?: string }>(
+      "POST",
+      `/bookings/${bookingId}/member-cancellation`,
+      { headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member") }
+    );
+    assert.equal(requested.status, 200);
+    assert.equal(requested.body.kind, "request_submitted");
+    const replayedRequest = await client.requestJson<{ requestId?: string }>(
+      "POST",
+      `/bookings/${bookingId}/member-cancellation`,
+      { headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member") }
+    );
+    assert.equal(replayedRequest.status, 200);
+    assert.equal(replayedRequest.body.requestId, requested.body.requestId);
+
+    const refreshedMemberState = await client.requestJson<{
+      cancellationStatus?: string;
+    }>("GET", `/bookings/${bookingId}/member-cancellation`, {
+      headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member"),
+    });
+    assert.equal(refreshedMemberState.status, 200);
+    assert.equal(refreshedMemberState.body.cancellationStatus, "request_pending");
+
+    const operatorQueue = await client.requestJson<{
+      items?: Array<{ id: string; cancellationStatus?: string }>;
+    }>("GET", "/bookings/member-cancellation-requests?status=pending", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(operatorQueue.status, 200, JSON.stringify(operatorQueue.body));
+    assert.ok(
+      operatorQueue.body.items?.some(
+        (item) => item.id === bookingId && item.cancellationStatus === "request_pending"
+      )
+    );
+  });
+
+  it("S5c rejecting a paid cancellation request leaves booking, payment, and capacity unchanged", async () => {
+    const bookingId = await createPendingRegistration();
+    await client.requestJson("POST", `/bookings/${bookingId}/approve`, {
+      headers: operatorAuthHeaders(),
+    });
+    const repo = (
+      await import("../../src/bookings/create-bookings-repository.ts")
+    ).getBookingsRepository();
+    await repo.updatePaymentStatus({
+      bookingId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentStatus: "paid",
+    });
+    const before = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
+    assert.ok(before);
+
+    const requested = await client.requestJson<{ requestId?: string }>(
+      "POST",
+      `/bookings/${bookingId}/member-cancellation`,
+      {
+        headers: memberHeaders(OPERATOR_SMOKE.memberUserId, "ws-operator-smoke-member"),
+      }
+    );
+    assert.equal(requested.status, 200);
+
+    const rejected = await client.requestJson<{ cancellationStatus?: string }>(
+      "POST",
+      `/bookings/${bookingId}/member-cancellation/reject`,
+      { headers: operatorAuthHeaders(), body: { reason: "QA-only rejection" } }
+    );
+    assert.equal(rejected.status, 200, JSON.stringify(rejected.body));
+    assert.equal(rejected.body.cancellationStatus, "rejected");
+
+    const after = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
+    assert.equal(after?.status, before.status);
+    assert.equal(after?.paymentStatus, before.paymentStatus);
+    assert.equal(after?.finalizationStatus, before.finalizationStatus);
+    assert.equal(after?.cancellationStatus, "rejected");
+  });
+
   it("keeps a paid driver's cancellation request pending when approval would strand dong riders", async () => {
     const driverId = await createPendingRegistration();
     const repo = (
@@ -270,8 +354,8 @@ describe("DP4 member cancellation API", () => {
       /BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED/
     );
     assert.equal(
-      findPendingMemberCancellationRequest(OPERATOR_SMOKE.tenantId, driverId)?.status,
-      "pending"
+      (await repo.getById(driverId, OPERATOR_SMOKE.tenantId))?.cancellationStatus,
+      "request_pending"
     );
     assert.equal((await repo.getById(driverId, OPERATOR_SMOKE.tenantId))?.status, "approved");
   });

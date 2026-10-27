@@ -11,36 +11,44 @@ const OPERATOR_WEB_BASE_URL =
   process.env.SMOKE_OPERATOR_WEB_BASE_URL ?? "http://operator.localhost:3000";
 const OPERATOR_OWNER_MOBILE = "09174070937";
 const DEV_OTP = "1234";
+let operatorOwnerSessionToken: string | undefined;
 
 async function loginOperatorOwner(page: Page): Promise<void> {
   await page.context().clearCookies();
 
-  const otpRes = await page.request.post("/api/auth/request-otp", {
-    data: { phone: OPERATOR_OWNER_MOBILE },
-    timeout: 120_000,
-  });
-  expect(otpRes.ok(), await otpRes.text()).toBeTruthy();
-  const otpBody = (await otpRes.json()) as { challenge_id?: string };
-  expect(typeof otpBody.challenge_id).toBe("string");
+  if (operatorOwnerSessionToken === undefined) {
+    const otpRes = await page.request.post("/api/auth/request-otp", {
+      data: { phone: OPERATOR_OWNER_MOBILE },
+      timeout: 120_000,
+    });
+    const otpText = await otpRes.text();
+    expect(otpRes.ok(), `OTP request status=${otpRes.status()} body=${otpText}`).toBeTruthy();
+    const otpBody = JSON.parse(otpText) as { challenge_id?: string };
+    expect(typeof otpBody.challenge_id).toBe("string");
 
-  const loginRes = await page.request.post("/api/auth/login-web-session", {
-    data: {
-      phone: OPERATOR_OWNER_MOBILE,
-      otp: DEV_OTP,
-      challenge_id: otpBody.challenge_id,
-    },
-    timeout: 120_000,
-  });
-  const loginText = await loginRes.text();
-  expect(loginRes.ok(), loginText).toBeTruthy();
-  const loginBody = JSON.parse(loginText) as { session_token?: string };
-  expect(typeof loginBody.session_token).toBe("string");
+    const loginRes = await page.request.post("/api/auth/login-web-session", {
+      data: {
+        phone: OPERATOR_OWNER_MOBILE,
+        otp: DEV_OTP,
+        challenge_id: otpBody.challenge_id,
+      },
+      timeout: 120_000,
+    });
+    const loginText = await loginRes.text();
+    expect(
+      loginRes.ok(),
+      `session login status=${loginRes.status()} body=${loginText}`,
+    ).toBeTruthy();
+    const loginBody = JSON.parse(loginText) as { session_token?: string };
+    expect(typeof loginBody.session_token).toBe("string");
+    operatorOwnerSessionToken = loginBody.session_token!;
+  }
 
   const cookieUrl = OPERATOR_WEB_BASE_URL.replace(/\/$/, "");
   await page.context().addCookies([
     {
       name: SESSION_TOKEN_COOKIE,
-      value: loginBody.session_token!,
+      value: operatorOwnerSessionToken,
       url: cookieUrl,
       httpOnly: true,
       sameSite: "Lax",

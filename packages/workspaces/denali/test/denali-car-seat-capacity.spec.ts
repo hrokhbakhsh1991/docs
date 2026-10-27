@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   buildDenaliBookingCreatePolicyContext,
+  evaluateDenaliCapacityRelease,
   evaluateDenaliCreateCapacity,
 } from "../src/booking";
 import { normalizeDenaliRegistrationTransportIntake } from "../src/http/resolve-denali-registration-transport";
@@ -117,5 +118,39 @@ describe("Denali personal-car seat capacity", () => {
     });
     assert.equal(result.decision, "deny");
     assert.match(result.reasonCode ?? "", /dongSeatsRequired=3 carSeatsOffered=1/);
+  });
+
+  it("allows driver removal when the remaining cars still cover every assigned dong seat", () => {
+    const cases = [
+      {
+        name: "one reassigned rider fits in the replacement car",
+        snapshots: [driver(1), dongPassenger()],
+        allowed: true,
+      },
+      {
+        name: "two riders cannot fit in one remaining seat",
+        snapshots: [driver(1), dongPassenger(2)],
+        allowed: false,
+      },
+      {
+        name: "a driver with no remaining car cannot leave a rider assigned",
+        snapshots: [dongPassenger()],
+        allowed: false,
+      },
+      {
+        name: "a driver with no assigned riders can be removed",
+        snapshots: [],
+        allowed: true,
+      },
+    ] as const;
+
+    for (const scenario of cases) {
+      const result = evaluateDenaliCapacityRelease({
+        bookingStatus: "approved",
+        booking: driver(1),
+        approvedCapacitySnapshots: scenario.snapshots,
+      });
+      assert.equal(result.allowed, scenario.allowed, scenario.name);
+    }
   });
 });

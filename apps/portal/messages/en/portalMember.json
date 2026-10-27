@@ -501,6 +501,8 @@
     "error": "Could not submit cancellation ({code}).",
     "refundEligible": "Eligible refund: {amount}",
     "requestSubmitted": "Your cancellation request was submitted and is waiting for club review.",
+    "requestPending": "Your cancellation request is waiting for club review.",
+    "requestRejected": "The club declined this cancellation request. You can submit a new request if needed.",
     "cancelled": "Registration cancelled.",
     "cancelledRefundPending": "Registration cancelled; the refund was sent for finance approval.",
     "cancelledCorrectionPending": "Registration cancelled; settlement correction is awaiting review.",

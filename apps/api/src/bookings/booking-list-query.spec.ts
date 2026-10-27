@@ -14,7 +14,9 @@ import {
 } from "./booking-list-query.ts";
 import type { BookingRecord } from "./bookings.types.ts";
 
-function stub(partial: Partial<BookingRecord> & Pick<BookingRecord, "id" | "departureAt" | "submittedAt">): BookingRecord {
+function stub(
+  partial: Partial<BookingRecord> & Pick<BookingRecord, "id" | "departureAt" | "submittedAt">
+): BookingRecord {
   return {
     tenantId: "t",
     tourId: "tour",
@@ -39,7 +41,11 @@ describe("booking-list-query.spec.ts — P3b-a", () => {
   });
 
   it("matches statuses IN filter for work queue", () => {
-    const pending = stub({ id: "p", departureAt: "2026-08-01T00:00:00.000Z", submittedAt: "2026-07-01T00:00:00.000Z" });
+    const pending = stub({
+      id: "p",
+      departureAt: "2026-08-01T00:00:00.000Z",
+      submittedAt: "2026-07-01T00:00:00.000Z",
+    });
     const waitlisted = stub({
       id: "w",
       status: "waitlisted",
@@ -58,6 +64,31 @@ describe("booking-list-query.spec.ts — P3b-a", () => {
     assert.equal(matchesBookingListFilters(approved, filter), false);
     assert.equal(matchesBookingListFilters(pending, { status: "pending" }), true);
     assert.equal(matchesBookingListFilters(waitlisted, { status: "pending" }), false);
+  });
+
+  it("filters persisted member cancellation requests independently from booking status", () => {
+    const pendingRequest = stub({
+      id: "cancel-pending",
+      status: "approved",
+      cancellationStatus: "request_pending",
+      departureAt: "2026-08-01T00:00:00.000Z",
+      submittedAt: "2026-07-01T00:00:00.000Z",
+    });
+    const noRequest = stub({
+      id: "cancel-none",
+      status: "approved",
+      cancellationStatus: "none",
+      departureAt: "2026-08-01T00:00:00.000Z",
+      submittedAt: "2026-07-01T00:00:00.000Z",
+    });
+    assert.equal(
+      matchesBookingListFilters(pendingRequest, { cancellationStatus: "request_pending" }),
+      true
+    );
+    assert.equal(
+      matchesBookingListFilters(noRequest, { cancellationStatus: "request_pending" }),
+      false
+    );
   });
 
   it("matches approvedAt UTC-day window (approvedWithinDays=1)", () => {
@@ -86,8 +117,16 @@ describe("booking-list-query.spec.ts — P3b-a", () => {
   });
 
   it("orders soonest departure first", () => {
-    const early = stub({ id: "a", departureAt: "2026-08-01T00:00:00.000Z", submittedAt: "2026-07-01T00:00:00.000Z" });
-    const late = stub({ id: "b", departureAt: "2026-08-10T00:00:00.000Z", submittedAt: "2026-07-02T00:00:00.000Z" });
+    const early = stub({
+      id: "a",
+      departureAt: "2026-08-01T00:00:00.000Z",
+      submittedAt: "2026-07-01T00:00:00.000Z",
+    });
+    const late = stub({
+      id: "b",
+      departureAt: "2026-08-10T00:00:00.000Z",
+      submittedAt: "2026-07-02T00:00:00.000Z",
+    });
     assert.ok(compareBookingsByDepartureAtAsc(early, late) < 0);
     assert.ok(compareBookingsByDepartureAtAsc(late, early) > 0);
   });

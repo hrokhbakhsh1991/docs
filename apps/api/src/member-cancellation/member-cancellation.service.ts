@@ -13,17 +13,14 @@ import { getBookingsRepository } from "../bookings/create-bookings-repository.ts
 import { resolveBookingsServiceForTenant } from "../bookings/create-bookings-service.ts";
 import { runPostCancelSideEffects } from "../bookings/post-cancel-side-effects.ts";
 import type { BookingRecord } from "../bookings/bookings.types.ts";
-import {
-  approveMemberCancellationRequest,
-  createMemberCancellationRequest,
-  findPendingMemberCancellationRequest,
-} from "../bookings/member-cancellation-request.repository.ts";
 import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/booking";
 
 export type MemberCancellationEligibilityResponse = {
   readonly eligible: boolean;
   readonly mode: string;
   readonly reasonCode?: string;
+  readonly cancellationStatus?: BookingRecord["cancellationStatus"];
+  readonly cancellationRequestedAt?: string | null;
   readonly refund?: {
     readonly eligibleRefundMinor: string;
     readonly penaltyMinor: string;
@@ -95,6 +92,10 @@ export async function getMemberCancellationEligibility(
     nowIso: new Date().toISOString(),
     cancellationDeadlineHours: hours,
   });
+  const state = {
+    cancellationStatus: booking.cancellationStatus ?? ("none" as const),
+    cancellationRequestedAt: booking.cancellationRequestedAt ?? null,
+  };
 
   if (booking.paymentStatus === "paid" || booking.paymentStatus === "partial") {
     const refund = await buildRefundEligibilitySnapshot({
@@ -106,6 +107,7 @@ export async function getMemberCancellationEligibility(
     });
     return {
       ...base,
+      ...state,
       refund: {
         eligibleRefundMinor: refund.eligibleRefundMinor,
         penaltyMinor: refund.penaltyMinor,
@@ -115,12 +117,13 @@ export async function getMemberCancellationEligibility(
     };
   }
 
-  return base;
+  return { ...base, ...state };
 }
 
 async function executeMemberCancel(
   auth: BookingActorContext,
-  booking: BookingRecord
+  booking: BookingRecord,
+  requirePendingRequest = false
 ): Promise<MemberCancellationResult> {
   const previousStatus = booking.status;
   const bookingsService = await resolveBookingsServiceForTenant(auth.tenantId);
@@ -132,10 +135,13 @@ async function executeMemberCancel(
     cancelSource: "member",
     cancellationStatus:
       Date.parse(booking.departureAt) <= Date.now() ? "late_correction" : "applied",
+    ...(requirePendingRequest ? { expectedCancellationStatus: "request_pending" as const } : {}),
     cancellationReasonCode: "member_withdrawal",
     cancellationApprovedByUserId: auth.userId,
     cancellationCorrelationId: `registration.cancelled:${booking.id}`,
-    assertCapacityAfterRemovalInTx: await bookingsService.createCapacityReleaseAssertion(auth.tenantId),
+    assertCapacityAfterRemovalInTx: await bookingsService.createCapacityReleaseAssertion(
+      auth.tenantId
+    ),
   });
 
   const refundStatus =
@@ -157,6 +163,10 @@ async function executeMemberCancel(
     // cancellation into a retry-shaped 500 when Finance/settlement needs review.
     settlementStatus = "manual_review";
   }
+  await bookingsService.recheckWaitlistAfterCapacityChangeForTenant({
+    tenantId: auth.tenantId,
+    tourId: booking.tourId,
+  });
 
   return {
     kind: "cancelled",
@@ -193,15 +203,15 @@ export async function submitMemberCancellation(
   }
 
   if (eligibility.mode === "request") {
-    const request = createMemberCancellationRequest({
-      tenantId: auth.tenantId,
+    const requested = await repo.requestMemberCancellation({
       bookingId: booking.id,
+      tenantId: auth.tenantId,
       requestedByUserId: auth.userId,
     });
     return {
       kind: "request_submitted",
       bookingId: booking.id,
-      requestId: request.id,
+      requestId: `${booking.id}:${requested.cancellationRequestedAt ?? "pending"}`,
       status: booking.status,
     };
   }
@@ -218,16 +228,49 @@ export async function approveMemberCancellationRequestForBooking(
   if (booking === null) {
     throw new BookingNotFoundError();
   }
-  const pending = findPendingMemberCancellationRequest(auth.tenantId, bookingId);
-  if (pending === null) {
+  if (booking.cancellationStatus !== "request_pending") {
     throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
   }
-  const result = await executeMemberCancel(auth, booking);
-  const approved = approveMemberCancellationRequest(auth.tenantId, pending.id);
-  if (approved === null) {
-    // Cancellation is already persisted; do not make the API response look
-    // retryable if another action transitioned the request concurrently.
-    return result;
-  }
-  return result;
+  return executeMemberCancel(auth, booking, true);
+}
+
+export async function rejectMemberCancellationRequestForBooking(
+  auth: BookingActorContext,
+  bookingId: string,
+  reasonNote?: string
+): Promise<{ readonly bookingId: string; readonly cancellationStatus: "rejected" }> {
+  const booking = await getBookingsRepository().rejectMemberCancellationRequest({
+    bookingId,
+    tenantId: auth.tenantId,
+    rejectedByUserId: auth.userId,
+    ...(reasonNote !== undefined ? { reasonNote } : {}),
+  });
+  return { bookingId: booking.id, cancellationStatus: "rejected" };
+}
+
+export async function listPendingMemberCancellationRequests(auth: BookingActorContext): Promise<{
+  readonly items: readonly {
+    readonly id: string;
+    readonly guestLabel: string;
+    readonly tourTitle: string;
+    readonly cancellationStatus: BookingRecord["cancellationStatus"];
+    readonly cancellationRequestedAt?: string | null;
+  }[];
+}> {
+  const page = await getBookingsRepository().listByTenantPage({
+    tenantId: auth.tenantId,
+    cancellationStatus: "request_pending",
+    limit: 100,
+  });
+  return {
+    items: page.items.map(
+      ({ id, guestLabel, tourTitle, cancellationStatus, cancellationRequestedAt }) => ({
+        id,
+        guestLabel,
+        tourTitle,
+        cancellationStatus,
+        cancellationRequestedAt,
+      })
+    ),
+  };
 }

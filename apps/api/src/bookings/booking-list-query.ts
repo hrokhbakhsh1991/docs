@@ -49,15 +49,19 @@ export function matchesBookingListFilters(
     | "statuses"
     | "tourId"
     | "paymentStatus"
+    | "cancellationStatus"
     | "submittedByUserId"
     | "q"
     | "departureFrom"
     | "departureTo"
     | "approvedFrom"
     | "approvedTo"
-  >,
+  >
 ): boolean {
-  if (filters.submittedByUserId !== undefined && record.submittedByUserId !== filters.submittedByUserId) {
+  if (
+    filters.submittedByUserId !== undefined &&
+    record.submittedByUserId !== filters.submittedByUserId
+  ) {
     return false;
   }
   if (filters.statuses !== undefined && filters.statuses.length > 0) {
@@ -67,10 +71,20 @@ export function matchesBookingListFilters(
   } else if (filters.status !== undefined && record.status !== filters.status) {
     return false;
   }
-  if (filters.tourId !== undefined && filters.tourId.length > 0 && record.tourId !== filters.tourId) {
+  if (
+    filters.tourId !== undefined &&
+    filters.tourId.length > 0 &&
+    record.tourId !== filters.tourId
+  ) {
     return false;
   }
   if (filters.paymentStatus !== undefined && record.paymentStatus !== filters.paymentStatus) {
+    return false;
+  }
+  if (
+    filters.cancellationStatus !== undefined &&
+    record.cancellationStatus !== filters.cancellationStatus
+  ) {
     return false;
   }
 
@@ -124,7 +138,10 @@ export function matchesBookingListFilters(
   return haystacks.some((value) => value.toLocaleLowerCase().includes(needle));
 }
 
-export function compareBookingsBySubmittedAtDesc(left: BookingRecord, right: BookingRecord): number {
+export function compareBookingsBySubmittedAtDesc(
+  left: BookingRecord,
+  right: BookingRecord
+): number {
   const submittedDelta = right.submittedAt.localeCompare(left.submittedAt);
   if (submittedDelta !== 0) {
     return submittedDelta;

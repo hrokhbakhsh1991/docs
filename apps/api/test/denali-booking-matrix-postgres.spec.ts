@@ -306,6 +306,7 @@ describe(
         const tenantIds = [tenantId, discountMembershipTenantId];
         await admin.financePaymentHold.deleteMany({ where: { tenantId: { in: tenantIds } } });
         await admin.financeCommercialQuote.deleteMany({ where: { tenantId: { in: tenantIds } } });
+        await admin.financeRefund.deleteMany({ where: { tenantId: { in: tenantIds } } });
         await admin.paymentReceipt.deleteMany({ where: { tenantId: { in: tenantIds } } });
         await admin.payment.deleteMany({ where: { tenantId: { in: tenantIds } } });
         await admin.outboxEvent.deleteMany({ where: { tenantId: { in: tenantIds } } });
@@ -638,9 +639,7 @@ describe(
           method: "POST",
           path: "/denali/registrations",
           tenantId,
-          ...(memberUserId === undefined
-            ? {}
-            : { userId: memberUserId, role: "member" as const }),
+          ...(memberUserId === undefined ? {} : { userId: memberUserId, role: "member" as const }),
           body: {
             tourId,
             ...(memberUserId === undefined ? {} : { registrantTarget: "self" }),
@@ -664,11 +663,7 @@ describe(
           select: { submittedByUserId: true, registrationIntake: true, status: true },
         });
         if (memberUserId !== undefined) {
-          assert.equal(
-            persistedBooking?.submittedByUserId,
-            memberUserId,
-            `${scenario.id}: member`
-          );
+          assert.equal(persistedBooking?.submittedByUserId, memberUserId, `${scenario.id}: member`);
         }
         assert.equal(persistedBooking?.status, "approved", `${scenario.id}: persisted status`);
         if (memberUserId !== undefined) {
@@ -842,6 +837,254 @@ describe(
           `${status} with stale finalized metadata must stay out of operational roster`
         );
       }
+    });
+
+    it("paid member cancellation request survives API repository restart and is reloadable", async () => {
+      const memberUserId = randomUUID();
+      memberUserIds.push(memberUserId);
+      await admin!.user.create({
+        data: {
+          id: memberUserId,
+          mobile: `+1555${randomUUID().replace(/\D/g, "").slice(0, 10)}`,
+        },
+      });
+      await admin!.userTenant.create({
+        data: {
+          userId: memberUserId,
+          tenantId,
+          role: "member",
+          status: "ACTIVE",
+          workspaceId: "ws-denali-booking-matrix",
+          membershipMetadata: {},
+        },
+      });
+
+      const tourId = randomUUID();
+      tourIds.push(tourId);
+      const title = `PG cancellation request ${tourId.slice(0, 8)}`;
+      const seeded = buildDenaliBookingScenarioTour({
+        tenantId,
+        id: DENALI_BOOKING_PAID_AUTO_TOUR_ID,
+        title,
+        registrationApproval: "auto",
+        paymentCollection: "offline",
+      });
+      await admin!.tour.create({
+        data: {
+          id: tourId,
+          tenantId,
+          title,
+          publishStatus: "published",
+          canonical: seeded.canonical,
+        },
+      });
+      const created = await requestJson(listener, {
+        method: "POST",
+        path: "/denali/registrations",
+        tenantId,
+        userId: memberUserId,
+        role: "member",
+        body: {
+          tourId,
+          registrantTarget: "self",
+          contact: {
+            fullName: `${title} Member`,
+            phone: `+1555${randomUUID().replace(/\D/g, "").slice(0, 10)}`,
+          },
+          partySize: 1,
+        },
+      });
+      assert.equal(created.status, 201, `cancellation fixture ${JSON.stringify(created.body)}`);
+      const bookingId = (created.body.data as { id?: unknown } | undefined)?.id;
+      assert.equal(typeof bookingId, "string", "cancellation booking id");
+
+      // Seed the already-settled state as the scenario precondition. This test
+      // isolates durable cancellation-request state; receipt/ledger settlement
+      // is covered by the independent booking-finance integration and browser tests.
+      const settledAt = new Date();
+      const settled = await admin!.operatorRegistration.updateMany({
+        where: { id: bookingId as string, tenantId, status: "approved" },
+        data: {
+          paymentStatus: "paid",
+          finalizationStatus: "finalized",
+          finalizedAt: settledAt,
+          finalizedByUserId: ownerId,
+        },
+      });
+      assert.equal(
+        settled.count,
+        1,
+        "cancellation fixture must be approved before settlement seed"
+      );
+
+      const requested = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${encodeURIComponent(bookingId as string)}/member-cancellation`,
+        tenantId,
+        userId: memberUserId,
+        role: "member",
+      });
+      assert.equal(requested.status, 200, `request cancellation ${JSON.stringify(requested.body)}`);
+      assert.equal(requested.body.kind, "request_submitted");
+
+      const persisted = await admin!.operatorRegistration.findFirst({
+        where: { id: bookingId as string, tenantId },
+        select: {
+          status: true,
+          paymentStatus: true,
+          finalizationStatus: true,
+          cancellationStatus: true,
+          cancellationRequestedAt: true,
+          cancellationReasonCode: true,
+        },
+      });
+      assert.deepEqual(persisted, {
+        status: "approved",
+        paymentStatus: "paid",
+        finalizationStatus: "finalized",
+        cancellationStatus: "request_pending",
+        cancellationRequestedAt: persisted?.cancellationRequestedAt,
+        cancellationReasonCode: "member_cancellation_request",
+      });
+      assert.ok(persisted?.cancellationRequestedAt, "request timestamp must persist in PostgreSQL");
+      const requestEvent = await admin!.outboxEvent.findFirst({
+        where: {
+          tenantId,
+          aggregateType: "registration",
+          aggregateId: bookingId as string,
+          eventType: "registration.cancellation_requested",
+        },
+      });
+      assert.ok(requestEvent, "cancellation-request outbox event must commit with the request");
+
+      resetLazyRouteHandlersForTests();
+      resetLazyFinanceServiceForTests();
+      resetLazyWorkspaceFinanceHandlersForTests();
+      resetBookingsRepositorySingletonForTests();
+      resetBookingsServiceCompositionForTests();
+      await disconnectPrisma();
+      assert.ok(getBookingsRepository() instanceof PrismaBookingsRepository);
+      listener = createRequestListener();
+
+      const reloaded = await requestJson(listener, {
+        method: "GET",
+        path: `/bookings/${encodeURIComponent(bookingId as string)}/member-cancellation`,
+        tenantId,
+        userId: memberUserId,
+        role: "member",
+      });
+      assert.equal(reloaded.status, 200, `reload cancellation ${JSON.stringify(reloaded.body)}`);
+      assert.equal(reloaded.body.cancellationStatus, "request_pending");
+      assert.equal(reloaded.body.eligible, true);
+      assert.equal(reloaded.body.mode, "request");
+
+      const afterRestart = await admin!.operatorRegistration.findFirst({
+        where: { id: bookingId as string, tenantId },
+        select: { status: true, paymentStatus: true, finalizationStatus: true },
+      });
+      assert.deepEqual(afterRestart, {
+        status: "approved",
+        paymentStatus: "paid",
+        finalizationStatus: "finalized",
+      });
+
+      const rejected = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${encodeURIComponent(bookingId as string)}/member-cancellation/reject`,
+        tenantId,
+        userId: ownerId,
+        role: "owner",
+      });
+      assert.equal(rejected.status, 200, `reject cancellation ${JSON.stringify(rejected.body)}`);
+      assert.deepEqual(rejected.body, {
+        bookingId,
+        cancellationStatus: "rejected",
+      });
+      const rejectedRow = await admin!.operatorRegistration.findFirst({
+        where: { id: bookingId as string, tenantId },
+        select: {
+          status: true,
+          paymentStatus: true,
+          finalizationStatus: true,
+          cancellationStatus: true,
+        },
+      });
+      assert.deepEqual(rejectedRow, {
+        status: "approved",
+        paymentStatus: "paid",
+        finalizationStatus: "finalized",
+        cancellationStatus: "rejected",
+      });
+      const rejectionEvent = await admin!.outboxEvent.findFirst({
+        where: {
+          tenantId,
+          aggregateType: "registration",
+          aggregateId: bookingId as string,
+          eventType: "registration.cancellation_request_rejected",
+        },
+      });
+      assert.ok(rejectionEvent, "cancellation rejection outbox event must persist");
+      assert.equal(
+        (rejectionEvent.payload as Record<string, unknown>).rejectedByUserId,
+        ownerId,
+        "rejection event must retain the operator identity"
+      );
+
+      const rejectedReload = await requestJson(listener, {
+        method: "GET",
+        path: `/bookings/${encodeURIComponent(bookingId as string)}/member-cancellation`,
+        tenantId,
+        userId: memberUserId,
+        role: "member",
+      });
+      assert.equal(rejectedReload.status, 200);
+      assert.equal(rejectedReload.body.cancellationStatus, "rejected");
+      assert.equal(rejectedReload.body.eligible, true);
+      assert.equal(rejectedReload.body.mode, "request");
+
+      const resubmitted = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${encodeURIComponent(bookingId as string)}/member-cancellation`,
+        tenantId,
+        userId: memberUserId,
+        role: "member",
+      });
+      assert.equal(
+        resubmitted.status,
+        200,
+        `resubmit cancellation ${JSON.stringify(resubmitted.body)}`
+      );
+      assert.equal(resubmitted.body.kind, "request_submitted");
+
+      const approved = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${encodeURIComponent(bookingId as string)}/member-cancellation/approve`,
+        tenantId,
+        userId: ownerId,
+        role: "owner",
+      });
+      assert.equal(approved.status, 200, `approve cancellation ${JSON.stringify(approved.body)}`);
+      assert.equal(approved.body.kind, "cancelled");
+      assert.equal(approved.body.bookingId, bookingId);
+      assert.equal(approved.body.status, "cancelled");
+      assert.equal(approved.body.refundStatus, "pending_finance_approval");
+      const cancelledRow = await admin!.operatorRegistration.findFirst({
+        where: { id: bookingId as string, tenantId },
+        select: {
+          status: true,
+          paymentStatus: true,
+          finalizationStatus: true,
+          cancellationStatus: true,
+          cancellationApprovedByUserId: true,
+        },
+      });
+      assert.deepEqual(cancelledRow, {
+        status: "cancelled",
+        paymentStatus: "paid",
+        finalizationStatus: "not_final",
+        cancellationStatus: "applied",
+        cancellationApprovedByUserId: ownerId,
+      });
     });
   }
 );

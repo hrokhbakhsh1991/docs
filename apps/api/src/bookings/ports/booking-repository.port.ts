@@ -271,6 +271,7 @@ export interface BookingRepositoryPort {
     outboxEvent: string;
     cancelSource?: string;
     cancellationStatus?: BookingRecord["cancellationStatus"];
+    expectedCancellationStatus?: BookingRecord["cancellationStatus"];
     cancellationReasonCode?: string;
     cancellationReasonNote?: string;
     cancellationApprovedByUserId?: string;
@@ -284,6 +285,18 @@ export interface BookingRepositoryPort {
       readonly occupiedApprovedPartySize: number;
       readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
     }) => void | Promise<void>;
+  }): Promise<BookingRecord>;
+  requestMemberCancellation(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly requestedByUserId: string;
+    readonly reasonNote?: string;
+  }): Promise<BookingRecord>;
+  rejectMemberCancellationRequest(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly rejectedByUserId: string;
+    readonly reasonNote?: string;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

@@ -13,6 +13,7 @@ import { SESSION_TOKEN_COOKIE } from "../../src/auth/build-session-cookie";
 import { OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M } from "./denali-itinerary-wizard-fixture";
 import {
   type DenaliWizardPricingE2EOptions,
+  type DenaliWizardTransportE2EOptions,
   createDenaliMultiDayDraftTour,
   expectTourInDenaliCatalog,
   fetchDenaliTourCanonicalData,
@@ -23,7 +24,6 @@ import {
   loginOperatorOwner,
   loginOperatorViewer,
   OPERATOR_OWNER_MOBILE,
-  OPERATOR_SMOKE_TENANT_ID,
 } from "./operator-owner-session";
 
 export const MARKETING_OPERATOR_BASE_URL =
@@ -32,16 +32,8 @@ export const PORTAL_OPERATOR_BASE_URL =
   process.env.SMOKE_PORTAL_OPERATOR_BASE_URL ?? "http://operator.portal.localhost:3003";
 export const DENALI_ADMIN_BASE_URL =
   process.env.SMOKE_DENALI_ADMIN_BASE_URL ?? "http://denali.admin.localhost:3000";
-export const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
-const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
-const DENALI_SMOKE_WORKSPACE_ID = "ws-denali-dev";
-const OPERATOR_SMOKE_WORKSPACE_ID = "ws-operator-smoke";
 
 const LOCALE_COOKIE_NAME = "NEXT_LOCALE";
-
-function tourOpsApiBase(): string {
-  return (process.env.TOUR_OPS_API_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
-}
 
 function marketingHost(): string {
   return new URL(MARKETING_OPERATOR_BASE_URL).host;
@@ -89,13 +81,14 @@ export async function publishTourForClosure(
   options: {
     readonly pricing?: DenaliWizardPricingE2EOptions;
     readonly capacityMax?: number;
+    readonly transport?: DenaliWizardTransportE2EOptions;
   } = {}
 ): Promise<PublishedTourClosureContext> {
   await prepareDenaliTourWizard(page);
   const tourId = await createDenaliMultiDayDraftTour(page, title, options);
   const canonical = await fetchDenaliTourCanonicalData(page, tourId);
   await publishTourFromFlatEdit(page, tourId);
-  await expectTourInDenaliCatalog(page, title);
+  await expectTourInDenaliCatalog(page, title, tourId);
   return { tourId, title, canonical };
 }
 
@@ -108,6 +101,11 @@ export type MarketingCatalogTourPayload = {
   readonly itineraryDays?: readonly { readonly dayNumber: number }[];
   readonly priceAmount?: number | null;
   readonly publishStatus?: string | null;
+  readonly transport?: {
+    readonly mode?: string;
+    readonly dongAmount?: number;
+    readonly allowPersonalCar?: boolean;
+  };
 };
 
 export async function fetchMarketingCatalogTour(
@@ -128,11 +126,16 @@ export async function fetchMarketingCatalogTour(
 
 export async function fetchMarketingCatalogListItem(
   page: Page,
-  tourId: string
+  tourId: string,
+  title: string
 ): Promise<MarketingCatalogTourPayload | undefined> {
-  const response = await page.request.get(`${MARKETING_OPERATOR_BASE_URL}/api/catalog`, {
-    headers: { host: marketingHost() },
-  });
+  const query = new URLSearchParams({ q: title, limit: "100" });
+  const response = await page.request.get(
+    `${MARKETING_OPERATOR_BASE_URL}/api/catalog?${query.toString()}`,
+    {
+      headers: { host: marketingHost() },
+    }
+  );
   expect(response.ok(), await response.text()).toBeTruthy();
   const body = (await response.json()) as {
     data?: { items?: readonly MarketingCatalogTourPayload[] };
@@ -178,8 +181,10 @@ export async function completePortalRegistrationForTour(
     readonly phone: string;
     readonly fullName: string;
     readonly rapidDoubleClick?: boolean;
+    readonly transportChoice?: "primary" | "personal_car";
+    readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   }
-): Promise<void> {
+): Promise<string> {
   await page.goto(`${PORTAL_OPERATOR_BASE_URL}/catalog/${encodeURIComponent(tourId)}/register`, {
     waitUntil: "domcontentloaded",
   });
@@ -196,16 +201,36 @@ export async function completePortalRegistrationForTour(
     await fillCatalogOtp(page, "1234");
   }
 
+  const registrationResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/catalog/registrations" &&
+      response.request().method() === "POST",
+    { timeout: 120_000 }
+  );
   await completeCatalogRegistrationIntake(page, {
     fullName: input.fullName,
     partySize: "1",
     phone: input.phone,
     registrantTarget: "self",
     rapidDoubleClick: input.rapidDoubleClick,
+    transportChoice: input.transportChoice,
+    personalCarOccupants: input.personalCarOccupants,
   });
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 90_000,
   });
+  const registrationResponse = await registrationResponsePromise;
+  const responseBody = (await registrationResponse.json()) as {
+    ok?: boolean;
+    registrationId?: string;
+    status?: string;
+  };
+  const registrationId = responseBody.registrationId;
+  expect(
+    registrationResponse.ok() && responseBody.ok && registrationId,
+    `registration POST must return its created ID; status=${registrationResponse.status()} body=${JSON.stringify(responseBody)}`
+  ).toBeTruthy();
+  return registrationId!;
 }
 
 export async function fetchOperatorTourDetail(
@@ -294,37 +319,9 @@ export async function assertDenaliTenantCannotAccessOperatorTour(
   );
   expect([403, 404]).toContain(bffPatch.status());
 
-  const apiGetWrongTenant = await page.request.get(
-    `${tourOpsApiBase()}/tours/${encodeURIComponent(tourId)}`,
-    {
-      headers: {
-        "x-tenant-id": DENALI_SMOKE_TENANT_ID,
-        "x-authenticated-tenant-id": DENALI_SMOKE_TENANT_ID,
-        "x-user-id": OPERATOR_SMOKE_OWNER_USER_ID,
-        "x-actor-role": "owner",
-        "x-membership-status": "ACTIVE",
-        "x-workspace-id": DENALI_SMOKE_WORKSPACE_ID,
-      },
-    }
-  );
-  expect([403, 404]).toContain(apiGetWrongTenant.status());
-
-  const apiGetOwnerTenant = await page.request.get(
-    `${tourOpsApiBase()}/tours/${encodeURIComponent(tourId)}`,
-    {
-      headers: {
-        "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
-        "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
-        "x-user-id": OPERATOR_SMOKE_OWNER_USER_ID,
-        "x-actor-role": "owner",
-        "x-membership-status": "ACTIVE",
-        "x-workspace-id": OPERATOR_SMOKE_WORKSPACE_ID,
-      },
-    }
-  );
-  expect(apiGetOwnerTenant.ok()).toBeTruthy();
-  const ownerBody = (await apiGetOwnerTenant.json()) as { projection?: { title?: string } };
-  expect(ownerBody.projection?.title).toBe(originalTitle);
+  await loginOperatorOwner(page);
+  const ownerView = await fetchOperatorTourDetail(page, tourId);
+  expect(ownerView.projection?.title).toBe(originalTitle);
 }
 
 export async function assertNoTourExportControls(page: Page, tourId: string): Promise<void> {

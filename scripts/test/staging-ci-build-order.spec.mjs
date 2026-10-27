@@ -12,6 +12,17 @@ test("staging dependency install cannot dirty the artifact build checkout", () =
   assert.match(workflow, /pnpm install --frozen-lockfile --ignore-scripts/);
 });
 
+test("staging generates Prisma client before directly invoking API tests", () => {
+  const generateClient = workflow.indexOf("name: Generate API Prisma client");
+  const expiryTests = workflow.indexOf("name: Payment hold scheduler and expiry focused tests");
+  assert.notEqual(generateClient, -1, "fresh runners need a generated Prisma client");
+  assert.ok(
+    generateClient < expiryTests,
+    "Prisma client generation must precede direct node tests"
+  );
+  assert.match(workflow, /pnpm --filter @apps\/api run prisma:generate/);
+});
+
 test("staging proves and normalizes only the known timestamped build report", () => {
   assert.match(workflow, /name: Prove clean artifact checkout/);
   assert.match(workflow, /docs\/phase-19\/architecture-truth-drift-report\.json/);
@@ -39,6 +50,7 @@ test("build order materializes workspace-sdk runtime dependencies", () => {
 test("staging exposes bounded focused test stages without broad globs", () => {
   for (const stage of [
     "Build workspace dependency artifacts",
+    "Generate API Prisma client",
     "Wallet and API focused tests",
     "Workspace SDK focused tests",
     "Other changed tests",

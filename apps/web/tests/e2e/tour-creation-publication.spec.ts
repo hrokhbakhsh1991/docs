@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detail-types";
-import { OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M } from "../../test/fixtures/denali-itinerary-wizard-fixture";
+import { resolveDenaliWizardDestination } from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import {
   createDenaliMultiDayDraftTour,
   expectDraftCanonicalFieldsPersisted,
@@ -42,16 +42,18 @@ async function assertNoSeriousA11yViolations(
     if (context === null) {
       return [];
     }
-    const axe = (window as unknown as {
-      axe: {
-        run: (
-          context: Element,
-          options: {
-            readonly runOnly: { readonly type: "tag"; readonly values: readonly string[] };
-          }
-        ) => Promise<{ readonly violations: readonly AxeViolation[] }>;
-      };
-    }).axe;
+    const axe = (
+      window as unknown as {
+        axe: {
+          run: (
+            context: Element,
+            options: {
+              readonly runOnly: { readonly type: "tag"; readonly values: readonly string[] };
+            }
+          ) => Promise<{ readonly violations: readonly AxeViolation[] }>;
+        };
+      }
+    ).axe;
     const result = await axe.run(context, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
     });
@@ -70,7 +72,7 @@ test.describe("tour-creation-publication.spec.ts — Denali create → publish",
     const tourId = await runTourCreationPublicationJourney(page, tourTitle);
     expect(tourId.length).toBeGreaterThan(0);
     await page.screenshot({
-      path: "/opt/cursor/artifacts/tour-creation-desktop-rtl-published.png",
+      path: "test-results/artifacts/tour-creation-desktop-rtl-published.png",
       fullPage: true,
     });
   });
@@ -82,9 +84,9 @@ test.describe("tour-creation-publication.spec.ts — Denali create → publish",
     const tourId = await createDenaliMultiDayDraftTour(page, tourTitle);
     await publishTourFromFlatEdit(page, tourId);
     await expectTourListedAsActive(page, tourTitle);
-    await expectTourInDenaliCatalog(page, tourTitle);
+    await expectTourInDenaliCatalog(page, tourTitle, tourId);
     await page.screenshot({
-      path: "/opt/cursor/artifacts/tour-creation-mobile-rtl-published.png",
+      path: "test-results/artifacts/tour-creation-mobile-rtl-published.png",
       fullPage: true,
     });
   });
@@ -117,7 +119,7 @@ test.describe("tour-creation-publication.spec.ts — Denali create → publish",
     await publishTourFromFlatEdit(page, tourId);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator('[data-tour-status="active"]')).toBeVisible({ timeout: 30_000 });
-    await expectTourInDenaliCatalog(page, tourTitle);
+    await expectTourInDenaliCatalog(page, tourTitle, tourId);
   });
 
   test("TC-FIELD-01 draft canonical fields persist via API after wizard create", async ({
@@ -125,12 +127,15 @@ test.describe("tour-creation-publication.spec.ts — Denali create → publish",
   }) => {
     const tourTitle = `TC-FIELD-01 ${Date.now()}`;
     await prepareDenaliTourWizard(page);
-    const tourId = await createDenaliMultiDayDraftTour(page, tourTitle);
+    const destination = await resolveDenaliWizardDestination(page);
+    const tourId = await createDenaliMultiDayDraftTour(page, tourTitle, {
+      destinationLabel: destination.name,
+    });
     await expectDraftCanonicalFieldsPersisted(page, tourId, {
       title: tourTitle,
       category: "mountain_multi",
       capacityMax: 12,
-      peakHeight: OPERATOR_SMOKE_DESTINATION_LOCKED_PEAK_HEIGHT_M,
+      peakHeight: destination.altitudeM,
       itineraryDayCount: 3,
     });
   });
@@ -144,7 +149,7 @@ test.describe("tour-creation-publication.spec.ts — Denali create → publish",
     await page.reload({ waitUntil: "domcontentloaded" });
     await expectFlatEditShowsTitle(page, tourTitle);
     await page.screenshot({
-      path: "/opt/cursor/artifacts/tour-creation-draft-flat-edit-reload.png",
+      path: "test-results/artifacts/tour-creation-draft-flat-edit-reload.png",
       fullPage: true,
     });
   });

@@ -1,9 +1,27 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { randomInt } from "node:crypto";
 
 import { pickIntakeBirthDate } from "./intake-birth-date-picker";
 
 export const CATALOG_DEV_OTP = "1234";
+
+/** Generate checksum-valid, run-unique synthetic Iranian identity data for isolated local probes. */
+export function syntheticNationalId(seed = Date.now()): string {
+  let prefix = String(Math.abs(Math.trunc(seed)) % 1_000_000_000).padStart(9, "0");
+  if (/^(\d)\1{8}$/.test(prefix)) {
+    prefix = String((Number(prefix) + 1) % 1_000_000_000).padStart(9, "0");
+  }
+  const sum = [...prefix].reduce((total, digit, index) => total + Number(digit) * (10 - index), 0);
+  const remainder = sum % 11;
+  const checkDigit = remainder < 2 ? remainder : 11 - remainder;
+  return `${prefix}${checkDigit}`;
+}
+
+/** Unique synthetic +1555 test number; only use with the local dev OTP harness. */
+export function syntheticTestPhone(): string {
+  return `+1555${String(randomInt(0, 10_000_000)).padStart(7, "0")}`;
+}
 
 /** Next dev HMR can invalidate response bodies before .text() — status is enough for smoke. */
 function assertAuthBffOk(response: { ok(): boolean; status(): number }, label: string): void {
@@ -178,6 +196,9 @@ export async function completeCatalogRegistrationIntake(
     readonly fatherName?: string;
     readonly birthDate?: string;
     readonly registrantTarget?: "self" | "other";
+    /** Optional self transport choice override for focused transport E2E scenarios. */
+    readonly transportChoice?: "primary" | "personal_car";
+    readonly personalCarOccupants?: 0 | 1 | 2 | 3;
     /**
      * For `registrantTarget="other"`: how many other-guest cards should exist before submit.
      * Defaults to `1`.
@@ -209,9 +230,29 @@ export async function completeCatalogRegistrationIntake(
   }
 ): Promise<void> {
   const profileStep = page.locator("[data-public-registration-profile]");
-  if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
+  await expect(
+    page.locator("[data-public-registration-profile], [data-public-registration-intake]")
+  ).toBeVisible({ timeout: 120_000 });
+  if (await profileStep.isVisible({ timeout: 1_000 }).catch(() => false)) {
     await page.locator("#displayName").fill(input.fullName);
-    await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
+    const [profileResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true }),
+    ]);
+    const profileText = await profileResponse.text();
+    expect(
+      profileResponse.ok(),
+      `register-complete failed (${profileResponse.status()}): ${profileText}`
+    ).toBeTruthy();
+    await page.locator("[data-public-registration-intake][data-registration-ready]").waitFor({
+      state: "visible",
+      timeout: 60_000,
+    });
   }
 
   await page.locator("[data-public-registration-intake][data-registration-ready]").waitFor({
@@ -235,11 +276,12 @@ export async function completeCatalogRegistrationIntake(
     }
     const inputEl = root
       .locator(
-        `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+        `[data-intake-field-block="${fieldId}"] input, input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], input[name="${fieldId}"], [data-intake-field="${fieldId}"] input`
       )
       .first();
     if (await inputEl.isVisible({ timeout: 1_000 }).catch(() => false)) {
       await inputEl.fill(value);
+      await expect(inputEl).toHaveValue(value);
     }
   };
 
@@ -328,9 +370,21 @@ export async function completeCatalogRegistrationIntake(
       }
       // Use a checksum-valid shared identity by default so duplicate/race probes
       // reach the API instead of being stopped by client-side validation.
-      await fillIntakeFieldInRootIfVisible(card, "nationalId", input.nationalId ?? "1000000001");
-      await fillIntakeFieldInRootIfVisible(card, "fatherName", input.fatherName ?? "Smoke Father");
-      await fillIntakeFieldInRootIfVisible(card, "birthDate", input.birthDate ?? "1990-01-15");
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "nationalId",
+        guestOverride.nationalId ?? input.nationalId ?? "1000000001"
+      );
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "fatherName",
+        guestOverride.fatherName ?? input.fatherName ?? "Smoke Father"
+      );
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "birthDate",
+        guestOverride.birthDate ?? input.birthDate ?? "1990-01-15"
+      );
       await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
 
       await selectNoPersonalCarAndPayDong(card);
@@ -348,6 +402,21 @@ export async function completeCatalogRegistrationIntake(
 
     const intakeRoot = page.locator("[data-public-registration-intake]");
     await selectNoPersonalCarAndPayDong(intakeRoot);
+    if (input.transportChoice) {
+      const transportChoices = intakeRoot.locator(
+        'input[type="radio"][name="transportChoice-self"]'
+      );
+      const choiceIndex =
+        input.transportChoice === "primary" ? 0 : (await transportChoices.count()) >= 3 ? 1 : 0;
+      await transportChoices.nth(choiceIndex).click();
+      if (input.transportChoice === "personal_car") {
+        const occupants = intakeRoot.locator(
+          'input[type="radio"][name="personalCarOccupants-self"]'
+        );
+        await expect(occupants).toHaveCount(4);
+        await occupants.nth(input.personalCarOccupants ?? 3).click();
+      }
+    }
   }
 
   const expectSuccess = input.expectSuccess ?? true;

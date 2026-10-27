@@ -56,6 +56,16 @@ import type { BookingSerialMutationPort } from "./ports/booking-serial-mutation.
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
+export type BookingCapacityDiagnosticsPort = {
+  assert(input: {
+    readonly stage: "create" | "approve";
+    readonly workspaceType: string;
+    readonly tenantId: string;
+    readonly context: BookingCreatePolicyContext;
+    readonly assertCapacity: (context: BookingCreatePolicyContext) => void;
+  }): void;
+};
+
 export type BookingsServiceDeps = {
   readonly repository: BookingRepositoryPort;
   readonly authorization: BookingAuthorizationPort;
@@ -64,6 +74,7 @@ export type BookingsServiceDeps = {
   readonly publicBooking: BookingPublicCapabilityPort;
   readonly validationPolicy: BookingValidationPolicyPort;
   readonly capacityPolicy: BookingCapacityPolicyPort;
+  readonly capacityDiagnostics?: BookingCapacityDiagnosticsPort;
   readonly assistedRegistrationMembers: BookingAssistedRegistrationMembersPort;
   /** Tour SoT capacity ceiling — preferred over client registrationIntake.tourCapacityMax. */
   readonly tourCapacity: BookingTourCapacityPort;
@@ -192,6 +203,7 @@ export class BookingsService {
   private readonly publicBooking: BookingPublicCapabilityPort;
   private readonly validationPolicy: BookingValidationPolicyPort;
   private readonly capacityPolicy: BookingCapacityPolicyPort;
+  private readonly capacityDiagnostics?: BookingCapacityDiagnosticsPort;
   private readonly assistedRegistrationMembers: BookingAssistedRegistrationMembersPort;
   private readonly tourCapacity: BookingTourCapacityPort;
   private readonly workspaceType: string;
@@ -264,6 +276,7 @@ export class BookingsService {
     this.publicBooking = deps.publicBooking;
     this.validationPolicy = deps.validationPolicy;
     this.capacityPolicy = deps.capacityPolicy;
+    this.capacityDiagnostics = deps.capacityDiagnostics;
     this.assistedRegistrationMembers = deps.assistedRegistrationMembers;
     this.tourCapacity = deps.tourCapacity;
     this.workspaceType = workspaceType;
@@ -275,6 +288,19 @@ export class BookingsService {
     this.financialDisplayState = deps.financialDisplayState;
     this.serialMutation = deps.serialMutation;
     this.waitlistPromotion = deps.waitlistPromotion;
+  }
+
+  private assertCapacityWithDiagnostics(input: {
+    readonly stage: "create" | "approve";
+    readonly tenantId: string;
+    readonly context: BookingCreatePolicyContext;
+    readonly assertCapacity: (context: BookingCreatePolicyContext) => void;
+  }): void {
+    if (this.capacityDiagnostics !== undefined) {
+      this.capacityDiagnostics.assert({ ...input, workspaceType: this.workspaceType });
+      return;
+    }
+    input.assertCapacity(input.context);
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -714,10 +740,15 @@ export class BookingsService {
                 readonly occupiedApprovedPartySize: number;
                 readonly approvedCapacitySnapshots: readonly BookingApprovedCapacitySnapshot[];
               }) => {
-                this.capacityPolicy.assertCreateCapacity({
-                  ...baseCtx,
-                  occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
-                  approvedCapacitySnapshots: ctx.approvedCapacitySnapshots,
+                this.assertCapacityWithDiagnostics({
+                  stage: "create",
+                  tenantId: auth.tenantId,
+                  context: {
+                    ...baseCtx,
+                    occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
+                    approvedCapacitySnapshots: ctx.approvedCapacitySnapshots,
+                  },
+                  assertCapacity: (context) => this.capacityPolicy.assertCreateCapacity(context),
                 });
               },
             }
@@ -805,8 +836,10 @@ export class BookingsService {
           booking.tourId,
           booking.registrationIntake
         ));
-      this.capacityPolicy.assertCreateCapacity(
-        this.buildCapacityPolicyContext(
+      this.assertCapacityWithDiagnostics({
+        stage: "approve",
+        tenantId,
+        context: this.buildCapacityPolicyContext(
           tenantId,
           {
             tourId: booking.tourId,
@@ -824,8 +857,9 @@ export class BookingsService {
           ctx.occupiedApprovedPartySize,
           tourCapacityMax,
           ctx.approvedCapacitySnapshots
-        )
-      );
+        ),
+        assertCapacity: (context) => this.capacityPolicy.assertCreateCapacity(context),
+      });
     };
   }
 
@@ -1268,6 +1302,7 @@ export class BookingsService {
       // finance/settlement case instead of returning a retry-shaped 500.
       settlementStatus = "manual_review";
     }
+    await this.recheckWaitlistAfterCapacityChange(auth.tenantId, updated.tourId);
     const isWaivedCollection =
       before.financialDisplayState === "WAIVED" ||
       before.registrationIntake?.freeCollectionApplied === true;
@@ -1330,7 +1365,6 @@ export class BookingsService {
       outboxEventType: this.eventReaction.approveOutboxEventType,
     });
   }
-
 }
 
 export function createBookingsService(deps: BookingsServiceDeps): BookingsService {
