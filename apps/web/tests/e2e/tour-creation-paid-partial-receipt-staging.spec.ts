@@ -490,7 +490,7 @@ test("configured prepayment and member receipts transition unpaid to partial to 
       adminPage,
       registrationId!,
       firstReceipt.receiptId,
-      "exact",
+      "under",
       "partial"
     );
     const afterFirst = await readInvoice(adminPage, registrationId!);
