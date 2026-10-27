@@ -739,6 +739,15 @@ test.describe("tour-creation-closure.spec.ts", () => {
       );
       expect(assignmentResponse.ok(), await assignmentResponse.text()).toBeTruthy();
 
+      // The final export is intentionally scoped to finalized registrations.
+      // Auto-approval alone leaves the synthetic free bookings non-final.
+      for (const registrationId of [roster.originalDriverId, ...roster.passengerIds]) {
+        const finalizeResponse = await adminPage.request.post(
+          `/api/bookings/${encodeURIComponent(registrationId)}/finalize-with-open-payment`
+        );
+        expect(finalizeResponse.ok(), await finalizeResponse.text()).toBeTruthy();
+      }
+
       const rosterResponse = await adminPage.request.get(
         `/api/bookings?tourId=${encodeURIComponent(roster.tourId)}&view=ops&limit=20`
       );

@@ -59,10 +59,11 @@
     {
       "id": "G",
       "status": "BLOCKED",
-      "reason": "The fix is only in the local working tree. Deployed d8d55f7 still has the recorded staging failure; a new staging deployment requires explicit authorization.",
+      "reason": "The waitlist fix is committed in feb9130, and the exact-SHA staging preflight checks pass. Staging still runs d8d55f7; deployment and post-deploy retest are pending while the current browser closure run is reconciled. The user has authorized staging work.",
       "evidence": [
         "Staging workflow 40423786215 deployed d8d55f7 successfully",
-        "Post-fix staging retest not run because the fix has not been deployed"
+        "PR #327 exact-SHA preflight: Deployment contract PASS, Booking HTTP PostgreSQL PASS, Booking PostgreSQL capacity PASS on feb9130",
+        "Staging closure on d8d55f7: 12 PASS, 2 SKIP, 1 XLSX fixture failure; corrected targeted fixture rerun 1/1 PASS"
       ]
     },
     {
@@ -74,12 +75,12 @@
     {
       "id": "I",
       "status": "BLOCKED",
-      "reason": "Current focused checks pass, but the full Phase 5 gate has not rerun on the modified source; the latest PR run on d8d55f7 failed three purity/DI assertions before the local composition-port refactor.",
+      "reason": "Focused checks pass. The Phase 5 gate is running on feb9130; the earlier d8d55f7 run failed three purity/DI assertions before the composition-port refactor.",
       "evidence": [
         "Focused API suite: 32/32 PASS",
         "pnpm --filter @apps/api exec tsc -p tsconfig.json --noEmit: PASS",
         "Prettier check, git diff --check, and API source ESLint: PASS",
-        "Latest PR #327 checks: 34 PASS, 6 SKIP, Phase 5 FAIL (run 40423038691)"
+        "PR #327 commit feb913015eeae4bcab2847eec5ce2b643da167fd: Deployment contract, Booking HTTP PostgreSQL, Booking PostgreSQL capacity PASS; Phase 5 pending"
       ]
     },
     {
