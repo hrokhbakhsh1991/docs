@@ -16,7 +16,7 @@ import {
 } from "./fixtures/catalog-registration-otp";
 
 // Use seeded smoke tour id (warmed in `portal-smoke-global-setup.ts`).
-const DENALI_TOUR_ID = "00000000-0000-4000-8000-000000000212";
+const DENALI_TOUR_ID = process.env.DENALI_TOUR_ID ?? "00000000-0000-4000-8000-000000000212";
 test.describe.configure({ mode: "serial" });
 
 test("Denali other: 10 guests → expect partial failure UI", async ({ page }) => {

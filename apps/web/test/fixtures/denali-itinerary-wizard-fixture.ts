@@ -106,6 +106,7 @@ export type DenaliWizardTransportE2EOptions = {
     | "none";
   readonly allowPersonalCar?: boolean;
   readonly dongAmountToman?: string;
+  readonly seatPreference?: string;
 };
 
 export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<void> {
@@ -116,7 +117,22 @@ export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<voi
   await clearBtn.click();
   const confirmBtn = page.getByTestId("wizard-clear-draft-confirm-confirm");
   await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
+  const clearResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      new URL(response.url()).pathname.includes("/api/workspaces/") &&
+      new URL(response.url()).pathname.includes("/drafts/"),
+    { timeout: 30_000 }
+  );
   await confirmBtn.click();
+  const response = await clearResponse;
+  // A stale client-side draft can outlive its server record after a previous
+  // browser run. Treat the server's not-found response as already cleared;
+  // the step assertion below still verifies that the wizard reset completed.
+  expect(
+    response.ok() || response.status() === 404,
+    `wizard draft clear failed (${response.status()})`
+  ).toBeTruthy();
   await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 60_000 });
   await settleOperatorWizardDraftSync(page);
 }
@@ -381,6 +397,13 @@ async function fillDenaliWizardLogisticsMinimal(
     });
     await expect(dongAmount).toBeVisible({ timeout: 15_000 });
     await dongAmount.fill(options.dongAmountToman);
+  }
+  if (options.seatPreference !== undefined) {
+    const seatPreference = transport.getByRole("textbox", {
+      name: /ترجیح صندلی|seat preference/i,
+    });
+    await expect(seatPreference).toBeVisible({ timeout: 15_000 });
+    await seatPreference.fill(options.seatPreference);
   }
   await clickWizardNextToStep(page, "denali_pricing");
 }

@@ -1,0 +1,96 @@
+{
+  "complete": false,
+  "phases": [
+    {
+      "id": "A",
+      "status": "PASS",
+      "reason": "Repository instructions, indexed source graph, current PR, dirty worktree, and exact staging provenance were checked; unrelated architecture drift report was preserved.",
+      "evidence": [
+        "AGENTS.md",
+        "git status --short; git rev-parse HEAD = d8d55f74736c1b62e80a941b3ca788a3cc6fece2",
+        "codebase-memory project denali-e2e-lifecycle",
+        "PR #327 exact staging deploy run 40423786215 succeeded on d8d55f7"
+      ]
+    },
+    {
+      "id": "B",
+      "status": "PASS",
+      "reason": "Acceptance is scenario based with explicit source/local/CI/staging evidence and remaining limitations.",
+      "evidence": [
+        "docs/testing/denali-booking-lifecycle-ledger.md",
+        "docs/testing/denali-booking-lifecycle-qa-matrix.md"
+      ]
+    },
+    {
+      "id": "C",
+      "status": "NOT APPLICABLE",
+      "reason": "No visual redesign or Figma design acceptance is in scope; this change is API lifecycle behavior.",
+      "evidence": ["Booking waitlist capacity fix only"]
+    },
+    {
+      "id": "D",
+      "status": "PASS",
+      "reason": "Trace found that waitlist promotion used privacy-safe list projections that strip registrationIntake; implementation now rehydrates rows and builds policy context from the current transaction booking.",
+      "evidence": [
+        "apps/api/src/bookings/promote-waitlist-after-seat-release.ts",
+        "packages/workspaces/denali/src/booking/availability.ts",
+        "Codebase Memory trace for createDenaliRegistration and promotion"
+      ]
+    },
+    {
+      "id": "E",
+      "status": "PASS",
+      "reason": "The public registration create rejection falls back to a waitlisted row; promotion now evaluates persisted, transaction-current transport intake before approval.",
+      "evidence": [
+        "packages/workspaces/denali/src/http/registration.service.ts",
+        "apps/api/src/bookings/infrastructure/host-booking-public.adapter.ts",
+        "apps/api/src/bookings/promote-waitlist-after-seat-release.ts"
+      ]
+    },
+    {
+      "id": "F",
+      "status": "PASS",
+      "reason": "Both promotion entry points rehydrate intake; stale intake is checked from the locked/current callback, and status conflicts skip safely. Regression covers no-car rejection, later eligible promotion, and concurrent intake change.",
+      "evidence": [
+        "apps/api/src/bookings/promote-waitlist-after-seat-release.ts",
+        "apps/api/src/bookings/no-car-dong-zero-offer.local.spec.ts"
+      ]
+    },
+    {
+      "id": "G",
+      "status": "BLOCKED",
+      "reason": "The fix is only in the local working tree. Deployed d8d55f7 still has the recorded staging failure; a new staging deployment requires explicit authorization.",
+      "evidence": [
+        "Staging workflow 40423786215 deployed d8d55f7 successfully",
+        "Post-fix staging retest not run because the fix has not been deployed"
+      ]
+    },
+    {
+      "id": "H",
+      "status": "NOT APPLICABLE",
+      "reason": "No visual changes were made.",
+      "evidence": ["Scope: API registration and waitlist promotion"]
+    },
+    {
+      "id": "I",
+      "status": "BLOCKED",
+      "reason": "Current focused checks pass, but the full Phase 5 gate has not rerun on the modified source; the latest PR run on d8d55f7 failed three purity/DI assertions before the local composition-port refactor.",
+      "evidence": [
+        "Focused API suite: 32/32 PASS",
+        "pnpm --filter @apps/api exec tsc -p tsconfig.json --noEmit: PASS",
+        "Prettier check, git diff --check, and API source ESLint: PASS",
+        "Latest PR #327 checks: 34 PASS, 6 SKIP, Phase 5 FAIL (run 40423038691)"
+      ]
+    },
+    {
+      "id": "J",
+      "status": "PASS",
+      "reason": "Fresh review found and fixed a stale-intake race and added coverage that a blocked older waitlisted row does not block a later eligible guest; external staging proof remains explicitly blocked.",
+      "evidence": [
+        "apps/api/src/bookings/promote-waitlist-after-seat-release.ts",
+        "apps/api/src/bookings/no-car-dong-zero-offer.local.spec.ts",
+        "docs/testing/denali-booking-lifecycle-ledger.md"
+      ]
+    }
+  ]
+}

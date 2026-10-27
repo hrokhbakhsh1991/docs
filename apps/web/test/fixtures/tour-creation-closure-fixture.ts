@@ -181,6 +181,8 @@ export async function completePortalRegistrationForTour(
     readonly phone: string;
     readonly fullName: string;
     readonly rapidDoubleClick?: boolean;
+    readonly transportChoice?: "primary" | "personal_car";
+    readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   }
 ): Promise<void> {
   await page.goto(`${PORTAL_OPERATOR_BASE_URL}/catalog/${encodeURIComponent(tourId)}/register`, {
@@ -205,6 +207,8 @@ export async function completePortalRegistrationForTour(
     phone: input.phone,
     registrantTarget: "self",
     rapidDoubleClick: input.rapidDoubleClick,
+    transportChoice: input.transportChoice,
+    personalCarOccupants: input.personalCarOccupants,
   });
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 90_000,

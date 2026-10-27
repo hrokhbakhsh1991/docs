@@ -25,6 +25,7 @@ const OPERATOR_SMOKE_FREE_AUTO_TOUR_ID = "00000000-0000-4000-8000-000000000216";
 const OPERATOR_SMOKE_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000217";
 const OPERATOR_SMOKE_AUTO_MEMBER_DISCOUNT_TOUR_ID = "00000000-0000-4000-8000-000000000218";
 const OPERATOR_SMOKE_AIRPLANE_CAPACITY_TOUR_ID = "00000000-0000-4000-8000-000000000219";
+const OPERATOR_SMOKE_TRAIN_INTAKE_TOUR_ID = "00000000-0000-4000-8000-000000000220";
 const OPERATOR_SMOKE_OWNER_ID = "00000000-0000-4000-8000-000000000101";
 
 /** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
@@ -236,6 +237,21 @@ describe("denali-registration (M16)", () => {
         },
       },
     });
+    await repo.save({
+      ...manualTour,
+      id: OPERATOR_SMOKE_TRAIN_INTAKE_TOUR_ID,
+      canonical: {
+        ...manualTour.canonical,
+        data: {
+          ...manualTour.canonical.data,
+          pricing: {
+            ...(manualTour.canonical.data.pricing as Record<string, unknown>),
+            registrationApproval: "auto",
+          },
+          transport: { mode: "train", transportCost: 800_000, seatPreference: "window" },
+        },
+      },
+    });
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
     seedDenaliRegistrationSessionMembers();
@@ -309,6 +325,29 @@ describe("denali-registration (M16)", () => {
     assert.equal(
       (persisted.registrationIntake as { transport?: { kind?: string } }).transport?.kind,
       "primary"
+    );
+  });
+
+  it("DREG-TRAIN-01 train registration needs no member seat-preference field", async () => {
+    const response = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: OPERATOR_SMOKE_TRAIN_INTAKE_TOUR_ID,
+        contact: { fullName: "Train Intake Guest", phone: "+15550003203" },
+        partySize: 1,
+      },
+    });
+
+    assert.equal(response.status, 201);
+    const data = (response.body as { data?: { id?: string; status?: string } }).data;
+    assert.ok(data?.id);
+    assert.equal(data.status, "approved");
+
+    const persisted = await getBookingsRepository().getById(data.id, OPERATOR_SMOKE_TENANT_ID);
+    assert.ok(persisted);
+    assert.deepEqual(
+      (persisted.registrationIntake as { transport?: { kind?: string } }).transport,
+      { kind: "primary" }
     );
   });
 

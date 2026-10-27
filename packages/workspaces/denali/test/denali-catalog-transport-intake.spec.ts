@@ -73,6 +73,7 @@ describe("denali catalog transport intake", () => {
     assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
       kind: "primary",
     });
+    assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
     assert.equal(
       denaliCatalogTransportIntakeSurface.computePricePerPerson({
         basePrice: 10_000_000,
@@ -80,6 +81,28 @@ describe("denali catalog transport intake", () => {
         transportKind: "primary",
       }),
       14_000_000
+    );
+  });
+
+  it("DEN-TR-TRAIN-01 train uses primary intake; seat preference stays tour configuration", () => {
+    const transport = { mode: "train" as const, transportCostAmount: 800_000 };
+    const state = denaliCatalogTransportIntakeSurface.initialState(transport);
+
+    assert.equal(
+      denaliCatalogTransportIntakeSurface.showTransportFollowUp(transport, state),
+      false
+    );
+    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+      kind: "primary",
+    });
+    assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
+    assert.equal(
+      denaliCatalogTransportIntakeSurface.computePricePerPerson({
+        basePrice: 2_000_000,
+        transport,
+        transportKind: "primary",
+      }),
+      2_800_000
     );
   });
 
@@ -132,17 +155,19 @@ describe("denali catalog transport intake", () => {
     assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
   });
 
-  it("DEN-TR-05 accepts zero companions for a personal car", () => {
+  it("DEN-TR-05 accepts every supported personal-car occupant choice", () => {
     const transport = { mode: "shared_cars" as const, dongAmount: 80_000 };
-    const state = {
-      ...denaliCatalogTransportIntakeSurface.initialState(transport),
-      hasPersonalCar: true as const,
-      personalCarOccupants: 0 as const,
-    };
-    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
-      kind: "personal_car",
-      personalCarOccupants: 0,
-    });
-    assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
+    for (const personalCarOccupants of [0, 1, 2, 3] as const) {
+      const state = {
+        ...denaliCatalogTransportIntakeSurface.initialState(transport),
+        hasPersonalCar: true as const,
+        personalCarOccupants,
+      };
+      assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+        kind: "personal_car",
+        personalCarOccupants,
+      });
+      assert.equal(denaliCatalogTransportIntakeSurface.isComplete(transport, state), true);
+    }
   });
 });

@@ -11,6 +11,7 @@ import { runSerialBookingMutation } from "./in-memory-bookings.repository";
 import type { BookingPublicOutboxEvent } from "@app-tour/booking-http-contracts";
 import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
+import { createBookingCapacityDiagnosticsAdapter } from "./booking-capacity-diagnostics.adapter";
 import { HostBookingAssistedRegistrationMembersAdapter } from "./infrastructure/host-booking-assisted-registration-members.adapter";
 import { HostBookingAuthorizationAdapter } from "./infrastructure/host-booking-authorization.adapter";
 import { HostBookingClockAdapter } from "./infrastructure/host-booking-clock.adapter";
@@ -142,6 +143,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     publicBooking: dependencies.publicBooking,
     validationPolicy: dependencies.validationPolicy,
     capacityPolicy: dependencies.capacityPolicy,
+    capacityDiagnostics: createBookingCapacityDiagnosticsAdapter(),
     assistedRegistrationMembers: getSharedAssistedRegistrationMembers(),
     tourCapacity: getSharedTourCapacity(),
     workspaceType: normalized,

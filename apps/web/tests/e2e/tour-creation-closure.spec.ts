@@ -1,7 +1,8 @@
 /**
  * BQC — Tour creation closure gaps (member reg, PDP parity, viewer, tenant, LTR, export).
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import ExcelJS from "../../../api/node_modules/exceljs/excel.js";
 
 import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detail-types";
 import { resolveDenaliWizardDestination } from "../../test/fixtures/denali-itinerary-wizard-fixture";
@@ -33,11 +34,25 @@ import {
   withOperatorBookingsUi,
 } from "../../../portal/tests/e2e/fixtures/operator-booking-ui";
 
+type WorkbookSheet = {
+  readonly rowCount: number;
+  getCell(row: number, column: number): { readonly text: string };
+};
+type Workbook = {
+  readonly xlsx: { load(data: Buffer): Promise<void> };
+  getWorksheet(name: string): WorkbookSheet | undefined;
+};
+
 async function registerClosureMember(
   page: Page,
   tourId: string,
   tourTitle: string,
-  input: { readonly phone: string; readonly fullName: string }
+  input: {
+    readonly phone: string;
+    readonly fullName: string;
+    readonly transportChoice?: "primary" | "personal_car";
+    readonly personalCarOccupants?: 0 | 1 | 2 | 3;
+  }
 ): Promise<string> {
   await completePortalRegistrationForTour(page, tourId, input);
   await page.goto(`${PORTAL_OPERATOR_BASE_URL}/me/registrations`, {
@@ -55,6 +70,54 @@ async function registerClosureMember(
     `member entry for ${tourTitle} must link to its registration`
   ).toBeTruthy();
   return registrationId!;
+}
+
+async function createFreshSharedCarRoster(
+  page: Page,
+  browser: Browser,
+  title: string,
+  includeReplacementDriver: boolean
+): Promise<{
+  readonly tourId: string;
+  readonly originalDriverId: string;
+  readonly passengerIds: readonly string[];
+  readonly replacementDriverId?: string;
+}> {
+  const stamp = Date.now();
+  const { tourId } = await publishTourForClosure(page, title, {
+    capacityMax: includeReplacementDriver ? 4 : 3,
+    pricing: { paymentCollection: "free", registrationApproval: "auto" },
+    transport: { mode: "shared_cars", dongAmountToman: "100000" },
+  });
+  const register = async (
+    index: number,
+    transportChoice?: "primary" | "personal_car"
+  ): Promise<string> => {
+    const context = await browser.newContext();
+    const memberPage = await context.newPage();
+    try {
+      return await registerClosureMember(memberPage, tourId, title, {
+        phone: `+1555${String(stamp + index).slice(-7)}`,
+        fullName: `TC CL Shared Car ${index} ${String(stamp).slice(-6)}`,
+        ...(transportChoice === undefined ? {} : { transportChoice }),
+        ...(transportChoice === "personal_car" ? { personalCarOccupants: 3 as const } : {}),
+      });
+    } finally {
+      await context.close();
+    }
+  };
+
+  const originalDriverId = await register(1, "personal_car");
+  const passengerIds = [await register(2), await register(3)];
+  const replacementDriverId = includeReplacementDriver
+    ? await register(4, "personal_car")
+    : undefined;
+  return {
+    tourId,
+    originalDriverId,
+    passengerIds,
+    ...(replacementDriverId === undefined ? {} : { replacementDriverId }),
+  };
 }
 
 async function readClosureMemberRegistration(
@@ -587,6 +650,337 @@ test.describe("tour-creation-closure.spec.ts", () => {
         status: "approved",
         partySize: 1,
       });
+    });
+  });
+
+  test("TC-CL-TRANSPORT-AIR-01 airplane tour registration reaches member portal and roster", async ({
+    page,
+    browser,
+  }) => {
+    const stamp = Date.now();
+    const title = `TC-CL-TRANSPORT airplane ${stamp}`;
+    const guestName = `Airplane Member ${String(stamp).slice(-6)}`;
+    const { tourId, canonical } = await publishTourForClosure(page, title, {
+      capacityMax: 2,
+      pricing: { paymentCollection: "free", registrationApproval: "auto" },
+      transport: { mode: "airplane" },
+    });
+
+    expect(canonical.transport).toMatchObject({ mode: "airplane" });
+    const catalogTour = await fetchMarketingCatalogTour(page, tourId);
+    expect(catalogTour.transport?.mode).toBe("airplane");
+
+    const registrationPost = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname.endsWith("/api/catalog/registrations"),
+      { timeout: 90_000 }
+    );
+    const registrationId = await registerClosureMember(page, tourId, title, {
+      phone: `+1555${String(stamp).slice(-7)}`,
+      fullName: guestName,
+    });
+    const registrationBody = JSON.parse((await registrationPost).postData() ?? "{}") as {
+      transport?: { kind?: string };
+    };
+    expect(registrationBody.transport?.kind).toBe("primary");
+    await page.goto(
+      `${PORTAL_OPERATOR_BASE_URL}/me/registrations/${encodeURIComponent(registrationId)}`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
+      timeout: 60_000,
+    });
+    expect((await readClosureMemberRegistration(page, registrationId)).status).toBe("approved");
+
+    await withOperatorBookingsUi(browser, async (adminPage) => {
+      const rosterResponse = await adminPage.request.get(
+        `/api/bookings?tourId=${encodeURIComponent(tourId)}&view=ops&limit=20`
+      );
+      expect(rosterResponse.ok(), await rosterResponse.text()).toBeTruthy();
+      const roster = (await rosterResponse.json()) as {
+        items?: readonly {
+          id?: string;
+          guestLabel?: string;
+          status?: string;
+          transportKind?: string | null;
+        }[];
+      };
+      expect((roster.items ?? []).find((row) => row.id === registrationId)).toMatchObject({
+        guestLabel: expect.stringContaining(guestName),
+        status: "approved",
+        transportKind: "primary",
+      });
+    });
+  });
+
+  test("TC-CL-EXPORT-SHARED-CAR-01 staging XLSX rows match a fresh driver and riders", async ({
+    page,
+    browser,
+  }) => {
+    const stamp = Date.now();
+    const roster = await createFreshSharedCarRoster(
+      page,
+      browser,
+      `TC-CL shared car XLSX ${stamp}`,
+      false
+    );
+    await withOperatorBookingsUi(browser, async (adminPage) => {
+      const assignmentResponse = await adminPage.request.put(
+        `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`,
+        {
+          data: {
+            allocations: roster.passengerIds.map((passengerRegistrationId) => ({
+              driverRegistrationId: roster.originalDriverId,
+              passengerRegistrationId,
+            })),
+          },
+        }
+      );
+      expect(assignmentResponse.ok(), await assignmentResponse.text()).toBeTruthy();
+
+      const rosterResponse = await adminPage.request.get(
+        `/api/bookings?tourId=${encodeURIComponent(roster.tourId)}&view=ops&limit=20`
+      );
+      expect(rosterResponse.ok(), await rosterResponse.text()).toBeTruthy();
+      const bookingList = (await rosterResponse.json()) as {
+        items?: readonly {
+          id?: string;
+          guestLabel?: string;
+          status?: string;
+          transportKind?: string | null;
+        }[];
+      };
+      const vehicleRows = (bookingList.items ?? []).filter(
+        (row) => row.id === roster.originalDriverId || roster.passengerIds.includes(row.id ?? "")
+      );
+      expect(vehicleRows).toHaveLength(3);
+      expect(vehicleRows.filter((row) => row.transportKind === "no_car_dong")).toHaveLength(2);
+      expect(vehicleRows.find((row) => row.id === roster.originalDriverId)).toMatchObject({
+        status: "approved",
+        transportKind: "personal_car",
+      });
+
+      const allocationsResponse = await adminPage.request.get(
+        `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`
+      );
+      expect(allocationsResponse.ok(), await allocationsResponse.text()).toBeTruthy();
+      const allocationPayload = (await allocationsResponse.json()) as {
+        allocations?: readonly {
+          driverRegistrationId?: string;
+          passengerRegistrationId?: string;
+        }[];
+      };
+      expect(allocationPayload.allocations).toHaveLength(2);
+      expect(
+        allocationPayload.allocations?.every(
+          (allocation) =>
+            allocation.driverRegistrationId === roster.originalDriverId &&
+            roster.passengerIds.includes(allocation.passengerRegistrationId ?? "")
+        )
+      ).toBe(true);
+
+      const exportResponse = await adminPage.request.get(
+        `/api/tours/${encodeURIComponent(roster.tourId)}/operational-roster/export?filter=final&format=xlsx`
+      );
+      expect(exportResponse.ok(), await exportResponse.text()).toBeTruthy();
+      expect(exportResponse.headers()["content-type"]).toContain(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      const bytes = await exportResponse.body();
+      expect(bytes.subarray(0, 2).toString("hex")).toBe("504b");
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(bytes);
+      const finalRoster = workbook.getWorksheet("لیست نهایی");
+      expect(finalRoster).toBeTruthy();
+      const exportedNames = new Set<string>();
+      for (let rowIndex = 2; rowIndex <= finalRoster!.rowCount; rowIndex += 1) {
+        exportedNames.add(finalRoster!.getCell(rowIndex, 2).text);
+      }
+      for (const row of vehicleRows) {
+        expect(row.guestLabel).toBeTruthy();
+        expect(exportedNames).toContain(row.guestLabel);
+      }
+    });
+  });
+
+  test("TC-CL-VEHICLE-CANCEL-01 refuses driver cancellation while dong passengers depend on it", async ({
+    page,
+    browser,
+  }) => {
+    const stamp = Date.now();
+    const roster = await createFreshSharedCarRoster(
+      page,
+      browser,
+      `TC-CL protected driver ${stamp}`,
+      false
+    );
+
+    await withOperatorBookingsUi(browser, async (adminPage) => {
+      const assignResponse = await adminPage.request.put(
+        `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`,
+        {
+          data: {
+            allocations: roster.passengerIds.map((passengerRegistrationId) => ({
+              driverRegistrationId: roster.originalDriverId,
+              passengerRegistrationId,
+            })),
+          },
+        }
+      );
+      expect(assignResponse.ok(), await assignResponse.text()).toBeTruthy();
+
+      const readVehicleState = async () => {
+        const [rosterResponse, allocationResponse] = await Promise.all([
+          adminPage.request.get(
+            `/api/bookings?tourId=${encodeURIComponent(roster.tourId)}&view=ops&limit=20`
+          ),
+          adminPage.request.get(
+            `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`
+          ),
+        ]);
+        expect(rosterResponse.ok(), await rosterResponse.text()).toBeTruthy();
+        expect(allocationResponse.ok(), await allocationResponse.text()).toBeTruthy();
+        const bookingList = (await rosterResponse.json()) as {
+          items?: readonly { id?: string; status?: string; transportKind?: string | null }[];
+        };
+        const allocationList = (await allocationResponse.json()) as {
+          allocations?: readonly {
+            driverRegistrationId?: string;
+            passengerRegistrationId?: string;
+          }[];
+        };
+        return { rows: bookingList.items ?? [], allocations: allocationList.allocations ?? [] };
+      };
+
+      const before = await readVehicleState();
+      expect(before.rows.find((row) => row.id === roster.originalDriverId)).toMatchObject({
+        status: "approved",
+        transportKind: "personal_car",
+      });
+      for (const passengerId of roster.passengerIds) {
+        expect(before.rows.find((row) => row.id === passengerId)).toMatchObject({
+          status: "approved",
+          transportKind: "no_car_dong",
+        });
+      }
+      expect(before.allocations).toHaveLength(2);
+      expect(
+        before.allocations.every(
+          (allocation) =>
+            allocation.driverRegistrationId === roster.originalDriverId &&
+            roster.passengerIds.includes(allocation.passengerRegistrationId ?? "")
+        )
+      ).toBe(true);
+
+      const cancelResponse = await adminPage.request.post(
+        `/api/bookings/${encodeURIComponent(roster.originalDriverId)}/cancel`,
+        {
+          data: {
+            reasonCode: "operator_correction",
+            reasonNote: "Automated staging check: dependent dong passengers must remain protected",
+          },
+        }
+      );
+      const cancelBody = await cancelResponse.text();
+      expect(cancelResponse.status(), cancelBody).toBe(409);
+      expect(cancelBody).toContain("BOOKING_DONG_SEAT_REASSIGNMENT_REQUIRED");
+
+      const after = await readVehicleState();
+      expect(after.rows).toEqual(before.rows);
+      expect(after.allocations).toEqual(before.allocations);
+    });
+  });
+
+  test("TC-CL-VEHICLE-REASSIGN-01 reassigns dong riders before cancelling their original driver", async ({
+    page,
+    browser,
+  }) => {
+    const stamp = Date.now();
+    const roster = await createFreshSharedCarRoster(
+      page,
+      browser,
+      `TC-CL vehicle reassignment ${stamp}`,
+      true
+    );
+    const replacementDriverId = roster.replacementDriverId;
+    expect(replacementDriverId).toBeTruthy();
+
+    await withOperatorBookingsUi(browser, async (adminPage) => {
+      const originalAssignmentResponse = await adminPage.request.put(
+        `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`,
+        {
+          data: {
+            allocations: roster.passengerIds.map((passengerRegistrationId) => ({
+              driverRegistrationId: roster.originalDriverId,
+              passengerRegistrationId,
+            })),
+          },
+        }
+      );
+      expect(originalAssignmentResponse.ok(), await originalAssignmentResponse.text()).toBeTruthy();
+
+      const reassignResponse = await adminPage.request.put(
+        `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`,
+        {
+          data: {
+            allocations: roster.passengerIds.map((passengerRegistrationId) => ({
+              driverRegistrationId: replacementDriverId,
+              passengerRegistrationId,
+            })),
+          },
+        }
+      );
+      expect(reassignResponse.ok(), await reassignResponse.text()).toBeTruthy();
+
+      const cancelResponse = await adminPage.request.post(
+        `/api/bookings/${encodeURIComponent(roster.originalDriverId)}/cancel`,
+        {
+          data: {
+            reasonCode: "operator_correction",
+            reasonNote: "Automated staging recovery after dong passenger reassignment",
+          },
+        }
+      );
+      expect(cancelResponse.ok(), await cancelResponse.text()).toBeTruthy();
+
+      const [rosterResponse, allocationResponse] = await Promise.all([
+        adminPage.request.get(
+          `/api/bookings?tourId=${encodeURIComponent(roster.tourId)}&view=ops&limit=20`
+        ),
+        adminPage.request.get(
+          `/api/tours/${encodeURIComponent(roster.tourId)}/transport-allocations`
+        ),
+      ]);
+      expect(rosterResponse.ok(), await rosterResponse.text()).toBeTruthy();
+      expect(allocationResponse.ok(), await allocationResponse.text()).toBeTruthy();
+      const bookingList = (await rosterResponse.json()) as {
+        items?: readonly { id?: string; status?: string }[];
+      };
+      expect(bookingList.items?.find((row) => row.id === roster.originalDriverId)?.status).toBe(
+        "cancelled"
+      );
+      expect(bookingList.items?.find((row) => row.id === replacementDriverId)?.status).toBe(
+        "approved"
+      );
+      for (const passengerId of roster.passengerIds) {
+        expect(bookingList.items?.find((row) => row.id === passengerId)?.status).toBe("approved");
+      }
+
+      const finalAllocations = (await allocationResponse.json()) as {
+        allocations?: readonly {
+          driverRegistrationId?: string;
+          passengerRegistrationId?: string;
+        }[];
+      };
+      expect(finalAllocations.allocations).toHaveLength(2);
+      expect(
+        finalAllocations.allocations?.every(
+          (allocation) =>
+            allocation.driverRegistrationId === replacementDriverId &&
+            roster.passengerIds.includes(allocation.passengerRegistrationId ?? "")
+        )
+      ).toBe(true);
     });
   });
 

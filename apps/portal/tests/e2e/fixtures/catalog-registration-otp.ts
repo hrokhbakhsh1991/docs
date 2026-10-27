@@ -196,6 +196,9 @@ export async function completeCatalogRegistrationIntake(
     readonly fatherName?: string;
     readonly birthDate?: string;
     readonly registrantTarget?: "self" | "other";
+    /** Optional self transport choice override for focused transport E2E scenarios. */
+    readonly transportChoice?: "primary" | "personal_car";
+    readonly personalCarOccupants?: 0 | 1 | 2 | 3;
     /**
      * For `registrantTarget="other"`: how many other-guest cards should exist before submit.
      * Defaults to `1`.
@@ -227,9 +230,29 @@ export async function completeCatalogRegistrationIntake(
   }
 ): Promise<void> {
   const profileStep = page.locator("[data-public-registration-profile]");
-  if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
+  await expect(
+    page.locator("[data-public-registration-profile], [data-public-registration-intake]")
+  ).toBeVisible({ timeout: 120_000 });
+  if (await profileStep.isVisible({ timeout: 1_000 }).catch(() => false)) {
     await page.locator("#displayName").fill(input.fullName);
-    await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
+    const [profileResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true }),
+    ]);
+    const profileText = await profileResponse.text();
+    expect(
+      profileResponse.ok(),
+      `register-complete failed (${profileResponse.status()}): ${profileText}`
+    ).toBeTruthy();
+    await page.locator("[data-public-registration-intake][data-registration-ready]").waitFor({
+      state: "visible",
+      timeout: 60_000,
+    });
   }
 
   await page.locator("[data-public-registration-intake][data-registration-ready]").waitFor({
@@ -379,6 +402,21 @@ export async function completeCatalogRegistrationIntake(
 
     const intakeRoot = page.locator("[data-public-registration-intake]");
     await selectNoPersonalCarAndPayDong(intakeRoot);
+    if (input.transportChoice) {
+      const transportChoices = intakeRoot.locator(
+        'input[type="radio"][name="transportChoice-self"]'
+      );
+      const choiceIndex =
+        input.transportChoice === "primary" ? 0 : (await transportChoices.count()) >= 3 ? 1 : 0;
+      await transportChoices.nth(choiceIndex).click();
+      if (input.transportChoice === "personal_car") {
+        const occupants = intakeRoot.locator(
+          'input[type="radio"][name="personalCarOccupants-self"]'
+        );
+        await expect(occupants).toHaveCount(4);
+        await occupants.nth(input.personalCarOccupants ?? 3).click();
+      }
+    }
   }
 
   const expectSuccess = input.expectSuccess ?? true;
