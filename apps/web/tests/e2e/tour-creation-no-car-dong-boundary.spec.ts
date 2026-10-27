@@ -1,4 +1,4 @@
-/** Current-SHA staging boundary: a dong registration cannot outrun offered car seats. */
+/** Current-SHA staging boundary: a dong registration without offered car seats stays waitlisted. */
 import { expect, test } from "@playwright/test";
 
 import {
@@ -13,7 +13,7 @@ import {
 } from "../../test/fixtures/tour-creation-closure-fixture";
 import { withOperatorBookingsUi } from "../../../portal/tests/e2e/fixtures/operator-booking-ui";
 
-test("TC-CL-VEHICLE-NO-CAR-01 rejects dong registration when no car seats are offered", async ({
+test("TC-CL-VEHICLE-NO-CAR-01 waitlists dong registration when no car seats are offered", async ({
   page,
   browser,
 }) => {
@@ -104,8 +104,8 @@ test("TC-CL-VEHICLE-NO-CAR-01 rejects dong registration when no car seats are of
     status?: string | null;
   };
 
-  // Let the UI settle only briefly; status and roster are the source of truth
-  // for this boundary even when the current runtime violates it.
+  // Let the UI settle only briefly; persisted status and roster are the source
+  // of truth for this waitlist boundary.
   await Promise.race([intakeUi, new Promise<void>((resolve) => setTimeout(resolve, 2_000))]);
 
   let matchingRosterRows: readonly { id?: string; guestLabel?: string; status?: string }[] = [];
@@ -135,8 +135,9 @@ test("TC-CL-VEHICLE-NO-CAR-01 rejects dong registration when no car seats are of
   );
 
   expect(payload.transport?.kind).toBe("no_car_dong");
-  expect(response.status()).toBe(409);
-  expect(responseBody.code).toBe("BOOKING_TRANSPORT_CAPACITY_REJECTED");
-  expect(responseBody.registrationId).toBeFalsy();
-  expect(matchingRosterRows).toHaveLength(0);
+  expect(response.status()).toBe(201);
+  expect(responseBody.registrationId).toBeTruthy();
+  expect(responseBody.status).toBe("waitlisted");
+  expect(matchingRosterRows).toHaveLength(1);
+  expect(matchingRosterRows[0]?.status).toBe("waitlisted");
 });

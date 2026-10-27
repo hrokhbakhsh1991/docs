@@ -184,7 +184,7 @@ export async function completePortalRegistrationForTour(
     readonly transportChoice?: "primary" | "personal_car";
     readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   }
-): Promise<void> {
+): Promise<string> {
   await page.goto(`${PORTAL_OPERATOR_BASE_URL}/catalog/${encodeURIComponent(tourId)}/register`, {
     waitUntil: "domcontentloaded",
   });
@@ -201,6 +201,12 @@ export async function completePortalRegistrationForTour(
     await fillCatalogOtp(page, "1234");
   }
 
+  const registrationResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/catalog/registrations" &&
+      response.request().method() === "POST",
+    { timeout: 120_000 }
+  );
   await completeCatalogRegistrationIntake(page, {
     fullName: input.fullName,
     partySize: "1",
@@ -213,6 +219,18 @@ export async function completePortalRegistrationForTour(
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 90_000,
   });
+  const registrationResponse = await registrationResponsePromise;
+  const responseBody = (await registrationResponse.json()) as {
+    ok?: boolean;
+    registrationId?: string;
+    status?: string;
+  };
+  const registrationId = responseBody.registrationId;
+  expect(
+    registrationResponse.ok() && responseBody.ok && registrationId,
+    `registration POST must return its created ID; status=${registrationResponse.status()} body=${JSON.stringify(responseBody)}`
+  ).toBeTruthy();
+  return registrationId!;
 }
 
 export async function fetchOperatorTourDetail(

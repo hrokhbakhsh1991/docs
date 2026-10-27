@@ -1,3 +1,5 @@
+import { unwrapDenaliTourCanonicalDocument } from "../finance/unwrap-denali-tour-canonical-document";
+
 export type DenaliPrepaymentPolicy = {
   readonly enabled: boolean;
   readonly percent: number | null;
@@ -45,9 +47,10 @@ function normalizePrepaymentPercent(value: unknown): number | null {
 }
 
 export function resolveDenaliPrepaymentPolicy(tourCanonicalData: unknown): DenaliPrepaymentPolicy {
-  const enabled = readBoolean(readCanonicalPath(tourCanonicalData, "pricing.prepaymentEnabled"));
+  const canonicalData = unwrapDenaliTourCanonicalDocument(tourCanonicalData);
+  const enabled = readBoolean(readCanonicalPath(canonicalData, "pricing.prepaymentEnabled"));
   const percent = normalizePrepaymentPercent(
-    readCanonicalPath(tourCanonicalData, "pricing.prepaymentPercent")
+    readCanonicalPath(canonicalData, "pricing.prepaymentPercent")
   );
   return {
     enabled: enabled && percent !== null,

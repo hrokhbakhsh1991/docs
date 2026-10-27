@@ -93,6 +93,8 @@ export type DenaliWizardPricingE2EOptions = {
   readonly paymentCollection?: "free" | "paid";
   readonly registrationApproval?: "manual" | "auto";
   readonly basePriceToman?: string;
+  readonly prepaymentEnabled?: boolean;
+  readonly prepaymentPercent?: number;
 };
 
 export type DenaliWizardTransportE2EOptions = {
@@ -412,6 +414,16 @@ async function fillDenaliWizardPricingMinimal(
   page: Page,
   options: DenaliWizardPricingE2EOptions = {}
 ): Promise<void> {
+  if (
+    (options.prepaymentEnabled !== undefined || options.prepaymentPercent !== undefined) &&
+    options.paymentCollection !== "paid"
+  ) {
+    throw new Error("Prepayment options require paymentCollection: 'paid'.");
+  }
+  if (options.prepaymentPercent !== undefined && options.prepaymentEnabled !== true) {
+    throw new Error("prepaymentPercent requires prepaymentEnabled: true.");
+  }
+
   await fillWizardNumericField(page, /حداقل سن|minimumAge|Minimum age/i, "18");
   const fitness = page
     .getByTestId("denali-composite-pricing-participants")
@@ -420,7 +432,12 @@ async function fillDenaliWizardPricingMinimal(
     await fitness.selectOption("medium");
   }
 
-  if (options.paymentCollection !== undefined || options.registrationApproval !== undefined) {
+  if (
+    options.paymentCollection !== undefined ||
+    options.registrationApproval !== undefined ||
+    options.prepaymentEnabled !== undefined ||
+    options.prepaymentPercent !== undefined
+  ) {
     const payment = page.getByTestId("denali-composite-pricing-payment");
     await expect(payment).toBeVisible({ timeout: 30_000 });
     if (options.paymentCollection !== undefined) {
@@ -432,6 +449,21 @@ async function fillDenaliWizardPricingMinimal(
           /قیمت به ازای هر نفر|Price per person/i,
           options.basePriceToman ?? "500000"
         );
+        if (options.prepaymentEnabled !== undefined) {
+          const prepaymentToggle = payment.getByRole("checkbox", {
+            name: /امکان ثبت‌نام با پیش‌پرداخت|Allow registration with prepayment/i,
+          });
+          if (options.prepaymentEnabled) {
+            await prepaymentToggle.check();
+            await fillWizardNumericField(
+              page,
+              /درصد پیش‌پرداخت از مبلغ کل|Prepayment percent of total amount/i,
+              String(options.prepaymentPercent ?? 30)
+            );
+          } else {
+            await prepaymentToggle.uncheck();
+          }
+        }
       } else {
         await paidToggle.uncheck();
       }

@@ -20,6 +20,32 @@ describe("resolve-denali-prepayment-policy.spec.ts", () => {
     });
   });
 
+  it("resolves persisted canonical document envelopes from their data payload", () => {
+    const tourCanonicalDocument = {
+      schemaVersion: 1,
+      roots: [],
+      data: {
+        pricing: {
+          prepaymentEnabled: true,
+          prepaymentPercent: 50,
+        },
+      },
+    };
+
+    assert.deepEqual(resolveDenaliPrepaymentPolicy(tourCanonicalDocument), {
+      enabled: true,
+      percent: 50,
+    });
+    assert.equal(
+      resolveDenaliSuggestedPrepaymentMinor({
+        tourCanonicalData: tourCanonicalDocument,
+        invoiceTotalMinor: "10000",
+        balanceDueMinor: "10000",
+      }),
+      "5000"
+    );
+  });
+
   it("disables policy when percent is missing or out of range", () => {
     assert.deepEqual(
       resolveDenaliPrepaymentPolicy({

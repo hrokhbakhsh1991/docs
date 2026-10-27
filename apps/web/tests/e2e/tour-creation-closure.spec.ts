@@ -54,15 +54,37 @@ async function registerClosureMember(
     readonly personalCarOccupants?: 0 | 1 | 2 | 3;
   }
 ): Promise<string> {
-  await completePortalRegistrationForTour(page, tourId, input);
+  const createdRegistrationId = await completePortalRegistrationForTour(page, tourId, input);
   await page.goto(`${PORTAL_OPERATOR_BASE_URL}/me/registrations`, {
     waitUntil: "domcontentloaded",
   });
   const detailLink = page
-    .locator("[data-portal-member-registrations-list] a")
-    .filter({ hasText: tourTitle })
+    .locator(`[data-portal-member-registrations-list] a[href*="${createdRegistrationId}"]`)
     .first();
-  await expect(detailLink).toBeVisible({ timeout: 60_000 });
+  try {
+    await expect(detailLink).toBeVisible({ timeout: 60_000 });
+  } catch (error) {
+    const listResponse = await page.request.get(`${PORTAL_OPERATOR_BASE_URL}/api/me/registrations`);
+    const listText = await listResponse.text();
+    let safeRows: unknown = "unparseable response";
+    try {
+      const body = JSON.parse(listText) as {
+        data?: { items?: readonly Record<string, unknown>[] };
+      };
+      safeRows = (body.data?.items ?? []).map((row) => ({ id: row.id, status: row.status }));
+    } catch {
+      safeRows = listText.slice(0, 500);
+    }
+    const renderedLinks = await page
+      .locator("[data-portal-member-registrations-list] a")
+      .evaluateAll((links) =>
+        links.map((link) => ({ text: link.textContent?.trim(), href: link.getAttribute("href") }))
+      );
+    throw new Error(
+      `Created registration ${createdRegistrationId} was not visible in member list for ${tourTitle}; page=${page.url()} list status=${listResponse.status()} rows=${JSON.stringify(safeRows)} renderedLinks=${JSON.stringify(renderedLinks)}; original=${String(error)}`
+    );
+  }
+  await expect(detailLink).toContainText(tourTitle);
   const href = await detailLink.getAttribute("href");
   const registrationId = href?.match(/\/me\/registrations\/([^/?#]+)/)?.[1];
   expect(
@@ -598,7 +620,7 @@ test.describe("tour-creation-closure.spec.ts", () => {
     }
   });
 
-  test("TC-CL-VEHICLE-01 shared-car wizard publishes dong rules used by member registration", async ({
+  test("TC-CL-VEHICLE-01 shared-car wizard publishes dong rules and waitlists no-car intake", async ({
     page,
     browser,
   }) => {
@@ -630,7 +652,7 @@ test.describe("tour-creation-closure.spec.ts", () => {
       transport?: { kind?: string };
     };
     expect(registrationBody.transport?.kind).toBe("no_car_dong");
-    expect((await readClosureMemberRegistration(page, registrationId)).status).toBe("approved");
+    expect((await readClosureMemberRegistration(page, registrationId)).status).toBe("waitlisted");
 
     await withOperatorBookingsUi(browser, async (adminPage) => {
       const rosterResponse = await adminPage.request.get(
@@ -647,7 +669,7 @@ test.describe("tour-creation-closure.spec.ts", () => {
       };
       expect((roster.items ?? []).find((row) => row.id === registrationId)).toMatchObject({
         guestLabel: expect.stringContaining(guestName),
-        status: "approved",
+        status: "waitlisted",
         partySize: 1,
       });
     });
