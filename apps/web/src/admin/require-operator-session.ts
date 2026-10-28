@@ -41,6 +41,7 @@ export type RequireOperatorSessionWebParams = {
   readonly session: OperatorSessionContext | null;
   readonly pathname: string;
   readonly host?: string;
+  readonly resolvedTenantId?: string | null;
 };
 
 export type RequireOperatorSessionWebResult =
@@ -56,7 +57,12 @@ export function requireOperatorSessionWeb(
 ): RequireOperatorSessionWebResult {
   if (params.session !== null && params.session.userId.trim().length > 0) {
     const host = params.host?.trim() ?? "";
-    if (host.length > 0 && !sessionTenantMatchesHost(params.session.tenantId, host)) {
+    if (
+      host.length > 0 &&
+      !sessionTenantMatchesHost(params.session.tenantId, host, {
+        resolvedTenantId: params.resolvedTenantId,
+      })
+    ) {
       return {
         allowed: false,
         redirectTo: `${OPERATOR_LOGIN_PATH}?access=tenant-mismatch`,

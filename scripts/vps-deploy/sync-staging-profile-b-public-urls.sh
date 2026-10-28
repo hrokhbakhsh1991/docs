@@ -69,6 +69,17 @@ set_env_kv() {
   fi
 }
 
+set_json_env_kv() {
+  local file="$1" key="$2" value="$3"
+  [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || {
+    echo "sync-staging-profile-b-public-urls: $key must be a single-line JSON value" >&2
+    exit 1
+  }
+  [[ -f "$file" ]] || touch "$file"
+  sed -i "/^${key}=/d" "$file"
+  printf '%s=%s\n' "$key" "$value" >>"$file"
+}
+
 PUBLIC_HOST="$(resolve_public_host)"
 CLUB_LABEL="$(resolve_club_label)"
 PUBLIC_ROOT_DOMAIN="$(resolve_root_domain)"
@@ -76,6 +87,38 @@ MINIO_PUBLIC_HOST="${STAGING_PUBLIC_MINIO_HOST:-storage.${CLUB_LABEL}.${PUBLIC_R
 PUBLIC_MARKETING_BASE_URL="${STAGING_PUBLIC_MARKETING_BASE_URL:-https://staging-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://staging-portal-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 STAGING_ADMIN_HOST="${STAGING_ADMIN_HOST:-staging-admin-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
+# The explicit map keeps cross-surface egress and session cookies tenant-bound.
+# Supply it from the approved staging inventory; never infer tenant B's hosts.
+TENANT_SURFACE_ORIGIN_MAP_JSON="${STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON:-}"
+[[ -n "$TENANT_SURFACE_ORIGIN_MAP_JSON" ]] || {
+  echo "sync-staging-profile-b-public-urls: STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON is required" >&2
+  exit 1
+}
+TENANT_SURFACE_ORIGIN_MAP_JSON="$(node -e '
+  const value = JSON.parse(process.argv[1]);
+  if (value?.version !== 1 || !Array.isArray(value.tenants) || value.tenants.length < 2) process.exit(2);
+  const ids = new Set(), hosts = new Set(), domains = [];
+  for (const tenant of value.tenants) {
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(tenant.tenantId ?? "")) process.exit(3);
+    const id = tenant.tenantId.toLowerCase();
+    if (ids.has(id)) process.exit(3);
+    ids.add(id);
+    if (!tenant.origins || !["admin", "marketing", "portal"].every((key) => typeof tenant.origins[key] === "string")) process.exit(4);
+    if (tenant.cookieDomain !== null && typeof tenant.cookieDomain !== "string") process.exit(5);
+    for (const origin of Object.values(tenant.origins)) {
+      const url = new URL(origin);
+      if (url.protocol !== "https:" || url.hostname.endsWith(".") || url.port || url.username || url.password || url.pathname !== "/" || url.search || url.hash || hosts.has(url.hostname)) process.exit(6);
+      hosts.add(url.hostname);
+      if (tenant.cookieDomain && url.hostname !== tenant.cookieDomain && !url.hostname.endsWith(`.${tenant.cookieDomain}`)) process.exit(7);
+    }
+    if (tenant.cookieDomain) domains.push(tenant.cookieDomain);
+  }
+  for (let i = 0; i < domains.length; i++) for (let j = i + 1; j < domains.length; j++) if (domains[i] === domains[j] || domains[i].endsWith(`.${domains[j]}`) || domains[j].endsWith(`.${domains[i]}`)) process.exit(8);
+  process.stdout.write(JSON.stringify(value));
+' "$TENANT_SURFACE_ORIGIN_MAP_JSON")" || {
+  echo "sync-staging-profile-b-public-urls: invalid tenant surface origin map" >&2
+  exit 1
+}
 # Profile B uses sibling hosts instead of portal.{tenant}.{root}. The common
 # parent is explicit so the member session is readable by both staging
 # marketing and staging portal. The staging-only cookie name prevents it from
@@ -132,6 +175,14 @@ set_env_kv "${ENV_DIR}/portal.env" PORTAL_PUBLIC_BASE_URL "$PUBLIC_PORTAL_BASE_U
 sed -i '/^MEMBER_SESSION_COOKIE_HOST_ONLY=/d' "${ENV_DIR}/portal.env"
 set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging
 set_env_kv "${ENV_DIR}/portal.env" MEMBER_SESSION_COOKIE_DOMAIN shenski.com
+
+# Explicit tenant map takes precedence over legacy single-origin and shared-cookie
+# settings. Removing the global cookie domain makes null map entries host-only.
+for app in marketing portal web; do
+  target="${ENV_DIR}/${app}.env"
+  sed -i '/^MEMBER_SESSION_COOKIE_DOMAIN=/d' "$target"
+  set_json_env_kv "$target" TENANT_SURFACE_ORIGIN_MAP_JSON "$TENANT_SURFACE_ORIGIN_MAP_JSON"
+done
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"

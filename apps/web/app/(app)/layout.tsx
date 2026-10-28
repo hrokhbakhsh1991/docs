@@ -115,7 +115,12 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       !engagementTeamAccess &&
       !marketingPagesTeamAccess
     ) {
-      const gate = requireOperatorSessionWeb({ session, pathname, host });
+      const gate = requireOperatorSessionWeb({
+        session,
+        pathname,
+        host,
+        resolvedTenantId: bootstrap.context.tenantId,
+      });
       if (!gate.allowed) {
         redirect(gate.redirectTo);
       }

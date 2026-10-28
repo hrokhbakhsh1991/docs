@@ -3,6 +3,7 @@ import {
   SESSION_COOKIE_NAMES,
   type SessionCookieWriteOptions,
 } from "@app-tour/session-client";
+import { resolveTenantSurfaceBindingForHost } from "@app-tour/guest-surface-host";
 import { resolveMemberSessionCookieDomain } from "@app-tour/tenant-kernel/host-only";
 
 export const SESSION_TOKEN_COOKIE = SESSION_COOKIE_NAMES.member;
@@ -14,6 +15,10 @@ export const resolveSessionCookieSecure = helpers.resolveSessionCookieSecure;
 export const buildSessionCookieOptions = helpers.buildSessionCookieOptions;
 
 function resolveCustomApexCookieDomain(host: string): SessionCookieWriteOptions | undefined {
+  const tenantBinding = resolveTenantSurfaceBindingForHost(host);
+  if (tenantBinding !== null) {
+    return tenantBinding.cookieDomain === null ? undefined : { domain: tenantBinding.cookieDomain };
+  }
   const hostOnly = process.env.MEMBER_SESSION_COOKIE_HOST_ONLY?.trim().toLowerCase();
   if (hostOnly === "true" || hostOnly === "1" || hostOnly === "yes") {
     return undefined;
@@ -89,6 +94,8 @@ export function clearSessionCookieOnResponse(headers: Headers, host?: string): v
 }
 
 export function resolveMemberSessionCookieDomainForHost(host: string): string | undefined {
+  const tenantBinding = resolveTenantSurfaceBindingForHost(host);
+  if (tenantBinding !== null) return tenantBinding.cookieDomain ?? undefined;
   return resolveMemberSessionCookieDomain(
     host,
     process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost"

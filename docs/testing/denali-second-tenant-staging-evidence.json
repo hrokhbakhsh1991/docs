@@ -1,0 +1,173 @@
+{
+  "complete": false,
+  "phases": [
+    {
+      "id": "A",
+      "status": "PASS",
+      "reason": "Preflight complete; dirty primary checkout preserved and task work isolated.",
+      "evidence": [
+        "Managed worktree /home/hamed/.codex/worktrees/denali-tenant-staging/docs, branch codex/denali-second-tenant-staging, base a685ad89c78a21faf367f6afe00e197f4a812a48.",
+        "User plan copied byte-for-byte to docs/testing/denali-second-tenant-staging-plan.md; SHA-256 d220ceced57a4b378bf3a5c21640060f2261b902f620f82d3b791474b7ca9fae."
+      ]
+    },
+    {
+      "id": "B",
+      "status": "PASS",
+      "reason": "Plan acceptance criteria and P0 environment blockers were mapped before implementation.",
+      "evidence": [
+        "docs/testing/denali-second-tenant-staging-plan.md sections 2 through 9.",
+        "P0 baseline recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md."
+      ],
+      "depends_on": [
+        "A"
+      ]
+    },
+    {
+      "id": "C",
+      "status": "NOT APPLICABLE",
+      "reason": "This phase implements auth/tenant behavior and has no visual or Figma requirements.",
+      "evidence": [
+        "Changed files are apps/web/middleware.ts, apps/web/src/tenant/session-host-binding.ts, and focused tests."
+      ],
+      "depends_on": [
+        "B"
+      ]
+    },
+    {
+      "id": "D",
+      "status": "PASS",
+      "reason": "Relevant API tenant-domain and admin-bootstrap contracts were traced; no API contract changes were made.",
+      "evidence": [
+        "PlatformDomainRepository.findVerifiedActiveByHostname requires verified and active domain records (apps/api/src/platform/platform-domain.repository.ts:117-141).",
+        "resolveAdminBootstrapForWebHost delegates to the guest-surface host bootstrap (apps/web/src/tenant/resolve-admin-bootstrap.server.ts:14-23)."
+      ],
+      "depends_on": [
+        "B"
+      ]
+    },
+    {
+      "id": "E",
+      "status": "PASS",
+      "reason": "Admin host to bootstrap tenant to session tenant comparison was traced; no static tenant mapping for B was added.",
+      "evidence": [
+        "apps/web/middleware.ts resolves dynamic production admin hosts via resolveAdminBootstrapForWebHost before session binding.",
+        "apps/web/src/tenant/session-host-binding.ts compares resolved tenant IDs and rejects unresolved production admin hosts."
+      ],
+      "depends_on": [
+        "D"
+      ]
+    },
+    {
+      "id": "F",
+      "status": "PASS",
+      "reason": "Web tenant-binding/redirect slices and an isolated, target-guarded P2 seed wrapper are implemented locally; no staging mutation has occurred.",
+      "evidence": [
+        "apps/web middleware resolves dynamic production admin tenant context and rejects unresolved hosts; root redirects preserve forwarded public ingress.",
+        "apps/api/scripts/seed-denali-second-staging-tenant.ts pins the target and B identity, rejects UUID/slug collisions, and delegates creation to the existing certified production primitive.",
+        "scripts/vps-deploy/build-staging-artifact.sh bundles the guarded seed and artifact self-check requires its bundle and wrapper.",
+        "P2 one-off staging seed wrapper validates exact staging target and B identity before admin client use; no staging mutation occurred."
+      ],
+      "depends_on": [
+        "B",
+        "E"
+      ]
+    },
+    {
+      "id": "G",
+      "status": "BLOCKED",
+      "reason": "The changed code is not deployed; proposed QA hostnames have no DNS/edge registration. The user input requested for Arvan/operator route access remains unanswered. Local checks do not establish staging behavior.",
+      "evidence": [
+        "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
+        "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
+        "Fresh direct DNS + strict curl probe 2026-10-29: all three proposed qa2.shenski.com hosts unresolved; curl exit 6 before TLS negotiation. This confirms P0-03 remains blocked."
+      ],
+      "depends_on": [
+        "F"
+      ]
+    },
+    {
+      "id": "H",
+      "status": "NOT APPLICABLE",
+      "reason": "No visual interface change is part of the current implementation slices.",
+      "evidence": [
+        "The acceptance work in this branch concerns middleware redirects and session/tenant authorization."
+      ],
+      "depends_on": [
+        "F"
+      ]
+    },
+    {
+      "id": "I",
+      "status": "PASS",
+      "reason": "Scoped local verification completed; CI and staging runtime are not run.",
+      "evidence": [
+        "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
+        "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
+        "API lint/build and production web build exit 0. Web build emitted attempted-import warnings in finance encounter and BFF login-rate-limit modules.",
+        "Seed bundled with esbuild and ran in dry-run mode using the pnpm deployed API dependency tree and fake local DB URLs; exited before database access.",
+        "API script/test ESLint syntax, Prettier, shell bash -n, changed-file checks, and git diff --check pass. No CI or staging runtime evidence.",
+        "P4-01 local fixture manifest checks pass: 8/8 positive/negative tests; ESLint, Prettier, and web tsconfig type-check pass. The manifest uses HTTPS staging allowlist, exact tenant UUIDs, six unique surface origins, and runtime SHA.",
+        "P4 fixture contract tests pass 8/8; ESLint, Prettier, and web TypeScript check pass. Playwright --list enumerated six DNS/TLS checks with a temporary fabricated manifest; no network requests were run.",
+        "P3-05 cookie-domain subcheck: tenant-kernel suite 82/82 pass, including private A/B apex isolation and proposed shenski staging portal hosts remaining host-only; package TypeScript lint and Prettier pass.",
+        "Tenant-kernel contract suite 82/82 pass, including tenant-specific private apex cookie domains and host-only sibling-host behavior. This helper result does not override the staging profile env, which still forces a global shenski.com cookie domain.",
+        "Guest surface host package: build PASS, 80/80 tests PASS, TypeScript lint PASS; includes host-map validation, unknown/ambiguous-host rejection, tenant-specific marketing/portal egress, and cookie-domain overlap checks.",
+        "Portal: full unit suite 407/407 PASS; lint PASS with import-boundary, member-profile-boundary, and architecture-truth guards PASS.",
+        "Web staging manifest contract: 8/8 tests PASS; web lint/typecheck PASS. Manifest supplies per-tenant cookie scopes and serializes the validated surface-origin map.",
+        "Staging env synchronizer isolated fixture: PASS; map written to web/marketing/portal and global cookie domain absent. bash -n PASS. No staging env was changed.",
+        "Root project standards: guard:architecture PASS, guard:import-boundary PASS, guard:doc-sync PASS; changed files also pass git diff --check.",
+        "After tenant-map bootstrap integration, guest-surface-host full suite: 84/84 PASS; focused mapped-bootstrap contract: 4/4 PASS for correct mapping, API tenant mismatch rejection, wrong-surface rejection, and unknown-host rejection.",
+        "Web ingress redirect/auth/manifest focused suite: 22/22 PASS after using the Caddy-set X-Forwarded-Host consistently for route resolution and redirect construction; web lint/typecheck and root architecture/import guards PASS.",
+        "Portal full suite: 407/407 PASS and portal lint/guards PASS. The optional PCMS Chromium cookie-acceptance check reported its binary unavailable and was skipped; browser-level cookie behavior remains NOT RUN.",
+        "P4-04 local result reporter contract: config/reporter focused suite 11/11 PASS; web lint/typecheck, import/boundary guards, Prettier and reporter node syntax PASS. Playwright --list loads the .mts config and enumerates all six network checks using a temporary manifest; no requests were sent. Runtime artifact generation is NOT RUN until an approved staging manifest and reachable TLS route exist.",
+        "P2-04 identity seed implementation: 15/15 focused tests PASS; exact B-only user/membership preflight and canonical login alias collision checks; static OTP required and SMS disabled; API bundle dry-run exits before DB. No real staging identity was created.",
+        "P2-05/P4-03 fixture adapter local proof (2026-10-29): API lint/typecheck and 26 API guards PASS; 30/30 focused data-plan, run-ID, target, identity and tenant-collision tests PASS; esbuild bundle PASS (66.0 KB); guarded dry-run PASS with Staging_2026.10-29 and fake local URLs, exiting before DB access. Shell syntax and git diff --check PASS. This is local evidence only; no fixture apply, cleanup rehearsal, DNS/TLS, CI, deploy or staging runtime was run.",
+        "Read-only DNS/strict HTTPS re-probe on 2026-10-29 for ledger route names staging-qa2.shenski.com, staging-admin-qa2.shenski.com and staging-portal-qa2.shenski.com: all unresolved; curl exit 6 before TLS. The plan currently lists .test logical hosts, so a real route mapping/operator-supplied staging host remains an explicit dependency.",
+        "P2-06 local cleanup implementation: versioned manifest and deterministic-ID validation; tenant RLS, Serializable transaction, exact row comparison and delete predicates; dependency checks for registration, transport and catalog references. Focused suite 32/32 PASS; API lint/typecheck and 26 guards PASS; 49.2 KB cleanup bundle and node --check PASS; shell syntax, Prettier and git diff --check PASS. A failed initial manifest test was repaired and the suite rerun green. DB cleanup dry-run/apply and rollback rehearsal are NOT RUN. Isolated TypeScript compile including cleanup CLI, shared RLS helper and new manifest/guard tests PASS after fixing two compiler findings.",
+        "Current-turn staging route recheck (2026-10-29): strict curl --noproxy to staging-qa2.shenski.com, staging-admin-qa2.shenski.com, staging-portal-qa2.shenski.com returned curl exit 6 for all; no DNS answer or TLS handshake. P0-03 remains BLOCKED.",
+        "Full API regression (2026-10-29): pnpm --filter @apps/api run test exited 0; 3,317 pass, 0 fail, 7 skip, 3,324 tests across 953 suites, 1,199,464 ms. New second-tenant data plan, identity, target, collision, cleanup-manifest tests all passed. Seven service-dependent cases remain skipped; they do not prove database, Redis, MinIO, or staging runtime behavior.",
+        "Post-suite review: git diff --check passed. Fresh direct strict HTTPS probe returned curl exit 6 for all three proposed qa2.shenski.com routes; no TLS handshake.",
+        "Full web suite (2026-10-29): pnpm --filter @apps/web run test exited 0; 2,097 pass, 0 fail, 0 skipped across 508 suites, 1,189,033 ms. Includes ingress/session isolation, staging manifest and result reporter tests.",
+        "Web standards (2026-10-29): pnpm --filter @apps/web run lint exited 0; import-boundary, audit-ui-primitives-boundary, no-raw-wizard-input, ESLint and TypeScript checks passed.",
+        "Portal lint (2026-10-29): pnpm --filter @apps/portal run lint exited 0; import-boundary, member-profile boundary, architecture-truth (0 findings), ESLint and TypeScript passed.",
+        "Root standards (2026-10-29): pnpm run guard:architecture and pnpm run guard:import-boundary exited 0.",
+        "Staging release artifact NOT RUN: build-staging-artifact.sh rejects dirty working tree; no commit or deploy was made.",
+        "Cleanup safety review found financial rows without OperatorRegistration foreign keys. Added tenant-scoped dependency gates for payments, refunds, reconciliation findings, schedules, commercial quotes, and payment holds; payment existence transitively protects receipts. Focused cleanup suite 6/6 PASS, API lint plus 26 guards PASS, Prettier PASS.",
+        "Fresh edge SNI probe 2026-10-29 pinned staging-denali.shenski.com and all proposed qa2 hosts to 185.143.233.133: A marketing HTTP 200, B marketing/admin/portal HTTP 503, TLS verify 0 for all. B DNS is still unresolved; edge has no configured B routes. No staging mutation or deployment."
+      ],
+      "depends_on": [
+        "F"
+      ]
+    },
+    {
+      "id": "J",
+      "status": "BLOCKED",
+      "reason": "Fresh source review has addressed the global-origin/shared-cookie gap and now binds mapped bootstrap surface and API tenant identity. J remains BLOCKED for closure because API-declared site-surface policy, cache/storage/export, deployment and staging runtime evidence remain incomplete behind P0-03.",
+      "evidence": [
+        "Fresh codebase-memory index and traces confirm web middleware, requireOperatorSessionWeb and OperatorAppLayout call paths; registry bootstrap remains the only source of dynamic tenant binding.",
+        "P2 reviewed against existing provisioning guard and production-certified creation primitive; no shared Denali QA slug/UUID or unsafe slug-only upsert was added.",
+        "Artifact wrapper preserves production NODE_ENV and does not replace DATABASE_URL with admin credentials; package self-check requires the new bundle and manifest marker.",
+        "Remaining incomplete phases and external dependencies are listed in docs/testing/denali-second-tenant-staging-execution-ledger.md.",
+        "API public tenant-context returns ingressSurface; guest-surface bootstrap consumes tenant/plugin identity without validating the requested surface. Need confirm intended custom-domain/admin contract before staging binding.",
+        "P4 fixture review confirms no local webServer setup, no static staging identity in implementation, rejects arbitrary/prod/insecure origins and browser TLS/security bypass flags, and restores process environment after tests.",
+        "P4-02 network spec reviewed: validates exact manifest DNS IP allowlist and configured NO_PROXY, uses strict APIRequestContext TLS plus Chromium navigation, enforces same-origin final URL, and does not allow insecure browser flags. Execution remains NOT RUN without approved staging manifest.",
+        "P3 cookie-domain review traced portal cookie helper to tenant-kernel resolver; proposed public staging portal hosts do not receive a parent-domain cookie, while private tenant apexes resolve separate A/B domains. Runtime issuance/refresh/logout remains NOT RUN.",
+        "Graph-traced resolveProductionMarketingBaseUrl: configured static MARKETING_PUBLIC_BASE_URL is returned without consulting the request host. scripts/vps-deploy/sync-staging-profile-b-public-urls.sh writes that one marketing/portal URL to all app envs and sets MEMBER_SESSION_COOKIE_DOMAIN=shenski.com in marketing and portal. This conflicts with two-tenant egress and cookie-isolation acceptance.",
+        "tenant-kernel resolver tests do not validate the effective staging override: the broad configured cookie domain is checked first and bypasses per-host domain derivation.",
+        "Final review of tenant-surface-origin-map validates UUID uniqueness, unique HTTPS origins, cookie-domain ownership and non-overlapping tenant cookie scopes; comma-separated/ambiguous ingress host values are rejected.",
+        "scripts/vps-deploy/sync-staging-profile-b-public-urls.sh requires and validates a two-tenant map before writing env files; isolated fixture confirms propagation and removal of MEMBER_SESSION_COOKIE_DOMAIN. Staging deployment/runtime remains NOT RUN.",
+        "Portal cookie helper consumes the resolved host binding for issue, refresh and clear paths; positive/negative package and portal tests pass. Existing global fallback remains for installations with no tenant map.",
+        "Final adversarial hostname review added rejection and tests for ambiguous comma-separated ingress hosts and trailing-dot aliases; guest-surface-host suite now passes 80/80.",
+        "Graph-traced API tenant-context route returns the resolved tenant context; shared guest bootstrap now validates the configured host surface and compares the returned tenantId to the tenant map before accepting plugin identity. Positive and negative tests pass.",
+        "Caddyfile explicitly sets X-Forwarded-Host from the request host for proxied apps; web middleware now uses that trusted ingress value for host routing and preserves it in redirects. Focused regression suite passes 22/22.",
+        "Fresh review records one unavailable browser-only check: PCMS Chromium cookie acceptance was skipped because the Chromium binary is not installed. No browser or staging runtime claim is made.",
+        "Fresh fixture adapter review: direct registration persistence creates no outbox rows, seeded payment mode is offline receipt, and all records are tenant/run scoped with collision preflight. Manifest-scoped cleanup tooling is implemented and typechecked, while DB cleanup/rollback and external-integration runtime checks are not exercised; P2-06 runtime and P5-P7 remain open.",
+        "P2-06 code review found direct cascade risk through tour foreign keys; cleanup now uses Serializable RLS transaction and refuses linked registration/transport rows before deleting. Tenant, identities, and wizard config are preserved because the run manifest cannot prove their creation ownership. Staging database behavior remains unverified.",
+        "Fresh cleanup review identified and closed a financial-history orphan risk with explicit dependency guards; focused tests, API lint/guards, and Prettier are green. The staging edge probe confirms verified TLS but HTTP 503 for all B hosts, so final runtime/route acceptance remains blocked."
+      ],
+      "depends_on": [
+        "G",
+        "I"
+      ]
+    }
+  ]
+}

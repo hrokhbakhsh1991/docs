@@ -15,7 +15,8 @@ import { getActiveTraceId } from "../observability/trace-request-context";
  */
 export async function withTenantRls<T>(
   tenantId: string,
-  run: (tx: Prisma.TransactionClient) => Promise<T>
+  run: (tx: Prisma.TransactionClient) => Promise<T>,
+  transactionOptions: { readonly isolationLevel?: Prisma.TransactionIsolationLevel } = {}
 ): Promise<T> {
   const normalized = tenantId.trim();
   if (normalized.length === 0) {
@@ -32,7 +33,7 @@ export async function withTenantRls<T>(
             await applyTestDbHoldIfConfigured(tx);
             return run(tx);
           },
-          resolvePrismaTransactionOptions()
+          { ...resolvePrismaTransactionOptions(), ...transactionOptions }
         )
       )
     )

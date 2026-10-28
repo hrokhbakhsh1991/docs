@@ -4,6 +4,7 @@ import {
 } from "./fetch-public-tenant-context";
 import { isDevGuestHostAllowed } from "./is-dev-guest-host-allowed";
 import { OPERATOR_SMOKE_TENANT_ID, resolveDevPluginIdForTenantId } from "./resolve-dev-plugin-id";
+import { resolveTenantSurfaceBindingForHost } from "./tenant-surface-origin-map";
 import {
   resolveTenantIdFromDevHost,
   type GuestDevHostSurface,
@@ -42,15 +43,24 @@ export async function resolveGuestSurfaceBootstrapForHost(
   const { surface, host, resolveFetch, unresolvedError } = options;
   const devFallbackTenantId = options.devFallbackTenantId ?? defaultDevFallbackTenantId;
 
-  const devTenantId = resolveTenantIdFromDevHost(host, surface);
-  if (devTenantId !== null) {
-    return {
-      tenantId: devTenantId,
-      pluginId: resolveDevPluginIdForTenantId(devTenantId),
-    };
+  const tenantBinding = resolveTenantSurfaceBindingForHost(host, surface);
+  if (tenantBinding === null) {
+    const devTenantId = resolveTenantIdFromDevHost(host, surface);
+    if (devTenantId !== null) {
+      return {
+        tenantId: devTenantId,
+        pluginId: resolveDevPluginIdForTenantId(devTenantId),
+      };
+    }
   }
 
   const publicContext = await fetchPublicTenantContextForHost(host, resolveFetch());
+  if (tenantBinding !== null) {
+    if (publicContext === null || publicContext.tenantId !== tenantBinding.tenantId) {
+      throw new Error(unresolvedError);
+    }
+    return { tenantId: tenantBinding.tenantId, pluginId: publicContext.pluginId };
+  }
   if (publicContext !== null) {
     return { tenantId: publicContext.tenantId, pluginId: publicContext.pluginId };
   }

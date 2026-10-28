@@ -42,4 +42,24 @@ describe("resolveMemberSessionCookieDomain", () => {
   it("PCMS-COOK-03 marketing custom apex returns same registrable apex", () => {
     assert.equal(resolveMemberSessionCookieDomain("alpine.club", "localhost"), "alpine.club");
   });
+
+  it("keeps B portal cookies scoped to B for private staging tenant apexes", () => {
+    const tenantA = resolveMemberSessionCookieDomain("portal.denali.staging.test", "shenski.com");
+    const tenantB = resolveMemberSessionCookieDomain("portal.qa2.staging.test", "shenski.com");
+
+    assert.equal(tenantA, "denali.staging.test");
+    assert.equal(tenantB, "qa2.staging.test");
+    assert.notEqual(tenantB, tenantA);
+  });
+
+  it("keeps proposed shenski staging portal hosts host-only", () => {
+    assert.equal(
+      resolveMemberSessionCookieDomain("staging-portal-denali.shenski.com", "shenski.com"),
+      undefined
+    );
+    assert.equal(
+      resolveMemberSessionCookieDomain("staging-portal-qa2.shenski.com", "shenski.com"),
+      undefined
+    );
+  });
 });
