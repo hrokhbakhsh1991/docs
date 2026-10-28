@@ -132,7 +132,8 @@
         "Root standards (2026-10-29): pnpm run guard:architecture and pnpm run guard:import-boundary exited 0.",
         "Staging release artifact NOT RUN: build-staging-artifact.sh rejects dirty working tree; no commit or deploy was made.",
         "Cleanup safety review found financial rows without OperatorRegistration foreign keys. Added tenant-scoped dependency gates for payments, refunds, reconciliation findings, schedules, commercial quotes, and payment holds; payment existence transitively protects receipts. Focused cleanup suite 6/6 PASS, API lint plus 26 guards PASS, Prettier PASS.",
-        "Fresh edge SNI probe 2026-10-29 pinned staging-denali.shenski.com and all proposed qa2 hosts to 185.143.233.133: A marketing HTTP 200, B marketing/admin/portal HTTP 503, TLS verify 0 for all. B DNS is still unresolved; edge has no configured B routes. No staging mutation or deployment."
+        "Fresh edge SNI probe 2026-10-29 pinned staging-denali.shenski.com and all proposed qa2 hosts to 185.143.233.133: A marketing HTTP 200, B marketing/admin/portal HTTP 503, TLS verify 0 for all. B DNS is still unresolved; edge has no configured B routes. No staging mutation or deployment.",
+        "Release artifact build PASS from clean detached worktree at ad9256ddcb31593ac46cebc1f6318b1c93107322: build-staging-artifact.sh exit 0; migration preflight, workspace/API and all three Next builds pass; pre/post-extract artifact self-check and clean-room check PASS. SHA-256 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992; artifact currently at /tmp/denali-staging-artifact-ad9256dd/out/app-tour-staging-ad9256ddcb31593ac46cebc1f6318b1c93107322.tar.zst."
       ],
       "depends_on": [
         "F"
@@ -162,7 +163,8 @@
         "Fresh review records one unavailable browser-only check: PCMS Chromium cookie acceptance was skipped because the Chromium binary is not installed. No browser or staging runtime claim is made.",
         "Fresh fixture adapter review: direct registration persistence creates no outbox rows, seeded payment mode is offline receipt, and all records are tenant/run scoped with collision preflight. Manifest-scoped cleanup tooling is implemented and typechecked, while DB cleanup/rollback and external-integration runtime checks are not exercised; P2-06 runtime and P5-P7 remain open.",
         "P2-06 code review found direct cascade risk through tour foreign keys; cleanup now uses Serializable RLS transaction and refuses linked registration/transport rows before deleting. Tenant, identities, and wizard config are preserved because the run manifest cannot prove their creation ownership. Staging database behavior remains unverified.",
-        "Fresh cleanup review identified and closed a financial-history orphan risk with explicit dependency guards; focused tests, API lint/guards, and Prettier are green. The staging edge probe confirms verified TLS but HTTP 503 for all B hosts, so final runtime/route acceptance remains blocked."
+        "Fresh cleanup review identified and closed a financial-history orphan risk with explicit dependency guards; focused tests, API lint/guards, and Prettier are green. The staging edge probe confirms verified TLS but HTTP 503 for all B hosts, so final runtime/route acceptance remains blocked.",
+        "Release source is commit ad9256ddcb31593ac46cebc1f6318b1c93107322; verified artifact digest 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992. Artifact self-check and clean-room verification passed. Existing build warnings recorded in execution ledger; no deployment/runtime proof is claimed."
       ],
       "depends_on": [
         "G",
