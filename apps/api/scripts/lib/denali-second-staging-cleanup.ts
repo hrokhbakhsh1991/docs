@@ -20,6 +20,13 @@ export type SecondStagingFinancialDependencyCounts = Readonly<{
   paymentHolds: number;
 }>;
 
+/** Include every planned registration ID so orphaned financial rows are still detected. */
+export function getSecondStagingCleanupRegistrationIds(
+  registrations: SecondStagingRunFixtureIds["registrations"]
+): readonly string[] {
+  return [registrations.free, registrations.paid];
+}
+
 /** Refuse fixture deletion while any financial history still points at its registrations. */
 export function assertNoSecondStagingFinancialDependencies(
   counts: SecondStagingFinancialDependencyCounts

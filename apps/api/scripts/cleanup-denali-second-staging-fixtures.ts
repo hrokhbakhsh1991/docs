@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import {
   assertNoSecondStagingFinancialDependencies,
   assertSecondStagingFixtureManifest,
+  getSecondStagingCleanupRegistrationIds,
   type SecondStagingFixtureManifest,
 } from "./lib/denali-second-staging-cleanup";
 import {
@@ -159,7 +160,7 @@ async function inspectAndMaybeDelete(
           throw new Error("DENALI_SECOND_STAGING_CLEANUP_DEPENDENCY_FOUND");
         }
 
-        const registrationIds = registrationRows.map((row) => row.id);
+        const registrationIds = getSecondStagingCleanupRegistrationIds(plan.ids.registrations);
         const financialDependencies = {
           payments: await tx.payment.count({
             where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },

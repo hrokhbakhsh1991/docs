@@ -4,6 +4,7 @@ import { buildSecondStagingRunFixtureIds } from "../scripts/lib/denali-second-st
 import {
   assertNoSecondStagingFinancialDependencies,
   assertSecondStagingFixtureManifest,
+  getSecondStagingCleanupRegistrationIds,
 } from "../scripts/lib/denali-second-staging-cleanup";
 import { SECOND_STAGING_TENANT } from "../scripts/lib/denali-second-staging-fixtures";
 
@@ -129,4 +130,13 @@ test("cleanup refuses to delete registrations with any financial history", () =>
       /DENALI_SECOND_STAGING_CLEANUP_DEPENDENCY_FOUND/
     );
   }
+});
+
+test("cleanup checks expected registration IDs even if their registration rows are missing", () => {
+  const ids = buildSecondStagingRunFixtureIds(fixtureInput("run-20261029-a"));
+
+  assert.deepEqual(getSecondStagingCleanupRegistrationIds(ids.registrations), [
+    ids.registrations.free,
+    ids.registrations.paid,
+  ]);
 });
