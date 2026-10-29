@@ -64,6 +64,28 @@ http://staging-admin-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
+# Exact second-tenant route stays on the staging web upstream. The public edge
+# must separately provision DNS/TLS before this host is reachable externally.
+http://staging-admin-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	@stagingTelegramWebhook path /webhooks/telegram/*
+	handle @stagingTelegramWebhook {
+		reverse_proxy 127.0.0.1:{$STAGING_API_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+	handle {
+		reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+}
+
 http://*.portal.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$PROD_PORTAL_PORT} {
 		header_up Host {host}
@@ -104,7 +126,25 @@ http://staging-portal-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
+http://staging-portal-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$STAGING_PORTAL_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}
+
 http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$STAGING_MARKETING_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+http://staging-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$STAGING_MARKETING_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https

@@ -35,6 +35,7 @@ Set in `/etc/environment` or systemd service:
 ```bash
 PLATFORM_ROOT_DOMAIN=staging.example.com
 CANONICAL_TENANT_LABEL=denali
+STAGING_SECOND_TENANT_LABEL=qa2
 ```
 
 ## Installation
@@ -71,6 +72,8 @@ sudo systemctl restart caddy
 ```
 
 **Port mapping:** `render-caddy-env.sh` reads both env directories and writes explicit `PROD_*_PORT` and `STAGING_*_PORT` values. Production domains route to `3000–3003`; staging domains route to `23000–23003`. It reads the production `PORTAL_PUBLIC_BASE_URL` (falling back to `marketing.env`) so custom production portal hosts route to the Portal upstream instead of the marketing wildcard. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` and `X-Forwarded-Host` remain set for the applications. Provisioning another workspace must update the public URL/env and reload Caddy; it does not broaden the session cookie to the platform root.
+
+The staging Profile C also defines exact admin, portal, and marketing hosts for `STAGING_SECOND_TENANT_LABEL` (default `qa2`) and routes them to staging ports only. Rendering fails if any staging app env file is missing, a staging port is invalid or duplicated, or a staging port collides with production. This origin route does not create public DNS or TLS; the public edge must be configured and verified separately before the hostname is exposed.
 
 ### 3. Configure DNS
 

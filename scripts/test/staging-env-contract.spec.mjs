@@ -83,6 +83,53 @@ describe("staging-env-contract", () => {
     assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
   });
 
+  it("REG-STG-ENV-07 routes exact second-tenant hosts only to staging upstreams", () => {
+    const render = read("scripts/vps-deploy/render-caddy-env.sh");
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    assert.match(render, /STAGING_SECOND_TENANT_LABEL=.*STAGING_SECOND_TENANT_LABEL/);
+    assert.match(render, /STAGING_SECOND_TENANT_LABEL=\$\{STAGING_SECOND_TENANT_LABEL\}/);
+    assert.match(render, /invalid staging second tenant label/);
+    assert.match(render, /STAGING_SECOND_TENANT_LABEL[\s\S]*?CANONICAL_TENANT_LABEL/);
+    assert.match(render, /missing staging env directory/);
+    assert.match(render, /missing staging \$\{app\}\.env/);
+    assert.match(render, /staging app port collides with production/);
+    assert.doesNotMatch(render, /collect_app_ports "\$STAGING_ENV_DIR"/);
+
+    const routeAssertions = [
+      ["admin", "STAGING_WEB_PORT"],
+      ["portal", "STAGING_PORTAL_PORT"],
+      ["marketing", "STAGING_MARKETING_PORT"],
+    ];
+    const genericMarketingRoute = caddy.indexOf("http://*.{$PLATFORM_ROOT_DOMAIN}");
+    for (const [surface, upstream] of routeAssertions) {
+      const host =
+        surface === "admin"
+          ? "http://staging-admin-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}"
+          : surface === "portal"
+            ? "http://staging-portal-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}"
+            : "http://staging-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}";
+      const start = caddy.indexOf(host);
+      const end = caddy.indexOf("\nhttp://", start + host.length);
+      assert.ok(start >= 0 && start < genericMarketingRoute, `${surface} exact host order`);
+      const block = caddy.slice(start, end < 0 ? undefined : end);
+      assert.match(
+        block,
+        new RegExp(
+          `STAGING_${surface === "admin" ? "WEB" : surface === "portal" ? "PORTAL" : "MARKETING"}_PORT`
+        )
+      );
+      assert.match(block, new RegExp(`\\{\\$${upstream}\\}`));
+      assert.match(block, /header_up Host \{host\}/);
+      assert.match(block, /header_up X-Forwarded-Proto https/);
+      assert.match(block, /header_up X-Forwarded-Host \{host\}/);
+      assert.doesNotMatch(block, /PROD_(?:API|WEB|PORTAL|MARKETING)_PORT/);
+      if (surface === "admin") {
+        assert.match(block, /@stagingTelegramWebhook path \/webhooks\/telegram\/\*/);
+        assert.match(block, /\{\$STAGING_API_PORT\}/);
+      }
+    }
+  });
+
   it("REG-STG-ENV-06 shares sibling-host member sessions through the staging parent", () => {
     const sync = read("scripts/vps-deploy/sync-staging-profile-b-public-urls.sh");
     assert.match(sync, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);
