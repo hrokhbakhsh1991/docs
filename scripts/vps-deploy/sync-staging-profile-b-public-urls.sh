@@ -198,6 +198,9 @@ for app in marketing portal web; do
   set_env_kv "$target" SESSION_COOKIE_SECURE true
 done
 set_env_kv "${ENV_DIR}/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+# The API resolves only exact .staging.test hosts from the operator-managed
+# tenant surface map. The profile marker keeps this private binding out of prod.
+set_env_kv "${ENV_DIR}/api.env" APP_INFRA_PROFILE staging
 # Staging hosts live under the production DNS root but are registered as
 # custom tenant domains. Prevent the API from parsing staging-denali as a
 # platform tenant label before it checks tenant_domains.
@@ -239,6 +242,8 @@ for app in marketing portal web; do
   set_json_env_kv "$target" TENANT_SURFACE_ORIGIN_MAP_JSON "$TENANT_SURFACE_ORIGIN_MAP_JSON"
 done
 set_json_env_kv "$API_ENV" TENANT_SURFACE_ORIGIN_MAP_JSON "$TENANT_SURFACE_ORIGIN_MAP_JSON"
+MAP_SHA256="$(printf '%s' "$TENANT_SURFACE_ORIGIN_MAP_JSON" | sha256sum | awk '{print $1}')"
+echo "sync-staging-profile-b-public-urls: private staging host map enabled for exact .staging.test entries map_sha256=${MAP_SHA256}"
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"

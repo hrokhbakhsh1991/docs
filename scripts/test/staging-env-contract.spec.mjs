@@ -292,6 +292,9 @@ describe("staging-env-contract", () => {
         { encoding: "utf8", env: { ...process.env, ENV_DIR: envDir } }
       );
       assert.equal(sync.status, 0, sync.stderr);
+      assert.match(sync.stdout, /private staging host map enabled/);
+      assert.match(sync.stdout, /map_sha256=[a-f0-9]{64}/);
+      assert.match(readFileSync(resolve(envDir, "api.env"), "utf8"), /^APP_INFRA_PROFILE=staging$/m);
 
       const repeatSync = spawnSync(
         "bash",
@@ -299,6 +302,7 @@ describe("staging-env-contract", () => {
         { encoding: "utf8", env: { ...process.env, ENV_DIR: envDir } }
       );
       assert.equal(repeatSync.status, 0, repeatSync.stderr);
+      assert.match(readFileSync(resolve(envDir, "api.env"), "utf8"), /^APP_INFRA_PROFILE=staging$/m);
 
       for (const app of ["api", "web", "marketing", "portal"]) {
         const sourced = spawnSync(

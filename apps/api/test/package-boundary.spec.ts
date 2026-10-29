@@ -15,6 +15,7 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/finance-core",
   "@app-tour/finance-http",
   "@app-tour/finance-http-contracts",
+  "@app-tour/guest-surface-host",
   "@app-tour/iran-mobile",
   "@app-tour/marketing-pages-http-contracts",
   "@app-tour/platform-core",

@@ -12,12 +12,12 @@ Super Admin **Domains** tab is the single pane for CNAME verification, SSL lifec
 
 `tenant_domains` gains SSL columns (migration `20260621140000_tenant_domains_ssl`):
 
-| Column | Purpose |
-|--------|---------|
-| `ssl_status` | `pending` → `provisioning` → `active` \| `failed` |
-| `ssl_expires_at` | Cert expiry (stub: +90d) |
-| `ssl_last_error` | Provider failure message |
-| `last_observed_cname` | Internal — not exposed in DTO v1 |
+| Column                | Purpose                                           |
+| --------------------- | ------------------------------------------------- |
+| `ssl_status`          | `pending` → `provisioning` → `active` \| `failed` |
+| `ssl_expires_at`      | Cert expiry (stub: +90d)                          |
+| `ssl_last_error`      | Provider failure message                          |
+| `last_observed_cname` | Internal — not exposed in DTO v1                  |
 
 `status` (CNAME) semantics unchanged: `pending` → `verified`.
 
@@ -48,14 +48,35 @@ GET /public/tenant-context  Host: www.custom.example.com
 
 Surfaces v1: **`marketing`** · **`portal`** only — no admin custom host.
 
+## Private staging host bindings
+
+Private staging names such as `*.staging.test` are operator-configured ingress
+aliases; they are not public custom domains and must not be marked CNAME-verified.
+The staging deploy synchronizer sets `APP_INFRA_PROFILE=staging` for the API and
+persists the validated `TENANT_SURFACE_ORIGIN_MAP_JSON`. In that profile, exact
+`.staging.test` hosts resolve through the validated tenant surface map and then
+load the active tenant by UUID. Admin, marketing, and portal are allowed as
+staging ingress surfaces. Other API profiles and unlisted hosts do not use this
+private binding path. Public custom domains continue to resolve only through
+`tenant_domains` after live CNAME verification and SSL activation.
+
+The map update is recorded in the staging deploy output without printing its
+contents. Private TLS trust is proven separately at the Caddy ingress; it is not
+evidence of public CNAME ownership or public certificate provisioning.
+
+The API consumes the origin-map validator from the
+`@app-tour/guest-surface-host/tenant-surface-origin-map` subpath. This is a
+runtime dependency for private staging host resolution; it does not import the
+guest UI packages (`ui-primitives`, `theme-react`, or `design-tokens`).
+
 ## API
 
-| Method | Path | RBAC |
-|--------|------|------|
-| GET | `/platform/v1/tenants/{id}/domains` | ops auth — DTO includes SSL fields |
-| POST | `/platform/v1/tenants/{id}/domains/{domainId}/verify` | write — live DNS + SSL provision |
-| GET | `/platform/v1/domains/ssl-summary` | ops auth (all roles) |
-| POST | `/platform/v1/domains/run-ssl-expiry-check` | owner only |
+| Method | Path                                                  | RBAC                               |
+| ------ | ----------------------------------------------------- | ---------------------------------- |
+| GET    | `/platform/v1/tenants/{id}/domains`                   | ops auth — DTO includes SSL fields |
+| POST   | `/platform/v1/tenants/{id}/domains/{domainId}/verify` | write — live DNS + SSL provision   |
+| GET    | `/platform/v1/domains/ssl-summary`                    | ops auth (all roles)               |
+| POST   | `/platform/v1/domains/run-ssl-expiry-check`           | owner only                         |
 
 ### ssl-summary response
 
@@ -73,21 +94,21 @@ Audits `DOMAIN_SSL_EXPIRING` per hostname in the 14-day window.
 
 ## Environment
 
-| Variable | Values | When |
-|----------|--------|------|
-| `PLATFORM_DOMAIN_VERIFY_STUB` | `pass` | Dev/test — CNAME verify always ok without observed match |
-| `PLATFORM_DOMAIN_DNS_LOOKUP` | `live` (default) \| `off` | `off` → lookup returns null |
-| `PLATFORM_SSL_PROVIDER` | `stub` (default) \| `cloudflare` | Factory in `create-platform-ssl-provider.ts` |
-| `PLATFORM_SSL_CLOUDFLARE_API_TOKEN` | secret | Required for cloudflare success path |
+| Variable                            | Values                           | When                                                     |
+| ----------------------------------- | -------------------------------- | -------------------------------------------------------- |
+| `PLATFORM_DOMAIN_VERIFY_STUB`       | `pass`                           | Dev/test — CNAME verify always ok without observed match |
+| `PLATFORM_DOMAIN_DNS_LOOKUP`        | `live` (default) \| `off`        | `off` → lookup returns null                              |
+| `PLATFORM_SSL_PROVIDER`             | `stub` (default) \| `cloudflare` | Factory in `create-platform-ssl-provider.ts`             |
+| `PLATFORM_SSL_CLOUDFLARE_API_TOKEN` | secret                           | Required for cloudflare success path                     |
 
 ## Audit actions
 
-| Action | When |
-|--------|------|
-| `DOMAIN_VERIFIED` | CNAME verify success |
-| `DOMAIN_SSL_PROVISIONED` | SSL active |
-| `DOMAIN_SSL_FAILED` | SSL provisioning failed |
-| `DOMAIN_SSL_EXPIRING` | Manual expiry check (14d window) |
+| Action                   | When                             |
+| ------------------------ | -------------------------------- |
+| `DOMAIN_VERIFIED`        | CNAME verify success             |
+| `DOMAIN_SSL_PROVISIONED` | SSL active                       |
+| `DOMAIN_SSL_FAILED`      | SSL provisioning failed          |
+| `DOMAIN_SSL_EXPIRING`    | Manual expiry check (14d window) |
 
 Platform routes append audit via `appendPlatformAuditEventOutsideTx` (no surrounding tenant transaction).
 
@@ -98,12 +119,12 @@ Platform routes append audit via `appendPlatformAuditEventOutsideTx` (no surroun
 
 ## Key modules
 
-| Module | Path |
-|--------|------|
-| Live DNS | `lookup-tenant-domain-cname.ts` |
-| Verify | `verify-tenant-domain.ts` (`verifyTenantDomainCnameLive`) |
-| SSL providers | `platform/ssl/create-platform-ssl-provider.ts` |
-| Provision | `provision-tenant-domain-ssl.ts` |
-| Custom ingress | `resolve-public-ingress-subdomain.ts` |
+| Module         | Path                                                      |
+| -------------- | --------------------------------------------------------- |
+| Live DNS       | `lookup-tenant-domain-cname.ts`                           |
+| Verify         | `verify-tenant-domain.ts` (`verifyTenantDomainCnameLive`) |
+| SSL providers  | `platform/ssl/create-platform-ssl-provider.ts`            |
+| Provision      | `provision-tenant-domain-ssl.ts`                          |
+| Custom ingress | `resolve-public-ingress-subdomain.ts`                     |
 
 See also: [`platform-control-center-api.mdoc`](platform-control-center-api.mdoc) · [`platform-billing-plans.mdoc`](platform-billing-plans.mdoc) (custom_domain feature gate)

@@ -13,6 +13,10 @@
     "./host-only": {
       "types": "./dist/host-only.d.ts",
       "default": "./dist/host-only.js"
+    },
+    "./tenant-surface-origin-map": {
+      "types": "./dist/tenant-surface-origin-map.d.ts",
+      "default": "./dist/tenant-surface-origin-map.js"
     }
   },
   "scripts": {
