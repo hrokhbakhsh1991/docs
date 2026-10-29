@@ -80,8 +80,8 @@
     },
     {
       "id": "G",
-      "status": "PARTIAL",
-      "reason": "Official deployment, exact release process provenance, strict-CA Caddy routes, six-host API tenant mapping, six browser page checks, B Owner/Finance/Admin/Member authentication, B→A Owner/Member replay denial, and A→B synthetic Member replay denial are verified on the current SHA. Full browser-visible lifecycle/business coverage remains incomplete; system DNS is unavailable locally and the approved manifest runner covers only network/page-load checks.",
+      "status": "BLOCKED",
+      "reason": "Six-host staging network/TLS/browser checks pass on current runtime, but full authenticated lifecycle and business-path isolation acceptance is still incomplete. Some critical scenarios are partial or unrun.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "At initial preflight, the existing release was a685ad89c78a21faf367f6afe00e197f4a812a48; later historical deployment attempts and the current successful run are recorded below.",
@@ -127,7 +127,8 @@
         "Artifact-pinned fixture preview on release 52aad2eed33ea35925ebba9abcda79c1ae2a095e with runId qa2-20261029-postfix-r1 returned DENALI_SECOND_STAGING_FIXTURES_DRY_RUN_OK for tenant B, 5 resources, 2 tours, 2 registrations, tenant-config wizard and no outbox. No --apply was supplied; this preview does not query the database.",
         "Artifact-pinned cleanup preview on release 52aad2eed33ea35925ebba9abcda79c1ae2a095e against manifest qa2-20261029-acceptance-01.json returned DENALI_SECOND_STAGING_CLEANUP_DRY_RUN_OK: 2 registrations, 2 tours, and 5 resources (equipment 1, theme 1, region 1, destination 1, preset 1); tenant, identities, wizard template and other tenant data were preserved. No rows were deleted.",
         "Read-only audit confirmed deployed source/build parity for the fixture and cleanup wrapper families at SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e. Fixture preview is configuration-only; cleanup preview is DB-backed. Neither apply path was executed.",
-        "2026-10-29 live six-host runner on test SHA d40e6054e708b8ec72c576a807d0645c25438f2d, staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, runId s2e-20261029-d40e6054-02: strict CA/browser runner status FAIL (2 passed, 1 failed, 3 skipped after serial fail-fast). A/marketing and A/admin passed. A/portal returned 307 and browser ended at the same tenant marketing origin; the old test incorrectly required the portal origin for every surface. Strict-CA HTTP checks confirmed both A and B portal roots redirect to their own tenant marketing hosts (HTTP 307; destination HTTP 200). No staging data was mutated. Failure artifacts: apps/web/test-results/two-tenant-staging/s2e-20261029-d40e6054-02/result.json and its screenshot/trace in the same run directory."
+        "2026-10-29 live six-host runner on test SHA d40e6054e708b8ec72c576a807d0645c25438f2d, staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, runId s2e-20261029-d40e6054-02: strict CA/browser runner status FAIL (2 passed, 1 failed, 3 skipped after serial fail-fast). A/marketing and A/admin passed. A/portal returned 307 and browser ended at the same tenant marketing origin; the old test incorrectly required the portal origin for every surface. Strict-CA HTTP checks confirmed both A and B portal roots redirect to their own tenant marketing hosts (HTTP 307; destination HTTP 200). No staging data was mutated. Failure artifacts: apps/web/test-results/two-tenant-staging/s2e-20261029-d40e6054-02/result.json and its screenshot/trace in the same run directory.",
+        "2026-10-29 live six-host Playwright runner PASS: runId s2e-20261029-a04e6eee-01, test SHA a04e6eee9763973e6b624da95d12ba8cec163871, current staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e; planned/completed/passed 6/6/6, failed/skipped 0/0. A/B marketing and admin stayed on their exact origins; each guest portal root redirected to that tenant’s own marketing origin. Strict CA validation passed for all six origins; no staging data was mutated. Reporter artifact: apps/web/test-results/two-tenant-staging/s2e-20261029-a04e6eee-01/result.json."
       ],
       "depends_on": ["F"]
     },
@@ -142,8 +143,8 @@
     },
     {
       "id": "I",
-      "status": "IN PROGRESS",
-      "reason": "IN PROGRESS: A Owner/Finance task-scoped identity fixtures are present in the deployed release and their strict-CA login/ability-context read-backs pass on current SHA 55a7085. The A E04 tour fixture is not yet available; A Member/current-SHA replay, Finance backend operation access, refresh/returnTo, business-path isolation, persistence, cleanup apply, rollback, and TLS renewal remain open.",
+      "status": "BLOCKED",
+      "reason": "Focused runner tests, lint, formatting, and pre-commit checks pass; complete automated coverage for all 18 staging scenarios and final required CI gates are still unresolved.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -214,8 +215,8 @@
     },
     {
       "id": "J",
-      "status": "IN PROGRESS",
-      "reason": "IN PROGRESS: E01/E02 and E05 pass; E03/E06/E07/E08/E09 are partial; E04/E10-E18 remain open or unrun. Latest staging release is SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e. P7 restart/reinstall, controlled cleanup/rollback, TLS renewal/recovery, and final matrix closure are not complete.",
+      "status": "BLOCKED",
+      "reason": "Fresh review of the runner fix is complete, but final closure review depends on unresolved runtime scenarios, deployment/release proof, and completion of required CI.",
       "evidence": [
         "Fresh codebase-memory index and traces confirm web middleware, requireOperatorSessionWeb and OperatorAppLayout call paths; registry bootstrap remains the only source of dynamic tenant binding.",
         "P2 reviewed against existing provisioning guard and production-certified creation primitive; no shared Denali QA slug/UUID or unsafe slug-only upsert was added.",
@@ -293,7 +294,7 @@
     {
       "id": "S2-E07",
       "status": "PARTIAL",
-      "evidence": "On deployed SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e, a strict-TLS B Owner session passed ability context on admin.qa2.staging.test; manually replaying that B cookie on admin.denali.staging.test returned 403 AUTH_TENANT_HOST_MISMATCH, while the protected B dashboard returned 200 and the A dashboard redirected to the A login with access=tenant-mismatch. The B Member session was ready on portal.qa2.staging.test and returned ready=false when replayed to portal.denali.staging.test. A synthetic A Member login on the same deployed SHA returned ready=true on portal.denali.staging.test; manually replaying its Secure/HttpOnly/SameSite=Lax session cookie to portal.qa2.staging.test returned ready=false under strict CA validation. Thus both B→A and A→B session replay denial have runtime evidence for Owner/Member paths. Refresh behavior and the full browser/UI matrix remain NOT RUN."
+      "evidence": "On deployed SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e, a strict-TLS B Owner session passed ability context on admin.qa2.staging.test; manually replaying that B cookie on admin.denali.staging.test returned 403 AUTH_TENANT_HOST_MISMATCH, while the protected B dashboard returned 200 and the A dashboard redirected to the A login with access=tenant-mismatch. The B Member session was ready on portal.qa2.staging.test and returned ready=false when replayed to portal.denali.staging.test. A synthetic A Member login on the same deployed SHA returned ready=true on portal.denali.staging.test; manually replaying its Secure/HttpOnly/SameSite=Lax session cookie to portal.qa2.staging.test returned ready=false under strict CA validation. Thus both B→A and A→B session replay denial have runtime evidence for Owner/Member paths. Refresh behavior and the full browser/UI matrix remain NOT RUN. Revalidated on 2026-10-29: current staging release remains 55a7085ddf52a5c7b90e29da46c2226649daf73e and all four services are active. The current six-host network runner does not perform authenticated replay; approved current-run B Owner/Member and A Member mobile inputs are absent. Stopped before OTP, so current-SHA E07 was NOT RUN; no business data or staging configuration changed. Historical cross-host replay proof remains on SHA 52aad2e, so E07 stays PARTIAL."
     },
     {
       "id": "S2-E08",
