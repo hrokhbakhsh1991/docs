@@ -11,7 +11,8 @@ const WEB_ROOT = join(import.meta.dirname, "..");
 describe("login-tenant-brand.spec.ts", () => {
   it("WEB-BRANDING-LOGIN-01 login page passes pluginId from host bootstrap", () => {
     const page = readFileSync(join(WEB_ROOT, "app/auth/login/page.tsx"), "utf8");
-    assert.match(page, /resolveBootstrapAppSessionForHost/);
+    assert.match(page, /resolveBootstrapAppSessionForHostAsync/);
+    assert.doesNotMatch(page, /resolveBootstrapAppSessionForHost\(/);
     assert.match(page, /pluginId=\{bootstrap\.session\.pluginId\}/);
   });
 

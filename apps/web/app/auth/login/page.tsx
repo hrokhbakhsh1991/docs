@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { buildAuthLoginPageMetadata } from "@/i18n/app-page-metadata";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding.server";
-import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { resolveBootstrapAppSessionForHostAsync } from "@/tenant/tenant-kernel";
 
 import { LoginForm } from "./login-form";
 
@@ -60,7 +60,7 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
   }
 
   const [bootstrap, branding] = await Promise.all([
-    resolveBootstrapAppSessionForHost(host),
+    resolveBootstrapAppSessionForHostAsync(host),
     fetchPublicTenantBrandingForHost(host),
   ]);
   return (
@@ -72,9 +72,7 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
   );
 }
 
-function serializeLoginSearchParams(
-  params: Record<string, string | string[] | undefined>
-): string {
+function serializeLoginSearchParams(params: Record<string, string | string[] | undefined>): string {
   const next = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || key === "phone") {

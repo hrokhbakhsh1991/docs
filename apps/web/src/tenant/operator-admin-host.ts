@@ -6,6 +6,7 @@ import {
   readWebReservedHostLabels,
 } from "./platform-host-env";
 import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingress-label";
+import { resolveTenantSurfaceBindingForHost } from "@app-tour/guest-surface-host";
 
 export function resolveClubSubdomainFromHost(host: string): string | null {
   const outcome = parseMultiLevelTenantHost(
@@ -41,5 +42,12 @@ export function isOperatorAdminIngressHost(host: string): boolean {
   if (isOperatorAdminHost(host)) {
     return true;
   }
-  return resolveProductionIngressLabelFromHost(host) !== null;
+  if (resolveProductionIngressLabelFromHost(host) !== null) {
+    return true;
+  }
+  try {
+    return resolveTenantSurfaceBindingForHost(host, "admin") !== null;
+  } catch {
+    return false;
+  }
 }

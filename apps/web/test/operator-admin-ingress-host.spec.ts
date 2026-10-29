@@ -15,6 +15,7 @@ const envSnapshot = {
   PUBLIC_TENANT_FALLBACK_LABEL: env.PUBLIC_TENANT_FALLBACK_LABEL,
   PUBLIC_TENANT_FALLBACK_HOSTS: env.PUBLIC_TENANT_FALLBACK_HOSTS,
   OPERATOR_ADMIN_ROOT_HOSTS: env.OPERATOR_ADMIN_ROOT_HOSTS,
+  TENANT_SURFACE_ORIGIN_MAP_JSON: env.TENANT_SURFACE_ORIGIN_MAP_JSON,
 };
 
 afterEach(() => {
@@ -87,5 +88,36 @@ describe("operator-admin-ingress-host.spec.ts", () => {
       }),
       null
     );
+  });
+
+  it("WEB-P8-INGRESS-06 only an explicitly mapped admin surface is accepted", () => {
+    env.NODE_ENV = "production";
+    env.TENANT_SURFACE_ORIGIN_MAP_JSON = JSON.stringify({
+      version: 1,
+      tenants: [
+        {
+          tenantId: "00000000-0000-4000-8000-000000000003",
+          origins: {
+            admin: "https://admin.denali.staging.test",
+            marketing: "https://denali.staging.test",
+            portal: "https://portal.denali.staging.test",
+          },
+          cookieDomain: "denali.staging.test",
+          aliases: {
+            admin: [
+              { origin: "https://staging-admin-denali.shenski.com", cookieDomain: "shenski.com" },
+            ],
+            marketing: [
+              { origin: "https://staging-denali.shenski.com", cookieDomain: "shenski.com" },
+            ],
+          },
+        },
+      ],
+    });
+    assert.equal(isOperatorAdminIngressHost("admin.denali.staging.test"), true);
+    assert.equal(isOperatorAdminIngressHost("staging-admin-denali.shenski.com"), true);
+    assert.equal(isOperatorAdminIngressHost("staging-denali.shenski.com"), false);
+    assert.equal(isOperatorAdminIngressHost("denali.staging.test"), false);
+    assert.equal(isOperatorAdminIngressHost("unknown.staging.test"), false);
   });
 });

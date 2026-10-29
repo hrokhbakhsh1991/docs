@@ -42,12 +42,25 @@ PORTAL_URL="http://127.0.0.1:${PORTAL_PORT}/health"
 
 echo "[smoke-4] Testing 4 processes: api(:${API_PORT}) web(:${WEB_PORT}) marketing(:${MARKETING_PORT}) portal(:${PORTAL_PORT})"
 
+# Probe the operator login using the explicitly configured admin origin. The
+# web app rejects loopback/port Host headers by design, so localhost alone is
+# not a representative ingress smoke check.
+RAW_ORIGIN_MAP="$(read_env_var "${ENV_DIR}/api.env" TENANT_SURFACE_ORIGIN_MAP_JSON || true)"
+if [[ "${RAW_ORIGIN_MAP:0:1}" == "'" && "${RAW_ORIGIN_MAP: -1}" == "'" ]]; then
+  RAW_ORIGIN_MAP="${RAW_ORIGIN_MAP:1:${#RAW_ORIGIN_MAP}-2}"
+fi
+WEB_HOST="$(node -e 'const map=JSON.parse(process.argv[1]); const origin=map.tenants?.find((tenant) => tenant.origins?.marketing === "https://denali.staging.test")?.origins?.admin; if (!origin) process.exit(1); const url=new URL(origin); if (url.protocol!=="https:" || url.port) process.exit(2); process.stdout.write(url.hostname)' "$RAW_ORIGIN_MAP")"
+
 check_service() {
   local name=$1
   local url=$2
   local http_code
 
-  http_code=$(curl -sS -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+  if [[ "$name" == "web" ]]; then
+    http_code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Host: ${WEB_HOST}" -H "X-Forwarded-Host: ${WEB_HOST}" -H "X-Forwarded-Proto: https" "$url" 2>/dev/null || echo "000")
+  else
+    http_code=$(curl -sS -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+  fi
 
   if [[ "$http_code" =~ ^[23] ]]; then
     echo "[smoke-4] ✓ $name OK (HTTP $http_code)"

@@ -319,7 +319,18 @@ describe("staging-env-contract", () => {
       }
 
       const stored = readFileSync(resolve(envDir, "api.env"), "utf8");
-      assert.ok(stored.includes(`TENANT_SURFACE_ORIGIN_MAP_JSON='${expected}'`));
+      const storedJson = stored.match(/^TENANT_SURFACE_ORIGIN_MAP_JSON='(.*)'$/m)?.[1];
+      assert.ok(storedJson, "origin map is persisted as a shell-safe quoted JSON value");
+      const storedMap = JSON.parse(storedJson);
+      assert.deepEqual(storedMap.tenants[0].aliases, {
+        admin: [
+          { origin: "https://staging-admin-denali.shenski.com", cookieDomain: "shenski.com" },
+        ],
+        marketing: [{ origin: "https://staging-denali.shenski.com", cookieDomain: "shenski.com" }],
+        portal: [
+          { origin: "https://staging-portal-denali.shenski.com", cookieDomain: "shenski.com" },
+        ],
+      });
     } finally {
       rmSync(envDir, { recursive: true, force: true });
     }

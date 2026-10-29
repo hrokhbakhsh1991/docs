@@ -106,6 +106,11 @@ TENANT_SURFACE_ORIGIN_MAP_JSON="${STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON:-$API_T
 }
 TENANT_SURFACE_ORIGIN_MAP_JSON="$(node -e '
   const value = JSON.parse(process.argv[1]);
+  const aliases = {
+    admin: process.argv[2],
+    marketing: process.argv[3],
+    portal: process.argv[4],
+  };
   if (value?.version !== 1 || !Array.isArray(value.tenants) || value.tenants.length < 2) process.exit(2);
   const ids = new Set(), hosts = new Set(), domains = [];
   for (const tenant of value.tenants) {
@@ -115,17 +120,49 @@ TENANT_SURFACE_ORIGIN_MAP_JSON="$(node -e '
     ids.add(id);
     if (!tenant.origins || !["admin", "marketing", "portal"].every((key) => typeof tenant.origins[key] === "string")) process.exit(4);
     if (tenant.cookieDomain !== null && typeof tenant.cookieDomain !== "string") process.exit(5);
+    const tenantDomains = tenant.cookieDomain ? [tenant.cookieDomain] : [];
     for (const origin of Object.values(tenant.origins)) {
       const url = new URL(origin);
       if (url.protocol !== "https:" || url.hostname.endsWith(".") || url.port || url.username || url.password || url.pathname !== "/" || url.search || url.hash || hosts.has(url.hostname)) process.exit(6);
       hosts.add(url.hostname);
       if (tenant.cookieDomain && url.hostname !== tenant.cookieDomain && !url.hostname.endsWith(`.${tenant.cookieDomain}`)) process.exit(7);
     }
-    if (tenant.cookieDomain) domains.push(tenant.cookieDomain);
+    if (tenant.aliases !== undefined && (!tenant.aliases || typeof tenant.aliases !== "object" || Array.isArray(tenant.aliases) || Object.keys(tenant.aliases).some((key) => !["admin", "marketing", "portal"].includes(key)))) process.exit(11);
+    tenant.aliases ??= {};
+    for (const [surface, surfaceAliases] of Object.entries(tenant.aliases)) {
+      if (!["admin", "marketing", "portal"].includes(surface) || !Array.isArray(surfaceAliases)) process.exit(12);
+      for (const alias of surfaceAliases) {
+        if (!alias || typeof alias !== "object" || typeof alias.origin !== "string" || (alias.cookieDomain !== null && typeof alias.cookieDomain !== "string")) process.exit(13);
+        const url = new URL(alias.origin);
+        if (url.protocol !== "https:" || url.hostname.endsWith(".") || url.port || url.username || url.password || url.pathname !== "/" || url.search || url.hash || hosts.has(url.hostname)) process.exit(14);
+        hosts.add(url.hostname);
+        if (alias.cookieDomain && (url.hostname !== alias.cookieDomain && !url.hostname.endsWith(`.${alias.cookieDomain}`))) process.exit(15);
+        if (alias.cookieDomain) tenantDomains.push(alias.cookieDomain);
+      }
+    }
+    domains.push(tenantDomains);
   }
-  for (let i = 0; i < domains.length; i++) for (let j = i + 1; j < domains.length; j++) if (domains[i] === domains[j] || domains[i].endsWith(`.${domains[j]}`) || domains[j].endsWith(`.${domains[i]}`)) process.exit(8);
+  const tenantA = value.tenants.find((tenant) => tenant.origins.marketing === "https://denali.staging.test");
+  if (!tenantA) process.exit(9);
+  const tenantADomains = domains[value.tenants.indexOf(tenantA)];
+  if (!tenantADomains) process.exit(17);
+  for (const [surface, origin] of Object.entries(aliases)) {
+    const url = new URL(origin);
+    const aliasCookieDomain = process.argv[5];
+    const existing = tenantA.aliases[surface] ?? [];
+    const existingAlias = existing.find((alias) => alias.origin === url.origin);
+    if (url.protocol !== "https:" || url.port || url.username || url.password || url.pathname !== "/" || url.search || url.hash || (url.hostname !== aliasCookieDomain && !url.hostname.endsWith(`.${aliasCookieDomain}`)) || (existingAlias === undefined && hosts.has(url.hostname))) process.exit(10);
+    if (existingAlias !== undefined && existingAlias.cookieDomain !== aliasCookieDomain) process.exit(16);
+    if (existingAlias === undefined) {
+      hosts.add(url.hostname);
+      existing.push({ origin: url.origin, cookieDomain: process.argv[5] });
+    }
+    if (!tenantADomains.includes(aliasCookieDomain)) tenantADomains.push(aliasCookieDomain);
+    tenantA.aliases[surface] = existing;
+  }
+  for (let i = 0; i < domains.length; i++) for (let j = i + 1; j < domains.length; j++) for (const a of domains[i]) for (const b of domains[j]) if (a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`)) process.exit(8);
   process.stdout.write(JSON.stringify(value));
-' "$TENANT_SURFACE_ORIGIN_MAP_JSON")" || {
+' "$TENANT_SURFACE_ORIGIN_MAP_JSON" "https://${STAGING_ADMIN_HOST}" "$PUBLIC_MARKETING_BASE_URL" "$PUBLIC_PORTAL_BASE_URL" "$PUBLIC_ROOT_DOMAIN")" || {
   echo "sync-staging-profile-b-public-urls: invalid tenant surface origin map" >&2
   exit 1
 }
