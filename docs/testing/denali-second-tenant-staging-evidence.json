@@ -64,7 +64,7 @@
     {
       "id": "G",
       "status": "FAIL",
-      "reason": "Staging run 40816177264 activated SHA 1314b404ef749b9f859e47f5211fc7b05ad5be28, but the deploy smoke failed because the web login probe used an invalid loopback Host; direct admin routing also needs mapped-host handling. The local repair is awaiting PR CI and redeployment.",
+      "reason": "Latest staging workflow 40828113394 built dev SHA 0a83d73f6cdbde59fa80ae3021a1f7839475d145 but failed the web smoke: it selected tenant A private canonical admin origin rather than the configured operator ingress host, yielding HTTP 404 / ADMIN_TENANT_UNRESOLVED. The local resolver fix passes focused checks; CI and redeployment are pending.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
@@ -79,7 +79,9 @@
         "Workflow run 40812548576: staging current symlink and four service working directories resolve to bda726aaca7598a35adbf188823390197fd48ea7; release-integrity.json records digest f50f5f50044390578b6387519f3fcb71ea51b8d54482206e08ed3125de465904. API/marketing/portal health returned HTTP 200; web /auth/login returned HTTP 500 with TENANT_SURFACE_ORIGIN_MAP_JSON parse failure.",
         "Strict VPS-local TLS probes used Caddy internal root CA with curl --resolve host:443:127.0.0.1; all six private .staging.test hostnames verified CA and hostname identity. The three B routes returned HTTP 503 while the second-tenant flag remained disabled. Browser-profile trust/external client reachability is still unverified.",
         "Workflow 40816177264 activated SHA 1314b404ef749b9f859e47f5211fc7b05ad5be28 with release manifest digest 9b858bfa3865184bcbbcfba09ff0b56d0d14effe022ee484adcd49e084e22ad1 and archive SHA-256 d2fa0a0d67a6ad74d69b641da168025d5bd09b2c4b7e232d6f70500eefc18f12. API/marketing/portal health passed; web smoke failed on localhost without the required mapped admin Host. B seed and later deploy steps did not run.",
-        "Follow-up code tracing found private A admin /auth/login returned 404 and the legacy public A admin alias returned 500. A local repair adds per-surface aliases with validated cookie scopes, mapped admin ingress recognition, async admin bootstrap on login, and a valid-host four-process smoke probe. Guest package build/tests 86/86, web focused tests 11/11, staging env contract 13/13, web lint/typecheck, shell syntax and diff checks pass; CI and redeployment are pending."
+        "Follow-up code tracing found private A admin /auth/login returned 404 and the legacy public A admin alias returned 500. A local repair adds per-surface aliases with validated cookie scopes, mapped admin ingress recognition, async admin bootstrap on login, and a valid-host four-process smoke probe. Guest package build/tests 86/86, web focused tests 11/11, staging env contract 13/13, web lint/typecheck, shell syntax and diff checks pass; CI and redeployment are pending.",
+        "Run 40828113394 built immutable artifact for 0a83d73f6cdbde59fa80ae3021a1f7839475d145 (artifact digest suffix ec5a71616fa89f9daf8550909fb9252aa2be97e8a073e50b7206dd1ed34c1ba0); API, marketing and portal health returned 200, web /auth/login returned 404; health/RLS and workspace adapter steps were skipped.",
+        "Current local fix reads OPERATOR_ADMIN_ROOT_HOSTS from web.env and requires an exact match to tenant A admin origin/alias. Host resolver + staging env contract tests pass 19/19; CI/deploy not run. Read-only public alias probes returned login HTML 200 without runtime SHA provenance."
       ],
       "depends_on": ["F"]
     },

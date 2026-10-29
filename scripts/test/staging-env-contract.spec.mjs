@@ -336,6 +336,13 @@ describe("staging-env-contract", () => {
     }
   });
 
+  it("REG-STG-ENV-14 probes the configured, explicitly mapped tenant-A admin ingress", () => {
+    const smoke = read("scripts/vps-deploy/smoke-four-process.sh");
+    assert.match(smoke, /web\.env" OPERATOR_ADMIN_ROOT_HOSTS/);
+    assert.match(smoke, /resolve-staging-admin-smoke-host\.mjs/);
+    assert.doesNotMatch(smoke, /\?\.origins\?\.admin/);
+  });
+
   it("REG-STG-ENV-12 runs origin-map preflight before stopping staging units", () => {
     const install = read("scripts/vps-deploy/install-staging-artifact.sh");
     const validate = install.indexOf('sync-staging-profile-b-public-urls.sh" --validate-only');
