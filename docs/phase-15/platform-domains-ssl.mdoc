@@ -48,6 +48,22 @@ GET /public/tenant-context  Host: www.custom.example.com
 
 Surfaces v1: **`marketing`** · **`portal`** only — no admin custom host.
 
+## Private staging host bindings
+
+Private staging names such as `*.staging.test` are operator-configured ingress
+aliases; they are not public custom domains and must not be marked CNAME-verified.
+The staging deploy synchronizer sets `APP_INFRA_PROFILE=staging` for the API and
+persists the validated `TENANT_SURFACE_ORIGIN_MAP_JSON`. In that profile, exact
+`.staging.test` hosts resolve through the validated tenant surface map and then
+load the active tenant by UUID. Admin, marketing, and portal are allowed as
+staging ingress surfaces. Other API profiles and unlisted hosts do not use this
+private binding path. Public custom domains continue to resolve only through
+`tenant_domains` after live CNAME verification and SSL activation.
+
+The map update is recorded in the staging deploy output without printing its
+contents. Private TLS trust is proven separately at the Caddy ingress; it is not
+evidence of public CNAME ownership or public certificate provisioning.
+
 ## API
 
 | Method | Path | RBAC |

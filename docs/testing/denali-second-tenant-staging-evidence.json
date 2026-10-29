@@ -18,7 +18,9 @@
         "docs/testing/denali-second-tenant-staging-plan.md sections 2 through 9.",
         "P0 baseline recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md."
       ],
-      "depends_on": ["A"]
+      "depends_on": [
+        "A"
+      ]
     },
     {
       "id": "C",
@@ -27,7 +29,9 @@
       "evidence": [
         "Changed files are apps/web/middleware.ts, apps/web/src/tenant/session-host-binding.ts, and focused tests."
       ],
-      "depends_on": ["B"]
+      "depends_on": [
+        "B"
+      ]
     },
     {
       "id": "D",
@@ -37,7 +41,9 @@
         "PlatformDomainRepository.findVerifiedActiveByHostname requires verified and active domain records (apps/api/src/platform/platform-domain.repository.ts:117-141).",
         "resolveAdminBootstrapForWebHost delegates to the guest-surface host bootstrap (apps/web/src/tenant/resolve-admin-bootstrap.server.ts:14-23)."
       ],
-      "depends_on": ["B"]
+      "depends_on": [
+        "B"
+      ]
     },
     {
       "id": "E",
@@ -47,12 +53,14 @@
         "apps/web/middleware.ts resolves dynamic production admin hosts via resolveAdminBootstrapForWebHost before session binding.",
         "apps/web/src/tenant/session-host-binding.ts compares resolved tenant IDs and rejects unresolved production admin hosts."
       ],
-      "depends_on": ["D"]
+      "depends_on": [
+        "D"
+      ]
     },
     {
       "id": "F",
-      "status": "IN PROGRESS",
-      "reason": "The existing feature work and prior smoke fix are deployed, but the first guarded tenant apply exposed an id-to-tenantId contract bug before mutation. A tested local fix and explicit app-role RLS audit are ready; fresh PR CI and redeployment must pass before retrying.",
+      "status": "BLOCKED",
+      "reason": "Private staging resolution implementation and fresh code review are complete locally. PR CI, deployment of the new code/profile marker, and staging host-to-tenant proof remain necessary before F can close.",
       "evidence": [
         "apps/web middleware resolves dynamic production admin tenant context and rejects unresolved hosts; root redirects preserve forwarded public ingress.",
         "apps/api/scripts/seed-denali-second-staging-tenant.ts pins the target and B identity, rejects UUID/slug collisions, and delegates creation to the existing certified production primitive.",
@@ -60,14 +68,29 @@
         "P2 one-off staging seed wrapper validates exact staging target and B identity before admin client use; no staging mutation occurred.",
         "Guarded tenant seed dry-run passed with exact staged target. The initial apply stopped with PROVISIONING_TENANT_ID_REQUIRED before createTenantRow; DB remained unchanged. Review traced a field mismatch: seed record uses id while ProvisioningService requires tenantId.",
         "Regression fix maps id to tenantId; identity/target tests 13/13 and staging env-contract tests 15/15. API lint/guards, architecture/import/repository-RLS guards, esbuild bundle, bash syntax, Prettier and diff checks pass. New automated deployment RLS audit script also passed when run read-only against live staging.",
-        "Read-only query using staging DATABASE_URL_ADMIN confirmed tenant ID f0ed9e65-2638-4351-847d-724f87ebbfce or slug denali-qa2 has zero matching rows after the aborted apply."
+        "Read-only query using staging DATABASE_URL_ADMIN confirmed tenant ID f0ed9e65-2638-4351-847d-724f87ebbfce or slug denali-qa2 has zero matching rows after the aborted apply.",
+        "Live tenant-seed dry-run passed exact staging target guard, but returns before ProvisioningService; it does not test PR #334 mapping or prove tenant B exists.",
+        "Live identity-seed dry-run accepted three temporary fictional mobiles and resolved owner/admin/member fixtures, then returned before DB queries or writes.",
+        "Read-only staging DATABASE_URL_ADMIN query found zero public.users rows for the three fictional fixture mobiles; no identity value was printed or persisted.",
+        "PR #334 merged while Phase 5 was still reported IN_PROGRESS because GitHub did not make that check merge-blocking; independent Phase 5 job remains under observation.",
+        "Phase 5 PostgreSQL CI run 40837666984 completed successfully after merge; PR checks now show 21 SUCCESS and 7 conditional SKIPPED.",
+        "Current worktree HEAD 8ea0553a2c7610639ebd87aca37ae8e0798c2fa1; only execution ledger and JSON are modified.",
+        "Fresh graph trace confirms API custom-domain resolution selects tenant_domains rows only when status=verified and sslStatus=active; standard create flow is public CNAME-based.",
+        "Fresh live SQL: B tenant active, 3 memberships, 0 B tenant_domains rows, and 0 collisions for the three private B hosts. Schema has no verification provenance field.",
+        "Added exact .staging.test resolution through the validated TENANT_SURFACE_ORIGIN_MAP_JSON only when APP_INFRA_PROFILE=staging; active tenant lookup is by configured UUID and returns the mapped surface.",
+        "Public custom-domain resolution still uses tenant_domains and verified/active CNAME lifecycle. Private bindings fail closed if any tenant_domains row already owns the hostname.",
+        "Fresh code review covered profile and suffix gates, normalized exact host matching, map validation, active tenant state, collision handling, and public-domain compatibility; no unresolved findings in this slice.",
+        "P1 private resolution implementation has not yet run in PR CI or on staging; no commit/deploy has been made."
       ],
-      "depends_on": ["B", "E"]
+      "depends_on": [
+        "B",
+        "E"
+      ]
     },
     {
       "id": "G",
-      "status": "IN PROGRESS",
-      "reason": "PR #333 merged and staging run 40833400488 successfully installed release SHA 4279700d4acaac65f5077e1a8e6db2d88a844443; all four processes, staging smoke, health gate and workspace adapter passed. Live read-only RLS catalog audit also passed as app_tour. Tenant-B routes remain deliberately disabled and all two-tenant business acceptance, persistence and rollback are incomplete.",
+      "status": "BLOCKED",
+      "reason": "Fresh staging release is 86e0cd2863ce9f55b91015b88c3ab3608e5ee5a6. Caddy is active and validates but its second-tenant flag is false; all B hosts return 503. Do not enable until private binding is implemented and host-to-tenant resolution can be proven.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "At initial preflight, the existing release was a685ad89c78a21faf367f6afe00e197f4a812a48; later historical deployment attempts and the current successful run are recorded below.",
@@ -91,9 +114,18 @@
         "Direct read-only VPS query through staging api.env DATABASE_URL returned tour_db_staging|app_tour|false|false. RLS enabled on tenants, tenant_domains, tours, urban_registrations, payments, payment_receipts, operator_registrations, user_tenants and mobile_otp_challenges.",
         "The deploy workflow step named Staging health and RLS verification only runs scripts/p10-staging-remote-gate.sh, which repeats four-process HTTP smoke; the live SQL audit was performed separately. Cross-tenant row-level behavior is still NOT RUN.",
         "Guarded tenant apply was attempted after smoke/RLS prerequisites and stopped before any mutation with PROVISIONING_TENANT_ID_REQUIRED; source review found id/tenantId mismatch. No tenant B data was created. A fix is pending PR CI and redeployment.",
-        "After the guarded apply failed before createTenantRow, a read-only admin query confirmed COUNT(*)=0 for the reserved B tenant UUID or slug. Staging DB remains unchanged by this attempt."
+        "After the guarded apply failed before createTenantRow, a read-only admin query confirmed COUNT(*)=0 for the reserved B tenant UUID or slug. Staging DB remains unchanged by this attempt.",
+        "On the current deployed release, tenant and identity dry-runs passed but did not enter write paths.",
+        "Read-only global collision preflight for the three temporary fictional identity mobiles returned matches=0.",
+        "PR #334 head 8ea0553a2c7610639ebd87aca37ae8e0798c2fa1: Phase 4 and all listed product/security/deployment checks pass; Phase 5 PostgreSQL remains IN_PROGRESS with no failure.",
+        "Fresh staging workflow 40841484572 has started the immutable artifact build; it has not reached transfer/install/runtime verification.",
+        "Phase 5 PostgreSQL gate completed successfully; staging workflow 40841484572 has not reached transfer/install/runtime verification.",
+        "Fresh SSH: current resolves to /opt/app-tour-staging/releases/86e0cd2863ce9f55b91015b88c3ab3608e5ee5a6; Caddy active; deployed Caddyfile SHA-256 dbeb9c297a7bcca5ea2b1422335466d0181b1277f426a81ab800aca28f4d302b; caddy validate PASS.",
+        "Fresh strict TLS requests to qa2.staging.test, admin.qa2.staging.test, portal.qa2.staging.test each return 503 with STAGING_SECOND_TENANT_ENABLED=false."
       ],
-      "depends_on": ["F"]
+      "depends_on": [
+        "F"
+      ]
     },
     {
       "id": "H",
@@ -102,12 +134,14 @@
       "evidence": [
         "The acceptance work in this branch concerns middleware redirects and session/tenant authorization."
       ],
-      "depends_on": ["F"]
+      "depends_on": [
+        "F"
+      ]
     },
     {
       "id": "I",
-      "status": "IN PROGRESS",
-      "reason": "The admin smoke fix has passed CI and deploy. A subsequent live guarded apply exposed a tenantId mapping defect before any DB mutation; its fix and a separate automated app-role RLS audit are locally verified but fresh PR CI and deployment remain pending.",
+      "status": "BLOCKED",
+      "reason": "Focused local tests, API lint/typecheck and architecture/tenant/import guards pass. Current implementation still needs PR CI and deployed staging host-to-tenant proof; browser and P5-P7 acceptance remain NOT RUN.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -155,14 +189,22 @@
         "node --test scripts/test/staging-env-contract.spec.mjs: 13/13 pass, including initial sync, idempotent resync, and Bash-source JSON parsing for api/web/marketing/portal. bash -n, git diff --check and pnpm exec prettier --check scripts/test/staging-env-contract.spec.mjs pass. shellcheck unavailable.",
         "Current admin-ingress patch: guest-surface-host build PASS; guest package suite 86/86; web operator-admin-ingress plus login-brand tests 11/11; staging env contract 13/13; web lint/typecheck PASS; changed shell syntax and git diff --check PASS. Earlier failed test used a stale built package and passed after rebuilding.",
         "PR #333 CI and staging workflow 40833400488 passed. Fresh review added strict rejection of host ports/URL components; focused suite 19/19; syntax, Prettier, doc-sync, diff check and artifact/runtime provenance verified.",
-        "Live read-only RLS audit returned tour_db_staging|app_tour|false|false and validated nine required RLS-enabled tables. REG-STG-ENV-15 covers separate health and RLS workflow steps; fix CI is not yet run."
+        "Live read-only RLS audit returned tour_db_staging|app_tour|false|false and validated nine required RLS-enabled tables. REG-STG-ENV-15 covers separate health and RLS workflow steps; fix CI is not yet run.",
+        "Live staging tenant/identity dry-runs and zero-match global collision check passed; no test or mutation result is inferred from those preflights.",
+        "Prior PR #334 focused tests, review, CI and separate staging RLS audit passed; current B live route acceptance remains unrun.",
+        "No CNAME verification was fabricated and no ingress setting was changed during this revalidation.",
+        "Private/public ingress/API resolver tests: 12/12 PASS.",
+        "Staging environment/deploy contract tests: 15/15 PASS, including idempotent sync, APP_INFRA_PROFILE marker persistence, and origin-map SHA fingerprint output.",
+        "Guest-surface-host build, API lint/typecheck, API guards, root architecture/import guards, Prettier, documentation sync and git diff check PASS."
       ],
-      "depends_on": ["F"]
+      "depends_on": [
+        "F"
+      ]
     },
     {
       "id": "J",
       "status": "BLOCKED",
-      "reason": "Fresh source review has addressed the global-origin/shared-cookie gap and now binds mapped bootstrap surface and API tenant identity. J remains BLOCKED for closure because API-declared site-surface policy, cache/storage/export, deployment and staging runtime evidence remain incomplete behind P0-03.",
+      "reason": "Fresh review of the private staging resolver slice passed with no unresolved local findings. Whole-scope final review remains incomplete until CI, staging runtime, browser/business acceptance, persistence and rollback evidence exist.",
       "evidence": [
         "Fresh codebase-memory index and traces confirm web middleware, requireOperatorSessionWeb and OperatorAppLayout call paths; registry bootstrap remains the only source of dynamic tenant binding.",
         "P2 reviewed against existing provisioning guard and production-certified creation primitive; no shared Denali QA slug/UUID or unsafe slug-only upsert was added.",
@@ -185,9 +227,16 @@
         "P2-06 code review found direct cascade risk through tour foreign keys; cleanup now uses Serializable RLS transaction and refuses linked registration/transport rows before deleting. Tenant, identities, and wizard config are preserved because the run manifest cannot prove their creation ownership. Staging database behavior remains unverified.",
         "Fresh cleanup review identified and closed a financial-history orphan risk with explicit dependency guards; focused tests, API lint/guards, and Prettier are green. The staging edge probe confirms verified TLS but HTTP 503 for all B hosts, so final runtime/route acceptance remains blocked.",
         "Release source is commit ad9256ddcb31593ac46cebc1f6318b1c93107322; verified artifact digest 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992. Artifact self-check and clean-room verification passed. Existing build warnings recorded in execution ledger; no deployment/runtime proof is claimed.",
-        "Fresh review of scripts/vps-deploy/sync-staging-profile-b-public-urls.sh and scripts/test/staging-env-contract.spec.mjs confirms shell-safe quoting, quote normalization for repeated deployment, an explicit apostrophe guard, and regression coverage; PR CI and runtime recheck remain pending."
+        "Fresh review of scripts/vps-deploy/sync-staging-profile-b-public-urls.sh and scripts/test/staging-env-contract.spec.mjs confirms shell-safe quoting, quote normalization for repeated deployment, an explicit apostrophe guard, and regression coverage; PR CI and runtime recheck remain pending.",
+        "Latest read-only review found tenant_domains schema has no field distinguishing public CNAME verification from operator private binding; this is a contract gap to resolve before live host activation.",
+        "Final A-J completion audit is pending because runtime P3-P7 acceptance remains incomplete.",
+        "Private-host review checked exact validated map lookup, staging profile gate, active tenant lookup, any-row domain collision rejection, shared surface resolution and unchanged public CNAME path.",
+        "Updated docs/phase-15/platform-domains-ssl.mdoc before continuing API changes, per app-tour-architecture skill."
       ],
-      "depends_on": ["G", "I"]
+      "depends_on": [
+        "G",
+        "I"
+      ]
     }
   ]
 }

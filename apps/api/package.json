@@ -179,6 +179,7 @@
     "@app-tour/finance-core": "workspace:*",
     "@app-tour/finance-http": "workspace:*",
     "@app-tour/finance-http-contracts": "workspace:*",
+    "@app-tour/guest-surface-host": "workspace:^",
     "@app-tour/iran-mobile": "workspace:*",
     "@app-tour/marketing-pages-http-contracts": "workspace:*",
     "@app-tour/platform-core": "workspace:*",

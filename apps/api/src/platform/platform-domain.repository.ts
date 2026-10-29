@@ -18,10 +18,8 @@ const domainSelect = {
 } as const;
 
 function defaultPrisma(): PrismaClient {
-  const {
-    PLATFORM_ADMIN_REASON,
-    getPlatformAdminClient,
-  } = require("./platform-admin-client") as typeof import("./platform-admin-client");
+  const { PLATFORM_ADMIN_REASON, getPlatformAdminClient } =
+    require("./platform-admin-client") as typeof import("./platform-admin-client");
   return getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_DOMAIN);
 }
 
@@ -72,6 +70,13 @@ export class PlatformDomainRepository {
     });
   }
 
+  async findByHostname(hostname: string): Promise<TenantDomainRecord | null> {
+    return this.prisma.tenantDomain.findFirst({
+      where: { hostname: hostname.trim().toLowerCase() },
+      select: domainSelect,
+    });
+  }
+
   async deleteByIdForTenant(tenantId: string, domainId: string): Promise<boolean> {
     const result = await this.prisma.tenantDomain.deleteMany({
       where: { id: domainId, tenantId },
@@ -79,7 +84,10 @@ export class PlatformDomainRepository {
     return result.count > 0;
   }
 
-  async markVerified(domainId: string, lastObservedCname?: string | null): Promise<TenantDomainRecord | null> {
+  async markVerified(
+    domainId: string,
+    lastObservedCname?: string | null
+  ): Promise<TenantDomainRecord | null> {
     try {
       return await this.prisma.tenantDomain.update({
         where: { id: domainId },
