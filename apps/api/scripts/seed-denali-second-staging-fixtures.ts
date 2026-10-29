@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 import {
   SECOND_STAGING_IDENTITY_IDS,
+  assertSecondStagingFixtureIdentityMembership,
   assertSecondStagingIdentityLoginPolicy,
-  resolveSecondStagingIdentityFixtures,
   SECOND_STAGING_TENANT,
 } from "./lib/denali-second-staging-fixtures";
 import {
@@ -16,20 +16,6 @@ import { withTenantRls } from "../src/db/with-tenant-rls";
 import { WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS } from "../src/settings/workspace-dev-bootstrap-bindings.generated";
 import { PrismaTourRepository } from "../src/storage/prisma-tour.repository";
 import { runWithTenantContext } from "../src/tenant/tenant-request-context";
-
-function assertIdentityMembership(
-  label: keyof typeof SECOND_STAGING_IDENTITY_IDS,
-  membership: { role: string; status: string; workspaceId: string | null } | null
-): void {
-  const expectedRole = label === "finance" ? "admin" : label;
-  if (
-    membership?.role !== expectedRole ||
-    membership.status !== "ACTIVE" ||
-    membership.workspaceId !== SECOND_STAGING_TENANT.workspaceId
-  ) {
-    throw new Error("DENALI_SECOND_STAGING_FIXTURE_IDENTITY_NOT_READY");
-  }
-}
 
 async function seedResourcesAndWizard(
   tx: Prisma.TransactionClient,
@@ -247,9 +233,9 @@ async function seedResourcesAndWizard(
           tenantId: SECOND_STAGING_TENANT.id,
         },
       },
-      select: { role: true, status: true, workspaceId: true },
+      select: { userId: true, role: true, status: true, workspaceId: true },
     });
-    assertIdentityMembership(label, membership);
+    assertSecondStagingFixtureIdentityMembership(label, membership);
   }
 
   const wizardBinding = WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS.find(
@@ -410,14 +396,6 @@ async function main(): Promise<void> {
   }
 
   assertSecondStagingIdentityLoginPolicy(process.env);
-  const suppliedIdentities = resolveSecondStagingIdentityFixtures(process.env);
-  if (
-    suppliedIdentities.some(
-      (identity) => identity.userId !== SECOND_STAGING_IDENTITY_IDS[identity.label]
-    )
-  ) {
-    throw new Error("DENALI_SECOND_STAGING_FIXTURE_IDENTITY_BINDING_MISMATCH");
-  }
   await applyFixturePlan(plan);
   console.log(
     JSON.stringify({

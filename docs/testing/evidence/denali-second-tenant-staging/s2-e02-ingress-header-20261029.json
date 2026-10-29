@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "S2-E02",
+  "status": "PASS",
+  "verifiedAtUtc": "2026-10-29T21:24:55Z",
+  "runtimeSha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
+  "testSha": "7446108f0ea6cd178f397acdca615b1e8bf357d2",
+  "runtimeProvenance": "SSH read-only current-release symlink checked before probe",
+  "request": {
+    "method": "GET",
+    "path": "/api/public/tenant-branding",
+    "auth": "none",
+    "tls": "strict CA validation; no insecure bypass",
+    "caSha256": "9e36e400f78f14317076e4d5bc8cb82e84f0a31d86fb4cebc7bbbf69c06d747d",
+    "resolver": "curl --resolve to 127.0.0.1; no system DNS modification"
+  },
+  "checks": {
+    "A-control": {
+      "httpStatus": 200,
+      "jsonNonempty": true,
+      "canonicalJsonSha256": "efd88c729b6698be09983d0e81c8cffa76d6d1f2b397876c60b27bf3b7535959"
+    },
+    "B-control": {
+      "httpStatus": 200,
+      "jsonNonempty": true,
+      "canonicalJsonSha256": "3fc31f0e87b89ee7e0b304d311b5bcf00309248a978214fa3384df5edbc03789"
+    },
+    "B-forged-xfh": {
+      "httpStatus": 200,
+      "jsonNonempty": true,
+      "canonicalJsonSha256": "3fc31f0e87b89ee7e0b304d311b5bcf00309248a978214fa3384df5edbc03789"
+    }
+  },
+  "assertions": {
+    "allHttp200": true,
+    "allBodiesValidNonemptyJson": true,
+    "forgedBMatchesBControl": true,
+    "bControlDiffersFromAControl": true
+  },
+  "startedAtUtc": "2026-10-29T21:24:54Z",
+  "endedAtUtc": "2026-10-29T21:24:55Z",
+  "scope": "Guest-safe branding response through strict-TLS Caddy B admin ingress. This demonstrates that a client-supplied X-Forwarded-Host does not switch the BFF response to A/unknown branding. It complements the direct API tenant-context check; it does not prove protected-route authorization or the API raw-header behavior through ingress.",
+  "mutations": 0
+}

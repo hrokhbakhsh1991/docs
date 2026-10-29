@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "s2e-20261029-7446108f-01",
+  "runtimeSha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
+  "testSha": "7446108f0ea6cd178f397acdca615b1e8bf357d2",
+  "tenantLabels": ["A", "B"],
+  "status": "PASS",
+  "startedAt": "2026-10-29T21:20:09.440Z",
+  "endedAt": "2026-10-29T21:20:31.875Z",
+  "counts": {
+    "planned": 6,
+    "completed": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "timedOut": 0,
+    "interrupted": 0,
+    "other": 0
+  },
+  "artifacts": []
+}

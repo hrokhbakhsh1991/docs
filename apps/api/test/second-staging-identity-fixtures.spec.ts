@@ -4,6 +4,7 @@ import { resolveLoginMobileLookupKeys } from "../src/identity/canonicalize-login
 
 import {
   assertStagingIdentityTenantExclusive,
+  assertSecondStagingFixtureIdentityMembership,
   assertSecondStagingIdentityLoginPolicy,
   canDeleteStagingIdentityUsers,
   FIRST_STAGING_IDENTITY_IDS,
@@ -11,14 +12,14 @@ import {
   planSecondStagingIdentityWrites,
   resolveFirstStagingIdentityFixtures,
   resolveSecondStagingIdentityFixtures,
+  SECOND_STAGING_IDENTITY_IDS,
   SECOND_STAGING_TENANT,
   type ExistingStagingMembership,
 } from "../scripts/lib/denali-second-staging-fixtures";
 
 const env = {
-  DENALI_SECOND_STAGING_OWNER_MOBILE: "09120000001",
-  DENALI_SECOND_STAGING_FINANCE_MOBILE: "09120000002",
-  DENALI_SECOND_STAGING_MEMBER_MOBILE: "09120000003",
+  DENALI_SECOND_STAGING_FINANCE_MOBILE: "+15550009004",
+  DENALI_SECOND_STAGING_MEMBER_MOBILE: "+15550009005",
 };
 
 const firstTenantEnv = {
@@ -39,13 +40,12 @@ const memberships = (): ExistingStagingMembership[] =>
     membershipMetadata: { displayName: fixture.displayName },
   }));
 
-test("resolves three distinct B-only fixtures with supported tenant roles", () => {
+test("resolves only new B Finance and Member fixtures in the reserved synthetic namespace", () => {
   const resolved = fixtures();
-  assert.equal(resolved.length, 3);
+  assert.equal(resolved.length, 2);
   assert.deepEqual(
     resolved.map(({ label, role }) => [label, role]),
     [
-      ["owner", "owner"],
       ["finance", "admin"],
       ["member", "member"],
     ]
@@ -56,8 +56,13 @@ test("resolves three distinct B-only fixtures with supported tenant roles", () =
         tenantId === SECOND_STAGING_TENANT.id && workspaceId === SECOND_STAGING_TENANT.workspaceId
     )
   );
-  assert.equal(new Set(resolved.map(({ userId }) => userId)).size, 3);
-  assert.equal(new Set(resolved.map(({ mobile }) => mobile)).size, 3);
+  assert.equal(new Set(resolved.map(({ userId }) => userId)).size, 2);
+  assert.equal(new Set(resolved.map(({ mobile }) => mobile)).size, 2);
+  assert.deepEqual(
+    resolved.map(({ userId }) => userId),
+    [SECOND_STAGING_IDENTITY_IDS.finance, SECOND_STAGING_IDENTITY_IDS.member]
+  );
+  assert.ok(resolved.every(({ mobile }) => /^\+1555\d{7}$/.test(mobile)));
 });
 
 test("resolves only the reserved A Owner and Finance fixtures", () => {
@@ -188,12 +193,77 @@ test("requires valid mobile inputs without including the input in errors", () =>
   );
 });
 
+test("does not require or resolve the existing B Owner mobile", () => {
+  const resolved = resolveSecondStagingIdentityFixtures(env);
+  assert.deepEqual(
+    resolved.map(({ label }) => label),
+    ["finance", "member"]
+  );
+  assert.equal(
+    resolved.some(({ userId }) => userId === SECOND_STAGING_IDENTITY_IDS.owner),
+    false
+  );
+});
+
+test("checks B fixture readiness by fixed identity ID and expected role only", () => {
+  for (const [label, role] of [
+    ["owner", "owner"],
+    ["finance", "admin"],
+    ["member", "member"],
+  ] as const) {
+    assert.doesNotThrow(() =>
+      assertSecondStagingFixtureIdentityMembership(label, {
+        userId: SECOND_STAGING_IDENTITY_IDS[label],
+        role,
+        status: "ACTIVE",
+        workspaceId: SECOND_STAGING_TENANT.workspaceId,
+      })
+    );
+  }
+  assert.throws(
+    () =>
+      assertSecondStagingFixtureIdentityMembership("finance", {
+        userId: SECOND_STAGING_IDENTITY_IDS.owner,
+        role: "admin",
+        status: "ACTIVE",
+        workspaceId: SECOND_STAGING_TENANT.workspaceId,
+      }),
+    /DENALI_SECOND_STAGING_FIXTURE_IDENTITY_NOT_READY/
+  );
+});
+
+test("rejects valid real-number-format B inputs outside the approved synthetic namespace", () => {
+  assert.throws(
+    () =>
+      resolveSecondStagingIdentityFixtures({
+        ...env,
+        DENALI_SECOND_STAGING_FINANCE_MOBILE: "09120000004",
+      }),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.message === "DENALI_SECOND_STAGING_IDENTITY_MOBILE_NOT_SYNTHETIC"
+  );
+});
+
+test("rejects wrong-length values inside the +1555 synthetic prefix", () => {
+  assert.throws(
+    () =>
+      resolveSecondStagingIdentityFixtures({
+        ...env,
+        DENALI_SECOND_STAGING_FINANCE_MOBILE: "+155500090004",
+      }),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.message === "DENALI_SECOND_STAGING_IDENTITY_MOBILE_NOT_SYNTHETIC"
+  );
+});
+
 test("rejects duplicate canonical mobile values", () => {
   assert.throws(
     () =>
       resolveSecondStagingIdentityFixtures({
         ...env,
-        DENALI_SECOND_STAGING_MEMBER_MOBILE: "+989120000001",
+        DENALI_SECOND_STAGING_MEMBER_MOBILE: env.DENALI_SECOND_STAGING_FINANCE_MOBILE,
       }),
     /DENALI_SECOND_STAGING_IDENTITY_MOBILE_DUPLICATE/
   );
@@ -206,14 +276,9 @@ test("uses the API login lookup aliases for Iranian mobile collision checks", ()
 });
 
 test("plans only missing users and memberships", () => {
-  const plan = planSecondStagingIdentityWrites(
-    fixtures(),
-    [null, null, null],
-    [[], [], []],
-    [null, null, null]
-  );
-  assert.equal(plan.usersToCreate.length, 3);
-  assert.equal(plan.membershipsToCreate.length, 3);
+  const plan = planSecondStagingIdentityWrites(fixtures(), [null, null], [[], []], [null, null]);
+  assert.equal(plan.usersToCreate.length, 2);
+  assert.equal(plan.membershipsToCreate.length, 2);
   assert.equal(plan.alreadyPresent.length, 0);
 });
 
@@ -228,7 +293,7 @@ test("accepts exact existing fixtures for a safe idempotent rerun", () => {
   );
   assert.equal(plan.usersToCreate.length, 0);
   assert.equal(plan.membershipsToCreate.length, 0);
-  assert.equal(plan.alreadyPresent.length, 3);
+  assert.equal(plan.alreadyPresent.length, 2);
 });
 
 test("rejects a reserved user ID or mobile owned by a different user", () => {
@@ -237,9 +302,9 @@ test("rejects a reserved user ID or mobile owned by a different user", () => {
     () =>
       planSecondStagingIdentityWrites(
         resolved,
-        [{ id: resolved[0]!.userId, mobile: "+989199999999" }, null, null],
-        [[], [], []],
-        [null, null, null]
+        [{ id: resolved[0]!.userId, mobile: "+15550009999" }, null],
+        [[], []],
+        [null, null]
       ),
     /DENALI_SECOND_STAGING_IDENTITY_COLLISION/
   );
@@ -247,9 +312,9 @@ test("rejects a reserved user ID or mobile owned by a different user", () => {
     () =>
       planSecondStagingIdentityWrites(
         resolved,
-        [null, null, null],
-        [[{ id: "00000000-0000-4000-8000-000000000003", mobile: "09120000001" }], [], []],
-        [null, null, null]
+        [null, null],
+        [[{ id: "00000000-0000-4000-8000-000000000003", mobile: resolved[0]!.mobile }], []],
+        [null, null]
       ),
     /DENALI_SECOND_STAGING_IDENTITY_COLLISION/
   );
@@ -257,7 +322,7 @@ test("rejects a reserved user ID or mobile owned by a different user", () => {
 
 test("rejects a pre-existing membership with a different role or workspace", () => {
   const current = memberships();
-  current[1] = { ...current[1]!, role: "owner" };
+  current[0] = { ...current[0]!, role: "owner" };
   assert.throws(
     () =>
       planSecondStagingIdentityWrites(

@@ -6,7 +6,7 @@ import {
   type SecondStagingFixtureManifest,
 } from "./lib/denali-second-staging-cleanup";
 import {
-  SECOND_STAGING_IDENTITY_IDS,
+  resolveSecondStagingCleanupIdentityIds,
   SECOND_STAGING_TENANT,
 } from "./lib/denali-second-staging-fixtures";
 import {
@@ -439,10 +439,11 @@ async function main(): Promise<void> {
   const record = value as Record<string, unknown>;
   const runId = record.runId;
   if (typeof runId !== "string") throw new Error("DENALI_SECOND_STAGING_CLEANUP_MANIFEST_REJECTED");
+  const identityIds = resolveSecondStagingCleanupIdentityIds(record.identityIds);
   const expected = buildSecondStagingRunFixtureIds({
     tenantId: SECOND_STAGING_TENANT.id,
     runId,
-    identityUserIds: SECOND_STAGING_IDENTITY_IDS,
+    identityUserIds: identityIds,
   });
   assertSecondStagingFixtureManifest(value, expected);
   const counts = await inspectAndMaybeDelete(value, apply);
