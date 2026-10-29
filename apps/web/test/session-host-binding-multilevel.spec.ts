@@ -5,10 +5,13 @@ import { afterEach, describe, it } from "node:test";
 import { requireOperatorSessionWeb } from "../src/admin/require-operator-session";
 import {
   resolveExpectedTenantIdForHost,
+  shouldFailClosedForTenantHost,
+  shouldResolveAdminTenantIdFromBootstrap,
   sessionTenantMatchesHost,
 } from "../src/tenant/session-host-binding";
 
 const DENALI_TENANT = "00000000-0000-4000-8000-000000000003";
+const QA2_TENANT = "f0ed9e65-2638-4351-847d-724f87ebbfce";
 
 const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
@@ -16,6 +19,8 @@ const envSnapshot = {
   ALLOW_DEV_WEB_SESSION: env.ALLOW_DEV_WEB_SESSION,
   TOUR_OPS_DEV_TENANT_ID: env.TOUR_OPS_DEV_TENANT_ID,
   PLATFORM_ROOT_DOMAIN: env.PLATFORM_ROOT_DOMAIN,
+  APP_INFRA_PROFILE: env.APP_INFRA_PROFILE,
+  TENANT_SURFACE_ORIGIN_MAP_JSON: env.TENANT_SURFACE_ORIGIN_MAP_JSON,
 };
 
 afterEach(() => {
@@ -67,6 +72,67 @@ describe("session-host-binding multilevel", () => {
       }),
       false
     );
+  });
+
+  it("staging admin origin map takes precedence over the dev tenant fallback", () => {
+    env.NODE_ENV = "production";
+    env.ALLOW_DEV_WEB_SESSION = "true";
+    env.TOUR_OPS_DEV_TENANT_ID = DENALI_TENANT;
+    env.APP_INFRA_PROFILE = "staging";
+    env.TENANT_SURFACE_ORIGIN_MAP_JSON = JSON.stringify({
+      version: 1,
+      tenants: [
+        {
+          tenantId: DENALI_TENANT,
+          origins: {
+            admin: "https://admin.denali.staging.test",
+            marketing: "https://denali.staging.test",
+            portal: "https://portal.denali.staging.test",
+          },
+          cookieDomain: null,
+        },
+        {
+          tenantId: QA2_TENANT,
+          origins: {
+            admin: "https://admin.qa2.staging.test",
+            marketing: "https://qa2.staging.test",
+            portal: "https://portal.qa2.staging.test",
+          },
+          cookieDomain: null,
+        },
+      ],
+    });
+
+    const qa2AdminHost = "admin.qa2.staging.test";
+    assert.equal(resolveExpectedTenantIdForHost(qa2AdminHost), QA2_TENANT);
+    assert.equal(sessionTenantMatchesHost(QA2_TENANT, qa2AdminHost), true);
+    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, qa2AdminHost), false);
+    assert.equal(shouldFailClosedForTenantHost(), true);
+    assert.equal(resolveExpectedTenantIdForHost("admin.unbound.staging.test"), null);
+    assert.equal(sessionTenantMatchesHost(QA2_TENANT, "admin.unbound.staging.test"), false);
+  });
+
+  it("staging fails closed when the admin origin map is absent or blank", () => {
+    env.NODE_ENV = "production";
+    env.ALLOW_DEV_WEB_SESSION = "true";
+    env.TOUR_OPS_DEV_TENANT_ID = DENALI_TENANT;
+    env.APP_INFRA_PROFILE = "staging";
+
+    for (const mapValue of [undefined, "", "   "]) {
+      if (mapValue === undefined) {
+        delete env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+      } else {
+        env.TENANT_SURFACE_ORIGIN_MAP_JSON = mapValue;
+      }
+
+      assert.equal(shouldFailClosedForTenantHost(), true);
+      assert.equal(shouldResolveAdminTenantIdFromBootstrap(), false);
+      for (const host of ["admin.unknown.staging.test", "admin.qa2.staging.test"]) {
+        assert.equal(resolveExpectedTenantIdForHost(host), null);
+        assert.equal(sessionTenantMatchesHost(DENALI_TENANT, host), false);
+        assert.equal(sessionTenantMatchesHost(QA2_TENANT, host), false);
+      }
+    }
   });
 
   it("production rejects a dynamic admin host when tenant resolution fails", () => {

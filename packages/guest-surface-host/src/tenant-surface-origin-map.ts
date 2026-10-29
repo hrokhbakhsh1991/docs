@@ -239,6 +239,39 @@ export function resolveTenantSurfaceBindingForHost(
   const map = readTenantSurfaceOriginMap();
   if (map === null) return null;
   const hostname = normalizeIngressHostname(host);
+  const match = findTenantSurfaceBindingMatch(map, hostname);
+  if (match === null) throw new Error(`tenant surface host is not allowlisted: ${hostname}`);
+  if (expectedSurface !== undefined && !matchesExpectedSurface(match, hostname, expectedSurface)) {
+    throw new Error(
+      `tenant surface host does not match expected surface ${expectedSurface}: ${hostname}`
+    );
+  }
+  return materializeTenantSurfaceBinding(match);
+}
+
+/** Look up an allowlisted host without turning an ordinary miss into an exception. */
+export function lookupTenantSurfaceBindingForHost(
+  host: string,
+  expectedSurface?: TenantSurfaceName
+): TenantSurfaceBinding | null {
+  const map = readTenantSurfaceOriginMap();
+  if (map === null) return null;
+  const hostname = normalizeIngressHostname(host);
+  const match = findTenantSurfaceBindingMatch(map, hostname);
+  if (match === null || !matchesExpectedSurface(match, hostname, expectedSurface)) return null;
+  return materializeTenantSurfaceBinding(match);
+}
+
+type TenantSurfaceBindingMatch = {
+  readonly binding: TenantSurfaceBinding;
+  readonly aliasSurface: TenantSurfaceName | undefined;
+  readonly alias: { readonly origin: string; readonly cookieDomain: string | null } | undefined;
+};
+
+function findTenantSurfaceBindingMatch(
+  map: TenantSurfaceOriginMap,
+  hostname: string
+): TenantSurfaceBindingMatch | null {
   const binding = map.tenants.find((tenant) =>
     SURFACES.some(
       (surface) =>
@@ -246,7 +279,8 @@ export function resolveTenantSurfaceBindingForHost(
         tenant.aliases?.[surface]?.some((alias) => new URL(alias.origin).hostname === hostname)
     )
   );
-  if (binding === undefined) throw new Error(`tenant surface host is not allowlisted: ${hostname}`);
+  if (binding === undefined) return null;
+
   const aliasSurface = SURFACES.find((surface) =>
     binding.aliases?.[surface]?.some((alias) => new URL(alias.origin).hostname === hostname)
   );
@@ -256,17 +290,24 @@ export function resolveTenantSurfaceBindingForHost(
       : binding.aliases?.[aliasSurface]?.find(
           (entry) => new URL(entry.origin).hostname === hostname
         );
-  const matchesExpectedSurface =
-    aliasSurface !== undefined
-      ? aliasSurface === expectedSurface
-      : expectedSurface === undefined ||
-        new URL(binding.origins[expectedSurface]).hostname === hostname;
-  if (expectedSurface !== undefined && !matchesExpectedSurface) {
-    throw new Error(
-      `tenant surface host does not match expected surface ${expectedSurface}: ${hostname}`
-    );
-  }
-  return alias !== undefined ? { ...binding, cookieDomain: alias.cookieDomain } : binding;
+  return { binding, aliasSurface, alias };
+}
+
+function matchesExpectedSurface(
+  match: TenantSurfaceBindingMatch,
+  hostname: string,
+  expectedSurface: TenantSurfaceName | undefined
+): boolean {
+  if (expectedSurface === undefined) return true;
+  return match.aliasSurface !== undefined
+    ? match.aliasSurface === expectedSurface
+    : new URL(match.binding.origins[expectedSurface]).hostname === hostname;
+}
+
+function materializeTenantSurfaceBinding(match: TenantSurfaceBindingMatch): TenantSurfaceBinding {
+  return match.alias !== undefined
+    ? { ...match.binding, cookieDomain: match.alias.cookieDomain }
+    : match.binding;
 }
 
 export function resolveTenantSurfaceOriginFromHost(

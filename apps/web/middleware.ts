@@ -29,9 +29,10 @@ import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import {
   resolveExpectedTenantIdForHost,
+  shouldResolveAdminTenantIdFromBootstrap,
+  shouldFailClosedForTenantHost,
   sessionTenantMatchesHost,
 } from "@/tenant/session-host-binding";
-import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { resolveAdminBootstrapForWebHost } from "@/tenant/resolve-admin-bootstrap.server";
 import {
   allowsOperatorTicketsTeamRole,
@@ -344,14 +345,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const validation = validateSessionToken(token);
   if (validation.status === "valid") {
     const expectedTenantId = resolveExpectedTenantIdForHost(host);
+    const failClosedWhenUnresolved = shouldFailClosedForTenantHost();
     const resolvedTenantId =
-      expectedTenantId === null && !isDevWebSessionAllowed()
+      expectedTenantId === null &&
+      failClosedWhenUnresolved &&
+      shouldResolveAdminTenantIdFromBootstrap()
         ? await resolveAdminTenantIdForHost(host)
         : null;
     if (
       !sessionTenantMatchesHost(validation.tenantId, host, {
         resolvedTenantId,
-        failClosedWhenUnresolved: !isDevWebSessionAllowed(),
+        failClosedWhenUnresolved,
       })
     ) {
       if (isBffApi) {

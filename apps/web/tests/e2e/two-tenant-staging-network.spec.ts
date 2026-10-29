@@ -60,13 +60,17 @@ test.describe("two-tenant staging network and TLS", () => {
         expect(
           apiResponse.status(),
           `${tenantLabel}/${surface} API TLS/HTTP response`
-        ).toBeLessThan(500);
+        ).toBeLessThan(400);
 
         const browserResponse = await page.goto(origin, {
           waitUntil: "domcontentloaded",
           timeout: 20_000,
         });
         expect(browserResponse, `${tenantLabel}/${surface} browser response`).not.toBeNull();
+        expect(
+          browserResponse?.status(),
+          `${tenantLabel}/${surface} browser HTTP response`
+        ).toBeLessThan(400);
         expect(new URL(page.url()).origin).toBe(origin);
       });
     }
