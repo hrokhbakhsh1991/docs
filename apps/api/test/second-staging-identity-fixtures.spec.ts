@@ -3,8 +3,13 @@ import test from "node:test";
 import { resolveLoginMobileLookupKeys } from "../src/identity/canonicalize-login-mobile";
 
 import {
+  assertStagingIdentityTenantExclusive,
   assertSecondStagingIdentityLoginPolicy,
+  canDeleteStagingIdentityUsers,
+  FIRST_STAGING_IDENTITY_IDS,
+  FIRST_STAGING_TENANT,
   planSecondStagingIdentityWrites,
+  resolveFirstStagingIdentityFixtures,
   resolveSecondStagingIdentityFixtures,
   SECOND_STAGING_TENANT,
   type ExistingStagingMembership,
@@ -14,6 +19,11 @@ const env = {
   DENALI_SECOND_STAGING_OWNER_MOBILE: "09120000001",
   DENALI_SECOND_STAGING_FINANCE_MOBILE: "09120000002",
   DENALI_SECOND_STAGING_MEMBER_MOBILE: "09120000003",
+};
+
+const firstTenantEnv = {
+  DENALI_FIRST_STAGING_OWNER_MOBILE: "09120000011",
+  DENALI_FIRST_STAGING_FINANCE_MOBILE: "09120000012",
 };
 
 const fixtures = () => resolveSecondStagingIdentityFixtures(env);
@@ -48,6 +58,99 @@ test("resolves three distinct B-only fixtures with supported tenant roles", () =
   );
   assert.equal(new Set(resolved.map(({ userId }) => userId)).size, 3);
   assert.equal(new Set(resolved.map(({ mobile }) => mobile)).size, 3);
+});
+
+test("resolves only the reserved A Owner and Finance fixtures", () => {
+  const resolved = resolveFirstStagingIdentityFixtures(firstTenantEnv);
+
+  assert.deepEqual(
+    resolved.map(({ label, userId, role, workspaceId, displayName, tenantId }) => ({
+      label,
+      userId,
+      role,
+      workspaceId,
+      displayName,
+      tenantId,
+    })),
+    [
+      {
+        label: "owner",
+        userId: FIRST_STAGING_IDENTITY_IDS.owner,
+        role: "owner",
+        workspaceId: FIRST_STAGING_TENANT.workspaceId,
+        displayName: "QA A Owner",
+        tenantId: FIRST_STAGING_TENANT.id,
+      },
+      {
+        label: "finance",
+        userId: FIRST_STAGING_IDENTITY_IDS.finance,
+        role: "admin",
+        workspaceId: FIRST_STAGING_TENANT.workspaceId,
+        displayName: "QA A Finance Operator",
+        tenantId: FIRST_STAGING_TENANT.id,
+      },
+    ]
+  );
+  assert.deepEqual(
+    resolved.map(({ mobile }) => mobile),
+    ["09120000011", "09120000012"]
+  );
+  assert.equal(new Set(resolved.map(({ userId }) => userId)).size, 2);
+  assert.equal(new Set(resolved.map(({ mobile }) => mobile)).size, 2);
+  assert.ok(resolved.every(({ tenantId }) => tenantId !== SECOND_STAGING_TENANT.id));
+});
+
+test("requires both A Owner and Finance mobiles and rejects duplicate A mobiles", () => {
+  assert.throws(
+    () =>
+      resolveFirstStagingIdentityFixtures({
+        DENALI_FIRST_STAGING_OWNER_MOBILE: firstTenantEnv.DENALI_FIRST_STAGING_OWNER_MOBILE,
+      }),
+    /DENALI_SECOND_STAGING_IDENTITY_MOBILE_REQUIRED/
+  );
+  assert.throws(
+    () =>
+      resolveFirstStagingIdentityFixtures({
+        ...firstTenantEnv,
+        DENALI_FIRST_STAGING_FINANCE_MOBILE: "+989120000011",
+      }),
+    /DENALI_SECOND_STAGING_IDENTITY_MOBILE_DUPLICATE/
+  );
+});
+
+test("accepts reserved A identities with memberships only in tenant A", () => {
+  const resolved = resolveFirstStagingIdentityFixtures(firstTenantEnv);
+
+  assert.doesNotThrow(() =>
+    assertStagingIdentityTenantExclusive(
+      resolved,
+      resolved.map(({ userId, tenantId }) => ({ userId, tenantId }))
+    )
+  );
+});
+
+test("rejects a reserved A identity membership in another tenant", () => {
+  const [owner] = resolveFirstStagingIdentityFixtures(firstTenantEnv);
+  assert.ok(owner);
+
+  assert.throws(
+    () =>
+      assertStagingIdentityTenantExclusive(
+        [owner],
+        [{ userId: owner.userId, tenantId: SECOND_STAGING_TENANT.id }]
+      ),
+    /DENALI_SECOND_STAGING_IDENTITY_TENANT_COLLISION/
+  );
+});
+
+test("preserves synthetic users when any persisted row still references them", () => {
+  assert.equal(canDeleteStagingIdentityUsers(0), true);
+  assert.equal(canDeleteStagingIdentityUsers(1), false);
+  assert.equal(canDeleteStagingIdentityUsers(25), false);
+  assert.throws(
+    () => canDeleteStagingIdentityUsers(-1),
+    /DENALI_SECOND_STAGING_IDENTITY_REFERENCE_COUNT_INVALID/
+  );
 });
 
 test("requires static staging OTP and rejects live SMS delivery", () => {

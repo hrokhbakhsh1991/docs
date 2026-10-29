@@ -14,6 +14,7 @@ const validEnv = {
     "postgresql://postgres:admin-secret@db.internal:5432/tour_db_staging?schema=public",
   DENALI_SECOND_TENANT_STAGING_CONFIRM: "provision-denali-qa2-to-tour_db_staging",
   DENALI_SECOND_TENANT_STAGING_IDENTITIES_CONFIRM: "seed-denali-qa2-identities-to-tour_db_staging",
+  DENALI_FIRST_STAGING_IDENTITIES_CONFIRM: "seed-denali-a-identities-to-tour_db_staging",
 };
 
 test("accepts the pinned staging target for dry run and apply", () => {
@@ -60,6 +61,46 @@ test("identity apply requires its separate exact staging confirmation", () => {
   } = validEnv;
   assert.throws(() =>
     assertSecondTenantStagingTarget(withoutIdentityConfirmation, true, "identities")
+  );
+});
+
+test("A-side identity apply requires a distinct exact staging confirmation", () => {
+  assert.doesNotThrow(() => assertSecondTenantStagingTarget(validEnv, true, "aIdentities"));
+  assert.throws(
+    () =>
+      assertSecondTenantStagingTarget(
+        {
+          ...validEnv,
+          DENALI_FIRST_STAGING_IDENTITIES_CONFIRM: "seed-denali-qa2-identities-to-tour_db_staging",
+        },
+        true,
+        "aIdentities"
+      ),
+    /DENALI_SECOND_TENANT_STAGING_CONFIRMATION_REQUIRED/
+  );
+  assert.throws(() => {
+    const { DENALI_FIRST_STAGING_IDENTITIES_CONFIRM: _confirmation, ...withoutConfirmation } =
+      validEnv;
+    assertSecondTenantStagingTarget(withoutConfirmation, true, "aIdentities");
+  }, /DENALI_SECOND_TENANT_STAGING_CONFIRMATION_REQUIRED/);
+});
+
+test("A-side identity cleanup apply requires its own exact staging confirmation", () => {
+  assert.doesNotThrow(() => assertSecondTenantStagingTarget(validEnv, false, "aIdentitiesCleanup"));
+  assert.throws(
+    () => assertSecondTenantStagingTarget(validEnv, true, "aIdentitiesCleanup"),
+    /DENALI_SECOND_TENANT_STAGING_CONFIRMATION_REQUIRED/
+  );
+  assert.doesNotThrow(() =>
+    assertSecondTenantStagingTarget(
+      {
+        ...validEnv,
+        DENALI_FIRST_STAGING_IDENTITIES_CLEANUP_CONFIRM:
+          "cleanup-denali-a-identities-from-tour_db_staging",
+      },
+      true,
+      "aIdentitiesCleanup"
+    )
   );
 });
 
