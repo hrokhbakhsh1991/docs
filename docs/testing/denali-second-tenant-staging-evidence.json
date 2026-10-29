@@ -18,9 +18,7 @@
         "docs/testing/denali-second-tenant-staging-plan.md sections 2 through 9.",
         "P0 baseline recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md."
       ],
-      "depends_on": [
-        "A"
-      ]
+      "depends_on": ["A"]
     },
     {
       "id": "C",
@@ -29,9 +27,7 @@
       "evidence": [
         "Changed files are apps/web/middleware.ts, apps/web/src/tenant/session-host-binding.ts, and focused tests."
       ],
-      "depends_on": [
-        "B"
-      ]
+      "depends_on": ["B"]
     },
     {
       "id": "D",
@@ -41,9 +37,7 @@
         "PlatformDomainRepository.findVerifiedActiveByHostname requires verified and active domain records (apps/api/src/platform/platform-domain.repository.ts:117-141).",
         "resolveAdminBootstrapForWebHost delegates to the guest-surface host bootstrap (apps/web/src/tenant/resolve-admin-bootstrap.server.ts:14-23)."
       ],
-      "depends_on": [
-        "B"
-      ]
+      "depends_on": ["B"]
     },
     {
       "id": "E",
@@ -53,9 +47,7 @@
         "apps/web/middleware.ts resolves dynamic production admin hosts via resolveAdminBootstrapForWebHost before session binding.",
         "apps/web/src/tenant/session-host-binding.ts compares resolved tenant IDs and rejects unresolved production admin hosts."
       ],
-      "depends_on": [
-        "D"
-      ]
+      "depends_on": ["D"]
     },
     {
       "id": "F",
@@ -82,10 +74,7 @@
         "Fresh code review covered profile and suffix gates, normalized exact host matching, map validation, active tenant state, collision handling, and public-domain compatibility; no unresolved findings in this slice.",
         "P1 private resolution implementation has not yet run in PR CI or on staging; no commit/deploy has been made."
       ],
-      "depends_on": [
-        "B",
-        "E"
-      ]
+      "depends_on": ["B", "E"]
     },
     {
       "id": "G",
@@ -121,11 +110,17 @@
         "Fresh staging workflow 40841484572 has started the immutable artifact build; it has not reached transfer/install/runtime verification.",
         "Phase 5 PostgreSQL gate completed successfully; staging workflow 40841484572 has not reached transfer/install/runtime verification.",
         "Fresh SSH: current resolves to /opt/app-tour-staging/releases/86e0cd2863ce9f55b91015b88c3ab3608e5ee5a6; Caddy active; deployed Caddyfile SHA-256 dbeb9c297a7bcca5ea2b1422335466d0181b1277f426a81ab800aca28f4d302b; caddy validate PASS.",
-        "Fresh strict TLS requests to qa2.staging.test, admin.qa2.staging.test, portal.qa2.staging.test each return 503 with STAGING_SECOND_TENANT_ENABLED=false."
+        "Fresh strict TLS requests to qa2.staging.test, admin.qa2.staging.test, portal.qa2.staging.test each return 503 with STAGING_SECOND_TENANT_ENABLED=false.",
+        "Fresh read-only staging API env has APP_INFRA_PROFILE=staging and its configured origin map exactly maps qa2/admin.qa2/portal.qa2.staging.test to reserved tenant B UUID f0ed9e65-2638-4351-847d-724f87ebbfce with marketing/admin/portal surfaces, respectively; this proves configuration only, not the not-yet-deployed resolver.",
+        "Fresh read-only SSH check: staging current release remains 86e0cd2863ce9f55b91015b88c3ab3608e5ee5a6; API and Caddy are active. Caddy validates when /etc/caddy/caddy.env is loaded; STAGING_SECOND_TENANT_ENABLED=false.",
+        "Read-only internal API probes: /health returns 200; denali.club returns 200 and expected A tenant UUID 00000000-0000-4000-8000-000000000003; each of qa2.staging.test, admin.qa2.staging.test and portal.qa2.staging.test returns 404 TENANT_HOST_UNKNOWN on the pre-PR release. This is fail-closed baseline evidence, not proof of the new map.",
+        "Read-only config parse (hostnames only): origin map contains all six planned private hosts, with three public aliases for A; tenant IDs and full config values were not emitted.",
+        "Strict TLS with the Caddy internal root CA: qa2.staging.test, admin.qa2.staging.test and portal.qa2.staging.test return 503 with the second-tenant flag false. On the pre-PR release, denali.staging.test and portal.denali.staging.test return 500, while admin.denali.staging.test returns 404; these A-private alias responses require post-deploy acceptance and are not evidence against the new resolver.",
+        "Codebase Memory trace of handlePublicTenantContext: GET /public/tenant-context dispatches through resolvePublicIngressSubdomain to resolveTenantFromCustomDomainHost; use this route for tenant/surface assertions on all six hosts after deploy. The current release predates the PR.",
+        "Fresh read-only UFW check: firewall active, default deny incoming, only TCP 22 and 80 allowed on IPv4/IPv6; TCP 443 is not publicly allowed. Internal strict-TLS probes to Caddy loopback succeed.",
+        "Read-only VPS inventory found no Chromium/Chrome/Firefox binary and no Playwright package in the deployed release; the VPS is not a browser runner. No package installation or firewall change has been made."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "H",
@@ -134,9 +129,7 @@
       "evidence": [
         "The acceptance work in this branch concerns middleware redirects and session/tenant authorization."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "I",
@@ -195,11 +188,11 @@
         "No CNAME verification was fabricated and no ingress setting was changed during this revalidation.",
         "Private/public ingress/API resolver tests: 12/12 PASS.",
         "Staging environment/deploy contract tests: 15/15 PASS, including idempotent sync, APP_INFRA_PROFILE marker persistence, and origin-map SHA fingerprint output.",
-        "Guest-surface-host build, API lint/typecheck, API guards, root architecture/import guards, Prettier, documentation sync and git diff check PASS."
+        "Guest-surface-host build, API lint/typecheck, API guards, root architecture/import guards, Prettier, documentation sync and git diff check PASS.",
+        "PR #335 Phase 5 gate run 40846927366 FAILED: apps/api/test/package-boundary.spec.ts exact runtime dependency allowlist omitted the newly required @app-tour/guest-surface-host dependency; forbidden UI package import assertion was not the failing assertion.",
+        "Added @app-tour/guest-surface-host to the API runtime dependency allowlist and documented its tenant-surface-origin-map subpath use in docs/phase-15/platform-domains-ssl.mdoc. Focused rerun pnpm --filter @apps/api exec tsx --test test/package-boundary.spec.ts PASS 2/2; guard:doc-sync PASS and git diff --check PASS. Full PR CI has not yet rerun on a commit containing the fix."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "J",
@@ -233,10 +226,7 @@
         "Private-host review checked exact validated map lookup, staging profile gate, active tenant lookup, any-row domain collision rejection, shared surface resolution and unchanged public CNAME path.",
         "Updated docs/phase-15/platform-domains-ssl.mdoc before continuing API changes, per app-tour-architecture skill."
       ],
-      "depends_on": [
-        "G",
-        "I"
-      ]
+      "depends_on": ["G", "I"]
     }
   ]
 }
