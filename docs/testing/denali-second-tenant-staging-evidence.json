@@ -51,37 +51,47 @@
     },
     {
       "id": "F",
-      "status": "PASS",
-      "reason": "Web tenant-binding/redirect slices and an isolated, target-guarded P2 seed wrapper are implemented locally; no staging mutation has occurred.",
+      "status": "IN PROGRESS",
+      "reason": "The existing feature work and prior smoke fix are deployed, but the first guarded tenant apply exposed an id-to-tenantId contract bug before mutation. A tested local fix and explicit app-role RLS audit are ready; fresh PR CI and redeployment must pass before retrying.",
       "evidence": [
         "apps/web middleware resolves dynamic production admin tenant context and rejects unresolved hosts; root redirects preserve forwarded public ingress.",
         "apps/api/scripts/seed-denali-second-staging-tenant.ts pins the target and B identity, rejects UUID/slug collisions, and delegates creation to the existing certified production primitive.",
         "scripts/vps-deploy/build-staging-artifact.sh bundles the guarded seed and artifact self-check requires its bundle and wrapper.",
-        "P2 one-off staging seed wrapper validates exact staging target and B identity before admin client use; no staging mutation occurred."
+        "P2 one-off staging seed wrapper validates exact staging target and B identity before admin client use; no staging mutation occurred.",
+        "Guarded tenant seed dry-run passed with exact staged target. The initial apply stopped with PROVISIONING_TENANT_ID_REQUIRED before createTenantRow; DB remained unchanged. Review traced a field mismatch: seed record uses id while ProvisioningService requires tenantId.",
+        "Regression fix maps id to tenantId; identity/target tests 13/13 and staging env-contract tests 15/15. API lint/guards, architecture/import/repository-RLS guards, esbuild bundle, bash syntax, Prettier and diff checks pass. New automated deployment RLS audit script also passed when run read-only against live staging.",
+        "Read-only query using staging DATABASE_URL_ADMIN confirmed tenant ID f0ed9e65-2638-4351-847d-724f87ebbfce or slug denali-qa2 has zero matching rows after the aborted apply."
       ],
       "depends_on": ["B", "E"]
     },
     {
       "id": "G",
-      "status": "FAIL",
-      "reason": "Latest staging workflow 40828113394 built dev SHA 0a83d73f6cdbde59fa80ae3021a1f7839475d145 but failed the web smoke: it selected tenant A private canonical admin origin rather than the configured operator ingress host, yielding HTTP 404 / ADMIN_TENANT_UNRESOLVED. The local resolver fix passes focused checks; CI and redeployment are pending.",
+      "status": "IN PROGRESS",
+      "reason": "PR #333 merged and staging run 40833400488 successfully installed release SHA 4279700d4acaac65f5077e1a8e6db2d88a844443; all four processes, staging smoke, health gate and workspace adapter passed. Live read-only RLS catalog audit also passed as app_tour. Tenant-B routes remain deliberately disabled and all two-tenant business acceptance, persistence and rollback are incomplete.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
-        "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
+        "At initial preflight, the existing release was a685ad89c78a21faf367f6afe00e197f4a812a48; later historical deployment attempts and the current successful run are recorded below.",
         "Fresh direct DNS + strict curl probe 2026-10-29: all three proposed qa2.shenski.com hosts unresolved; curl exit 6 before TLS negotiation. This confirms P0-03 remains blocked.",
         "Fresh read-only VPS inventory on 2026-10-29: host touriran; /etc/caddy/Caddyfile SHA-256 962bcbf4aeb0dda803407b4d28c83e55503602d63cf3ec917cba1959d770fa27; Caddy listens on *:80 only; UFW allows inbound 22/80 and denies 443 for IPv4/IPv6.",
         "Direct staging A origin host staging-denali.shenski.com still returns HTTP 200 on origin :80. No Caddy deployment, staging app change, DB mutation, B tenant seed, or live browser run occurred.",
         "Fresh direct-origin HTTP probe on 2026-10-29: A host staging-denali.shenski.com returned 200, while legacy public QA2 marketing/admin/portal hosts each returned 500 from the existing deployed origin. The deployed /etc/caddy/Caddyfile SHA differs from the branch config, so this is stale-runtime evidence; the private ingress/tombstone changes are not deployed.",
         "PR #329 merged to dev as b7def71aa184ec3d0a31c665a6660ffa5dda5ccf; deploy workflow 40808855233 artifact build, tests, typecheck, lint, build, clean-checkout verification, SHA/digest verification and upload passed.",
         "Deploy job failed in Transfer, install, migrate, and standard seed: sync-staging-profile-b-public-urls.sh reported missing STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON; the workflow has no configured environment variable for it.",
-        "Post-failure read-only VPS check: current still points to a685ad89c78a21faf367f6afe00e197f4a812a48; existing app-tour-api/web/marketing/portal and Caddy are active, while target app-tour-staging-* units remain inactive; Caddyfile SHA remains 962bcbf4aeb0dda803407b4d28c83e55503602d63cf3ec917cba1959d770fa27. The new release was extracted but not activated; deploy did not reach migration, seed, Caddy install, health verification or workspace adapter.",
+        "Historical post-failure check after run 40808855233: current pointed to a685ad89c78a21faf367f6afe00e197f4a812a48; staging units were inactive and the candidate release was not activated. This predates run 40833400488, which successfully installed and activated SHA 4279700d4acaac65f5077e1a8e6db2d88a844443.",
         "Follow-up installer hardening adds origin-map validation-only mode before stopping services and reads the persistent map from api.env. REG-STG-ENV-11/12 focused tests pass 12/12 locally; CI and retry remain pending.",
         "Workflow run 40812548576: staging current symlink and four service working directories resolve to bda726aaca7598a35adbf188823390197fd48ea7; release-integrity.json records digest f50f5f50044390578b6387519f3fcb71ea51b8d54482206e08ed3125de465904. API/marketing/portal health returned HTTP 200; web /auth/login returned HTTP 500 with TENANT_SURFACE_ORIGIN_MAP_JSON parse failure.",
         "Strict VPS-local TLS probes used Caddy internal root CA with curl --resolve host:443:127.0.0.1; all six private .staging.test hostnames verified CA and hostname identity. The three B routes returned HTTP 503 while the second-tenant flag remained disabled. Browser-profile trust/external client reachability is still unverified.",
         "Workflow 40816177264 activated SHA 1314b404ef749b9f859e47f5211fc7b05ad5be28 with release manifest digest 9b858bfa3865184bcbbcfba09ff0b56d0d14effe022ee484adcd49e084e22ad1 and archive SHA-256 d2fa0a0d67a6ad74d69b641da168025d5bd09b2c4b7e232d6f70500eefc18f12. API/marketing/portal health passed; web smoke failed on localhost without the required mapped admin Host. B seed and later deploy steps did not run.",
         "Follow-up code tracing found private A admin /auth/login returned 404 and the legacy public A admin alias returned 500. A local repair adds per-surface aliases with validated cookie scopes, mapped admin ingress recognition, async admin bootstrap on login, and a valid-host four-process smoke probe. Guest package build/tests 86/86, web focused tests 11/11, staging env contract 13/13, web lint/typecheck, shell syntax and diff checks pass; CI and redeployment are pending.",
         "Run 40828113394 built immutable artifact for 0a83d73f6cdbde59fa80ae3021a1f7839475d145 (artifact digest suffix ec5a71616fa89f9daf8550909fb9252aa2be97e8a073e50b7206dd1ed34c1ba0); API, marketing and portal health returned 200, web /auth/login returned 404; health/RLS and workspace adapter steps were skipped.",
-        "Current local fix reads OPERATOR_ADMIN_ROOT_HOSTS from web.env and requires an exact match to tenant A admin origin/alias. Host resolver + staging env contract tests pass 19/19; CI/deploy not run. Read-only public alias probes returned login HTML 200 without runtime SHA provenance."
+        "Current local fix reads OPERATOR_ADMIN_ROOT_HOSTS from web.env and requires an exact match to tenant A admin origin/alias. Host resolver + staging env contract tests pass 19/19; CI/deploy not run. Read-only public alias probes returned login HTML 200 without runtime SHA provenance.",
+        "PR #333 merged as 4279700d4acaac65f5077e1a8e6db2d88a844443; all six required checks passed, including Production readiness L3 and Deployment contract.",
+        "Deploy workflow 40833400488 built immutable artifact for 4279700d4acaac65f5077e1a8e6db2d88a844443; tar.zst SHA-256 e568c0a47984f6e2242ec1f9e6d12ba3fdff5ae5cf40b7ae15810ed406672af1; uploaded Actions ZIP SHA-256 cf1997d5b4acba398fbe7bfcd38955a3b01eb54fe9c824e3b7291bc42823b27f. Artifact self-check, clean-room, transfer verification, migration check, install and workspace adapter passed.",
+        "Staging smoke selected staging-admin-denali.shenski.com; API, web, marketing and portal each returned HTTP 200 on first attempt. No B seed was run; Caddy second-tenant flag stayed false.",
+        "Direct read-only VPS query through staging api.env DATABASE_URL returned tour_db_staging|app_tour|false|false. RLS enabled on tenants, tenant_domains, tours, urban_registrations, payments, payment_receipts, operator_registrations, user_tenants and mobile_otp_challenges.",
+        "The deploy workflow step named Staging health and RLS verification only runs scripts/p10-staging-remote-gate.sh, which repeats four-process HTTP smoke; the live SQL audit was performed separately. Cross-tenant row-level behavior is still NOT RUN.",
+        "Guarded tenant apply was attempted after smoke/RLS prerequisites and stopped before any mutation with PROVISIONING_TENANT_ID_REQUIRED; source review found id/tenantId mismatch. No tenant B data was created. A fix is pending PR CI and redeployment.",
+        "After the guarded apply failed before createTenantRow, a read-only admin query confirmed COUNT(*)=0 for the reserved B tenant UUID or slug. Staging DB remains unchanged by this attempt."
       ],
       "depends_on": ["F"]
     },
@@ -96,8 +106,8 @@
     },
     {
       "id": "I",
-      "status": "BLOCKED",
-      "reason": "Local regression/build/lint checks for the admin ingress and staging smoke repair pass. Fresh PR CI is pending; shellcheck is unavailable.",
+      "status": "IN PROGRESS",
+      "reason": "The admin smoke fix has passed CI and deploy. A subsequent live guarded apply exposed a tenantId mapping defect before any DB mutation; its fix and a separate automated app-role RLS audit are locally verified but fresh PR CI and deployment remain pending.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -143,7 +153,9 @@
         "Current PR #329 head 48e63f686177f2e77f235cc3f1a1fd03761065b4: all 28 non-skipped checks passed, including Phase 0 foundation/integration, Phase 1, Phase 4, Phase 5, Phase 6.6/6.7/fast-closure, Phase 7 adversarial, Phase 8 guards/regression/E2E, marketing Playwright, production readiness, deployment contract and PROD-6 security. Seven optional impact-classified checks were skipped; zero checks failed.",
         "PR #329 merged as b7def71aa184ec3d0a31c665a6660ffa5dda5ccf. Deployment artifact build checks passed; the separate deployment job failed at the missing tenant surface-origin map precondition.",
         "node --test scripts/test/staging-env-contract.spec.mjs: 13/13 pass, including initial sync, idempotent resync, and Bash-source JSON parsing for api/web/marketing/portal. bash -n, git diff --check and pnpm exec prettier --check scripts/test/staging-env-contract.spec.mjs pass. shellcheck unavailable.",
-        "Current admin-ingress patch: guest-surface-host build PASS; guest package suite 86/86; web operator-admin-ingress plus login-brand tests 11/11; staging env contract 13/13; web lint/typecheck PASS; changed shell syntax and git diff --check PASS. Earlier failed test used a stale built package and passed after rebuilding."
+        "Current admin-ingress patch: guest-surface-host build PASS; guest package suite 86/86; web operator-admin-ingress plus login-brand tests 11/11; staging env contract 13/13; web lint/typecheck PASS; changed shell syntax and git diff --check PASS. Earlier failed test used a stale built package and passed after rebuilding.",
+        "PR #333 CI and staging workflow 40833400488 passed. Fresh review added strict rejection of host ports/URL components; focused suite 19/19; syntax, Prettier, doc-sync, diff check and artifact/runtime provenance verified.",
+        "Live read-only RLS audit returned tour_db_staging|app_tour|false|false and validated nine required RLS-enabled tables. REG-STG-ENV-15 covers separate health and RLS workflow steps; fix CI is not yet run."
       ],
       "depends_on": ["F"]
     },
