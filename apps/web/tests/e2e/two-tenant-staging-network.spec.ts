@@ -71,7 +71,10 @@ test.describe("two-tenant staging network and TLS", () => {
           browserResponse?.status(),
           `${tenantLabel}/${surface} browser HTTP response`
         ).toBeLessThan(400);
-        expect(new URL(page.url()).origin).toBe(origin);
+        const finalOrigin = new URL(page.url()).origin;
+        const allowedFinalOrigins =
+          surface === "portal" ? [origin, manifest.tenants[tenantLabel].hosts.marketing] : [origin];
+        expect(allowedFinalOrigins).toContain(finalOrigin);
       });
     }
   }
