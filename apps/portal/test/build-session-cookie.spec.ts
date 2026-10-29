@@ -61,6 +61,64 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
     }
   });
 
+  it("uses isolated tenant cookie domains even when a broad legacy domain is configured", async () => {
+    const { resolveMemberSessionCookieDomainForHost, setSessionCookieOnResponse } =
+      await import("../src/auth/build-session-cookie");
+    const previousDomain = process.env.MEMBER_SESSION_COOKIE_DOMAIN;
+    const previousHostOnly = process.env.MEMBER_SESSION_COOKIE_HOST_ONLY;
+    const previousMap = process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+    process.env.MEMBER_SESSION_COOKIE_DOMAIN = "shenski.com";
+    delete process.env.MEMBER_SESSION_COOKIE_HOST_ONLY;
+    process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = JSON.stringify({
+      version: 1,
+      tenants: [
+        {
+          tenantId: "00000000-0000-4000-8000-000000000003",
+          origins: {
+            marketing: "https://staging-denali.shenski.com",
+            admin: "https://staging-admin-denali.shenski.com",
+            portal: "https://staging-portal-denali.shenski.com",
+          },
+          cookieDomain: "shenski.com",
+        },
+        {
+          tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+          origins: {
+            marketing: "https://qa2.staging.test",
+            admin: "https://admin.qa2.staging.test",
+            portal: "https://portal.qa2.staging.test",
+          },
+          cookieDomain: "qa2.staging.test",
+        },
+      ],
+    });
+    try {
+      const tenantA = new Headers();
+      setSessionCookieOnResponse(tenantA, "a-jwt", "staging-portal-denali.shenski.com");
+      assert.match(tenantA.get("set-cookie") ?? "", /Domain=shenski\.com/);
+      assert.equal(
+        resolveMemberSessionCookieDomainForHost("staging-portal-denali.shenski.com"),
+        "shenski.com"
+      );
+
+      const tenantB = new Headers();
+      setSessionCookieOnResponse(tenantB, "b-jwt", "portal.qa2.staging.test");
+      assert.match(tenantB.get("set-cookie") ?? "", /Domain=qa2\.staging\.test/);
+      assert.doesNotMatch(tenantB.get("set-cookie") ?? "", /Domain=shenski\.com/);
+      assert.equal(
+        resolveMemberSessionCookieDomainForHost("portal.qa2.staging.test"),
+        "qa2.staging.test"
+      );
+    } finally {
+      if (previousDomain === undefined) delete process.env.MEMBER_SESSION_COOKIE_DOMAIN;
+      else process.env.MEMBER_SESSION_COOKIE_DOMAIN = previousDomain;
+      if (previousHostOnly === undefined) delete process.env.MEMBER_SESSION_COOKIE_HOST_ONLY;
+      else process.env.MEMBER_SESSION_COOKIE_HOST_ONLY = previousHostOnly;
+      if (previousMap === undefined) delete process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+      else process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = previousMap;
+    }
+  });
+
   it("PCMS-COOK-06 dev denali.portal.localhost auth BFF is host-only", async () => {
     const priorNode = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";

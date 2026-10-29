@@ -123,6 +123,48 @@ pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-
 cp -a "${SCRIPT_DIR}/seed-denali-wallet-pilot-artifact.sh" "${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.sh"
 chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-wallet-pilot.sh"
 
+log "bundle guarded Denali second-tenant staging seed"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-second-staging-tenant.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-second-staging-tenant.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-second-staging-tenant-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-tenant.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-tenant.sh"
+
+log "bundle guarded Denali second-tenant staging identities seed"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-second-staging-identities.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-second-staging-identities.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-second-staging-identities-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-identities.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-identities.sh"
+
+log "bundle guarded Denali second-tenant staging fixtures seed"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-second-staging-fixtures.ts" \
+  --bundle --platform=node --format=cjs --target=node24 --packages=external \
+  --external:@prisma/client \
+  --external:@app-tour/workspace-denali \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-second-staging-fixtures.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-second-staging-fixtures-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-fixtures.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-fixtures.sh"
+
+log "bundle manifest-scoped Denali second-tenant staging fixture cleanup"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/cleanup-denali-second-staging-fixtures.ts" \
+  --bundle --platform=node --format=cjs --target=node24 --packages=external \
+  --external:@prisma/client \
+  --external:@app-tour/workspace-denali \
+  --outfile="${ARTIFACT_ROOT}/bin/cleanup-denali-second-staging-fixtures.cjs"
+cp -a "${SCRIPT_DIR}/cleanup-denali-second-staging-fixtures-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/cleanup-denali-second-staging-fixtures.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/cleanup-denali-second-staging-fixtures.sh"
+
 log "bundle migrate helper"
 mkdir -p "${ARTIFACT_ROOT}/bin"
 cat >"${ARTIFACT_ROOT}/bin/migrate-deploy.sh" <<'MIG'
@@ -157,6 +199,7 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
   "migrationHead": "${MIGRATION_HEAD}",
   "denaliClientBundle": true,
   "denaliWalletPilotSeedBundle": true,
+  "denaliSecondStagingTenantSeedBundle": true,
   "operatorSmokePendingBookingSeedBundle": true,
   "layout": {
     "api": "api/dist/main.js",

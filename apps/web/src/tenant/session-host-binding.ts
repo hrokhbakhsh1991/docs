@@ -1,7 +1,6 @@
 import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel/host-only";
 
 import { isDevWebSessionAllowed } from "./auth-env";
-import { isOperatorAdminHost } from "./operator-admin-host";
 import {
   normalizeHostHeader,
   readPlatformRootDomainWeb,
@@ -44,13 +43,23 @@ export function resolveExpectedTenantIdForHost(host: string): string | null {
   }
 
   const envTenant =
-    process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ??
-    process.env.NEXT_PUBLIC_DEV_TENANT_ID?.trim();
+    process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ?? process.env.NEXT_PUBLIC_DEV_TENANT_ID?.trim();
   return envTenant !== undefined && envTenant.length > 0 ? envTenant : null;
 }
 
-/** True when session JWT tenant matches the workspace host (fail-open only for unmapped admin clubs). */
-export function sessionTenantMatchesHost(sessionTenantId: string, host: string): boolean {
+/** True when the session tenant matches static or registry-resolved host context. */
+export type SessionTenantHostMatchOptions = {
+  /** Tenant resolved from the production host registry. */
+  readonly resolvedTenantId?: string | null;
+  /** Reject unresolved operator hosts in production. */
+  readonly failClosedWhenUnresolved?: boolean;
+};
+
+export function sessionTenantMatchesHost(
+  sessionTenantId: string,
+  host: string,
+  options?: SessionTenantHostMatchOptions
+): boolean {
   const outcome = parseMultiLevelTenantHost(
     normalizeHostHeader(host),
     readPlatformRootDomainWeb(),
@@ -60,14 +69,17 @@ export function sessionTenantMatchesHost(sessionTenantId: string, host: string):
     return true;
   }
 
+  const resolvedTenantId = options?.resolvedTenantId?.trim();
+  if (resolvedTenantId !== undefined && resolvedTenantId.length > 0) {
+    return sessionTenantId.trim() === resolvedTenantId;
+  }
+
   const expected = resolveExpectedTenantIdForHost(host);
   if (expected !== null) {
     return sessionTenantId.trim() === expected;
   }
 
-  if (!isOperatorAdminHost(host)) {
-    return true;
-  }
-
-  return true;
+  const failClosedWhenUnresolved =
+    options?.failClosedWhenUnresolved ?? !isDevWebSessionAllowed();
+  return !failClosedWhenUnresolved;
 }

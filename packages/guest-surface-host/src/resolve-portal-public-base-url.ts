@@ -1,7 +1,11 @@
 import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel/host-only";
 
+import { resolveTenantSurfaceOriginFromHost } from "./tenant-surface-origin-map";
+
 /** Resolve user portal base URL from any surface ingress host (WRS-URL-01). */
 export function resolvePortalPublicBaseUrl(host: string): string {
+  const tenantMappedOrigin = resolveTenantSurfaceOriginFromHost(host, "portal");
+  if (tenantMappedOrigin !== null) return tenantMappedOrigin;
   return buildDevPortalPublicBaseUrl({
     ingressHost: host,
     rootDomain: process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost",

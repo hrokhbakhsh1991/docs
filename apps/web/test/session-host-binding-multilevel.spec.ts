@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
 
+import { requireOperatorSessionWeb } from "../src/admin/require-operator-session";
 import {
   resolveExpectedTenantIdForHost,
   sessionTenantMatchesHost,
@@ -14,6 +15,7 @@ const envSnapshot = {
   NODE_ENV: env.NODE_ENV,
   ALLOW_DEV_WEB_SESSION: env.ALLOW_DEV_WEB_SESSION,
   TOUR_OPS_DEV_TENANT_ID: env.TOUR_OPS_DEV_TENANT_ID,
+  PLATFORM_ROOT_DOMAIN: env.PLATFORM_ROOT_DOMAIN,
 };
 
 afterEach(() => {
@@ -30,10 +32,7 @@ describe("session-host-binding multilevel", () => {
   it("admin surface bind", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
-    assert.equal(
-      resolveExpectedTenantIdForHost("denali.admin.localhost:3000"),
-      DENALI_TENANT
-    );
+    assert.equal(resolveExpectedTenantIdForHost("denali.admin.localhost:3000"), DENALI_TENANT);
     assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "denali.admin.localhost:3000"), true);
   });
 
@@ -45,6 +44,77 @@ describe("session-host-binding multilevel", () => {
     const provisionedTenant = "00000000-0000-4000-8000-000000000099";
     assert.equal(resolveExpectedTenantIdForHost(dynamicHost), null);
     assert.equal(sessionTenantMatchesHost(provisionedTenant, dynamicHost), true);
+  });
+
+  it("production dynamic admin host binds to registry tenant and rejects other tenants", () => {
+    env.NODE_ENV = "production";
+    delete env.ALLOW_DEV_WEB_SESSION;
+    env.PLATFORM_ROOT_DOMAIN = "shenski.com";
+    const dynamicHost = "admin.qa2.staging.test";
+    const tenantB = "f0ed9e65-2638-4351-847d-724f87ebbfce";
+    assert.equal(resolveExpectedTenantIdForHost(dynamicHost), null);
+    assert.equal(
+      sessionTenantMatchesHost(tenantB, dynamicHost, {
+        resolvedTenantId: tenantB,
+        failClosedWhenUnresolved: true,
+      }),
+      true
+    );
+    assert.equal(
+      sessionTenantMatchesHost(DENALI_TENANT, dynamicHost, {
+        resolvedTenantId: tenantB,
+        failClosedWhenUnresolved: true,
+      }),
+      false
+    );
+  });
+
+  it("production rejects a dynamic admin host when tenant resolution fails", () => {
+    env.NODE_ENV = "production";
+    delete env.ALLOW_DEV_WEB_SESSION;
+    env.PLATFORM_ROOT_DOMAIN = "shenski.com";
+    assert.equal(
+      sessionTenantMatchesHost(DENALI_TENANT, "admin.unknown.staging.test", {
+        resolvedTenantId: null,
+        failClosedWhenUnresolved: true,
+      }),
+      false
+    );
+    assert.equal(
+      sessionTenantMatchesHost(DENALI_TENANT, "admin.shenski.com", {
+        resolvedTenantId: null,
+        failClosedWhenUnresolved: true,
+      }),
+      true
+    );
+  });
+
+  it("direct layout session gate also fails closed unless bootstrap tenant is supplied", () => {
+    env.NODE_ENV = "production";
+    delete env.ALLOW_DEV_WEB_SESSION;
+    env.PLATFORM_ROOT_DOMAIN = "shenski.com";
+    const session = {
+      userId: "synthetic-owner-b",
+      tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      role: "owner" as const,
+      workspaceType: "denali",
+      pluginId: "denali",
+    };
+    const host = "admin.qa2.staging.test";
+
+    assert.equal(
+      requireOperatorSessionWeb({ session, pathname: "/dashboard", host }).allowed,
+      false
+    );
+    assert.equal(
+      requireOperatorSessionWeb({
+        session,
+        pathname: "/dashboard",
+        host,
+        resolvedTenantId: session.tenantId,
+      }).allowed,
+      true
+    );
   });
 
   it("root bootstrap uses tenant-context after static map miss", () => {

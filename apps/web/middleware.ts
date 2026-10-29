@@ -27,7 +27,12 @@ import {
 } from "@/tenant/platform-host-env";
 import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
-import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
+import {
+  resolveExpectedTenantIdForHost,
+  sessionTenantMatchesHost,
+} from "@/tenant/session-host-binding";
+import { isDevWebSessionAllowed } from "@/tenant/auth-env";
+import { resolveAdminBootstrapForWebHost } from "@/tenant/resolve-admin-bootstrap.server";
 import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
@@ -90,6 +95,15 @@ function readSessionToken(request: NextRequest): string | undefined {
   return request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
 }
 
+async function resolveAdminTenantIdForHost(host: string): Promise<string | null> {
+  try {
+    const bootstrap = await resolveAdminBootstrapForWebHost(host);
+    return bootstrap.tenantId;
+  } catch {
+    return null;
+  }
+}
+
 function isInviteBootstrapPath(pathname: string): boolean {
   return (
     pathname === "/api/auth/membership-ability-context" ||
@@ -102,22 +116,7 @@ function redirectToLogin(
   clearCookie: boolean,
   accessReason?: "tenant-mismatch" | "owner-only"
 ): NextResponse {
-  const ingressHost =
-    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
-    request.headers.get("host")?.trim();
-  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const loginUrl = request.nextUrl.clone();
-  // Behind Caddy, Next may model request.nextUrl as the loopback upstream.
-  // Keep protected-route redirects on the public admin ingress instead.
-  if (ingressHost !== undefined && /^[A-Za-z0-9.-]+(?::\d+)?$/.test(ingressHost)) {
-    loginUrl.host = ingressHost;
-    if (!ingressHost.includes(":")) {
-      loginUrl.port = "";
-    }
-  }
-  if (forwardedProto === "http" || forwardedProto === "https") {
-    loginUrl.protocol = `${forwardedProto}:`;
-  }
+  const loginUrl = bindUrlToRequestIngress(request.nextUrl.clone(), request);
   loginUrl.pathname = OPERATOR_LOGIN_PATH;
   const returnUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`;
   const params = new URLSearchParams({ returnUrl });
@@ -130,6 +129,33 @@ function redirectToLogin(
     clearSessionCookieOnResponse(response.headers);
   }
   return response;
+}
+
+function bindUrlToRequestIngress(url: URL, request: NextRequest): URL {
+  const ingressHost =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
+    request.headers.get("host")?.trim();
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  // Behind Caddy, Next may model request.nextUrl as the loopback upstream.
+  // Keep redirects on the public admin ingress instead.
+  if (ingressHost !== undefined && /^[A-Za-z0-9.-]+(?::\d+)?$/.test(ingressHost)) {
+    url.host = ingressHost;
+    if (!ingressHost.includes(":")) {
+      url.port = "";
+    }
+  }
+  if (forwardedProto === "http" || forwardedProto === "https") {
+    url.protocol = `${forwardedProto}:`;
+  }
+  return url;
+}
+
+function readRequestIngressHost(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    request.headers.get("host")?.trim() ||
+    request.nextUrl.host
+  );
 }
 
 function jsonAuthError(status: number, code: string, message: string): NextResponse {
@@ -266,7 +292,7 @@ function preservesTeamPanelSession(role: string | undefined): boolean {
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get("host") ?? request.nextUrl.host ?? "";
+  const host = readRequestIngressHost(request);
 
   const platformResponse = await handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {
@@ -289,7 +315,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const operatorAdminHome = resolveOperatorAdminRootRedirect({ pathname, host });
   if (operatorAdminHome !== null) {
-    return NextResponse.redirect(new URL(operatorAdminHome, request.url));
+    const adminUrl = bindUrlToRequestIngress(new URL(operatorAdminHome, request.url), request);
+    return NextResponse.redirect(adminUrl);
   }
 
   const platformOnClubAdmin = blockPlatformOnClubAdminHost(request, host);
@@ -316,7 +343,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const token = readSessionToken(request);
   const validation = validateSessionToken(token);
   if (validation.status === "valid") {
-    if (!sessionTenantMatchesHost(validation.tenantId, host)) {
+    const expectedTenantId = resolveExpectedTenantIdForHost(host);
+    const resolvedTenantId =
+      expectedTenantId === null && !isDevWebSessionAllowed()
+        ? await resolveAdminTenantIdForHost(host)
+        : null;
+    if (
+      !sessionTenantMatchesHost(validation.tenantId, host, {
+        resolvedTenantId,
+        failClosedWhenUnresolved: !isDevWebSessionAllowed(),
+      })
+    ) {
       if (isBffApi) {
         const res = jsonAuthError(
           403,

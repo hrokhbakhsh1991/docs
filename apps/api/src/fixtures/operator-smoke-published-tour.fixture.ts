@@ -344,9 +344,10 @@ export function applyOperatorSmokePublishedTourEditReadyPatch(
 }
 
 export function buildOperatorSmokePublishedTourCanonical(
-  catalog: OperatorSmokePublishedTourCatalogRefs = OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG
+  catalog: OperatorSmokePublishedTourCatalogRefs = OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
+  now: Date = new Date()
 ): CanonicalDocument {
-  return toCanonicalDocument(buildSmokePublishedTourData(catalog));
+  return toCanonicalDocument(buildSmokePublishedTourData(catalog, now));
 }
 
 export function buildOperatorSmokePublishedTour(input: {
@@ -395,14 +396,7 @@ export function buildDenaliClubDevDraftTour(input: {
 
 export function buildDenaliBookingScenarioTour(input: {
   readonly tenantId: string;
-  readonly id:
-    | typeof DENALI_BOOKING_PAID_AUTO_TOUR_ID
-    | typeof DENALI_BOOKING_FREE_MANUAL_TOUR_ID
-    | typeof DENALI_BOOKING_FREE_AUTO_TOUR_ID
-    | typeof DENALI_BOOKING_PAID_AUTO_DISCOUNT_TOUR_ID
-    | typeof DENALI_BOOKING_FREE_AUTO_DISCOUNT_TOUR_ID
-    | typeof DENALI_BOOKING_PAID_MANUAL_DISCOUNT_TOUR_ID
-    | typeof DENALI_STAGING_FINAL_APPROVAL_TOUR_ID;
+  readonly id: string;
   readonly title: string;
   readonly registrationApproval: "manual" | "auto";
   readonly paymentCollection: "offline" | "free";
@@ -410,10 +404,12 @@ export function buildDenaliBookingScenarioTour(input: {
   readonly transportMode?: "none" | "airplane";
   readonly transportCost?: number;
   readonly catalog?: OperatorSmokePublishedTourCatalogRefs;
+  readonly now?: Date;
   readonly createdAt?: string;
 }): Tour {
   const base = buildOperatorSmokePublishedTourCanonical(
-    input.catalog ?? DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG
+    input.catalog ?? DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG,
+    input.now
   );
   const data = {
     ...base.data,

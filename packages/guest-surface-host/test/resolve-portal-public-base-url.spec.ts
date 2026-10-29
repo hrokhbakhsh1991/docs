@@ -12,18 +12,53 @@ import {
 } from "../src/index";
 
 describe("resolve-portal-public-base-url", () => {
+  it("uses the registered tenant portal origin instead of the global A fallback", () => {
+    const previousBase = process.env.PORTAL_PUBLIC_BASE_URL;
+    const previousMap = process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+    process.env.PORTAL_PUBLIC_BASE_URL = "https://portal.denali.staging.test";
+    process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = JSON.stringify({
+      version: 1,
+      tenants: [
+        {
+          tenantId: "00000000-0000-4000-8000-000000000003",
+          origins: {
+            marketing: "https://denali.staging.test",
+            admin: "https://admin.denali.staging.test",
+            portal: "https://portal.denali.staging.test",
+          },
+          cookieDomain: "denali.staging.test",
+        },
+        {
+          tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+          origins: {
+            marketing: "https://qa2.staging.test",
+            admin: "https://admin.qa2.staging.test",
+            portal: "https://portal.qa2.staging.test",
+          },
+          cookieDomain: "qa2.staging.test",
+        },
+      ],
+    });
+    try {
+      assert.equal(
+        resolvePortalPublicBaseUrl("admin.qa2.staging.test"),
+        "https://portal.qa2.staging.test"
+      );
+      assert.throws(() => resolvePortalPublicBaseUrl("unknown.example"), /not allowlisted/);
+    } finally {
+      if (previousBase === undefined) delete process.env.PORTAL_PUBLIC_BASE_URL;
+      else process.env.PORTAL_PUBLIC_BASE_URL = previousBase;
+      if (previousMap === undefined) delete process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+      else process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = previousMap;
+    }
+  });
+
   it("WRS-GSH-03 custom apex marketing → portal sibling", () => {
-    assert.equal(
-      resolvePortalPublicBaseUrl("denali.club"),
-      "http://portal.denali.club:3003"
-    );
+    assert.equal(resolvePortalPublicBaseUrl("denali.club"), "http://portal.denali.club:3003");
   });
 
   it("WRS-GSH-05 bare IPv4 ingress maps to same host with portal port", () => {
-    assert.equal(
-      resolvePortalPublicBaseUrl("89.42.210.252:23002"),
-      "http://89.42.210.252:3003"
-    );
+    assert.equal(resolvePortalPublicBaseUrl("89.42.210.252:23002"), "http://89.42.210.252:3003");
     assert.doesNotThrow(() => new URL(resolvePortalPublicBaseUrl("89.42.210.252:23002")));
   });
 

@@ -1,4 +1,7 @@
-export { PHASE_43_HOST_TENANT_IDS, resolveTenantIdFromIngressLabel } from "./phase-43-host-tenant-ids";
+export {
+  PHASE_43_HOST_TENANT_IDS,
+  resolveTenantIdFromIngressLabel,
+} from "./phase-43-host-tenant-ids";
 export {
   CANONICAL_SMOKE_OPERATOR_MARKETING_BASE_URL,
   CANONICAL_SMOKE_OPERATOR_PORTAL_BASE_URL,
@@ -6,6 +9,14 @@ export {
 } from "./canonical-smoke-urls";
 export { isDevGuestHostAllowed, isDevWebSessionAllowed } from "./is-dev-guest-host-allowed";
 export { isLocalhostIngressHost } from "./is-localhost-ingress-host";
+export {
+  isTenantSurfaceOriginMapConfigured,
+  resolveTenantSurfaceBindingForHost,
+  resolveTenantSurfaceOriginFromHost,
+  validateTenantSurfaceOriginMap,
+  type TenantSurfaceBinding,
+  type TenantSurfaceName,
+} from "./tenant-surface-origin-map";
 export { sessionTenantMatchesDevCrossSurfaceHost } from "./session-tenant-matches-dev-cross-surface-host";
 export { resolvePublicBrandingHost } from "./resolve-public-branding-host";
 export {
@@ -41,10 +52,7 @@ export {
   type GuestSurfaceUnresolvedError,
   type ResolveGuestSurfaceBootstrapOptions,
 } from "./resolve-guest-surface-bootstrap";
-export {
-  OPERATOR_SMOKE_TENANT_ID,
-  resolveDevPluginIdForTenantId,
-} from "./resolve-dev-plugin-id";
+export { OPERATOR_SMOKE_TENANT_ID, resolveDevPluginIdForTenantId } from "./resolve-dev-plugin-id";
 export {
   resolveMarketingPublicBaseUrl,
   resolveMarketingTourDetailUrl,
@@ -55,9 +63,7 @@ export {
   resolvePortalRegistrationUrl,
 } from "./resolve-portal-public-base-url";
 export { resolvePublicAuthCorsAllowOrigin } from "./resolve-public-auth-cors-allow-origin";
-export {
-  resolvePortalMemberModuleUrl,
-} from "./resolve-portal-member-module-url";
+export { resolvePortalMemberModuleUrl } from "./resolve-portal-member-module-url";
 export { resolveMemberLoginCatalogTourId } from "./resolve-member-login-catalog-tour-id";
 export {
   resolvePortalRegistrationLoginPath,
@@ -69,9 +75,7 @@ export {
 } from "./resolve-portal-member-login-url";
 export { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
 export { resolveIngressPluginId } from "./resolve-ingress-plugin-id";
-export {
-  resolveProductionIngressLabelFromHost,
-} from "./resolve-production-ingress-label";
+export { resolveProductionIngressLabelFromHost } from "./resolve-production-ingress-label";
 export {
   readDefaultPublicTenantIdFromEnv,
   readPublicFallbackHostsFromEnv,

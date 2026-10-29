@@ -83,6 +83,112 @@ describe("staging-env-contract", () => {
     assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
   });
 
+  it("REG-STG-ENV-07 routes exact second-tenant hosts only to staging upstreams", () => {
+    const render = read("scripts/vps-deploy/render-caddy-env.sh");
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    assert.match(render, /STAGING_SECOND_TENANT_LABEL=.*STAGING_SECOND_TENANT_LABEL/);
+    assert.match(render, /STAGING_SECOND_TENANT_LABEL=\$\{STAGING_SECOND_TENANT_LABEL\}/);
+    assert.match(render, /STAGING_SECOND_TENANT_ENABLED=\$\{STAGING_SECOND_TENANT_ENABLED\}/);
+    assert.match(render, /STAGING_SECOND_TENANT_ENABLED:-false/);
+    assert.match(render, /must be true or false/);
+    assert.match(render, /invalid staging second tenant label/);
+    assert.match(render, /STAGING_SECOND_TENANT_LABEL[\s\S]*?CANONICAL_TENANT_LABEL/);
+    assert.match(render, /missing staging env directory/);
+    assert.match(render, /missing staging \$\{app\}\.env/);
+    assert.match(render, /staging app port collides with production/);
+    assert.doesNotMatch(render, /collect_app_ports "\$STAGING_ENV_DIR"/);
+
+    const routeAssertions = [
+      ["A", "admin", "CANONICAL_TENANT_LABEL", "STAGING_WEB_PORT", false],
+      ["B", "admin", "STAGING_SECOND_TENANT_LABEL", "STAGING_WEB_PORT", true],
+      ["A", "portal", "CANONICAL_TENANT_LABEL", "STAGING_PORTAL_PORT", false],
+      ["B", "portal", "STAGING_SECOND_TENANT_LABEL", "STAGING_PORTAL_PORT", true],
+      ["A", "marketing", "CANONICAL_TENANT_LABEL", "STAGING_MARKETING_PORT", false],
+      ["B", "marketing", "STAGING_SECOND_TENANT_LABEL", "STAGING_MARKETING_PORT", true],
+    ];
+    for (const [tenant, surface, label, upstream, gated] of routeAssertions) {
+      const host =
+        surface === "admin"
+          ? `https://admin.{\$${label}}.staging.test`
+          : surface === "portal"
+            ? `https://portal.{\$${label}}.staging.test`
+            : `https://{\$${label}}.staging.test`;
+      const start = caddy.indexOf(host);
+      const end = caddy.indexOf("\n\n", start + host.length);
+      assert.ok(start >= 0, `${tenant} ${surface} private HTTPS host`);
+      const block = caddy.slice(start, end < 0 ? undefined : end);
+      assert.match(block, /tls internal/);
+      assert.match(block, new RegExp(`\\{\\$${upstream}\\}`));
+      assert.match(block, /header_up Host \{host\}/);
+      assert.match(block, /header_up X-Forwarded-Proto https/);
+      assert.match(block, /header_up X-Forwarded-Host \{host\}/);
+      assert.doesNotMatch(block, /PROD_(?:API|WEB|PORTAL|MARKETING)_PORT/);
+      if (gated) {
+        assert.match(
+          block,
+          /@stagingSecondTenantDisabled expression `\{env\.STAGING_SECOND_TENANT_ENABLED\} != "true"`/
+        );
+        assert.match(
+          block,
+          /handle @stagingSecondTenantDisabled \{\s*respond "staging second tenant ingress is disabled" 503/s
+        );
+        assert.ok(
+          block.indexOf('respond "staging second tenant ingress is disabled" 503') <
+            block.indexOf("handle {")
+        );
+      } else {
+        assert.doesNotMatch(block, /STAGING_SECOND_TENANT_ENABLED/);
+      }
+      if (surface === "admin" && tenant === "A") {
+        assert.match(block, /@stagingTelegramWebhook path \/webhooks\/telegram\/\*/);
+        assert.match(block, /\{\$STAGING_API_PORT\}/);
+      }
+      if (surface === "admin" && tenant === "B") {
+        assert.doesNotMatch(block, /STAGING_API_PORT|stagingTelegramWebhook/);
+      }
+    }
+  });
+
+  it("REG-STG-ENV-08 documents private TLS trust and avoids opening origin 443 publicly", () => {
+    const readme = read("deploy/vps/caddy/README.md");
+    const ufw = read("scripts/vps-deploy/verify-ufw-four-process.sh");
+    assert.match(readme, /Private two-tenant staging ingress/);
+    assert.match(readme, /trust it there; do not disable certificate validation/);
+    assert.match(readme, /keep origin TCP\/443 closed to the public internet/);
+    assert.match(readme, /Never use `curl -k`/);
+    assert.doesNotMatch(ufw, /ufw allow 80,443\/tcp/);
+    assert.match(ufw, /keep private-staging 443 closed publicly/);
+  });
+
+  it("REG-STG-ENV-09 preserves the existing public A marketing staging route", () => {
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    const start = caddy.indexOf("http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}");
+    const end = caddy.indexOf("\n\n", start);
+    const block = caddy.slice(start, end < 0 ? undefined : end);
+    assert.ok(start >= 0, "A marketing staging host remains explicit");
+    assert.match(block, /\{\$STAGING_MARKETING_PORT\}/);
+    assert.doesNotMatch(block, /PROD_MARKETING_PORT/);
+  });
+
+  it("REG-STG-ENV-10 fails closed on legacy public B names before wildcard routes", () => {
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    const genericMarketingRoute = caddy.indexOf("http://*.{$PLATFORM_ROOT_DOMAIN}");
+    const routes = [
+      "http://staging-admin-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}",
+      "http://staging-portal-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}",
+      "http://staging-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN}",
+    ];
+    for (const host of routes) {
+      const start = caddy.indexOf(host);
+      const end = caddy.indexOf("\n\n", start + host.length);
+      const block = caddy.slice(start, end < 0 ? undefined : end);
+      assert.ok(start >= 0, `${host} has an explicit tombstone`);
+      assert.ok(start < genericMarketingRoute, `${host} precedes the marketing catch-all`);
+      assert.match(block, /respond "private staging ingress required" 503/);
+      assert.doesNotMatch(block, /reverse_proxy/);
+    }
+  });
+
   it("REG-STG-ENV-06 shares sibling-host member sessions through the staging parent", () => {
     const sync = read("scripts/vps-deploy/sync-staging-profile-b-public-urls.sh");
     assert.match(sync, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);

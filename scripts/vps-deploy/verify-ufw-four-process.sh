@@ -21,9 +21,9 @@ for port in "$API_PORT" "$WEB_PORT" "${MARKETING_PORT:-}" "${PORTAL_PORT:-}"; do
 done
 
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-  echo "[ufw-verify] UFW active — Profile C should block public 3000-3003; allow 80/443 only"
+  echo "[ufw-verify] Policy guidance — block public app ports; allow 80 for Arvan HTTP origin; keep private-staging 443 closed publicly. Current matching rules:"
   ufw status numbered 2>/dev/null | grep -E '80|443|'"${WEB_PORT}"'' || \
-    echo "[ufw-verify] hint: ufw allow 80,443/tcp · restrict app ports to loopback when Profile C cutover"
+    echo "[ufw-verify] hint: allow only required ingress; never open 443 globally for private .staging.test routes"
 else
   echo "[ufw-verify] UFW inactive or unavailable — document firewall in deploy/vps/README.md"
 fi

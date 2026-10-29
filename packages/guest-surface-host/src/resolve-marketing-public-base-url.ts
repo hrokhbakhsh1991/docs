@@ -1,5 +1,7 @@
 import { buildDevMarketingPublicBaseUrl } from "@app-tour/tenant-kernel/host-only";
 
+import { resolveTenantSurfaceOriginFromHost } from "./tenant-surface-origin-map";
+
 function resolveProductionMarketingBaseUrl(): string | undefined {
   if (process.env.NODE_ENV !== "production") return undefined;
   const configured = process.env.MARKETING_PUBLIC_BASE_URL?.trim();
@@ -24,6 +26,8 @@ function resolveProductionMarketingBaseUrl(): string | undefined {
 
 /** Resolve public marketing base URL from any surface ingress host (WRS-URL-01). */
 export function resolveMarketingPublicBaseUrl(host: string): string {
+  const tenantMappedOrigin = resolveTenantSurfaceOriginFromHost(host, "marketing");
+  if (tenantMappedOrigin !== null) return tenantMappedOrigin;
   const productionBaseUrl = resolveProductionMarketingBaseUrl();
   if (productionBaseUrl !== undefined) return productionBaseUrl;
   return buildDevMarketingPublicBaseUrl({
