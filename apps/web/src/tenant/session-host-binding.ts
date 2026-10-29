@@ -20,7 +20,8 @@ import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingr
  * Legacy `{club}.localhost` apex is not an admin host.
  */
 export function resolveExpectedTenantIdForHost(host: string): string | null {
-  if (isStagingSurfaceMapEnabled()) {
+  if (isStagingProfile()) {
+    if (!isTenantSurfaceOriginMapConfigured()) return null;
     return lookupTenantSurfaceBindingForHost(host, "admin")?.tenantId ?? null;
   }
 
@@ -57,14 +58,15 @@ export function resolveExpectedTenantIdForHost(host: string): string | null {
 }
 
 export function shouldFailClosedForTenantHost(): boolean {
-  return !isDevWebSessionAllowed() || isStagingSurfaceMapEnabled();
+  return !isDevWebSessionAllowed() || isStagingProfile();
 }
 
-function isStagingSurfaceMapEnabled(): boolean {
-  return (
-    process.env.APP_INFRA_PROFILE?.trim().toLowerCase() === "staging" &&
-    isTenantSurfaceOriginMapConfigured()
-  );
+export function shouldResolveAdminTenantIdFromBootstrap(): boolean {
+  return !isStagingProfile() || isTenantSurfaceOriginMapConfigured();
+}
+
+function isStagingProfile(): boolean {
+  return process.env.APP_INFRA_PROFILE?.trim().toLowerCase() === "staging";
 }
 
 /** True when the session tenant matches static or registry-resolved host context. */

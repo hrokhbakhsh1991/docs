@@ -6,6 +6,7 @@ import { requireOperatorSessionWeb } from "../src/admin/require-operator-session
 import {
   resolveExpectedTenantIdForHost,
   shouldFailClosedForTenantHost,
+  shouldResolveAdminTenantIdFromBootstrap,
   sessionTenantMatchesHost,
 } from "../src/tenant/session-host-binding";
 
@@ -109,6 +110,29 @@ describe("session-host-binding multilevel", () => {
     assert.equal(shouldFailClosedForTenantHost(), true);
     assert.equal(resolveExpectedTenantIdForHost("admin.unbound.staging.test"), null);
     assert.equal(sessionTenantMatchesHost(QA2_TENANT, "admin.unbound.staging.test"), false);
+  });
+
+  it("staging fails closed when the admin origin map is absent or blank", () => {
+    env.NODE_ENV = "production";
+    env.ALLOW_DEV_WEB_SESSION = "true";
+    env.TOUR_OPS_DEV_TENANT_ID = DENALI_TENANT;
+    env.APP_INFRA_PROFILE = "staging";
+
+    for (const mapValue of [undefined, "", "   "]) {
+      if (mapValue === undefined) {
+        delete env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+      } else {
+        env.TENANT_SURFACE_ORIGIN_MAP_JSON = mapValue;
+      }
+
+      assert.equal(shouldFailClosedForTenantHost(), true);
+      assert.equal(shouldResolveAdminTenantIdFromBootstrap(), false);
+      for (const host of ["admin.unknown.staging.test", "admin.qa2.staging.test"]) {
+        assert.equal(resolveExpectedTenantIdForHost(host), null);
+        assert.equal(sessionTenantMatchesHost(DENALI_TENANT, host), false);
+        assert.equal(sessionTenantMatchesHost(QA2_TENANT, host), false);
+      }
+    }
   });
 
   it("production rejects a dynamic admin host when tenant resolution fails", () => {

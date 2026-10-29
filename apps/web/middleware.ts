@@ -29,6 +29,7 @@ import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import {
   resolveExpectedTenantIdForHost,
+  shouldResolveAdminTenantIdFromBootstrap,
   shouldFailClosedForTenantHost,
   sessionTenantMatchesHost,
 } from "@/tenant/session-host-binding";
@@ -346,7 +347,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     const expectedTenantId = resolveExpectedTenantIdForHost(host);
     const failClosedWhenUnresolved = shouldFailClosedForTenantHost();
     const resolvedTenantId =
-      expectedTenantId === null && failClosedWhenUnresolved
+      expectedTenantId === null &&
+      failClosedWhenUnresolved &&
+      shouldResolveAdminTenantIdFromBootstrap()
         ? await resolveAdminTenantIdForHost(host)
         : null;
     if (
