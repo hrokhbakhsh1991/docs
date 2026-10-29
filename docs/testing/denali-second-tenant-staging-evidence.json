@@ -70,7 +70,8 @@
         "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
         "Fresh direct DNS + strict curl probe 2026-10-29: all three proposed qa2.shenski.com hosts unresolved; curl exit 6 before TLS negotiation. This confirms P0-03 remains blocked.",
         "Fresh read-only VPS inventory on 2026-10-29: host touriran; /etc/caddy/Caddyfile SHA-256 962bcbf4aeb0dda803407b4d28c83e55503602d63cf3ec917cba1959d770fa27; Caddy listens on *:80 only; UFW allows inbound 22/80 and denies 443 for IPv4/IPv6.",
-        "Direct staging A origin host staging-denali.shenski.com still returns HTTP 200 on origin :80. No Caddy deployment, staging app change, DB mutation, B tenant seed, or live browser run occurred."
+        "Direct staging A origin host staging-denali.shenski.com still returns HTTP 200 on origin :80. No Caddy deployment, staging app change, DB mutation, B tenant seed, or live browser run occurred.",
+        "Fresh direct-origin HTTP probe on 2026-10-29: A host staging-denali.shenski.com returned 200, while legacy public QA2 marketing/admin/portal hosts each returned 500 from the existing deployed origin. The deployed /etc/caddy/Caddyfile SHA differs from the branch config, so this is stale-runtime evidence; the private ingress/tombstone changes are not deployed."
       ],
       "depends_on": ["F"]
     },
@@ -85,8 +86,8 @@
     },
     {
       "id": "I",
-      "status": "IN PROGRESS",
-      "reason": "Focused local private-ingress checks and Caddy runtime checks pass. Prior-SHA CI succeeded, but the current private-ingress edits are uncommitted and not covered by CI; staging runtime remains blocked.",
+      "status": "PASS",
+      "reason": "Focused local verification and all non-skipped current-head CI checks passed for 48e63f686177f2e77f235cc3f1a1fd03761065b4. Seven optional impact-classified checks were skipped and are not counted as passes; live staging runtime remains separately blocked in phase G.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -128,7 +129,8 @@
         "Changed Markdown/JS Prettier check, pnpm run guard:doc-sync, verify-ufw-four-process.sh bash -n, and git diff --check: PASS.",
         "Caddy v2.9.1 official release archive SHA-512 verified against its publisher manifest. Full temporary Caddyfile validates with STAGING_SECOND_TENANT_ENABLED=false and true.",
         "Full local Caddy runtime on temporary ports and mock upstreams: strict CA and hostname verification pass; private B returns 503 when disabled, routes to matching staging mocks when enabled, and legacy public B remains 503 in both modes. Mock runtime is not staging integration proof.",
-        "PR #329 workflow run 40792765528 completed success for SHA f585382b76408001d8b9bb649d2f3392122bbbb0; Phase 0 foundation and integration passed. Current private-ingress edits are not included in that SHA or CI run."
+        "PR #329 workflow run 40792765528 completed success for SHA f585382b76408001d8b9bb649d2f3392122bbbb0; Phase 0 foundation and integration passed. Current private-ingress edits are not included in that SHA or CI run.",
+        "Current PR #329 head 48e63f686177f2e77f235cc3f1a1fd03761065b4: all 28 non-skipped checks passed, including Phase 0 foundation/integration, Phase 1, Phase 4, Phase 5, Phase 6.6/6.7/fast-closure, Phase 7 adversarial, Phase 8 guards/regression/E2E, marketing Playwright, production readiness, deployment contract and PROD-6 security. Seven optional impact-classified checks were skipped; zero checks failed."
       ],
       "depends_on": ["F"]
     },
